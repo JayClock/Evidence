@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Evidence Desktop",
+  "version": "0.1.0",
+  "identifier": "com.evidence.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm nx dev @evidence/web --host 127.0.0.1 --port 4200",
+    "beforeBuildCommand": "pnpm nx build @evidence/web",
+    "devUrl": "http://127.0.0.1:4200",
+    "frontendDist": "../../web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Evidence",
+        "width": 1200,
+        "height": 800,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all"
+  }
+}

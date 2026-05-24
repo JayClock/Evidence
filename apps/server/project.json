@@ -1,0 +1,47 @@
+{
+  "name": "@evidence/server",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/server/src",
+  "projectType": "application",
+  "tags": ["scope:server", "type:rust"],
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo run -p evidence-server"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/target/debug/evidence-server"],
+      "options": {
+        "command": "cargo build -p evidence-server"
+      }
+    },
+    "build-release": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/target/release/evidence-server"],
+      "options": {
+        "command": "cargo build -p evidence-server --release"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test -p evidence-server"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo clippy -p evidence-server --all-targets -- -D warnings"
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt -p evidence-server"
+      }
+    }
+  }
+}
