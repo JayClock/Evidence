@@ -7,8 +7,14 @@
     "dev:server": "nx serve @evidence/server",
     "dev:desktop": "nx dev @evidence/desktop",
     "build": "nx run-many -t build",
+    "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint",
-    "test": "nx run-many -t test"
+    "test": "nx run-many -t test",
+    "format": "nx format:write",
+    "format:check": "nx format:check",
+    "lint:staged": "lint-staged",
+    "commitlint": "commitlint --edit",
+    "prepare": "husky"
   },
   "private": true,
   "dependencies": {
@@ -17,6 +23,8 @@
     "react-router-dom": "6.30.3"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^9.8.0",
     "@nx/eslint": "22.7.3",
     "@nx/eslint-plugin": "22.7.3",
@@ -45,8 +53,10 @@
     "eslint-plugin-jsx-a11y": "6.10.1",
     "eslint-plugin-react": "7.35.0",
     "eslint-plugin-react-hooks": "5.0.0",
+    "husky": "^9.1.7",
     "jiti": "2.4.2",
     "jsdom": "~22.1.0",
+    "lint-staged": "^17.0.5",
     "nx": "22.7.3",
     "prettier": "~3.6.2",
     "tslib": "^2.3.0",

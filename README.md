@@ -25,6 +25,12 @@ pnpm install
 # List projects
 pnpm nx show projects
 
+# Quality gates
+pnpm lint
+pnpm test
+pnpm typecheck
+pnpm format:check
+
 # Shared React UI for browser and desktop
 pnpm dev:web
 pnpm nx build @evidence/web
@@ -42,6 +48,29 @@ pnpm nx run @evidence/desktop:build
 # Full platform bundles, e.g. DMG on macOS:
 # pnpm --dir apps/desktop tauri build --bundles dmg
 ```
+
+## Git hooks and commit messages
+
+This repository uses Husky, lint-staged, and commitlint.
+
+- `pre-commit`: formats staged frontend/config/docs files with `nx format:write`, lints staged JS/TS files, and runs `cargo fmt --all` for Rust/TOML changes.
+- `commit-msg`: validates Conventional Commits.
+
+Commit format:
+
+```text
+<type>(<scope>): <subject>
+```
+
+Examples:
+
+```text
+feat(web): add dashboard shell
+fix(server): handle health check errors
+chore(workspace): update tooling
+```
+
+Allowed scopes include `web`, `desktop`, `server`, `workspace`, `deps`, `ci`, `docs`, and `release`.
 
 ## Desktop/Web relationship
 
