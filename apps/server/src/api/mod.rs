@@ -9,9 +9,10 @@ mod root;
 mod sidebar;
 mod user_workspaces;
 mod users;
+mod vendor_media;
 mod workspace_members;
 
-use axum::Router;
+use axum::{middleware, Router};
 use std::sync::Arc;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
@@ -31,6 +32,7 @@ pub fn app(users: Arc<dyn Users>) -> Router {
         .merge(diagrams::routes())
         .merge(logical_entities::routes())
         .merge(sidebar::routes())
+        .layer(middleware::from_fn(vendor_media::apply_vendor_media_type))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(AppState { users })

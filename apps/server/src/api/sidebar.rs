@@ -45,6 +45,7 @@ pub(super) fn sidebar_resource(user_id: &str) -> Value {
                         "key": "workspaces",
                         "label": "Workspaces",
                         "type": "resource",
+                        "href": user_workspaces_href(user_id),
                         "path": user_workspaces_href(user_id),
                         "icon": "layout-dashboard",
                     }

@@ -1,9 +1,17 @@
 import { useMemo } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import {
+  apiClient,
   getRootResource,
+  normalizeContentType,
+  resourceContentTypes,
+  toApiPathname,
+  toAppPathname,
   useResource,
+  type DiagramCollectionResource,
+  type Entity,
   type Link as HalLink,
+  type LogicalEntityCollectionResource,
   type RootResource,
   type SidebarItem,
   type SidebarResource,
@@ -125,6 +133,9 @@ function AppShell({
                 path="/workspaces"
                 element={<WorkspacesPage userState={userState} />}
               />
+              <Route path="/users/*" element={<ApiResourcePage />} />
+              <Route path="/workspaces/*" element={<ApiResourcePage />} />
+              <Route path="/api/*" element={<ApiResourcePage />} />
             </Routes>
           </main>
         </SidebarInset>
@@ -273,7 +284,7 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link to={selfHref}>User resource</Link>
+                <Link to={toAppPathname(selfHref)}>User resource</Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -362,6 +373,14 @@ function WorkspacesPage({ userState }: { userState: State<UserResource> }) {
     return <StatusCard title="Workspaces unavailable" detail={error.message} />;
   }
 
+  return <WorkspaceCollectionView resourceState={resourceState} />;
+}
+
+function WorkspaceCollectionView({
+  resourceState,
+}: {
+  resourceState: State<WorkspaceCollectionResource>;
+}) {
   return (
     <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -404,15 +423,226 @@ function WorkspaceItem({
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
         {workspaceState.links.getAll().map((link: HalLink) => (
-          <span
+          <Link
             key={`${link.rel}:${link.href}`}
-            className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
+            to={toAppPathname(link.href)}
+            className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
           >
             {link.rel}
-          </span>
+          </Link>
         ))}
       </div>
     </article>
+  );
+}
+
+function ApiResourcePage() {
+  const location = useLocation();
+  const apiPath = toApiPathname(`${location.pathname}${location.search}`);
+  const resource = useMemo(() => apiClient.go<Entity>(apiPath), [apiPath]);
+  const { loading, error, resourceState } = useResource<Entity>(resource);
+
+  if (loading || !resourceState) {
+    return <StatusCard title="Loading resource" detail={`GET ${apiPath}`} />;
+  }
+
+  if (error) {
+    return <StatusCard title="Resource unavailable" detail={error.message} />;
+  }
+
+  return <ResourceRenderer resourceState={resourceState} />;
+}
+
+function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
+  const contentType = normalizeContentType(
+    resourceState.contentHeaders().get('content-type'),
+  );
+
+  switch (contentType) {
+    case resourceContentTypes.workspaces:
+      return (
+        <WorkspaceCollectionView
+          resourceState={resourceState as State<WorkspaceCollectionResource>}
+        />
+      );
+    case resourceContentTypes.workspace:
+      return (
+        <WorkspaceDetailView
+          resourceState={resourceState as State<WorkspaceResource>}
+        />
+      );
+    case resourceContentTypes.diagrams:
+      return (
+        <DiagramCollectionView
+          resourceState={resourceState as State<DiagramCollectionResource>}
+        />
+      );
+    case resourceContentTypes.logicalEntities:
+      return (
+        <LogicalEntityCollectionView
+          resourceState={
+            resourceState as State<LogicalEntityCollectionResource>
+          }
+        />
+      );
+    default:
+      return (
+        <UnknownResourceView contentType={contentType} state={resourceState} />
+      );
+  }
+}
+
+function WorkspaceDetailView({
+  resourceState,
+}: {
+  resourceState: State<WorkspaceResource>;
+}) {
+  return (
+    <section className="flex flex-col gap-4 rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">Workspace</p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {resourceState.data.title}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {resourceState.data.description ?? 'No description'}
+        </p>
+      </div>
+      <ResourceLinks links={resourceState.links.getAll()} />
+    </section>
+  );
+}
+
+function DiagramCollectionView({
+  resourceState,
+}: {
+  resourceState: State<DiagramCollectionResource>;
+}) {
+  return (
+    <CollectionPanel
+      eyebrow="Collection"
+      title="Diagrams"
+      total={resourceState.data.page.totalElements}
+      items={resourceState.collection.map((diagramState) => ({
+        id: diagramState.data.id,
+        title: diagramState.data.title,
+        detail: `${diagramState.data.type} · ${diagramState.data.status}`,
+        href: diagramState.links.getAll().find((link) => link.rel === 'self')
+          ?.href,
+      }))}
+    />
+  );
+}
+
+function LogicalEntityCollectionView({
+  resourceState,
+}: {
+  resourceState: State<LogicalEntityCollectionResource>;
+}) {
+  return (
+    <CollectionPanel
+      eyebrow="Collection"
+      title="Logical entities"
+      total={resourceState.data.page.totalElements}
+      items={resourceState.collection.map((entityState) => ({
+        id: entityState.data.id,
+        title: entityState.data.label ?? entityState.data.name,
+        detail: [entityState.data.type, entityState.data.subType]
+          .filter(Boolean)
+          .join(' · '),
+        href: entityState.links.getAll().find((link) => link.rel === 'self')
+          ?.href,
+      }))}
+    />
+  );
+}
+
+function CollectionPanel({
+  eyebrow,
+  title,
+  total,
+  items,
+}: {
+  eyebrow: string;
+  title: string;
+  total: number;
+  items: Array<{ id: string; title: string; detail: string; href?: string }>;
+}) {
+  return (
+    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{eyebrow}</p>
+          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+        </div>
+        <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+          {total} total
+        </span>
+      </div>
+      <div className="mt-4 flex flex-col gap-3">
+        {items.map((item) => (
+          <article
+            key={item.id}
+            className="rounded-lg border bg-background p-4"
+          >
+            <h3 className="font-medium">
+              {item.href ? (
+                <Link to={toAppPathname(item.href)}>{item.title}</Link>
+              ) : (
+                item.title
+              )}
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">{item.detail}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ResourceLinks({ links }: { links: HalLink[] }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {links.map((link) => (
+        <Link
+          key={`${link.rel}:${link.href}`}
+          to={toAppPathname(link.href)}
+          className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
+        >
+          {link.rel}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function UnknownResourceView({
+  contentType,
+  state,
+}: {
+  contentType: string;
+  state: State<Entity>;
+}) {
+  return (
+    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
+      <p className="text-sm font-medium text-muted-foreground">
+        Unsupported Resource Type
+      </p>
+      <h2 className="mt-1 text-xl font-semibold tracking-tight">
+        {contentType || 'unknown content type'}
+      </h2>
+      <pre className="mt-4 overflow-auto rounded-md border bg-muted p-3 text-xs">
+        {JSON.stringify(
+          {
+            uri: state.uri,
+            data: state.data,
+            collectionSize: state.collection.length,
+          },
+          null,
+          2,
+        )}
+      </pre>
+    </section>
   );
 }
 
@@ -466,15 +696,13 @@ function FullPageStatus({ title, detail }: { title: string; detail: string }) {
 }
 
 function sidebarItemRoute(item: SidebarItem) {
-  if (item.key === 'workspaces') {
-    return '/workspaces';
-  }
+  const href = item.href ?? item.path ?? '#';
 
   if (item.type === 'external') {
-    return item.href ?? item.path ?? '#';
+    return href;
   }
 
-  return item.path ?? item.href ?? '#';
+  return toAppPathname(href);
 }
 
 function isPathActive(pathname: string, candidate: string) {

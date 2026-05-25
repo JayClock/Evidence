@@ -3,6 +3,7 @@ export * from './health-resource.js';
 export * from './logical-entity-resource.js';
 export * from './member-resource.js';
 export * from './root-resource.js';
+export * from './resource-types.js';
 export * from './sidebar-resource.js';
 export * from './user-resource.js';
 export * from './workspace-resource.js';

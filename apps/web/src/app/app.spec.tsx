@@ -6,7 +6,24 @@ import type { Mock } from 'vitest';
 import App from './app';
 
 vi.mock('@evidence/api-client', () => ({
+  apiClient: {
+    go: (path: string) => ({ kind: 'dynamic', path }),
+  },
   getRootResource: () => ({ kind: 'root' }),
+  normalizeContentType: (contentType: string | null) =>
+    contentType?.split(';')[0]?.trim().toLowerCase() ?? '',
+  resourceContentTypes: {
+    workspaces: 'application/vnd.evidence.workspaces+json',
+    workspace: 'application/vnd.evidence.workspace+json',
+    diagrams: 'application/vnd.evidence.diagrams+json',
+    logicalEntities: 'application/vnd.evidence.logical-entities+json',
+  },
+  toApiPathname: (pathname: string) =>
+    pathname === '/' || pathname.startsWith('/api')
+      ? pathname
+      : `/api${pathname}`,
+  toAppPathname: (pathname: string) =>
+    pathname.startsWith('/api/') ? pathname.slice('/api'.length) : pathname,
   useResource: vi.fn(),
 }));
 
@@ -50,6 +67,7 @@ const sidebarState = {
             key: 'workspaces',
             label: 'Workspaces',
             type: 'resource',
+            href: '/api/users/desktop-user/workspaces',
             path: '/api/users/desktop-user/workspaces',
             icon: 'layout-dashboard',
           },
@@ -67,6 +85,8 @@ const workspaceState = {
     description: 'Seed workspace for local desktop usage',
   },
   links: links('self', 'members', 'diagrams', 'logical-entities'),
+  contentHeaders: () =>
+    new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
 };
 
 const workspaceCollectionState = {
@@ -76,6 +96,8 @@ const workspaceCollectionState = {
     },
   },
   collection: [workspaceState],
+  contentHeaders: () =>
+    new Headers({ 'content-type': 'application/vnd.evidence.workspaces+json' }),
 };
 
 const useResourceMock = useResource as unknown as Mock;
@@ -131,7 +153,9 @@ describe('App', () => {
   it('renders HAL-discovered default user, sidebar, and workspace', () => {
     renderApp();
 
-    expect(screen.getAllByText('Evidence Workspace Console').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('Evidence Workspace Console').length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Workspaces').length).toBeGreaterThan(0);
     expect(screen.getByText('Default Workspace')).toBeTruthy();
