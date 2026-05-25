@@ -6,29 +6,15 @@ license.workspace = true
 
 [features]
 default = ["postgres"]
-postgres = ["sea-orm/sqlx-postgres", "sea-orm-migration/sqlx-postgres"]
-sqlite = ["sea-orm/sqlx-sqlite", "sea-orm-migration/sqlx-sqlite"]
-postgres-tests = ["postgres", "dep:testcontainers", "dep:testcontainers-modules"]
-sqlite-tests = ["sqlite", "dep:tempfile"]
+postgres = ["evidence-server-persistent/postgres"]
+sqlite = ["evidence-server-persistent/sqlite"]
+postgres-tests = ["evidence-server-persistent/postgres-tests"]
+sqlite-tests = ["evidence-server-persistent/sqlite-tests"]
 
 [dependencies]
-async-trait = "0.1"
+evidence-server-api = { path = "../../libs/server/api" }
+evidence-server-domain = { path = "../../libs/server/domain" }
+evidence-server-persistent = { path = "../../libs/server/persistent", default-features = false }
 axum = "0.8"
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-sea-orm = { version = "1", default-features = false, features = [
-  "macros",
-  "runtime-tokio-rustls",
-  "with-json",
-] }
-sea-orm-migration = { version = "1", default-features = false, features = [
-  "runtime-tokio-rustls",
-] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tempfile = { version = "3", optional = true }
-testcontainers = { version = "0.25", optional = true }
-testcontainers-modules = { version = "0.13", features = ["postgres"], optional = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
-tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-uuid = { version = "1", features = ["v4"] }

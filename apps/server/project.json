@@ -4,6 +4,11 @@
   "sourceRoot": "apps/server/src",
   "projectType": "application",
   "tags": ["scope:server", "type:rust"],
+  "implicitDependencies": [
+    "@evidence/server-api",
+    "@evidence/server-domain",
+    "@evidence/server-persistent"
+  ],
   "targets": {
     "serve": {
       "executor": "nx:run-commands",
@@ -78,13 +83,29 @@
       "options": {
         "parallel": false,
         "commands": [
+          "pnpm nx run @evidence/server-domain:format-check",
+          "pnpm nx run @evidence/server-api:format-check",
+          "pnpm nx run @evidence/server-persistent:format-check",
           "pnpm nx run @evidence/server:format-check",
+          "pnpm nx run @evidence/server-domain:lint",
+          "pnpm nx run @evidence/server-api:lint",
+          "pnpm nx run @evidence/server-persistent:lint",
           "pnpm nx run @evidence/server:lint",
+          "pnpm nx run @evidence/server-persistent:lint-sqlite",
           "pnpm nx run @evidence/server:lint-sqlite",
+          "pnpm nx run @evidence/server-domain:test",
+          "pnpm nx run @evidence/server-api:test",
+          "pnpm nx run @evidence/server-persistent:test",
           "pnpm nx run @evidence/server:test",
+          "pnpm nx run @evidence/server-persistent:test-sqlite",
           "pnpm nx run @evidence/server:test-sqlite",
+          "pnpm nx run @evidence/server-persistent:test-postgres",
           "pnpm nx run @evidence/server:test-postgres",
+          "pnpm nx run @evidence/server-domain:build",
+          "pnpm nx run @evidence/server-api:build",
+          "pnpm nx run @evidence/server-persistent:build",
           "pnpm nx run @evidence/server:build",
+          "pnpm nx run @evidence/server-persistent:build-sqlite",
           "pnpm nx run @evidence/server:build-sqlite"
         ]
       }

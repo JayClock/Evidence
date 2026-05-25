@@ -12,7 +12,7 @@ use crate::domain::{
     Viewport, Workspace,
 };
 
-use super::{links::Link, AppState};
+use super::{error::ApiError, links::Link, AppState};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -140,7 +140,7 @@ async fn load_diagram(
     state: &AppState,
     workspace_id: &str,
     diagram_id: &str,
-) -> Result<(Workspace, Diagram), ServerError> {
+) -> Result<(Workspace, Diagram), ApiError> {
     let workspace = load_workspace(state, workspace_id).await?;
     let diagram = workspace
         .diagrams()
@@ -154,7 +154,7 @@ async fn list_diagrams(
     State(state): State<AppState>,
     Path(workspace_id): Path<String>,
     Query(query): Query<PageQuery>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let page = query.page.unwrap_or(1);
     let page_size = query.page_size.unwrap_or(50).min(100);
@@ -172,7 +172,7 @@ async fn create_diagram(
     State(state): State<AppState>,
     Path(workspace_id): Path<String>,
     Json(input): Json<CreateDiagramInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let diagram = workspace
         .diagrams_wide()
@@ -192,7 +192,7 @@ async fn create_diagram(
 async fn get_diagram(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     Ok(Json(diagram_detail_resource(&diagram).await?))
 }
@@ -201,7 +201,7 @@ async fn update_diagram(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
     Json(input): Json<UpdateDiagramInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (workspace, existing) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let current = existing.description();
     let mut viewport = input.viewport.unwrap_or_else(|| current.viewport.clone());
@@ -237,7 +237,7 @@ async fn update_diagram(
 async fn delete_diagram(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     workspace.diagrams_wide().delete(&diagram_id).await?;
     Ok(Json(json!({ "deleted": true })))
@@ -246,7 +246,7 @@ async fn delete_diagram(
 async fn list_nodes(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let nodes = diagram.nodes().find_all(0, usize::MAX).await?;
     Ok(Json(node_collection_resource(
@@ -260,7 +260,7 @@ async fn create_node(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
     Json(input): Json<NodeInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let id = input.id.clone();
     let node = diagram
@@ -273,7 +273,7 @@ async fn create_node(
 async fn get_node(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let node = diagram
         .nodes()
@@ -287,7 +287,7 @@ async fn update_node(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
     Json(input): Json<NodeInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let node = diagram
         .nodes_wide()
@@ -299,7 +299,7 @@ async fn update_node(
 async fn delete_node(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     diagram.nodes_wide().delete(&node_id).await?;
     Ok(Json(json!({ "deleted": true })))
@@ -308,7 +308,7 @@ async fn delete_node(
 async fn list_edges(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let edges = diagram.edges().find_all(0, usize::MAX).await?;
     Ok(Json(edge_collection_resource(
@@ -322,7 +322,7 @@ async fn create_edge(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
     Json(input): Json<EdgeInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let id = input.id.clone();
     let edge = diagram
@@ -335,7 +335,7 @@ async fn create_edge(
 async fn get_edge(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let edge = diagram
         .edges()
@@ -349,7 +349,7 @@ async fn update_edge(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
     Json(input): Json<EdgeInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let edge = diagram
         .edges_wide()
@@ -361,7 +361,7 @@ async fn update_edge(
 async fn delete_edge(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     diagram.edges_wide().delete(&edge_id).await?;
     Ok(Json(json!({ "deleted": true })))
@@ -370,7 +370,7 @@ async fn delete_edge(
 async fn list_versions(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let versions = diagram.versions().find_all(0, usize::MAX).await?;
     Ok(Json(version_collection_resource(
@@ -383,7 +383,7 @@ async fn list_versions(
 async fn create_version(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let version = diagram.create_version().await?;
     Ok(Json(version_resource(&workspace_id, &version)))
@@ -393,7 +393,7 @@ async fn commit_draft(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
     Json(input): Json<CommitDraftInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let nodes = input
         .nodes
@@ -430,7 +430,7 @@ async fn commit_draft(
 async fn publish_diagram(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     workspace
         .diagrams_wide()
@@ -512,7 +512,7 @@ fn diagram_resource(diagram: &Diagram) -> Value {
     })
 }
 
-async fn diagram_detail_resource(diagram: &Diagram) -> Result<Value, ServerError> {
+async fn diagram_detail_resource(diagram: &Diagram) -> Result<Value, ApiError> {
     let mut resource = diagram_resource(diagram);
     let nodes = diagram.nodes().find_all(0, usize::MAX).await?;
     let edges = diagram.edges().find_all(0, usize::MAX).await?;

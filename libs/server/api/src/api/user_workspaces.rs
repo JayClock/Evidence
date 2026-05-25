@@ -10,6 +10,7 @@ use std::{collections::BTreeMap, collections::HashMap};
 use crate::domain::{ServerError, WorkspaceDescription};
 
 use super::{
+    error::ApiError,
     links::{user_href, user_workspaces_page_href, Link},
     loaders::{find_user, find_workspace},
     model::{workspace_model, WorkspaceModel},
@@ -64,19 +65,15 @@ async fn list_workspaces(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
     Query(query): Query<ListWorkspacesQuery>,
-) -> Result<Json<WorkspaceCollectionModel>, ServerError> {
+) -> Result<Json<WorkspaceCollectionModel>, ApiError> {
     let user = find_user(&state, &user_id).await?;
     let page = query.page.unwrap_or(1);
     let page_size = query.page_size.unwrap_or(20).min(100);
     if page == 0 {
-        return Err(ServerError::Validation(
-            "page must be greater than 0".to_string(),
-        ));
+        return Err(ServerError::Validation("page must be greater than 0".to_string()).into());
     }
     if page_size == 0 {
-        return Err(ServerError::Validation(
-            "pageSize must be greater than 0".to_string(),
-        ));
+        return Err(ServerError::Validation("pageSize must be greater than 0".to_string()).into());
     }
 
     let (workspaces, total) = user.workspaces().list(page, page_size, None).await?;
@@ -112,7 +109,7 @@ async fn create_workspace(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
     Json(input): Json<WorkspaceInput>,
-) -> Result<(StatusCode, Json<WorkspaceModel>), ServerError> {
+) -> Result<(StatusCode, Json<WorkspaceModel>), ApiError> {
     let user = find_user(&state, &user_id).await?;
     let workspace = user.workspaces().create(input.into_description()).await?;
     Ok((
@@ -124,7 +121,7 @@ async fn create_workspace(
 async fn get_workspace(
     State(state): State<AppState>,
     Path((user_id, workspace_id)): Path<(String, String)>,
-) -> Result<Json<WorkspaceModel>, ServerError> {
+) -> Result<Json<WorkspaceModel>, ApiError> {
     let workspace = find_workspace(&state, &user_id, &workspace_id).await?;
     Ok(Json(workspace_model(&user_id, &workspace)))
 }
@@ -133,7 +130,7 @@ async fn update_workspace(
     State(state): State<AppState>,
     Path((user_id, workspace_id)): Path<(String, String)>,
     Json(input): Json<WorkspaceInput>,
-) -> Result<Json<WorkspaceModel>, ServerError> {
+) -> Result<Json<WorkspaceModel>, ApiError> {
     let user = find_user(&state, &user_id).await?;
     let workspace = user
         .workspaces()
@@ -145,7 +142,7 @@ async fn update_workspace(
 async fn delete_workspace(
     State(state): State<AppState>,
     Path((user_id, workspace_id)): Path<(String, String)>,
-) -> Result<StatusCode, ServerError> {
+) -> Result<StatusCode, ApiError> {
     let user = find_user(&state, &user_id).await?;
     user.workspaces().delete(&workspace_id).await?;
     Ok(StatusCode::NO_CONTENT)

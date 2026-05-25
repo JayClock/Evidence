@@ -77,13 +77,13 @@ struct FakeStore {
 
 type SharedFakeStore = Arc<RwLock<FakeStore>>;
 
-pub(crate) struct FakeUsers {
+pub struct FakeUsers {
     store: SharedFakeStore,
     workspaces: Arc<FakeUserWorkspaces>,
 }
 
 impl FakeUsers {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let store = Arc::new(RwLock::new(FakeStore::default()));
         seed_defaults(&store);
         Self {
@@ -1014,6 +1014,7 @@ fn normalize_title(title: String) -> Result<String, ServerError> {
     Ok(title)
 }
 
+#[cfg(test)]
 pub(crate) mod contracts {
     use std::collections::HashMap;
 

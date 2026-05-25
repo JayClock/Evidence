@@ -12,7 +12,7 @@ use crate::domain::{
     LogicalEntityType, Ref, ServerError, Workspace,
 };
 
-use super::{links::Link, AppState};
+use super::{error::ApiError, links::Link, AppState};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,7 +55,7 @@ async fn load_workspace(state: &AppState, workspace_id: &str) -> Result<Workspac
 fn logical_entity_description(
     workspace_id: &str,
     input: CreateLogicalEntityInput,
-) -> Result<LogicalEntityDescription, ServerError> {
+) -> Result<LogicalEntityDescription, ApiError> {
     let sub_type = normalize_sub_type(&input.entity_type, input.sub_type)?;
     Ok(LogicalEntityDescription {
         workspace: Ref::new(workspace_id.to_string()),
@@ -73,7 +73,7 @@ async fn list_logical_entities(
     State(state): State<AppState>,
     Path(workspace_id): Path<String>,
     Query(query): Query<PageQuery>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let page = query.page.unwrap_or(1);
     let page_size = query.page_size.unwrap_or(50).min(100);
@@ -94,7 +94,7 @@ async fn create_logical_entity(
     State(state): State<AppState>,
     Path(workspace_id): Path<String>,
     Json(input): Json<CreateLogicalEntityInput>,
-) -> Result<(StatusCode, Json<Value>), ServerError> {
+) -> Result<(StatusCode, Json<Value>), ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let entity = workspace
         .logical_entities_wide()
@@ -106,7 +106,7 @@ async fn create_logical_entity(
 async fn get_logical_entity(
     State(state): State<AppState>,
     Path((workspace_id, entity_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let entity = workspace
         .logical_entities()
@@ -120,7 +120,7 @@ async fn update_logical_entity(
     State(state): State<AppState>,
     Path((workspace_id, entity_id)): Path<(String, String)>,
     Json(input): Json<UpdateLogicalEntityInput>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let existing = workspace
         .logical_entities()
@@ -157,7 +157,7 @@ async fn update_logical_entity(
 async fn delete_logical_entity(
     State(state): State<AppState>,
     Path((workspace_id, entity_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     workspace.logical_entities_wide().delete(&entity_id).await?;
     Ok(Json(json!({ "deleted": true })))

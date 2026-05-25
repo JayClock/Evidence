@@ -1294,9 +1294,43 @@ dependencies = [
 name = "evidence-server"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "axum",
+ "evidence-server-api",
+ "evidence-server-domain",
+ "evidence-server-persistent",
+ "tokio",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "evidence-server-api"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "evidence-server-domain",
+ "evidence-server-persistent",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+]
+
+[[package]]
+name = "evidence-server-domain"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "evidence-server-persistent"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
  "chrono",
+ "evidence-server-domain",
  "sea-orm",
  "sea-orm-migration",
  "serde",
@@ -1305,8 +1339,6 @@ dependencies = [
  "testcontainers",
  "testcontainers-modules",
  "tokio",
- "tower-http",
- "tracing-subscriber",
  "uuid",
 ]
 

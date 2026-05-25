@@ -4,9 +4,8 @@ use axum::{
     Json, Router,
 };
 
-use crate::domain::ServerError;
-
 use super::{
+    error::ApiError,
     loaders::find_user,
     model::{user_model, UserModel},
     AppState,
@@ -15,7 +14,7 @@ use super::{
 async fn get_user(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
-) -> Result<Json<UserModel>, ServerError> {
+) -> Result<Json<UserModel>, ApiError> {
     let user = find_user(&state, &user_id).await?;
     Ok(Json(user_model(&user)))
 }

@@ -10,6 +10,7 @@ use std::collections::BTreeMap;
 use crate::domain::{MemberDescription, Ref, ServerError};
 
 use super::{
+    error::ApiError,
     links::{workspace_href, workspace_members_href, Link},
     loaders::find_workspace,
     model::{member_model, MemberModel},
@@ -45,7 +46,7 @@ struct MemberCollectionModel {
 async fn list_workspace_members(
     State(state): State<AppState>,
     Path((user_id, workspace_id)): Path<(String, String)>,
-) -> Result<Json<MemberCollectionModel>, ServerError> {
+) -> Result<Json<MemberCollectionModel>, ApiError> {
     let workspace = find_workspace(&state, &user_id, &workspace_id).await?;
     let total = workspace.members().size().await?;
     let members = workspace.members().find_all(0, total).await?;
@@ -74,7 +75,7 @@ async fn list_workspace_members(
 async fn get_workspace_member(
     State(state): State<AppState>,
     Path((user_id, workspace_id, member_id)): Path<(String, String, String)>,
-) -> Result<Json<MemberModel>, ServerError> {
+) -> Result<Json<MemberModel>, ApiError> {
     let workspace = find_workspace(&state, &user_id, &workspace_id).await?;
     let member = workspace
         .members()
@@ -88,7 +89,7 @@ async fn add_workspace_member(
     State(state): State<AppState>,
     Path((user_id, workspace_id)): Path<(String, String)>,
     Json(input): Json<AddMemberInput>,
-) -> Result<(StatusCode, Json<MemberModel>), ServerError> {
+) -> Result<(StatusCode, Json<MemberModel>), ApiError> {
     let workspace = find_workspace(&state, &user_id, &workspace_id).await?;
     let member = workspace
         .members_wide()

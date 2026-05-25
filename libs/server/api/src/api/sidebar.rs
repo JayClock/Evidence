@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use crate::domain::ServerError;
 
 use super::{
+    error::ApiError,
     links::{user_href, user_sidebar_href, user_workspaces_href, workspace_diagrams_href, Link},
     AppState,
 };
@@ -19,7 +20,7 @@ pub(super) fn routes() -> Router<AppState> {
 async fn get_user_sidebar(
     State(state): State<AppState>,
     Path(user_id): Path<String>,
-) -> Result<Json<Value>, ServerError> {
+) -> Result<Json<Value>, ApiError> {
     let user = state
         .users
         .find_by_identity(&user_id)

@@ -1,0 +1,16 @@
+[package]
+name = "evidence-server-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+evidence-server-domain = { path = "../domain" }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+
+[dev-dependencies]
+evidence-server-persistent = { path = "../persistent", features = ["test-support"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
