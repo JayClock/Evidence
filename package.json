@@ -10,6 +10,8 @@
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
+    "ui:shadcn": "pnpm --filter @evidence/ui exec shadcn",
+    "ui:ai-elements": "pnpm --filter @evidence/ui exec elements add",
     "format": "nx format:write",
     "format:check": "nx format:check",
     "lint:staged": "lint-staged",
@@ -23,6 +25,8 @@
     "react-router-dom": "6.30.3"
   },
   "devDependencies": {
+    "@babel/core": "^7.14.5",
+    "@babel/preset-react": "^7.14.5",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^9.8.0",
@@ -38,6 +42,7 @@
     "@swc/cli": "~0.8.0",
     "@swc/core": "~1.15.5",
     "@swc/helpers": "~0.5.18",
+    "@tailwindcss/vite": "^4.3.0",
     "@testing-library/dom": "10.4.0",
     "@testing-library/react": "16.3.0",
     "@types/node": "20.19.9",
@@ -59,6 +64,7 @@
     "lint-staged": "^17.0.5",
     "nx": "22.7.3",
     "prettier": "~3.6.2",
+    "tailwindcss": "^4.3.0",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.40.0",

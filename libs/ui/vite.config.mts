@@ -1,38 +1,27 @@
-/// <reference types='vitest' />
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/apps/web',
-  server: {
-    port: 4200,
-    host: 'localhost',
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
-  preview: {
-    port: 4300,
-    host: 'localhost',
-  },
+  cacheDir: '../../node_modules/.vite/libs/ui',
   plugins: [react(), tailwindcss()],
   // Uncomment this if you are using workers.
   // worker: {
   //  plugins: [],
   // },
-  build: {
-    outDir: './dist',
-    emptyOutDir: true,
-    reportCompressedSize: true,
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
-  },
   test: {
-    name: '@evidence/web',
+    name: '@evidence/ui',
     watch: false,
     globals: true,
     environment: 'jsdom',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
