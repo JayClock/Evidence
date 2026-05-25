@@ -1,6 +1,7 @@
 mod core;
 mod diagram;
 mod error;
+mod logical_entity;
 mod member;
 mod user;
 mod user_workspaces;
@@ -15,6 +16,10 @@ pub use diagram::{
     SnapshotNode, Viewport, WorkspaceDiagrams,
 };
 pub use error::ServerError;
+pub use logical_entity::{
+    format_sub_type, normalize_sub_type, EntityAttribute, EntityBehavior, EntityDefinition,
+    LogicalEntity, LogicalEntityDescription, LogicalEntityType, WorkspaceLogicalEntities,
+};
 pub use member::{Member, MemberDescription, WorkspaceMembers};
 pub use user::{User, UserDescription};
 pub use user_workspaces::UserWorkspaces;

@@ -48,6 +48,8 @@ pub mod workspaces {
         WorkspaceMembers,
         #[sea_orm(has_many = "super::workspace_diagrams::Entity")]
         WorkspaceDiagrams,
+        #[sea_orm(has_many = "super::logical_entities::Entity")]
+        LogicalEntities,
     }
 
     impl Related<super::workspace_members::Entity> for Entity {
@@ -59,6 +61,51 @@ pub mod workspaces {
     impl Related<super::workspace_diagrams::Entity> for Entity {
         fn to() -> RelationDef {
             Relation::WorkspaceDiagrams.def()
+        }
+    }
+
+    impl Related<super::logical_entities::Entity> for Entity {
+        fn to() -> RelationDef {
+            Relation::LogicalEntities.def()
+        }
+    }
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub mod logical_entities {
+    use sea_orm::entity::prelude::*;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "logical_entities")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub id: String,
+        pub workspace_id: String,
+        #[sea_orm(column_name = "type")]
+        pub entity_type: String,
+        pub sub_type: Option<String>,
+        pub name: String,
+        pub label: Option<String>,
+        pub definition: Json,
+        pub created_at: String,
+        pub updated_at: String,
+        pub deleted_at: Option<String>,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {
+        #[sea_orm(
+            belongs_to = "super::workspaces::Entity",
+            from = "Column::WorkspaceId",
+            to = "super::workspaces::Column::Id"
+        )]
+        Workspace,
+    }
+
+    impl Related<super::workspaces::Entity> for Entity {
+        fn to() -> RelationDef {
+            Relation::Workspace.def()
         }
     }
 

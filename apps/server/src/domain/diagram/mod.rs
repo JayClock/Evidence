@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception)]
+
 mod diagram;
 mod diagram_edges;
 mod diagram_nodes;

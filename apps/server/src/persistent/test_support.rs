@@ -7,11 +7,12 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::domain::{
-    Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
-    DiagramStatus, DiagramVersion, DiagramVersionDescription, DiagramVersions, DraftEdge,
-    DraftNode, EdgeDescription, HasMany, Member, MemberDescription, NodeDescription, Ref,
-    ServerError, User, UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription,
-    WorkspaceDiagrams, WorkspaceMembers,
+    normalize_sub_type, Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode,
+    DiagramNodes, DiagramStatus, DiagramVersion, DiagramVersionDescription, DiagramVersions,
+    DraftEdge, DraftNode, EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription,
+    Member, MemberDescription, NodeDescription, Ref, ServerError, User, UserDescription,
+    UserWorkspaces, Users, Workspace, WorkspaceDescription, WorkspaceDiagrams,
+    WorkspaceLogicalEntities, WorkspaceMembers,
 };
 
 use super::store::{default_if_blank, now};
@@ -55,12 +56,23 @@ struct DiagramRecord {
     deleted_at: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+struct LogicalEntityRecord {
+    id: String,
+    workspace_id: String,
+    description: LogicalEntityDescription,
+    created_at: String,
+    updated_at: String,
+    deleted_at: Option<String>,
+}
+
 #[derive(Default)]
 struct FakeStore {
     users: HashMap<String, UserRecord>,
     workspaces: HashMap<String, WorkspaceRecord>,
     members: HashMap<String, MemberRecord>,
     diagrams: HashMap<String, DiagramRecord>,
+    logical_entities: HashMap<String, LogicalEntityRecord>,
 }
 
 type SharedFakeStore = Arc<RwLock<FakeStore>>;
@@ -143,7 +155,14 @@ impl FakeUserWorkspaces {
                 self.store.clone(),
                 record.id.clone(),
             )),
-            Arc::new(FakeWorkspaceDiagrams::new(self.store.clone(), record.id)),
+            Arc::new(FakeWorkspaceDiagrams::new(
+                self.store.clone(),
+                record.id.clone(),
+            )),
+            Arc::new(FakeWorkspaceLogicalEntities::new(
+                self.store.clone(),
+                record.id,
+            )),
         )
     }
 
@@ -501,6 +520,174 @@ impl WorkspaceDiagrams for FakeWorkspaceDiagrams {
     }
 }
 
+struct FakeWorkspaceLogicalEntities {
+    store: SharedFakeStore,
+    workspace_id: String,
+}
+
+impl FakeWorkspaceLogicalEntities {
+    fn new(store: SharedFakeStore, workspace_id: String) -> Self {
+        Self {
+            store,
+            workspace_id,
+        }
+    }
+
+    fn assemble(&self, record: LogicalEntityRecord) -> LogicalEntity {
+        let mut description = record.description;
+        description.workspace = Ref::new(record.workspace_id);
+        description.created_at = record.created_at;
+        description.updated_at = record.updated_at;
+        LogicalEntity::new(record.id, description)
+    }
+
+    fn matching_records(&self, store: &FakeStore) -> Vec<LogicalEntityRecord> {
+        let mut rows = store
+            .logical_entities
+            .values()
+            .filter(|entity| entity.workspace_id == self.workspace_id)
+            .filter(|entity| entity.deleted_at.is_none())
+            .cloned()
+            .collect::<Vec<_>>();
+        rows.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+        rows
+    }
+}
+
+#[async_trait]
+impl HasMany<LogicalEntity> for FakeWorkspaceLogicalEntities {
+    async fn find_all(&self, from: usize, to: usize) -> Result<Vec<LogicalEntity>, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self
+            .matching_records(&store)
+            .into_iter()
+            .skip(from)
+            .take(to.saturating_sub(from))
+            .map(|record| self.assemble(record))
+            .collect())
+    }
+
+    async fn find_by_identity(&self, id: &str) -> Result<Option<LogicalEntity>, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(store
+            .logical_entities
+            .get(id)
+            .filter(|entity| entity.workspace_id == self.workspace_id)
+            .filter(|entity| entity.deleted_at.is_none())
+            .cloned()
+            .map(|record| self.assemble(record)))
+    }
+
+    async fn size(&self) -> Result<usize, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self.matching_records(&store).len())
+    }
+}
+
+#[async_trait]
+impl WorkspaceLogicalEntities for FakeWorkspaceLogicalEntities {
+    async fn add(&self, desc: LogicalEntityDescription) -> Result<LogicalEntity, ServerError> {
+        if desc.name.trim().is_empty() {
+            return Err(ServerError::Validation(
+                "logical entity name must not be empty".to_string(),
+            ));
+        }
+        let timestamp = now();
+        let id = Uuid::new_v4().to_string();
+        let mut description = desc;
+        description.workspace = Ref::new(self.workspace_id.clone());
+        description.sub_type = normalize_sub_type(&description.entity_type, description.sub_type)?;
+        description.name = description.name.trim().to_string();
+        description.created_at = timestamp.clone();
+        description.updated_at = timestamp.clone();
+        let record = LogicalEntityRecord {
+            id: id.clone(),
+            workspace_id: self.workspace_id.clone(),
+            description,
+            created_at: timestamp.clone(),
+            updated_at: timestamp,
+            deleted_at: None,
+        };
+        self.store
+            .write()
+            .expect("fake store write lock poisoned")
+            .logical_entities
+            .insert(id, record.clone());
+        Ok(self.assemble(record))
+    }
+
+    async fn update(
+        &self,
+        entity_id: &str,
+        desc: LogicalEntityDescription,
+    ) -> Result<LogicalEntity, ServerError> {
+        if desc.name.trim().is_empty() {
+            return Err(ServerError::Validation(
+                "logical entity name must not be empty".to_string(),
+            ));
+        }
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        let record = store
+            .logical_entities
+            .get_mut(entity_id)
+            .filter(|entity| entity.workspace_id == self.workspace_id)
+            .filter(|entity| entity.deleted_at.is_none())
+            .ok_or_else(|| {
+                ServerError::NotFound(format!("logical entity {entity_id} not found"))
+            })?;
+        let timestamp = now();
+        let mut description = desc;
+        description.workspace = Ref::new(record.workspace_id.clone());
+        description.sub_type = normalize_sub_type(&description.entity_type, description.sub_type)?;
+        description.name = description.name.trim().to_string();
+        description.created_at = record.created_at.clone();
+        description.updated_at = timestamp.clone();
+        record.description = description;
+        record.updated_at = timestamp;
+        Ok(self.assemble(record.clone()))
+    }
+
+    async fn delete(&self, entity_id: &str) -> Result<(), ServerError> {
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        let entity = store
+            .logical_entities
+            .get_mut(entity_id)
+            .filter(|entity| entity.workspace_id == self.workspace_id)
+            .filter(|entity| entity.deleted_at.is_none())
+            .ok_or_else(|| {
+                ServerError::NotFound(format!("logical entity {entity_id} not found"))
+            })?;
+        let timestamp = now();
+        entity.deleted_at = Some(timestamp.clone());
+        entity.updated_at = timestamp;
+        Ok(())
+    }
+
+    async fn list(
+        &self,
+        page: u32,
+        page_size: u32,
+    ) -> Result<(Vec<LogicalEntity>, u64), ServerError> {
+        if page == 0 || page_size == 0 {
+            return Err(ServerError::Validation(
+                "page and pageSize must be greater than 0".to_string(),
+            ));
+        }
+        let store = self.store.read().expect("fake store read lock poisoned");
+        let rows = self.matching_records(&store);
+        let total = rows.len() as u64;
+        let offset = ((page - 1) * page_size) as usize;
+        Ok((
+            rows.into_iter()
+                .skip(offset)
+                .take(page_size as usize)
+                .map(|record| self.assemble(record))
+                .collect(),
+            total,
+        ))
+    }
+}
+
 struct FakeDiagramNodes;
 
 #[async_trait]
@@ -830,7 +1017,10 @@ fn normalize_title(title: String) -> Result<String, ServerError> {
 pub(crate) mod contracts {
     use std::collections::HashMap;
 
-    use crate::domain::{MemberDescription, Ref, ServerError, Users, WorkspaceDescription};
+    use crate::domain::{
+        EntityDefinition, LogicalEntityDescription, LogicalEntityType, MemberDescription, Ref,
+        ServerError, Users, WorkspaceDescription,
+    };
 
     pub(crate) async fn user_sees_seed_workspace(users: &dyn Users) {
         let user = users
@@ -899,6 +1089,84 @@ pub(crate) mod contracts {
 
         assert!(matches!(result, Err(ServerError::Conflict(_))));
     }
+
+    pub(crate) async fn workspace_logical_entities_crud(users: &dyn Users) {
+        let workspace = users
+            .workspaces()
+            .find_by_identity("default-workspace")
+            .await
+            .unwrap()
+            .expect("seed workspace");
+
+        let created = workspace
+            .logical_entities_wide()
+            .add(LogicalEntityDescription {
+                workspace: Ref::new("default-workspace".to_string()),
+                entity_type: LogicalEntityType::Evidence,
+                sub_type: Some("EVIDENCE:rfp".to_string()),
+                name: "Order".to_string(),
+                label: Some("订单".to_string()),
+                definition: Some(EntityDefinition {
+                    description: Some("订单业务定义".to_string()),
+                    tags: vec!["Core".to_string()],
+                    attributes: vec![],
+                    behaviors: vec![],
+                }),
+                created_at: String::new(),
+                updated_at: String::new(),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(created.description().sub_type.as_deref(), Some("rfp"));
+        assert_eq!(created.description().name, "Order");
+
+        let found = workspace
+            .logical_entities()
+            .find_by_identity(created.identity())
+            .await
+            .unwrap()
+            .expect("created logical entity");
+        assert_eq!(found.identity(), created.identity());
+
+        let (entities, total) = workspace.logical_entities_wide().list(1, 10).await.unwrap();
+        assert!(total >= 1);
+        assert!(entities
+            .iter()
+            .any(|entity| entity.identity() == created.identity()));
+
+        let updated = workspace
+            .logical_entities_wide()
+            .update(
+                created.identity(),
+                LogicalEntityDescription {
+                    workspace: Ref::new("default-workspace".to_string()),
+                    entity_type: LogicalEntityType::Evidence,
+                    sub_type: Some("proposal".to_string()),
+                    name: "OrderProposal".to_string(),
+                    label: Some("订单提案".to_string()),
+                    definition: None,
+                    created_at: String::new(),
+                    updated_at: String::new(),
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(updated.description().sub_type.as_deref(), Some("proposal"));
+        assert_eq!(updated.description().name, "OrderProposal");
+
+        workspace
+            .logical_entities_wide()
+            .delete(created.identity())
+            .await
+            .unwrap();
+        let deleted = workspace
+            .logical_entities()
+            .find_by_identity(created.identity())
+            .await
+            .unwrap();
+        assert!(deleted.is_none());
+    }
 }
 
 #[cfg(test)]
@@ -918,5 +1186,10 @@ mod tests {
     #[tokio::test]
     async fn fake_duplicate_member_is_conflict() {
         contracts::duplicate_member_is_conflict(&FakeUsers::new()).await;
+    }
+
+    #[tokio::test]
+    async fn fake_workspace_logical_entities_crud() {
+        contracts::workspace_logical_entities_crud(&FakeUsers::new()).await;
     }
 }

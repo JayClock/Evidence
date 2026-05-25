@@ -9,8 +9,8 @@ use sea_orm::{
 use crate::domain::ServerError;
 
 use super::entities::{
-    diagram_edges, diagram_nodes, diagram_versions, users, workspace_diagrams, workspace_members,
-    workspaces,
+    diagram_edges, diagram_nodes, diagram_versions, logical_entities, users, workspace_diagrams,
+    workspace_members, workspaces,
 };
 
 #[derive(Debug, Clone)]
@@ -103,6 +103,16 @@ pub(super) async fn init_schema(db: &DatabaseConnection) -> Result<(), ServerErr
     db.execute(
         backend.build(
             schema
+                .create_table_from_entity(logical_entities::Entity)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            schema
                 .create_table_from_entity(diagram_nodes::Entity)
                 .if_not_exists(),
         ),
@@ -151,6 +161,45 @@ pub(super) async fn init_schema(db: &DatabaseConnection) -> Result<(), ServerErr
                 .table(workspace_diagrams::Entity)
                 .col(workspace_diagrams::Column::WorkspaceId)
                 .col(workspace_diagrams::Column::UpdatedAt)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_logical_entities_workspace_updated")
+                .table(logical_entities::Entity)
+                .col(logical_entities::Column::WorkspaceId)
+                .col(logical_entities::Column::UpdatedAt)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_logical_entities_workspace_type")
+                .table(logical_entities::Entity)
+                .col(logical_entities::Column::WorkspaceId)
+                .col(logical_entities::Column::EntityType)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_logical_entities_workspace_sub_type")
+                .table(logical_entities::Entity)
+                .col(logical_entities::Column::WorkspaceId)
+                .col(logical_entities::Column::SubType)
                 .if_not_exists(),
         ),
     )

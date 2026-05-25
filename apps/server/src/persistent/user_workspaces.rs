@@ -11,6 +11,7 @@ use crate::domain::{HasMany, ServerError, UserWorkspaces, Workspace, WorkspaceDe
 
 use super::{
     entities::{workspace_members, workspaces},
+    logical_entities::PgWorkspaceLogicalEntities,
     store::{
         db_error, default_if_blank, metadata_to_json, now, workspace_to_record, PgStore,
         WorkspaceRecord,
@@ -65,7 +66,14 @@ impl PgUserWorkspaces {
                 self.store.clone(),
                 record.id.clone(),
             )),
-            Arc::new(PgWorkspaceDiagrams::new(self.store.clone(), record.id)),
+            Arc::new(PgWorkspaceDiagrams::new(
+                self.store.clone(),
+                record.id.clone(),
+            )),
+            Arc::new(PgWorkspaceLogicalEntities::new(
+                self.store.clone(),
+                record.id,
+            )),
         )
     }
 }

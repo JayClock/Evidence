@@ -115,4 +115,10 @@ mod postgres_tests {
         let context = pg_test_context().await;
         contracts::duplicate_member_is_conflict(&context.users).await;
     }
+
+    #[tokio::test]
+    async fn pg_workspace_logical_entities_crud() {
+        let context = pg_test_context().await;
+        contracts::workspace_logical_entities_crud(&context.users).await;
+    }
 }

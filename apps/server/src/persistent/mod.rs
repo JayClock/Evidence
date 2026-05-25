@@ -2,6 +2,7 @@ mod diagram_edges;
 mod diagram_nodes;
 mod diagram_versions;
 mod entities;
+mod logical_entities;
 mod store;
 #[cfg(test)]
 pub(crate) mod test_support;
