@@ -1,87 +1,327 @@
 import { useMemo } from 'react';
-import { Route, Routes, Link } from 'react-router-dom';
+import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import {
   getRootResource,
   useResource,
   type Link as HalLink,
   type RootResource,
+  type SidebarItem,
+  type SidebarResource,
   type State,
   type UserResource,
   type WorkspaceCollectionResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
-import styles from './app.module.css';
+import {
+  Avatar,
+  AvatarFallback,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Separator,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  TooltipProvider,
+} from '@evidence/ui';
 
 export function App() {
-  return (
-    <main className={styles.shell}>
-      <header className={styles.hero}>
-        <p className={styles.eyebrow}>Evidence</p>
-        <h1>Evidence Workspace Console</h1>
-        <p>
-          Frontend now consumes the server through HAL links with
-          <code> @hateoas-ts/resource</code>; navigation starts at the API root
-          instead of hardcoded child URLs.
-        </p>
-      </header>
-
-      <nav className={styles.navigation} aria-label="Primary">
-        <Link to="/">Overview</Link>
-        <Link to="/health">Health</Link>
-      </nav>
-
-      <Routes>
-        <Route path="/" element={<Overview />} />
-        <Route path="/health" element={<Health />} />
-      </Routes>
-    </main>
-  );
-}
-
-function Overview() {
   const rootResource = useMemo(() => getRootResource(), []);
   const { loading, error, resourceState } =
     useResource<RootResource>(rootResource);
 
-  if (loading) {
-    return <StatusCard title="Loading API root" detail="Discovering links…" />;
-  }
-
-  if (error) {
-    return <StatusCard title="API root unavailable" detail={error.message} />;
-  }
-
-  return (
-    <section className={styles.grid}>
-      <ResourceCard
-        title="API root"
-        detail="Discovered links"
-        links={resourceState.links.getAll().map((link: HalLink) => link.rel)}
-      />
-      <DefaultUser rootState={resourceState} />
-    </section>
-  );
-}
-
-function Health() {
-  const rootResource = useMemo(() => getRootResource(), []);
-  const { loading, error, resourceState } =
-    useResource<RootResource>(rootResource);
-
-  if (loading) {
+  if (loading || !resourceState) {
     return (
-      <StatusCard title="Loading health link" detail="Discovering API root…" />
+      <FullPageStatus title="Loading Evidence" detail="Discovering API root…" />
     );
   }
 
   if (error) {
-    return <StatusCard title="Health unavailable" detail={error.message} />;
+    return (
+      <FullPageStatus title="API root unavailable" detail={error.message} />
+    );
   }
 
-  return <HealthResource rootState={resourceState} />;
+  return <UserShell rootState={resourceState} />;
 }
 
-function HealthResource({ rootState }: { rootState: State<RootResource> }) {
+function UserShell({ rootState }: { rootState: State<RootResource> }) {
+  const userResource = useMemo(
+    () => rootState.follow('default-user'),
+    [rootState],
+  );
+  const { loading, error, resourceState } =
+    useResource<UserResource>(userResource);
+
+  if (loading || !resourceState) {
+    return (
+      <FullPageStatus
+        title="Loading user"
+        detail="Following rel=default-user…"
+      />
+    );
+  }
+
+  if (error) {
+    return (
+      <FullPageStatus title="Default user unavailable" detail={error.message} />
+    );
+  }
+
+  return <AppShell rootState={rootState} userState={resourceState} />;
+}
+
+function AppShell({
+  rootState,
+  userState,
+}: {
+  rootState: State<RootResource>;
+  userState: State<UserResource>;
+}) {
+  const sidebarResource = useMemo(
+    () => userState.follow('sidebar'),
+    [userState],
+  );
+  const sidebar = useResource<SidebarResource>(sidebarResource);
+
+  return (
+    <TooltipProvider>
+      <SidebarProvider>
+        <AppSidebar
+          userState={userState}
+          sidebarState={sidebar.resourceState}
+          loading={sidebar.loading}
+        />
+        <SidebarInset>
+          <AppHeader />
+          <main className="flex min-h-0 flex-1 flex-col overflow-auto p-6">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <Overview rootState={rootState} userState={userState} />
+                }
+              />
+              <Route
+                path="/health"
+                element={<Health rootState={rootState} />}
+              />
+              <Route
+                path="/workspaces"
+                element={<WorkspacesPage userState={userState} />}
+              />
+            </Routes>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </TooltipProvider>
+  );
+}
+
+function AppHeader() {
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
+      <SidebarTrigger />
+      <Separator orientation="vertical" className="h-5" />
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-sm font-medium">
+          Evidence Workspace Console
+        </span>
+        <span className="truncate text-xs text-muted-foreground">
+          HATEOAS navigation shell
+        </span>
+      </div>
+    </header>
+  );
+}
+
+function AppSidebar({
+  userState,
+  sidebarState,
+  loading,
+}: {
+  userState: State<UserResource>;
+  sidebarState?: State<SidebarResource>;
+  loading: boolean;
+}) {
+  const location = useLocation();
+
+  return (
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Evidence">
+              <Link to="/">
+                <div className="flex size-6 items-center justify-center rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
+                  E
+                </div>
+                <span>Evidence</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {loading || !sidebarState ? (
+          <SidebarLoading />
+        ) : (
+          sidebarState.data.sections.map((section) => (
+            <SidebarGroup key={section.key}>
+              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+              <SidebarMenu>
+                {section.items.map((item) => (
+                  <SidebarNavItem
+                    key={item.key ?? item.label}
+                    item={item}
+                    pathname={location.pathname}
+                  />
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))
+        )}
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarUserMenu userState={userState} />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}
+
+function SidebarLoading() {
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Loading</SidebarGroupLabel>
+      <SidebarMenu>
+        <SidebarMenuSkeleton showIcon />
+        <SidebarMenuSkeleton showIcon />
+      </SidebarMenu>
+    </SidebarGroup>
+  );
+}
+
+function SidebarNavItem({
+  item,
+  pathname,
+}: {
+  item: SidebarItem;
+  pathname: string;
+}) {
+  const resourcePath = item.path ?? item.href ?? '#';
+  const target = sidebarItemRoute(item);
+  const active = item.active ?? isPathActive(pathname, target);
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild tooltip={item.label} isActive={active}>
+        <Link to={target} data-resource-path={resourcePath}>
+          <span>{item.label}</span>
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
+  const user = userState.data;
+  const selfHref =
+    userState.links.getAll().find((link: HalLink) => link.rel === 'self')
+      ?.href ?? '#';
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton tooltip={user.name} className="justify-start">
+              <Avatar size="sm">
+                <AvatarFallback>{initials(user.name)}</AvatarFallback>
+              </Avatar>
+              <span className="truncate">{user.name}</span>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="end" className="min-w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col gap-1">
+                <span className="truncate text-sm font-medium">
+                  {user.name}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {user.email ?? user.id}
+                </span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <Link to={selfHref}>User resource</Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
+
+function Overview({
+  rootState,
+  userState,
+}: {
+  rootState: State<RootResource>;
+  userState: State<UserResource>;
+}) {
+  return (
+    <section className="flex flex-col gap-5">
+      <div>
+        <p className="text-sm font-medium text-muted-foreground">Evidence</p>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Evidence Workspace Console
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          The app shell discovers the current user from the API root and follows
+          the user sidebar relation with @hateoas-ts/resource.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <ResourceCard
+          title="API root"
+          detail="Discovered links"
+          links={rootState.links.getAll().map((link: HalLink) => link.rel)}
+        />
+        <ResourceCard
+          title={userState.data.name}
+          detail={userState.data.email ?? userState.data.id}
+          links={userState.links.getAll().map((link: HalLink) => link.rel)}
+        />
+      </div>
+
+      <WorkspacesPage userState={userState} />
+    </section>
+  );
+}
+
+function Health({ rootState }: { rootState: State<RootResource> }) {
   const healthResource = useMemo(() => rootState.follow('health'), [rootState]);
   const { loading, error, data } = useResource(healthResource);
 
@@ -101,42 +341,7 @@ function HealthResource({ rootState }: { rootState: State<RootResource> }) {
   );
 }
 
-function DefaultUser({ rootState }: { rootState: State<RootResource> }) {
-  const userResource = useMemo(
-    () => rootState.follow('default-user'),
-    [rootState],
-  );
-  const { loading, error, resourceState } =
-    useResource<UserResource>(userResource);
-
-  if (loading) {
-    return (
-      <StatusCard
-        title="Loading default user"
-        detail="Following rel=default-user…"
-      />
-    );
-  }
-
-  if (error) {
-    return (
-      <StatusCard title="Default user unavailable" detail={error.message} />
-    );
-  }
-
-  return (
-    <div className={styles.stack}>
-      <ResourceCard
-        title={resourceState.data.name}
-        detail={resourceState.data.email ?? resourceState.data.id}
-        links={resourceState.links.getAll().map((link: HalLink) => link.rel)}
-      />
-      <UserWorkspaces userState={resourceState} />
-    </div>
-  );
-}
-
-function UserWorkspaces({ userState }: { userState: State<UserResource> }) {
+function WorkspacesPage({ userState }: { userState: State<UserResource> }) {
   const workspacesResource = useMemo(
     () => userState.follow('workspaces'),
     [userState],
@@ -158,17 +363,19 @@ function UserWorkspaces({ userState }: { userState: State<UserResource> }) {
   }
 
   return (
-    <section className={styles.card}>
-      <div className={styles.cardHeader}>
+    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className={styles.eyebrow}>Collection</p>
-          <h2>Workspaces</h2>
+          <p className="text-sm font-medium text-muted-foreground">
+            Collection
+          </p>
+          <h2 className="text-xl font-semibold tracking-tight">Workspaces</h2>
         </div>
-        <span className={styles.badge}>
+        <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
           {resourceState.data.page.totalElements} total
         </span>
       </div>
-      <div className={styles.workspaceList}>
+      <div className="mt-4 flex flex-col gap-3">
         {resourceState.collection.map(
           (workspaceState: State<WorkspaceResource>) => (
             <WorkspaceItem
@@ -188,14 +395,21 @@ function WorkspaceItem({
   workspaceState: State<WorkspaceResource>;
 }) {
   return (
-    <article className={styles.workspaceItem}>
+    <article className="rounded-lg border bg-background p-4">
       <div>
-        <h3>{workspaceState.data.title}</h3>
-        <p>{workspaceState.data.description ?? 'No description'}</p>
+        <h3 className="font-medium">{workspaceState.data.title}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {workspaceState.data.description ?? 'No description'}
+        </p>
       </div>
-      <div className={styles.linkList}>
+      <div className="mt-3 flex flex-wrap gap-2">
         {workspaceState.links.getAll().map((link: HalLink) => (
-          <span key={`${link.rel}:${link.href}`}>{link.rel}</span>
+          <span
+            key={`${link.rel}:${link.href}`}
+            className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
+          >
+            {link.rel}
+          </span>
         ))}
       </div>
     </article>
@@ -212,13 +426,18 @@ function ResourceCard({
   links: string[];
 }) {
   return (
-    <section className={styles.card}>
-      <p className={styles.eyebrow}>Resource</p>
-      <h2>{title}</h2>
-      <p>{detail}</p>
-      <div className={styles.linkList}>
+    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
+      <p className="text-sm font-medium text-muted-foreground">Resource</p>
+      <h2 className="mt-1 text-xl font-semibold tracking-tight">{title}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
+      <div className="mt-4 flex flex-wrap gap-2">
         {links.map((link) => (
-          <span key={link}>{link}</span>
+          <span
+            key={link}
+            className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground"
+          >
+            {link}
+          </span>
         ))}
       </div>
     </section>
@@ -227,12 +446,53 @@ function ResourceCard({
 
 function StatusCard({ title, detail }: { title: string; detail: string }) {
   return (
-    <section className={styles.card} role="status">
-      <p className={styles.eyebrow}>Status</p>
-      <h2>{title}</h2>
-      <p>{detail}</p>
+    <section
+      className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm"
+      role="status"
+    >
+      <p className="text-sm font-medium text-muted-foreground">Status</p>
+      <h2 className="mt-1 text-xl font-semibold tracking-tight">{title}</h2>
+      <p className="mt-2 text-sm text-muted-foreground">{detail}</p>
     </section>
   );
+}
+
+function FullPageStatus({ title, detail }: { title: string; detail: string }) {
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
+      <StatusCard title={title} detail={detail} />
+    </main>
+  );
+}
+
+function sidebarItemRoute(item: SidebarItem) {
+  if (item.key === 'workspaces') {
+    return '/workspaces';
+  }
+
+  if (item.type === 'external') {
+    return item.href ?? item.path ?? '#';
+  }
+
+  return item.path ?? item.href ?? '#';
+}
+
+function isPathActive(pathname: string, candidate: string) {
+  if (candidate === '#') {
+    return false;
+  }
+
+  return pathname === candidate || pathname.startsWith(`${candidate}/`);
+}
+
+function initials(name: string) {
+  const segments = name.trim().split(/\s+/).filter(Boolean);
+  const first = segments[0] ?? name;
+  const second = segments[1];
+  const value = second
+    ? `${first[0] ?? ''}${second[0] ?? ''}`
+    : name.slice(0, 2);
+  return value.toUpperCase();
 }
 
 export default App;

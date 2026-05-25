@@ -27,6 +27,10 @@ pub(super) fn user_workspaces_href(user_id: &str) -> String {
     format!("/api/users/{user_id}/workspaces")
 }
 
+pub(super) fn user_sidebar_href(user_id: &str) -> String {
+    format!("/api/users/{user_id}/sidebar")
+}
+
 pub(super) fn user_workspaces_page_href(user_id: &str, page: u32, page_size: u32) -> String {
     format!(
         "{}?page={page}&pageSize={page_size}",

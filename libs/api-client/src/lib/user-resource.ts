@@ -1,5 +1,6 @@
 import type { Entity } from '@hateoas-ts/resource';
 
+import type { SidebarResource } from './sidebar-resource.js';
 import type { WorkspaceCollectionResource } from './workspace-resource.js';
 
 export type UserResource = Entity<
@@ -11,5 +12,6 @@ export type UserResource = Entity<
   {
     self: UserResource;
     workspaces: WorkspaceCollectionResource;
+    sidebar: SidebarResource;
   }
 >;

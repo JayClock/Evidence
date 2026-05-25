@@ -11,7 +11,7 @@ vi.mock('@evidence/api-client', () => ({
 }));
 
 type ResourceMarker = {
-  kind: 'root' | 'health' | 'user' | 'workspaces';
+  kind: 'root' | 'health' | 'user' | 'sidebar' | 'workspaces';
 };
 
 const links = (...rels: string[]) => ({
@@ -32,8 +32,32 @@ const userState = {
     name: 'Desktop User',
     email: 'desktop@evidence.local',
   },
-  links: links('self', 'workspaces'),
-  follow: (): ResourceMarker => ({ kind: 'workspaces' }),
+  links: links('self', 'workspaces', 'sidebar'),
+  follow: (rel: string): ResourceMarker => ({
+    kind: rel === 'sidebar' ? 'sidebar' : 'workspaces',
+  }),
+};
+
+const sidebarState = {
+  data: {
+    sections: [
+      {
+        title: 'USER',
+        key: 'user',
+        defaultOpen: true,
+        items: [
+          {
+            key: 'workspaces',
+            label: 'Workspaces',
+            type: 'resource',
+            path: '/api/users/desktop-user/workspaces',
+            icon: 'layout-dashboard',
+          },
+        ],
+      },
+    ],
+  },
+  links: links('self', 'user'),
 };
 
 const workspaceState = {
@@ -66,6 +90,20 @@ function renderApp(initialEntry = '/') {
 
 describe('App', () => {
   beforeEach(() => {
+    Object.defineProperty(globalThis, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
     useResourceMock.mockImplementation((resource: ResourceMarker) => {
       switch (resource.kind) {
         case 'root':
@@ -78,6 +116,8 @@ describe('App', () => {
           };
         case 'user':
           return { loading: false, error: null, resourceState: userState };
+        case 'sidebar':
+          return { loading: false, error: null, resourceState: sidebarState };
         case 'workspaces':
           return {
             loading: false,
@@ -88,11 +128,12 @@ describe('App', () => {
     });
   });
 
-  it('renders HAL-discovered default user and workspace', () => {
+  it('renders HAL-discovered default user, sidebar, and workspace', () => {
     renderApp();
 
-    expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
-    expect(screen.getByText('Desktop User')).toBeTruthy();
+    expect(screen.getAllByText('Evidence Workspace Console').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Workspaces').length).toBeGreaterThan(0);
     expect(screen.getByText('Default Workspace')).toBeTruthy();
     expect(screen.getByText('1 total')).toBeTruthy();
   });

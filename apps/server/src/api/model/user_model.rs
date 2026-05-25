@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 
 use crate::domain::User;
 
-use super::super::links::{user_href, user_workspaces_href, Link};
+use super::super::links::{user_href, user_sidebar_href, user_workspaces_href, Link};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,6 +24,7 @@ pub(in crate::api) fn user_model(user: &User) -> UserModel {
                 "workspaces".to_string(),
                 Link::new(user_workspaces_href(user_id)),
             ),
+            ("sidebar".to_string(), Link::new(user_sidebar_href(user_id))),
         ]),
         id: user_id.to_string(),
         name: user.description().name.clone(),

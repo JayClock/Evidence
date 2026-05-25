@@ -6,6 +6,7 @@ mod logical_entities;
 mod model;
 mod pagination;
 mod root;
+mod sidebar;
 mod user_workspaces;
 mod users;
 mod workspace_members;
@@ -29,6 +30,7 @@ pub fn app(users: Arc<dyn Users>) -> Router {
         .merge(workspace_members::routes())
         .merge(diagrams::routes())
         .merge(logical_entities::routes())
+        .merge(sidebar::routes())
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(AppState { users })
