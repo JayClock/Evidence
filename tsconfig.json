@@ -20,6 +20,9 @@
     },
     {
       "path": "./libs/web-feature-resource-browser"
+    },
+    {
+      "path": "./libs/web-feature-diagrams"
     }
   ]
 }

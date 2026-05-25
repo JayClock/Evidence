@@ -17,6 +17,7 @@ import {
   type WorkspaceCollectionResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
+import { DiagramCollectionView } from '@evidence/web-feature-diagrams';
 import { CollectionPanel, ResourceCard, StatusCard } from '@evidence/web-ui';
 
 export function ResourceBrowserRoutes({
@@ -260,35 +261,6 @@ function WorkspaceDetailView({
       </div>
       <ResourceLinks links={resourceState.links.getAll()} />
     </section>
-  );
-}
-
-function DiagramCollectionView({
-  resourceState,
-}: {
-  resourceState: State<DiagramCollectionResource>;
-}) {
-  return (
-    <CollectionPanel
-      eyebrow="Collection"
-      title="Diagrams"
-      total={resourceState.data.page.totalElements}
-      items={resourceState.collection.map((diagramState) => {
-        const href = diagramState.links
-          .getAll()
-          .find((link) => link.rel === 'self')?.href;
-
-        return {
-          id: diagramState.data.id,
-          title: href ? (
-            <Link to={toAppPathname(href)}>{diagramState.data.title}</Link>
-          ) : (
-            diagramState.data.title
-          ),
-          detail: `${diagramState.data.type} · ${diagramState.data.status}`,
-        };
-      })}
-    />
   );
 }
 

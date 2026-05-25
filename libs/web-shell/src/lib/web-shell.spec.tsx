@@ -80,6 +80,13 @@ const sidebarState = {
             href: '/api/users/desktop-user/workspaces',
             path: '/api/users/desktop-user/workspaces',
           },
+          {
+            key: 'diagrams',
+            label: 'Diagrams',
+            type: 'resource',
+            href: '/api/workspaces/default-workspace/diagrams',
+            path: '/api/workspaces/default-workspace/diagrams',
+          },
         ],
       },
     ],
@@ -109,6 +116,7 @@ describe('WebShell', () => {
 
     expect(screen.getAllByText('Evidence').length).toBeGreaterThan(0);
     expect(screen.getByText('Workspaces')).toBeTruthy();
+    expect(screen.getByText('Diagrams')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();
   });

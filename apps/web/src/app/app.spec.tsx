@@ -71,6 +71,14 @@ const sidebarState = {
             path: '/api/users/desktop-user/workspaces',
             icon: 'layout-dashboard',
           },
+          {
+            key: 'diagrams',
+            label: 'Diagrams',
+            type: 'resource',
+            href: '/api/workspaces/default-workspace/diagrams',
+            path: '/api/workspaces/default-workspace/diagrams',
+            icon: 'network',
+          },
         ],
       },
     ],
@@ -158,6 +166,7 @@ describe('App', () => {
     ).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Workspaces').length).toBeGreaterThan(0);
+    expect(screen.getByText('Diagrams')).toBeTruthy();
     expect(screen.getByText('Default Workspace')).toBeTruthy();
     expect(screen.getByText('1 total')).toBeTruthy();
   });

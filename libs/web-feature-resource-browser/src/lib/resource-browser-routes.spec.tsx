@@ -31,9 +31,14 @@ vi.mock('@evidence/api-client', () => ({
   useResource: vi.fn(),
 }));
 
-type ResourceMarker = {
-  kind: 'health' | 'workspaces';
-};
+type ResourceMarker =
+  | {
+      kind: 'health' | 'workspaces';
+    }
+  | {
+      kind: 'dynamic';
+      path: string;
+    };
 
 const links = (...rels: string[]) => ({
   getAll: () => rels.map((rel) => ({ rel, href: `/api/${rel}` })),
@@ -79,6 +84,29 @@ const workspaceCollectionState = {
     new Headers({ 'content-type': 'application/vnd.evidence.workspaces+json' }),
 };
 
+const diagramCollectionState = {
+  data: {
+    page: {
+      totalElements: 1,
+    },
+  },
+  collection: [
+    {
+      data: {
+        id: 'diagram-1',
+        title: 'Fulfillment Flow',
+        type: 'context-map',
+        status: 'draft',
+        createdAt: '2026-01-02T03:04:05Z',
+        updatedAt: '2026-01-03T04:05:06Z',
+      },
+      links: links('self', 'workspace'),
+    },
+  ],
+  contentHeaders: () =>
+    new Headers({ 'content-type': 'application/vnd.evidence.diagrams+json' }),
+};
+
 const useResourceMock = useResource as unknown as Mock;
 
 function renderRoutes(initialEntry = '/') {
@@ -108,6 +136,12 @@ describe('ResourceBrowserRoutes', () => {
             error: null,
             resourceState: workspaceCollectionState,
           };
+        case 'dynamic':
+          return {
+            loading: false,
+            error: null,
+            resourceState: diagramCollectionState,
+          };
       }
     });
   });
@@ -124,5 +158,16 @@ describe('ResourceBrowserRoutes', () => {
     renderRoutes('/health');
 
     expect(screen.getByText('evidence-server: ok')).toBeTruthy();
+  });
+
+  it('renders diagrams as a table for diagram collection resources', () => {
+    renderRoutes('/workspaces/default-workspace/diagrams');
+
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
+    expect(screen.getByText('Type')).toBeTruthy();
+    expect(screen.getByText('Status')).toBeTruthy();
+    expect(screen.getByText('context-map')).toBeTruthy();
+    expect(screen.getByText('draft')).toBeTruthy();
   });
 });

@@ -232,11 +232,26 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0
 
+  libs/web-feature-diagrams:
+    dependencies:
+      '@evidence/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@evidence/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react-router-dom:
+        specifier: 6.30.3
+        version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+
   libs/web-feature-resource-browser:
     dependencies:
       '@evidence/api-client':
         specifier: workspace:*
         version: link:../api-client
+      '@evidence/web-feature-diagrams':
+        specifier: workspace:*
+        version: link:../web-feature-diagrams
       '@evidence/web-ui':
         specifier: workspace:*
         version: link:../web-ui
