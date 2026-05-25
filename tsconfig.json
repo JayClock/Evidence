@@ -7,19 +7,19 @@
       "path": "./apps/web"
     },
     {
-      "path": "./libs/ui"
+      "path": "./libs/web/ui"
     },
     {
-      "path": "./libs/api-client"
+      "path": "./libs/web/api-client"
     },
     {
-      "path": "./libs/web-shell"
+      "path": "./libs/web/web-shell"
     },
     {
-      "path": "./libs/web-feature-resource-browser"
+      "path": "./libs/web/web-feature-resource-browser"
     },
     {
-      "path": "./libs/web-feature-diagrams"
+      "path": "./libs/web/web-feature-diagrams"
     }
   ]
 }
