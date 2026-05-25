@@ -1,0 +1,103 @@
+name: Publish Desktop
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'desktop-v*'
+  workflow_dispatch:
+    inputs:
+      tagName:
+        description: 'Release tag to publish, for example v0.1.0 or desktop-v0.1.0'
+        required: true
+        type: string
+      releaseName:
+        description: 'GitHub Release name'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }} package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+          - name: Linux
+            os: ubuntu-22.04
+          - name: Windows
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: tree:0
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          version: 9.8.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux dependencies for Tauri
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            wget
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build desktop package
+        run: pnpm --dir apps/desktop tauri build
+
+      - name: Upload desktop package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-desktop-${{ runner.os }}
+          path: target/release/bundle/**
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download desktop package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tagName || github.ref_name }}
+          name: ${{ inputs.releaseName || format('Evidence Desktop {0}', inputs.tagName || github.ref_name) }}
+          draft: true
+          prerelease: ${{ contains(inputs.tagName || github.ref_name, '-') }}
+          files: release-assets/**
