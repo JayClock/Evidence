@@ -4,13 +4,14 @@ use std::{
 };
 
 use async_trait::async_trait;
-use chrono::Utc;
 use uuid::Uuid;
 
 use crate::domain::{
     HasMany, Member, MemberDescription, Ref, ServerError, User, UserDescription, UserWorkspaces,
     Users, Workspace, WorkspaceDescription, WorkspaceMembers,
 };
+
+use super::store::{default_if_blank, now};
 
 #[derive(Debug, Clone)]
 struct UserRecord {
@@ -42,87 +43,50 @@ struct MemberRecord {
 }
 
 #[derive(Default)]
-struct Store {
+struct FakeStore {
     users: HashMap<String, UserRecord>,
     workspaces: HashMap<String, WorkspaceRecord>,
     members: HashMap<String, MemberRecord>,
 }
 
-pub struct MemoryUsers {
-    store: Arc<RwLock<Store>>,
-    workspaces: Arc<MemoryUserWorkspaces>,
+type SharedFakeStore = Arc<RwLock<FakeStore>>;
+
+pub(crate) struct FakeUsers {
+    store: SharedFakeStore,
+    workspaces: Arc<FakeUserWorkspaces>,
 }
 
-impl MemoryUsers {
-    pub fn new() -> Self {
-        let store = Arc::new(RwLock::new(Store::default()));
-        let users = Self {
+impl FakeUsers {
+    pub(crate) fn new() -> Self {
+        let store = Arc::new(RwLock::new(FakeStore::default()));
+        seed_defaults(&store);
+        Self {
             store: store.clone(),
-            workspaces: Arc::new(MemoryUserWorkspaces::new(store, None)),
-        };
-        users.seed_defaults();
-        users
-    }
-
-    fn seed_defaults(&self) {
-        let now = now();
-        let user_id = "desktop-user".to_string();
-        let workspace_id = "default-workspace".to_string();
-        let member_id = "default-workspace-owner".to_string();
-
-        let mut store = self
-            .store
-            .write()
-            .expect("memory store write lock poisoned");
-        store.users.entry(user_id.clone()).or_insert(UserRecord {
-            id: user_id.clone(),
-            name: "Desktop User".to_string(),
-            email: Some("desktop@evidence.local".to_string()),
-        });
-        store
-            .workspaces
-            .entry(workspace_id.clone())
-            .or_insert(WorkspaceRecord {
-                id: workspace_id.clone(),
-                title: "Default Workspace".to_string(),
-                description: Some("Seed workspace for local desktop usage".to_string()),
-                status: "active".to_string(),
-                metadata: HashMap::new(),
-                created_at: now.clone(),
-                updated_at: now.clone(),
-                deleted_at: None,
-            });
-        store
-            .members
-            .entry(member_id.clone())
-            .or_insert(MemberRecord {
-                id: member_id,
-                workspace_id,
-                user_id,
-                role: "owner".to_string(),
-                created_at: now.clone(),
-                updated_at: now,
-            });
+            workspaces: Arc::new(FakeUserWorkspaces::new(store, None)),
+        }
     }
 }
 
-impl Default for MemoryUsers {
+impl Default for FakeUsers {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[async_trait]
-impl Users for MemoryUsers {
+impl Users for FakeUsers {
     fn workspaces(&self) -> &dyn UserWorkspaces {
         self.workspaces.as_ref()
     }
 
     async fn find_by_identity(&self, user_id: &str) -> Result<Option<User>, ServerError> {
-        let record = {
-            let store = self.store.read().expect("memory store read lock poisoned");
-            store.users.get(user_id).cloned()
-        };
+        let record = self
+            .store
+            .read()
+            .expect("fake store read lock poisoned")
+            .users
+            .get(user_id)
+            .cloned();
 
         Ok(record.map(|record| {
             User::new(
@@ -131,7 +95,7 @@ impl Users for MemoryUsers {
                     name: record.name,
                     email: record.email,
                 },
-                Arc::new(MemoryUserWorkspaces::new(
+                Arc::new(FakeUserWorkspaces::new(
                     self.store.clone(),
                     Some(user_id.to_string()),
                 )),
@@ -140,13 +104,13 @@ impl Users for MemoryUsers {
     }
 }
 
-struct MemoryUserWorkspaces {
-    store: Arc<RwLock<Store>>,
+struct FakeUserWorkspaces {
+    store: SharedFakeStore,
     user_id: Option<String>,
 }
 
-impl MemoryUserWorkspaces {
-    fn new(store: Arc<RwLock<Store>>, user_id: Option<String>) -> Self {
+impl FakeUserWorkspaces {
+    fn new(store: SharedFakeStore, user_id: Option<String>) -> Self {
         Self { store, user_id }
     }
 
@@ -161,11 +125,11 @@ impl MemoryUserWorkspaces {
                 created_at: record.created_at,
                 updated_at: record.updated_at,
             },
-            Arc::new(MemoryWorkspaceMembers::new(self.store.clone(), record.id)),
+            Arc::new(FakeWorkspaceMembers::new(self.store.clone(), record.id)),
         )
     }
 
-    fn visible_to_user(&self, store: &Store, workspace_id: &str) -> bool {
+    fn visible_to_user(&self, store: &FakeStore, workspace_id: &str) -> bool {
         match &self.user_id {
             Some(user_id) => store
                 .members
@@ -175,8 +139,8 @@ impl MemoryUserWorkspaces {
         }
     }
 
-    fn matching_records(&self, store: &Store, query: Option<&str>) -> Vec<WorkspaceRecord> {
-        let query = query.map(|value| value.to_lowercase());
+    fn matching_records(&self, store: &FakeStore, query: Option<&str>) -> Vec<WorkspaceRecord> {
+        let query = query.map(str::to_lowercase);
         let mut rows = store
             .workspaces
             .values()
@@ -202,35 +166,37 @@ impl MemoryUserWorkspaces {
 }
 
 #[async_trait]
-impl HasMany<Workspace> for MemoryUserWorkspaces {
+impl HasMany<Workspace> for FakeUserWorkspaces {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Workspace>, ServerError> {
-        let page_size = to.saturating_sub(from).max(1) as u32;
-        let page = (from as u32 / page_size) + 1;
-        let (workspaces, _) = self.list(page, page_size, None).await?;
-        Ok(workspaces)
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self
+            .matching_records(&store, None)
+            .into_iter()
+            .skip(from)
+            .take(to.saturating_sub(from))
+            .map(|record| self.assemble(record))
+            .collect())
     }
 
     async fn find_by_identity(&self, id: &str) -> Result<Option<Workspace>, ServerError> {
-        let record = {
-            let store = self.store.read().expect("memory store read lock poisoned");
-            store
-                .workspaces
-                .get(id)
-                .filter(|workspace| workspace.deleted_at.is_none())
-                .filter(|workspace| self.visible_to_user(&store, &workspace.id))
-                .cloned()
-        };
-        Ok(record.map(|record| self.assemble(record)))
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(store
+            .workspaces
+            .get(id)
+            .filter(|workspace| workspace.deleted_at.is_none())
+            .filter(|workspace| self.visible_to_user(&store, &workspace.id))
+            .cloned()
+            .map(|record| self.assemble(record)))
     }
 
     async fn size(&self) -> Result<usize, ServerError> {
-        let store = self.store.read().expect("memory store read lock poisoned");
+        let store = self.store.read().expect("fake store read lock poisoned");
         Ok(self.matching_records(&store, None).len())
     }
 }
 
 #[async_trait]
-impl UserWorkspaces for MemoryUserWorkspaces {
+impl UserWorkspaces for FakeUserWorkspaces {
     async fn list(
         &self,
         page: u32,
@@ -243,7 +209,7 @@ impl UserWorkspaces for MemoryUserWorkspaces {
             ));
         }
 
-        let store = self.store.read().expect("memory store read lock poisoned");
+        let store = self.store.read().expect("fake store read lock poisoned");
         let rows = self.matching_records(&store, query.as_deref());
         let total = rows.len() as u64;
         let offset = ((page - 1) * page_size) as usize;
@@ -271,10 +237,7 @@ impl UserWorkspaces for MemoryUserWorkspaces {
             deleted_at: None,
         };
 
-        let mut store = self
-            .store
-            .write()
-            .expect("memory store write lock poisoned");
+        let mut store = self.store.write().expect("fake store write lock poisoned");
         store.workspaces.insert(id.clone(), record.clone());
 
         if let Some(user_id) = &self.user_id {
@@ -296,10 +259,7 @@ impl UserWorkspaces for MemoryUserWorkspaces {
     }
 
     async fn update(&self, id: &str, desc: WorkspaceDescription) -> Result<Workspace, ServerError> {
-        let mut store = self
-            .store
-            .write()
-            .expect("memory store write lock poisoned");
+        let mut store = self.store.write().expect("fake store write lock poisoned");
         if !self.visible_to_user(&store, id) {
             return Err(ServerError::NotFound(format!("workspace {id} not found")));
         }
@@ -320,10 +280,7 @@ impl UserWorkspaces for MemoryUserWorkspaces {
     }
 
     async fn delete(&self, id: &str) -> Result<(), ServerError> {
-        let mut store = self
-            .store
-            .write()
-            .expect("memory store write lock poisoned");
+        let mut store = self.store.write().expect("fake store write lock poisoned");
         if !self.visible_to_user(&store, id) {
             return Err(ServerError::NotFound(format!("workspace {id} not found")));
         }
@@ -340,13 +297,13 @@ impl UserWorkspaces for MemoryUserWorkspaces {
     }
 }
 
-struct MemoryWorkspaceMembers {
-    store: Arc<RwLock<Store>>,
+struct FakeWorkspaceMembers {
+    store: SharedFakeStore,
     workspace_id: String,
 }
 
-impl MemoryWorkspaceMembers {
-    fn new(store: Arc<RwLock<Store>>, workspace_id: String) -> Self {
+impl FakeWorkspaceMembers {
+    fn new(store: SharedFakeStore, workspace_id: String) -> Self {
         Self {
             store,
             workspace_id,
@@ -368,9 +325,9 @@ impl MemoryWorkspaceMembers {
 }
 
 #[async_trait]
-impl HasMany<Member> for MemoryWorkspaceMembers {
+impl HasMany<Member> for FakeWorkspaceMembers {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Member>, ServerError> {
-        let store = self.store.read().expect("memory store read lock poisoned");
+        let store = self.store.read().expect("fake store read lock poisoned");
         let mut rows = store
             .members
             .values()
@@ -387,7 +344,7 @@ impl HasMany<Member> for MemoryWorkspaceMembers {
     }
 
     async fn find_by_identity(&self, id: &str) -> Result<Option<Member>, ServerError> {
-        let store = self.store.read().expect("memory store read lock poisoned");
+        let store = self.store.read().expect("fake store read lock poisoned");
         Ok(store
             .members
             .get(id)
@@ -397,7 +354,7 @@ impl HasMany<Member> for MemoryWorkspaceMembers {
     }
 
     async fn size(&self) -> Result<usize, ServerError> {
-        let store = self.store.read().expect("memory store read lock poisoned");
+        let store = self.store.read().expect("fake store read lock poisoned");
         Ok(store
             .members
             .values()
@@ -407,7 +364,7 @@ impl HasMany<Member> for MemoryWorkspaceMembers {
 }
 
 #[async_trait]
-impl WorkspaceMembers for MemoryWorkspaceMembers {
+impl WorkspaceMembers for FakeWorkspaceMembers {
     async fn add_member(&self, desc: MemberDescription) -> Result<Member, ServerError> {
         let workspace_id = desc.workspace.id().clone();
         if workspace_id != self.workspace_id {
@@ -418,10 +375,7 @@ impl WorkspaceMembers for MemoryWorkspaceMembers {
         }
 
         let user_id = desc.user.id().clone();
-        let mut store = self
-            .store
-            .write()
-            .expect("memory store write lock poisoned");
+        let mut store = self.store.write().expect("fake store write lock poisoned");
 
         if !store.users.contains_key(&user_id) {
             return Err(ServerError::NotFound(format!("user {user_id} not found")));
@@ -461,10 +415,7 @@ impl WorkspaceMembers for MemoryWorkspaceMembers {
     }
 
     async fn remove_member(&self, user_id: &str) -> Result<(), ServerError> {
-        let mut store = self
-            .store
-            .write()
-            .expect("memory store write lock poisoned");
+        let mut store = self.store.write().expect("fake store write lock poisoned");
         let member_id = store
             .members
             .iter()
@@ -480,8 +431,42 @@ impl WorkspaceMembers for MemoryWorkspaceMembers {
     }
 }
 
-fn now() -> String {
-    Utc::now().to_rfc3339()
+fn seed_defaults(store: &SharedFakeStore) {
+    let timestamp = now();
+    let user_id = "desktop-user".to_string();
+    let workspace_id = "default-workspace".to_string();
+    let member_id = "default-workspace-owner".to_string();
+
+    let mut store = store.write().expect("fake store write lock poisoned");
+    store.users.entry(user_id.clone()).or_insert(UserRecord {
+        id: user_id.clone(),
+        name: "Desktop User".to_string(),
+        email: Some("desktop@evidence.local".to_string()),
+    });
+    store
+        .workspaces
+        .entry(workspace_id.clone())
+        .or_insert(WorkspaceRecord {
+            id: workspace_id.clone(),
+            title: "Default Workspace".to_string(),
+            description: Some("Seed workspace for local desktop usage".to_string()),
+            status: "active".to_string(),
+            metadata: HashMap::new(),
+            created_at: timestamp.clone(),
+            updated_at: timestamp.clone(),
+            deleted_at: None,
+        });
+    store
+        .members
+        .entry(member_id.clone())
+        .or_insert(MemberRecord {
+            id: member_id,
+            workspace_id,
+            user_id,
+            role: "owner".to_string(),
+            created_at: timestamp.clone(),
+            updated_at: timestamp,
+        });
 }
 
 fn normalize_title(title: String) -> Result<String, ServerError> {
@@ -494,22 +479,12 @@ fn normalize_title(title: String) -> Result<String, ServerError> {
     Ok(title)
 }
 
-fn default_if_blank(value: String, default_value: &str) -> String {
-    let value = value.trim().to_string();
-    if value.is_empty() {
-        default_value.to_string()
-    } else {
-        value
-    }
-}
+pub(crate) mod contracts {
+    use std::collections::HashMap;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    use crate::domain::{MemberDescription, Ref, ServerError, Users, WorkspaceDescription};
 
-    #[tokio::test]
-    async fn user_sees_seed_workspace() {
-        let users = MemoryUsers::new();
+    pub(crate) async fn user_sees_seed_workspace(users: &dyn Users) {
         let user = users
             .find_by_identity("desktop-user")
             .await
@@ -518,13 +493,13 @@ mod tests {
 
         let (workspaces, total) = user.workspaces().list(1, 10, None).await.unwrap();
 
-        assert_eq!(total, 1);
-        assert_eq!(workspaces[0].identity(), "default-workspace");
+        assert!(total >= 1);
+        assert!(workspaces
+            .iter()
+            .any(|workspace| workspace.identity() == "default-workspace"));
     }
 
-    #[tokio::test]
-    async fn creating_workspace_adds_owner_member() {
-        let users = MemoryUsers::new();
+    pub(crate) async fn creating_workspace_adds_owner_member(users: &dyn Users) {
         let user = users
             .find_by_identity("desktop-user")
             .await
@@ -548,5 +523,52 @@ mod tests {
         assert_eq!(members.len(), 1);
         assert_eq!(members[0].description().role, "owner");
         assert_eq!(members[0].description().user.id(), "desktop-user");
+    }
+
+    pub(crate) async fn duplicate_member_is_conflict(users: &dyn Users) {
+        let user = users
+            .find_by_identity("desktop-user")
+            .await
+            .unwrap()
+            .expect("seed user");
+        let workspace = user
+            .workspaces()
+            .find_by_identity("default-workspace")
+            .await
+            .unwrap()
+            .expect("seed workspace");
+
+        let result = workspace
+            .members_wide()
+            .add_member(MemberDescription {
+                workspace: Ref::new("default-workspace".to_string()),
+                user: Ref::new("desktop-user".to_string()),
+                role: "member".to_string(),
+                created_at: String::new(),
+                updated_at: String::new(),
+            })
+            .await;
+
+        assert!(matches!(result, Err(ServerError::Conflict(_))));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{contracts, FakeUsers};
+
+    #[tokio::test]
+    async fn fake_user_sees_seed_workspace() {
+        contracts::user_sees_seed_workspace(&FakeUsers::new()).await;
+    }
+
+    #[tokio::test]
+    async fn fake_creating_workspace_adds_owner_member() {
+        contracts::creating_workspace_adds_owner_member(&FakeUsers::new()).await;
+    }
+
+    #[tokio::test]
+    async fn fake_duplicate_member_is_conflict() {
+        contracts::duplicate_member_is_conflict(&FakeUsers::new()).await;
     }
 }

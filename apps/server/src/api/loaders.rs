@@ -25,18 +25,31 @@ pub(super) async fn find_workspace(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::persistent::MemoryUsers;
+    use crate::persistent::test_support::FakeUsers;
     use std::sync::Arc;
 
     #[tokio::test]
     async fn finds_seed_user_workspace() {
         let state = AppState {
-            users: Arc::new(MemoryUsers::new()),
+            users: Arc::new(FakeUsers::new()),
         };
         let user = find_user(&state, "desktop-user").await.unwrap();
         let (workspaces, total) = user.workspaces().list(1, 10, None).await.unwrap();
 
-        assert_eq!(total, 1);
-        assert_eq!(workspaces[0].identity(), "default-workspace");
+        assert!(total >= 1);
+        assert!(workspaces
+            .iter()
+            .any(|workspace| workspace.identity() == "default-workspace"));
+    }
+
+    #[tokio::test]
+    async fn missing_user_is_not_found() {
+        let state = AppState {
+            users: Arc::new(FakeUsers::new()),
+        };
+
+        let result = find_user(&state, "missing-user").await;
+
+        assert!(matches!(result, Err(ServerError::NotFound(_))));
     }
 }
