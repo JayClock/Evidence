@@ -15,20 +15,20 @@ use crate::domain::{
 };
 
 use super::{
-    diagram_edges::{delete_edges_for_diagram, insert_edge, PgDiagramEdges},
-    diagram_nodes::{delete_nodes_for_diagram, insert_node, PgDiagramNodes},
-    diagram_versions::PgDiagramVersions,
+    diagram_edges::{delete_edges_for_diagram, insert_edge, DbDiagramEdges},
+    diagram_nodes::{delete_nodes_for_diagram, insert_node, DbDiagramNodes},
+    diagram_versions::DbDiagramVersions,
     entities::workspace_diagrams,
-    store::{db_error, now, PgStore},
+    store::{db_error, now, DbStore},
 };
 
-pub struct PgWorkspaceDiagrams {
-    store: PgStore,
+pub struct DbWorkspaceDiagrams {
+    store: DbStore,
     workspace_id: String,
 }
 
-impl PgWorkspaceDiagrams {
-    pub fn new(store: PgStore, workspace_id: String) -> Self {
+impl DbWorkspaceDiagrams {
+    pub fn new(store: DbStore, workspace_id: String) -> Self {
         Self {
             store,
             workspace_id,
@@ -50,7 +50,7 @@ impl PgWorkspaceDiagrams {
 }
 
 #[async_trait]
-impl HasMany<Diagram> for PgWorkspaceDiagrams {
+impl HasMany<Diagram> for DbWorkspaceDiagrams {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Diagram>, ServerError> {
         let limit = to.saturating_sub(from).min(i64::MAX as usize) as u64;
         let rows = workspace_diagrams::Entity::find()
@@ -82,7 +82,7 @@ impl HasMany<Diagram> for PgWorkspaceDiagrams {
 }
 
 #[async_trait]
-impl WorkspaceDiagrams for PgWorkspaceDiagrams {
+impl WorkspaceDiagrams for DbWorkspaceDiagrams {
     async fn add(&self, desc: DiagramDescription) -> Result<Diagram, ServerError> {
         let title = normalize_title(desc.title)?;
         let id = Uuid::new_v4().to_string();
@@ -223,7 +223,7 @@ impl WorkspaceDiagrams for PgWorkspaceDiagrams {
     }
 }
 
-fn assemble_diagram(store: PgStore, model: workspace_diagrams::Model) -> Diagram {
+fn assemble_diagram(store: DbStore, model: workspace_diagrams::Model) -> Diagram {
     let description = DiagramDescription {
         workspace: Ref::new(model.workspace_id),
         title: model.title,
@@ -238,9 +238,9 @@ fn assemble_diagram(store: PgStore, model: workspace_diagrams::Model) -> Diagram
     Diagram::new(
         model.id,
         description,
-        Arc::new(PgDiagramNodes::new(store.clone(), diagram_id.clone())),
-        Arc::new(PgDiagramEdges::new(store.clone(), diagram_id.clone())),
-        Arc::new(PgDiagramVersions::new(store, diagram_id)),
+        Arc::new(DbDiagramNodes::new(store.clone(), diagram_id.clone())),
+        Arc::new(DbDiagramEdges::new(store.clone(), diagram_id.clone())),
+        Arc::new(DbDiagramVersions::new(store, diagram_id)),
     )
 }
 

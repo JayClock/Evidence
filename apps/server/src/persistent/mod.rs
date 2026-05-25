@@ -1,7 +1,7 @@
 mod diagram_edges;
 mod diagram_nodes;
 mod diagram_versions;
-mod entities;
+pub(crate) mod entities;
 mod logical_entities;
 mod store;
 #[cfg(test)]
@@ -11,4 +11,4 @@ mod users;
 mod workspace_diagrams;
 mod workspace_members;
 
-pub use users::PgUsers;
+pub use users::DbUsers;

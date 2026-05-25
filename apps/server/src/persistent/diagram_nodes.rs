@@ -12,22 +12,22 @@ use crate::domain::{
 use super::{
     diagram_edges::delete_edges_for_diagram,
     entities::diagram_nodes,
-    store::{db_error, now, PgStore},
+    store::{db_error, now, DbStore},
 };
 
-pub struct PgDiagramNodes {
-    store: PgStore,
+pub struct DbDiagramNodes {
+    store: DbStore,
     diagram_id: String,
 }
 
-impl PgDiagramNodes {
-    pub fn new(store: PgStore, diagram_id: String) -> Self {
+impl DbDiagramNodes {
+    pub fn new(store: DbStore, diagram_id: String) -> Self {
         Self { store, diagram_id }
     }
 }
 
 #[async_trait]
-impl HasMany<DiagramNode> for PgDiagramNodes {
+impl HasMany<DiagramNode> for DbDiagramNodes {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<DiagramNode>, ServerError> {
         let limit = to.saturating_sub(from).min(i64::MAX as usize) as u64;
         let rows = diagram_nodes::Entity::find()
@@ -61,7 +61,7 @@ impl HasMany<DiagramNode> for PgDiagramNodes {
 }
 
 #[async_trait]
-impl DiagramNodes for PgDiagramNodes {
+impl DiagramNodes for DbDiagramNodes {
     async fn add(&self, desc: NodeDescription) -> Result<DiagramNode, ServerError> {
         self.add_with_id(None, desc).await
     }

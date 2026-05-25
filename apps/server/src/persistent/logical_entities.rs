@@ -13,16 +13,16 @@ use crate::domain::{
 
 use super::{
     entities::logical_entities,
-    store::{db_error, now, PgStore},
+    store::{db_error, now, DbStore},
 };
 
-pub struct PgWorkspaceLogicalEntities {
-    store: PgStore,
+pub struct DbWorkspaceLogicalEntities {
+    store: DbStore,
     workspace_id: String,
 }
 
-impl PgWorkspaceLogicalEntities {
-    pub fn new(store: PgStore, workspace_id: String) -> Self {
+impl DbWorkspaceLogicalEntities {
+    pub fn new(store: DbStore, workspace_id: String) -> Self {
         Self {
             store,
             workspace_id,
@@ -44,7 +44,7 @@ impl PgWorkspaceLogicalEntities {
 }
 
 #[async_trait]
-impl HasMany<LogicalEntity> for PgWorkspaceLogicalEntities {
+impl HasMany<LogicalEntity> for DbWorkspaceLogicalEntities {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<LogicalEntity>, ServerError> {
         let limit = to.saturating_sub(from).min(i64::MAX as usize) as u64;
         let rows = logical_entities::Entity::find()
@@ -76,7 +76,7 @@ impl HasMany<LogicalEntity> for PgWorkspaceLogicalEntities {
 }
 
 #[async_trait]
-impl WorkspaceLogicalEntities for PgWorkspaceLogicalEntities {
+impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
     async fn add(&self, desc: LogicalEntityDescription) -> Result<LogicalEntity, ServerError> {
         let entity_type = desc.entity_type.clone();
         let sub_type = normalize_sub_type(&entity_type, desc.sub_type)?;

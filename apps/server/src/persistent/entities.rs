@@ -116,7 +116,7 @@ pub mod workspace_diagrams {
     use sea_orm::entity::prelude::*;
 
     #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-    #[sea_orm(table_name = "workspace_diagrams")]
+    #[sea_orm(table_name = "diagrams")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
         pub id: String,
@@ -291,7 +291,7 @@ pub mod workspace_members {
     use sea_orm::entity::prelude::*;
 
     #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
-    #[sea_orm(table_name = "workspace_members")]
+    #[sea_orm(table_name = "members")]
     pub struct Model {
         #[sea_orm(primary_key, auto_increment = false)]
         pub id: String,

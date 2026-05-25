@@ -5,16 +5,27 @@ edition.workspace = true
 license.workspace = true
 
 [features]
-default = []
-postgres-tests = ["dep:testcontainers", "dep:testcontainers-modules"]
+default = ["postgres"]
+postgres = ["sea-orm/sqlx-postgres", "sea-orm-migration/sqlx-postgres"]
+sqlite = ["sea-orm/sqlx-sqlite", "sea-orm-migration/sqlx-sqlite"]
+postgres-tests = ["postgres", "dep:testcontainers", "dep:testcontainers-modules"]
+sqlite-tests = ["sqlite", "dep:tempfile"]
 
 [dependencies]
 async-trait = "0.1"
 axum = "0.8"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-sea-orm = { version = "1", default-features = false, features = ["macros", "runtime-tokio-rustls", "sqlx-postgres", "with-json"] }
+sea-orm = { version = "1", default-features = false, features = [
+  "macros",
+  "runtime-tokio-rustls",
+  "with-json",
+] }
+sea-orm-migration = { version = "1", default-features = false, features = [
+  "runtime-tokio-rustls",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tempfile = { version = "3", optional = true }
 testcontainers = { version = "0.25", optional = true }
 testcontainers-modules = { version = "0.13", features = ["postgres"], optional = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }

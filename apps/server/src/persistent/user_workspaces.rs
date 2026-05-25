@@ -11,22 +11,22 @@ use crate::domain::{HasMany, ServerError, UserWorkspaces, Workspace, WorkspaceDe
 
 use super::{
     entities::{workspace_members, workspaces},
-    logical_entities::PgWorkspaceLogicalEntities,
+    logical_entities::DbWorkspaceLogicalEntities,
     store::{
-        db_error, default_if_blank, metadata_to_json, now, workspace_to_record, PgStore,
+        db_error, default_if_blank, metadata_to_json, now, workspace_to_record, DbStore,
         WorkspaceRecord,
     },
-    workspace_diagrams::PgWorkspaceDiagrams,
-    workspace_members::PgWorkspaceMembers,
+    workspace_diagrams::DbWorkspaceDiagrams,
+    workspace_members::DbWorkspaceMembers,
 };
 
-pub struct PgUserWorkspaces {
-    store: PgStore,
+pub struct DbUserWorkspaces {
+    store: DbStore,
     user_id: Option<String>,
 }
 
-impl PgUserWorkspaces {
-    pub fn new(store: PgStore, user_id: Option<String>) -> Self {
+impl DbUserWorkspaces {
+    pub fn new(store: DbStore, user_id: Option<String>) -> Self {
         Self { store, user_id }
     }
 
@@ -62,15 +62,15 @@ impl PgUserWorkspaces {
                 created_at: record.created_at,
                 updated_at: record.updated_at,
             },
-            Arc::new(PgWorkspaceMembers::new(
+            Arc::new(DbWorkspaceMembers::new(
                 self.store.clone(),
                 record.id.clone(),
             )),
-            Arc::new(PgWorkspaceDiagrams::new(
+            Arc::new(DbWorkspaceDiagrams::new(
                 self.store.clone(),
                 record.id.clone(),
             )),
-            Arc::new(PgWorkspaceLogicalEntities::new(
+            Arc::new(DbWorkspaceLogicalEntities::new(
                 self.store.clone(),
                 record.id,
             )),
@@ -79,7 +79,7 @@ impl PgUserWorkspaces {
 }
 
 #[async_trait]
-impl HasMany<Workspace> for PgUserWorkspaces {
+impl HasMany<Workspace> for DbUserWorkspaces {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Workspace>, ServerError> {
         let rows = self
             .visible_query()
@@ -116,7 +116,7 @@ impl HasMany<Workspace> for PgUserWorkspaces {
 }
 
 #[async_trait]
-impl UserWorkspaces for PgUserWorkspaces {
+impl UserWorkspaces for DbUserWorkspaces {
     async fn list(
         &self,
         page: u32,

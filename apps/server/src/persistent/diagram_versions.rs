@@ -14,22 +14,22 @@ use crate::domain::{
 
 use super::{
     entities::diagram_versions,
-    store::{db_error, now, PgStore},
+    store::{db_error, now, DbStore},
 };
 
-pub struct PgDiagramVersions {
-    store: PgStore,
+pub struct DbDiagramVersions {
+    store: DbStore,
     diagram_id: String,
 }
 
-impl PgDiagramVersions {
-    pub fn new(store: PgStore, diagram_id: String) -> Self {
+impl DbDiagramVersions {
+    pub fn new(store: DbStore, diagram_id: String) -> Self {
         Self { store, diagram_id }
     }
 }
 
 #[async_trait]
-impl HasMany<DiagramVersion> for PgDiagramVersions {
+impl HasMany<DiagramVersion> for DbDiagramVersions {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<DiagramVersion>, ServerError> {
         let limit = to.saturating_sub(from).min(i64::MAX as usize) as u64;
         let rows = diagram_versions::Entity::find()
@@ -63,7 +63,7 @@ impl HasMany<DiagramVersion> for PgDiagramVersions {
 }
 
 #[async_trait]
-impl DiagramVersions for PgDiagramVersions {
+impl DiagramVersions for DbDiagramVersions {
     async fn add(&self, desc: DiagramVersionDescription) -> Result<DiagramVersion, ServerError> {
         let id = Uuid::new_v4().to_string();
         let timestamp = now();

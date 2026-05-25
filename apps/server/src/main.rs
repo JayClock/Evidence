@@ -1,8 +1,4 @@
-pub mod api;
-pub mod domain;
-pub mod persistent;
-
-use persistent::PgUsers;
+use evidence_server::{api, persistent::DbUsers};
 use std::{net::SocketAddr, sync::Arc};
 
 #[tokio::main]
@@ -15,10 +11,10 @@ async fn main() {
 
     let database_url = std::env::var("DATABASE_URL")
         .or_else(|_| std::env::var("PGSQL_DATABASE_URL"))
-        .expect("DATABASE_URL or PGSQL_DATABASE_URL must be set for PostgreSQL persistence");
-    let users = PgUsers::connect(&database_url)
+        .expect("DATABASE_URL or PGSQL_DATABASE_URL must be set");
+    let users = DbUsers::connect(&database_url)
         .await
-        .expect("failed to connect to PostgreSQL");
+        .expect("failed to connect database");
     let app = api::app(Arc::new(users));
 
     let addr: SocketAddr = std::env::var("API_ADDR")

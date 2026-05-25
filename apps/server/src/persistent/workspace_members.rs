@@ -10,17 +10,17 @@ use crate::domain::{HasMany, Member, MemberDescription, Ref, ServerError, Worksp
 use super::{
     entities::{users, workspace_members, workspaces},
     store::{
-        db_conflict, db_error, default_if_blank, member_to_record, now, MemberRecord, PgStore,
+        db_conflict, db_error, default_if_blank, member_to_record, now, DbStore, MemberRecord,
     },
 };
 
-pub struct PgWorkspaceMembers {
-    store: PgStore,
+pub struct DbWorkspaceMembers {
+    store: DbStore,
     workspace_id: String,
 }
 
-impl PgWorkspaceMembers {
-    pub fn new(store: PgStore, workspace_id: String) -> Self {
+impl DbWorkspaceMembers {
+    pub fn new(store: DbStore, workspace_id: String) -> Self {
         Self {
             store,
             workspace_id,
@@ -42,7 +42,7 @@ impl PgWorkspaceMembers {
 }
 
 #[async_trait]
-impl HasMany<Member> for PgWorkspaceMembers {
+impl HasMany<Member> for DbWorkspaceMembers {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Member>, ServerError> {
         let rows = workspace_members::Entity::find()
             .filter(workspace_members::Column::WorkspaceId.eq(self.workspace_id.clone()))
@@ -83,7 +83,7 @@ impl HasMany<Member> for PgWorkspaceMembers {
 }
 
 #[async_trait]
-impl WorkspaceMembers for PgWorkspaceMembers {
+impl WorkspaceMembers for DbWorkspaceMembers {
     async fn add_member(&self, desc: MemberDescription) -> Result<Member, ServerError> {
         let workspace_id = desc.workspace.id().clone();
         if workspace_id != self.workspace_id {

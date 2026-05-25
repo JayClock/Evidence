@@ -8,21 +8,27 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cargo run -p evidence-server"
+        "command": "cargo run -p evidence-server --features postgres"
       }
     },
     "build": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/target/debug/evidence-server"],
       "options": {
-        "command": "cargo build -p evidence-server"
+        "command": "cargo build -p evidence-server --features postgres"
       }
     },
     "build-release": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/target/release/evidence-server"],
       "options": {
-        "command": "cargo build -p evidence-server --release"
+        "command": "cargo build -p evidence-server --features postgres --release"
+      }
+    },
+    "build-sqlite": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo build -p evidence-server --no-default-features --features sqlite"
       }
     },
     "test": {
@@ -31,16 +37,56 @@
         "command": "cargo test -p evidence-server"
       }
     },
+    "test-sqlite": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test -p evidence-server --no-default-features --features sqlite-tests"
+      }
+    },
+    "test-postgres": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test -p evidence-server --features postgres-tests"
+      }
+    },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "cargo clippy -p evidence-server --all-targets -- -D warnings"
+        "command": "cargo clippy -p evidence-server --all-targets --features postgres -- -D warnings"
+      }
+    },
+    "lint-sqlite": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo clippy -p evidence-server --all-targets --no-default-features --features sqlite -- -D warnings"
       }
     },
     "format": {
       "executor": "nx:run-commands",
       "options": {
         "command": "cargo fmt -p evidence-server"
+      }
+    },
+    "format-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt -p evidence-server -- --check"
+      }
+    },
+    "ci": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "pnpm nx run @evidence/server:format-check",
+          "pnpm nx run @evidence/server:lint",
+          "pnpm nx run @evidence/server:lint-sqlite",
+          "pnpm nx run @evidence/server:test",
+          "pnpm nx run @evidence/server:test-sqlite",
+          "pnpm nx run @evidence/server:test-postgres",
+          "pnpm nx run @evidence/server:build",
+          "pnpm nx run @evidence/server:build-sqlite"
+        ]
       }
     }
   }

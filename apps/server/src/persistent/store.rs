@@ -2,16 +2,13 @@ use std::collections::HashMap;
 
 use chrono::Utc;
 use sea_orm::{
-    sea_query::Index, ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseConnection, DbErr,
-    EntityTrait, QueryFilter, Schema, Set,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseBackend, DatabaseConnection, DbErr,
+    EntityTrait, QueryFilter, Set, Statement,
 };
 
 use crate::domain::ServerError;
 
-use super::entities::{
-    diagram_edges, diagram_nodes, diagram_versions, logical_entities, users, workspace_diagrams,
-    workspace_members, workspaces,
-};
+use super::entities::{users, workspace_members, workspaces};
 
 #[derive(Debug, Clone)]
 pub(super) struct UserRecord {
@@ -42,11 +39,11 @@ pub(super) struct MemberRecord {
 }
 
 #[derive(Clone)]
-pub(super) struct PgStore {
+pub(super) struct DbStore {
     db: DatabaseConnection,
 }
 
-impl PgStore {
+impl DbStore {
     pub(super) fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
@@ -56,194 +53,21 @@ impl PgStore {
     }
 }
 
-pub(super) async fn init_schema(db: &DatabaseConnection) -> Result<(), ServerError> {
-    let backend = db.get_database_backend();
-    let schema = Schema::new(backend);
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(users::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(workspaces::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(workspace_members::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(workspace_diagrams::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(logical_entities::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(diagram_nodes::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(diagram_edges::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            schema
-                .create_table_from_entity(diagram_versions::Entity)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_workspace_members_workspace_user")
-                .table(workspace_members::Entity)
-                .col(workspace_members::Column::WorkspaceId)
-                .col(workspace_members::Column::UserId)
-                .unique()
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_workspace_diagrams_workspace_updated")
-                .table(workspace_diagrams::Entity)
-                .col(workspace_diagrams::Column::WorkspaceId)
-                .col(workspace_diagrams::Column::UpdatedAt)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_logical_entities_workspace_updated")
-                .table(logical_entities::Entity)
-                .col(logical_entities::Column::WorkspaceId)
-                .col(logical_entities::Column::UpdatedAt)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_logical_entities_workspace_type")
-                .table(logical_entities::Entity)
-                .col(logical_entities::Column::WorkspaceId)
-                .col(logical_entities::Column::EntityType)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_logical_entities_workspace_sub_type")
-                .table(logical_entities::Entity)
-                .col(logical_entities::Column::WorkspaceId)
-                .col(logical_entities::Column::SubType)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_diagram_nodes_diagram_updated")
-                .table(diagram_nodes::Entity)
-                .col(diagram_nodes::Column::DiagramId)
-                .col(diagram_nodes::Column::UpdatedAt)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_diagram_edges_diagram_updated")
-                .table(diagram_edges::Entity)
-                .col(diagram_edges::Column::DiagramId)
-                .col(diagram_edges::Column::UpdatedAt)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
-
-    db.execute(
-        backend.build(
-            Index::create()
-                .name("idx_diagram_versions_diagram_created")
-                .table(diagram_versions::Entity)
-                .col(diagram_versions::Column::DiagramId)
-                .col(diagram_versions::Column::CreatedAt)
-                .if_not_exists(),
-        ),
-    )
-    .await
-    .map_err(db_error)?;
+pub(super) async fn configure_database(db: &DatabaseConnection) -> Result<(), ServerError> {
+    if db.get_database_backend() == DatabaseBackend::Sqlite {
+        for statement in [
+            "PRAGMA foreign_keys = ON",
+            "PRAGMA busy_timeout = 5000",
+            "PRAGMA journal_mode = WAL",
+        ] {
+            db.execute(Statement::from_string(
+                DatabaseBackend::Sqlite,
+                statement.to_string(),
+            ))
+            .await
+            .map_err(db_error)?;
+        }
+    }
 
     Ok(())
 }
@@ -357,14 +181,20 @@ fn metadata_from_json(metadata: sea_orm::JsonValue) -> HashMap<String, String> {
 }
 
 pub(super) fn db_error(error: DbErr) -> ServerError {
-    ServerError::Internal(format!("postgres error: {error}"))
+    ServerError::Internal(format!("database error: {error}"))
 }
 
 pub(super) fn db_conflict(error: DbErr, message: String) -> ServerError {
-    match error {
-        DbErr::RecordNotInserted | DbErr::RecordNotUpdated => ServerError::Conflict(message),
-        error if error.to_string().contains("duplicate key") => ServerError::Conflict(message),
-        error => db_error(error),
+    let text = error.to_string();
+
+    if matches!(error, DbErr::RecordNotInserted | DbErr::RecordNotUpdated)
+        || text.contains("duplicate key")
+        || text.contains("violates unique constraint")
+        || text.contains("UNIQUE constraint failed")
+    {
+        ServerError::Conflict(message)
+    } else {
+        db_error(error)
     }
 }
 
