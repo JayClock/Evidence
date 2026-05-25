@@ -1,7 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  toAppPathname,
   useResource,
   type Link as HalLink,
   type SidebarItem,
@@ -209,7 +208,7 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link to={toAppPathname(selfHref)}>User resource</Link>
+                <Link to={selfHref}>User resource</Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -220,13 +219,7 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
 }
 
 function sidebarItemRoute(item: SidebarItem) {
-  const href = item.href ?? item.path ?? '#';
-
-  if (item.type === 'external') {
-    return href;
-  }
-
-  return toAppPathname(href);
+  return item.href ?? item.path ?? '#';
 }
 
 function isPathActive(pathname: string, candidate: string) {
@@ -234,7 +227,21 @@ function isPathActive(pathname: string, candidate: string) {
     return false;
   }
 
-  return pathname === candidate || pathname.startsWith(`${candidate}/`);
+  return routeCandidates(candidate).some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
+function routeCandidates(pathname: string) {
+  if (pathname === '/api') {
+    return ['/', pathname];
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return [pathname.slice('/api'.length), pathname];
+  }
+
+  return [pathname];
 }
 
 function initials(name: string) {

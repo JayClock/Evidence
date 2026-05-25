@@ -1,9 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  toAppPathname,
-  type DiagramCollectionResource,
-  type State,
-} from '@evidence/api-client';
+import type { DiagramCollectionResource, State } from '@evidence/api-client';
 import {
   Table,
   TableBody,
@@ -62,9 +58,7 @@ export function DiagramCollectionView({
                   <TableRow key={diagramState.data.id}>
                     <TableCell className="font-medium">
                       {href ? (
-                        <Link to={toAppPathname(href)}>
-                          {diagramState.data.title}
-                        </Link>
+                        <Link to={href}>{diagramState.data.title}</Link>
                       ) : (
                         diagramState.data.title
                       )}

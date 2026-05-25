@@ -28,18 +28,6 @@ export function normalizeContentType(contentType: string | null): string {
   return contentType?.split(';')[0]?.trim().toLowerCase() ?? '';
 }
 
-export function toAppPathname(pathname: string): string {
-  if (pathname === '/api') {
-    return '/';
-  }
-
-  if (pathname.startsWith('/api/')) {
-    return pathname.slice('/api'.length);
-  }
-
-  return pathname;
-}
-
 export function toApiPathname(pathname: string): string {
   if (pathname === '/') {
     return '/api';

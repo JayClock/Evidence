@@ -26,8 +26,6 @@ vi.mock('@evidence/api-client', () => ({
     pathname === '/' || pathname.startsWith('/api')
       ? pathname
       : `/api${pathname}`,
-  toAppPathname: (pathname: string) =>
-    pathname.startsWith('/api/') ? pathname.slice('/api'.length) : pathname,
   useResource: vi.fn(),
 }));
 

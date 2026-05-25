@@ -11,8 +11,6 @@ import type { Mock } from 'vitest';
 import { WebShell } from './web-shell';
 
 vi.mock('@evidence/api-client', () => ({
-  toAppPathname: (pathname: string) =>
-    pathname.startsWith('/api/') ? pathname.slice('/api'.length) : pathname,
   useResource: vi.fn(),
 }));
 

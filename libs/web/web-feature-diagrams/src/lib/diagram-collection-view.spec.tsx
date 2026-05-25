@@ -4,12 +4,6 @@ import type { DiagramCollectionResource, State } from '@evidence/api-client';
 
 import { DiagramCollectionView } from './diagram-collection-view';
 
-vi.mock('@evidence/api-client', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@evidence/api-client')>()),
-  toAppPathname: (pathname: string) =>
-    pathname.startsWith('/api/') ? pathname.slice('/api'.length) : pathname,
-}));
-
 const links = (...rels: string[]) => ({
   getAll: () => rels.map((rel) => ({ rel, href: `/api/${rel}` })),
 });

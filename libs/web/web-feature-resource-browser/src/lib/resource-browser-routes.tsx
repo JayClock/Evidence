@@ -5,7 +5,6 @@ import {
   normalizeContentType,
   resourceContentTypes,
   toApiPathname,
-  toAppPathname,
   useResource,
   type DiagramCollectionResource,
   type Entity,
@@ -317,9 +316,7 @@ function LogicalEntityCollectionView({
             return (
               <CollectionItemCard
                 key={entityState.data.id}
-                title={
-                  href ? <Link to={toAppPathname(href)}>{title}</Link> : title
-                }
+                title={href ? <Link to={href}>{title}</Link> : title}
                 detail={[entityState.data.type, entityState.data.subType]
                   .filter(Boolean)
                   .join(' · ')}
@@ -337,7 +334,7 @@ function ResourceLinks({ links }: { links: HalLink[] }) {
     <div className="flex flex-wrap gap-2">
       {links.map((link) => (
         <Badge key={`${link.rel}:${link.href}`} asChild variant="secondary">
-          <Link to={toAppPathname(link.href)}>{link.rel}</Link>
+          <Link to={link.href}>{link.rel}</Link>
         </Badge>
       ))}
     </div>

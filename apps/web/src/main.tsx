@@ -1,12 +1,12 @@
 import { StrictMode } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import * as ReactDOM from 'react-dom/client';
 import {
   apiClient,
   initializeApiClient,
   ResourceProvider,
 } from '@evidence/api-client';
-import App from './app/app';
+import { appRoutes } from './app/route';
 
 async function bootstrap() {
   await initializeApiClient();
@@ -15,12 +15,12 @@ async function bootstrap() {
     document.getElementById('root') as HTMLElement,
   );
 
+  const router = createBrowserRouter(appRoutes);
+
   root.render(
     <StrictMode>
       <ResourceProvider client={apiClient}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <RouterProvider router={router} />
       </ResourceProvider>
     </StrictMode>,
   );
