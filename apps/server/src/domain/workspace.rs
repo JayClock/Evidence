@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use super::core::{Entity, HasMany};
+use super::diagram::{Diagram, WorkspaceDiagrams};
 use super::member::{Member, WorkspaceMembers};
 
 #[derive(Debug, Clone)]
@@ -18,6 +19,7 @@ pub struct Workspace {
     identity: String,
     description: WorkspaceDescription,
     members: Arc<dyn WorkspaceMembers>,
+    diagrams: Arc<dyn WorkspaceDiagrams>,
 }
 
 impl Workspace {
@@ -25,11 +27,13 @@ impl Workspace {
         identity: String,
         description: WorkspaceDescription,
         members: Arc<dyn WorkspaceMembers>,
+        diagrams: Arc<dyn WorkspaceDiagrams>,
     ) -> Self {
         Self {
             identity,
             description,
             members,
+            diagrams,
         }
     }
 
@@ -47,6 +51,14 @@ impl Workspace {
 
     pub fn members_wide(&self) -> &dyn WorkspaceMembers {
         self.members.as_ref()
+    }
+
+    pub fn diagrams(&self) -> &dyn HasMany<Diagram> {
+        self.diagrams.as_ref()
+    }
+
+    pub fn diagrams_wide(&self) -> &dyn WorkspaceDiagrams {
+        self.diagrams.as_ref()
     }
 }
 

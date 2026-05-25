@@ -8,7 +8,10 @@ use sea_orm::{
 
 use crate::domain::ServerError;
 
-use super::entities::{users, workspace_members, workspaces};
+use super::entities::{
+    diagram_edges, diagram_nodes, diagram_versions, users, workspace_diagrams, workspace_members,
+    workspaces,
+};
 
 #[derive(Debug, Clone)]
 pub(super) struct UserRecord {
@@ -89,12 +92,104 @@ pub(super) async fn init_schema(db: &DatabaseConnection) -> Result<(), ServerErr
 
     db.execute(
         backend.build(
+            schema
+                .create_table_from_entity(workspace_diagrams::Entity)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            schema
+                .create_table_from_entity(diagram_nodes::Entity)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            schema
+                .create_table_from_entity(diagram_edges::Entity)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            schema
+                .create_table_from_entity(diagram_versions::Entity)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
             Index::create()
                 .name("idx_workspace_members_workspace_user")
                 .table(workspace_members::Entity)
                 .col(workspace_members::Column::WorkspaceId)
                 .col(workspace_members::Column::UserId)
                 .unique()
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_workspace_diagrams_workspace_updated")
+                .table(workspace_diagrams::Entity)
+                .col(workspace_diagrams::Column::WorkspaceId)
+                .col(workspace_diagrams::Column::UpdatedAt)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_diagram_nodes_diagram_updated")
+                .table(diagram_nodes::Entity)
+                .col(diagram_nodes::Column::DiagramId)
+                .col(diagram_nodes::Column::UpdatedAt)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_diagram_edges_diagram_updated")
+                .table(diagram_edges::Entity)
+                .col(diagram_edges::Column::DiagramId)
+                .col(diagram_edges::Column::UpdatedAt)
+                .if_not_exists(),
+        ),
+    )
+    .await
+    .map_err(db_error)?;
+
+    db.execute(
+        backend.build(
+            Index::create()
+                .name("idx_diagram_versions_diagram_created")
+                .table(diagram_versions::Entity)
+                .col(diagram_versions::Column::DiagramId)
+                .col(diagram_versions::Column::CreatedAt)
                 .if_not_exists(),
         ),
     )

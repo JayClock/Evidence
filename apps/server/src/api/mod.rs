@@ -1,3 +1,4 @@
+mod diagrams;
 mod error;
 mod links;
 mod loaders;
@@ -25,6 +26,7 @@ pub fn app(users: Arc<dyn Users>) -> Router {
         .merge(users::routes())
         .merge(user_workspaces::routes())
         .merge(workspace_members::routes())
+        .merge(diagrams::routes())
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(AppState { users })

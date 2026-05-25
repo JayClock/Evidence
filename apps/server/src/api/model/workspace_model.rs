@@ -3,7 +3,9 @@ use std::{collections::BTreeMap, collections::HashMap};
 
 use crate::domain::Workspace;
 
-use super::super::links::{user_href, workspace_href, workspace_members_href, Link};
+use super::super::links::{
+    user_href, workspace_diagrams_href, workspace_href, workspace_members_href, Link,
+};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,6 +34,10 @@ pub(in crate::api) fn workspace_model(user_id: &str, workspace: &Workspace) -> W
             (
                 "members".to_string(),
                 Link::new(workspace_members_href(user_id, workspace_id)),
+            ),
+            (
+                "diagrams".to_string(),
+                Link::new(workspace_diagrams_href(workspace_id)),
             ),
             (
                 "collection".to_string(),

@@ -15,6 +15,7 @@ use super::{
         db_error, default_if_blank, metadata_to_json, now, workspace_to_record, PgStore,
         WorkspaceRecord,
     },
+    workspace_diagrams::PgWorkspaceDiagrams,
     workspace_members::PgWorkspaceMembers,
 };
 
@@ -60,7 +61,11 @@ impl PgUserWorkspaces {
                 created_at: record.created_at,
                 updated_at: record.updated_at,
             },
-            Arc::new(PgWorkspaceMembers::new(self.store.clone(), record.id)),
+            Arc::new(PgWorkspaceMembers::new(
+                self.store.clone(),
+                record.id.clone(),
+            )),
+            Arc::new(PgWorkspaceDiagrams::new(self.store.clone(), record.id)),
         )
     }
 }

@@ -7,8 +7,11 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use crate::domain::{
-    HasMany, Member, MemberDescription, Ref, ServerError, User, UserDescription, UserWorkspaces,
-    Users, Workspace, WorkspaceDescription, WorkspaceMembers,
+    Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
+    DiagramStatus, DiagramVersion, DiagramVersionDescription, DiagramVersions, DraftEdge,
+    DraftNode, EdgeDescription, HasMany, Member, MemberDescription, NodeDescription, Ref,
+    ServerError, User, UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription,
+    WorkspaceDiagrams, WorkspaceMembers,
 };
 
 use super::store::{default_if_blank, now};
@@ -42,11 +45,22 @@ struct MemberRecord {
     updated_at: String,
 }
 
+#[derive(Debug, Clone)]
+struct DiagramRecord {
+    id: String,
+    workspace_id: String,
+    description: DiagramDescription,
+    created_at: String,
+    updated_at: String,
+    deleted_at: Option<String>,
+}
+
 #[derive(Default)]
 struct FakeStore {
     users: HashMap<String, UserRecord>,
     workspaces: HashMap<String, WorkspaceRecord>,
     members: HashMap<String, MemberRecord>,
+    diagrams: HashMap<String, DiagramRecord>,
 }
 
 type SharedFakeStore = Arc<RwLock<FakeStore>>;
@@ -125,7 +139,11 @@ impl FakeUserWorkspaces {
                 created_at: record.created_at,
                 updated_at: record.updated_at,
             },
-            Arc::new(FakeWorkspaceMembers::new(self.store.clone(), record.id)),
+            Arc::new(FakeWorkspaceMembers::new(
+                self.store.clone(),
+                record.id.clone(),
+            )),
+            Arc::new(FakeWorkspaceDiagrams::new(self.store.clone(), record.id)),
         )
     }
 
@@ -294,6 +312,336 @@ impl UserWorkspaces for FakeUserWorkspaces {
         workspace.deleted_at = Some(timestamp.clone());
         workspace.updated_at = timestamp;
         Ok(())
+    }
+}
+
+struct FakeWorkspaceDiagrams {
+    store: SharedFakeStore,
+    workspace_id: String,
+}
+
+impl FakeWorkspaceDiagrams {
+    fn new(store: SharedFakeStore, workspace_id: String) -> Self {
+        Self {
+            store,
+            workspace_id,
+        }
+    }
+
+    fn assemble(&self, record: DiagramRecord) -> Diagram {
+        let mut description = record.description;
+        description.workspace = Ref::new(record.workspace_id);
+        description.created_at = record.created_at;
+        description.updated_at = record.updated_at;
+        Diagram::new(
+            record.id,
+            description,
+            Arc::new(FakeDiagramNodes),
+            Arc::new(FakeDiagramEdges),
+            Arc::new(FakeDiagramVersions),
+        )
+    }
+
+    fn matching_records(&self, store: &FakeStore) -> Vec<DiagramRecord> {
+        let mut rows = store
+            .diagrams
+            .values()
+            .filter(|diagram| diagram.workspace_id == self.workspace_id)
+            .filter(|diagram| diagram.deleted_at.is_none())
+            .cloned()
+            .collect::<Vec<_>>();
+        rows.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+        rows
+    }
+}
+
+#[async_trait]
+impl HasMany<Diagram> for FakeWorkspaceDiagrams {
+    async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Diagram>, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self
+            .matching_records(&store)
+            .into_iter()
+            .skip(from)
+            .take(to.saturating_sub(from))
+            .map(|record| self.assemble(record))
+            .collect())
+    }
+
+    async fn find_by_identity(&self, id: &str) -> Result<Option<Diagram>, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(store
+            .diagrams
+            .get(id)
+            .filter(|diagram| diagram.workspace_id == self.workspace_id)
+            .filter(|diagram| diagram.deleted_at.is_none())
+            .cloned()
+            .map(|record| self.assemble(record)))
+    }
+
+    async fn size(&self) -> Result<usize, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self.matching_records(&store).len())
+    }
+}
+
+#[async_trait]
+impl WorkspaceDiagrams for FakeWorkspaceDiagrams {
+    async fn add(&self, desc: DiagramDescription) -> Result<Diagram, ServerError> {
+        if desc.title.trim().is_empty() {
+            return Err(ServerError::Validation(
+                "diagram title must not be empty".to_string(),
+            ));
+        }
+        let id = Uuid::new_v4().to_string();
+        let timestamp = now();
+        let mut description = desc;
+        description.workspace = Ref::new(self.workspace_id.clone());
+        description.created_at = timestamp.clone();
+        description.updated_at = timestamp.clone();
+        let record = DiagramRecord {
+            id: id.clone(),
+            workspace_id: self.workspace_id.clone(),
+            description,
+            created_at: timestamp.clone(),
+            updated_at: timestamp,
+            deleted_at: None,
+        };
+        self.store
+            .write()
+            .expect("fake store write lock poisoned")
+            .diagrams
+            .insert(id, record.clone());
+        Ok(self.assemble(record))
+    }
+
+    async fn update(
+        &self,
+        diagram_id: &str,
+        desc: DiagramDescription,
+    ) -> Result<Diagram, ServerError> {
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        let diagram = store
+            .diagrams
+            .get_mut(diagram_id)
+            .filter(|diagram| diagram.workspace_id == self.workspace_id)
+            .filter(|diagram| diagram.deleted_at.is_none())
+            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
+        let timestamp = now();
+        let mut description = desc;
+        description.workspace = Ref::new(diagram.workspace_id.clone());
+        description.created_at = diagram.created_at.clone();
+        description.updated_at = timestamp.clone();
+        diagram.description = description;
+        diagram.updated_at = timestamp;
+        Ok(self.assemble(diagram.clone()))
+    }
+
+    async fn delete(&self, diagram_id: &str) -> Result<(), ServerError> {
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        let diagram = store
+            .diagrams
+            .get_mut(diagram_id)
+            .filter(|diagram| diagram.workspace_id == self.workspace_id)
+            .filter(|diagram| diagram.deleted_at.is_none())
+            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
+        let timestamp = now();
+        diagram.deleted_at = Some(timestamp.clone());
+        diagram.updated_at = timestamp;
+        Ok(())
+    }
+
+    async fn list(&self, page: u32, page_size: u32) -> Result<(Vec<Diagram>, u64), ServerError> {
+        if page == 0 || page_size == 0 {
+            return Err(ServerError::Validation(
+                "page and pageSize must be greater than 0".to_string(),
+            ));
+        }
+        let store = self.store.read().expect("fake store read lock poisoned");
+        let rows = self.matching_records(&store);
+        let total = rows.len() as u64;
+        let offset = ((page - 1) * page_size) as usize;
+        Ok((
+            rows.into_iter()
+                .skip(offset)
+                .take(page_size as usize)
+                .map(|record| self.assemble(record))
+                .collect(),
+            total,
+        ))
+    }
+
+    async fn save_diagram(
+        &self,
+        diagram_id: &str,
+        _draft_nodes: Vec<DraftNode>,
+        _draft_edges: Vec<DraftEdge>,
+    ) -> Result<(), ServerError> {
+        if self.find_by_identity(diagram_id).await?.is_none() {
+            return Err(ServerError::NotFound(format!(
+                "diagram {diagram_id} not found"
+            )));
+        }
+        Ok(())
+    }
+
+    async fn publish_diagram(&self, diagram_id: &str) -> Result<(), ServerError> {
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        let diagram = store
+            .diagrams
+            .get_mut(diagram_id)
+            .filter(|diagram| diagram.workspace_id == self.workspace_id)
+            .filter(|diagram| diagram.deleted_at.is_none())
+            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
+        let timestamp = now();
+        diagram.description.status = DiagramStatus::Published;
+        diagram.description.updated_at = timestamp.clone();
+        diagram.updated_at = timestamp;
+        Ok(())
+    }
+}
+
+struct FakeDiagramNodes;
+
+#[async_trait]
+impl HasMany<DiagramNode> for FakeDiagramNodes {
+    async fn find_all(&self, _from: usize, _to: usize) -> Result<Vec<DiagramNode>, ServerError> {
+        Ok(Vec::new())
+    }
+
+    async fn find_by_identity(&self, _id: &str) -> Result<Option<DiagramNode>, ServerError> {
+        Ok(None)
+    }
+
+    async fn size(&self) -> Result<usize, ServerError> {
+        Ok(0)
+    }
+}
+
+#[async_trait]
+impl DiagramNodes for FakeDiagramNodes {
+    async fn add(&self, _desc: NodeDescription) -> Result<DiagramNode, ServerError> {
+        Err(ServerError::Internal(
+            "fake diagram nodes are not persisted".to_string(),
+        ))
+    }
+
+    async fn add_with_id(
+        &self,
+        _node_id: Option<String>,
+        desc: NodeDescription,
+    ) -> Result<DiagramNode, ServerError> {
+        self.add(desc).await
+    }
+
+    async fn add_all(
+        &self,
+        _descriptions: Vec<NodeDescription>,
+    ) -> Result<Vec<DiagramNode>, ServerError> {
+        Ok(Vec::new())
+    }
+
+    async fn update(
+        &self,
+        node_id: &str,
+        _desc: NodeDescription,
+    ) -> Result<DiagramNode, ServerError> {
+        Err(ServerError::NotFound(format!(
+            "diagram node {node_id} not found"
+        )))
+    }
+
+    async fn delete(&self, _node_id: &str) -> Result<(), ServerError> {
+        Ok(())
+    }
+
+    async fn replace_all(&self, _nodes: Vec<DraftNode>) -> Result<(), ServerError> {
+        Ok(())
+    }
+}
+
+struct FakeDiagramEdges;
+
+#[async_trait]
+impl HasMany<DiagramEdge> for FakeDiagramEdges {
+    async fn find_all(&self, _from: usize, _to: usize) -> Result<Vec<DiagramEdge>, ServerError> {
+        Ok(Vec::new())
+    }
+
+    async fn find_by_identity(&self, _id: &str) -> Result<Option<DiagramEdge>, ServerError> {
+        Ok(None)
+    }
+
+    async fn size(&self) -> Result<usize, ServerError> {
+        Ok(0)
+    }
+}
+
+#[async_trait]
+impl DiagramEdges for FakeDiagramEdges {
+    async fn add(&self, _desc: EdgeDescription) -> Result<DiagramEdge, ServerError> {
+        Err(ServerError::Internal(
+            "fake diagram edges are not persisted".to_string(),
+        ))
+    }
+
+    async fn add_with_id(
+        &self,
+        _edge_id: Option<String>,
+        desc: EdgeDescription,
+    ) -> Result<DiagramEdge, ServerError> {
+        self.add(desc).await
+    }
+
+    async fn add_all(
+        &self,
+        _descriptions: Vec<EdgeDescription>,
+    ) -> Result<Vec<DiagramEdge>, ServerError> {
+        Ok(Vec::new())
+    }
+
+    async fn update(
+        &self,
+        edge_id: &str,
+        _desc: EdgeDescription,
+    ) -> Result<DiagramEdge, ServerError> {
+        Err(ServerError::NotFound(format!(
+            "diagram edge {edge_id} not found"
+        )))
+    }
+
+    async fn delete(&self, _edge_id: &str) -> Result<(), ServerError> {
+        Ok(())
+    }
+
+    async fn replace_all(&self, _edges: Vec<DraftEdge>) -> Result<(), ServerError> {
+        Ok(())
+    }
+}
+
+struct FakeDiagramVersions;
+
+#[async_trait]
+impl HasMany<DiagramVersion> for FakeDiagramVersions {
+    async fn find_all(&self, _from: usize, _to: usize) -> Result<Vec<DiagramVersion>, ServerError> {
+        Ok(Vec::new())
+    }
+
+    async fn find_by_identity(&self, _id: &str) -> Result<Option<DiagramVersion>, ServerError> {
+        Ok(None)
+    }
+
+    async fn size(&self) -> Result<usize, ServerError> {
+        Ok(0)
+    }
+}
+
+#[async_trait]
+impl DiagramVersions for FakeDiagramVersions {
+    async fn add(&self, _desc: DiagramVersionDescription) -> Result<DiagramVersion, ServerError> {
+        Err(ServerError::Internal(
+            "fake diagram versions are not persisted".to_string(),
+        ))
     }
 }
 

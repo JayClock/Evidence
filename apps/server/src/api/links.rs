@@ -42,6 +42,10 @@ pub(super) fn workspace_members_href(user_id: &str, workspace_id: &str) -> Strin
     format!("{}/members", workspace_href(user_id, workspace_id))
 }
 
+pub(super) fn workspace_diagrams_href(workspace_id: &str) -> String {
+    format!("/api/workspaces/{workspace_id}/diagrams")
+}
+
 pub(super) fn workspace_member_href(user_id: &str, workspace_id: &str, member_id: &str) -> String {
     format!(
         "{}/{}",
