@@ -11,6 +11,15 @@
     },
     {
       "path": "./libs/api-client"
+    },
+    {
+      "path": "./libs/web-ui"
+    },
+    {
+      "path": "./libs/web-shell"
+    },
+    {
+      "path": "./libs/web-feature-resource-browser"
     }
   ]
 }

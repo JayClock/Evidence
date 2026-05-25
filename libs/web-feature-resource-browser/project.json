@@ -1,0 +1,9 @@
+{
+  "name": "@evidence/web-feature-resource-browser",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web-feature-resource-browser/src",
+  "projectType": "library",
+  "tags": ["scope:web", "type:feature"],
+  "// targets": "to see all targets run: nx show project @evidence/web-feature-resource-browser --web",
+  "targets": {}
+}

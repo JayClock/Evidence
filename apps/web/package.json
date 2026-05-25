@@ -4,6 +4,8 @@
   "private": true,
   "dependencies": {
     "@evidence/api-client": "workspace:*",
-    "@evidence/ui": "workspace:*"
+    "@evidence/web-feature-resource-browser": "workspace:*",
+    "@evidence/web-shell": "workspace:*",
+    "@evidence/web-ui": "workspace:*"
   }
 }
