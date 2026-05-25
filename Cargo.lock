@@ -997,11 +997,14 @@ dependencies = [
 name = "evidence-server"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
+ "chrono",
  "serde",
  "tokio",
  "tower-http",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]

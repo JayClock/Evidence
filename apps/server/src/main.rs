@@ -1,20 +1,9 @@
-use axum::{routing::get, Json, Router};
-use serde::Serialize;
-use std::net::SocketAddr;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+pub mod api;
+pub mod domain;
+pub mod persistent;
 
-#[derive(Serialize)]
-struct HealthResponse {
-    status: &'static str,
-    service: &'static str,
-}
-
-async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse {
-        status: "ok",
-        service: "evidence-server",
-    })
-}
+use persistent::MemoryUsers;
+use std::{net::SocketAddr, sync::Arc};
 
 #[tokio::main]
 async fn main() {
@@ -24,10 +13,7 @@ async fn main() {
         )
         .init();
 
-    let app = Router::new()
-        .route("/health", get(health))
-        .layer(CorsLayer::permissive())
-        .layer(TraceLayer::new_for_http());
+    let app = api::app(Arc::new(MemoryUsers::new()));
 
     let addr: SocketAddr = std::env::var("API_ADDR")
         .unwrap_or_else(|_| "127.0.0.1:3000".to_string())
