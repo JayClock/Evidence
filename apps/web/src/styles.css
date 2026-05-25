@@ -1,7 +1,6 @@
 @import '@evidence/ui/styles.css';
 
 @source './**/*.{ts,tsx}';
-@source '../../../libs/web-ui/src/**/*.{ts,tsx}';
 @source '../../../libs/web-shell/src/**/*.{ts,tsx}';
 @source '../../../libs/web-feature-resource-browser/src/**/*.{ts,tsx}';
 @source '../../../libs/web-feature-diagrams/src/**/*.{ts,tsx}';

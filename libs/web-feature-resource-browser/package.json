@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@evidence/api-client": "workspace:*",
+    "@evidence/ui": "workspace:*",
     "@evidence/web-feature-diagrams": "workspace:*",
-    "@evidence/web-ui": "workspace:*",
     "react-router-dom": "6.30.3"
   }
 }

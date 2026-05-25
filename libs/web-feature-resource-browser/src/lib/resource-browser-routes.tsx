@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import {
   apiClient,
@@ -17,8 +17,23 @@ import {
   type WorkspaceCollectionResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Badge,
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@evidence/ui';
 import { DiagramCollectionView } from '@evidence/web-feature-diagrams';
-import { CollectionPanel, ResourceCard, StatusCard } from '@evidence/web-ui';
 
 export function ResourceBrowserRoutes({
   rootState,
@@ -66,12 +81,12 @@ function Overview({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <ResourceCard
+        <ResourceSummaryCard
           title="API root"
           detail="Discovered links"
           links={rootState.links.getAll().map((link: HalLink) => link.rel)}
         />
-        <ResourceCard
+        <ResourceSummaryCard
           title={userState.data.name}
           detail={userState.data.email ?? userState.data.id}
           links={userState.links.getAll().map((link: HalLink) => link.rel)}
@@ -92,7 +107,7 @@ function Health({ rootState }: { rootState: State<RootResource> }) {
   }
 
   if (error) {
-    return <StatusCard title="Health unavailable" detail={error.message} />;
+    return <ErrorAlert title="Health unavailable" detail={error.message} />;
   }
 
   return (
@@ -121,7 +136,7 @@ function WorkspacesPage({ userState }: { userState: State<UserResource> }) {
   }
 
   if (error) {
-    return <StatusCard title="Workspaces unavailable" detail={error.message} />;
+    return <ErrorAlert title="Workspaces unavailable" detail={error.message} />;
   }
 
   return <WorkspaceCollectionView resourceState={resourceState} />;
@@ -133,29 +148,38 @@ function WorkspaceCollectionView({
   resourceState: State<WorkspaceCollectionResource>;
 }) {
   return (
-    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Collection
-          </p>
-          <h2 className="text-xl font-semibold tracking-tight">Workspaces</h2>
-        </div>
-        <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-          {resourceState.data.page.totalElements} total
-        </span>
-      </div>
-      <div className="mt-4 flex flex-col gap-3">
-        {resourceState.collection.map(
-          (workspaceState: State<WorkspaceResource>) => (
-            <WorkspaceItem
-              key={workspaceState.data.id}
-              workspaceState={workspaceState}
-            />
-          ),
+    <Card>
+      <CardHeader>
+        <CardDescription>Collection</CardDescription>
+        <CardTitle>Workspaces</CardTitle>
+        <CardAction>
+          <Badge variant="secondary">
+            {resourceState.data.page.totalElements} total
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {resourceState.collection.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No workspaces found</EmptyTitle>
+              <EmptyDescription>
+                Create a workspace to start mapping evidence.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          resourceState.collection.map(
+            (workspaceState: State<WorkspaceResource>) => (
+              <WorkspaceItem
+                key={workspaceState.data.id}
+                workspaceState={workspaceState}
+              />
+            ),
+          )
         )}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -165,25 +189,17 @@ function WorkspaceItem({
   workspaceState: State<WorkspaceResource>;
 }) {
   return (
-    <article className="rounded-lg border bg-background p-4">
-      <div>
-        <h3 className="font-medium">{workspaceState.data.title}</h3>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>{workspaceState.data.title}</CardTitle>
+        <CardDescription>
           {workspaceState.data.description ?? 'No description'}
-        </p>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {workspaceState.links.getAll().map((link: HalLink) => (
-          <Link
-            key={`${link.rel}:${link.href}`}
-            to={toAppPathname(link.href)}
-            className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
-          >
-            {link.rel}
-          </Link>
-        ))}
-      </div>
-    </article>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ResourceLinks links={workspaceState.links.getAll()} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -198,7 +214,7 @@ function ApiResourcePage() {
   }
 
   if (error) {
-    return <StatusCard title="Resource unavailable" detail={error.message} />;
+    return <ErrorAlert title="Resource unavailable" detail={error.message} />;
   }
 
   return <ResourceRenderer resourceState={resourceState} />;
@@ -249,18 +265,18 @@ function WorkspaceDetailView({
   resourceState: State<WorkspaceResource>;
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
-      <div>
-        <p className="text-sm font-medium text-muted-foreground">Workspace</p>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {resourceState.data.title}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+    <Card>
+      <CardHeader>
+        <CardDescription>Workspace</CardDescription>
+        <CardTitle>{resourceState.data.title}</CardTitle>
+        <CardDescription>
           {resourceState.data.description ?? 'No description'}
-        </p>
-      </div>
-      <ResourceLinks links={resourceState.links.getAll()} />
-    </section>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ResourceLinks links={resourceState.links.getAll()} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -270,25 +286,49 @@ function LogicalEntityCollectionView({
   resourceState: State<LogicalEntityCollectionResource>;
 }) {
   return (
-    <CollectionPanel
-      eyebrow="Collection"
-      title="Logical entities"
-      total={resourceState.data.page.totalElements}
-      items={resourceState.collection.map((entityState) => {
-        const href = entityState.links
-          .getAll()
-          .find((link) => link.rel === 'self')?.href;
-        const title = entityState.data.label ?? entityState.data.name;
+    <Card>
+      <CardHeader>
+        <CardDescription>Collection</CardDescription>
+        <CardTitle>Logical entities</CardTitle>
+        <CardAction>
+          <Badge variant="secondary">
+            {resourceState.data.page.totalElements} total
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {resourceState.collection.length === 0 ? (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No logical entities found</EmptyTitle>
+              <EmptyDescription>
+                Add evidence, participants, roles, or contexts to this
+                workspace.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          resourceState.collection.map((entityState) => {
+            const href = entityState.links
+              .getAll()
+              .find((link) => link.rel === 'self')?.href;
+            const title = entityState.data.label ?? entityState.data.name;
 
-        return {
-          id: entityState.data.id,
-          title: href ? <Link to={toAppPathname(href)}>{title}</Link> : title,
-          detail: [entityState.data.type, entityState.data.subType]
-            .filter(Boolean)
-            .join(' · '),
-        };
-      })}
-    />
+            return (
+              <CollectionItemCard
+                key={entityState.data.id}
+                title={
+                  href ? <Link to={toAppPathname(href)}>{title}</Link> : title
+                }
+                detail={[entityState.data.type, entityState.data.subType]
+                  .filter(Boolean)
+                  .join(' · ')}
+              />
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -296,13 +336,9 @@ function ResourceLinks({ links }: { links: HalLink[] }) {
   return (
     <div className="flex flex-wrap gap-2">
       {links.map((link) => (
-        <Link
-          key={`${link.rel}:${link.href}`}
-          to={toAppPathname(link.href)}
-          className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-secondary-foreground"
-        >
-          {link.rel}
-        </Link>
+        <Badge key={`${link.rel}:${link.href}`} asChild variant="secondary">
+          <Link to={toAppPathname(link.href)}>{link.rel}</Link>
+        </Badge>
       ))}
     </div>
   );
@@ -316,24 +352,89 @@ function UnknownResourceView({
   state: State<Entity>;
 }) {
   return (
-    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
-      <p className="text-sm font-medium text-muted-foreground">
-        Unsupported Resource Type
-      </p>
-      <h2 className="mt-1 text-xl font-semibold tracking-tight">
-        {contentType || 'unknown content type'}
-      </h2>
-      <pre className="mt-4 overflow-auto rounded-md border bg-muted p-3 text-xs">
-        {JSON.stringify(
-          {
-            uri: state.uri,
-            data: state.data,
-            collectionSize: state.collection.length,
-          },
-          null,
-          2,
-        )}
-      </pre>
-    </section>
+    <Card>
+      <CardHeader>
+        <CardDescription>Unsupported Resource Type</CardDescription>
+        <CardTitle>{contentType || 'unknown content type'}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <pre className="overflow-auto rounded-md border bg-muted p-3 text-xs">
+          {JSON.stringify(
+            {
+              uri: state.uri,
+              data: state.data,
+              collectionSize: state.collection.length,
+            },
+            null,
+            2,
+          )}
+        </pre>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ResourceSummaryCard({
+  title,
+  detail,
+  links,
+}: {
+  title: string;
+  detail: string;
+  links: string[];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardDescription>Resource</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{detail}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        {links.map((link) => (
+          <Badge key={link} variant="secondary">
+            {link}
+          </Badge>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CollectionItemCard({
+  title,
+  detail,
+}: {
+  title: ReactNode;
+  detail: string;
+}) {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{detail}</CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function StatusCard({ title, detail }: { title: string; detail: string }) {
+  return (
+    <Card role="status">
+      <CardHeader>
+        <CardDescription>Status</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{detail}</CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function ErrorAlert({ title, detail }: { title: string; detail: string }) {
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{detail}</AlertDescription>
+    </Alert>
   );
 }

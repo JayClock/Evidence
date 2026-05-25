@@ -6,9 +6,9 @@ import {
   type State,
   type UserResource,
 } from '@evidence/api-client';
+import { Card, CardDescription, CardHeader, CardTitle } from '@evidence/ui';
 import { ResourceBrowserRoutes } from '@evidence/web-feature-resource-browser';
 import { WebShell } from '@evidence/web-shell';
-import { FullPageStatus } from '@evidence/web-ui';
 
 export function App() {
   const rootResource = useMemo(() => getRootResource(), []);
@@ -57,6 +57,20 @@ function UserBootstrap({ rootState }: { rootState: State<RootResource> }) {
     <WebShell userState={resourceState}>
       <ResourceBrowserRoutes rootState={rootState} userState={resourceState} />
     </WebShell>
+  );
+}
+
+function FullPageStatus({ title, detail }: { title: string; detail: string }) {
+  return (
+    <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
+      <Card role="status">
+        <CardHeader>
+          <CardDescription>Status</CardDescription>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{detail}</CardDescription>
+        </CardHeader>
+      </Card>
+    </main>
   );
 }
 

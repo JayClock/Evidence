@@ -41,10 +41,10 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../web-ui/tsconfig.lib.json"
+      "path": "../web-feature-diagrams/tsconfig.lib.json"
     },
     {
-      "path": "../web-feature-diagrams/tsconfig.lib.json"
+      "path": "../ui/tsconfig.lib.json"
     },
     {
       "path": "../api-client/tsconfig.lib.json"

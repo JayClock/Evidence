@@ -35,13 +35,13 @@
   "include": ["src/**/*.js", "src/**/*.jsx", "src/**/*.ts", "src/**/*.tsx"],
   "references": [
     {
-      "path": "../../libs/web-ui/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/web-shell/tsconfig.lib.json"
     },
     {
       "path": "../../libs/web-feature-resource-browser/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/ui/tsconfig.lib.json"
     },
     {
       "path": "../../libs/api-client/tsconfig.lib.json"
