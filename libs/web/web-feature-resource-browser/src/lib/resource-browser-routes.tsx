@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { Suspense, use, useMemo, type ReactNode } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import {
   apiClient,
@@ -7,6 +7,7 @@ import {
   toApiPathname,
   useResource,
   type DiagramCollectionResource,
+  type DiagramResource,
   type Entity,
   type Link as HalLink,
   type LogicalEntityCollectionResource,
@@ -32,7 +33,10 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from '@evidence/ui';
-import { DiagramCollectionView } from '@evidence/web-feature-diagrams';
+import {
+  DiagramCollectionView,
+  DiagramDetailView,
+} from '@evidence/web-feature-diagrams';
 
 export function ResourceBrowserRoutes({
   rootState,
@@ -102,7 +106,7 @@ function Health({ rootState }: { rootState: State<RootResource> }) {
   const { loading, error, data } = useResource(healthResource);
 
   if (loading) {
-    return <StatusCard title="Loading health" detail="Following rel=health…" />;
+    return <LoadingCard title="Loading health" detail="Following rel=health…" />;
   }
 
   if (error) {
@@ -127,7 +131,7 @@ function WorkspacesPage({ userState }: { userState: State<UserResource> }) {
 
   if (loading) {
     return (
-      <StatusCard
+      <LoadingCard
         title="Loading workspaces"
         detail="Following rel=workspaces…"
       />
@@ -205,16 +209,23 @@ function WorkspaceItem({
 function ApiResourcePage() {
   const location = useLocation();
   const apiPath = toApiPathname(`${location.pathname}${location.search}`);
-  const resource = useMemo(() => apiClient.go<Entity>(apiPath), [apiPath]);
-  const { loading, error, resourceState } = useResource<Entity>(resource);
 
-  if (loading || !resourceState) {
-    return <StatusCard title="Loading resource" detail={`GET ${apiPath}`} />;
-  }
+  return (
+    <Suspense
+      key={apiPath}
+      fallback={<LoadingCard title="Loading resource" detail={`GET ${apiPath}`} />}
+    >
+      <ApiResourcePageContent apiPath={apiPath} />
+    </Suspense>
+  );
+}
 
-  if (error) {
-    return <ErrorAlert title="Resource unavailable" detail={error.message} />;
-  }
+function ApiResourcePageContent({ apiPath }: { apiPath: string }) {
+  const resourcePromise = useMemo(
+    () => apiClient.go<Entity>(apiPath).get(),
+    [apiPath],
+  );
+  const resourceState = use(resourcePromise);
 
   return <ResourceRenderer resourceState={resourceState} />;
 }
@@ -241,6 +252,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <DiagramCollectionView
           resourceState={resourceState as State<DiagramCollectionResource>}
+        />
+      );
+    case resourceContentTypes.diagram:
+      return (
+        <DiagramDetailView
+          resourceState={resourceState as State<DiagramResource>}
         />
       );
     case resourceContentTypes.logicalEntities:
@@ -412,6 +429,50 @@ function CollectionItemCard({
         <CardDescription>{detail}</CardDescription>
       </CardHeader>
     </Card>
+  );
+}
+
+function LoadingCard({ title, detail }: { title: string; detail: string }) {
+  return (
+    <Card
+      className="min-h-[360px] flex-1 items-center justify-center"
+      role="status"
+    >
+      <CardContent className="flex flex-col items-center gap-3 text-center">
+        <LoadingSpinner />
+        <div className="flex flex-col gap-1">
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{detail}</CardDescription>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-6 animate-spin text-muted-foreground"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        d="M4 12a8 8 0 0 1 8-8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="4"
+      />
+    </svg>
   );
 }
 

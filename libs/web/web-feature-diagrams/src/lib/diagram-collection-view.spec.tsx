@@ -5,7 +5,14 @@ import type { DiagramCollectionResource, State } from '@evidence/api-client';
 import { DiagramCollectionView } from './diagram-collection-view';
 
 const links = (...rels: string[]) => ({
-  getAll: () => rels.map((rel) => ({ rel, href: `/api/${rel}` })),
+  getAll: () =>
+    rels.map((rel) => ({
+      rel,
+      href:
+        rel === 'self'
+          ? '/api/workspaces/default-workspace/diagrams/diagram-1'
+          : `/api/${rel}`,
+    })),
 });
 
 const diagramCollectionState = {
@@ -47,6 +54,13 @@ describe('DiagramCollectionView', () => {
     expect(screen.getByText('Status')).toBeTruthy();
     expect(screen.getByText('context-map')).toBeTruthy();
     expect(screen.getByText('draft')).toBeTruthy();
+    expect(
+      (
+        screen.getByRole('link', { name: 'Open' }) as unknown as {
+          getAttribute(name: string): string | null;
+        }
+      ).getAttribute('href'),
+    ).toBe('/api/workspaces/default-workspace/diagrams/diagram-1');
   });
 
   it('renders an empty table state', () => {

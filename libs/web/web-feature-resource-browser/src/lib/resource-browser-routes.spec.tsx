@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   useResource,
@@ -10,24 +10,39 @@ import type { Mock } from 'vitest';
 
 import { ResourceBrowserRoutes } from './resource-browser-routes';
 
-vi.mock('@evidence/api-client', () => ({
-  apiClient: {
-    go: (path: string) => ({ kind: 'dynamic', path }),
-  },
-  normalizeContentType: (contentType: string | null) =>
-    contentType?.split(';')[0]?.trim().toLowerCase() ?? '',
-  resourceContentTypes: {
-    workspaces: 'application/vnd.evidence.workspaces+json',
-    workspace: 'application/vnd.evidence.workspace+json',
-    diagrams: 'application/vnd.evidence.diagrams+json',
-    logicalEntities: 'application/vnd.evidence.logical-entities+json',
-  },
-  toApiPathname: (pathname: string) =>
-    pathname === '/' || pathname.startsWith('/api')
-      ? pathname
-      : `/api${pathname}`,
-  useResource: vi.fn(),
-}));
+vi.mock('@evidence/api-client', () => {
+  const dynamicPromises = new Map<string, Promise<unknown>>();
+
+  return {
+    apiClient: {
+      go: (path: string) => ({
+        kind: 'dynamic',
+        path,
+        get: () => {
+          if (!dynamicPromises.has(path)) {
+            dynamicPromises.set(path, Promise.resolve(diagramCollectionState));
+          }
+
+          return dynamicPromises.get(path);
+        },
+      }),
+    },
+    normalizeContentType: (contentType: string | null) =>
+      contentType?.split(';')[0]?.trim().toLowerCase() ?? '',
+    resourceContentTypes: {
+      workspaces: 'application/vnd.evidence.workspaces+json',
+      workspace: 'application/vnd.evidence.workspace+json',
+      diagrams: 'application/vnd.evidence.diagrams+json',
+      diagram: 'application/vnd.evidence.diagram+json',
+      logicalEntities: 'application/vnd.evidence.logical-entities+json',
+    },
+    toApiPathname: (pathname: string) =>
+      pathname === '/' || pathname.startsWith('/api')
+        ? pathname
+        : `/api${pathname}`,
+    useResource: vi.fn(),
+  };
+});
 
 type ResourceMarker =
   | {
@@ -158,10 +173,12 @@ describe('ResourceBrowserRoutes', () => {
     expect(screen.getByText('evidence-server: ok')).toBeTruthy();
   });
 
-  it('renders diagrams as a table for diagram collection resources', () => {
-    renderRoutes('/workspaces/default-workspace/diagrams');
+  it('renders diagrams as a table for diagram collection resources', async () => {
+    await act(async () => {
+      renderRoutes('/workspaces/default-workspace/diagrams');
+    });
 
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(await screen.findByRole('table')).toBeTruthy();
     expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
     expect(screen.getByText('Type')).toBeTruthy();
     expect(screen.getByText('Status')).toBeTruthy();

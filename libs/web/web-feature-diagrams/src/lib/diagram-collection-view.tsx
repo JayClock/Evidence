@@ -58,13 +58,14 @@ export function DiagramCollectionView({
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {resourceState.collection.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="py-6 text-center text-muted-foreground"
                 >
                   No diagrams found.
@@ -92,6 +93,13 @@ export function DiagramCollectionView({
                     </TableCell>
                     <TableCell>
                       {formatDateTime(diagramState.data.updatedAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {href ? (
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={href}>Open</Link>
+                        </Button>
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 );
