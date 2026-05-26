@@ -14,11 +14,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@evidence/ui/ai-elements/conversation';
-import {
-  Message,
-  MessageContent,
-  MessageResponse,
-} from '@evidence/ui/ai-elements/message';
+import { Message, MessageContent } from '@evidence/ui/ai-elements/message';
 import {
   PromptInput,
   PromptInputBody,
@@ -28,6 +24,7 @@ import {
   PromptInputTextarea,
 } from '@evidence/ui/ai-elements/prompt-input';
 
+import { DiagramAssistantMessage } from './diagram-assistant-message';
 import {
   createDiagramProposalTransport,
   resolveProposeModelUrl,
@@ -82,21 +79,7 @@ export function DiagramAiChat({
               />
             ) : (
               messages.map((message) => (
-                <Message from={message.role} key={message.id}>
-                  <MessageContent>
-                    {message.parts.map((part, index) => {
-                      if (part.type !== 'text') {
-                        return null;
-                      }
-
-                      return (
-                        <MessageResponse key={`${message.id}-${index}`}>
-                          {part.text}
-                        </MessageResponse>
-                      );
-                    })}
-                  </MessageContent>
-                </Message>
+                <DiagramAssistantMessage key={message.id} message={message} />
               ))
             )}
             {error ? (
