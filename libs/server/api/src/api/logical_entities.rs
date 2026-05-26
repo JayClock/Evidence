@@ -8,11 +8,16 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::domain::{
-    format_sub_type, normalize_sub_type, EntityDefinition, LogicalEntity, LogicalEntityDescription,
+    normalize_sub_type, EntityDefinition, LogicalEntity, LogicalEntityDescription,
     LogicalEntityType, Ref, ServerError, Workspace,
 };
 
-use super::{error::ApiError, links::Link, AppState};
+use super::{
+    error::ApiError,
+    links::{workspace_logical_entities_href, Link},
+    model::{logical_entity_model, LogicalEntityModel},
+    AppState,
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -177,33 +182,9 @@ pub(super) fn routes() -> Router<AppState> {
         )
 }
 
-fn logical_entities_href(workspace_id: &str) -> String {
-    format!("/api/workspaces/{workspace_id}/logical-entities")
-}
-
-fn logical_entity_href(workspace_id: &str, entity_id: &str) -> String {
-    format!("{}/{entity_id}", logical_entities_href(workspace_id))
-}
-
 fn logical_entity_resource(entity: &LogicalEntity) -> Value {
-    let workspace_id = entity.workspace_id();
-    let entity_id = entity.identity();
-    let desc = entity.description();
-    json!({
-        "_links": {
-            "self": Link::new(logical_entity_href(workspace_id, entity_id)),
-            "workspace": Link::new(format!("/api/workspaces/{workspace_id}")),
-            "collection": Link::new(logical_entities_href(workspace_id)),
-        },
-        "id": entity_id,
-        "type": desc.entity_type.api_value(),
-        "subType": format_sub_type(&desc.entity_type, desc.sub_type.as_deref()),
-        "name": desc.name,
-        "label": desc.label,
-        "definition": desc.definition,
-        "createdAt": entity.created_at(),
-        "updatedAt": entity.updated_at(),
-    })
+    let model: LogicalEntityModel = logical_entity_model(entity);
+    serde_json::to_value(model).expect("logical entity model should serialize")
 }
 
 fn logical_entity_collection_resource(
@@ -223,7 +204,7 @@ fn logical_entity_collection_resource(
         "self".to_string(),
         json!(Link::new(format!(
             "{}?page={page}&pageSize={page_size}",
-            logical_entities_href(workspace_id)
+            workspace_logical_entities_href(workspace_id)
         ))),
     );
     links.insert(
@@ -235,7 +216,7 @@ fn logical_entity_collection_resource(
             "prev".to_string(),
             json!(Link::new(format!(
                 "{}?page={}&pageSize={page_size}",
-                logical_entities_href(workspace_id),
+                workspace_logical_entities_href(workspace_id),
                 page - 1
             ))),
         );
@@ -245,7 +226,7 @@ fn logical_entity_collection_resource(
             "next".to_string(),
             json!(Link::new(format!(
                 "{}?page={}&pageSize={page_size}",
-                logical_entities_href(workspace_id),
+                workspace_logical_entities_href(workspace_id),
                 page + 1
             ))),
         );

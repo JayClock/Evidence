@@ -15,7 +15,12 @@ use crate::domain::{
     ServerError, Viewport, Workspace,
 };
 
-use super::{error::ApiError, links::Link, AppState};
+use super::{
+    error::ApiError,
+    links::Link,
+    model::{diagram_model, edge_model, node_model, DiagramModel, EdgeModel, NodeModel},
+    AppState,
+};
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -557,32 +562,8 @@ fn diagrams_href(workspace_id: &str) -> String {
 }
 
 fn diagram_resource(diagram: &Diagram) -> Value {
-    let workspace_id = diagram.workspace_id();
-    let diagram_id = diagram.identity();
-    let desc = diagram.description();
-    json!({
-        "_links": {
-            "self": Link::new(diagram_href(workspace_id, diagram_id)),
-            "workspace": Link::new(format!("/api/workspaces/{workspace_id}")),
-            "collection": Link::new(diagrams_href(workspace_id)),
-            "nodes": Link::new(format!("{}/nodes", diagram_href(workspace_id, diagram_id))),
-            "edges": Link::new(format!("{}/edges", diagram_href(workspace_id, diagram_id))),
-            "versions": Link::new(format!("{}/versions", diagram_href(workspace_id, diagram_id))),
-            "commit-draft": Link::new(format!("{}/commit-draft", diagram_href(workspace_id, diagram_id))),
-            "propose-model": Link::new(format!("{}/propose-model", diagram_href(workspace_id, diagram_id))),
-            "publish": Link::new(format!("{}/publish", diagram_href(workspace_id, diagram_id))),
-        },
-        "_templates": {
-            "propose-model": propose_model_template(workspace_id, diagram_id),
-        },
-        "id": diagram_id,
-        "title": desc.title,
-        "type": desc.diagram_type.as_str(),
-        "status": desc.status.as_str(),
-        "viewport": desc.viewport,
-        "createdAt": diagram.created_at(),
-        "updatedAt": diagram.updated_at(),
-    })
+    let model: DiagramModel = diagram_model(diagram);
+    serde_json::to_value(model).expect("diagram model should serialize")
 }
 
 async fn diagram_detail_resource(diagram: &Diagram) -> Result<Value, ApiError> {
@@ -598,52 +579,13 @@ async fn diagram_detail_resource(diagram: &Diagram) -> Result<Value, ApiError> {
 }
 
 fn node_resource(workspace_id: &str, node: &DiagramNode) -> Value {
-    let diagram_id = node.diagram_id();
-    let node_id = node.identity();
-    let desc = node.description();
-    json!({
-        "_links": {
-            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/nodes/{node_id}")),
-            "collection": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/nodes")),
-            "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
-        },
-        "id": node_id,
-        "type": desc.node_type,
-        "logicalEntity": desc.logical_entity,
-        "parent": desc.parent,
-        "positionX": desc.position_x,
-        "positionY": desc.position_y,
-        "width": desc.width,
-        "height": desc.height,
-        "styleConfig": desc.style_config,
-        "localData": desc.local_data,
-        "createdAt": node.created_at(),
-        "updatedAt": node.updated_at(),
-    })
+    let model: NodeModel = node_model(workspace_id, node);
+    serde_json::to_value(model).expect("node model should serialize")
 }
 
 fn edge_resource(workspace_id: &str, edge: &DiagramEdge) -> Value {
-    let diagram_id = edge.diagram_id();
-    let edge_id = edge.identity();
-    let desc = edge.description();
-    json!({
-        "_links": {
-            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/edges/{edge_id}")),
-            "collection": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/edges")),
-            "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
-        },
-        "id": edge_id,
-        "sourceNode": desc.source_node,
-        "targetNode": desc.target_node,
-        "sourceHandle": desc.source_handle,
-        "targetHandle": desc.target_handle,
-        "relationType": desc.relation_type,
-        "label": desc.label,
-        "styleProps": desc.style_props,
-        "hidden": desc.hidden,
-        "createdAt": edge.created_at(),
-        "updatedAt": edge.updated_at(),
-    })
+    let model: EdgeModel = edge_model(workspace_id, edge);
+    serde_json::to_value(model).expect("edge model should serialize")
 }
 
 fn version_resource(workspace_id: &str, version: &DiagramVersion) -> Value {
@@ -720,24 +662,6 @@ fn diagram_collection_resource(
             "totalElements": total,
             "totalPages": total_pages,
         },
-    })
-}
-
-fn propose_model_template(workspace_id: &str, diagram_id: &str) -> Value {
-    json!({
-        "title": "Propose diagram model",
-        "method": "POST",
-        "target": format!("{}/propose-model", diagram_href(workspace_id, diagram_id)),
-        "contentType": "application/json",
-        "properties": [
-            {
-                "name": "requirement",
-                "prompt": "Requirement",
-                "type": "textarea",
-                "required": true,
-                "minLength": 1,
-            },
-        ],
     })
 }
 
