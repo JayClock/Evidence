@@ -12,6 +12,20 @@ function assistantMessage(text: string): UIMessage {
   };
 }
 
+function assistantMessageWithFinalProposal(
+  text: string,
+  proposal: unknown,
+): UIMessage {
+  return {
+    id: 'assistant-1',
+    role: 'assistant',
+    parts: [
+      { type: 'text', text },
+      { type: 'data-proposal', data: proposal },
+    ],
+  } as UIMessage;
+}
+
 describe('DiagramAssistantMessage', () => {
   it('renders streamed partial JSON as a modeling proposal card', () => {
     render(
@@ -67,5 +81,30 @@ describe('DiagramAssistantMessage', () => {
 
     expect(screen.getByText('Parsing streamed JSON…')).toBeTruthy();
     expect(screen.getByText('{ "summary"')).toBeTruthy();
+  });
+
+  it('prefers the final proposal data part over streamed text', () => {
+    render(
+      <DiagramAssistantMessage
+        message={assistantMessageWithFinalProposal(
+          '{ "summary": "Streaming" }',
+          {
+            summary: 'Final backend proposal',
+            changes: {
+              addNodes: [],
+              updateNodes: [],
+              deleteNodes: [],
+              addEdges: [],
+              updateEdges: [],
+              deleteEdges: [],
+            },
+          },
+        )}
+      />,
+    );
+
+    expect(screen.getByText('Final backend proposal')).toBeTruthy();
+    expect(screen.queryByText('Streaming')).toBeNull();
+    expect(screen.getByText('Final')).toBeTruthy();
   });
 });

@@ -111,4 +111,83 @@ describe('createDiagramProposalTransport', () => {
       { type: 'finish', finishReason: 'stop' },
     ]);
   });
+
+  it('converts proposal-ready into a data part without appending it to assistant text', async () => {
+    const finalProposal = {
+      summary: 'Final proposal',
+      changes: {
+        addNodes: [],
+        updateNodes: [],
+        deleteNodes: [],
+        addEdges: [],
+        updateEdges: [],
+        deleteEdges: [],
+      },
+    };
+    const fetch = vi.fn(async () =>
+      sseResponse(
+        `data: {"summary":"Streaming"}\n\nevent: proposal-ready\ndata: ${JSON.stringify(finalProposal)}\n\nevent: complete\ndata: \n\n`,
+      ),
+    );
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('model this requirement')],
+      abortSignal: undefined,
+    });
+
+    const chunks = await readChunks(stream);
+
+    expect(chunks).toEqual([
+      { type: 'text-start', id: 'diagram-model-proposal' },
+      {
+        type: 'text-delta',
+        id: 'diagram-model-proposal',
+        delta: '{"summary":"Streaming"}',
+      },
+      { type: 'data-proposal', data: finalProposal },
+      { type: 'text-end', id: 'diagram-model-proposal' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+  });
+
+  it('surfaces backend SSE errors as error chunks', async () => {
+    const fetch = vi.fn(async () =>
+      sseResponse('event: error\ndata: pi rpc request timed out\n\n'),
+    );
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('model this requirement')],
+      abortSignal: undefined,
+    });
+
+    const chunks = await readChunks(stream);
+
+    expect(chunks).toContainEqual({
+      type: 'error',
+      errorText: 'pi rpc request timed out',
+    });
+  });
+
+  it('surfaces request failures before streaming starts', async () => {
+    const fetch = vi.fn(async () => new Response('bad gateway', { status: 502 }));
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    await expect(
+      transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'chat-1',
+        messageId: undefined,
+        messages: [userMessage('model this requirement')],
+        abortSignal: undefined,
+      }),
+    ).rejects.toThrow('bad gateway');
+  });
 });

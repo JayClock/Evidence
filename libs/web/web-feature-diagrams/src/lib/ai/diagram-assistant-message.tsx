@@ -27,6 +27,7 @@ type ChangeKey = (typeof CHANGE_KEYS)[number];
 
 type ProposalView = {
   rawText: string;
+  source: 'streaming' | 'final';
   summary: string | null;
   changes: Record<ChangeKey, unknown[]>;
 };
@@ -44,7 +45,7 @@ export function DiagramAssistantMessage({ message }: { message: UIMessage }) {
     );
   }
 
-  const proposal = proposalView(text);
+  const proposal = finalProposalView(message) ?? proposalView(text);
 
   return (
     <Message from="assistant">
@@ -68,7 +69,9 @@ function ProposalCard({ proposal }: { proposal: ProposalView }) {
       <CardHeader className="gap-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle>Modeling proposal</CardTitle>
-          <Badge variant="secondary">Streaming</Badge>
+          <Badge variant="secondary">
+            {proposal.source === 'final' ? 'Final' : 'Streaming'}
+          </Badge>
         </div>
         <CardDescription>
           AI output is advisory and has not been applied.
@@ -179,6 +182,32 @@ function proposalView(rawText: string): ProposalView | null {
     return null;
   }
 
+  return proposalFromRecord(proposal, rawText, 'streaming');
+}
+
+function finalProposalView(message: Pick<UIMessage, 'parts'>): ProposalView | null {
+  const part = message.parts.find((part) => part.type === 'data-proposal');
+  if (!part || !('data' in part)) {
+    return null;
+  }
+
+  const proposal = record(part.data);
+  if (!proposal) {
+    return null;
+  }
+
+  return proposalFromRecord(
+    proposal,
+    JSON.stringify(part.data, null, 2),
+    'final',
+  );
+}
+
+function proposalFromRecord(
+  proposal: Record<string, unknown>,
+  rawText: string,
+  source: ProposalView['source'],
+): ProposalView | null {
   const changes = record(proposal.changes);
   if (!changes) {
     return null;
@@ -186,6 +215,7 @@ function proposalView(rawText: string): ProposalView | null {
 
   return {
     rawText,
+    source,
     summary: stringValue(proposal.summary),
     changes: Object.fromEntries(
       CHANGE_KEYS.map((key) => [key, arrayValue(changes[key])]),

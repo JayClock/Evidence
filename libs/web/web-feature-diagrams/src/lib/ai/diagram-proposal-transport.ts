@@ -155,6 +155,11 @@ function sseToUiMessageStream(
       const consumeEvent = (rawEvent: string) => {
         const event = parseSseEvent(rawEvent);
 
+        if (event.event === 'complete') {
+          endText();
+          return;
+        }
+
         if (!event.data) {
           return;
         }
@@ -164,8 +169,11 @@ function sseToUiMessageStream(
           return;
         }
 
-        if (event.event === 'complete') {
-          endText();
+        if (event.event === 'proposal-ready') {
+          controller.enqueue({
+            type: 'data-proposal',
+            data: JSON.parse(event.data) as unknown,
+          });
           return;
         }
 
