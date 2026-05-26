@@ -1,0 +1,40 @@
+{
+  "name": "@evidence/server-infrastructure",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/server/infrastructure/src",
+  "projectType": "library",
+  "tags": ["scope:server", "type:rust", "layer:infrastructure"],
+  "implicitDependencies": ["@evidence/server-domain"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo build -p evidence-server-infrastructure"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo test -p evidence-server-infrastructure"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo clippy -p evidence-server-infrastructure --all-targets -- -D warnings"
+      }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt -p evidence-server-infrastructure"
+      }
+    },
+    "format-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt -p evidence-server-infrastructure -- --check"
+      }
+    }
+  }
+}

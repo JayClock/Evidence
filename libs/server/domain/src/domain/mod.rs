@@ -1,6 +1,7 @@
 mod core;
 mod diagram;
 mod error;
+mod infrastructure;
 mod logical_entity;
 mod member;
 mod user;
@@ -12,10 +13,13 @@ pub use core::{Entity, HasMany, Ref};
 pub use diagram::{
     Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
     DiagramSnapshot, DiagramStatus, DiagramType, DiagramVersion, DiagramVersionDescription,
-    DiagramVersions, DraftEdge, DraftNode, EdgeDescription, NodeDescription, SnapshotEdge,
+    DiagramVersions, DraftEdge, DraftNode, EdgeDescription, ModelingDraftEdge, ModelingDraftEntity,
+    ModelingDraftNode, ModelingEvent, ModelingProposal, ModelingProposalOperation,
+    ModelingProposalOperationType, ModelingProposalSummary, NodeDescription, SnapshotEdge,
     SnapshotNode, Viewport, WorkspaceDiagrams,
 };
 pub use error::ServerError;
+pub use infrastructure::{DomainArchitect, DomainArchitectEventStream};
 pub use logical_entity::{
     format_sub_type, normalize_sub_type, EntityAttribute, EntityBehavior, EntityDefinition,
     LogicalEntity, LogicalEntityDescription, LogicalEntityType, WorkspaceLogicalEntities,

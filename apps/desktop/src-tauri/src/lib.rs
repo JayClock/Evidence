@@ -1,6 +1,6 @@
 use std::{error::Error, sync::Arc};
 
-use evidence_server::{api, persistent::DbUsers};
+use evidence_server::{api, infrastructure::PiRpcDomainArchitect, persistent::DbUsers};
 use tauri::Manager;
 
 #[derive(Clone)]
@@ -20,7 +20,7 @@ async fn start_embedded_api(app_handle: tauri::AppHandle) -> Result<ApiState, Bo
     let database_path = app_data_dir.join("evidence.sqlite");
     let database_url = format!("sqlite://{}?mode=rwc", database_path.display());
     let users = DbUsers::connect(&database_url).await?;
-    let router = api::app(Arc::new(users));
+    let router = api::app(Arc::new(users), Arc::new(PiRpcDomainArchitect::default()));
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;

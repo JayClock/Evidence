@@ -1,16 +1,18 @@
 use axum::{
     extract::{Path, Query, State},
     http::{header, HeaderName, StatusCode},
+    response::sse::{Event, Sse},
     routing::get,
     Json, Router,
 };
-use serde::Deserialize;
+use futures_util::StreamExt;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 use crate::domain::{
     Diagram, DiagramDescription, DiagramEdge, DiagramNode, DiagramStatus, DiagramType,
-    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, NodeDescription, Ref, ServerError,
-    Viewport, Workspace,
+    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, ModelingEvent, NodeDescription, Ref,
+    ServerError, Viewport, Workspace,
 };
 
 use super::{error::ApiError, links::Link, AppState};
@@ -89,6 +91,20 @@ struct CommitDraftInput {
     nodes: Vec<NodeInput>,
     #[serde(default)]
     edges: Vec<EdgeInput>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProposeModelInput {
+    requirement: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StructuredChunkPayload {
+    kind: String,
+    format: String,
+    chunk: String,
 }
 
 fn empty_object() -> Value {
@@ -445,6 +461,49 @@ async fn publish_diagram(
     Ok(Json(json!({ "published": true })))
 }
 
+async fn propose_model(
+    State(state): State<AppState>,
+    Path((workspace_id, diagram_id)): Path<(String, String)>,
+    Json(input): Json<ProposeModelInput>,
+) -> Result<Sse<impl futures_util::Stream<Item = Result<Event, std::convert::Infallible>>>, ApiError>
+{
+    if input.requirement.trim().is_empty() {
+        return Err(ServerError::Validation("requirement is required".to_string()).into());
+    }
+
+    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let mut events =
+        diagram.propose_model_stream(input.requirement, state.domain_architect.as_ref());
+
+    let stream = async_stream::stream! {
+        while let Some(event) = events.next().await {
+            match event {
+                Ok(ModelingEvent::StructuredChunk { kind, format, chunk }) => {
+                    yield Ok(Event::default().data(chunk.clone()));
+                    let payload = StructuredChunkPayload { kind, format, chunk };
+                    match serde_json::to_string(&payload) {
+                        Ok(data) => yield Ok(Event::default().event("structured").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize structured chunk: {error}"))),
+                    }
+                }
+                Ok(ModelingEvent::ProposalReady { proposal }) => {
+                    match serde_json::to_string(&proposal) {
+                        Ok(data) => yield Ok(Event::default().event("proposal-ready").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize proposal: {error}"))),
+                    }
+                    yield Ok(Event::default().event("complete").data(""));
+                }
+                Err(error) => {
+                    yield Ok(Event::default().event("error").data(error.to_string()));
+                    break;
+                }
+            }
+        }
+    };
+
+    Ok(Sse::new(stream))
+}
+
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
         .route(
@@ -480,6 +539,10 @@ pub(super) fn routes() -> Router<AppState> {
             get(get_diagram).post(commit_draft),
         )
         .route(
+            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
+            get(get_diagram).post(propose_model),
+        )
+        .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/publish",
             get(get_diagram).post(publish_diagram),
         )
@@ -506,7 +569,11 @@ fn diagram_resource(diagram: &Diagram) -> Value {
             "edges": Link::new(format!("{}/edges", diagram_href(workspace_id, diagram_id))),
             "versions": Link::new(format!("{}/versions", diagram_href(workspace_id, diagram_id))),
             "commit-draft": Link::new(format!("{}/commit-draft", diagram_href(workspace_id, diagram_id))),
+            "propose-model": Link::new(format!("{}/propose-model", diagram_href(workspace_id, diagram_id))),
             "publish": Link::new(format!("{}/publish", diagram_href(workspace_id, diagram_id))),
+        },
+        "_templates": {
+            "propose-model": propose_model_template(workspace_id, diagram_id),
         },
         "id": diagram_id,
         "title": desc.title,
@@ -653,6 +720,24 @@ fn diagram_collection_resource(
             "totalElements": total,
             "totalPages": total_pages,
         },
+    })
+}
+
+fn propose_model_template(workspace_id: &str, diagram_id: &str) -> Value {
+    json!({
+        "title": "Propose diagram model",
+        "method": "POST",
+        "target": format!("{}/propose-model", diagram_href(workspace_id, diagram_id)),
+        "contentType": "application/json",
+        "properties": [
+            {
+                "name": "requirement",
+                "prompt": "Requirement",
+                "type": "textarea",
+                "required": true,
+                "minLength": 1,
+            },
+        ],
     })
 }
 

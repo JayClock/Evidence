@@ -25,14 +25,37 @@ pub(super) async fn find_workspace(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::domain::{DomainArchitect, DomainArchitectEventStream, ModelingProposal};
     use crate::persistent::test_support::FakeUsers;
+    use async_trait::async_trait;
     use std::sync::Arc;
+
+    struct NoopDomainArchitect;
+
+    #[async_trait]
+    impl DomainArchitect for NoopDomainArchitect {
+        async fn propose_model(
+            &self,
+            _requirement: String,
+        ) -> Result<ModelingProposal, ServerError> {
+            Err(ServerError::Internal("not implemented".to_string()))
+        }
+
+        fn propose_model_stream(&self, _requirement: String) -> DomainArchitectEventStream {
+            Box::pin(futures_util::stream::empty())
+        }
+    }
+
+    fn test_state() -> AppState {
+        AppState {
+            users: Arc::new(FakeUsers::new()),
+            domain_architect: Arc::new(NoopDomainArchitect),
+        }
+    }
 
     #[tokio::test]
     async fn finds_seed_user_workspace() {
-        let state = AppState {
-            users: Arc::new(FakeUsers::new()),
-        };
+        let state = test_state();
         let user = find_user(&state, "desktop-user").await.unwrap();
         let (workspaces, total) = user.workspaces().list(1, 10, None).await.unwrap();
 
@@ -44,9 +67,7 @@ mod tests {
 
     #[tokio::test]
     async fn missing_user_is_not_found() {
-        let state = AppState {
-            users: Arc::new(FakeUsers::new()),
-        };
+        let state = test_state();
 
         let result = find_user(&state, "missing-user").await;
 

@@ -96,13 +96,13 @@ impl TryFrom<&str> for DiagramStatus {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DraftNode {
     pub id: String,
     pub description: NodeDescription,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DraftEdge {
     pub id: Option<String>,
     pub description: EdgeDescription,

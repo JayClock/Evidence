@@ -14,6 +14,7 @@ sqlite-tests = ["evidence-server-persistent/sqlite-tests"]
 [dependencies]
 evidence-server-api = { path = "../../libs/server/api" }
 evidence-server-domain = { path = "../../libs/server/domain" }
+evidence-server-infrastructure = { path = "../../libs/server/infrastructure" }
 evidence-server-persistent = { path = "../../libs/server/persistent", default-features = false }
 axum = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }

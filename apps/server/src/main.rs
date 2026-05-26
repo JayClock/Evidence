@@ -1,4 +1,4 @@
-use evidence_server::{api, persistent::DbUsers};
+use evidence_server::{api, infrastructure::PiRpcDomainArchitect, persistent::DbUsers};
 use std::{net::SocketAddr, sync::Arc};
 
 #[tokio::main]
@@ -15,7 +15,7 @@ async fn main() {
     let users = DbUsers::connect(&database_url)
         .await
         .expect("failed to connect database");
-    let app = api::app(Arc::new(users));
+    let app = api::app(Arc::new(users), Arc::new(PiRpcDomainArchitect::default()));
 
     let addr: SocketAddr = std::env::var("API_ADDR")
         .unwrap_or_else(|_| "127.0.0.1:3000".to_string())

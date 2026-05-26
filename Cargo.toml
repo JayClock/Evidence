@@ -5,6 +5,7 @@ members = [
   "libs/server/domain",
   "libs/server/persistent",
   "libs/server/api",
+  "libs/server/infrastructure",
 ]
 resolver = "2"
 

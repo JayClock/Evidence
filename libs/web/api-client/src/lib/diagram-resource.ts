@@ -100,6 +100,7 @@ export type DiagramResource = Entity<
     edges: DiagramEdgeCollectionResource;
     versions: DiagramVersionCollectionResource;
     'commit-draft': DiagramResource;
+    'propose-model': DiagramResource;
     publish: DiagramResource;
   }
 >;

@@ -16,14 +16,15 @@ use axum::{middleware, Router};
 use std::sync::Arc;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
-use crate::domain::Users;
+use crate::domain::{DomainArchitect, Users};
 
 #[derive(Clone)]
 pub(super) struct AppState {
     pub users: Arc<dyn Users>,
+    pub domain_architect: Arc<dyn DomainArchitect>,
 }
 
-pub fn app(users: Arc<dyn Users>) -> Router {
+pub fn app(users: Arc<dyn Users>, domain_architect: Arc<dyn DomainArchitect>) -> Router {
     Router::new()
         .merge(root::routes())
         .merge(users::routes())
@@ -35,5 +36,8 @@ pub fn app(users: Arc<dyn Users>) -> Router {
         .layer(middleware::from_fn(vendor_media::apply_vendor_media_type))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
-        .with_state(AppState { users })
+        .with_state(AppState {
+            users,
+            domain_architect,
+        })
 }

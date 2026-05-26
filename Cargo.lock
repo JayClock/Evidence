@@ -1297,6 +1297,7 @@ dependencies = [
  "axum",
  "evidence-server-api",
  "evidence-server-domain",
+ "evidence-server-infrastructure",
  "evidence-server-persistent",
  "tokio",
  "tracing-subscriber",
@@ -1306,9 +1307,12 @@ dependencies = [
 name = "evidence-server-api"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
+ "async-trait",
  "axum",
  "evidence-server-domain",
  "evidence-server-persistent",
+ "futures-util",
  "serde",
  "serde_json",
  "tokio",
@@ -1320,8 +1324,21 @@ name = "evidence-server-domain"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "evidence-server-infrastructure"
+version = "0.1.0"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "evidence-server-domain",
+ "futures-util",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

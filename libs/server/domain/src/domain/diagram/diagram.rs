@@ -6,7 +6,10 @@ use super::{
     DiagramEdges, DiagramNodes, DiagramStatus, DiagramType, DiagramVersionDescription,
     DiagramVersions, SnapshotEdge, SnapshotNode, Viewport,
 };
-use crate::domain::{DiagramEdge, DiagramNode, DiagramVersion, Entity, HasMany, Ref, ServerError};
+use crate::domain::{
+    DiagramEdge, DiagramNode, DiagramVersion, DomainArchitect, DomainArchitectEventStream, Entity,
+    HasMany, ModelingProposal, Ref, ServerError,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagramDescription {
@@ -74,6 +77,22 @@ impl Diagram {
 
     pub fn versions(&self) -> &dyn HasMany<DiagramVersion> {
         self.versions.as_ref()
+    }
+
+    pub async fn propose_model(
+        &self,
+        requirement: String,
+        architect: &dyn DomainArchitect,
+    ) -> Result<ModelingProposal, ServerError> {
+        architect.propose_model(requirement).await
+    }
+
+    pub fn propose_model_stream(
+        &self,
+        requirement: String,
+        architect: &dyn DomainArchitect,
+    ) -> DomainArchitectEventStream {
+        architect.propose_model_stream(requirement)
     }
 
     pub async fn create_version(&self) -> Result<DiagramVersion, ServerError> {
