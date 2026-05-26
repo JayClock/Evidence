@@ -204,57 +204,109 @@ impl DomainArchitect for PiRpcDomainArchitect {
     }
 }
 
-fn build_prompt(requirement: &str) -> String {
-    format!(
-        r#"You are the Evidence Domain Architect.
-
-User requirement:
-{requirement}
+const DOMAIN_ARCHITECT_PROMPT: &str = r#"You are the Evidence Domain Architect.
 
 Task:
-- Propose domain-modeling changes for the user's requirement.
+- Propose Fulfillment Modeling (FM) diagram-modeling changes for the user's requirement.
 - Stream exactly one JSON object and no markdown prose.
 - Do not modify files, call tools, or execute commands.
-- Use the same proposal shape as Team AI DraftDiagram:
-  {{
-    "summary": {{
-      "message": "short human-readable summary",
-      "addNodes": 0,
-      "addEdges": 0,
-      "updateNodes": 0,
-      "updateEdges": 0,
-      "deleteNodes": 0,
-      "deleteEdges": 0
-    }},
-    "operations": [
-      {{
-        "type": "ADD_NODE | UPDATE_NODE | DELETE_NODE | ADD_EDGE | UPDATE_EDGE | DELETE_EDGE",
-        "targetId": "required for update/delete operations",
-        "node": {{
-          "id": "node-1",
-          "parent": {{ "id": "parent-node-id" }},
-          "data": {{
-            "name": "contract",
-            "label": "Contract",
-            "type": "EVIDENCE | PARTICIPANT | ROLE | CONTEXT",
-            "subType": "contract"
-          }}
-        }},
-        "edge": {{
-          "source": {{ "id": "source-node-id" }},
-          "target": {{ "id": "target-node-id" }}
-        }},
-        "reason": "why this operation is proposed"
-      }}
-    ]
-  }}
-- For ADD_NODE include node. For ADD_EDGE include edge.
-- For UPDATE_NODE/UPDATE_EDGE include targetId and replacement node/edge payload.
-- For DELETE_NODE/DELETE_EDGE include targetId only.
-- ADD_EDGE source/target must reference node ids introduced by ADD_NODE in the same proposal.
-- If no executable operation contract is available, return an empty operations array and explain in summary.message.
-"#
-    )
+- Return only the FM changes payload below; do not return an operations array.
+
+FM modeling rules:
+- Model business semantics only: contracts, obligations, roles, evidence, lifecycle facts, rules, downstream signals, and scenario paths. Do not model database tables, APIs, services, modules, queues, deployment, or framework components.
+- Start from Contract context. Treat one Contract as one primary fulfillment chain. For multiple contracts, model each chain independently.
+- Add RFP and Proposal only when the requirement contains a presales stage.
+- Use Evidence-first discovery. Identify the anchor cash movement, KPI, or acceptance evidence, then discover the requests, confirmations, roles, and downstream evidence around it.
+- Model every concrete responsibility or meaningful state transition as a Fulfillment Request -> Fulfillment Confirmation pair.
+- Express lifecycle as attributes on Contract, Evidence, or Thing; do not create standalone status nodes.
+- Put rules in request precondition, attribute calculationRule, Domain Role responsibility, notes, or validation notes.
+- Every RFP, Proposal, Fulfillment Request, Fulfillment Confirmation, and Other Evidence must have exactly one participating Party Role.
+- Use Other Evidence for same-context produced business documents. Use Evidence As Role only for cross-context bridging, and only in the pattern Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation.
+- Third Party Role and Context Role may participate only in Other Evidence or Evidence As Role.
+- Edges are scalar 1:1 relations from cause to result or participant to evidence; never use arrays, comma-separated ids, or aggregate endpoints.
+
+Output JSON shape:
+{
+  "summary": "short human-readable summary",
+  "changes": {
+    "addNodes": [
+      {
+        "id": "node-1",
+        "kind": "fulfillment-node | group-container | sticky-note",
+        "parent": { "id": "parent-node-id" },
+        "position": { "x": 0, "y": 0 },
+        "width": null,
+        "height": null,
+        "data": {
+          "name": "SalesContract",
+          "label": "销售合同",
+          "type": "EVIDENCE | PARTICIPANT | ROLE | CONTEXT",
+          "subType": "contract",
+          "attributes": [],
+          "notes": "optional short explanation"
+        }
+      }
+    ],
+    "updateNodes": [],
+    "deleteNodes": [],
+    "addEdges": [
+      {
+        "id": "edge-1",
+        "source": { "id": "source-node-id" },
+        "target": { "id": "target-node-id" },
+        "sourceHandle": null,
+        "targetHandle": null,
+        "kind": "smoothstep",
+        "relationType": "evidence_flow | request_confirmation | participation | role_play | cross_context_association",
+        "label": "short business relationship phrase",
+        "style": {},
+        "data": { "sourceRelation": "1", "targetRelation": "1" },
+        "animated": false,
+        "hidden": false,
+        "markerStart": null,
+        "markerEnd": { "type": "arrowclosed" },
+        "pathOptions": {},
+        "interactionWidth": null
+      }
+    ],
+    "updateEdges": [],
+    "deleteEdges": []
+  }
+}
+
+Node output constraints, aligned with the public node API model:
+- Emit node fields only as: id, kind, parent, position, width, height, data. Do not emit _links, logicalEntity, logical_entity, parentId, extent, createdAt, or updatedAt.
+- Use node.id with prefix node-. Context nodes should use prefix node-context- when helpful.
+- Use node.kind = "group-container" for CONTEXT nodes, "fulfillment-node" for FM business nodes, or "sticky-note" only for explanatory notes.
+- node.parent is either null or { "id": "context-node-id" }. Put every non-Context business-chain node inside its Context. Do not put Participant Party nodes inside Context containers.
+- Always emit position { "x": 0, "y": 0 }. The frontend owns layout.
+- node.data.type must be one of EVIDENCE, PARTICIPANT, ROLE, CONTEXT.
+- node.data.subType should use FM subtype values: rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence, party, thing, domain, 3rd system, context, evidence, bounded_context.
+- node.data.name must be non-empty, unique, ASCII PascalCase. node.data.label is the user-facing business label.
+- Evidence lifecycle attributes are mandatory: RFP/Proposal/Fulfillment Request need startedAt and expiredAt; Contract needs signedAt; Fulfillment Confirmation needs confirmedAt; Other Evidence needs createdAt. Use DateTime and required true.
+- For derived values, use one parseable calculationRule assignment like amount = PaymentConfirmation.paidAmount. Put guard rules in precondition boolean expressions.
+
+Edge output constraints, aligned with the public edge API model:
+- Emit edge fields only as: id, source, target, sourceHandle, targetHandle, kind, relationType, label, style, data, animated, hidden, markerStart, markerEnd, pathOptions, interactionWidth. Do not emit _links, type, sourceNode, targetNode, createdAt, or updatedAt.
+- Use edge.id with prefix edge-.
+- edge.source and edge.target must be { "id": "node-id" } and must reference nodes introduced by changes.addNodes in the same proposal unless the user provided existing node ids.
+- Use edge.kind = "smoothstep" by default. Do not use custom edge kind values unless explicitly requested.
+- Always include edge.data.sourceRelation = "1" and edge.data.targetRelation = "1".
+- For normal evidence flow and participation, use solid style {} and markerEnd { "type": "arrowclosed" }.
+- For role-play edges (Participant Party or Thing plays a Role), use style { "strokeDasharray": "6 4" } and markerEnd { "type": "arrowclosed" }.
+- For allowed cross-context Evidence As Role bridges, use style { "strokeDasharray": "3 3" } and no semantic shortcut that violates the bridge pattern.
+
+Changes constraints:
+- For a new or initial model, put every generated node in changes.addNodes and every generated edge in changes.addEdges; keep update/delete arrays empty.
+- For an update to an existing model, return only the diff in changes. Use updateNodes/updateEdges for replacement payloads and deleteNodes/deleteEdges as id string arrays.
+- addNodes ids and addEdges ids must be unique within the proposal and must not reuse ids from an existing model when one is provided.
+- In one proposal, never repeat the same id across add/update/delete arrays for the same element type.
+- If deleting a node, also include every incident edge id you know about in deleteEdges.
+- If no executable change is available, return all six arrays empty and explain in summary.
+"#;
+
+fn build_prompt(requirement: &str) -> String {
+    format!("{DOMAIN_ARCHITECT_PROMPT}\n\nUser requirement:\n{requirement}\n")
 }
 
 fn parse_modeling_proposal(text: &str) -> Result<ModelingProposal, ServerError> {
@@ -331,18 +383,12 @@ mod tests {
     #[test]
     fn parses_plain_json_proposal() {
         let proposal = parse_modeling_proposal(
-            r#"{"summary":{"message":"Create model","addNodes":0,"addEdges":0,"updateNodes":0,"updateEdges":0,"deleteNodes":0,"deleteEdges":0},"operations":[]}"#,
+            r#"{"summary":"Create model","changes":{"addNodes":[],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}"#,
         )
         .unwrap();
 
-        assert_eq!(
-            proposal
-                .summary
-                .as_ref()
-                .and_then(|summary| summary.message.as_deref()),
-            Some("Create model")
-        );
-        assert!(proposal.safe_operations().is_empty());
+        assert_eq!(proposal.summary, "Create model");
+        assert!(proposal.changes.add_nodes.is_empty());
     }
 
     #[test]
@@ -350,45 +396,88 @@ mod tests {
         let proposal = parse_modeling_proposal(
             r#"Here is the proposal:
 ```json
-{"summary":{"message":"Ask follow-up"},"operations":[]}
+{"summary":"Ask follow-up","changes":{"addNodes":[],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}
 ```
 "#,
         )
         .unwrap();
 
-        assert_eq!(
-            proposal
-                .summary
-                .as_ref()
-                .and_then(|summary| summary.message.as_deref()),
-            Some("Ask follow-up")
-        );
+        assert_eq!(proposal.summary, "Ask follow-up");
     }
 
     #[test]
-    fn parses_team_ai_add_node_operation() {
-        let proposal = parse_modeling_proposal(
+    fn rejects_legacy_operations_proposal() {
+        let error = parse_modeling_proposal(
             r#"{
               "summary": {"message": "Add contract", "addNodes": 1},
-              "operations": [{
-                "type": "ADD_NODE",
-                "node": {
-                  "id": "node-1",
-                  "parent": null,
-                  "data": {
-                    "name": "contract",
-                    "label": "Contract",
-                    "type": "EVIDENCE",
-                    "subType": "contract"
+              "operations": [{"type": "ADD_NODE"}]
+            }"#,
+        )
+        .unwrap_err();
+
+        assert!(error
+            .to_string()
+            .contains("failed to parse pi rpc modeling proposal"));
+    }
+
+    #[test]
+    fn parses_public_node_and_edge_change_fields() {
+        let proposal = parse_modeling_proposal(
+            r#"{
+              "summary": "Add fulfillment flow",
+              "changes": {
+                "addNodes": [
+                  {
+                    "id": "node-1",
+                    "kind": "fulfillment-node",
+                    "parent": {"id": "node-context-1"},
+                    "position": {"x": 0, "y": 0},
+                    "width": null,
+                    "height": null,
+                    "data": {
+                      "name": "SalesContract",
+                      "label": "销售合同",
+                      "type": "EVIDENCE",
+                      "subType": "contract",
+                      "attributes": [{"name": "signedAt", "valueType": "DateTime", "required": true}]
+                    }
                   }
-                },
-                "reason": "Contract anchors the fulfillment model."
-              }]
+                ],
+                "updateNodes": [],
+                "deleteNodes": [],
+                "addEdges": [
+                  {
+                    "id": "edge-1",
+                    "source": {"id": "node-1"},
+                    "target": {"id": "node-2"},
+                    "kind": "smoothstep",
+                    "relationType": "evidence_flow",
+                    "label": "合同触发履约",
+                    "style": {},
+                    "data": {"sourceRelation": "1", "targetRelation": "1"},
+                    "animated": false,
+                    "hidden": false,
+                    "markerStart": null,
+                    "markerEnd": {"type": "arrowclosed"},
+                    "pathOptions": {},
+                    "interactionWidth": null
+                  }
+                ],
+                "updateEdges": [],
+                "deleteEdges": []
+              }
             }"#,
         )
         .unwrap();
 
-        assert_eq!(proposal.safe_operations().len(), 1);
+        let node = &proposal.changes.add_nodes[0];
+        assert_eq!(node.kind.as_deref(), Some("fulfillment-node"));
+        assert!(node.data.extra.contains_key("attributes"));
+
+        let edge = &proposal.changes.add_edges[0];
+        assert_eq!(edge.id.as_deref(), Some("edge-1"));
+        assert_eq!(edge.kind.as_deref(), Some("smoothstep"));
+        assert_eq!(edge.data["sourceRelation"], "1");
     }
 
     #[test]

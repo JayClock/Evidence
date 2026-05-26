@@ -14,9 +14,8 @@ pub use diagram::{
     Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
     DiagramSnapshot, DiagramStatus, DiagramType, DiagramVersion, DiagramVersionDescription,
     DiagramVersions, DraftEdge, DraftNode, EdgeDescription, ModelingDraftEdge, ModelingDraftEntity,
-    ModelingDraftNode, ModelingEvent, ModelingProposal, ModelingProposalOperation,
-    ModelingProposalOperationType, ModelingProposalSummary, NodeDescription, Position,
-    SnapshotEdge, SnapshotNode, Viewport, WorkspaceDiagrams,
+    ModelingDraftNode, ModelingEvent, ModelingProposal, ModelingProposalChanges, NodeDescription,
+    Position, SnapshotEdge, SnapshotNode, Viewport, WorkspaceDiagrams,
 };
 pub use error::ServerError;
 pub use infrastructure::{DomainArchitect, DomainArchitectEventStream};

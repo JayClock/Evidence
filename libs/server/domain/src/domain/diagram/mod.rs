@@ -18,7 +18,7 @@ pub use diagram_versions::DiagramVersions;
 pub use edge::{DiagramEdge, EdgeDescription};
 pub use modeling::{
     ModelingDraftEdge, ModelingDraftEntity, ModelingDraftNode, ModelingEvent, ModelingProposal,
-    ModelingProposalOperation, ModelingProposalOperationType, ModelingProposalSummary,
+    ModelingProposalChanges,
 };
 pub use node::{DiagramNode, NodeDescription};
 pub use types::{DiagramStatus, DiagramType, DraftEdge, DraftNode, Position, Viewport};
