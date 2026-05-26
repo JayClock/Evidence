@@ -47,6 +47,7 @@ import type {
   DiagramCanvasNode,
   DiagramNodeData,
 } from './components/diagram-types';
+import { DiagramAiChat } from './ai/diagram-ai-chat';
 import { nodeTypes } from './components/node-types';
 
 const DEFAULT_NODE_WIDTH = 160;
@@ -115,14 +116,19 @@ export function DiagramDetailView({
         </CardHeader>
       </Card>
 
-      {loading ? <DiagramLoading /> : null}
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>Diagram unavailable</AlertTitle>
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      ) : null}
-      {!loading && !error && graph ? <DiagramCanvas graph={graph} /> : null}
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="min-w-0">
+          {loading ? <DiagramLoading /> : null}
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>Diagram unavailable</AlertTitle>
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
+          ) : null}
+          {!loading && !error && graph ? <DiagramCanvas graph={graph} /> : null}
+        </div>
+        <DiagramAiChat resourceState={resourceState} />
+      </div>
     </section>
   );
 }

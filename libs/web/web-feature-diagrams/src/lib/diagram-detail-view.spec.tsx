@@ -65,6 +65,22 @@ vi.mock('@xyflow/react', () => ({
 
 const mockedUseResource = vi.mocked(useResource);
 
+class ResizeObserverStub {
+  observe() {
+    // jsdom does not implement ResizeObserver.
+  }
+
+  unobserve() {
+    // jsdom does not implement ResizeObserver.
+  }
+
+  disconnect() {
+    // jsdom does not implement ResizeObserver.
+  }
+}
+
+vi.stubGlobal('ResizeObserver', ResizeObserverStub);
+
 function collectionState<T extends Entity>(collection: unknown[]): State<T> {
   return { collection, data: {} } as unknown as State<T>;
 }
@@ -165,6 +181,12 @@ describe('DiagramDetailView', () => {
 
     expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
     expect(screen.getByLabelText('Diagram canvas')).toBeTruthy();
+    expect(
+      screen.getByRole('region', { name: 'AI modeling assistant' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByPlaceholderText('Describe the fulfillment model to propose…'),
+    ).toBeTruthy();
     expect(screen.getByText('Contract')).toBeTruthy();
     expect(screen.getByText('Confirmation')).toBeTruthy();
     expect(screen.getByText('fulfills')).toBeTruthy();

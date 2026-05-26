@@ -12,9 +12,11 @@
     "./package.json": "./package.json"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.193",
     "@evidence/api-client": "workspace:*",
     "@evidence/ui": "workspace:*",
     "@xyflow/react": "^12.10.2",
+    "ai": "^6.0.191",
     "react-router-dom": "6.30.3"
   }
 }
