@@ -1,4 +1,5 @@
 import { createClient } from '@hateoas-ts/resource';
+import { zodActionSchemaPlugin } from '@hateoas-ts/resource/zod';
 
 import type { RootResource } from './api-types.js';
 
@@ -30,6 +31,7 @@ function isTauri(): boolean {
 function createEvidenceClient(apiRootUrl: string) {
   return createClient({
     baseURL: apiRootUrl,
+    schemaPlugin: zodActionSchemaPlugin,
     sendUserAgent: false,
   });
 }

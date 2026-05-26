@@ -1,5 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
+    http::{header, HeaderName, StatusCode},
     routing::get,
     Json, Router,
 };
@@ -172,7 +173,7 @@ async fn create_diagram(
     State(state): State<AppState>,
     Path(workspace_id): Path<String>,
     Json(input): Json<CreateDiagramInput>,
-) -> Result<Json<Value>, ApiError> {
+) -> Result<(StatusCode, [(HeaderName, String); 1], Json<Value>), ApiError> {
     let workspace = load_workspace(&state, &workspace_id).await?;
     let diagram = workspace
         .diagrams_wide()
@@ -186,7 +187,12 @@ async fn create_diagram(
             updated_at: String::new(),
         })
         .await?;
-    Ok(Json(diagram_resource(&diagram)))
+    let location = diagram_href(&workspace_id, diagram.identity());
+    Ok((
+        StatusCode::CREATED,
+        [(header::LOCATION, location)],
+        Json(diagram_resource(&diagram)),
+    ))
 }
 
 async fn get_diagram(
@@ -635,6 +641,9 @@ fn diagram_collection_resource(
 
     json!({
         "_links": links,
+        "_templates": {
+            "create-diagram": create_diagram_template(workspace_id),
+        },
         "_embedded": {
             "diagrams": diagrams.iter().map(diagram_resource).collect::<Vec<_>>(),
         },
@@ -644,6 +653,42 @@ fn diagram_collection_resource(
             "totalElements": total,
             "totalPages": total_pages,
         },
+    })
+}
+
+fn create_diagram_template(workspace_id: &str) -> Value {
+    json!({
+        "title": "Create diagram",
+        "method": "POST",
+        "target": diagrams_href(workspace_id),
+        "contentType": "application/json",
+        "properties": [
+            {
+                "name": "title",
+                "prompt": "Title",
+                "type": "text",
+                "required": true,
+                "minLength": 1,
+            },
+            {
+                "name": "type",
+                "prompt": "Type",
+                "type": "text",
+                "value": DiagramType::Fulfillment.as_str(),
+                "required": false,
+                "options": {
+                    "inline": [
+                        { "value": DiagramType::Fulfillment.as_str(), "prompt": "Fulfillment" },
+                        { "value": DiagramType::Flowchart.as_str(), "prompt": "Flowchart" },
+                        { "value": DiagramType::Sequence.as_str(), "prompt": "Sequence" },
+                        { "value": DiagramType::Class.as_str(), "prompt": "Class" },
+                        { "value": DiagramType::Component.as_str(), "prompt": "Component" },
+                        { "value": DiagramType::State.as_str(), "prompt": "State" },
+                        { "value": DiagramType::Activity.as_str(), "prompt": "Activity" },
+                    ],
+                },
+            },
+        ],
     })
 }
 

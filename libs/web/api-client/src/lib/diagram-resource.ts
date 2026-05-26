@@ -33,5 +33,6 @@ export type DiagramCollectionResource = Collection<DiagramResource> &
       workspace: WorkspaceResource;
       prev: DiagramCollectionResource;
       next: DiagramCollectionResource;
+      'create-diagram': DiagramResource;
     }
   >;

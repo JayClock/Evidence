@@ -1,6 +1,17 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { DiagramCollectionResource, State } from '@evidence/api-client';
 import {
+  apiClient,
+  type Action,
+  type DiagramCollectionResource,
+  type DiagramResource,
+  type State,
+} from '@evidence/api-client';
+import {
+  ActionForm,
+  Alert,
+  AlertDescription,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -9,11 +20,15 @@ import {
   TableRow,
 } from '@evidence/ui';
 
+type FormData = Record<string, unknown>;
+
 export function DiagramCollectionView({
   resourceState,
 }: {
   resourceState: State<DiagramCollectionResource>;
 }) {
+  const createAction = useCreateDiagramAction(resourceState);
+
   return (
     <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
       <div className="flex items-start justify-between gap-4">
@@ -27,6 +42,12 @@ export function DiagramCollectionView({
           {resourceState.data.page.totalElements} total
         </span>
       </div>
+      {createAction ? (
+        <CreateDiagramForm
+          action={createAction}
+          collectionUri={resourceState.uri}
+        />
+      ) : null}
       <div className="mt-4 rounded-lg border">
         <Table>
           <TableHeader>
@@ -80,6 +101,94 @@ export function DiagramCollectionView({
       </div>
     </section>
   );
+}
+
+function useCreateDiagramAction(
+  resourceState: State<DiagramCollectionResource>,
+) {
+  return useMemo(() => {
+    try {
+      resourceState.action('create-diagram');
+      return resourceState.action('create-diagram');
+    } catch {
+      return null;
+    }
+  }, [resourceState]);
+}
+
+function CreateDiagramForm({
+  action,
+  collectionUri,
+}: {
+  action: Action<DiagramResource>;
+  collectionUri: string;
+}) {
+  const [formData, setFormData] = useState<FormData>(() => ({
+    title: '',
+    type: action.field('type')?.value ?? 'fulfillment',
+  }));
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const canSubmit = !pending && getTitle(formData).length > 0;
+
+  return (
+    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+      <ActionForm
+        action={action}
+        formData={formData}
+        onFormDataChange={setFormData}
+        onSubmit={async (nextFormData) => {
+          const title = getTitle(nextFormData);
+          if (!title || pending) {
+            return;
+          }
+
+          setPending(true);
+          setError(null);
+          try {
+            await action.submit({ ...nextFormData, title });
+            setFormData({
+              title: '',
+              type: action.field('type')?.value ?? 'fulfillment',
+            });
+            await apiClient
+              .go<DiagramCollectionResource>(collectionUri)
+              .refresh();
+          } catch (caught) {
+            setError(caught instanceof Error ? caught.message : String(caught));
+          } finally {
+            setPending(false);
+          }
+        }}
+        uiSchema={{
+          'ui:submitButtonOptions': {
+            norender: true,
+          },
+          'ui:options': {
+            label: false,
+          },
+          title: {
+            'ui:autofocus': true,
+          },
+        }}
+      >
+        <div className="flex justify-end pt-2">
+          <Button disabled={!canSubmit} type="submit">
+            {pending ? 'Creating…' : (action.title ?? 'Create diagram')}
+          </Button>
+        </div>
+      </ActionForm>
+      {error ? (
+        <Alert className="mt-3" variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+    </div>
+  );
+}
+
+function getTitle(data: FormData): string {
+  return typeof data.title === 'string' ? data.title.trim() : '';
 }
 
 function formatDateTime(value: string) {

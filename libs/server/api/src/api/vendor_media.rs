@@ -95,6 +95,10 @@ mod tests {
             Some(WORKSPACE)
         );
         assert_eq!(
+            resource_content_type("/api/workspaces/default-workspace/diagrams"),
+            Some(DIAGRAMS)
+        );
+        assert_eq!(
             resource_content_type("/api/workspaces/default-workspace/diagrams/diagram-1/nodes"),
             Some(NODES)
         );

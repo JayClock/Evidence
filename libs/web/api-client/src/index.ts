@@ -5,4 +5,10 @@ export {
   useClient,
   useResource,
 } from '@hateoas-ts/resource-react';
-export type { Collection, Entity, Link, State } from '@hateoas-ts/resource';
+export type {
+  Action,
+  Collection,
+  Entity,
+  Link,
+  State,
+} from '@hateoas-ts/resource';

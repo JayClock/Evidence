@@ -4,6 +4,7 @@
 @import '@fontsource-variable/geist';
 
 @source './components/**/*.{ts,tsx}';
+@source '../../../../node_modules/@rjsf/shadcn';
 
 @custom-variant dark (&:is(.dark *));
 
