@@ -46,6 +46,7 @@ vi.mock('@evidence/ui', () => {
     SidebarProvider: Fragment,
     SidebarRail: () => <div />,
     SidebarTrigger: Button,
+    Toaster: () => null,
     TooltipProvider: Fragment,
   };
 });

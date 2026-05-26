@@ -33,6 +33,7 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
+  Toaster,
   TooltipProvider,
 } from '@evidence/ui';
 
@@ -51,6 +52,7 @@ export function WebShell({
 
   return (
     <TooltipProvider>
+      <Toaster position="top-center" />
       <SidebarProvider>
         <AppSidebar
           userState={userState}

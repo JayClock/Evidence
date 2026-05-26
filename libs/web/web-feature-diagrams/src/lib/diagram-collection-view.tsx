@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
-  apiClient,
   type Action,
   type DiagramCollectionResource,
   type DiagramResource,
@@ -9,9 +9,15 @@ import {
 } from '@evidence/api-client';
 import {
   ActionForm,
-  Alert,
-  AlertDescription,
   Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
   Table,
   TableBody,
   TableCell,
@@ -42,12 +48,7 @@ export function DiagramCollectionView({
           {resourceState.data.page.totalElements} total
         </span>
       </div>
-      {createAction ? (
-        <CreateDiagramForm
-          action={createAction}
-          collectionUri={resourceState.uri}
-        />
-      ) : null}
+      {createAction ? <CreateDiagramForm action={createAction} /> : null}
       <div className="mt-4 rounded-lg border">
         <Table>
           <TableHeader>
@@ -116,79 +117,117 @@ function useCreateDiagramAction(
   }, [resourceState]);
 }
 
-function CreateDiagramForm({
-  action,
-  collectionUri,
-}: {
-  action: Action<DiagramResource>;
-  collectionUri: string;
-}) {
-  const [formData, setFormData] = useState<FormData>(() => ({
-    title: '',
-    type: action.field('type')?.value ?? 'fulfillment',
-  }));
+function CreateDiagramForm({ action }: { action: Action<DiagramResource> }) {
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState<FormData>(() =>
+    createInitialFormData(action),
+  );
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const canSubmit = !pending && getTitle(formData).length > 0;
+  const actionTitle = action.title ?? 'Create diagram';
 
   return (
-    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
-      <ActionForm
-        action={action}
-        formData={formData}
-        onFormDataChange={setFormData}
-        onSubmit={async (nextFormData) => {
-          const title = getTitle(nextFormData);
-          if (!title || pending) {
-            return;
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!pending) {
+          if (nextOpen) {
+            setFormData(createInitialFormData(action));
           }
+          setOpen(nextOpen);
+        }
+      }}
+    >
+      <div className="mt-4 flex justify-end">
+        <DialogTrigger asChild>
+          <Button>{actionTitle}</Button>
+        </DialogTrigger>
+      </div>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{actionTitle}</DialogTitle>
+          <DialogDescription>
+            Add a new diagram to this collection.
+          </DialogDescription>
+        </DialogHeader>
+        <ActionForm
+          action={action}
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSubmit={async (nextFormData) => {
+            const title = getTitle(nextFormData);
+            if (!title || pending) {
+              return;
+            }
 
-          setPending(true);
-          setError(null);
-          try {
-            await action.submit({ ...nextFormData, title });
-            setFormData({
-              title: '',
-              type: action.field('type')?.value ?? 'fulfillment',
-            });
-            await apiClient
-              .go<DiagramCollectionResource>(collectionUri)
-              .refresh();
-          } catch (caught) {
-            setError(caught instanceof Error ? caught.message : String(caught));
-          } finally {
-            setPending(false);
-          }
-        }}
-        uiSchema={{
-          'ui:submitButtonOptions': {
-            norender: true,
-          },
-          'ui:options': {
-            label: false,
-          },
-          title: {
-            'ui:autofocus': true,
-          },
-        }}
-      >
-        <div className="flex justify-end pt-2">
-          <Button disabled={!canSubmit} type="submit">
-            {pending ? 'Creating…' : (action.title ?? 'Create diagram')}
-          </Button>
-        </div>
-      </ActionForm>
-      {error ? (
-        <Alert className="mt-3" variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-    </div>
+            setPending(true);
+            try {
+              const createdState = await action.submit({
+                ...nextFormData,
+                title,
+              });
+              setFormData(createInitialFormData(action));
+              setOpen(false);
+              toast.success('Diagram created', {
+                description: title,
+              });
+
+              try {
+                await createdState.follow('collection');
+              } catch (caught) {
+                toast.error('Diagram list refresh failed', {
+                  description: errorMessage(caught),
+                });
+              }
+            } catch (caught) {
+              toast.error('Failed to create diagram', {
+                description: errorMessage(caught),
+              });
+            } finally {
+              setPending(false);
+            }
+          }}
+          uiSchema={{
+            'ui:submitButtonOptions': {
+              norender: true,
+            },
+            'ui:options': {
+              label: false,
+            },
+            title: {
+              'ui:autofocus': true,
+            },
+          }}
+        >
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button disabled={pending} type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button disabled={!canSubmit} type="submit">
+              {pending ? 'Creating…' : actionTitle}
+            </Button>
+          </DialogFooter>
+        </ActionForm>
+      </DialogContent>
+    </Dialog>
   );
+}
+
+function createInitialFormData(action: Action<DiagramResource>): FormData {
+  return {
+    title: '',
+    type: action.field('type')?.value ?? 'fulfillment',
+  };
 }
 
 function getTitle(data: FormData): string {
   return typeof data.title === 'string' ? data.title.trim() : '';
+}
+
+function errorMessage(caught: unknown): string {
+  return caught instanceof Error ? caught.message : String(caught);
 }
 
 function formatDateTime(value: string) {
