@@ -101,14 +101,21 @@ impl DiagramEdges for DbDiagramEdges {
             .map_err(db_error)?
             .ok_or_else(|| ServerError::NotFound(format!("diagram edge {edge_id} not found")))?;
         let mut active: diagram_edges::ActiveModel = model.into();
-        active.source_node_id = Set(desc.source_node.into_id());
-        active.target_node_id = Set(desc.target_node.into_id());
+        active.source_id = Set(desc.source.into_id());
+        active.target_id = Set(desc.target.into_id());
         active.source_handle = Set(desc.source_handle);
         active.target_handle = Set(desc.target_handle);
+        active.kind = Set(desc.kind);
         active.relation_type = Set(desc.relation_type);
         active.label = Set(desc.label);
-        active.style_props = Set(desc.style_props);
+        active.style = Set(desc.style);
+        active.data = Set(desc.data);
+        active.animated = Set(desc.animated);
         active.hidden = Set(desc.hidden);
+        active.marker_start = Set(desc.marker_start);
+        active.marker_end = Set(desc.marker_end);
+        active.path_options = Set(desc.path_options);
+        active.interaction_width = Set(desc.interaction_width);
         active.updated_at = Set(now());
         let updated = active.update(self.store.db()).await.map_err(db_error)?;
         Ok(edge_from_model(updated))
@@ -142,14 +149,21 @@ pub(super) fn edge_from_model(model: diagram_edges::Model) -> DiagramEdge {
         model.id,
         EdgeDescription {
             diagram: Ref::new(model.diagram_id),
-            source_node: Ref::new(model.source_node_id),
-            target_node: Ref::new(model.target_node_id),
+            source: Ref::new(model.source_id),
+            target: Ref::new(model.target_id),
             source_handle: model.source_handle,
             target_handle: model.target_handle,
+            kind: model.kind,
             relation_type: model.relation_type,
             label: model.label,
-            style_props: model.style_props,
+            style: model.style,
+            data: model.data,
+            animated: model.animated,
             hidden: model.hidden,
+            marker_start: model.marker_start,
+            marker_end: model.marker_end,
+            path_options: model.path_options,
+            interaction_width: model.interaction_width,
             created_at: model.created_at,
             updated_at: model.updated_at,
         },
@@ -181,14 +195,21 @@ where
     diagram_edges::ActiveModel {
         id: Set(id.to_string()),
         diagram_id: Set(diagram_id.to_string()),
-        source_node_id: Set(desc.source_node.id().clone()),
-        target_node_id: Set(desc.target_node.id().clone()),
+        source_id: Set(desc.source.id().clone()),
+        target_id: Set(desc.target.id().clone()),
         source_handle: Set(desc.source_handle.clone()),
         target_handle: Set(desc.target_handle.clone()),
+        kind: Set(desc.kind.clone()),
         relation_type: Set(desc.relation_type.clone()),
         label: Set(desc.label.clone()),
-        style_props: Set(desc.style_props.clone()),
+        style: Set(desc.style.clone()),
+        data: Set(desc.data.clone()),
+        animated: Set(desc.animated),
         hidden: Set(desc.hidden),
+        marker_start: Set(desc.marker_start.clone()),
+        marker_end: Set(desc.marker_end.clone()),
+        path_options: Set(desc.path_options.clone()),
+        interaction_width: Set(desc.interaction_width),
         created_at: Set(timestamp.to_string()),
         updated_at: Set(timestamp.to_string()),
     }

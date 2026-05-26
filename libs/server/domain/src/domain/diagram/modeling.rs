@@ -55,14 +55,14 @@ pub enum ModelingProposalOperationType {
 pub struct ModelingDraftNode {
     pub id: String,
     pub parent: Option<Ref<String>>,
-    pub local_data: ModelingDraftEntity,
+    pub data: ModelingDraftEntity,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelingDraftEdge {
-    pub source_node: Ref<String>,
-    pub target_node: Ref<String>,
+    pub source: Ref<String>,
+    pub target: Ref<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

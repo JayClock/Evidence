@@ -2,10 +2,11 @@ use serde::Serialize;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-use crate::domain::{DiagramNode, Ref};
+use crate::domain::{DiagramNode, Position, Ref};
 
 use super::super::links::{
-    workspace_diagram_href, workspace_diagram_node_href, workspace_diagram_nodes_href, Link,
+    workspace_diagram_href, workspace_diagram_node_href, workspace_diagram_nodes_href,
+    workspace_logical_entity_href, Link,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -14,16 +15,12 @@ pub(in crate::api) struct NodeModel {
     #[serde(rename = "_links")]
     links: BTreeMap<String, Link>,
     id: String,
-    #[serde(rename = "type")]
-    node_type: String,
-    logical_entity: Option<Ref<String>>,
+    kind: String,
     parent: Option<Ref<String>>,
-    position_x: f64,
-    position_y: f64,
+    position: Position,
     width: Option<i64>,
     height: Option<i64>,
-    style_config: Value,
-    local_data: Value,
+    data: Value,
     created_at: String,
     updated_at: String,
 }
@@ -33,35 +30,44 @@ pub(in crate::api) fn node_model(workspace_id: &str, node: &DiagramNode) -> Node
     let node_id = node.identity();
     let description = node.description();
 
+    let mut links = BTreeMap::from([
+        (
+            "self".to_string(),
+            Link::new(workspace_diagram_node_href(
+                workspace_id,
+                diagram_id,
+                node_id,
+            )),
+        ),
+        (
+            "collection".to_string(),
+            Link::new(workspace_diagram_nodes_href(workspace_id, diagram_id)),
+        ),
+        (
+            "diagram".to_string(),
+            Link::new(workspace_diagram_href(workspace_id, diagram_id)),
+        ),
+    ]);
+
+    if let Some(logical_entity) = &description.logical_entity {
+        links.insert(
+            "logicalEntity".to_string(),
+            Link::new(workspace_logical_entity_href(
+                workspace_id,
+                logical_entity.id(),
+            )),
+        );
+    }
+
     NodeModel {
-        links: BTreeMap::from([
-            (
-                "self".to_string(),
-                Link::new(workspace_diagram_node_href(
-                    workspace_id,
-                    diagram_id,
-                    node_id,
-                )),
-            ),
-            (
-                "collection".to_string(),
-                Link::new(workspace_diagram_nodes_href(workspace_id, diagram_id)),
-            ),
-            (
-                "diagram".to_string(),
-                Link::new(workspace_diagram_href(workspace_id, diagram_id)),
-            ),
-        ]),
+        links,
         id: node_id.to_string(),
-        node_type: description.node_type.clone(),
-        logical_entity: description.logical_entity.clone(),
+        kind: description.kind.clone(),
         parent: description.parent.clone(),
-        position_x: description.position_x,
-        position_y: description.position_y,
+        position: description.position.clone(),
         width: description.width,
         height: description.height,
-        style_config: description.style_config.clone(),
-        local_data: description.local_data.clone(),
+        data: description.data.clone(),
         created_at: node.created_at().to_string(),
         updated_at: node.updated_at().to_string(),
     }

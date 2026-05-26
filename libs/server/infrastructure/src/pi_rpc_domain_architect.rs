@@ -233,7 +233,7 @@ Task:
         "node": {{
           "id": "node-1",
           "parent": {{ "id": "parent-node-id" }},
-          "localData": {{
+          "data": {{
             "name": "contract",
             "label": "Contract",
             "type": "EVIDENCE | PARTICIPANT | ROLE | CONTEXT",
@@ -241,8 +241,8 @@ Task:
           }}
         }},
         "edge": {{
-          "sourceNode": {{ "id": "source-node-id" }},
-          "targetNode": {{ "id": "target-node-id" }}
+          "source": {{ "id": "source-node-id" }},
+          "target": {{ "id": "target-node-id" }}
         }},
         "reason": "why this operation is proposed"
       }}
@@ -251,7 +251,7 @@ Task:
 - For ADD_NODE include node. For ADD_EDGE include edge.
 - For UPDATE_NODE/UPDATE_EDGE include targetId and replacement node/edge payload.
 - For DELETE_NODE/DELETE_EDGE include targetId only.
-- ADD_EDGE sourceNode/targetNode must reference node ids introduced by ADD_NODE in the same proposal.
+- ADD_EDGE source/target must reference node ids introduced by ADD_NODE in the same proposal.
 - If no executable operation contract is available, return an empty operations array and explain in summary.message.
 "#
     )
@@ -375,7 +375,7 @@ mod tests {
                 "node": {
                   "id": "node-1",
                   "parent": null,
-                  "localData": {
+                  "data": {
                     "name": "contract",
                     "label": "Contract",
                     "type": "EVIDENCE",

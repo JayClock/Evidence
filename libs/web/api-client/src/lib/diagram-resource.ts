@@ -15,15 +15,16 @@ export type DiagramViewport = {
 export type DiagramNodeResource = Entity<
   {
     id: string;
-    type: string;
+    kind: string;
     logicalEntity: ResourceRef | null;
     parent: ResourceRef | null;
-    positionX: number;
-    positionY: number;
+    position: {
+      x: number;
+      y: number;
+    };
     width: number | null;
     height: number | null;
-    styleConfig: unknown;
-    localData: unknown;
+    data: unknown;
     createdAt: string;
     updatedAt: string;
   },
@@ -46,14 +47,21 @@ export type DiagramNodeCollectionResource = Collection<DiagramNodeResource> &
 export type DiagramEdgeResource = Entity<
   {
     id: string;
-    sourceNode: ResourceRef;
-    targetNode: ResourceRef;
+    source: ResourceRef;
+    target: ResourceRef;
     sourceHandle: string | null;
     targetHandle: string | null;
+    kind: string | null;
     relationType: string | null;
     label: string | null;
-    styleProps: unknown;
+    style: unknown;
+    data: unknown;
+    animated: boolean;
     hidden: boolean;
+    markerStart: unknown;
+    markerEnd: unknown;
+    pathOptions: unknown;
+    interactionWidth: number | null;
     createdAt: string;
     updatedAt: string;
   },

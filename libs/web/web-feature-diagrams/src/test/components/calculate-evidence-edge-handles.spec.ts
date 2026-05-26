@@ -21,7 +21,6 @@ const FIXTURE_EDGES = (edges as LEdge[]).map(
     ...edge,
     data: {
       relationType: null,
-      styleProps: null,
     },
   }),
 );

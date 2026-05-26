@@ -1,21 +1,20 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::types::Position;
 use crate::domain::{Entity, Ref};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeDescription {
     pub diagram: Ref<String>,
-    pub node_type: String,
+    pub kind: String,
     pub logical_entity: Option<Ref<String>>,
     pub parent: Option<Ref<String>>,
-    pub position_x: f64,
-    pub position_y: f64,
+    pub position: Position,
     pub width: Option<i64>,
     pub height: Option<i64>,
-    pub style_config: Value,
-    pub local_data: Value,
+    pub data: Value,
     pub created_at: String,
     pub updated_at: String,
 }

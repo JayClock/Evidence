@@ -3,10 +3,12 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect, Set, TransactionTrait,
 };
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::domain::{
-    DiagramNode, DiagramNodes, DraftNode, HasMany, NodeDescription, Ref, ServerError,
+    DiagramNode, DiagramNodes, DraftNode, HasMany, NodeDescription, Position, Ref, ServerError,
 };
 
 use super::{
@@ -102,15 +104,13 @@ impl DiagramNodes for DbDiagramNodes {
             .map_err(db_error)?
             .ok_or_else(|| ServerError::NotFound(format!("diagram node {node_id} not found")))?;
         let mut active: diagram_nodes::ActiveModel = model.into();
-        active.node_type = Set(desc.node_type);
+        active.kind = Set(desc.kind);
         active.logical_entity_id = Set(desc.logical_entity.map(|value| value.into_id()));
         active.parent_id = Set(desc.parent.map(|value| value.into_id()));
-        active.position_x = Set(desc.position_x);
-        active.position_y = Set(desc.position_y);
+        active.position = Set(to_json_value(&desc.position));
         active.width = Set(desc.width);
         active.height = Set(desc.height);
-        active.style_config = Set(desc.style_config);
-        active.local_data = Set(desc.local_data);
+        active.data = Set(desc.data);
         active.updated_at = Set(now());
         let updated = active.update(self.store.db()).await.map_err(db_error)?;
         Ok(node_from_model(updated))
@@ -151,15 +151,13 @@ pub(super) fn node_from_model(model: diagram_nodes::Model) -> DiagramNode {
         model.id,
         NodeDescription {
             diagram: Ref::new(model.diagram_id),
-            node_type: model.node_type,
+            kind: model.kind,
             logical_entity: model.logical_entity_id.map(Ref::new),
             parent: model.parent_id.map(Ref::new),
-            position_x: model.position_x,
-            position_y: model.position_y,
+            position: from_json_value(model.position, Position::default()),
             width: model.width,
             height: model.height,
-            style_config: model.style_config,
-            local_data: model.local_data,
+            data: model.data,
             created_at: model.created_at,
             updated_at: model.updated_at,
         },
@@ -191,15 +189,13 @@ where
     diagram_nodes::ActiveModel {
         id: Set(id.to_string()),
         diagram_id: Set(diagram_id.to_string()),
-        node_type: Set(desc.node_type.clone()),
+        kind: Set(desc.kind.clone()),
         logical_entity_id: Set(desc.logical_entity.as_ref().map(|value| value.id().clone())),
         parent_id: Set(desc.parent.as_ref().map(|value| value.id().clone())),
-        position_x: Set(desc.position_x),
-        position_y: Set(desc.position_y),
+        position: Set(to_json_value(&desc.position)),
         width: Set(desc.width),
         height: Set(desc.height),
-        style_config: Set(desc.style_config.clone()),
-        local_data: Set(desc.local_data.clone()),
+        data: Set(desc.data.clone()),
         created_at: Set(timestamp.to_string()),
         updated_at: Set(timestamp.to_string()),
     }
@@ -207,4 +203,12 @@ where
     .await
     .map_err(db_error)?;
     Ok(())
+}
+
+fn to_json_value<T: Serialize>(value: &T) -> sea_orm::JsonValue {
+    serde_json::to_value(value).unwrap_or_else(|_| json!({}))
+}
+
+fn from_json_value<T: DeserializeOwned>(value: sea_orm::JsonValue, fallback: T) -> T {
+    serde_json::from_value(value).unwrap_or(fallback)
 }

@@ -170,16 +170,16 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
 
         let node_ids: HashSet<String> = draft_nodes.iter().map(|node| node.id.clone()).collect();
         for edge in &draft_edges {
-            if !node_ids.contains(edge.description.source_node.id()) {
+            if !node_ids.contains(edge.description.source.id()) {
                 return Err(ServerError::Validation(format!(
                     "draft edge source node not found: {}",
-                    edge.description.source_node.id()
+                    edge.description.source.id()
                 )));
             }
-            if !node_ids.contains(edge.description.target_node.id()) {
+            if !node_ids.contains(edge.description.target.id()) {
                 return Err(ServerError::Validation(format!(
                     "draft edge target node not found: {}",
-                    edge.description.target_node.id()
+                    edge.description.target.id()
                 )));
             }
         }

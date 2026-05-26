@@ -90,14 +90,13 @@ describe('DiagramDetailView', () => {
             {
               data: {
                 id: 'node-1',
-                type: 'fulfillment',
+                kind: 'fulfillment',
                 logicalEntity: { id: 'entity-1' },
                 parent: null,
-                positionX: 10,
-                positionY: 20,
+                position: { x: 10, y: 20 },
                 width: 180,
                 height: 90,
-                localData: {
+                data: {
                   label: 'Contract',
                   subType: 'contract',
                   type: 'EVIDENCE',
@@ -107,14 +106,13 @@ describe('DiagramDetailView', () => {
             {
               data: {
                 id: 'node-2',
-                type: 'fulfillment',
+                kind: 'fulfillment',
                 logicalEntity: null,
                 parent: null,
-                positionX: 330,
-                positionY: 20,
+                position: { x: 330, y: 20 },
                 width: 180,
                 height: 90,
-                localData: { name: 'Confirmation', type: 'EVIDENCE' },
+                data: { name: 'Confirmation', type: 'EVIDENCE' },
               },
             },
           ]),
@@ -126,11 +124,19 @@ describe('DiagramDetailView', () => {
           {
             data: {
               id: 'edge-1',
-              sourceNode: { id: 'node-1' },
-              targetNode: { id: 'node-2' },
+              source: { id: 'node-1' },
+              target: { id: 'node-2' },
+              kind: 'animated',
               relationType: 'fulfills',
               label: 'fulfills',
+              style: null,
+              data: {},
+              animated: false,
               hidden: false,
+              markerStart: null,
+              markerEnd: null,
+              pathOptions: {},
+              interactionWidth: null,
             },
           },
         ]),

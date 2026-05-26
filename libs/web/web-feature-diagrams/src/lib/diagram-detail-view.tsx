@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo } from 'react';
 import {
   addEdge,
   type Connection,
   type EdgeChange,
+  type EdgeMarkerType,
   type NodeChange,
   useEdgesState,
   useNodesState,
@@ -174,7 +175,6 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
             type: ANIMATED_EDGE_TYPE,
             data: {
               relationType: null,
-              styleProps: null,
             } satisfies DiagramCanvasEdgeData,
           },
           currentEdges,
@@ -234,11 +234,11 @@ function createDiagramGraph(
   const nodes = nodeStates.map(toCanvasNode);
   const edgeNodes = new Set(nodes.map((node) => node.id));
   const edges = edgeStates.flatMap((edgeState): DiagramCanvasEdge[] => {
-    if (!edgeNodes.has(edgeState.data.sourceNode.id)) {
+    if (!edgeNodes.has(edgeState.data.source.id)) {
       return [];
     }
 
-    if (!edgeNodes.has(edgeState.data.targetNode.id)) {
+    if (!edgeNodes.has(edgeState.data.target.id)) {
       return [];
     }
 
@@ -256,27 +256,27 @@ function createDiagramGraph(
 function toCanvasNode(
   nodeState: State<DiagramNodeResource>,
 ): DiagramCanvasNode {
-  const data = nodeState.data;
-  const localData = record(data.localData);
-  const entityType = firstString(localData, ['type']) ?? data.type;
+  const resourceData = nodeState.data;
+  const payload = record(resourceData.data);
+  const entityType = firstString(payload, ['type']) ?? resourceData.kind;
   const nodeData: DiagramNodeData = {
-    ...localData,
-    definition: record(localData.definition),
-    id: data.logicalEntity?.id ?? data.id,
-    label: firstString(localData, ['label', 'name', 'title']) ?? data.id,
-    name: firstString(localData, ['name', 'label', 'title']) ?? data.id,
-    subType: firstString(localData, ['subType', 'sub_type']),
+    ...payload,
+    definition: record(payload.definition),
+    id: resourceData.logicalEntity?.id ?? resourceData.id,
+    label: firstString(payload, ['label', 'name', 'title']) ?? resourceData.id,
+    name: firstString(payload, ['name', 'label', 'title']) ?? resourceData.id,
+    subType: firstString(payload, ['subType', 'sub_type']),
     type: entityType,
   };
-  const size = toNodeSize(entityType, data.width, data.height);
+  const size = toNodeSize(entityType, resourceData.width, resourceData.height);
 
   return {
-    id: data.id,
-    type: toNodeComponentType(data.type, entityType),
-    parentId: data.parent?.id ?? undefined,
+    id: resourceData.id,
+    type: toNodeComponentType(resourceData.kind, entityType),
+    parentId: resourceData.parent?.id ?? undefined,
     position: {
-      x: finiteNumber(data.positionX) ?? 0,
-      y: finiteNumber(data.positionY) ?? 0,
+      x: finiteNumber(resourceData.position?.x) ?? 0,
+      y: finiteNumber(resourceData.position?.y) ?? 0,
     },
     width: size.width,
     height: size.height,
@@ -287,18 +287,28 @@ function toCanvasNode(
 function toCanvasEdge(
   edgeState: State<DiagramEdgeResource>,
 ): DiagramCanvasEdge {
+  const resourceData = edgeState.data;
+  const customData = record(resourceData.data);
+
   return {
-    id: edgeState.data.id,
-    source: edgeState.data.sourceNode.id,
-    target: edgeState.data.targetNode.id,
-    type: ANIMATED_EDGE_TYPE,
-    sourceHandle: edgeState.data.sourceHandle ?? undefined,
-    targetHandle: edgeState.data.targetHandle ?? undefined,
-    ...(edgeState.data.label ? { label: edgeState.data.label } : {}),
-    hidden: edgeState.data.hidden,
+    id: resourceData.id,
+    source: resourceData.source.id,
+    target: resourceData.target.id,
+    type: resourceData.kind ?? ANIMATED_EDGE_TYPE,
+    sourceHandle: resourceData.sourceHandle ?? undefined,
+    targetHandle: resourceData.targetHandle ?? undefined,
+    ...(resourceData.label ? { label: resourceData.label } : {}),
+    style: cssProperties(resourceData.style),
+    animated: resourceData.animated,
+    hidden: resourceData.hidden,
+    markerStart: edgeMarker(resourceData.markerStart),
+    markerEnd: edgeMarker(resourceData.markerEnd),
+    pathOptions: recordOrUndefined(resourceData.pathOptions),
+    interactionWidth:
+      positiveNumber(resourceData.interactionWidth) ?? undefined,
     data: {
-      relationType: edgeState.data.relationType,
-      styleProps: edgeState.data.styleProps,
+      ...customData,
+      relationType: resourceData.relationType,
     },
   };
 }
@@ -360,6 +370,21 @@ function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function recordOrUndefined(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  const result = record(value);
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+function cssProperties(value: unknown): CSSProperties | undefined {
+  return recordOrUndefined(value) as CSSProperties | undefined;
+}
+
+function edgeMarker(value: unknown): EdgeMarkerType | undefined {
+  return value == null ? undefined : (value as EdgeMarkerType);
 }
 
 function firstString(

@@ -9,17 +9,12 @@ export function StickyNoteNode({
   data,
   selected,
 }: NodeProps<StickyNoteNodeType>) {
-  const localContent = data.localData?.content;
-  const label = data.localData?.label;
-  const type = data.localData?.type;
   const entityContent =
-    typeof label === 'string' && typeof type === 'string'
-      ? `${label} (${type})`
+    typeof data.label === 'string' && typeof data.type === 'string'
+      ? `${data.label} (${data.type})`
       : undefined;
   const content =
-    typeof localContent === 'string'
-      ? localContent
-      : (entityContent ?? data.content ?? '');
+    typeof data.content === 'string' ? data.content : (entityContent ?? '');
 
   return (
     <AiNode

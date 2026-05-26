@@ -8,14 +8,14 @@ export type DiagramNodeData = {
   label: string;
   definition: Record<string, unknown>;
   content?: string;
-  localData?: Record<string, unknown> | null;
 } & Record<string, unknown>;
 
 export type DiagramCanvasNode = Node<DiagramNodeData>;
 
 export type DiagramCanvasEdgeData = {
   relationType: string | null;
-  styleProps: unknown;
 } & Record<string, unknown>;
 
-export type DiagramCanvasEdge = Edge<DiagramCanvasEdgeData>;
+export type DiagramCanvasEdge = Edge<DiagramCanvasEdgeData> & {
+  pathOptions?: Record<string, unknown>;
+};

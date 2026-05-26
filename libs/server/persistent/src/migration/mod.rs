@@ -8,6 +8,10 @@ mod m20260525_000005_create_logical_entities;
 mod m20260525_000006_create_diagram_nodes;
 mod m20260525_000007_create_diagram_edges;
 mod m20260525_000008_create_diagram_versions;
+mod m20260526_000009_migrate_diagram_node_position_object;
+mod m20260526_000010_migrate_diagram_node_payload_names;
+mod m20260526_000011_migrate_diagram_edge_style;
+mod m20260526_000012_expand_diagram_edges;
 
 pub struct Migrator;
 
@@ -23,6 +27,10 @@ impl MigratorTrait for Migrator {
             Box::new(m20260525_000006_create_diagram_nodes::Migration),
             Box::new(m20260525_000007_create_diagram_edges::Migration),
             Box::new(m20260525_000008_create_diagram_versions::Migration),
+            Box::new(m20260526_000009_migrate_diagram_node_position_object::Migration),
+            Box::new(m20260526_000010_migrate_diagram_node_payload_names::Migration),
+            Box::new(m20260526_000011_migrate_diagram_edge_style::Migration),
+            Box::new(m20260526_000012_expand_diagram_edges::Migration),
         ]
     }
 }

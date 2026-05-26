@@ -11,8 +11,8 @@ use serde_json::{json, Value};
 
 use crate::domain::{
     Diagram, DiagramDescription, DiagramEdge, DiagramNode, DiagramStatus, DiagramType,
-    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, ModelingEvent, NodeDescription, Ref,
-    ServerError, Viewport, Workspace,
+    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, ModelingEvent, NodeDescription,
+    Position, Ref, ServerError, Viewport, Workspace,
 };
 
 use super::{
@@ -57,36 +57,43 @@ struct UpdateDiagramInput {
 #[serde(rename_all = "camelCase")]
 struct NodeInput {
     id: Option<String>,
-    #[serde(rename = "type")]
-    node_type: String,
+    kind: String,
     logical_entity: Option<Ref<String>>,
     parent: Option<Ref<String>>,
     #[serde(default)]
-    position_x: f64,
-    #[serde(default)]
-    position_y: f64,
+    position: Position,
     width: Option<i64>,
     height: Option<i64>,
     #[serde(default = "empty_object")]
-    style_config: Value,
-    #[serde(default = "empty_object")]
-    local_data: Value,
+    data: Value,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct EdgeInput {
     id: Option<String>,
-    source_node: Ref<String>,
-    target_node: Ref<String>,
+    source: Ref<String>,
+    target: Ref<String>,
     source_handle: Option<String>,
     target_handle: Option<String>,
+    kind: Option<String>,
     relation_type: Option<String>,
     label: Option<String>,
     #[serde(default = "empty_object")]
-    style_props: Value,
+    style: Value,
+    #[serde(default = "empty_object")]
+    data: Value,
+    #[serde(default)]
+    animated: bool,
     #[serde(default)]
     hidden: bool,
+    #[serde(default = "null_value")]
+    marker_start: Value,
+    #[serde(default = "null_value")]
+    marker_end: Value,
+    #[serde(default = "empty_object")]
+    path_options: Value,
+    interaction_width: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -116,18 +123,20 @@ fn empty_object() -> Value {
     json!({})
 }
 
+fn null_value() -> Value {
+    Value::Null
+}
+
 fn node_description(diagram_id: &str, input: NodeInput) -> NodeDescription {
     NodeDescription {
         diagram: Ref::new(diagram_id.to_string()),
-        node_type: input.node_type,
+        kind: input.kind,
         logical_entity: input.logical_entity,
         parent: input.parent,
-        position_x: input.position_x,
-        position_y: input.position_y,
+        position: input.position,
         width: input.width,
         height: input.height,
-        style_config: input.style_config,
-        local_data: input.local_data,
+        data: input.data,
         created_at: String::new(),
         updated_at: String::new(),
     }
@@ -136,14 +145,21 @@ fn node_description(diagram_id: &str, input: NodeInput) -> NodeDescription {
 fn edge_description(diagram_id: &str, input: EdgeInput) -> EdgeDescription {
     EdgeDescription {
         diagram: Ref::new(diagram_id.to_string()),
-        source_node: input.source_node,
-        target_node: input.target_node,
+        source: input.source,
+        target: input.target,
         source_handle: input.source_handle,
         target_handle: input.target_handle,
+        kind: input.kind,
         relation_type: input.relation_type,
         label: input.label,
-        style_props: input.style_props,
+        style: input.style,
+        data: input.data,
+        animated: input.animated,
         hidden: input.hidden,
+        marker_start: input.marker_start,
+        marker_end: input.marker_end,
+        path_options: input.path_options,
+        interaction_width: input.interaction_width,
         created_at: String::new(),
         updated_at: String::new(),
     }

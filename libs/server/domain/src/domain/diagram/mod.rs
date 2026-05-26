@@ -21,7 +21,7 @@ pub use modeling::{
     ModelingProposalOperation, ModelingProposalOperationType, ModelingProposalSummary,
 };
 pub use node::{DiagramNode, NodeDescription};
-pub use types::{DiagramStatus, DiagramType, DraftEdge, DraftNode, Viewport};
+pub use types::{DiagramStatus, DiagramType, DraftEdge, DraftNode, Position, Viewport};
 pub use version::{
     DiagramSnapshot, DiagramVersion, DiagramVersionDescription, SnapshotEdge, SnapshotNode,
 };
