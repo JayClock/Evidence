@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
+import { useState, type ReactNode } from 'react';
 import {
   useResource,
   type DiagramEdgeCollectionResource,
@@ -19,6 +20,48 @@ vi.mock('@evidence/api-client', async (importOriginal) => {
     useResource: vi.fn(),
   };
 });
+
+vi.mock('@xyflow/react', () => ({
+  addEdge: (edge: unknown, edges: unknown[]) => [...edges, edge],
+  Background: () => null,
+  Controls: () => null,
+  Handle: () => null,
+  Position: {
+    Bottom: 'bottom',
+    Left: 'left',
+    Right: 'right',
+    Top: 'top',
+  },
+  ReactFlow: ({
+    children,
+    edges,
+    nodes,
+  }: {
+    children?: ReactNode;
+    edges: Array<{ id: string; label?: string }>;
+    nodes: Array<{ data: { label: string } }>;
+  }) => (
+    <div data-testid="react-flow">
+      {nodes.map((node) => (
+        <div key={node.data.label}>{node.data.label}</div>
+      ))}
+      {edges.map((edge) => (
+        <div key={edge.id}>{edge.label}</div>
+      ))}
+      {children}
+    </div>
+  ),
+  useEdges: () => [],
+  useEdgesState: (initialEdges: unknown[]) => {
+    const [edges, setEdges] = useState(initialEdges);
+    return [edges, setEdges, vi.fn()] as const;
+  },
+  useNodes: () => [],
+  useNodesState: (initialNodes: unknown[]) => {
+    const [nodes, setNodes] = useState(initialNodes);
+    return [nodes, setNodes, vi.fn()] as const;
+  },
+}));
 
 const mockedUseResource = vi.mocked(useResource);
 

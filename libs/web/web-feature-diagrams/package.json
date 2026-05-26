@@ -14,6 +14,7 @@
   "dependencies": {
     "@evidence/api-client": "workspace:*",
     "@evidence/ui": "workspace:*",
+    "@xyflow/react": "^12.10.2",
     "react-router-dom": "6.30.3"
   }
 }
