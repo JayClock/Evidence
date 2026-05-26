@@ -9,7 +9,10 @@ use crate::domain::ServerError;
 
 use super::{
     error::ApiError,
-    links::{user_href, user_sidebar_href, user_workspaces_href, workspace_diagrams_href, Link},
+    links::{
+        user_href, user_sidebar_href, user_workspaces_href, workspace_diagrams_href,
+        workspace_logical_entities_href, Link,
+    },
     AppState,
 };
 
@@ -51,6 +54,14 @@ pub(super) fn sidebar_resource(user_id: &str, workspace_id: Option<&str>) -> Val
             "path": workspace_diagrams_href(workspace_id),
             "icon": "network",
         }));
+        items.push(json!({
+            "key": "logical-entities",
+            "label": "Logical Entities",
+            "type": "resource",
+            "href": workspace_logical_entities_href(workspace_id),
+            "path": workspace_logical_entities_href(workspace_id),
+            "icon": "database",
+        }));
     }
 
     json!({
@@ -90,6 +101,14 @@ mod tests {
         assert_eq!(
             sidebar["sections"][0]["items"][1]["path"],
             "/api/workspaces/default-workspace/diagrams"
+        );
+        assert_eq!(
+            sidebar["sections"][0]["items"][2]["label"],
+            "Logical Entities"
+        );
+        assert_eq!(
+            sidebar["sections"][0]["items"][2]["path"],
+            "/api/workspaces/default-workspace/logical-entities"
         );
     }
 }

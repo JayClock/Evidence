@@ -20,7 +20,10 @@ vi.mock('@evidence/api-client', () => {
         path,
         get: () => {
           if (!dynamicPromises.has(path)) {
-            dynamicPromises.set(path, Promise.resolve(diagramCollectionState));
+            dynamicPromises.set(
+              path,
+              Promise.resolve(dynamicStateForPath(path)),
+            );
           }
 
           return dynamicPromises.get(path);
@@ -34,6 +37,7 @@ vi.mock('@evidence/api-client', () => {
       workspace: 'application/vnd.evidence.workspace+json',
       diagrams: 'application/vnd.evidence.diagrams+json',
       diagram: 'application/vnd.evidence.diagram+json',
+      logicalEntity: 'application/vnd.evidence.logical-entity+json',
       logicalEntities: 'application/vnd.evidence.logical-entities+json',
     },
     toApiPathname: (pathname: string) =>
@@ -120,6 +124,46 @@ const diagramCollectionState = {
     new Headers({ 'content-type': 'application/vnd.evidence.diagrams+json' }),
 };
 
+const logicalEntityCollectionState = {
+  data: {
+    page: {
+      totalElements: 1,
+    },
+  },
+  collection: [
+    {
+      data: {
+        id: 'entity-1',
+        type: 'EVIDENCE',
+        subType: 'EVIDENCE:contract',
+        name: 'contract',
+        label: 'Contract',
+        definition: {
+          description: 'Customer contract evidence',
+          tags: [],
+          attributes: [],
+          behaviors: [],
+        },
+        createdAt: '2026-01-02T03:04:05Z',
+        updatedAt: '2026-01-03T04:05:06Z',
+      },
+      links: links('self', 'workspace'),
+    },
+  ],
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.logical-entities+json',
+    }),
+};
+
+function dynamicStateForPath(path: string) {
+  if (path.includes('/logical-entities')) {
+    return logicalEntityCollectionState;
+  }
+
+  return diagramCollectionState;
+}
+
 const useResourceMock = useResource as unknown as Mock;
 
 function renderRoutes(initialEntry = '/') {
@@ -184,5 +228,16 @@ describe('ResourceBrowserRoutes', () => {
     expect(screen.getByText('Status')).toBeTruthy();
     expect(screen.getByText('context-map')).toBeTruthy();
     expect(screen.getByText('draft')).toBeTruthy();
+  });
+
+  it('renders logical entities as a table for logical entity collection resources', async () => {
+    await act(async () => {
+      renderRoutes('/workspaces/default-workspace/logical-entities');
+    });
+
+    expect(await screen.findByRole('table')).toBeTruthy();
+    expect(screen.getByText('Logical Entities')).toBeTruthy();
+    expect(screen.getAllByText('Contract').length).toBeGreaterThan(0);
+    expect(screen.getByText('Customer contract evidence')).toBeTruthy();
   });
 });

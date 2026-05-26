@@ -20,6 +20,9 @@
     },
     {
       "path": "./libs/web/web-feature-diagrams"
+    },
+    {
+      "path": "./libs/web/web-feature-logical-entities"
     }
   ]
 }

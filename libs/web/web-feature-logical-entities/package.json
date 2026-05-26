@@ -1,5 +1,5 @@
 {
-  "name": "@evidence/web-feature-resource-browser",
+  "name": "@evidence/web-feature-logical-entities",
   "version": "0.0.1",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -14,8 +14,6 @@
   "dependencies": {
     "@evidence/api-client": "workspace:*",
     "@evidence/ui": "workspace:*",
-    "@evidence/web-feature-diagrams": "workspace:*",
-    "@evidence/web-feature-logical-entities": "workspace:*",
     "react-router-dom": "6.30.3"
   }
 }

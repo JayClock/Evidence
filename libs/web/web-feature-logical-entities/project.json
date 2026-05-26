@@ -1,0 +1,9 @@
+{
+  "name": "@evidence/web-feature-logical-entities",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/web-feature-logical-entities/src",
+  "projectType": "library",
+  "tags": ["scope:web", "type:feature"],
+  "// targets": "to see all targets run: nx show project @evidence/web-feature-logical-entities --web",
+  "targets": {}
+}

@@ -1,4 +1,4 @@
-import { Suspense, use, useMemo, type ReactNode } from 'react';
+import { Suspense, use, useMemo } from 'react';
 import { Link, Route, Routes, useLocation } from 'react-router-dom';
 import {
   apiClient,
@@ -11,6 +11,7 @@ import {
   type Entity,
   type Link as HalLink,
   type LogicalEntityCollectionResource,
+  type LogicalEntityResource,
   type RootResource,
   type State,
   type UserResource,
@@ -37,6 +38,10 @@ import {
   DiagramCollectionView,
   DiagramDetailView,
 } from '@evidence/web-feature-diagrams';
+import {
+  LogicalEntityCollectionView,
+  LogicalEntityDetailView,
+} from '@evidence/web-feature-logical-entities';
 
 export function ResourceBrowserRoutes({
   rootState,
@@ -106,7 +111,9 @@ function Health({ rootState }: { rootState: State<RootResource> }) {
   const { loading, error, data } = useResource(healthResource);
 
   if (loading) {
-    return <LoadingCard title="Loading health" detail="Following rel=health…" />;
+    return (
+      <LoadingCard title="Loading health" detail="Following rel=health…" />
+    );
   }
 
   if (error) {
@@ -213,7 +220,9 @@ function ApiResourcePage() {
   return (
     <Suspense
       key={apiPath}
-      fallback={<LoadingCard title="Loading resource" detail={`GET ${apiPath}`} />}
+      fallback={
+        <LoadingCard title="Loading resource" detail={`GET ${apiPath}`} />
+      }
     >
       <ApiResourcePageContent apiPath={apiPath} />
     </Suspense>
@@ -268,6 +277,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
           }
         />
       );
+    case resourceContentTypes.logicalEntity:
+      return (
+        <LogicalEntityDetailView
+          resourceState={resourceState as State<LogicalEntityResource>}
+        />
+      );
     default:
       return (
         <UnknownResourceView contentType={contentType} state={resourceState} />
@@ -291,56 +306,6 @@ function WorkspaceDetailView({
       </CardHeader>
       <CardContent>
         <ResourceLinks links={resourceState.links.getAll()} />
-      </CardContent>
-    </Card>
-  );
-}
-
-function LogicalEntityCollectionView({
-  resourceState,
-}: {
-  resourceState: State<LogicalEntityCollectionResource>;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>Collection</CardDescription>
-        <CardTitle>Logical entities</CardTitle>
-        <CardAction>
-          <Badge variant="secondary">
-            {resourceState.data.page.totalElements} total
-          </Badge>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {resourceState.collection.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No logical entities found</EmptyTitle>
-              <EmptyDescription>
-                Add evidence, participants, roles, or contexts to this
-                workspace.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          resourceState.collection.map((entityState) => {
-            const href = entityState.links
-              .getAll()
-              .find((link) => link.rel === 'self')?.href;
-            const title = entityState.data.label ?? entityState.data.name;
-
-            return (
-              <CollectionItemCard
-                key={entityState.data.id}
-                title={href ? <Link to={href}>{title}</Link> : title}
-                detail={[entityState.data.type, entityState.data.subType]
-                  .filter(Boolean)
-                  .join(' · ')}
-              />
-            );
-          })
-        )}
       </CardContent>
     </Card>
   );
@@ -411,23 +376,6 @@ function ResourceSummaryCard({
           </Badge>
         ))}
       </CardContent>
-    </Card>
-  );
-}
-
-function CollectionItemCard({
-  title,
-  detail,
-}: {
-  title: ReactNode;
-  detail: string;
-}) {
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{detail}</CardDescription>
-      </CardHeader>
     </Card>
   );
 }
