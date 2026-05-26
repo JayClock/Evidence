@@ -18,6 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  ScrollArea,
   Separator,
   Sidebar,
   SidebarContent,
@@ -59,11 +60,11 @@ export function WebShell({
           sidebarState={sidebar.resourceState}
           loading={sidebar.loading}
         />
-        <SidebarInset>
+        <SidebarInset className="h-svh overflow-hidden md:h-[calc(100svh-1rem)]">
           <AppHeader />
-          <main className="flex min-h-0 flex-1 flex-col overflow-auto p-6">
-            {children}
-          </main>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="p-6">{children}</div>
+          </ScrollArea>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

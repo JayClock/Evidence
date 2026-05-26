@@ -8,6 +8,7 @@ export * from './dropdown-menu';
 export * from './empty';
 export * from './input';
 export * from './separator';
+export * from './scroll-area';
 export * from './sheet';
 export * from './sidebar';
 export * from './skeleton';

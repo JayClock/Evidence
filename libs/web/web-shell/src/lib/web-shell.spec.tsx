@@ -31,6 +31,7 @@ vi.mock('@evidence/ui', () => {
     DropdownMenuLabel: Div,
     DropdownMenuSeparator: () => <hr />,
     DropdownMenuTrigger: Fragment,
+    ScrollArea: Div,
     Separator: () => <hr />,
     Sidebar: Div,
     SidebarContent: Div,
