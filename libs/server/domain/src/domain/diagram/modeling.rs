@@ -85,10 +85,49 @@ pub struct ModelingDraftEntity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum ModelingEvent {
+    TextChunk {
+        chunk: String,
+    },
     StructuredChunk {
         kind: String,
         format: String,
         chunk: String,
+    },
+    ReasoningStarted,
+    ReasoningChunk {
+        chunk: String,
+    },
+    ReasoningEnded,
+    ToolCallStarted {
+        tool_call_id: String,
+        tool_name: Option<String>,
+    },
+    ToolCallDelta {
+        tool_call_id: String,
+        tool_name: Option<String>,
+        chunk: String,
+    },
+    ToolCallReady {
+        tool_call_id: String,
+        tool_name: String,
+        input: Value,
+    },
+    ToolExecutionStarted {
+        tool_call_id: String,
+        tool_name: String,
+        args: Value,
+    },
+    ToolExecutionUpdated {
+        tool_call_id: String,
+        tool_name: String,
+        args: Value,
+        partial_result: Value,
+    },
+    ToolExecutionEnded {
+        tool_call_id: String,
+        tool_name: String,
+        result: Value,
+        is_error: bool,
     },
     ProposalReady {
         proposal: ModelingProposal,

@@ -152,18 +152,92 @@ impl DomainArchitect for PiRpcDomainArchitect {
                         }
                     }
                     Some("message_update") => {
-                        if let Some(delta) = event
+                        let assistant_event = event
                             .get("assistantMessageEvent")
-                            .and_then(|value| value.get("delta"))
-                            .and_then(Value::as_str)
-                        {
-                            assistant_text.push_str(delta);
-                            yield ModelingEvent::StructuredChunk {
-                                kind: "diagram-model".to_string(),
-                                format: "json".to_string(),
-                                chunk: delta.to_string(),
-                            };
+                            .unwrap_or(&Value::Null);
+                        match assistant_event.get("type").and_then(Value::as_str) {
+                            Some("text_delta") => {
+                                if let Some(delta) = assistant_event.get("delta").and_then(Value::as_str) {
+                                    assistant_text.push_str(delta);
+                                    yield ModelingEvent::TextChunk { chunk: delta.to_string() };
+                                    yield ModelingEvent::StructuredChunk {
+                                        kind: "diagram-model".to_string(),
+                                        format: "json".to_string(),
+                                        chunk: delta.to_string(),
+                                    };
+                                }
+                            }
+                            Some("thinking_start") => {
+                                yield ModelingEvent::ReasoningStarted;
+                            }
+                            Some("thinking_delta") => {
+                                if let Some(delta) = assistant_event.get("delta").and_then(Value::as_str) {
+                                    yield ModelingEvent::ReasoningChunk { chunk: delta.to_string() };
+                                }
+                            }
+                            Some("thinking_end") => {
+                                yield ModelingEvent::ReasoningEnded;
+                            }
+                            Some("toolcall_start") => {
+                                let tool_call_id = tool_call_id(assistant_event);
+                                let tool_name = tool_name(assistant_event);
+                                yield ModelingEvent::ToolCallStarted { tool_call_id, tool_name };
+                            }
+                            Some("toolcall_delta") => {
+                                if let Some(delta) = assistant_event.get("delta").and_then(Value::as_str) {
+                                    let tool_call_id = tool_call_id(assistant_event);
+                                    let tool_name = tool_name(assistant_event);
+                                    yield ModelingEvent::ToolCallDelta {
+                                        tool_call_id,
+                                        tool_name,
+                                        chunk: delta.to_string(),
+                                    };
+                                }
+                            }
+                            Some("toolcall_end") => {
+                                if let Some(tool_call) = assistant_event.get("toolCall") {
+                                    let tool_call_id = tool_call
+                                        .get("id")
+                                        .and_then(Value::as_str)
+                                        .map(str::to_string)
+                                        .unwrap_or_else(|| tool_call_id(assistant_event));
+                                    let tool_name = tool_call
+                                        .get("name")
+                                        .and_then(Value::as_str)
+                                        .unwrap_or("tool")
+                                        .to_string();
+                                    let input = tool_call
+                                        .get("arguments")
+                                        .cloned()
+                                        .unwrap_or(Value::Null);
+                                    yield ModelingEvent::ToolCallReady { tool_call_id, tool_name, input };
+                                }
+                            }
+                            _ => {}
                         }
+                    }
+                    Some("tool_execution_start") => {
+                        yield ModelingEvent::ToolExecutionStarted {
+                            tool_call_id: event_string(&event, "toolCallId", "tool-call"),
+                            tool_name: event_string(&event, "toolName", "tool"),
+                            args: event.get("args").cloned().unwrap_or(Value::Null),
+                        };
+                    }
+                    Some("tool_execution_update") => {
+                        yield ModelingEvent::ToolExecutionUpdated {
+                            tool_call_id: event_string(&event, "toolCallId", "tool-call"),
+                            tool_name: event_string(&event, "toolName", "tool"),
+                            args: event.get("args").cloned().unwrap_or(Value::Null),
+                            partial_result: event.get("partialResult").cloned().unwrap_or(Value::Null),
+                        };
+                    }
+                    Some("tool_execution_end") => {
+                        yield ModelingEvent::ToolExecutionEnded {
+                            tool_call_id: event_string(&event, "toolCallId", "tool-call"),
+                            tool_name: event_string(&event, "toolName", "tool"),
+                            result: event.get("result").cloned().unwrap_or(Value::Null),
+                            is_error: event.get("isError").and_then(Value::as_bool).unwrap_or(false),
+                        };
                     }
                     Some("message_end") => {
                         if assistant_text.trim().is_empty() {
@@ -209,6 +283,9 @@ const DOMAIN_ARCHITECT_PROMPT: &str = r#"You are the Evidence Domain Architect.
 Task:
 - Propose Fulfillment Modeling (FM) diagram-modeling changes for the user's requirement.
 - Stream exactly one JSON object and no markdown prose.
+- The first non-whitespace character must be `{` and the last non-whitespace character must be `}`.
+- Do not wrap the JSON in markdown fences, labels, commentary, explanations, logs, or any prefix/suffix text.
+- Do not emit more than one top-level JSON value. Stop immediately after the closing `}`.
 - Do not modify files, call tools, or execute commands.
 - Return only the FM changes payload below; do not return an operations array.
 
@@ -240,7 +317,7 @@ Output JSON shape:
         "data": {
           "name": "SalesContract",
           "label": "销售合同",
-          "type": "EVIDENCE | PARTICIPANT | ROLE | CONTEXT",
+          "type": "EVIDENCE",
           "subType": "contract",
           "attributes": [],
           "notes": "optional short explanation"
@@ -280,7 +357,7 @@ Node output constraints, aligned with the public node API model:
 - Use node.kind = "group-container" for CONTEXT nodes, "fulfillment-node" for FM business nodes, or "sticky-note" only for explanatory notes.
 - node.parent is either null or { "id": "context-node-id" }. Put every non-Context business-chain node inside its Context. Do not put Participant Party nodes inside Context containers.
 - Always emit position { "x": 0, "y": 0 }. The frontend owns layout.
-- node.data.type must be one of EVIDENCE, PARTICIPANT, ROLE, CONTEXT.
+- node.data.type must be exactly one single literal: EVIDENCE, PARTICIPANT, ROLE, or CONTEXT. Never emit a combined placeholder like "EVIDENCE | PARTICIPANT | ROLE | CONTEXT".
 - node.data.subType should use FM subtype values: rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence, party, thing, domain, 3rd system, context, evidence, bounded_context.
 - node.data.name must be non-empty, unique, ASCII PascalCase. node.data.label is the user-facing business label.
 - Evidence lifecycle attributes are mandatory: RFP/Proposal/Fulfillment Request need startedAt and expiredAt; Contract needs signedAt; Fulfillment Confirmation needs confirmedAt; Other Evidence needs createdAt. Use DateTime and required true.
@@ -314,34 +391,215 @@ fn parse_modeling_proposal(text: &str) -> Result<ModelingProposal, ServerError> 
         ServerError::Internal("pi rpc response did not contain a JSON object".to_string())
     })?;
 
-    serde_json::from_str(candidate).map_err(|error| {
+    let mut value: Value = serde_json::from_str(candidate).map_err(|error| {
+        ServerError::Internal(format!("failed to parse pi rpc modeling proposal: {error}"))
+    })?;
+    normalize_modeling_proposal(&mut value)?;
+
+    serde_json::from_value(value).map_err(|error| {
         ServerError::Internal(format!("failed to parse pi rpc modeling proposal: {error}"))
     })
 }
 
+fn normalize_modeling_proposal(value: &mut Value) -> Result<(), ServerError> {
+    let Some(changes) = value.get_mut("changes").and_then(Value::as_object_mut) else {
+        return Ok(());
+    };
+
+    for collection in ["addNodes", "updateNodes"] {
+        let Some(nodes) = changes.get_mut(collection).and_then(Value::as_array_mut) else {
+            continue;
+        };
+
+        for (index, node) in nodes.iter_mut().enumerate() {
+            normalize_node_entity_type(node, collection, index)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn normalize_node_entity_type(
+    node: &mut Value,
+    collection: &str,
+    index: usize,
+) -> Result<(), ServerError> {
+    let node_id = node
+        .get("id")
+        .and_then(Value::as_str)
+        .unwrap_or("<missing id>")
+        .to_string();
+    let node_kind = node.get("kind").and_then(Value::as_str).map(str::to_string);
+    let Some(data) = node.get_mut("data").and_then(Value::as_object_mut) else {
+        return Ok(());
+    };
+    let Some(Value::String(entity_type)) = data.get("type") else {
+        return Ok(());
+    };
+
+    if !is_enum_placeholder(entity_type) {
+        return Ok(());
+    }
+
+    let Some(inferred) = infer_entity_type(data, node_kind.as_deref(), &node_id) else {
+        Err(ServerError::Internal(format!(
+            "failed to parse pi rpc modeling proposal: {collection}[{index}] ({node_id}) data.type copied the enum placeholder; expected one concrete type: EVIDENCE, PARTICIPANT, ROLE, or CONTEXT"
+        )))?
+    };
+
+    data.insert("type".to_string(), Value::String(inferred.to_string()));
+    Ok(())
+}
+
+fn is_enum_placeholder(value: &str) -> bool {
+    let upper = value.to_ascii_uppercase();
+    upper.contains('|')
+        && ["EVIDENCE", "PARTICIPANT", "ROLE", "CONTEXT"]
+            .iter()
+            .filter(|variant| upper.contains(**variant))
+            .count()
+            > 1
+}
+
+fn infer_entity_type(
+    data: &serde_json::Map<String, Value>,
+    node_kind: Option<&str>,
+    node_id: &str,
+) -> Option<&'static str> {
+    if node_kind == Some("group-container") {
+        return Some("CONTEXT");
+    }
+
+    let sub_type = data.get("subType")?.as_str()?.trim();
+    if let Some((prefix, _)) = sub_type.split_once(':') {
+        return match prefix.trim().to_ascii_uppercase().as_str() {
+            "EVIDENCE" => Some("EVIDENCE"),
+            "PARTICIPANT" => Some("PARTICIPANT"),
+            "ROLE" => Some("ROLE"),
+            "CONTEXT" => Some("CONTEXT"),
+            _ => None,
+        };
+    }
+
+    match sub_type.to_ascii_lowercase().as_str() {
+        "rfp"
+        | "proposal"
+        | "contract"
+        | "fulfillment_request"
+        | "fulfillment_confirmation"
+        | "other_evidence" => Some("EVIDENCE"),
+        "thing" => Some("PARTICIPANT"),
+        "domain" | "3rd system" | "context" | "evidence" => Some("ROLE"),
+        "bounded_context" => Some("CONTEXT"),
+        "party" => infer_party_entity_type(data, node_id),
+        _ => None,
+    }
+}
+
+fn infer_party_entity_type(
+    data: &serde_json::Map<String, Value>,
+    node_id: &str,
+) -> Option<&'static str> {
+    let name = data.get("name").and_then(Value::as_str).unwrap_or_default();
+    let label = data
+        .get("label")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let searchable = format!("{node_id} {name} {label}").to_ascii_lowercase();
+
+    if searchable.contains("role") || searchable.contains("角色") {
+        Some("ROLE")
+    } else {
+        Some("PARTICIPANT")
+    }
+}
+
+fn tool_call_id(assistant_event: &Value) -> String {
+    assistant_event
+        .get("toolCall")
+        .and_then(|tool_call| tool_call.get("id"))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            let content_index = assistant_event
+                .get("contentIndex")
+                .and_then(Value::as_u64)
+                .unwrap_or(0);
+            format!("tool-call-{content_index}")
+        })
+}
+
+fn tool_name(assistant_event: &Value) -> Option<String> {
+    assistant_event
+        .get("toolCall")
+        .and_then(|tool_call| tool_call.get("name"))
+        .and_then(Value::as_str)
+        .or_else(|| assistant_event.get("toolName").and_then(Value::as_str))
+        .map(str::to_string)
+}
+
+fn event_string(event: &Value, key: &str, fallback: &str) -> String {
+    event
+        .get(key)
+        .and_then(Value::as_str)
+        .unwrap_or(fallback)
+        .to_string()
+}
+
 fn json_candidate(text: &str) -> Option<&str> {
     let trimmed = text.trim();
-    if trimmed.starts_with('{') && trimmed.ends_with('}') {
-        return Some(trimmed);
-    }
 
     if let Some(start) = trimmed.find("```json") {
         let after_marker = &trimmed[start + "```json".len()..];
         if let Some(end) = after_marker.find("```") {
-            return Some(after_marker[..end].trim());
+            return first_complete_json_object(after_marker[..end].trim());
         }
     }
 
     if let Some(start) = trimmed.find("```") {
         let after_marker = &trimmed[start + "```".len()..];
         if let Some(end) = after_marker.find("```") {
-            return Some(after_marker[..end].trim());
+            return first_complete_json_object(after_marker[..end].trim());
         }
     }
 
+    first_complete_json_object(trimmed)
+}
+
+fn first_complete_json_object(text: &str) -> Option<&str> {
+    let trimmed = text.trim();
     let start = trimmed.find('{')?;
-    let end = trimmed.rfind('}')?;
-    (start < end).then_some(trimmed[start..=end].trim())
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for (offset, ch) in trimmed[start..].char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+
+        match ch {
+            '"' => in_string = true,
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.checked_sub(1)?;
+                if depth == 0 {
+                    let end = start + offset + ch.len_utf8();
+                    return Some(trimmed[start..end].trim());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
 }
 
 fn extract_agent_end_text(event: &Value) -> String {
@@ -403,6 +661,29 @@ mod tests {
         .unwrap();
 
         assert_eq!(proposal.summary, "Ask follow-up");
+    }
+
+    #[test]
+    fn parses_first_complete_json_object_when_response_has_trailing_text() {
+        let proposal = parse_modeling_proposal(
+            r#"{"summary":"Create model","changes":{"addNodes":[],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}
+
+Note: I have returned the proposal above."#,
+        )
+        .unwrap();
+
+        assert_eq!(proposal.summary, "Create model");
+    }
+
+    #[test]
+    fn parses_first_complete_json_object_when_response_repeats_json() {
+        let proposal = parse_modeling_proposal(
+            r#"{"summary":"First proposal","changes":{"addNodes":[],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}
+{"summary":"Duplicate proposal","changes":{"addNodes":[],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}"#,
+        )
+        .unwrap();
+
+        assert_eq!(proposal.summary, "First proposal");
     }
 
     #[test]
@@ -478,6 +759,64 @@ mod tests {
         assert_eq!(edge.id.as_deref(), Some("edge-1"));
         assert_eq!(edge.kind.as_deref(), Some("smoothstep"));
         assert_eq!(edge.data["sourceRelation"], "1");
+    }
+
+    #[test]
+    fn repairs_placeholder_entity_type_from_sub_type() {
+        let proposal = parse_modeling_proposal(
+            r#"{
+              "summary": "Add fulfillment flow",
+              "changes": {
+                "addNodes": [
+                  {
+                    "id": "node-contract",
+                    "kind": "fulfillment-node",
+                    "parent": null,
+                    "position": {"x": 0, "y": 0},
+                    "width": null,
+                    "height": null,
+                    "data": {
+                      "name": "SalesContract",
+                      "label": "销售合同",
+                      "type": "EVIDENCE | PARTICIPANT | ROLE | CONTEXT",
+                      "subType": "contract",
+                      "attributes": []
+                    }
+                  },
+                  {
+                    "id": "node-buyer-role",
+                    "kind": "fulfillment-node",
+                    "parent": null,
+                    "position": {"x": 0, "y": 0},
+                    "width": null,
+                    "height": null,
+                    "data": {
+                      "name": "BuyerRole",
+                      "label": "买方角色",
+                      "type": "EVIDENCE | PARTICIPANT | ROLE | CONTEXT",
+                      "subType": "party",
+                      "attributes": []
+                    }
+                  }
+                ],
+                "updateNodes": [],
+                "deleteNodes": [],
+                "addEdges": [],
+                "updateEdges": [],
+                "deleteEdges": []
+              }
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            proposal.changes.add_nodes[0].data.entity_type,
+            evidence_server_domain::LogicalEntityType::Evidence
+        );
+        assert_eq!(
+            proposal.changes.add_nodes[1].data.entity_type,
+            evidence_server_domain::LogicalEntityType::Role
+        );
     }
 
     #[test]

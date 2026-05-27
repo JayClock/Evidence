@@ -6,22 +6,13 @@ import type {
 } from 'ai';
 import type { DiagramResource, State } from '@evidence/api-client';
 
-const TEXT_PART_ID = 'diagram-model-proposal';
 const REASONING_PART_ID = 'diagram-model-thinking';
-const PROPOSAL_CHANGE_KEYS = [
-  'addNodes',
-  'updateNodes',
-  'deleteNodes',
-  'addEdges',
-  'updateEdges',
-  'deleteEdges',
-] as const;
 
-type ProposalChangeKey = (typeof PROPOSAL_CHANGE_KEYS)[number];
-type ProposalDeltaPayload =
-  | { kind: 'summary'; summary: string }
-  | { kind: 'change'; changeKey: ProposalChangeKey; item: unknown };
-
+type StructuredDataPayload = {
+  kind: string;
+  format: string;
+  chunk: string;
+};
 type SendMessagesOptions = Parameters<
   ChatTransport<UIMessage>['sendMessages']
 >[0];
@@ -138,24 +129,14 @@ function sseToUiMessageStream(
   stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
 ): ReadableStream<UIMessageChunk> {
   const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-  const proposalDeltas = new ProposalDeltaExtractor();
 
   return new ReadableStream<UIMessageChunk>({
     async start(controller) {
       let buffer = '';
-      let textStarted = false;
-      let textEnded = false;
+      let finished = false;
       let reasoningStarted = false;
       let reasoningEnded = false;
-
-      const startText = () => {
-        if (textStarted) {
-          return;
-        }
-
-        controller.enqueue({ type: 'text-start', id: TEXT_PART_ID });
-        textStarted = true;
-      };
+      const availableToolInputs = new Set<string>();
 
       const startReasoning = () => {
         if (reasoningStarted) {
@@ -177,17 +158,56 @@ function sseToUiMessageStream(
         reasoningEnded = true;
       };
 
+      const enqueueToolInput = (payload: unknown) => {
+        const tool = toolPayload(payload);
+        if (!tool || availableToolInputs.has(tool.toolCallId)) {
+          return;
+        }
+
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: tool.toolCallId,
+          toolName: tool.toolName,
+          input: tool.input,
+          dynamic: true,
+        });
+        availableToolInputs.add(tool.toolCallId);
+      };
+
+      const enqueueToolOutput = (payload: unknown, preliminary: boolean) => {
+        const tool = toolPayload(payload);
+        if (!tool) {
+          return;
+        }
+
+        const output = tool.output;
+        if (tool.isError) {
+          controller.enqueue({
+            type: 'tool-output-error',
+            toolCallId: tool.toolCallId,
+            errorText: stringifyToolOutput(output),
+            dynamic: true,
+          });
+          return;
+        }
+
+        controller.enqueue({
+          type: 'tool-output-available',
+          toolCallId: tool.toolCallId,
+          output,
+          dynamic: true,
+          preliminary,
+        });
+      };
+
       const finishStream = () => {
-        if (textEnded) {
+        if (finished) {
           return;
         }
 
         endReasoning();
-        if (textStarted) {
-          controller.enqueue({ type: 'text-end', id: TEXT_PART_ID });
-        }
         controller.enqueue({ type: 'finish', finishReason: 'stop' });
-        textEnded = true;
+        finished = true;
       };
 
       const consumeEvent = (rawEvent: string) => {
@@ -220,14 +240,6 @@ function sseToUiMessageStream(
           return;
         }
 
-        if (event.event === 'proposal-ready') {
-          controller.enqueue({
-            type: 'data-proposal',
-            data: JSON.parse(event.data) as unknown,
-          });
-          return;
-        }
-
         if (isReasoningEvent(event.event)) {
           startReasoning();
           controller.enqueue({
@@ -238,20 +250,64 @@ function sseToUiMessageStream(
           return;
         }
 
-        if (event.event === '' || event.event === undefined) {
-          startText();
-          controller.enqueue({
-            type: 'text-delta',
-            id: TEXT_PART_ID,
-            delta: event.data,
-          });
-
-          for (const delta of proposalDeltas.append(event.data)) {
+        if (event.event === 'structured') {
+          const payload = structuredPayload(parseJsonValue(event.data));
+          if (payload) {
             controller.enqueue({
-              type: 'data-proposal-delta',
-              data: delta,
+              type: 'data-structured',
+              data: payload,
             });
           }
+          return;
+        }
+
+        if (event.event === 'tool-call-start') {
+          const tool = toolPayload(parseJsonValue(event.data));
+          if (tool && !availableToolInputs.has(tool.toolCallId)) {
+            controller.enqueue({
+              type: 'tool-input-start',
+              toolCallId: tool.toolCallId,
+              toolName: tool.toolName,
+              dynamic: true,
+            });
+          }
+          return;
+        }
+
+        if (event.event === 'tool-call-delta') {
+          const tool = toolDeltaPayload(parseJsonValue(event.data));
+          if (tool && !availableToolInputs.has(tool.toolCallId)) {
+            controller.enqueue({
+              type: 'tool-input-delta',
+              toolCallId: tool.toolCallId,
+              inputTextDelta: tool.chunk,
+            });
+          }
+          return;
+        }
+
+        if (event.event === 'tool-call') {
+          enqueueToolInput(parseJsonValue(event.data));
+          return;
+        }
+
+        if (event.event === 'tool-execution-start') {
+          enqueueToolInput(parseJsonValue(event.data));
+          return;
+        }
+
+        if (event.event === 'tool-execution-update') {
+          const payload = parseJsonValue(event.data);
+          enqueueToolInput(payload);
+          enqueueToolOutput(payload, true);
+          return;
+        }
+
+        if (event.event === 'tool-execution-end') {
+          const payload = parseJsonValue(event.data);
+          enqueueToolInput(payload);
+          enqueueToolOutput(payload, false);
+          return;
         }
       };
 
@@ -293,173 +349,105 @@ function sseToUiMessageStream(
   });
 }
 
-class ProposalDeltaExtractor {
-  private text = '';
-  private emittedSummary: string | null = null;
-  private readonly emittedCounts = new Map<ProposalChangeKey, number>();
+type ToolPayload = {
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  output: unknown;
+  isError: boolean;
+};
 
-  append(chunk: string): ProposalDeltaPayload[] {
-    this.text += chunk;
-
-    const deltas: ProposalDeltaPayload[] = [];
-    const summary = extractCompleteStringProperty(this.text, 'summary');
-    if (summary && summary !== this.emittedSummary) {
-      this.emittedSummary = summary;
-      deltas.push({ kind: 'summary', summary });
-    }
-
-    for (const changeKey of PROPOSAL_CHANGE_KEYS) {
-      const items = extractCompleteArrayItems(this.text, changeKey);
-      const emittedCount = this.emittedCounts.get(changeKey) ?? 0;
-
-      for (const item of items.slice(emittedCount)) {
-        deltas.push({ kind: 'change', changeKey, item });
-      }
-
-      this.emittedCounts.set(changeKey, items.length);
-    }
-
-    return deltas;
+function structuredPayload(payload: unknown): StructuredDataPayload | null {
+  const value = record(payload);
+  if (!value) {
+    return null;
   }
+
+  const kind = stringValue(value.kind);
+  const format = stringValue(value.format);
+  const chunk = typeof value.chunk === 'string' ? value.chunk : null;
+  if (!kind || !format || chunk === null) {
+    return null;
+  }
+
+  return { kind, format, chunk };
 }
 
-function extractCompleteStringProperty(
-  text: string,
-  key: string,
-): string | null {
-  const start = propertyValueStart(text, key);
-  if (start === -1 || text[start] !== '"') {
+function toolPayload(payload: unknown): ToolPayload | null {
+  const value = record(payload);
+  if (!value) {
     return null;
   }
 
-  const end = scanJsonStringEnd(text, start);
-  if (end === -1) {
+  const toolCallId = stringValue(value.toolCallId);
+  const toolName = stringValue(value.toolName) ?? 'tool';
+  if (!toolCallId) {
     return null;
   }
 
+  return {
+    toolCallId,
+    toolName,
+    input: 'input' in value ? value.input : value.args,
+    output:
+      'result' in value
+        ? value.result
+        : 'partialResult' in value
+          ? value.partialResult
+          : undefined,
+    isError: booleanValue(value.isError),
+  };
+}
+
+function toolDeltaPayload(
+  payload: unknown,
+): { toolCallId: string; chunk: string } | null {
+  const value = record(payload);
+  if (!value) {
+    return null;
+  }
+
+  const toolCallId = stringValue(value.toolCallId);
+  const chunk = stringValue(value.chunk);
+  if (!toolCallId || chunk === null) {
+    return null;
+  }
+
+  return { toolCallId, chunk };
+}
+
+function parseJsonValue(text: string): unknown {
   try {
-    return JSON.parse(text.slice(start, end + 1)) as string;
+    return JSON.parse(text) as unknown;
   } catch {
     return null;
   }
 }
 
-function extractCompleteArrayItems(
-  text: string,
-  key: ProposalChangeKey,
-): unknown[] {
-  const start = propertyValueStart(text, key);
-  if (start === -1 || text[start] !== '[') {
-    return [];
-  }
-
-  return scanCompleteArrayItemJson(text, start + 1).flatMap((itemJson) => {
-    try {
-      return [JSON.parse(itemJson) as unknown];
-    } catch {
-      return [];
-    }
-  });
+function record(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
-function propertyValueStart(text: string, key: string): number {
-  const match = new RegExp(`"${key}"\\s*:`).exec(text);
-  if (!match) {
-    return -1;
-  }
-
-  let index = match.index + match[0].length;
-  while (index < text.length && /\s/.test(text[index])) {
-    index += 1;
-  }
-  return index;
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value ? value : null;
 }
 
-function scanJsonStringEnd(text: string, start: number): number {
-  let escaped = false;
-
-  for (let index = start + 1; index < text.length; index += 1) {
-    const char = text[index];
-    if (escaped) {
-      escaped = false;
-      continue;
-    }
-    if (char === '\\') {
-      escaped = true;
-      continue;
-    }
-    if (char === '"') {
-      return index;
-    }
-  }
-
-  return -1;
+function booleanValue(value: unknown): boolean {
+  return typeof value === 'boolean' ? value : false;
 }
 
-function scanCompleteArrayItemJson(text: string, start: number): string[] {
-  const items: string[] = [];
-  let itemStart: number | null = null;
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-  let topLevelString = false;
-
-  for (let index = start; index < text.length; index += 1) {
-    const char = text[index];
-
-    if (itemStart === null) {
-      if (/\s|,/.test(char)) {
-        continue;
-      }
-      if (char === ']') {
-        break;
-      }
-
-      itemStart = index;
-      topLevelString = char === '"';
-      inString = topLevelString;
-      depth = char === '{' || char === '[' ? 1 : 0;
-      continue;
-    }
-
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (char === '\\') {
-        escaped = true;
-        continue;
-      }
-      if (char === '"') {
-        inString = false;
-        if (topLevelString) {
-          items.push(text.slice(itemStart, index + 1));
-          itemStart = null;
-          topLevelString = false;
-        }
-      }
-      continue;
-    }
-
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-    if (char === '{' || char === '[') {
-      depth += 1;
-      continue;
-    }
-    if (char === '}' || char === ']') {
-      depth -= 1;
-      if (depth === 0) {
-        items.push(text.slice(itemStart, index + 1));
-        itemStart = null;
-      }
-    }
+function stringifyToolOutput(output: unknown): string {
+  if (typeof output === 'string') {
+    return output;
   }
 
-  return items;
+  try {
+    return JSON.stringify(output, null, 2);
+  } catch {
+    return 'Tool execution failed.';
+  }
 }
 
 function isReasoningEvent(event: string | undefined): boolean {
@@ -477,7 +465,8 @@ function parseSseEvent(rawEvent: string): { data: string; event?: string } {
     }
 
     if (line.startsWith('data:')) {
-      dataLines.push(line.slice('data:'.length).trimStart());
+      const value = line.slice('data:'.length);
+      dataLines.push(value.startsWith(' ') ? value.slice(1) : value);
     }
   }
 

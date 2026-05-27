@@ -499,19 +499,62 @@ async fn propose_model(
     let stream = async_stream::stream! {
         while let Some(event) = events.next().await {
             match event {
+                Ok(ModelingEvent::TextChunk { chunk }) => {
+                    yield Ok(Event::default().data(chunk));
+                }
                 Ok(ModelingEvent::StructuredChunk { kind, format, chunk }) => {
-                    yield Ok(Event::default().data(chunk.clone()));
                     let payload = StructuredChunkPayload { kind, format, chunk };
                     match serde_json::to_string(&payload) {
                         Ok(data) => yield Ok(Event::default().event("structured").data(data)),
                         Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize structured chunk: {error}"))),
                     }
                 }
-                Ok(ModelingEvent::ProposalReady { proposal }) => {
-                    match serde_json::to_string(&proposal) {
-                        Ok(data) => yield Ok(Event::default().event("proposal-ready").data(data)),
-                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize proposal: {error}"))),
+                Ok(ModelingEvent::ReasoningStarted) => {
+                    yield Ok(Event::default().event("thinking-start").data(""));
+                }
+                Ok(ModelingEvent::ReasoningChunk { chunk }) => {
+                    yield Ok(Event::default().event("thinking").data(chunk));
+                }
+                Ok(ModelingEvent::ReasoningEnded) => {
+                    yield Ok(Event::default().event("thinking-end").data(""));
+                }
+                Ok(ModelingEvent::ToolCallStarted { tool_call_id, tool_name }) => {
+                    match serde_json::to_string(&json!({ "toolCallId": tool_call_id, "toolName": tool_name })) {
+                        Ok(data) => yield Ok(Event::default().event("tool-call-start").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool call start: {error}"))),
                     }
+                }
+                Ok(ModelingEvent::ToolCallDelta { tool_call_id, tool_name, chunk }) => {
+                    match serde_json::to_string(&json!({ "toolCallId": tool_call_id, "toolName": tool_name, "chunk": chunk })) {
+                        Ok(data) => yield Ok(Event::default().event("tool-call-delta").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool call delta: {error}"))),
+                    }
+                }
+                Ok(ModelingEvent::ToolCallReady { tool_call_id, tool_name, input }) => {
+                    match serde_json::to_string(&json!({ "toolCallId": tool_call_id, "toolName": tool_name, "input": input })) {
+                        Ok(data) => yield Ok(Event::default().event("tool-call").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool call: {error}"))),
+                    }
+                }
+                Ok(ModelingEvent::ToolExecutionStarted { tool_call_id, tool_name, args }) => {
+                    match serde_json::to_string(&json!({ "toolCallId": tool_call_id, "toolName": tool_name, "args": args })) {
+                        Ok(data) => yield Ok(Event::default().event("tool-execution-start").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool execution start: {error}"))),
+                    }
+                }
+                Ok(ModelingEvent::ToolExecutionUpdated { tool_call_id, tool_name, args, partial_result }) => {
+                    match serde_json::to_string(&json!({ "toolCallId": tool_call_id, "toolName": tool_name, "args": args, "partialResult": partial_result })) {
+                        Ok(data) => yield Ok(Event::default().event("tool-execution-update").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool execution update: {error}"))),
+                    }
+                }
+                Ok(ModelingEvent::ToolExecutionEnded { tool_call_id, tool_name, result, is_error }) => {
+                    match serde_json::to_string(&json!({ "toolCallId": tool_call_id, "toolName": tool_name, "result": result, "isError": is_error })) {
+                        Ok(data) => yield Ok(Event::default().event("tool-execution-end").data(data)),
+                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool execution end: {error}"))),
+                    }
+                }
+                Ok(ModelingEvent::ProposalReady { proposal: _ }) => {
                     yield Ok(Event::default().event("complete").data(""));
                 }
                 Err(error) => {

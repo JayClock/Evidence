@@ -52,14 +52,15 @@ type ToolState = ToolPart['state'];
 
 type ProposalView = {
   rawText: string;
-  source: 'streaming' | 'final';
   summary: string | null;
   changes: Record<ChangeKey, unknown[]>;
 };
 
-type ProposalDeltaPayload =
-  | { kind: 'summary'; summary: string }
-  | { kind: 'change'; changeKey: ChangeKey; item: unknown };
+type StructuredDataPayload = {
+  kind: string;
+  format: string;
+  chunk: string;
+};
 
 export function DiagramAssistantMessage({
   isStreaming = false,
@@ -69,11 +70,11 @@ export function DiagramAssistantMessage({
   message: UIMessage;
 }) {
   const text = messageText(message);
-  const finalProposal = finalProposalView(message);
-  const streamingProposal =
-    finalProposal || isStreaming ? null : proposalView(text);
-  const progressProposal =
-    finalProposal || streamingProposal ? null : proposalProgressView(message);
+  const structuredText = structuredMessageText(message);
+  const proposalText = structuredText || text;
+  const streamingProposal = isStreaming ? null : proposalView(proposalText);
+  const isStreamingStructuredProposal =
+    isStreaming && structuredText.length > 0;
 
   return (
     <Message from={message.role}>
@@ -81,19 +82,16 @@ export function DiagramAssistantMessage({
         {message.parts.map((part, index) =>
           renderPart({
             hideText: Boolean(
-              finalProposal || streamingProposal || progressProposal,
+              streamingProposal || isStreamingStructuredProposal,
             ),
             isStreaming,
             key: `${message.id}-${index}`,
             part,
           }),
         )}
-        {progressProposal
-          ? renderProposalPart(
-              `${message.id}-proposal-progress`,
-              progressProposal,
-            )
-          : null}
+        {isStreamingStructuredProposal ? (
+          <MessageResponse>正在生成 proposal JSON…</MessageResponse>
+        ) : null}
         {streamingProposal
           ? renderProposalPart(
               `${message.id}-streaming-proposal`,
@@ -131,16 +129,7 @@ function renderPart({
     );
   }
 
-  if (isProposalDataPart(part)) {
-    const proposal = proposalFromRecord(
-      part.data,
-      JSON.stringify(part.data, null, 2),
-      'final',
-    );
-    return proposal ? renderProposalPart(key, proposal) : null;
-  }
-
-  if (isProposalDeltaDataPart(part)) {
+  if (isStructuredDataPart(part)) {
     return null;
   }
 
@@ -157,33 +146,20 @@ function renderPart({
 
 function renderProposalPart(key: string, proposal: ProposalView) {
   return (
-    <Tool defaultOpen key={key}>
-      <ToolHeader
-        state={
-          proposal.source === 'final' ? 'output-available' : 'input-available'
-        }
-        title={`Modeling proposal · ${proposal.source === 'final' ? 'Final' : 'Streaming'}`}
-        type="tool-diagram-model-proposal"
-      />
-      <ToolContent>
-        <ToolOutput
-          errorText={undefined}
-          output={
-            <MessageResponse>{proposalMarkdown(proposal)}</MessageResponse>
-          }
-        />
-        <CodeBlock code={proposal.rawText} language="json">
-          <CodeBlockHeader>
-            <CodeBlockTitle>
-              <CodeBlockFilename>proposal.json</CodeBlockFilename>
-            </CodeBlockTitle>
-            <CodeBlockActions>
-              <CodeBlockCopyButton />
-            </CodeBlockActions>
-          </CodeBlockHeader>
-        </CodeBlock>
-      </ToolContent>
-    </Tool>
+    <div className="space-y-3 rounded-lg border bg-background p-3" key={key}>
+      <div className="text-sm font-medium">Modeling proposal</div>
+      <MessageResponse>{proposalMarkdown(proposal)}</MessageResponse>
+      <CodeBlock code={proposal.rawText} language="json">
+        <CodeBlockHeader>
+          <CodeBlockTitle>
+            <CodeBlockFilename>proposal.json</CodeBlockFilename>
+          </CodeBlockTitle>
+          <CodeBlockActions>
+            <CodeBlockCopyButton />
+          </CodeBlockActions>
+        </CodeBlockHeader>
+      </CodeBlock>
+    </div>
   );
 }
 
@@ -281,65 +257,12 @@ function proposalView(rawText: string): ProposalView | null {
     return null;
   }
 
-  return proposalFromRecord(proposal, rawText, 'streaming');
-}
-
-function finalProposalView(
-  message: Pick<UIMessage, 'parts'>,
-): ProposalView | null {
-  const part = message.parts.find(isProposalDataPart);
-  if (!part) {
-    return null;
-  }
-
-  return proposalFromRecord(
-    part.data,
-    JSON.stringify(part.data, null, 2),
-    'final',
-  );
-}
-
-function proposalProgressView(
-  message: Pick<UIMessage, 'parts'>,
-): ProposalView | null {
-  const deltas = message.parts
-    .filter(isProposalDeltaDataPart)
-    .map((part) => part.data);
-  if (deltas.length === 0) {
-    return null;
-  }
-
-  const changes: Record<ChangeKey, unknown[]> = {
-    addNodes: [],
-    updateNodes: [],
-    deleteNodes: [],
-    addEdges: [],
-    updateEdges: [],
-    deleteEdges: [],
-  };
-  let summary: string | null = null;
-
-  for (const delta of deltas) {
-    if (delta.kind === 'summary') {
-      summary = delta.summary;
-      continue;
-    }
-
-    changes[delta.changeKey].push(delta.item);
-  }
-
-  return {
-    rawText: JSON.stringify({ summary, changes }, null, 2),
-    source: 'streaming',
-    summary,
-    changes,
-  };
+  return proposalFromRecord(proposal, rawText);
 }
 
 function proposalFromRecord(
   proposalValue: unknown,
   rawText: string,
-  source: ProposalView['source'],
 ): ProposalView | null {
   const proposal = record(proposalValue);
   const changes = record(proposal?.changes);
@@ -349,7 +272,6 @@ function proposalFromRecord(
 
   return {
     rawText,
-    source,
     summary: stringValue(proposal.summary),
     changes: Object.fromEntries(
       CHANGE_KEYS.map((key) => [key, arrayValue(changes[key])]),
@@ -364,30 +286,28 @@ function messageText(message: Pick<UIMessage, 'parts'>): string {
     .trim();
 }
 
-function isProposalDataPart(
-  part: MessagePart,
-): part is MessagePart & { data: unknown; type: 'data-proposal' } {
-  return part.type === 'data-proposal' && 'data' in part;
+function structuredMessageText(message: Pick<UIMessage, 'parts'>): string {
+  return message.parts
+    .filter(isStructuredDataPart)
+    .map((part) => part.data.chunk)
+    .join('')
+    .trim();
 }
 
-function isProposalDeltaDataPart(part: MessagePart): part is MessagePart & {
-  data: ProposalDeltaPayload;
-  type: 'data-proposal-delta';
+function isStructuredDataPart(part: MessagePart): part is MessagePart & {
+  data: StructuredDataPayload;
+  type: 'data-structured';
 } {
-  if (part.type !== 'data-proposal-delta' || !('data' in part)) {
+  if (part.type !== 'data-structured' || !('data' in part)) {
     return false;
   }
 
   const data = record(part.data);
-  if (data?.kind === 'summary') {
-    return typeof data.summary === 'string';
-  }
-
-  return data?.kind === 'change' && isChangeKey(data.changeKey);
-}
-
-function isChangeKey(value: unknown): value is ChangeKey {
-  return CHANGE_KEYS.includes(value as ChangeKey);
+  return (
+    data?.kind === 'diagram-model' &&
+    data.format === 'json' &&
+    typeof data.chunk === 'string'
+  );
 }
 
 function isDataPart(part: MessagePart): boolean {

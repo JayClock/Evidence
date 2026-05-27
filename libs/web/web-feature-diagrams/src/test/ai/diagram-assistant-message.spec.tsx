@@ -12,17 +12,14 @@ function assistantMessage(text: string): UIMessage {
   };
 }
 
-function assistantMessageWithFinalProposal(
-  text: string,
-  proposal: unknown,
-): UIMessage {
+function assistantStructuredMessage(chunks: string[]): UIMessage {
   return {
     id: 'assistant-1',
     role: 'assistant',
-    parts: [
-      { type: 'text', text },
-      { type: 'data-proposal', data: proposal },
-    ],
+    parts: chunks.map((chunk) => ({
+      type: 'data-structured',
+      data: { kind: 'diagram-model', format: 'json', chunk },
+    })),
   } as UIMessage;
 }
 
@@ -66,7 +63,7 @@ describe('DiagramAssistantMessage', () => {
       />,
     );
 
-    expect(screen.getByText('Modeling proposal · Streaming')).toBeTruthy();
+    expect(screen.getByText('Modeling proposal')).toBeTruthy();
     expect(
       screen.getByText('Create a sales contract fulfillment model'),
     ).toBeTruthy();
@@ -83,50 +80,39 @@ describe('DiagramAssistantMessage', () => {
     expect(screen.getByText('proposal.json')).toBeTruthy();
   });
 
-  it('renders streamed proposal deltas as a modeling proposal tool block', () => {
+  it('renders structured JSON chunks as a proposal tool block after streaming', () => {
     render(
       <DiagramAssistantMessage
-        isStreaming
-        message={
-          {
-            id: 'assistant-1',
-            role: 'assistant',
-            parts: [
-              { type: 'text', text: '{"summary":"Streaming proposal"' },
-              {
-                type: 'data-proposal-delta',
-                data: { kind: 'summary', summary: 'Streaming proposal' },
-              },
-              {
-                type: 'data-proposal-delta',
-                data: {
-                  kind: 'change',
-                  changeKey: 'addNodes',
-                  item: {
-                    id: 'node-1',
-                    data: {
-                      name: 'SalesContract',
-                      label: '销售合同',
-                      type: 'EVIDENCE',
-                      subType: 'contract',
-                    },
-                  },
-                },
-              },
-            ],
-          } as UIMessage
-        }
+        message={assistantStructuredMessage([
+          '{"summary":"Structured proposal","changes":{"addNodes":[',
+          '{"id":"node-1","data":{"name":"SalesContract","label":"销售合同","type":"EVIDENCE","subType":"contract"}}',
+          '],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}',
+        ])}
       />,
     );
 
-    expect(screen.getByText('Modeling proposal · Streaming')).toBeTruthy();
-    expect(screen.getByText('Streaming proposal')).toBeTruthy();
+    expect(screen.getByText('Modeling proposal')).toBeTruthy();
+    expect(screen.getByText('Structured proposal')).toBeTruthy();
     expect(textContentIncludes('SalesContract')).toBeTruthy();
-    expect(textContentIncludes('销售合同')).toBeTruthy();
-    expect(screen.queryByText('{"summary":"Streaming proposal"')).toBeNull();
+    expect(screen.queryByText('data-structured.json')).toBeNull();
   });
 
-  it('keeps streaming JSON as text before proposal deltas arrive', () => {
+  it('shows a lightweight status while structured JSON is streaming', () => {
+    render(
+      <DiagramAssistantMessage
+        isStreaming
+        message={assistantStructuredMessage([
+          '{"summary":"Streaming structured proposal"',
+        ])}
+      />,
+    );
+
+    expect(screen.getByText('正在生成 proposal JSON…')).toBeTruthy();
+    expect(screen.queryByText(/Streaming structured proposal/)).toBeNull();
+    expect(screen.queryByText('data-structured.json')).toBeNull();
+  });
+
+  it('keeps proposal JSON as text while it is streaming', () => {
     render(
       <DiagramAssistantMessage
         isStreaming
@@ -157,31 +143,6 @@ describe('DiagramAssistantMessage', () => {
 
     expect(screen.getByText('Just plain text.')).toBeTruthy();
     expect(screen.queryByText(/Modeling proposal/)).toBeNull();
-  });
-
-  it('prefers the final proposal data part over streamed text', () => {
-    render(
-      <DiagramAssistantMessage
-        message={assistantMessageWithFinalProposal(
-          '{ "summary": "Streaming" }',
-          {
-            summary: 'Final backend proposal',
-            changes: {
-              addNodes: [],
-              updateNodes: [],
-              deleteNodes: [],
-              addEdges: [],
-              updateEdges: [],
-              deleteEdges: [],
-            },
-          },
-        )}
-      />,
-    );
-
-    expect(screen.getByText('Final backend proposal')).toBeTruthy();
-    expect(screen.queryByText('Streaming')).toBeNull();
-    expect(screen.getByText('Modeling proposal · Final')).toBeTruthy();
   });
 
   it('renders reasoning parts with the AI Elements reasoning block', () => {

@@ -82,10 +82,10 @@ describe('createDiagramProposalTransport', () => {
     );
   });
 
-  it('converts backend default SSE data into assistant text and proposal delta chunks', async () => {
+  it('converts backend structured SSE events into data chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse(
-        'data: {"summary":"Draft"}\n\nevent: structured\ndata: {"kind":"diagram-model","format":"json","chunk":"ignored duplicate"}\n\nevent: complete\ndata: \n\n',
+        'data: {"summary":"Draft"}\n\nevent: structured\ndata: {"kind":"diagram-model","format":"json","chunk":"{\\"summary\\":\\"Draft\\"}"}\n\nevent: complete\ndata: \n\n',
       ),
     );
     const transport = createDiagramProposalTransport(diagramState(fetch));
@@ -101,28 +101,39 @@ describe('createDiagramProposalTransport', () => {
     const chunks = await readChunks(stream);
 
     expect(chunks).toEqual([
-      { type: 'text-start', id: 'diagram-model-proposal' },
       {
-        type: 'text-delta',
-        id: 'diagram-model-proposal',
-        delta: '{"summary":"Draft"}',
+        type: 'data-structured',
+        data: {
+          kind: 'diagram-model',
+          format: 'json',
+          chunk: '{"summary":"Draft"}',
+        },
       },
-      {
-        type: 'data-proposal-delta',
-        data: { kind: 'summary', summary: 'Draft' },
-      },
-      { type: 'text-end', id: 'diagram-model-proposal' },
       { type: 'finish', finishReason: 'stop' },
     ]);
   });
 
-  it('emits proposal change deltas when complete array items stream in', async () => {
+  it('converts backend tool SSE events into AI SDK tool chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse(
         [
-          'data: {"summary":"Draft","changes":{"addNodes":[{"id":"node-1","data":{"name":"Contract"}}',
+          'event: tool-call-start',
+          'data: {"toolCallId":"call-1","toolName":"bash"}',
           '',
-          'data: ,{"id":"node-2","data":{"name":"Invoice"}}],"addEdges":[{"id":"edge-1"}]}}',
+          'event: tool-call-delta',
+          'data: {"toolCallId":"call-1","toolName":"bash","chunk":"{\\"command\\":"}',
+          '',
+          'event: tool-call-delta',
+          'data: {"toolCallId":"call-1","toolName":"bash","chunk":"\\"ls\\"}"}',
+          '',
+          'event: tool-call',
+          'data: {"toolCallId":"call-1","toolName":"bash","input":{"command":"ls"}}',
+          '',
+          'event: tool-execution-update',
+          'data: {"toolCallId":"call-1","toolName":"bash","args":{"command":"ls"},"partialResult":{"content":[{"type":"text","text":"README.md"}]}}',
+          '',
+          'event: tool-execution-end',
+          'data: {"toolCallId":"call-1","toolName":"bash","args":{"command":"ls"},"result":{"content":[{"type":"text","text":"README.md"}]},"isError":false}',
           '',
           'event: complete',
           'data: ',
@@ -142,51 +153,52 @@ describe('createDiagramProposalTransport', () => {
 
     const chunks = await readChunks(stream);
 
-    expect(chunks).toContainEqual({
-      type: 'data-proposal-delta',
-      data: { kind: 'summary', summary: 'Draft' },
-    });
-    expect(chunks).toContainEqual({
-      type: 'data-proposal-delta',
-      data: {
-        kind: 'change',
-        changeKey: 'addNodes',
-        item: { id: 'node-1', data: { name: 'Contract' } },
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'bash',
+        dynamic: true,
       },
-    });
-    expect(chunks).toContainEqual({
-      type: 'data-proposal-delta',
-      data: {
-        kind: 'change',
-        changeKey: 'addNodes',
-        item: { id: 'node-2', data: { name: 'Invoice' } },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call-1',
+        inputTextDelta: '{"command":',
       },
-    });
-    expect(chunks).toContainEqual({
-      type: 'data-proposal-delta',
-      data: {
-        kind: 'change',
-        changeKey: 'addEdges',
-        item: { id: 'edge-1' },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'call-1',
+        inputTextDelta: '"ls"}',
       },
-    });
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-1',
+        toolName: 'bash',
+        input: { command: 'ls' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: { content: [{ type: 'text', text: 'README.md' }] },
+        dynamic: true,
+        preliminary: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: { content: [{ type: 'text', text: 'README.md' }] },
+        dynamic: true,
+        preliminary: false,
+      },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
   });
 
-  it('converts proposal-ready into a data part without appending it to assistant text', async () => {
-    const finalProposal = {
-      summary: 'Final proposal',
-      changes: {
-        addNodes: [],
-        updateNodes: [],
-        deleteNodes: [],
-        addEdges: [],
-        updateEdges: [],
-        deleteEdges: [],
-      },
-    };
+  it('finishes after streamed structured proposal chunks without a separate final proposal event', async () => {
     const fetch = vi.fn(async () =>
       sseResponse(
-        `data: {"summary":"Streaming"}\n\nevent: proposal-ready\ndata: ${JSON.stringify(finalProposal)}\n\nevent: complete\ndata: \n\n`,
+        'data: {"summary":"Streaming"}\n\nevent: structured\ndata: {"kind":"diagram-model","format":"json","chunk":"{\\"summary\\":\\"Streaming\\"}"}\n\nevent: complete\ndata: \n\n',
       ),
     );
     const transport = createDiagramProposalTransport(diagramState(fetch));
@@ -202,18 +214,14 @@ describe('createDiagramProposalTransport', () => {
     const chunks = await readChunks(stream);
 
     expect(chunks).toEqual([
-      { type: 'text-start', id: 'diagram-model-proposal' },
       {
-        type: 'text-delta',
-        id: 'diagram-model-proposal',
-        delta: '{"summary":"Streaming"}',
+        type: 'data-structured',
+        data: {
+          kind: 'diagram-model',
+          format: 'json',
+          chunk: '{"summary":"Streaming"}',
+        },
       },
-      {
-        type: 'data-proposal-delta',
-        data: { kind: 'summary', summary: 'Streaming' },
-      },
-      { type: 'data-proposal', data: finalProposal },
-      { type: 'text-end', id: 'diagram-model-proposal' },
       { type: 'finish', finishReason: 'stop' },
     ]);
   });
@@ -226,15 +234,18 @@ describe('createDiagramProposalTransport', () => {
           'data: ',
           '',
           'event: thinking',
-          'data: Identify the contract evidence.',
+          'data:  Identify the contract evidence.',
           '',
           'event: thinking',
-          'data: Then connect fulfillment confirmations.',
+          'data:  Then connect fulfillment confirmations.',
           '',
           'event: thinking-end',
           'data: ',
           '',
           'data: {"summary":"Done"}',
+          '',
+          'event: structured',
+          'data: {"kind":"diagram-model","format":"json","chunk":"{\\"summary\\":\\"Done\\"}"}',
           '',
           'event: complete',
           'data: ',
@@ -259,25 +270,22 @@ describe('createDiagramProposalTransport', () => {
       {
         type: 'reasoning-delta',
         id: 'diagram-model-thinking',
-        delta: 'Identify the contract evidence.',
+        delta: ' Identify the contract evidence.',
       },
       {
         type: 'reasoning-delta',
         id: 'diagram-model-thinking',
-        delta: 'Then connect fulfillment confirmations.',
+        delta: ' Then connect fulfillment confirmations.',
       },
       { type: 'reasoning-end', id: 'diagram-model-thinking' },
-      { type: 'text-start', id: 'diagram-model-proposal' },
       {
-        type: 'text-delta',
-        id: 'diagram-model-proposal',
-        delta: '{"summary":"Done"}',
+        type: 'data-structured',
+        data: {
+          kind: 'diagram-model',
+          format: 'json',
+          chunk: '{"summary":"Done"}',
+        },
       },
-      {
-        type: 'data-proposal-delta',
-        data: { kind: 'summary', summary: 'Done' },
-      },
-      { type: 'text-end', id: 'diagram-model-proposal' },
       { type: 'finish', finishReason: 'stop' },
     ]);
   });
