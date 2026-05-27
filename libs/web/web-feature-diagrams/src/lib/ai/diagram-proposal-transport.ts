@@ -7,6 +7,20 @@ import type {
 import type { DiagramResource, State } from '@evidence/api-client';
 
 const TEXT_PART_ID = 'diagram-model-proposal';
+const REASONING_PART_ID = 'diagram-model-thinking';
+const PROPOSAL_CHANGE_KEYS = [
+  'addNodes',
+  'updateNodes',
+  'deleteNodes',
+  'addEdges',
+  'updateEdges',
+  'deleteEdges',
+] as const;
+
+type ProposalChangeKey = (typeof PROPOSAL_CHANGE_KEYS)[number];
+type ProposalDeltaPayload =
+  | { kind: 'summary'; summary: string }
+  | { kind: 'change'; changeKey: ProposalChangeKey; item: unknown };
 
 type SendMessagesOptions = Parameters<
   ChatTransport<UIMessage>['sendMessages']
@@ -124,12 +138,15 @@ function sseToUiMessageStream(
   stream: ReadableStream<Uint8Array<ArrayBufferLike>>,
 ): ReadableStream<UIMessageChunk> {
   const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  const proposalDeltas = new ProposalDeltaExtractor();
 
   return new ReadableStream<UIMessageChunk>({
     async start(controller) {
       let buffer = '';
       let textStarted = false;
       let textEnded = false;
+      let reasoningStarted = false;
+      let reasoningEnded = false;
 
       const startText = () => {
         if (textStarted) {
@@ -140,11 +157,32 @@ function sseToUiMessageStream(
         textStarted = true;
       };
 
-      const endText = () => {
+      const startReasoning = () => {
+        if (reasoningStarted) {
+          return;
+        }
+
+        controller.enqueue({ type: 'reasoning-start', id: REASONING_PART_ID });
+        reasoningStarted = true;
+      };
+
+      const endReasoning = () => {
+        if (reasoningEnded) {
+          return;
+        }
+
+        if (reasoningStarted) {
+          controller.enqueue({ type: 'reasoning-end', id: REASONING_PART_ID });
+        }
+        reasoningEnded = true;
+      };
+
+      const finishStream = () => {
         if (textEnded) {
           return;
         }
 
+        endReasoning();
         if (textStarted) {
           controller.enqueue({ type: 'text-end', id: TEXT_PART_ID });
         }
@@ -156,7 +194,20 @@ function sseToUiMessageStream(
         const event = parseSseEvent(rawEvent);
 
         if (event.event === 'complete') {
-          endText();
+          finishStream();
+          return;
+        }
+
+        if (event.event === 'reasoning-end' || event.event === 'thinking-end') {
+          endReasoning();
+          return;
+        }
+
+        if (
+          event.event === 'reasoning-start' ||
+          event.event === 'thinking-start'
+        ) {
+          startReasoning();
           return;
         }
 
@@ -177,6 +228,16 @@ function sseToUiMessageStream(
           return;
         }
 
+        if (isReasoningEvent(event.event)) {
+          startReasoning();
+          controller.enqueue({
+            type: 'reasoning-delta',
+            id: REASONING_PART_ID,
+            delta: event.data,
+          });
+          return;
+        }
+
         if (event.event === '' || event.event === undefined) {
           startText();
           controller.enqueue({
@@ -184,6 +245,13 @@ function sseToUiMessageStream(
             id: TEXT_PART_ID,
             delta: event.data,
           });
+
+          for (const delta of proposalDeltas.append(event.data)) {
+            controller.enqueue({
+              type: 'data-proposal-delta',
+              data: delta,
+            });
+          }
         }
       };
 
@@ -213,7 +281,7 @@ function sseToUiMessageStream(
           consumeEvent(buffer);
         }
 
-        endText();
+        finishStream();
         controller.close();
       } catch (error) {
         controller.error(error);
@@ -223,6 +291,179 @@ function sseToUiMessageStream(
       void reader.cancel();
     },
   });
+}
+
+class ProposalDeltaExtractor {
+  private text = '';
+  private emittedSummary: string | null = null;
+  private readonly emittedCounts = new Map<ProposalChangeKey, number>();
+
+  append(chunk: string): ProposalDeltaPayload[] {
+    this.text += chunk;
+
+    const deltas: ProposalDeltaPayload[] = [];
+    const summary = extractCompleteStringProperty(this.text, 'summary');
+    if (summary && summary !== this.emittedSummary) {
+      this.emittedSummary = summary;
+      deltas.push({ kind: 'summary', summary });
+    }
+
+    for (const changeKey of PROPOSAL_CHANGE_KEYS) {
+      const items = extractCompleteArrayItems(this.text, changeKey);
+      const emittedCount = this.emittedCounts.get(changeKey) ?? 0;
+
+      for (const item of items.slice(emittedCount)) {
+        deltas.push({ kind: 'change', changeKey, item });
+      }
+
+      this.emittedCounts.set(changeKey, items.length);
+    }
+
+    return deltas;
+  }
+}
+
+function extractCompleteStringProperty(
+  text: string,
+  key: string,
+): string | null {
+  const start = propertyValueStart(text, key);
+  if (start === -1 || text[start] !== '"') {
+    return null;
+  }
+
+  const end = scanJsonStringEnd(text, start);
+  if (end === -1) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text.slice(start, end + 1)) as string;
+  } catch {
+    return null;
+  }
+}
+
+function extractCompleteArrayItems(
+  text: string,
+  key: ProposalChangeKey,
+): unknown[] {
+  const start = propertyValueStart(text, key);
+  if (start === -1 || text[start] !== '[') {
+    return [];
+  }
+
+  return scanCompleteArrayItemJson(text, start + 1).flatMap((itemJson) => {
+    try {
+      return [JSON.parse(itemJson) as unknown];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function propertyValueStart(text: string, key: string): number {
+  const match = new RegExp(`"${key}"\\s*:`).exec(text);
+  if (!match) {
+    return -1;
+  }
+
+  let index = match.index + match[0].length;
+  while (index < text.length && /\s/.test(text[index])) {
+    index += 1;
+  }
+  return index;
+}
+
+function scanJsonStringEnd(text: string, start: number): number {
+  let escaped = false;
+
+  for (let index = start + 1; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function scanCompleteArrayItemJson(text: string, start: number): string[] {
+  const items: string[] = [];
+  let itemStart: number | null = null;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let topLevelString = false;
+
+  for (let index = start; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (itemStart === null) {
+      if (/\s|,/.test(char)) {
+        continue;
+      }
+      if (char === ']') {
+        break;
+      }
+
+      itemStart = index;
+      topLevelString = char === '"';
+      inString = topLevelString;
+      depth = char === '{' || char === '[' ? 1 : 0;
+      continue;
+    }
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+        if (topLevelString) {
+          items.push(text.slice(itemStart, index + 1));
+          itemStart = null;
+          topLevelString = false;
+        }
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+    if (char === '{' || char === '[') {
+      depth += 1;
+      continue;
+    }
+    if (char === '}' || char === ']') {
+      depth -= 1;
+      if (depth === 0) {
+        items.push(text.slice(itemStart, index + 1));
+        itemStart = null;
+      }
+    }
+  }
+
+  return items;
+}
+
+function isReasoningEvent(event: string | undefined): boolean {
+  return event === 'reasoning' || event === 'thinking' || event === 'thought';
 }
 
 function parseSseEvent(rawEvent: string): { data: string; event?: string } {

@@ -83,6 +83,71 @@ describe('DiagramAssistantMessage', () => {
     expect(screen.getByText('proposal.json')).toBeTruthy();
   });
 
+  it('renders streamed proposal deltas as a modeling proposal tool block', () => {
+    render(
+      <DiagramAssistantMessage
+        isStreaming
+        message={
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [
+              { type: 'text', text: '{"summary":"Streaming proposal"' },
+              {
+                type: 'data-proposal-delta',
+                data: { kind: 'summary', summary: 'Streaming proposal' },
+              },
+              {
+                type: 'data-proposal-delta',
+                data: {
+                  kind: 'change',
+                  changeKey: 'addNodes',
+                  item: {
+                    id: 'node-1',
+                    data: {
+                      name: 'SalesContract',
+                      label: '销售合同',
+                      type: 'EVIDENCE',
+                      subType: 'contract',
+                    },
+                  },
+                },
+              },
+            ],
+          } as UIMessage
+        }
+      />,
+    );
+
+    expect(screen.getByText('Modeling proposal · Streaming')).toBeTruthy();
+    expect(screen.getByText('Streaming proposal')).toBeTruthy();
+    expect(textContentIncludes('SalesContract')).toBeTruthy();
+    expect(textContentIncludes('销售合同')).toBeTruthy();
+    expect(screen.queryByText('{"summary":"Streaming proposal"')).toBeNull();
+  });
+
+  it('keeps streaming JSON as text before proposal deltas arrive', () => {
+    render(
+      <DiagramAssistantMessage
+        isStreaming
+        message={assistantMessage(`{
+          "summary": "Streaming proposal",
+          "changes": {
+            "addNodes": [],
+            "updateNodes": [],
+            "deleteNodes": [],
+            "addEdges": [],
+            "updateEdges": [],
+            "deleteEdges": []
+          }
+        }`)}
+      />,
+    );
+
+    expect(screen.queryByText(/Modeling proposal/)).toBeNull();
+    expect(textContentIncludes('Streaming proposal')).toBeTruthy();
+  });
+
   it('renders ordinary assistant text as a message response', () => {
     render(
       <DiagramAssistantMessage

@@ -98,24 +98,7 @@ export function DiagramDetailView({
   }, [edges.resourceState, nodes.resourceState]);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardDescription>Diagram</CardDescription>
-          <CardTitle>{resourceState.data.title}</CardTitle>
-          <CardDescription>
-            {resourceState.data.id} · Updated{' '}
-            {formatDateTime(resourceState.data.updatedAt)}
-          </CardDescription>
-          <CardAction>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Badge variant="secondary">{resourceState.data.type}</Badge>
-              <Badge>{resourceState.data.status}</Badge>
-            </div>
-          </CardAction>
-        </CardHeader>
-      </Card>
-
+    <section className="flex min-h-0 h-full flex-1 flex-col gap-4">
       <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="min-w-0">
           {loading ? <DiagramLoading /> : null}
@@ -212,7 +195,7 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
       <CardContent className="min-h-0 flex-1 p-0">
         <div
           aria-label="Diagram canvas"
-          className="h-[640px] min-h-[520px] overflow-hidden rounded-b-xl bg-muted/20"
+          className="h-160 min-h-130 overflow-hidden rounded-b-xl bg-muted/20"
         >
           <Canvas<DiagramCanvasNode, DiagramCanvasEdge>
             nodes={nodes}

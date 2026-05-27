@@ -57,6 +57,10 @@ type ProposalView = {
   changes: Record<ChangeKey, unknown[]>;
 };
 
+type ProposalDeltaPayload =
+  | { kind: 'summary'; summary: string }
+  | { kind: 'change'; changeKey: ChangeKey; item: unknown };
+
 export function DiagramAssistantMessage({
   isStreaming = false,
   message,
@@ -66,19 +70,30 @@ export function DiagramAssistantMessage({
 }) {
   const text = messageText(message);
   const finalProposal = finalProposalView(message);
-  const streamingProposal = finalProposal ? null : proposalView(text);
+  const streamingProposal =
+    finalProposal || isStreaming ? null : proposalView(text);
+  const progressProposal =
+    finalProposal || streamingProposal ? null : proposalProgressView(message);
 
   return (
     <Message from={message.role}>
       <MessageContent className="w-full">
         {message.parts.map((part, index) =>
           renderPart({
-            hideText: Boolean(finalProposal || streamingProposal),
+            hideText: Boolean(
+              finalProposal || streamingProposal || progressProposal,
+            ),
             isStreaming,
             key: `${message.id}-${index}`,
             part,
           }),
         )}
+        {progressProposal
+          ? renderProposalPart(
+              `${message.id}-proposal-progress`,
+              progressProposal,
+            )
+          : null}
         {streamingProposal
           ? renderProposalPart(
               `${message.id}-streaming-proposal`,
@@ -123,6 +138,10 @@ function renderPart({
       'final',
     );
     return proposal ? renderProposalPart(key, proposal) : null;
+  }
+
+  if (isProposalDeltaDataPart(part)) {
+    return null;
   }
 
   if (isToolPart(part)) {
@@ -280,6 +299,43 @@ function finalProposalView(
   );
 }
 
+function proposalProgressView(
+  message: Pick<UIMessage, 'parts'>,
+): ProposalView | null {
+  const deltas = message.parts
+    .filter(isProposalDeltaDataPart)
+    .map((part) => part.data);
+  if (deltas.length === 0) {
+    return null;
+  }
+
+  const changes: Record<ChangeKey, unknown[]> = {
+    addNodes: [],
+    updateNodes: [],
+    deleteNodes: [],
+    addEdges: [],
+    updateEdges: [],
+    deleteEdges: [],
+  };
+  let summary: string | null = null;
+
+  for (const delta of deltas) {
+    if (delta.kind === 'summary') {
+      summary = delta.summary;
+      continue;
+    }
+
+    changes[delta.changeKey].push(delta.item);
+  }
+
+  return {
+    rawText: JSON.stringify({ summary, changes }, null, 2),
+    source: 'streaming',
+    summary,
+    changes,
+  };
+}
+
 function proposalFromRecord(
   proposalValue: unknown,
   rawText: string,
@@ -312,6 +368,26 @@ function isProposalDataPart(
   part: MessagePart,
 ): part is MessagePart & { data: unknown; type: 'data-proposal' } {
   return part.type === 'data-proposal' && 'data' in part;
+}
+
+function isProposalDeltaDataPart(part: MessagePart): part is MessagePart & {
+  data: ProposalDeltaPayload;
+  type: 'data-proposal-delta';
+} {
+  if (part.type !== 'data-proposal-delta' || !('data' in part)) {
+    return false;
+  }
+
+  const data = record(part.data);
+  if (data?.kind === 'summary') {
+    return typeof data.summary === 'string';
+  }
+
+  return data?.kind === 'change' && isChangeKey(data.changeKey);
+}
+
+function isChangeKey(value: unknown): value is ChangeKey {
+  return CHANGE_KEYS.includes(value as ChangeKey);
 }
 
 function isDataPart(part: MessagePart): boolean {

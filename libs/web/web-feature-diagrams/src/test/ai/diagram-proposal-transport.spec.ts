@@ -82,7 +82,7 @@ describe('createDiagramProposalTransport', () => {
     );
   });
 
-  it('converts backend default SSE data into assistant text chunks', async () => {
+  it('converts backend default SSE data into assistant text and proposal delta chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse(
         'data: {"summary":"Draft"}\n\nevent: structured\ndata: {"kind":"diagram-model","format":"json","chunk":"ignored duplicate"}\n\nevent: complete\ndata: \n\n',
@@ -107,9 +107,69 @@ describe('createDiagramProposalTransport', () => {
         id: 'diagram-model-proposal',
         delta: '{"summary":"Draft"}',
       },
+      {
+        type: 'data-proposal-delta',
+        data: { kind: 'summary', summary: 'Draft' },
+      },
       { type: 'text-end', id: 'diagram-model-proposal' },
       { type: 'finish', finishReason: 'stop' },
     ]);
+  });
+
+  it('emits proposal change deltas when complete array items stream in', async () => {
+    const fetch = vi.fn(async () =>
+      sseResponse(
+        [
+          'data: {"summary":"Draft","changes":{"addNodes":[{"id":"node-1","data":{"name":"Contract"}}',
+          '',
+          'data: ,{"id":"node-2","data":{"name":"Invoice"}}],"addEdges":[{"id":"edge-1"}]}}',
+          '',
+          'event: complete',
+          'data: ',
+          '',
+        ].join('\n'),
+      ),
+    );
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('model this requirement')],
+      abortSignal: undefined,
+    });
+
+    const chunks = await readChunks(stream);
+
+    expect(chunks).toContainEqual({
+      type: 'data-proposal-delta',
+      data: { kind: 'summary', summary: 'Draft' },
+    });
+    expect(chunks).toContainEqual({
+      type: 'data-proposal-delta',
+      data: {
+        kind: 'change',
+        changeKey: 'addNodes',
+        item: { id: 'node-1', data: { name: 'Contract' } },
+      },
+    });
+    expect(chunks).toContainEqual({
+      type: 'data-proposal-delta',
+      data: {
+        kind: 'change',
+        changeKey: 'addNodes',
+        item: { id: 'node-2', data: { name: 'Invoice' } },
+      },
+    });
+    expect(chunks).toContainEqual({
+      type: 'data-proposal-delta',
+      data: {
+        kind: 'change',
+        changeKey: 'addEdges',
+        item: { id: 'edge-1' },
+      },
+    });
   });
 
   it('converts proposal-ready into a data part without appending it to assistant text', async () => {
@@ -148,7 +208,75 @@ describe('createDiagramProposalTransport', () => {
         id: 'diagram-model-proposal',
         delta: '{"summary":"Streaming"}',
       },
+      {
+        type: 'data-proposal-delta',
+        data: { kind: 'summary', summary: 'Streaming' },
+      },
       { type: 'data-proposal', data: finalProposal },
+      { type: 'text-end', id: 'diagram-model-proposal' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+  });
+
+  it('converts thinking SSE events into reasoning chunks', async () => {
+    const fetch = vi.fn(async () =>
+      sseResponse(
+        [
+          'event: thinking-start',
+          'data: ',
+          '',
+          'event: thinking',
+          'data: Identify the contract evidence.',
+          '',
+          'event: thinking',
+          'data: Then connect fulfillment confirmations.',
+          '',
+          'event: thinking-end',
+          'data: ',
+          '',
+          'data: {"summary":"Done"}',
+          '',
+          'event: complete',
+          'data: ',
+          '',
+        ].join('\n'),
+      ),
+    );
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('model this requirement')],
+      abortSignal: undefined,
+    });
+
+    const chunks = await readChunks(stream);
+
+    expect(chunks).toEqual([
+      { type: 'reasoning-start', id: 'diagram-model-thinking' },
+      {
+        type: 'reasoning-delta',
+        id: 'diagram-model-thinking',
+        delta: 'Identify the contract evidence.',
+      },
+      {
+        type: 'reasoning-delta',
+        id: 'diagram-model-thinking',
+        delta: 'Then connect fulfillment confirmations.',
+      },
+      { type: 'reasoning-end', id: 'diagram-model-thinking' },
+      { type: 'text-start', id: 'diagram-model-proposal' },
+      {
+        type: 'text-delta',
+        id: 'diagram-model-proposal',
+        delta: '{"summary":"Done"}',
+      },
+      {
+        type: 'data-proposal-delta',
+        data: { kind: 'summary', summary: 'Done' },
+      },
       { type: 'text-end', id: 'diagram-model-proposal' },
       { type: 'finish', finishReason: 'stop' },
     ]);
@@ -177,7 +305,9 @@ describe('createDiagramProposalTransport', () => {
   });
 
   it('surfaces request failures before streaming starts', async () => {
-    const fetch = vi.fn(async () => new Response('bad gateway', { status: 502 }));
+    const fetch = vi.fn(
+      async () => new Response('bad gateway', { status: 502 }),
+    );
     const transport = createDiagramProposalTransport(diagramState(fetch));
 
     await expect(

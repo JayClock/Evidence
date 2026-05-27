@@ -60,7 +60,7 @@ export function DiagramAiChat({
     <Card
       aria-label="AI modeling assistant"
       role="region"
-      className="min-h-[520px] min-w-0"
+      className="flex flex-col min-w-0"
     >
       <CardHeader>
         <CardDescription>Diagram AI</CardDescription>
@@ -70,7 +70,7 @@ export function DiagramAiChat({
           applied to the canvas.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex h-[640px] min-h-0 flex-col gap-3">
+      <CardContent className="flex flex-1 min-h-0 flex-col gap-3">
         <Conversation className="min-h-0 rounded-lg border bg-muted/20">
           <ConversationContent>
             {messages.length === 0 ? (
