@@ -26,8 +26,18 @@ function assistantMessageWithFinalProposal(
   } as UIMessage;
 }
 
+function textContentIncludes(text: string): boolean {
+  return (
+    screen.queryAllByText((_content, element) => {
+      const textContent = (element as { textContent?: string } | null)
+        ?.textContent;
+      return Boolean(textContent?.includes(text));
+    }).length > 0
+  );
+}
+
 describe('DiagramAssistantMessage', () => {
-  it('renders streamed partial JSON as a modeling proposal card', () => {
+  it('renders streamed partial JSON as a modeling proposal tool block', () => {
     render(
       <DiagramAssistantMessage
         message={assistantMessage(`{
@@ -56,31 +66,32 @@ describe('DiagramAssistantMessage', () => {
       />,
     );
 
-    expect(screen.getByText('Modeling proposal')).toBeTruthy();
+    expect(screen.getByText('Modeling proposal · Streaming')).toBeTruthy();
     expect(
       screen.getByText('Create a sales contract fulfillment model'),
     ).toBeTruthy();
-    expect(screen.getByText('addNodes')).toBeTruthy();
-    expect(screen.getAllByText('1')).toHaveLength(2);
-    expect(screen.getByText('addEdges')).toBeTruthy();
-    expect(screen.getByText('SalesContract')).toBeTruthy();
-    expect(screen.getByText('销售合同')).toBeTruthy();
-    expect(screen.getByText('EVIDENCE / contract')).toBeTruthy();
-    expect(screen.getByText('node-1 → node-2')).toBeTruthy();
-    expect(screen.getByText('evidence_flow')).toBeTruthy();
+    expect(textContentIncludes('addNodes')).toBeTruthy();
+    expect(textContentIncludes('addEdges')).toBeTruthy();
+    expect(textContentIncludes('SalesContract')).toBeTruthy();
+    expect(textContentIncludes('销售合同')).toBeTruthy();
+    expect(textContentIncludes('EVIDENCE / contract')).toBeTruthy();
+    expect(textContentIncludes('node-1 → node-2')).toBeTruthy();
+    expect(textContentIncludes('evidence_flow')).toBeTruthy();
     expect(
       screen.getByText('AI output is advisory and has not been applied.'),
     ).toBeTruthy();
-    expect(screen.getByText('Raw JSON')).toBeTruthy();
+    expect(screen.getByText('proposal.json')).toBeTruthy();
   });
 
-  it('shows a parsing fallback while streamed text is not yet proposal-shaped', () => {
+  it('renders ordinary assistant text as a message response', () => {
     render(
-      <DiagramAssistantMessage message={assistantMessage('{ "summary"')} />,
+      <DiagramAssistantMessage
+        message={assistantMessage('Just plain text.')}
+      />,
     );
 
-    expect(screen.getByText('Parsing streamed JSON…')).toBeTruthy();
-    expect(screen.getByText('{ "summary"')).toBeTruthy();
+    expect(screen.getByText('Just plain text.')).toBeTruthy();
+    expect(screen.queryByText(/Modeling proposal/)).toBeNull();
   });
 
   it('prefers the final proposal data part over streamed text', () => {
@@ -105,6 +116,51 @@ describe('DiagramAssistantMessage', () => {
 
     expect(screen.getByText('Final backend proposal')).toBeTruthy();
     expect(screen.queryByText('Streaming')).toBeNull();
-    expect(screen.getByText('Final')).toBeTruthy();
+    expect(screen.getByText('Modeling proposal · Final')).toBeTruthy();
+  });
+
+  it('renders reasoning parts with the AI Elements reasoning block', () => {
+    render(
+      <DiagramAssistantMessage
+        isStreaming
+        message={
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [
+              { type: 'reasoning', text: 'Thinking through the diagram.' },
+              { type: 'text', text: 'Use a contract evidence node.' },
+            ],
+          } as UIMessage
+        }
+      />,
+    );
+
+    expect(screen.getByText('Thinking...')).toBeTruthy();
+    expect(screen.getByText('Thinking through the diagram.')).toBeTruthy();
+    expect(screen.getByText('Use a contract evidence node.')).toBeTruthy();
+  });
+
+  it('renders custom data parts as JSON code blocks', () => {
+    render(
+      <DiagramAssistantMessage
+        message={
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'data-diagnostic',
+                data: { status: 'ok', count: 2 },
+              },
+            ],
+          } as UIMessage
+        }
+      />,
+    );
+
+    expect(screen.getByText('data-diagnostic.json')).toBeTruthy();
+    expect(screen.getByText(/status/)).toBeTruthy();
+    expect(screen.getByText(/ok/)).toBeTruthy();
   });
 });

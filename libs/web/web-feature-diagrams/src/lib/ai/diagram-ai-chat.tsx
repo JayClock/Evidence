@@ -42,6 +42,7 @@ export function DiagramAiChat({
     [resourceState],
   );
   const { error, messages, sendMessage, status } = useChat({ transport });
+  const isStreaming = status === 'streaming';
   const disabled =
     !proposeModelUrl || status === 'submitted' || status === 'streaming';
 
@@ -78,8 +79,12 @@ export function DiagramAiChat({
                 description="Describe the business requirement to stream an AI modeling proposal."
               />
             ) : (
-              messages.map((message) => (
-                <DiagramAssistantMessage key={message.id} message={message} />
+              messages.map((message, index) => (
+                <DiagramAssistantMessage
+                  isStreaming={isStreaming && index === messages.length - 1}
+                  key={message.id}
+                  message={message}
+                />
               ))
             )}
             {error ? (

@@ -1,18 +1,31 @@
 import type { UIMessage } from 'ai';
 import { parse as parseJsonBestEffort } from 'best-effort-json-parser';
 import {
-  Badge,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@evidence/ui';
+  CodeBlock,
+  CodeBlockActions,
+  CodeBlockCopyButton,
+  CodeBlockFilename,
+  CodeBlockHeader,
+  CodeBlockTitle,
+} from '@evidence/ui/ai-elements/code-block';
 import {
   Message,
   MessageContent,
   MessageResponse,
 } from '@evidence/ui/ai-elements/message';
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from '@evidence/ui/ai-elements/reasoning';
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+  type ToolPart,
+} from '@evidence/ui/ai-elements/tool';
 
 const CHANGE_KEYS = [
   'addNodes',
@@ -23,7 +36,19 @@ const CHANGE_KEYS = [
   'deleteEdges',
 ] as const;
 
+const TOOL_STATES = [
+  'approval-requested',
+  'approval-responded',
+  'input-available',
+  'input-streaming',
+  'output-available',
+  'output-denied',
+  'output-error',
+] as const satisfies ToolPart['state'][];
+
 type ChangeKey = (typeof CHANGE_KEYS)[number];
+type MessagePart = UIMessage['parts'][number];
+type ToolState = ToolPart['state'];
 
 type ProposalView = {
   rawText: string;
@@ -32,147 +57,202 @@ type ProposalView = {
   changes: Record<ChangeKey, unknown[]>;
 };
 
-export function DiagramAssistantMessage({ message }: { message: UIMessage }) {
+export function DiagramAssistantMessage({
+  isStreaming = false,
+  message,
+}: {
+  isStreaming?: boolean;
+  message: UIMessage;
+}) {
   const text = messageText(message);
-
-  if (message.role !== 'assistant') {
-    return (
-      <Message from={message.role}>
-        <MessageContent>
-          <MessageResponse>{text}</MessageResponse>
-        </MessageContent>
-      </Message>
-    );
-  }
-
-  const proposal = finalProposalView(message) ?? proposalView(text);
+  const finalProposal = finalProposalView(message);
+  const streamingProposal = finalProposal ? null : proposalView(text);
 
   return (
-    <Message from="assistant">
+    <Message from={message.role}>
       <MessageContent className="w-full">
-        {proposal ? (
-          <ProposalCard proposal={proposal} />
-        ) : (
-          <ParsingFallback rawText={text} />
+        {message.parts.map((part, index) =>
+          renderPart({
+            hideText: Boolean(finalProposal || streamingProposal),
+            isStreaming,
+            key: `${message.id}-${index}`,
+            part,
+          }),
         )}
+        {streamingProposal
+          ? renderProposalPart(
+              `${message.id}-streaming-proposal`,
+              streamingProposal,
+            )
+          : null}
       </MessageContent>
     </Message>
   );
 }
 
-function ProposalCard({ proposal }: { proposal: ProposalView }) {
-  const addedNodes = records(proposal.changes.addNodes);
-  const addedEdges = records(proposal.changes.addEdges);
+function renderPart({
+  hideText,
+  isStreaming,
+  key,
+  part,
+}: {
+  hideText: boolean;
+  isStreaming: boolean;
+  key: string;
+  part: MessagePart;
+}) {
+  if (part.type === 'text') {
+    return hideText ? null : (
+      <MessageResponse key={key}>{part.text}</MessageResponse>
+    );
+  }
 
+  if (part.type === 'reasoning') {
+    return (
+      <Reasoning className="w-full" isStreaming={isStreaming} key={key}>
+        <ReasoningTrigger />
+        <ReasoningContent>{part.text}</ReasoningContent>
+      </Reasoning>
+    );
+  }
+
+  if (isProposalDataPart(part)) {
+    const proposal = proposalFromRecord(
+      part.data,
+      JSON.stringify(part.data, null, 2),
+      'final',
+    );
+    return proposal ? renderProposalPart(key, proposal) : null;
+  }
+
+  if (isToolPart(part)) {
+    return renderToolPart(key, part);
+  }
+
+  if (isDataPart(part)) {
+    return renderDataPart(key, part);
+  }
+
+  return null;
+}
+
+function renderProposalPart(key: string, proposal: ProposalView) {
   return (
-    <Card className="w-full bg-background/80">
-      <CardHeader className="gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle>Modeling proposal</CardTitle>
-          <Badge variant="secondary">
-            {proposal.source === 'final' ? 'Final' : 'Streaming'}
-          </Badge>
-        </div>
-        <CardDescription>
-          AI output is advisory and has not been applied.
-        </CardDescription>
-        {proposal.summary ? (
-          <p className="text-sm">{proposal.summary}</p>
-        ) : null}
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-          {CHANGE_KEYS.map((key) => (
-            <div className="rounded-lg border bg-muted/30 p-2" key={key}>
-              <dt className="text-muted-foreground">{key}</dt>
-              <dd className="font-medium">{proposal.changes[key].length}</dd>
-            </div>
-          ))}
-        </dl>
-
-        {addedNodes.length > 0 ? (
-          <section className="space-y-2">
-            <h4 className="font-medium text-sm">Proposed nodes</h4>
-            <ul className="space-y-2">
-              {addedNodes.map((node, index) => (
-                <li
-                  className="rounded-lg border p-2 text-sm"
-                  key={nodeId(node, index)}
-                >
-                  <div className="font-medium">{nodeName(node)}</div>
-                  {nodeLabel(node) ? (
-                    <div className="text-muted-foreground">
-                      {nodeLabel(node)}
-                    </div>
-                  ) : null}
-                  <div className="text-muted-foreground">{nodeType(node)}</div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {addedEdges.length > 0 ? (
-          <section className="space-y-2">
-            <h4 className="font-medium text-sm">Proposed edges</h4>
-            <ul className="space-y-2">
-              {addedEdges.map((edge, index) => (
-                <li
-                  className="rounded-lg border p-2 text-sm"
-                  key={edgeId(edge, index)}
-                >
-                  <div className="font-medium">{edgeEndpoints(edge)}</div>
-                  {stringValue(edge.relationType) ? (
-                    <div className="text-muted-foreground">
-                      {stringValue(edge.relationType)}
-                    </div>
-                  ) : null}
-                  {stringValue(edge.label) ? (
-                    <div>{stringValue(edge.label)}</div>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <details className="rounded-lg border p-2 text-sm">
-          <summary className="cursor-pointer font-medium">Raw JSON</summary>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs">
-            {proposal.rawText}
-          </pre>
-        </details>
-      </CardContent>
-    </Card>
+    <Tool defaultOpen key={key}>
+      <ToolHeader
+        state={
+          proposal.source === 'final' ? 'output-available' : 'input-available'
+        }
+        title={`Modeling proposal · ${proposal.source === 'final' ? 'Final' : 'Streaming'}`}
+        type="tool-diagram-model-proposal"
+      />
+      <ToolContent>
+        <ToolOutput
+          errorText={undefined}
+          output={
+            <MessageResponse>{proposalMarkdown(proposal)}</MessageResponse>
+          }
+        />
+        <CodeBlock code={proposal.rawText} language="json">
+          <CodeBlockHeader>
+            <CodeBlockTitle>
+              <CodeBlockFilename>proposal.json</CodeBlockFilename>
+            </CodeBlockTitle>
+            <CodeBlockActions>
+              <CodeBlockCopyButton />
+            </CodeBlockActions>
+          </CodeBlockHeader>
+        </CodeBlock>
+      </ToolContent>
+    </Tool>
   );
 }
 
-function ParsingFallback({ rawText }: { rawText: string }) {
+function renderToolPart(key: string, part: MessagePart) {
+  const tool = part as ToolPart;
+  const toolRecord = record(part) ?? {};
+  const state = toolState(toolRecord.state);
+  const type = stringValue(toolRecord.type) ?? 'dynamic-tool';
+  const isDynamicTool = type === 'dynamic-tool';
+
   return (
-    <Card className="w-full bg-background/80">
-      <CardHeader>
-        <CardTitle>Parsing streamed JSON…</CardTitle>
-        <CardDescription>
-          Waiting for the stream to form a ModelingProposal shape.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-muted p-3 text-xs">
-          {rawText || 'No assistant text received yet.'}
-        </pre>
-      </CardContent>
-    </Card>
+    <Tool defaultOpen={state.startsWith('output-')} key={key}>
+      {isDynamicTool ? (
+        <ToolHeader
+          state={state}
+          toolName={stringValue(toolRecord.toolName) ?? 'tool'}
+          type="dynamic-tool"
+        />
+      ) : (
+        <ToolHeader state={state} type={type as `tool-${string}`} />
+      )}
+      <ToolContent>
+        {'input' in tool ? <ToolInput input={tool.input} /> : null}
+        <ToolOutput errorText={tool.errorText} output={tool.output} />
+      </ToolContent>
+    </Tool>
   );
+}
+
+function renderDataPart(key: string, part: MessagePart) {
+  const partRecord = record(part);
+  const type = stringValue(partRecord?.type) ?? 'data';
+  const data = partRecord && 'data' in partRecord ? partRecord.data : part;
+
+  return (
+    <CodeBlock code={JSON.stringify(data, null, 2)} key={key} language="json">
+      <CodeBlockHeader>
+        <CodeBlockTitle>
+          <CodeBlockFilename>{type}.json</CodeBlockFilename>
+        </CodeBlockTitle>
+        <CodeBlockActions>
+          <CodeBlockCopyButton />
+        </CodeBlockActions>
+      </CodeBlockHeader>
+    </CodeBlock>
+  );
+}
+
+function proposalMarkdown(proposal: ProposalView): string {
+  const counts = CHANGE_KEYS.map(
+    (key) => `| ${key} | ${proposal.changes[key].length} |`,
+  ).join('\n');
+  const nodes = records(proposal.changes.addNodes)
+    .map(
+      (node) =>
+        `- **${nodeName(node)}**${nodeLabel(node) ? ` — ${nodeLabel(node)}` : ''} (${nodeType(node)})`,
+    )
+    .join('\n');
+  const edges = records(proposal.changes.addEdges)
+    .map(
+      (edge) =>
+        `- **${edgeEndpoints(edge)}**${stringValue(edge.relationType) ? ` — ${stringValue(edge.relationType)}` : ''}${stringValue(edge.label) ? `: ${stringValue(edge.label)}` : ''}`,
+    )
+    .join('\n');
+
+  return [
+    'AI output is advisory and has not been applied.',
+    proposal.summary,
+    '### Change counts',
+    '| Change | Count |',
+    '| --- | ---: |',
+    counts,
+    nodes ? `### Proposed nodes\n${nodes}` : null,
+    edges ? `### Proposed edges\n${edges}` : null,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 function proposalView(rawText: string): ProposalView | null {
-  if (!rawText.trim()) {
+  const trimmed = rawText.trim();
+  if (!trimmed || !trimmed.startsWith('{')) {
     return null;
   }
 
   let parsed: unknown;
   try {
-    parsed = parseJsonBestEffort(rawText);
+    parsed = parseJsonBestEffort(trimmed);
   } catch {
     return null;
   }
@@ -185,31 +265,29 @@ function proposalView(rawText: string): ProposalView | null {
   return proposalFromRecord(proposal, rawText, 'streaming');
 }
 
-function finalProposalView(message: Pick<UIMessage, 'parts'>): ProposalView | null {
-  const part = message.parts.find((part) => part.type === 'data-proposal');
-  if (!part || !('data' in part)) {
-    return null;
-  }
-
-  const proposal = record(part.data);
-  if (!proposal) {
+function finalProposalView(
+  message: Pick<UIMessage, 'parts'>,
+): ProposalView | null {
+  const part = message.parts.find(isProposalDataPart);
+  if (!part) {
     return null;
   }
 
   return proposalFromRecord(
-    proposal,
+    part.data,
     JSON.stringify(part.data, null, 2),
     'final',
   );
 }
 
 function proposalFromRecord(
-  proposal: Record<string, unknown>,
+  proposalValue: unknown,
   rawText: string,
   source: ProposalView['source'],
 ): ProposalView | null {
-  const changes = record(proposal.changes);
-  if (!changes) {
+  const proposal = record(proposalValue);
+  const changes = record(proposal?.changes);
+  if (!proposal || !changes) {
     return null;
   }
 
@@ -230,8 +308,24 @@ function messageText(message: Pick<UIMessage, 'parts'>): string {
     .trim();
 }
 
-function nodeId(node: Record<string, unknown>, index: number): string {
-  return stringValue(node.id) ?? `node-${index}`;
+function isProposalDataPart(
+  part: MessagePart,
+): part is MessagePart & { data: unknown; type: 'data-proposal' } {
+  return part.type === 'data-proposal' && 'data' in part;
+}
+
+function isDataPart(part: MessagePart): boolean {
+  return part.type.startsWith('data-') && 'data' in part;
+}
+
+function isToolPart(part: MessagePart): boolean {
+  return part.type === 'dynamic-tool' || part.type.startsWith('tool-');
+}
+
+function toolState(value: unknown): ToolState {
+  return TOOL_STATES.includes(value as ToolState)
+    ? (value as ToolState)
+    : 'input-available';
 }
 
 function nodeName(node: Record<string, unknown>): string {
@@ -251,10 +345,6 @@ function nodeType(node: Record<string, unknown>): string {
   const type = stringValue(data?.type) ?? 'unknown';
   const subType = stringValue(data?.subType) ?? stringValue(data?.sub_type);
   return subType ? `${type} / ${subType}` : type;
-}
-
-function edgeId(edge: Record<string, unknown>, index: number): string {
-  return stringValue(edge.id) ?? `edge-${index}`;
 }
 
 function edgeEndpoints(edge: Record<string, unknown>): string {
