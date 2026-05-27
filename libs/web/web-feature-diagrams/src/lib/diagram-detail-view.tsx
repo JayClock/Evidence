@@ -21,13 +21,8 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
-  Badge,
   Card,
-  CardAction,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -100,7 +95,7 @@ export function DiagramDetailView({
   return (
     <section className="flex min-h-0 h-full flex-1 flex-col gap-4">
       <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-col">
           {loading ? <DiagramLoading /> : null}
           {error ? (
             <Alert variant="destructive">
@@ -192,10 +187,10 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
 
   return (
     <Card className="min-h-0 flex-1">
-      <CardContent className="min-h-0 flex-1 p-0">
+      <CardContent className="flex min-h-0 flex-1 p-0">
         <div
           aria-label="Diagram canvas"
-          className="h-160 min-h-130 overflow-hidden rounded-b-xl bg-muted/20"
+          className="min-h-0 flex-1 overflow-hidden rounded-b-xl bg-muted/20"
         >
           <Canvas<DiagramCanvasNode, DiagramCanvasEdge>
             nodes={nodes}
@@ -398,14 +393,4 @@ function positiveNumber(value: number | null): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? value
     : null;
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
 }
