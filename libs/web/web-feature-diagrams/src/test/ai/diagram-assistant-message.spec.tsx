@@ -116,6 +116,32 @@ describe('DiagramAssistantMessage', () => {
     expect(textContentIncludes('Streaming proposal')).toBeTruthy();
   });
 
+  it('does not render tool input before streaming parameters are available', () => {
+    render(
+      <DiagramAssistantMessage
+        isStreaming
+        message={
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolCallId: 'submit-modeling-proposal-1',
+                toolName: 'submit_modeling_proposal',
+                state: 'input-streaming',
+                input: undefined,
+              },
+            ],
+          } as UIMessage
+        }
+      />,
+    );
+
+    expect(screen.getByText('submit_modeling_proposal')).toBeTruthy();
+    expect(screen.queryByText('Parameters')).toBeNull();
+  });
+
   it('renders ordinary assistant text as a message response', () => {
     render(
       <DiagramAssistantMessage

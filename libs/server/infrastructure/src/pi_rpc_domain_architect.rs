@@ -186,13 +186,13 @@ impl DomainArchitect for PiRpcDomainArchitect {
                                 yield ModelingEvent::ReasoningEnded;
                             }
                             Some("toolcall_start") => {
-                                let tool_call_id = tool_call_id(assistant_event);
+                                let tool_call_id = tool_call_id(assistant_event)?;
                                 let tool_name = tool_name(assistant_event);
                                 yield ModelingEvent::ToolCallStarted { tool_call_id, tool_name };
                             }
                             Some("toolcall_delta") => {
                                 if let Some(delta) = assistant_event.get("delta").and_then(Value::as_str) {
-                                    let tool_call_id = tool_call_id(assistant_event);
+                                    let tool_call_id = tool_call_id(assistant_event)?;
                                     let tool_name = tool_name(assistant_event);
                                     yield ModelingEvent::ToolCallDelta {
                                         tool_call_id,
@@ -203,11 +203,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
                             }
                             Some("toolcall_end") => {
                                 if let Some(tool_call) = assistant_event.get("toolCall") {
-                                    let tool_call_id = tool_call
-                                        .get("id")
-                                        .and_then(Value::as_str)
-                                        .map(str::to_string)
-                                        .unwrap_or_else(|| tool_call_id(assistant_event));
+                                    let tool_call_id = tool_call_id(assistant_event)?;
                                     let tool_name = tool_call
                                         .get("name")
                                         .and_then(Value::as_str)
@@ -228,21 +224,21 @@ impl DomainArchitect for PiRpcDomainArchitect {
                     }
                     Some("tool_execution_start") => {
                         yield ModelingEvent::ToolExecutionStarted {
-                            tool_call_id: event_string(&event, "toolCallId", "tool-call"),
+                            tool_call_id: required_event_string(&event, "toolCallId")?,
                             tool_name: event_string(&event, "toolName", "tool"),
                             args: event.get("args").cloned().unwrap_or(Value::Null),
                         };
                     }
                     Some("tool_execution_update") => {
                         yield ModelingEvent::ToolExecutionUpdated {
-                            tool_call_id: event_string(&event, "toolCallId", "tool-call"),
+                            tool_call_id: required_event_string(&event, "toolCallId")?,
                             tool_name: event_string(&event, "toolName", "tool"),
                             args: event.get("args").cloned().unwrap_or(Value::Null),
                             partial_result: event.get("partialResult").cloned().unwrap_or(Value::Null),
                         };
                     }
                     Some("tool_execution_end") => {
-                        let tool_call_id = event_string(&event, "toolCallId", "tool-call");
+                        let tool_call_id = required_event_string(&event, "toolCallId")?;
                         let tool_name = event_string(&event, "toolName", "tool");
                         let result = event.get("result").cloned().unwrap_or(Value::Null);
                         let is_error = event.get("isError").and_then(Value::as_bool).unwrap_or(false);
@@ -439,19 +435,35 @@ fn proposal_value_from_tool_result(result: &Value) -> Option<Value> {
         .cloned()
 }
 
-fn tool_call_id(assistant_event: &Value) -> String {
-    assistant_event
+fn tool_call_id(assistant_event: &Value) -> Result<String, ServerError> {
+    if let Some(id) = assistant_event
         .get("toolCall")
         .and_then(|tool_call| tool_call.get("id"))
         .and_then(Value::as_str)
-        .map(str::to_string)
-        .unwrap_or_else(|| {
-            let content_index = assistant_event
-                .get("contentIndex")
-                .and_then(Value::as_u64)
-                .unwrap_or(0);
-            format!("tool-call-{content_index}")
-        })
+    {
+        return Ok(id.to_string());
+    }
+
+    if let Some(id) = assistant_event.get("toolCallId").and_then(Value::as_str) {
+        return Ok(id.to_string());
+    }
+
+    if let Some(content_index) = assistant_event.get("contentIndex").and_then(Value::as_u64) {
+        if let Some(id) = assistant_event
+            .get("partial")
+            .and_then(|partial| partial.get("content"))
+            .and_then(Value::as_array)
+            .and_then(|content| content.get(content_index as usize))
+            .and_then(|tool_call| tool_call.get("id"))
+            .and_then(Value::as_str)
+        {
+            return Ok(id.to_string());
+        }
+    }
+
+    Err(ServerError::Internal(
+        "pi rpc tool call id missing".to_string(),
+    ))
 }
 
 fn tool_name(assistant_event: &Value) -> Option<String> {
@@ -461,6 +473,14 @@ fn tool_name(assistant_event: &Value) -> Option<String> {
         .and_then(Value::as_str)
         .or_else(|| assistant_event.get("toolName").and_then(Value::as_str))
         .map(str::to_string)
+}
+
+fn required_event_string(event: &Value, key: &str) -> Result<String, ServerError> {
+    event
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| ServerError::Internal(format!("pi rpc {key} missing")))
 }
 
 fn event_string(event: &Value, key: &str, fallback: &str) -> String {

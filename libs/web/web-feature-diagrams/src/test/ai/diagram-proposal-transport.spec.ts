@@ -138,16 +138,6 @@ describe('createDiagramProposalTransport', () => {
         dynamic: true,
       },
       {
-        type: 'tool-input-delta',
-        toolCallId: 'submit-modeling-proposal-1',
-        inputTextDelta: '{"summary":',
-      },
-      {
-        type: 'tool-input-delta',
-        toolCallId: 'submit-modeling-proposal-1',
-        inputTextDelta: '"Draft"}',
-      },
-      {
         type: 'tool-input-available',
         toolCallId: 'submit-modeling-proposal-1',
         toolName: 'submit_modeling_proposal',
@@ -211,16 +201,6 @@ describe('createDiagramProposalTransport', () => {
         toolCallId: 'call-1',
         toolName: 'bash',
         dynamic: true,
-      },
-      {
-        type: 'tool-input-delta',
-        toolCallId: 'call-1',
-        inputTextDelta: '{"command":',
-      },
-      {
-        type: 'tool-input-delta',
-        toolCallId: 'call-1',
-        inputTextDelta: '"ls"}',
       },
       {
         type: 'tool-input-available',
@@ -377,11 +357,6 @@ describe('createDiagramProposalTransport', () => {
         toolCallId: 'submit-modeling-proposal-1',
         toolName: 'submit_modeling_proposal',
         dynamic: true,
-      },
-      {
-        type: 'tool-input-delta',
-        toolCallId: 'submit-modeling-proposal-1',
-        inputTextDelta: '{"summary":"Done"}',
       },
       {
         type: 'tool-input-available',

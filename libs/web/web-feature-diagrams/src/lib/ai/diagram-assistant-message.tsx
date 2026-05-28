@@ -164,7 +164,7 @@ function renderToolPart(key: string, part: MessagePart) {
         <ToolHeader state={state} type={type as `tool-${string}`} />
       )}
       <ToolContent>
-        {'input' in tool ? <ToolInput input={tool.input} /> : null}
+        {tool.input !== undefined ? <ToolInput input={tool.input} /> : null}
         <ToolOutput errorText={tool.errorText} output={tool.output} />
       </ToolContent>
     </Tool>

@@ -259,14 +259,6 @@ function sseToUiMessageStream(
         }
 
         if (event.event === 'tool-call-delta') {
-          const tool = toolDeltaPayload(parseJsonValue(event.data));
-          if (tool && !availableToolInputs.has(tool.toolCallId)) {
-            controller.enqueue({
-              type: 'tool-input-delta',
-              toolCallId: tool.toolCallId,
-              inputTextDelta: tool.chunk,
-            });
-          }
           return;
         }
 
@@ -365,23 +357,6 @@ function toolPayload(payload: unknown): ToolPayload | null {
           : undefined,
     isError: booleanValue(value.isError),
   };
-}
-
-function toolDeltaPayload(
-  payload: unknown,
-): { toolCallId: string; chunk: string } | null {
-  const value = record(payload);
-  if (!value) {
-    return null;
-  }
-
-  const toolCallId = stringValue(value.toolCallId);
-  const chunk = stringValue(value.chunk);
-  if (!toolCallId || chunk === null) {
-    return null;
-  }
-
-  return { toolCallId, chunk };
 }
 
 function parseJsonValue(text: string): unknown {
