@@ -23,6 +23,9 @@
     },
     {
       "path": "./libs/web/web-feature-logical-entities"
+    },
+    {
+      "path": "./libs/contracts/api-contracts"
     }
   ]
 }

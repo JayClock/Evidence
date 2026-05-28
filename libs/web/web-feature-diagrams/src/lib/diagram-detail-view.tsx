@@ -246,7 +246,7 @@ function toCanvasNode(
   const nodeData: DiagramNodeData = {
     ...payload,
     definition: record(payload.definition),
-    id: resourceData.logicalEntity?.id ?? resourceData.id,
+    id: resourceData.id,
     label: firstString(payload, ['label', 'name', 'title']) ?? resourceData.id,
     name: firstString(payload, ['name', 'label', 'title']) ?? resourceData.id,
     subType: firstString(payload, ['subType', 'sub_type']),

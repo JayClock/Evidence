@@ -4,6 +4,7 @@ mod links;
 mod loaders;
 mod logical_entities;
 mod model;
+mod openapi;
 mod pagination;
 mod root;
 mod sidebar;
@@ -24,9 +25,12 @@ pub(super) struct AppState {
     pub domain_architect: Arc<dyn DomainArchitect>,
 }
 
+pub use openapi::{openapi, openapi_yaml};
+
 pub fn app(users: Arc<dyn Users>, domain_architect: Arc<dyn DomainArchitect>) -> Router {
     Router::new()
         .merge(root::routes())
+        .merge(openapi::routes())
         .merge(users::routes())
         .merge(user_workspaces::routes())
         .merge(workspace_members::routes())

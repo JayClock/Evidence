@@ -1,20 +1,24 @@
 import type { Collection, Entity } from '@hateoas-ts/resource';
 
+import type { components } from './openapi-schema.js';
+
 import type { DiagramCollectionResource } from './diagram-resource.js';
 import type { LogicalEntityCollectionResource } from './logical-entity-resource.js';
 import type { MemberCollectionResource } from './member-resource.js';
 import type { UserResource } from './user-resource.js';
 
+type WorkspaceResourceSchema = components['schemas']['WorkspaceResource'];
+type WorkspaceCollectionResourceSchema =
+  components['schemas']['WorkspaceCollectionResource'];
+
+export type WorkspaceResourceData = Omit<WorkspaceResourceSchema, '_links'>;
+export type WorkspaceCollectionResourceData = Omit<
+  WorkspaceCollectionResourceSchema,
+  '_links' | '_embedded'
+>;
+
 export type WorkspaceResource = Entity<
-  {
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    metadata: Record<string, string>;
-    createdAt: string;
-    updatedAt: string;
-  },
+  WorkspaceResourceData,
   {
     self: WorkspaceResource;
     user: UserResource;
@@ -27,14 +31,7 @@ export type WorkspaceResource = Entity<
 
 export type WorkspaceCollectionResource = Collection<WorkspaceResource> &
   Entity<
-    {
-      page: {
-        number: number;
-        size: number;
-        totalElements: number;
-        totalPages: number;
-      };
-    },
+    WorkspaceCollectionResourceData,
     {
       self: WorkspaceCollectionResource;
       user: UserResource;

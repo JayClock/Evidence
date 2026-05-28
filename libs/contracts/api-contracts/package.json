@@ -1,5 +1,5 @@
 {
-  "name": "@evidence/api-client",
+  "name": "@evidence/api-contracts",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,9 +13,5 @@
     },
     "./package.json": "./package.json"
   },
-  "dependencies": {
-    "@hateoas-ts/resource": "^1.4.3",
-    "@hateoas-ts/resource-react": "^1.4.3",
-    "openapi-fetch": "^0.17.0"
-  }
+  "dependencies": {}
 }

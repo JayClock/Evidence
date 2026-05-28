@@ -5,4 +5,4 @@ pub use evidence_server_persistent as persistent;
 
 pub mod api;
 
-pub use api::app;
+pub use api::{app, openapi, openapi_yaml};

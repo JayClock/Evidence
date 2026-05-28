@@ -1,71 +1,40 @@
 import type { Collection, Entity } from '@hateoas-ts/resource';
 
+import type { components } from './openapi-schema.js';
+
 import type { WorkspaceResource } from './workspace-resource.js';
 
-export type LogicalEntityType = 'EVIDENCE' | 'PARTICIPANT' | 'ROLE' | 'CONTEXT';
+type LogicalEntityResourceSchema =
+  components['schemas']['LogicalEntityResource'];
+type LogicalEntityCollectionResourceSchema =
+  components['schemas']['LogicalEntityCollectionResource'];
 
-export type EvidenceSubType =
-  | 'rfp'
-  | 'proposal'
-  | 'contract'
-  | 'fulfillment_request'
-  | 'fulfillment_confirmation'
-  | 'other_evidence';
-
-export type ParticipantSubType = 'party' | 'thing';
-
-export type RoleSubType =
-  | 'party'
-  | 'domain'
-  | '3rd system'
-  | 'context'
-  | 'evidence';
-
-export type ContextSubType = 'bounded_context';
-
-export type LogicalEntitySubType =
-  | `EVIDENCE:${EvidenceSubType}`
-  | `PARTICIPANT:${ParticipantSubType}`
-  | `ROLE:${RoleSubType}`
-  | `CONTEXT:${ContextSubType}`;
-
-export type EntityAttribute = {
-  id: string;
-  name: string;
-  label: string | null;
-  type: string | null;
-  description: string | null;
-  isBusinessKey: boolean;
-  relation: boolean;
-  visibility: string | null;
+export type LogicalEntityType = components['schemas']['LogicalEntityType'];
+export type LogicalEntitySubType = NonNullable<
+  LogicalEntityResourceSchema['subType']
+>;
+export type EvidenceSubType = string;
+export type ParticipantSubType = string;
+export type RoleSubType = string;
+export type ContextSubType = string;
+export type EntityAttribute = components['schemas']['EntityAttribute'];
+export type EntityBehavior = components['schemas']['EntityBehavior'];
+export type EntityDefinition = components['schemas']['EntityDefinition'];
+type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
+  [P in K]-?: Exclude<T[P], undefined>;
 };
 
-export type EntityBehavior = {
-  id: string;
-  name: string;
-  label: string | null;
-  description: string | null;
-  returnType: string | null;
-};
-
-export type EntityDefinition = {
-  description?: string | null;
-  tags: string[];
-  attributes: EntityAttribute[];
-  behaviors: EntityBehavior[];
-};
+export type LogicalEntityResourceData = RequiredNullable<
+  Omit<LogicalEntityResourceSchema, '_links'>,
+  'subType' | 'label' | 'definition'
+>;
+export type LogicalEntityCollectionResourceData = Omit<
+  LogicalEntityCollectionResourceSchema,
+  '_links' | '_embedded'
+>;
 
 export type LogicalEntityResource = Entity<
-  {
-    id: string;
-    type: LogicalEntityType;
-    subType: LogicalEntitySubType | null;
-    name: string;
-    label: string | null;
-    definition: EntityDefinition | null;
-    createdAt: string;
-    updatedAt: string;
-  },
+  LogicalEntityResourceData,
   {
     self: LogicalEntityResource;
     workspace: WorkspaceResource;
@@ -76,14 +45,7 @@ export type LogicalEntityResource = Entity<
 export type LogicalEntityCollectionResource =
   Collection<LogicalEntityResource> &
     Entity<
-      {
-        page: {
-          number: number;
-          size: number;
-          totalElements: number;
-          totalPages: number;
-        };
-      },
+      LogicalEntityCollectionResourceData,
       {
         self: LogicalEntityCollectionResource;
         workspace: WorkspaceResource;
