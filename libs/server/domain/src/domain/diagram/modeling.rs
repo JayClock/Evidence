@@ -88,11 +88,6 @@ pub enum ModelingEvent {
     TextChunk {
         chunk: String,
     },
-    StructuredChunk {
-        kind: String,
-        format: String,
-        chunk: String,
-    },
     ReasoningStarted,
     ReasoningChunk {
         chunk: String,

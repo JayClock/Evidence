@@ -578,13 +578,6 @@ pub struct ProposeModelInput {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct StructuredChunkPayload {
-    pub kind: String,
-    pub format: String,
-    pub chunk: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LogicalEntityType {
     Evidence,

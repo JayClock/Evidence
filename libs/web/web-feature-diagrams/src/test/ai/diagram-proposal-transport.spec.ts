@@ -82,10 +82,40 @@ describe('createDiagramProposalTransport', () => {
     );
   });
 
-  it('converts backend structured SSE events into data chunks', async () => {
+  it('converts backend proposal tool SSE events into AI SDK tool chunks', async () => {
+    const proposal = {
+      summary: 'Draft',
+      changes: {
+        addNodes: [],
+        updateNodes: [],
+        deleteNodes: [],
+        addEdges: [],
+        updateEdges: [],
+        deleteEdges: [],
+      },
+    };
     const fetch = vi.fn(async () =>
       sseResponse(
-        'data: {"summary":"Draft"}\n\nevent: structured\ndata: {"kind":"diagram-model","format":"json","chunk":"{\\"summary\\":\\"Draft\\"}"}\n\nevent: complete\ndata: \n\n',
+        [
+          'event: tool-call-start',
+          'data: {"toolCallId":"submit-modeling-proposal-1","toolName":"submit_modeling_proposal"}',
+          '',
+          'event: tool-call-delta',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', chunk: '{"summary":' })}`,
+          '',
+          'event: tool-call-delta',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', chunk: '"Draft"}' })}`,
+          '',
+          'event: tool-call',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', input: proposal })}`,
+          '',
+          'event: tool-execution-end',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', result: { details: { proposal } }, isError: false })}`,
+          '',
+          'event: complete',
+          'data: ',
+          '',
+        ].join('\n'),
       ),
     );
     const transport = createDiagramProposalTransport(diagramState(fetch));
@@ -102,12 +132,34 @@ describe('createDiagramProposalTransport', () => {
 
     expect(chunks).toEqual([
       {
-        type: 'data-structured',
-        data: {
-          kind: 'diagram-model',
-          format: 'json',
-          chunk: '{"summary":"Draft"}',
-        },
+        type: 'tool-input-start',
+        toolCallId: 'submit-modeling-proposal-1',
+        toolName: 'submit_modeling_proposal',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'submit-modeling-proposal-1',
+        inputTextDelta: '{"summary":',
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'submit-modeling-proposal-1',
+        inputTextDelta: '"Draft"}',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'submit-modeling-proposal-1',
+        toolName: 'submit_modeling_proposal',
+        input: proposal,
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'submit-modeling-proposal-1',
+        output: { details: { proposal } },
+        dynamic: true,
+        preliminary: false,
       },
       { type: 'finish', finishReason: 'stop' },
     ]);
@@ -195,10 +247,31 @@ describe('createDiagramProposalTransport', () => {
     ]);
   });
 
-  it('finishes after streamed structured proposal chunks without a separate final proposal event', async () => {
+  it('finishes after proposal tool output', async () => {
+    const proposal = {
+      summary: 'Streaming',
+      changes: {
+        addNodes: [],
+        updateNodes: [],
+        deleteNodes: [],
+        addEdges: [],
+        updateEdges: [],
+        deleteEdges: [],
+      },
+    };
     const fetch = vi.fn(async () =>
       sseResponse(
-        'data: {"summary":"Streaming"}\n\nevent: structured\ndata: {"kind":"diagram-model","format":"json","chunk":"{\\"summary\\":\\"Streaming\\"}"}\n\nevent: complete\ndata: \n\n',
+        [
+          'event: tool-call',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', input: proposal })}`,
+          '',
+          'event: tool-execution-end',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', result: { details: { proposal } }, isError: false })}`,
+          '',
+          'event: complete',
+          'data: ',
+          '',
+        ].join('\n'),
       ),
     );
     const transport = createDiagramProposalTransport(diagramState(fetch));
@@ -215,18 +288,35 @@ describe('createDiagramProposalTransport', () => {
 
     expect(chunks).toEqual([
       {
-        type: 'data-structured',
-        data: {
-          kind: 'diagram-model',
-          format: 'json',
-          chunk: '{"summary":"Streaming"}',
-        },
+        type: 'tool-input-available',
+        toolCallId: 'submit-modeling-proposal-1',
+        toolName: 'submit_modeling_proposal',
+        input: proposal,
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'submit-modeling-proposal-1',
+        output: { details: { proposal } },
+        dynamic: true,
+        preliminary: false,
       },
       { type: 'finish', finishReason: 'stop' },
     ]);
   });
 
   it('converts thinking SSE events into reasoning chunks', async () => {
+    const proposal = {
+      summary: 'Done',
+      changes: {
+        addNodes: [],
+        updateNodes: [],
+        deleteNodes: [],
+        addEdges: [],
+        updateEdges: [],
+        deleteEdges: [],
+      },
+    };
     const fetch = vi.fn(async () =>
       sseResponse(
         [
@@ -242,10 +332,14 @@ describe('createDiagramProposalTransport', () => {
           'event: thinking-end',
           'data: ',
           '',
-          'data: {"summary":"Done"}',
+          'event: tool-call-start',
+          'data: {"toolCallId":"submit-modeling-proposal-1","toolName":"submit_modeling_proposal"}',
           '',
-          'event: structured',
-          'data: {"kind":"diagram-model","format":"json","chunk":"{\\"summary\\":\\"Done\\"}"}',
+          'event: tool-call-delta',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', chunk: '{"summary":"Done"}' })}`,
+          '',
+          'event: tool-call',
+          `data: ${JSON.stringify({ toolCallId: 'submit-modeling-proposal-1', toolName: 'submit_modeling_proposal', input: proposal })}`,
           '',
           'event: complete',
           'data: ',
@@ -279,12 +373,22 @@ describe('createDiagramProposalTransport', () => {
       },
       { type: 'reasoning-end', id: 'diagram-model-thinking' },
       {
-        type: 'data-structured',
-        data: {
-          kind: 'diagram-model',
-          format: 'json',
-          chunk: '{"summary":"Done"}',
-        },
+        type: 'tool-input-start',
+        toolCallId: 'submit-modeling-proposal-1',
+        toolName: 'submit_modeling_proposal',
+        dynamic: true,
+      },
+      {
+        type: 'tool-input-delta',
+        toolCallId: 'submit-modeling-proposal-1',
+        inputTextDelta: '{"summary":"Done"}',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'submit-modeling-proposal-1',
+        toolName: 'submit_modeling_proposal',
+        input: proposal,
+        dynamic: true,
       },
       { type: 'finish', finishReason: 'stop' },
     ]);

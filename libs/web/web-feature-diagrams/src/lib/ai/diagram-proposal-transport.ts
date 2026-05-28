@@ -8,11 +8,6 @@ import type { DiagramResource, State } from '@evidence/api-client';
 
 const REASONING_PART_ID = 'diagram-model-thinking';
 
-type StructuredDataPayload = {
-  kind: string;
-  format: string;
-  chunk: string;
-};
 type SendMessagesOptions = Parameters<
   ChatTransport<UIMessage>['sendMessages']
 >[0];
@@ -250,17 +245,6 @@ function sseToUiMessageStream(
           return;
         }
 
-        if (event.event === 'structured') {
-          const payload = structuredPayload(parseJsonValue(event.data));
-          if (payload) {
-            controller.enqueue({
-              type: 'data-structured',
-              data: payload,
-            });
-          }
-          return;
-        }
-
         if (event.event === 'tool-call-start') {
           const tool = toolPayload(parseJsonValue(event.data));
           if (tool && !availableToolInputs.has(tool.toolCallId)) {
@@ -356,22 +340,6 @@ type ToolPayload = {
   output: unknown;
   isError: boolean;
 };
-
-function structuredPayload(payload: unknown): StructuredDataPayload | null {
-  const value = record(payload);
-  if (!value) {
-    return null;
-  }
-
-  const kind = stringValue(value.kind);
-  const format = stringValue(value.format);
-  const chunk = typeof value.chunk === 'string' ? value.chunk : null;
-  if (!kind || !format || chunk === null) {
-    return null;
-  }
-
-  return { kind, format, chunk };
-}
 
 function toolPayload(payload: unknown): ToolPayload | null {
   const value = record(payload);

@@ -12,14 +12,20 @@ function assistantMessage(text: string): UIMessage {
   };
 }
 
-function assistantStructuredMessage(chunks: string[]): UIMessage {
+function assistantProposalToolMessage(proposal: unknown): UIMessage {
   return {
     id: 'assistant-1',
     role: 'assistant',
-    parts: chunks.map((chunk) => ({
-      type: 'data-structured',
-      data: { kind: 'diagram-model', format: 'json', chunk },
-    })),
+    parts: [
+      {
+        type: 'dynamic-tool',
+        toolCallId: 'submit-modeling-proposal-1',
+        toolName: 'submit_modeling_proposal',
+        state: 'output-available',
+        input: proposal,
+        output: { details: { proposal } },
+      },
+    ],
   } as UIMessage;
 }
 
@@ -34,41 +40,43 @@ function textContentIncludes(text: string): boolean {
 }
 
 describe('DiagramAssistantMessage', () => {
-  it('renders streamed partial JSON as a modeling proposal tool block', () => {
+  it('renders proposal tool output as a modeling proposal block after streaming', () => {
     render(
       <DiagramAssistantMessage
-        message={assistantMessage(`{
-          "summary": "Create a sales contract fulfillment model",
-          "changes": {
-            "addNodes": [
+        message={assistantProposalToolMessage({
+          summary: 'Structured proposal',
+          changes: {
+            addNodes: [
               {
-                "id": "node-1",
-                "data": {
-                  "name": "SalesContract",
-                  "label": "销售合同",
-                  "type": "EVIDENCE",
-                  "subType": "contract"
-                }
-              }
+                id: 'node-1',
+                data: {
+                  name: 'SalesContract',
+                  label: '销售合同',
+                  type: 'EVIDENCE',
+                  subType: 'contract',
+                },
+              },
             ],
-            "addEdges": [
+            updateNodes: [],
+            deleteNodes: [],
+            addEdges: [
               {
-                "id": "edge-1",
-                "source": { "id": "node-1" },
-                "target": { "id": "node-2" },
-                "relationType": "evidence_flow",
-                "label": "creates"
-              }
-            ]`)}
+                id: 'edge-1',
+                source: { id: 'node-1' },
+                target: { id: 'node-2' },
+                relationType: 'evidence_flow',
+                label: 'creates',
+              },
+            ],
+            updateEdges: [],
+            deleteEdges: [],
+          },
+        })}
       />,
     );
 
     expect(screen.getByText('Modeling proposal')).toBeTruthy();
-    expect(
-      screen.getByText('Create a sales contract fulfillment model'),
-    ).toBeTruthy();
-    expect(textContentIncludes('addNodes')).toBeTruthy();
-    expect(textContentIncludes('addEdges')).toBeTruthy();
+    expect(screen.getByText('Structured proposal')).toBeTruthy();
     expect(textContentIncludes('SalesContract')).toBeTruthy();
     expect(textContentIncludes('销售合同')).toBeTruthy();
     expect(textContentIncludes('EVIDENCE / contract')).toBeTruthy();
@@ -78,59 +86,33 @@ describe('DiagramAssistantMessage', () => {
       screen.getByText('AI output is advisory and has not been applied.'),
     ).toBeTruthy();
     expect(screen.getByText('proposal.json')).toBeTruthy();
+    expect(screen.queryByText('dynamic-tool.json')).toBeNull();
   });
 
-  it('renders structured JSON chunks as a proposal tool block after streaming', () => {
-    render(
-      <DiagramAssistantMessage
-        message={assistantStructuredMessage([
-          '{"summary":"Structured proposal","changes":{"addNodes":[',
-          '{"id":"node-1","data":{"name":"SalesContract","label":"销售合同","type":"EVIDENCE","subType":"contract"}}',
-          '],"updateNodes":[],"deleteNodes":[],"addEdges":[],"updateEdges":[],"deleteEdges":[]}}',
-        ])}
-      />,
-    );
-
-    expect(screen.getByText('Modeling proposal')).toBeTruthy();
-    expect(screen.getByText('Structured proposal')).toBeTruthy();
-    expect(textContentIncludes('SalesContract')).toBeTruthy();
-    expect(screen.queryByText('data-structured.json')).toBeNull();
-  });
-
-  it('shows a lightweight status while structured JSON is streaming', () => {
+  it('renders proposal tool calls with standard tool input while streaming', () => {
     render(
       <DiagramAssistantMessage
         isStreaming
-        message={assistantStructuredMessage([
-          '{"summary":"Streaming structured proposal"',
-        ])}
+        message={
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'dynamic-tool',
+                toolCallId: 'submit-modeling-proposal-1',
+                toolName: 'submit_modeling_proposal',
+                state: 'input-streaming',
+                input: { summary: 'Streaming proposal' },
+              },
+            ],
+          } as UIMessage
+        }
       />,
     );
 
-    expect(screen.getByText('正在生成 proposal JSON…')).toBeTruthy();
-    expect(screen.queryByText(/Streaming structured proposal/)).toBeNull();
-    expect(screen.queryByText('data-structured.json')).toBeNull();
-  });
-
-  it('keeps proposal JSON as text while it is streaming', () => {
-    render(
-      <DiagramAssistantMessage
-        isStreaming
-        message={assistantMessage(`{
-          "summary": "Streaming proposal",
-          "changes": {
-            "addNodes": [],
-            "updateNodes": [],
-            "deleteNodes": [],
-            "addEdges": [],
-            "updateEdges": [],
-            "deleteEdges": []
-          }
-        }`)}
-      />,
-    );
-
-    expect(screen.queryByText(/Modeling proposal/)).toBeNull();
+    expect(screen.getByText('submit_modeling_proposal')).toBeTruthy();
+    expect(screen.getByText('Parameters')).toBeTruthy();
     expect(textContentIncludes('Streaming proposal')).toBeTruthy();
   });
 

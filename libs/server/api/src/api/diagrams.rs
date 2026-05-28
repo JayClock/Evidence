@@ -6,7 +6,7 @@ use axum::{
     Json, Router,
 };
 use futures_util::StreamExt;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::domain::{
@@ -109,14 +109,6 @@ struct CommitDraftInput {
 #[serde(rename_all = "camelCase")]
 struct ProposeModelInput {
     requirement: String,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct StructuredChunkPayload {
-    kind: String,
-    format: String,
-    chunk: String,
 }
 
 fn empty_object() -> Value {
@@ -505,13 +497,6 @@ async fn propose_model(
             match event {
                 Ok(ModelingEvent::TextChunk { chunk }) => {
                     yield Ok(Event::default().data(chunk));
-                }
-                Ok(ModelingEvent::StructuredChunk { kind, format, chunk }) => {
-                    let payload = StructuredChunkPayload { kind, format, chunk };
-                    match serde_json::to_string(&payload) {
-                        Ok(data) => yield Ok(Event::default().event("structured").data(data)),
-                        Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize structured chunk: {error}"))),
-                    }
                 }
                 Ok(ModelingEvent::ReasoningStarted) => {
                     yield Ok(Event::default().event("thinking-start").data(""));

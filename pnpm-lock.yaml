@@ -317,9 +317,6 @@ importers:
       ai:
         specifier: ^6.0.191
         version: 6.0.191(zod@4.4.3)
-      best-effort-json-parser:
-        specifier: ^1.4.1
-        version: 1.4.1
       react-router-dom:
         specifier: 6.30.3
         version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -7073,12 +7070,6 @@ packages:
     resolution:
       {
         integrity: sha512-x+VAiMRL6UPkx+kudNvxTl6hB2XNNCG2r+7wixVfIYwu/2HKRXimwQyaumLjMveWvT2Hkd/cAJw+QBMfJ/EKVw==,
-      }
-
-  best-effort-json-parser@1.4.1:
-    resolution:
-      {
-        integrity: sha512-1e2yvg4LieOlqDw7rAOvHetMJeJ2sGezLX/2Ma0oykFd8TMfMxdDBzNUXjISPeMZAHe5CCvPRJtHmISoTC6MsA==,
       }
 
   big.js@5.2.2:
@@ -21211,8 +21202,6 @@ snapshots:
 
   batch@0.6.1:
     optional: true
-
-  best-effort-json-parser@1.4.1: {}
 
   big.js@5.2.2:
     optional: true
