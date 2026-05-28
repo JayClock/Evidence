@@ -129,4 +129,7 @@ pub enum ModelingEvent {
         result: Value,
         is_error: bool,
     },
+    MessageEnded,
+    AgentEnded,
+    Completed,
 }

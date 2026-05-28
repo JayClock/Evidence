@@ -499,6 +499,7 @@ async fn propose_model(
 
     let stream = async_stream::stream! {
         let mut had_error = false;
+        let mut completed = false;
 
         while let Some(event) = events.next().await {
             match event {
@@ -557,6 +558,16 @@ async fn propose_model(
                         Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool execution end: {error}"))),
                     }
                 }
+                Ok(ModelingEvent::MessageEnded) => {
+                    yield Ok(Event::default().event("message-end").data(""));
+                }
+                Ok(ModelingEvent::AgentEnded) => {
+                    yield Ok(Event::default().event("agent-end").data(""));
+                }
+                Ok(ModelingEvent::Completed) => {
+                    completed = true;
+                    yield Ok(Event::default().event("complete").data(""));
+                }
                 Err(error) => {
                     had_error = true;
                     yield Ok(Event::default().event("error").data(error.to_string()));
@@ -565,7 +576,7 @@ async fn propose_model(
             }
         }
 
-        if !had_error {
+        if !had_error && !completed {
             yield Ok(Event::default().event("complete").data(""));
         }
     };

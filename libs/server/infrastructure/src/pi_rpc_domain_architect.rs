@@ -101,6 +101,8 @@ impl DomainArchitect for PiRpcDomainArchitect {
             let mut assistant_text = String::new();
             let mut emitted_text = false;
             let mut accepted = false;
+            let mut saw_message_end = false;
+            let mut saw_agent_end = false;
 
             loop {
                 let maybe_line = time::timeout(config.timeout, lines.next_line())
@@ -225,6 +227,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
                         };
                     }
                     Some("message_end") => {
+                        saw_message_end = true;
                         if assistant_text.trim().is_empty() {
                             assistant_text.push_str(&extract_message_text(
                                 event.get("message").unwrap_or(&Value::Null),
@@ -232,6 +235,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
                         }
                     }
                     Some("agent_end") => {
+                        saw_agent_end = true;
                         if assistant_text.trim().is_empty() {
                             assistant_text.push_str(&extract_agent_end_text(&event));
                         }
@@ -268,6 +272,14 @@ impl DomainArchitect for PiRpcDomainArchitect {
                     chunk: assistant_text,
                 };
             }
+
+            if saw_message_end {
+                yield ModelingEvent::MessageEnded;
+            }
+            if saw_agent_end {
+                yield ModelingEvent::AgentEnded;
+            }
+            yield ModelingEvent::Completed;
         })
     }
 }
