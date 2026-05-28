@@ -497,6 +497,8 @@ async fn propose_model(
         diagram.propose_model_stream(input.requirement, state.domain_architect.as_ref());
 
     let stream = async_stream::stream! {
+        let mut had_error = false;
+
         while let Some(event) = events.next().await {
             match event {
                 Ok(ModelingEvent::TextChunk { chunk }) => {
@@ -554,14 +556,16 @@ async fn propose_model(
                         Err(error) => yield Ok(Event::default().event("error").data(format!("failed to serialize tool execution end: {error}"))),
                     }
                 }
-                Ok(ModelingEvent::ProposalReady { proposal: _ }) => {
-                    yield Ok(Event::default().event("complete").data(""));
-                }
                 Err(error) => {
+                    had_error = true;
                     yield Ok(Event::default().event("error").data(error.to_string()));
                     break;
                 }
             }
+        }
+
+        if !had_error {
+            yield Ok(Event::default().event("complete").data(""));
         }
     };
 

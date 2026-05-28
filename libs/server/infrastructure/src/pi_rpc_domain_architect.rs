@@ -58,16 +58,15 @@ impl PiRpcDomainArchitect {
 impl DomainArchitect for PiRpcDomainArchitect {
     async fn propose_model(&self, requirement: String) -> Result<ModelingProposal, ServerError> {
         let mut stream = self.propose_model_stream(requirement);
+        let mut assistant_text = String::new();
 
         while let Some(event) = stream.next().await {
-            if let ModelingEvent::ProposalReady { proposal } = event? {
-                return Ok(proposal);
+            if let ModelingEvent::TextChunk { chunk } = event? {
+                assistant_text.push_str(&chunk);
             }
         }
 
-        Err(ServerError::Internal(
-            "pi rpc stream ended before returning a modeling proposal".to_string(),
-        ))
+        parse_modeling_proposal(&assistant_text)
     }
 
     fn propose_model_stream(&self, requirement: String) -> DomainArchitectEventStream {
@@ -116,6 +115,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
 
             let mut lines = BufReader::new(stdout).lines();
             let mut assistant_text = String::new();
+            let mut emitted_text = false;
             let mut accepted = false;
 
             loop {
@@ -159,6 +159,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
                             Some("text_delta") => {
                                 if let Some(delta) = assistant_event.get("delta").and_then(Value::as_str) {
                                     assistant_text.push_str(delta);
+                                    emitted_text = true;
                                     yield ModelingEvent::TextChunk { chunk: delta.to_string() };
                                     yield ModelingEvent::StructuredChunk {
                                         kind: "diagram-model".to_string(),
@@ -271,9 +272,18 @@ impl DomainArchitect for PiRpcDomainArchitect {
                 ))?;
             }
 
-            yield ModelingEvent::ProposalReady {
-                proposal: parse_modeling_proposal(&assistant_text)?,
-            };
+            let _proposal = parse_modeling_proposal(&assistant_text)?;
+
+            if !emitted_text {
+                yield ModelingEvent::TextChunk {
+                    chunk: assistant_text.clone(),
+                };
+                yield ModelingEvent::StructuredChunk {
+                    kind: "diagram-model".to_string(),
+                    format: "json".to_string(),
+                    chunk: assistant_text,
+                };
+            }
         })
     }
 }
