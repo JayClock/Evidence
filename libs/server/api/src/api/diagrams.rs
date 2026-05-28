@@ -492,9 +492,10 @@ async fn propose_model(
         return Err(ServerError::Validation("requirement is required".to_string()).into());
     }
 
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let mut events =
-        diagram.propose_model_stream(input.requirement, state.domain_architect.as_ref());
+    load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let mut events = state
+        .domain_architect
+        .propose_model_stream(input.requirement);
 
     let stream = async_stream::stream! {
         let mut had_error = false;

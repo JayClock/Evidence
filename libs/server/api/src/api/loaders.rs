@@ -25,22 +25,13 @@ pub(super) async fn find_workspace(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::{DomainArchitect, DomainArchitectEventStream, ModelingProposal};
+    use crate::domain::{DomainArchitect, DomainArchitectEventStream};
     use crate::persistent::test_support::FakeUsers;
-    use async_trait::async_trait;
     use std::sync::Arc;
 
     struct NoopDomainArchitect;
 
-    #[async_trait]
     impl DomainArchitect for NoopDomainArchitect {
-        async fn propose_model(
-            &self,
-            _requirement: String,
-        ) -> Result<ModelingProposal, ServerError> {
-            Err(ServerError::Internal("not implemented".to_string()))
-        }
-
         fn propose_model_stream(&self, _requirement: String) -> DomainArchitectEventStream {
             Box::pin(futures_util::stream::empty())
         }

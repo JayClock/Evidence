@@ -1,11 +1,9 @@
 use std::{process::Stdio, time::Duration};
 
 use async_stream::try_stream;
-use async_trait::async_trait;
 use evidence_server_domain::{
     DomainArchitect, DomainArchitectEventStream, ModelingEvent, ModelingProposal, ServerError,
 };
-use futures_util::StreamExt;
 use serde_json::{json, Value};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -54,21 +52,7 @@ impl PiRpcDomainArchitect {
     }
 }
 
-#[async_trait]
 impl DomainArchitect for PiRpcDomainArchitect {
-    async fn propose_model(&self, requirement: String) -> Result<ModelingProposal, ServerError> {
-        let mut stream = self.propose_model_stream(requirement);
-        let mut assistant_text = String::new();
-
-        while let Some(event) = stream.next().await {
-            if let ModelingEvent::TextChunk { chunk } = event? {
-                assistant_text.push_str(&chunk);
-            }
-        }
-
-        parse_modeling_proposal(&assistant_text)
-    }
-
     fn propose_model_stream(&self, requirement: String) -> DomainArchitectEventStream {
         let config = self.config.clone();
 
