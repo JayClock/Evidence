@@ -1,3 +1,4 @@
+import { format, isValid, parseISO } from 'date-fns';
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -239,11 +240,11 @@ function formatSubType(value: string | null) {
 }
 
 function formatDateTime(value: string) {
-  const date = new Date(value);
+  const date = parseISO(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!isValid(date)) {
     return value;
   }
 
-  return date.toLocaleString();
+  return format(date, 'yyyy-MM-dd HH:mm:ss');
 }

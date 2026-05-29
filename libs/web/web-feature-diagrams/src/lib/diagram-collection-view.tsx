@@ -1,3 +1,4 @@
+import { format, isValid, parseISO } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -239,11 +240,11 @@ function errorMessage(caught: unknown): string {
 }
 
 function formatDateTime(value: string) {
-  const date = new Date(value);
+  const date = parseISO(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!isValid(date)) {
     return value;
   }
 
-  return date.toLocaleString();
+  return format(date, 'yyyy-MM-dd HH:mm:ss');
 }

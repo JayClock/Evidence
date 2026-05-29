@@ -17,6 +17,7 @@
     "@evidence/ui": "workspace:*",
     "@xyflow/react": "^12.10.2",
     "ai": "^6.0.191",
+    "date-fns": "^4.4.0",
     "react-router-dom": "6.30.3"
   }
 }

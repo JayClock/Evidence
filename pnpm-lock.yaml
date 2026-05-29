@@ -317,6 +317,9 @@ importers:
       ai:
         specifier: ^6.0.191
         version: 6.0.191(zod@4.4.3)
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
       react-router-dom:
         specifier: 6.30.3
         version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -329,6 +332,9 @@ importers:
       '@evidence/ui':
         specifier: workspace:*
         version: link:../ui
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
       react-router-dom:
         specifier: 6.30.3
         version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -8275,6 +8281,12 @@ packages:
     resolution:
       {
         integrity: sha512-98IT+HOahAisibz/yjKbzuOBwYcjJ7BCLPzARyHiyEBmRz4fatF+KPJszEHXsGYjUG234aH/cOjW1wwTbKUZlA==,
+      }
+
+  date-fns@4.4.0:
+    resolution:
+      {
+        integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==,
       }
 
   debug@2.6.9:
@@ -21982,6 +21994,8 @@ snapshots:
       is-data-view: 1.0.2
 
   dayjs@1.11.21: {}
+
+  date-fns@4.4.0: {}
 
   debug@2.6.9:
     dependencies:

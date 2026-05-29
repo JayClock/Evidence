@@ -14,6 +14,7 @@
   "dependencies": {
     "@evidence/api-client": "workspace:*",
     "@evidence/ui": "workspace:*",
+    "date-fns": "^4.4.0",
     "react-router-dom": "6.30.3"
   }
 }
