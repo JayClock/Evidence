@@ -1205,9 +1205,8 @@ pub(crate) mod contracts {
     use std::collections::HashMap;
 
     use crate::domain::{
-        EntityDefinition, LogicalEntityDescription, LogicalEntityType,
-        LogicalRelationshipDescription, MemberDescription, Ref, ServerError, Users,
-        WorkspaceDescription,
+        LogicalEntityDescription, LogicalEntityType, LogicalRelationshipDescription,
+        MemberDescription, Ref, ServerError, Users, WorkspaceDescription,
     };
 
     pub(crate) async fn user_sees_seed_workspace(users: &dyn Users) {
@@ -1294,7 +1293,8 @@ pub(crate) mod contracts {
                 sub_type: Some("contract".to_string()),
                 name: "SalesContract".to_string(),
                 label: Some("销售合同".to_string()),
-                definition: None,
+                description: None,
+                attributes: vec![],
                 created_at: String::new(),
                 updated_at: String::new(),
             })
@@ -1308,7 +1308,8 @@ pub(crate) mod contracts {
                 sub_type: Some("fulfillment_request".to_string()),
                 name: "DeliveryRequest".to_string(),
                 label: Some("交付请求".to_string()),
-                definition: None,
+                description: None,
+                attributes: vec![],
                 created_at: String::new(),
                 updated_at: String::new(),
             })
@@ -1392,12 +1393,8 @@ pub(crate) mod contracts {
                 sub_type: Some("EVIDENCE:rfp".to_string()),
                 name: "Order".to_string(),
                 label: Some("订单".to_string()),
-                definition: Some(EntityDefinition {
-                    description: Some("订单业务定义".to_string()),
-                    tags: vec!["Core".to_string()],
-                    attributes: vec![],
-                    behaviors: vec![],
-                }),
+                description: Some("订单业务定义".to_string()),
+                attributes: vec![],
                 created_at: String::new(),
                 updated_at: String::new(),
             })
@@ -1431,7 +1428,8 @@ pub(crate) mod contracts {
                     sub_type: Some("proposal".to_string()),
                     name: "OrderProposal".to_string(),
                     label: Some("订单提案".to_string()),
-                    definition: None,
+                    description: None,
+                    attributes: vec![],
                     created_at: String::new(),
                     updated_at: String::new(),
                 },

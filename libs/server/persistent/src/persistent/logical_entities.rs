@@ -3,12 +3,12 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
     QuerySelect, Set,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::domain::{
-    normalize_sub_type, HasMany, LogicalEntity, LogicalEntityDescription, LogicalEntityType, Ref,
-    ServerError, WorkspaceLogicalEntities,
+    normalize_sub_type, EntityAttribute, HasMany, LogicalEntity, LogicalEntityDescription,
+    LogicalEntityType, Ref, ServerError, WorkspaceLogicalEntities,
 };
 
 use super::{
@@ -78,6 +78,7 @@ impl HasMany<LogicalEntity> for DbWorkspaceLogicalEntities {
 #[async_trait]
 impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
     async fn add(&self, desc: LogicalEntityDescription) -> Result<LogicalEntity, ServerError> {
+        let definition = entity_definition_to_json(&desc);
         let entity_type = desc.entity_type.clone();
         let sub_type = normalize_sub_type(&entity_type, desc.sub_type)?;
         let name = normalize_name(desc.name)?;
@@ -91,7 +92,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
             sub_type: Set(sub_type),
             name: Set(name),
             label: Set(desc.label),
-            definition: Set(to_json_value(&desc.definition)),
+            definition: Set(definition),
             created_at: Set(timestamp.clone()),
             updated_at: Set(timestamp),
             deleted_at: Set(None),
@@ -113,6 +114,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
         let model = self.find_model(entity_id).await?.ok_or_else(|| {
             ServerError::NotFound(format!("logical entity {entity_id} not found"))
         })?;
+        let definition = entity_definition_to_json(&desc);
         let entity_type = desc.entity_type.clone();
         let sub_type = normalize_sub_type(&entity_type, desc.sub_type)?;
         let mut active: logical_entities::ActiveModel = model.into();
@@ -120,7 +122,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
         active.sub_type = Set(sub_type);
         active.name = Set(normalize_name(desc.name)?);
         active.label = Set(desc.label);
-        active.definition = Set(to_json_value(&desc.definition));
+        active.definition = Set(definition);
         active.updated_at = Set(now());
         let updated = active.update(self.store.db()).await.map_err(db_error)?;
         Ok(self.assemble(updated))
@@ -158,6 +160,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
 pub(super) fn entity_from_model(model: logical_entities::Model) -> LogicalEntity {
     let entity_type = LogicalEntityType::try_from(model.entity_type.as_str())
         .unwrap_or(LogicalEntityType::Evidence);
+    let definition = entity_definition_from_json(model.definition);
     LogicalEntity::new(
         model.id,
         LogicalEntityDescription {
@@ -166,7 +169,8 @@ pub(super) fn entity_from_model(model: logical_entities::Model) -> LogicalEntity
             sub_type: model.sub_type,
             name: model.name,
             label: model.label,
-            definition: from_json_value(model.definition),
+            description: definition.description,
+            attributes: definition.attributes,
             created_at: model.created_at,
             updated_at: model.updated_at,
         },
@@ -183,14 +187,22 @@ fn normalize_name(name: String) -> Result<String, ServerError> {
     Ok(name)
 }
 
-fn to_json_value<T: Serialize>(value: &T) -> sea_orm::JsonValue {
-    serde_json::to_value(value).unwrap_or(serde_json::Value::Null)
+#[derive(Debug, Default, Serialize, Deserialize)]
+struct StoredEntityDefinition {
+    description: Option<String>,
+    #[serde(default)]
+    attributes: Vec<EntityAttribute>,
 }
 
-fn from_json_value<T>(value: sea_orm::JsonValue) -> T
-where
-    T: DeserializeOwned + Default,
-{
+fn entity_definition_to_json(desc: &LogicalEntityDescription) -> sea_orm::JsonValue {
+    serde_json::to_value(StoredEntityDefinition {
+        description: desc.description.clone(),
+        attributes: desc.attributes.clone(),
+    })
+    .unwrap_or(serde_json::Value::Null)
+}
+
+fn entity_definition_from_json(value: sea_orm::JsonValue) -> StoredEntityDefinition {
     serde_json::from_value(value).unwrap_or_default()
 }
 
@@ -210,9 +222,7 @@ mod tests {
             label: Some("订单".to_string()),
             definition: json!({
                 "description": "订单业务定义",
-                "tags": ["Core"],
-                "attributes": [],
-                "behaviors": []
+                "attributes": []
             }),
             created_at: "created".to_string(),
             updated_at: "updated".to_string(),
@@ -228,11 +238,7 @@ mod tests {
         assert_eq!(entity.description().sub_type.as_deref(), Some("rfp"));
         assert_eq!(entity.description().name, "Order");
         assert_eq!(
-            entity
-                .description()
-                .definition
-                .as_ref()
-                .and_then(|definition| definition.description.as_deref()),
+            entity.description().description.as_deref(),
             Some("订单业务定义")
         );
     }

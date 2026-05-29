@@ -46,30 +46,27 @@ describe('DiagramAssistantMessage', () => {
         message={assistantProposalToolMessage({
           summary: 'Structured proposal',
           changes: {
-            addNodes: [
+            addEntities: [
               {
-                id: 'node-1',
-                data: {
-                  name: 'SalesContract',
-                  label: '销售合同',
-                  type: 'EVIDENCE',
-                  subType: 'contract',
-                },
+                id: 'entity-1',
+                name: 'SalesContract',
+                label: '销售合同',
+                type: 'EVIDENCE',
+                subType: 'contract',
               },
             ],
-            updateNodes: [],
-            deleteNodes: [],
-            addEdges: [
+            updateEntities: [],
+            deleteEntities: [],
+            addRelationships: [
               {
-                id: 'edge-1',
-                source: { id: 'node-1' },
-                target: { id: 'node-2' },
-                relationType: 'evidence_flow',
+                id: 'relationship-1',
+                source: { id: 'entity-1' },
+                target: { id: 'entity-2' },
                 label: 'creates',
               },
             ],
-            updateEdges: [],
-            deleteEdges: [],
+            updateRelationships: [],
+            deleteRelationships: [],
           },
         })}
       />,
@@ -80,8 +77,8 @@ describe('DiagramAssistantMessage', () => {
     expect(textContentIncludes('SalesContract')).toBeTruthy();
     expect(textContentIncludes('销售合同')).toBeTruthy();
     expect(textContentIncludes('EVIDENCE / contract')).toBeTruthy();
-    expect(textContentIncludes('node-1 → node-2')).toBeTruthy();
-    expect(textContentIncludes('evidence_flow')).toBeTruthy();
+    expect(textContentIncludes('entity-1 → entity-2')).toBeTruthy();
+    expect(textContentIncludes('creates')).toBeTruthy();
     expect(
       screen.getByText('AI output is advisory and has not been applied.'),
     ).toBeTruthy();

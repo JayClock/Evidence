@@ -147,12 +147,8 @@ describeContracts('Evidence API contract vertical slice', () => {
           subType: 'EVIDENCE:rfp',
           name: uniqueName('RequestForProposal'),
           label: 'RFP',
-          definition: {
-            description: 'Evidence definition',
-            tags: ['contract-test'],
-            attributes: [],
-            behaviors: [],
-          },
+          description: 'Evidence definition',
+          attributes: [],
         }),
       },
     );

@@ -97,8 +97,6 @@ pub fn openapi_yaml() -> String {
         EdgeInput,
         EdgeResource,
         EntityAttribute,
-        EntityBehavior,
-        EntityDefinition,
         ErrorBody,
         HealthResource,
         Link,
@@ -596,27 +594,6 @@ pub struct EntityAttribute {
     #[serde(rename = "type")]
     pub attribute_type: Option<String>,
     pub description: Option<String>,
-    pub is_business_key: bool,
-    pub relation: bool,
-    pub visibility: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EntityBehavior {
-    pub id: String,
-    pub name: String,
-    pub label: Option<String>,
-    pub description: Option<String>,
-    pub return_type: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct EntityDefinition {
-    pub description: Option<String>,
-    pub tags: Vec<String>,
-    pub attributes: Vec<EntityAttribute>,
-    pub behaviors: Vec<EntityBehavior>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -627,7 +604,8 @@ pub struct CreateLogicalEntityInput {
     pub sub_type: Option<String>,
     pub name: String,
     pub label: Option<String>,
-    pub definition: Option<EntityDefinition>,
+    pub description: Option<String>,
+    pub attributes: Vec<EntityAttribute>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -638,7 +616,8 @@ pub struct UpdateLogicalEntityInput {
     pub sub_type: Option<String>,
     pub name: Option<String>,
     pub label: Option<String>,
-    pub definition: Option<EntityDefinition>,
+    pub description: Option<String>,
+    pub attributes: Option<Vec<EntityAttribute>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -652,7 +631,8 @@ pub struct LogicalEntityResource {
     pub sub_type: Option<String>,
     pub name: String,
     pub label: Option<String>,
-    pub definition: Option<EntityDefinition>,
+    pub description: Option<String>,
+    pub attributes: Vec<EntityAttribute>,
     pub created_at: String,
     pub updated_at: String,
 }

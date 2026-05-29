@@ -27,12 +27,12 @@ import {
 } from '@evidence/ui/ai-elements/tool';
 
 const CHANGE_KEYS = [
-  'addNodes',
-  'updateNodes',
-  'deleteNodes',
-  'addEdges',
-  'updateEdges',
-  'deleteEdges',
+  'addEntities',
+  'updateEntities',
+  'deleteEntities',
+  'addRelationships',
+  'updateRelationships',
+  'deleteRelationships',
 ] as const;
 
 const TOOL_STATES = [
@@ -194,16 +194,16 @@ function proposalMarkdown(proposal: ProposalView): string {
   const counts = CHANGE_KEYS.map(
     (key) => `| ${key} | ${proposal.changes[key].length} |`,
   ).join('\n');
-  const nodes = records(proposal.changes.addNodes)
+  const entities = records(proposal.changes.addEntities)
     .map(
-      (node) =>
-        `- **${nodeName(node)}**${nodeLabel(node) ? ` — ${nodeLabel(node)}` : ''} (${nodeType(node)})`,
+      (entity) =>
+        `- **${entityName(entity)}**${entityLabel(entity) ? ` — ${entityLabel(entity)}` : ''} (${entityType(entity)})`,
     )
     .join('\n');
-  const edges = records(proposal.changes.addEdges)
+  const relationships = records(proposal.changes.addRelationships)
     .map(
-      (edge) =>
-        `- **${edgeEndpoints(edge)}**${stringValue(edge.relationType) ? ` — ${stringValue(edge.relationType)}` : ''}${stringValue(edge.label) ? `: ${stringValue(edge.label)}` : ''}`,
+      (relationship) =>
+        `- **${relationshipEndpoints(relationship)}**${stringValue(relationship.label) ? `: ${stringValue(relationship.label)}` : ''}`,
     )
     .join('\n');
 
@@ -214,8 +214,8 @@ function proposalMarkdown(proposal: ProposalView): string {
     '| Change | Count |',
     '| --- | ---: |',
     counts,
-    nodes ? `### Proposed nodes\n${nodes}` : null,
-    edges ? `### Proposed edges\n${edges}` : null,
+    entities ? `### Proposed entities\n${entities}` : null,
+    relationships ? `### Proposed relationships\n${relationships}` : null,
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -288,28 +288,25 @@ function toolState(value: unknown): ToolState {
     : 'input-available';
 }
 
-function nodeName(node: Record<string, unknown>): string {
-  return (
-    stringValue(record(node.data)?.name) ??
-    stringValue(node.id) ??
-    'Unnamed node'
-  );
+function entityName(entity: Record<string, unknown>): string {
+  return stringValue(entity.name) ?? stringValue(entity.id) ?? 'Unnamed entity';
 }
 
-function nodeLabel(node: Record<string, unknown>): string | null {
-  return stringValue(record(node.data)?.label);
+function entityLabel(entity: Record<string, unknown>): string | null {
+  return stringValue(entity.label);
 }
 
-function nodeType(node: Record<string, unknown>): string {
-  const data = record(node.data);
-  const type = stringValue(data?.type) ?? 'unknown';
-  const subType = stringValue(data?.subType) ?? stringValue(data?.sub_type);
+function entityType(entity: Record<string, unknown>): string {
+  const type = stringValue(entity.type) ?? 'unknown';
+  const subType = stringValue(entity.subType) ?? stringValue(entity.sub_type);
   return subType ? `${type} / ${subType}` : type;
 }
 
-function edgeEndpoints(edge: Record<string, unknown>): string {
-  const source = stringValue(record(edge.source)?.id) ?? 'unknown-source';
-  const target = stringValue(record(edge.target)?.id) ?? 'unknown-target';
+function relationshipEndpoints(relationship: Record<string, unknown>): string {
+  const source =
+    stringValue(record(relationship.source)?.id) ?? 'unknown-source';
+  const target =
+    stringValue(record(relationship.target)?.id) ?? 'unknown-target';
   return `${source} → ${target}`;
 }
 

@@ -29,23 +29,16 @@ const logicalEntityState = {
     subType: 'EVIDENCE:contract',
     name: 'contract',
     label: 'Contract',
-    definition: {
-      description: 'Customer contract evidence',
-      tags: ['legal', 'evidence'],
-      attributes: [
-        {
-          id: 'attr-1',
-          name: 'contractNumber',
-          label: 'Contract number',
-          type: 'string',
-          description: null,
-          isBusinessKey: true,
-          relation: false,
-          visibility: null,
-        },
-      ],
-      behaviors: [],
-    },
+    description: 'Customer contract evidence',
+    attributes: [
+      {
+        id: 'attr-1',
+        name: 'contractNumber',
+        label: 'Contract number',
+        type: 'string',
+        description: null,
+      },
+    ],
     createdAt: '2026-01-02T03:04:05Z',
     updatedAt: '2026-01-03T04:05:06Z',
   },
@@ -124,6 +117,5 @@ describe('LogicalEntityDetailView', () => {
     expect(screen.getByText('Contract')).toBeTruthy();
     expect(screen.getByText('Customer contract evidence')).toBeTruthy();
     expect(screen.getByText('1 attributes')).toBeTruthy();
-    expect(screen.getByText('0 behaviors')).toBeTruthy();
   });
 });

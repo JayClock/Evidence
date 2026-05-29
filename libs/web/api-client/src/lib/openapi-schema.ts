@@ -349,7 +349,8 @@ export interface components {
       type?: null | components['schemas']['DiagramType'];
     };
     CreateLogicalEntityInput: {
-      definition?: null | components['schemas']['EntityDefinition'];
+      attributes: components['schemas']['EntityAttribute'][];
+      description?: string | null;
       label?: string | null;
       name: string;
       subType?: string | null;
@@ -479,25 +480,9 @@ export interface components {
     EntityAttribute: {
       description?: string | null;
       id: string;
-      isBusinessKey: boolean;
       label?: string | null;
       name: string;
-      relation: boolean;
       type?: string | null;
-      visibility?: string | null;
-    };
-    EntityBehavior: {
-      description?: string | null;
-      id: string;
-      label?: string | null;
-      name: string;
-      returnType?: string | null;
-    };
-    EntityDefinition: {
-      attributes: components['schemas']['EntityAttribute'][];
-      behaviors: components['schemas']['EntityBehavior'][];
-      description?: string | null;
-      tags: string[];
     };
     ErrorBody: {
       error: string;
@@ -524,8 +509,9 @@ export interface components {
     };
     LogicalEntityResource: {
       _links: components['schemas']['BTreeMap'];
+      attributes: components['schemas']['EntityAttribute'][];
       createdAt: string;
-      definition?: null | components['schemas']['EntityDefinition'];
+      description?: string | null;
       id: string;
       label?: string | null;
       name: string;
@@ -673,7 +659,8 @@ export interface components {
       'viewport.zoom'?: number | null;
     };
     UpdateLogicalEntityInput: {
-      definition?: null | components['schemas']['EntityDefinition'];
+      attributes?: components['schemas']['EntityAttribute'][] | null;
+      description?: string | null;
       label?: string | null;
       name?: string | null;
       subType?: string | null;

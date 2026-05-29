@@ -86,12 +86,12 @@ describe('createDiagramProposalTransport', () => {
     const proposal = {
       summary: 'Draft',
       changes: {
-        addNodes: [],
-        updateNodes: [],
-        deleteNodes: [],
-        addEdges: [],
-        updateEdges: [],
-        deleteEdges: [],
+        addEntities: [],
+        updateEntities: [],
+        deleteEntities: [],
+        addRelationships: [],
+        updateRelationships: [],
+        deleteRelationships: [],
       },
     };
     const fetch = vi.fn(async () =>
@@ -231,12 +231,12 @@ describe('createDiagramProposalTransport', () => {
     const proposal = {
       summary: 'Streaming',
       changes: {
-        addNodes: [],
-        updateNodes: [],
-        deleteNodes: [],
-        addEdges: [],
-        updateEdges: [],
-        deleteEdges: [],
+        addEntities: [],
+        updateEntities: [],
+        deleteEntities: [],
+        addRelationships: [],
+        updateRelationships: [],
+        deleteRelationships: [],
       },
     };
     const fetch = vi.fn(async () =>
@@ -289,12 +289,12 @@ describe('createDiagramProposalTransport', () => {
     const proposal = {
       summary: 'Done',
       changes: {
-        addNodes: [],
-        updateNodes: [],
-        deleteNodes: [],
-        addEdges: [],
-        updateEdges: [],
-        deleteEdges: [],
+        addEntities: [],
+        updateEntities: [],
+        deleteEntities: [],
+        addRelationships: [],
+        updateRelationships: [],
+        deleteRelationships: [],
       },
     };
     const fetch = vi.fn(async () =>

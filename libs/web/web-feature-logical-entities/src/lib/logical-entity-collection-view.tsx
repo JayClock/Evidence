@@ -34,9 +34,7 @@ type LogicalEntityRow = {
   type: LogicalEntityType;
   subType: LogicalEntitySubType | null;
   description: string | null;
-  tags: string[];
   attributesCount: number;
-  behaviorsCount: number;
   href?: string;
 };
 
@@ -118,9 +116,7 @@ export function LogicalEntityCollectionView({
                   </TableCell>
                   <TableCell>
                     <DefinitionSummary
-                      tags={logicalEntity.tags}
                       attributesCount={logicalEntity.attributesCount}
-                      behaviorsCount={logicalEntity.behaviorsCount}
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -147,7 +143,6 @@ export function LogicalEntityDetailView({
 }) {
   const data = resourceState.data;
   const title = data.label ?? data.name;
-  const definition = data.definition;
 
   return (
     <Card>
@@ -166,22 +161,14 @@ export function LogicalEntityDetailView({
         <DetailItem
           className="md:col-span-2"
           label="Description"
-          value={definition?.description ?? '—'}
+          value={data.description ?? '—'}
         />
         <div className="md:col-span-2">
           <p className="text-sm font-medium">Definition</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Badge variant="secondary">
-              {definition?.attributes.length ?? 0} attributes
+              {data.attributes.length} attributes
             </Badge>
-            <Badge variant="secondary">
-              {definition?.behaviors.length ?? 0} behaviors
-            </Badge>
-            {(definition?.tags ?? []).map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
-            ))}
           </div>
         </div>
       </CardContent>
@@ -189,32 +176,10 @@ export function LogicalEntityDetailView({
   );
 }
 
-function DefinitionSummary({
-  tags,
-  attributesCount,
-  behaviorsCount,
-}: {
-  tags: string[];
-  attributesCount: number;
-  behaviorsCount: number;
-}) {
-  const parts = [`${attributesCount} attrs`, `${behaviorsCount} behaviors`];
-
+function DefinitionSummary({ attributesCount }: { attributesCount: number }) {
   return (
     <div className="flex flex-wrap gap-1">
-      {parts.map((part) => (
-        <Badge key={part} variant="secondary">
-          {part}
-        </Badge>
-      ))}
-      {tags.slice(0, 2).map((tag) => (
-        <Badge key={tag} variant="outline">
-          {tag}
-        </Badge>
-      ))}
-      {tags.length > 2 ? (
-        <Badge variant="outline">+{tags.length - 2}</Badge>
-      ) : null}
+      <Badge variant="secondary">{attributesCount} attrs</Badge>
     </div>
   );
 }
@@ -240,7 +205,6 @@ function toLogicalEntityRow(
   entityState: State<LogicalEntityResource>,
 ): LogicalEntityRow {
   const data = entityState.data;
-  const definition = data.definition;
 
   return {
     id: data.id,
@@ -248,10 +212,8 @@ function toLogicalEntityRow(
     name: data.name,
     type: data.type,
     subType: data.subType,
-    description: definition?.description ?? null,
-    tags: definition?.tags ?? [],
-    attributesCount: definition?.attributes.length ?? 0,
-    behaviorsCount: definition?.behaviors.length ?? 0,
+    description: data.description ?? null,
+    attributesCount: data.attributes.length,
     href: entityState.links.getAll().find((link) => link.rel === 'self')?.href,
   };
 }

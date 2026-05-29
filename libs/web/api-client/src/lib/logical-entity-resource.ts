@@ -18,15 +18,13 @@ export type ParticipantSubType = string;
 export type RoleSubType = string;
 export type ContextSubType = string;
 export type EntityAttribute = components['schemas']['EntityAttribute'];
-export type EntityBehavior = components['schemas']['EntityBehavior'];
-export type EntityDefinition = components['schemas']['EntityDefinition'];
 type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: Exclude<T[P], undefined>;
 };
 
 export type LogicalEntityResourceData = RequiredNullable<
   Omit<LogicalEntityResourceSchema, '_links'>,
-  'subType' | 'label' | 'definition'
+  'subType' | 'label' | 'description'
 >;
 export type LogicalEntityCollectionResourceData = Omit<
   LogicalEntityCollectionResourceSchema,

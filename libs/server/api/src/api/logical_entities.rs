@@ -8,7 +8,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::domain::{
-    normalize_sub_type, EntityDefinition, LogicalEntity, LogicalEntityDescription,
+    normalize_sub_type, EntityAttribute, LogicalEntity, LogicalEntityDescription,
     LogicalEntityType, Ref, ServerError, Workspace,
 };
 
@@ -34,7 +34,9 @@ struct CreateLogicalEntityInput {
     sub_type: Option<String>,
     name: String,
     label: Option<String>,
-    definition: Option<EntityDefinition>,
+    description: Option<String>,
+    #[serde(default)]
+    attributes: Vec<EntityAttribute>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,7 +47,8 @@ struct UpdateLogicalEntityInput {
     sub_type: Option<String>,
     name: Option<String>,
     label: Option<String>,
-    definition: Option<EntityDefinition>,
+    description: Option<String>,
+    attributes: Option<Vec<EntityAttribute>>,
 }
 
 async fn load_workspace(state: &AppState, workspace_id: &str) -> Result<Workspace, ServerError> {
@@ -68,7 +71,8 @@ fn logical_entity_description(
         sub_type,
         name: input.name,
         label: input.label,
-        definition: input.definition,
+        description: input.description,
+        attributes: input.attributes,
         created_at: String::new(),
         updated_at: String::new(),
     })
@@ -150,7 +154,10 @@ async fn update_logical_entity(
                 sub_type,
                 name: input.name.unwrap_or_else(|| current.name.clone()),
                 label: input.label.or_else(|| current.label.clone()),
-                definition: input.definition.or_else(|| current.definition.clone()),
+                description: input.description.or_else(|| current.description.clone()),
+                attributes: input
+                    .attributes
+                    .unwrap_or_else(|| current.attributes.clone()),
                 created_at: current.created_at.clone(),
                 updated_at: current.updated_at.clone(),
             },

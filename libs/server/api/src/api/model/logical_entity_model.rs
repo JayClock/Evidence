@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-use crate::domain::{format_sub_type, EntityDefinition, LogicalEntity};
+use crate::domain::{format_sub_type, EntityAttribute, LogicalEntity};
 
 use super::super::links::{workspace_logical_entities_href, workspace_logical_entity_href, Link};
 
@@ -16,7 +16,8 @@ pub(in crate::api) struct LogicalEntityModel {
     sub_type: Option<String>,
     name: String,
     label: Option<String>,
-    definition: Option<EntityDefinition>,
+    description: Option<String>,
+    attributes: Vec<EntityAttribute>,
     created_at: String,
     updated_at: String,
 }
@@ -46,7 +47,8 @@ pub(in crate::api) fn logical_entity_model(entity: &LogicalEntity) -> LogicalEnt
         sub_type: format_sub_type(&description.entity_type, description.sub_type.as_deref()),
         name: description.name.clone(),
         label: description.label.clone(),
-        definition: description.definition.clone(),
+        description: description.description.clone(),
+        attributes: description.attributes.clone(),
         created_at: entity.created_at().to_string(),
         updated_at: entity.updated_at().to_string(),
     }

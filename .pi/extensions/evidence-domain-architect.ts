@@ -2,72 +2,58 @@ import { defineTool, type ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 
 const nullableString = Type.Union([Type.String(), Type.Null()]);
-const nullableNumber = Type.Union([Type.Number(), Type.Null()]);
-const nullableObject = Type.Union([
-  Type.Record(Type.String(), Type.Any()),
-  Type.Null(),
-]);
 
 const ref = Type.Object({
-  id: Type.String({ description: 'Referenced node id' }),
+  id: Type.String({ description: 'Referenced logical entity id' }),
 });
 
-const position = Type.Object({
-  x: Type.Number(),
-  y: Type.Number(),
-});
+const entityType = Type.Union([
+  Type.Literal('EVIDENCE'),
+  Type.Literal('PARTICIPANT'),
+  Type.Literal('ROLE'),
+  Type.Literal('CONTEXT'),
+]);
 
-const draftNode = Type.Object({
-  id: Type.String(),
-  kind: nullableString,
-  parent: Type.Union([ref, Type.Null()]),
-  position,
-  width: Type.Union([Type.Integer(), Type.Null()]),
-  height: Type.Union([Type.Integer(), Type.Null()]),
-  data: Type.Object(
-    {
-      name: Type.String(),
-      label: nullableString,
-      type: Type.Union([
-        Type.Literal('EVIDENCE'),
-        Type.Literal('PARTICIPANT'),
-        Type.Literal('ROLE'),
-        Type.Literal('CONTEXT'),
-      ]),
-      subType: nullableString,
-    },
-    { additionalProperties: true },
-  ),
-});
+const entityAttribute = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.String(),
+    label: Type.Optional(nullableString),
+    type: Type.Optional(nullableString),
+    description: Type.Optional(nullableString),
+  },
+  { additionalProperties: false },
+);
 
-const draftEdge = Type.Object({
+const draftEntity = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.String(),
+    label: nullableString,
+    type: entityType,
+    subType: nullableString,
+    description: Type.Optional(nullableString),
+    attributes: Type.Optional(Type.Array(entityAttribute)),
+  },
+  { additionalProperties: false },
+);
+
+const draftRelationship = Type.Object({
   id: nullableString,
   source: ref,
   target: ref,
-  sourceHandle: nullableString,
-  targetHandle: nullableString,
-  kind: nullableString,
-  relationType: nullableString,
   label: nullableString,
-  style: Type.Record(Type.String(), Type.Any()),
-  data: Type.Record(Type.String(), Type.Any()),
-  animated: Type.Boolean(),
-  hidden: Type.Boolean(),
-  markerStart: nullableObject,
-  markerEnd: nullableObject,
-  pathOptions: Type.Record(Type.String(), Type.Any()),
-  interactionWidth: nullableNumber,
 });
 
 const proposalParameters = Type.Object({
   summary: Type.String({ description: 'Short human-readable summary' }),
   changes: Type.Object({
-    addNodes: Type.Array(draftNode),
-    updateNodes: Type.Array(draftNode),
-    deleteNodes: Type.Array(Type.String()),
-    addEdges: Type.Array(draftEdge),
-    updateEdges: Type.Array(draftEdge),
-    deleteEdges: Type.Array(Type.String()),
+    addEntities: Type.Array(draftEntity),
+    updateEntities: Type.Array(draftEntity),
+    deleteEntities: Type.Array(Type.String()),
+    addRelationships: Type.Array(draftRelationship),
+    updateRelationships: Type.Array(draftRelationship),
+    deleteRelationships: Type.Array(Type.String()),
   }),
 });
 
@@ -75,10 +61,10 @@ const submitModelingProposalTool = defineTool({
   name: 'submit_modeling_proposal',
   label: 'Submit Modeling Proposal',
   description:
-    'Submit the final Evidence FM diagram modeling proposal. Use this exactly once as the final action.',
-  promptSnippet: 'Submit the final Evidence FM diagram modeling proposal',
+    'Submit the final Evidence FM logical entity/relationship modeling proposal. Use this exactly once as the final action.',
+  promptSnippet: 'Submit the final Evidence FM logical modeling proposal',
   promptGuidelines: [
-    'Use submit_modeling_proposal exactly once as the final action for Evidence FM diagram modeling requests.',
+    'Use submit_modeling_proposal exactly once as the final action for Evidence FM modeling requests.',
     'After calling submit_modeling_proposal, do not emit additional assistant text.',
   ],
   parameters: proposalParameters,

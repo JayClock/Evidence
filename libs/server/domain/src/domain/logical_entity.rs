@@ -12,32 +12,6 @@ pub struct EntityAttribute {
     #[serde(rename = "type")]
     pub attribute_type: Option<String>,
     pub description: Option<String>,
-    #[serde(default, rename = "isBusinessKey")]
-    pub is_business_key: bool,
-    #[serde(default)]
-    pub relation: bool,
-    pub visibility: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct EntityBehavior {
-    pub id: String,
-    pub name: String,
-    pub label: Option<String>,
-    pub description: Option<String>,
-    #[serde(rename = "returnType")]
-    pub return_type: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
-pub struct EntityDefinition {
-    pub description: Option<String>,
-    #[serde(default)]
-    pub tags: Vec<String>,
-    #[serde(default)]
-    pub attributes: Vec<EntityAttribute>,
-    #[serde(default)]
-    pub behaviors: Vec<EntityBehavior>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -113,7 +87,9 @@ pub struct LogicalEntityDescription {
     pub sub_type: Option<String>,
     pub name: String,
     pub label: Option<String>,
-    pub definition: Option<EntityDefinition>,
+    pub description: Option<String>,
+    #[serde(default)]
+    pub attributes: Vec<EntityAttribute>,
     pub created_at: String,
     pub updated_at: String,
 }

@@ -19,7 +19,7 @@ pub use diagram_versions::DiagramVersions;
 pub use domain_architect::{DomainArchitect, DomainArchitectEventStream};
 pub use edge::{DiagramEdge, EdgeDescription};
 pub use modeling::{
-    ModelingDraftEdge, ModelingDraftEntity, ModelingDraftNode, ModelingEvent, ModelingProposal,
+    ModelingDraftEntity, ModelingDraftRelationship, ModelingEvent, ModelingProposal,
     ModelingProposalChanges,
 };
 pub use node::{DiagramNode, JsonObject, NodeDescription};

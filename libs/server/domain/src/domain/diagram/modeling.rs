@@ -1,10 +1,7 @@
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::JsonObject;
-use crate::domain::{LogicalEntityType, Position, Ref};
+use crate::domain::{EntityAttribute, LogicalEntityType, Ref};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,70 +14,40 @@ pub struct ModelingProposal {
 #[serde(rename_all = "camelCase")]
 pub struct ModelingProposalChanges {
     #[serde(default)]
-    pub add_nodes: Vec<ModelingDraftNode>,
+    pub add_entities: Vec<ModelingDraftEntity>,
     #[serde(default)]
-    pub update_nodes: Vec<ModelingDraftNode>,
+    pub update_entities: Vec<ModelingDraftEntity>,
     #[serde(default)]
-    pub delete_nodes: Vec<String>,
+    pub delete_entities: Vec<String>,
     #[serde(default)]
-    pub add_edges: Vec<ModelingDraftEdge>,
+    pub add_relationships: Vec<ModelingDraftRelationship>,
     #[serde(default)]
-    pub update_edges: Vec<ModelingDraftEdge>,
+    pub update_relationships: Vec<ModelingDraftRelationship>,
     #[serde(default)]
-    pub delete_edges: Vec<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelingDraftNode {
-    pub id: String,
-    pub kind: Option<String>,
-    pub parent: Option<Ref<String>>,
-    #[serde(default)]
-    pub position: Position,
-    pub width: Option<i64>,
-    pub height: Option<i64>,
-    pub data: ModelingDraftEntity,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModelingDraftEdge {
-    pub id: Option<String>,
-    pub source: Ref<String>,
-    pub target: Ref<String>,
-    pub source_handle: Option<String>,
-    pub target_handle: Option<String>,
-    pub kind: Option<String>,
-    pub relation_type: Option<String>,
-    pub label: Option<String>,
-    #[serde(default)]
-    pub style: JsonObject,
-    #[serde(default)]
-    pub data: JsonObject,
-    #[serde(default)]
-    pub animated: bool,
-    #[serde(default)]
-    pub hidden: bool,
-    #[serde(default)]
-    pub marker_start: Option<JsonObject>,
-    #[serde(default)]
-    pub marker_end: Option<JsonObject>,
-    #[serde(default)]
-    pub path_options: JsonObject,
-    pub interaction_width: Option<f64>,
+    pub delete_relationships: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelingDraftEntity {
+    pub id: String,
     pub name: String,
     pub label: Option<String>,
     #[serde(rename = "type")]
     pub entity_type: LogicalEntityType,
     pub sub_type: Option<String>,
-    #[serde(default, flatten)]
-    pub extra: BTreeMap<String, Value>,
+    pub description: Option<String>,
+    #[serde(default)]
+    pub attributes: Vec<EntityAttribute>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelingDraftRelationship {
+    pub id: Option<String>,
+    pub source: Ref<String>,
+    pub target: Ref<String>,
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

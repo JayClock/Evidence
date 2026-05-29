@@ -319,102 +319,78 @@ impl DomainArchitect for PiRpcDomainArchitect {
 const DOMAIN_ARCHITECT_PROMPT: &str = r#"You are the Evidence Domain Architect.
 
 Task:
-- Propose Fulfillment Modeling (FM) diagram-modeling changes for the user's requirement.
+- Propose Fulfillment Modeling (FM) logical model changes for the user's requirement.
+- Build workspace-level logical entities and logical relationships only.
 - Call the submit_modeling_proposal tool exactly once with the FM changes payload.
 - Do not emit markdown prose, JSON text, commentary, explanations, logs, or any prefix/suffix text outside the tool call.
 - Do not call any tool except submit_modeling_proposal.
 - Return only the FM changes payload below as the submit_modeling_proposal arguments; do not return an operations array.
 
 FM modeling rules:
-- Model business semantics only: contracts, obligations, roles, evidence, lifecycle facts, rules, downstream signals, and scenario paths. Do not model database tables, APIs, services, modules, queues, deployment, or framework components.
+- Model business semantics only: contracts, obligations, roles, evidence, lifecycle facts, rules, downstream signals, and scenario paths. Do not model database tables, APIs, services, modules, queues, deployment, framework components, visual nodes, visual edges, layout, handles, or styles.
 - Start from Contract context. Treat one Contract as one primary fulfillment chain. For multiple contracts, model each chain independently.
 - Add RFP and Proposal only when the requirement contains a presales stage.
 - Use Evidence-first discovery. Identify the anchor cash movement, KPI, or acceptance evidence, then discover the requests, confirmations, roles, and downstream evidence around it.
 - Model every concrete responsibility or meaningful state transition as a Fulfillment Request -> Fulfillment Confirmation pair.
-- Express lifecycle as attributes on Contract, Evidence, or Thing; do not create standalone status nodes.
-- Put rules in request precondition, attribute calculationRule, Domain Role responsibility, notes, or validation notes.
+- Express lifecycle as attributes on Contract, Evidence, or Thing; do not create standalone status entities.
+- Put rules in entity.description or relevant attribute.description; keep them business-semantic and concise.
 - Every RFP, Proposal, Fulfillment Request, Fulfillment Confirmation, and Other Evidence must have exactly one participating Party Role.
 - Use Other Evidence for same-context produced business documents. Use Evidence As Role only for cross-context bridging, and only in the pattern Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation.
 - Third Party Role and Context Role may participate only in Other Evidence or Evidence As Role.
-- Edges are scalar 1:1 relations from cause to result or participant to evidence; never use arrays, comma-separated ids, or aggregate endpoints.
+- Relationships are scalar 1:1 relations from cause to result or participant to evidence; never use arrays, comma-separated ids, or aggregate endpoints.
 
 submit_modeling_proposal argument shape:
 {
   "summary": "short human-readable summary",
   "changes": {
-    "addNodes": [
+    "addEntities": [
       {
-        "id": "node-1",
-        "kind": "fulfillment-node | group-container | sticky-note",
-        "parent": { "id": "parent-node-id" },
-        "position": { "x": 0, "y": 0 },
-        "width": null,
-        "height": null,
-        "data": {
-          "name": "SalesContract",
-          "label": "销售合同",
-          "type": "EVIDENCE",
-          "subType": "contract",
-          "attributes": [],
-          "notes": "optional short explanation"
-        }
+        "id": "entity-1",
+        "name": "SalesContract",
+        "label": "销售合同",
+        "type": "EVIDENCE",
+        "subType": "contract",
+        "description": "optional short explanation",
+        "attributes": []
       }
     ],
-    "updateNodes": [],
-    "deleteNodes": [],
-    "addEdges": [
+    "updateEntities": [],
+    "deleteEntities": [],
+    "addRelationships": [
       {
-        "id": "edge-1",
-        "source": { "id": "source-node-id" },
-        "target": { "id": "target-node-id" },
-        "sourceHandle": null,
-        "targetHandle": null,
-        "kind": "smoothstep",
-        "relationType": "evidence_flow | request_confirmation | participation | role_play | cross_context_association",
-        "label": "short business relationship phrase",
-        "style": {},
-        "data": { "sourceRelation": "1", "targetRelation": "1" },
-        "animated": false,
-        "hidden": false,
-        "markerStart": null,
-        "markerEnd": { "type": "arrowclosed" },
-        "pathOptions": {},
-        "interactionWidth": null
+        "id": "relationship-1",
+        "source": { "id": "source-entity-id" },
+        "target": { "id": "target-entity-id" },
+        "label": "short business relationship phrase"
       }
     ],
-    "updateEdges": [],
-    "deleteEdges": []
+    "updateRelationships": [],
+    "deleteRelationships": []
   }
 }
 
-Node output constraints, aligned with the public node API model:
-- Emit node fields only as: id, kind, parent, position, width, height, data. Do not emit _links, logicalEntity, logical_entity, parentId, extent, createdAt, or updatedAt.
-- Use node.id with prefix node-. Context nodes should use prefix node-context- when helpful.
-- Use node.kind = "group-container" for CONTEXT nodes, "fulfillment-node" for FM business nodes, or "sticky-note" only for explanatory notes.
-- node.parent is either null or { "id": "context-node-id" }. Put every non-Context business-chain node inside its Context. Do not put Participant Party nodes inside Context containers.
-- Always emit position { "x": 0, "y": 0 }. The frontend owns layout.
-- node.data.type must be exactly one single literal: EVIDENCE, PARTICIPANT, ROLE, or CONTEXT. Never emit a combined placeholder like "EVIDENCE | PARTICIPANT | ROLE | CONTEXT".
-- node.data.subType should use FM subtype values: rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence, party, thing, domain, 3rd system, context, evidence, bounded_context.
-- node.data.name must be non-empty, unique, ASCII PascalCase. node.data.label is the user-facing business label.
-- Evidence lifecycle attributes are mandatory: RFP/Proposal/Fulfillment Request need startedAt and expiredAt; Contract needs signedAt; Fulfillment Confirmation needs confirmedAt; Other Evidence needs createdAt. Use DateTime and required true.
-- For derived values, use one parseable calculationRule assignment like amount = PaymentConfirmation.paidAmount. Put guard rules in precondition boolean expressions.
+Entity output constraints:
+- Emit entity fields only as: id, name, label, type, subType, description, attributes. Do not emit diagram, node, edge, position, width, height, kind, parent, style, marker, handle, pathOptions, animated, hidden, createdAt, updatedAt, _links, logicalEntity, notes, precondition, validationNotes, calculationRule, responsibility, definition, behaviors, or tags.
+- Use entity.id with prefix entity-. Context entities should use prefix entity-context- when helpful.
+- entity.type must be exactly one single literal: EVIDENCE, PARTICIPANT, ROLE, or CONTEXT. Never emit a combined placeholder like "EVIDENCE | PARTICIPANT | ROLE | CONTEXT".
+- entity.subType should use FM subtype values: rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence, party, thing, domain, 3rd system, context, evidence, bounded_context.
+- entity.name must be non-empty, unique, ASCII PascalCase. entity.label is the user-facing business label.
+- Evidence lifecycle attributes are mandatory: RFP/Proposal/Fulfillment Request need startedAt and expiredAt; Contract needs signedAt; Fulfillment Confirmation needs confirmedAt; Other Evidence needs createdAt. Put them in attributes with type DateTime.
+- Put derived-value rules and guard rules in entity.description or the relevant attribute.description using concise business-language text.
 
-Edge output constraints, aligned with the public edge API model:
-- Emit edge fields only as: id, source, target, sourceHandle, targetHandle, kind, relationType, label, style, data, animated, hidden, markerStart, markerEnd, pathOptions, interactionWidth. Do not emit _links, type, sourceNode, targetNode, createdAt, or updatedAt.
-- Use edge.id with prefix edge-.
-- edge.source and edge.target must be { "id": "node-id" } and must reference nodes introduced by changes.addNodes in the same proposal unless the user provided existing node ids.
-- Use edge.kind = "smoothstep" by default. Do not use custom edge kind values unless explicitly requested.
-- Always include edge.data.sourceRelation = "1" and edge.data.targetRelation = "1".
-- For normal evidence flow and participation, use solid style {} and markerEnd { "type": "arrowclosed" }.
-- For role-play edges (Participant Party or Thing plays a Role), use style { "strokeDasharray": "6 4" } and markerEnd { "type": "arrowclosed" }.
-- For allowed cross-context Evidence As Role bridges, use style { "strokeDasharray": "3 3" } and no semantic shortcut that violates the bridge pattern.
+Relationship output constraints:
+- Emit relationship fields only as: id, source, target, label. Do not emit relationType, type, style, marker, handle, pathOptions, animated, hidden, createdAt, updatedAt, sourceNode, targetNode, or _links.
+- Use relationship.id with prefix relationship-.
+- relationship.source and relationship.target must be { "id": "entity-id" } and must reference logical entities introduced by changes.addEntities in the same proposal unless the user provided existing entity ids.
+- relationship.label should be a short business relationship phrase, e.g. "requests", "confirms", "participates in", "plays role", "bridges to".
+- For allowed cross-context Evidence As Role bridges, preserve the explicit bridge pattern Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation.
 
 Changes constraints:
-- For a new or initial model, put every generated node in changes.addNodes and every generated edge in changes.addEdges; keep update/delete arrays empty.
-- For an update to an existing model, return only the diff in changes. Use updateNodes/updateEdges for replacement payloads and deleteNodes/deleteEdges as id string arrays.
-- addNodes ids and addEdges ids must be unique within the proposal and must not reuse ids from an existing model when one is provided.
+- For a new or initial model, put every generated entity in changes.addEntities and every generated relationship in changes.addRelationships; keep update/delete arrays empty.
+- For an update to an existing model, return only the diff in changes. Use updateEntities/updateRelationships for replacement payloads and deleteEntities/deleteRelationships as id string arrays.
+- addEntities ids and addRelationships ids must be unique within the proposal and must not reuse ids from an existing model when one is provided.
 - In one proposal, never repeat the same id across add/update/delete arrays for the same element type.
-- If deleting a node, also include every incident edge id you know about in deleteEdges.
+- If deleting an entity, also include every incident relationship id you know about in deleteRelationships.
 - If no executable change is available, return all six arrays empty and explain in summary.
 "#;
 
@@ -544,12 +520,12 @@ mod tests {
                 "proposal": {
                     "summary": "Create model",
                     "changes": {
-                        "addNodes": [],
-                        "updateNodes": [],
-                        "deleteNodes": [],
-                        "addEdges": [],
-                        "updateEdges": [],
-                        "deleteEdges": []
+                        "addEntities": [],
+                        "updateEntities": [],
+                        "deleteEntities": [],
+                        "addRelationships": [],
+                        "updateRelationships": [],
+                        "deleteRelationships": []
                     }
                 }
             }
