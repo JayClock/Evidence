@@ -3,6 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use super::core::{Entity, HasMany};
 use super::diagram::{Diagram, WorkspaceDiagrams};
 use super::logical_entity::{LogicalEntity, WorkspaceLogicalEntities};
+use super::logical_relationship::{LogicalRelationship, WorkspaceLogicalRelationships};
 use super::member::{Member, WorkspaceMembers};
 
 #[derive(Debug, Clone)]
@@ -22,6 +23,7 @@ pub struct Workspace {
     members: Arc<dyn WorkspaceMembers>,
     diagrams: Arc<dyn WorkspaceDiagrams>,
     logical_entities: Arc<dyn WorkspaceLogicalEntities>,
+    logical_relationships: Arc<dyn WorkspaceLogicalRelationships>,
 }
 
 impl Workspace {
@@ -31,6 +33,7 @@ impl Workspace {
         members: Arc<dyn WorkspaceMembers>,
         diagrams: Arc<dyn WorkspaceDiagrams>,
         logical_entities: Arc<dyn WorkspaceLogicalEntities>,
+        logical_relationships: Arc<dyn WorkspaceLogicalRelationships>,
     ) -> Self {
         Self {
             identity,
@@ -38,6 +41,7 @@ impl Workspace {
             members,
             diagrams,
             logical_entities,
+            logical_relationships,
         }
     }
 
@@ -71,6 +75,14 @@ impl Workspace {
 
     pub fn logical_entities_wide(&self) -> &dyn WorkspaceLogicalEntities {
         self.logical_entities.as_ref()
+    }
+
+    pub fn logical_relationships(&self) -> &dyn HasMany<LogicalRelationship> {
+        self.logical_relationships.as_ref()
+    }
+
+    pub fn logical_relationships_wide(&self) -> &dyn WorkspaceLogicalRelationships {
+        self.logical_relationships.as_ref()
     }
 }
 

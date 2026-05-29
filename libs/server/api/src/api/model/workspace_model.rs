@@ -5,7 +5,7 @@ use crate::domain::Workspace;
 
 use super::super::links::{
     user_href, workspace_diagrams_href, workspace_href, workspace_logical_entities_href,
-    workspace_members_href, Link,
+    workspace_logical_relationships_href, workspace_members_href, Link,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -43,6 +43,10 @@ pub(in crate::api) fn workspace_model(user_id: &str, workspace: &Workspace) -> W
             (
                 "logical-entities".to_string(),
                 Link::new(workspace_logical_entities_href(workspace_id)),
+            ),
+            (
+                "logical-relationships".to_string(),
+                Link::new(workspace_logical_relationships_href(workspace_id)),
             ),
             (
                 "collection".to_string(),

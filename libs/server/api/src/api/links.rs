@@ -123,6 +123,20 @@ pub(super) fn workspace_logical_entity_href(workspace_id: &str, entity_id: &str)
     )
 }
 
+pub(super) fn workspace_logical_relationships_href(workspace_id: &str) -> String {
+    format!("/api/workspaces/{workspace_id}/logical-relationships")
+}
+
+pub(super) fn workspace_logical_relationship_href(
+    workspace_id: &str,
+    relationship_id: &str,
+) -> String {
+    format!(
+        "{}/{relationship_id}",
+        workspace_logical_relationships_href(workspace_id)
+    )
+}
+
 pub(super) fn workspace_member_href(user_id: &str, workspace_id: &str, member_id: &str) -> String {
     format!(
         "{}/{}",

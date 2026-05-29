@@ -23,6 +23,8 @@ const DIAGRAM_VERSION: &str = "application/vnd.evidence.diagram-version+json";
 const DIAGRAM_VERSIONS: &str = "application/vnd.evidence.diagram-versions+json";
 const LOGICAL_ENTITY: &str = "application/vnd.evidence.logical-entity+json";
 const LOGICAL_ENTITIES: &str = "application/vnd.evidence.logical-entities+json";
+const LOGICAL_RELATIONSHIP: &str = "application/vnd.evidence.logical-relationship+json";
+const LOGICAL_RELATIONSHIPS: &str = "application/vnd.evidence.logical-relationships+json";
 
 pub(super) async fn apply_vendor_media_type(request: Request<Body>, next: Next) -> Response {
     let path = request.uri().path().to_string();
@@ -74,6 +76,8 @@ fn resource_content_type(path: &str) -> Option<&'static str> {
         ["api", "workspaces", _, "diagrams", _] => Some(DIAGRAM),
         ["api", "workspaces", _, "logical-entities"] => Some(LOGICAL_ENTITIES),
         ["api", "workspaces", _, "logical-entities", _] => Some(LOGICAL_ENTITY),
+        ["api", "workspaces", _, "logical-relationships"] => Some(LOGICAL_RELATIONSHIPS),
+        ["api", "workspaces", _, "logical-relationships", _] => Some(LOGICAL_RELATIONSHIP),
         _ => None,
     }
 }
@@ -105,6 +109,12 @@ mod tests {
         assert_eq!(
             resource_content_type("/api/workspaces/default-workspace/logical-entities/entity-1"),
             Some(LOGICAL_ENTITY)
+        );
+        assert_eq!(
+            resource_content_type(
+                "/api/workspaces/default-workspace/logical-relationships/relationship-1"
+            ),
+            Some(LOGICAL_RELATIONSHIP)
         );
     }
 }

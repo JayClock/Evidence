@@ -2,6 +2,7 @@ mod core;
 mod diagram;
 mod error;
 mod logical_entity;
+mod logical_relationship;
 mod member;
 mod user;
 mod user_workspaces;
@@ -21,6 +22,9 @@ pub use error::ServerError;
 pub use logical_entity::{
     format_sub_type, normalize_sub_type, EntityAttribute, EntityBehavior, EntityDefinition,
     LogicalEntity, LogicalEntityDescription, LogicalEntityType, WorkspaceLogicalEntities,
+};
+pub use logical_relationship::{
+    LogicalRelationship, LogicalRelationshipDescription, WorkspaceLogicalRelationships,
 };
 pub use member::{Member, MemberDescription, WorkspaceMembers};
 pub use user::{User, UserDescription};

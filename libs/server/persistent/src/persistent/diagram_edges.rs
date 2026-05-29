@@ -105,11 +105,12 @@ impl DiagramEdges for DbDiagramEdges {
         let mut active: diagram_edges::ActiveModel = model.into();
         active.source_id = Set(desc.source.into_id());
         active.target_id = Set(desc.target.into_id());
+        active.logical_relationship_id = Set(desc.logical_relationship.map(Ref::into_id));
         active.source_handle = Set(desc.source_handle);
         active.target_handle = Set(desc.target_handle);
         active.kind = Set(desc.kind);
-        active.relation_type = Set(desc.relation_type);
-        active.label = Set(desc.label);
+        active.relation_type = Set(None);
+        active.label = Set(None);
         active.style = Set(to_json_value(&desc.style));
         active.data = Set(to_json_value(&desc.data));
         active.animated = Set(desc.animated);
@@ -153,11 +154,10 @@ pub(super) fn edge_from_model(model: diagram_edges::Model) -> DiagramEdge {
             diagram: Ref::new(model.diagram_id),
             source: Ref::new(model.source_id),
             target: Ref::new(model.target_id),
+            logical_relationship: model.logical_relationship_id.map(Ref::new),
             source_handle: model.source_handle,
             target_handle: model.target_handle,
             kind: model.kind,
-            relation_type: model.relation_type,
-            label: model.label,
             style: json_object(model.style),
             data: json_object(model.data),
             animated: model.animated,
@@ -199,11 +199,15 @@ where
         diagram_id: Set(diagram_id.to_string()),
         source_id: Set(desc.source.id().clone()),
         target_id: Set(desc.target.id().clone()),
+        logical_relationship_id: Set(desc
+            .logical_relationship
+            .as_ref()
+            .map(|relationship| relationship.id().clone())),
         source_handle: Set(desc.source_handle.clone()),
         target_handle: Set(desc.target_handle.clone()),
         kind: Set(desc.kind.clone()),
-        relation_type: Set(desc.relation_type.clone()),
-        label: Set(desc.label.clone()),
+        relation_type: Set(None),
+        label: Set(None),
         style: Set(to_json_value(&desc.style)),
         data: Set(to_json_value(&desc.data)),
         animated: Set(desc.animated),

@@ -3,6 +3,7 @@ mod error;
 mod links;
 mod loaders;
 mod logical_entities;
+mod logical_relationships;
 mod model;
 mod openapi;
 mod pagination;
@@ -36,6 +37,7 @@ pub fn app(users: Arc<dyn Users>, domain_architect: Arc<dyn DomainArchitect>) ->
         .merge(workspace_members::routes())
         .merge(diagrams::routes())
         .merge(logical_entities::routes())
+        .merge(logical_relationships::routes())
         .merge(sidebar::routes())
         .layer(middleware::from_fn(vendor_media::apply_vendor_media_type))
         .layer(CorsLayer::permissive())

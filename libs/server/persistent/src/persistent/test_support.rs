@@ -10,9 +10,10 @@ use crate::domain::{
     normalize_sub_type, Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode,
     DiagramNodes, DiagramStatus, DiagramVersion, DiagramVersionDescription, DiagramVersions,
     DraftEdge, DraftNode, EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription,
-    Member, MemberDescription, NodeDescription, Ref, ServerError, User, UserDescription,
-    UserWorkspaces, Users, Workspace, WorkspaceDescription, WorkspaceDiagrams,
-    WorkspaceLogicalEntities, WorkspaceMembers,
+    LogicalRelationship, LogicalRelationshipDescription, Member, MemberDescription,
+    NodeDescription, Ref, ServerError, User, UserDescription, UserWorkspaces, Users, Workspace,
+    WorkspaceDescription, WorkspaceDiagrams, WorkspaceLogicalEntities,
+    WorkspaceLogicalRelationships, WorkspaceMembers,
 };
 
 use super::store::{default_if_blank, now};
@@ -66,6 +67,14 @@ struct LogicalEntityRecord {
     deleted_at: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+struct LogicalRelationshipRecord {
+    id: String,
+    workspace_id: String,
+    description: LogicalRelationshipDescription,
+    deleted_at: Option<String>,
+}
+
 #[derive(Default)]
 struct FakeStore {
     users: HashMap<String, UserRecord>,
@@ -73,6 +82,7 @@ struct FakeStore {
     members: HashMap<String, MemberRecord>,
     diagrams: HashMap<String, DiagramRecord>,
     logical_entities: HashMap<String, LogicalEntityRecord>,
+    logical_relationships: HashMap<String, LogicalRelationshipRecord>,
 }
 
 type SharedFakeStore = Arc<RwLock<FakeStore>>;
@@ -160,6 +170,10 @@ impl FakeUserWorkspaces {
                 record.id.clone(),
             )),
             Arc::new(FakeWorkspaceLogicalEntities::new(
+                self.store.clone(),
+                record.id.clone(),
+            )),
+            Arc::new(FakeWorkspaceLogicalRelationships::new(
                 self.store.clone(),
                 record.id,
             )),
@@ -688,6 +702,178 @@ impl WorkspaceLogicalEntities for FakeWorkspaceLogicalEntities {
     }
 }
 
+struct FakeWorkspaceLogicalRelationships {
+    store: SharedFakeStore,
+    workspace_id: String,
+}
+
+impl FakeWorkspaceLogicalRelationships {
+    fn new(store: SharedFakeStore, workspace_id: String) -> Self {
+        Self {
+            store,
+            workspace_id,
+        }
+    }
+
+    fn assemble(&self, record: LogicalRelationshipRecord) -> LogicalRelationship {
+        let mut description = record.description;
+        description.workspace = Ref::new(record.workspace_id);
+        LogicalRelationship::new(record.id, description)
+    }
+
+    fn matching_records(&self, store: &FakeStore) -> Vec<LogicalRelationshipRecord> {
+        let mut rows = store
+            .logical_relationships
+            .values()
+            .filter(|relationship| relationship.workspace_id == self.workspace_id)
+            .filter(|relationship| relationship.deleted_at.is_none())
+            .cloned()
+            .collect::<Vec<_>>();
+        rows.sort_by(|left, right| right.id.cmp(&left.id));
+        rows
+    }
+
+    fn endpoint_exists(&self, store: &FakeStore, entity_id: &str) -> bool {
+        store
+            .logical_entities
+            .get(entity_id)
+            .filter(|entity| entity.workspace_id == self.workspace_id)
+            .filter(|entity| entity.deleted_at.is_none())
+            .is_some()
+    }
+
+    fn validate_description(
+        &self,
+        store: &FakeStore,
+        desc: &LogicalRelationshipDescription,
+    ) -> Result<(), ServerError> {
+        for (label, endpoint_id) in [("source", desc.source.id()), ("target", desc.target.id())] {
+            if !self.endpoint_exists(store, endpoint_id) {
+                return Err(ServerError::Validation(format!(
+                    "logical relationship {label} endpoint {endpoint_id} not found in workspace {}",
+                    self.workspace_id
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl HasMany<LogicalRelationship> for FakeWorkspaceLogicalRelationships {
+    async fn find_all(
+        &self,
+        from: usize,
+        to: usize,
+    ) -> Result<Vec<LogicalRelationship>, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self
+            .matching_records(&store)
+            .into_iter()
+            .skip(from)
+            .take(to.saturating_sub(from))
+            .map(|record| self.assemble(record))
+            .collect())
+    }
+
+    async fn find_by_identity(&self, id: &str) -> Result<Option<LogicalRelationship>, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(store
+            .logical_relationships
+            .get(id)
+            .filter(|relationship| relationship.workspace_id == self.workspace_id)
+            .filter(|relationship| relationship.deleted_at.is_none())
+            .cloned()
+            .map(|record| self.assemble(record)))
+    }
+
+    async fn size(&self) -> Result<usize, ServerError> {
+        let store = self.store.read().expect("fake store read lock poisoned");
+        Ok(self.matching_records(&store).len())
+    }
+}
+
+#[async_trait]
+impl WorkspaceLogicalRelationships for FakeWorkspaceLogicalRelationships {
+    async fn add(
+        &self,
+        desc: LogicalRelationshipDescription,
+    ) -> Result<LogicalRelationship, ServerError> {
+        let id = Uuid::new_v4().to_string();
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        self.validate_description(&store, &desc)?;
+        let mut description = desc;
+        description.workspace = Ref::new(self.workspace_id.clone());
+        let record = LogicalRelationshipRecord {
+            id: id.clone(),
+            workspace_id: self.workspace_id.clone(),
+            description,
+            deleted_at: None,
+        };
+        store.logical_relationships.insert(id, record.clone());
+        Ok(self.assemble(record))
+    }
+
+    async fn update(
+        &self,
+        relationship_id: &str,
+        desc: LogicalRelationshipDescription,
+    ) -> Result<LogicalRelationship, ServerError> {
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        self.validate_description(&store, &desc)?;
+        let record = store
+            .logical_relationships
+            .get_mut(relationship_id)
+            .filter(|relationship| relationship.workspace_id == self.workspace_id)
+            .filter(|relationship| relationship.deleted_at.is_none())
+            .ok_or_else(|| {
+                ServerError::NotFound(format!("logical relationship {relationship_id} not found"))
+            })?;
+        let mut description = desc;
+        description.workspace = Ref::new(record.workspace_id.clone());
+        record.description = description;
+        Ok(self.assemble(record.clone()))
+    }
+
+    async fn delete(&self, relationship_id: &str) -> Result<(), ServerError> {
+        let mut store = self.store.write().expect("fake store write lock poisoned");
+        let relationship = store
+            .logical_relationships
+            .get_mut(relationship_id)
+            .filter(|relationship| relationship.workspace_id == self.workspace_id)
+            .filter(|relationship| relationship.deleted_at.is_none())
+            .ok_or_else(|| {
+                ServerError::NotFound(format!("logical relationship {relationship_id} not found"))
+            })?;
+        relationship.deleted_at = Some(now());
+        Ok(())
+    }
+
+    async fn list(
+        &self,
+        page: u32,
+        page_size: u32,
+    ) -> Result<(Vec<LogicalRelationship>, u64), ServerError> {
+        if page == 0 || page_size == 0 {
+            return Err(ServerError::Validation(
+                "page and pageSize must be greater than 0".to_string(),
+            ));
+        }
+        let store = self.store.read().expect("fake store read lock poisoned");
+        let rows = self.matching_records(&store);
+        let total = rows.len() as u64;
+        let offset = ((page - 1) * page_size) as usize;
+        Ok((
+            rows.into_iter()
+                .skip(offset)
+                .take(page_size as usize)
+                .map(|record| self.assemble(record))
+                .collect(),
+            total,
+        ))
+    }
+}
+
 struct FakeDiagramNodes;
 
 #[async_trait]
@@ -1019,8 +1205,9 @@ pub(crate) mod contracts {
     use std::collections::HashMap;
 
     use crate::domain::{
-        EntityDefinition, LogicalEntityDescription, LogicalEntityType, MemberDescription, Ref,
-        ServerError, Users, WorkspaceDescription,
+        EntityDefinition, LogicalEntityDescription, LogicalEntityType,
+        LogicalRelationshipDescription, MemberDescription, Ref, ServerError, Users,
+        WorkspaceDescription,
     };
 
     pub(crate) async fn user_sees_seed_workspace(users: &dyn Users) {
@@ -1089,6 +1276,104 @@ pub(crate) mod contracts {
             .await;
 
         assert!(matches!(result, Err(ServerError::Conflict(_))));
+    }
+
+    pub(crate) async fn workspace_logical_relationships_crud(users: &dyn Users) {
+        let workspace = users
+            .workspaces()
+            .find_by_identity("default-workspace")
+            .await
+            .unwrap()
+            .expect("seed workspace");
+
+        let source = workspace
+            .logical_entities_wide()
+            .add(LogicalEntityDescription {
+                workspace: Ref::new("default-workspace".to_string()),
+                entity_type: LogicalEntityType::Evidence,
+                sub_type: Some("contract".to_string()),
+                name: "SalesContract".to_string(),
+                label: Some("销售合同".to_string()),
+                definition: None,
+                created_at: String::new(),
+                updated_at: String::new(),
+            })
+            .await
+            .unwrap();
+        let target = workspace
+            .logical_entities_wide()
+            .add(LogicalEntityDescription {
+                workspace: Ref::new("default-workspace".to_string()),
+                entity_type: LogicalEntityType::Evidence,
+                sub_type: Some("fulfillment_request".to_string()),
+                name: "DeliveryRequest".to_string(),
+                label: Some("交付请求".to_string()),
+                definition: None,
+                created_at: String::new(),
+                updated_at: String::new(),
+            })
+            .await
+            .unwrap();
+
+        let created = workspace
+            .logical_relationships_wide()
+            .add(LogicalRelationshipDescription {
+                workspace: Ref::new("default-workspace".to_string()),
+                source: Ref::new(source.identity().to_string()),
+                target: Ref::new(target.identity().to_string()),
+                label: Some("触发".to_string()),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(created.description().label.as_deref(), Some("触发"));
+        assert_eq!(created.description().source.id(), source.identity());
+        assert_eq!(created.description().target.id(), target.identity());
+
+        let found = workspace
+            .logical_relationships()
+            .find_by_identity(created.identity())
+            .await
+            .unwrap()
+            .expect("created logical relationship");
+        assert_eq!(found.identity(), created.identity());
+
+        let (relationships, total) = workspace
+            .logical_relationships_wide()
+            .list(1, 10)
+            .await
+            .unwrap();
+        assert!(total >= 1);
+        assert!(relationships
+            .iter()
+            .any(|relationship| relationship.identity() == created.identity()));
+
+        let updated = workspace
+            .logical_relationships_wide()
+            .update(
+                created.identity(),
+                LogicalRelationshipDescription {
+                    workspace: Ref::new("default-workspace".to_string()),
+                    source: Ref::new(source.identity().to_string()),
+                    target: Ref::new(target.identity().to_string()),
+                    label: Some("确认".to_string()),
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(updated.description().label.as_deref(), Some("确认"));
+
+        workspace
+            .logical_relationships_wide()
+            .delete(created.identity())
+            .await
+            .unwrap();
+        let deleted = workspace
+            .logical_relationships()
+            .find_by_identity(created.identity())
+            .await
+            .unwrap();
+        assert!(deleted.is_none());
     }
 
     pub(crate) async fn workspace_logical_entities_crud(users: &dyn Users) {
@@ -1192,5 +1477,10 @@ mod tests {
     #[tokio::test]
     async fn fake_workspace_logical_entities_crud() {
         contracts::workspace_logical_entities_crud(&FakeUsers::new()).await;
+    }
+
+    #[tokio::test]
+    async fn fake_workspace_logical_relationships_crud() {
+        contracts::workspace_logical_relationships_crud(&FakeUsers::new()).await;
     }
 }

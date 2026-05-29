@@ -116,6 +116,12 @@ mod sqlite_tests {
         let context = sqlite_test_context().await;
         contracts::workspace_logical_entities_crud(&context.users).await;
     }
+
+    #[tokio::test]
+    async fn sqlite_workspace_logical_relationships_crud() {
+        let context = sqlite_test_context().await;
+        contracts::workspace_logical_relationships_crud(&context.users).await;
+    }
 }
 
 #[cfg(all(test, feature = "postgres-tests"))]
@@ -175,5 +181,11 @@ mod postgres_tests {
     async fn pg_workspace_logical_entities_crud() {
         let context = pg_test_context().await;
         contracts::workspace_logical_entities_crud(&context.users).await;
+    }
+
+    #[tokio::test]
+    async fn pg_workspace_logical_relationships_crud() {
+        let context = pg_test_context().await;
+        contracts::workspace_logical_relationships_crud(&context.users).await;
     }
 }

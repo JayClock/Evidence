@@ -12,6 +12,7 @@ use crate::domain::{HasMany, ServerError, UserWorkspaces, Workspace, WorkspaceDe
 use super::{
     entities::{workspace_members, workspaces},
     logical_entities::DbWorkspaceLogicalEntities,
+    logical_relationships::DbWorkspaceLogicalRelationships,
     store::{
         db_error, default_if_blank, metadata_to_json, now, workspace_to_record, DbStore,
         WorkspaceRecord,
@@ -71,6 +72,10 @@ impl DbUserWorkspaces {
                 record.id.clone(),
             )),
             Arc::new(DbWorkspaceLogicalEntities::new(
+                self.store.clone(),
+                record.id.clone(),
+            )),
+            Arc::new(DbWorkspaceLogicalRelationships::new(
                 self.store.clone(),
                 record.id,
             )),

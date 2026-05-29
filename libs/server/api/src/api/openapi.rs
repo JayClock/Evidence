@@ -74,6 +74,11 @@ pub fn openapi_yaml() -> String {
         get_logical_entity,
         update_logical_entity,
         delete_logical_entity,
+        list_logical_relationships,
+        create_logical_relationship,
+        get_logical_relationship,
+        update_logical_relationship,
+        delete_logical_relationship,
     ),
     components(schemas(
         AddMemberInput,
@@ -100,6 +105,10 @@ pub fn openapi_yaml() -> String {
         LogicalEntityCollectionResource,
         LogicalEntityResource,
         LogicalEntityType,
+        LogicalRelationshipCollectionResource,
+        LogicalRelationshipResource,
+        CreateLogicalRelationshipInput,
+        UpdateLogicalRelationshipInput,
         MemberCollectionResource,
         MemberResource,
         NodeCollectionResource,
@@ -454,11 +463,10 @@ pub struct EdgeInput {
     pub id: Option<String>,
     pub source: RefModel,
     pub target: RefModel,
+    pub logical_relationship: Option<RefModel>,
     pub source_handle: Option<String>,
     pub target_handle: Option<String>,
     pub kind: Option<String>,
-    pub relation_type: Option<String>,
-    pub label: Option<String>,
     pub style: Option<BTreeMap<String, serde_json::Value>>,
     pub data: Option<BTreeMap<String, serde_json::Value>>,
     pub animated: Option<bool>,
@@ -477,11 +485,10 @@ pub struct EdgeResource {
     pub id: String,
     pub source: RefModel,
     pub target: RefModel,
+    pub logical_relationship: Option<RefModel>,
     pub source_handle: Option<String>,
     pub target_handle: Option<String>,
     pub kind: Option<String>,
-    pub relation_type: Option<String>,
-    pub label: Option<String>,
     pub style: BTreeMap<String, serde_json::Value>,
     pub data: BTreeMap<String, serde_json::Value>,
     pub animated: bool,
@@ -662,6 +669,48 @@ pub struct LogicalEntityCollectionResource {
     pub links: Links,
     #[serde(rename = "_embedded")]
     pub embedded: LogicalEntityCollectionEmbedded,
+    pub page: PageModel,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateLogicalRelationshipInput {
+    pub source: RefModel,
+    pub target: RefModel,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateLogicalRelationshipInput {
+    pub source: Option<RefModel>,
+    pub target: Option<RefModel>,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct LogicalRelationshipResource {
+    #[serde(rename = "_links")]
+    pub links: Links,
+    pub id: String,
+    pub source: RefModel,
+    pub target: RefModel,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct LogicalRelationshipCollectionEmbedded {
+    #[serde(rename = "logicalRelationships")]
+    pub logical_relationships: Vec<LogicalRelationshipResource>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct LogicalRelationshipCollectionResource {
+    #[serde(rename = "_links")]
+    pub links: Links,
+    #[serde(rename = "_embedded")]
+    pub embedded: LogicalRelationshipCollectionEmbedded,
     pub page: PageModel,
 }
 
@@ -1224,3 +1273,75 @@ fn update_logical_entity() {}
     )
 )]
 fn delete_logical_entity() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/workspaces/{workspaceId}/logical-relationships",
+    params(("workspaceId" = String, Path), ("page" = Option<u32>, Query), ("pageSize" = Option<u32>, Query)),
+    responses(
+        (status = 200, description = "Logical relationship collection", body = LogicalRelationshipCollectionResource, content_type = "application/vnd.evidence.logical-relationships+json"),
+        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
+        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
+        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
+        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
+    )
+)]
+fn list_logical_relationships() {}
+
+#[utoipa::path(
+    post,
+    path = "/api/workspaces/{workspaceId}/logical-relationships",
+    params(("workspaceId" = String, Path)),
+    request_body(content = CreateLogicalRelationshipInput, content_type = "application/json"),
+    responses(
+        (status = 201, description = "Created logical relationship", body = LogicalRelationshipResource, content_type = "application/vnd.evidence.logical-relationships+json"),
+        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
+        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
+        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
+        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
+    )
+)]
+fn create_logical_relationship() {}
+
+#[utoipa::path(
+    get,
+    path = "/api/workspaces/{workspaceId}/logical-relationships/{relationshipId}",
+    params(("workspaceId" = String, Path), ("relationshipId" = String, Path)),
+    responses(
+        (status = 200, description = "Logical relationship resource", body = LogicalRelationshipResource, content_type = "application/vnd.evidence.logical-relationship+json"),
+        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
+        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
+        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
+        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
+    )
+)]
+fn get_logical_relationship() {}
+
+#[utoipa::path(
+    put,
+    path = "/api/workspaces/{workspaceId}/logical-relationships/{relationshipId}",
+    params(("workspaceId" = String, Path), ("relationshipId" = String, Path)),
+    request_body(content = UpdateLogicalRelationshipInput, content_type = "application/json"),
+    responses(
+        (status = 200, description = "Updated logical relationship", body = LogicalRelationshipResource, content_type = "application/vnd.evidence.logical-relationship+json"),
+        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
+        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
+        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
+        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
+    )
+)]
+fn update_logical_relationship() {}
+
+#[utoipa::path(
+    delete,
+    path = "/api/workspaces/{workspaceId}/logical-relationships/{relationshipId}",
+    params(("workspaceId" = String, Path), ("relationshipId" = String, Path)),
+    responses(
+        (status = 200, description = "Logical relationship delete result", body = DeletedResult, content_type = "application/vnd.evidence.logical-relationship+json"),
+        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
+        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
+        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
+        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
+    )
+)]
+fn delete_logical_relationship() {}
