@@ -219,7 +219,7 @@ async fn get_diagram(
     Path((workspace_id, diagram_id)): Path<(String, String)>,
 ) -> Result<Json<Value>, ApiError> {
     let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    Ok(Json(diagram_detail_resource(&diagram).await?))
+    Ok(Json(diagram_resource(&diagram)))
 }
 
 async fn update_diagram(
@@ -272,13 +272,11 @@ async fn list_nodes(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let nodes = diagram.nodes().find_all(0, usize::MAX).await?;
-    Ok(Json(node_collection_resource(
-        &workspace_id,
-        &diagram,
-        &nodes,
-    )))
+    Ok(Json(
+        node_collection_resource(&workspace, &diagram, &nodes).await?,
+    ))
 }
 
 async fn create_node(
@@ -286,26 +284,26 @@ async fn create_node(
     Path((workspace_id, diagram_id)): Path<(String, String)>,
     Json(input): Json<NodeInput>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let id = input.id.clone();
     let node = diagram
         .nodes_wide()
         .add_with_id(id, node_description(&diagram_id, input))
         .await?;
-    Ok(Json(node_resource(&workspace_id, &node)))
+    Ok(Json(node_resource(&workspace, &node).await?))
 }
 
 async fn get_node(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let node = diagram
         .nodes()
         .find_by_identity(&node_id)
         .await?
         .ok_or_else(|| ServerError::NotFound(format!("diagram node {node_id} not found")))?;
-    Ok(Json(node_resource(&workspace_id, &node)))
+    Ok(Json(node_resource(&workspace, &node).await?))
 }
 
 async fn update_node(
@@ -313,12 +311,12 @@ async fn update_node(
     Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
     Json(input): Json<NodeInput>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
     let node = diagram
         .nodes_wide()
         .update(&node_id, node_description(&diagram_id, input))
         .await?;
-    Ok(Json(node_resource(&workspace_id, &node)))
+    Ok(Json(node_resource(&workspace, &node).await?))
 }
 
 async fn delete_node(
@@ -616,21 +614,29 @@ fn diagram_resource(diagram: &Diagram) -> Value {
     serde_json::to_value(model).expect("diagram model should serialize")
 }
 
-async fn diagram_detail_resource(diagram: &Diagram) -> Result<Value, ApiError> {
-    let mut resource = diagram_resource(diagram);
-    let nodes = diagram.nodes().find_all(0, usize::MAX).await?;
-    let edges = diagram.edges().find_all(0, usize::MAX).await?;
-    let workspace_id = diagram.workspace_id();
-    resource["_embedded"] = json!({
-        "nodes": nodes.iter().map(|node| node_resource(workspace_id, node)).collect::<Vec<_>>(),
-        "edges": edges.iter().map(|edge| edge_resource(workspace_id, edge)).collect::<Vec<_>>(),
-    });
-    Ok(resource)
+async fn node_resources(
+    workspace: &Workspace,
+    nodes: &[DiagramNode],
+) -> Result<Vec<Value>, ApiError> {
+    let mut resources = Vec::with_capacity(nodes.len());
+    for node in nodes {
+        resources.push(node_resource(workspace, node).await?);
+    }
+    Ok(resources)
 }
 
-fn node_resource(workspace_id: &str, node: &DiagramNode) -> Value {
-    let model: NodeModel = node_model(workspace_id, node);
-    serde_json::to_value(model).expect("node model should serialize")
+async fn node_resource(workspace: &Workspace, node: &DiagramNode) -> Result<Value, ApiError> {
+    let logical_entity = match &node.description().logical_entity {
+        Some(logical_entity) => {
+            workspace
+                .logical_entities()
+                .find_by_identity(logical_entity.id())
+                .await?
+        }
+        None => None,
+    };
+    let model: NodeModel = node_model(workspace.identity(), node, logical_entity.as_ref());
+    Ok(serde_json::to_value(model).expect("node model should serialize"))
 }
 
 fn edge_resource(workspace_id: &str, edge: &DiagramEdge) -> Value {
@@ -751,17 +757,22 @@ fn create_diagram_template(workspace_id: &str) -> Value {
     })
 }
 
-fn node_collection_resource(workspace_id: &str, diagram: &Diagram, nodes: &[DiagramNode]) -> Value {
+async fn node_collection_resource(
+    workspace: &Workspace,
+    diagram: &Diagram,
+    nodes: &[DiagramNode],
+) -> Result<Value, ApiError> {
+    let workspace_id = workspace.identity();
     let diagram_id = diagram.identity();
-    json!({
+    Ok(json!({
         "_links": {
             "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/nodes")),
             "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
         },
         "_embedded": {
-            "nodes": nodes.iter().map(|node| node_resource(workspace_id, node)).collect::<Vec<_>>(),
+            "nodes": node_resources(workspace, nodes).await?,
         }
-    })
+    }))
 }
 
 fn edge_collection_resource(workspace_id: &str, diagram: &Diagram, edges: &[DiagramEdge]) -> Value {

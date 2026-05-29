@@ -367,13 +367,6 @@ export interface components {
       _templates: components['schemas']['BTreeMap'];
       page: components['schemas']['PageModel'];
     };
-    DiagramDetailEmbedded: {
-      edges: components['schemas']['EdgeResource'][];
-      nodes: components['schemas']['NodeResource'][];
-    };
-    DiagramDetailResource: components['schemas']['DiagramResource'] & {
-      _embedded: components['schemas']['DiagramDetailEmbedded'];
-    };
     DiagramResource: {
       _links: components['schemas']['BTreeMap'];
       _templates: components['schemas']['BTreeMap'];
@@ -566,6 +559,9 @@ export interface components {
       _embedded: components['schemas']['NodeCollectionEmbedded'];
       _links: components['schemas']['BTreeMap'];
     };
+    NodeEmbedded: {
+      'logical-entity': components['schemas']['LogicalEntityResource'];
+    };
     NodeInput: {
       data?: {
         [key: string]: unknown;
@@ -581,6 +577,7 @@ export interface components {
       width?: number | null;
     };
     NodeResource: {
+      _embedded?: null | components['schemas']['NodeEmbedded'];
       _links: components['schemas']['BTreeMap'];
       createdAt: string;
       data: {
@@ -1514,13 +1511,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Diagram detail resource */
+      /** @description Diagram resource */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramDetailResource'];
+          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
         };
       };
       /** @description Validation error */
@@ -2425,13 +2422,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Diagram detail resource */
+      /** @description Diagram resource */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramDetailResource'];
+          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
         };
       };
       /** @description Validation error */
@@ -2547,13 +2544,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Diagram detail resource */
+      /** @description Diagram resource */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramDetailResource'];
+          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
         };
       };
       /** @description Validation error */
@@ -2665,13 +2662,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Diagram detail resource */
+      /** @description Diagram resource */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramDetailResource'];
+          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
         };
       };
       /** @description Validation error */

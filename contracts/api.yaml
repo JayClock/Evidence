@@ -625,11 +625,11 @@ paths:
           type: string
       responses:
         '200':
-          description: Diagram detail resource
+          description: Diagram resource
           content:
             application/vnd.evidence.diagram+json:
               schema:
-                $ref: '#/components/schemas/DiagramDetailResource'
+                $ref: '#/components/schemas/DiagramResource'
         '400':
           description: Validation error
           content:
@@ -1366,11 +1366,11 @@ paths:
           type: string
       responses:
         '200':
-          description: Diagram detail resource
+          description: Diagram resource
           content:
             application/vnd.evidence.diagram+json:
               schema:
-                $ref: '#/components/schemas/DiagramDetailResource'
+                $ref: '#/components/schemas/DiagramResource'
         '400':
           description: Validation error
           content:
@@ -1463,11 +1463,11 @@ paths:
           type: string
       responses:
         '200':
-          description: Diagram detail resource
+          description: Diagram resource
           content:
             application/vnd.evidence.diagram+json:
               schema:
-                $ref: '#/components/schemas/DiagramDetailResource'
+                $ref: '#/components/schemas/DiagramResource'
         '400':
           description: Validation error
           content:
@@ -1554,11 +1554,11 @@ paths:
           type: string
       responses:
         '200':
-          description: Diagram detail resource
+          description: Diagram resource
           content:
             application/vnd.evidence.diagram+json:
               schema:
-                $ref: '#/components/schemas/DiagramDetailResource'
+                $ref: '#/components/schemas/DiagramResource'
         '400':
           description: Validation error
           content:
@@ -1988,29 +1988,6 @@ components:
           $ref: '#/components/schemas/BTreeMap'
         page:
           $ref: '#/components/schemas/PageModel'
-    DiagramDetailEmbedded:
-      type: object
-      required:
-      - nodes
-      - edges
-      properties:
-        edges:
-          type: array
-          items:
-            $ref: '#/components/schemas/EdgeResource'
-        nodes:
-          type: array
-          items:
-            $ref: '#/components/schemas/NodeResource'
-    DiagramDetailResource:
-      allOf:
-      - $ref: '#/components/schemas/DiagramResource'
-      - type: object
-        required:
-        - _embedded
-        properties:
-          _embedded:
-            $ref: '#/components/schemas/DiagramDetailEmbedded'
     DiagramResource:
       type: object
       required:
@@ -2542,6 +2519,13 @@ components:
           $ref: '#/components/schemas/NodeCollectionEmbedded'
         _links:
           $ref: '#/components/schemas/BTreeMap'
+    NodeEmbedded:
+      type: object
+      required:
+      - logical-entity
+      properties:
+        logical-entity:
+          $ref: '#/components/schemas/LogicalEntityResource'
     NodeInput:
       type: object
       required:
@@ -2593,6 +2577,10 @@ components:
       - createdAt
       - updatedAt
       properties:
+        _embedded:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/NodeEmbedded'
         _links:
           $ref: '#/components/schemas/BTreeMap'
         createdAt:

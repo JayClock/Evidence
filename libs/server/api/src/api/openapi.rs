@@ -82,7 +82,6 @@ pub fn openapi_yaml() -> String {
         CreateLogicalEntityInput,
         DeletedResult,
         DiagramCollectionResource,
-        DiagramDetailResource,
         DiagramResource,
         DiagramSnapshot,
         DiagramStatus,
@@ -383,20 +382,6 @@ pub struct DiagramResource {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct DiagramDetailEmbedded {
-    pub nodes: Vec<NodeResource>,
-    pub edges: Vec<EdgeResource>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct DiagramDetailResource {
-    #[serde(flatten)]
-    pub diagram: DiagramResource,
-    #[serde(rename = "_embedded")]
-    pub embedded: DiagramDetailEmbedded,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct DiagramCollectionEmbedded {
     pub diagrams: Vec<DiagramResource>,
 }
@@ -427,9 +412,18 @@ pub struct NodeInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct NodeEmbedded {
+    #[serde(rename = "logical-entity")]
+    pub logical_entity: LogicalEntityResource,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct NodeResource {
     #[serde(rename = "_links")]
     pub links: Links,
+    #[serde(rename = "_embedded")]
+    pub embedded: Option<NodeEmbedded>,
     pub id: String,
     pub kind: String,
     pub parent: Option<RefModel>,
@@ -863,7 +857,7 @@ fn create_diagram() {}
     path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}",
     params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
     responses(
-        (status = 200, description = "Diagram detail resource", body = DiagramDetailResource, content_type = "application/vnd.evidence.diagram+json"),
+        (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
         (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
         (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
@@ -1078,7 +1072,7 @@ fn create_diagram_version() {}
     path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/commit-draft",
     params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
     responses(
-        (status = 200, description = "Diagram detail resource", body = DiagramDetailResource, content_type = "application/vnd.evidence.diagram+json"),
+        (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
         (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
         (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
@@ -1107,7 +1101,7 @@ fn commit_diagram_draft() {}
     path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/publish",
     params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
     responses(
-        (status = 200, description = "Diagram detail resource", body = DiagramDetailResource, content_type = "application/vnd.evidence.diagram+json"),
+        (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
         (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
         (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
@@ -1135,7 +1129,7 @@ fn publish_diagram() {}
     path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
     params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
     responses(
-        (status = 200, description = "Diagram detail resource", body = DiagramDetailResource, content_type = "application/vnd.evidence.diagram+json"),
+        (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
         (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
         (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
