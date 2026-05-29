@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+
 use serde_json::Value;
+
+pub type JsonObject = BTreeMap<String, Value>;
 
 use super::types::Position;
 use crate::domain::{Entity, Ref};
@@ -14,7 +18,7 @@ pub struct NodeDescription {
     pub position: Position,
     pub width: Option<i64>,
     pub height: Option<i64>,
-    pub data: Value,
+    pub data: JsonObject,
     pub created_at: String,
     pub updated_at: String,
 }

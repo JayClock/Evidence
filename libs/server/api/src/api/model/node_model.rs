@@ -1,8 +1,7 @@
 use serde::Serialize;
-use serde_json::Value;
 use std::collections::BTreeMap;
 
-use crate::domain::{DiagramNode, Position, Ref};
+use crate::domain::{DiagramNode, JsonObject, Position, Ref};
 
 use super::super::links::{
     workspace_diagram_href, workspace_diagram_node_href, workspace_diagram_nodes_href,
@@ -20,7 +19,7 @@ pub(in crate::api) struct NodeModel {
     position: Position,
     width: Option<i64>,
     height: Option<i64>,
-    data: Value,
+    data: JsonObject,
     created_at: String,
     updated_at: String,
 }

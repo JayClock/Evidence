@@ -2141,7 +2141,13 @@ components:
           type:
           - boolean
           - 'null'
-        data: {}
+        data:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
         hidden:
           type:
           - boolean
@@ -2163,9 +2169,27 @@ components:
           type:
           - string
           - 'null'
-        markerEnd: {}
-        markerStart: {}
-        pathOptions: {}
+        markerEnd:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
+        markerStart:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
+        pathOptions:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
         relationType:
           type:
           - string
@@ -2176,7 +2200,13 @@ components:
           type:
           - string
           - 'null'
-        style: {}
+        style:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
         target:
           $ref: '#/components/schemas/RefModel'
         targetHandle:
@@ -2194,8 +2224,6 @@ components:
       - data
       - animated
       - hidden
-      - markerStart
-      - markerEnd
       - pathOptions
       - createdAt
       - updatedAt
@@ -2206,7 +2234,11 @@ components:
           type: boolean
         createdAt:
           type: string
-        data: {}
+        data:
+          type: object
+          additionalProperties: {}
+          propertyNames:
+            type: string
         hidden:
           type: boolean
         id:
@@ -2224,9 +2256,25 @@ components:
           type:
           - string
           - 'null'
-        markerEnd: {}
-        markerStart: {}
-        pathOptions: {}
+        markerEnd:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
+        markerStart:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
+        pathOptions:
+          type: object
+          additionalProperties: {}
+          propertyNames:
+            type: string
         relationType:
           type:
           - string
@@ -2237,7 +2285,11 @@ components:
           type:
           - string
           - 'null'
-        style: {}
+        style:
+          type: object
+          additionalProperties: {}
+          propertyNames:
+            type: string
         target:
           $ref: '#/components/schemas/RefModel'
         targetHandle:
@@ -2495,7 +2547,13 @@ components:
       required:
       - kind
       properties:
-        data: {}
+        data:
+          type:
+          - object
+          - 'null'
+          additionalProperties: {}
+          propertyNames:
+            type: string
         height:
           type:
           - integer
@@ -2539,7 +2597,11 @@ components:
           $ref: '#/components/schemas/BTreeMap'
         createdAt:
           type: string
-        data: {}
+        data:
+          type: object
+          additionalProperties: {}
+          propertyNames:
+            type: string
         height:
           type:
           - integer

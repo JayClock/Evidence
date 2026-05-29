@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
+use super::JsonObject;
 use crate::domain::{Entity, Ref};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,13 +14,13 @@ pub struct EdgeDescription {
     pub kind: Option<String>,
     pub relation_type: Option<String>,
     pub label: Option<String>,
-    pub style: Value,
-    pub data: Value,
+    pub style: JsonObject,
+    pub data: JsonObject,
     pub animated: bool,
     pub hidden: bool,
-    pub marker_start: Value,
-    pub marker_end: Value,
-    pub path_options: Value,
+    pub marker_start: Option<JsonObject>,
+    pub marker_end: Option<JsonObject>,
+    pub path_options: JsonObject,
     pub interaction_width: Option<f64>,
     pub created_at: String,
     pub updated_at: String,

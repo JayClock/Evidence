@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use super::JsonObject;
 use crate::domain::{LogicalEntityType, Position, Ref};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,19 +55,19 @@ pub struct ModelingDraftEdge {
     pub relation_type: Option<String>,
     pub label: Option<String>,
     #[serde(default)]
-    pub style: Value,
+    pub style: JsonObject,
     #[serde(default)]
-    pub data: Value,
+    pub data: JsonObject,
     #[serde(default)]
     pub animated: bool,
     #[serde(default)]
     pub hidden: bool,
     #[serde(default)]
-    pub marker_start: Value,
+    pub marker_start: Option<JsonObject>,
     #[serde(default)]
-    pub marker_end: Value,
+    pub marker_end: Option<JsonObject>,
     #[serde(default)]
-    pub path_options: Value,
+    pub path_options: JsonObject,
     pub interaction_width: Option<f64>,
 }
 

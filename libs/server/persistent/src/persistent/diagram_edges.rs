@@ -3,10 +3,12 @@ use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, QuerySelect, Set, TransactionTrait,
 };
+use serde::Serialize;
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::domain::{
-    DiagramEdge, DiagramEdges, DraftEdge, EdgeDescription, HasMany, Ref, ServerError,
+    DiagramEdge, DiagramEdges, DraftEdge, EdgeDescription, HasMany, JsonObject, Ref, ServerError,
 };
 
 use super::{
@@ -108,13 +110,13 @@ impl DiagramEdges for DbDiagramEdges {
         active.kind = Set(desc.kind);
         active.relation_type = Set(desc.relation_type);
         active.label = Set(desc.label);
-        active.style = Set(desc.style);
-        active.data = Set(desc.data);
+        active.style = Set(to_json_value(&desc.style));
+        active.data = Set(to_json_value(&desc.data));
         active.animated = Set(desc.animated);
         active.hidden = Set(desc.hidden);
-        active.marker_start = Set(desc.marker_start);
-        active.marker_end = Set(desc.marker_end);
-        active.path_options = Set(desc.path_options);
+        active.marker_start = Set(optional_json_object_to_value(&desc.marker_start));
+        active.marker_end = Set(optional_json_object_to_value(&desc.marker_end));
+        active.path_options = Set(to_json_value(&desc.path_options));
         active.interaction_width = Set(desc.interaction_width);
         active.updated_at = Set(now());
         let updated = active.update(self.store.db()).await.map_err(db_error)?;
@@ -156,13 +158,13 @@ pub(super) fn edge_from_model(model: diagram_edges::Model) -> DiagramEdge {
             kind: model.kind,
             relation_type: model.relation_type,
             label: model.label,
-            style: model.style,
-            data: model.data,
+            style: json_object(model.style),
+            data: json_object(model.data),
             animated: model.animated,
             hidden: model.hidden,
-            marker_start: model.marker_start,
-            marker_end: model.marker_end,
-            path_options: model.path_options,
+            marker_start: optional_json_object(model.marker_start),
+            marker_end: optional_json_object(model.marker_end),
+            path_options: json_object(model.path_options),
             interaction_width: model.interaction_width,
             created_at: model.created_at,
             updated_at: model.updated_at,
@@ -202,13 +204,13 @@ where
         kind: Set(desc.kind.clone()),
         relation_type: Set(desc.relation_type.clone()),
         label: Set(desc.label.clone()),
-        style: Set(desc.style.clone()),
-        data: Set(desc.data.clone()),
+        style: Set(to_json_value(&desc.style)),
+        data: Set(to_json_value(&desc.data)),
         animated: Set(desc.animated),
         hidden: Set(desc.hidden),
-        marker_start: Set(desc.marker_start.clone()),
-        marker_end: Set(desc.marker_end.clone()),
-        path_options: Set(desc.path_options.clone()),
+        marker_start: Set(optional_json_object_to_value(&desc.marker_start)),
+        marker_end: Set(optional_json_object_to_value(&desc.marker_end)),
+        path_options: Set(to_json_value(&desc.path_options)),
         interaction_width: Set(desc.interaction_width),
         created_at: Set(timestamp.to_string()),
         updated_at: Set(timestamp.to_string()),
@@ -217,4 +219,24 @@ where
     .await
     .map_err(db_error)?;
     Ok(())
+}
+
+fn to_json_value<T: Serialize>(value: &T) -> sea_orm::JsonValue {
+    serde_json::to_value(value).unwrap_or_else(|_| Value::Object(Default::default()))
+}
+
+fn optional_json_object_to_value(value: &Option<JsonObject>) -> sea_orm::JsonValue {
+    value.as_ref().map(to_json_value).unwrap_or(Value::Null)
+}
+
+fn json_object(value: sea_orm::JsonValue) -> JsonObject {
+    serde_json::from_value(value).unwrap_or_default()
+}
+
+fn optional_json_object(value: sea_orm::JsonValue) -> Option<JsonObject> {
+    if value.is_null() {
+        None
+    } else {
+        serde_json::from_value(value).ok()
+    }
 }

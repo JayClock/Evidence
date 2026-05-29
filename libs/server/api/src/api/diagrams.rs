@@ -11,8 +11,8 @@ use serde_json::{json, Value};
 
 use crate::domain::{
     Diagram, DiagramDescription, DiagramEdge, DiagramNode, DiagramStatus, DiagramType,
-    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, ModelingEvent, NodeDescription,
-    Position, Ref, ServerError, Viewport, Workspace,
+    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, JsonObject, ModelingEvent,
+    NodeDescription, Position, Ref, ServerError, Viewport, Workspace,
 };
 
 use super::{
@@ -64,8 +64,8 @@ struct NodeInput {
     position: Position,
     width: Option<i64>,
     height: Option<i64>,
-    #[serde(default = "empty_object")]
-    data: Value,
+    #[serde(default)]
+    data: Option<JsonObject>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -79,20 +79,18 @@ struct EdgeInput {
     kind: Option<String>,
     relation_type: Option<String>,
     label: Option<String>,
-    #[serde(default = "empty_object")]
-    style: Value,
-    #[serde(default = "empty_object")]
-    data: Value,
+    #[serde(default)]
+    style: Option<JsonObject>,
+    #[serde(default)]
+    data: Option<JsonObject>,
     #[serde(default)]
     animated: bool,
     #[serde(default)]
     hidden: bool,
-    #[serde(default = "null_value")]
-    marker_start: Value,
-    #[serde(default = "null_value")]
-    marker_end: Value,
-    #[serde(default = "empty_object")]
-    path_options: Value,
+    marker_start: Option<JsonObject>,
+    marker_end: Option<JsonObject>,
+    #[serde(default)]
+    path_options: Option<JsonObject>,
     interaction_width: Option<f64>,
 }
 
@@ -111,14 +109,6 @@ struct ProposeModelInput {
     requirement: String,
 }
 
-fn empty_object() -> Value {
-    json!({})
-}
-
-fn null_value() -> Value {
-    Value::Null
-}
-
 fn node_description(diagram_id: &str, input: NodeInput) -> NodeDescription {
     NodeDescription {
         diagram: Ref::new(diagram_id.to_string()),
@@ -128,7 +118,7 @@ fn node_description(diagram_id: &str, input: NodeInput) -> NodeDescription {
         position: input.position,
         width: input.width,
         height: input.height,
-        data: input.data,
+        data: input.data.unwrap_or_default(),
         created_at: String::new(),
         updated_at: String::new(),
     }
@@ -144,13 +134,13 @@ fn edge_description(diagram_id: &str, input: EdgeInput) -> EdgeDescription {
         kind: input.kind,
         relation_type: input.relation_type,
         label: input.label,
-        style: input.style,
-        data: input.data,
+        style: input.style.unwrap_or_default(),
+        data: input.data.unwrap_or_default(),
         animated: input.animated,
         hidden: input.hidden,
         marker_start: input.marker_start,
         marker_end: input.marker_end,
-        path_options: input.path_options,
+        path_options: input.path_options.unwrap_or_default(),
         interaction_width: input.interaction_width,
         created_at: String::new(),
         updated_at: String::new(),

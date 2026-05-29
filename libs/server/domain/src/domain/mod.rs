@@ -13,9 +13,9 @@ pub use diagram::{
     Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
     DiagramSnapshot, DiagramStatus, DiagramType, DiagramVersion, DiagramVersionDescription,
     DiagramVersions, DomainArchitect, DomainArchitectEventStream, DraftEdge, DraftNode,
-    EdgeDescription, ModelingDraftEdge, ModelingDraftEntity, ModelingDraftNode, ModelingEvent,
-    ModelingProposal, ModelingProposalChanges, NodeDescription, Position, SnapshotEdge,
-    SnapshotNode, Viewport, WorkspaceDiagrams,
+    EdgeDescription, JsonObject, ModelingDraftEdge, ModelingDraftEntity, ModelingDraftNode,
+    ModelingEvent, ModelingProposal, ModelingProposalChanges, NodeDescription, Position,
+    SnapshotEdge, SnapshotNode, Viewport, WorkspaceDiagrams,
 };
 pub use error::ServerError;
 pub use logical_entity::{

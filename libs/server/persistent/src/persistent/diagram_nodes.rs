@@ -8,7 +8,8 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::domain::{
-    DiagramNode, DiagramNodes, DraftNode, HasMany, NodeDescription, Position, Ref, ServerError,
+    DiagramNode, DiagramNodes, DraftNode, HasMany, JsonObject, NodeDescription, Position, Ref,
+    ServerError,
 };
 
 use super::{
@@ -110,7 +111,7 @@ impl DiagramNodes for DbDiagramNodes {
         active.position = Set(to_json_value(&desc.position));
         active.width = Set(desc.width);
         active.height = Set(desc.height);
-        active.data = Set(desc.data);
+        active.data = Set(to_json_value(&desc.data));
         active.updated_at = Set(now());
         let updated = active.update(self.store.db()).await.map_err(db_error)?;
         Ok(node_from_model(updated))
@@ -157,7 +158,7 @@ pub(super) fn node_from_model(model: diagram_nodes::Model) -> DiagramNode {
             position: from_json_value(model.position, Position::default()),
             width: model.width,
             height: model.height,
-            data: model.data,
+            data: from_json_value(model.data, JsonObject::default()),
             created_at: model.created_at,
             updated_at: model.updated_at,
         },
@@ -195,7 +196,7 @@ where
         position: Set(to_json_value(&desc.position)),
         width: Set(desc.width),
         height: Set(desc.height),
-        data: Set(desc.data.clone()),
+        data: Set(to_json_value(&desc.data)),
         created_at: Set(timestamp.to_string()),
         updated_at: Set(timestamp.to_string()),
     }

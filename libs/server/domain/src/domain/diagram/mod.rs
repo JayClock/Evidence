@@ -22,7 +22,7 @@ pub use modeling::{
     ModelingDraftEdge, ModelingDraftEntity, ModelingDraftNode, ModelingEvent, ModelingProposal,
     ModelingProposalChanges,
 };
-pub use node::{DiagramNode, NodeDescription};
+pub use node::{DiagramNode, JsonObject, NodeDescription};
 pub use types::{DiagramStatus, DiagramType, DraftEdge, DraftNode, Position, Viewport};
 pub use version::{
     DiagramSnapshot, DiagramVersion, DiagramVersionDescription, SnapshotEdge, SnapshotNode,

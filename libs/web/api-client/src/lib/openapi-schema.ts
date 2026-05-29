@@ -424,20 +424,30 @@ export interface components {
     };
     EdgeInput: {
       animated?: boolean | null;
-      data?: unknown;
+      data?: {
+        [key: string]: unknown;
+      } | null;
       hidden?: boolean | null;
       id?: string | null;
       /** Format: double */
       interactionWidth?: number | null;
       kind?: string | null;
       label?: string | null;
-      markerEnd?: unknown;
-      markerStart?: unknown;
-      pathOptions?: unknown;
+      markerEnd?: {
+        [key: string]: unknown;
+      } | null;
+      markerStart?: {
+        [key: string]: unknown;
+      } | null;
+      pathOptions?: {
+        [key: string]: unknown;
+      } | null;
       relationType?: string | null;
       source: components['schemas']['RefModel'];
       sourceHandle?: string | null;
-      style?: unknown;
+      style?: {
+        [key: string]: unknown;
+      } | null;
       target: components['schemas']['RefModel'];
       targetHandle?: string | null;
     };
@@ -445,20 +455,30 @@ export interface components {
       _links: components['schemas']['BTreeMap'];
       animated: boolean;
       createdAt: string;
-      data: unknown;
+      data: {
+        [key: string]: unknown;
+      };
       hidden: boolean;
       id: string;
       /** Format: double */
       interactionWidth?: number | null;
       kind?: string | null;
       label?: string | null;
-      markerEnd: unknown;
-      markerStart: unknown;
-      pathOptions: unknown;
+      markerEnd?: {
+        [key: string]: unknown;
+      } | null;
+      markerStart?: {
+        [key: string]: unknown;
+      } | null;
+      pathOptions: {
+        [key: string]: unknown;
+      };
       relationType?: string | null;
       source: components['schemas']['RefModel'];
       sourceHandle?: string | null;
-      style: unknown;
+      style: {
+        [key: string]: unknown;
+      };
       target: components['schemas']['RefModel'];
       targetHandle?: string | null;
       updatedAt: string;
@@ -547,7 +567,9 @@ export interface components {
       _links: components['schemas']['BTreeMap'];
     };
     NodeInput: {
-      data?: unknown;
+      data?: {
+        [key: string]: unknown;
+      } | null;
       /** Format: int64 */
       height?: number | null;
       id?: string | null;
@@ -561,7 +583,9 @@ export interface components {
     NodeResource: {
       _links: components['schemas']['BTreeMap'];
       createdAt: string;
-      data: unknown;
+      data: {
+        [key: string]: unknown;
+      };
       /** Format: int64 */
       height?: number | null;
       id: string;

@@ -1,8 +1,7 @@
 use serde::Serialize;
-use serde_json::Value;
 use std::collections::BTreeMap;
 
-use crate::domain::{DiagramEdge, Ref};
+use crate::domain::{DiagramEdge, JsonObject, Ref};
 
 use super::super::links::{
     workspace_diagram_edge_href, workspace_diagram_edges_href, workspace_diagram_href, Link,
@@ -21,13 +20,13 @@ pub(in crate::api) struct EdgeModel {
     kind: Option<String>,
     relation_type: Option<String>,
     label: Option<String>,
-    style: Value,
-    data: Value,
+    style: JsonObject,
+    data: JsonObject,
     animated: bool,
     hidden: bool,
-    marker_start: Value,
-    marker_end: Value,
-    path_options: Value,
+    marker_start: Option<JsonObject>,
+    marker_end: Option<JsonObject>,
+    path_options: JsonObject,
     interaction_width: Option<f64>,
     created_at: String,
     updated_at: String,
