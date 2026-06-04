@@ -44,7 +44,7 @@ export class SidebarController {
     if (!user) {
       throw DomainError.notFound(`user ${userId} not found`);
     }
-    const [workspaces] = await user.workspaces().list(1, 1, null);
+    const [workspaces] = await user.listWorkspaces(1, 1, null);
     return sidebarResource(userId, workspaces[0]?.identity() ?? null);
   }
 }

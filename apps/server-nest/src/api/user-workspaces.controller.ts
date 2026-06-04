@@ -48,9 +48,7 @@ export class UserWorkspacesController {
       100,
     );
 
-    const [workspaces, total] = await user
-      .workspaces()
-      .list(page, pageSize, null);
+    const [workspaces, total] = await user.listWorkspaces(page, pageSize, null);
     const pageQuery: PageQuery = { page, pageSize, totalElements: total };
     const links: Record<string, Link> = {
       self: link(userWorkspacesPageHref(userId, page, pageSize)),
@@ -78,9 +76,9 @@ export class UserWorkspacesController {
     @Body() input: WorkspaceInput,
   ): Promise<WorkspaceModel> {
     const user = await findUser(this.users, userId);
-    const workspace = await user
-      .workspaces()
-      .create(workspaceInputToDescription(input));
+    const workspace = await user.createWorkspace(
+      workspaceInputToDescription(input),
+    );
     return workspaceModel(userId, workspace);
   }
 
@@ -100,9 +98,10 @@ export class UserWorkspacesController {
     @Body() input: WorkspaceInput,
   ): Promise<WorkspaceModel> {
     const user = await findUser(this.users, userId);
-    const workspace = await user
-      .workspaces()
-      .update(workspaceId, workspaceInputToDescription(input));
+    const workspace = await user.updateWorkspace(
+      workspaceId,
+      workspaceInputToDescription(input),
+    );
     return workspaceModel(userId, workspace);
   }
 
@@ -113,7 +112,7 @@ export class UserWorkspacesController {
     @Param('workspaceId') workspaceId: string,
   ): Promise<void> {
     const user = await findUser(this.users, userId);
-    await user.workspaces().delete(workspaceId);
+    await user.deleteWorkspace(workspaceId);
   }
 }
 
