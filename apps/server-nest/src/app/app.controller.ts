@@ -1,12 +1,18 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
+import type { HealthResource, RootResource } from './app.service';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  getData() {
-    return this.appService.getData();
+  getRoot(): RootResource {
+    return this.appService.root();
+  }
+
+  @Get('health')
+  getHealth(): HealthResource {
+    return this.appService.health();
   }
 }
