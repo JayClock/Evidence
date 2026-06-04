@@ -4,7 +4,7 @@ import {
   LogicalRelationship,
   LogicalRelationshipDescription,
   Ref,
-  ServerError,
+  DomainError,
   WorkspaceLogicalRelationships,
 } from '../domain';
 import { InMemoryStore, LogicalRelationshipRecord, now } from './records';
@@ -66,7 +66,7 @@ export class InMemoryWorkspaceLogicalRelationships
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(
+      throw DomainError.notFound(
         `logical relationship ${relationshipId} not found`,
       );
     }
@@ -85,7 +85,7 @@ export class InMemoryWorkspaceLogicalRelationships
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(
+      throw DomainError.notFound(
         `logical relationship ${relationshipId} not found`,
       );
     }
@@ -100,7 +100,7 @@ export class InMemoryWorkspaceLogicalRelationships
     pageSize: number,
   ): Promise<[LogicalRelationship[], number]> {
     if (page === 0 || pageSize === 0) {
-      throw ServerError.validation('page and pageSize must be greater than 0');
+      throw DomainError.validation('page and pageSize must be greater than 0');
     }
     const rows = this.records().sort((left, right) =>
       right.id.localeCompare(left.id),
@@ -133,7 +133,7 @@ export class InMemoryWorkspaceLogicalRelationships
         entity.workspaceId !== this.workspaceId ||
         entity.deletedAt !== null
       ) {
-        throw ServerError.validation(
+        throw DomainError.validation(
           `logical relationship ${label} endpoint ${endpointId} not found in workspace ${this.workspaceId}`,
         );
       }

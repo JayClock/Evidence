@@ -1,4 +1,4 @@
-import { ServerError } from '../domain';
+import { DomainError } from '../domain';
 
 export function parsePositiveInteger(
   input: string | undefined,
@@ -10,7 +10,7 @@ export function parsePositiveInteger(
   }
   const value = Number(input);
   if (!Number.isInteger(value) || value <= 0) {
-    throw ServerError.validation(`${name} must be greater than 0`);
+    throw DomainError.validation(`${name} must be greater than 0`);
   }
   return value;
 }

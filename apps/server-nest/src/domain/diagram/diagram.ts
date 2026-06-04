@@ -1,5 +1,5 @@
 import { Entity, HasMany, Ref } from '../core';
-import { ServerError } from '../error';
+import { DomainError } from '../error';
 import { DiagramEdge, DiagramEdges } from './edge';
 import { DiagramNode, DiagramNodes } from './node';
 import { DiagramStatus, DiagramType, Viewport } from './types';
@@ -82,7 +82,7 @@ export class Diagram implements Entity<string, DiagramDescription> {
     };
     const version = await this.diagramVersions.add(desc);
     if (!version) {
-      throw ServerError.internal('created diagram version could not be loaded');
+      throw DomainError.internal('created diagram version could not be loaded');
     }
     return version;
   }

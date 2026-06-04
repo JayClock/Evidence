@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Param } from '@nestjs/common';
-import { ServerError, USERS } from '../domain';
+import { DomainError, USERS } from '../domain';
 import type { Users } from '../domain';
 import {
   link,
@@ -42,7 +42,7 @@ export class SidebarController {
   ): Promise<SidebarResource> {
     const user = await this.users.findByIdentity(userId);
     if (!user) {
-      throw ServerError.notFound(`user ${userId} not found`);
+      throw DomainError.notFound(`user ${userId} not found`);
     }
     const [workspaces] = await user.workspaces().list(1, 1, null);
     return sidebarResource(userId, workspaces[0]?.identity() ?? null);

@@ -4,7 +4,7 @@ import {
   Member,
   MemberDescription,
   Ref,
-  ServerError,
+  DomainError,
   WorkspaceMembers,
 } from '../domain';
 import { defaultIfBlank, InMemoryStore, MemberRecord, now } from './records';
@@ -39,26 +39,26 @@ export class InMemoryWorkspaceMembers
   async addMember(desc: MemberDescription): Promise<Member> {
     const workspaceId = desc.workspace.id();
     if (workspaceId !== this.workspaceId) {
-      throw ServerError.validation(
+      throw DomainError.validation(
         `member workspace ${workspaceId} does not match scoped workspace ${this.workspaceId}`,
       );
     }
 
     const userId = desc.user.id();
     if (!this.store.users.has(userId)) {
-      throw ServerError.notFound(`user ${userId} not found`);
+      throw DomainError.notFound(`user ${userId} not found`);
     }
 
     const workspace = this.store.workspaces.get(this.workspaceId);
     if (!workspace || workspace.deletedAt !== null) {
-      throw ServerError.notFound(`workspace ${this.workspaceId} not found`);
+      throw DomainError.notFound(`workspace ${this.workspaceId} not found`);
     }
 
     const alreadyMember = this.visibleMembers().some(
       (member) => member.userId === userId,
     );
     if (alreadyMember) {
-      throw ServerError.conflict(
+      throw DomainError.conflict(
         `user ${userId} is already a workspace member`,
       );
     }
@@ -79,7 +79,7 @@ export class InMemoryWorkspaceMembers
   async removeMember(userId: string): Promise<void> {
     const member = this.visibleMembers().find((row) => row.userId === userId);
     if (!member) {
-      throw ServerError.notFound(`workspace member ${userId} not found`);
+      throw DomainError.notFound(`workspace member ${userId} not found`);
     }
     this.store.members.delete(member.id);
   }

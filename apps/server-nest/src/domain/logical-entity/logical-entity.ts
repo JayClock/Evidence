@@ -1,5 +1,5 @@
 import { Entity, HasMany, Ref } from '../core';
-import { ServerError } from '../error';
+import { DomainError } from '../error';
 
 export interface EntityAttribute {
   id: string;
@@ -44,7 +44,7 @@ export function parseLogicalEntityType(value: string): LogicalEntityType {
     case 'context':
       return 'CONTEXT';
     default:
-      throw ServerError.validation(`unknown logical entity type: ${value}`);
+      throw DomainError.validation(`unknown logical entity type: ${value}`);
   }
 }
 
@@ -65,7 +65,7 @@ export function normalizeSubType(
   if (trimmed.includes(':')) {
     const [prefix, ...rest] = trimmed.split(':');
     if (prefix.trim() !== entityType) {
-      throw ServerError.validation(
+      throw DomainError.validation(
         `subType prefix ${prefix} does not match logical entity type ${entityType}`,
       );
     }
@@ -76,7 +76,7 @@ export function normalizeSubType(
     (candidate) => candidate.toLocaleLowerCase() === raw.toLocaleLowerCase(),
   );
   if (!valid) {
-    throw ServerError.validation(`unknown ${entityType} subType: ${raw}`);
+    throw DomainError.validation(`unknown ${entityType} subType: ${raw}`);
   }
   return valid;
 }

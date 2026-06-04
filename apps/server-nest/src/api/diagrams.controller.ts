@@ -28,7 +28,7 @@ import {
   parseDiagramType,
   Position,
   Ref,
-  ServerError,
+  DomainError,
   USERS,
   Viewport,
 } from '../domain';
@@ -251,7 +251,7 @@ export class DiagramsController {
     const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
     const node = await diagram.nodes().findByIdentity(nodeId);
     if (!node) {
-      throw ServerError.notFound(`diagram node ${nodeId} not found`);
+      throw DomainError.notFound(`diagram node ${nodeId} not found`);
     }
     return this.nodeResource(workspace, node);
   }
@@ -319,7 +319,7 @@ export class DiagramsController {
     const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
     const edge = await diagram.edges().findByIdentity(edgeId);
     if (!edge) {
-      throw ServerError.notFound(`diagram edge ${edgeId} not found`);
+      throw DomainError.notFound(`diagram edge ${edgeId} not found`);
     }
     return edgeModel(workspaceId, edge);
   }
@@ -393,7 +393,7 @@ export class DiagramsController {
     const workspace = await this.loadWorkspace(workspaceId);
     const nodes = (input.nodes ?? []).map((nodeInput) => {
       if (!nodeInput.id) {
-        throw ServerError.validation('draft node id is required');
+        throw DomainError.validation('draft node id is required');
       }
       return {
         id: nodeInput.id,
@@ -427,7 +427,7 @@ export class DiagramsController {
     @Body() input: ProposeModelInput,
   ): Promise<string> {
     if (input.requirement.trim().length === 0) {
-      throw ServerError.validation('requirement is required');
+      throw DomainError.validation('requirement is required');
     }
     await this.loadDiagram(workspaceId, diagramId);
     return 'event: complete\ndata: \n\n';
@@ -454,7 +454,7 @@ export class DiagramsController {
   private async loadWorkspace(workspaceId: string): Promise<Workspace> {
     const workspace = await this.users.workspaces().findByIdentity(workspaceId);
     if (!workspace) {
-      throw ServerError.notFound(`workspace ${workspaceId} not found`);
+      throw DomainError.notFound(`workspace ${workspaceId} not found`);
     }
     return workspace;
   }
@@ -466,7 +466,7 @@ export class DiagramsController {
     const workspace = await this.loadWorkspace(workspaceId);
     const diagram = await workspace.diagrams().findByIdentity(diagramId);
     if (!diagram) {
-      throw ServerError.notFound(`diagram ${diagramId} not found`);
+      throw DomainError.notFound(`diagram ${diagramId} not found`);
     }
     return [workspace, diagram];
   }

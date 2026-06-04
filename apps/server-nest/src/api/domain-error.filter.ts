@@ -4,15 +4,15 @@ import {
   ExceptionFilter,
   HttpStatus,
 } from '@nestjs/common';
-import { ServerError } from '../domain';
+import { DomainError } from '../domain';
 
 interface JsonResponse {
   status(code: number): { json(body: unknown): void };
 }
 
-@Catch(ServerError)
-export class ServerErrorFilter implements ExceptionFilter<ServerError> {
-  catch(exception: ServerError, host: ArgumentsHost): void {
+@Catch(DomainError)
+export class DomainErrorFilter implements ExceptionFilter<DomainError> {
+  catch(exception: DomainError, host: ArgumentsHost): void {
     const response = host.switchToHttp().getResponse<JsonResponse>();
     response.status(statusFor(exception)).json({
       error: exception.kind,
@@ -21,7 +21,7 @@ export class ServerErrorFilter implements ExceptionFilter<ServerError> {
   }
 }
 
-function statusFor(error: ServerError): number {
+function statusFor(error: DomainError): number {
   switch (error.kind) {
     case 'notFound':
       return HttpStatus.NOT_FOUND;

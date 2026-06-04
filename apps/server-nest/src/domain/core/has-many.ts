@@ -1,4 +1,4 @@
-import { ServerError } from '../error';
+import { DomainError } from '../error';
 
 export interface HasMany<E> {
   findAll(from: number, to: number): Promise<E[]>;
@@ -8,6 +8,6 @@ export interface HasMany<E> {
 
 export function validateRange(from: number, to: number): void {
   if (from < 0 || to < from) {
-    throw ServerError.validation('invalid collection range');
+    throw DomainError.validation('invalid collection range');
   }
 }

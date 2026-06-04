@@ -1,31 +1,31 @@
-export type ServerErrorKind =
+export type DomainErrorKind =
   | 'notFound'
   | 'conflict'
   | 'validation'
   | 'internal';
 
-export class ServerError extends Error {
+export class DomainError extends Error {
   private constructor(
-    readonly kind: ServerErrorKind,
+    readonly kind: DomainErrorKind,
     message: string,
   ) {
     super(message);
-    this.name = 'ServerError';
+    this.name = 'DomainError';
   }
 
-  static notFound(message: string): ServerError {
-    return new ServerError('notFound', message);
+  static notFound(message: string): DomainError {
+    return new DomainError('notFound', message);
   }
 
-  static conflict(message: string): ServerError {
-    return new ServerError('conflict', message);
+  static conflict(message: string): DomainError {
+    return new DomainError('conflict', message);
   }
 
-  static validation(message: string): ServerError {
-    return new ServerError('validation', message);
+  static validation(message: string): DomainError {
+    return new DomainError('validation', message);
   }
 
-  static internal(message: string): ServerError {
-    return new ServerError('internal', message);
+  static internal(message: string): DomainError {
+    return new DomainError('internal', message);
   }
 }

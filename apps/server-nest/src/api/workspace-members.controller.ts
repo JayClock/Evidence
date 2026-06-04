@@ -9,7 +9,7 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { Ref, ServerError, USERS } from '../domain';
+import { Ref, DomainError, USERS } from '../domain';
 import type { Users } from '../domain';
 import { link, Link, workspaceHref, workspaceMembersHref } from './links';
 import { findWorkspace } from './loaders';
@@ -64,7 +64,7 @@ export class WorkspaceMembersController {
     const workspace = await findWorkspace(this.users, userId, workspaceId);
     const member = await workspace.members().findByIdentity(memberId);
     if (!member) {
-      throw ServerError.notFound(`workspace member ${memberId} not found`);
+      throw DomainError.notFound(`workspace member ${memberId} not found`);
     }
     return memberModel(userId, member);
   }
@@ -79,7 +79,7 @@ export class WorkspaceMembersController {
     const workspace = await findWorkspace(this.users, userId, workspaceId);
     const member = await workspace.members().findByIdentity(memberId);
     if (!member) {
-      throw ServerError.notFound(`workspace member ${memberId} not found`);
+      throw DomainError.notFound(`workspace member ${memberId} not found`);
     }
     await workspace.membersWide().removeMember(member.description().user.id());
   }

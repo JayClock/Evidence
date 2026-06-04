@@ -14,7 +14,7 @@ import {
 import {
   LogicalRelationshipDescription,
   Ref,
-  ServerError,
+  DomainError,
   USERS,
 } from '../domain';
 import type { LogicalRelationship, Users, Workspace } from '../domain';
@@ -100,7 +100,7 @@ export class LogicalRelationshipsController {
       .logicalRelationships()
       .findByIdentity(relationshipId);
     if (!relationship) {
-      throw ServerError.notFound(
+      throw DomainError.notFound(
         `logical relationship ${relationshipId} not found`,
       );
     }
@@ -118,7 +118,7 @@ export class LogicalRelationshipsController {
       .logicalRelationships()
       .findByIdentity(relationshipId);
     if (!existing) {
-      throw ServerError.notFound(
+      throw DomainError.notFound(
         `logical relationship ${relationshipId} not found`,
       );
     }
@@ -147,7 +147,7 @@ export class LogicalRelationshipsController {
   private async loadWorkspace(workspaceId: string): Promise<Workspace> {
     const workspace = await this.users.workspaces().findByIdentity(workspaceId);
     if (!workspace) {
-      throw ServerError.notFound(`workspace ${workspaceId} not found`);
+      throw DomainError.notFound(`workspace ${workspaceId} not found`);
     }
     return workspace;
   }

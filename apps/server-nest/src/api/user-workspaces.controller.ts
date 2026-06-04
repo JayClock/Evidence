@@ -11,7 +11,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ServerError, USERS } from '../domain';
+import { DomainError, USERS } from '../domain';
 import type { Users, WorkspaceDescription } from '../domain';
 import { link, Link, userHref, userWorkspacesPageHref } from './links';
 import { findUser, findWorkspace } from './loaders';
@@ -140,7 +140,7 @@ function parsePositiveInteger(
   }
   const value = Number(input);
   if (!Number.isInteger(value) || value <= 0) {
-    throw ServerError.validation(`${name} must be greater than 0`);
+    throw DomainError.validation(`${name} must be greater than 0`);
   }
   return value;
 }

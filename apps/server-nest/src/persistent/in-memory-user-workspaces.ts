@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   HasMany,
-  ServerError,
+  DomainError,
   UserWorkspaces,
   Workspace,
   WorkspaceDescription,
@@ -50,7 +50,7 @@ export class InMemoryUserWorkspaces
     query: string | null,
   ): Promise<[Workspace[], number]> {
     if (page === 0 || pageSize === 0) {
-      throw ServerError.validation('page and pageSize must be greater than 0');
+      throw DomainError.validation('page and pageSize must be greater than 0');
     }
 
     const normalizedQuery = query?.trim().toLocaleLowerCase() ?? '';
@@ -110,7 +110,7 @@ export class InMemoryUserWorkspaces
       (workspace) => workspace.id === id,
     );
     if (!record) {
-      throw ServerError.notFound(`workspace ${id} not found`);
+      throw DomainError.notFound(`workspace ${id} not found`);
     }
 
     const updated: WorkspaceRecord = {
@@ -130,7 +130,7 @@ export class InMemoryUserWorkspaces
       (workspace) => workspace.id === id,
     );
     if (!record) {
-      throw ServerError.notFound(`workspace ${id} not found`);
+      throw DomainError.notFound(`workspace ${id} not found`);
     }
 
     this.store.workspaces.set(id, {
@@ -178,7 +178,7 @@ export class InMemoryUserWorkspaces
 function normalizeTitle(title: string): string {
   const normalized = title.trim();
   if (normalized.length === 0) {
-    throw ServerError.validation('workspace title must not be empty');
+    throw DomainError.validation('workspace title must not be empty');
   }
   return normalized;
 }

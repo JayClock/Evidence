@@ -8,7 +8,7 @@ import {
   DraftNode,
   HasMany,
   Ref,
-  ServerError,
+  DomainError,
   WorkspaceDiagrams,
 } from '../domain';
 import { InMemoryDiagramEdges } from './in-memory-diagram-edges';
@@ -78,7 +78,7 @@ export class InMemoryWorkspaceDiagrams
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(`diagram ${diagramId} not found`);
+      throw DomainError.notFound(`diagram ${diagramId} not found`);
     }
     const timestamp = now();
     const description: DiagramDescription = {
@@ -104,7 +104,7 @@ export class InMemoryWorkspaceDiagrams
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(`diagram ${diagramId} not found`);
+      throw DomainError.notFound(`diagram ${diagramId} not found`);
     }
     const timestamp = now();
     this.store.diagrams.set(diagramId, {
@@ -117,7 +117,7 @@ export class InMemoryWorkspaceDiagrams
 
   async list(page: number, pageSize: number): Promise<[Diagram[], number]> {
     if (page === 0 || pageSize === 0) {
-      throw ServerError.validation('page and pageSize must be greater than 0');
+      throw DomainError.validation('page and pageSize must be greater than 0');
     }
     const rows = this.records().sort((left, right) =>
       right.updatedAt.localeCompare(left.updatedAt),
@@ -138,7 +138,7 @@ export class InMemoryWorkspaceDiagrams
     draftEdges: DraftEdge[],
   ): Promise<void> {
     if (diagramId.trim().length === 0) {
-      throw ServerError.validation('diagram id must be provided');
+      throw DomainError.validation('diagram id must be provided');
     }
     const current = this.store.diagrams.get(diagramId);
     if (
@@ -146,18 +146,18 @@ export class InMemoryWorkspaceDiagrams
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(`diagram ${diagramId} not found`);
+      throw DomainError.notFound(`diagram ${diagramId} not found`);
     }
 
     const nodeIds = new Set(draftNodes.map((node) => node.id));
     for (const edge of draftEdges) {
       if (!nodeIds.has(edge.description.source.id())) {
-        throw ServerError.validation(
+        throw DomainError.validation(
           `draft edge source node not found: ${edge.description.source.id()}`,
         );
       }
       if (!nodeIds.has(edge.description.target.id())) {
-        throw ServerError.validation(
+        throw DomainError.validation(
           `draft edge target node not found: ${edge.description.target.id()}`,
         );
       }
@@ -188,7 +188,7 @@ export class InMemoryWorkspaceDiagrams
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(`diagram ${diagramId} not found`);
+      throw DomainError.notFound(`diagram ${diagramId} not found`);
     }
     const timestamp = now();
     this.store.diagrams.set(diagramId, {
@@ -228,7 +228,7 @@ export class InMemoryWorkspaceDiagrams
 function normalizeTitle(title: string): string {
   const normalized = title.trim();
   if (normalized.length === 0) {
-    throw ServerError.validation('diagram title must not be empty');
+    throw DomainError.validation('diagram title must not be empty');
   }
   return normalized;
 }

@@ -6,7 +6,7 @@ import {
   HasMany,
   NodeDescription,
   Ref,
-  ServerError,
+  DomainError,
 } from '../domain';
 import { DiagramNodeRecord, InMemoryStore, now } from './records';
 
@@ -47,7 +47,7 @@ export class InMemoryDiagramNodes
   ): Promise<DiagramNode> {
     const id = nodeId ?? randomUUID();
     if (this.store.diagramNodes.has(id)) {
-      throw ServerError.conflict(`diagram node ${id} already exists`);
+      throw DomainError.conflict(`diagram node ${id} already exists`);
     }
     const timestamp = now();
     const description = this.descriptionForDiagram(desc, timestamp, timestamp);
@@ -73,7 +73,7 @@ export class InMemoryDiagramNodes
   async update(nodeId: string, desc: NodeDescription): Promise<DiagramNode> {
     const current = this.store.diagramNodes.get(nodeId);
     if (!current || current.diagramId !== this.diagramId) {
-      throw ServerError.notFound(`diagram node ${nodeId} not found`);
+      throw DomainError.notFound(`diagram node ${nodeId} not found`);
     }
     const timestamp = now();
     const record: DiagramNodeRecord = {
@@ -94,7 +94,7 @@ export class InMemoryDiagramNodes
   async delete(nodeId: string): Promise<void> {
     const current = this.store.diagramNodes.get(nodeId);
     if (!current || current.diagramId !== this.diagramId) {
-      throw ServerError.notFound(`diagram node ${nodeId} not found`);
+      throw DomainError.notFound(`diagram node ${nodeId} not found`);
     }
     this.store.diagramNodes.delete(nodeId);
   }

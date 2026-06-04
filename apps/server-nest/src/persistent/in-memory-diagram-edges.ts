@@ -6,7 +6,7 @@ import {
   EdgeDescription,
   HasMany,
   Ref,
-  ServerError,
+  DomainError,
 } from '../domain';
 import { DiagramEdgeRecord, InMemoryStore, now } from './records';
 
@@ -47,7 +47,7 @@ export class InMemoryDiagramEdges
   ): Promise<DiagramEdge> {
     const id = edgeId ?? randomUUID();
     if (this.store.diagramEdges.has(id)) {
-      throw ServerError.conflict(`diagram edge ${id} already exists`);
+      throw DomainError.conflict(`diagram edge ${id} already exists`);
     }
     const timestamp = now();
     const record: DiagramEdgeRecord = {
@@ -72,7 +72,7 @@ export class InMemoryDiagramEdges
   async update(edgeId: string, desc: EdgeDescription): Promise<DiagramEdge> {
     const current = this.store.diagramEdges.get(edgeId);
     if (!current || current.diagramId !== this.diagramId) {
-      throw ServerError.notFound(`diagram edge ${edgeId} not found`);
+      throw DomainError.notFound(`diagram edge ${edgeId} not found`);
     }
     const timestamp = now();
     const record: DiagramEdgeRecord = {
@@ -93,7 +93,7 @@ export class InMemoryDiagramEdges
   async delete(edgeId: string): Promise<void> {
     const current = this.store.diagramEdges.get(edgeId);
     if (!current || current.diagramId !== this.diagramId) {
-      throw ServerError.notFound(`diagram edge ${edgeId} not found`);
+      throw DomainError.notFound(`diagram edge ${edgeId} not found`);
     }
     this.store.diagramEdges.delete(edgeId);
   }

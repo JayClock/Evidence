@@ -5,13 +5,13 @@
 
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ServerErrorFilter } from './api/server-error.filter';
+import { DomainErrorFilter } from './api/domain-error.filter';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
-  app.useGlobalFilters(new ServerErrorFilter());
+  app.useGlobalFilters(new DomainErrorFilter());
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix, { exclude: ['health'] });
   const port = process.env.PORT || 3000;

@@ -5,7 +5,7 @@ import {
   LogicalEntityDescription,
   normalizeSubType,
   Ref,
-  ServerError,
+  DomainError,
   WorkspaceLogicalEntities,
 } from '../domain';
 import { InMemoryStore, LogicalEntityRecord, now } from './records';
@@ -71,7 +71,7 @@ export class InMemoryWorkspaceLogicalEntities
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(`logical entity ${entityId} not found`);
+      throw DomainError.notFound(`logical entity ${entityId} not found`);
     }
     const timestamp = now();
     const record: LogicalEntityRecord = {
@@ -94,7 +94,7 @@ export class InMemoryWorkspaceLogicalEntities
       current.workspaceId !== this.workspaceId ||
       current.deletedAt !== null
     ) {
-      throw ServerError.notFound(`logical entity ${entityId} not found`);
+      throw DomainError.notFound(`logical entity ${entityId} not found`);
     }
     const timestamp = now();
     this.store.logicalEntities.set(entityId, {
@@ -110,7 +110,7 @@ export class InMemoryWorkspaceLogicalEntities
     pageSize: number,
   ): Promise<[LogicalEntity[], number]> {
     if (page === 0 || pageSize === 0) {
-      throw ServerError.validation('page and pageSize must be greater than 0');
+      throw DomainError.validation('page and pageSize must be greater than 0');
     }
     const rows = this.records().sort((left, right) =>
       right.updatedAt.localeCompare(left.updatedAt),
@@ -139,7 +139,7 @@ export class InMemoryWorkspaceLogicalEntities
   ): LogicalEntityDescription {
     const name = desc.name.trim();
     if (name.length === 0) {
-      throw ServerError.validation('logical entity name must not be empty');
+      throw DomainError.validation('logical entity name must not be empty');
     }
     return {
       ...desc,

@@ -1,4 +1,4 @@
-import { ServerError } from '../error';
+import { DomainError } from '../error';
 import { EdgeDescription } from './edge';
 import { NodeDescription } from './node';
 
@@ -40,7 +40,7 @@ export function parseDiagramType(value: string): DiagramType {
     case 'fulfillment':
       return value;
     default:
-      throw ServerError.validation(`unknown diagram type: ${value}`);
+      throw DomainError.validation(`unknown diagram type: ${value}`);
   }
 }
 
@@ -50,7 +50,7 @@ export function parseDiagramStatus(value: string): DiagramStatus {
     case 'published':
       return value;
     default:
-      throw ServerError.validation(`unknown diagram status: ${value}`);
+      throw DomainError.validation(`unknown diagram status: ${value}`);
   }
 }
 

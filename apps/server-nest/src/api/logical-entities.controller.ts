@@ -16,7 +16,7 @@ import {
   LogicalEntityDescription,
   parseLogicalEntityType,
   Ref,
-  ServerError,
+  DomainError,
   USERS,
 } from '../domain';
 import type { LogicalEntity, Users, Workspace } from '../domain';
@@ -102,7 +102,7 @@ export class LogicalEntitiesController {
     const workspace = await this.loadWorkspace(workspaceId);
     const entity = await workspace.logicalEntities().findByIdentity(entityId);
     if (!entity) {
-      throw ServerError.notFound(`logical entity ${entityId} not found`);
+      throw DomainError.notFound(`logical entity ${entityId} not found`);
     }
     return logicalEntityModel(entity);
   }
@@ -116,7 +116,7 @@ export class LogicalEntitiesController {
     const workspace = await this.loadWorkspace(workspaceId);
     const existing = await workspace.logicalEntities().findByIdentity(entityId);
     if (!existing) {
-      throw ServerError.notFound(`logical entity ${entityId} not found`);
+      throw DomainError.notFound(`logical entity ${entityId} not found`);
     }
     const current = existing.description();
     const type = input.type ? parseLogicalEntityType(input.type) : current.type;
@@ -150,7 +150,7 @@ export class LogicalEntitiesController {
   private async loadWorkspace(workspaceId: string): Promise<Workspace> {
     const workspace = await this.users.workspaces().findByIdentity(workspaceId);
     if (!workspace) {
-      throw ServerError.notFound(`workspace ${workspaceId} not found`);
+      throw DomainError.notFound(`workspace ${workspaceId} not found`);
     }
     return workspace;
   }
