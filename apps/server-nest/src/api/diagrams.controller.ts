@@ -120,7 +120,7 @@ interface DiagramCollectionModel {
   };
 }
 
-@Controller('workspaces/:workspaceId/diagrams')
+@Controller()
 export class DiagramsController {
   constructor(private readonly resolver: ResourceResolver) {}
 

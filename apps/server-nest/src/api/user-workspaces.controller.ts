@@ -30,7 +30,7 @@ interface WorkspaceCollectionModel {
   page: PageModel;
 }
 
-@Controller('users/:userId/workspaces')
+@Controller()
 export class UserWorkspacesController {
   constructor(private readonly resolver: ResourceResolver) {}
 

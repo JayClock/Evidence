@@ -51,7 +51,7 @@ interface LogicalEntityCollectionModel {
   };
 }
 
-@Controller('workspaces/:workspaceId/logical-entities')
+@Controller()
 export class LogicalEntitiesController {
   constructor(private readonly resolver: ResourceResolver) {}
 

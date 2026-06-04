@@ -1,33 +1,11 @@
 import { Module } from '@nestjs/common';
-import { USERS } from '../domain';
-import { InMemoryUsers } from '../persistent';
-import { DiagramsController } from '../api/diagrams.controller';
-import { LogicalEntitiesController } from '../api/logical-entities.controller';
-import { LogicalRelationshipsController } from '../api/logical-relationships.controller';
-import { ResourceResolver } from '../api/resource-resolver.service';
-import { SidebarController } from '../api/sidebar.controller';
-import { UserWorkspacesController } from '../api/user-workspaces.controller';
-import { UsersController } from '../api/users.controller';
-import { WorkspaceMembersController } from '../api/workspace-members.controller';
+import { ApiModule } from '../api/api.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
-  imports: [],
-  controllers: [
-    AppController,
-    UsersController,
-    UserWorkspacesController,
-    WorkspaceMembersController,
-    DiagramsController,
-    LogicalEntitiesController,
-    LogicalRelationshipsController,
-    SidebarController,
-  ],
-  providers: [
-    AppService,
-    ResourceResolver,
-    { provide: USERS, useClass: InMemoryUsers },
-  ],
+  imports: [ApiModule],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -44,7 +44,7 @@ interface LogicalRelationshipCollectionModel {
   };
 }
 
-@Controller('workspaces/:workspaceId/logical-relationships')
+@Controller()
 export class LogicalRelationshipsController {
   constructor(private readonly resolver: ResourceResolver) {}
 

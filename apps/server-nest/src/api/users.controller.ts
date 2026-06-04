@@ -2,7 +2,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { UserModel, userModel } from './model';
 import { ResourceResolver } from './resource-resolver.service';
 
-@Controller('users')
+@Controller()
 export class UsersController {
   constructor(private readonly resolver: ResourceResolver) {}
 

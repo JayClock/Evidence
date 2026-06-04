@@ -28,7 +28,7 @@ interface MemberCollectionModel {
   total: number;
 }
 
-@Controller('users/:userId/workspaces/:workspaceId/members')
+@Controller()
 export class WorkspaceMembersController {
   constructor(private readonly resolver: ResourceResolver) {}
 

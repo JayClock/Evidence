@@ -31,7 +31,7 @@ interface SidebarResource {
   sections: SidebarSection[];
 }
 
-@Controller('users/:userId/sidebar')
+@Controller()
 export class SidebarController {
   constructor(private readonly resolver: ResourceResolver) {}
 
