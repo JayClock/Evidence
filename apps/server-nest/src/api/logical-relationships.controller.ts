@@ -5,22 +5,17 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Inject,
   Param,
   Post,
   Put,
   Query,
 } from '@nestjs/common';
-import {
-  LogicalRelationshipDescription,
-  Ref,
-  DomainError,
-  USERS,
-} from '../domain';
-import type { LogicalRelationship, Users, Workspace } from '../domain';
+import { LogicalRelationshipDescription, Ref } from '../domain';
+import type { LogicalRelationship } from '../domain';
 import { link, Link, workspaceLogicalRelationshipsHref } from './links';
 import { logicalRelationshipModel, LogicalRelationshipModel } from './model';
 import { parsePositiveInteger, totalPages } from './request';
+import { ResourceResolver } from './resource-resolver.service';
 
 interface RefInput {
   id: string;
@@ -51,7 +46,7 @@ interface LogicalRelationshipCollectionModel {
 
 @Controller('workspaces/:workspaceId/logical-relationships')
 export class LogicalRelationshipsController {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get()
   async listLogicalRelationships(
@@ -59,7 +54,7 @@ export class LogicalRelationshipsController {
     @Query('page') pageInput?: string,
     @Query('pageSize') pageSizeInput?: string,
   ): Promise<LogicalRelationshipCollectionModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const page = parsePositiveInteger(pageInput, 1, 'page');
     const pageSize = Math.min(
       parsePositiveInteger(pageSizeInput, 50, 'pageSize'),
@@ -84,7 +79,7 @@ export class LogicalRelationshipsController {
     @Param('workspaceId') workspaceId: string,
     @Body() input: LogicalRelationshipInput,
   ): Promise<LogicalRelationshipModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const relationship = await workspace.addLogicalRelationship(
       logicalRelationshipInputToDescription(workspaceId, input),
     );
@@ -96,15 +91,11 @@ export class LogicalRelationshipsController {
     @Param('workspaceId') workspaceId: string,
     @Param('relationshipId') relationshipId: string,
   ): Promise<LogicalRelationshipModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
-    const relationship = await workspace
-      .logicalRelationships()
-      .findByIdentity(relationshipId);
-    if (!relationship) {
-      throw DomainError.notFound(
-        `logical relationship ${relationshipId} not found`,
+    const [, relationship] =
+      await this.resolver.requireWorkspaceLogicalRelationship(
+        workspaceId,
+        relationshipId,
       );
-    }
     return logicalRelationshipModel(relationship);
   }
 
@@ -114,15 +105,11 @@ export class LogicalRelationshipsController {
     @Param('relationshipId') relationshipId: string,
     @Body() input: UpdateLogicalRelationshipInput,
   ): Promise<LogicalRelationshipModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
-    const existing = await workspace
-      .logicalRelationships()
-      .findByIdentity(relationshipId);
-    if (!existing) {
-      throw DomainError.notFound(
-        `logical relationship ${relationshipId} not found`,
+    const [workspace, existing] =
+      await this.resolver.requireWorkspaceLogicalRelationship(
+        workspaceId,
+        relationshipId,
       );
-    }
     const current = existing.description();
     const relationship = await workspace.updateLogicalRelationship(
       relationshipId,
@@ -141,17 +128,9 @@ export class LogicalRelationshipsController {
     @Param('workspaceId') workspaceId: string,
     @Param('relationshipId') relationshipId: string,
   ): Promise<{ deleted: true }> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     await workspace.deleteLogicalRelationship(relationshipId);
     return { deleted: true };
-  }
-
-  private async loadWorkspace(workspaceId: string): Promise<Workspace> {
-    const workspace = await this.users.workspaces().findByIdentity(workspaceId);
-    if (!workspace) {
-      throw DomainError.notFound(`workspace ${workspaceId} not found`);
-    }
-    return workspace;
   }
 }
 

@@ -1,16 +1,14 @@
-import { Controller, Get, Inject, Param } from '@nestjs/common';
-import { USERS } from '../domain';
-import type { Users } from '../domain';
-import { findUser } from './loaders';
+import { Controller, Get, Param } from '@nestjs/common';
 import { UserModel, userModel } from './model';
+import { ResourceResolver } from './resource-resolver.service';
 
 @Controller('users')
 export class UsersController {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get(':userId')
   async getUser(@Param('userId') userId: string): Promise<UserModel> {
-    const user = await findUser(this.users, userId);
+    const user = await this.resolver.requireUser(userId);
     return userModel(user);
   }
 }

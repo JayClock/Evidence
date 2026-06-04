@@ -5,18 +5,17 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Inject,
   Param,
   Post,
   Put,
   Query,
 } from '@nestjs/common';
-import { DomainError, USERS } from '../domain';
-import type { Users, WorkspaceDescription } from '../domain';
+import { DomainError } from '../domain';
+import type { WorkspaceDescription } from '../domain';
 import { link, Link, userHref, userWorkspacesPageHref } from './links';
-import { findUser, findWorkspace } from './loaders';
 import { WorkspaceModel, workspaceModel } from './model';
 import { addPageLinks, PageModel, pageModel, PageQuery } from './pagination';
+import { ResourceResolver } from './resource-resolver.service';
 
 interface WorkspaceInput {
   title: string;
@@ -33,7 +32,7 @@ interface WorkspaceCollectionModel {
 
 @Controller('users/:userId/workspaces')
 export class UserWorkspacesController {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get()
   async listWorkspaces(
@@ -41,7 +40,7 @@ export class UserWorkspacesController {
     @Query('page') pageInput?: string,
     @Query('pageSize') pageSizeInput?: string,
   ): Promise<WorkspaceCollectionModel> {
-    const user = await findUser(this.users, userId);
+    const user = await this.resolver.requireUser(userId);
     const page = parsePositiveInteger(pageInput, 1, 'page');
     const pageSize = Math.min(
       parsePositiveInteger(pageSizeInput, 20, 'pageSize'),
@@ -75,7 +74,7 @@ export class UserWorkspacesController {
     @Param('userId') userId: string,
     @Body() input: WorkspaceInput,
   ): Promise<WorkspaceModel> {
-    const user = await findUser(this.users, userId);
+    const user = await this.resolver.requireUser(userId);
     const workspace = await user.createWorkspace(
       workspaceInputToDescription(input),
     );
@@ -87,7 +86,10 @@ export class UserWorkspacesController {
     @Param('userId') userId: string,
     @Param('workspaceId') workspaceId: string,
   ): Promise<WorkspaceModel> {
-    const workspace = await findWorkspace(this.users, userId, workspaceId);
+    const workspace = await this.resolver.requireUserWorkspace(
+      userId,
+      workspaceId,
+    );
     return workspaceModel(userId, workspace);
   }
 
@@ -97,7 +99,7 @@ export class UserWorkspacesController {
     @Param('workspaceId') workspaceId: string,
     @Body() input: WorkspaceInput,
   ): Promise<WorkspaceModel> {
-    const user = await findUser(this.users, userId);
+    const user = await this.resolver.requireUser(userId);
     const workspace = await user.updateWorkspace(
       workspaceId,
       workspaceInputToDescription(input),
@@ -111,7 +113,7 @@ export class UserWorkspacesController {
     @Param('userId') userId: string,
     @Param('workspaceId') workspaceId: string,
   ): Promise<void> {
-    const user = await findUser(this.users, userId);
+    const user = await this.resolver.requireUser(userId);
     await user.deleteWorkspace(workspaceId);
   }
 }

@@ -1,6 +1,4 @@
-import { Controller, Get, Inject, Param } from '@nestjs/common';
-import { DomainError, USERS } from '../domain';
-import type { Users } from '../domain';
+import { Controller, Get, Param } from '@nestjs/common';
 import {
   link,
   Link,
@@ -10,6 +8,7 @@ import {
   workspaceDiagramsHref,
   workspaceLogicalEntitiesHref,
 } from './links';
+import { ResourceResolver } from './resource-resolver.service';
 
 interface SidebarItem {
   key: string;
@@ -34,16 +33,13 @@ interface SidebarResource {
 
 @Controller('users/:userId/sidebar')
 export class SidebarController {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get()
   async getUserSidebar(
     @Param('userId') userId: string,
   ): Promise<SidebarResource> {
-    const user = await this.users.findByIdentity(userId);
-    if (!user) {
-      throw DomainError.notFound(`user ${userId} not found`);
-    }
+    const user = await this.resolver.requireUser(userId);
     const [workspaces] = await user.listWorkspaces(1, 1, null);
     return sidebarResource(userId, workspaces[0]?.identity() ?? null);
   }

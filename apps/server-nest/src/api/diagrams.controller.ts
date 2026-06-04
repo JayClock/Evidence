@@ -6,7 +6,6 @@ import {
   Header,
   HttpCode,
   HttpStatus,
-  Inject,
   Param,
   Post,
   Put,
@@ -29,10 +28,9 @@ import {
   Position,
   Ref,
   DomainError,
-  USERS,
   Viewport,
 } from '../domain';
-import type { Users, Workspace } from '../domain';
+import type { Workspace } from '../domain';
 import {
   link,
   Link,
@@ -51,6 +49,7 @@ import {
   NodeModel,
 } from './model';
 import { parsePositiveInteger, totalPages } from './request';
+import { ResourceResolver } from './resource-resolver.service';
 
 interface RefInput {
   id: string;
@@ -123,7 +122,7 @@ interface DiagramCollectionModel {
 
 @Controller('workspaces/:workspaceId/diagrams')
 export class DiagramsController {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get()
   async listDiagrams(
@@ -131,7 +130,7 @@ export class DiagramsController {
     @Query('page') pageInput?: string,
     @Query('pageSize') pageSizeInput?: string,
   ): Promise<DiagramCollectionModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const page = parsePositiveInteger(pageInput, 1, 'page');
     const pageSize = Math.min(
       parsePositiveInteger(pageSizeInput, 50, 'pageSize'),
@@ -147,7 +146,7 @@ export class DiagramsController {
     @Param('workspaceId') workspaceId: string,
     @Body() input: CreateDiagramInput,
   ): Promise<DiagramModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const diagram = await workspace.addDiagram({
       workspace: new Ref(workspaceId),
       title: input.title,
@@ -165,7 +164,10 @@ export class DiagramsController {
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
   ): Promise<DiagramModel> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     return diagramModel(diagram);
   }
 
@@ -175,7 +177,10 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Body() input: UpdateDiagramInput,
   ): Promise<DiagramModel> {
-    const [workspace, existing] = await this.loadDiagram(workspaceId, diagramId);
+    const [workspace, existing] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const current = existing.description();
     const viewport = { ...(input.viewport ?? current.viewport) };
     if (input['viewport.x'] !== undefined && input['viewport.x'] !== null) {
@@ -208,7 +213,7 @@ export class DiagramsController {
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
   ): Promise<{ deleted: true }> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     await workspace.deleteDiagram(diagramId);
     return { deleted: true };
   }
@@ -217,8 +222,14 @@ export class DiagramsController {
   async listNodes(
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
-  ): Promise<{ _links: Record<string, Link>; _embedded: { nodes: NodeModel[] } }> {
-    const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
+  ): Promise<{
+    _links: Record<string, Link>;
+    _embedded: { nodes: NodeModel[] };
+  }> {
+    const [workspace, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const nodes = await diagram.nodes().findAll(0, Number.MAX_SAFE_INTEGER);
     return {
       _links: {
@@ -235,7 +246,10 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Body() input: NodeInput,
   ): Promise<NodeModel> {
-    const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [workspace, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const node = await diagram.addNodeWithId(
       input.id ?? null,
       nodeDescription(diagramId, input),
@@ -249,11 +263,11 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Param('nodeId') nodeId: string,
   ): Promise<NodeModel> {
-    const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const node = await diagram.nodes().findByIdentity(nodeId);
-    if (!node) {
-      throw DomainError.notFound(`diagram node ${nodeId} not found`);
-    }
+    const [workspace, , node] = await this.resolver.requireDiagramNode(
+      workspaceId,
+      diagramId,
+      nodeId,
+    );
     return this.nodeResource(workspace, node);
   }
 
@@ -264,7 +278,10 @@ export class DiagramsController {
     @Param('nodeId') nodeId: string,
     @Body() input: NodeInput,
   ): Promise<NodeModel> {
-    const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [workspace, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const node = await diagram.updateNode(
       nodeId,
       nodeDescription(diagramId, input),
@@ -278,7 +295,10 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Param('nodeId') nodeId: string,
   ): Promise<{ deleted: true }> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     await diagram.deleteNode(nodeId);
     return { deleted: true };
   }
@@ -287,8 +307,14 @@ export class DiagramsController {
   async listEdges(
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
-  ): Promise<{ _links: Record<string, Link>; _embedded: { edges: EdgeModel[] } }> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+  ): Promise<{
+    _links: Record<string, Link>;
+    _embedded: { edges: EdgeModel[] };
+  }> {
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const edges = await diagram.edges().findAll(0, Number.MAX_SAFE_INTEGER);
     return {
       _links: {
@@ -305,7 +331,10 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Body() input: EdgeInput,
   ): Promise<EdgeModel> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const edge = await diagram.addEdgeWithId(
       input.id ?? null,
       edgeDescription(diagramId, input),
@@ -319,11 +348,11 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Param('edgeId') edgeId: string,
   ): Promise<EdgeModel> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const edge = await diagram.edges().findByIdentity(edgeId);
-    if (!edge) {
-      throw DomainError.notFound(`diagram edge ${edgeId} not found`);
-    }
+    const [, , edge] = await this.resolver.requireDiagramEdge(
+      workspaceId,
+      diagramId,
+      edgeId,
+    );
     return edgeModel(workspaceId, edge);
   }
 
@@ -334,7 +363,10 @@ export class DiagramsController {
     @Param('edgeId') edgeId: string,
     @Body() input: EdgeInput,
   ): Promise<EdgeModel> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     const edge = await diagram.updateEdge(
       edgeId,
       edgeDescription(diagramId, input),
@@ -348,7 +380,10 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Param('edgeId') edgeId: string,
   ): Promise<{ deleted: true }> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     await diagram.deleteEdge(edgeId);
     return { deleted: true };
   }
@@ -357,16 +392,26 @@ export class DiagramsController {
   async listVersions(
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
-  ): Promise<{ _links: Record<string, Link>; _embedded: { versions: unknown[] } }> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const versions = await diagram.versions().findAll(0, Number.MAX_SAFE_INTEGER);
+  ): Promise<{
+    _links: Record<string, Link>;
+    _embedded: { versions: unknown[] };
+  }> {
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
+    const versions = await diagram
+      .versions()
+      .findAll(0, Number.MAX_SAFE_INTEGER);
     return {
       _links: {
         self: link(workspaceDiagramVersionsHref(workspaceId, diagramId)),
         diagram: link(workspaceDiagramHref(workspaceId, diagramId)),
       },
       _embedded: {
-        versions: versions.map((version) => versionResource(workspaceId, version)),
+        versions: versions.map((version) =>
+          versionResource(workspaceId, version),
+        ),
       },
     };
   }
@@ -376,7 +421,10 @@ export class DiagramsController {
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
   ): Promise<unknown> {
-    const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
+    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
+      workspaceId,
+      diagramId,
+    );
     return versionResource(workspaceId, await diagram.createVersion());
   }
 
@@ -394,7 +442,7 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
     @Body() input: CommitDraftInput,
   ): Promise<{ committed: true }> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const nodes = (input.nodes ?? []).map((nodeInput) => {
       if (!nodeInput.id) {
         throw DomainError.validation('draft node id is required');
@@ -433,7 +481,7 @@ export class DiagramsController {
     if (input.requirement.trim().length === 0) {
       throw DomainError.validation('requirement is required');
     }
-    await this.loadDiagram(workspaceId, diagramId);
+    await this.resolver.requireWorkspaceDiagram(workspaceId, diagramId);
     return 'event: complete\ndata: \n\n';
   }
 
@@ -450,29 +498,9 @@ export class DiagramsController {
     @Param('workspaceId') workspaceId: string,
     @Param('diagramId') diagramId: string,
   ): Promise<{ published: true }> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     await workspace.publishDiagram(diagramId);
     return { published: true };
-  }
-
-  private async loadWorkspace(workspaceId: string): Promise<Workspace> {
-    const workspace = await this.users.workspaces().findByIdentity(workspaceId);
-    if (!workspace) {
-      throw DomainError.notFound(`workspace ${workspaceId} not found`);
-    }
-    return workspace;
-  }
-
-  private async loadDiagram(
-    workspaceId: string,
-    diagramId: string,
-  ): Promise<[Workspace, Diagram]> {
-    const workspace = await this.loadWorkspace(workspaceId);
-    const diagram = await workspace.diagrams().findByIdentity(diagramId);
-    if (!diagram) {
-      throw DomainError.notFound(`diagram ${diagramId} not found`);
-    }
-    return [workspace, diagram];
   }
 
   private async nodeResources(
@@ -610,7 +638,10 @@ function createDiagramTemplate(workspaceId: string): unknown {
   };
 }
 
-function versionResource(workspaceId: string, version: DiagramVersion): unknown {
+function versionResource(
+  workspaceId: string,
+  version: DiagramVersion,
+): unknown {
   const versionId = version.identity();
   const description = version.description();
   const diagramId = description.diagram.id();

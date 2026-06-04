@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Inject,
   Param,
   Post,
   Put,
@@ -16,13 +15,12 @@ import {
   LogicalEntityDescription,
   parseLogicalEntityType,
   Ref,
-  DomainError,
-  USERS,
 } from '../domain';
-import type { LogicalEntity, Users, Workspace } from '../domain';
+import type { LogicalEntity } from '../domain';
 import { link, Link, workspaceLogicalEntitiesHref } from './links';
 import { logicalEntityModel, LogicalEntityModel } from './model';
 import { parsePositiveInteger, totalPages } from './request';
+import { ResourceResolver } from './resource-resolver.service';
 
 interface LogicalEntityInput {
   type: string;
@@ -55,7 +53,7 @@ interface LogicalEntityCollectionModel {
 
 @Controller('workspaces/:workspaceId/logical-entities')
 export class LogicalEntitiesController {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get()
   async listLogicalEntities(
@@ -63,7 +61,7 @@ export class LogicalEntitiesController {
     @Query('page') pageInput?: string,
     @Query('pageSize') pageSizeInput?: string,
   ): Promise<LogicalEntityCollectionModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const page = parsePositiveInteger(pageInput, 1, 'page');
     const pageSize = Math.min(
       parsePositiveInteger(pageSizeInput, 50, 'pageSize'),
@@ -88,7 +86,7 @@ export class LogicalEntitiesController {
     @Param('workspaceId') workspaceId: string,
     @Body() input: LogicalEntityInput,
   ): Promise<LogicalEntityModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const entity = await workspace.addLogicalEntity(
       logicalEntityInputToDescription(workspaceId, input),
     );
@@ -100,11 +98,10 @@ export class LogicalEntitiesController {
     @Param('workspaceId') workspaceId: string,
     @Param('entityId') entityId: string,
   ): Promise<LogicalEntityModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
-    const entity = await workspace.logicalEntities().findByIdentity(entityId);
-    if (!entity) {
-      throw DomainError.notFound(`logical entity ${entityId} not found`);
-    }
+    const [, entity] = await this.resolver.requireWorkspaceLogicalEntity(
+      workspaceId,
+      entityId,
+    );
     return logicalEntityModel(entity);
   }
 
@@ -114,11 +111,8 @@ export class LogicalEntitiesController {
     @Param('entityId') entityId: string,
     @Body() input: UpdateLogicalEntityInput,
   ): Promise<LogicalEntityModel> {
-    const workspace = await this.loadWorkspace(workspaceId);
-    const existing = await workspace.logicalEntities().findByIdentity(entityId);
-    if (!existing) {
-      throw DomainError.notFound(`logical entity ${entityId} not found`);
-    }
+    const [workspace, existing] =
+      await this.resolver.requireWorkspaceLogicalEntity(workspaceId, entityId);
     const current = existing.description();
     const type = input.type ? parseLogicalEntityType(input.type) : current.type;
     const entity = await workspace.updateLogicalEntity(entityId, {
@@ -143,17 +137,9 @@ export class LogicalEntitiesController {
     @Param('workspaceId') workspaceId: string,
     @Param('entityId') entityId: string,
   ): Promise<{ deleted: true }> {
-    const workspace = await this.loadWorkspace(workspaceId);
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     await workspace.deleteLogicalEntity(entityId);
     return { deleted: true };
-  }
-
-  private async loadWorkspace(workspaceId: string): Promise<Workspace> {
-    const workspace = await this.users.workspaces().findByIdentity(workspaceId);
-    if (!workspace) {
-      throw DomainError.notFound(`workspace ${workspaceId} not found`);
-    }
-    return workspace;
   }
 }
 

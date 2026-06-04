@@ -4,6 +4,7 @@ import { InMemoryUsers } from '../persistent';
 import { DiagramsController } from '../api/diagrams.controller';
 import { LogicalEntitiesController } from '../api/logical-entities.controller';
 import { LogicalRelationshipsController } from '../api/logical-relationships.controller';
+import { ResourceResolver } from '../api/resource-resolver.service';
 import { SidebarController } from '../api/sidebar.controller';
 import { UserWorkspacesController } from '../api/user-workspaces.controller';
 import { UsersController } from '../api/users.controller';
@@ -23,6 +24,10 @@ import { AppService } from './app.service';
     LogicalRelationshipsController,
     SidebarController,
   ],
-  providers: [AppService, { provide: USERS, useClass: InMemoryUsers }],
+  providers: [
+    AppService,
+    ResourceResolver,
+    { provide: USERS, useClass: InMemoryUsers },
+  ],
 })
 export class AppModule {}
