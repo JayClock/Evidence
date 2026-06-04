@@ -25,9 +25,9 @@ export interface DiagramModel {
 }
 
 export function diagramModel(diagram: Diagram): DiagramModel {
-  const workspaceId = diagram.workspaceId();
   const diagramId = diagram.identity();
   const description = diagram.description();
+  const workspaceId = description.workspace.id();
   return {
     _links: {
       self: link(workspaceDiagramHref(workspaceId, diagramId)),
@@ -52,8 +52,8 @@ export function diagramModel(diagram: Diagram): DiagramModel {
     type: description.type,
     status: description.status,
     viewport: description.viewport,
-    createdAt: diagram.createdAt(),
-    updatedAt: diagram.updatedAt(),
+    createdAt: description.createdAt,
+    updatedAt: description.updatedAt,
   };
 }
 

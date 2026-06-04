@@ -31,20 +31,8 @@ export class DiagramEdge implements Entity<string, EdgeDescription> {
     return this.id;
   }
 
-  diagramId(): string {
-    return this.desc.diagram.id();
-  }
-
   description(): EdgeDescription {
     return this.desc;
-  }
-
-  createdAt(): string {
-    return this.desc.createdAt;
-  }
-
-  updatedAt(): string {
-    return this.desc.updatedAt;
   }
 }
 

@@ -81,7 +81,7 @@ export class WorkspaceMembersController {
     if (!member) {
       throw DomainError.notFound(`workspace member ${memberId} not found`);
     }
-    await workspace.membersWide().removeMember(member.description().user.id());
+    await workspace.removeMember(member.description().user.id());
   }
 
   @Post()
@@ -92,7 +92,7 @@ export class WorkspaceMembersController {
     @Body() input: AddMemberInput,
   ): Promise<MemberModel> {
     const workspace = await findWorkspace(this.users, userId, workspaceId);
-    const member = await workspace.membersWide().addMember({
+    const member = await workspace.addMember({
       workspace: new Ref(workspaceId),
       user: new Ref(input.user.id),
       role: input.role ?? 'member',

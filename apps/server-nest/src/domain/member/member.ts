@@ -18,19 +18,7 @@ export class Member implements Entity<string, MemberDescription> {
     return this.id;
   }
 
-  workspaceId(): string {
-    return this.desc.workspace.id();
-  }
-
   description(): MemberDescription {
     return this.desc;
-  }
-
-  createdAt(): string {
-    return this.desc.createdAt;
-  }
-
-  updatedAt(): string {
-    return this.desc.updatedAt;
   }
 }

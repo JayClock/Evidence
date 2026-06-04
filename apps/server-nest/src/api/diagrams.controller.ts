@@ -137,7 +137,7 @@ export class DiagramsController {
       parsePositiveInteger(pageSizeInput, 50, 'pageSize'),
       100,
     );
-    const [diagrams, total] = await workspace.diagramsWide().list(page, pageSize);
+    const [diagrams, total] = await workspace.listDiagrams(page, pageSize);
     return diagramCollection(workspaceId, diagrams, page, pageSize, total);
   }
 
@@ -148,7 +148,7 @@ export class DiagramsController {
     @Body() input: CreateDiagramInput,
   ): Promise<DiagramModel> {
     const workspace = await this.loadWorkspace(workspaceId);
-    const diagram = await workspace.diagramsWide().add({
+    const diagram = await workspace.addDiagram({
       workspace: new Ref(workspaceId),
       title: input.title,
       type: input.type ? parseDiagramType(input.type) : 'class',
@@ -199,7 +199,7 @@ export class DiagramsController {
       createdAt: current.createdAt,
       updatedAt: current.updatedAt,
     };
-    const diagram = await workspace.diagramsWide().update(diagramId, desc);
+    const diagram = await workspace.updateDiagram(diagramId, desc);
     return diagramModel(diagram);
   }
 
@@ -209,7 +209,7 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
   ): Promise<{ deleted: true }> {
     const workspace = await this.loadWorkspace(workspaceId);
-    await workspace.diagramsWide().delete(diagramId);
+    await workspace.deleteDiagram(diagramId);
     return { deleted: true };
   }
 
@@ -236,9 +236,10 @@ export class DiagramsController {
     @Body() input: NodeInput,
   ): Promise<NodeModel> {
     const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const node = await diagram
-      .nodesWide()
-      .addWithId(input.id ?? null, nodeDescription(diagramId, input));
+    const node = await diagram.addNodeWithId(
+      input.id ?? null,
+      nodeDescription(diagramId, input),
+    );
     return this.nodeResource(workspace, node);
   }
 
@@ -264,9 +265,10 @@ export class DiagramsController {
     @Body() input: NodeInput,
   ): Promise<NodeModel> {
     const [workspace, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const node = await diagram
-      .nodesWide()
-      .update(nodeId, nodeDescription(diagramId, input));
+    const node = await diagram.updateNode(
+      nodeId,
+      nodeDescription(diagramId, input),
+    );
     return this.nodeResource(workspace, node);
   }
 
@@ -277,7 +279,7 @@ export class DiagramsController {
     @Param('nodeId') nodeId: string,
   ): Promise<{ deleted: true }> {
     const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    await diagram.nodesWide().delete(nodeId);
+    await diagram.deleteNode(nodeId);
     return { deleted: true };
   }
 
@@ -304,9 +306,10 @@ export class DiagramsController {
     @Body() input: EdgeInput,
   ): Promise<EdgeModel> {
     const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const edge = await diagram
-      .edgesWide()
-      .addWithId(input.id ?? null, edgeDescription(diagramId, input));
+    const edge = await diagram.addEdgeWithId(
+      input.id ?? null,
+      edgeDescription(diagramId, input),
+    );
     return edgeModel(workspaceId, edge);
   }
 
@@ -332,9 +335,10 @@ export class DiagramsController {
     @Body() input: EdgeInput,
   ): Promise<EdgeModel> {
     const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    const edge = await diagram
-      .edgesWide()
-      .update(edgeId, edgeDescription(diagramId, input));
+    const edge = await diagram.updateEdge(
+      edgeId,
+      edgeDescription(diagramId, input),
+    );
     return edgeModel(workspaceId, edge);
   }
 
@@ -345,7 +349,7 @@ export class DiagramsController {
     @Param('edgeId') edgeId: string,
   ): Promise<{ deleted: true }> {
     const [, diagram] = await this.loadDiagram(workspaceId, diagramId);
-    await diagram.edgesWide().delete(edgeId);
+    await diagram.deleteEdge(edgeId);
     return { deleted: true };
   }
 
@@ -407,7 +411,7 @@ export class DiagramsController {
           description: edgeDescription(diagramId, edgeInput),
         }) satisfies DraftEdge,
     );
-    await workspace.diagramsWide().saveDiagram(diagramId, nodes, edges);
+    await workspace.saveDiagram(diagramId, nodes, edges);
     return { committed: true };
   }
 
@@ -447,7 +451,7 @@ export class DiagramsController {
     @Param('diagramId') diagramId: string,
   ): Promise<{ published: true }> {
     const workspace = await this.loadWorkspace(workspaceId);
-    await workspace.diagramsWide().publishDiagram(diagramId);
+    await workspace.publishDiagram(diagramId);
     return { published: true };
   }
 
@@ -607,8 +611,9 @@ function createDiagramTemplate(workspaceId: string): unknown {
 }
 
 function versionResource(workspaceId: string, version: DiagramVersion): unknown {
-  const diagramId = version.diagramId();
   const versionId = version.identity();
+  const description = version.description();
+  const diagramId = description.diagram.id();
   return {
     _links: {
       self: link(
@@ -617,8 +622,8 @@ function versionResource(workspaceId: string, version: DiagramVersion): unknown 
       diagram: link(workspaceDiagramHref(workspaceId, diagramId)),
     },
     id: versionId,
-    name: version.description().name,
-    snapshot: version.description().snapshot,
-    createdAt: version.createdAt(),
+    name: description.name,
+    snapshot: description.snapshot,
+    createdAt: description.createdAt,
   };
 }

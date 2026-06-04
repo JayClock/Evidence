@@ -32,9 +32,9 @@ export function nodeModel(
   node: DiagramNode,
   logicalEntity: LogicalEntity | null,
 ): NodeModel {
-  const diagramId = node.diagramId();
   const nodeId = node.identity();
   const description = node.description();
+  const diagramId = description.diagram.id();
   const links: Record<string, Link> = {
     self: link(workspaceDiagramNodeHref(workspaceId, diagramId, nodeId)),
     collection: link(workspaceDiagramNodesHref(workspaceId, diagramId)),
@@ -55,8 +55,8 @@ export function nodeModel(
     width: description.width,
     height: description.height,
     data: description.data,
-    createdAt: node.createdAt(),
-    updatedAt: node.updatedAt(),
+    createdAt: description.createdAt,
+    updatedAt: description.updatedAt,
   };
   if (logicalEntity) {
     model._embedded = { 'logical-entity': logicalEntityModel(logicalEntity) };

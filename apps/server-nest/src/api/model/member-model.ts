@@ -24,8 +24,9 @@ export interface MemberModel {
 }
 
 export function memberModel(userId: string, member: Member): MemberModel {
-  const workspaceId = member.workspaceId();
-  const memberUserId = member.description().user.id();
+  const description = member.description();
+  const workspaceId = description.workspace.id();
+  const memberUserId = description.user.id();
   return {
     _links: {
       self: link(workspaceMemberHref(userId, workspaceId, member.identity())),
@@ -42,8 +43,8 @@ export function memberModel(userId: string, member: Member): MemberModel {
       _links: { self: link(userHref(memberUserId)) },
       id: memberUserId,
     },
-    role: member.description().role,
-    createdAt: member.createdAt(),
-    updatedAt: member.updatedAt(),
+    role: description.role,
+    createdAt: description.createdAt,
+    updatedAt: description.updatedAt,
   };
 }

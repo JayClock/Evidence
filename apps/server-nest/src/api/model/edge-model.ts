@@ -29,9 +29,9 @@ export interface EdgeModel {
 }
 
 export function edgeModel(workspaceId: string, edge: DiagramEdge): EdgeModel {
-  const diagramId = edge.diagramId();
   const edgeId = edge.identity();
   const description = edge.description();
+  const diagramId = description.diagram.id();
   return {
     _links: {
       self: link(workspaceDiagramEdgeHref(workspaceId, diagramId, edgeId)),
@@ -53,7 +53,7 @@ export function edgeModel(workspaceId: string, edge: DiagramEdge): EdgeModel {
     markerEnd: description.markerEnd,
     pathOptions: description.pathOptions,
     interactionWidth: description.interactionWidth,
-    createdAt: edge.createdAt(),
-    updatedAt: edge.updatedAt(),
+    createdAt: description.createdAt,
+    updatedAt: description.updatedAt,
   };
 }

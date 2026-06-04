@@ -110,20 +110,8 @@ export class LogicalEntity implements Entity<string, LogicalEntityDescription> {
     return this.id;
   }
 
-  workspaceId(): string {
-    return this.desc.workspace.id();
-  }
-
   description(): LogicalEntityDescription {
     return this.desc;
-  }
-
-  createdAt(): string {
-    return this.desc.createdAt;
-  }
-
-  updatedAt(): string {
-    return this.desc.updatedAt;
   }
 }
 

@@ -69,9 +69,10 @@ export class LogicalEntitiesController {
       parsePositiveInteger(pageSizeInput, 50, 'pageSize'),
       100,
     );
-    const [entities, total] = await workspace
-      .logicalEntitiesWide()
-      .list(page, pageSize);
+    const [entities, total] = await workspace.listLogicalEntities(
+      page,
+      pageSize,
+    );
     return logicalEntityCollection(
       workspaceId,
       entities,
@@ -88,9 +89,9 @@ export class LogicalEntitiesController {
     @Body() input: LogicalEntityInput,
   ): Promise<LogicalEntityModel> {
     const workspace = await this.loadWorkspace(workspaceId);
-    const entity = await workspace
-      .logicalEntitiesWide()
-      .add(logicalEntityInputToDescription(workspaceId, input));
+    const entity = await workspace.addLogicalEntity(
+      logicalEntityInputToDescription(workspaceId, input),
+    );
     return logicalEntityModel(entity);
   }
 
@@ -120,7 +121,7 @@ export class LogicalEntitiesController {
     }
     const current = existing.description();
     const type = input.type ? parseLogicalEntityType(input.type) : current.type;
-    const entity = await workspace.logicalEntitiesWide().update(entityId, {
+    const entity = await workspace.updateLogicalEntity(entityId, {
       workspace: current.workspace,
       type,
       subType: input.subType === undefined ? current.subType : input.subType,
@@ -143,7 +144,7 @@ export class LogicalEntitiesController {
     @Param('entityId') entityId: string,
   ): Promise<{ deleted: true }> {
     const workspace = await this.loadWorkspace(workspaceId);
-    await workspace.logicalEntitiesWide().delete(entityId);
+    await workspace.deleteLogicalEntity(entityId);
     return { deleted: true };
   }
 

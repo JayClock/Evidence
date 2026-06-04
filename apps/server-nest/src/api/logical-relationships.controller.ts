@@ -65,9 +65,10 @@ export class LogicalRelationshipsController {
       parsePositiveInteger(pageSizeInput, 50, 'pageSize'),
       100,
     );
-    const [relationships, total] = await workspace
-      .logicalRelationshipsWide()
-      .list(page, pageSize);
+    const [relationships, total] = await workspace.listLogicalRelationships(
+      page,
+      pageSize,
+    );
     return logicalRelationshipCollection(
       workspaceId,
       relationships,
@@ -84,9 +85,9 @@ export class LogicalRelationshipsController {
     @Body() input: LogicalRelationshipInput,
   ): Promise<LogicalRelationshipModel> {
     const workspace = await this.loadWorkspace(workspaceId);
-    const relationship = await workspace
-      .logicalRelationshipsWide()
-      .add(logicalRelationshipInputToDescription(workspaceId, input));
+    const relationship = await workspace.addLogicalRelationship(
+      logicalRelationshipInputToDescription(workspaceId, input),
+    );
     return logicalRelationshipModel(relationship);
   }
 
@@ -123,14 +124,15 @@ export class LogicalRelationshipsController {
       );
     }
     const current = existing.description();
-    const relationship = await workspace
-      .logicalRelationshipsWide()
-      .update(relationshipId, {
+    const relationship = await workspace.updateLogicalRelationship(
+      relationshipId,
+      {
         workspace: current.workspace,
         source: input.source ? new Ref(input.source.id) : current.source,
         target: input.target ? new Ref(input.target.id) : current.target,
         label: input.label === undefined ? current.label : input.label,
-      });
+      },
+    );
     return logicalRelationshipModel(relationship);
   }
 
@@ -140,7 +142,7 @@ export class LogicalRelationshipsController {
     @Param('relationshipId') relationshipId: string,
   ): Promise<{ deleted: true }> {
     const workspace = await this.loadWorkspace(workspaceId);
-    await workspace.logicalRelationshipsWide().delete(relationshipId);
+    await workspace.deleteLogicalRelationship(relationshipId);
     return { deleted: true };
   }
 

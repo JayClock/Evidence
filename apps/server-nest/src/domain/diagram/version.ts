@@ -38,16 +38,8 @@ export class DiagramVersion
     return this.id;
   }
 
-  diagramId(): string {
-    return this.desc.diagram.id();
-  }
-
   description(): DiagramVersionDescription {
     return this.desc;
-  }
-
-  createdAt(): string {
-    return this.desc.createdAt;
   }
 }
 

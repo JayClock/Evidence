@@ -21,9 +21,9 @@ export interface LogicalRelationshipModel {
 export function logicalRelationshipModel(
   relationship: LogicalRelationship,
 ): LogicalRelationshipModel {
-  const workspaceId = relationship.workspaceId();
   const relationshipId = relationship.identity();
   const description = relationship.description();
+  const workspaceId = description.workspace.id();
   return {
     _links: {
       self: link(workspaceLogicalRelationshipHref(workspaceId, relationshipId)),

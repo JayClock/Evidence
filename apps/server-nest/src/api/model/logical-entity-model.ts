@@ -20,9 +20,9 @@ export interface LogicalEntityModel {
 }
 
 export function logicalEntityModel(entity: LogicalEntity): LogicalEntityModel {
-  const workspaceId = entity.workspaceId();
   const entityId = entity.identity();
   const description = entity.description();
+  const workspaceId = description.workspace.id();
   return {
     _links: {
       self: link(workspaceLogicalEntityHref(workspaceId, entityId)),
@@ -36,7 +36,7 @@ export function logicalEntityModel(entity: LogicalEntity): LogicalEntityModel {
     label: description.label,
     description: description.description,
     attributes: description.attributes,
-    createdAt: entity.createdAt(),
-    updatedAt: entity.updatedAt(),
+    createdAt: description.createdAt,
+    updatedAt: description.updatedAt,
   };
 }

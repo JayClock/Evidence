@@ -24,20 +24,8 @@ export class DiagramNode implements Entity<string, NodeDescription> {
     return this.id;
   }
 
-  diagramId(): string {
-    return this.desc.diagram.id();
-  }
-
   description(): NodeDescription {
     return this.desc;
-  }
-
-  createdAt(): string {
-    return this.desc.createdAt;
-  }
-
-  updatedAt(): string {
-    return this.desc.updatedAt;
   }
 }
 

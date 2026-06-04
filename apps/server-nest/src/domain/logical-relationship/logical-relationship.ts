@@ -19,10 +19,6 @@ export class LogicalRelationship
     return this.id;
   }
 
-  workspaceId(): string {
-    return this.desc.workspace.id();
-  }
-
   description(): LogicalRelationshipDescription {
     return this.desc;
   }

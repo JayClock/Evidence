@@ -1,8 +1,14 @@
 import { Entity, HasMany, Ref } from '../core';
 import { DomainError } from '../error';
-import { DiagramEdge, DiagramEdges } from './edge';
-import { DiagramNode, DiagramNodes } from './node';
-import { DiagramStatus, DiagramType, Viewport } from './types';
+import { DiagramEdge, DiagramEdges, EdgeDescription } from './edge';
+import { DiagramNode, DiagramNodes, NodeDescription } from './node';
+import {
+  DiagramStatus,
+  DiagramType,
+  DraftEdge,
+  DraftNode,
+  Viewport,
+} from './types';
 import {
   DiagramVersion,
   DiagramVersionDescription,
@@ -32,10 +38,6 @@ export class Diagram implements Entity<string, DiagramDescription> {
     return this.id;
   }
 
-  workspaceId(): string {
-    return this.desc.workspace.id();
-  }
-
   description(): DiagramDescription {
     return this.desc;
   }
@@ -44,16 +46,62 @@ export class Diagram implements Entity<string, DiagramDescription> {
     return this.diagramNodes;
   }
 
-  nodesWide(): DiagramNodes {
-    return this.diagramNodes;
+  addNode(desc: NodeDescription): Promise<DiagramNode> {
+    return this.diagramNodes.add(desc);
+  }
+
+  addNodeWithId(
+    nodeId: string | null,
+    desc: NodeDescription,
+  ): Promise<DiagramNode> {
+    return this.diagramNodes.addWithId(nodeId, desc);
+  }
+
+  addNodes(descriptions: NodeDescription[]): Promise<DiagramNode[]> {
+    return this.diagramNodes.addAll(descriptions);
+  }
+
+  updateNode(nodeId: string, desc: NodeDescription): Promise<DiagramNode> {
+    return this.diagramNodes.update(nodeId, desc);
+  }
+
+  deleteNode(nodeId: string): Promise<void> {
+    return this.diagramNodes.delete(nodeId);
+  }
+
+  replaceNodes(nodes: DraftNode[]): Promise<void> {
+    return this.diagramNodes.replaceAll(nodes);
   }
 
   edges(): HasMany<DiagramEdge> {
     return this.diagramEdges;
   }
 
-  edgesWide(): DiagramEdges {
-    return this.diagramEdges;
+  addEdge(desc: EdgeDescription): Promise<DiagramEdge> {
+    return this.diagramEdges.add(desc);
+  }
+
+  addEdgeWithId(
+    edgeId: string | null,
+    desc: EdgeDescription,
+  ): Promise<DiagramEdge> {
+    return this.diagramEdges.addWithId(edgeId, desc);
+  }
+
+  addEdges(descriptions: EdgeDescription[]): Promise<DiagramEdge[]> {
+    return this.diagramEdges.addAll(descriptions);
+  }
+
+  updateEdge(edgeId: string, desc: EdgeDescription): Promise<DiagramEdge> {
+    return this.diagramEdges.update(edgeId, desc);
+  }
+
+  deleteEdge(edgeId: string): Promise<void> {
+    return this.diagramEdges.delete(edgeId);
+  }
+
+  replaceEdges(edges: DraftEdge[]): Promise<void> {
+    return this.diagramEdges.replaceAll(edges);
   }
 
   versions(): HasMany<DiagramVersion> {
@@ -85,13 +133,5 @@ export class Diagram implements Entity<string, DiagramDescription> {
       throw DomainError.internal('created diagram version could not be loaded');
     }
     return version;
-  }
-
-  createdAt(): string {
-    return this.desc.createdAt;
-  }
-
-  updatedAt(): string {
-    return this.desc.updatedAt;
   }
 }
