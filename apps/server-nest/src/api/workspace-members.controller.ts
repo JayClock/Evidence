@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -66,6 +67,21 @@ export class WorkspaceMembersController {
       throw ServerError.notFound(`workspace member ${memberId} not found`);
     }
     return memberModel(userId, member);
+  }
+
+  @Delete(':memberId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async removeWorkspaceMember(
+    @Param('userId') userId: string,
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+  ): Promise<void> {
+    const workspace = await findWorkspace(this.users, userId, workspaceId);
+    const member = await workspace.members().findByIdentity(memberId);
+    if (!member) {
+      throw ServerError.notFound(`workspace member ${memberId} not found`);
+    }
+    await workspace.membersWide().removeMember(member.description().user.id());
   }
 
   @Post()

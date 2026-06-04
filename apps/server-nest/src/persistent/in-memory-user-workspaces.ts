@@ -6,6 +6,9 @@ import {
   Workspace,
   WorkspaceDescription,
 } from '../domain';
+import { InMemoryWorkspaceDiagrams } from './in-memory-workspace-diagrams';
+import { InMemoryWorkspaceLogicalEntities } from './in-memory-workspace-logical-entities';
+import { InMemoryWorkspaceLogicalRelationships } from './in-memory-workspace-logical-relationships';
 import { InMemoryWorkspaceMembers } from './in-memory-workspace-members';
 import {
   defaultIfBlank,
@@ -165,6 +168,9 @@ export class InMemoryUserWorkspaces
         updatedAt: record.updatedAt,
       },
       new InMemoryWorkspaceMembers(this.store, record.id),
+      new InMemoryWorkspaceDiagrams(this.store, record.id),
+      new InMemoryWorkspaceLogicalEntities(this.store, record.id),
+      new InMemoryWorkspaceLogicalRelationships(this.store, record.id),
     );
   }
 }

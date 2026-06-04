@@ -15,4 +15,9 @@ export class AppController {
   getHealth(): HealthResource {
     return this.appService.health();
   }
+
+  @Get('openapi.json')
+  getOpenApi(): Record<string, unknown> {
+    return this.appService.openapi();
+  }
 }

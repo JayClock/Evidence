@@ -1,3 +1,12 @@
+import type {
+  DiagramDescription,
+  EdgeDescription,
+  LogicalEntityDescription,
+  LogicalRelationshipDescription,
+  NodeDescription,
+  DiagramSnapshot,
+} from '../domain';
+
 export interface UserRecord {
   id: string;
   name: string;
@@ -24,10 +33,65 @@ export interface MemberRecord {
   updatedAt: string;
 }
 
+export interface DiagramRecord {
+  id: string;
+  workspaceId: string;
+  description: DiagramDescription;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface DiagramNodeRecord {
+  id: string;
+  diagramId: string;
+  description: NodeDescription;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiagramEdgeRecord {
+  id: string;
+  diagramId: string;
+  description: EdgeDescription;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiagramVersionRecord {
+  id: string;
+  diagramId: string;
+  name: string;
+  snapshot: DiagramSnapshot;
+  createdAt: string;
+}
+
+export interface LogicalEntityRecord {
+  id: string;
+  workspaceId: string;
+  description: LogicalEntityDescription;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface LogicalRelationshipRecord {
+  id: string;
+  workspaceId: string;
+  description: LogicalRelationshipDescription;
+  deletedAt: string | null;
+}
+
 export class InMemoryStore {
   readonly users = new Map<string, UserRecord>();
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly members = new Map<string, MemberRecord>();
+  readonly diagrams = new Map<string, DiagramRecord>();
+  readonly diagramNodes = new Map<string, DiagramNodeRecord>();
+  readonly diagramEdges = new Map<string, DiagramEdgeRecord>();
+  readonly diagramVersions = new Map<string, DiagramVersionRecord>();
+  readonly logicalEntities = new Map<string, LogicalEntityRecord>();
+  readonly logicalRelationships = new Map<string, LogicalRelationshipRecord>();
 
   constructor() {
     this.seedDefaults();

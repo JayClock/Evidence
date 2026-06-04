@@ -12,4 +12,8 @@ export class Ref<T> {
   toString(): string {
     return String(this.value);
   }
+
+  toJSON(): { id: T } {
+    return { id: this.value };
+  }
 }
