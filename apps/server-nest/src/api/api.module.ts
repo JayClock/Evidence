@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RouterModule } from '@nestjs/core';
 import { USERS } from '../domain';
-import { InMemoryUsers } from '../persistent';
+import { PrismaService, PrismaUsers } from '../persistent';
 import { DiagramsController } from './diagrams.controller';
 import { LogicalEntitiesController } from './logical-entities.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
@@ -13,8 +13,9 @@ import { WorkspaceMembersController } from './workspace-members.controller';
 
 @Module({
   providers: [
+    PrismaService,
     ResourceResolver,
-    { provide: USERS, useClass: InMemoryUsers },
+    { provide: USERS, useClass: PrismaUsers },
   ],
   exports: [ResourceResolver, USERS],
 })

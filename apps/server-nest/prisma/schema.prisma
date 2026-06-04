@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id      String            @id
+  name    String
+  email   String?
+  members WorkspaceMember[]
+
+  @@map("users")
+}
+
+model Workspace {
+  id                   String                @id
+  title                String
+  description          String?
+  status               String
+  metadata             Json                  @default("{}")
+  createdAt            DateTime              @map("created_at")
+  updatedAt            DateTime              @map("updated_at")
+  deletedAt            DateTime?             @map("deleted_at")
+  members              WorkspaceMember[]
+  diagrams             Diagram[]
+  logicalEntities      LogicalEntity[]
+  logicalRelationships LogicalRelationship[]
+
+  @@index([deletedAt])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  userId      String    @map("user_id")
+  role        String
+  createdAt   DateTime  @map("created_at")
+  updatedAt   DateTime  @map("updated_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model Diagram {
+  id          String           @id
+  workspaceId String           @map("workspace_id")
+  title       String
+  type        String
+  viewport    Json
+  status      String
+  createdAt   DateTime         @map("created_at")
+  updatedAt   DateTime         @map("updated_at")
+  deletedAt   DateTime?        @map("deleted_at")
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  nodes       DiagramNode[]
+  edges       DiagramEdge[]
+  versions    DiagramVersion[]
+
+  @@index([workspaceId, deletedAt])
+  @@map("diagrams")
+}
+
+model DiagramNode {
+  id              String   @id
+  diagramId       String   @map("diagram_id")
+  kind            String
+  logicalEntityId String?  @map("logical_entity_id")
+  parentId        String?  @map("parent_id")
+  position        Json
+  width           Float?
+  height          Float?
+  data            Json     @default("{}")
+  createdAt       DateTime @map("created_at")
+  updatedAt       DateTime @map("updated_at")
+  diagram         Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+
+  @@index([diagramId])
+  @@map("diagram_nodes")
+}
+
+model DiagramEdge {
+  id                    String   @id
+  diagramId             String   @map("diagram_id")
+  sourceId              String   @map("source_id")
+  targetId              String   @map("target_id")
+  logicalRelationshipId String?  @map("logical_relationship_id")
+  sourceHandle          String?  @map("source_handle")
+  targetHandle          String?  @map("target_handle")
+  kind                  String?
+  style                 Json     @default("{}")
+  data                  Json     @default("{}")
+  animated              Boolean  @default(false)
+  hidden                Boolean  @default(false)
+  markerStart           Json?    @map("marker_start")
+  markerEnd             Json?    @map("marker_end")
+  pathOptions           Json     @default("{}") @map("path_options")
+  interactionWidth      Float?   @map("interaction_width")
+  createdAt             DateTime @map("created_at")
+  updatedAt             DateTime @map("updated_at")
+  diagram               Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+
+  @@index([diagramId])
+  @@map("diagram_edges")
+}
+
+model DiagramVersion {
+  id        String   @id
+  diagramId String   @map("diagram_id")
+  name      String
+  snapshot  Json
+  createdAt DateTime @map("created_at")
+  diagram   Diagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+
+  @@index([diagramId])
+  @@map("diagram_versions")
+}
+
+model LogicalEntity {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  type        String
+  subType     String?   @map("sub_type")
+  name        String
+  label       String?
+  description String?
+  attributes  Json      @default("[]")
+  createdAt   DateTime  @map("created_at")
+  updatedAt   DateTime  @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, deletedAt])
+  @@map("logical_entities")
+}
+
+model LogicalRelationship {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  sourceId    String    @map("source_id")
+  targetId    String    @map("target_id")
+  label       String?
+  deletedAt   DateTime? @map("deleted_at")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, deletedAt])
+  @@map("logical_relationships")
+}
