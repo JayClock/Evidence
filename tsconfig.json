@@ -26,6 +26,9 @@
     },
     {
       "path": "./libs/contracts/api-contracts"
+    },
+    {
+      "path": "./apps/server-nest"
     }
   ]
 }
