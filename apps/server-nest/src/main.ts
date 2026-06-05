@@ -7,7 +7,7 @@ import 'reflect-metadata';
 
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DomainErrorFilter } from './api/domain-error.filter';
+import { DomainErrorFilter } from '@evidence/server-nest-api';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {

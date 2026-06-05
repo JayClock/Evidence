@@ -29,6 +29,15 @@
     },
     {
       "path": "./apps/server-nest"
+    },
+    {
+      "path": "./libs/server-nest/domain"
+    },
+    {
+      "path": "./libs/server-nest/persistent"
+    },
+    {
+      "path": "./libs/server-nest/api"
     }
   ]
 }

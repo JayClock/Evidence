@@ -5,7 +5,7 @@
   "scripts": {
     "dev:web": "nx dev @evidence/web",
     "dev:server": "nx serve @evidence/server",
-    "dev:server-nest": "nx serve server-nest",
+    "dev:server-nest": "nx serve @evidence/server-nest",
     "dev:desktop": "nx dev @evidence/desktop",
     "build": "nx run-many -t build",
     "typecheck": "nx run-many -t typecheck",

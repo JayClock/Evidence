@@ -13,7 +13,9 @@ const packageJson = JSON.parse(
 const external = [
   ...builtinModules,
   ...builtinModules.map((moduleName) => `node:${moduleName}`),
-  ...Object.keys(packageJson.dependencies ?? {}),
+  ...Object.entries(packageJson.dependencies ?? {})
+    .filter(([, version]) => !version.startsWith('workspace:'))
+    .map(([packageName]) => packageName),
 ];
 
 function nestSwc(): Plugin {

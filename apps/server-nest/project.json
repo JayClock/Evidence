@@ -1,5 +1,5 @@
 {
-  "name": "server-nest",
+  "name": "@evidence/server-nest",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/server-nest/src",
   "projectType": "application",
@@ -54,7 +54,7 @@
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
-        "buildTarget": "server-nest:build",
+        "buildTarget": "@evidence/server-nest:build",
         "buildTargetOptions": {
           "outputFileName": "main.js"
         },
@@ -62,10 +62,10 @@
       },
       "configurations": {
         "development": {
-          "buildTarget": "server-nest:build:development"
+          "buildTarget": "@evidence/server-nest:build:development"
         },
         "production": {
-          "buildTarget": "server-nest:build:production"
+          "buildTarget": "@evidence/server-nest:build:production"
         }
       }
     }

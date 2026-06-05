@@ -1,15 +1,14 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig(() => ({
-  root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/apps/server-nest',
+  root: __dirname,
+  cacheDir: '../../../node_modules/.vite/libs/server-nest/persistent',
   test: {
-    name: '@evidence/server-nest',
+    name: '@evidence/server-nest-persistent',
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}'],
-    passWithNoTests: true,
+    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',

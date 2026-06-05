@@ -2,4 +2,5 @@ packages:
   - 'apps/*'
   - 'libs/web/*'
   - 'libs/contracts/*'
+  - 'libs/server-nest/*'
 autoInstallPeers: true

@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { apiHref, healthHref, link, Link, userHref } from '../api/links';
+import {
+  apiHref,
+  healthHref,
+  link,
+  Link,
+  userHref,
+} from '@evidence/server-nest-api';
 
 export interface RootResource {
   _links: Record<string, Link>;
