@@ -1,24 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import {
   DomainError,
-  HasMany,
   UserWorkspaces,
   Workspace,
   WorkspaceDescription,
 } from '@evidence/server-nest-domain';
+import { EntityList } from '../database';
 import { assembleWorkspace } from './mappers';
 import type { PrismaStore } from './types';
 import { defaultIfBlank, inputJson, now, rejectInvalidPage } from './utils';
 
 export class PrismaUserWorkspaces
-  implements UserWorkspaces, HasMany<Workspace>
+  extends EntityList<Workspace>
+  implements UserWorkspaces
 {
   constructor(
     private readonly store: PrismaStore,
     private readonly userId: string | null,
-  ) {}
+  ) {
+    super();
+  }
 
-  async findAll(from: number, to: number): Promise<Workspace[]> {
+  protected override async findEntities(
+    from: number,
+    to: number,
+  ): Promise<Workspace[]> {
     const rows = await this.store.workspace.findMany({
       where: this.visibleWhere(),
       orderBy: { updatedAt: 'desc' },
@@ -28,14 +34,14 @@ export class PrismaUserWorkspaces
     return rows.map((row) => assembleWorkspace(this.store, row));
   }
 
-  async findByIdentity(id: string): Promise<Workspace | null> {
+  protected override async findEntity(id: string): Promise<Workspace | null> {
     const row = await this.store.workspace.findFirst({
       where: { ...this.visibleWhere(), id },
     });
     return row ? assembleWorkspace(this.store, row) : null;
   }
 
-  async size(): Promise<number> {
+  override async size(): Promise<number> {
     return this.store.workspace.count({ where: this.visibleWhere() });
   }
 

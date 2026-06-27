@@ -5,19 +5,27 @@ import {
   DomainError,
   DraftEdge,
   EdgeDescription,
-  HasMany,
 } from '@evidence/server-nest-domain';
+import { EntityList } from '../database';
 import { assembleDiagramEdge } from './mappers';
 import type { PrismaStore } from './types';
 import { inputJson, isUniqueConflict, now, nullableInputJson } from './utils';
 
-export class PrismaDiagramEdges implements DiagramEdges, HasMany<DiagramEdge> {
+export class PrismaDiagramEdges
+  extends EntityList<DiagramEdge>
+  implements DiagramEdges
+{
   constructor(
     private readonly store: PrismaStore,
     private readonly diagramId: string,
-  ) {}
+  ) {
+    super();
+  }
 
-  async findAll(from: number, to: number): Promise<DiagramEdge[]> {
+  protected override async findEntities(
+    from: number,
+    to: number,
+  ): Promise<DiagramEdge[]> {
     const rows = await this.store.diagramEdge.findMany({
       where: { diagramId: this.diagramId },
       orderBy: { updatedAt: 'asc' },
@@ -27,14 +35,14 @@ export class PrismaDiagramEdges implements DiagramEdges, HasMany<DiagramEdge> {
     return rows.map(assembleDiagramEdge);
   }
 
-  async findByIdentity(id: string): Promise<DiagramEdge | null> {
+  protected override async findEntity(id: string): Promise<DiagramEdge | null> {
     const row = await this.store.diagramEdge.findFirst({
       where: { id, diagramId: this.diagramId },
     });
     return row ? assembleDiagramEdge(row) : null;
   }
 
-  async size(): Promise<number> {
+  override async size(): Promise<number> {
     return this.store.diagramEdge.count({
       where: { diagramId: this.diagramId },
     });

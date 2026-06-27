@@ -16,11 +16,13 @@ describe('PrismaUserWorkspaces', () => {
     store.workspace.count.mockResolvedValue(1);
     const workspaces = new PrismaUserWorkspaces(asStore(store), 'user-1');
 
-    await expect(workspaces.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      workspaces.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(
       workspaces.findByIdentity('workspace-1'),
     ).resolves.toMatchObject({ identity: expect.any(Function) });
-    await expect(workspaces.size()).resolves.toBe(1);
+    await expect(workspaces.findAll().size()).resolves.toBe(1);
 
     expect(store.workspace.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

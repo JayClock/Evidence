@@ -17,7 +17,9 @@ describe('PrismaWorkspaceMembers', () => {
     store.workspaceMember.count.mockResolvedValue(1);
     const members = new PrismaWorkspaceMembers(asStore(store), 'workspace-1');
 
-    await expect(members.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      members.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(members.findByIdentity('member-1')).resolves.toMatchObject({
       identity: expect.any(Function),
     });

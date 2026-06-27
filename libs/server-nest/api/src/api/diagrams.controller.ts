@@ -230,7 +230,11 @@ export class DiagramsController {
       workspaceId,
       diagramId,
     );
-    const nodes = await diagram.nodes().findAll(0, Number.MAX_SAFE_INTEGER);
+    const nodes = await diagram
+      .nodes()
+      .findAll()
+      .subCollection(0, Number.MAX_SAFE_INTEGER)
+      .toArray();
     return {
       _links: {
         self: link(workspaceDiagramNodesHref(workspaceId, diagramId)),
@@ -315,7 +319,11 @@ export class DiagramsController {
       workspaceId,
       diagramId,
     );
-    const edges = await diagram.edges().findAll(0, Number.MAX_SAFE_INTEGER);
+    const edges = await diagram
+      .edges()
+      .findAll()
+      .subCollection(0, Number.MAX_SAFE_INTEGER)
+      .toArray();
     return {
       _links: {
         self: link(workspaceDiagramEdgesHref(workspaceId, diagramId)),
@@ -402,7 +410,9 @@ export class DiagramsController {
     );
     const versions = await diagram
       .versions()
-      .findAll(0, Number.MAX_SAFE_INTEGER);
+      .findAll()
+      .subCollection(0, Number.MAX_SAFE_INTEGER)
+      .toArray();
     return {
       _links: {
         self: link(workspaceDiagramVersionsHref(workspaceId, diagramId)),

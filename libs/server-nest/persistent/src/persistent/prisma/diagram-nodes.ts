@@ -4,20 +4,28 @@ import {
   DiagramNodes,
   DomainError,
   DraftNode,
-  HasMany,
   NodeDescription,
 } from '@evidence/server-nest-domain';
+import { EntityList } from '../database';
 import { assembleDiagramNode } from './mappers';
 import type { PrismaStore } from './types';
 import { inputJson, isUniqueConflict, now } from './utils';
 
-export class PrismaDiagramNodes implements DiagramNodes, HasMany<DiagramNode> {
+export class PrismaDiagramNodes
+  extends EntityList<DiagramNode>
+  implements DiagramNodes
+{
   constructor(
     private readonly store: PrismaStore,
     private readonly diagramId: string,
-  ) {}
+  ) {
+    super();
+  }
 
-  async findAll(from: number, to: number): Promise<DiagramNode[]> {
+  protected override async findEntities(
+    from: number,
+    to: number,
+  ): Promise<DiagramNode[]> {
     const rows = await this.store.diagramNode.findMany({
       where: { diagramId: this.diagramId },
       orderBy: { updatedAt: 'asc' },
@@ -27,14 +35,14 @@ export class PrismaDiagramNodes implements DiagramNodes, HasMany<DiagramNode> {
     return rows.map(assembleDiagramNode);
   }
 
-  async findByIdentity(id: string): Promise<DiagramNode | null> {
+  protected override async findEntity(id: string): Promise<DiagramNode | null> {
     const row = await this.store.diagramNode.findFirst({
       where: { id, diagramId: this.diagramId },
     });
     return row ? assembleDiagramNode(row) : null;
   }
 
-  async size(): Promise<number> {
+  override async size(): Promise<number> {
     return this.store.diagramNode.count({
       where: { diagramId: this.diagramId },
     });

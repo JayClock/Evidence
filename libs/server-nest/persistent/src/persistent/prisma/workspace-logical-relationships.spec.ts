@@ -23,7 +23,9 @@ describe('PrismaWorkspaceLogicalRelationships', () => {
       'workspace-1',
     );
 
-    await expect(relationships.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      relationships.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(
       relationships.findByIdentity('relationship-1'),
     ).resolves.toMatchObject({ identity: expect.any(Function) });

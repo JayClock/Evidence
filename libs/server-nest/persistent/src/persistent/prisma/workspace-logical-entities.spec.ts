@@ -18,7 +18,9 @@ describe('PrismaWorkspaceLogicalEntities', () => {
       'workspace-1',
     );
 
-    await expect(entities.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      entities.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(entities.findByIdentity('entity-1')).resolves.toMatchObject({
       identity: expect.any(Function),
     });

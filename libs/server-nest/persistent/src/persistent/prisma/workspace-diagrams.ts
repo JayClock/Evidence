@@ -7,22 +7,28 @@ import {
   DomainError,
   DraftEdge,
   DraftNode,
-  HasMany,
   WorkspaceDiagrams,
 } from '@evidence/server-nest-domain';
+import { EntityList } from '../database';
 import { assembleDiagram } from './mappers';
 import type { PrismaStore } from './types';
 import { inputJson, now, nullableInputJson, rejectInvalidPage } from './utils';
 
 export class PrismaWorkspaceDiagrams
-  implements WorkspaceDiagrams, HasMany<Diagram>
+  extends EntityList<Diagram>
+  implements WorkspaceDiagrams
 {
   constructor(
     private readonly store: PrismaStore,
     private readonly workspaceId: string,
-  ) {}
+  ) {
+    super();
+  }
 
-  async findAll(from: number, to: number): Promise<Diagram[]> {
+  protected override async findEntities(
+    from: number,
+    to: number,
+  ): Promise<Diagram[]> {
     const rows = await this.store.diagram.findMany({
       where: this.visibleWhere(),
       orderBy: { updatedAt: 'desc' },
@@ -32,14 +38,14 @@ export class PrismaWorkspaceDiagrams
     return rows.map((row) => assembleDiagram(this.store, row));
   }
 
-  async findByIdentity(id: string): Promise<Diagram | null> {
+  protected override async findEntity(id: string): Promise<Diagram | null> {
     const row = await this.store.diagram.findFirst({
       where: { ...this.visibleWhere(), id },
     });
     return row ? assembleDiagram(this.store, row) : null;
   }
 
-  async size(): Promise<number> {
+  override async size(): Promise<number> {
     return this.store.diagram.count({ where: this.visibleWhere() });
   }
 

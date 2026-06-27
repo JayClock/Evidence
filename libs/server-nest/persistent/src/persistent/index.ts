@@ -1,3 +1,5 @@
+export { EntityList as DatabaseEntityList } from './database';
+export { EntityList as MemoryEntityList } from './memory';
 export * from './prisma/prisma.service';
 export * from './prisma/users';
 export * from './prisma/user-workspaces';

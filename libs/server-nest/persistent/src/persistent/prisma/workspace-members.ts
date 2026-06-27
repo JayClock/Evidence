@@ -1,24 +1,30 @@
 import { randomUUID } from 'node:crypto';
 import {
   DomainError,
-  HasMany,
   Member,
   MemberDescription,
   WorkspaceMembers,
 } from '@evidence/server-nest-domain';
+import { EntityList } from '../database';
 import { assembleMember } from './mappers';
 import type { PrismaStore } from './types';
 import { defaultIfBlank, isUniqueConflict, now } from './utils';
 
 export class PrismaWorkspaceMembers
-  implements WorkspaceMembers, HasMany<Member>
+  extends EntityList<Member>
+  implements WorkspaceMembers
 {
   constructor(
     private readonly store: PrismaStore,
     private readonly workspaceId: string,
-  ) {}
+  ) {
+    super();
+  }
 
-  async findAll(from: number, to: number): Promise<Member[]> {
+  protected override async findEntities(
+    from: number,
+    to: number,
+  ): Promise<Member[]> {
     const rows = await this.store.workspaceMember.findMany({
       where: { workspaceId: this.workspaceId },
       orderBy: { createdAt: 'asc' },
@@ -28,14 +34,14 @@ export class PrismaWorkspaceMembers
     return rows.map(assembleMember);
   }
 
-  async findByIdentity(id: string): Promise<Member | null> {
+  protected override async findEntity(id: string): Promise<Member | null> {
     const row = await this.store.workspaceMember.findFirst({
       where: { id, workspaceId: this.workspaceId },
     });
     return row ? assembleMember(row) : null;
   }
 
-  async size(): Promise<number> {
+  override async size(): Promise<number> {
     return this.store.workspaceMember.count({
       where: { workspaceId: this.workspaceId },
     });

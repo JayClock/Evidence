@@ -41,8 +41,12 @@ export class WorkspaceMembersController {
       userId,
       workspaceId,
     );
-    const total = await workspace.members().size();
-    const members = await workspace.members().findAll(0, total);
+    const total = await workspace.members().findAll().size();
+    const members = await workspace
+      .members()
+      .findAll()
+      .subCollection(0, total)
+      .toArray();
 
     return {
       _links: {

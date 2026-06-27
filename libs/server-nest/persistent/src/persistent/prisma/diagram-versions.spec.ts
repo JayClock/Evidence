@@ -15,11 +15,13 @@ describe('PrismaDiagramVersions', () => {
     store.diagramVersion.count.mockResolvedValue(1);
     const versions = new PrismaDiagramVersions(asStore(store), 'diagram-1');
 
-    await expect(versions.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      versions.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(versions.findByIdentity('version-1')).resolves.toMatchObject({
       identity: expect.any(Function),
     });
-    await expect(versions.size()).resolves.toBe(1);
+    await expect(versions.findAll().size()).resolves.toBe(1);
 
     expect(store.diagramVersion.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { HasMany, Ref } from '../core';
+import { HasMany, Ref, type Entity, type Many } from '../core';
 import { Diagram, type DiagramDescription } from './diagram';
 import { DiagramEdge, type DiagramEdges, type EdgeDescription } from './edge';
 import { DiagramNode, type DiagramNodes, type NodeDescription } from './node';
@@ -66,6 +66,21 @@ const versionDescription: DiagramVersionDescription = {
   createdAt: timestamp,
 };
 
+function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
+  return {
+    size: vi.fn(async () => items.length),
+    subCollection: vi.fn((from: number, to: number) =>
+      many(items.slice(from, to)),
+    ),
+    toArray: vi.fn(async () => [...items]),
+    async *[Symbol.asyncIterator]() {
+      for (const item of items) {
+        yield item;
+      }
+    },
+  };
+}
+
 function diagramFixture() {
   const node = new DiagramNode('node-1', nodeDescription);
   const edge = new DiagramEdge('edge-1', edgeDescription);
@@ -76,11 +91,13 @@ function diagramFixture() {
   const draftEdges: DraftEdge[] = [
     { id: 'edge-1', description: edgeDescription },
   ];
+  const manyNodes = many([node]);
+  const manyEdges = many([edge]);
+  const manyVersions = many([version]);
 
   const nodes = {
-    findAll: vi.fn(async () => [node]),
+    findAll: vi.fn(() => manyNodes),
     findByIdentity: vi.fn(async () => node),
-    size: vi.fn(async () => 1),
     add: vi.fn(async () => node),
     addWithId: vi.fn(async () => node),
     addAll: vi.fn(async () => [node]),
@@ -90,9 +107,8 @@ function diagramFixture() {
   } satisfies DiagramNodes;
 
   const edges = {
-    findAll: vi.fn(async () => [edge]),
+    findAll: vi.fn(() => manyEdges),
     findByIdentity: vi.fn(async () => edge),
-    size: vi.fn(async () => 1),
     add: vi.fn(async () => edge),
     addWithId: vi.fn(async () => edge),
     addAll: vi.fn(async () => [edge]),
@@ -102,9 +118,8 @@ function diagramFixture() {
   } satisfies DiagramEdges;
 
   const versions = {
-    findAll: vi.fn(async () => [version]),
+    findAll: vi.fn(() => manyVersions),
     findByIdentity: vi.fn(async () => version),
-    size: vi.fn(async () => 1),
     add: vi.fn(async () => version),
   } satisfies DiagramVersions;
 
@@ -122,6 +137,9 @@ function diagramFixture() {
     draftNodes,
     edge,
     edges,
+    manyEdges,
+    manyNodes,
+    manyVersions,
     node,
     nodes,
     version,
@@ -144,10 +162,14 @@ describe('Diagram', () => {
     const edges: HasMany<DiagramEdge> = diagram.edges();
     const versions: HasMany<DiagramVersion> = diagram.versions();
 
-    await expect(nodes.findAll(0, 10)).resolves.toEqual([node]);
+    await expect(
+      nodes.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toEqual([node]);
     await expect(edges.findByIdentity('edge-1')).resolves.toBe(edge);
-    await expect(versions.size()).resolves.toBe(1);
-    await expect(versions.findAll(0, 10)).resolves.toEqual([version]);
+    await expect(versions.findAll().size()).resolves.toBe(1);
+    await expect(
+      versions.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toEqual([version]);
   });
 
   it('delegates node commands to the diagram nodes collection', async () => {

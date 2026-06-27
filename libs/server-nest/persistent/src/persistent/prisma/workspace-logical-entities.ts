@@ -1,25 +1,31 @@
 import { randomUUID } from 'node:crypto';
 import {
   DomainError,
-  HasMany,
   LogicalEntity,
   LogicalEntityDescription,
   normalizeSubType,
   WorkspaceLogicalEntities,
 } from '@evidence/server-nest-domain';
+import { EntityList } from '../database';
 import { assembleLogicalEntity } from './mappers';
 import type { PrismaStore } from './types';
 import { inputJson, now, rejectInvalidPage } from './utils';
 
 export class PrismaWorkspaceLogicalEntities
-  implements WorkspaceLogicalEntities, HasMany<LogicalEntity>
+  extends EntityList<LogicalEntity>
+  implements WorkspaceLogicalEntities
 {
   constructor(
     private readonly store: PrismaStore,
     private readonly workspaceId: string,
-  ) {}
+  ) {
+    super();
+  }
 
-  async findAll(from: number, to: number): Promise<LogicalEntity[]> {
+  protected override async findEntities(
+    from: number,
+    to: number,
+  ): Promise<LogicalEntity[]> {
     const rows = await this.store.logicalEntity.findMany({
       where: this.visibleWhere(),
       orderBy: { updatedAt: 'desc' },
@@ -29,14 +35,16 @@ export class PrismaWorkspaceLogicalEntities
     return rows.map(assembleLogicalEntity);
   }
 
-  async findByIdentity(id: string): Promise<LogicalEntity | null> {
+  protected override async findEntity(
+    id: string,
+  ): Promise<LogicalEntity | null> {
     const row = await this.store.logicalEntity.findFirst({
       where: { ...this.visibleWhere(), id },
     });
     return row ? assembleLogicalEntity(row) : null;
   }
 
-  async size(): Promise<number> {
+  override async size(): Promise<number> {
     return this.store.logicalEntity.count({ where: this.visibleWhere() });
   }
 

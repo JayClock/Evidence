@@ -15,7 +15,9 @@ describe('PrismaDiagramNodes', () => {
     store.diagramNode.count.mockResolvedValue(1);
     const nodes = new PrismaDiagramNodes(asStore(store), 'diagram-1');
 
-    await expect(nodes.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      nodes.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(nodes.findByIdentity('node-1')).resolves.toMatchObject({
       identity: expect.any(Function),
     });

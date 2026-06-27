@@ -17,7 +17,9 @@ describe('PrismaWorkspaceDiagrams', () => {
     store.diagram.count.mockResolvedValue(1);
     const diagrams = new PrismaWorkspaceDiagrams(asStore(store), 'workspace-1');
 
-    await expect(diagrams.findAll(0, 10)).resolves.toHaveLength(1);
+    await expect(
+      diagrams.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toHaveLength(1);
     await expect(diagrams.findByIdentity('diagram-1')).resolves.toMatchObject({
       identity: expect.any(Function),
     });

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { HasMany, Ref } from '../core';
+import { HasMany, Ref, type Entity, type Many } from '../core';
 import type {
   Diagram,
   DiagramDescription,
@@ -68,6 +68,21 @@ const logicalRelationshipDescription: LogicalRelationshipDescription = {
   label: 'relates to',
 };
 
+function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
+  return {
+    size: vi.fn(async () => items.length),
+    subCollection: vi.fn((from: number, to: number) =>
+      many(items.slice(from, to)),
+    ),
+    toArray: vi.fn(async () => [...items]),
+    async *[Symbol.asyncIterator]() {
+      for (const item of items) {
+        yield item;
+      }
+    },
+  };
+}
+
 function workspaceFixture() {
   const member = {} as Member;
   const diagram = {} as Diagram;
@@ -75,19 +90,21 @@ function workspaceFixture() {
   const logicalRelationship = {} as LogicalRelationship;
   const draftNodes: DraftNode[] = [];
   const draftEdges: DraftEdge[] = [];
+  const manyMembers = many([member]);
+  const manyDiagrams = many([diagram]);
+  const manyLogicalEntities = many([logicalEntity]);
+  const manyLogicalRelationships = many([logicalRelationship]);
 
   const members = {
-    findAll: vi.fn(async () => [member]),
+    findAll: vi.fn(() => manyMembers),
     findByIdentity: vi.fn(async () => member),
-    size: vi.fn(async () => 1),
     addMember: vi.fn(async () => member),
     removeMember: vi.fn(async () => undefined),
   } satisfies WorkspaceMembers;
 
   const diagrams = {
-    findAll: vi.fn(async () => [diagram]),
+    findAll: vi.fn(() => manyDiagrams),
     findByIdentity: vi.fn(async () => diagram),
-    size: vi.fn(async () => 1),
     add: vi.fn(async () => diagram),
     update: vi.fn(async () => diagram),
     delete: vi.fn(async () => undefined),
@@ -97,9 +114,8 @@ function workspaceFixture() {
   } satisfies WorkspaceDiagrams;
 
   const logicalEntities = {
-    findAll: vi.fn(async () => [logicalEntity]),
+    findAll: vi.fn(() => manyLogicalEntities),
     findByIdentity: vi.fn(async () => logicalEntity),
-    size: vi.fn(async () => 1),
     add: vi.fn(async () => logicalEntity),
     update: vi.fn(async () => logicalEntity),
     delete: vi.fn(async () => undefined),
@@ -107,9 +123,8 @@ function workspaceFixture() {
   } satisfies WorkspaceLogicalEntities;
 
   const logicalRelationships = {
-    findAll: vi.fn(async () => [logicalRelationship]),
+    findAll: vi.fn(() => manyLogicalRelationships),
     findByIdentity: vi.fn(async () => logicalRelationship),
-    size: vi.fn(async () => 1),
     add: vi.fn(async () => logicalRelationship),
     update: vi.fn(async () => logicalRelationship),
     delete: vi.fn(async () => undefined),
@@ -136,6 +151,9 @@ function workspaceFixture() {
     logicalEntity,
     logicalRelationship,
     logicalRelationships,
+    manyLogicalEntities,
+    manyLogicalRelationships,
+    manyMembers,
     member,
     members,
     workspace,
@@ -160,12 +178,14 @@ describe('Workspace', () => {
     const logicalRelationships: HasMany<LogicalRelationship> =
       workspace.logicalRelationships();
 
-    await expect(members.findAll(0, 10)).resolves.toEqual([member]);
+    await expect(
+      members.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toEqual([member]);
     await expect(diagrams.findByIdentity('diagram-1')).resolves.toBe(diagram);
-    await expect(logicalEntities.size()).resolves.toBe(1);
-    await expect(logicalRelationships.findAll(0, 10)).resolves.toEqual([
-      logicalRelationship,
-    ]);
+    await expect(logicalEntities.findAll().size()).resolves.toBe(1);
+    await expect(
+      logicalRelationships.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toEqual([logicalRelationship]);
     await expect(logicalEntities.findByIdentity('entity-1')).resolves.toBe(
       logicalEntity,
     );

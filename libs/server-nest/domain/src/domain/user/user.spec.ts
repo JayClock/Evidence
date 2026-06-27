@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { HasMany } from '../core';
+import type { Entity, HasMany, Many } from '../core';
 import type { Workspace, WorkspaceDescription } from '../workspace';
 import { User, type UserDescription } from './user';
 import type { UserWorkspaces } from './user-workspaces';
@@ -18,19 +18,34 @@ const workspaceDescription: WorkspaceDescription = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
+function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
+  return {
+    size: vi.fn(async () => items.length),
+    subCollection: vi.fn((from: number, to: number) =>
+      many(items.slice(from, to)),
+    ),
+    toArray: vi.fn(async () => [...items]),
+    async *[Symbol.asyncIterator]() {
+      for (const item of items) {
+        yield item;
+      }
+    },
+  };
+}
+
 function userWorkspacesFixture() {
   const workspace = {} as Workspace;
+  const workspaces = many([workspace]);
   const collection = {
-    findAll: vi.fn(async () => [workspace]),
+    findAll: vi.fn(() => workspaces),
     findByIdentity: vi.fn(async () => workspace),
-    size: vi.fn(async () => 1),
     list: vi.fn(async () => [[workspace], 1] as [Workspace[], number]),
     create: vi.fn(async () => workspace),
     update: vi.fn(async () => workspace),
     delete: vi.fn(async () => undefined),
   } satisfies UserWorkspaces;
 
-  return { collection, workspace };
+  return { collection, workspace, workspaces };
 }
 
 describe('User', () => {
@@ -43,19 +58,26 @@ describe('User', () => {
   });
 
   it('exposes workspaces as a HasMany collection', async () => {
-    const { collection, workspace } = userWorkspacesFixture();
+    const {
+      collection,
+      workspace,
+      workspaces: manyWorkspaces,
+    } = userWorkspacesFixture();
     const user = new User('desktop-user', userDescription, collection);
 
     const workspaces: HasMany<Workspace> = user.workspaces();
 
-    await expect(workspaces.findAll(0, 10)).resolves.toEqual([workspace]);
+    await expect(
+      workspaces.findAll().subCollection(0, 10).toArray(),
+    ).resolves.toEqual([workspace]);
     await expect(workspaces.findByIdentity('workspace-1')).resolves.toBe(
       workspace,
     );
-    await expect(workspaces.size()).resolves.toBe(1);
-    expect(collection.findAll).toHaveBeenCalledWith(0, 10);
+    await expect(workspaces.findAll().size()).resolves.toBe(1);
+    expect(collection.findAll).toHaveBeenCalledWith();
+    expect(manyWorkspaces.subCollection).toHaveBeenCalledWith(0, 10);
     expect(collection.findByIdentity).toHaveBeenCalledWith('workspace-1');
-    expect(collection.size).toHaveBeenCalledWith();
+    expect(manyWorkspaces.size).toHaveBeenCalledWith();
   });
 
   it('delegates workspace commands to the user workspace collection', async () => {

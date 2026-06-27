@@ -109,9 +109,15 @@ export class Diagram implements Entity<string, DiagramDescription> {
   }
 
   async createVersion(): Promise<DiagramVersion> {
-    const nodes = await this.diagramNodes.findAll(0, Number.MAX_SAFE_INTEGER);
-    const edges = await this.diagramEdges.findAll(0, Number.MAX_SAFE_INTEGER);
-    const size = await this.diagramVersions.size();
+    const nodes = await this.diagramNodes
+      .findAll()
+      .subCollection(0, Number.MAX_SAFE_INTEGER)
+      .toArray();
+    const edges = await this.diagramEdges
+      .findAll()
+      .subCollection(0, Number.MAX_SAFE_INTEGER)
+      .toArray();
+    const size = await this.diagramVersions.findAll().size();
     const desc: DiagramVersionDescription = {
       diagram: new Ref(this.id),
       name: `v${size + 1}`,

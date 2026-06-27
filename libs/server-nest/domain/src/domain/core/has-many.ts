@@ -1,13 +1,7 @@
-import { DomainError } from '../error';
+import type { Entity } from './entity';
+import type { Many } from './many';
 
-export interface HasMany<E> {
-  findAll(from: number, to: number): Promise<E[]>;
+export interface HasMany<E extends Entity<string, unknown>> {
+  findAll(): Many<E>;
   findByIdentity(id: string): Promise<E | null>;
-  size(): Promise<number>;
-}
-
-export function validateRange(from: number, to: number): void {
-  if (from < 0 || to < from) {
-    throw DomainError.validation('invalid collection range');
-  }
 }
