@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::BTreeMap;
 
-use crate::domain::{format_sub_type, EntityAttribute, LogicalEntity};
+use crate::domain::LogicalEntity;
 
 use super::super::links::{workspace_logical_entities_href, workspace_logical_entity_href, Link};
 
@@ -11,15 +11,12 @@ pub(in crate::api) struct LogicalEntityModel {
     #[serde(rename = "_links")]
     links: BTreeMap<String, Link>,
     id: String,
+    name: String,
+    label: Option<String>,
     #[serde(rename = "type")]
     entity_type: String,
     sub_type: Option<String>,
-    name: String,
-    label: Option<String>,
-    description: Option<String>,
-    attributes: Vec<EntityAttribute>,
-    created_at: String,
-    updated_at: String,
+    content: String,
 }
 
 pub(in crate::api) fn logical_entity_model(entity: &LogicalEntity) -> LogicalEntityModel {
@@ -44,12 +41,9 @@ pub(in crate::api) fn logical_entity_model(entity: &LogicalEntity) -> LogicalEnt
         ]),
         id: entity_id.to_string(),
         entity_type: description.entity_type.api_value().to_string(),
-        sub_type: format_sub_type(&description.entity_type, description.sub_type.as_deref()),
+        sub_type: description.sub_type.clone(),
         name: description.name.clone(),
         label: description.label.clone(),
-        description: description.description.clone(),
-        attributes: description.attributes.clone(),
-        created_at: entity.created_at().to_string(),
-        updated_at: entity.updated_at().to_string(),
+        content: description.description.clone().unwrap_or_default(),
     }
 }

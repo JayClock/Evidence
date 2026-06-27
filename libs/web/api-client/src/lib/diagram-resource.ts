@@ -44,12 +44,7 @@ export type DiagramNodeCollectionResourceData = Omit<
 >;
 export type DiagramEdgeResourceData = RequiredNullable<
   Omit<DiagramEdgeResourceSchema, '_links'>,
-  | 'sourceHandle'
-  | 'targetHandle'
-  | 'kind'
-  | 'relationType'
-  | 'label'
-  | 'interactionWidth'
+  'sourceHandle' | 'targetHandle' | 'kind' | 'interactionWidth'
 >;
 export type DiagramEdgeCollectionResourceData = Omit<
   DiagramEdgeCollectionResourceSchema,

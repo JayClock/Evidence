@@ -26,21 +26,10 @@ const logicalEntityState = {
   data: {
     id: 'entity-1',
     type: 'EVIDENCE',
-    subType: 'EVIDENCE:contract',
+    subType: 'contract',
     name: 'contract',
     label: 'Contract',
-    description: 'Customer contract evidence',
-    attributes: [
-      {
-        id: 'attr-1',
-        name: 'contractNumber',
-        label: 'Contract number',
-        type: 'string',
-        description: null,
-      },
-    ],
-    createdAt: '2026-01-02T03:04:05Z',
-    updatedAt: '2026-01-03T04:05:06Z',
+    content: 'Customer contract evidence',
   },
   links: links('self', 'workspace', 'collection'),
 };
@@ -74,7 +63,6 @@ describe('LogicalEntityCollectionView', () => {
     expect(screen.getByText('contract')).toBeTruthy();
     expect(screen.getByText('Evidence')).toBeTruthy();
     expect(screen.getByText('Customer contract evidence')).toBeTruthy();
-    expect(screen.getByText('1 attrs')).toBeTruthy();
     expect(
       (
         screen.getByRole('link', { name: 'Open' }) as unknown as {
@@ -116,6 +104,5 @@ describe('LogicalEntityDetailView', () => {
     expect(screen.getByText('Logical entity')).toBeTruthy();
     expect(screen.getByText('Contract')).toBeTruthy();
     expect(screen.getByText('Customer contract evidence')).toBeTruthy();
-    expect(screen.getByText('1 attributes')).toBeTruthy();
   });
 });

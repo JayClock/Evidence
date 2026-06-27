@@ -324,6 +324,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/logical-relationships': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['list_logical_relationships'];
+    put?: never;
+    post: operations['create_logical_relationship'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/logical-relationships/{relationshipId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_logical_relationship'];
+    put: operations['update_logical_relationship'];
+    post?: never;
+    delete: operations['delete_logical_relationship'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -349,12 +381,16 @@ export interface components {
       type?: null | components['schemas']['DiagramType'];
     };
     CreateLogicalEntityInput: {
-      attributes: components['schemas']['EntityAttribute'][];
-      description?: string | null;
+      content?: string;
       label?: string | null;
       name: string;
       subType?: string | null;
       type: components['schemas']['LogicalEntityType'];
+    };
+    CreateLogicalRelationshipInput: {
+      label?: string | null;
+      source: components['schemas']['RefModel'];
+      target: components['schemas']['RefModel'];
     };
     DeletedResult: {
       deleted: boolean;
@@ -426,7 +462,7 @@ export interface components {
       /** Format: double */
       interactionWidth?: number | null;
       kind?: string | null;
-      label?: string | null;
+      logicalRelationship?: null | components['schemas']['RefModel'];
       markerEnd?: {
         [key: string]: unknown;
       } | null;
@@ -436,7 +472,6 @@ export interface components {
       pathOptions?: {
         [key: string]: unknown;
       } | null;
-      relationType?: string | null;
       source: components['schemas']['RefModel'];
       sourceHandle?: string | null;
       style?: {
@@ -457,7 +492,7 @@ export interface components {
       /** Format: double */
       interactionWidth?: number | null;
       kind?: string | null;
-      label?: string | null;
+      logicalRelationship?: null | components['schemas']['RefModel'];
       markerEnd?: {
         [key: string]: unknown;
       } | null;
@@ -467,7 +502,6 @@ export interface components {
       pathOptions: {
         [key: string]: unknown;
       };
-      relationType?: string | null;
       source: components['schemas']['RefModel'];
       sourceHandle?: string | null;
       style: {
@@ -476,13 +510,6 @@ export interface components {
       target: components['schemas']['RefModel'];
       targetHandle?: string | null;
       updatedAt: string;
-    };
-    EntityAttribute: {
-      description?: string | null;
-      id: string;
-      label?: string | null;
-      name: string;
-      type?: string | null;
     };
     ErrorBody: {
       error: string;
@@ -509,18 +536,30 @@ export interface components {
     };
     LogicalEntityResource: {
       _links: components['schemas']['BTreeMap'];
-      attributes: components['schemas']['EntityAttribute'][];
-      createdAt: string;
-      description?: string | null;
+      content: string;
       id: string;
       label?: string | null;
       name: string;
       subType?: string | null;
       type: components['schemas']['LogicalEntityType'];
-      updatedAt: string;
     };
     /** @enum {string} */
     LogicalEntityType: 'EVIDENCE' | 'PARTICIPANT' | 'ROLE' | 'CONTEXT';
+    LogicalRelationshipCollectionEmbedded: {
+      logicalRelationships: components['schemas']['LogicalRelationshipResource'][];
+    };
+    LogicalRelationshipCollectionResource: {
+      _embedded: components['schemas']['LogicalRelationshipCollectionEmbedded'];
+      _links: components['schemas']['BTreeMap'];
+      page: components['schemas']['PageModel'];
+    };
+    LogicalRelationshipResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      label?: string | null;
+      source: components['schemas']['RefModel'];
+      target: components['schemas']['RefModel'];
+    };
     MemberCollectionEmbedded: {
       members: components['schemas']['MemberResource'][];
     };
@@ -659,12 +698,16 @@ export interface components {
       'viewport.zoom'?: number | null;
     };
     UpdateLogicalEntityInput: {
-      attributes?: components['schemas']['EntityAttribute'][] | null;
-      description?: string | null;
+      content?: string | null;
       label?: string | null;
       name?: string | null;
       subType?: string | null;
       type?: null | components['schemas']['LogicalEntityType'];
+    };
+    UpdateLogicalRelationshipInput: {
+      label?: string | null;
+      source?: null | components['schemas']['RefModel'];
+      target?: null | components['schemas']['RefModel'];
     };
     UserResource: {
       _links: components['schemas']['BTreeMap'];
@@ -3023,6 +3066,310 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.logical-entity+json': components['schemas']['DeletedResult'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  list_logical_relationships: {
+    parameters: {
+      query?: {
+        page?: number;
+        pageSize?: number;
+      };
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Logical relationship collection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.logical-relationships+json': components['schemas']['LogicalRelationshipCollectionResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  create_logical_relationship: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateLogicalRelationshipInput'];
+      };
+    };
+    responses: {
+      /** @description Created logical relationship */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.logical-relationships+json': components['schemas']['LogicalRelationshipResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  get_logical_relationship: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        relationshipId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Logical relationship resource */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.logical-relationship+json': components['schemas']['LogicalRelationshipResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  update_logical_relationship: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        relationshipId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateLogicalRelationshipInput'];
+      };
+    };
+    responses: {
+      /** @description Updated logical relationship */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.logical-relationship+json': components['schemas']['LogicalRelationshipResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  delete_logical_relationship: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        relationshipId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Logical relationship delete result */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.logical-relationship+json': components['schemas']['DeletedResult'];
         };
       };
       /** @description Validation error */

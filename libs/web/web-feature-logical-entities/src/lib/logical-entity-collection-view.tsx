@@ -1,4 +1,3 @@
-import { format, isValid, parseISO } from 'date-fns';
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -34,8 +33,7 @@ type LogicalEntityRow = {
   name: string;
   type: LogicalEntityType;
   subType: LogicalEntitySubType | null;
-  description: string | null;
-  attributesCount: number;
+  content: string;
   href?: string;
 };
 
@@ -77,15 +75,14 @@ export function LogicalEntityCollectionView({
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Subtype</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Definition</TableHead>
+              <TableHead>Content</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {logicalEntities.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={6}>
                   <Empty className="py-8">
                     <EmptyHeader>
                       <EmptyTitle>No logical entities found</EmptyTitle>
@@ -113,12 +110,7 @@ export function LogicalEntityCollectionView({
                   <TableCell>{formatEntityType(logicalEntity.type)}</TableCell>
                   <TableCell>{formatSubType(logicalEntity.subType)}</TableCell>
                   <TableCell className="max-w-md whitespace-normal text-sm text-muted-foreground">
-                    {logicalEntity.description ?? '—'}
-                  </TableCell>
-                  <TableCell>
-                    <DefinitionSummary
-                      attributesCount={logicalEntity.attributesCount}
-                    />
+                    {logicalEntity.content || '—'}
                   </TableCell>
                   <TableCell className="text-right">
                     {logicalEntity.href ? (
@@ -157,31 +149,13 @@ export function LogicalEntityDetailView({
       <CardContent className="grid gap-5 md:grid-cols-2">
         <DetailItem label="ID" value={data.id} />
         <DetailItem label="Name" value={data.name} />
-        <DetailItem label="Created" value={formatDateTime(data.createdAt)} />
-        <DetailItem label="Updated" value={formatDateTime(data.updatedAt)} />
         <DetailItem
           className="md:col-span-2"
-          label="Description"
-          value={data.description ?? '—'}
+          label="Content"
+          value={data.content || '—'}
         />
-        <div className="md:col-span-2">
-          <p className="text-sm font-medium">Definition</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Badge variant="secondary">
-              {data.attributes.length} attributes
-            </Badge>
-          </div>
-        </div>
       </CardContent>
     </Card>
-  );
-}
-
-function DefinitionSummary({ attributesCount }: { attributesCount: number }) {
-  return (
-    <div className="flex flex-wrap gap-1">
-      <Badge variant="secondary">{attributesCount} attrs</Badge>
-    </div>
   );
 }
 
@@ -213,8 +187,7 @@ function toLogicalEntityRow(
     name: data.name,
     type: data.type,
     subType: data.subType,
-    description: data.description ?? null,
-    attributesCount: data.attributes.length,
+    content: data.content,
     href: entityState.links.getAll().find((link) => link.rel === 'self')?.href,
   };
 }
@@ -239,12 +212,3 @@ function formatSubType(value: string | null) {
   return formatEntityType(rawValue);
 }
 
-function formatDateTime(value: string) {
-  const date = parseISO(value);
-
-  if (!isValid(date)) {
-    return value;
-  }
-
-  return format(date, 'yyyy-MM-dd HH:mm:ss');
-}

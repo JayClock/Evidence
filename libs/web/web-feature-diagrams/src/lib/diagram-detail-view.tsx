@@ -94,6 +94,7 @@ export function DiagramDetailView({
 
   return (
     <section className="flex min-h-0 h-full flex-1 flex-col gap-4">
+      <h2 className="sr-only">{resourceState.data.title}</h2>
       <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="flex min-h-0 min-w-0 flex-col">
           {loading ? <DiagramLoading /> : null}
@@ -273,6 +274,11 @@ function toCanvasEdge(
 ): DiagramCanvasEdge {
   const resourceData = edgeState.data;
   const customData = record(resourceData.data);
+  const label = firstString(customData, ['label', 'name', 'title']);
+  const relationType = firstString(customData, [
+    'relationType',
+    'relation_type',
+  ]);
 
   return {
     id: resourceData.id,
@@ -281,7 +287,7 @@ function toCanvasEdge(
     type: resourceData.kind ?? ANIMATED_EDGE_TYPE,
     sourceHandle: resourceData.sourceHandle ?? undefined,
     targetHandle: resourceData.targetHandle ?? undefined,
-    ...(resourceData.label ? { label: resourceData.label } : {}),
+    ...(label ? { label } : {}),
     style: cssProperties(resourceData.style),
     animated: resourceData.animated,
     hidden: resourceData.hidden,
@@ -292,7 +298,7 @@ function toCanvasEdge(
       positiveNumber(resourceData.interactionWidth) ?? undefined,
     data: {
       ...customData,
-      relationType: resourceData.relationType,
+      relationType,
     },
   };
 }

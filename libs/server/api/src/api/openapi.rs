@@ -96,7 +96,6 @@ pub fn openapi_yaml() -> String {
         EdgeCollectionResource,
         EdgeInput,
         EdgeResource,
-        EntityAttribute,
         ErrorBody,
         HealthResource,
         Link,
@@ -587,37 +586,25 @@ pub enum LogicalEntityType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct EntityAttribute {
-    pub id: String,
+pub struct CreateLogicalEntityInput {
     pub name: String,
     pub label: Option<String>,
-    #[serde(rename = "type")]
-    pub attribute_type: Option<String>,
-    pub description: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateLogicalEntityInput {
     #[serde(rename = "type")]
     pub entity_type: LogicalEntityType,
     pub sub_type: Option<String>,
-    pub name: String,
-    pub label: Option<String>,
-    pub description: Option<String>,
-    pub attributes: Vec<EntityAttribute>,
+    #[serde(default)]
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateLogicalEntityInput {
+    pub name: Option<String>,
+    pub label: Option<String>,
     #[serde(rename = "type")]
     pub entity_type: Option<LogicalEntityType>,
     pub sub_type: Option<String>,
-    pub name: Option<String>,
-    pub label: Option<String>,
-    pub description: Option<String>,
-    pub attributes: Option<Vec<EntityAttribute>>,
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -626,15 +613,12 @@ pub struct LogicalEntityResource {
     #[serde(rename = "_links")]
     pub links: Links,
     pub id: String,
+    pub name: String,
+    pub label: Option<String>,
     #[serde(rename = "type")]
     pub entity_type: LogicalEntityType,
     pub sub_type: Option<String>,
-    pub name: String,
-    pub label: Option<String>,
-    pub description: Option<String>,
-    pub attributes: Vec<EntityAttribute>,
-    pub created_at: String,
-    pub updated_at: String,
+    pub content: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

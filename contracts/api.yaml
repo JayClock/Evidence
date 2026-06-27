@@ -1877,6 +1877,249 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
+  /api/workspaces/{workspaceId}/logical-relationships:
+    get:
+      tags: []
+      operationId: list_logical_relationships
+      parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 0
+      responses:
+        '200':
+          description: Logical relationship collection
+          content:
+            application/vnd.evidence.logical-relationships+json:
+              schema:
+                $ref: '#/components/schemas/LogicalRelationshipCollectionResource'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    post:
+      tags: []
+      operationId: create_logical_relationship
+      parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateLogicalRelationshipInput'
+        required: true
+      responses:
+        '201':
+          description: Created logical relationship
+          content:
+            application/vnd.evidence.logical-relationships+json:
+              schema:
+                $ref: '#/components/schemas/LogicalRelationshipResource'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /api/workspaces/{workspaceId}/logical-relationships/{relationshipId}:
+    get:
+      tags: []
+      operationId: get_logical_relationship
+      parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: relationshipId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Logical relationship resource
+          content:
+            application/vnd.evidence.logical-relationship+json:
+              schema:
+                $ref: '#/components/schemas/LogicalRelationshipResource'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    put:
+      tags: []
+      operationId: update_logical_relationship
+      parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: relationshipId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLogicalRelationshipInput'
+        required: true
+      responses:
+        '200':
+          description: Updated logical relationship
+          content:
+            application/vnd.evidence.logical-relationship+json:
+              schema:
+                $ref: '#/components/schemas/LogicalRelationshipResource'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      tags: []
+      operationId: delete_logical_relationship
+      parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: relationshipId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Logical relationship delete result
+          content:
+            application/vnd.evidence.logical-relationship+json:
+              schema:
+                $ref: '#/components/schemas/DeletedResult'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
 components:
   schemas:
     AddMemberInput:
@@ -1937,13 +2180,11 @@ components:
     CreateLogicalEntityInput:
       type: object
       required:
-      - type
       - name
+      - type
       properties:
-        definition:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/EntityDefinition'
+        content:
+          type: string
         label:
           type:
           - string
@@ -1956,6 +2197,20 @@ components:
           - 'null'
         type:
           $ref: '#/components/schemas/LogicalEntityType'
+    CreateLogicalRelationshipInput:
+      type: object
+      required:
+      - source
+      - target
+      properties:
+        label:
+          type:
+          - string
+          - 'null'
+        source:
+          $ref: '#/components/schemas/RefModel'
+        target:
+          $ref: '#/components/schemas/RefModel'
     DeletedResult:
       type: object
       required:
@@ -2142,10 +2397,10 @@ components:
           type:
           - string
           - 'null'
-        label:
-          type:
-          - string
-          - 'null'
+        logicalRelationship:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/RefModel'
         markerEnd:
           type:
           - object
@@ -2167,10 +2422,6 @@ components:
           additionalProperties: {}
           propertyNames:
             type: string
-        relationType:
-          type:
-          - string
-          - 'null'
         source:
           $ref: '#/components/schemas/RefModel'
         sourceHandle:
@@ -2229,10 +2480,10 @@ components:
           type:
           - string
           - 'null'
-        label:
-          type:
-          - string
-          - 'null'
+        logicalRelationship:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/RefModel'
         markerEnd:
           type:
           - object
@@ -2252,10 +2503,6 @@ components:
           additionalProperties: {}
           propertyNames:
             type: string
-        relationType:
-          type:
-          - string
-          - 'null'
         source:
           $ref: '#/components/schemas/RefModel'
         sourceHandle:
@@ -2275,83 +2522,6 @@ components:
           - 'null'
         updatedAt:
           type: string
-    EntityAttribute:
-      type: object
-      required:
-      - id
-      - name
-      - isBusinessKey
-      - relation
-      properties:
-        description:
-          type:
-          - string
-          - 'null'
-        id:
-          type: string
-        isBusinessKey:
-          type: boolean
-        label:
-          type:
-          - string
-          - 'null'
-        name:
-          type: string
-        relation:
-          type: boolean
-        type:
-          type:
-          - string
-          - 'null'
-        visibility:
-          type:
-          - string
-          - 'null'
-    EntityBehavior:
-      type: object
-      required:
-      - id
-      - name
-      properties:
-        description:
-          type:
-          - string
-          - 'null'
-        id:
-          type: string
-        label:
-          type:
-          - string
-          - 'null'
-        name:
-          type: string
-        returnType:
-          type:
-          - string
-          - 'null'
-    EntityDefinition:
-      type: object
-      required:
-      - tags
-      - attributes
-      - behaviors
-      properties:
-        attributes:
-          type: array
-          items:
-            $ref: '#/components/schemas/EntityAttribute'
-        behaviors:
-          type: array
-          items:
-            $ref: '#/components/schemas/EntityBehavior'
-        description:
-          type:
-          - string
-          - 'null'
-        tags:
-          type: array
-          items:
-            type: string
     ErrorBody:
       type: object
       required:
@@ -2416,19 +2586,14 @@ components:
       required:
       - _links
       - id
-      - type
       - name
-      - createdAt
-      - updatedAt
+      - type
+      - content
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
-        createdAt:
+        content:
           type: string
-        definition:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/EntityDefinition'
         id:
           type: string
         label:
@@ -2443,8 +2608,6 @@ components:
           - 'null'
         type:
           $ref: '#/components/schemas/LogicalEntityType'
-        updatedAt:
-          type: string
     LogicalEntityType:
       type: string
       enum:
@@ -2452,6 +2615,48 @@ components:
       - PARTICIPANT
       - ROLE
       - CONTEXT
+    LogicalRelationshipCollectionEmbedded:
+      type: object
+      required:
+      - logicalRelationships
+      properties:
+        logicalRelationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogicalRelationshipResource'
+    LogicalRelationshipCollectionResource:
+      type: object
+      required:
+      - _links
+      - _embedded
+      - page
+      properties:
+        _embedded:
+          $ref: '#/components/schemas/LogicalRelationshipCollectionEmbedded'
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        page:
+          $ref: '#/components/schemas/PageModel'
+    LogicalRelationshipResource:
+      type: object
+      required:
+      - _links
+      - id
+      - source
+      - target
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        label:
+          type:
+          - string
+          - 'null'
+        source:
+          $ref: '#/components/schemas/RefModel'
+        target:
+          $ref: '#/components/schemas/RefModel'
     MemberCollectionEmbedded:
       type: object
       required:
@@ -2831,10 +3036,10 @@ components:
     UpdateLogicalEntityInput:
       type: object
       properties:
-        definition:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/EntityDefinition'
+        content:
+          type:
+          - string
+          - 'null'
         label:
           type:
           - string
@@ -2851,6 +3056,21 @@ components:
           oneOf:
           - type: 'null'
           - $ref: '#/components/schemas/LogicalEntityType'
+    UpdateLogicalRelationshipInput:
+      type: object
+      properties:
+        label:
+          type:
+          - string
+          - 'null'
+        source:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/RefModel'
+        target:
+          oneOf:
+          - type: 'null'
+          - $ref: '#/components/schemas/RefModel'
     UserResource:
       type: object
       required:
