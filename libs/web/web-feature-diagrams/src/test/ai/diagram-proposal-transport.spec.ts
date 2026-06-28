@@ -82,6 +82,41 @@ describe('createDiagramProposalTransport', () => {
     );
   });
 
+  it('converts backend text SSE events into AI SDK text chunks', async () => {
+    const fetch = vi.fn(async () =>
+      sseResponse(
+        [
+          'data: Hello',
+          '',
+          'data: world',
+          '',
+          'event: complete',
+          'data: ',
+          '',
+        ].join('\n'),
+      ),
+    );
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('hello')],
+      abortSignal: undefined,
+    });
+
+    const chunks = await readChunks(stream);
+
+    expect(chunks).toEqual([
+      { type: 'text-start', id: 'diagram-model-response' },
+      { type: 'text-delta', id: 'diagram-model-response', delta: 'Hello' },
+      { type: 'text-delta', id: 'diagram-model-response', delta: 'world' },
+      { type: 'text-end', id: 'diagram-model-response' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+  });
+
   it('converts backend proposal tool SSE events into AI SDK tool chunks', async () => {
     const proposal = {
       summary: 'Draft',

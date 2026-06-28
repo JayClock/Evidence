@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::Stdio, time::Duration};
 
 use async_stream::try_stream;
 use evidence_server_domain::{
-    DomainArchitect, DomainArchitectEventStream, ModelingEvent, ModelingProposal, ServerError,
+    DomainArchitect, DomainArchitectEventStream, ModelingEvent, ServerError,
 };
 use serde_json::{json, Value};
 use tokio::{
@@ -12,7 +12,6 @@ use tokio::{
 };
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
-const PROPOSAL_TOOL_NAME: &str = "submit_modeling_proposal";
 
 #[derive(Debug, Clone)]
 pub struct PiRpcDomainArchitectConfig {
@@ -29,12 +28,7 @@ impl Default for PiRpcDomainArchitectConfig {
                 "--mode".to_string(),
                 "rpc".to_string(),
                 "--no-session".to_string(),
-                "--no-extensions".to_string(),
-                "-e".to_string(),
-                default_extension_path(),
-                "--no-builtin-tools".to_string(),
-                "--tools".to_string(),
-                PROPOSAL_TOOL_NAME.to_string(),
+                "--no-tools".to_string(),
             ],
             timeout: DEFAULT_TIMEOUT,
         }
@@ -48,11 +42,9 @@ fn workspace_root() -> PathBuf {
         .unwrap_or_else(|_| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.."))
 }
 
-fn default_extension_path() -> String {
-    workspace_root()
-        .join(".pi/extensions/evidence-domain-architect.ts")
-        .to_string_lossy()
-        .into_owned()
+fn evidence_modeling_dir() -> PathBuf {
+    let path = workspace_root().join(".evidence");
+    path.canonicalize().unwrap_or(path)
 }
 
 #[derive(Debug, Clone, Default)]
@@ -78,11 +70,11 @@ impl DomainArchitect for PiRpcDomainArchitect {
         let config = self.config.clone();
 
         Box::pin(try_stream! {
-            let prompt = build_prompt(&requirement);
+            let message = requirement;
             let mut command = Command::new(&config.command);
             command
                 .args(&config.args)
-                .current_dir(workspace_root())
+                .current_dir(evidence_modeling_dir())
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
@@ -106,26 +98,25 @@ impl DomainArchitect for PiRpcDomainArchitect {
                 .ok_or_else(|| ServerError::Internal("pi rpc stderr unavailable".to_string()))?;
 
             let rpc_command = json!({
-                "id": "evidence-domain-architect",
+                "id": "evidence-chat",
                 "type": "prompt",
-                "message": prompt,
+                "message": message,
             });
             stdin
                 .write_all(rpc_command.to_string().as_bytes())
                 .await
                 .map_err(|error| {
-                    ServerError::Internal(format!("failed to write pi rpc prompt: {error}"))
+                    ServerError::Internal(format!("failed to write pi rpc message: {error}"))
                 })?;
             stdin.write_all(b"\n").await.map_err(|error| {
-                ServerError::Internal(format!("failed to write pi rpc prompt: {error}"))
+                ServerError::Internal(format!("failed to write pi rpc message: {error}"))
             })?;
             stdin.flush().await.map_err(|error| {
-                ServerError::Internal(format!("failed to flush pi rpc prompt: {error}"))
+                ServerError::Internal(format!("failed to flush pi rpc message: {error}"))
             })?;
 
             let mut lines = BufReader::new(stdout).lines();
             let mut assistant_text = String::new();
-            let mut submitted_proposal: Option<ModelingProposal> = None;
             let mut accepted = false;
             let mut saw_message_end = false;
             let mut saw_agent_end = false;
@@ -156,7 +147,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
                                 let error = event
                                     .get("error")
                                     .and_then(Value::as_str)
-                                    .unwrap_or("pi rpc prompt rejected");
+                                    .unwrap_or("pi rpc message rejected");
                                 let _ = child.kill().await;
                                 Err(ServerError::Internal(error.to_string()))?;
                             }
@@ -213,9 +204,6 @@ impl DomainArchitect for PiRpcDomainArchitect {
                                         .get("arguments")
                                         .cloned()
                                         .unwrap_or(Value::Null);
-                                    if tool_name == PROPOSAL_TOOL_NAME {
-                                        submitted_proposal = Some(parse_modeling_proposal_value(input.clone())?);
-                                    }
                                     yield ModelingEvent::ToolCallReady { tool_call_id, tool_name, input };
                                 }
                             }
@@ -244,33 +232,31 @@ impl DomainArchitect for PiRpcDomainArchitect {
                         let is_error = event.get("isError").and_then(Value::as_bool).unwrap_or(false);
                         yield ModelingEvent::ToolExecutionEnded {
                             tool_call_id,
-                            tool_name: tool_name.clone(),
-                            result: result.clone(),
+                            tool_name,
+                            result,
                             is_error,
                         };
-                        if tool_name == PROPOSAL_TOOL_NAME {
-                            if is_error {
-                                Err(ServerError::Internal(
-                                    "pi rpc submit_modeling_proposal tool failed".to_string(),
-                                ))?;
-                            }
-                            if let Some(proposal_value) = proposal_value_from_tool_result(&result) {
-                                submitted_proposal = Some(parse_modeling_proposal_value(proposal_value)?);
-                            }
-                        }
                     }
                     Some("message_end") => {
                         saw_message_end = true;
                         if assistant_text.trim().is_empty() {
-                            assistant_text.push_str(&extract_message_text(
+                            let text = extract_message_text(
                                 event.get("message").unwrap_or(&Value::Null),
-                            ));
+                            );
+                            if !text.is_empty() {
+                                assistant_text.push_str(&text);
+                                yield ModelingEvent::TextChunk { chunk: text };
+                            }
                         }
                     }
                     Some("agent_end") => {
                         saw_agent_end = true;
                         if assistant_text.trim().is_empty() {
-                            assistant_text.push_str(&extract_agent_end_text(&event));
+                            let text = extract_agent_end_text(&event);
+                            if !text.is_empty() {
+                                assistant_text.push_str(&text);
+                                yield ModelingEvent::TextChunk { chunk: text };
+                            }
                         }
                         break;
                     }
@@ -288,20 +274,8 @@ impl DomainArchitect for PiRpcDomainArchitect {
 
             if !accepted {
                 Err(ServerError::Internal(format!(
-                    "pi rpc process ended before accepting prompt{}",
+                    "pi rpc process ended before accepting message{}",
                     stderr_detail(&stderr_output)
-                )))?;
-            }
-
-            if submitted_proposal.is_none() {
-                let assistant_text = assistant_text.trim();
-                let detail = if assistant_text.is_empty() {
-                    String::new()
-                } else {
-                    format!(" Assistant text was: {assistant_text}")
-                };
-                Err(ServerError::Internal(format!(
-                    "pi rpc did not call {PROPOSAL_TOOL_NAME}.{detail}"
                 )))?;
             }
 
@@ -314,101 +288,6 @@ impl DomainArchitect for PiRpcDomainArchitect {
             yield ModelingEvent::Completed;
         })
     }
-}
-
-const DOMAIN_ARCHITECT_PROMPT: &str = r#"You are the Evidence Domain Architect.
-
-Task:
-- Propose Fulfillment Modeling (FM) logical model changes for the user's requirement.
-- Build workspace-level logical entities and logical relationships only.
-- Call the submit_modeling_proposal tool exactly once with the FM changes payload.
-- Do not emit markdown prose, JSON text, commentary, explanations, logs, or any prefix/suffix text outside the tool call.
-- Do not call any tool except submit_modeling_proposal.
-- Return only the FM changes payload below as the submit_modeling_proposal arguments; do not return an operations array.
-
-FM modeling rules:
-- Model business semantics only: contracts, obligations, roles, evidence, lifecycle facts, rules, downstream signals, and scenario paths. Do not model database tables, APIs, services, modules, queues, deployment, framework components, visual nodes, visual edges, layout, handles, or styles.
-- Start from Contract context. Treat one Contract as one primary fulfillment chain. For multiple contracts, model each chain independently.
-- Add RFP and Proposal only when the requirement contains a presales stage.
-- Use Evidence-first discovery. Identify the anchor cash movement, KPI, or acceptance evidence, then discover the requests, confirmations, roles, and downstream evidence around it.
-- Model every concrete responsibility or meaningful state transition as a Fulfillment Request -> Fulfillment Confirmation pair.
-- Express lifecycle as attributes on Contract, Evidence, or Thing; do not create standalone status entities.
-- Put rules in entity.description or relevant attribute.description; keep them business-semantic and concise.
-- Every RFP, Proposal, Fulfillment Request, Fulfillment Confirmation, and Other Evidence must have exactly one participating Party Role.
-- Use Other Evidence for same-context produced business documents. Use Evidence As Role only for cross-context bridging, and only in the pattern Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation.
-- Third Party Role and Context Role may participate only in Other Evidence or Evidence As Role.
-- Relationships are scalar 1:1 relations from cause to result or participant to evidence; never use arrays, comma-separated ids, or aggregate endpoints.
-
-submit_modeling_proposal argument shape:
-{
-  "summary": "short human-readable summary",
-  "changes": {
-    "addEntities": [
-      {
-        "id": "entity-1",
-        "name": "SalesContract",
-        "label": "销售合同",
-        "type": "EVIDENCE",
-        "subType": "contract",
-        "description": "optional short explanation",
-        "attributes": []
-      }
-    ],
-    "updateEntities": [],
-    "deleteEntities": [],
-    "addRelationships": [
-      {
-        "id": "relationship-1",
-        "source": { "id": "source-entity-id" },
-        "target": { "id": "target-entity-id" },
-        "label": "short business relationship phrase"
-      }
-    ],
-    "updateRelationships": [],
-    "deleteRelationships": []
-  }
-}
-
-Entity output constraints:
-- Emit entity fields only as: id, name, label, type, subType, description, attributes. Do not emit diagram, node, edge, position, width, height, kind, parent, style, marker, handle, pathOptions, animated, hidden, createdAt, updatedAt, _links, logicalEntity, notes, precondition, validationNotes, calculationRule, responsibility, definition, behaviors, or tags.
-- Use entity.id with prefix entity-. Context entities should use prefix entity-context- when helpful.
-- entity.type must be exactly one single literal: EVIDENCE, PARTICIPANT, ROLE, or CONTEXT. Never emit a combined placeholder like "EVIDENCE | PARTICIPANT | ROLE | CONTEXT".
-- entity.subType should use FM subtype values: rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence, party, thing, domain, 3rd system, context, evidence, bounded_context.
-- entity.name must be non-empty, unique, ASCII PascalCase. entity.label is the user-facing business label.
-- Evidence lifecycle attributes are mandatory: RFP/Proposal/Fulfillment Request need startedAt and expiredAt; Contract needs signedAt; Fulfillment Confirmation needs confirmedAt; Other Evidence needs createdAt. Put them in attributes with type DateTime.
-- Put derived-value rules and guard rules in entity.description or the relevant attribute.description using concise business-language text.
-
-Relationship output constraints:
-- Emit relationship fields only as: id, source, target, label. Do not emit relationType, type, style, marker, handle, pathOptions, animated, hidden, createdAt, updatedAt, sourceNode, targetNode, or _links.
-- Use relationship.id with prefix relationship-.
-- relationship.source and relationship.target must be { "id": "entity-id" } and must reference logical entities introduced by changes.addEntities in the same proposal unless the user provided existing entity ids.
-- relationship.label should be a short business relationship phrase, e.g. "requests", "confirms", "participates in", "plays role", "bridges to".
-- For allowed cross-context Evidence As Role bridges, preserve the explicit bridge pattern Fulfillment Confirmation -> Evidence As Role -> downstream Fulfillment Confirmation.
-
-Changes constraints:
-- For a new or initial model, put every generated entity in changes.addEntities and every generated relationship in changes.addRelationships; keep update/delete arrays empty.
-- For an update to an existing model, return only the diff in changes. Use updateEntities/updateRelationships for replacement payloads and deleteEntities/deleteRelationships as id string arrays.
-- addEntities ids and addRelationships ids must be unique within the proposal and must not reuse ids from an existing model when one is provided.
-- In one proposal, never repeat the same id across add/update/delete arrays for the same element type.
-- If deleting an entity, also include every incident relationship id you know about in deleteRelationships.
-- If no executable change is available, return all six arrays empty and explain in summary.
-"#;
-
-fn build_prompt(requirement: &str) -> String {
-    format!("{DOMAIN_ARCHITECT_PROMPT}\n\nUser requirement:\n{requirement}\n")
-}
-
-fn parse_modeling_proposal_value(value: Value) -> Result<ModelingProposal, ServerError> {
-    serde_json::from_value(value).map_err(|error| {
-        ServerError::Internal(format!("failed to parse pi rpc modeling proposal: {error}"))
-    })
-}
-
-fn proposal_value_from_tool_result(result: &Value) -> Option<Value> {
-    result
-        .get("details")
-        .and_then(|details| details.get("proposal"))
-        .cloned()
 }
 
 fn tool_call_id(assistant_event: &Value) -> Result<String, ServerError> {
@@ -511,33 +390,6 @@ fn extract_message_text(message: &Value) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn extracts_proposal_from_pi_tool_result_details() {
-        let result = json!({
-            "content": [{"type": "text", "text": "submitted"}],
-            "details": {
-                "proposal": {
-                    "summary": "Create model",
-                    "changes": {
-                        "addEntities": [],
-                        "updateEntities": [],
-                        "deleteEntities": [],
-                        "addRelationships": [],
-                        "updateRelationships": [],
-                        "deleteRelationships": []
-                    }
-                }
-            }
-        });
-
-        let proposal = parse_modeling_proposal_value(
-            proposal_value_from_tool_result(&result).expect("proposal value"),
-        )
-        .unwrap();
-
-        assert_eq!(proposal.summary, "Create model");
-    }
 
     #[test]
     fn extracts_text_from_agent_end_event() {

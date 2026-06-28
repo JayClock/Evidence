@@ -7,6 +7,7 @@ import type {
 import type { DiagramResource, State } from '@evidence/api-client';
 
 const REASONING_PART_ID = 'diagram-model-thinking';
+const TEXT_PART_ID = 'diagram-model-response';
 
 type SendMessagesOptions = Parameters<
   ChatTransport<UIMessage>['sendMessages']
@@ -131,6 +132,8 @@ function sseToUiMessageStream(
       let finished = false;
       let reasoningStarted = false;
       let reasoningEnded = false;
+      let textStarted = false;
+      let textEnded = false;
       const availableToolInputs = new Set<string>();
 
       const startReasoning = () => {
@@ -151,6 +154,37 @@ function sseToUiMessageStream(
           controller.enqueue({ type: 'reasoning-end', id: REASONING_PART_ID });
         }
         reasoningEnded = true;
+      };
+
+      const startText = () => {
+        if (textStarted) {
+          return;
+        }
+
+        controller.enqueue({ type: 'text-start', id: TEXT_PART_ID });
+        textStarted = true;
+      };
+
+      const enqueueTextDelta = (delta: string) => {
+        if (!delta) {
+          return;
+        }
+
+        startText();
+        controller.enqueue({
+          type: 'text-delta',
+          id: TEXT_PART_ID,
+          delta,
+        });
+      };
+
+      const endText = () => {
+        if (!textStarted || textEnded) {
+          return;
+        }
+
+        controller.enqueue({ type: 'text-end', id: TEXT_PART_ID });
+        textEnded = true;
       };
 
       const enqueueToolInput = (payload: unknown) => {
@@ -201,6 +235,7 @@ function sseToUiMessageStream(
         }
 
         endReasoning();
+        endText();
         controller.enqueue({ type: 'finish', finishReason: 'stop' });
         finished = true;
       };
@@ -232,6 +267,11 @@ function sseToUiMessageStream(
 
         if (event.event === 'error') {
           controller.enqueue({ type: 'error', errorText: event.data });
+          return;
+        }
+
+        if (!event.event || event.event === 'text') {
+          enqueueTextDelta(event.data);
           return;
         }
 
