@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { isValidElement, type ComponentProps, type ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
@@ -17,21 +17,70 @@ vi.mock('@evidence/api-client', () => ({
 vi.mock('@evidence/ui', () => {
   const Fragment = ({ children }: { children?: ReactNode }) => children;
   const Div = ({ children }: { children?: ReactNode }) => <div>{children}</div>;
-  const Button = ({ children }: { children?: ReactNode }) => (
-    <button type="button">{children}</button>
+  const Span = ({ children }: { children?: ReactNode }) => (
+    <span>{children}</span>
+  );
+  const Button = ({
+    asChild,
+    children,
+    ...props
+  }: {
+    asChild?: boolean;
+    children?: ReactNode;
+  } & ComponentProps<'button'>) => {
+    if (asChild && isValidElement(children)) {
+      return children;
+    }
+
+    return (
+      <button type="button" {...props}>
+        {children}
+      </button>
+    );
+  };
+  const Input = (props: ComponentProps<'input'>) => <input {...props} />;
+  const Textarea = (props: ComponentProps<'textarea'>) => (
+    <textarea {...props} />
   );
 
   return {
+    Alert: Div,
+    AlertDescription: Div,
+    AlertTitle: Div,
     Avatar: Div,
     AvatarFallback: Div,
+    Badge: Span,
+    Button,
+    Card: Div,
+    CardAction: Div,
+    CardContent: Div,
+    CardDescription: Div,
+    CardHeader: Div,
+    CardTitle: Div,
+    Dialog: Fragment,
+    DialogClose: Fragment,
+    DialogContent: Div,
+    DialogDescription: Div,
+    DialogFooter: Div,
+    DialogHeader: Div,
+    DialogTitle: Div,
     DropdownMenu: Fragment,
     DropdownMenuContent: Div,
     DropdownMenuGroup: Div,
     DropdownMenuItem: Div,
     DropdownMenuLabel: Div,
+    DropdownMenuRadioGroup: Div,
+    DropdownMenuRadioItem: Div,
     DropdownMenuSeparator: () => <hr />,
     DropdownMenuTrigger: Fragment,
-    ScrollArea: Div,
+    Field: Div,
+    FieldDescription: Div,
+    FieldError: Div,
+    FieldGroup: Div,
+    FieldLabel: ({ children }: { children?: ReactNode }) => (
+      <label>{children}</label>
+    ),
+    Input,
     Separator: () => <hr />,
     Sidebar: Div,
     SidebarContent: Div,
@@ -47,8 +96,13 @@ vi.mock('@evidence/ui', () => {
     SidebarProvider: Fragment,
     SidebarRail: () => <div />,
     SidebarTrigger: Button,
+    Spinner: () => <span>Loading</span>,
+    Textarea,
     Toaster: () => null,
     TooltipProvider: Fragment,
+    toast: {
+      success: vi.fn(),
+    },
   };
 });
 
@@ -63,7 +117,7 @@ const userState = {
     email: 'desktop@evidence.local',
   },
   links: links('self', 'workspaces', 'sidebar'),
-  follow: () => ({ kind: 'sidebar' }),
+  follow: (rel: string) => ({ kind: rel }),
 };
 
 const sidebarState = {
@@ -94,14 +148,73 @@ const sidebarState = {
   links: links('self'),
 };
 
+const workspaceState = {
+  data: {
+    id: 'default-workspace',
+    title: 'Default Workspace',
+    description: 'Seed workspace',
+    status: 'active',
+    metadata: {
+      repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
+    },
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  },
+  links: {
+    getAll: () => [
+      {
+        rel: 'self',
+        href: '/api/users/desktop-user/workspaces/default-workspace',
+      },
+      {
+        rel: 'diagrams',
+        href: '/api/workspaces/default-workspace/diagrams',
+      },
+      {
+        rel: 'logical-entities',
+        href: '/api/workspaces/default-workspace/logical-entities',
+      },
+    ],
+  },
+};
+
+const workspaceCollectionState = {
+  data: {
+    page: {
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+      number: 1,
+    },
+  },
+  collection: [workspaceState],
+  links: links('self'),
+};
+
+const workspaceResource = {
+  post: vi.fn(),
+  refresh: vi.fn(),
+};
+
 const useResourceMock = useResource as unknown as Mock;
 
 describe('WebShell', () => {
   beforeEach(() => {
-    useResourceMock.mockReturnValue({
-      loading: false,
-      error: null,
-      resourceState: sidebarState,
+    useResourceMock.mockImplementation((resourceLike: { kind: string }) => {
+      if (resourceLike.kind === 'workspaces') {
+        return {
+          loading: false,
+          error: null,
+          resourceState: workspaceCollectionState,
+          resource: workspaceResource,
+        };
+      }
+
+      return {
+        loading: false,
+        error: null,
+        resourceState: sidebarState,
+      };
     });
   });
 
@@ -114,7 +227,8 @@ describe('WebShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText('Evidence').length).toBeGreaterThan(0);
+    expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
+    expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
     expect(screen.getByText('Workspaces')).toBeTruthy();
     expect(screen.getByText('Diagrams')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);

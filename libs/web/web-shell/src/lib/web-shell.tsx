@@ -1,5 +1,5 @@
-import { useMemo, type ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   useResource,
   type Link as HalLink,
@@ -7,6 +7,8 @@ import {
   type SidebarResource,
   type State,
   type UserResource,
+  type WorkspaceCollectionResource,
+  type WorkspaceResource,
 } from '@evidence/api-client';
 import {
   Avatar,
@@ -37,6 +39,12 @@ import {
   TooltipProvider,
 } from '@evidence/ui';
 
+import {
+  WorkspaceSwitcher,
+  workspaceHref,
+  type WorkspaceInput,
+} from './workspace-switcher';
+
 export function WebShell({
   userState,
   children,
@@ -44,11 +52,52 @@ export function WebShell({
   userState: State<UserResource>;
   children: ReactNode;
 }) {
+  const navigate = useNavigate();
   const sidebarResource = useMemo(
     () => userState.follow('sidebar'),
     [userState],
   );
+  const workspacesResource = useMemo(
+    () => userState.follow('workspaces'),
+    [userState],
+  );
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>();
   const sidebar = useResource<SidebarResource>(sidebarResource);
+  const workspaces =
+    useResource<WorkspaceCollectionResource>(workspacesResource);
+  const workspaceStates: State<WorkspaceResource>[] =
+    workspaces.resourceState?.collection ?? [];
+  const activeWorkspaceState =
+    workspaceStates.find(
+      (workspaceState) => workspaceState.data.id === selectedWorkspaceId,
+    ) ?? workspaceStates[0];
+
+  const selectWorkspace = useCallback(
+    (workspaceState: State<WorkspaceResource>) => {
+      setSelectedWorkspaceId(workspaceState.data.id);
+      const href = workspaceHref(workspaceState);
+      if (href) {
+        navigate(href);
+      }
+    },
+    [navigate],
+  );
+
+  const createWorkspace = useCallback(
+    async (input: WorkspaceInput) => {
+      const createdWorkspace = (await workspaces.resource.post({
+        data: input,
+      })) as State<WorkspaceResource>;
+      setSelectedWorkspaceId(createdWorkspace.data.id);
+      await workspaces.resource.refresh();
+      const href = workspaceHref(createdWorkspace);
+      if (href) {
+        navigate(href);
+      }
+      return createdWorkspace;
+    },
+    [navigate, workspaces.resource],
+  );
 
   return (
     <TooltipProvider>
@@ -58,9 +107,15 @@ export function WebShell({
           userState={userState}
           sidebarState={sidebar.resourceState}
           loading={sidebar.loading}
+          workspaceStates={workspaceStates}
+          workspacesLoading={workspaces.loading}
+          workspacesError={workspaces.error}
+          activeWorkspaceState={activeWorkspaceState}
+          onSelectWorkspace={selectWorkspace}
+          onCreateWorkspace={createWorkspace}
         />
         <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
-          <AppHeader />
+          <AppHeader activeWorkspaceTitle={activeWorkspaceState?.data.title} />
           <main className="h-full w-full p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
@@ -68,7 +123,11 @@ export function WebShell({
   );
 }
 
-function AppHeader() {
+function AppHeader({
+  activeWorkspaceTitle,
+}: {
+  activeWorkspaceTitle?: string;
+}) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
       <SidebarTrigger />
@@ -78,7 +137,9 @@ function AppHeader() {
           Evidence Workspace Console
         </span>
         <span className="truncate text-xs text-muted-foreground">
-          HATEOAS navigation shell
+          {activeWorkspaceTitle
+            ? `Current workspace: ${activeWorkspaceTitle}`
+            : 'HATEOAS navigation shell'}
         </span>
       </div>
     </header>
@@ -89,28 +150,38 @@ function AppSidebar({
   userState,
   sidebarState,
   loading,
+  workspaceStates,
+  workspacesLoading,
+  workspacesError,
+  activeWorkspaceState,
+  onSelectWorkspace,
+  onCreateWorkspace,
 }: {
   userState: State<UserResource>;
   sidebarState?: State<SidebarResource>;
   loading: boolean;
+  workspaceStates: State<WorkspaceResource>[];
+  workspacesLoading: boolean;
+  workspacesError: Error | null;
+  activeWorkspaceState?: State<WorkspaceResource>;
+  onSelectWorkspace: (workspaceState: State<WorkspaceResource>) => void;
+  onCreateWorkspace: (
+    input: WorkspaceInput,
+  ) => Promise<State<WorkspaceResource>>;
 }) {
   const location = useLocation();
 
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Evidence">
-              <Link to="/">
-                <div className="flex size-6 items-center justify-center rounded-md bg-sidebar-primary text-xs font-semibold text-sidebar-primary-foreground">
-                  E
-                </div>
-                <span>Evidence</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <WorkspaceSwitcher
+          loading={workspacesLoading}
+          error={workspacesError}
+          workspaces={workspaceStates}
+          activeWorkspaceState={activeWorkspaceState}
+          onSelectWorkspace={onSelectWorkspace}
+          onCreateWorkspace={onCreateWorkspace}
+        />
       </SidebarHeader>
 
       <SidebarContent>
@@ -126,6 +197,7 @@ function AppSidebar({
                     key={item.key ?? item.label}
                     item={item}
                     pathname={location.pathname}
+                    activeWorkspaceState={activeWorkspaceState}
                   />
                 ))}
               </SidebarMenu>
@@ -157,12 +229,14 @@ function SidebarLoading() {
 function SidebarNavItem({
   item,
   pathname,
+  activeWorkspaceState,
 }: {
   item: SidebarItem;
   pathname: string;
+  activeWorkspaceState?: State<WorkspaceResource>;
 }) {
-  const resourcePath = item.path ?? item.href ?? '#';
-  const target = sidebarItemRoute(item);
+  const resourcePath = sidebarItemResourcePath(item, activeWorkspaceState);
+  const target = sidebarItemRoute(item, activeWorkspaceState);
   const active = item.active ?? isPathActive(pathname, target);
 
   return (
@@ -218,7 +292,35 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
   );
 }
 
-function sidebarItemRoute(item: SidebarItem) {
+function sidebarItemRoute(
+  item: SidebarItem,
+  activeWorkspaceState?: State<WorkspaceResource>,
+) {
+  return sidebarItemResourcePath(item, activeWorkspaceState);
+}
+
+function sidebarItemResourcePath(
+  item: SidebarItem,
+  activeWorkspaceState?: State<WorkspaceResource>,
+) {
+  if (activeWorkspaceState && item.key === 'diagrams') {
+    return (
+      workspaceHref(activeWorkspaceState, 'diagrams') ??
+      item.href ??
+      item.path ??
+      '#'
+    );
+  }
+
+  if (activeWorkspaceState && item.key === 'logical-entities') {
+    return (
+      workspaceHref(activeWorkspaceState, 'logical-entities') ??
+      item.href ??
+      item.path ??
+      '#'
+    );
+  }
+
   return item.href ?? item.path ?? '#';
 }
 
