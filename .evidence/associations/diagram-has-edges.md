@@ -26,8 +26,8 @@ summary: Diagram 包含 DiagramEdge 集合。
 | 方向     | Diagram → DiagramEdge                      |
 | 基数     | one-to-many                                |
 | 只读接口 | `edges()`                                  |
-| 写接口   | `edges_wide()`                             |
+| 数据来源 | `.evidence/associations/*.md`              |
 
 ## 业务含义
 
-边属于图，通过图边资源单独创建、更新和删除。
+边属于图，由 `.evidence/associations/*.md` 中的关联对象投影生成；图边接口只负责读取。

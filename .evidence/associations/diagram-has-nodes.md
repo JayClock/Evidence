@@ -26,8 +26,8 @@ summary: Diagram 包含 DiagramNode 集合。
 | 方向     | Diagram → DiagramNode                      |
 | 基数     | one-to-many                                |
 | 只读接口 | `nodes()`                                  |
-| 写接口   | `nodes_wide()`                             |
+| 数据来源 | `.evidence/entities/*.md`                  |
 
 ## 业务含义
 
-节点属于图，通过图节点资源单独创建、更新和删除。
+节点属于图，由 `.evidence/entities/*.md` 中的实体模型投影生成；图节点接口只负责读取。

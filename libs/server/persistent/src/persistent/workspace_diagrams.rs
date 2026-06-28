@@ -19,6 +19,7 @@ use super::{diagram_edges::DbDiagramEdges, diagram_nodes::DbDiagramNodes, store:
 pub struct DbWorkspaceDiagrams {
     store: DbStore,
     workspace_id: String,
+    evidence_root: PathBuf,
     diagrams_dir: PathBuf,
 }
 
@@ -28,6 +29,7 @@ impl DbWorkspaceDiagrams {
             store,
             workspace_id,
             diagrams_dir: evidence_root.join("diagrams"),
+            evidence_root,
         }
     }
 
@@ -51,7 +53,11 @@ impl DbWorkspaceDiagrams {
                 continue;
             }
 
-            records.push(read_markdown_diagram(&self.workspace_id, &path)?);
+            records.push(read_markdown_diagram(
+                &self.workspace_id,
+                self.evidence_root.clone(),
+                &path,
+            )?);
         }
 
         records.sort_by(|left, right| left.title.cmp(&right.title).then(left.id.cmp(&right.id)));
@@ -88,7 +94,7 @@ impl DbWorkspaceDiagrams {
         fs::write(path, document)
             .map_err(|error| fs_error(format!("write diagram file {}", path.display()), error))?;
 
-        read_markdown_diagram(&self.workspace_id, path)
+        read_markdown_diagram(&self.workspace_id, self.evidence_root.clone(), path)
             .map(|record| record.into_diagram(self.store.clone()))
     }
 
@@ -203,6 +209,7 @@ struct MarkdownDiagram {
     id: String,
     title: String,
     path: PathBuf,
+    evidence_root: PathBuf,
     description: DiagramDescription,
 }
 
@@ -212,8 +219,12 @@ impl MarkdownDiagram {
         Diagram::new(
             self.id,
             self.description,
-            Arc::new(DbDiagramNodes::new(store.clone(), diagram_id.clone())),
-            Arc::new(DbDiagramEdges::new(store, diagram_id)),
+            Arc::new(DbDiagramNodes::new(
+                store.clone(),
+                diagram_id.clone(),
+                self.evidence_root.clone(),
+            )),
+            Arc::new(DbDiagramEdges::new(store, diagram_id, self.evidence_root)),
         )
     }
 }
@@ -224,14 +235,19 @@ struct MarkdownDiagramDocument<'a> {
     viewport: &'a Viewport,
 }
 
-fn read_markdown_diagram(workspace_id: &str, path: &Path) -> Result<MarkdownDiagram, ServerError> {
+fn read_markdown_diagram(
+    workspace_id: &str,
+    evidence_root: PathBuf,
+    path: &Path,
+) -> Result<MarkdownDiagram, ServerError> {
     let text = fs::read_to_string(path)
         .map_err(|error| fs_error(format!("read diagram file {}", path.display()), error))?;
-    parse_markdown_diagram(workspace_id, path.to_path_buf(), &text)
+    parse_markdown_diagram(workspace_id, evidence_root, path.to_path_buf(), &text)
 }
 
 fn parse_markdown_diagram(
     workspace_id: &str,
+    evidence_root: PathBuf,
     path: PathBuf,
     text: &str,
 ) -> Result<MarkdownDiagram, ServerError> {
@@ -252,6 +268,7 @@ fn parse_markdown_diagram(
         id,
         title: title.clone(),
         path,
+        evidence_root,
         description: DiagramDescription {
             workspace: Ref::new(workspace_id.to_string()),
             title,
@@ -379,6 +396,7 @@ mod tests {
     fn parses_markdown_diagram_metadata() {
         let diagram = parse_markdown_diagram(
             "workspace-1",
+            PathBuf::from(".evidence"),
             PathBuf::from("diagram.md"),
             "---\nid: fulfillment\ntitle: Fulfillment\nviewport: {\"x\":1.0,\"y\":2.0,\"zoom\":1.5}\n---\n# Fulfillment\n",
         )

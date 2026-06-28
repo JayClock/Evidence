@@ -8,11 +8,10 @@ use uuid::Uuid;
 
 use crate::domain::{
     normalize_sub_type, Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode,
-    DiagramNodes, EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription,
-    LogicalRelationship, LogicalRelationshipDescription, Member, MemberDescription,
-    NodeDescription, Ref, ServerError, User, UserDescription, UserWorkspaces, Users, Workspace,
-    WorkspaceDescription, WorkspaceDiagrams, WorkspaceLogicalEntities,
-    WorkspaceLogicalRelationships, WorkspaceMembers,
+    DiagramNodes, HasMany, LogicalEntity, LogicalEntityDescription, LogicalRelationship,
+    LogicalRelationshipDescription, Member, MemberDescription, Ref, ServerError, User,
+    UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription, WorkspaceDiagrams,
+    WorkspaceLogicalEntities, WorkspaceLogicalRelationships, WorkspaceMembers,
 };
 
 use super::store::{default_if_blank, now};
@@ -860,43 +859,7 @@ impl HasMany<DiagramNode> for FakeDiagramNodes {
     }
 }
 
-#[async_trait]
-impl DiagramNodes for FakeDiagramNodes {
-    async fn add(&self, _desc: NodeDescription) -> Result<DiagramNode, ServerError> {
-        Err(ServerError::Internal(
-            "fake diagram nodes are not persisted".to_string(),
-        ))
-    }
-
-    async fn add_with_id(
-        &self,
-        _node_id: Option<String>,
-        desc: NodeDescription,
-    ) -> Result<DiagramNode, ServerError> {
-        self.add(desc).await
-    }
-
-    async fn add_all(
-        &self,
-        _descriptions: Vec<NodeDescription>,
-    ) -> Result<Vec<DiagramNode>, ServerError> {
-        Ok(Vec::new())
-    }
-
-    async fn update(
-        &self,
-        node_id: &str,
-        _desc: NodeDescription,
-    ) -> Result<DiagramNode, ServerError> {
-        Err(ServerError::NotFound(format!(
-            "diagram node {node_id} not found"
-        )))
-    }
-
-    async fn delete(&self, _node_id: &str) -> Result<(), ServerError> {
-        Ok(())
-    }
-}
+impl DiagramNodes for FakeDiagramNodes {}
 
 struct FakeDiagramEdges;
 
@@ -915,43 +878,7 @@ impl HasMany<DiagramEdge> for FakeDiagramEdges {
     }
 }
 
-#[async_trait]
-impl DiagramEdges for FakeDiagramEdges {
-    async fn add(&self, _desc: EdgeDescription) -> Result<DiagramEdge, ServerError> {
-        Err(ServerError::Internal(
-            "fake diagram edges are not persisted".to_string(),
-        ))
-    }
-
-    async fn add_with_id(
-        &self,
-        _edge_id: Option<String>,
-        desc: EdgeDescription,
-    ) -> Result<DiagramEdge, ServerError> {
-        self.add(desc).await
-    }
-
-    async fn add_all(
-        &self,
-        _descriptions: Vec<EdgeDescription>,
-    ) -> Result<Vec<DiagramEdge>, ServerError> {
-        Ok(Vec::new())
-    }
-
-    async fn update(
-        &self,
-        edge_id: &str,
-        _desc: EdgeDescription,
-    ) -> Result<DiagramEdge, ServerError> {
-        Err(ServerError::NotFound(format!(
-            "diagram edge {edge_id} not found"
-        )))
-    }
-
-    async fn delete(&self, _edge_id: &str) -> Result<(), ServerError> {
-        Ok(())
-    }
-}
+impl DiagramEdges for FakeDiagramEdges {}
 
 struct FakeWorkspaceMembers {
     store: SharedFakeStore,

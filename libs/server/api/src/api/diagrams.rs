@@ -10,8 +10,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::domain::{
-    Diagram, DiagramDescription, DiagramEdge, DiagramNode, EdgeDescription, JsonObject,
-    ModelingEvent, NodeDescription, Position, Ref, ServerError, Viewport, Workspace,
+    Diagram, DiagramDescription, DiagramEdge, DiagramNode, ModelingEvent, Ref, ServerError,
+    Viewport, Workspace,
 };
 
 use super::{
@@ -49,85 +49,8 @@ struct UpdateDiagramInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct NodeInput {
-    id: Option<String>,
-    kind: String,
-    logical_entity: Option<Ref<String>>,
-    parent: Option<Ref<String>>,
-    #[serde(default)]
-    position: Position,
-    width: Option<i64>,
-    height: Option<i64>,
-    #[serde(default)]
-    data: Option<JsonObject>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct EdgeInput {
-    id: Option<String>,
-    source: Ref<String>,
-    target: Ref<String>,
-    logical_relationship: Option<Ref<String>>,
-    source_handle: Option<String>,
-    target_handle: Option<String>,
-    kind: Option<String>,
-    #[serde(default)]
-    style: Option<JsonObject>,
-    #[serde(default)]
-    data: Option<JsonObject>,
-    #[serde(default)]
-    animated: bool,
-    #[serde(default)]
-    hidden: bool,
-    marker_start: Option<JsonObject>,
-    marker_end: Option<JsonObject>,
-    #[serde(default)]
-    path_options: Option<JsonObject>,
-    interaction_width: Option<f64>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct ProposeModelInput {
     requirement: String,
-}
-
-fn node_description(diagram_id: &str, input: NodeInput) -> NodeDescription {
-    NodeDescription {
-        diagram: Ref::new(diagram_id.to_string()),
-        kind: input.kind,
-        logical_entity: input.logical_entity,
-        parent: input.parent,
-        position: input.position,
-        width: input.width,
-        height: input.height,
-        data: input.data.unwrap_or_default(),
-        created_at: String::new(),
-        updated_at: String::new(),
-    }
-}
-
-fn edge_description(diagram_id: &str, input: EdgeInput) -> EdgeDescription {
-    EdgeDescription {
-        diagram: Ref::new(diagram_id.to_string()),
-        source: input.source,
-        target: input.target,
-        logical_relationship: input.logical_relationship,
-        source_handle: input.source_handle,
-        target_handle: input.target_handle,
-        kind: input.kind,
-        style: input.style.unwrap_or_default(),
-        data: input.data.unwrap_or_default(),
-        animated: input.animated,
-        hidden: input.hidden,
-        marker_start: input.marker_start,
-        marker_end: input.marker_end,
-        path_options: input.path_options.unwrap_or_default(),
-        interaction_width: input.interaction_width,
-        created_at: String::new(),
-        updated_at: String::new(),
-    }
 }
 
 async fn load_workspace(state: &AppState, workspace_id: &str) -> Result<Workspace, ServerError> {
@@ -256,20 +179,6 @@ async fn list_nodes(
     ))
 }
 
-async fn create_node(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-    Json(input): Json<NodeInput>,
-) -> Result<Json<Value>, ApiError> {
-    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let id = input.id.clone();
-    let node = diagram
-        .nodes_wide()
-        .add_with_id(id, node_description(&diagram_id, input))
-        .await?;
-    Ok(Json(node_resource(&workspace, &node).await?))
-}
-
 async fn get_node(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
@@ -281,28 +190,6 @@ async fn get_node(
         .await?
         .ok_or_else(|| ServerError::NotFound(format!("diagram node {node_id} not found")))?;
     Ok(Json(node_resource(&workspace, &node).await?))
-}
-
-async fn update_node(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
-    Json(input): Json<NodeInput>,
-) -> Result<Json<Value>, ApiError> {
-    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let node = diagram
-        .nodes_wide()
-        .update(&node_id, node_description(&diagram_id, input))
-        .await?;
-    Ok(Json(node_resource(&workspace, &node).await?))
-}
-
-async fn delete_node(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
-) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    diagram.nodes_wide().delete(&node_id).await?;
-    Ok(Json(json!({ "deleted": true })))
 }
 
 async fn list_edges(
@@ -318,20 +205,6 @@ async fn list_edges(
     )))
 }
 
-async fn create_edge(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-    Json(input): Json<EdgeInput>,
-) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let id = input.id.clone();
-    let edge = diagram
-        .edges_wide()
-        .add_with_id(id, edge_description(&diagram_id, input))
-        .await?;
-    Ok(Json(edge_resource(&workspace_id, &edge)))
-}
-
 async fn get_edge(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
@@ -343,28 +216,6 @@ async fn get_edge(
         .await?
         .ok_or_else(|| ServerError::NotFound(format!("diagram edge {edge_id} not found")))?;
     Ok(Json(edge_resource(&workspace_id, &edge)))
-}
-
-async fn update_edge(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
-    Json(input): Json<EdgeInput>,
-) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let edge = diagram
-        .edges_wide()
-        .update(&edge_id, edge_description(&diagram_id, input))
-        .await?;
-    Ok(Json(edge_resource(&workspace_id, &edge)))
-}
-
-async fn delete_edge(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
-) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    diagram.edges_wide().delete(&edge_id).await?;
-    Ok(Json(json!({ "deleted": true })))
 }
 
 async fn propose_model(
@@ -474,19 +325,19 @@ pub(super) fn routes() -> Router<AppState> {
         )
         .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes",
-            get(list_nodes).post(create_node),
+            get(list_nodes),
         )
         .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}",
-            get(get_node).put(update_node).delete(delete_node),
+            get(get_node),
         )
         .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges",
-            get(list_edges).post(create_edge),
+            get(list_edges),
         )
         .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}",
-            get(get_edge).put(update_edge).delete(delete_edge),
+            get(get_edge),
         )
         .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",

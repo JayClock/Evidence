@@ -52,15 +52,9 @@ pub fn openapi_yaml() -> String {
         update_diagram,
         delete_diagram,
         list_diagram_nodes,
-        create_diagram_node,
         get_diagram_node,
-        update_diagram_node,
-        delete_diagram_node,
         list_diagram_edges,
-        create_diagram_edge,
         get_diagram_edge,
-        update_diagram_edge,
-        delete_diagram_edge,
         get_diagram_for_propose_model,
         propose_diagram_model,
         list_logical_entities,
@@ -82,7 +76,6 @@ pub fn openapi_yaml() -> String {
         DiagramCollectionResource,
         DiagramResource,
         EdgeCollectionResource,
-        EdgeInput,
         EdgeResource,
         ErrorBody,
         HealthResource,
@@ -97,7 +90,6 @@ pub fn openapi_yaml() -> String {
         MemberCollectionResource,
         MemberResource,
         NodeCollectionResource,
-        NodeInput,
         NodeResource,
         Position,
         ProposeModelInput,
@@ -367,19 +359,6 @@ pub struct DiagramCollectionResource {
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct NodeInput {
-    pub id: Option<String>,
-    pub kind: String,
-    pub logical_entity: Option<RefModel>,
-    pub parent: Option<RefModel>,
-    pub position: Option<Position>,
-    pub width: Option<i64>,
-    pub height: Option<i64>,
-    pub data: Option<BTreeMap<String, serde_json::Value>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
 pub struct NodeEmbedded {
     #[serde(rename = "logical-entity")]
     pub logical_entity: LogicalEntityResource,
@@ -414,26 +393,6 @@ pub struct NodeCollectionResource {
     pub links: Links,
     #[serde(rename = "_embedded")]
     pub embedded: NodeCollectionEmbedded,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct EdgeInput {
-    pub id: Option<String>,
-    pub source: RefModel,
-    pub target: RefModel,
-    pub logical_relationship: Option<RefModel>,
-    pub source_handle: Option<String>,
-    pub target_handle: Option<String>,
-    pub kind: Option<String>,
-    pub style: Option<BTreeMap<String, serde_json::Value>>,
-    pub data: Option<BTreeMap<String, serde_json::Value>>,
-    pub animated: Option<bool>,
-    pub hidden: Option<bool>,
-    pub marker_start: Option<BTreeMap<String, serde_json::Value>>,
-    pub marker_end: Option<BTreeMap<String, serde_json::Value>>,
-    pub path_options: Option<BTreeMap<String, serde_json::Value>>,
-    pub interaction_width: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -826,21 +785,6 @@ fn delete_diagram() {}
 fn list_diagram_nodes() {}
 
 #[utoipa::path(
-    post,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    request_body(content = NodeInput, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Created diagram node", body = NodeResource, content_type = "application/vnd.evidence.nodes+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn create_diagram_node() {}
-
-#[utoipa::path(
     get,
     path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}",
     params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("nodeId" = String, Path)),
@@ -853,35 +797,6 @@ fn create_diagram_node() {}
     )
 )]
 fn get_diagram_node() {}
-
-#[utoipa::path(
-    put,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("nodeId" = String, Path)),
-    request_body(content = NodeInput, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Updated diagram node", body = NodeResource, content_type = "application/vnd.evidence.node+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn update_diagram_node() {}
-
-#[utoipa::path(
-    delete,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("nodeId" = String, Path)),
-    responses(
-        (status = 200, description = "Diagram node delete result", body = DeletedResult, content_type = "application/vnd.evidence.node+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn delete_diagram_node() {}
 
 #[utoipa::path(
     get,
@@ -898,21 +813,6 @@ fn delete_diagram_node() {}
 fn list_diagram_edges() {}
 
 #[utoipa::path(
-    post,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    request_body(content = EdgeInput, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Created diagram edge", body = EdgeResource, content_type = "application/vnd.evidence.edges+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn create_diagram_edge() {}
-
-#[utoipa::path(
     get,
     path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}",
     params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("edgeId" = String, Path)),
@@ -925,35 +825,6 @@ fn create_diagram_edge() {}
     )
 )]
 fn get_diagram_edge() {}
-
-#[utoipa::path(
-    put,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("edgeId" = String, Path)),
-    request_body(content = EdgeInput, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Updated diagram edge", body = EdgeResource, content_type = "application/vnd.evidence.edge+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn update_diagram_edge() {}
-
-#[utoipa::path(
-    delete,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("edgeId" = String, Path)),
-    responses(
-        (status = 200, description = "Diagram edge delete result", body = DeletedResult, content_type = "application/vnd.evidence.edge+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn delete_diagram_edge() {}
 
 #[utoipa::path(
     get,

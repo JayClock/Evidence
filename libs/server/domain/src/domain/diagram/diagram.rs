@@ -52,15 +52,7 @@ impl Diagram {
         self.nodes.as_ref()
     }
 
-    pub fn nodes_wide(&self) -> &dyn DiagramNodes {
-        self.nodes.as_ref()
-    }
-
     pub fn edges(&self) -> &dyn HasMany<DiagramEdge> {
-        self.edges.as_ref()
-    }
-
-    pub fn edges_wide(&self) -> &dyn DiagramEdges {
         self.edges.as_ref()
     }
 
