@@ -164,8 +164,6 @@ pub mod workspace_diagrams {
         pub id: String,
         pub workspace_id: String,
         pub title: String,
-        pub diagram_type: String,
-        pub status: String,
         pub viewport: Json,
         pub created_at: String,
         pub updated_at: String,

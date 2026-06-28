@@ -7,7 +7,7 @@ use crate::domain::{Diagram, Viewport};
 use super::super::links::{
     workspace_diagram_commit_draft_href, workspace_diagram_edges_href, workspace_diagram_href,
     workspace_diagram_nodes_href, workspace_diagram_propose_model_href,
-    workspace_diagram_publish_href, workspace_diagram_versions_href, workspace_diagrams_href, Link,
+    workspace_diagram_versions_href, workspace_diagrams_href, Link,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -19,9 +19,6 @@ pub(in crate::api) struct DiagramModel {
     templates: BTreeMap<String, Value>,
     id: String,
     title: String,
-    #[serde(rename = "type")]
-    diagram_type: String,
-    status: String,
     viewport: Viewport,
     created_at: String,
     updated_at: String,
@@ -72,10 +69,6 @@ pub(in crate::api) fn diagram_model(diagram: &Diagram) -> DiagramModel {
                     diagram_id,
                 )),
             ),
-            (
-                "publish".to_string(),
-                Link::new(workspace_diagram_publish_href(workspace_id, diagram_id)),
-            ),
         ]),
         templates: BTreeMap::from([(
             "propose-model".to_string(),
@@ -83,8 +76,6 @@ pub(in crate::api) fn diagram_model(diagram: &Diagram) -> DiagramModel {
         )]),
         id: diagram_id.to_string(),
         title: description.title.clone(),
-        diagram_type: description.diagram_type.as_str().to_string(),
-        status: description.status.as_str().to_string(),
         viewport: description.viewport.clone(),
         created_at: diagram.created_at().to_string(),
         updated_at: diagram.updated_at().to_string(),

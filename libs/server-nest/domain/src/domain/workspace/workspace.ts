@@ -89,10 +89,6 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     );
   }
 
-  publishDiagram(diagramId: string): Promise<void> {
-    return this.workspaceDiagrams.publishDiagram(diagramId);
-  }
-
   logicalEntities(): HasMany<LogicalEntity> {
     return this.workspaceLogicalEntities;
   }

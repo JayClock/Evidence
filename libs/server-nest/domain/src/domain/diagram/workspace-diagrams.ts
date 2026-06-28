@@ -12,5 +12,4 @@ export interface WorkspaceDiagrams extends HasMany<Diagram> {
     draftNodes: DraftNode[],
     draftEdges: DraftEdge[],
   ): Promise<void>;
-  publishDiagram(diagramId: string): Promise<void>;
 }

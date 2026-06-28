@@ -3,7 +3,6 @@ import {
   defaultViewport,
   Diagram,
   DiagramDescription,
-  DiagramStatus,
   DomainError,
   DraftEdge,
   DraftNode,
@@ -56,9 +55,7 @@ export class PrismaWorkspaceDiagrams
         id: randomUUID(),
         workspaceId: this.workspaceId,
         title: normalizeTitle(desc.title),
-        type: desc.type,
         viewport: inputJson(desc.viewport ?? defaultViewport()),
-        status: desc.status,
         createdAt: timestamp,
         updatedAt: timestamp,
       },
@@ -78,9 +75,7 @@ export class PrismaWorkspaceDiagrams
       where: { id: diagramId },
       data: {
         title: normalizeTitle(desc.title),
-        type: desc.type,
         viewport: inputJson(desc.viewport),
-        status: desc.status,
         updatedAt: timestamp,
       },
     });
@@ -192,7 +187,7 @@ export class PrismaWorkspaceDiagrams
       }
       await db.diagram.update({
         where: { id: diagramId },
-        data: { status: 'draft' satisfies DiagramStatus, updatedAt: timestamp },
+        data: { updatedAt: timestamp },
       });
     };
 
@@ -201,19 +196,6 @@ export class PrismaWorkspaceDiagrams
       return;
     }
     await replace(this.store);
-  }
-
-  async publishDiagram(diagramId: string): Promise<void> {
-    const current = await this.store.diagram.findFirst({
-      where: { ...this.visibleWhere(), id: diagramId },
-    });
-    if (!current) {
-      throw DomainError.notFound(`diagram ${diagramId} not found`);
-    }
-    await this.store.diagram.update({
-      where: { id: diagramId },
-      data: { status: 'published', updatedAt: now() },
-    });
   }
 
   private visibleWhere() {

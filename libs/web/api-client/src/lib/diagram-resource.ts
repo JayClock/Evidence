@@ -20,8 +20,6 @@ type DiagramVersionCollectionResourceSchema =
 
 export type ResourceRef = components['schemas']['RefModel'];
 export type DiagramViewport = components['schemas']['Viewport'];
-export type DiagramType = components['schemas']['DiagramType'];
-export type DiagramStatus = components['schemas']['DiagramStatus'];
 type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: Exclude<T[P], undefined>;
 };
@@ -120,7 +118,6 @@ export type DiagramResource = Entity<
     versions: DiagramVersionCollectionResource;
     'commit-draft': DiagramResource;
     'propose-model': DiagramResource;
-    publish: DiagramResource;
   }
 >;
 

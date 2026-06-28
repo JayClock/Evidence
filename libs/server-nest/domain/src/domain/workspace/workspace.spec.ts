@@ -42,9 +42,7 @@ const memberDescription: MemberDescription = {
 const diagramDescription: DiagramDescription = {
   workspace: new Ref('workspace-1'),
   title: 'Fulfillment',
-  type: 'flowchart',
   viewport: { x: 0, y: 0, zoom: 1 },
-  status: 'draft',
   createdAt: timestamp,
   updatedAt: timestamp,
 };
@@ -110,7 +108,6 @@ function workspaceFixture() {
     delete: vi.fn(async () => undefined),
     list: vi.fn(async () => [[diagram], 1] as [Diagram[], number]),
     saveDiagram: vi.fn(async () => undefined),
-    publishDiagram: vi.fn(async () => undefined),
   } satisfies WorkspaceDiagrams;
 
   const logicalEntities = {
@@ -219,9 +216,6 @@ describe('Workspace', () => {
     await expect(
       workspace.saveDiagram('diagram-1', draftNodes, draftEdges),
     ).resolves.toBeUndefined();
-    await expect(
-      workspace.publishDiagram('diagram-1'),
-    ).resolves.toBeUndefined();
 
     expect(diagrams.add).toHaveBeenCalledWith(diagramDescription);
     expect(diagrams.update).toHaveBeenCalledWith(
@@ -235,7 +229,6 @@ describe('Workspace', () => {
       draftNodes,
       draftEdges,
     );
-    expect(diagrams.publishDiagram).toHaveBeenCalledWith('diagram-1');
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {

@@ -23,6 +23,4 @@ pub trait WorkspaceDiagrams: HasMany<Diagram> {
         draft_nodes: Vec<DraftNode>,
         draft_edges: Vec<DraftEdge>,
     ) -> Result<(), ServerError>;
-
-    async fn publish_diagram(&self, diagram_id: &str) -> Result<(), ServerError>;
 }

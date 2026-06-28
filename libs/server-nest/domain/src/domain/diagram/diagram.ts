@@ -2,13 +2,7 @@ import { Entity, HasMany, Ref } from '../core';
 import { DomainError } from '../error';
 import { DiagramEdge, DiagramEdges, EdgeDescription } from './edge';
 import { DiagramNode, DiagramNodes, NodeDescription } from './node';
-import {
-  DiagramStatus,
-  DiagramType,
-  DraftEdge,
-  DraftNode,
-  Viewport,
-} from './types';
+import { DraftEdge, DraftNode, Viewport } from './types';
 import {
   DiagramVersion,
   DiagramVersionDescription,
@@ -18,9 +12,7 @@ import {
 export interface DiagramDescription {
   workspace: Ref<string>;
   title: string;
-  type: DiagramType;
   viewport: Viewport;
-  status: DiagramStatus;
   createdAt: string;
   updatedAt: string;
 }

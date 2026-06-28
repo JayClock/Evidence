@@ -15,9 +15,7 @@ const timestamp = '2026-01-01T00:00:00Z';
 const diagramDescription: DiagramDescription = {
   workspace: new Ref('workspace-1'),
   title: 'Fulfillment',
-  type: 'flowchart',
   viewport: { x: 10, y: 20, zoom: 1.5 },
-  status: 'draft',
   createdAt: timestamp,
   updatedAt: timestamp,
 };

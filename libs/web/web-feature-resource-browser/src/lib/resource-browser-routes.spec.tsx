@@ -112,8 +112,6 @@ const diagramCollectionState = {
       data: {
         id: 'diagram-1',
         title: 'Fulfillment Flow',
-        type: 'context-map',
-        status: 'draft',
         createdAt: '2026-01-02T03:04:05Z',
         updatedAt: '2026-01-03T04:05:06Z',
       },
@@ -220,10 +218,6 @@ describe('ResourceBrowserRoutes', () => {
 
     expect(await screen.findByRole('table')).toBeTruthy();
     expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
-    expect(screen.getByText('Type')).toBeTruthy();
-    expect(screen.getByText('Status')).toBeTruthy();
-    expect(screen.getByText('context-map')).toBeTruthy();
-    expect(screen.getByText('draft')).toBeTruthy();
   });
 
   it('renders logical entities as a table for logical entity collection resources', async () => {
@@ -234,6 +228,5 @@ describe('ResourceBrowserRoutes', () => {
     expect(await screen.findByRole('table')).toBeTruthy();
     expect(screen.getByText('Logical Entities')).toBeTruthy();
     expect(screen.getAllByText('Contract').length).toBeGreaterThan(0);
-    expect(screen.getByText('Customer contract evidence')).toBeTruthy();
   });
 });

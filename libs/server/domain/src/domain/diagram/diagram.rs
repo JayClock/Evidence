@@ -3,8 +3,8 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    DiagramEdges, DiagramNodes, DiagramStatus, DiagramType, DiagramVersionDescription,
-    DiagramVersions, SnapshotEdge, SnapshotNode, Viewport,
+    DiagramEdges, DiagramNodes, DiagramVersionDescription, DiagramVersions, SnapshotEdge,
+    SnapshotNode, Viewport,
 };
 use crate::domain::{DiagramEdge, DiagramNode, DiagramVersion, Entity, HasMany, Ref, ServerError};
 
@@ -12,9 +12,7 @@ use crate::domain::{DiagramEdge, DiagramNode, DiagramVersion, Entity, HasMany, R
 pub struct DiagramDescription {
     pub workspace: Ref<String>,
     pub title: String,
-    pub diagram_type: DiagramType,
     pub viewport: Viewport,
-    pub status: DiagramStatus,
     pub created_at: String,
     pub updated_at: String,
 }

@@ -23,8 +23,6 @@ import {
   EdgeDescription,
   JsonObject,
   NodeDescription,
-  parseDiagramStatus,
-  parseDiagramType,
   Position,
   Ref,
   DomainError,
@@ -57,13 +55,10 @@ interface RefInput {
 
 interface CreateDiagramInput {
   title: string;
-  type?: string | null;
 }
 
 interface UpdateDiagramInput {
   title?: string | null;
-  type?: string | null;
-  status?: string | null;
   viewport?: Viewport | null;
   'viewport.x'?: number | null;
   'viewport.y'?: number | null;
@@ -150,9 +145,7 @@ export class DiagramsController {
     const diagram = await workspace.addDiagram({
       workspace: new Ref(workspaceId),
       title: input.title,
-      type: input.type ? parseDiagramType(input.type) : 'class',
       viewport: defaultViewport(),
-      status: 'draft',
       createdAt: '',
       updatedAt: '',
     });
@@ -198,8 +191,6 @@ export class DiagramsController {
     const desc: DiagramDescription = {
       workspace: current.workspace,
       title: input.title ?? current.title,
-      type: input.type ? parseDiagramType(input.type) : current.type,
-      status: input.status ? parseDiagramStatus(input.status) : current.status,
       viewport,
       createdAt: current.createdAt,
       updatedAt: current.updatedAt,
@@ -495,24 +486,6 @@ export class DiagramsController {
     return 'event: complete\ndata: \n\n';
   }
 
-  @Get(':diagramId/publish')
-  async getPublishDiagram(
-    @Param('workspaceId') workspaceId: string,
-    @Param('diagramId') diagramId: string,
-  ): Promise<DiagramModel> {
-    return this.getDiagram(workspaceId, diagramId);
-  }
-
-  @Post(':diagramId/publish')
-  async publishDiagram(
-    @Param('workspaceId') workspaceId: string,
-    @Param('diagramId') diagramId: string,
-  ): Promise<{ published: true }> {
-    const workspace = await this.resolver.requireWorkspace(workspaceId);
-    await workspace.publishDiagram(diagramId);
-    return { published: true };
-  }
-
   private async nodeResources(
     workspace: Workspace,
     nodes: DiagramNode[],
@@ -625,24 +598,6 @@ function createDiagramTemplate(workspaceId: string): unknown {
         type: 'text',
         required: true,
         minLength: 1,
-      },
-      {
-        name: 'type',
-        prompt: 'Type',
-        type: 'text',
-        value: 'fulfillment',
-        required: false,
-        options: {
-          inline: [
-            { value: 'fulfillment', prompt: 'Fulfillment' },
-            { value: 'flowchart', prompt: 'Flowchart' },
-            { value: 'sequence', prompt: 'Sequence' },
-            { value: 'class', prompt: 'Class' },
-            { value: 'component', prompt: 'Component' },
-            { value: 'state', prompt: 'State' },
-            { value: 'activity', prompt: 'Activity' },
-          ],
-        },
       },
     ],
   };

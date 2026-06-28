@@ -105,13 +105,6 @@ pub(super) fn workspace_diagram_propose_model_href(workspace_id: &str, diagram_i
     )
 }
 
-pub(super) fn workspace_diagram_publish_href(workspace_id: &str, diagram_id: &str) -> String {
-    format!(
-        "{}/publish",
-        workspace_diagram_href(workspace_id, diagram_id)
-    )
-}
-
 pub(super) fn workspace_logical_entities_href(workspace_id: &str) -> String {
     format!("/api/workspaces/{workspace_id}/logical-entities")
 }

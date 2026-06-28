@@ -12,8 +12,8 @@ use serde_json::json;
 use uuid::Uuid;
 
 use crate::domain::{
-    Diagram, DiagramDescription, DiagramStatus, DiagramType, DraftEdge, DraftNode, HasMany, Ref,
-    ServerError, Viewport, WorkspaceDiagrams,
+    Diagram, DiagramDescription, DraftEdge, DraftNode, HasMany, Ref, ServerError, Viewport,
+    WorkspaceDiagrams,
 };
 
 use super::{
@@ -89,8 +89,6 @@ impl DbWorkspaceDiagrams {
         let document = serialize_markdown_diagram(MarkdownDiagramDocument {
             id: diagram_id,
             title: &title,
-            diagram_type: &desc.diagram_type,
-            status: &desc.status,
             viewport: &desc.viewport,
         });
 
@@ -252,19 +250,7 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
 
         tx.commit().await.map_err(db_error)?;
 
-        let mut description = record.description;
-        description.status = DiagramStatus::Draft;
-        self.write_record(&record.path, diagram_id, description)?;
-        Ok(())
-    }
-
-    async fn publish_diagram(&self, diagram_id: &str) -> Result<(), ServerError> {
-        let record = self
-            .find_record(diagram_id)?
-            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let mut description = record.description;
-        description.status = DiagramStatus::Published;
-        self.write_record(&record.path, diagram_id, description)?;
+        self.write_record(&record.path, diagram_id, record.description)?;
         Ok(())
     }
 }
@@ -293,8 +279,6 @@ impl MarkdownDiagram {
 struct MarkdownDiagramDocument<'a> {
     id: &'a str,
     title: &'a str,
-    diagram_type: &'a DiagramType,
-    status: &'a DiagramStatus,
     viewport: &'a Viewport,
 }
 
@@ -317,16 +301,6 @@ fn parse_markdown_diagram(
     })?;
     let id = required_meta(&meta, "id", &path)?;
     let title = normalize_title(required_meta(&meta, "title", &path)?)?;
-    let diagram_type = optional_meta(&meta, "type")
-        .as_deref()
-        .map(DiagramType::try_from)
-        .transpose()?
-        .unwrap_or(DiagramType::Fulfillment);
-    let status = optional_meta(&meta, "status")
-        .as_deref()
-        .map(DiagramStatus::try_from)
-        .transpose()?
-        .unwrap_or(DiagramStatus::Draft);
     let viewport = optional_meta(&meta, "viewport")
         .and_then(|value| serde_json::from_str(&value).ok())
         .unwrap_or_default();
@@ -339,9 +313,7 @@ fn parse_markdown_diagram(
         description: DiagramDescription {
             workspace: Ref::new(workspace_id.to_string()),
             title,
-            diagram_type,
             viewport,
-            status,
             created_at: timestamp.clone(),
             updated_at: timestamp,
         },
@@ -377,13 +349,8 @@ fn serialize_markdown_diagram(document: MarkdownDiagramDocument<'_>) -> String {
     let viewport =
         serde_json::to_string(document.viewport).unwrap_or_else(|_| json!({}).to_string());
     format!(
-        "---\nid: {}\ntitle: {}\ntype: {}\nstatus: {}\nviewport: {}\n---\n# {}\n",
-        document.id,
-        document.title,
-        document.diagram_type.as_str(),
-        document.status.as_str(),
-        viewport,
-        document.title,
+        "---\nid: {}\ntitle: {}\nviewport: {}\n---\n# {}\n",
+        document.id, document.title, viewport, document.title,
     )
 }
 
@@ -471,15 +438,13 @@ mod tests {
         let diagram = parse_markdown_diagram(
             "workspace-1",
             PathBuf::from("diagram.md"),
-            "---\nid: fulfillment\ntitle: Fulfillment\ntype: fulfillment\nstatus: draft\nviewport: {\"x\":1.0,\"y\":2.0,\"zoom\":1.5}\n---\n# Fulfillment\n",
+            "---\nid: fulfillment\ntitle: Fulfillment\nviewport: {\"x\":1.0,\"y\":2.0,\"zoom\":1.5}\n---\n# Fulfillment\n",
         )
         .unwrap();
 
         assert_eq!(diagram.id, "fulfillment");
         assert_eq!(diagram.description.workspace.id(), "workspace-1");
         assert_eq!(diagram.description.title, "Fulfillment");
-        assert_eq!(diagram.description.diagram_type, DiagramType::Fulfillment);
-        assert_eq!(diagram.description.status, DiagramStatus::Draft);
         assert_eq!(diagram.description.viewport.x, 1.0);
         assert_eq!(diagram.description.viewport.y, 2.0);
         assert_eq!(diagram.description.viewport.zoom, 1.5);
@@ -490,12 +455,10 @@ mod tests {
         let document = serialize_markdown_diagram(MarkdownDiagramDocument {
             id: "fulfillment",
             title: "Fulfillment",
-            diagram_type: &DiagramType::Fulfillment,
-            status: &DiagramStatus::Draft,
             viewport: &Viewport::default(),
         });
 
-        assert!(document.starts_with("---\nid: fulfillment\ntitle: Fulfillment\ntype: fulfillment\nstatus: draft\nviewport: "));
+        assert!(document.starts_with("---\nid: fulfillment\ntitle: Fulfillment\nviewport: "));
         assert!(document.ends_with("---\n# Fulfillment\n"));
     }
 }

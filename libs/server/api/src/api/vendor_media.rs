@@ -72,7 +72,6 @@ fn resource_content_type(path: &str) -> Option<&'static str> {
         ["api", "workspaces", _, "diagrams", _, "versions"] => Some(DIAGRAM_VERSIONS),
         ["api", "workspaces", _, "diagrams", _, "versions", _] => Some(DIAGRAM_VERSION),
         ["api", "workspaces", _, "diagrams", _, "commit-draft"] => Some(DIAGRAM),
-        ["api", "workspaces", _, "diagrams", _, "publish"] => Some(DIAGRAM),
         ["api", "workspaces", _, "diagrams", _] => Some(DIAGRAM),
         ["api", "workspaces", _, "logical-entities"] => Some(LOGICAL_ENTITIES),
         ["api", "workspaces", _, "logical-entities", _] => Some(LOGICAL_ENTITY),

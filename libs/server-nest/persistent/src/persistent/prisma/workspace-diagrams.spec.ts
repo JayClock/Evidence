@@ -78,7 +78,6 @@ describe('PrismaWorkspaceDiagrams', () => {
     store.diagramEdge.deleteMany.mockResolvedValue({ count: 1 });
     store.diagramNode.createMany.mockResolvedValue({ count: 2 });
     store.diagramEdge.createMany.mockResolvedValue({ count: 1 });
-    store.diagram.update.mockResolvedValue(diagramRow({ status: 'draft' }));
     const diagrams = new PrismaWorkspaceDiagrams(asStore(store), 'workspace-1');
 
     await diagrams.saveDiagram(
@@ -115,7 +114,7 @@ describe('PrismaWorkspaceDiagrams', () => {
     });
     expect(store.diagram.update).toHaveBeenCalledWith({
       where: { id: 'diagram-1' },
-      data: { status: 'draft', updatedAt: expect.any(Date) },
+      data: { updatedAt: expect.any(Date) },
     });
   });
 

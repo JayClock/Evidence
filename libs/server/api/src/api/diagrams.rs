@@ -10,9 +10,9 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::domain::{
-    Diagram, DiagramDescription, DiagramEdge, DiagramNode, DiagramStatus, DiagramType,
-    DiagramVersion, DraftEdge, DraftNode, EdgeDescription, JsonObject, ModelingEvent,
-    NodeDescription, Position, Ref, ServerError, Viewport, Workspace,
+    Diagram, DiagramDescription, DiagramEdge, DiagramNode, DiagramVersion, DraftEdge, DraftNode,
+    EdgeDescription, JsonObject, ModelingEvent, NodeDescription, Position, Ref, ServerError,
+    Viewport, Workspace,
 };
 
 use super::{
@@ -33,17 +33,12 @@ struct PageQuery {
 #[serde(rename_all = "camelCase")]
 struct CreateDiagramInput {
     title: String,
-    #[serde(rename = "type")]
-    diagram_type: Option<DiagramType>,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct UpdateDiagramInput {
     title: Option<String>,
-    #[serde(rename = "type")]
-    diagram_type: Option<DiagramType>,
-    status: Option<DiagramStatus>,
     viewport: Option<Viewport>,
     #[serde(rename = "viewport.x")]
     viewport_x: Option<f64>,
@@ -197,9 +192,7 @@ async fn create_diagram(
         .add(DiagramDescription {
             workspace: Ref::new(workspace_id.clone()),
             title: input.title,
-            diagram_type: input.diagram_type.unwrap_or(DiagramType::Class),
             viewport: Viewport::default(),
-            status: DiagramStatus::Draft,
             created_at: String::new(),
             updated_at: String::new(),
         })
@@ -244,10 +237,6 @@ async fn update_diagram(
             DiagramDescription {
                 workspace: current.workspace.clone(),
                 title: input.title.unwrap_or_else(|| current.title.clone()),
-                diagram_type: input
-                    .diagram_type
-                    .unwrap_or_else(|| current.diagram_type.clone()),
-                status: input.status.unwrap_or_else(|| current.status.clone()),
                 viewport,
                 created_at: current.created_at.clone(),
                 updated_at: current.updated_at.clone(),
@@ -448,18 +437,6 @@ async fn commit_draft(
     Ok(Json(json!({ "committed": true })))
 }
 
-async fn publish_diagram(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ApiError> {
-    let workspace = load_workspace(&state, &workspace_id).await?;
-    workspace
-        .diagrams_wide()
-        .publish_diagram(&diagram_id)
-        .await?;
-    Ok(Json(json!({ "published": true })))
-}
-
 async fn propose_model(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
@@ -592,10 +569,6 @@ pub(super) fn routes() -> Router<AppState> {
         .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
             get(get_diagram).post(propose_model),
-        )
-        .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/publish",
-            get(get_diagram).post(publish_diagram),
         )
 }
 
@@ -732,24 +705,6 @@ fn create_diagram_template(workspace_id: &str) -> Value {
                 "type": "text",
                 "required": true,
                 "minLength": 1,
-            },
-            {
-                "name": "type",
-                "prompt": "Type",
-                "type": "text",
-                "value": DiagramType::Fulfillment.as_str(),
-                "required": false,
-                "options": {
-                    "inline": [
-                        { "value": DiagramType::Fulfillment.as_str(), "prompt": "Fulfillment" },
-                        { "value": DiagramType::Flowchart.as_str(), "prompt": "Flowchart" },
-                        { "value": DiagramType::Sequence.as_str(), "prompt": "Sequence" },
-                        { "value": DiagramType::Class.as_str(), "prompt": "Class" },
-                        { "value": DiagramType::Component.as_str(), "prompt": "Component" },
-                        { "value": DiagramType::State.as_str(), "prompt": "State" },
-                        { "value": DiagramType::Activity.as_str(), "prompt": "Activity" },
-                    ],
-                },
             },
         ],
     })

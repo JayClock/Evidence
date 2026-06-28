@@ -115,13 +115,6 @@ export function workspaceDiagramProposeModelHref(
   return `${workspaceDiagramHref(workspaceId, diagramId)}/propose-model`;
 }
 
-export function workspaceDiagramPublishHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramHref(workspaceId, diagramId)}/publish`;
-}
-
 export function workspaceLogicalEntityHref(
   workspaceId: string,
   entityId: string,

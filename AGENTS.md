@@ -43,7 +43,7 @@ The backend uses a layered, trait-driven architecture:
 | `User` | `domain/user.rs` | User identity + `UserWorkspaces` children |
 | `Workspace` | `domain/workspace.rs` | Container with `WorkspaceMembers`, `WorkspaceDiagrams`, `WorkspaceLogicalEntities` |
 | `Member` | `domain/member.rs` | Workspace membership (user reference + role) |
-| `Diagram` | `domain/diagram/` | Visual diagram with `DiagramNodes`, `DiagramEdges`, `DiagramVersions`, supporting Draft/Publish flow |
+| `Diagram` | `domain/diagram/` | Visual diagram with `DiagramNodes`, `DiagramEdges`, `DiagramVersions` |
 | `DiagramNode` | `domain/diagram/node.rs` | Node on a diagram (type, position, logical-entity ref, style) |
 | `DiagramEdge` | `domain/diagram/edge.rs` | Edge between nodes (source/target, relation type, label) |
 | `DiagramVersion` | `domain/diagram/version.rs` | Immutable snapshot of diagram state |
@@ -84,7 +84,6 @@ The API follows HAL-style conventions:
 | `/api/workspaces/{id}/diagrams/{did}/edges/{eid}` | GET, PUT, DELETE | CRUD edge |
 | `/api/workspaces/{id}/diagrams/{did}/versions` | GET, POST | List/create snapshots |
 | `/api/workspaces/{id}/diagrams/{did}/commit-draft` | POST | Save draft nodes+edges |
-| `/api/workspaces/{id}/diagrams/{did}/publish` | POST | Publish diagram |
 | `/api/workspaces/{id}/logical-entities` | GET, POST | List/create logical entities |
 | `/api/workspaces/{id}/logical-entities/{eid}` | GET, PUT, DELETE | CRUD logical entity |
 

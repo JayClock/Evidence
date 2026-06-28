@@ -34,37 +34,31 @@ The web and desktop surfaces share the same React frontend (`apps/web`). In dev 
 
 ### Domain Model
 
-| Aggregate | Description |
-|-----------|-------------|
-| **User** | Identity with owned workspaces |
-| **Workspace** | Container for diagrams, logical entities, and members |
-| **Member** | User-to-workspace membership with role (owner/member) |
-| **Diagram** | Visual graph of nodes and edges, with version snapshots |
-| **DiagramNode** | Node on a diagram with type, position, style, logical-entity ref |
-| **DiagramEdge** | Edge between nodes with relation type and label |
+| Aggregate          | Description                                                                    |
+| ------------------ | ------------------------------------------------------------------------------ |
+| **User**           | Identity with owned workspaces                                                 |
+| **Workspace**      | Container for diagrams, logical entities, and members                          |
+| **Member**         | User-to-workspace membership with role (owner/member)                          |
+| **Diagram**        | Visual graph of nodes and edges, with version snapshots                        |
+| **DiagramNode**    | Node on a diagram with type, position, style, logical-entity ref               |
+| **DiagramEdge**    | Edge between nodes with relation type and label                                |
 | **DiagramVersion** | Immutable snapshot capturing all nodes, edges, and viewport at a point in time |
-| **LogicalEntity** | Typed domain concept: Evidence, Participant, Role, or Context |
+| **LogicalEntity**  | Typed domain concept: Evidence, Participant, Role, or Context                  |
 
 #### Logical Entity Types
 
-| Type | Purpose | Sub-types |
-|------|---------|-----------|
-| `EVIDENCE` | Business artifacts and documents | rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence |
-| `PARTICIPANT` | Actors and things in the domain | party, thing |
-| `ROLE` | Roles played by participants | party, domain, 3rd system, context, evidence |
-| `CONTEXT` | Bounded contexts | bounded_context |
+| Type          | Purpose                          | Sub-types                                                                              |
+| ------------- | -------------------------------- | -------------------------------------------------------------------------------------- |
+| `EVIDENCE`    | Business artifacts and documents | rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence |
+| `PARTICIPANT` | Actors and things in the domain  | party, thing                                                                           |
+| `ROLE`        | Roles played by participants     | party, domain, 3rd system, context, evidence                                           |
+| `CONTEXT`     | Bounded contexts                 | bounded_context                                                                        |
 
 Each logical entity can carry attributes, behaviors, tags, and a human-readable definition.
 
 ### Diagram Lifecycle
 
-```
-Draft ──commit-draft──→ (nodes + edges saved) ──publish──→ Published
-                │                                    │
-                └──create-version──→ Snapshot         └──create-version──→ Snapshot
-```
-
-Diagrams start as Draft. Nodes and edges are added individually or in bulk via `commit-draft`. Snapshots are created via `create-version` — the system captures all current nodes, edges, and the viewport at that moment. `publish` marks the diagram as Published for downstream consumers.
+Nodes and edges are added individually or in bulk via `commit-draft`. Snapshots are created via `create-version` — the system captures all current nodes, edges, and the viewport at that moment.
 
 ### API
 
@@ -85,20 +79,19 @@ GET /api
 
 **Key resource paths:**
 
-| Path | Description |
-|------|-------------|
-| `/api/users/{userId}` | User profile |
-| `/api/users/{userId}/workspaces` | List/create workspaces |
-| `/api/users/{userId}/workspaces/{id}` | Workspace CRUD |
-| `/api/users/{userId}/workspaces/{id}/members` | Workspace members |
-| `/api/workspaces/{id}/diagrams` | List/create diagrams |
-| `/api/workspaces/{id}/diagrams/{did}` | Diagram CRUD (includes embedded nodes+edges on GET) |
-| `/api/workspaces/{id}/diagrams/{did}/nodes` | Diagram nodes |
-| `/api/workspaces/{id}/diagrams/{did}/edges` | Diagram edges |
-| `/api/workspaces/{id}/diagrams/{did}/versions` | Diagram version snapshots |
-| `/api/workspaces/{id}/diagrams/{did}/commit-draft` | Save draft nodes+edges |
-| `/api/workspaces/{id}/diagrams/{did}/publish` | Publish diagram |
-| `/api/workspaces/{id}/logical-entities` | Workspace logical entities |
+| Path                                               | Description                                         |
+| -------------------------------------------------- | --------------------------------------------------- |
+| `/api/users/{userId}`                              | User profile                                        |
+| `/api/users/{userId}/workspaces`                   | List/create workspaces                              |
+| `/api/users/{userId}/workspaces/{id}`              | Workspace CRUD                                      |
+| `/api/users/{userId}/workspaces/{id}/members`      | Workspace members                                   |
+| `/api/workspaces/{id}/diagrams`                    | List/create diagrams                                |
+| `/api/workspaces/{id}/diagrams/{did}`              | Diagram CRUD (includes embedded nodes+edges on GET) |
+| `/api/workspaces/{id}/diagrams/{did}/nodes`        | Diagram nodes                                       |
+| `/api/workspaces/{id}/diagrams/{did}/edges`        | Diagram edges                                       |
+| `/api/workspaces/{id}/diagrams/{did}/versions`     | Diagram version snapshots                           |
+| `/api/workspaces/{id}/diagrams/{did}/commit-draft` | Save draft nodes+edges                              |
+| `/api/workspaces/{id}/logical-entities`            | Workspace logical entities                          |
 
 Collections support pagination: `?page=1&pageSize=50`.
 
@@ -157,11 +150,11 @@ curl http://127.0.0.1:3000/health
 
 Environment variables:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | (required) | PostgreSQL connection string |
-| `PGSQL_DATABASE_URL` | (fallback) | Alternative PostgreSQL variable name |
-| `API_ADDR` | `127.0.0.1:3000` | Listen address |
+| Variable             | Default          | Description                          |
+| -------------------- | ---------------- | ------------------------------------ |
+| `DATABASE_URL`       | (required)       | PostgreSQL connection string         |
+| `PGSQL_DATABASE_URL` | (fallback)       | Alternative PostgreSQL variable name |
+| `API_ADDR`           | `127.0.0.1:3000` | Listen address                       |
 
 ## Common Commands
 
@@ -205,20 +198,20 @@ cargo test -p evidence-server --features postgres-tests
 
 ## Repository Map
 
-| Path | Purpose |
-|------|---------|
-| `apps/web/` | React + Vite frontend SPA |
-| `apps/server/src/api/` | Axum HTTP routes and HAL response builders |
-| `apps/server/src/domain/` | Pure domain traits and aggregates |
-| `apps/server/src/domain/core/` | `Entity`, `HasMany`, `Ref` base abstractions |
-| `apps/server/src/persistent/` | SeaORM + PostgreSQL implementations |
-| `apps/server/src/persistent/test_support.rs` | In-memory fake store + shared contract tests |
-| `apps/desktop/` | Tauri 2 desktop shell |
-| `apps/desktop/src-tauri/` | Tauri Rust config and capabilities |
-| `Cargo.toml` | Rust workspace root |
-| `nx.json` | Nx workspace configuration |
-| `pnpm-workspace.yaml` | pnpm workspace (packages: `apps/*`) |
-| `AGENTS.md` | Agent coding standards, domain guide, repo map, git discipline |
+| Path                                         | Purpose                                                        |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `apps/web/`                                  | React + Vite frontend SPA                                      |
+| `apps/server/src/api/`                       | Axum HTTP routes and HAL response builders                     |
+| `apps/server/src/domain/`                    | Pure domain traits and aggregates                              |
+| `apps/server/src/domain/core/`               | `Entity`, `HasMany`, `Ref` base abstractions                   |
+| `apps/server/src/persistent/`                | SeaORM + PostgreSQL implementations                            |
+| `apps/server/src/persistent/test_support.rs` | In-memory fake store + shared contract tests                   |
+| `apps/desktop/`                              | Tauri 2 desktop shell                                          |
+| `apps/desktop/src-tauri/`                    | Tauri Rust config and capabilities                             |
+| `Cargo.toml`                                 | Rust workspace root                                            |
+| `nx.json`                                    | Nx workspace configuration                                     |
+| `pnpm-workspace.yaml`                        | pnpm workspace (packages: `apps/*`)                            |
+| `AGENTS.md`                                  | Agent coding standards, domain guide, repo map, git discipline |
 
 ## Desktop/Web Relationship
 

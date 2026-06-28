@@ -7,8 +7,8 @@ info:
     identifier: MIT
   version: 0.1.0
 servers:
-- url: http://127.0.0.1:3000
-  description: Rust Axum local server
+  - url: http://127.0.0.1:3000
+    description: Rust Axum local server
 paths:
   /api:
     get:
@@ -37,12 +37,12 @@ paths:
       tags: []
       operationId: get_user
       parameters:
-      - name: userId
-        in: path
-        description: User id
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          description: User id
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: User resource
@@ -79,12 +79,12 @@ paths:
       tags: []
       operationId: get_user_sidebar
       parameters:
-      - name: userId
-        in: path
-        description: User id
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          description: User id
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Sidebar resource
@@ -121,28 +121,28 @@ paths:
       tags: []
       operationId: list_workspaces
       parameters:
-      - name: userId
-        in: path
-        description: User id
-        required: true
-        schema:
-          type: string
-      - name: page
-        in: query
-        description: Page number
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
-      - name: pageSize
-        in: query
-        description: Page size
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
+        - name: userId
+          in: path
+          description: User id
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: pageSize
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
       responses:
         '200':
           description: Workspace collection
@@ -178,12 +178,12 @@ paths:
       tags: []
       operationId: create_workspace
       parameters:
-      - name: userId
-        in: path
-        description: User id
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          description: User id
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -226,16 +226,16 @@ paths:
       tags: []
       operationId: get_workspace
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Workspace resource
@@ -271,16 +271,16 @@ paths:
       tags: []
       operationId: update_workspace
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -322,16 +322,16 @@ paths:
       tags: []
       operationId: delete_workspace
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '204':
           description: Workspace soft-deleted
@@ -364,16 +364,16 @@ paths:
       tags: []
       operationId: list_workspace_members
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Workspace member collection
@@ -409,16 +409,16 @@ paths:
       tags: []
       operationId: add_workspace_member
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -461,21 +461,21 @@ paths:
       tags: []
       operationId: get_workspace_member
       parameters:
-      - name: userId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: memberId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Workspace member resource
@@ -512,25 +512,25 @@ paths:
       tags: []
       operationId: list_diagrams
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
       responses:
         '200':
           description: Diagram collection
@@ -566,11 +566,11 @@ paths:
       tags: []
       operationId: create_diagram
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -613,16 +613,16 @@ paths:
       tags: []
       operationId: get_diagram
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram resource
@@ -658,16 +658,16 @@ paths:
       tags: []
       operationId: update_diagram
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -709,16 +709,16 @@ paths:
       tags: []
       operationId: delete_diagram
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram delete result
@@ -755,16 +755,16 @@ paths:
       tags: []
       operationId: list_diagram_nodes
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram node collection
@@ -800,16 +800,16 @@ paths:
       tags: []
       operationId: create_diagram_node
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -852,21 +852,21 @@ paths:
       tags: []
       operationId: get_diagram_node
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: nodeId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram node resource
@@ -902,21 +902,21 @@ paths:
       tags: []
       operationId: update_diagram_node
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: nodeId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -958,21 +958,21 @@ paths:
       tags: []
       operationId: delete_diagram_node
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: nodeId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram node delete result
@@ -1009,16 +1009,16 @@ paths:
       tags: []
       operationId: list_diagram_edges
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram edge collection
@@ -1054,16 +1054,16 @@ paths:
       tags: []
       operationId: create_diagram_edge
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1106,21 +1106,21 @@ paths:
       tags: []
       operationId: get_diagram_edge
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: edgeId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: edgeId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram edge resource
@@ -1156,21 +1156,21 @@ paths:
       tags: []
       operationId: update_diagram_edge
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: edgeId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: edgeId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1212,21 +1212,21 @@ paths:
       tags: []
       operationId: delete_diagram_edge
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: edgeId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: edgeId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram edge delete result
@@ -1263,16 +1263,16 @@ paths:
       tags: []
       operationId: list_diagram_versions
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram version collection
@@ -1308,16 +1308,16 @@ paths:
       tags: []
       operationId: create_diagram_version
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Created diagram version
@@ -1354,16 +1354,16 @@ paths:
       tags: []
       operationId: get_diagram_for_commit_draft
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram resource
@@ -1399,16 +1399,16 @@ paths:
       tags: []
       operationId: commit_diagram_draft
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1446,112 +1446,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}/publish:
-    get:
-      tags: []
-      operationId: get_diagram_for_publish
-      parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Diagram resource
-          content:
-            application/vnd.evidence.diagram+json:
-              schema:
-                $ref: '#/components/schemas/DiagramResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-    post:
-      tags: []
-      operationId: publish_diagram
-      parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
-      responses:
-        '200':
-          description: Publish result
-          content:
-            application/vnd.evidence.diagram+json:
-              schema:
-                $ref: '#/components/schemas/PublishResult'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
   /api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model:
     get:
       tags: []
       operationId: get_diagram_for_propose_model
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Diagram resource
@@ -1587,16 +1496,16 @@ paths:
       tags: []
       operationId: propose_diagram_model
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: diagramId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: diagramId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1639,25 +1548,25 @@ paths:
       tags: []
       operationId: list_logical_entities
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
       responses:
         '200':
           description: Logical entity collection
@@ -1693,11 +1602,11 @@ paths:
       tags: []
       operationId: create_logical_entity
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1740,16 +1649,16 @@ paths:
       tags: []
       operationId: get_logical_entity
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: entityId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Logical entity resource
@@ -1785,16 +1694,16 @@ paths:
       tags: []
       operationId: update_logical_entity
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: entityId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1836,16 +1745,16 @@ paths:
       tags: []
       operationId: delete_logical_entity
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: entityId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entityId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Logical entity delete result
@@ -1882,25 +1791,25 @@ paths:
       tags: []
       operationId: list_logical_relationships
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: page
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
-      - name: pageSize
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
       responses:
         '200':
           description: Logical relationship collection
@@ -1936,11 +1845,11 @@ paths:
       tags: []
       operationId: create_logical_relationship
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -1983,16 +1892,16 @@ paths:
       tags: []
       operationId: get_logical_relationship
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: relationshipId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: relationshipId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Logical relationship resource
@@ -2028,16 +1937,16 @@ paths:
       tags: []
       operationId: update_logical_relationship
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: relationshipId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: relationshipId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -2079,16 +1988,16 @@ paths:
       tags: []
       operationId: delete_logical_relationship
       parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: relationshipId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: relationshipId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Logical relationship delete result
@@ -2125,12 +2034,12 @@ components:
     AddMemberInput:
       type: object
       required:
-      - user
+        - user
       properties:
         role:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         user:
           $ref: '#/components/schemas/RefModel'
     BTreeMap:
@@ -2138,7 +2047,7 @@ components:
       additionalProperties:
         type: object
         required:
-        - href
+          - href
         properties:
           href:
             type: string
@@ -2149,64 +2058,60 @@ components:
       properties:
         edges:
           type:
-          - array
-          - 'null'
+            - array
+            - 'null'
           items:
             $ref: '#/components/schemas/EdgeInput'
         nodes:
           type:
-          - array
-          - 'null'
+            - array
+            - 'null'
           items:
             $ref: '#/components/schemas/NodeInput'
     CommitResult:
       type: object
       required:
-      - committed
+        - committed
       properties:
         committed:
           type: boolean
     CreateDiagramInput:
       type: object
       required:
-      - title
+        - title
       properties:
         title:
           type: string
-        type:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/DiagramType'
     CreateLogicalEntityInput:
       type: object
       required:
-      - name
-      - type
+        - name
+        - type
       properties:
         content:
           type: string
         label:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         name:
           type: string
         subType:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         type:
           $ref: '#/components/schemas/LogicalEntityType'
     CreateLogicalRelationshipInput:
       type: object
       required:
-      - source
-      - target
+        - source
+        - target
       properties:
         label:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         source:
           $ref: '#/components/schemas/RefModel'
         target:
@@ -2214,14 +2119,14 @@ components:
     DeletedResult:
       type: object
       required:
-      - deleted
+        - deleted
       properties:
         deleted:
           type: boolean
     DiagramCollectionEmbedded:
       type: object
       required:
-      - diagrams
+        - diagrams
       properties:
         diagrams:
           type: array
@@ -2230,10 +2135,10 @@ components:
     DiagramCollectionResource:
       type: object
       required:
-      - _links
-      - _templates
-      - _embedded
-      - page
+        - _links
+        - _templates
+        - _embedded
+        - page
       properties:
         _embedded:
           $ref: '#/components/schemas/DiagramCollectionEmbedded'
@@ -2246,15 +2151,13 @@ components:
     DiagramResource:
       type: object
       required:
-      - _links
-      - _templates
-      - id
-      - title
-      - type
-      - status
-      - viewport
-      - createdAt
-      - updatedAt
+        - _links
+        - _templates
+        - id
+        - title
+        - viewport
+        - createdAt
+        - updatedAt
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2264,12 +2167,8 @@ components:
           type: string
         id:
           type: string
-        status:
-          $ref: '#/components/schemas/DiagramStatus'
         title:
           type: string
-        type:
-          $ref: '#/components/schemas/DiagramType'
         updatedAt:
           type: string
         viewport:
@@ -2277,9 +2176,9 @@ components:
     DiagramSnapshot:
       type: object
       required:
-      - nodes
-      - edges
-      - viewport
+        - nodes
+        - edges
+        - viewport
       properties:
         edges:
           type: array
@@ -2291,25 +2190,10 @@ components:
             $ref: '#/components/schemas/SnapshotNode'
         viewport:
           $ref: '#/components/schemas/Viewport'
-    DiagramStatus:
-      type: string
-      enum:
-      - draft
-      - published
-    DiagramType:
-      type: string
-      enum:
-      - flowchart
-      - sequence
-      - class
-      - component
-      - state
-      - activity
-      - fulfillment
     DiagramVersionCollectionEmbedded:
       type: object
       required:
-      - versions
+        - versions
       properties:
         versions:
           type: array
@@ -2318,8 +2202,8 @@ components:
     DiagramVersionCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
+        - _links
+        - _embedded
       properties:
         _embedded:
           $ref: '#/components/schemas/DiagramVersionCollectionEmbedded'
@@ -2328,11 +2212,11 @@ components:
     DiagramVersionResource:
       type: object
       required:
-      - _links
-      - id
-      - name
-      - snapshot
-      - createdAt
+        - _links
+        - id
+        - name
+        - snapshot
+        - createdAt
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2347,7 +2231,7 @@ components:
     EdgeCollectionEmbedded:
       type: object
       required:
-      - edges
+        - edges
       properties:
         edges:
           type: array
@@ -2356,8 +2240,8 @@ components:
     EdgeCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
+        - _links
+        - _embedded
       properties:
         _embedded:
           $ref: '#/components/schemas/EdgeCollectionEmbedded'
@@ -2366,59 +2250,59 @@ components:
     EdgeInput:
       type: object
       required:
-      - source
-      - target
+        - source
+        - target
       properties:
         animated:
           type:
-          - boolean
-          - 'null'
+            - boolean
+            - 'null'
         data:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
         hidden:
           type:
-          - boolean
-          - 'null'
+            - boolean
+            - 'null'
         id:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         interactionWidth:
           type:
-          - number
-          - 'null'
+            - number
+            - 'null'
           format: double
         kind:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         logicalRelationship:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
         markerEnd:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
         markerStart:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
         pathOptions:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
@@ -2426,12 +2310,12 @@ components:
           $ref: '#/components/schemas/RefModel'
         sourceHandle:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         style:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
@@ -2439,22 +2323,22 @@ components:
           $ref: '#/components/schemas/RefModel'
         targetHandle:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
     EdgeResource:
       type: object
       required:
-      - _links
-      - id
-      - source
-      - target
-      - style
-      - data
-      - animated
-      - hidden
-      - pathOptions
-      - createdAt
-      - updatedAt
+        - _links
+        - id
+        - source
+        - target
+        - style
+        - data
+        - animated
+        - hidden
+        - pathOptions
+        - createdAt
+        - updatedAt
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2473,28 +2357,28 @@ components:
           type: string
         interactionWidth:
           type:
-          - number
-          - 'null'
+            - number
+            - 'null'
           format: double
         kind:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         logicalRelationship:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
         markerEnd:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
         markerStart:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
@@ -2507,8 +2391,8 @@ components:
           $ref: '#/components/schemas/RefModel'
         sourceHandle:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         style:
           type: object
           additionalProperties: {}
@@ -2518,23 +2402,23 @@ components:
           $ref: '#/components/schemas/RefModel'
         targetHandle:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         updatedAt:
           type: string
     ErrorBody:
       type: object
       required:
-      - error
+        - error
       properties:
         error:
           type: string
     HealthResource:
       type: object
       required:
-      - _links
-      - status
-      - service
+        - _links
+        - status
+        - service
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2545,15 +2429,15 @@ components:
     Link:
       type: object
       required:
-      - href
+        - href
       properties:
         href:
           type: string
     LinkedRefModel:
       type: object
       required:
-      - _links
-      - id
+        - _links
+        - id
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2562,7 +2446,7 @@ components:
     LogicalEntityCollectionEmbedded:
       type: object
       required:
-      - logicalEntities
+        - logicalEntities
       properties:
         logicalEntities:
           type: array
@@ -2571,9 +2455,9 @@ components:
     LogicalEntityCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
-      - page
+        - _links
+        - _embedded
+        - page
       properties:
         _embedded:
           $ref: '#/components/schemas/LogicalEntityCollectionEmbedded'
@@ -2584,11 +2468,11 @@ components:
     LogicalEntityResource:
       type: object
       required:
-      - _links
-      - id
-      - name
-      - type
-      - content
+        - _links
+        - id
+        - name
+        - type
+        - content
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2598,27 +2482,27 @@ components:
           type: string
         label:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         name:
           type: string
         subType:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         type:
           $ref: '#/components/schemas/LogicalEntityType'
     LogicalEntityType:
       type: string
       enum:
-      - EVIDENCE
-      - PARTICIPANT
-      - ROLE
-      - CONTEXT
+        - EVIDENCE
+        - PARTICIPANT
+        - ROLE
+        - CONTEXT
     LogicalRelationshipCollectionEmbedded:
       type: object
       required:
-      - logicalRelationships
+        - logicalRelationships
       properties:
         logicalRelationships:
           type: array
@@ -2627,9 +2511,9 @@ components:
     LogicalRelationshipCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
-      - page
+        - _links
+        - _embedded
+        - page
       properties:
         _embedded:
           $ref: '#/components/schemas/LogicalRelationshipCollectionEmbedded'
@@ -2640,10 +2524,10 @@ components:
     LogicalRelationshipResource:
       type: object
       required:
-      - _links
-      - id
-      - source
-      - target
+        - _links
+        - id
+        - source
+        - target
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2651,8 +2535,8 @@ components:
           type: string
         label:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         source:
           $ref: '#/components/schemas/RefModel'
         target:
@@ -2660,7 +2544,7 @@ components:
     MemberCollectionEmbedded:
       type: object
       required:
-      - members
+        - members
       properties:
         members:
           type: array
@@ -2669,9 +2553,9 @@ components:
     MemberCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
-      - total
+        - _links
+        - _embedded
+        - total
       properties:
         _embedded:
           $ref: '#/components/schemas/MemberCollectionEmbedded'
@@ -2683,13 +2567,13 @@ components:
     MemberResource:
       type: object
       required:
-      - _links
-      - id
-      - workspace
-      - user
-      - role
-      - createdAt
-      - updatedAt
+        - _links
+        - id
+        - workspace
+        - user
+        - role
+        - createdAt
+        - updatedAt
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2708,7 +2592,7 @@ components:
     NodeCollectionEmbedded:
       type: object
       required:
-      - nodes
+        - nodes
       properties:
         nodes:
           type: array
@@ -2717,8 +2601,8 @@ components:
     NodeCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
+        - _links
+        - _embedded
       properties:
         _embedded:
           $ref: '#/components/schemas/NodeCollectionEmbedded'
@@ -2727,65 +2611,65 @@ components:
     NodeEmbedded:
       type: object
       required:
-      - logical-entity
+        - logical-entity
       properties:
         logical-entity:
           $ref: '#/components/schemas/LogicalEntityResource'
     NodeInput:
       type: object
       required:
-      - kind
+        - kind
       properties:
         data:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties: {}
           propertyNames:
             type: string
         height:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           format: int64
         id:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         kind:
           type: string
         logicalEntity:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
         parent:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
         position:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/Position'
+            - type: 'null'
+            - $ref: '#/components/schemas/Position'
         width:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           format: int64
     NodeResource:
       type: object
       required:
-      - _links
-      - id
-      - kind
-      - position
-      - data
-      - createdAt
-      - updatedAt
+        - _links
+        - id
+        - kind
+        - position
+        - data
+        - createdAt
+        - updatedAt
       properties:
         _embedded:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/NodeEmbedded'
+            - type: 'null'
+            - $ref: '#/components/schemas/NodeEmbedded'
         _links:
           $ref: '#/components/schemas/BTreeMap'
         createdAt:
@@ -2797,8 +2681,8 @@ components:
             type: string
         height:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           format: int64
         id:
           type: string
@@ -2806,24 +2690,24 @@ components:
           type: string
         parent:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
         position:
           $ref: '#/components/schemas/Position'
         updatedAt:
           type: string
         width:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           format: int64
     PageModel:
       type: object
       required:
-      - number
-      - size
-      - totalElements
-      - totalPages
+        - number
+        - size
+        - totalElements
+        - totalPages
       properties:
         number:
           type: integer
@@ -2844,8 +2728,8 @@ components:
     Position:
       type: object
       required:
-      - x
-      - y
+        - x
+        - y
       properties:
         x:
           type: number
@@ -2856,49 +2740,42 @@ components:
     ProposeModelInput:
       type: object
       required:
-      - requirement
+        - requirement
       properties:
         requirement:
           type: string
-    PublishResult:
-      type: object
-      required:
-      - published
-      properties:
-        published:
-          type: boolean
     RefModel:
       type: object
       required:
-      - id
+        - id
       properties:
         id:
           type: string
     RootResource:
       type: object
       required:
-      - _links
+        - _links
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
     SidebarItem:
       type: object
       required:
-      - key
-      - label
-      - type
-      - href
-      - path
-      - icon
+        - key
+        - label
+        - type
+        - href
+        - path
+        - icon
       properties:
         active:
           type:
-          - boolean
-          - 'null'
+            - boolean
+            - 'null'
         defaultOpen:
           type:
-          - boolean
-          - 'null'
+            - boolean
+            - 'null'
         href:
           type: string
         icon:
@@ -2911,19 +2788,19 @@ components:
           type: string
         rel:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         template:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         type:
           type: string
     SidebarResource:
       type: object
       required:
-      - _links
-      - sections
+        - _links
+        - sections
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -2934,10 +2811,10 @@ components:
     SidebarSection:
       type: object
       required:
-      - title
-      - key
-      - defaultOpen
-      - items
+        - title
+        - key
+        - defaultOpen
+        - items
       properties:
         defaultOpen:
           type: boolean
@@ -2952,19 +2829,19 @@ components:
     SnapshotEdge:
       type: object
       required:
-      - description
+        - description
       properties:
         description:
           $ref: '#/components/schemas/EdgeInput'
         id:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
     SnapshotNode:
       type: object
       required:
-      - id
-      - description
+        - id
+        - description
       properties:
         description:
           $ref: '#/components/schemas/NodeInput'
@@ -2973,117 +2850,109 @@ components:
     TemplateProperty:
       type: object
       required:
-      - name
+        - name
       properties:
         minLength:
           type:
-          - integer
-          - 'null'
+            - integer
+            - 'null'
           format: int32
           minimum: 0
         name:
           type: string
         prompt:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         required:
           type:
-          - boolean
-          - 'null'
+            - boolean
+            - 'null'
         type:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         value:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
     UpdateDiagramInput:
       type: object
       properties:
-        status:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/DiagramStatus'
         title:
           type:
-          - string
-          - 'null'
-        type:
-          oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/DiagramType'
+            - string
+            - 'null'
         viewport:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/Viewport'
+            - type: 'null'
+            - $ref: '#/components/schemas/Viewport'
         viewport.x:
           type:
-          - number
-          - 'null'
+            - number
+            - 'null'
           format: double
         viewport.y:
           type:
-          - number
-          - 'null'
+            - number
+            - 'null'
           format: double
         viewport.zoom:
           type:
-          - number
-          - 'null'
+            - number
+            - 'null'
           format: double
     UpdateLogicalEntityInput:
       type: object
       properties:
         content:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         label:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         name:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         subType:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         type:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/LogicalEntityType'
+            - type: 'null'
+            - $ref: '#/components/schemas/LogicalEntityType'
     UpdateLogicalRelationshipInput:
       type: object
       properties:
         label:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         source:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
         target:
           oneOf:
-          - type: 'null'
-          - $ref: '#/components/schemas/RefModel'
+            - type: 'null'
+            - $ref: '#/components/schemas/RefModel'
     UserResource:
       type: object
       required:
-      - _links
-      - id
-      - name
+        - _links
+        - id
+        - name
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
         email:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         id:
           type: string
         name:
@@ -3091,9 +2960,9 @@ components:
     Viewport:
       type: object
       required:
-      - x
-      - y
-      - zoom
+        - x
+        - y
+        - zoom
       properties:
         x:
           type: number
@@ -3107,7 +2976,7 @@ components:
     WorkspaceCollectionEmbedded:
       type: object
       required:
-      - workspaces
+        - workspaces
       properties:
         workspaces:
           type: array
@@ -3116,9 +2985,9 @@ components:
     WorkspaceCollectionResource:
       type: object
       required:
-      - _links
-      - _embedded
-      - page
+        - _links
+        - _embedded
+        - page
       properties:
         _embedded:
           $ref: '#/components/schemas/WorkspaceCollectionEmbedded'
@@ -3131,38 +3000,38 @@ components:
       properties:
         description:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         metadata:
           type:
-          - object
-          - 'null'
+            - object
+            - 'null'
           additionalProperties:
             type: string
           propertyNames:
             type: string
         path:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         status:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         title:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
     WorkspaceResource:
       type: object
       required:
-      - _links
-      - id
-      - title
-      - status
-      - metadata
-      - createdAt
-      - updatedAt
+        - _links
+        - id
+        - title
+        - status
+        - metadata
+        - createdAt
+        - updatedAt
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -3170,8 +3039,8 @@ components:
           type: string
         description:
           type:
-          - string
-          - 'null'
+            - string
+            - 'null'
         id:
           type: string
         metadata:

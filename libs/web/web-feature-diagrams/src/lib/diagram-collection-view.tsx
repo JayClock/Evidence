@@ -55,8 +55,6 @@ export function DiagramCollectionView({
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead className="text-right">Action</TableHead>
@@ -66,7 +64,7 @@ export function DiagramCollectionView({
             {resourceState.collection.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={4}
                   className="py-6 text-center text-muted-foreground"
                 >
                   No diagrams found.
@@ -87,8 +85,6 @@ export function DiagramCollectionView({
                         diagramState.data.title
                       )}
                     </TableCell>
-                    <TableCell>{diagramState.data.type}</TableCell>
-                    <TableCell>{diagramState.data.status}</TableCell>
                     <TableCell>
                       {formatDateTime(diagramState.data.createdAt)}
                     </TableCell>
@@ -227,7 +223,6 @@ function CreateDiagramForm({ action }: { action: Action<DiagramResource> }) {
 function createInitialFormData(action: Action<DiagramResource>): FormData {
   return {
     title: '',
-    type: action.field('type')?.value ?? 'fulfillment',
   };
 }
 

@@ -167,8 +167,6 @@ describe('DiagramDetailView', () => {
       data: {
         id: 'diagram-1',
         title: 'Fulfillment Flow',
-        type: 'fulfillment',
-        status: 'draft',
         createdAt: '2026-01-02T03:04:05Z',
         updatedAt: '2026-01-03T04:05:06Z',
       },

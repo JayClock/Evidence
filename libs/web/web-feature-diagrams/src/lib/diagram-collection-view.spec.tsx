@@ -26,8 +26,6 @@ const diagramCollectionState = {
       data: {
         id: 'diagram-1',
         title: 'Fulfillment Flow',
-        type: 'context-map',
-        status: 'draft',
         createdAt: '2026-01-02T03:04:05Z',
         updatedAt: '2026-01-03T04:05:06Z',
       },
@@ -50,10 +48,6 @@ describe('DiagramCollectionView', () => {
 
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
-    expect(screen.getByText('Type')).toBeTruthy();
-    expect(screen.getByText('Status')).toBeTruthy();
-    expect(screen.getByText('context-map')).toBeTruthy();
-    expect(screen.getByText('draft')).toBeTruthy();
     expect(
       (
         screen.getByRole('link', { name: 'Open' }) as unknown as {

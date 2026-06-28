@@ -86,9 +86,7 @@ export function assembleDiagram(store: PrismaStore, row: DiagramRow): Diagram {
   const description: DiagramDescription = {
     workspace: new Ref(row.workspaceId),
     title: row.title,
-    type: row.type as DiagramDescription['type'],
     viewport: viewport(row.viewport),
-    status: row.status as DiagramDescription['status'],
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
   };

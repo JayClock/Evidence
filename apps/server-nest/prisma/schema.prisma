@@ -52,9 +52,7 @@ model Diagram {
   id          String           @id
   workspaceId String           @map("workspace_id")
   title       String
-  type        String
   viewport    Json
-  status      String
   createdAt   DateTime         @map("created_at")
   updatedAt   DateTime         @map("updated_at")
   deletedAt   DateTime?        @map("deleted_at")

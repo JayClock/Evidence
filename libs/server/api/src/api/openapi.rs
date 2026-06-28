@@ -65,8 +65,6 @@ pub fn openapi_yaml() -> String {
         create_diagram_version,
         get_diagram_for_commit_draft,
         commit_diagram_draft,
-        get_diagram_for_publish,
-        publish_diagram,
         get_diagram_for_propose_model,
         propose_diagram_model,
         list_logical_entities,
@@ -89,8 +87,6 @@ pub fn openapi_yaml() -> String {
         DiagramCollectionResource,
         DiagramResource,
         DiagramSnapshot,
-        DiagramStatus,
-        DiagramType,
         DiagramVersionCollectionResource,
         DiagramVersionResource,
         EdgeCollectionResource,
@@ -330,38 +326,14 @@ pub struct Position {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "lowercase")]
-pub enum DiagramType {
-    Flowchart,
-    Sequence,
-    Class,
-    Component,
-    State,
-    Activity,
-    Fulfillment,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "lowercase")]
-pub enum DiagramStatus {
-    Draft,
-    Published,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CreateDiagramInput {
     pub title: String,
-    #[serde(rename = "type")]
-    pub diagram_type: Option<DiagramType>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateDiagramInput {
     pub title: Option<String>,
-    #[serde(rename = "type")]
-    pub diagram_type: Option<DiagramType>,
-    pub status: Option<DiagramStatus>,
     pub viewport: Option<Viewport>,
     #[serde(rename = "viewport.x")]
     pub viewport_x: Option<f64>,
@@ -380,9 +352,6 @@ pub struct DiagramResource {
     pub templates: Templates,
     pub id: String,
     pub title: String,
-    #[serde(rename = "type")]
-    pub diagram_type: DiagramType,
-    pub status: DiagramStatus,
     pub viewport: Viewport,
     pub created_at: String,
     pub updated_at: String,
@@ -564,11 +533,6 @@ pub struct CommitDraftInput {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct CommitResult {
     pub committed: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct PublishResult {
-    pub published: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -1109,34 +1073,6 @@ fn get_diagram_for_commit_draft() {}
     )
 )]
 fn commit_diagram_draft() {}
-
-#[utoipa::path(
-    get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/publish",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    responses(
-        (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn get_diagram_for_publish() {}
-
-#[utoipa::path(
-    post,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/publish",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    responses(
-        (status = 200, description = "Publish result", body = PublishResult, content_type = "application/vnd.evidence.diagram+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn publish_diagram() {}
 
 #[utoipa::path(
     get,

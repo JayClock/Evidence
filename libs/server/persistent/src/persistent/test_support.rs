@@ -8,12 +8,11 @@ use uuid::Uuid;
 
 use crate::domain::{
     normalize_sub_type, Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode,
-    DiagramNodes, DiagramStatus, DiagramVersion, DiagramVersionDescription, DiagramVersions,
-    DraftEdge, DraftNode, EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription,
-    LogicalRelationship, LogicalRelationshipDescription, Member, MemberDescription,
-    NodeDescription, Ref, ServerError, User, UserDescription, UserWorkspaces, Users, Workspace,
-    WorkspaceDescription, WorkspaceDiagrams, WorkspaceLogicalEntities,
-    WorkspaceLogicalRelationships, WorkspaceMembers,
+    DiagramNodes, DiagramVersion, DiagramVersionDescription, DiagramVersions, DraftEdge, DraftNode,
+    EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription, LogicalRelationship,
+    LogicalRelationshipDescription, Member, MemberDescription, NodeDescription, Ref, ServerError,
+    User, UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription,
+    WorkspaceDiagrams, WorkspaceLogicalEntities, WorkspaceLogicalRelationships, WorkspaceMembers,
 };
 
 use super::store::{default_if_blank, now};
@@ -515,21 +514,6 @@ impl WorkspaceDiagrams for FakeWorkspaceDiagrams {
                 "diagram {diagram_id} not found"
             )));
         }
-        Ok(())
-    }
-
-    async fn publish_diagram(&self, diagram_id: &str) -> Result<(), ServerError> {
-        let mut store = self.store.write().expect("fake store write lock poisoned");
-        let diagram = store
-            .diagrams
-            .get_mut(diagram_id)
-            .filter(|diagram| diagram.workspace_id == self.workspace_id)
-            .filter(|diagram| diagram.deleted_at.is_none())
-            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let timestamp = now();
-        diagram.description.status = DiagramStatus::Published;
-        diagram.description.updated_at = timestamp.clone();
-        diagram.updated_at = timestamp;
         Ok(())
     }
 }

@@ -7,7 +7,6 @@ import {
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
   workspaceDiagramProposeModelHref,
-  workspaceDiagramPublishHref,
   workspaceDiagramsHref,
   workspaceDiagramVersionsHref,
 } from '../links';
@@ -17,8 +16,6 @@ export interface DiagramModel {
   _templates: Record<string, unknown>;
   id: string;
   title: string;
-  type: string;
-  status: string;
   viewport: ReturnType<Diagram['description']>['viewport'];
   createdAt: string;
   updatedAt: string;
@@ -42,15 +39,12 @@ export function diagramModel(diagram: Diagram): DiagramModel {
       'propose-model': link(
         workspaceDiagramProposeModelHref(workspaceId, diagramId),
       ),
-      publish: link(workspaceDiagramPublishHref(workspaceId, diagramId)),
     },
     _templates: {
       'propose-model': proposeModelTemplate(workspaceId, diagramId),
     },
     id: diagramId,
     title: description.title,
-    type: description.type,
-    status: description.status,
     viewport: description.viewport,
     createdAt: description.createdAt,
     updatedAt: description.updatedAt,
