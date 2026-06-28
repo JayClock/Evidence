@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
+import type { ChatOnFinishCallback, UIMessage } from 'ai';
 import type { DiagramResource, State } from '@evidence/api-client';
 import {
   Card,
@@ -30,18 +31,37 @@ import {
   resolveProposeModelUrl,
 } from './diagram-proposal-transport';
 
-export function DiagramAiChat({
-  resourceState,
-}: {
+type DiagramAiChatProps = {
+  onModelUpdated?: () => Promise<void> | void;
   resourceState: State<DiagramResource>;
-}) {
+};
+
+export function DiagramAiChat({
+  onModelUpdated,
+  resourceState,
+}: DiagramAiChatProps) {
   const [input, setInput] = useState('');
   const proposeModelUrl = resolveProposeModelUrl(resourceState);
   const transport = useMemo(
     () => createDiagramProposalTransport(resourceState),
     [resourceState],
   );
-  const { error, messages, sendMessage, status } = useChat({ transport });
+  const handleModelingFinished = useCallback<ChatOnFinishCallback<UIMessage>>(
+    ({ isAbort, isDisconnect, isError }) => {
+      if (!onModelUpdated || isAbort || isDisconnect || isError) {
+        return;
+      }
+
+      void Promise.resolve(onModelUpdated()).catch((error: unknown) => {
+        console.error('Diagram model refresh failed', error);
+      });
+    },
+    [onModelUpdated],
+  );
+  const { error, messages, sendMessage, status } = useChat({
+    onFinish: handleModelingFinished,
+    transport,
+  });
   const isStreaming = status === 'streaming';
   const disabled =
     !proposeModelUrl || status === 'submitted' || status === 'streaming';
@@ -66,8 +86,8 @@ export function DiagramAiChat({
         <CardDescription>Diagram AI</CardDescription>
         <CardTitle>AI modeling assistant</CardTitle>
         <CardDescription>
-          Validate requirement-to-proposal streaming. Suggestions are not
-          applied to the canvas.
+          Ask for changes to the local .evidence model. The canvas refreshes
+          after the assistant finishes.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 min-h-0 flex-col gap-3">

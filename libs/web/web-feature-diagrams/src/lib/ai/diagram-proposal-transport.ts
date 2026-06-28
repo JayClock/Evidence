@@ -130,30 +130,27 @@ function sseToUiMessageStream(
     async start(controller) {
       let buffer = '';
       let finished = false;
-      let reasoningStarted = false;
-      let reasoningEnded = false;
+      let reasoningActive = false;
       let textStarted = false;
       let textEnded = false;
       const availableToolInputs = new Set<string>();
 
       const startReasoning = () => {
-        if (reasoningStarted) {
+        if (reasoningActive) {
           return;
         }
 
         controller.enqueue({ type: 'reasoning-start', id: REASONING_PART_ID });
-        reasoningStarted = true;
+        reasoningActive = true;
       };
 
       const endReasoning = () => {
-        if (reasoningEnded) {
+        if (!reasoningActive) {
           return;
         }
 
-        if (reasoningStarted) {
-          controller.enqueue({ type: 'reasoning-end', id: REASONING_PART_ID });
-        }
-        reasoningEnded = true;
+        controller.enqueue({ type: 'reasoning-end', id: REASONING_PART_ID });
+        reasoningActive = false;
       };
 
       const startText = () => {

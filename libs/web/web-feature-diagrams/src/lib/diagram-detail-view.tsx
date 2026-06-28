@@ -91,6 +91,9 @@ export function DiagramDetailView({
       [...edges.resourceState.collection],
     );
   }, [edges.resourceState, nodes.resourceState]);
+  const refreshProjectedGraph = useCallback(async () => {
+    await Promise.all([nodes.resource.refresh(), edges.resource.refresh()]);
+  }, [edges.resource, nodes.resource]);
 
   return (
     <section className="flex min-h-0 h-full flex-1 flex-col gap-4">
@@ -106,7 +109,10 @@ export function DiagramDetailView({
           ) : null}
           {!loading && !error && graph ? <DiagramCanvas graph={graph} /> : null}
         </div>
-        <DiagramAiChat resourceState={resourceState} />
+        <DiagramAiChat
+          onModelUpdated={refreshProjectedGraph}
+          resourceState={resourceState}
+        />
       </div>
     </section>
   );

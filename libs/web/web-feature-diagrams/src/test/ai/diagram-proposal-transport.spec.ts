@@ -404,6 +404,57 @@ describe('createDiagramProposalTransport', () => {
     ]);
   });
 
+  it('starts a new reasoning part when thinking resumes after an end event', async () => {
+    const fetch = vi.fn(async () =>
+      sseResponse(
+        [
+          'event: thinking-start',
+          'data: ',
+          '',
+          'event: thinking',
+          'data: First block.',
+          '',
+          'event: thinking-end',
+          'data: ',
+          '',
+          'event: thinking',
+          'data: Second block.',
+          '',
+          'event: complete',
+          'data: ',
+          '',
+        ].join('\n'),
+      ),
+    );
+    const transport = createDiagramProposalTransport(diagramState(fetch));
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('model this requirement')],
+      abortSignal: undefined,
+    });
+
+    await expect(readChunks(stream)).resolves.toEqual([
+      { type: 'reasoning-start', id: 'diagram-model-thinking' },
+      {
+        type: 'reasoning-delta',
+        id: 'diagram-model-thinking',
+        delta: 'First block.',
+      },
+      { type: 'reasoning-end', id: 'diagram-model-thinking' },
+      { type: 'reasoning-start', id: 'diagram-model-thinking' },
+      {
+        type: 'reasoning-delta',
+        id: 'diagram-model-thinking',
+        delta: 'Second block.',
+      },
+      { type: 'reasoning-end', id: 'diagram-model-thinking' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+  });
+
   it('surfaces backend SSE errors as error chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse('event: error\ndata: pi rpc request timed out\n\n'),

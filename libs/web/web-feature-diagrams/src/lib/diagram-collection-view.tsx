@@ -49,7 +49,12 @@ export function DiagramCollectionView({
           {resourceState.data.page.totalElements} total
         </span>
       </div>
-      {createAction ? <CreateDiagramForm action={createAction} /> : null}
+      {createAction ? (
+        <CreateDiagramForm
+          action={createAction}
+          onCreated={() => resourceState.follow('self').refresh()}
+        />
+      ) : null}
       <div className="mt-4 rounded-lg border">
         <Table>
           <TableHeader>
@@ -122,7 +127,13 @@ function useCreateDiagramAction(
   }, [resourceState]);
 }
 
-function CreateDiagramForm({ action }: { action: Action<DiagramResource> }) {
+function CreateDiagramForm({
+  action,
+  onCreated,
+}: {
+  action: Action<DiagramResource>;
+  onCreated: () => Promise<unknown>;
+}) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState<FormData>(() =>
     createInitialFormData(action),
@@ -167,7 +178,7 @@ function CreateDiagramForm({ action }: { action: Action<DiagramResource> }) {
 
             setPending(true);
             try {
-              const createdState = await action.submit({
+              await action.submit({
                 ...nextFormData,
                 title,
               });
@@ -178,7 +189,7 @@ function CreateDiagramForm({ action }: { action: Action<DiagramResource> }) {
               });
 
               try {
-                await createdState.follow('collection');
+                await onCreated();
               } catch (caught) {
                 toast.error('Diagram list refresh failed', {
                   description: errorMessage(caught),
