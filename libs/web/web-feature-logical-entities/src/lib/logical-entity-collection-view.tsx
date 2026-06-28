@@ -1,5 +1,4 @@
 import { useMemo, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import {
   type LogicalEntityCollectionResource,
   type LogicalEntityResource,
@@ -19,6 +18,13 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  MessageResponse,
+  ScrollArea,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
   Table,
   TableBody,
   TableCell,
@@ -34,7 +40,6 @@ type LogicalEntityRow = {
   type: LogicalEntityType;
   subType: LogicalEntitySubType | null;
   content: string;
-  href?: string;
 };
 
 export function LogicalEntityCollectionView({
@@ -75,14 +80,13 @@ export function LogicalEntityCollectionView({
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Subtype</TableHead>
-              <TableHead>Content</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {logicalEntities.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={5}>
                   <Empty className="py-8">
                     <EmptyHeader>
                       <EmptyTitle>No logical entities found</EmptyTitle>
@@ -98,26 +102,15 @@ export function LogicalEntityCollectionView({
               logicalEntities.map((logicalEntity) => (
                 <TableRow key={logicalEntity.id}>
                   <TableCell className="font-medium">
-                    {logicalEntity.href ? (
-                      <Link to={logicalEntity.href}>{logicalEntity.title}</Link>
-                    ) : (
-                      logicalEntity.title
-                    )}
+                    {logicalEntity.title}
                   </TableCell>
                   <TableCell className="font-mono text-xs">
                     {logicalEntity.name}
                   </TableCell>
                   <TableCell>{formatEntityType(logicalEntity.type)}</TableCell>
                   <TableCell>{formatSubType(logicalEntity.subType)}</TableCell>
-                  <TableCell className="max-w-md whitespace-normal text-sm text-muted-foreground">
-                    {logicalEntity.content || '—'}
-                  </TableCell>
                   <TableCell className="text-right">
-                    {logicalEntity.href ? (
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={logicalEntity.href}>Open</Link>
-                      </Button>
-                    ) : null}
+                    <LogicalEntityDrawer logicalEntity={logicalEntity} />
                   </TableCell>
                 </TableRow>
               ))
@@ -152,10 +145,60 @@ export function LogicalEntityDetailView({
         <DetailItem
           className="md:col-span-2"
           label="Content"
-          value={data.content || '—'}
+          value={<MarkdownContent content={data.content} />}
         />
       </CardContent>
     </Card>
+  );
+}
+
+function LogicalEntityDrawer({
+  logicalEntity,
+}: {
+  logicalEntity: LogicalEntityRow;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button
+          aria-label={`Open ${logicalEntity.title}`}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          Open
+        </Button>
+      </SheetTrigger>
+      <SheetContent
+        aria-describedby={undefined}
+        className="gap-0 overflow-hidden p-0 data-[side=right]:w-[min(92vw,1024px)] data-[side=right]:sm:max-w-none"
+        side="right"
+      >
+        <SheetHeader className="sr-only">
+          <SheetTitle>{logicalEntity.title}</SheetTitle>
+        </SheetHeader>
+
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="p-6 pr-12">
+            <MarkdownContent content={logicalEntity.content} />
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function MarkdownContent({ content }: { content: string }) {
+  const markdown = content.trim();
+
+  if (!markdown) {
+    return <span className="text-sm text-muted-foreground">—</span>;
+  }
+
+  return (
+    <MessageResponse className="text-sm text-foreground [&>*+*]:mt-3 [&_a]:font-medium [&_a]:text-primary [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0">
+      {markdown}
+    </MessageResponse>
   );
 }
 
@@ -171,7 +214,9 @@ function DetailItem({
   return (
     <div className={className}>
       <p className="text-sm font-medium">{label}</p>
-      <p className="mt-1 break-words text-sm text-muted-foreground">{value}</p>
+      <div className="mt-1 break-words text-sm text-muted-foreground">
+        {value}
+      </div>
     </div>
   );
 }
@@ -188,7 +233,6 @@ function toLogicalEntityRow(
     type: data.type,
     subType: data.subType,
     content: data.content,
-    href: entityState.links.getAll().find((link) => link.rel === 'self')?.href,
   };
 }
 
@@ -211,4 +255,3 @@ function formatSubType(value: string | null) {
     : ['', value];
   return formatEntityType(rawValue);
 }
-

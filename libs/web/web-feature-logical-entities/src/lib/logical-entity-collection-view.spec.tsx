@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type {
   LogicalEntityCollectionResource,
@@ -47,7 +47,7 @@ const collectionState = {
 };
 
 describe('LogicalEntityCollectionView', () => {
-  it('renders logical entities as a table', () => {
+  it('renders logical entities as a table without content cells', () => {
     render(
       <MemoryRouter>
         <LogicalEntityCollectionView
@@ -62,14 +62,31 @@ describe('LogicalEntityCollectionView', () => {
     expect(screen.getAllByText('Contract').length).toBeGreaterThan(0);
     expect(screen.getByText('contract')).toBeTruthy();
     expect(screen.getByText('Evidence')).toBeTruthy();
-    expect(screen.getByText('Customer contract evidence')).toBeTruthy();
-    expect(
-      (
-        screen.getByRole('link', { name: 'Open' }) as unknown as {
-          getAttribute(name: string): string | null;
-        }
-      ).getAttribute('href'),
-    ).toBe('/api/workspaces/default-workspace/logical-entities/entity-1');
+    expect(screen.queryByRole('columnheader', { name: 'Content' })).toBeNull();
+    expect(screen.queryByText('Customer contract evidence')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open Contract' })).toBeTruthy();
+  });
+
+  it('opens logical entity markdown content in a drawer', () => {
+    render(
+      <MemoryRouter>
+        <LogicalEntityCollectionView
+          resourceState={
+            collectionState as unknown as State<LogicalEntityCollectionResource>
+          }
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Contract' }));
+
+    const dialog = screen.getByRole('dialog');
+
+    expect(dialog).toBeTruthy();
+    expect(within(dialog).getByText('Customer contract evidence')).toBeTruthy();
+    expect(within(dialog).queryByText('Logical entity')).toBeNull();
+    expect(within(dialog).queryByText('ID')).toBeNull();
+    expect(within(dialog).queryByText('entity-1')).toBeNull();
   });
 
   it('renders an empty table state', () => {
