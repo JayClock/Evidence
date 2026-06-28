@@ -135,11 +135,11 @@ const sidebarState = {
             path: '/api/users/desktop-user/workspaces',
           },
           {
-            key: 'diagrams',
-            label: 'Diagrams',
+            key: 'logical-entities',
+            label: 'Logical Entities',
             type: 'resource',
-            href: '/api/workspaces/default-workspace/diagrams',
-            path: '/api/workspaces/default-workspace/diagrams',
+            href: '/api/workspaces/default-workspace/logical-entities',
+            path: '/api/workspaces/default-workspace/logical-entities',
           },
         ],
       },
@@ -167,8 +167,8 @@ const workspaceState = {
         href: '/api/users/desktop-user/workspaces/default-workspace',
       },
       {
-        rel: 'diagrams',
-        href: '/api/workspaces/default-workspace/diagrams',
+        rel: 'diagram',
+        href: '/api/workspaces/default-workspace/diagram',
       },
       {
         rel: 'logical-entities',
@@ -230,7 +230,8 @@ describe('WebShell', () => {
     expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
     expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workspaces')).toBeNull();
-    expect(screen.getByText('Diagrams')).toBeTruthy();
+    expect(screen.queryByText('Diagram')).toBeNull();
+    expect(screen.getByText('Logical Entities')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();
   });

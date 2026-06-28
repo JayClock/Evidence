@@ -32,7 +32,6 @@ pub(in crate::api) struct EdgeModel {
 }
 
 pub(in crate::api) fn edge_model(workspace_id: &str, edge: &DiagramEdge) -> EdgeModel {
-    let diagram_id = edge.diagram_id();
     let edge_id = edge.identity();
     let description = edge.description();
 
@@ -40,19 +39,15 @@ pub(in crate::api) fn edge_model(workspace_id: &str, edge: &DiagramEdge) -> Edge
         links: BTreeMap::from([
             (
                 "self".to_string(),
-                Link::new(workspace_diagram_edge_href(
-                    workspace_id,
-                    diagram_id,
-                    edge_id,
-                )),
+                Link::new(workspace_diagram_edge_href(workspace_id, edge_id)),
             ),
             (
                 "collection".to_string(),
-                Link::new(workspace_diagram_edges_href(workspace_id, diagram_id)),
+                Link::new(workspace_diagram_edges_href(workspace_id)),
             ),
             (
                 "diagram".to_string(),
-                Link::new(workspace_diagram_href(workspace_id, diagram_id)),
+                Link::new(workspace_diagram_href(workspace_id)),
             ),
         ]),
         id: edge_id.to_string(),

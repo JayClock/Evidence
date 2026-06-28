@@ -270,7 +270,6 @@ fn initialize_evidence_directory(evidence_root: &Path) -> Result<(), ServerError
         evidence_root.to_path_buf(),
         evidence_root.join("entities"),
         evidence_root.join("associations"),
-        evidence_root.join("diagrams"),
     ] {
         fs::create_dir_all(&directory).map_err(|error| {
             ServerError::Internal(format!(
@@ -359,7 +358,6 @@ mod tests {
         );
         assert!(evidence_root.join("entities").is_dir());
         assert!(evidence_root.join("associations").is_dir());
-        assert!(evidence_root.join("diagrams").is_dir());
         assert_eq!(
             workspace_title_from_metadata(&metadata).as_deref(),
             repository_root.file_name().and_then(|name| name.to_str())

@@ -19,11 +19,11 @@ function sseResponse(text: string): Response {
 function diagramState(fetch: (init?: RequestInit) => Promise<Response>) {
   return {
     follow: vi.fn(() => ({
-      uri: 'https://api.example.test/api/workspaces/ws/diagrams/d1/propose-model',
+      uri: 'https://api.example.test/api/workspaces/ws/diagram/propose-model',
       fetch,
     })),
     getLink: vi.fn(() => ({
-      href: '/api/workspaces/ws/diagrams/d1/propose-model',
+      href: '/api/workspaces/ws/diagram/propose-model',
     })),
   } as unknown as State<DiagramResource>;
 }

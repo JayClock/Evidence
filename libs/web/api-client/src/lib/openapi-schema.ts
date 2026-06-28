@@ -132,23 +132,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['list_diagrams'];
-    put?: never;
-    post: operations['create_diagram'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}': {
+  '/api/workspaces/{workspaceId}/diagram': {
     parameters: {
       query?: never;
       header?: never;
@@ -156,15 +140,15 @@ export interface paths {
       cookie?: never;
     };
     get: operations['get_diagram'];
-    put: operations['update_diagram'];
+    put?: never;
     post?: never;
-    delete: operations['delete_diagram'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes': {
+  '/api/workspaces/{workspaceId}/diagram/nodes': {
     parameters: {
       query?: never;
       header?: never;
@@ -173,14 +157,14 @@ export interface paths {
     };
     get: operations['list_diagram_nodes'];
     put?: never;
-    post: operations['create_diagram_node'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}': {
+  '/api/workspaces/{workspaceId}/diagram/nodes/{nodeId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -188,15 +172,15 @@ export interface paths {
       cookie?: never;
     };
     get: operations['get_diagram_node'];
-    put: operations['update_diagram_node'];
+    put?: never;
     post?: never;
-    delete: operations['delete_diagram_node'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges': {
+  '/api/workspaces/{workspaceId}/diagram/edges': {
     parameters: {
       query?: never;
       header?: never;
@@ -205,14 +189,14 @@ export interface paths {
     };
     get: operations['list_diagram_edges'];
     put?: never;
-    post: operations['create_diagram_edge'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}': {
+  '/api/workspaces/{workspaceId}/diagram/edges/{edgeId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -220,15 +204,15 @@ export interface paths {
       cookie?: never;
     };
     get: operations['get_diagram_edge'];
-    put: operations['update_diagram_edge'];
+    put?: never;
     post?: never;
-    delete: operations['delete_diagram_edge'];
+    delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model': {
+  '/api/workspaces/{workspaceId}/diagram/propose-model': {
     parameters: {
       query?: never;
       header?: never;
@@ -321,9 +305,6 @@ export interface components {
         href: string;
       };
     };
-    CreateDiagramInput: {
-      title: string;
-    };
     CreateLogicalEntityInput: {
       content?: string;
       label?: string | null;
@@ -363,34 +344,6 @@ export interface components {
     EdgeCollectionResource: {
       _embedded: components['schemas']['EdgeCollectionEmbedded'];
       _links: components['schemas']['BTreeMap'];
-    };
-    EdgeInput: {
-      animated?: boolean | null;
-      data?: {
-        [key: string]: unknown;
-      } | null;
-      hidden?: boolean | null;
-      id?: string | null;
-      /** Format: double */
-      interactionWidth?: number | null;
-      kind?: string | null;
-      logicalRelationship?: null | components['schemas']['RefModel'];
-      markerEnd?: {
-        [key: string]: unknown;
-      } | null;
-      markerStart?: {
-        [key: string]: unknown;
-      } | null;
-      pathOptions?: {
-        [key: string]: unknown;
-      } | null;
-      source: components['schemas']['RefModel'];
-      sourceHandle?: string | null;
-      style?: {
-        [key: string]: unknown;
-      } | null;
-      target: components['schemas']['RefModel'];
-      targetHandle?: string | null;
     };
     EdgeResource: {
       _links: components['schemas']['BTreeMap'];
@@ -499,20 +452,6 @@ export interface components {
     NodeEmbedded: {
       'logical-entity': components['schemas']['LogicalEntityResource'];
     };
-    NodeInput: {
-      data?: {
-        [key: string]: unknown;
-      } | null;
-      /** Format: int64 */
-      height?: number | null;
-      id?: string | null;
-      kind: string;
-      logicalEntity?: null | components['schemas']['RefModel'];
-      parent?: null | components['schemas']['RefModel'];
-      position?: null | components['schemas']['Position'];
-      /** Format: int64 */
-      width?: number | null;
-    };
     NodeResource: {
       _embedded?: null | components['schemas']['NodeEmbedded'];
       _links: components['schemas']['BTreeMap'];
@@ -585,16 +524,6 @@ export interface components {
       required?: boolean | null;
       type?: string | null;
       value?: string | null;
-    };
-    UpdateDiagramInput: {
-      title?: string | null;
-      viewport?: null | components['schemas']['Viewport'];
-      /** Format: double */
-      'viewport.x'?: number | null;
-      /** Format: double */
-      'viewport.y'?: number | null;
-      /** Format: double */
-      'viewport.zoom'?: number | null;
     };
     UpdateLogicalEntityInput: {
       content?: string | null;
@@ -1306,136 +1235,12 @@ export interface operations {
       };
     };
   };
-  list_diagrams: {
-    parameters: {
-      query?: {
-        page?: number;
-        pageSize?: number;
-      };
-      header?: never;
-      path: {
-        workspaceId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram collection */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagrams+json': components['schemas']['DiagramCollectionResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  create_diagram: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateDiagramInput'];
-      };
-    };
-    responses: {
-      /** @description Created diagram */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagrams+json': components['schemas']['DiagramResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
   get_diagram: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
       };
       cookie?: never;
     };
@@ -1488,135 +1293,12 @@ export interface operations {
       };
     };
   };
-  update_diagram: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UpdateDiagramInput'];
-      };
-    };
-    responses: {
-      /** @description Updated diagram */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  delete_diagram: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram delete result */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DeletedResult'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
   list_diagram_nodes: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
       };
       cookie?: never;
     };
@@ -1669,76 +1351,12 @@ export interface operations {
       };
     };
   };
-  create_diagram_node: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NodeInput'];
-      };
-    };
-    responses: {
-      /** @description Created diagram node */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.nodes+json': components['schemas']['NodeResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
   get_diagram_node: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
         nodeId: string;
       };
       cookie?: never;
@@ -1792,137 +1410,12 @@ export interface operations {
       };
     };
   };
-  update_diagram_node: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-        nodeId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['NodeInput'];
-      };
-    };
-    responses: {
-      /** @description Updated diagram node */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.node+json': components['schemas']['NodeResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  delete_diagram_node: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-        nodeId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram node delete result */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.node+json': components['schemas']['DeletedResult'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
   list_diagram_edges: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
       };
       cookie?: never;
     };
@@ -1975,76 +1468,12 @@ export interface operations {
       };
     };
   };
-  create_diagram_edge: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['EdgeInput'];
-      };
-    };
-    responses: {
-      /** @description Created diagram edge */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.edges+json': components['schemas']['EdgeResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
   get_diagram_edge: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
         edgeId: string;
       };
       cookie?: never;
@@ -2098,137 +1527,12 @@ export interface operations {
       };
     };
   };
-  update_diagram_edge: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-        edgeId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['EdgeInput'];
-      };
-    };
-    responses: {
-      /** @description Updated diagram edge */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.edge+json': components['schemas']['EdgeResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  delete_diagram_edge: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-        edgeId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram edge delete result */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.edge+json': components['schemas']['DeletedResult'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
   get_diagram_for_propose_model: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
       };
       cookie?: never;
     };
@@ -2287,7 +1591,6 @@ export interface operations {
       header?: never;
       path: {
         workspaceId: string;
-        diagramId: string;
       };
       cookie?: never;
     };

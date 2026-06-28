@@ -112,6 +112,12 @@ mod sqlite_tests {
     }
 
     #[tokio::test]
+    async fn sqlite_workspace_has_one_diagram() {
+        let context = sqlite_test_context().await;
+        contracts::workspace_has_one_diagram(&context.users).await;
+    }
+
+    #[tokio::test]
     async fn sqlite_workspace_logical_entities_crud() {
         let context = sqlite_test_context().await;
         contracts::workspace_logical_entities_crud(&context.users).await;
@@ -175,6 +181,12 @@ mod postgres_tests {
     async fn pg_duplicate_member_is_conflict() {
         let context = pg_test_context().await;
         contracts::duplicate_member_is_conflict(&context.users).await;
+    }
+
+    #[tokio::test]
+    async fn pg_workspace_has_one_diagram() {
+        let context = pg_test_context().await;
+        contracts::workspace_has_one_diagram(&context.users).await;
     }
 
     #[tokio::test]

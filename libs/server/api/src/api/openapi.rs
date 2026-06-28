@@ -46,11 +46,7 @@ pub fn openapi_yaml() -> String {
         list_workspace_members,
         add_workspace_member,
         get_workspace_member,
-        list_diagrams,
-        create_diagram,
         get_diagram,
-        update_diagram,
-        delete_diagram,
         list_diagram_nodes,
         get_diagram_node,
         list_diagram_edges,
@@ -70,7 +66,6 @@ pub fn openapi_yaml() -> String {
     ),
     components(schemas(
         AddMemberInput,
-        CreateDiagramInput,
         CreateLogicalEntityInput,
         DeletedResult,
         DiagramCollectionResource,
@@ -98,7 +93,6 @@ pub fn openapi_yaml() -> String {
         SidebarItem,
         SidebarResource,
         SidebarSection,
-        UpdateDiagramInput,
         UpdateLogicalEntityInput,
         UserResource,
         Viewport,
@@ -307,24 +301,6 @@ pub struct Viewport {
 pub struct Position {
     pub x: f64,
     pub y: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct CreateDiagramInput {
-    pub title: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateDiagramInput {
-    pub title: Option<String>,
-    pub viewport: Option<Viewport>,
-    #[serde(rename = "viewport.x")]
-    pub viewport_x: Option<f64>,
-    #[serde(rename = "viewport.y")]
-    pub viewport_y: Option<f64>,
-    #[serde(rename = "viewport.zoom")]
-    pub viewport_zoom: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -700,37 +676,8 @@ fn get_workspace_member() {}
 
 #[utoipa::path(
     get,
-    path = "/api/workspaces/{workspaceId}/diagrams",
-    params(("workspaceId" = String, Path), ("page" = Option<u32>, Query), ("pageSize" = Option<u32>, Query)),
-    responses(
-        (status = 200, description = "Diagram collection", body = DiagramCollectionResource, content_type = "application/vnd.evidence.diagrams+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn list_diagrams() {}
-
-#[utoipa::path(
-    post,
-    path = "/api/workspaces/{workspaceId}/diagrams",
+    path = "/api/workspaces/{workspaceId}/diagram",
     params(("workspaceId" = String, Path)),
-    request_body(content = CreateDiagramInput, content_type = "application/json"),
-    responses(
-        (status = 201, description = "Created diagram", body = DiagramResource, content_type = "application/vnd.evidence.diagrams+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn create_diagram() {}
-
-#[utoipa::path(
-    get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
     responses(
         (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
@@ -742,38 +689,9 @@ fn create_diagram() {}
 fn get_diagram() {}
 
 #[utoipa::path(
-    put,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    request_body(content = UpdateDiagramInput, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Updated diagram", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn update_diagram() {}
-
-#[utoipa::path(
-    delete,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    responses(
-        (status = 200, description = "Diagram delete result", body = DeletedResult, content_type = "application/vnd.evidence.diagram+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn delete_diagram() {}
-
-#[utoipa::path(
     get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
+    path = "/api/workspaces/{workspaceId}/diagram/nodes",
+    params(("workspaceId" = String, Path)),
     responses(
         (status = 200, description = "Diagram node collection", body = NodeCollectionResource, content_type = "application/vnd.evidence.nodes+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
@@ -786,8 +704,8 @@ fn list_diagram_nodes() {}
 
 #[utoipa::path(
     get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("nodeId" = String, Path)),
+    path = "/api/workspaces/{workspaceId}/diagram/nodes/{nodeId}",
+    params(("workspaceId" = String, Path), ("nodeId" = String, Path)),
     responses(
         (status = 200, description = "Diagram node resource", body = NodeResource, content_type = "application/vnd.evidence.node+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
@@ -800,8 +718,8 @@ fn get_diagram_node() {}
 
 #[utoipa::path(
     get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
+    path = "/api/workspaces/{workspaceId}/diagram/edges",
+    params(("workspaceId" = String, Path)),
     responses(
         (status = 200, description = "Diagram edge collection", body = EdgeCollectionResource, content_type = "application/vnd.evidence.edges+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
@@ -814,8 +732,8 @@ fn list_diagram_edges() {}
 
 #[utoipa::path(
     get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path), ("edgeId" = String, Path)),
+    path = "/api/workspaces/{workspaceId}/diagram/edges/{edgeId}",
+    params(("workspaceId" = String, Path), ("edgeId" = String, Path)),
     responses(
         (status = 200, description = "Diagram edge resource", body = EdgeResource, content_type = "application/vnd.evidence.edge+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
@@ -828,8 +746,8 @@ fn get_diagram_edge() {}
 
 #[utoipa::path(
     get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
+    path = "/api/workspaces/{workspaceId}/diagram/propose-model",
+    params(("workspaceId" = String, Path)),
     responses(
         (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
         (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
@@ -842,8 +760,8 @@ fn get_diagram_for_propose_model() {}
 
 #[utoipa::path(
     post,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
+    path = "/api/workspaces/{workspaceId}/diagram/propose-model",
+    params(("workspaceId" = String, Path)),
     request_body(content = ProposeModelInput, content_type = "application/json"),
     responses(
         (status = 200, description = "Server-sent modeling proposal stream", content_type = "text/event-stream", body = String),

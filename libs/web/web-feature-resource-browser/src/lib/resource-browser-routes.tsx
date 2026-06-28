@@ -1,5 +1,5 @@
 import { Suspense, use, useMemo } from 'react';
-import { Link, Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import {
   apiClient,
   normalizeContentType,
@@ -195,32 +195,31 @@ function WorkspaceDetailView({
 }: {
   resourceState: State<WorkspaceResource>;
 }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>Workspace</CardDescription>
-        <CardTitle>{resourceState.data.title}</CardTitle>
-        <CardDescription>
-          {resourceState.data.description ?? 'No description'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ResourceLinks links={resourceState.links.getAll()} />
-      </CardContent>
-    </Card>
+  const diagramResource = useMemo(
+    () => resourceState.follow('diagram'),
+    [resourceState],
   );
-}
+  const diagram = useResource<DiagramResource>(diagramResource);
 
-function ResourceLinks({ links }: { links: HalLink[] }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {links.map((link) => (
-        <Badge key={`${link.rel}:${link.href}`} asChild variant="secondary">
-          <Link to={link.href}>{link.rel}</Link>
-        </Badge>
-      ))}
-    </div>
-  );
+  if (diagram.loading) {
+    return (
+      <LoadingCard title="Loading diagram" detail="Following rel=diagram…" />
+    );
+  }
+
+  if (diagram.error) {
+    return (
+      <ErrorAlert title="Diagram unavailable" detail={diagram.error.message} />
+    );
+  }
+
+  if (!diagram.resourceState) {
+    return (
+      <LoadingCard title="Loading diagram" detail="Following rel=diagram…" />
+    );
+  }
+
+  return <DiagramDetailView resourceState={diagram.resourceState} />;
 }
 
 function UnknownResourceView({

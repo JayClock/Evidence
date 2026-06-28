@@ -10,8 +10,7 @@ use crate::domain::ServerError;
 use super::{
     error::ApiError,
     links::{
-        user_href, user_sidebar_href, user_workspaces_href, workspace_diagrams_href,
-        workspace_logical_entities_href, Link,
+        user_href, user_sidebar_href, user_workspaces_href, workspace_logical_entities_href, Link,
     },
     AppState,
 };
@@ -46,14 +45,6 @@ pub(super) fn sidebar_resource(user_id: &str, workspace_id: Option<&str>) -> Val
     })];
 
     if let Some(workspace_id) = workspace_id {
-        items.push(json!({
-            "key": "diagrams",
-            "label": "Diagrams",
-            "type": "resource",
-            "href": workspace_diagrams_href(workspace_id),
-            "path": workspace_diagrams_href(workspace_id),
-            "icon": "network",
-        }));
         items.push(json!({
             "key": "logical-entities",
             "label": "Logical Entities",
@@ -97,17 +88,12 @@ mod tests {
             sidebar["sections"][0]["items"][0]["path"],
             "/api/users/desktop-user/workspaces"
         );
-        assert_eq!(sidebar["sections"][0]["items"][1]["label"], "Diagrams");
         assert_eq!(
-            sidebar["sections"][0]["items"][1]["path"],
-            "/api/workspaces/default-workspace/diagrams"
-        );
-        assert_eq!(
-            sidebar["sections"][0]["items"][2]["label"],
+            sidebar["sections"][0]["items"][1]["label"],
             "Logical Entities"
         );
         assert_eq!(
-            sidebar["sections"][0]["items"][2]["path"],
+            sidebar["sections"][0]["items"][1]["path"],
             "/api/workspaces/default-workspace/logical-entities"
         );
     }

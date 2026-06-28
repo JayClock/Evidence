@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::core::{Entity, HasMany};
-use super::diagram::{Diagram, WorkspaceDiagrams};
+use super::core::{Entity, HasMany, HasOne};
+use super::diagram::{Diagram, WorkspaceDiagram};
 use super::logical_entity::{LogicalEntity, WorkspaceLogicalEntities};
 use super::logical_relationship::{LogicalRelationship, WorkspaceLogicalRelationships};
 use super::member::{Member, WorkspaceMembers};
@@ -21,7 +21,7 @@ pub struct Workspace {
     identity: String,
     description: WorkspaceDescription,
     members: Arc<dyn WorkspaceMembers>,
-    diagrams: Arc<dyn WorkspaceDiagrams>,
+    diagram: Arc<dyn WorkspaceDiagram>,
     logical_entities: Arc<dyn WorkspaceLogicalEntities>,
     logical_relationships: Arc<dyn WorkspaceLogicalRelationships>,
 }
@@ -31,7 +31,7 @@ impl Workspace {
         identity: String,
         description: WorkspaceDescription,
         members: Arc<dyn WorkspaceMembers>,
-        diagrams: Arc<dyn WorkspaceDiagrams>,
+        diagram: Arc<dyn WorkspaceDiagram>,
         logical_entities: Arc<dyn WorkspaceLogicalEntities>,
         logical_relationships: Arc<dyn WorkspaceLogicalRelationships>,
     ) -> Self {
@@ -39,7 +39,7 @@ impl Workspace {
             identity,
             description,
             members,
-            diagrams,
+            diagram,
             logical_entities,
             logical_relationships,
         }
@@ -61,12 +61,8 @@ impl Workspace {
         self.members.as_ref()
     }
 
-    pub fn diagrams(&self) -> &dyn HasMany<Diagram> {
-        self.diagrams.as_ref()
-    }
-
-    pub fn diagrams_wide(&self) -> &dyn WorkspaceDiagrams {
-        self.diagrams.as_ref()
+    pub fn diagram(&self) -> &dyn HasOne<Diagram> {
+        self.diagram.as_ref()
     }
 
     pub fn logical_entities(&self) -> &dyn HasMany<LogicalEntity> {

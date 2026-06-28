@@ -263,7 +263,7 @@ mod tests {
         let edge = parse_markdown_edge(
             "diagram-1",
             PathBuf::from("workspace-has-diagrams.md"),
-            "---\nid: assoc_workspace_has_diagrams\nkind: association\nname: WorkspaceHasDiagrams\nlabel: Workspace has diagrams\nsource: workspace\ntarget: diagram\nrelationshipType: has_many\ndirection: directed\ncardinality: one-to-many\nsummary: Workspace contains diagrams.\n---\n# Workspace → Diagram\n",
+            "---\nid: assoc_workspace_has_diagrams\nkind: association\nname: WorkspaceHasDiagram\nlabel: Workspace has diagram\nsource: workspace\ntarget: diagram\nrelationshipType: has_one\ndirection: directed\ncardinality: one-to-one\nsummary: Workspace contains one diagram.\n---\n# Workspace → Diagram\n",
         )
         .unwrap()
         .into_edge();
@@ -281,7 +281,7 @@ mod tests {
         );
         assert_eq!(
             edge.description().data.get("relationType"),
-            Some(&json!("has_many"))
+            Some(&json!("has_one"))
         );
         assert!(edge.description().animated);
     }

@@ -315,15 +315,6 @@ function sidebarItemResourcePath(
   item: SidebarItem,
   activeWorkspaceState?: State<WorkspaceResource>,
 ) {
-  if (activeWorkspaceState && item.key === 'diagrams') {
-    return (
-      workspaceHref(activeWorkspaceState, 'diagrams') ??
-      item.href ??
-      item.path ??
-      '#'
-    );
-  }
-
   if (activeWorkspaceState && item.key === 'logical-entities') {
     return (
       workspaceHref(activeWorkspaceState, 'logical-entities') ??

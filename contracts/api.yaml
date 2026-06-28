@@ -507,118 +507,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams:
-    get:
-      tags: []
-      operationId: list_diagrams
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            minimum: 0
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            format: int32
-            minimum: 0
-      responses:
-        '200':
-          description: Diagram collection
-          content:
-            application/vnd.evidence.diagrams+json:
-              schema:
-                $ref: '#/components/schemas/DiagramCollectionResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-    post:
-      tags: []
-      operationId: create_diagram
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateDiagramInput'
-        required: true
-      responses:
-        '201':
-          description: Created diagram
-          content:
-            application/vnd.evidence.diagrams+json:
-              schema:
-                $ref: '#/components/schemas/DiagramResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}:
+  /api/workspaces/{workspaceId}/diagram:
     get:
       tags: []
       operationId: get_diagram
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -654,113 +548,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-    put:
-      tags: []
-      operationId: update_diagram
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateDiagramInput'
-        required: true
-      responses:
-        '200':
-          description: Updated diagram
-          content:
-            application/vnd.evidence.diagram+json:
-              schema:
-                $ref: '#/components/schemas/DiagramResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-    delete:
-      tags: []
-      operationId: delete_diagram
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Diagram delete result
-          content:
-            application/vnd.evidence.diagram+json:
-              schema:
-                $ref: '#/components/schemas/DeletedResult'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes:
+  /api/workspaces/{workspaceId}/diagram/nodes:
     get:
       tags: []
       operationId: list_diagram_nodes
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -796,68 +589,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-    post:
-      tags: []
-      operationId: create_diagram_node
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NodeInput'
-        required: true
-      responses:
-        '200':
-          description: Created diagram node
-          content:
-            application/vnd.evidence.nodes+json:
-              schema:
-                $ref: '#/components/schemas/NodeResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}:
+  /api/workspaces/{workspaceId}/diagram/nodes/{nodeId}:
     get:
       tags: []
       operationId: get_diagram_node
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -898,123 +635,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-    put:
-      tags: []
-      operationId: update_diagram_node
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: nodeId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/NodeInput'
-        required: true
-      responses:
-        '200':
-          description: Updated diagram node
-          content:
-            application/vnd.evidence.node+json:
-              schema:
-                $ref: '#/components/schemas/NodeResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-    delete:
-      tags: []
-      operationId: delete_diagram_node
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: nodeId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Diagram node delete result
-          content:
-            application/vnd.evidence.node+json:
-              schema:
-                $ref: '#/components/schemas/DeletedResult'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}/edges:
+  /api/workspaces/{workspaceId}/diagram/edges:
     get:
       tags: []
       operationId: list_diagram_edges
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -1050,68 +676,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-    post:
-      tags: []
-      operationId: create_diagram_edge
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EdgeInput'
-        required: true
-      responses:
-        '200':
-          description: Created diagram edge
-          content:
-            application/vnd.evidence.edges+json:
-              schema:
-                $ref: '#/components/schemas/EdgeResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}:
+  /api/workspaces/{workspaceId}/diagram/edges/{edgeId}:
     get:
       tags: []
       operationId: get_diagram_edge
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -1152,123 +722,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-    put:
-      tags: []
-      operationId: update_diagram_edge
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: edgeId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EdgeInput'
-        required: true
-      responses:
-        '200':
-          description: Updated diagram edge
-          content:
-            application/vnd.evidence.edge+json:
-              schema:
-                $ref: '#/components/schemas/EdgeResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-    delete:
-      tags: []
-      operationId: delete_diagram_edge
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: edgeId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Diagram edge delete result
-          content:
-            application/vnd.evidence.edge+json:
-              schema:
-                $ref: '#/components/schemas/DeletedResult'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model:
+  /api/workspaces/{workspaceId}/diagram/propose-model:
     get:
       tags: []
       operationId: get_diagram_for_propose_model
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -1309,11 +768,6 @@ paths:
       operationId: propose_diagram_model
       parameters:
         - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: diagramId
           in: path
           required: true
           schema:
@@ -1865,13 +1319,6 @@ components:
             type: string
       propertyNames:
         type: string
-    CreateDiagramInput:
-      type: object
-      required:
-        - title
-      properties:
-        title:
-          type: string
     CreateLogicalEntityInput:
       type: object
       required:
@@ -1982,84 +1429,6 @@ components:
           $ref: '#/components/schemas/EdgeCollectionEmbedded'
         _links:
           $ref: '#/components/schemas/BTreeMap'
-    EdgeInput:
-      type: object
-      required:
-        - source
-        - target
-      properties:
-        animated:
-          type:
-            - boolean
-            - 'null'
-        data:
-          type:
-            - object
-            - 'null'
-          additionalProperties: {}
-          propertyNames:
-            type: string
-        hidden:
-          type:
-            - boolean
-            - 'null'
-        id:
-          type:
-            - string
-            - 'null'
-        interactionWidth:
-          type:
-            - number
-            - 'null'
-          format: double
-        kind:
-          type:
-            - string
-            - 'null'
-        logicalRelationship:
-          oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/RefModel'
-        markerEnd:
-          type:
-            - object
-            - 'null'
-          additionalProperties: {}
-          propertyNames:
-            type: string
-        markerStart:
-          type:
-            - object
-            - 'null'
-          additionalProperties: {}
-          propertyNames:
-            type: string
-        pathOptions:
-          type:
-            - object
-            - 'null'
-          additionalProperties: {}
-          propertyNames:
-            type: string
-        source:
-          $ref: '#/components/schemas/RefModel'
-        sourceHandle:
-          type:
-            - string
-            - 'null'
-        style:
-          type:
-            - object
-            - 'null'
-          additionalProperties: {}
-          propertyNames:
-            type: string
-        target:
-          $ref: '#/components/schemas/RefModel'
-        targetHandle:
-          type:
-            - string
-            - 'null'
     EdgeResource:
       type: object
       required:
@@ -2350,46 +1719,6 @@ components:
       properties:
         logical-entity:
           $ref: '#/components/schemas/LogicalEntityResource'
-    NodeInput:
-      type: object
-      required:
-        - kind
-      properties:
-        data:
-          type:
-            - object
-            - 'null'
-          additionalProperties: {}
-          propertyNames:
-            type: string
-        height:
-          type:
-            - integer
-            - 'null'
-          format: int64
-        id:
-          type:
-            - string
-            - 'null'
-        kind:
-          type: string
-        logicalEntity:
-          oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/RefModel'
-        parent:
-          oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/RefModel'
-        position:
-          oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/Position'
-        width:
-          type:
-            - integer
-            - 'null'
-          format: int64
     NodeResource:
       type: object
       required:
@@ -2590,32 +1919,6 @@ components:
           type:
             - string
             - 'null'
-    UpdateDiagramInput:
-      type: object
-      properties:
-        title:
-          type:
-            - string
-            - 'null'
-        viewport:
-          oneOf:
-            - type: 'null'
-            - $ref: '#/components/schemas/Viewport'
-        viewport.x:
-          type:
-            - number
-            - 'null'
-          format: double
-        viewport.y:
-          type:
-            - number
-            - 'null'
-          format: double
-        viewport.zoom:
-          type:
-            - number
-            - 'null'
-          format: double
     UpdateLogicalEntityInput:
       type: object
       properties:

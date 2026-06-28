@@ -9,12 +9,12 @@ mod user_workspaces;
 mod users;
 mod workspace;
 
-pub use core::{Entity, HasMany, Ref};
+pub use core::{Entity, HasMany, HasOne, Ref};
 pub use diagram::{
     Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
     DomainArchitect, DomainArchitectEventStream, EdgeDescription, JsonObject, ModelingDraftEntity,
     ModelingDraftRelationship, ModelingEvent, ModelingProposal, ModelingProposalChanges,
-    NodeDescription, Position, Viewport, WorkspaceDiagrams,
+    NodeDescription, Position, Viewport, WorkspaceDiagram,
 };
 pub use error::ServerError;
 pub use logical_entity::{

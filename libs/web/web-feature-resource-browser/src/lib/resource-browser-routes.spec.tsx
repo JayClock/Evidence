@@ -48,9 +48,19 @@ vi.mock('@evidence/api-client', () => {
   };
 });
 
+vi.mock('@evidence/web-feature-diagrams', () => ({
+  DiagramCollectionView: () => <div>Diagram collection</div>,
+  DiagramDetailView: () => <div>Diagram detail</div>,
+}));
+
 type ResourceMarker =
   | {
-      kind: 'health' | 'workspaces';
+      kind:
+        | 'health'
+        | 'workspaces'
+        | 'diagram'
+        | 'diagram-nodes'
+        | 'diagram-edges';
     }
   | {
       kind: 'dynamic';
@@ -85,7 +95,10 @@ const workspaceState = {
     title: 'Default Workspace',
     description: 'Seed workspace for local desktop usage',
   },
-  links: links('self', 'members', 'diagrams', 'logical-entities'),
+  follow: (rel: string): ResourceMarker => ({
+    kind: rel === 'diagram' ? 'diagram' : 'workspaces',
+  }),
+  links: links('self', 'members', 'diagram', 'logical-entities'),
   contentHeaders: () =>
     new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
 };
@@ -101,25 +114,27 @@ const workspaceCollectionState = {
     new Headers({ 'content-type': 'application/vnd.evidence.workspaces+json' }),
 };
 
-const diagramCollectionState = {
+const diagramState = {
   data: {
-    page: {
-      totalElements: 1,
-    },
+    id: 'model',
+    title: 'Model',
+    createdAt: '2026-01-02T03:04:05Z',
+    updatedAt: '2026-01-03T04:05:06Z',
   },
-  collection: [
-    {
-      data: {
-        id: 'diagram-1',
-        title: 'Fulfillment Flow',
-        createdAt: '2026-01-02T03:04:05Z',
-        updatedAt: '2026-01-03T04:05:06Z',
-      },
-      links: links('self', 'workspace'),
-    },
-  ],
+  follow: (rel: string): ResourceMarker => ({
+    kind: rel === 'nodes' ? 'diagram-nodes' : 'diagram-edges',
+  }),
+  links: links('self', 'workspace', 'nodes', 'edges'),
   contentHeaders: () =>
-    new Headers({ 'content-type': 'application/vnd.evidence.diagrams+json' }),
+    new Headers({ 'content-type': 'application/vnd.evidence.diagram+json' }),
+};
+
+const diagramNodeCollectionState = {
+  collection: [],
+};
+
+const diagramEdgeCollectionState = {
+  collection: [],
 };
 
 const logicalEntityCollectionState = {
@@ -159,7 +174,11 @@ function dynamicStateForPath(path: string) {
     return workspaceCollectionState;
   }
 
-  return diagramCollectionState;
+  if (path === '/api/users/desktop-user/workspaces/default-workspace') {
+    return workspaceState;
+  }
+
+  return diagramState;
 }
 
 const useResourceMock = useResource as unknown as Mock;
@@ -191,11 +210,29 @@ describe('ResourceBrowserRoutes', () => {
             error: null,
             resourceState: workspaceCollectionState,
           };
+        case 'diagram':
+          return {
+            loading: false,
+            error: null,
+            resourceState: diagramState,
+          };
+        case 'diagram-nodes':
+          return {
+            loading: false,
+            error: null,
+            resourceState: diagramNodeCollectionState,
+          };
+        case 'diagram-edges':
+          return {
+            loading: false,
+            error: null,
+            resourceState: diagramEdgeCollectionState,
+          };
         case 'dynamic':
           return {
             loading: false,
             error: null,
-            resourceState: diagramCollectionState,
+            resourceState: diagramState,
           };
       }
     });
@@ -226,13 +263,12 @@ describe('ResourceBrowserRoutes', () => {
     expect(screen.getByText('evidence-server: ok')).toBeTruthy();
   });
 
-  it('renders diagrams as a table for diagram collection resources', async () => {
+  it('renders the projected diagram on the workspace home resource', async () => {
     await act(async () => {
-      renderRoutes('/workspaces/default-workspace/diagrams');
+      renderRoutes('/users/desktop-user/workspaces/default-workspace');
     });
 
-    expect(await screen.findByRole('table')).toBeTruthy();
-    expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
+    expect(await screen.findByText('Diagram detail')).toBeTruthy();
   });
 
   it('renders logical entities as a table for logical entity collection resources', async () => {

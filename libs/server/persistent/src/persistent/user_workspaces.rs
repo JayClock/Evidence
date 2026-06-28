@@ -18,7 +18,7 @@ use super::{
         normalize_workspace_metadata, now, workspace_title_from_metadata, workspace_to_record,
         DbStore, WorkspaceRecord,
     },
-    workspace_diagrams::DbWorkspaceDiagrams,
+    workspace_diagrams::DbWorkspaceDiagram,
     workspace_members::DbWorkspaceMembers,
 };
 
@@ -69,7 +69,7 @@ impl DbUserWorkspaces {
                 self.store.clone(),
                 record.id.clone(),
             )),
-            Arc::new(DbWorkspaceDiagrams::new(
+            Arc::new(DbWorkspaceDiagram::new(
                 self.store.clone(),
                 record.id.clone(),
                 evidence_root.clone(),

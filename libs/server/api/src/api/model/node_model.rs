@@ -39,26 +39,21 @@ pub(in crate::api) fn node_model(
     node: &DiagramNode,
     logical_entity: Option<&LogicalEntity>,
 ) -> NodeModel {
-    let diagram_id = node.diagram_id();
     let node_id = node.identity();
     let description = node.description();
 
     let mut links = BTreeMap::from([
         (
             "self".to_string(),
-            Link::new(workspace_diagram_node_href(
-                workspace_id,
-                diagram_id,
-                node_id,
-            )),
+            Link::new(workspace_diagram_node_href(workspace_id, node_id)),
         ),
         (
             "collection".to_string(),
-            Link::new(workspace_diagram_nodes_href(workspace_id, diagram_id)),
+            Link::new(workspace_diagram_nodes_href(workspace_id)),
         ),
         (
             "diagram".to_string(),
-            Link::new(workspace_diagram_href(workspace_id, diagram_id)),
+            Link::new(workspace_diagram_href(workspace_id)),
         ),
     ]);
 

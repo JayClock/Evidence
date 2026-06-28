@@ -10,7 +10,7 @@ const links = (...rels: string[]) => ({
       rel,
       href:
         rel === 'self'
-          ? '/api/workspaces/default-workspace/diagrams/diagram-1'
+          ? '/api/workspaces/default-workspace/diagram'
           : `/api/${rel}`,
     })),
 });
@@ -54,7 +54,7 @@ describe('DiagramCollectionView', () => {
           getAttribute(name: string): string | null;
         }
       ).getAttribute('href'),
-    ).toBe('/api/workspaces/default-workspace/diagrams/diagram-1');
+    ).toBe('/api/workspaces/default-workspace/diagram');
   });
 
   it('renders an empty table state', () => {

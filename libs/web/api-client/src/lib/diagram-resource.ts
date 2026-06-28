@@ -82,7 +82,6 @@ export type DiagramResource = Entity<
   DiagramResourceData,
   {
     self: DiagramResource;
-    collection: DiagramCollectionResource;
     workspace: WorkspaceResource;
     nodes: DiagramNodeCollectionResource;
     edges: DiagramEdgeCollectionResource;

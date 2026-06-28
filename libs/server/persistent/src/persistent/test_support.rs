@@ -8,9 +8,9 @@ use uuid::Uuid;
 
 use crate::domain::{
     normalize_sub_type, Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode,
-    DiagramNodes, HasMany, LogicalEntity, LogicalEntityDescription, LogicalRelationship,
+    DiagramNodes, HasMany, HasOne, LogicalEntity, LogicalEntityDescription, LogicalRelationship,
     LogicalRelationshipDescription, Member, MemberDescription, Ref, ServerError, User,
-    UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription, WorkspaceDiagrams,
+    UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription, WorkspaceDiagram,
     WorkspaceLogicalEntities, WorkspaceLogicalRelationships, WorkspaceMembers,
 };
 
@@ -372,6 +372,24 @@ impl FakeWorkspaceDiagrams {
         )
     }
 
+    fn default_record(&self) -> DiagramRecord {
+        let timestamp = now();
+        DiagramRecord {
+            id: "model".to_string(),
+            workspace_id: self.workspace_id.clone(),
+            description: DiagramDescription {
+                workspace: Ref::new(self.workspace_id.clone()),
+                title: "Model".to_string(),
+                viewport: Default::default(),
+                created_at: timestamp.clone(),
+                updated_at: timestamp.clone(),
+            },
+            created_at: timestamp.clone(),
+            updated_at: timestamp,
+            deleted_at: None,
+        }
+    }
+
     fn matching_records(&self, store: &FakeStore) -> Vec<DiagramRecord> {
         let mut rows = store
             .diagrams
@@ -386,121 +404,19 @@ impl FakeWorkspaceDiagrams {
 }
 
 #[async_trait]
-impl HasMany<Diagram> for FakeWorkspaceDiagrams {
-    async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Diagram>, ServerError> {
+impl HasOne<Diagram> for FakeWorkspaceDiagrams {
+    async fn get(&self) -> Result<Diagram, ServerError> {
         let store = self.store.read().expect("fake store read lock poisoned");
-        Ok(self
+        let record = self
             .matching_records(&store)
             .into_iter()
-            .skip(from)
-            .take(to.saturating_sub(from))
-            .map(|record| self.assemble(record))
-            .collect())
-    }
-
-    async fn find_by_identity(&self, id: &str) -> Result<Option<Diagram>, ServerError> {
-        let store = self.store.read().expect("fake store read lock poisoned");
-        Ok(store
-            .diagrams
-            .get(id)
-            .filter(|diagram| diagram.workspace_id == self.workspace_id)
-            .filter(|diagram| diagram.deleted_at.is_none())
-            .cloned()
-            .map(|record| self.assemble(record)))
-    }
-
-    async fn size(&self) -> Result<usize, ServerError> {
-        let store = self.store.read().expect("fake store read lock poisoned");
-        Ok(self.matching_records(&store).len())
-    }
-}
-
-#[async_trait]
-impl WorkspaceDiagrams for FakeWorkspaceDiagrams {
-    async fn add(&self, desc: DiagramDescription) -> Result<Diagram, ServerError> {
-        if desc.title.trim().is_empty() {
-            return Err(ServerError::Validation(
-                "diagram title must not be empty".to_string(),
-            ));
-        }
-        let id = Uuid::new_v4().to_string();
-        let timestamp = now();
-        let mut description = desc;
-        description.workspace = Ref::new(self.workspace_id.clone());
-        description.created_at = timestamp.clone();
-        description.updated_at = timestamp.clone();
-        let record = DiagramRecord {
-            id: id.clone(),
-            workspace_id: self.workspace_id.clone(),
-            description,
-            created_at: timestamp.clone(),
-            updated_at: timestamp,
-            deleted_at: None,
-        };
-        self.store
-            .write()
-            .expect("fake store write lock poisoned")
-            .diagrams
-            .insert(id, record.clone());
+            .next()
+            .unwrap_or_else(|| self.default_record());
         Ok(self.assemble(record))
     }
-
-    async fn update(
-        &self,
-        diagram_id: &str,
-        desc: DiagramDescription,
-    ) -> Result<Diagram, ServerError> {
-        let mut store = self.store.write().expect("fake store write lock poisoned");
-        let diagram = store
-            .diagrams
-            .get_mut(diagram_id)
-            .filter(|diagram| diagram.workspace_id == self.workspace_id)
-            .filter(|diagram| diagram.deleted_at.is_none())
-            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let timestamp = now();
-        let mut description = desc;
-        description.workspace = Ref::new(diagram.workspace_id.clone());
-        description.created_at = diagram.created_at.clone();
-        description.updated_at = timestamp.clone();
-        diagram.description = description;
-        diagram.updated_at = timestamp;
-        Ok(self.assemble(diagram.clone()))
-    }
-
-    async fn delete(&self, diagram_id: &str) -> Result<(), ServerError> {
-        let mut store = self.store.write().expect("fake store write lock poisoned");
-        let diagram = store
-            .diagrams
-            .get_mut(diagram_id)
-            .filter(|diagram| diagram.workspace_id == self.workspace_id)
-            .filter(|diagram| diagram.deleted_at.is_none())
-            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let timestamp = now();
-        diagram.deleted_at = Some(timestamp.clone());
-        diagram.updated_at = timestamp;
-        Ok(())
-    }
-
-    async fn list(&self, page: u32, page_size: u32) -> Result<(Vec<Diagram>, u64), ServerError> {
-        if page == 0 || page_size == 0 {
-            return Err(ServerError::Validation(
-                "page and pageSize must be greater than 0".to_string(),
-            ));
-        }
-        let store = self.store.read().expect("fake store read lock poisoned");
-        let rows = self.matching_records(&store);
-        let total = rows.len() as u64;
-        let offset = ((page - 1) * page_size) as usize;
-        Ok((
-            rows.into_iter()
-                .skip(offset)
-                .take(page_size as usize)
-                .map(|record| self.assemble(record))
-                .collect(),
-            total,
-        ))
-    }
 }
+
+impl WorkspaceDiagram for FakeWorkspaceDiagrams {}
 
 struct FakeWorkspaceLogicalEntities {
     store: SharedFakeStore,
@@ -1139,6 +1055,20 @@ pub(crate) mod contracts {
         assert!(matches!(result, Err(ServerError::Conflict(_))));
     }
 
+    pub(crate) async fn workspace_has_one_diagram(users: &dyn Users) {
+        let workspace = users
+            .workspaces()
+            .find_by_identity("default-workspace")
+            .await
+            .unwrap()
+            .expect("seed workspace");
+
+        let diagram = workspace.diagram().get().await.unwrap();
+
+        assert!(!diagram.identity().is_empty());
+        assert_eq!(diagram.workspace_id(), "default-workspace");
+    }
+
     pub(crate) async fn workspace_logical_relationships_crud(users: &dyn Users) {
         let workspace = users
             .workspaces()
@@ -1332,6 +1262,11 @@ mod tests {
     #[tokio::test]
     async fn fake_duplicate_member_is_conflict() {
         contracts::duplicate_member_is_conflict(&FakeUsers::new()).await;
+    }
+
+    #[tokio::test]
+    async fn fake_workspace_has_one_diagram() {
+        contracts::workspace_has_one_diagram(&FakeUsers::new()).await;
     }
 
     #[tokio::test]

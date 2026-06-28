@@ -1,6 +1,5 @@
 use axum::{
-    extract::{Path, Query, State},
-    http::{header, HeaderName, StatusCode},
+    extract::{Path, State},
     response::sse::{Event, Sse},
     routing::get,
     Json, Router,
@@ -9,10 +8,7 @@ use futures_util::StreamExt;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-use crate::domain::{
-    Diagram, DiagramDescription, DiagramEdge, DiagramNode, ModelingEvent, Ref, ServerError,
-    Viewport, Workspace,
-};
+use crate::domain::{Diagram, DiagramEdge, DiagramNode, ModelingEvent, ServerError, Workspace};
 
 use super::{
     error::ApiError,
@@ -20,32 +16,6 @@ use super::{
     model::{diagram_model, edge_model, node_model, DiagramModel, EdgeModel, NodeModel},
     AppState,
 };
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct PageQuery {
-    page: Option<u32>,
-    page_size: Option<u32>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CreateDiagramInput {
-    title: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct UpdateDiagramInput {
-    title: Option<String>,
-    viewport: Option<Viewport>,
-    #[serde(rename = "viewport.x")]
-    viewport_x: Option<f64>,
-    #[serde(rename = "viewport.y")]
-    viewport_y: Option<f64>,
-    #[serde(rename = "viewport.zoom")]
-    viewport_zoom: Option<f64>,
-}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -65,114 +35,25 @@ async fn load_workspace(state: &AppState, workspace_id: &str) -> Result<Workspac
 async fn load_diagram(
     state: &AppState,
     workspace_id: &str,
-    diagram_id: &str,
 ) -> Result<(Workspace, Diagram), ApiError> {
     let workspace = load_workspace(state, workspace_id).await?;
-    let diagram = workspace
-        .diagrams()
-        .find_by_identity(diagram_id)
-        .await?
-        .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
+    let diagram = workspace.diagram().get().await?;
     Ok((workspace, diagram))
-}
-
-async fn list_diagrams(
-    State(state): State<AppState>,
-    Path(workspace_id): Path<String>,
-    Query(query): Query<PageQuery>,
-) -> Result<Json<Value>, ApiError> {
-    let workspace = load_workspace(&state, &workspace_id).await?;
-    let page = query.page.unwrap_or(1);
-    let page_size = query.page_size.unwrap_or(50).min(100);
-    let (diagrams, total) = workspace.diagrams_wide().list(page, page_size).await?;
-    Ok(Json(diagram_collection_resource(
-        &workspace_id,
-        &diagrams,
-        page,
-        page_size,
-        total,
-    )))
-}
-
-async fn create_diagram(
-    State(state): State<AppState>,
-    Path(workspace_id): Path<String>,
-    Json(input): Json<CreateDiagramInput>,
-) -> Result<(StatusCode, [(HeaderName, String); 1], Json<Value>), ApiError> {
-    let workspace = load_workspace(&state, &workspace_id).await?;
-    let diagram = workspace
-        .diagrams_wide()
-        .add(DiagramDescription {
-            workspace: Ref::new(workspace_id.clone()),
-            title: input.title,
-            viewport: Viewport::default(),
-            created_at: String::new(),
-            updated_at: String::new(),
-        })
-        .await?;
-    let location = diagram_href(&workspace_id, diagram.identity());
-    Ok((
-        StatusCode::CREATED,
-        [(header::LOCATION, location)],
-        Json(diagram_resource(&diagram)),
-    ))
 }
 
 async fn get_diagram(
     State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
+    Path(workspace_id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (_, diagram) = load_diagram(&state, &workspace_id).await?;
     Ok(Json(diagram_resource(&diagram)))
-}
-
-async fn update_diagram(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-    Json(input): Json<UpdateDiagramInput>,
-) -> Result<Json<Value>, ApiError> {
-    let (workspace, existing) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let current = existing.description();
-    let mut viewport = input.viewport.unwrap_or_else(|| current.viewport.clone());
-    if let Some(x) = input.viewport_x {
-        viewport.x = x;
-    }
-    if let Some(y) = input.viewport_y {
-        viewport.y = y;
-    }
-    if let Some(zoom) = input.viewport_zoom {
-        viewport.zoom = zoom;
-    }
-    let diagram = workspace
-        .diagrams_wide()
-        .update(
-            &diagram_id,
-            DiagramDescription {
-                workspace: current.workspace.clone(),
-                title: input.title.unwrap_or_else(|| current.title.clone()),
-                viewport,
-                created_at: current.created_at.clone(),
-                updated_at: current.updated_at.clone(),
-            },
-        )
-        .await?;
-    Ok(Json(diagram_resource(&diagram)))
-}
-
-async fn delete_diagram(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ApiError> {
-    let workspace = load_workspace(&state, &workspace_id).await?;
-    workspace.diagrams_wide().delete(&diagram_id).await?;
-    Ok(Json(json!({ "deleted": true })))
 }
 
 async fn list_nodes(
     State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
+    Path(workspace_id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (workspace, diagram) = load_diagram(&state, &workspace_id).await?;
     let nodes = diagram.nodes().find_all(0, usize::MAX).await?;
     Ok(Json(
         node_collection_resource(&workspace, &diagram, &nodes).await?,
@@ -181,9 +62,9 @@ async fn list_nodes(
 
 async fn get_node(
     State(state): State<AppState>,
-    Path((workspace_id, diagram_id, node_id)): Path<(String, String, String)>,
+    Path((workspace_id, node_id)): Path<(String, String)>,
 ) -> Result<Json<Value>, ApiError> {
-    let (workspace, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (workspace, diagram) = load_diagram(&state, &workspace_id).await?;
     let node = diagram
         .nodes()
         .find_by_identity(&node_id)
@@ -194,9 +75,9 @@ async fn get_node(
 
 async fn list_edges(
     State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
+    Path(workspace_id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (_, diagram) = load_diagram(&state, &workspace_id).await?;
     let edges = diagram.edges().find_all(0, usize::MAX).await?;
     Ok(Json(edge_collection_resource(
         &workspace_id,
@@ -207,9 +88,9 @@ async fn list_edges(
 
 async fn get_edge(
     State(state): State<AppState>,
-    Path((workspace_id, diagram_id, edge_id)): Path<(String, String, String)>,
+    Path((workspace_id, edge_id)): Path<(String, String)>,
 ) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
+    let (_, diagram) = load_diagram(&state, &workspace_id).await?;
     let edge = diagram
         .edges()
         .find_by_identity(&edge_id)
@@ -220,7 +101,7 @@ async fn get_edge(
 
 async fn propose_model(
     State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
+    Path(workspace_id): Path<String>,
     Json(input): Json<ProposeModelInput>,
 ) -> Result<Sse<impl futures_util::Stream<Item = Result<Event, std::convert::Infallible>>>, ApiError>
 {
@@ -228,7 +109,7 @@ async fn propose_model(
         return Err(ServerError::Validation("requirement is required".to_string()).into());
     }
 
-    load_diagram(&state, &workspace_id, &diagram_id).await?;
+    load_diagram(&state, &workspace_id).await?;
     let mut events = state
         .domain_architect
         .propose_model_stream(input.requirement);
@@ -315,42 +196,31 @@ async fn propose_model(
 
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
+        .route("/api/workspaces/{workspaceId}/diagram", get(get_diagram))
         .route(
-            "/api/workspaces/{workspaceId}/diagrams",
-            get(list_diagrams).post(create_diagram),
-        )
-        .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}",
-            get(get_diagram).put(update_diagram).delete(delete_diagram),
-        )
-        .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes",
+            "/api/workspaces/{workspaceId}/diagram/nodes",
             get(list_nodes),
         )
         .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/nodes/{nodeId}",
+            "/api/workspaces/{workspaceId}/diagram/nodes/{nodeId}",
             get(get_node),
         )
         .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges",
+            "/api/workspaces/{workspaceId}/diagram/edges",
             get(list_edges),
         )
         .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/edges/{edgeId}",
+            "/api/workspaces/{workspaceId}/diagram/edges/{edgeId}",
             get(get_edge),
         )
         .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
+            "/api/workspaces/{workspaceId}/diagram/propose-model",
             get(get_diagram).post(propose_model),
         )
 }
 
-fn diagram_href(workspace_id: &str, diagram_id: &str) -> String {
-    format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}")
-}
-
-fn diagrams_href(workspace_id: &str) -> String {
-    format!("/api/workspaces/{workspace_id}/diagrams")
+fn diagram_href(workspace_id: &str) -> String {
+    format!("/api/workspaces/{workspace_id}/diagram")
 }
 
 fn diagram_resource(diagram: &Diagram) -> Value {
@@ -388,97 +258,16 @@ fn edge_resource(workspace_id: &str, edge: &DiagramEdge) -> Value {
     serde_json::to_value(model).expect("edge model should serialize")
 }
 
-fn diagram_collection_resource(
-    workspace_id: &str,
-    diagrams: &[Diagram],
-    page: u32,
-    page_size: u32,
-    total: u64,
-) -> Value {
-    let total_pages = if total == 0 {
-        0
-    } else {
-        total.div_ceil(page_size as u64)
-    };
-    let mut links = serde_json::Map::new();
-    links.insert(
-        "self".to_string(),
-        json!(Link::new(format!(
-            "{}?page={page}&pageSize={page_size}",
-            diagrams_href(workspace_id)
-        ))),
-    );
-    links.insert(
-        "workspace".to_string(),
-        json!(Link::new(format!("/api/workspaces/{workspace_id}"))),
-    );
-    if page > 1 {
-        links.insert(
-            "prev".to_string(),
-            json!(Link::new(format!(
-                "{}?page={}&pageSize={page_size}",
-                diagrams_href(workspace_id),
-                page - 1
-            ))),
-        );
-    }
-    if (page as u64) < total_pages {
-        links.insert(
-            "next".to_string(),
-            json!(Link::new(format!(
-                "{}?page={}&pageSize={page_size}",
-                diagrams_href(workspace_id),
-                page + 1
-            ))),
-        );
-    }
-
-    json!({
-        "_links": links,
-        "_templates": {
-            "create-diagram": create_diagram_template(workspace_id),
-        },
-        "_embedded": {
-            "diagrams": diagrams.iter().map(diagram_resource).collect::<Vec<_>>(),
-        },
-        "page": {
-            "number": page,
-            "size": page_size,
-            "totalElements": total,
-            "totalPages": total_pages,
-        },
-    })
-}
-
-fn create_diagram_template(workspace_id: &str) -> Value {
-    json!({
-        "title": "Create diagram",
-        "method": "POST",
-        "target": diagrams_href(workspace_id),
-        "contentType": "application/json",
-        "properties": [
-            {
-                "name": "title",
-                "prompt": "Title",
-                "type": "text",
-                "required": true,
-                "minLength": 1,
-            },
-        ],
-    })
-}
-
 async fn node_collection_resource(
     workspace: &Workspace,
-    diagram: &Diagram,
+    _diagram: &Diagram,
     nodes: &[DiagramNode],
 ) -> Result<Value, ApiError> {
     let workspace_id = workspace.identity();
-    let diagram_id = diagram.identity();
     Ok(json!({
         "_links": {
-            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/nodes")),
-            "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
+            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagram/nodes")),
+            "diagram": Link::new(diagram_href(workspace_id)),
         },
         "_embedded": {
             "nodes": node_resources(workspace, nodes).await?,
@@ -486,12 +275,15 @@ async fn node_collection_resource(
     }))
 }
 
-fn edge_collection_resource(workspace_id: &str, diagram: &Diagram, edges: &[DiagramEdge]) -> Value {
-    let diagram_id = diagram.identity();
+fn edge_collection_resource(
+    workspace_id: &str,
+    _diagram: &Diagram,
+    edges: &[DiagramEdge],
+) -> Value {
     json!({
         "_links": {
-            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/edges")),
-            "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
+            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagram/edges")),
+            "diagram": Link::new(diagram_href(workspace_id)),
         },
         "_embedded": {
             "edges": edges.iter().map(|edge| edge_resource(workspace_id, edge)).collect::<Vec<_>>(),

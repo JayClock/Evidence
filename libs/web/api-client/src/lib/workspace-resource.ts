@@ -2,7 +2,7 @@ import type { Collection, Entity } from '@hateoas-ts/resource';
 
 import type { components } from './openapi-schema.js';
 
-import type { DiagramCollectionResource } from './diagram-resource.js';
+import type { DiagramResource } from './diagram-resource.js';
 import type { LogicalEntityCollectionResource } from './logical-entity-resource.js';
 import type { MemberCollectionResource } from './member-resource.js';
 import type { UserResource } from './user-resource.js';
@@ -23,7 +23,7 @@ export type WorkspaceResource = Entity<
     self: WorkspaceResource;
     user: UserResource;
     members: MemberCollectionResource;
-    diagrams: DiagramCollectionResource;
+    diagram: DiagramResource;
     'logical-entities': LogicalEntityCollectionResource;
     collection: WorkspaceCollectionResource;
   }

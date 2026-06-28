@@ -14,7 +14,6 @@ const WORKSPACES: &str = "application/vnd.evidence.workspaces+json";
 const MEMBER: &str = "application/vnd.evidence.member+json";
 const MEMBERS: &str = "application/vnd.evidence.members+json";
 const DIAGRAM: &str = "application/vnd.evidence.diagram+json";
-const DIAGRAMS: &str = "application/vnd.evidence.diagrams+json";
 const NODE: &str = "application/vnd.evidence.node+json";
 const NODES: &str = "application/vnd.evidence.nodes+json";
 const EDGE: &str = "application/vnd.evidence.edge+json";
@@ -62,12 +61,11 @@ fn resource_content_type(path: &str) -> Option<&'static str> {
         ["api", "users", _, "workspaces", _] => Some(WORKSPACE),
         ["api", "users", _, "workspaces", _, "members"] => Some(MEMBERS),
         ["api", "users", _, "workspaces", _, "members", _] => Some(MEMBER),
-        ["api", "workspaces", _, "diagrams"] => Some(DIAGRAMS),
-        ["api", "workspaces", _, "diagrams", _, "nodes"] => Some(NODES),
-        ["api", "workspaces", _, "diagrams", _, "nodes", _] => Some(NODE),
-        ["api", "workspaces", _, "diagrams", _, "edges"] => Some(EDGES),
-        ["api", "workspaces", _, "diagrams", _, "edges", _] => Some(EDGE),
-        ["api", "workspaces", _, "diagrams", _] => Some(DIAGRAM),
+        ["api", "workspaces", _, "diagram"] => Some(DIAGRAM),
+        ["api", "workspaces", _, "diagram", "nodes"] => Some(NODES),
+        ["api", "workspaces", _, "diagram", "nodes", _] => Some(NODE),
+        ["api", "workspaces", _, "diagram", "edges"] => Some(EDGES),
+        ["api", "workspaces", _, "diagram", "edges", _] => Some(EDGE),
         ["api", "workspaces", _, "logical-entities"] => Some(LOGICAL_ENTITIES),
         ["api", "workspaces", _, "logical-entities", _] => Some(LOGICAL_ENTITY),
         ["api", "workspaces", _, "logical-relationships"] => Some(LOGICAL_RELATIONSHIPS),
@@ -93,11 +91,11 @@ mod tests {
             Some(WORKSPACE)
         );
         assert_eq!(
-            resource_content_type("/api/workspaces/default-workspace/diagrams"),
-            Some(DIAGRAMS)
+            resource_content_type("/api/workspaces/default-workspace/diagram"),
+            Some(DIAGRAM)
         );
         assert_eq!(
-            resource_content_type("/api/workspaces/default-workspace/diagrams/diagram-1/nodes"),
+            resource_content_type("/api/workspaces/default-workspace/diagram/nodes"),
             Some(NODES)
         );
         assert_eq!(

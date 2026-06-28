@@ -6,7 +6,7 @@ use crate::domain::{Diagram, Viewport};
 
 use super::super::links::{
     workspace_diagram_edges_href, workspace_diagram_href, workspace_diagram_nodes_href,
-    workspace_diagram_propose_model_href, workspace_diagrams_href, Link,
+    workspace_diagram_propose_model_href, Link,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,35 +32,28 @@ pub(in crate::api) fn diagram_model(diagram: &Diagram) -> DiagramModel {
         links: BTreeMap::from([
             (
                 "self".to_string(),
-                Link::new(workspace_diagram_href(workspace_id, diagram_id)),
+                Link::new(workspace_diagram_href(workspace_id)),
             ),
             (
                 "workspace".to_string(),
                 Link::new(format!("/api/workspaces/{workspace_id}")),
             ),
             (
-                "collection".to_string(),
-                Link::new(workspace_diagrams_href(workspace_id)),
-            ),
-            (
                 "nodes".to_string(),
-                Link::new(workspace_diagram_nodes_href(workspace_id, diagram_id)),
+                Link::new(workspace_diagram_nodes_href(workspace_id)),
             ),
             (
                 "edges".to_string(),
-                Link::new(workspace_diagram_edges_href(workspace_id, diagram_id)),
+                Link::new(workspace_diagram_edges_href(workspace_id)),
             ),
             (
                 "propose-model".to_string(),
-                Link::new(workspace_diagram_propose_model_href(
-                    workspace_id,
-                    diagram_id,
-                )),
+                Link::new(workspace_diagram_propose_model_href(workspace_id)),
             ),
         ]),
         templates: BTreeMap::from([(
             "propose-model".to_string(),
-            propose_model_template(workspace_id, diagram_id),
+            propose_model_template(workspace_id),
         )]),
         id: diagram_id.to_string(),
         title: description.title.clone(),
@@ -70,11 +63,11 @@ pub(in crate::api) fn diagram_model(diagram: &Diagram) -> DiagramModel {
     }
 }
 
-fn propose_model_template(workspace_id: &str, diagram_id: &str) -> Value {
+fn propose_model_template(workspace_id: &str) -> Value {
     json!({
         "title": "Propose diagram model",
         "method": "POST",
-        "target": workspace_diagram_propose_model_href(workspace_id, diagram_id),
+        "target": workspace_diagram_propose_model_href(workspace_id),
         "contentType": "application/json",
         "properties": [
             {

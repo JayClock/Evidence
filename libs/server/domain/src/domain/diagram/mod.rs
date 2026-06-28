@@ -21,4 +21,4 @@ pub use modeling::{
 };
 pub use node::{DiagramNode, JsonObject, NodeDescription};
 pub use types::{Position, Viewport};
-pub use workspace_diagrams::WorkspaceDiagrams;
+pub use workspace_diagrams::WorkspaceDiagram;

@@ -41,7 +41,7 @@
 | [Workspace → LogicalRelationship](associations/workspace-has-logical-relationships.md)            | 工作空间包含逻辑关系 |
 | [LogicalRelationship → Source LogicalEntity](associations/logical-relationship-source.md)         | 逻辑关系的源实体     |
 | [LogicalRelationship → Target LogicalEntity](associations/logical-relationship-target.md)         | 逻辑关系的目标实体   |
-| [Workspace → Diagram](associations/workspace-has-diagrams.md)                                     | 工作空间包含图       |
+| [Workspace → Diagram](associations/workspace-has-diagrams.md)                                     | 工作空间包含单一图   |
 | [Diagram → DiagramNode](associations/diagram-has-nodes.md)                                        | 图包含节点           |
 | [Diagram → DiagramEdge](associations/diagram-has-edges.md)                                        | 图包含边             |
 | [DiagramNode → LogicalEntity](associations/diagram-node-references-logical-entity.md)             | 图节点引用逻辑实体   |

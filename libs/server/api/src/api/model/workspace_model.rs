@@ -4,7 +4,7 @@ use std::{collections::BTreeMap, collections::HashMap};
 use crate::domain::Workspace;
 
 use super::super::links::{
-    user_href, workspace_diagrams_href, workspace_href, workspace_logical_entities_href,
+    user_href, workspace_diagram_href, workspace_href, workspace_logical_entities_href,
     workspace_logical_relationships_href, workspace_members_href, Link,
 };
 
@@ -37,8 +37,8 @@ pub(in crate::api) fn workspace_model(user_id: &str, workspace: &Workspace) -> W
                 Link::new(workspace_members_href(user_id, workspace_id)),
             ),
             (
-                "diagrams".to_string(),
-                Link::new(workspace_diagrams_href(workspace_id)),
+                "diagram".to_string(),
+                Link::new(workspace_diagram_href(workspace_id)),
             ),
             (
                 "logical-entities".to_string(),

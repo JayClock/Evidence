@@ -70,12 +70,12 @@ const sidebarState = {
             icon: 'layout-dashboard',
           },
           {
-            key: 'diagrams',
-            label: 'Diagrams',
+            key: 'logical-entities',
+            label: 'Logical Entities',
             type: 'resource',
-            href: '/api/workspaces/default-workspace/diagrams',
-            path: '/api/workspaces/default-workspace/diagrams',
-            icon: 'network',
+            href: '/api/workspaces/default-workspace/logical-entities',
+            path: '/api/workspaces/default-workspace/logical-entities',
+            icon: 'database',
           },
         ],
       },
@@ -96,7 +96,7 @@ const workspaceState = {
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
   },
-  links: links('self', 'members', 'diagrams', 'logical-entities'),
+  links: links('self', 'members', 'diagram', 'logical-entities'),
   contentHeaders: () =>
     new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
 };
@@ -170,7 +170,8 @@ describe('App', () => {
     ).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workspaces')).toBeNull();
-    expect(screen.getByText('Diagrams')).toBeTruthy();
+    expect(screen.queryByText('Diagram')).toBeNull();
+    expect(screen.getByText('Logical Entities')).toBeTruthy();
     expect(screen.getByText('Default Workspace')).toBeTruthy();
     expect(screen.queryByText('1 total')).toBeNull();
   });
