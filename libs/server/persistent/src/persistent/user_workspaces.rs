@@ -14,8 +14,9 @@ use super::{
     logical_entities::DbWorkspaceLogicalEntities,
     logical_relationships::DbWorkspaceLogicalRelationships,
     store::{
-        db_error, default_if_blank, metadata_to_json, now, workspace_to_record, DbStore,
-        WorkspaceRecord,
+        db_error, default_if_blank, evidence_root_from_metadata, metadata_to_json,
+        normalize_workspace_metadata, now, workspace_title_from_metadata, workspace_to_record,
+        DbStore, WorkspaceRecord,
     },
     workspace_diagrams::DbWorkspaceDiagrams,
     workspace_members::DbWorkspaceMembers,
@@ -53,6 +54,7 @@ impl DbUserWorkspaces {
     }
 
     fn assemble(&self, record: WorkspaceRecord) -> Workspace {
+        let evidence_root = evidence_root_from_metadata(&record.metadata);
         Workspace::new(
             record.id.clone(),
             WorkspaceDescription {
@@ -70,10 +72,12 @@ impl DbUserWorkspaces {
             Arc::new(DbWorkspaceDiagrams::new(
                 self.store.clone(),
                 record.id.clone(),
+                evidence_root.clone(),
             )),
             Arc::new(DbWorkspaceLogicalEntities::new(
                 self.store.clone(),
                 record.id.clone(),
+                evidence_root,
             )),
             Arc::new(DbWorkspaceLogicalRelationships::new(
                 self.store.clone(),
@@ -168,12 +172,13 @@ impl UserWorkspaces for DbUserWorkspaces {
     async fn create(&self, desc: WorkspaceDescription) -> Result<Workspace, ServerError> {
         let id = Uuid::new_v4().to_string();
         let timestamp = now();
+        let metadata = normalize_workspace_metadata(desc.metadata)?;
         let record = WorkspaceRecord {
             id: id.clone(),
-            title: normalize_title(desc.title)?,
+            title: normalize_title(desc.title, &metadata)?,
             description: desc.description,
             status: default_if_blank(desc.status, "active"),
-            metadata: desc.metadata,
+            metadata,
             created_at: timestamp.clone(),
             updated_at: timestamp.clone(),
         };
@@ -217,11 +222,18 @@ impl UserWorkspaces for DbUserWorkspaces {
             .await?
             .ok_or_else(|| ServerError::NotFound(format!("workspace {id} not found")))?;
 
+        let current_metadata = workspace_to_record(model.clone()).metadata;
+        let metadata_input = if desc.metadata.is_empty() {
+            current_metadata
+        } else {
+            desc.metadata
+        };
+        let metadata = normalize_workspace_metadata(metadata_input)?;
         let mut active: workspaces::ActiveModel = model.into();
-        active.title = Set(normalize_title(desc.title)?);
+        active.title = Set(normalize_title(desc.title, &metadata)?);
         active.description = Set(desc.description);
         active.status = Set(default_if_blank(desc.status, "active"));
-        active.metadata = Set(metadata_to_json(desc.metadata));
+        active.metadata = Set(metadata_to_json(metadata));
         active.updated_at = Set(now());
 
         let updated = active.update(self.store.db()).await.map_err(db_error)?;
@@ -244,12 +256,15 @@ impl UserWorkspaces for DbUserWorkspaces {
     }
 }
 
-fn normalize_title(title: String) -> Result<String, ServerError> {
+fn normalize_title(
+    title: String,
+    metadata: &std::collections::HashMap<String, String>,
+) -> Result<String, ServerError> {
     let title = title.trim().to_string();
-    if title.is_empty() {
-        return Err(ServerError::Validation(
-            "workspace title must not be empty".to_string(),
-        ));
+    if !title.is_empty() {
+        return Ok(title);
     }
-    Ok(title)
+
+    workspace_title_from_metadata(metadata)
+        .ok_or_else(|| ServerError::Validation("workspace title must not be empty".to_string()))
 }

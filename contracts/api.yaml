@@ -3128,8 +3128,6 @@ components:
           $ref: '#/components/schemas/PageModel'
     WorkspaceInput:
       type: object
-      required:
-      - title
       properties:
         description:
           type:
@@ -3143,12 +3141,18 @@ components:
             type: string
           propertyNames:
             type: string
+        path:
+          type:
+          - string
+          - 'null'
         status:
           type:
           - string
           - 'null'
         title:
-          type: string
+          type:
+          - string
+          - 'null'
     WorkspaceResource:
       type: object
       required:

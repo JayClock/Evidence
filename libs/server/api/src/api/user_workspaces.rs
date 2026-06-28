@@ -28,7 +28,8 @@ struct ListWorkspacesQuery {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct WorkspaceInput {
-    title: String,
+    title: Option<String>,
+    path: Option<String>,
     description: Option<String>,
     status: Option<String>,
     metadata: Option<HashMap<String, String>>,
@@ -36,11 +37,16 @@ struct WorkspaceInput {
 
 impl WorkspaceInput {
     fn into_description(self) -> WorkspaceDescription {
+        let mut metadata = self.metadata.unwrap_or_default();
+        if let Some(path) = self.path.filter(|path| !path.trim().is_empty()) {
+            metadata.insert("repositoryRoot".to_string(), path);
+        }
+
         WorkspaceDescription {
-            title: self.title,
+            title: self.title.unwrap_or_default(),
             description: self.description,
             status: self.status.unwrap_or_else(|| "active".to_string()),
-            metadata: self.metadata.unwrap_or_default(),
+            metadata,
             created_at: String::new(),
             updated_at: String::new(),
         }

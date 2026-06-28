@@ -1,11 +1,13 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
-use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
-    QuerySelect, Set, TransactionTrait,
-};
-use serde::{de::DeserializeOwned, Serialize};
+use chrono::{DateTime, Utc};
+use sea_orm::TransactionTrait;
 use serde_json::json;
 use uuid::Uuid;
 
@@ -18,93 +20,147 @@ use super::{
     diagram_edges::{delete_edges_for_diagram, insert_edge, DbDiagramEdges},
     diagram_nodes::{delete_nodes_for_diagram, insert_node, DbDiagramNodes},
     diagram_versions::DbDiagramVersions,
-    entities::workspace_diagrams,
     store::{db_error, now, DbStore},
 };
 
 pub struct DbWorkspaceDiagrams {
     store: DbStore,
     workspace_id: String,
+    diagrams_dir: PathBuf,
 }
 
 impl DbWorkspaceDiagrams {
-    pub fn new(store: DbStore, workspace_id: String) -> Self {
+    pub fn new(store: DbStore, workspace_id: String, evidence_root: PathBuf) -> Self {
         Self {
             store,
             workspace_id,
+            diagrams_dir: evidence_root.join("diagrams"),
         }
     }
 
-    fn assemble(&self, model: workspace_diagrams::Model) -> Diagram {
-        assemble_diagram(self.store.clone(), model)
+    fn load_records(&self) -> Result<Vec<MarkdownDiagram>, ServerError> {
+        if !self.diagrams_dir.exists() {
+            return Ok(Vec::new());
+        }
+
+        let mut records = Vec::new();
+        for entry in fs::read_dir(&self.diagrams_dir).map_err(|error| {
+            fs_error(
+                format!("read diagram directory {}", self.diagrams_dir.display()),
+                error,
+            )
+        })? {
+            let path = entry
+                .map_err(|error| fs_error("read diagram directory entry", error))?
+                .path();
+
+            if path.extension().and_then(|value| value.to_str()) != Some("md") {
+                continue;
+            }
+
+            records.push(read_markdown_diagram(&self.workspace_id, &path)?);
+        }
+
+        records.sort_by(|left, right| left.title.cmp(&right.title).then(left.id.cmp(&right.id)));
+        Ok(records)
     }
 
-    async fn find_model(&self, id: &str) -> Result<Option<workspace_diagrams::Model>, ServerError> {
-        workspace_diagrams::Entity::find_by_id(id)
-            .filter(workspace_diagrams::Column::WorkspaceId.eq(self.workspace_id.clone()))
-            .filter(workspace_diagrams::Column::DeletedAt.is_null())
-            .one(self.store.db())
-            .await
-            .map_err(db_error)
+    fn find_record(&self, id: &str) -> Result<Option<MarkdownDiagram>, ServerError> {
+        Ok(self
+            .load_records()?
+            .into_iter()
+            .find(|record| record.id == id))
+    }
+
+    fn write_record(
+        &self,
+        path: &Path,
+        diagram_id: &str,
+        desc: DiagramDescription,
+    ) -> Result<Diagram, ServerError> {
+        fs::create_dir_all(&self.diagrams_dir).map_err(|error| {
+            fs_error(
+                format!("create diagram directory {}", self.diagrams_dir.display()),
+                error,
+            )
+        })?;
+
+        let title = normalize_title(desc.title)?;
+        let document = serialize_markdown_diagram(MarkdownDiagramDocument {
+            id: diagram_id,
+            title: &title,
+            diagram_type: &desc.diagram_type,
+            status: &desc.status,
+            viewport: &desc.viewport,
+        });
+
+        fs::write(path, document)
+            .map_err(|error| fs_error(format!("write diagram file {}", path.display()), error))?;
+
+        read_markdown_diagram(&self.workspace_id, path)
+            .map(|record| record.into_diagram(self.store.clone()))
+    }
+
+    fn new_diagram_path(&self, title: &str) -> Result<(String, PathBuf), ServerError> {
+        fs::create_dir_all(&self.diagrams_dir).map_err(|error| {
+            fs_error(
+                format!("create diagram directory {}", self.diagrams_dir.display()),
+                error,
+            )
+        })?;
+
+        let base_id = normalize_identifier(title).unwrap_or_else(|| Uuid::new_v4().to_string());
+        if self.find_record(&base_id)?.is_none() {
+            return Ok((
+                base_id.clone(),
+                self.diagrams_dir.join(format!("{base_id}.md")),
+            ));
+        }
+
+        loop {
+            let suffix = Uuid::new_v4()
+                .to_string()
+                .split('-')
+                .next()
+                .unwrap_or_default()
+                .to_string();
+            let id = format!("{base_id}_{suffix}");
+            if self.find_record(&id)?.is_none() {
+                return Ok((id.clone(), self.diagrams_dir.join(format!("{id}.md"))));
+            }
+        }
     }
 }
 
 #[async_trait]
 impl HasMany<Diagram> for DbWorkspaceDiagrams {
     async fn find_all(&self, from: usize, to: usize) -> Result<Vec<Diagram>, ServerError> {
-        let limit = to.saturating_sub(from).min(i64::MAX as usize) as u64;
-        let rows = workspace_diagrams::Entity::find()
-            .filter(workspace_diagrams::Column::WorkspaceId.eq(self.workspace_id.clone()))
-            .filter(workspace_diagrams::Column::DeletedAt.is_null())
-            .order_by_desc(workspace_diagrams::Column::UpdatedAt)
-            .offset(from as u64)
-            .limit(limit)
-            .all(self.store.db())
-            .await
-            .map_err(db_error)?;
-
-        Ok(rows.into_iter().map(|row| self.assemble(row)).collect())
+        Ok(self
+            .load_records()?
+            .into_iter()
+            .skip(from)
+            .take(to.saturating_sub(from))
+            .map(|record| record.into_diagram(self.store.clone()))
+            .collect())
     }
 
     async fn find_by_identity(&self, id: &str) -> Result<Option<Diagram>, ServerError> {
-        Ok(self.find_model(id).await?.map(|row| self.assemble(row)))
+        Ok(self
+            .find_record(id)?
+            .map(|record| record.into_diagram(self.store.clone())))
     }
 
     async fn size(&self) -> Result<usize, ServerError> {
-        let total = workspace_diagrams::Entity::find()
-            .filter(workspace_diagrams::Column::WorkspaceId.eq(self.workspace_id.clone()))
-            .filter(workspace_diagrams::Column::DeletedAt.is_null())
-            .count(self.store.db())
-            .await
-            .map_err(db_error)?;
-        Ok(total as usize)
+        Ok(self.load_records()?.len())
     }
 }
 
 #[async_trait]
 impl WorkspaceDiagrams for DbWorkspaceDiagrams {
     async fn add(&self, desc: DiagramDescription) -> Result<Diagram, ServerError> {
-        let title = normalize_title(desc.title)?;
-        let id = Uuid::new_v4().to_string();
-        let timestamp = now();
-        workspace_diagrams::ActiveModel {
-            id: Set(id.clone()),
-            workspace_id: Set(self.workspace_id.clone()),
-            title: Set(title),
-            diagram_type: Set(desc.diagram_type.as_str().to_string()),
-            status: Set(desc.status.as_str().to_string()),
-            viewport: Set(to_json_value(&desc.viewport)),
-            created_at: Set(timestamp.clone()),
-            updated_at: Set(timestamp),
-            deleted_at: Set(None),
-        }
-        .insert(self.store.db())
-        .await
-        .map_err(db_error)?;
-
-        self.find_by_identity(&id)
-            .await?
-            .ok_or_else(|| ServerError::Internal("created diagram could not be loaded".to_string()))
+        let title = normalize_title(desc.title.clone())?;
+        let (diagram_id, path) = self.new_diagram_path(&title)?;
+        self.write_record(&path, &diagram_id, desc)
     }
 
     async fn update(
@@ -112,30 +168,22 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
         diagram_id: &str,
         desc: DiagramDescription,
     ) -> Result<Diagram, ServerError> {
-        let model = self
-            .find_model(diagram_id)
-            .await?
+        let record = self
+            .find_record(diagram_id)?
             .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let mut active: workspace_diagrams::ActiveModel = model.into();
-        active.title = Set(normalize_title(desc.title)?);
-        active.diagram_type = Set(desc.diagram_type.as_str().to_string());
-        active.status = Set(desc.status.as_str().to_string());
-        active.viewport = Set(to_json_value(&desc.viewport));
-        active.updated_at = Set(now());
-        let updated = active.update(self.store.db()).await.map_err(db_error)?;
-        Ok(self.assemble(updated))
+        self.write_record(&record.path, diagram_id, desc)
     }
 
     async fn delete(&self, diagram_id: &str) -> Result<(), ServerError> {
-        let model = self
-            .find_model(diagram_id)
-            .await?
+        let record = self
+            .find_record(diagram_id)?
             .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let timestamp = now();
-        let mut active: workspace_diagrams::ActiveModel = model.into();
-        active.deleted_at = Set(Some(timestamp.clone()));
-        active.updated_at = Set(timestamp);
-        active.update(self.store.db()).await.map_err(db_error)?;
+        fs::remove_file(&record.path).map_err(|error| {
+            fs_error(
+                format!("delete diagram file {}", record.path.display()),
+                error,
+            )
+        })?;
         Ok(())
     }
 
@@ -145,10 +193,17 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
                 "page and pageSize must be greater than 0".to_string(),
             ));
         }
-        let total = self.size().await? as u64;
-        let from = ((page - 1) * page_size) as usize;
-        let to = from + page_size as usize;
-        Ok((self.find_all(from, to).await?, total))
+        let rows = self.load_records()?;
+        let total = rows.len() as u64;
+        let offset = ((page - 1) * page_size) as usize;
+        Ok((
+            rows.into_iter()
+                .skip(offset)
+                .take(page_size as usize)
+                .map(|record| record.into_diagram(self.store.clone()))
+                .collect(),
+            total,
+        ))
     }
 
     async fn save_diagram(
@@ -162,11 +217,9 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
                 "diagram id must be provided".to_string(),
             ));
         }
-        if self.find_by_identity(diagram_id).await?.is_none() {
-            return Err(ServerError::NotFound(format!(
-                "diagram {diagram_id} not found"
-            )));
-        }
+        let record = self
+            .find_record(diagram_id)?
+            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
 
         let node_ids: HashSet<String> = draft_nodes.iter().map(|node| node.id.clone()).collect();
         for edge in &draft_edges {
@@ -197,51 +250,161 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
             insert_edge(&tx, diagram_id, &id, &edge.description, &timestamp).await?;
         }
 
-        let model = workspace_diagrams::Entity::find_by_id(diagram_id)
-            .one(&tx)
-            .await
-            .map_err(db_error)?
-            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let mut active: workspace_diagrams::ActiveModel = model.into();
-        active.status = Set(DiagramStatus::Draft.as_str().to_string());
-        active.updated_at = Set(timestamp);
-        active.update(&tx).await.map_err(db_error)?;
         tx.commit().await.map_err(db_error)?;
+
+        let mut description = record.description;
+        description.status = DiagramStatus::Draft;
+        self.write_record(&record.path, diagram_id, description)?;
         Ok(())
     }
 
     async fn publish_diagram(&self, diagram_id: &str) -> Result<(), ServerError> {
-        let model = self
-            .find_model(diagram_id)
-            .await?
+        let record = self
+            .find_record(diagram_id)?
             .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-        let mut active: workspace_diagrams::ActiveModel = model.into();
-        active.status = Set(DiagramStatus::Published.as_str().to_string());
-        active.updated_at = Set(now());
-        active.update(self.store.db()).await.map_err(db_error)?;
+        let mut description = record.description;
+        description.status = DiagramStatus::Published;
+        self.write_record(&record.path, diagram_id, description)?;
         Ok(())
     }
 }
 
-fn assemble_diagram(store: DbStore, model: workspace_diagrams::Model) -> Diagram {
-    let description = DiagramDescription {
-        workspace: Ref::new(model.workspace_id),
-        title: model.title,
-        diagram_type: DiagramType::try_from(model.diagram_type.as_str())
-            .unwrap_or(DiagramType::Class),
-        status: DiagramStatus::try_from(model.status.as_str()).unwrap_or(DiagramStatus::Draft),
-        viewport: from_json_value(model.viewport, Viewport::default()),
-        created_at: model.created_at,
-        updated_at: model.updated_at,
-    };
-    let diagram_id = model.id.clone();
-    Diagram::new(
-        model.id,
-        description,
-        Arc::new(DbDiagramNodes::new(store.clone(), diagram_id.clone())),
-        Arc::new(DbDiagramEdges::new(store.clone(), diagram_id.clone())),
-        Arc::new(DbDiagramVersions::new(store, diagram_id)),
+#[derive(Debug, Clone)]
+struct MarkdownDiagram {
+    id: String,
+    title: String,
+    path: PathBuf,
+    description: DiagramDescription,
+}
+
+impl MarkdownDiagram {
+    fn into_diagram(self, store: DbStore) -> Diagram {
+        let diagram_id = self.id.clone();
+        Diagram::new(
+            self.id,
+            self.description,
+            Arc::new(DbDiagramNodes::new(store.clone(), diagram_id.clone())),
+            Arc::new(DbDiagramEdges::new(store.clone(), diagram_id.clone())),
+            Arc::new(DbDiagramVersions::new(store, diagram_id)),
+        )
+    }
+}
+
+struct MarkdownDiagramDocument<'a> {
+    id: &'a str,
+    title: &'a str,
+    diagram_type: &'a DiagramType,
+    status: &'a DiagramStatus,
+    viewport: &'a Viewport,
+}
+
+fn read_markdown_diagram(workspace_id: &str, path: &Path) -> Result<MarkdownDiagram, ServerError> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| fs_error(format!("read diagram file {}", path.display()), error))?;
+    parse_markdown_diagram(workspace_id, path.to_path_buf(), &text)
+}
+
+fn parse_markdown_diagram(
+    workspace_id: &str,
+    path: PathBuf,
+    text: &str,
+) -> Result<MarkdownDiagram, ServerError> {
+    let (meta, _content) = split_frontmatter(text).map_err(|message| {
+        ServerError::Validation(format!(
+            "invalid diagram markdown {}: {message}",
+            path.display()
+        ))
+    })?;
+    let id = required_meta(&meta, "id", &path)?;
+    let title = normalize_title(required_meta(&meta, "title", &path)?)?;
+    let diagram_type = optional_meta(&meta, "type")
+        .as_deref()
+        .map(DiagramType::try_from)
+        .transpose()?
+        .unwrap_or(DiagramType::Fulfillment);
+    let status = optional_meta(&meta, "status")
+        .as_deref()
+        .map(DiagramStatus::try_from)
+        .transpose()?
+        .unwrap_or(DiagramStatus::Draft);
+    let viewport = optional_meta(&meta, "viewport")
+        .and_then(|value| serde_json::from_str(&value).ok())
+        .unwrap_or_default();
+    let timestamp = file_timestamp(&path);
+
+    Ok(MarkdownDiagram {
+        id,
+        title: title.clone(),
+        path,
+        description: DiagramDescription {
+            workspace: Ref::new(workspace_id.to_string()),
+            title,
+            diagram_type,
+            viewport,
+            status,
+            created_at: timestamp.clone(),
+            updated_at: timestamp,
+        },
+    })
+}
+
+fn split_frontmatter(text: &str) -> Result<(HashMap<String, String>, String), &'static str> {
+    let text = text.replace("\r\n", "\n");
+    let text = text
+        .strip_prefix("---\n")
+        .ok_or("missing opening frontmatter delimiter")?;
+    let (frontmatter, body) = text
+        .split_once("\n---")
+        .ok_or("missing closing frontmatter delimiter")?;
+    let body = body.strip_prefix('\n').unwrap_or(body).to_string();
+
+    let meta = frontmatter
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                return None;
+            }
+            let (key, value) = line.split_once(':')?;
+            Some((key.trim().to_string(), unquote(value.trim()).to_string()))
+        })
+        .collect();
+
+    Ok((meta, body))
+}
+
+fn serialize_markdown_diagram(document: MarkdownDiagramDocument<'_>) -> String {
+    let viewport =
+        serde_json::to_string(document.viewport).unwrap_or_else(|_| json!({}).to_string());
+    format!(
+        "---\nid: {}\ntitle: {}\ntype: {}\nstatus: {}\nviewport: {}\n---\n# {}\n",
+        document.id,
+        document.title,
+        document.diagram_type.as_str(),
+        document.status.as_str(),
+        viewport,
+        document.title,
     )
+}
+
+fn required_meta(
+    meta: &HashMap<String, String>,
+    key: &str,
+    path: &Path,
+) -> Result<String, ServerError> {
+    optional_meta(meta, key).ok_or_else(|| {
+        ServerError::Validation(format!(
+            "diagram file {} is missing required metadata {key}",
+            path.display()
+        ))
+    })
+}
+
+fn optional_meta(meta: &HashMap<String, String>, key: &str) -> Option<String> {
+    meta.get(key)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
 }
 
 fn normalize_title(title: String) -> Result<String, ServerError> {
@@ -254,10 +417,85 @@ fn normalize_title(title: String) -> Result<String, ServerError> {
     Ok(title)
 }
 
-fn to_json_value<T: Serialize>(value: &T) -> sea_orm::JsonValue {
-    serde_json::to_value(value).unwrap_or_else(|_| json!({}))
+fn normalize_identifier(value: &str) -> Option<String> {
+    let mut output = String::new();
+    let mut last_was_separator = false;
+
+    for character in value.chars() {
+        if character.is_ascii_alphanumeric() {
+            output.push(character.to_ascii_lowercase());
+            last_was_separator = false;
+        } else if !last_was_separator && !output.is_empty() {
+            output.push('_');
+            last_was_separator = true;
+        }
+    }
+
+    let output = output.trim_matches('_').to_string();
+    if output.is_empty() {
+        None
+    } else {
+        Some(output)
+    }
 }
 
-fn from_json_value<T: DeserializeOwned>(value: sea_orm::JsonValue, fallback: T) -> T {
-    serde_json::from_value(value).unwrap_or(fallback)
+fn unquote(value: &str) -> &str {
+    value
+        .strip_prefix('"')
+        .and_then(|value| value.strip_suffix('"'))
+        .or_else(|| {
+            value
+                .strip_prefix('\'')
+                .and_then(|value| value.strip_suffix('\''))
+        })
+        .unwrap_or(value)
+}
+
+fn file_timestamp(path: &Path) -> String {
+    fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .map(|modified| DateTime::<Utc>::from(modified).to_rfc3339())
+        .unwrap_or_default()
+}
+
+fn fs_error(context: impl Into<String>, error: std::io::Error) -> ServerError {
+    ServerError::Internal(format!("{}: {error}", context.into()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_markdown_diagram_metadata() {
+        let diagram = parse_markdown_diagram(
+            "workspace-1",
+            PathBuf::from("diagram.md"),
+            "---\nid: fulfillment\ntitle: Fulfillment\ntype: fulfillment\nstatus: draft\nviewport: {\"x\":1.0,\"y\":2.0,\"zoom\":1.5}\n---\n# Fulfillment\n",
+        )
+        .unwrap();
+
+        assert_eq!(diagram.id, "fulfillment");
+        assert_eq!(diagram.description.workspace.id(), "workspace-1");
+        assert_eq!(diagram.description.title, "Fulfillment");
+        assert_eq!(diagram.description.diagram_type, DiagramType::Fulfillment);
+        assert_eq!(diagram.description.status, DiagramStatus::Draft);
+        assert_eq!(diagram.description.viewport.x, 1.0);
+        assert_eq!(diagram.description.viewport.y, 2.0);
+        assert_eq!(diagram.description.viewport.zoom, 1.5);
+    }
+
+    #[test]
+    fn serializes_diagram_as_markdown() {
+        let document = serialize_markdown_diagram(MarkdownDiagramDocument {
+            id: "fulfillment",
+            title: "Fulfillment",
+            diagram_type: &DiagramType::Fulfillment,
+            status: &DiagramStatus::Draft,
+            viewport: &Viewport::default(),
+        });
+
+        assert!(document.starts_with("---\nid: fulfillment\ntitle: Fulfillment\ntype: fulfillment\nstatus: draft\nviewport: "));
+        assert!(document.ends_with("---\n# Fulfillment\n"));
+    }
 }

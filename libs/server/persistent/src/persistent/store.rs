@@ -1,4 +1,8 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    env, fs,
+    path::{Path, PathBuf},
+};
 
 use chrono::Utc;
 use sea_orm::{
@@ -9,6 +13,11 @@ use sea_orm::{
 use crate::domain::ServerError;
 
 use super::entities::{users, workspace_members, workspaces};
+
+const REPOSITORY_ROOT_METADATA_KEY: &str = "repositoryRoot";
+const EVIDENCE_ROOT_METADATA_KEY: &str = "evidenceRoot";
+const PATH_METADATA_KEY: &str = "path";
+const ROOT_PATH_METADATA_KEY: &str = "rootPath";
 
 #[derive(Debug, Clone)]
 pub(super) struct UserRecord {
@@ -105,7 +114,9 @@ pub(super) async fn seed_defaults(db: &DatabaseConnection) -> Result<(), ServerE
             title: Set("Default Workspace".to_string()),
             description: Set(Some("Seed workspace for local desktop usage".to_string())),
             status: Set("active".to_string()),
-            metadata: Set(metadata_to_json(HashMap::new())),
+            metadata: Set(metadata_to_json(normalize_workspace_metadata(
+                HashMap::new(),
+            )?)),
             created_at: Set(timestamp.clone()),
             updated_at: Set(timestamp.clone()),
             deleted_at: Set(None),
@@ -180,6 +191,98 @@ fn metadata_from_json(metadata: sea_orm::JsonValue) -> HashMap<String, String> {
     serde_json::from_value(metadata).unwrap_or_default()
 }
 
+pub(super) fn normalize_workspace_metadata(
+    mut metadata: HashMap<String, String>,
+) -> Result<HashMap<String, String>, ServerError> {
+    let repository_root = workspace_repository_root(&metadata)?;
+    let evidence_root = repository_root.join(".evidence");
+    initialize_evidence_directory(&evidence_root)?;
+
+    metadata.insert(
+        REPOSITORY_ROOT_METADATA_KEY.to_string(),
+        repository_root.display().to_string(),
+    );
+    metadata.insert(
+        EVIDENCE_ROOT_METADATA_KEY.to_string(),
+        evidence_root.display().to_string(),
+    );
+    Ok(metadata)
+}
+
+pub(super) fn evidence_root_from_metadata(metadata: &HashMap<String, String>) -> PathBuf {
+    metadata
+        .get(EVIDENCE_ROOT_METADATA_KEY)
+        .filter(|value| !value.trim().is_empty())
+        .map(PathBuf::from)
+        .or_else(|| {
+            metadata
+                .get(REPOSITORY_ROOT_METADATA_KEY)
+                .filter(|value| !value.trim().is_empty())
+                .map(|value| PathBuf::from(value).join(".evidence"))
+        })
+        .unwrap_or_else(|| PathBuf::from(".evidence"))
+}
+
+pub(super) fn workspace_title_from_metadata(metadata: &HashMap<String, String>) -> Option<String> {
+    metadata
+        .get(REPOSITORY_ROOT_METADATA_KEY)
+        .and_then(|root| Path::new(root).file_name())
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.trim().is_empty())
+        .map(ToString::to_string)
+}
+
+fn workspace_repository_root(metadata: &HashMap<String, String>) -> Result<PathBuf, ServerError> {
+    let raw_path = [
+        REPOSITORY_ROOT_METADATA_KEY,
+        PATH_METADATA_KEY,
+        ROOT_PATH_METADATA_KEY,
+    ]
+    .into_iter()
+    .find_map(|key| metadata.get(key).filter(|value| !value.trim().is_empty()));
+
+    let path = match raw_path {
+        Some(path) => PathBuf::from(path),
+        None => env::current_dir().map_err(|error| {
+            ServerError::Internal(format!("resolve current workspace directory: {error}"))
+        })?,
+    };
+
+    let repository_root = fs::canonicalize(&path).map_err(|error| {
+        ServerError::Validation(format!(
+            "workspace path {} is not accessible: {error}",
+            path.display()
+        ))
+    })?;
+
+    if !repository_root.is_dir() {
+        return Err(ServerError::Validation(format!(
+            "workspace path {} is not a directory",
+            repository_root.display()
+        )));
+    }
+
+    Ok(repository_root)
+}
+
+fn initialize_evidence_directory(evidence_root: &Path) -> Result<(), ServerError> {
+    for directory in [
+        evidence_root.to_path_buf(),
+        evidence_root.join("entities"),
+        evidence_root.join("associations"),
+        evidence_root.join("diagrams"),
+    ] {
+        fs::create_dir_all(&directory).map_err(|error| {
+            ServerError::Internal(format!(
+                "create evidence directory {}: {error}",
+                directory.display()
+            ))
+        })?;
+    }
+
+    Ok(())
+}
+
 pub(super) fn db_error(error: DbErr) -> ServerError {
     ServerError::Internal(format!("database error: {error}"))
 }
@@ -228,6 +331,41 @@ mod tests {
         let actual = metadata_from_json(json);
 
         assert_eq!(actual, metadata);
+    }
+
+    #[test]
+    fn normalizes_workspace_metadata_from_selected_directory() {
+        let repository_root =
+            std::env::temp_dir().join(format!("evidence-workspace-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&repository_root).unwrap();
+
+        let metadata = normalize_workspace_metadata(HashMap::from([(
+            "path".to_string(),
+            repository_root.display().to_string(),
+        )]))
+        .unwrap();
+
+        let repository_root = std::fs::canonicalize(&repository_root).unwrap();
+        let evidence_root = repository_root.join(".evidence");
+        assert_eq!(
+            metadata
+                .get(REPOSITORY_ROOT_METADATA_KEY)
+                .map(String::as_str),
+            Some(repository_root.display().to_string().as_str())
+        );
+        assert_eq!(
+            metadata.get(EVIDENCE_ROOT_METADATA_KEY).map(String::as_str),
+            Some(evidence_root.display().to_string().as_str())
+        );
+        assert!(evidence_root.join("entities").is_dir());
+        assert!(evidence_root.join("associations").is_dir());
+        assert!(evidence_root.join("diagrams").is_dir());
+        assert_eq!(
+            workspace_title_from_metadata(&metadata).as_deref(),
+            repository_root.file_name().and_then(|name| name.to_str())
+        );
+
+        std::fs::remove_dir_all(repository_root).unwrap();
     }
 
     #[test]

@@ -248,7 +248,8 @@ pub struct SidebarResource {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceInput {
-    pub title: String,
+    pub title: Option<String>,
+    pub path: Option<String>,
     pub description: Option<String>,
     pub status: Option<String>,
     pub metadata: Option<BTreeMap<String, String>>,
