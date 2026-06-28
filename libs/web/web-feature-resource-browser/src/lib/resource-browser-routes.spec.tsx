@@ -155,6 +155,10 @@ function dynamicStateForPath(path: string) {
     return logicalEntityCollectionState;
   }
 
+  if (path === '/api/users/desktop-user/workspaces') {
+    return workspaceCollectionState;
+  }
+
   return diagramCollectionState;
 }
 
@@ -197,12 +201,23 @@ describe('ResourceBrowserRoutes', () => {
     });
   });
 
-  it('renders the overview and embedded workspaces collection', () => {
+  it('renders the overview without the workspace list page', () => {
     renderRoutes();
 
     expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
-    expect(screen.getByText('Default Workspace')).toBeTruthy();
-    expect(screen.getByText('1 total')).toBeTruthy();
+    expect(screen.getByText('Desktop User')).toBeTruthy();
+    expect(screen.queryByText('Default Workspace')).toBeNull();
+    expect(screen.queryByText('1 total')).toBeNull();
+  });
+
+  it('does not render workspace collection resources as a list page', async () => {
+    await act(async () => {
+      renderRoutes('/users/desktop-user/workspaces');
+    });
+
+    expect(screen.queryByText('Default Workspace')).toBeNull();
+    expect(screen.queryByText('Workspaces')).toBeNull();
+    expect(screen.queryByText('1 total')).toBeNull();
   });
 
   it('renders health from the root health relation', () => {

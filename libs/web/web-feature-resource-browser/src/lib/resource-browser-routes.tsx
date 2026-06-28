@@ -15,7 +15,6 @@ import {
   type RootResource,
   type State,
   type UserResource,
-  type WorkspaceCollectionResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
 import {
@@ -24,15 +23,10 @@ import {
   AlertTitle,
   Badge,
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
 } from '@evidence/ui';
 import {
   DiagramCollectionView,
@@ -57,10 +51,7 @@ export function ResourceBrowserRoutes({
         element={<Overview rootState={rootState} userState={userState} />}
       />
       <Route path="/health" element={<Health rootState={rootState} />} />
-      <Route
-        path="/workspaces"
-        element={<WorkspacesPage userState={userState} />}
-      />
+      <Route path="/workspaces" element={null} />
       <Route path="/users/*" element={<ApiResourcePage />} />
       <Route path="/workspaces/*" element={<ApiResourcePage />} />
       <Route path="/api/*" element={<ApiResourcePage />} />
@@ -100,8 +91,6 @@ function Overview({
           links={userState.links.getAll().map((link: HalLink) => link.rel)}
         />
       </div>
-
-      <WorkspacesPage userState={userState} />
     </section>
   );
 }
@@ -125,91 +114,6 @@ function Health({ rootState }: { rootState: State<RootResource> }) {
       title="Server health"
       detail={`${data.service}: ${data.status}`}
     />
-  );
-}
-
-function WorkspacesPage({ userState }: { userState: State<UserResource> }) {
-  const workspacesResource = useMemo(
-    () => userState.follow('workspaces'),
-    [userState],
-  );
-  const { loading, error, resourceState } =
-    useResource<WorkspaceCollectionResource>(workspacesResource);
-
-  if (loading) {
-    return (
-      <LoadingCard
-        title="Loading workspaces"
-        detail="Following rel=workspaces…"
-      />
-    );
-  }
-
-  if (error) {
-    return <ErrorAlert title="Workspaces unavailable" detail={error.message} />;
-  }
-
-  return <WorkspaceCollectionView resourceState={resourceState} />;
-}
-
-function WorkspaceCollectionView({
-  resourceState,
-}: {
-  resourceState: State<WorkspaceCollectionResource>;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>Collection</CardDescription>
-        <CardTitle>Workspaces</CardTitle>
-        <CardAction>
-          <Badge variant="secondary">
-            {resourceState.data.page.totalElements} total
-          </Badge>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {resourceState.collection.length === 0 ? (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>No workspaces found</EmptyTitle>
-              <EmptyDescription>
-                Create a workspace to start mapping evidence.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          resourceState.collection.map(
-            (workspaceState: State<WorkspaceResource>) => (
-              <WorkspaceItem
-                key={workspaceState.data.id}
-                workspaceState={workspaceState}
-              />
-            ),
-          )
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function WorkspaceItem({
-  workspaceState,
-}: {
-  workspaceState: State<WorkspaceResource>;
-}) {
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>{workspaceState.data.title}</CardTitle>
-        <CardDescription>
-          {workspaceState.data.description ?? 'No description'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ResourceLinks links={workspaceState.links.getAll()} />
-      </CardContent>
-    </Card>
   );
 }
 
@@ -246,11 +150,7 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
 
   switch (contentType) {
     case resourceContentTypes.workspaces:
-      return (
-        <WorkspaceCollectionView
-          resourceState={resourceState as State<WorkspaceCollectionResource>}
-        />
-      );
+      return null;
     case resourceContentTypes.workspace:
       return (
         <WorkspaceDetailView

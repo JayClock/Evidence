@@ -229,7 +229,7 @@ describe('WebShell', () => {
 
     expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
     expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
-    expect(screen.getByText('Workspaces')).toBeTruthy();
+    expect(screen.queryByText('Workspaces')).toBeNull();
     expect(screen.getByText('Diagrams')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();

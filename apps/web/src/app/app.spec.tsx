@@ -89,6 +89,12 @@ const workspaceState = {
     id: 'default-workspace',
     title: 'Default Workspace',
     description: 'Seed workspace for local desktop usage',
+    status: 'active',
+    metadata: {
+      repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
+    },
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
   },
   links: links('self', 'members', 'diagrams', 'logical-entities'),
   contentHeaders: () =>
@@ -156,17 +162,17 @@ describe('App', () => {
     });
   });
 
-  it('renders HAL-discovered default user, sidebar, and workspace', () => {
+  it('renders HAL-discovered default user, sidebar, and active workspace', () => {
     renderApp();
 
     expect(
       screen.getAllByText('Evidence Workspace Console').length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Workspaces').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Workspaces')).toBeNull();
     expect(screen.getByText('Diagrams')).toBeTruthy();
     expect(screen.getByText('Default Workspace')).toBeTruthy();
-    expect(screen.getByText('1 total')).toBeTruthy();
+    expect(screen.queryByText('1 total')).toBeNull();
   });
 
   it('follows the health relation from the API root', () => {

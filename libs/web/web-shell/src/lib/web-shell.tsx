@@ -188,21 +188,29 @@ function AppSidebar({
         {loading || !sidebarState ? (
           <SidebarLoading />
         ) : (
-          sidebarState.data.sections.map((section) => (
-            <SidebarGroup key={section.key}>
-              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
-              <SidebarMenu>
-                {section.items.map((item) => (
-                  <SidebarNavItem
-                    key={item.key ?? item.label}
-                    item={item}
-                    pathname={location.pathname}
-                    activeWorkspaceState={activeWorkspaceState}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))
+          sidebarState.data.sections.map((section) => {
+            const visibleItems = section.items.filter(isVisibleSidebarItem);
+
+            if (visibleItems.length === 0) {
+              return null;
+            }
+
+            return (
+              <SidebarGroup key={section.key}>
+                <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+                <SidebarMenu>
+                  {visibleItems.map((item) => (
+                    <SidebarNavItem
+                      key={item.key ?? item.label}
+                      item={item}
+                      pathname={location.pathname}
+                      activeWorkspaceState={activeWorkspaceState}
+                    />
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+            );
+          })
         )}
       </SidebarContent>
 
@@ -212,6 +220,10 @@ function AppSidebar({
       <SidebarRail />
     </Sidebar>
   );
+}
+
+function isVisibleSidebarItem(item: SidebarItem) {
+  return item.key !== 'workspaces' && item.label !== 'Workspaces';
 }
 
 function SidebarLoading() {
