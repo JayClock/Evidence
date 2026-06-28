@@ -1,6 +1,6 @@
 # Evidence
 
-Evidence is a domain-modeling and evidence-mapping platform. It helps teams model business domains by defining logical entities (evidence types, participants, roles, contexts), drawing relationship diagrams with nodes and edges, and snapshotting versions over time.
+Evidence is a domain-modeling and evidence-mapping platform. It helps teams model business domains by defining logical entities (evidence types, participants, roles, contexts) and drawing relationship diagrams with nodes and edges.
 
 Two runtime surfaces, one frontend:
 
@@ -34,16 +34,15 @@ The web and desktop surfaces share the same React frontend (`apps/web`). In dev 
 
 ### Domain Model
 
-| Aggregate          | Description                                                                    |
-| ------------------ | ------------------------------------------------------------------------------ |
-| **User**           | Identity with owned workspaces                                                 |
-| **Workspace**      | Container for diagrams, logical entities, and members                          |
-| **Member**         | User-to-workspace membership with role (owner/member)                          |
-| **Diagram**        | Visual graph of nodes and edges, with version snapshots                        |
-| **DiagramNode**    | Node on a diagram with type, position, style, logical-entity ref               |
-| **DiagramEdge**    | Edge between nodes with relation type and label                                |
-| **DiagramVersion** | Immutable snapshot capturing all nodes, edges, and viewport at a point in time |
-| **LogicalEntity**  | Typed domain concept: Evidence, Participant, Role, or Context                  |
+| Aggregate         | Description                                                      |
+| ----------------- | ---------------------------------------------------------------- |
+| **User**          | Identity with owned workspaces                                   |
+| **Workspace**     | Container for diagrams, logical entities, and members            |
+| **Member**        | User-to-workspace membership with role (owner/member)            |
+| **Diagram**       | Visual graph of nodes and edges                                  |
+| **DiagramNode**   | Node on a diagram with type, position, style, logical-entity ref |
+| **DiagramEdge**   | Edge between nodes with relation type and label                  |
+| **LogicalEntity** | Typed domain concept: Evidence, Participant, Role, or Context    |
 
 #### Logical Entity Types
 
@@ -58,7 +57,7 @@ Each logical entity can carry attributes, behaviors, tags, and a human-readable 
 
 ### Diagram Lifecycle
 
-Nodes and edges are added individually or in bulk via `commit-draft`. Snapshots are created via `create-version` — the system captures all current nodes, edges, and the viewport at that moment.
+Nodes and edges are managed through the diagram node and edge resources.
 
 ### API
 
@@ -79,19 +78,17 @@ GET /api
 
 **Key resource paths:**
 
-| Path                                               | Description                                         |
-| -------------------------------------------------- | --------------------------------------------------- |
-| `/api/users/{userId}`                              | User profile                                        |
-| `/api/users/{userId}/workspaces`                   | List/create workspaces                              |
-| `/api/users/{userId}/workspaces/{id}`              | Workspace CRUD                                      |
-| `/api/users/{userId}/workspaces/{id}/members`      | Workspace members                                   |
-| `/api/workspaces/{id}/diagrams`                    | List/create diagrams                                |
-| `/api/workspaces/{id}/diagrams/{did}`              | Diagram CRUD (includes embedded nodes+edges on GET) |
-| `/api/workspaces/{id}/diagrams/{did}/nodes`        | Diagram nodes                                       |
-| `/api/workspaces/{id}/diagrams/{did}/edges`        | Diagram edges                                       |
-| `/api/workspaces/{id}/diagrams/{did}/versions`     | Diagram version snapshots                           |
-| `/api/workspaces/{id}/diagrams/{did}/commit-draft` | Save draft nodes+edges                              |
-| `/api/workspaces/{id}/logical-entities`            | Workspace logical entities                          |
+| Path                                          | Description                                         |
+| --------------------------------------------- | --------------------------------------------------- |
+| `/api/users/{userId}`                         | User profile                                        |
+| `/api/users/{userId}/workspaces`              | List/create workspaces                              |
+| `/api/users/{userId}/workspaces/{id}`         | Workspace CRUD                                      |
+| `/api/users/{userId}/workspaces/{id}/members` | Workspace members                                   |
+| `/api/workspaces/{id}/diagrams`               | List/create diagrams                                |
+| `/api/workspaces/{id}/diagrams/{did}`         | Diagram CRUD (includes embedded nodes+edges on GET) |
+| `/api/workspaces/{id}/diagrams/{did}/nodes`   | Diagram nodes                                       |
+| `/api/workspaces/{id}/diagrams/{did}/edges`   | Diagram edges                                       |
+| `/api/workspaces/{id}/logical-entities`       | Workspace logical entities                          |
 
 Collections support pagination: `?page=1&pageSize=50`.
 

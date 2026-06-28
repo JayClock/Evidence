@@ -13,10 +13,6 @@ type DiagramNodeCollectionResourceSchema =
 type DiagramEdgeResourceSchema = components['schemas']['EdgeResource'];
 type DiagramEdgeCollectionResourceSchema =
   components['schemas']['EdgeCollectionResource'];
-type DiagramVersionResourceSchema =
-  components['schemas']['DiagramVersionResource'];
-type DiagramVersionCollectionResourceSchema =
-  components['schemas']['DiagramVersionCollectionResource'];
 
 export type ResourceRef = components['schemas']['RefModel'];
 export type DiagramViewport = components['schemas']['Viewport'];
@@ -48,15 +44,6 @@ export type DiagramEdgeCollectionResourceData = Omit<
   DiagramEdgeCollectionResourceSchema,
   '_links' | '_embedded'
 >;
-export type DiagramVersionResourceData = Omit<
-  DiagramVersionResourceSchema,
-  '_links'
->;
-export type DiagramVersionCollectionResourceData = Omit<
-  DiagramVersionCollectionResourceSchema,
-  '_links' | '_embedded'
->;
-
 export type DiagramNodeResource = Entity<
   DiagramNodeResourceData,
   {
@@ -91,22 +78,6 @@ export type DiagramEdgeCollectionResource = Entity<
   }
 >;
 
-export type DiagramVersionResource = Entity<
-  DiagramVersionResourceData,
-  {
-    self: DiagramVersionResource;
-    diagram: DiagramResource;
-  }
->;
-
-export type DiagramVersionCollectionResource = Entity<
-  DiagramVersionCollectionResourceData,
-  {
-    self: DiagramVersionCollectionResource;
-    diagram: DiagramResource;
-  }
->;
-
 export type DiagramResource = Entity<
   DiagramResourceData,
   {
@@ -115,8 +86,6 @@ export type DiagramResource = Entity<
     workspace: WorkspaceResource;
     nodes: DiagramNodeCollectionResource;
     edges: DiagramEdgeCollectionResource;
-    versions: DiagramVersionCollectionResource;
-    'commit-draft': DiagramResource;
     'propose-model': DiagramResource;
   }
 >;

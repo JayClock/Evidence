@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::{DiagramNode, DraftNode, NodeDescription};
+use super::{DiagramNode, NodeDescription};
 use crate::domain::{HasMany, ServerError};
 
 #[async_trait]
@@ -25,6 +25,4 @@ pub trait DiagramNodes: HasMany<DiagramNode> {
     ) -> Result<DiagramNode, ServerError>;
 
     async fn delete(&self, node_id: &str) -> Result<(), ServerError>;
-
-    async fn replace_all(&self, nodes: Vec<DraftNode>) -> Result<(), ServerError>;
 }

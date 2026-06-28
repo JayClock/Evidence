@@ -15,8 +15,6 @@ export const resourceContentTypes = {
   nodes: `${VENDOR_PREFIX}.nodes+json`,
   edge: `${VENDOR_PREFIX}.edge+json`,
   edges: `${VENDOR_PREFIX}.edges+json`,
-  diagramVersion: `${VENDOR_PREFIX}.diagram-version+json`,
-  diagramVersions: `${VENDOR_PREFIX}.diagram-versions+json`,
   logicalEntity: `${VENDOR_PREFIX}.logical-entity+json`,
   logicalEntities: `${VENDOR_PREFIX}.logical-entities+json`,
 } as const;

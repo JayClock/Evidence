@@ -8,11 +8,11 @@ use uuid::Uuid;
 
 use crate::domain::{
     normalize_sub_type, Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode,
-    DiagramNodes, DiagramVersion, DiagramVersionDescription, DiagramVersions, DraftEdge, DraftNode,
-    EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription, LogicalRelationship,
-    LogicalRelationshipDescription, Member, MemberDescription, NodeDescription, Ref, ServerError,
-    User, UserDescription, UserWorkspaces, Users, Workspace, WorkspaceDescription,
-    WorkspaceDiagrams, WorkspaceLogicalEntities, WorkspaceLogicalRelationships, WorkspaceMembers,
+    DiagramNodes, EdgeDescription, HasMany, LogicalEntity, LogicalEntityDescription,
+    LogicalRelationship, LogicalRelationshipDescription, Member, MemberDescription,
+    NodeDescription, Ref, ServerError, User, UserDescription, UserWorkspaces, Users, Workspace,
+    WorkspaceDescription, WorkspaceDiagrams, WorkspaceLogicalEntities,
+    WorkspaceLogicalRelationships, WorkspaceMembers,
 };
 
 use super::store::{default_if_blank, now};
@@ -370,7 +370,6 @@ impl FakeWorkspaceDiagrams {
             description,
             Arc::new(FakeDiagramNodes),
             Arc::new(FakeDiagramEdges),
-            Arc::new(FakeDiagramVersions),
         )
     }
 
@@ -501,20 +500,6 @@ impl WorkspaceDiagrams for FakeWorkspaceDiagrams {
                 .collect(),
             total,
         ))
-    }
-
-    async fn save_diagram(
-        &self,
-        diagram_id: &str,
-        _draft_nodes: Vec<DraftNode>,
-        _draft_edges: Vec<DraftEdge>,
-    ) -> Result<(), ServerError> {
-        if self.find_by_identity(diagram_id).await?.is_none() {
-            return Err(ServerError::NotFound(format!(
-                "diagram {diagram_id} not found"
-            )));
-        }
-        Ok(())
     }
 }
 
@@ -911,10 +896,6 @@ impl DiagramNodes for FakeDiagramNodes {
     async fn delete(&self, _node_id: &str) -> Result<(), ServerError> {
         Ok(())
     }
-
-    async fn replace_all(&self, _nodes: Vec<DraftNode>) -> Result<(), ServerError> {
-        Ok(())
-    }
 }
 
 struct FakeDiagramEdges;
@@ -969,36 +950,6 @@ impl DiagramEdges for FakeDiagramEdges {
 
     async fn delete(&self, _edge_id: &str) -> Result<(), ServerError> {
         Ok(())
-    }
-
-    async fn replace_all(&self, _edges: Vec<DraftEdge>) -> Result<(), ServerError> {
-        Ok(())
-    }
-}
-
-struct FakeDiagramVersions;
-
-#[async_trait]
-impl HasMany<DiagramVersion> for FakeDiagramVersions {
-    async fn find_all(&self, _from: usize, _to: usize) -> Result<Vec<DiagramVersion>, ServerError> {
-        Ok(Vec::new())
-    }
-
-    async fn find_by_identity(&self, _id: &str) -> Result<Option<DiagramVersion>, ServerError> {
-        Ok(None)
-    }
-
-    async fn size(&self) -> Result<usize, ServerError> {
-        Ok(0)
-    }
-}
-
-#[async_trait]
-impl DiagramVersions for FakeDiagramVersions {
-    async fn add(&self, _desc: DiagramVersionDescription) -> Result<DiagramVersion, ServerError> {
-        Err(ServerError::Internal(
-            "fake diagram versions are not persisted".to_string(),
-        ))
     }
 }
 

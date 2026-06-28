@@ -7,6 +7,5 @@ export * from './prisma/workspace-members';
 export * from './prisma/workspace-diagrams';
 export * from './prisma/diagram-nodes';
 export * from './prisma/diagram-edges';
-export * from './prisma/diagram-versions';
 export * from './prisma/workspace-logical-entities';
 export * from './prisma/workspace-logical-relationships';

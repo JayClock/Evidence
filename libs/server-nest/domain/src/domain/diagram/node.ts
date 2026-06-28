@@ -35,5 +35,4 @@ export interface DiagramNodes extends HasMany<DiagramNode> {
   addAll(descriptions: NodeDescription[]): Promise<DiagramNode[]>;
   update(nodeId: string, desc: NodeDescription): Promise<DiagramNode>;
   delete(nodeId: string): Promise<void>;
-  replaceAll(nodes: import('./types').DraftNode[]): Promise<void>;
 }

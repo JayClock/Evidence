@@ -3,7 +3,6 @@ import {
   DiagramEdge,
   DiagramEdges,
   DomainError,
-  DraftEdge,
   EdgeDescription,
 } from '@evidence/server-nest-domain';
 import { EntityList } from '../database';
@@ -101,26 +100,6 @@ export class PrismaDiagramEdges
       throw DomainError.notFound(`diagram edge ${edgeId} not found`);
     }
     await this.store.diagramEdge.delete({ where: { id: edgeId } });
-  }
-
-  async replaceAll(edges: DraftEdge[]): Promise<void> {
-    await this.store.diagramEdge.deleteMany({
-      where: { diagramId: this.diagramId },
-    });
-    const timestamp = now();
-    if (edges.length === 0) {
-      return;
-    }
-    await this.store.diagramEdge.createMany({
-      data: edges.map((edge) =>
-        this.data(
-          edge.id ?? randomUUID(),
-          edge.description,
-          timestamp,
-          timestamp,
-        ),
-      ),
-    });
   }
 
   private data(

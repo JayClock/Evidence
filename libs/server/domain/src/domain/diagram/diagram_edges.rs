@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use super::{DiagramEdge, DraftEdge, EdgeDescription};
+use super::{DiagramEdge, EdgeDescription};
 use crate::domain::{HasMany, ServerError};
 
 #[async_trait]
@@ -25,6 +25,4 @@ pub trait DiagramEdges: HasMany<DiagramEdge> {
     ) -> Result<DiagramEdge, ServerError>;
 
     async fn delete(&self, edge_id: &str) -> Result<(), ServerError>;
-
-    async fn replace_all(&self, edges: Vec<DraftEdge>) -> Result<(), ServerError>;
 }

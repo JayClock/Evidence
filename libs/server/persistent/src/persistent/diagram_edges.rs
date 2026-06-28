@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect, Set, TransactionTrait,
+    QueryOrder, QuerySelect, Set,
 };
 use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::domain::{
-    DiagramEdge, DiagramEdges, DraftEdge, EdgeDescription, HasMany, JsonObject, Ref, ServerError,
+    DiagramEdge, DiagramEdges, EdgeDescription, HasMany, JsonObject, Ref, ServerError,
 };
 
 use super::{
@@ -133,18 +133,6 @@ impl DiagramEdges for DbDiagramEdges {
             .map_err(db_error)?;
         Ok(())
     }
-
-    async fn replace_all(&self, edges: Vec<DraftEdge>) -> Result<(), ServerError> {
-        let tx = self.store.db().begin().await.map_err(db_error)?;
-        delete_edges_for_diagram(&tx, &self.diagram_id).await?;
-        let timestamp = now();
-        for edge in edges {
-            let id = edge.id.unwrap_or_else(|| Uuid::new_v4().to_string());
-            insert_edge(&tx, &self.diagram_id, &id, &edge.description, &timestamp).await?;
-        }
-        tx.commit().await.map_err(db_error)?;
-        Ok(())
-    }
 }
 
 pub(super) fn edge_from_model(model: diagram_edges::Model) -> DiagramEdge {
@@ -170,18 +158,6 @@ pub(super) fn edge_from_model(model: diagram_edges::Model) -> DiagramEdge {
             updated_at: model.updated_at,
         },
     )
-}
-
-pub(super) async fn delete_edges_for_diagram<C>(db: &C, diagram_id: &str) -> Result<(), ServerError>
-where
-    C: ConnectionTrait,
-{
-    diagram_edges::Entity::delete_many()
-        .filter(diagram_edges::Column::DiagramId.eq(diagram_id.to_string()))
-        .exec(db)
-        .await
-        .map_err(db_error)?;
-    Ok(())
 }
 
 pub(super) async fn insert_edge<C>(

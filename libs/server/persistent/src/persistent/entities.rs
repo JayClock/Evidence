@@ -182,8 +182,6 @@ pub mod workspace_diagrams {
         DiagramNodes,
         #[sea_orm(has_many = "super::diagram_edges::Entity")]
         DiagramEdges,
-        #[sea_orm(has_many = "super::diagram_versions::Entity")]
-        DiagramVersions,
     }
 
     impl Related<super::workspaces::Entity> for Entity {
@@ -201,12 +199,6 @@ pub mod workspace_diagrams {
     impl Related<super::diagram_edges::Entity> for Entity {
         fn to() -> RelationDef {
             Relation::DiagramEdges.def()
-        }
-    }
-
-    impl Related<super::diagram_versions::Entity> for Entity {
-        fn to() -> RelationDef {
-            Relation::DiagramVersions.def()
         }
     }
 
@@ -279,39 +271,6 @@ pub mod diagram_edges {
         pub interaction_width: Option<f64>,
         pub created_at: String,
         pub updated_at: String,
-    }
-
-    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-    pub enum Relation {
-        #[sea_orm(
-            belongs_to = "super::workspace_diagrams::Entity",
-            from = "Column::DiagramId",
-            to = "super::workspace_diagrams::Column::Id"
-        )]
-        Diagram,
-    }
-
-    impl Related<super::workspace_diagrams::Entity> for Entity {
-        fn to() -> RelationDef {
-            Relation::Diagram.def()
-        }
-    }
-
-    impl ActiveModelBehavior for ActiveModel {}
-}
-
-pub mod diagram_versions {
-    use sea_orm::entity::prelude::*;
-
-    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-    #[sea_orm(table_name = "diagram_versions")]
-    pub struct Model {
-        #[sea_orm(primary_key, auto_increment = false)]
-        pub id: String,
-        pub diagram_id: String,
-        pub version_name: String,
-        pub snapshot: Json,
-        pub created_at: String,
     }
 
     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

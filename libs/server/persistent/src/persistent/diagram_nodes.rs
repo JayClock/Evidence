@@ -1,19 +1,17 @@
 use async_trait::async_trait;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect, Set, TransactionTrait,
+    QueryOrder, QuerySelect, Set,
 };
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::domain::{
-    DiagramNode, DiagramNodes, DraftNode, HasMany, JsonObject, NodeDescription, Position, Ref,
-    ServerError,
+    DiagramNode, DiagramNodes, HasMany, JsonObject, NodeDescription, Position, Ref, ServerError,
 };
 
 use super::{
-    diagram_edges::delete_edges_for_diagram,
     entities::diagram_nodes,
     store::{db_error, now, DbStore},
 };
@@ -126,25 +124,6 @@ impl DiagramNodes for DbDiagramNodes {
             .map_err(db_error)?;
         Ok(())
     }
-
-    async fn replace_all(&self, nodes: Vec<DraftNode>) -> Result<(), ServerError> {
-        let tx = self.store.db().begin().await.map_err(db_error)?;
-        delete_edges_for_diagram(&tx, &self.diagram_id).await?;
-        delete_nodes_for_diagram(&tx, &self.diagram_id).await?;
-        let timestamp = now();
-        for node in nodes {
-            insert_node(
-                &tx,
-                &self.diagram_id,
-                &node.id,
-                &node.description,
-                &timestamp,
-            )
-            .await?;
-        }
-        tx.commit().await.map_err(db_error)?;
-        Ok(())
-    }
 }
 
 pub(super) fn node_from_model(model: diagram_nodes::Model) -> DiagramNode {
@@ -163,18 +142,6 @@ pub(super) fn node_from_model(model: diagram_nodes::Model) -> DiagramNode {
             updated_at: model.updated_at,
         },
     )
-}
-
-pub(super) async fn delete_nodes_for_diagram<C>(db: &C, diagram_id: &str) -> Result<(), ServerError>
-where
-    C: ConnectionTrait,
-{
-    diagram_nodes::Entity::delete_many()
-        .filter(diagram_nodes::Column::DiagramId.eq(diagram_id.to_string()))
-        .exec(db)
-        .await
-        .map_err(db_error)?;
-    Ok(())
 }
 
 pub(super) async fn insert_node<C>(

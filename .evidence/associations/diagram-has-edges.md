@@ -30,4 +30,4 @@ summary: Diagram 包含 DiagramEdge 集合。
 
 ## 业务含义
 
-边属于图。保存草稿时可以用 `replace_all` 替换图中的边集合。
+边属于图，通过图边资源单独创建、更新和删除。

@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use super::{EdgeDescription, NodeDescription};
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Viewport {
@@ -31,16 +29,4 @@ impl Default for Position {
     fn default() -> Self {
         Self { x: 0.0, y: 0.0 }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DraftNode {
-    pub id: String,
-    pub description: NodeDescription,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DraftEdge {
-    pub id: Option<String>,
-    pub description: EdgeDescription,
 }

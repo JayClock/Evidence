@@ -3,7 +3,6 @@ import {
   DiagramNode,
   DiagramNodes,
   DomainError,
-  DraftNode,
   NodeDescription,
 } from '@evidence/server-nest-domain';
 import { EntityList } from '../database';
@@ -122,33 +121,5 @@ export class PrismaDiagramNodes
       throw DomainError.notFound(`diagram node ${nodeId} not found`);
     }
     await this.store.diagramNode.delete({ where: { id: nodeId } });
-  }
-
-  async replaceAll(nodes: DraftNode[]): Promise<void> {
-    const timestamp = now();
-    await this.store.diagramEdge.deleteMany({
-      where: { diagramId: this.diagramId },
-    });
-    await this.store.diagramNode.deleteMany({
-      where: { diagramId: this.diagramId },
-    });
-    if (nodes.length === 0) {
-      return;
-    }
-    await this.store.diagramNode.createMany({
-      data: nodes.map((node) => ({
-        id: node.id,
-        diagramId: this.diagramId,
-        kind: node.description.kind,
-        logicalEntityId: node.description.logicalEntity?.id() ?? null,
-        parentId: node.description.parent?.id() ?? null,
-        position: inputJson(node.description.position),
-        width: node.description.width,
-        height: node.description.height,
-        data: inputJson(node.description.data),
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })),
-    });
   }
 }

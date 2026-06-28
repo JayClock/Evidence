@@ -2,7 +2,6 @@ import { vi } from 'vitest';
 import {
   Ref,
   type DiagramDescription,
-  type DiagramVersionDescription,
   type EdgeDescription,
   type LogicalEntityDescription,
   type LogicalRelationshipDescription,
@@ -24,7 +23,6 @@ export interface MockPrismaStore {
   diagram: Record<string, MockFn>;
   diagramNode: Record<string, MockFn>;
   diagramEdge: Record<string, MockFn>;
-  diagramVersion: Record<string, MockFn>;
   logicalEntity: Record<string, MockFn>;
   logicalRelationship: Record<string, MockFn>;
   $transaction: MockFn;
@@ -67,7 +65,6 @@ export function mockPrismaStore(): MockPrismaStore {
       'delete',
       'deleteMany',
     ]),
-    diagramVersion: delegate(['findMany', 'findFirst', 'count', 'create']),
     logicalEntity: delegate([
       'findMany',
       'findFirst',
@@ -265,33 +262,6 @@ export function edgeDescription(
     interactionWidth: 20,
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,
-    ...overrides,
-  };
-}
-
-export function versionRow(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 'version-1',
-    diagramId: 'diagram-1',
-    name: 'v1',
-    snapshot: diagramVersionDescription().snapshot,
-    createdAt: timestamp,
-    ...overrides,
-  };
-}
-
-export function diagramVersionDescription(
-  overrides: Partial<DiagramVersionDescription> = {},
-): DiagramVersionDescription {
-  return {
-    diagram: new Ref('diagram-1'),
-    name: 'v1',
-    snapshot: {
-      nodes: [{ id: 'node-1', description: nodeDescription() }],
-      edges: [{ id: 'edge-1', description: edgeDescription() }],
-      viewport: { x: 0, y: 0, zoom: 1 },
-    },
-    createdAt: isoTimestamp,
     ...overrides,
   };
 }

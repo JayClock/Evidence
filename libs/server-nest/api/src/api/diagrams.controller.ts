@@ -17,9 +17,6 @@ import {
   Diagram,
   DiagramDescription,
   DiagramNode,
-  DiagramVersion,
-  DraftEdge,
-  DraftNode,
   EdgeDescription,
   JsonObject,
   NodeDescription,
@@ -36,7 +33,6 @@ import {
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
   workspaceDiagramsHref,
-  workspaceDiagramVersionsHref,
 } from './links';
 import {
   diagramModel,
@@ -92,11 +88,6 @@ interface EdgeInput {
   markerEnd?: JsonObject | null;
   pathOptions?: JsonObject | null;
   interactionWidth?: number | null;
-}
-
-interface CommitDraftInput {
-  nodes?: NodeInput[] | null;
-  edges?: EdgeInput[] | null;
 }
 
 interface ProposeModelInput {
@@ -387,83 +378,6 @@ export class DiagramsController {
     return { deleted: true };
   }
 
-  @Get(':diagramId/versions')
-  async listVersions(
-    @Param('workspaceId') workspaceId: string,
-    @Param('diagramId') diagramId: string,
-  ): Promise<{
-    _links: Record<string, Link>;
-    _embedded: { versions: unknown[] };
-  }> {
-    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
-      workspaceId,
-      diagramId,
-    );
-    const versions = await diagram
-      .versions()
-      .findAll()
-      .subCollection(0, Number.MAX_SAFE_INTEGER)
-      .toArray();
-    return {
-      _links: {
-        self: link(workspaceDiagramVersionsHref(workspaceId, diagramId)),
-        diagram: link(workspaceDiagramHref(workspaceId, diagramId)),
-      },
-      _embedded: {
-        versions: versions.map((version) =>
-          versionResource(workspaceId, version),
-        ),
-      },
-    };
-  }
-
-  @Post(':diagramId/versions')
-  async createVersion(
-    @Param('workspaceId') workspaceId: string,
-    @Param('diagramId') diagramId: string,
-  ): Promise<unknown> {
-    const [, diagram] = await this.resolver.requireWorkspaceDiagram(
-      workspaceId,
-      diagramId,
-    );
-    return versionResource(workspaceId, await diagram.createVersion());
-  }
-
-  @Get(':diagramId/commit-draft')
-  async getCommitDraftDiagram(
-    @Param('workspaceId') workspaceId: string,
-    @Param('diagramId') diagramId: string,
-  ): Promise<DiagramModel> {
-    return this.getDiagram(workspaceId, diagramId);
-  }
-
-  @Post(':diagramId/commit-draft')
-  async commitDraft(
-    @Param('workspaceId') workspaceId: string,
-    @Param('diagramId') diagramId: string,
-    @Body() input: CommitDraftInput,
-  ): Promise<{ committed: true }> {
-    const workspace = await this.resolver.requireWorkspace(workspaceId);
-    const nodes = (input.nodes ?? []).map((nodeInput) => {
-      if (!nodeInput.id) {
-        throw DomainError.validation('draft node id is required');
-      }
-      return {
-        id: nodeInput.id,
-        description: nodeDescription(diagramId, nodeInput),
-      } satisfies DraftNode;
-    });
-    const edges = (input.edges ?? []).map(
-      (edgeInput) =>
-        ({
-          id: edgeInput.id ?? null,
-          description: edgeDescription(diagramId, edgeInput),
-        }) satisfies DraftEdge,
-    );
-    await workspace.saveDiagram(diagramId, nodes, edges);
-    return { committed: true };
-  }
-
   @Get(':diagramId/propose-model')
   async getProposeModelDiagram(
     @Param('workspaceId') workspaceId: string,
@@ -600,26 +514,5 @@ function createDiagramTemplate(workspaceId: string): unknown {
         minLength: 1,
       },
     ],
-  };
-}
-
-function versionResource(
-  workspaceId: string,
-  version: DiagramVersion,
-): unknown {
-  const versionId = version.identity();
-  const description = version.description();
-  const diagramId = description.diagram.id();
-  return {
-    _links: {
-      self: link(
-        `/api/workspaces/${workspaceId}/diagrams/${diagramId}/versions/${versionId}`,
-      ),
-      diagram: link(workspaceDiagramHref(workspaceId, diagramId)),
-    },
-    id: versionId,
-    name: description.name,
-    snapshot: description.snapshot,
-    createdAt: description.createdAt,
   };
 }

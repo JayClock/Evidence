@@ -8,7 +8,7 @@ subType: Thing
 
 # Diagram｜图
 
-> Diagram 是可视化建模图的聚合。它负责组织图节点、图边和版本快照。
+> Diagram 是可视化建模图的聚合。它负责组织图节点和图边。
 
 ## 基本信息
 
@@ -56,16 +56,13 @@ subType: Thing
 
 ## 子集合
 
-| 集合       | 目标                                 | 说明       |
-| ---------- | ------------------------------------ | ---------- |
-| `nodes`    | [DiagramNode](diagram-node.md)       | 图节点     |
-| `edges`    | [DiagramEdge](diagram-edge.md)       | 图边       |
-| `versions` | [DiagramVersion](diagram-version.md) | 图版本快照 |
+| 集合    | 目标                           | 说明   |
+| ------- | ------------------------------ | ------ |
+| `nodes` | [DiagramNode](diagram-node.md) | 图节点 |
+| `edges` | [DiagramEdge](diagram-edge.md) | 图边   |
 
 ## 行为
 
-| 操作                                              | 说明                           |
-| ------------------------------------------------- | ------------------------------ |
-| `create_version()`                                | 根据当前节点、边和视口创建快照 |
-| `save_diagram(diagramId, draftNodes, draftEdges)` | 保存草稿图                     |
-| `publish_diagram(diagramId)`                      | 发布图                         |
+| 操作                         | 说明   |
+| ---------------------------- | ------ |
+| `publish_diagram(diagramId)` | 发布图 |

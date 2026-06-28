@@ -17,6 +17,7 @@ PostgreSQL                 Persistence layer
 ```
 
 Desktop mode wraps `apps/web` inside a Tauri shell:
+
 - **dev**: Tauri starts `apps/web` on `http://127.0.0.1:4200` and opens it
 - **build**: Tauri runs `pnpm nx build @evidence/web` and bundles `apps/web/dist`
 
@@ -24,11 +25,11 @@ Desktop mode wraps `apps/web` inside a Tauri shell:
 
 The backend uses a layered, trait-driven architecture:
 
-| Layer | Path | Role |
-|-------|------|------|
-| API | `apps/server/src/api/` | Axum routes, request parsing, HAL-style JSON responses with `_links` |
-| Domain | `apps/server/src/domain/` | Pure domain traits (`Entity`, `HasMany`, `Users`, `WorkspaceMembers`, etc.) — no persistence |
-| Persistent | `apps/server/src/persistent/` | SeaORM + PostgreSQL implementation of domain traits |
+| Layer      | Path                          | Role                                                                                         |
+| ---------- | ----------------------------- | -------------------------------------------------------------------------------------------- |
+| API        | `apps/server/src/api/`        | Axum routes, request parsing, HAL-style JSON responses with `_links`                         |
+| Domain     | `apps/server/src/domain/`     | Pure domain traits (`Entity`, `HasMany`, `Users`, `WorkspaceMembers`, etc.) — no persistence |
+| Persistent | `apps/server/src/persistent/` | SeaORM + PostgreSQL implementation of domain traits                                          |
 
 #### Core Abstractions (`src/domain/core/`)
 
@@ -38,54 +39,52 @@ The backend uses a layered, trait-driven architecture:
 
 #### Domain Aggregates
 
-| Aggregate | Path | Description |
-|-----------|------|-------------|
-| `User` | `domain/user.rs` | User identity + `UserWorkspaces` children |
-| `Workspace` | `domain/workspace.rs` | Container with `WorkspaceMembers`, `WorkspaceDiagrams`, `WorkspaceLogicalEntities` |
-| `Member` | `domain/member.rs` | Workspace membership (user reference + role) |
-| `Diagram` | `domain/diagram/` | Visual diagram with `DiagramNodes`, `DiagramEdges`, `DiagramVersions` |
-| `DiagramNode` | `domain/diagram/node.rs` | Node on a diagram (type, position, logical-entity ref, style) |
-| `DiagramEdge` | `domain/diagram/edge.rs` | Edge between nodes (source/target, relation type, label) |
-| `DiagramVersion` | `domain/diagram/version.rs` | Immutable snapshot of diagram state |
+| Aggregate       | Path                       | Description                                                                                   |
+| --------------- | -------------------------- | --------------------------------------------------------------------------------------------- |
+| `User`          | `domain/user.rs`           | User identity + `UserWorkspaces` children                                                     |
+| `Workspace`     | `domain/workspace.rs`      | Container with `WorkspaceMembers`, `WorkspaceDiagrams`, `WorkspaceLogicalEntities`            |
+| `Member`        | `domain/member.rs`         | Workspace membership (user reference + role)                                                  |
+| `Diagram`       | `domain/diagram/`          | Visual diagram with `DiagramNodes`, `DiagramEdges`                                            |
+| `DiagramNode`   | `domain/diagram/node.rs`   | Node on a diagram (type, position, logical-entity ref, style)                                 |
+| `DiagramEdge`   | `domain/diagram/edge.rs`   | Edge between nodes (source/target, relation type, label)                                      |
 | `LogicalEntity` | `domain/logical_entity.rs` | Typed entity: Evidence, Participant, Role, or Context — with attributes, behaviors, sub-types |
 
 #### Logical Entity Types
 
-| Type | Sub-types |
-|------|-----------|
-| `EVIDENCE` | rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence |
-| `PARTICIPANT` | party, thing |
-| `ROLE` | party, domain, 3rd system, context, evidence |
-| `CONTEXT` | bounded_context |
+| Type          | Sub-types                                                                              |
+| ------------- | -------------------------------------------------------------------------------------- |
+| `EVIDENCE`    | rfp, proposal, contract, fulfillment_request, fulfillment_confirmation, other_evidence |
+| `PARTICIPANT` | party, thing                                                                           |
+| `ROLE`        | party, domain, 3rd system, context, evidence                                           |
+| `CONTEXT`     | bounded_context                                                                        |
 
 ### API Design
 
 The API follows HAL-style conventions:
+
 - All resources include `_links` with `self`, `collection`, and related resource links
 - Collections use `_embedded` for child resources and `page` for pagination metadata
 - Pagination uses `page` and `pageSize` query parameters
 
 #### API Routes
 
-| Route | Methods | Description |
-|-------|---------|-------------|
-| `/api` | GET | Root resource with links to health, default-user |
-| `/health` | GET | Health check |
-| `/api/users/{userId}` | GET | User resource |
-| `/api/users/{userId}/workspaces` | GET, POST | List/create workspaces |
-| `/api/users/{userId}/workspaces/{id}` | GET, PUT, DELETE | CRUD workspace |
-| `/api/users/{userId}/workspaces/{id}/members` | GET, POST | List/add members |
-| `/api/users/{userId}/workspaces/{id}/members/{mid}` | DELETE | Remove member |
-| `/api/workspaces/{id}/diagrams` | GET, POST | List/create diagrams |
-| `/api/workspaces/{id}/diagrams/{did}` | GET, PUT, DELETE | CRUD diagram |
-| `/api/workspaces/{id}/diagrams/{did}/nodes` | GET, POST | List/create nodes |
-| `/api/workspaces/{id}/diagrams/{did}/nodes/{nid}` | GET, PUT, DELETE | CRUD node |
-| `/api/workspaces/{id}/diagrams/{did}/edges` | GET, POST | List/create edges |
-| `/api/workspaces/{id}/diagrams/{did}/edges/{eid}` | GET, PUT, DELETE | CRUD edge |
-| `/api/workspaces/{id}/diagrams/{did}/versions` | GET, POST | List/create snapshots |
-| `/api/workspaces/{id}/diagrams/{did}/commit-draft` | POST | Save draft nodes+edges |
-| `/api/workspaces/{id}/logical-entities` | GET, POST | List/create logical entities |
-| `/api/workspaces/{id}/logical-entities/{eid}` | GET, PUT, DELETE | CRUD logical entity |
+| Route                                               | Methods          | Description                                      |
+| --------------------------------------------------- | ---------------- | ------------------------------------------------ |
+| `/api`                                              | GET              | Root resource with links to health, default-user |
+| `/health`                                           | GET              | Health check                                     |
+| `/api/users/{userId}`                               | GET              | User resource                                    |
+| `/api/users/{userId}/workspaces`                    | GET, POST        | List/create workspaces                           |
+| `/api/users/{userId}/workspaces/{id}`               | GET, PUT, DELETE | CRUD workspace                                   |
+| `/api/users/{userId}/workspaces/{id}/members`       | GET, POST        | List/add members                                 |
+| `/api/users/{userId}/workspaces/{id}/members/{mid}` | DELETE           | Remove member                                    |
+| `/api/workspaces/{id}/diagrams`                     | GET, POST        | List/create diagrams                             |
+| `/api/workspaces/{id}/diagrams/{did}`               | GET, PUT, DELETE | CRUD diagram                                     |
+| `/api/workspaces/{id}/diagrams/{did}/nodes`         | GET, POST        | List/create nodes                                |
+| `/api/workspaces/{id}/diagrams/{did}/nodes/{nid}`   | GET, PUT, DELETE | CRUD node                                        |
+| `/api/workspaces/{id}/diagrams/{did}/edges`         | GET, POST        | List/create edges                                |
+| `/api/workspaces/{id}/diagrams/{did}/edges/{eid}`   | GET, PUT, DELETE | CRUD edge                                        |
+| `/api/workspaces/{id}/logical-entities`             | GET, POST        | List/create logical entities                     |
+| `/api/workspaces/{id}/logical-entities/{eid}`       | GET, PUT, DELETE | CRUD logical entity                              |
 
 ### Testing Strategy
 
@@ -95,6 +94,7 @@ Two persistence implementations share the same **contract tests**:
 2. **PostgreSQL** (`PgUsers` in `persistent/users.rs`) — runs behind `#[cfg(feature = "postgres-tests")]`, requires Docker or `TEST_DATABASE_URL`
 
 Contract tests are defined in `persistent/test_support.rs::contracts` and exercised by both implementations:
+
 - `user_sees_seed_workspace`
 - `creating_workspace_adds_owner_member`
 - `duplicate_member_is_conflict`
@@ -143,6 +143,7 @@ Both implementations seed the same defaults: `desktop-user` → `default-workspa
 - **commit-msg**: validates Conventional Commits via `@commitlint/config-conventional`.
 
 Commit format:
+
 ```
 <type>(<scope>): <subject>
 ```
@@ -151,27 +152,27 @@ Allowed scopes: `web`, `desktop`, `server`, `workspace`, `deps`, `ci`, `docs`, `
 
 ## Repository Map
 
-| Path | Purpose |
-|------|---------|
-| `apps/web/` | React + Vite frontend SPA |
-| `apps/server/src/api/` | Axum HTTP routes and HAL response builders |
-| `apps/server/src/domain/` | Pure domain traits and aggregates (no framework dep) |
-| `apps/server/src/domain/core/` | `Entity`, `HasMany`, `Ref` base abstractions |
-| `apps/server/src/persistent/` | SeaORM + PostgreSQL implementations |
-| `apps/server/src/persistent/entities/` | SeaORM entity model definitions |
-| `apps/server/src/persistent/test_support.rs` | In-memory `FakeUsers` + reusable contract tests |
-| `apps/desktop/` | Tauri 2 desktop shell |
-| `apps/desktop/src-tauri/` | Tauri Rust crate, config, and capabilities |
-| `Cargo.toml` | Rust workspace (members: `apps/server`, `apps/desktop/src-tauri`) |
-| `nx.json` | Nx workspace config and plugin registry |
-| `pnpm-workspace.yaml` | pnpm workspace config (`apps/*`) |
-| `package.json` | Root scripts and shared devDependencies |
-| `tsconfig.base.json` | Shared TypeScript base config |
-| `vitest.workspace.ts` | Vitest workspace file discovery |
-| `eslint.config.mjs` | Root ESLint flat config with Nx module boundary rules |
-| `commitlint.config.cjs` | Conventional commit rules and scope whitelist |
-| `lint-staged.config.mjs` | Pre-commit formatting and linting |
-| `.husky/` | Git hooks (pre-commit, commit-msg) |
+| Path                                         | Purpose                                                           |
+| -------------------------------------------- | ----------------------------------------------------------------- |
+| `apps/web/`                                  | React + Vite frontend SPA                                         |
+| `apps/server/src/api/`                       | Axum HTTP routes and HAL response builders                        |
+| `apps/server/src/domain/`                    | Pure domain traits and aggregates (no framework dep)              |
+| `apps/server/src/domain/core/`               | `Entity`, `HasMany`, `Ref` base abstractions                      |
+| `apps/server/src/persistent/`                | SeaORM + PostgreSQL implementations                               |
+| `apps/server/src/persistent/entities/`       | SeaORM entity model definitions                                   |
+| `apps/server/src/persistent/test_support.rs` | In-memory `FakeUsers` + reusable contract tests                   |
+| `apps/desktop/`                              | Tauri 2 desktop shell                                             |
+| `apps/desktop/src-tauri/`                    | Tauri Rust crate, config, and capabilities                        |
+| `Cargo.toml`                                 | Rust workspace (members: `apps/server`, `apps/desktop/src-tauri`) |
+| `nx.json`                                    | Nx workspace config and plugin registry                           |
+| `pnpm-workspace.yaml`                        | pnpm workspace config (`apps/*`)                                  |
+| `package.json`                               | Root scripts and shared devDependencies                           |
+| `tsconfig.base.json`                         | Shared TypeScript base config                                     |
+| `vitest.workspace.ts`                        | Vitest workspace file discovery                                   |
+| `eslint.config.mjs`                          | Root ESLint flat config with Nx module boundary rules             |
+| `commitlint.config.cjs`                      | Conventional commit rules and scope whitelist                     |
+| `lint-staged.config.mjs`                     | Pre-commit formatting and linting                                 |
+| `.husky/`                                    | Git hooks (pre-commit, commit-msg)                                |
 
 ## Validation
 
@@ -195,6 +196,7 @@ cargo fmt -p evidence-desktop -- --check
 ```
 
 For PostgreSQL integration tests:
+
 ```sh
 cargo test -p evidence-server --features postgres-tests
 ```

@@ -10,9 +10,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::domain::{
-    Diagram, DiagramDescription, DiagramEdge, DiagramNode, DiagramVersion, DraftEdge, DraftNode,
-    EdgeDescription, JsonObject, ModelingEvent, NodeDescription, Position, Ref, ServerError,
-    Viewport, Workspace,
+    Diagram, DiagramDescription, DiagramEdge, DiagramNode, EdgeDescription, JsonObject,
+    ModelingEvent, NodeDescription, Position, Ref, ServerError, Viewport, Workspace,
 };
 
 use super::{
@@ -86,15 +85,6 @@ struct EdgeInput {
     #[serde(default)]
     path_options: Option<JsonObject>,
     interaction_width: Option<f64>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CommitDraftInput {
-    #[serde(default)]
-    nodes: Vec<NodeInput>,
-    #[serde(default)]
-    edges: Vec<EdgeInput>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -377,66 +367,6 @@ async fn delete_edge(
     Ok(Json(json!({ "deleted": true })))
 }
 
-async fn list_versions(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let versions = diagram.versions().find_all(0, usize::MAX).await?;
-    Ok(Json(version_collection_resource(
-        &workspace_id,
-        &diagram,
-        &versions,
-    )))
-}
-
-async fn create_version(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-) -> Result<Json<Value>, ApiError> {
-    let (_, diagram) = load_diagram(&state, &workspace_id, &diagram_id).await?;
-    let version = diagram.create_version().await?;
-    Ok(Json(version_resource(&workspace_id, &version)))
-}
-
-async fn commit_draft(
-    State(state): State<AppState>,
-    Path((workspace_id, diagram_id)): Path<(String, String)>,
-    Json(input): Json<CommitDraftInput>,
-) -> Result<Json<Value>, ApiError> {
-    let workspace = load_workspace(&state, &workspace_id).await?;
-    let nodes = input
-        .nodes
-        .into_iter()
-        .map(|input| {
-            let id = input
-                .id
-                .clone()
-                .ok_or_else(|| ServerError::Validation("draft node id is required".to_string()))?;
-            Ok(DraftNode {
-                id,
-                description: node_description(&diagram_id, input),
-            })
-        })
-        .collect::<Result<Vec<_>, ServerError>>()?;
-    let edges = input
-        .edges
-        .into_iter()
-        .map(|input| {
-            let id = input.id.clone();
-            Ok(DraftEdge {
-                id,
-                description: edge_description(&diagram_id, input),
-            })
-        })
-        .collect::<Result<Vec<_>, ServerError>>()?;
-    workspace
-        .diagrams_wide()
-        .save_diagram(&diagram_id, nodes, edges)
-        .await?;
-    Ok(Json(json!({ "committed": true })))
-}
-
 async fn propose_model(
     State(state): State<AppState>,
     Path((workspace_id, diagram_id)): Path<(String, String)>,
@@ -559,14 +489,6 @@ pub(super) fn routes() -> Router<AppState> {
             get(get_edge).put(update_edge).delete(delete_edge),
         )
         .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/versions",
-            get(list_versions).post(create_version),
-        )
-        .route(
-            "/api/workspaces/{workspaceId}/diagrams/{diagramId}/commit-draft",
-            get(get_diagram).post(commit_draft),
-        )
-        .route(
             "/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model",
             get(get_diagram).post(propose_model),
         )
@@ -613,21 +535,6 @@ async fn node_resource(workspace: &Workspace, node: &DiagramNode) -> Result<Valu
 fn edge_resource(workspace_id: &str, edge: &DiagramEdge) -> Value {
     let model: EdgeModel = edge_model(workspace_id, edge);
     serde_json::to_value(model).expect("edge model should serialize")
-}
-
-fn version_resource(workspace_id: &str, version: &DiagramVersion) -> Value {
-    let diagram_id = version.diagram_id();
-    let version_id = version.identity();
-    json!({
-        "_links": {
-            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/versions/{version_id}")),
-            "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
-        },
-        "id": version_id,
-        "name": version.description().name,
-        "snapshot": version.description().snapshot,
-        "createdAt": version.created_at(),
-    })
 }
 
 fn diagram_collection_resource(
@@ -737,23 +644,6 @@ fn edge_collection_resource(workspace_id: &str, diagram: &Diagram, edges: &[Diag
         },
         "_embedded": {
             "edges": edges.iter().map(|edge| edge_resource(workspace_id, edge)).collect::<Vec<_>>(),
-        }
-    })
-}
-
-fn version_collection_resource(
-    workspace_id: &str,
-    diagram: &Diagram,
-    versions: &[DiagramVersion],
-) -> Value {
-    let diagram_id = diagram.identity();
-    json!({
-        "_links": {
-            "self": Link::new(format!("/api/workspaces/{workspace_id}/diagrams/{diagram_id}/versions")),
-            "diagram": Link::new(diagram_href(workspace_id, diagram_id)),
-        },
-        "_embedded": {
-            "versions": versions.iter().map(|version| version_resource(workspace_id, version)).collect::<Vec<_>>(),
         }
     })
 }

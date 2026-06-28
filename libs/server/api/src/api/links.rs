@@ -84,20 +84,6 @@ pub(super) fn workspace_diagram_edge_href(
     )
 }
 
-pub(super) fn workspace_diagram_versions_href(workspace_id: &str, diagram_id: &str) -> String {
-    format!(
-        "{}/versions",
-        workspace_diagram_href(workspace_id, diagram_id)
-    )
-}
-
-pub(super) fn workspace_diagram_commit_draft_href(workspace_id: &str, diagram_id: &str) -> String {
-    format!(
-        "{}/commit-draft",
-        workspace_diagram_href(workspace_id, diagram_id)
-    )
-}
-
 pub(super) fn workspace_diagram_propose_model_href(workspace_id: &str, diagram_id: &str) -> String {
     format!(
         "{}/propose-model",

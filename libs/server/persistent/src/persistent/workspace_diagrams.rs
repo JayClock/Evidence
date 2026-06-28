@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::Arc,
@@ -7,21 +7,14 @@ use std::{
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sea_orm::TransactionTrait;
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::domain::{
-    Diagram, DiagramDescription, DraftEdge, DraftNode, HasMany, Ref, ServerError, Viewport,
-    WorkspaceDiagrams,
+    Diagram, DiagramDescription, HasMany, Ref, ServerError, Viewport, WorkspaceDiagrams,
 };
 
-use super::{
-    diagram_edges::{delete_edges_for_diagram, insert_edge, DbDiagramEdges},
-    diagram_nodes::{delete_nodes_for_diagram, insert_node, DbDiagramNodes},
-    diagram_versions::DbDiagramVersions,
-    store::{db_error, now, DbStore},
-};
+use super::{diagram_edges::DbDiagramEdges, diagram_nodes::DbDiagramNodes, store::DbStore};
 
 pub struct DbWorkspaceDiagrams {
     store: DbStore,
@@ -203,56 +196,6 @@ impl WorkspaceDiagrams for DbWorkspaceDiagrams {
             total,
         ))
     }
-
-    async fn save_diagram(
-        &self,
-        diagram_id: &str,
-        draft_nodes: Vec<DraftNode>,
-        draft_edges: Vec<DraftEdge>,
-    ) -> Result<(), ServerError> {
-        if diagram_id.trim().is_empty() {
-            return Err(ServerError::Validation(
-                "diagram id must be provided".to_string(),
-            ));
-        }
-        let record = self
-            .find_record(diagram_id)?
-            .ok_or_else(|| ServerError::NotFound(format!("diagram {diagram_id} not found")))?;
-
-        let node_ids: HashSet<String> = draft_nodes.iter().map(|node| node.id.clone()).collect();
-        for edge in &draft_edges {
-            if !node_ids.contains(edge.description.source.id()) {
-                return Err(ServerError::Validation(format!(
-                    "draft edge source node not found: {}",
-                    edge.description.source.id()
-                )));
-            }
-            if !node_ids.contains(edge.description.target.id()) {
-                return Err(ServerError::Validation(format!(
-                    "draft edge target node not found: {}",
-                    edge.description.target.id()
-                )));
-            }
-        }
-
-        let tx = self.store.db().begin().await.map_err(db_error)?;
-        delete_edges_for_diagram(&tx, diagram_id).await?;
-        delete_nodes_for_diagram(&tx, diagram_id).await?;
-
-        let timestamp = now();
-        for node in draft_nodes {
-            insert_node(&tx, diagram_id, &node.id, &node.description, &timestamp).await?;
-        }
-        for edge in draft_edges {
-            let id = edge.id.unwrap_or_else(|| Uuid::new_v4().to_string());
-            insert_edge(&tx, diagram_id, &id, &edge.description, &timestamp).await?;
-        }
-
-        tx.commit().await.map_err(db_error)?;
-
-        self.write_record(&record.path, diagram_id, record.description)?;
-        Ok(())
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -270,8 +213,7 @@ impl MarkdownDiagram {
             self.id,
             self.description,
             Arc::new(DbDiagramNodes::new(store.clone(), diagram_id.clone())),
-            Arc::new(DbDiagramEdges::new(store.clone(), diagram_id.clone())),
-            Arc::new(DbDiagramVersions::new(store, diagram_id)),
+            Arc::new(DbDiagramEdges::new(store, diagram_id)),
         )
     }
 }

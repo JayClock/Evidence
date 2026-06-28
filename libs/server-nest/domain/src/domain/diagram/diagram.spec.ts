@@ -3,12 +3,6 @@ import { HasMany, Ref, type Entity, type Many } from '../core';
 import { Diagram, type DiagramDescription } from './diagram';
 import { DiagramEdge, type DiagramEdges, type EdgeDescription } from './edge';
 import { DiagramNode, type DiagramNodes, type NodeDescription } from './node';
-import type { DraftEdge, DraftNode } from './types';
-import {
-  DiagramVersion,
-  type DiagramVersionDescription,
-  type DiagramVersions,
-} from './version';
 
 const timestamp = '2026-01-01T00:00:00Z';
 
@@ -53,17 +47,6 @@ const edgeDescription: EdgeDescription = {
   updatedAt: timestamp,
 };
 
-const versionDescription: DiagramVersionDescription = {
-  diagram: new Ref('diagram-1'),
-  name: 'v1',
-  snapshot: {
-    nodes: [],
-    edges: [],
-    viewport: diagramDescription.viewport,
-  },
-  createdAt: timestamp,
-};
-
 function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
   return {
     size: vi.fn(async () => items.length),
@@ -82,16 +65,8 @@ function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
 function diagramFixture() {
   const node = new DiagramNode('node-1', nodeDescription);
   const edge = new DiagramEdge('edge-1', edgeDescription);
-  const version = new DiagramVersion('version-1', versionDescription);
-  const draftNodes: DraftNode[] = [
-    { id: 'node-1', description: nodeDescription },
-  ];
-  const draftEdges: DraftEdge[] = [
-    { id: 'edge-1', description: edgeDescription },
-  ];
   const manyNodes = many([node]);
   const manyEdges = many([edge]);
-  const manyVersions = many([version]);
 
   const nodes = {
     findAll: vi.fn(() => manyNodes),
@@ -101,7 +76,6 @@ function diagramFixture() {
     addAll: vi.fn(async () => [node]),
     update: vi.fn(async () => node),
     delete: vi.fn(async () => undefined),
-    replaceAll: vi.fn(async () => undefined),
   } satisfies DiagramNodes;
 
   const edges = {
@@ -112,36 +86,18 @@ function diagramFixture() {
     addAll: vi.fn(async () => [edge]),
     update: vi.fn(async () => edge),
     delete: vi.fn(async () => undefined),
-    replaceAll: vi.fn(async () => undefined),
   } satisfies DiagramEdges;
 
-  const versions = {
-    findAll: vi.fn(() => manyVersions),
-    findByIdentity: vi.fn(async () => version),
-    add: vi.fn(async () => version),
-  } satisfies DiagramVersions;
-
-  const diagram = new Diagram(
-    'diagram-1',
-    diagramDescription,
-    nodes,
-    edges,
-    versions,
-  );
+  const diagram = new Diagram('diagram-1', diagramDescription, nodes, edges);
 
   return {
     diagram,
-    draftEdges,
-    draftNodes,
     edge,
     edges,
     manyEdges,
     manyNodes,
-    manyVersions,
     node,
     nodes,
-    version,
-    versions,
   };
 }
 
@@ -154,24 +110,19 @@ describe('Diagram', () => {
   });
 
   it('exposes child collections as HasMany collections', async () => {
-    const { diagram, edge, node, version } = diagramFixture();
+    const { diagram, edge, node } = diagramFixture();
 
     const nodes: HasMany<DiagramNode> = diagram.nodes();
     const edges: HasMany<DiagramEdge> = diagram.edges();
-    const versions: HasMany<DiagramVersion> = diagram.versions();
 
     await expect(
       nodes.findAll().subCollection(0, 10).toArray(),
     ).resolves.toEqual([node]);
     await expect(edges.findByIdentity('edge-1')).resolves.toBe(edge);
-    await expect(versions.findAll().size()).resolves.toBe(1);
-    await expect(
-      versions.findAll().subCollection(0, 10).toArray(),
-    ).resolves.toEqual([version]);
   });
 
   it('delegates node commands to the diagram nodes collection', async () => {
-    const { diagram, draftNodes, node, nodes } = diagramFixture();
+    const { diagram, node, nodes } = diagramFixture();
 
     await expect(diagram.addNode(nodeDescription)).resolves.toBe(node);
     await expect(
@@ -182,18 +133,16 @@ describe('Diagram', () => {
       node,
     );
     await expect(diagram.deleteNode('node-1')).resolves.toBeUndefined();
-    await expect(diagram.replaceNodes(draftNodes)).resolves.toBeUndefined();
 
     expect(nodes.add).toHaveBeenCalledWith(nodeDescription);
     expect(nodes.addWithId).toHaveBeenCalledWith('node-1', nodeDescription);
     expect(nodes.addAll).toHaveBeenCalledWith([nodeDescription]);
     expect(nodes.update).toHaveBeenCalledWith('node-1', nodeDescription);
     expect(nodes.delete).toHaveBeenCalledWith('node-1');
-    expect(nodes.replaceAll).toHaveBeenCalledWith(draftNodes);
   });
 
   it('delegates edge commands to the diagram edges collection', async () => {
-    const { diagram, draftEdges, edge, edges } = diagramFixture();
+    const { diagram, edge, edges } = diagramFixture();
 
     await expect(diagram.addEdge(edgeDescription)).resolves.toBe(edge);
     await expect(
@@ -204,40 +153,11 @@ describe('Diagram', () => {
       edge,
     );
     await expect(diagram.deleteEdge('edge-1')).resolves.toBeUndefined();
-    await expect(diagram.replaceEdges(draftEdges)).resolves.toBeUndefined();
 
     expect(edges.add).toHaveBeenCalledWith(edgeDescription);
     expect(edges.addWithId).toHaveBeenCalledWith('edge-1', edgeDescription);
     expect(edges.addAll).toHaveBeenCalledWith([edgeDescription]);
     expect(edges.update).toHaveBeenCalledWith('edge-1', edgeDescription);
     expect(edges.delete).toHaveBeenCalledWith('edge-1');
-    expect(edges.replaceAll).toHaveBeenCalledWith(draftEdges);
-  });
-
-  it('creates diagram versions from current nodes and edges', async () => {
-    const { diagram, version, versions } = diagramFixture();
-
-    await expect(diagram.createVersion()).resolves.toBe(version);
-
-    expect(versions.add).toHaveBeenCalledWith({
-      diagram: new Ref('diagram-1'),
-      name: 'v2',
-      snapshot: {
-        nodes: [
-          {
-            id: 'node-1',
-            description: nodeDescription,
-          },
-        ],
-        edges: [
-          {
-            id: 'edge-1',
-            description: edgeDescription,
-          },
-        ],
-        viewport: diagramDescription.viewport,
-      },
-      createdAt: '',
-    });
   });
 });

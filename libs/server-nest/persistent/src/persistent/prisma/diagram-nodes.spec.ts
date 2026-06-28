@@ -86,24 +86,4 @@ describe('PrismaDiagramNodes', () => {
       where: { id: 'node-1' },
     });
   });
-
-  it('replaces all nodes and clears diagram edges first', async () => {
-    const store = mockPrismaStore();
-    store.diagramEdge.deleteMany.mockResolvedValue({ count: 1 });
-    store.diagramNode.deleteMany.mockResolvedValue({ count: 2 });
-    store.diagramNode.createMany.mockResolvedValue({ count: 1 });
-    const nodes = new PrismaDiagramNodes(asStore(store), 'diagram-1');
-
-    await nodes.replaceAll([{ id: 'node-1', description: nodeDescription() }]);
-
-    expect(store.diagramEdge.deleteMany).toHaveBeenCalledWith({
-      where: { diagramId: 'diagram-1' },
-    });
-    expect(store.diagramNode.deleteMany).toHaveBeenCalledWith({
-      where: { diagramId: 'diagram-1' },
-    });
-    expect(store.diagramNode.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({ id: 'node-1', diagramId: 'diagram-1' })],
-    });
-  });
 });

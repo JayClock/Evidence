@@ -5,9 +5,8 @@ use std::collections::BTreeMap;
 use crate::domain::{Diagram, Viewport};
 
 use super::super::links::{
-    workspace_diagram_commit_draft_href, workspace_diagram_edges_href, workspace_diagram_href,
-    workspace_diagram_nodes_href, workspace_diagram_propose_model_href,
-    workspace_diagram_versions_href, workspace_diagrams_href, Link,
+    workspace_diagram_edges_href, workspace_diagram_href, workspace_diagram_nodes_href,
+    workspace_diagram_propose_model_href, workspace_diagrams_href, Link,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -50,17 +49,6 @@ pub(in crate::api) fn diagram_model(diagram: &Diagram) -> DiagramModel {
             (
                 "edges".to_string(),
                 Link::new(workspace_diagram_edges_href(workspace_id, diagram_id)),
-            ),
-            (
-                "versions".to_string(),
-                Link::new(workspace_diagram_versions_href(workspace_id, diagram_id)),
-            ),
-            (
-                "commit-draft".to_string(),
-                Link::new(workspace_diagram_commit_draft_href(
-                    workspace_id,
-                    diagram_id,
-                )),
             ),
             (
                 "propose-model".to_string(),

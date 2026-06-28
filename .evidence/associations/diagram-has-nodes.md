@@ -30,4 +30,4 @@ summary: Diagram 包含 DiagramNode 集合。
 
 ## 业务含义
 
-节点属于图。保存草稿时可以用 `replace_all` 替换图中的节点集合。
+节点属于图，通过图节点资源单独创建、更新和删除。

@@ -1,11 +1,5 @@
 import { Entity, HasMany } from '../core';
-import {
-  Diagram,
-  DiagramDescription,
-  DraftEdge,
-  DraftNode,
-  WorkspaceDiagrams,
-} from '../diagram';
+import { Diagram, DiagramDescription, WorkspaceDiagrams } from '../diagram';
 import {
   LogicalEntity,
   LogicalEntityDescription,
@@ -75,18 +69,6 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   listDiagrams(page: number, pageSize: number): Promise<[Diagram[], number]> {
     return this.workspaceDiagrams.list(page, pageSize);
-  }
-
-  saveDiagram(
-    diagramId: string,
-    draftNodes: DraftNode[],
-    draftEdges: DraftEdge[],
-  ): Promise<void> {
-    return this.workspaceDiagrams.saveDiagram(
-      diagramId,
-      draftNodes,
-      draftEdges,
-    );
   }
 
   logicalEntities(): HasMany<LogicalEntity> {

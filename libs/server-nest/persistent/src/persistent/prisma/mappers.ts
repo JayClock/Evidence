@@ -4,8 +4,6 @@ import {
   DiagramDescription,
   DiagramEdge,
   DiagramNode,
-  DiagramSnapshot,
-  DiagramVersion,
   EntityAttribute,
   LogicalEntity,
   LogicalEntityDescription,
@@ -22,7 +20,6 @@ import type {
   Diagram as DiagramRow,
   DiagramEdge as DiagramEdgeRow,
   DiagramNode as DiagramNodeRow,
-  DiagramVersion as DiagramVersionRow,
   LogicalEntity as LogicalEntityRow,
   LogicalRelationship as LogicalRelationshipRow,
   User as UserRow,
@@ -31,7 +28,6 @@ import type {
 } from '@prisma/client';
 import { PrismaDiagramEdges } from './diagram-edges';
 import { PrismaDiagramNodes } from './diagram-nodes';
-import { PrismaDiagramVersions } from './diagram-versions';
 import type { PrismaStore } from './types';
 import { PrismaUserWorkspaces } from './user-workspaces';
 import { PrismaWorkspaceDiagrams } from './workspace-diagrams';
@@ -95,7 +91,6 @@ export function assembleDiagram(store: PrismaStore, row: DiagramRow): Diagram {
     description,
     new PrismaDiagramNodes(store, row.id),
     new PrismaDiagramEdges(store, row.id),
-    new PrismaDiagramVersions(store, row.id),
   );
 }
 
@@ -135,15 +130,6 @@ export function assembleDiagramEdge(row: DiagramEdgeRow): DiagramEdge {
     interactionWidth: row.interactionWidth,
     createdAt: toIso(row.createdAt),
     updatedAt: toIso(row.updatedAt),
-  });
-}
-
-export function assembleDiagramVersion(row: DiagramVersionRow): DiagramVersion {
-  return new DiagramVersion(row.id, {
-    diagram: new Ref(row.diagramId),
-    name: row.name,
-    snapshot: row.snapshot as unknown as DiagramSnapshot,
-    createdAt: toIso(row.createdAt),
   });
 }
 

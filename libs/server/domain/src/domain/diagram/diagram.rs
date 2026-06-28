@@ -2,11 +2,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use super::{
-    DiagramEdges, DiagramNodes, DiagramVersionDescription, DiagramVersions, SnapshotEdge,
-    SnapshotNode, Viewport,
-};
-use crate::domain::{DiagramEdge, DiagramNode, DiagramVersion, Entity, HasMany, Ref, ServerError};
+use super::{DiagramEdges, DiagramNodes, Viewport};
+use crate::domain::{DiagramEdge, DiagramNode, Entity, HasMany, Ref};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagramDescription {
@@ -22,7 +19,6 @@ pub struct Diagram {
     description: DiagramDescription,
     nodes: Arc<dyn DiagramNodes>,
     edges: Arc<dyn DiagramEdges>,
-    versions: Arc<dyn DiagramVersions>,
 }
 
 impl Diagram {
@@ -31,14 +27,12 @@ impl Diagram {
         description: DiagramDescription,
         nodes: Arc<dyn DiagramNodes>,
         edges: Arc<dyn DiagramEdges>,
-        versions: Arc<dyn DiagramVersions>,
     ) -> Self {
         Self {
             identity,
             description,
             nodes,
             edges,
-            versions,
         }
     }
 
@@ -68,41 +62,6 @@ impl Diagram {
 
     pub fn edges_wide(&self) -> &dyn DiagramEdges {
         self.edges.as_ref()
-    }
-
-    pub fn versions(&self) -> &dyn HasMany<DiagramVersion> {
-        self.versions.as_ref()
-    }
-
-    pub async fn create_version(&self) -> Result<DiagramVersion, ServerError> {
-        let nodes = self.nodes.find_all(0, usize::MAX).await?;
-        let edges = self.edges.find_all(0, usize::MAX).await?;
-        let size = self.versions.size().await?;
-        let snapshot = super::DiagramSnapshot {
-            nodes: nodes
-                .into_iter()
-                .map(|node| SnapshotNode {
-                    id: node.identity().to_string(),
-                    description: node.description().clone(),
-                })
-                .collect(),
-            edges: edges
-                .into_iter()
-                .map(|edge| SnapshotEdge {
-                    id: edge.identity().to_string(),
-                    description: edge.description().clone(),
-                })
-                .collect(),
-            viewport: self.description.viewport.clone(),
-        };
-        self.versions
-            .add(DiagramVersionDescription {
-                diagram: Ref::new(self.identity.clone()),
-                name: format!("v{}", size + 1),
-                snapshot,
-                created_at: String::new(),
-            })
-            .await
     }
 
     pub fn created_at(&self) -> &str {

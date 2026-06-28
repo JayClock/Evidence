@@ -3,8 +3,6 @@ import { HasMany, Ref, type Entity, type Many } from '../core';
 import type {
   Diagram,
   DiagramDescription,
-  DraftEdge,
-  DraftNode,
   WorkspaceDiagrams,
 } from '../diagram';
 import type {
@@ -86,8 +84,6 @@ function workspaceFixture() {
   const diagram = {} as Diagram;
   const logicalEntity = {} as LogicalEntity;
   const logicalRelationship = {} as LogicalRelationship;
-  const draftNodes: DraftNode[] = [];
-  const draftEdges: DraftEdge[] = [];
   const manyMembers = many([member]);
   const manyDiagrams = many([diagram]);
   const manyLogicalEntities = many([logicalEntity]);
@@ -107,7 +103,6 @@ function workspaceFixture() {
     update: vi.fn(async () => diagram),
     delete: vi.fn(async () => undefined),
     list: vi.fn(async () => [[diagram], 1] as [Diagram[], number]),
-    saveDiagram: vi.fn(async () => undefined),
   } satisfies WorkspaceDiagrams;
 
   const logicalEntities = {
@@ -142,8 +137,6 @@ function workspaceFixture() {
   return {
     diagram,
     diagrams,
-    draftEdges,
-    draftNodes,
     logicalEntities,
     logicalEntity,
     logicalRelationship,
@@ -199,8 +192,7 @@ describe('Workspace', () => {
   });
 
   it('delegates diagram commands to the workspace diagrams collection', async () => {
-    const { diagram, diagrams, draftEdges, draftNodes, workspace } =
-      workspaceFixture();
+    const { diagram, diagrams, workspace } = workspaceFixture();
 
     await expect(workspace.addDiagram(diagramDescription)).resolves.toBe(
       diagram,
@@ -213,9 +205,6 @@ describe('Workspace', () => {
       [diagram],
       1,
     ]);
-    await expect(
-      workspace.saveDiagram('diagram-1', draftNodes, draftEdges),
-    ).resolves.toBeUndefined();
 
     expect(diagrams.add).toHaveBeenCalledWith(diagramDescription);
     expect(diagrams.update).toHaveBeenCalledWith(
@@ -224,11 +213,6 @@ describe('Workspace', () => {
     );
     expect(diagrams.delete).toHaveBeenCalledWith('diagram-1');
     expect(diagrams.list).toHaveBeenCalledWith(2, 25);
-    expect(diagrams.saveDiagram).toHaveBeenCalledWith(
-      'diagram-1',
-      draftNodes,
-      draftEdges,
-    );
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {

@@ -42,5 +42,4 @@ export interface DiagramEdges extends HasMany<DiagramEdge> {
   addAll(descriptions: EdgeDescription[]): Promise<DiagramEdge[]>;
   update(edgeId: string, desc: EdgeDescription): Promise<DiagramEdge>;
   delete(edgeId: string): Promise<void>;
-  replaceAll(edges: import('./types').DraftEdge[]): Promise<void>;
 }

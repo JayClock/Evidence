@@ -228,38 +228,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/versions': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['list_diagram_versions'];
-    put?: never;
-    post: operations['create_diagram_version'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/workspaces/{workspaceId}/diagrams/{diagramId}/commit-draft': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['get_diagram_for_commit_draft'];
-    put?: never;
-    post: operations['commit_diagram_draft'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/workspaces/{workspaceId}/diagrams/{diagramId}/propose-model': {
     parameters: {
       query?: never;
@@ -353,13 +321,6 @@ export interface components {
         href: string;
       };
     };
-    CommitDraftInput: {
-      edges?: components['schemas']['EdgeInput'][] | null;
-      nodes?: components['schemas']['NodeInput'][] | null;
-    };
-    CommitResult: {
-      committed: boolean;
-    };
     CreateDiagramInput: {
       title: string;
     };
@@ -395,25 +356,6 @@ export interface components {
       title: string;
       updatedAt: string;
       viewport: components['schemas']['Viewport'];
-    };
-    DiagramSnapshot: {
-      edges: components['schemas']['SnapshotEdge'][];
-      nodes: components['schemas']['SnapshotNode'][];
-      viewport: components['schemas']['Viewport'];
-    };
-    DiagramVersionCollectionEmbedded: {
-      versions: components['schemas']['DiagramVersionResource'][];
-    };
-    DiagramVersionCollectionResource: {
-      _embedded: components['schemas']['DiagramVersionCollectionEmbedded'];
-      _links: components['schemas']['BTreeMap'];
-    };
-    DiagramVersionResource: {
-      _links: components['schemas']['BTreeMap'];
-      createdAt: string;
-      id: string;
-      name: string;
-      snapshot: components['schemas']['DiagramSnapshot'];
     };
     EdgeCollectionEmbedded: {
       edges: components['schemas']['EdgeResource'][];
@@ -634,14 +576,6 @@ export interface components {
       items: components['schemas']['SidebarItem'][];
       key: string;
       title: string;
-    };
-    SnapshotEdge: {
-      description: components['schemas']['EdgeInput'];
-      id?: string | null;
-    };
-    SnapshotNode: {
-      description: components['schemas']['NodeInput'];
-      id: string;
     };
     TemplateProperty: {
       /** Format: int32 */
@@ -2248,246 +2182,6 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.edge+json': components['schemas']['DeletedResult'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  list_diagram_versions: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram version collection */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram-versions+json': components['schemas']['DiagramVersionCollectionResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  create_diagram_version: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Created diagram version */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram-versions+json': components['schemas']['DiagramVersionResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  get_diagram_for_commit_draft: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram resource */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  commit_diagram_draft: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        diagramId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CommitDraftInput'];
-      };
-    };
-    responses: {
-      /** @description Draft commit result */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['CommitResult'];
         };
       };
       /** @description Validation error */

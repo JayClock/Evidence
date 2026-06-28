@@ -2,13 +2,11 @@ import { Diagram } from '@evidence/server-nest-domain';
 import {
   link,
   Link,
-  workspaceDiagramCommitDraftHref,
   workspaceDiagramEdgesHref,
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
   workspaceDiagramProposeModelHref,
   workspaceDiagramsHref,
-  workspaceDiagramVersionsHref,
 } from '../links';
 
 export interface DiagramModel {
@@ -32,10 +30,6 @@ export function diagramModel(diagram: Diagram): DiagramModel {
       collection: link(workspaceDiagramsHref(workspaceId)),
       nodes: link(workspaceDiagramNodesHref(workspaceId, diagramId)),
       edges: link(workspaceDiagramEdgesHref(workspaceId, diagramId)),
-      versions: link(workspaceDiagramVersionsHref(workspaceId, diagramId)),
-      'commit-draft': link(
-        workspaceDiagramCommitDraftHref(workspaceId, diagramId),
-      ),
       'propose-model': link(
         workspaceDiagramProposeModelHref(workspaceId, diagramId),
       ),

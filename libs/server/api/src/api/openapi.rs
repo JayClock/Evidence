@@ -61,10 +61,6 @@ pub fn openapi_yaml() -> String {
         get_diagram_edge,
         update_diagram_edge,
         delete_diagram_edge,
-        list_diagram_versions,
-        create_diagram_version,
-        get_diagram_for_commit_draft,
-        commit_diagram_draft,
         get_diagram_for_propose_model,
         propose_diagram_model,
         list_logical_entities,
@@ -80,15 +76,11 @@ pub fn openapi_yaml() -> String {
     ),
     components(schemas(
         AddMemberInput,
-        CommitDraftInput,
         CreateDiagramInput,
         CreateLogicalEntityInput,
         DeletedResult,
         DiagramCollectionResource,
         DiagramResource,
-        DiagramSnapshot,
-        DiagramVersionCollectionResource,
-        DiagramVersionResource,
         EdgeCollectionResource,
         EdgeInput,
         EdgeResource,
@@ -479,60 +471,6 @@ pub struct EdgeCollectionResource {
     pub links: Links,
     #[serde(rename = "_embedded")]
     pub embedded: EdgeCollectionEmbedded,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct SnapshotNode {
-    pub id: String,
-    pub description: NodeInput,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct SnapshotEdge {
-    pub id: Option<String>,
-    pub description: EdgeInput,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct DiagramSnapshot {
-    pub nodes: Vec<SnapshotNode>,
-    pub edges: Vec<SnapshotEdge>,
-    pub viewport: Viewport,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct DiagramVersionResource {
-    #[serde(rename = "_links")]
-    pub links: Links,
-    pub id: String,
-    pub name: String,
-    pub snapshot: DiagramSnapshot,
-    pub created_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct DiagramVersionCollectionEmbedded {
-    pub versions: Vec<DiagramVersionResource>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct DiagramVersionCollectionResource {
-    #[serde(rename = "_links")]
-    pub links: Links,
-    #[serde(rename = "_embedded")]
-    pub embedded: DiagramVersionCollectionEmbedded,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct CommitDraftInput {
-    pub nodes: Option<Vec<NodeInput>>,
-    pub edges: Option<Vec<EdgeInput>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct CommitResult {
-    pub committed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -1016,63 +954,6 @@ fn update_diagram_edge() {}
     )
 )]
 fn delete_diagram_edge() {}
-
-#[utoipa::path(
-    get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/versions",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    responses(
-        (status = 200, description = "Diagram version collection", body = DiagramVersionCollectionResource, content_type = "application/vnd.evidence.diagram-versions+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn list_diagram_versions() {}
-
-#[utoipa::path(
-    post,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/versions",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    responses(
-        (status = 200, description = "Created diagram version", body = DiagramVersionResource, content_type = "application/vnd.evidence.diagram-versions+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn create_diagram_version() {}
-
-#[utoipa::path(
-    get,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/commit-draft",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    responses(
-        (status = 200, description = "Diagram resource", body = DiagramResource, content_type = "application/vnd.evidence.diagram+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn get_diagram_for_commit_draft() {}
-
-#[utoipa::path(
-    post,
-    path = "/api/workspaces/{workspaceId}/diagrams/{diagramId}/commit-draft",
-    params(("workspaceId" = String, Path), ("diagramId" = String, Path)),
-    request_body(content = CommitDraftInput, content_type = "application/json"),
-    responses(
-        (status = 200, description = "Draft commit result", body = CommitResult, content_type = "application/vnd.evidence.diagram+json"),
-        (status = 400, description = "Validation error", body = ErrorBody, content_type = "application/json"),
-        (status = 404, description = "Resource not found", body = ErrorBody, content_type = "application/json"),
-        (status = 409, description = "Conflict", body = ErrorBody, content_type = "application/json"),
-        (status = 500, description = "Internal server error", body = ErrorBody, content_type = "application/json")
-    )
-)]
-fn commit_diagram_draft() {}
 
 #[utoipa::path(
     get,

@@ -1,6 +1,5 @@
 mod diagram_edges;
 mod diagram_nodes;
-mod diagram_versions;
 pub(crate) mod entities;
 mod logical_entities;
 mod logical_relationships;

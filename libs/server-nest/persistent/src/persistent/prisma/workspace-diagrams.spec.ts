@@ -4,9 +4,7 @@ import {
   asStore,
   diagramDescription,
   diagramRow,
-  edgeDescription,
   mockPrismaStore,
-  nodeDescription,
 } from './test-support';
 
 describe('PrismaWorkspaceDiagrams', () => {
@@ -69,66 +67,5 @@ describe('PrismaWorkspaceDiagrams', () => {
         updatedAt: expect.any(Date),
       },
     });
-  });
-
-  it('replaces draft nodes and edges atomically when saving a diagram', async () => {
-    const store = mockPrismaStore();
-    store.diagram.findFirst.mockResolvedValue(diagramRow());
-    store.diagramNode.deleteMany.mockResolvedValue({ count: 2 });
-    store.diagramEdge.deleteMany.mockResolvedValue({ count: 1 });
-    store.diagramNode.createMany.mockResolvedValue({ count: 2 });
-    store.diagramEdge.createMany.mockResolvedValue({ count: 1 });
-    const diagrams = new PrismaWorkspaceDiagrams(asStore(store), 'workspace-1');
-
-    await diagrams.saveDiagram(
-      'diagram-1',
-      [
-        { id: 'node-1', description: nodeDescription() },
-        { id: 'node-2', description: nodeDescription({ logicalEntity: null }) },
-      ],
-      [{ id: 'edge-1', description: edgeDescription() }],
-    );
-
-    expect(store.$transaction).toHaveBeenCalledOnce();
-    expect(store.diagramEdge.deleteMany).toHaveBeenCalledWith({
-      where: { diagramId: 'diagram-1' },
-    });
-    expect(store.diagramNode.deleteMany).toHaveBeenCalledWith({
-      where: { diagramId: 'diagram-1' },
-    });
-    expect(store.diagramNode.createMany).toHaveBeenCalledWith({
-      data: expect.arrayContaining([
-        expect.objectContaining({ id: 'node-1', diagramId: 'diagram-1' }),
-        expect.objectContaining({ id: 'node-2', diagramId: 'diagram-1' }),
-      ]),
-    });
-    expect(store.diagramEdge.createMany).toHaveBeenCalledWith({
-      data: [
-        expect.objectContaining({
-          id: 'edge-1',
-          diagramId: 'diagram-1',
-          sourceId: 'node-1',
-          targetId: 'node-2',
-        }),
-      ],
-    });
-    expect(store.diagram.update).toHaveBeenCalledWith({
-      where: { id: 'diagram-1' },
-      data: { updatedAt: expect.any(Date) },
-    });
-  });
-
-  it('rejects draft edges whose nodes are not in the same draft payload', async () => {
-    const store = mockPrismaStore();
-    store.diagram.findFirst.mockResolvedValue(diagramRow());
-    const diagrams = new PrismaWorkspaceDiagrams(asStore(store), 'workspace-1');
-
-    await expect(
-      diagrams.saveDiagram(
-        'diagram-1',
-        [{ id: 'node-1', description: nodeDescription() }],
-        [{ id: 'edge-1', description: edgeDescription() }],
-      ),
-    ).rejects.toMatchObject({ kind: 'validation' });
   });
 });

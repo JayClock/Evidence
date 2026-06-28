@@ -12,11 +12,9 @@ mod workspace;
 pub use core::{Entity, HasMany, Ref};
 pub use diagram::{
     Diagram, DiagramDescription, DiagramEdge, DiagramEdges, DiagramNode, DiagramNodes,
-    DiagramSnapshot, DiagramVersion, DiagramVersionDescription, DiagramVersions, DomainArchitect,
-    DomainArchitectEventStream, DraftEdge, DraftNode, EdgeDescription, JsonObject,
-    ModelingDraftEntity, ModelingDraftRelationship, ModelingEvent, ModelingProposal,
-    ModelingProposalChanges, NodeDescription, Position, SnapshotEdge, SnapshotNode, Viewport,
-    WorkspaceDiagrams,
+    DomainArchitect, DomainArchitectEventStream, EdgeDescription, JsonObject, ModelingDraftEntity,
+    ModelingDraftRelationship, ModelingEvent, ModelingProposal, ModelingProposalChanges,
+    NodeDescription, Position, Viewport, WorkspaceDiagrams,
 };
 pub use error::ServerError;
 pub use logical_entity::{

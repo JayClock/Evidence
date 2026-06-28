@@ -156,7 +156,7 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
         addEdge<DiagramCanvasEdge>(
           {
             ...connection,
-            id: toDraftEdgeId(connection, currentEdges),
+            id: toTemporaryEdgeId(connection, currentEdges),
             type: ANIMATED_EDGE_TYPE,
             data: {
               relationType: null,
@@ -177,7 +177,7 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
             <EmptyHeader>
               <EmptyTitle>No nodes yet</EmptyTitle>
               <EmptyDescription>
-                This diagram does not have a saved draft to render.
+                This diagram does not have saved nodes to render.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -337,11 +337,11 @@ function toNodeSize(
   };
 }
 
-function toDraftEdgeId(
+function toTemporaryEdgeId(
   connection: Connection,
   currentEdges: DiagramCanvasEdge[],
 ): string {
-  const baseId = `draft:${connection.source ?? 'source'}::${
+  const baseId = `temporary:${connection.source ?? 'source'}::${
     connection.target ?? 'target'
   }`;
   const existingIds = new Set(currentEdges.map((edge) => edge.id));

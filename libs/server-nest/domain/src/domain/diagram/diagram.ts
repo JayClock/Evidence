@@ -1,13 +1,7 @@
 import { Entity, HasMany, Ref } from '../core';
-import { DomainError } from '../error';
 import { DiagramEdge, DiagramEdges, EdgeDescription } from './edge';
 import { DiagramNode, DiagramNodes, NodeDescription } from './node';
-import { DraftEdge, DraftNode, Viewport } from './types';
-import {
-  DiagramVersion,
-  DiagramVersionDescription,
-  DiagramVersions,
-} from './version';
+import { Viewport } from './types';
 
 export interface DiagramDescription {
   workspace: Ref<string>;
@@ -23,7 +17,6 @@ export class Diagram implements Entity<string, DiagramDescription> {
     private readonly desc: DiagramDescription,
     private readonly diagramNodes: DiagramNodes,
     private readonly diagramEdges: DiagramEdges,
-    private readonly diagramVersions: DiagramVersions,
   ) {}
 
   identity(): string {
@@ -61,10 +54,6 @@ export class Diagram implements Entity<string, DiagramDescription> {
     return this.diagramNodes.delete(nodeId);
   }
 
-  replaceNodes(nodes: DraftNode[]): Promise<void> {
-    return this.diagramNodes.replaceAll(nodes);
-  }
-
   edges(): HasMany<DiagramEdge> {
     return this.diagramEdges;
   }
@@ -90,46 +79,5 @@ export class Diagram implements Entity<string, DiagramDescription> {
 
   deleteEdge(edgeId: string): Promise<void> {
     return this.diagramEdges.delete(edgeId);
-  }
-
-  replaceEdges(edges: DraftEdge[]): Promise<void> {
-    return this.diagramEdges.replaceAll(edges);
-  }
-
-  versions(): HasMany<DiagramVersion> {
-    return this.diagramVersions;
-  }
-
-  async createVersion(): Promise<DiagramVersion> {
-    const nodes = await this.diagramNodes
-      .findAll()
-      .subCollection(0, Number.MAX_SAFE_INTEGER)
-      .toArray();
-    const edges = await this.diagramEdges
-      .findAll()
-      .subCollection(0, Number.MAX_SAFE_INTEGER)
-      .toArray();
-    const size = await this.diagramVersions.findAll().size();
-    const desc: DiagramVersionDescription = {
-      diagram: new Ref(this.id),
-      name: `v${size + 1}`,
-      snapshot: {
-        nodes: nodes.map((node) => ({
-          id: node.identity(),
-          description: node.description(),
-        })),
-        edges: edges.map((edge) => ({
-          id: edge.identity(),
-          description: edge.description(),
-        })),
-        viewport: this.desc.viewport,
-      },
-      createdAt: '',
-    };
-    const version = await this.diagramVersions.add(desc);
-    if (!version) {
-      throw DomainError.internal('created diagram version could not be loaded');
-    }
-    return version;
   }
 }

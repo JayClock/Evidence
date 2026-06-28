@@ -94,20 +94,6 @@ export function workspaceDiagramEdgeHref(
   return `${workspaceDiagramEdgesHref(workspaceId, diagramId)}/${edgeId}`;
 }
 
-export function workspaceDiagramVersionsHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramHref(workspaceId, diagramId)}/versions`;
-}
-
-export function workspaceDiagramCommitDraftHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramHref(workspaceId, diagramId)}/commit-draft`;
-}
-
 export function workspaceDiagramProposeModelHref(
   workspaceId: string,
   diagramId: string,
