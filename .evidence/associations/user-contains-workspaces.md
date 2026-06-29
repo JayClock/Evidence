@@ -1,18 +1,18 @@
 ---
-id: assoc_user_owns_workspaces
+id: assoc_user_contains_workspaces
 kind: association
 schemaVersion: 1
-name: UserOwnsWorkspaces
-label: 用户访问工作空间
+name: UserContainsWorkspaces
+label: 用户包含工作空间集合
 source: user
 target: workspace
-relationshipType: has_many
+relationshipType: contains
 direction: directed
 cardinality: one-to-many
-summary: User 通过 UserWorkspaces 访问 Workspace 集合。
+summary: User 通过 UserWorkspaces 包含可访问的 Workspace 集合。
 ---
 
-# User → Workspace｜用户访问工作空间
+# User → Workspace｜用户包含工作空间集合
 
 > 一个用户可以访问多个工作空间。实际授权和角色由 Member 表达。
 
@@ -22,7 +22,7 @@ summary: User 通过 UserWorkspaces 访问 Workspace 集合。
 | -------- | ------------------------------------- |
 | 源对象   | [User](../entities/user.md)           |
 | 目标对象 | [Workspace](../entities/workspace.md) |
-| 关系类型 | `has_many`                            |
+| 关系类型 | `contains`                            |
 | 方向     | User → Workspace                      |
 | 基数     | one-to-many                           |
 | 领域接口 | `UserWorkspaces`                      |

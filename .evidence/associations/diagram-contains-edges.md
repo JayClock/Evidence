@@ -1,12 +1,12 @@
 ---
-id: assoc_diagram_has_edges
+id: assoc_diagram_contains_edges
 kind: association
 schemaVersion: 1
-name: DiagramHasEdges
+name: DiagramContainsEdges
 label: 图包含边
 source: diagram
 target: diagram_edge
-relationshipType: has_many
+relationshipType: contains
 direction: directed
 cardinality: one-to-many
 summary: Diagram 包含 DiagramEdge 集合。
@@ -22,7 +22,7 @@ summary: Diagram 包含 DiagramEdge 集合。
 | -------- | ------------------------------------------ |
 | 源对象   | [Diagram](../entities/diagram.md)          |
 | 目标对象 | [DiagramEdge](../entities/diagram-edge.md) |
-| 关系类型 | `has_many`                                 |
+| 关系类型 | `contains`                                 |
 | 方向     | Diagram → DiagramEdge                      |
 | 基数     | one-to-many                                |
 | 只读接口 | `edges()`                                  |

@@ -1,12 +1,12 @@
 ---
-id: assoc_member_belongs_to_user
+id: assoc_member_references_user
 kind: association
 schemaVersion: 1
-name: MemberBelongsToUser
+name: MemberReferencesUser
 label: 成员身份引用用户
 source: member
 target: user
-relationshipType: belongs_to
+relationshipType: references
 direction: directed
 cardinality: many-to-one
 summary: Member 通过 user 引用对应的 User。
@@ -22,7 +22,7 @@ summary: Member 通过 user 引用对应的 User。
 | -------- | ------------------------------- |
 | 源对象   | [Member](../entities/member.md) |
 | 目标对象 | [User](../entities/user.md)     |
-| 关系类型 | `belongs_to`                    |
+| 关系类型 | `references`                    |
 | 方向     | Member → User                   |
 | 基数     | many-to-one                     |
 | 字段     | `user: Ref<String>`             |

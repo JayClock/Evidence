@@ -1,9 +1,9 @@
 ---
-id: assoc_logical_relationship_target
+id: assoc_logical_relationship_references_target_entity
 kind: association
 schemaVersion: 1
-name: LogicalRelationshipTarget
-label: 逻辑关系的目标实体
+name: LogicalRelationshipReferencesTargetEntity
+label: 逻辑关系引用目标实体
 source: logical_relationship
 target: logical_entity
 relationshipType: references
@@ -12,7 +12,7 @@ cardinality: many-to-one
 summary: LogicalRelationship 通过 target 引用目标 LogicalEntity。
 ---
 
-# LogicalRelationship → LogicalEntity｜目标实体
+# LogicalRelationship → LogicalEntity｜引用目标实体
 
 > 每条逻辑关系都有一个目标实体，表示关系指向哪里。
 
@@ -30,7 +30,7 @@ summary: LogicalRelationship 通过 target 引用目标 LogicalEntity。
 ## 示例
 
 ```txt
-Order --belongs_to--> Customer
+Order --references--> Customer
 ```
 
 在这个例子中，`Customer` 是 target。

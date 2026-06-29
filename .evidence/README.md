@@ -15,6 +15,7 @@
 - **Frontmatter**：实体文件只保留 `id`、`name`、`label`、`type`、`subType`。
 - **正文表格**：描述属性、行为、规则。
 - **关联文件**：关系独立表达，避免把关系散落在两个实体文件中。
+- **关系类型**：仅使用 `contains` 和 `references`；`contains` 表示结构/聚合关系，`references` 表示引用关系。
 - **事实源**：当前仍是代码；这些 Markdown 文件是模型视图和本地优先存储格式草案。
 
 ## 实体模型
@@ -32,18 +33,18 @@
 
 ## 关联对象
 
-| 关系                                                                                              | 说明                 |
-| ------------------------------------------------------------------------------------------------- | -------------------- |
-| [User → Workspace](associations/user-owns-workspaces.md)                                          | 用户访问工作空间集合 |
-| [Workspace → Member](associations/workspace-has-members.md)                                       | 工作空间包含成员     |
-| [Member → User](associations/member-belongs-to-user.md)                                           | 成员身份引用用户     |
-| [Workspace → LogicalEntity](associations/workspace-has-logical-entities.md)                       | 工作空间包含逻辑实体 |
-| [Workspace → LogicalRelationship](associations/workspace-has-logical-relationships.md)            | 工作空间包含逻辑关系 |
-| [LogicalRelationship → Source LogicalEntity](associations/logical-relationship-source.md)         | 逻辑关系的源实体     |
-| [LogicalRelationship → Target LogicalEntity](associations/logical-relationship-target.md)         | 逻辑关系的目标实体   |
-| [Workspace → Diagram](associations/workspace-has-diagrams.md)                                     | 工作空间包含单一图   |
-| [Diagram → DiagramNode](associations/diagram-has-nodes.md)                                        | 图包含节点           |
-| [Diagram → DiagramEdge](associations/diagram-has-edges.md)                                        | 图包含边             |
-| [DiagramNode → LogicalEntity](associations/diagram-node-references-logical-entity.md)             | 图节点引用逻辑实体   |
-| [DiagramEdge → LogicalRelationship](associations/diagram-edge-references-logical-relationship.md) | 图边引用逻辑关系     |
-| [DiagramNode → DiagramNode](associations/diagram-node-parent.md)                                  | 图节点父子层级       |
+| 关系                                                                                                        | 说明                 |
+| ----------------------------------------------------------------------------------------------------------- | -------------------- |
+| [User → Workspace](associations/user-contains-workspaces.md)                                                | 用户访问工作空间集合 |
+| [Workspace → Member](associations/workspace-contains-members.md)                                            | 工作空间包含成员     |
+| [Member → User](associations/member-references-user.md)                                                     | 成员身份引用用户     |
+| [Workspace → LogicalEntity](associations/workspace-contains-logical-entities.md)                            | 工作空间包含逻辑实体 |
+| [Workspace → LogicalRelationship](associations/workspace-contains-logical-relationships.md)                 | 工作空间包含逻辑关系 |
+| [LogicalRelationship → Source LogicalEntity](associations/logical-relationship-references-source-entity.md) | 逻辑关系的源实体     |
+| [LogicalRelationship → Target LogicalEntity](associations/logical-relationship-references-target-entity.md) | 逻辑关系的目标实体   |
+| [Workspace → Diagram](associations/workspace-contains-diagrams.md)                                          | 工作空间包含图       |
+| [Diagram → DiagramNode](associations/diagram-contains-nodes.md)                                             | 图包含节点           |
+| [Diagram → DiagramEdge](associations/diagram-contains-edges.md)                                             | 图包含边             |
+| [DiagramNode → LogicalEntity](associations/diagram-node-references-logical-entity.md)                       | 图节点引用逻辑实体   |
+| [DiagramEdge → LogicalRelationship](associations/diagram-edge-references-logical-relationship.md)           | 图边引用逻辑关系     |
+| [DiagramNode → DiagramNode](associations/diagram-node-references-parent-node.md)                            | 图节点引用父节点     |

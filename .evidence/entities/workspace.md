@@ -34,12 +34,12 @@ subType: Thing
 
 ## 子集合
 
-| 集合                   | 目标                                           | 说明               |
-| ---------------------- | ---------------------------------------------- | ------------------ |
-| `members`              | [Member](member.md)                            | 工作空间成员       |
-| `diagram`              | [Diagram](diagram.md)                          | 可视化图（HasOne） |
-| `logicalEntities`      | [LogicalEntity](logical-entity.md)             | 逻辑实体           |
-| `logicalRelationships` | [LogicalRelationship](logical-relationship.md) | 逻辑关系           |
+| 集合                   | 目标                                           | 说明         |
+| ---------------------- | ---------------------------------------------- | ------------ |
+| `members`              | [Member](member.md)                            | 工作空间成员 |
+| `diagrams`             | [Diagram](diagram.md)                          | 可视化图集合 |
+| `logicalEntities`      | [LogicalEntity](logical-entity.md)             | 逻辑实体     |
+| `logicalRelationships` | [LogicalRelationship](logical-relationship.md) | 逻辑关系     |
 
 ## 业务规则
 

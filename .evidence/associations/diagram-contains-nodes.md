@@ -1,12 +1,12 @@
 ---
-id: assoc_diagram_has_nodes
+id: assoc_diagram_contains_nodes
 kind: association
 schemaVersion: 1
-name: DiagramHasNodes
+name: DiagramContainsNodes
 label: 图包含节点
 source: diagram
 target: diagram_node
-relationshipType: has_many
+relationshipType: contains
 direction: directed
 cardinality: one-to-many
 summary: Diagram 包含 DiagramNode 集合。
@@ -22,7 +22,7 @@ summary: Diagram 包含 DiagramNode 集合。
 | -------- | ------------------------------------------ |
 | 源对象   | [Diagram](../entities/diagram.md)          |
 | 目标对象 | [DiagramNode](../entities/diagram-node.md) |
-| 关系类型 | `has_many`                                 |
+| 关系类型 | `contains`                                 |
 | 方向     | Diagram → DiagramNode                      |
 | 基数     | one-to-many                                |
 | 只读接口 | `nodes()`                                  |

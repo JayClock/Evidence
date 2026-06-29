@@ -1,9 +1,9 @@
 ---
-id: assoc_logical_relationship_source
+id: assoc_logical_relationship_references_source_entity
 kind: association
 schemaVersion: 1
-name: LogicalRelationshipSource
-label: 逻辑关系的源实体
+name: LogicalRelationshipReferencesSourceEntity
+label: 逻辑关系引用源实体
 source: logical_relationship
 target: logical_entity
 relationshipType: references
@@ -12,7 +12,7 @@ cardinality: many-to-one
 summary: LogicalRelationship 通过 source 引用源 LogicalEntity。
 ---
 
-# LogicalRelationship → LogicalEntity｜源实体
+# LogicalRelationship → LogicalEntity｜引用源实体
 
 > 每条逻辑关系都有一个源实体，表示关系从哪里出发。
 
@@ -30,7 +30,7 @@ summary: LogicalRelationship 通过 source 引用源 LogicalEntity。
 ## 示例
 
 ```txt
-Order --belongs_to--> Customer
+Order --references--> Customer
 ```
 
 在这个例子中，`Order` 是 source。

@@ -1,12 +1,12 @@
 ---
-id: assoc_workspace_has_logical_entities
+id: assoc_workspace_contains_logical_entities
 kind: association
 schemaVersion: 1
-name: WorkspaceHasLogicalEntities
+name: WorkspaceContainsLogicalEntities
 label: 工作空间包含逻辑实体
 source: workspace
 target: logical_entity
-relationshipType: has_many
+relationshipType: contains
 direction: directed
 cardinality: one-to-many
 summary: Workspace 是 LogicalEntity 的归属边界。
@@ -22,7 +22,7 @@ summary: Workspace 是 LogicalEntity 的归属边界。
 | -------- | ---------------------------------------------- |
 | 源对象   | [Workspace](../entities/workspace.md)          |
 | 目标对象 | [LogicalEntity](../entities/logical-entity.md) |
-| 关系类型 | `has_many`                                     |
+| 关系类型 | `contains`                                     |
 | 方向     | Workspace → LogicalEntity                      |
 | 基数     | one-to-many                                    |
 | API 路径 | `/api/workspaces/{id}/logical-entities`        |

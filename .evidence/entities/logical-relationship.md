@@ -42,13 +42,13 @@ subType: Thing
 
 当前代码中的关系模型较轻量。若按本地优先 Markdown 继续演进，建议扩展这些字段：
 
-| 字段                        | 用途                                    |
-| --------------------------- | --------------------------------------- |
-| `relationshipType`          | 关系语义，如 `belongs_to`、`depends_on` |
-| `sourceRole` / `targetRole` | 两端角色名                              |
-| `cardinality`               | 基数约束                                |
-| `direction`                 | 方向，单向或双向                        |
-| `status`                    | 草稿、已发布等生命周期                  |
+| 字段                        | 用途                                        |
+| --------------------------- | ------------------------------------------- |
+| `relationshipType`          | 关系语义，仅使用 `contains` 或 `references` |
+| `sourceRole` / `targetRole` | 两端角色名                                  |
+| `cardinality`               | 基数约束                                    |
+| `direction`                 | 方向，单向或双向                            |
+| `status`                    | 草稿、已发布等生命周期                      |
 
 ## 关联
 

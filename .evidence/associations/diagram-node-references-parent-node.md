@@ -1,18 +1,18 @@
 ---
-id: assoc_diagram_node_parent
+id: assoc_diagram_node_references_parent_node
 kind: association
 schemaVersion: 1
-name: DiagramNodeParent
-label: 图节点父子层级
+name: DiagramNodeReferencesParentNode
+label: 图节点引用父节点
 source: diagram_node
 target: diagram_node
-relationshipType: parent_child
+relationshipType: references
 direction: directed
 cardinality: many-to-zero-or-one
-summary: DiagramNode 可通过 parent 引用另一个 DiagramNode。
+summary: DiagramNode 可通过 parent 引用父 DiagramNode。
 ---
 
-# DiagramNode → DiagramNode｜图节点父子层级
+# DiagramNode → DiagramNode｜图节点引用父节点
 
 > 节点可以有父节点，用于表达分组、容器和层级结构。
 
@@ -22,7 +22,7 @@ summary: DiagramNode 可通过 parent 引用另一个 DiagramNode。
 | -------- | ------------------------------------------ |
 | 源对象   | [DiagramNode](../entities/diagram-node.md) |
 | 目标对象 | [DiagramNode](../entities/diagram-node.md) |
-| 关系类型 | `parent_child`                             |
+| 关系类型 | `references`                               |
 | 方向     | child → parent                             |
 | 基数     | many-to-zero-or-one                        |
 | 字段     | `parent`                                   |

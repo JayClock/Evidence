@@ -1,12 +1,12 @@
 ---
-id: assoc_workspace_has_members
+id: assoc_workspace_contains_members
 kind: association
 schemaVersion: 1
-name: WorkspaceHasMembers
+name: WorkspaceContainsMembers
 label: 工作空间包含成员
 source: workspace
 target: member
-relationshipType: has_many
+relationshipType: contains
 direction: directed
 cardinality: one-to-many
 summary: Workspace 包含 Member 集合。
@@ -22,7 +22,7 @@ summary: Workspace 包含 Member 集合。
 | -------- | ------------------------------------- |
 | 源对象   | [Workspace](../entities/workspace.md) |
 | 目标对象 | [Member](../entities/member.md)       |
-| 关系类型 | `has_many`                            |
+| 关系类型 | `contains`                            |
 | 方向     | Workspace → Member                    |
 | 基数     | one-to-many                           |
 | 只读接口 | `members()`                           |
