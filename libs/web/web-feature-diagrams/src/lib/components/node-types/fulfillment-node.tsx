@@ -77,7 +77,7 @@ export function FulfillmentNode({
   return (
     <AiNode
       handles={{ source: true, target: true }}
-      className={`overflow-visible rounded-lg border-2 shadow-md ${bgColorClass} ${
+      className={`h-full w-full overflow-visible rounded-lg border-2 shadow-md ${bgColorClass} ${
         selected ? 'ring-primary/60 ring-4' : ''
       }`}
     >

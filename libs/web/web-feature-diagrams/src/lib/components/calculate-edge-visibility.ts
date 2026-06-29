@@ -1,7 +1,7 @@
 import type { DiagramCanvasEdge, DiagramCanvasNode } from './diagram-types';
 
 function isPartyRoleNode(node: DiagramCanvasNode | undefined): boolean {
-  return node?.data?.type === 'ROLE' && node.data?.subType === 'party_role';
+  return node?.data?.type === 'ROLE' && node.data?.subType === 'party';
 }
 
 function isContractNode(node: DiagramCanvasNode | undefined): boolean {

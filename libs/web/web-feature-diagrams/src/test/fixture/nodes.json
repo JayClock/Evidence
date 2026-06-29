@@ -49,7 +49,7 @@
     "data": {
       "id": "node-3",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "买家",
       "label": "买家 (Party Role)",
       "definition": {}
@@ -68,7 +68,7 @@
     "data": {
       "id": "node-4",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "卖家",
       "label": "卖家 (Party Role)",
       "definition": {}
@@ -182,7 +182,7 @@
     "data": {
       "id": "node-10",
       "type": "ROLE",
-      "subType": "evidence_role",
+      "subType": "evidence",
       "name": "发货单角色",
       "label": "发货单 (Evidence As Role)",
       "definition": {}
@@ -238,7 +238,7 @@
     "data": {
       "id": "node-13",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "寄件人",
       "label": "寄件人 (Party Role)",
       "definition": {}
@@ -257,7 +257,7 @@
     "data": {
       "id": "node-14",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "承运人",
       "label": "承运人 (Party Role)",
       "definition": {}
@@ -276,7 +276,7 @@
     "data": {
       "id": "node-15",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "收件人",
       "label": "收件人 (Party Role)",
       "definition": {}
@@ -389,7 +389,7 @@
     "data": {
       "id": "node-21",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "付款人",
       "label": "付款人 (Party Role)",
       "definition": {}
@@ -408,7 +408,7 @@
     "data": {
       "id": "node-22",
       "type": "ROLE",
-      "subType": "party_role",
+      "subType": "party",
       "name": "收款人",
       "label": "收款人 (Party Role)",
       "definition": {}
@@ -427,7 +427,7 @@
     "data": {
       "id": "node-23",
       "type": "ROLE",
-      "subType": "third_party_role",
+      "subType": "3rd system",
       "name": "支付网关操作员",
       "label": "支付网关 (Third Party Role)",
       "definition": {}

@@ -19,7 +19,7 @@ export function StickyNoteNode({
   return (
     <AiNode
       handles={{ source: true, target: true }}
-      className={`min-w-[150px] rounded-r border-l-4 border-yellow-400 bg-yellow-100 shadow-md ${
+      className={`h-full w-full min-w-[150px] rounded-r border-l-4 border-yellow-400 bg-yellow-100 shadow-md ${
         selected ? 'ring-primary/50 ring-4' : ''
       }`}
     >

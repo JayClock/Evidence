@@ -1,10 +1,17 @@
 import type { Edge, Node } from '@xyflow/react';
+import ELK, {
+  type ElkExtendedEdge,
+  type ElkNode,
+} from 'elkjs/lib/elk.bundled.js';
 
 import type { DiagramNodeData } from './diagram-types';
 
 type DiagramNode = Node<DiagramNodeData>;
 type DiagramEdge = Edge;
 type Position = { x: number; y: number };
+
+const ROOT_GRAPH_ID = '__evidence-root__';
+const elk = new ELK();
 
 export const LAYOUT_NODE_WIDTH = 160;
 export const LAYOUT_NODE_HEIGHT = 80;
@@ -15,90 +22,54 @@ export const LAYOUT_AXIS_Y = 240;
 export const CONTEXT_LAYOUT_PADDING_X = 80;
 export const CONTEXT_LAYOUT_PADDING_Y = 80;
 export const CONTEXT_LAYOUT_GAP_X = 80;
-const COLUMN_STEP_X = LAYOUT_NODE_WIDTH + LAYOUT_GAP_X;
-const DEFAULT_REQUEST_COLUMN_X = LAYOUT_START_X + 3 * COLUMN_STEP_X;
 
-function getEvidenceAxisIndex(
-  subType: string | null | undefined,
-): number | null {
-  switch (subType) {
-    case 'rfp':
-      return 0;
-    case 'proposal':
-      return 1;
-    case 'contract':
-      return 2;
-    default:
-      return null;
+function buildLayoutOptions(): Record<string, string> {
+  return {
+    'elk.algorithm': 'layered',
+    'elk.direction': 'RIGHT',
+    'elk.edgeRouting': 'ORTHOGONAL',
+    'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+    'elk.layered.spacing.nodeNodeBetweenLayers': String(LAYOUT_GAP_X),
+    'elk.separateConnectedComponents': 'true',
+    'elk.spacing.componentComponent': String(CONTEXT_LAYOUT_GAP_X),
+    'elk.spacing.nodeNode': String(LAYOUT_GAP_Y),
+  };
+}
+
+function buildContainerLayoutOptions(): Record<string, string> {
+  return {
+    ...buildLayoutOptions(),
+    'elk.padding': `[top=${CONTEXT_LAYOUT_PADDING_Y},left=${CONTEXT_LAYOUT_PADDING_X},bottom=${CONTEXT_LAYOUT_PADDING_Y},right=${CONTEXT_LAYOUT_PADDING_X}]`,
+  };
+}
+
+function resolveParentId(
+  node: DiagramNode,
+  nodeIds: Set<string>,
+): string | undefined {
+  const parentId = node.parentId;
+
+  if (!parentId || parentId === node.id || !nodeIds.has(parentId)) {
+    return undefined;
   }
+
+  return parentId;
 }
 
-function isEvidenceNode(node: DiagramNode): boolean {
-  return node.data.type === 'EVIDENCE';
-}
+function buildChildrenByParentId(
+  nodes: DiagramNode[],
+): Map<string | undefined, DiagramNode[]> {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const childrenByParentId = new Map<string | undefined, DiagramNode[]>();
 
-function isContractNode(node: DiagramNode): boolean {
-  return isEvidenceNode(node) && node.data.subType === 'contract';
-}
-
-function isContractRoleNode(node: DiagramNode): boolean {
-  return node.data.type === 'ROLE' && node.data.subType === 'party_role';
-}
-
-function isFulfillmentRequestNode(node: DiagramNode): boolean {
-  return isEvidenceNode(node) && node.data.subType === 'fulfillment_request';
-}
-
-function isFulfillmentConfirmationNode(node: DiagramNode): boolean {
-  return (
-    isEvidenceNode(node) && node.data.subType === 'fulfillment_confirmation'
-  );
-}
-
-function isOtherEvidenceNode(node: DiagramNode): boolean {
-  return isEvidenceNode(node) && node.data.subType === 'other_evidence';
-}
-
-function isEvidenceAsRoleNode(node: DiagramNode): boolean {
-  return node.data.type === 'ROLE' && node.data.subType === 'evidence_role';
-}
-
-function isContextNode(node: DiagramNode): boolean {
-  return node.data.type === 'CONTEXT';
-}
-
-function isConfirmationRightNode(node: DiagramNode): boolean {
-  return isOtherEvidenceNode(node) || isEvidenceAsRoleNode(node);
-}
-
-function layoutEvidenceAxis(nodes: DiagramNode[]): DiagramNode[] {
-  return nodes.map((node) => {
-    if (!isEvidenceNode(node)) {
-      return node;
-    }
-
-    const axisIndex = getEvidenceAxisIndex(node.data.subType);
-    if (axisIndex === null) {
-      return node;
-    }
-
-    return {
-      ...node,
-      position: {
-        ...node.position,
-        x: LAYOUT_START_X + axisIndex * (LAYOUT_NODE_WIDTH + LAYOUT_GAP_X),
-        y: LAYOUT_AXIS_Y,
-      },
-    };
-  });
-}
-
-function buildNodeById(nodes: DiagramNode[]): Map<string, DiagramNode> {
-  const nodeById = new Map<string, DiagramNode>();
   for (const node of nodes) {
-    nodeById.set(node.id, node);
+    const parentId = resolveParentId(node, nodeIds);
+    const children = childrenByParentId.get(parentId) ?? [];
+    children.push(node);
+    childrenByParentId.set(parentId, children);
   }
-  return nodeById;
+
+  return childrenByParentId;
 }
 
 function getNodeHeight(node: DiagramNode | undefined): number {
@@ -109,630 +80,481 @@ function getNodeWidth(node: DiagramNode | undefined): number {
   return node?.width ?? LAYOUT_NODE_WIDTH;
 }
 
-function normalizeFallbackY(node: DiagramNode): number {
-  if (node.position.x === 0 && node.position.y === 0) {
-    return LAYOUT_AXIS_Y;
+function toElkNode(
+  node: DiagramNode,
+  childrenByParentId: Map<string | undefined, DiagramNode[]>,
+): ElkNode {
+  const childNodes = childrenByParentId.get(node.id) ?? [];
+  const hasChildren = childNodes.length > 0;
+  const elkNode: ElkNode = {
+    id: node.id,
+    layoutOptions: hasChildren
+      ? buildContainerLayoutOptions()
+      : buildLayoutOptions(),
+  };
+
+  if (hasChildren) {
+    elkNode.children = childNodes.map((childNode) =>
+      toElkNode(childNode, childrenByParentId),
+    );
+  } else {
+    elkNode.height = getNodeHeight(node);
+    elkNode.width = getNodeWidth(node);
   }
 
-  return node.position.y;
+  return elkNode;
 }
 
-function collectNodesByPredicate(
+function toElkEdges(
   nodes: DiagramNode[],
-  predicate: (node: DiagramNode) => boolean,
-): DiagramNode[] {
-  return nodes.filter(predicate);
+  edges: DiagramEdge[],
+): ElkExtendedEdge[] {
+  const nodeIds = new Set(nodes.map((node) => node.id));
+
+  return edges
+    .filter(
+      (edge) =>
+        edge.hidden !== true &&
+        edge.source !== edge.target &&
+        nodeIds.has(edge.source) &&
+        nodeIds.has(edge.target),
+    )
+    .map((edge) => ({
+      id: edge.id,
+      sources: [edge.source],
+      targets: [edge.target],
+    }));
 }
 
-function spreadColumnNodesById(params: {
-  basePositionsById: Map<string, Position>;
-  defaultX: number;
-  nodeById: Map<string, DiagramNode>;
-  nodeIds: string[];
-}): Map<string, Position> {
-  const { basePositionsById, defaultX, nodeById, nodeIds } = params;
-  const nextPositionsById = new Map<string, Position>(basePositionsById);
-  const nodeIdsByX = new Map<number, string[]>();
+function normalizedString(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
 
-  for (const nodeId of nodeIds) {
-    const node = nodeById.get(nodeId);
-    if (!node) {
+function isEvidenceNode(node: DiagramNode | undefined): boolean {
+  return normalizedString(node?.data.type) === 'evidence';
+}
+
+function isThingNode(node: DiagramNode | undefined): boolean {
+  return (
+    normalizedString(node?.data.type) === 'participant' &&
+    normalizedString(node?.data.subType) === 'thing'
+  );
+}
+
+function stringValue(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return null;
+}
+
+function edgeSearchText(edge: DiagramEdge): string {
+  const data = edge.data ?? {};
+  const values = [
+    edge.id,
+    stringValue(edge.label),
+    stringValue(data.name),
+    stringValue(data.label),
+    stringValue(data.relationType),
+    stringValue(data.relation_type),
+    stringValue(data.relationshipType),
+    stringValue(data.relationship_type),
+    stringValue(data.type),
+  ];
+
+  return values
+    .filter((value): value is string => Boolean(value))
+    .join(' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .toLowerCase();
+}
+
+function edgeSearchTokens(edge: DiagramEdge): Set<string> {
+  return new Set(
+    edgeSearchText(edge)
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 0),
+  );
+}
+
+function hasAnyToken(edge: DiagramEdge, tokens: readonly string[]): boolean {
+  const edgeTokens = edgeSearchTokens(edge);
+
+  return tokens.some((token) => edgeTokens.has(token));
+}
+
+function isNonLayoutThingEdge(edge: DiagramEdge): boolean {
+  return hasAnyToken(edge, [
+    'belongs',
+    'parent',
+    'reference',
+    'references',
+    'source',
+    'target',
+  ]);
+}
+
+function isHierarchyThingEdge(edge: DiagramEdge): boolean {
+  return hasAnyToken(edge, [
+    'contain',
+    'contains',
+    'has',
+    'include',
+    'includes',
+  ]);
+}
+
+function isThingLayoutEdge(
+  edge: DiagramEdge,
+  hasEvidenceLinkedThing: boolean,
+): boolean {
+  if (isNonLayoutThingEdge(edge)) {
+    return false;
+  }
+
+  return hasEvidenceLinkedThing || isHierarchyThingEdge(edge);
+}
+
+function orientedEdge(
+  edge: DiagramEdge,
+  source: string,
+  target: string,
+): DiagramEdge {
+  if (edge.source === source && edge.target === target) {
+    return edge;
+  }
+
+  return {
+    ...edge,
+    source,
+    target,
+  };
+}
+
+function evidenceLinkedThingIds(
+  edges: DiagramEdge[],
+  nodeById: Map<string, DiagramNode>,
+): Set<string> {
+  const thingIds = new Set<string>();
+
+  for (const edge of edges) {
+    if (edge.hidden === true) {
       continue;
     }
 
-    const basePosition = nextPositionsById.get(nodeId);
-    const x = basePosition?.x ?? defaultX;
-    const y = basePosition?.y ?? normalizeFallbackY(node);
-    nextPositionsById.set(nodeId, { x, y });
-    const nodeIdsOnColumn = nodeIdsByX.get(x) ?? [];
-    nodeIdsOnColumn.push(nodeId);
-    nodeIdsByX.set(x, nodeIdsOnColumn);
+    const sourceNode = nodeById.get(edge.source);
+    const targetNode = nodeById.get(edge.target);
+
+    if (
+      sourceNode &&
+      targetNode &&
+      isEvidenceNode(sourceNode) &&
+      isThingNode(targetNode)
+    ) {
+      thingIds.add(targetNode.id);
+    } else if (
+      sourceNode &&
+      targetNode &&
+      isThingNode(sourceNode) &&
+      isEvidenceNode(targetNode)
+    ) {
+      thingIds.add(sourceNode.id);
+    }
   }
 
-  for (const columnNodeIds of nodeIdsByX.values()) {
-    const sortedNodeIds = [...columnNodeIds].sort((leftId, rightId) => {
-      const leftPosition = nextPositionsById.get(leftId);
-      const rightPosition = nextPositionsById.get(rightId);
-      if (!leftPosition || !rightPosition) {
-        return leftId.localeCompare(rightId);
-      }
+  return thingIds;
+}
 
-      if (leftPosition.y !== rightPosition.y) {
-        return leftPosition.y - rightPosition.y;
-      }
+function fallbackCenterThingIds(
+  thingEdges: DiagramEdge[],
+  nodeById: Map<string, DiagramNode>,
+): Set<string> {
+  const incomingThingIds = new Set<string>();
+  const sourceThingIds = new Set<string>();
 
-      return leftId.localeCompare(rightId);
-    });
+  for (const edge of thingEdges) {
+    if (!isHierarchyThingEdge(edge)) {
+      continue;
+    }
 
-    for (let index = 1; index < sortedNodeIds.length; index += 1) {
-      const previousNodeId = sortedNodeIds[index - 1];
-      const currentNodeId = sortedNodeIds[index];
-      const previousPosition = nextPositionsById.get(previousNodeId);
-      const currentPosition = nextPositionsById.get(currentNodeId);
-      if (!previousPosition || !currentPosition) {
+    const sourceNode = nodeById.get(edge.source);
+    const targetNode = nodeById.get(edge.target);
+
+    if (
+      !sourceNode ||
+      !targetNode ||
+      !isThingNode(sourceNode) ||
+      !isThingNode(targetNode)
+    ) {
+      continue;
+    }
+
+    sourceThingIds.add(sourceNode.id);
+    incomingThingIds.add(targetNode.id);
+  }
+
+  const rootThingIds = [...sourceThingIds].filter(
+    (thingId) => !incomingThingIds.has(thingId),
+  );
+
+  return new Set(rootThingIds.length > 0 ? rootThingIds : sourceThingIds);
+}
+
+function thingLevels(
+  centerThingIds: Set<string>,
+  thingEdges: DiagramEdge[],
+): Map<string, number> {
+  const levels = new Map<string, number>();
+  const adjacentThingIds = new Map<string, Set<string>>();
+
+  for (const edge of thingEdges) {
+    const sourceAdjacentIds = adjacentThingIds.get(edge.source) ?? new Set();
+    sourceAdjacentIds.add(edge.target);
+    adjacentThingIds.set(edge.source, sourceAdjacentIds);
+
+    const targetAdjacentIds = adjacentThingIds.get(edge.target) ?? new Set();
+    targetAdjacentIds.add(edge.source);
+    adjacentThingIds.set(edge.target, targetAdjacentIds);
+  }
+
+  const queue: string[] = [];
+  for (const thingId of centerThingIds) {
+    levels.set(thingId, 0);
+    queue.push(thingId);
+  }
+
+  for (let index = 0; index < queue.length; index += 1) {
+    const thingId = queue[index];
+    const level = levels.get(thingId) ?? 0;
+
+    for (const adjacentThingId of adjacentThingIds.get(thingId) ?? []) {
+      if (levels.has(adjacentThingId)) {
         continue;
       }
 
-      const minDeltaY =
-        (getNodeHeight(nodeById.get(previousNodeId)) +
-          getNodeHeight(nodeById.get(currentNodeId))) /
-          2 +
-        LAYOUT_GAP_Y;
-      const minimumCurrentY = previousPosition.y + minDeltaY;
-      if (currentPosition.y < minimumCurrentY) {
-        nextPositionsById.set(currentNodeId, {
-          x: currentPosition.x,
-          y: minimumCurrentY,
-        });
-      }
+      levels.set(adjacentThingId, level + 1);
+      queue.push(adjacentThingId);
     }
   }
 
-  return nextPositionsById;
+  return levels;
 }
 
-function collectRequestsByContract(params: {
-  edges: DiagramEdge[];
-  contractId: string | null;
-  nodes: DiagramNode[];
-}): DiagramNode[] {
-  const { nodes, edges, contractId } = params;
-  if (!contractId) {
-    return [];
+function orientThingEdgeByLevel(
+  edge: DiagramEdge,
+  levels: Map<string, number>,
+): DiagramEdge {
+  const sourceLevel = levels.get(edge.source);
+  const targetLevel = levels.get(edge.target);
+
+  if (sourceLevel === undefined || targetLevel === undefined) {
+    return edge;
   }
 
-  const nodeById = buildNodeById(nodes);
-  const requests: DiagramNode[] = [];
-
-  for (const edge of edges) {
-    const sourceNode = nodeById.get(edge.source);
-    const targetNode = nodeById.get(edge.target);
-    if (!sourceNode || !targetNode) {
-      continue;
-    }
-
-    const match =
-      isContractNode(sourceNode) && isFulfillmentRequestNode(targetNode)
-        ? { contract: sourceNode, request: targetNode }
-        : isContractNode(targetNode) && isFulfillmentRequestNode(sourceNode)
-          ? { contract: targetNode, request: sourceNode }
-          : null;
-    if (!match) {
-      continue;
-    }
-
-    if (match.contract.id !== contractId) {
-      continue;
-    }
-
-    if (!requests.some((request) => request.id === match.request.id)) {
-      requests.push(match.request);
-    }
+  if (sourceLevel < targetLevel) {
+    return edge;
   }
 
-  return requests;
+  if (targetLevel < sourceLevel) {
+    return orientedEdge(edge, edge.target, edge.source);
+  }
+
+  return edge;
 }
 
-function collectContractRolesByContract(params: {
-  edges: DiagramEdge[];
-  contractId: string | null;
-  nodes: DiagramNode[];
-}): DiagramNode[] {
-  const { nodes, edges, contractId } = params;
-  if (!contractId) {
-    return [];
-  }
-
-  const nodeById = buildNodeById(nodes);
-  const roles: DiagramNode[] = [];
-
-  for (const edge of edges) {
-    const sourceNode = nodeById.get(edge.source);
-    const targetNode = nodeById.get(edge.target);
-    if (!sourceNode || !targetNode) {
-      continue;
-    }
-
-    const match =
-      isContractNode(sourceNode) && isContractRoleNode(targetNode)
-        ? { contract: sourceNode, role: targetNode }
-        : isContractNode(targetNode) && isContractRoleNode(sourceNode)
-          ? { contract: targetNode, role: sourceNode }
-          : null;
-    if (!match) {
-      continue;
-    }
-
-    if (match.contract.id !== contractId) {
-      continue;
-    }
-
-    if (!roles.some((role) => role.id === match.role.id)) {
-      roles.push(match.role);
-    }
-  }
-
-  return roles;
-}
-
-function buildContractRolePositionsById(params: {
-  contract: DiagramNode | undefined;
-  roles: DiagramNode[];
-}): Map<string, Position> {
-  const { contract, roles } = params;
-  const rolePositionsById = new Map<string, Position>();
-  const roleStepY = LAYOUT_NODE_HEIGHT + LAYOUT_GAP_Y;
-
-  if (!contract) {
-    return rolePositionsById;
-  }
-
-  roles.forEach((role, index) => {
-    const layer = Math.floor(index / 2) + 1;
-    const direction = index % 2 === 0 ? -1 : 1;
-    rolePositionsById.set(role.id, {
-      x: contract.position.x,
-      y: contract.position.y + direction * layer * roleStepY,
-    });
-  });
-
-  return rolePositionsById;
-}
-
-function buildRequestPositionsById(params: {
-  contract: DiagramNode | undefined;
-  requests: DiagramNode[];
-}): Map<string, Position> {
-  const { contract, requests } = params;
-  const requestPositionsById = new Map<string, Position>();
-
-  if (!contract) {
-    return requestPositionsById;
-  }
-
-  const requestColumnX = contract.position.x + LAYOUT_NODE_WIDTH + LAYOUT_GAP_X;
-  const requestStepY = LAYOUT_NODE_HEIGHT + LAYOUT_GAP_Y;
-  const totalRequestsHeight =
-    requests.length * LAYOUT_NODE_HEIGHT + (requests.length - 1) * LAYOUT_GAP_Y;
-  const requestsTopY = contract.position.y - totalRequestsHeight / 2;
-  const requestStartY = requestsTopY + LAYOUT_NODE_HEIGHT / 2;
-
-  requests.forEach((request, index) => {
-    requestPositionsById.set(request.id, {
-      x: requestColumnX,
-      y: requestStartY + index * requestStepY,
-    });
-  });
-
-  return requestPositionsById;
-}
-
-function collectConfirmationByRequestId(
+function buildLayoutEdges(
   nodes: DiagramNode[],
   edges: DiagramEdge[],
-): Map<string, DiagramNode> {
-  const nodeById = buildNodeById(nodes);
-  const confirmationByRequestId = new Map<string, DiagramNode>();
-
-  for (const edge of edges) {
+): DiagramEdge[] {
+  const nodeById = new Map(nodes.map((node) => [node.id, node] as const));
+  const centerThingIds = evidenceLinkedThingIds(edges, nodeById);
+  const hasEvidenceLinkedThing = centerThingIds.size > 0;
+  const thingEdges = edges.filter((edge) => {
     const sourceNode = nodeById.get(edge.source);
     const targetNode = nodeById.get(edge.target);
-    if (!sourceNode || !targetNode) {
-      continue;
-    }
 
-    const match =
-      isFulfillmentRequestNode(sourceNode) &&
-      isFulfillmentConfirmationNode(targetNode)
-        ? { request: sourceNode, confirmation: targetNode }
-        : isFulfillmentRequestNode(targetNode) &&
-            isFulfillmentConfirmationNode(sourceNode)
-          ? { request: targetNode, confirmation: sourceNode }
-          : null;
-
-    if (!match) {
-      continue;
-    }
-
-    if (!confirmationByRequestId.has(match.request.id)) {
-      confirmationByRequestId.set(match.request.id, match.confirmation);
-    }
-  }
-
-  return confirmationByRequestId;
-}
-
-function buildConfirmationPositionsById(params: {
-  confirmationByRequestId: Map<string, DiagramNode>;
-  nodeById: Map<string, DiagramNode>;
-  requestPositionsById: Map<string, Position>;
-}): Map<string, Position> {
-  const { confirmationByRequestId, nodeById, requestPositionsById } = params;
-  const confirmationPositionsById = new Map<string, Position>();
-
-  for (const [requestId, confirmation] of confirmationByRequestId.entries()) {
-    const requestPosition =
-      requestPositionsById.get(requestId) ?? nodeById.get(requestId)?.position;
-    if (!requestPosition) {
-      continue;
-    }
-
-    confirmationPositionsById.set(confirmation.id, {
-      x: requestPosition.x + LAYOUT_NODE_WIDTH + LAYOUT_GAP_X,
-      y: requestPosition.y,
-    });
-  }
-
-  return confirmationPositionsById;
-}
-
-function collectConfirmationRightNodesByConfirmationId(
-  nodes: DiagramNode[],
-  edges: DiagramEdge[],
-): Map<string, DiagramNode[]> {
-  const nodeById = buildNodeById(nodes);
-  const confirmationRightNodesByConfirmationId = new Map<
-    string,
-    DiagramNode[]
-  >();
-
-  for (const edge of edges) {
-    const sourceNode = nodeById.get(edge.source);
-    const targetNode = nodeById.get(edge.target);
-    if (!sourceNode || !targetNode) {
-      continue;
-    }
-
-    const match =
-      isFulfillmentConfirmationNode(sourceNode) &&
-      isConfirmationRightNode(targetNode)
-        ? { confirmation: sourceNode, node: targetNode }
-        : isFulfillmentConfirmationNode(targetNode) &&
-            isConfirmationRightNode(sourceNode)
-          ? { confirmation: targetNode, node: sourceNode }
-          : null;
-    if (!match) {
-      continue;
-    }
-
-    const confirmationRightNodes =
-      confirmationRightNodesByConfirmationId.get(match.confirmation.id) ?? [];
-    if (!confirmationRightNodes.some((node) => node.id === match.node.id)) {
-      confirmationRightNodes.push(match.node);
-    }
-    confirmationRightNodesByConfirmationId.set(
-      match.confirmation.id,
-      confirmationRightNodes,
+    return (
+      edge.hidden !== true &&
+      isThingNode(sourceNode) &&
+      isThingNode(targetNode) &&
+      isThingLayoutEdge(edge, hasEvidenceLinkedThing)
     );
-  }
+  });
+  const effectiveCenterThingIds =
+    centerThingIds.size > 0
+      ? centerThingIds
+      : fallbackCenterThingIds(thingEdges, nodeById);
+  const levels = thingLevels(effectiveCenterThingIds, thingEdges);
 
-  return confirmationRightNodesByConfirmationId;
-}
+  return edges.flatMap((edge) => {
+    const sourceNode = nodeById.get(edge.source);
+    const targetNode = nodeById.get(edge.target);
 
-function buildConfirmationRightNodePositionsById(params: {
-  confirmationPositionsById: Map<string, Position>;
-  confirmationRightNodesByConfirmationId: Map<string, DiagramNode[]>;
-  nodeById: Map<string, DiagramNode>;
-}): Map<string, Position> {
-  const {
-    confirmationPositionsById,
-    confirmationRightNodesByConfirmationId,
-    nodeById,
-  } = params;
-  const confirmationRightNodePositionsById = new Map<string, Position>();
-
-  for (const [
-    confirmationId,
-    confirmationRightNodes,
-  ] of confirmationRightNodesByConfirmationId.entries()) {
-    if (confirmationRightNodes.length === 0) {
-      continue;
-    }
-    const confirmationPosition =
-      confirmationPositionsById.get(confirmationId) ??
-      nodeById.get(confirmationId)?.position;
-    if (!confirmationPosition) {
-      continue;
+    if (!sourceNode || !targetNode || edge.hidden === true) {
+      return [];
     }
 
-    const rightColumnX =
-      confirmationPosition.x + LAYOUT_NODE_WIDTH + LAYOUT_GAP_X;
-    const rightNodeStepY = LAYOUT_NODE_HEIGHT + LAYOUT_GAP_Y;
-    const totalRightNodesHeight =
-      confirmationRightNodes.length * LAYOUT_NODE_HEIGHT +
-      (confirmationRightNodes.length - 1) * LAYOUT_GAP_Y;
-    const rightNodesTopY = confirmationPosition.y - totalRightNodesHeight / 2;
-    const rightNodeStartY = rightNodesTopY + LAYOUT_NODE_HEIGHT / 2;
+    const sourceIsThing = isThingNode(sourceNode);
+    const targetIsThing = isThingNode(targetNode);
+    const sourceIsEvidence = isEvidenceNode(sourceNode);
+    const targetIsEvidence = isEvidenceNode(targetNode);
 
-    confirmationRightNodes.forEach((rightNode, index) => {
-      confirmationRightNodePositionsById.set(rightNode.id, {
-        x: rightColumnX,
-        y: rightNodeStartY + index * rightNodeStepY,
-      });
-    });
-  }
+    if (sourceIsThing && targetIsThing) {
+      if (!isThingLayoutEdge(edge, hasEvidenceLinkedThing)) {
+        return [];
+      }
 
-  return confirmationRightNodePositionsById;
+      return [orientThingEdgeByLevel(edge, levels)];
+    }
+
+    if (sourceIsEvidence && targetIsThing) {
+      return [edge];
+    }
+
+    if (sourceIsThing && targetIsEvidence) {
+      return [orientedEdge(edge, edge.target, edge.source)];
+    }
+
+    return [edge];
+  });
 }
 
-function applyPositionsById(
+function toElkGraph(nodes: DiagramNode[], edges: DiagramEdge[]): ElkNode {
+  const childrenByParentId = buildChildrenByParentId(nodes);
+  const rootChildren = childrenByParentId.get(undefined) ?? [];
+
+  return {
+    id: ROOT_GRAPH_ID,
+    children: rootChildren.map((node) => toElkNode(node, childrenByParentId)),
+    edges: toElkEdges(nodes, buildLayoutEdges(nodes, edges)),
+    layoutOptions: buildLayoutOptions(),
+  };
+}
+
+function collectLayoutedNodes(
+  layoutedNode: ElkNode,
+  nodeById = new Map<string, ElkNode>(),
+): Map<string, ElkNode> {
+  if (layoutedNode.id !== ROOT_GRAPH_ID) {
+    nodeById.set(layoutedNode.id, layoutedNode);
+  }
+
+  for (const childNode of layoutedNode.children ?? []) {
+    collectLayoutedNodes(childNode, nodeById);
+  }
+
+  return nodeById;
+}
+
+function finiteNumber(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function resolvedPosition(
+  node: DiagramNode,
+  layoutedNode: ElkNode | undefined,
+): Position {
+  return {
+    x: finiteNumber(layoutedNode?.x) ?? node.position.x,
+    y: finiteNumber(layoutedNode?.y) ?? node.position.y,
+  };
+}
+
+function resolvedDimension(
+  layoutedValue: number | undefined,
+  fallback: number,
+): number {
+  return finiteNumber(layoutedValue) ?? fallback;
+}
+
+function layoutedNodesToCanvasNodes(
   nodes: DiagramNode[],
-  positionsById: Map<string, Position>,
+  layoutedGraph: ElkNode,
 ): DiagramNode[] {
+  const layoutedNodeById = collectLayoutedNodes(layoutedGraph);
+  const nodeIds = new Set(nodes.map((node) => node.id));
+
   return nodes.map((node) => {
-    const nodePosition = positionsById.get(node.id);
-    if (!nodePosition) {
-      return node;
-    }
+    const layoutedNode = layoutedNodeById.get(node.id);
+    const fallbackWidth = getNodeWidth(node);
+    const fallbackHeight = getNodeHeight(node);
+    const width = resolvedDimension(layoutedNode?.width, fallbackWidth);
+    const height = resolvedDimension(layoutedNode?.height, fallbackHeight);
 
     return {
       ...node,
-      position: {
-        ...node.position,
-        ...nodePosition,
-      },
+      parentId: resolveParentId(node, nodeIds),
+      position: resolvedPosition(node, layoutedNode),
+      width,
+      height,
     };
   });
 }
 
-function collectContextScopedNodes(params: {
-  contextId: string | undefined;
-  nodes: DiagramNode[];
-}): DiagramNode[] {
-  const { contextId, nodes } = params;
-  if (!contextId) {
-    return nodes;
+function orderNodesForReactFlow(nodes: DiagramNode[]): DiagramNode[] {
+  const originalIndexById = new Map(
+    nodes.map((node, index) => [node.id, index] as const),
+  );
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  const childrenByParentId = buildChildrenByParentId(nodes);
+  const orderedNodes: DiagramNode[] = [];
+  const visitedNodeIds = new Set<string>();
+
+  const compareByOriginalIndex = (left: DiagramNode, right: DiagramNode) =>
+    (originalIndexById.get(left.id) ?? 0) -
+    (originalIndexById.get(right.id) ?? 0);
+
+  const visit = (node: DiagramNode) => {
+    if (visitedNodeIds.has(node.id)) {
+      return;
+    }
+
+    visitedNodeIds.add(node.id);
+    orderedNodes.push(node);
+
+    for (const childNode of [...(childrenByParentId.get(node.id) ?? [])].sort(
+      compareByOriginalIndex,
+    )) {
+      visit(childNode);
+    }
+  };
+
+  for (const rootNode of [...(childrenByParentId.get(undefined) ?? [])].sort(
+    compareByOriginalIndex,
+  )) {
+    visit(rootNode);
   }
 
-  return nodes.filter((node) => node.parentId === contextId);
+  for (const node of nodes) {
+    if (!visitedNodeIds.has(node.id) && !resolveParentId(node, nodeIds)) {
+      visit(node);
+    }
+  }
+
+  for (const node of nodes) {
+    if (!visitedNodeIds.has(node.id)) {
+      visit(node);
+    }
+  }
+
+  return orderedNodes;
 }
 
-function collectScopedEdges(params: {
-  edges: DiagramEdge[];
-  scopedNodeIds: Set<string>;
-}): DiagramEdge[] {
-  const { edges, scopedNodeIds } = params;
-  return edges.filter(
-    (edge) => scopedNodeIds.has(edge.source) && scopedNodeIds.has(edge.target),
-  );
-}
-
-function applyContextSizeById(params: {
-  contextId: string | undefined;
-  nodes: DiagramNode[];
-}): DiagramNode[] {
-  const { contextId, nodes } = params;
-  if (!contextId) {
-    return nodes;
-  }
-
-  const context = nodes.find((node) => node.id === contextId);
-  if (!context) {
-    return nodes;
-  }
-
-  const childNodes = nodes.filter((node) => node.parentId === contextId);
-  if (childNodes.length === 0) {
-    return nodes;
-  }
-
-  let minX = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-
-  for (const childNode of childNodes) {
-    const width = getNodeWidth(childNode);
-    const height = getNodeHeight(childNode);
-    const left = childNode.position.x;
-    const right = childNode.position.x + width;
-    const top = childNode.position.y;
-    const bottom = childNode.position.y + height;
-    minX = Math.min(minX, left);
-    maxX = Math.max(maxX, right);
-    minY = Math.min(minY, top);
-    maxY = Math.max(maxY, bottom);
-  }
-
-  const widthCompensation = Math.max(CONTEXT_LAYOUT_PADDING_X - minX, 0);
-  const heightCompensation = Math.max(CONTEXT_LAYOUT_PADDING_Y - minY, 0);
-  const computedWidth = Math.ceil(
-    maxX + CONTEXT_LAYOUT_PADDING_X + widthCompensation,
-  );
-  const computedHeight = Math.ceil(
-    maxY + CONTEXT_LAYOUT_PADDING_Y + heightCompensation,
-  );
-  const nextWidth = computedWidth;
-  const nextHeight = computedHeight;
-
-  if (context.width === nextWidth && context.height === nextHeight) {
-    return nodes;
-  }
-
-  return nodes.map((node) =>
-    node.id === contextId
-      ? {
-          ...node,
-          width: nextWidth,
-          height: nextHeight,
-        }
-      : node,
-  );
-}
-
-function applyContextHorizontalLayoutByNodeOrder(params: {
-  contextIds: Set<string>;
-  nodes: DiagramNode[];
-}): DiagramNode[] {
-  const { contextIds, nodes } = params;
-  if (contextIds.size <= 1) {
-    return nodes;
-  }
-
-  const orderedContextNodes = nodes.filter(
-    (node) => isContextNode(node) && contextIds.has(node.id),
-  );
-  if (orderedContextNodes.length <= 1) {
-    return nodes;
-  }
-
-  let currentX = orderedContextNodes[0].position.x;
-  const baseY = orderedContextNodes[0].position.y;
-  const contextPositionById = new Map<string, Position>();
-  for (const contextNode of orderedContextNodes) {
-    contextPositionById.set(contextNode.id, { x: currentX, y: baseY });
-    currentX += getNodeWidth(contextNode) + CONTEXT_LAYOUT_GAP_X;
-  }
-
-  return applyPositionsById(nodes, contextPositionById);
-}
-
-export function calculateLayout(
+export async function calculateLayout(
   nodes: DiagramNode[],
   edges: DiagramEdge[],
-): DiagramNode[] {
-  const axisLayoutedNodes = layoutEvidenceAxis(nodes);
-  const contracts = collectNodesByPredicate(axisLayoutedNodes, isContractNode);
-  if (contracts.length === 0) {
-    return axisLayoutedNodes;
+): Promise<DiagramNode[]> {
+  if (nodes.length === 0) {
+    return [];
   }
 
-  const positionsById = new Map<string, Position>();
-  const contextIds = new Set<string>();
+  const layoutedGraph = await elk.layout(toElkGraph(nodes, edges));
+  const layoutedNodes = layoutedNodesToCanvasNodes(nodes, layoutedGraph);
 
-  for (const contract of contracts) {
-    const scopedNodes = collectContextScopedNodes({
-      contextId: contract.parentId,
-      nodes: axisLayoutedNodes,
-    });
-    const scopedNodeIds = new Set(scopedNodes.map((node) => node.id));
-    const scopedEdges = collectScopedEdges({ edges, scopedNodeIds });
-    const nodeById = buildNodeById(scopedNodes);
-
-    const roles = collectContractRolesByContract({
-      nodes: scopedNodes,
-      edges: scopedEdges,
-      contractId: contract.id,
-    });
-    const contractRolePositionsById = buildContractRolePositionsById({
-      contract,
-      roles,
-    });
-    for (const [id, position] of contractRolePositionsById.entries()) {
-      positionsById.set(id, position);
-    }
-
-    const requests = collectRequestsByContract({
-      nodes: scopedNodes,
-      edges: scopedEdges,
-      contractId: contract.id,
-    });
-    const requestPositionsById = buildRequestPositionsById({
-      contract,
-      requests,
-    });
-    const spreadRequestPositionsById = spreadColumnNodesById({
-      basePositionsById: requestPositionsById,
-      defaultX: DEFAULT_REQUEST_COLUMN_X,
-      nodeById,
-      nodeIds: requests.map((node) => node.id),
-    });
-    for (const [id, position] of spreadRequestPositionsById.entries()) {
-      positionsById.set(id, position);
-    }
-
-    const requestIds = new Set(requests.map((request) => request.id));
-    const confirmationByRequestId = collectConfirmationByRequestId(
-      scopedNodes,
-      scopedEdges,
-    );
-    const scopedConfirmationByRequestId = new Map(
-      [...confirmationByRequestId.entries()].filter(([requestId]) =>
-        requestIds.has(requestId),
-      ),
-    );
-    const confirmationPositionsById = buildConfirmationPositionsById({
-      confirmationByRequestId: scopedConfirmationByRequestId,
-      nodeById,
-      requestPositionsById: spreadRequestPositionsById,
-    });
-    for (const [id, position] of confirmationPositionsById.entries()) {
-      positionsById.set(id, position);
-    }
-
-    const confirmationIds = new Set(
-      [...scopedConfirmationByRequestId.values()].map((node) => node.id),
-    );
-    const confirmationRightNodesByConfirmationId =
-      collectConfirmationRightNodesByConfirmationId(scopedNodes, scopedEdges);
-    const scopedConfirmationRightNodesByConfirmationId = new Map(
-      [...confirmationRightNodesByConfirmationId.entries()].filter(
-        ([confirmationId]) => confirmationIds.has(confirmationId),
-      ),
-    );
-    const confirmationRightNodePositionsById =
-      buildConfirmationRightNodePositionsById({
-        confirmationPositionsById,
-        nodeById,
-        confirmationRightNodesByConfirmationId:
-          scopedConfirmationRightNodesByConfirmationId,
-      });
-    const confirmationRightNodeIds = [
-      ...new Set(
-        [...scopedConfirmationRightNodesByConfirmationId.values()].flatMap(
-          (connectedNodes) => connectedNodes.map((node) => node.id),
-        ),
-      ),
-    ];
-    const spreadConfirmationRightNodePositionsById = spreadColumnNodesById({
-      basePositionsById: confirmationRightNodePositionsById,
-      defaultX: DEFAULT_REQUEST_COLUMN_X + 2 * COLUMN_STEP_X,
-      nodeById,
-      nodeIds: confirmationRightNodeIds,
-    });
-    for (const [
-      id,
-      position,
-    ] of spreadConfirmationRightNodePositionsById.entries()) {
-      positionsById.set(id, position);
-    }
-
-    if (contract.parentId) {
-      contextIds.add(contract.parentId);
-    }
-  }
-
-  const layoutedNodes = applyPositionsById(axisLayoutedNodes, positionsById);
-  let sizedNodes = layoutedNodes;
-  for (const contextId of contextIds) {
-    sizedNodes = applyContextSizeById({
-      contextId,
-      nodes: sizedNodes,
-    });
-  }
-
-  return applyContextHorizontalLayoutByNodeOrder({
-    contextIds,
-    nodes: sizedNodes,
-  });
+  return orderNodesForReactFlow(layoutedNodes);
 }

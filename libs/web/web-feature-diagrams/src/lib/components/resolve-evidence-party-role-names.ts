@@ -5,7 +5,7 @@ function isEvidenceNode(node: DiagramCanvasNode | undefined): boolean {
 }
 
 function isPartyRoleNode(node: DiagramCanvasNode | undefined): boolean {
-  return node?.data.type === 'ROLE' && node.data.subType === 'party_role';
+  return node?.data.type === 'ROLE' && node.data.subType === 'party';
 }
 
 export function resolveEvidencePartyRoleName(params: {

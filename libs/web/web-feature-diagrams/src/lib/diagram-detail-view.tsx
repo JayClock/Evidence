@@ -1,4 +1,10 @@
-import { type CSSProperties, useCallback, useEffect, useMemo } from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   addEdge,
   type Connection,
@@ -47,8 +53,6 @@ import { nodeTypes } from './components/node-types';
 
 const DEFAULT_NODE_WIDTH = 160;
 const DEFAULT_NODE_HEIGHT = 80;
-const CONTEXT_NODE_WIDTH = 420;
-const CONTEXT_NODE_HEIGHT = 280;
 const FULFILLMENT_NODE_TYPE = 'fulfillment-node';
 const GROUP_NODE_TYPE = 'group-container';
 const STICKY_NOTE_NODE_TYPE = 'sticky-note';
@@ -78,19 +82,56 @@ export function DiagramDetailView({
   );
   const nodes = useResource<DiagramNodeCollectionResource>(nodesResource);
   const edges = useResource<DiagramEdgeCollectionResource>(edgesResource);
-  const loading = nodes.loading || edges.loading;
-  const error = nodes.error ?? edges.error;
+  const [graph, setGraph] = useState<DiagramGraph | null>(null);
+  const [layoutLoading, setLayoutLoading] = useState(false);
+  const [layoutError, setLayoutError] = useState<Error | null>(null);
 
-  const graph = useMemo(() => {
+  useEffect(() => {
     if (!nodes.resourceState || !edges.resourceState) {
-      return null;
+      setGraph(null);
+      setLayoutLoading(false);
+      setLayoutError(null);
+      return;
     }
 
-    return createDiagramGraph(
+    let cancelled = false;
+    setLayoutLoading(true);
+    setLayoutError(null);
+
+    void createDiagramGraph(
       [...nodes.resourceState.collection],
       [...edges.resourceState.collection],
-    );
+    )
+      .then((nextGraph) => {
+        if (!cancelled) {
+          setGraph(nextGraph);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setGraph(null);
+          setLayoutError(
+            error instanceof Error ? error : new Error(String(error)),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLayoutLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [edges.resourceState, nodes.resourceState]);
+
+  const layoutPending = Boolean(
+    nodes.resourceState && edges.resourceState && !graph && !layoutError,
+  );
+  const loading =
+    nodes.loading || edges.loading || layoutLoading || layoutPending;
+  const error = nodes.error ?? edges.error ?? layoutError;
   const refreshProjectedGraph = useCallback(async () => {
     await Promise.all([nodes.resource.refresh(), edges.resource.refresh()]);
   }, [edges.resource, nodes.resource]);
@@ -207,6 +248,7 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
             onConnect={handleConnect}
+            nodesDraggable={false}
             panOnDrag
             selectionOnDrag={false}
           >
@@ -218,10 +260,10 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
   );
 }
 
-function createDiagramGraph(
+async function createDiagramGraph(
   nodeStates: State<DiagramNodeResource>[],
   edgeStates: State<DiagramEdgeResource>[],
-): DiagramGraph {
+): Promise<DiagramGraph> {
   const nodes = nodeStates.map(toCanvasNode);
   const edgeNodes = new Set(nodes.map((node) => node.id));
   const edges = edgeStates.flatMap((edgeState): DiagramCanvasEdge[] => {
@@ -239,7 +281,7 @@ function createDiagramGraph(
   const handledEdges = calculateEvidenceEdgeHandles(nodes, visibleEdges);
 
   return {
-    nodes: [...calculateLayout(nodes, handledEdges)],
+    nodes: await calculateLayout(nodes, handledEdges),
     edges: handledEdges,
   };
 }
@@ -259,7 +301,7 @@ function toCanvasNode(
     subType: firstString(payload, ['subType', 'sub_type']),
     type: entityType,
   };
-  const size = toNodeSize(entityType, resourceData.width, resourceData.height);
+  const size = toNodeSize(resourceData.width, resourceData.height);
 
   return {
     id: resourceData.id,
@@ -326,17 +368,9 @@ function toNodeComponentType(rawNodeType: string, entityType: string): string {
 }
 
 function toNodeSize(
-  entityType: string,
   width: number | null,
   height: number | null,
 ): { height: number; width: number } {
-  if (entityType === 'CONTEXT') {
-    return {
-      height: positiveNumber(height) ?? CONTEXT_NODE_HEIGHT,
-      width: positiveNumber(width) ?? CONTEXT_NODE_WIDTH,
-    };
-  }
-
   return {
     height: positiveNumber(height) ?? DEFAULT_NODE_HEIGHT,
     width: positiveNumber(width) ?? DEFAULT_NODE_WIDTH,

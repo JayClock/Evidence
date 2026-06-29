@@ -130,6 +130,7 @@ fn parse_markdown_node(
     let label = optional_meta(&meta, "label");
     let entity_type = required_meta(&meta, "type", &path)?;
     let sub_type = optional_meta(&meta, "subType");
+    let parent = optional_meta(&meta, "parent");
     let timestamp = file_timestamp(&path);
     let mut data = JsonObject::new();
 
@@ -142,6 +143,9 @@ fn parse_markdown_node(
     if let Some(sub_type) = &sub_type {
         data.insert("subType".to_string(), json!(sub_type));
     }
+    if let Some(parent) = &parent {
+        data.insert("parent".to_string(), json!(parent));
+    }
     if !content.trim().is_empty() {
         data.insert("content".to_string(), json!(content));
     }
@@ -153,7 +157,7 @@ fn parse_markdown_node(
             diagram: Ref::new(diagram_id.to_string()),
             kind: node_kind(&entity_type).to_string(),
             logical_entity: Some(Ref::new(id)),
-            parent: None,
+            parent: parent.map(Ref::new),
             position: Position::default(),
             width: None,
             height: None,
@@ -262,7 +266,7 @@ mod tests {
         let node = parse_markdown_node(
             "diagram-1",
             PathBuf::from("contract.md"),
-            "---\nid: contract\nname: Contract\nlabel: Contract Document\ntype: EVIDENCE\nsubType: contract\n---\n# Contract\n",
+            "---\nid: contract\nname: Contract\nlabel: Contract Document\ntype: EVIDENCE\nsubType: contract\nparent: commerce_context\n---\n# Contract\n",
         )
         .unwrap()
         .into_node();
@@ -281,6 +285,14 @@ mod tests {
         assert_eq!(
             node.description().data.get("subType"),
             Some(&json!("contract"))
+        );
+        assert_eq!(
+            node.description().parent.as_ref().map(Ref::id),
+            Some(&"commerce_context".to_string())
+        );
+        assert_eq!(
+            node.description().data.get("parent"),
+            Some(&json!("commerce_context"))
         );
         assert_eq!(
             node.description().data.get("content"),

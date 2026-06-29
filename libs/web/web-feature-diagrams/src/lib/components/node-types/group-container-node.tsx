@@ -12,7 +12,7 @@ export function GroupContainerNode({
   return (
     <AiNode
       handles={{ source: true, target: true }}
-      className={`box-border rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/30 ${
+      className={`box-border h-full w-full rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/30 ${
         selected ? 'ring-primary/50 ring-4' : ''
       }`}
     >

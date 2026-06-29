@@ -97,64 +97,63 @@ function resourceResponse<T extends Entity>(resourceState: State<T>) {
 
 describe('DiagramDetailView', () => {
   beforeEach(() => {
+    const nodeResponse = resourceResponse(
+      collectionState<DiagramNodeCollectionResource>([
+        {
+          data: {
+            id: 'node-1',
+            kind: 'fulfillment',
+            logicalEntity: { id: 'entity-1' },
+            parent: null,
+            position: { x: 10, y: 20 },
+            width: 180,
+            height: 90,
+            data: {
+              label: 'Contract',
+              subType: 'contract',
+              type: 'EVIDENCE',
+            },
+          },
+        },
+        {
+          data: {
+            id: 'node-2',
+            kind: 'fulfillment',
+            logicalEntity: null,
+            parent: null,
+            position: { x: 330, y: 20 },
+            width: 180,
+            height: 90,
+            data: { name: 'Confirmation', type: 'EVIDENCE' },
+          },
+        },
+      ]),
+    );
+    const edgeResponse = resourceResponse(
+      collectionState<DiagramEdgeCollectionResource>([
+        {
+          data: {
+            id: 'edge-1',
+            source: { id: 'node-1' },
+            target: { id: 'node-2' },
+            kind: 'animated',
+            style: null,
+            data: { label: 'fulfills', relationType: 'fulfills' },
+            animated: false,
+            hidden: false,
+            markerStart: null,
+            markerEnd: null,
+            pathOptions: {},
+            interactionWidth: null,
+          },
+        },
+      ]),
+    );
+
     mockedUseResource.mockImplementation((resource: unknown) => {
       const rel = (resource as { rel: string }).rel;
 
-      if (rel === 'nodes') {
-        return resourceResponse(
-          collectionState<DiagramNodeCollectionResource>([
-            {
-              data: {
-                id: 'node-1',
-                kind: 'fulfillment',
-                logicalEntity: { id: 'entity-1' },
-                parent: null,
-                position: { x: 10, y: 20 },
-                width: 180,
-                height: 90,
-                data: {
-                  label: 'Contract',
-                  subType: 'contract',
-                  type: 'EVIDENCE',
-                },
-              },
-            },
-            {
-              data: {
-                id: 'node-2',
-                kind: 'fulfillment',
-                logicalEntity: null,
-                parent: null,
-                position: { x: 330, y: 20 },
-                width: 180,
-                height: 90,
-                data: { name: 'Confirmation', type: 'EVIDENCE' },
-              },
-            },
-          ]),
-        );
-      }
-
-      return resourceResponse(
-        collectionState<DiagramEdgeCollectionResource>([
-          {
-            data: {
-              id: 'edge-1',
-              source: { id: 'node-1' },
-              target: { id: 'node-2' },
-              kind: 'animated',
-              style: null,
-              data: { label: 'fulfills', relationType: 'fulfills' },
-              animated: false,
-              hidden: false,
-              markerStart: null,
-              markerEnd: null,
-              pathOptions: {},
-              interactionWidth: null,
-            },
-          },
-        ]),
-      );
+      return rel === 'nodes' ? nodeResponse : edgeResponse;
     });
   });
 
@@ -162,7 +161,7 @@ describe('DiagramDetailView', () => {
     vi.clearAllMocks();
   });
 
-  it('renders an independent diagram canvas', () => {
+  it('renders an independent diagram canvas', async () => {
     const diagramState = {
       data: {
         id: 'diagram-1',
@@ -175,16 +174,18 @@ describe('DiagramDetailView', () => {
 
     render(<DiagramDetailView resourceState={diagramState} />);
 
-    expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
-    expect(screen.getByLabelText('Diagram canvas')).toBeTruthy();
+    expect(await screen.findByText('Fulfillment Flow')).toBeTruthy();
+    expect(await screen.findByLabelText('Diagram canvas')).toBeTruthy();
     expect(
-      screen.getByRole('region', { name: 'AI modeling assistant' }),
+      await screen.findByRole('region', { name: 'AI modeling assistant' }),
     ).toBeTruthy();
     expect(
-      screen.getByPlaceholderText('Describe the fulfillment model to propose…'),
+      await screen.findByPlaceholderText(
+        'Describe the fulfillment model to propose…',
+      ),
     ).toBeTruthy();
-    expect(screen.getByText('Contract')).toBeTruthy();
-    expect(screen.getByText('Confirmation')).toBeTruthy();
-    expect(screen.getByText('fulfills')).toBeTruthy();
+    expect(await screen.findByText('Contract')).toBeTruthy();
+    expect(await screen.findByText('Confirmation')).toBeTruthy();
+    expect(await screen.findByText('fulfills')).toBeTruthy();
   });
 });

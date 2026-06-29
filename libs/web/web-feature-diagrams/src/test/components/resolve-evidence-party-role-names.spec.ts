@@ -12,7 +12,7 @@ const FIXTURE_NODES = nodes as LNode[];
 const FIXTURE_EDGES = edges as LEdge[];
 
 describe('resolveEvidencePartyRoleName', () => {
-  it('returns single party_role name for non-contract evidence and excludes contract', () => {
+  it('returns single party role name for non-contract evidence and excludes contract', () => {
     expect(
       resolveEvidencePartyRoleName({
         edges: FIXTURE_EDGES,

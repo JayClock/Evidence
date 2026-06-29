@@ -22,7 +22,7 @@ const FIXTURE_EDGES = (edges as LEdge[]).map(
 );
 
 describe('calculateEdgeVisibility', () => {
-  it('only applies to party_role <-> evidence edges and excludes contract', () => {
+  it('only applies to party role <-> evidence edges and excludes contract', () => {
     const nodeById = new Map(
       FIXTURE_NODES.map((node) => [node.id, node] as const),
     );
@@ -52,11 +52,9 @@ describe('calculateEdgeVisibility', () => {
       const sourceNode = nodeById.get(edge.source);
       const targetNode = nodeById.get(edge.target);
       const isSourcePartyRole =
-        sourceNode?.data.type === 'ROLE' &&
-        sourceNode.data.subType === 'party_role';
+        sourceNode?.data.type === 'ROLE' && sourceNode.data.subType === 'party';
       const isTargetPartyRole =
-        targetNode?.data.type === 'ROLE' &&
-        targetNode.data.subType === 'party_role';
+        targetNode?.data.type === 'ROLE' && targetNode.data.subType === 'party';
       if (!isSourcePartyRole && !isTargetPartyRole) {
         continue;
       }
