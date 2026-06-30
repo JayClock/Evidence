@@ -10,6 +10,7 @@ import {
   type Connection,
   type EdgeChange,
   type EdgeMarkerType,
+  MarkerType,
   type NodeChange,
   useEdgesState,
   useNodesState,
@@ -42,6 +43,7 @@ import { Edge } from '@evidence/ui/ai-elements/edge';
 import { calculateEdgeVisibility } from './components/calculate-edge-visibility';
 import { calculateEvidenceEdgeHandles } from './components/calculate-evidence-edge-handles';
 import { calculateLayout } from './components/calculate-layout';
+import { projectFulfillmentReferences } from './components/project-fulfillment-references';
 import type {
   DiagramCanvasEdge,
   DiagramCanvasEdgeData,
@@ -57,6 +59,7 @@ const FULFILLMENT_NODE_TYPE = 'fulfillment-node';
 const GROUP_NODE_TYPE = 'group-container';
 const STICKY_NOTE_NODE_TYPE = 'sticky-note';
 const ANIMATED_EDGE_TYPE = 'animated';
+const DEFAULT_MARKER_END: EdgeMarkerType = { type: MarkerType.ArrowClosed };
 
 const edgeTypes = {
   [ANIMATED_EDGE_TYPE]: Edge.Animated,
@@ -215,6 +218,10 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
     },
     [setEdges],
   );
+  const visibleEdges = useMemo(
+    () => expandSelectedEdges(nodes, edges),
+    [edges, nodes],
+  );
 
   if (graph.nodes.length === 0) {
     return (
@@ -242,7 +249,7 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
         >
           <Canvas<DiagramCanvasNode, DiagramCanvasEdge>
             nodes={nodes}
-            edges={edges}
+            edges={visibleEdges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             onNodesChange={handleNodesChange}
@@ -258,6 +265,32 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
       </CardContent>
     </Card>
   );
+}
+
+function expandSelectedEdges(
+  nodes: DiagramCanvasNode[],
+  edges: DiagramCanvasEdge[],
+): DiagramCanvasEdge[] {
+  const selectedNodeIds = new Set(
+    nodes.filter((node) => node.selected).map((node) => node.id),
+  );
+
+  if (selectedNodeIds.size === 0) {
+    return edges;
+  }
+
+  return edges.map((edge) => {
+    if (edge.data?.visibility !== 'onSelect') {
+      return edge;
+    }
+
+    return {
+      ...edge,
+      hidden: !(
+        selectedNodeIds.has(edge.source) || selectedNodeIds.has(edge.target)
+      ),
+    };
+  });
 }
 
 async function createDiagramGraph(
@@ -277,11 +310,18 @@ async function createDiagramGraph(
 
     return [toCanvasEdge(edgeState)];
   });
-  const visibleEdges = calculateEdgeVisibility(nodes, edges);
-  const handledEdges = calculateEvidenceEdgeHandles(nodes, visibleEdges);
+  const projectedGraph = projectFulfillmentReferences(nodes, edges);
+  const visibleEdges = calculateEdgeVisibility(
+    projectedGraph.nodes,
+    projectedGraph.edges,
+  );
+  const handledEdges = calculateEvidenceEdgeHandles(
+    projectedGraph.nodes,
+    visibleEdges,
+  );
 
   return {
-    nodes: await calculateLayout(nodes, handledEdges),
+    nodes: await calculateLayout(projectedGraph.nodes, handledEdges),
     edges: handledEdges,
   };
 }
@@ -332,7 +372,7 @@ function toCanvasEdge(
     id: resourceData.id,
     source: resourceData.source.id,
     target: resourceData.target.id,
-    type: resourceData.kind ?? ANIMATED_EDGE_TYPE,
+    type: toEdgeComponentType(resourceData.kind),
     sourceHandle: resourceData.sourceHandle ?? undefined,
     targetHandle: resourceData.targetHandle ?? undefined,
     ...(label ? { label } : {}),
@@ -340,7 +380,7 @@ function toCanvasEdge(
     animated: resourceData.animated,
     hidden: resourceData.hidden,
     markerStart: edgeMarker(resourceData.markerStart),
-    markerEnd: edgeMarker(resourceData.markerEnd),
+    markerEnd: edgeMarker(resourceData.markerEnd) ?? DEFAULT_MARKER_END,
     pathOptions: recordOrUndefined(resourceData.pathOptions),
     interactionWidth:
       positiveNumber(resourceData.interactionWidth) ?? undefined,
@@ -349,6 +389,21 @@ function toCanvasEdge(
       relationType,
     },
   };
+}
+
+function toEdgeComponentType(rawEdgeType: string | null): string {
+  const edgeType = rawEdgeType?.trim();
+
+  if (
+    edgeType === 'default' ||
+    edgeType === 'smoothstep' ||
+    edgeType === 'step' ||
+    edgeType === 'straight'
+  ) {
+    return edgeType;
+  }
+
+  return 'smoothstep';
 }
 
 function toNodeComponentType(rawNodeType: string, entityType: string): string {

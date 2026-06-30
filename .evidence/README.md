@@ -1,50 +1,21 @@
-# Evidence 当前系统模型
+# 办公笔记本采购履约示例模型
 
-> 这个目录把当前系统模型表达成 **Markdown 文档 + 最小 Frontmatter**。Frontmatter 用于索引和列表渲染，正文用于人类阅读、讨论和编辑。
+这个目录当前用于演示 React Flow 下的履约建模布局效果。
+
+场景：甲方向乙方采购 100 台办公笔记本电脑。
+
+## 布局重点
+
+- `合约前上下文`：RFP → Proposal，并挂询价/报价凭证。
+- `合约的上下文`：Contract 作为入口，分出支付、开票、发货三条履约分支。
+- Role 位于合约上下文上方，包含采购方、供应方、收货方，以及 `ROLE:3rd system` 的第三方系统角色。
+- Party / Thing / Place 等参与对象位于合约上下文下方。
+- RFP / Proposal / Evidence 到 Thing 的补充关系存在于数据里，视图默认收敛，选中相关节点时展开。
 
 ## 目录结构
 
 ```txt
 .evidence/
-  entities/      # 实体与聚合模型
-  associations/  # 关联对象，一条关系一个文件
+  entities/      # Context / Evidence / Role / Participant 节点
+  associations/  # 节点之间的履约、凭证、角色、参与对象关系
 ```
-
-## 阅读约定
-
-- **Frontmatter**：实体文件只保留 `id`、`name`、`label`、`type`、`subType`。
-- **正文表格**：描述属性、行为、规则。
-- **关联文件**：关系独立表达，避免把关系散落在两个实体文件中。
-- **关系类型**：仅使用 `contains` 和 `references`；`contains` 表示结构/聚合关系，`references` 表示引用关系。
-- **事实源**：当前仍是代码；这些 Markdown 文件是模型视图和本地优先存储格式草案。
-
-## 实体模型
-
-| 模型                                                    | 类型               | 说明                                             |
-| ------------------------------------------------------- | ------------------ | ------------------------------------------------ |
-| [User](entities/user.md)                                | Aggregate          | 系统用户                                         |
-| [Workspace](entities/workspace.md)                      | Aggregate Root     | 建模工作空间                                     |
-| [Member](entities/member.md)                            | Entity             | 用户在工作空间中的成员身份                       |
-| [LogicalEntity](entities/logical-entity.md)             | Entity             | 证据、参与者、角色、上下文；内嵌 EntityAttribute |
-| [LogicalRelationship](entities/logical-relationship.md) | Association Object | 逻辑实体之间的关系                               |
-| [Diagram](entities/diagram.md)                          | Aggregate          | 可视化图；内嵌 Viewport                          |
-| [DiagramNode](entities/diagram-node.md)                 | Entity             | 图节点；内嵌 Position                            |
-| [DiagramEdge](entities/diagram-edge.md)                 | Entity             | 图边                                             |
-
-## 关联对象
-
-| 关系                                                                                                        | 说明                 |
-| ----------------------------------------------------------------------------------------------------------- | -------------------- |
-| [User → Workspace](associations/user-contains-workspaces.md)                                                | 用户访问工作空间集合 |
-| [Workspace → Member](associations/workspace-contains-members.md)                                            | 工作空间包含成员     |
-| [Member → User](associations/member-references-user.md)                                                     | 成员身份引用用户     |
-| [Workspace → LogicalEntity](associations/workspace-contains-logical-entities.md)                            | 工作空间包含逻辑实体 |
-| [Workspace → LogicalRelationship](associations/workspace-contains-logical-relationships.md)                 | 工作空间包含逻辑关系 |
-| [LogicalRelationship → Source LogicalEntity](associations/logical-relationship-references-source-entity.md) | 逻辑关系的源实体     |
-| [LogicalRelationship → Target LogicalEntity](associations/logical-relationship-references-target-entity.md) | 逻辑关系的目标实体   |
-| [Workspace → Diagram](associations/workspace-contains-diagrams.md)                                          | 工作空间包含图       |
-| [Diagram → DiagramNode](associations/diagram-contains-nodes.md)                                             | 图包含节点           |
-| [Diagram → DiagramEdge](associations/diagram-contains-edges.md)                                             | 图包含边             |
-| [DiagramNode → LogicalEntity](associations/diagram-node-references-logical-entity.md)                       | 图节点引用逻辑实体   |
-| [DiagramEdge → LogicalRelationship](associations/diagram-edge-references-logical-relationship.md)           | 图边引用逻辑关系     |
-| [DiagramNode → DiagramNode](associations/diagram-node-references-parent-node.md)                            | 图节点引用父节点     |

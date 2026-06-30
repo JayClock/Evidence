@@ -204,6 +204,127 @@ describe('calculateLayout - ELK layered layout', () => {
     expect(confirmation.position.x).toBeGreaterThan(request.position.x);
   });
 
+  it('uses a contract spine, fulfillment lanes, and a shared participant pool', async () => {
+    const layoutedNodes = await calculateLayout(FIXTURE_NODES, FIXTURE_EDGES);
+    const nodeMap = toNodeMap(layoutedNodes);
+    const contract = requireNode(nodeMap, CONTRACT_ID);
+    const request = requireNode(nodeMap, REQUEST_1_ID);
+    const confirmation = requireNode(nodeMap, CONFIRMATION_1_ID);
+    const buyerRole = requireNode(nodeMap, 'node-3');
+    const sellerRole = requireNode(nodeMap, 'node-4');
+    const deliveryConfirmation = requireNode(nodeMap, 'node-8');
+    const deliveryEvidence = requireNode(nodeMap, 'node-9');
+    const thing = requireNode(nodeMap, 'node-31');
+    const paymentLane = requireNode(
+      nodeMap,
+      `__evidence-fulfillment-lane-${REQUEST_1_ID}`,
+    );
+    const deliveryLane = requireNode(
+      nodeMap,
+      '__evidence-fulfillment-lane-node-7',
+    );
+    const sharedPool = requireNode(
+      nodeMap,
+      `__evidence-shared-pool-${CONTRACT_CONTEXT_ID}`,
+    );
+
+    expect(contract.parentId).toBe(CONTRACT_CONTEXT_ID);
+    expect(paymentLane.parentId).toBe(CONTRACT_CONTEXT_ID);
+    expect(deliveryLane.parentId).toBe(CONTRACT_CONTEXT_ID);
+    expect(sharedPool.parentId).toBe(CONTRACT_CONTEXT_ID);
+    expect(request.parentId).toBe(paymentLane.id);
+    expect(confirmation.parentId).toBe(paymentLane.id);
+    expect(buyerRole.parentId).toBe(paymentLane.id);
+    expect(sellerRole.parentId).toBe(deliveryLane.id);
+    expect(deliveryConfirmation.parentId).toBe(deliveryLane.id);
+    expect(deliveryEvidence.parentId).toBe(deliveryLane.id);
+    expect(thing.parentId).toBe(sharedPool.id);
+    expect(paymentLane.position.x).toBeGreaterThan(contract.position.x);
+    expect(deliveryLane.position.y).toBeGreaterThan(paymentLane.position.y);
+    expect(deliveryEvidence.position.y).toBeGreaterThan(
+      deliveryConfirmation.position.y,
+    );
+    expect(deliveryEvidence.position.x).not.toBe(
+      deliveryConfirmation.position.x,
+    );
+  });
+
+  it('synthesizes pre-contract and contract contexts when saved groups are absent', async () => {
+    const layoutedNodes = await calculateLayout(
+      [
+        testNode('rfp', 'EVIDENCE', 'rfp', 'RFP'),
+        testNode('proposal', 'EVIDENCE', 'proposal', 'Proposal'),
+        testNode('contract', 'EVIDENCE', 'contract', 'Contract'),
+        testNode(
+          'request',
+          'EVIDENCE',
+          'fulfillment_request',
+          'Fulfillment Request',
+        ),
+        testNode(
+          'confirmation',
+          'EVIDENCE',
+          'fulfillment_confirmation',
+          'Fulfillment Confirmation',
+        ),
+        testNode('role', 'ROLE', 'party', 'Role'),
+        testNode('party', 'PARTICIPANT', 'party', 'Party'),
+        testNode('thing', 'PARTICIPANT', 'thing', 'Thing'),
+      ],
+      [
+        { id: 'rfp-to-proposal', source: 'rfp', target: 'proposal' },
+        { id: 'proposal-to-contract', source: 'proposal', target: 'contract' },
+        { id: 'contract-to-request', source: 'contract', target: 'request' },
+        {
+          id: 'request-to-confirmation',
+          source: 'request',
+          target: 'confirmation',
+        },
+        { id: 'contract-to-role', source: 'contract', target: 'role' },
+        { id: 'role-to-party', source: 'role', target: 'party' },
+        { id: 'contract-to-thing', source: 'contract', target: 'thing' },
+      ],
+    );
+    const preContext = layoutedNodes.find(
+      (node) => node.data.label === '合约前上下文',
+    );
+    const contractContext = layoutedNodes.find(
+      (node) => node.data.label === '合约的上下文',
+    );
+    const nodeMap = toNodeMap(layoutedNodes);
+    const rfp = requireNode(nodeMap, 'rfp');
+    const contract = requireNode(nodeMap, 'contract');
+    const request = requireNode(nodeMap, 'request');
+    const confirmation = requireNode(nodeMap, 'confirmation');
+    const role = requireNode(nodeMap, 'role');
+    const party = requireNode(nodeMap, 'party');
+    const thing = requireNode(nodeMap, 'thing');
+
+    expect(preContext).toBeDefined();
+    expect(contractContext).toBeDefined();
+    expect(contractContext?.position.x).toBeGreaterThan(
+      preContext?.position.x ?? 0,
+    );
+    const lane = layoutedNodes.find(
+      (node) => node.id === '__evidence-fulfillment-lane-request',
+    );
+    const sharedPool = layoutedNodes.find(
+      (node) => node.id === `__evidence-shared-pool-${contractContext?.id}`,
+    );
+
+    expect(lane).toBeDefined();
+    expect(sharedPool).toBeDefined();
+    expect(rfp.parentId).toBe(preContext?.id);
+    expect(contract.parentId).toBe(contractContext?.id);
+    expect(request.parentId).toBe(lane?.id);
+    expect(confirmation.parentId).toBe(lane?.id);
+    expect(role.parentId).toBe(sharedPool?.id);
+    expect(party.parentId).toBe(sharedPool?.id);
+    expect(thing.parentId).toBe(sharedPool?.id);
+    expect(confirmation.position.x).toBeGreaterThan(request.position.x);
+    expect(lane?.position.x ?? 0).toBeGreaterThan(contract.position.x);
+  });
+
   it('keeps parent context nodes before their children for React Flow', async () => {
     const layoutedNodes = await calculateLayout(FIXTURE_NODES, FIXTURE_EDGES);
     const contextIndex = layoutedNodes.findIndex(
@@ -230,7 +351,7 @@ describe('calculateLayout - ELK layered layout', () => {
     expect(context.height).toBeGreaterThan(LAYOUT_NODE_HEIGHT);
 
     for (const child of contextChildren) {
-      expect(child.position.x).toBeGreaterThanOrEqual(CONTEXT_LAYOUT_PADDING_X);
+      expect(child.position.x).toBeGreaterThanOrEqual(0);
       expect(child.position.y).toBeGreaterThanOrEqual(0);
       expect(
         child.position.x + (child.width ?? LAYOUT_NODE_WIDTH),

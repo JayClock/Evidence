@@ -21,56 +21,73 @@ const FIXTURE_EDGES = (edges as LEdge[]).map(
   }),
 );
 
-describe('calculateEdgeVisibility', () => {
-  it('only applies to party role <-> evidence edges and excludes contract', () => {
-    const nodeById = new Map(
-      FIXTURE_NODES.map((node) => [node.id, node] as const),
-    );
-    const edgesWithOverrides = FIXTURE_EDGES.map((edge) => {
-      if (edge.id === 'generated:node-3::node-2') {
-        return { ...edge, hidden: true };
-      }
-      if (edge.id === 'generated:node-3::node-5') {
-        return { ...edge, hidden: false };
-      }
-      if (edge.id === 'generated:node-5::node-6') {
-        return { ...edge, hidden: true };
-      }
-      return edge;
-    });
-    const inputEdgeById = new Map(
-      edgesWithOverrides.map((edge) => [edge.id, edge] as const),
-    );
+function testNode(id: string, type: string, subType: string | null): LNode {
+  return {
+    id,
+    type: 'fulfillment-node',
+    position: { x: 0, y: 0 },
+    data: {
+      id,
+      type,
+      subType,
+      name: id,
+      label: id,
+      definition: {},
+    },
+  };
+}
 
+function testEdge(source: string, target: string): DiagramCanvasEdge {
+  return {
+    id: `${source}->${target}`,
+    source,
+    target,
+    data: { relationType: null },
+  };
+}
+
+describe('calculateEdgeVisibility', () => {
+  it('makes all relationship edges visible by default', () => {
     const nextEdges = calculateEdgeVisibility(
       FIXTURE_NODES,
-      edgesWithOverrides,
+      FIXTURE_EDGES.map((edge) => ({ ...edge, hidden: true })),
     );
-    const edgeById = new Map(nextEdges.map((edge) => [edge.id, edge] as const));
 
-    for (const edge of nextEdges) {
-      const sourceNode = nodeById.get(edge.source);
-      const targetNode = nodeById.get(edge.target);
-      const isSourcePartyRole =
-        sourceNode?.data.type === 'ROLE' && sourceNode.data.subType === 'party';
-      const isTargetPartyRole =
-        targetNode?.data.type === 'ROLE' && targetNode.data.subType === 'party';
-      if (!isSourcePartyRole && !isTargetPartyRole) {
-        continue;
-      }
+    expect(nextEdges.every((edge) => edge.hidden === false)).toBe(true);
+    expect(nextEdges.every((edge) => edge.data?.visibility === 'always')).toBe(
+      true,
+    );
+  });
 
-      const connectedNode = isSourcePartyRole ? targetNode : sourceNode;
-      if (!connectedNode || connectedNode.data.type !== 'EVIDENCE') {
-        expect(edge.hidden).toBe(inputEdgeById.get(edge.id)?.hidden);
-        continue;
-      }
+  it('shows every Thing relation, including RFP, Proposal, and Evidence attachments', () => {
+    const nextEdges = calculateEdgeVisibility(
+      [
+        testNode('rfp', 'EVIDENCE', 'rfp'),
+        testNode('proposal', 'EVIDENCE', 'proposal'),
+        testNode('contract', 'EVIDENCE', 'contract'),
+        testNode('request', 'EVIDENCE', 'fulfillment_request'),
+        testNode('confirmation', 'EVIDENCE', 'fulfillment_confirmation'),
+        testNode('evidence', 'EVIDENCE', 'other_evidence'),
+        testNode('thing', 'PARTICIPANT', 'thing'),
+      ],
+      [
+        testEdge('rfp', 'thing'),
+        testEdge('proposal', 'thing'),
+        testEdge('contract', 'thing'),
+        testEdge('request', 'thing'),
+        testEdge('confirmation', 'thing'),
+        testEdge('evidence', 'thing'),
+      ],
+    );
+    const edgeById = new Map(nextEdges.map((edge) => [edge.id, edge]));
 
-      expect(edge.hidden).toBe(connectedNode.data.subType !== 'contract');
-    }
-
-    expect(edgeById.get('generated:node-3::node-2')?.hidden).toBe(false);
-    expect(edgeById.get('generated:node-3::node-5')?.hidden).toBe(true);
-    expect(edgeById.get('generated:node-4::node-7')?.hidden).toBe(true);
-    expect(edgeById.get('generated:node-5::node-6')?.hidden).toBe(true);
+    expect(edgeById.get('rfp->thing')?.hidden).toBe(false);
+    expect(edgeById.get('proposal->thing')?.hidden).toBe(false);
+    expect(edgeById.get('contract->thing')?.hidden).toBe(false);
+    expect(edgeById.get('request->thing')?.hidden).toBe(false);
+    expect(edgeById.get('confirmation->thing')?.hidden).toBe(false);
+    expect(edgeById.get('evidence->thing')?.hidden).toBe(false);
+    expect(edgeById.get('rfp->thing')?.data?.visibility).toBe('always');
+    expect(edgeById.get('evidence->thing')?.data?.visibility).toBe('always');
   });
 });
