@@ -13,11 +13,6 @@ use tokio::{
 
 const DEFAULT_TIMEOUT: Duration = Duration::from_secs(120);
 const MODELING_TOOLS: &str = "read,edit,write,ls,find,grep";
-const MODELING_SYSTEM_PROMPT: &str = r#"You are Evidence's domain-modeling assistant.
-The process current directory is the repository's .evidence modeling directory.
-Use tools only to inspect and modify Markdown files under this directory, especially entities/*.md and associations/*.md.
-Do not modify source code, build outputs, package manifests, lockfiles, or files outside the current directory.
-When the user asks for a model change, apply the change directly to the Markdown files while preserving frontmatter conventions, then summarize the files changed."#;
 
 #[derive(Debug, Clone)]
 pub struct PiRpcDomainArchitectConfig {
@@ -39,8 +34,6 @@ impl Default for PiRpcDomainArchitectConfig {
                 "--no-prompt-templates".to_string(),
                 "--no-themes".to_string(),
                 "--no-context-files".to_string(),
-                "--append-system-prompt".to_string(),
-                MODELING_SYSTEM_PROMPT.to_string(),
                 "--tools".to_string(),
                 MODELING_TOOLS.to_string(),
             ],
@@ -59,22 +52,6 @@ fn workspace_root() -> PathBuf {
 fn evidence_modeling_dir() -> PathBuf {
     let path = workspace_root().join(".evidence");
     path.canonicalize().unwrap_or(path)
-}
-
-fn modeling_user_message(requirement: &str) -> String {
-    format!(
-        r#"请直接修改当前 .evidence 建模 Markdown 目录以满足下面的需求。
-
-执行要求：
-- 当前工作目录就是 .evidence。
-- 先阅读 README.md，并按需查看 entities/ 和 associations/ 下的相关文件。
-- 使用工具直接修改 Markdown 文件；不要只给建议或草案。
-- 保持 frontmatter 字段和正文表格的既有风格。
-- 完成后用中文简要总结修改过的文件，以及前端图可刷新的模型变化。
-
-用户需求：
-{requirement}"#
-    )
 }
 
 #[derive(Debug, Clone, Default)]
@@ -100,7 +77,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
         let config = self.config.clone();
 
         Box::pin(try_stream! {
-            let message = modeling_user_message(&requirement);
+            let message = requirement;
             let mut command = Command::new(&config.command);
             command
                 .args(&config.args)
@@ -422,14 +399,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_config_enables_markdown_editing_tools() {
+    fn default_config_enables_modeling_tools_without_preset_prompt() {
         let config = PiRpcDomainArchitectConfig::default();
 
         assert!(!config.args.iter().any(|arg| arg == "--no-tools"));
-        assert!(config
+        assert!(!config
             .args
-            .windows(2)
-            .any(|args| { args[0] == "--append-system-prompt" && args[1].contains(".evidence") }));
+            .iter()
+            .any(|arg| arg == "--append-system-prompt"));
         let tools_index = config
             .args
             .iter()
@@ -439,15 +416,6 @@ mod tests {
             config.args.get(tools_index + 1).map(String::as_str),
             Some(MODELING_TOOLS)
         );
-    }
-
-    #[test]
-    fn wraps_requirement_with_modeling_instructions() {
-        let message = modeling_user_message("新增 Contract 实体");
-
-        assert!(message.contains("直接修改"));
-        assert!(message.contains("entities/"));
-        assert!(message.contains("新增 Contract 实体"));
     }
 
     #[test]

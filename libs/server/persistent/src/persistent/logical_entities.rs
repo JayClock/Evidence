@@ -1,16 +1,16 @@
 use std::{
-    collections::HashMap,
     fs,
     path::{Path, PathBuf},
 };
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::domain::{
-    normalize_sub_type, HasMany, LogicalEntity, LogicalEntityDescription, LogicalEntityType, Ref,
-    ServerError, WorkspaceLogicalEntities,
+    normalize_sub_type, EntityAttribute, HasMany, LogicalEntity, LogicalEntityDescription,
+    LogicalEntityType, Ref, ServerError, WorkspaceLogicalEntities,
 };
 
 use super::store::DbStore;
@@ -28,7 +28,7 @@ impl DbWorkspaceLogicalEntities {
         }
     }
 
-    fn load_records(&self) -> Result<Vec<MarkdownLogicalEntity>, ServerError> {
+    fn load_records(&self) -> Result<Vec<YamlLogicalEntity>, ServerError> {
         if !self.entities_dir.exists() {
             return Ok(Vec::new());
         }
@@ -47,18 +47,18 @@ impl DbWorkspaceLogicalEntities {
                 .map_err(|error| fs_error("read logical entity directory entry", error))?
                 .path();
 
-            if path.extension().and_then(|value| value.to_str()) != Some("md") {
+            if !is_yaml_file(&path) {
                 continue;
             }
 
-            records.push(read_markdown_entity(&self.workspace_id, &path)?);
+            records.push(read_yaml_entity(&self.workspace_id, &path)?);
         }
 
         records.sort_by(|left, right| left.name.cmp(&right.name).then(left.id.cmp(&right.id)));
         Ok(records)
     }
 
-    fn find_record(&self, id: &str) -> Result<Option<MarkdownLogicalEntity>, ServerError> {
+    fn find_record(&self, id: &str) -> Result<Option<YamlLogicalEntity>, ServerError> {
         Ok(self
             .load_records()?
             .into_iter()
@@ -70,6 +70,7 @@ impl DbWorkspaceLogicalEntities {
         path: &Path,
         entity_id: &str,
         desc: LogicalEntityDescription,
+        parent: Option<&str>,
     ) -> Result<LogicalEntity, ServerError> {
         fs::create_dir_all(&self.entities_dir).map_err(|error| {
             fs_error(
@@ -85,13 +86,15 @@ impl DbWorkspaceLogicalEntities {
         let sub_type = normalize_sub_type(&entity_type, desc.sub_type)?;
         let name = normalize_name(desc.name)?;
         let content = desc.description.unwrap_or_default();
-        let document = serialize_markdown_entity(MarkdownEntityDocument {
+        let document = serialize_yaml_entity(YamlEntityDocument {
             id: entity_id,
             name: &name,
             label: desc.label.as_deref(),
             entity_type: &entity_type,
             sub_type: sub_type.as_deref(),
+            parent,
             content: &content,
+            attributes: &desc.attributes,
         });
 
         fs::write(path, document).map_err(|error| {
@@ -101,7 +104,7 @@ impl DbWorkspaceLogicalEntities {
             )
         })?;
 
-        read_markdown_entity(&self.workspace_id, path).map(MarkdownLogicalEntity::into_entity)
+        read_yaml_entity(&self.workspace_id, path).map(YamlLogicalEntity::into_entity)
     }
 
     fn new_entity_path(&self, name: &str) -> Result<(String, PathBuf), ServerError> {
@@ -119,7 +122,7 @@ impl DbWorkspaceLogicalEntities {
         if self.find_record(&base_id)?.is_none() {
             return Ok((
                 base_id.clone(),
-                self.entities_dir.join(format!("{base_id}.md")),
+                self.entities_dir.join(format!("{base_id}.yaml")),
             ));
         }
 
@@ -132,7 +135,7 @@ impl DbWorkspaceLogicalEntities {
                 .to_string();
             let id = format!("{base_id}_{suffix}");
             if self.find_record(&id)?.is_none() {
-                return Ok((id.clone(), self.entities_dir.join(format!("{id}.md"))));
+                return Ok((id.clone(), self.entities_dir.join(format!("{id}.yaml"))));
             }
         }
     }
@@ -146,14 +149,12 @@ impl HasMany<LogicalEntity> for DbWorkspaceLogicalEntities {
             .into_iter()
             .skip(from)
             .take(to.saturating_sub(from))
-            .map(MarkdownLogicalEntity::into_entity)
+            .map(YamlLogicalEntity::into_entity)
             .collect())
     }
 
     async fn find_by_identity(&self, id: &str) -> Result<Option<LogicalEntity>, ServerError> {
-        Ok(self
-            .find_record(id)?
-            .map(MarkdownLogicalEntity::into_entity))
+        Ok(self.find_record(id)?.map(YamlLogicalEntity::into_entity))
     }
 
     async fn size(&self) -> Result<usize, ServerError> {
@@ -166,7 +167,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
     async fn add(&self, desc: LogicalEntityDescription) -> Result<LogicalEntity, ServerError> {
         let name = normalize_name(desc.name.clone())?;
         let (entity_id, path) = self.new_entity_path(&name)?;
-        self.write_record(&path, &entity_id, desc)
+        self.write_record(&path, &entity_id, desc, None)
     }
 
     async fn update(
@@ -177,7 +178,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
         let record = self.find_record(entity_id)?.ok_or_else(|| {
             ServerError::NotFound(format!("logical entity {entity_id} not found"))
         })?;
-        self.write_record(&record.path, entity_id, desc)
+        self.write_record(&record.path, entity_id, desc, record.parent.as_deref())
     }
 
     async fn delete(&self, entity_id: &str) -> Result<(), ServerError> {
@@ -211,7 +212,7 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
             rows.into_iter()
                 .skip(offset)
                 .take(page_size as usize)
-                .map(MarkdownLogicalEntity::into_entity)
+                .map(YamlLogicalEntity::into_entity)
                 .collect(),
             total,
         ))
@@ -219,131 +220,284 @@ impl WorkspaceLogicalEntities for DbWorkspaceLogicalEntities {
 }
 
 #[derive(Debug, Clone)]
-struct MarkdownLogicalEntity {
+struct YamlLogicalEntity {
     id: String,
     path: PathBuf,
     description: LogicalEntityDescription,
     name: String,
+    parent: Option<String>,
 }
 
-impl MarkdownLogicalEntity {
+impl YamlLogicalEntity {
     fn into_entity(self) -> LogicalEntity {
         LogicalEntity::new(self.id, self.description)
     }
 }
 
-struct MarkdownEntityDocument<'a> {
+struct YamlEntityDocument<'a> {
     id: &'a str,
     name: &'a str,
     label: Option<&'a str>,
     entity_type: &'a LogicalEntityType,
     sub_type: Option<&'a str>,
+    parent: Option<&'a str>,
     content: &'a str,
+    attributes: &'a [EntityAttribute],
 }
 
-fn read_markdown_entity(
-    workspace_id: &str,
-    path: &Path,
-) -> Result<MarkdownLogicalEntity, ServerError> {
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct YamlEntityFile {
+    id: String,
+    name: String,
+    label: Option<String>,
+    #[serde(rename = "type")]
+    entity_type: String,
+    #[serde(alias = "sub_type")]
+    sub_type: Option<String>,
+    parent: Option<String>,
+    description: Option<String>,
+    content: Option<String>,
+    #[serde(default)]
+    attributes: Vec<EntityAttribute>,
+}
+
+fn read_yaml_entity(workspace_id: &str, path: &Path) -> Result<YamlLogicalEntity, ServerError> {
     let text = fs::read_to_string(path).map_err(|error| {
         fs_error(
             format!("read logical entity file {}", path.display()),
             error,
         )
     })?;
-    parse_markdown_entity(workspace_id, path.to_path_buf(), &text)
+    parse_yaml_entity(workspace_id, path.to_path_buf(), &text)
 }
 
-fn parse_markdown_entity(
+fn parse_yaml_entity(
     workspace_id: &str,
     path: PathBuf,
     text: &str,
-) -> Result<MarkdownLogicalEntity, ServerError> {
-    let (meta, content) = split_frontmatter(text).map_err(|message| {
+) -> Result<YamlLogicalEntity, ServerError> {
+    let document: YamlEntityFile = serde_norway::from_str(text).map_err(|error| {
         ServerError::Validation(format!(
-            "invalid logical entity markdown {}: {message}",
+            "invalid logical entity yaml {}: {error}",
             path.display()
         ))
     })?;
-    let id = required_meta(&meta, "id", &path)?;
-    let name = normalize_name(required_meta(&meta, "name", &path)?)?;
-    let entity_type = LogicalEntityType::try_from(required_meta(&meta, "type", &path)?.as_str())?;
-    let sub_type = normalize_sub_type(&entity_type, optional_meta(&meta, "subType"))?;
+    let id = required_string(document.id, "id", &path)?;
+    let name = normalize_name(required_string(document.name, "name", &path)?)?;
+    let entity_type = LogicalEntityType::try_from(
+        required_string(document.entity_type, "type", &path)?.as_str(),
+    )?;
+    let sub_type = normalize_sub_type(&entity_type, optional_string(document.sub_type))?;
+    let parent = optional_string(document.parent);
+    let attributes = document.attributes;
+    let content = document
+        .content
+        .or(document.description)
+        .or_else(|| content_attribute(&attributes))
+        .unwrap_or_else(|| attributes_to_markdown(&attributes));
     let timestamp = file_timestamp(&path);
 
-    Ok(MarkdownLogicalEntity {
+    Ok(YamlLogicalEntity {
         id,
         path,
         name: name.clone(),
+        parent,
         description: LogicalEntityDescription {
             workspace: Ref::new(workspace_id.to_string()),
             entity_type,
             sub_type,
             name,
-            label: optional_meta(&meta, "label"),
+            label: optional_string(document.label),
             description: Some(content),
-            attributes: Vec::new(),
+            attributes,
             created_at: timestamp.clone(),
             updated_at: timestamp,
         },
     })
 }
 
-fn split_frontmatter(text: &str) -> Result<(HashMap<String, String>, String), &'static str> {
-    let text = text.replace("\r\n", "\n");
-    let text = text
-        .strip_prefix("---\n")
-        .ok_or("missing opening frontmatter delimiter")?;
-    let (frontmatter, body) = text
-        .split_once("\n---")
-        .ok_or("missing closing frontmatter delimiter")?;
-    let body = body.strip_prefix('\n').unwrap_or(body).to_string();
+fn serialize_yaml_entity(document: YamlEntityDocument<'_>) -> String {
+    let mut output = String::new();
 
-    let meta = frontmatter
-        .lines()
-        .filter_map(|line| {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
-                return None;
-            }
-            let (key, value) = line.split_once(':')?;
-            Some((key.trim().to_string(), unquote(value.trim()).to_string()))
-        })
-        .collect();
+    append_yaml_string(&mut output, "id", document.id);
+    append_yaml_string(&mut output, "name", document.name);
+    append_optional_yaml_string(&mut output, "label", document.label);
+    append_yaml_string(&mut output, "type", document.entity_type.api_value());
+    append_optional_yaml_string(&mut output, "subType", document.sub_type);
+    append_optional_yaml_string(&mut output, "parent", document.parent);
 
-    Ok((meta, body))
+    let mut attributes = document.attributes.to_vec();
+    let generated_content = attributes_to_markdown(&attributes);
+    if !document.content.trim().is_empty()
+        && (attributes.is_empty() || document.content != generated_content)
+    {
+        upsert_content_attribute(&mut attributes, document.content);
+    }
+    append_entity_attributes(&mut output, &attributes);
+
+    output
 }
 
-fn serialize_markdown_entity(document: MarkdownEntityDocument<'_>) -> String {
-    format!(
-        "---\nid: {}\nname: {}\nlabel: {}\ntype: {}\nsubType: {}\n---\n{}",
-        document.id,
-        document.name,
-        document.label.unwrap_or_default(),
-        document.entity_type.api_value(),
-        document.sub_type.unwrap_or_default(),
-        document.content,
-    )
+fn append_entity_attributes(output: &mut String, attributes: &[EntityAttribute]) {
+    if attributes.is_empty() {
+        return;
+    }
+
+    output.push_str("attributes:\n");
+    for attribute in attributes {
+        output.push_str("  - ");
+        append_yaml_string_after_prefix(output, "id", &attribute.id);
+        append_yaml_string_with_indent(output, "    ", "name", &attribute.name);
+        append_optional_yaml_string_with_indent(
+            output,
+            "    ",
+            "label",
+            attribute.label.as_deref(),
+        );
+        append_optional_yaml_string_with_indent(
+            output,
+            "    ",
+            "type",
+            attribute.attribute_type.as_deref(),
+        );
+        if let Some(description) = attribute.description.as_deref() {
+            append_yaml_block_or_string_with_indent(output, "    ", "description", description);
+        }
+    }
 }
 
-fn required_meta(
-    meta: &HashMap<String, String>,
+fn append_yaml_string(output: &mut String, key: &str, value: &str) {
+    append_yaml_string_with_indent(output, "", key, value);
+}
+
+fn append_yaml_string_with_indent(output: &mut String, indent: &str, key: &str, value: &str) {
+    output.push_str(indent);
+    append_yaml_string_after_prefix(output, key, value);
+}
+
+fn append_yaml_string_after_prefix(output: &mut String, key: &str, value: &str) {
+    output.push_str(key);
+    output.push_str(": ");
+    output.push_str(&serde_json::to_string(value).expect("YAML scalar should serialize"));
+    output.push('\n');
+}
+
+fn append_optional_yaml_string(output: &mut String, key: &str, value: Option<&str>) {
+    append_optional_yaml_string_with_indent(output, "", key, value);
+}
+
+fn append_optional_yaml_string_with_indent(
+    output: &mut String,
+    indent: &str,
     key: &str,
-    path: &Path,
-) -> Result<String, ServerError> {
-    optional_meta(meta, key).ok_or_else(|| {
-        ServerError::Validation(format!(
-            "logical entity file {} is missing required metadata {key}",
-            path.display()
-        ))
-    })
+    value: Option<&str>,
+) {
+    if let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) {
+        append_yaml_string_with_indent(output, indent, key, value);
+    }
 }
 
-fn optional_meta(meta: &HashMap<String, String>, key: &str) -> Option<String> {
-    meta.get(key)
-        .map(|value| value.trim())
+fn append_yaml_block_or_string_with_indent(
+    output: &mut String,
+    indent: &str,
+    key: &str,
+    value: &str,
+) {
+    if !value.contains('\n') {
+        append_yaml_string_with_indent(output, indent, key, value);
+        return;
+    }
+
+    output.push_str(indent);
+    output.push_str(key);
+    if value.ends_with('\n') {
+        output.push_str(": |\n");
+    } else {
+        output.push_str(": |-\n");
+    }
+
+    for line in value.lines() {
+        output.push_str(indent);
+        output.push_str("  ");
+        output.push_str(line);
+        output.push('\n');
+    }
+}
+
+fn content_attribute(attributes: &[EntityAttribute]) -> Option<String> {
+    attributes
+        .iter()
+        .find(|attribute| attribute.id == "content" || attribute.name == "content")
+        .and_then(|attribute| attribute.description.clone())
+}
+
+fn upsert_content_attribute(attributes: &mut Vec<EntityAttribute>, content: &str) {
+    if let Some(attribute) = attributes
+        .iter_mut()
+        .find(|attribute| attribute.id == "content" || attribute.name == "content")
+    {
+        attribute.description = Some(content.to_string());
+        return;
+    }
+
+    attributes.push(EntityAttribute {
+        id: "content".to_string(),
+        name: "content".to_string(),
+        label: Some("Content".to_string()),
+        attribute_type: None,
+        description: Some(content.to_string()),
+    });
+}
+
+fn attributes_to_markdown(attributes: &[EntityAttribute]) -> String {
+    if attributes.is_empty() {
+        return String::new();
+    }
+
+    let mut output = "| Attribute | Value |\n| --- | --- |\n".to_string();
+    for attribute in attributes {
+        output.push_str("| ");
+        output.push_str(&escape_markdown_table_cell(
+            attribute.label.as_deref().unwrap_or(&attribute.name),
+        ));
+        output.push_str(" | ");
+        output.push_str(&escape_markdown_table_cell(
+            attribute.description.as_deref().unwrap_or_default(),
+        ));
+        output.push_str(" |\n");
+    }
+    output
+}
+
+fn escape_markdown_table_cell(value: &str) -> String {
+    value.replace('|', "\\|").replace('\n', "<br>")
+}
+
+fn required_string(value: String, key: &str, path: &Path) -> Result<String, ServerError> {
+    let value = value.trim().to_string();
+    if value.is_empty() {
+        Err(ServerError::Validation(format!(
+            "logical entity file {} is missing required field {key}",
+            path.display()
+        )))
+    } else {
+        Ok(value)
+    }
+}
+
+fn optional_string(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
+}
+
+fn is_yaml_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("yaml") || extension.eq_ignore_ascii_case("yml")
+        })
 }
 
 fn normalize_name(name: String) -> Result<String, ServerError> {
@@ -378,18 +532,6 @@ fn normalize_identifier(value: &str) -> Option<String> {
     }
 }
 
-fn unquote(value: &str) -> &str {
-    value
-        .strip_prefix('"')
-        .and_then(|value| value.strip_suffix('"'))
-        .or_else(|| {
-            value
-                .strip_prefix('\'')
-                .and_then(|value| value.strip_suffix('\''))
-        })
-        .unwrap_or(value)
-}
-
 fn file_timestamp(path: &Path) -> String {
     fs::metadata(path)
         .and_then(|metadata| metadata.modified())
@@ -406,11 +548,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_markdown_entity_metadata_and_content() {
-        let entity = parse_markdown_entity(
+    fn parses_yaml_entity_metadata_and_attributes() {
+        let entity = parse_yaml_entity(
             "workspace-1",
-            PathBuf::from("entity.md"),
-            "---\nid: customer\nname: Customer\nlabel: 客户\ntype: PARTICIPANT\nsubType: Thing\n---\n# Customer\n\nCustomer content.\n",
+            PathBuf::from("entity.yaml"),
+            "id: customer\nname: Customer\nlabel: 客户\ntype: PARTICIPANT\nsubType: Thing\nparent: commerce_context\nattributes:\n  - id: businessNo\n    name: businessNo\n    description: C-001\n",
         )
         .unwrap();
 
@@ -423,26 +565,38 @@ mod tests {
             LogicalEntityType::Participant
         );
         assert_eq!(entity.description.sub_type.as_deref(), Some("Thing"));
+        assert_eq!(entity.parent.as_deref(), Some("commerce_context"));
+        assert_eq!(entity.description.attributes.len(), 1);
+        assert_eq!(entity.description.attributes[0].id, "businessNo");
         assert_eq!(
             entity.description.description.as_deref(),
-            Some("# Customer\n\nCustomer content.\n")
+            Some("| Attribute | Value |\n| --- | --- |\n| businessNo | C-001 |\n")
         );
     }
 
     #[test]
-    fn serializes_content_as_markdown_body() {
-        let document = serialize_markdown_entity(MarkdownEntityDocument {
+    fn serializes_content_as_yaml_attribute() {
+        let document = serialize_yaml_entity(YamlEntityDocument {
             id: "customer",
             name: "Customer",
             label: Some("客户"),
             entity_type: &LogicalEntityType::Participant,
             sub_type: Some("Thing"),
+            parent: Some("commerce_context"),
             content: "# Customer\n",
+            attributes: &[],
         });
 
         assert_eq!(
             document,
-            "---\nid: customer\nname: Customer\nlabel: 客户\ntype: PARTICIPANT\nsubType: Thing\n---\n# Customer\n"
+            "id: \"customer\"\nname: \"Customer\"\nlabel: \"客户\"\ntype: \"PARTICIPANT\"\nsubType: \"Thing\"\nparent: \"commerce_context\"\nattributes:\n  - id: \"content\"\n    name: \"content\"\n    label: \"Content\"\n    description: |\n      # Customer\n"
         );
+    }
+
+    #[test]
+    fn yaml_extensions_are_model_files() {
+        assert!(is_yaml_file(Path::new("entity.yaml")));
+        assert!(is_yaml_file(Path::new("entity.yml")));
+        assert!(!is_yaml_file(Path::new("entity.md")));
     }
 }

@@ -1,15 +1,16 @@
 use std::{
-    collections::HashMap,
     fs,
     path::{Path, PathBuf},
 };
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use serde::Deserialize;
 use serde_json::json;
 
 use crate::domain::{
-    DiagramNode, DiagramNodes, HasMany, JsonObject, NodeDescription, Position, Ref, ServerError,
+    DiagramNode, DiagramNodes, EntityAttribute, HasMany, JsonObject, NodeDescription, Position,
+    Ref, ServerError,
 };
 
 use super::store::DbStore;
@@ -27,7 +28,7 @@ impl DbDiagramNodes {
         }
     }
 
-    fn load_records(&self) -> Result<Vec<MarkdownDiagramNode>, ServerError> {
+    fn load_records(&self) -> Result<Vec<YamlDiagramNode>, ServerError> {
         if !self.entities_dir.exists() {
             return Ok(Vec::new());
         }
@@ -43,11 +44,11 @@ impl DbDiagramNodes {
                 .map_err(|error| fs_error("read entity directory entry", error))?
                 .path();
 
-            if path.extension().and_then(|value| value.to_str()) != Some("md") {
+            if !is_yaml_file(&path) {
                 continue;
             }
 
-            records.push(read_markdown_node(&self.diagram_id, &path)?);
+            records.push(read_yaml_node(&self.diagram_id, &path)?);
         }
 
         records.sort_by(|left, right| {
@@ -63,7 +64,7 @@ impl DbDiagramNodes {
         Ok(records)
     }
 
-    fn find_record(&self, id: &str) -> Result<Option<MarkdownDiagramNode>, ServerError> {
+    fn find_record(&self, id: &str) -> Result<Option<YamlDiagramNode>, ServerError> {
         Ok(self
             .load_records()?
             .into_iter()
@@ -79,12 +80,12 @@ impl HasMany<DiagramNode> for DbDiagramNodes {
             .into_iter()
             .skip(from)
             .take(to.saturating_sub(from))
-            .map(MarkdownDiagramNode::into_node)
+            .map(YamlDiagramNode::into_node)
             .collect())
     }
 
     async fn find_by_identity(&self, id: &str) -> Result<Option<DiagramNode>, ServerError> {
-        Ok(self.find_record(id)?.map(MarkdownDiagramNode::into_node))
+        Ok(self.find_record(id)?.map(YamlDiagramNode::into_node))
     }
 
     async fn size(&self) -> Result<usize, ServerError> {
@@ -95,42 +96,60 @@ impl HasMany<DiagramNode> for DbDiagramNodes {
 impl DiagramNodes for DbDiagramNodes {}
 
 #[derive(Debug, Clone)]
-struct MarkdownDiagramNode {
+struct YamlDiagramNode {
     id: String,
     sort_name: String,
     description: NodeDescription,
 }
 
-impl MarkdownDiagramNode {
+impl YamlDiagramNode {
     fn into_node(self) -> DiagramNode {
         DiagramNode::new(self.id, self.description)
     }
 }
 
-fn read_markdown_node(diagram_id: &str, path: &Path) -> Result<MarkdownDiagramNode, ServerError> {
-    let text = fs::read_to_string(path)
-        .map_err(|error| fs_error(format!("read entity file {}", path.display()), error))?;
-    parse_markdown_node(diagram_id, path.to_path_buf(), &text)
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct YamlEntityFile {
+    id: String,
+    name: String,
+    label: Option<String>,
+    #[serde(rename = "type")]
+    entity_type: String,
+    #[serde(alias = "sub_type")]
+    sub_type: Option<String>,
+    parent: Option<String>,
+    description: Option<String>,
+    content: Option<String>,
+    #[serde(default)]
+    attributes: Vec<EntityAttribute>,
 }
 
-fn parse_markdown_node(
+fn read_yaml_node(diagram_id: &str, path: &Path) -> Result<YamlDiagramNode, ServerError> {
+    let text = fs::read_to_string(path)
+        .map_err(|error| fs_error(format!("read entity file {}", path.display()), error))?;
+    parse_yaml_node(diagram_id, path.to_path_buf(), &text)
+}
+
+fn parse_yaml_node(
     diagram_id: &str,
     path: PathBuf,
     text: &str,
-) -> Result<MarkdownDiagramNode, ServerError> {
-    let (meta, content) = split_frontmatter(text).map_err(|message| {
-        ServerError::Validation(format!(
-            "invalid entity markdown {}: {message}",
-            path.display()
-        ))
+) -> Result<YamlDiagramNode, ServerError> {
+    let document: YamlEntityFile = serde_norway::from_str(text).map_err(|error| {
+        ServerError::Validation(format!("invalid entity yaml {}: {error}", path.display()))
     })?;
 
-    let id = required_meta(&meta, "id", &path)?;
-    let name = required_meta(&meta, "name", &path)?;
-    let label = optional_meta(&meta, "label");
-    let entity_type = required_meta(&meta, "type", &path)?;
-    let sub_type = optional_meta(&meta, "subType");
-    let parent = optional_meta(&meta, "parent");
+    let id = required_string(document.id, "id", &path)?;
+    let name = required_string(document.name, "name", &path)?;
+    let label = optional_string(document.label);
+    let entity_type = required_string(document.entity_type, "type", &path)?;
+    let sub_type = optional_string(document.sub_type);
+    let parent = optional_string(document.parent);
+    let content = document
+        .content
+        .or(document.description)
+        .unwrap_or_default();
     let timestamp = file_timestamp(&path);
     let mut data = JsonObject::new();
 
@@ -149,8 +168,11 @@ fn parse_markdown_node(
     if !content.trim().is_empty() {
         data.insert("content".to_string(), json!(content));
     }
+    if !document.attributes.is_empty() {
+        data.insert("attributes".to_string(), json!(document.attributes));
+    }
 
-    Ok(MarkdownDiagramNode {
+    Ok(YamlDiagramNode {
         id: id.clone(),
         sort_name: label.unwrap_or_else(|| name.clone()),
         description: NodeDescription {
@@ -168,49 +190,30 @@ fn parse_markdown_node(
     })
 }
 
-fn split_frontmatter(text: &str) -> Result<(HashMap<String, String>, String), &'static str> {
-    let text = text.replace("\r\n", "\n");
-    let text = text
-        .strip_prefix("---\n")
-        .ok_or("missing opening frontmatter delimiter")?;
-    let (frontmatter, body) = text
-        .split_once("\n---")
-        .ok_or("missing closing frontmatter delimiter")?;
-    let body = body.strip_prefix('\n').unwrap_or(body).to_string();
-
-    let meta = frontmatter
-        .lines()
-        .filter_map(|line| {
-            let line = line.trim();
-            if line.is_empty() || line.starts_with('#') {
-                return None;
-            }
-            let (key, value) = line.split_once(':')?;
-            Some((key.trim().to_string(), unquote(value.trim()).to_string()))
-        })
-        .collect();
-
-    Ok((meta, body))
-}
-
-fn required_meta(
-    meta: &HashMap<String, String>,
-    key: &str,
-    path: &Path,
-) -> Result<String, ServerError> {
-    optional_meta(meta, key).ok_or_else(|| {
-        ServerError::Validation(format!(
-            "entity file {} is missing required metadata {key}",
+fn required_string(value: String, key: &str, path: &Path) -> Result<String, ServerError> {
+    let value = value.trim().to_string();
+    if value.is_empty() {
+        Err(ServerError::Validation(format!(
+            "entity file {} is missing required field {key}",
             path.display()
-        ))
-    })
+        )))
+    } else {
+        Ok(value)
+    }
 }
 
-fn optional_meta(meta: &HashMap<String, String>, key: &str) -> Option<String> {
-    meta.get(key)
-        .map(|value| value.trim())
+fn optional_string(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
+}
+
+fn is_yaml_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("yaml") || extension.eq_ignore_ascii_case("yml")
+        })
 }
 
 fn node_kind(entity_type: &str) -> &'static str {
@@ -234,18 +237,6 @@ fn grid_position(index: usize) -> Position {
     }
 }
 
-fn unquote(value: &str) -> &str {
-    value
-        .strip_prefix('"')
-        .and_then(|value| value.strip_suffix('"'))
-        .or_else(|| {
-            value
-                .strip_prefix('\'')
-                .and_then(|value| value.strip_suffix('\''))
-        })
-        .unwrap_or(value)
-}
-
 fn file_timestamp(path: &Path) -> String {
     fs::metadata(path)
         .and_then(|metadata| metadata.modified())
@@ -262,11 +253,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parses_entity_markdown_as_diagram_node() {
-        let node = parse_markdown_node(
+    fn parses_entity_yaml_as_diagram_node() {
+        let node = parse_yaml_node(
             "diagram-1",
-            PathBuf::from("contract.md"),
-            "---\nid: contract\nname: Contract\nlabel: Contract Document\ntype: EVIDENCE\nsubType: contract\nparent: commerce_context\n---\n# Contract\n",
+            PathBuf::from("contract.yaml"),
+            "id: contract\nname: Contract\nlabel: Contract Document\ntype: EVIDENCE\nsubType: contract\nparent: commerce_context\ndescription: |\n  # Contract\n",
         )
         .unwrap()
         .into_node();
@@ -302,14 +293,21 @@ mod tests {
 
     #[test]
     fn context_entity_uses_group_node_kind() {
-        let node = parse_markdown_node(
+        let node = parse_yaml_node(
             "diagram-1",
-            PathBuf::from("context.md"),
-            "---\nid: bounded_context\nname: BoundedContext\ntype: CONTEXT\nsubType: bounded_context\n---\n",
+            PathBuf::from("context.yaml"),
+            "id: bounded_context\nname: BoundedContext\ntype: CONTEXT\nsubType: bounded_context\n",
         )
         .unwrap()
         .into_node();
 
         assert_eq!(node.description().kind, "group-container");
+    }
+
+    #[test]
+    fn yaml_extensions_are_model_files() {
+        assert!(is_yaml_file(Path::new("entity.yaml")));
+        assert!(is_yaml_file(Path::new("entity.yml")));
+        assert!(!is_yaml_file(Path::new("entity.md")));
     }
 }
