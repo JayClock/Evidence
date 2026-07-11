@@ -2,7 +2,7 @@
 
 ## 状态
 
-⏳ 待审核 · 由 Evidence Workflow extension 于 2026-07-11 自动生成
+✅ 已通过 · 由 Evidence Workflow extension 于 2026-07-11 自动生成，2026-07-11 人工确认通过
 
 ## 当前阶段
 
@@ -53,3 +53,6 @@
 可直接编辑本文件后再次运行，也可执行：
 
 `/evidence-gate 通过，进入下一阶段`
+
+## Decision
+通过，进入下一阶段

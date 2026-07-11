@@ -1,7 +1,7 @@
 {
   "phase": "complete",
   "round": 0,
-  "pending_gate": "GATE-006-final-review",
+  "pending_gate": null,
   "failures": 0,
   "max_rounds": 5,
   "artifacts": [
