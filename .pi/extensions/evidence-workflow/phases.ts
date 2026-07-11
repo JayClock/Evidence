@@ -149,6 +149,6 @@ export function phaseSpecificInstructions(
     case 'coding':
       return `- 从 Sprint 1 Backlog 选择下一个未实现故事。\n- Red：先写真实测试文件到 tests/。\n- Green：写最小真实实现到 src/。\n- Refactor：改善结构并保持测试语义。\n- 尽可能运行项目测试命令；如果没有测试框架，记录原因并提供最小可运行测试。`;
     case 'review':
-      return `- 审查 artifacts、src、tests 与 DoD 的一致性。\n- 输出 artifacts/06-reviews/review-round<round>.md。\n- 明确列出 Critical / Major / Minor 问题和总体结论。`;
+      return `- 审查 artifacts、src、tests 与 DoD 的一致性。\n- 输出 artifacts/06-reviews/review-round<round>.md。\n- 评审报告必须使用中文撰写；代码、命令、路径、API 字段名和专有名词可以保留英文。\n- 明确列出 Critical / Major / Minor 问题和总体结论。`;
   }
 }
