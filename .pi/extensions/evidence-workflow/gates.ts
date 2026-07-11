@@ -103,10 +103,23 @@ export function validatePhaseCompletion(
       `Cannot complete ${phase}: missing required outputs: ${missing.join(', ')}.`,
     );
   }
-  if (phase === 'coding' && collectCodeFiles(cwd).length === 0) {
-    throw new Error(
-      'Cannot complete coding: no production or test code was found under apps/ or libs/.',
-    );
+  if (phase === 'coding') {
+    if (!current.active_work_item) {
+      throw new Error(
+        'Cannot complete coding: select exactly one US-xxx / SC-xxx work item first.',
+      );
+    }
+    const evidencePath = `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.md`;
+    if (missingPaths(cwd, [evidencePath]).length > 0) {
+      throw new Error(
+        `Cannot complete coding: missing scenario evidence ${evidencePath}.`,
+      );
+    }
+    if (collectCodeFiles(cwd).length === 0) {
+      throw new Error(
+        'Cannot complete coding: no production or test code was found under apps/ or libs/.',
+      );
+    }
   }
 }
 
@@ -134,7 +147,7 @@ export function completePhase(
     artifacts,
     pi: {
       enabled: true,
-      version: 3,
+      version: 4,
       ...(current.pi ?? {}),
       last_completed_phase: phase,
       last_run_at: new Date().toISOString(),

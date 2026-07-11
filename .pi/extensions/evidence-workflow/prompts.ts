@@ -11,21 +11,27 @@ export function buildPhasePrompt(
   const state = readState(cwd);
   const phase = (requestedPhase || state.phase) as Phase;
   if (phase === 'complete') {
-    return 'Evidence Workflow pipeline is complete. Inspect artifacts and propose the next product or quality iteration if useful.';
+    return 'Evidence Workflow 本轮迭代已完成。读取 artifacts/07-learning/next-iteration.md，以新的问题框定开始下一轮，而不是直接扩写旧工件。';
   }
   const meta = PHASE_META[phase];
+  if (!meta) throw new Error(`Unknown Evidence Workflow phase: ${phase}.`);
   const configuredModel = phaseModelConfig(cwd, phase);
+  const activeWorkItem = state.active_work_item
+    ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
+    : '未选择';
   return `你正在执行 Evidence Workflow 阶段：${phase} — ${meta.title}。
 
 阶段模型：${formatPhaseModel(configuredModel)}
+当前编码工作项：${activeWorkItem}
 
 必须遵守：
 1. 使用项目内 Skill：${meta.skill}；必要时读取 .pi/skills/${meta.skill}/SKILL.md。
-2. 读取并尊重输入文件，不要凭空编造已有工件。
+2. 读取并尊重输入文件，不要凭空编造已有工件；已有 artifacts 是审计历史，除非本阶段需要修正，否则不要整体重写。
 3. 将输出写入指定工件路径；如果目录不存在，创建目录。
-4. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。
-5. 保留 artifacts/ 作为审计日志；可以在 artifacts/05-code/ 写实现说明或评审 notes。
-6. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
+4. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。
+5. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。
+6. 保留 artifacts/ 作为审计日志；可以在 artifacts/05-code/ 写实现说明或评审 notes。
+7. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
 
 输入文件/目录：
 ${meta.inputs.map((p) => `- ${p}`).join('\n')}

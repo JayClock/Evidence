@@ -1,21 +1,24 @@
 ---
 name: ddd
-description: 'Apply Domain-Driven Design for strategic and tactical modeling: ubiquitous language, bounded contexts, context maps, aggregates, entities, value objects, domain events, APIs, and architecture.'
+description: '应用领域驱动设计（DDD）进行战略与战术建模：统一语言、限界上下文、上下文映射、聚合、实体、值对象、领域事件、API 与架构。'
 ---
 
-# DDD Skill
+# 领域驱动设计（DDD）Skill
 
-Use this skill in `domain_model` and `architecture` phases.
+在 `domain_model` 与 `architecture` 阶段使用本 skill。
 
-## Domain Modeling Outputs
+## 领域建模输出
 
 - `artifacts/02-domain-model/ubiquitous-language.md`
+- `artifacts/02-domain-model/domain-model.mmd`
 - `artifacts/02-domain-model/bounded-contexts.md`
 - `artifacts/02-domain-model/entities-and-value-objects.md`
 - `artifacts/02-domain-model/aggregates.md`
 - `artifacts/02-domain-model/domain-events.md`
+- `artifacts/02-domain-model/model-expansions/US-xxx-SC-xxx.md`
+- `artifacts/02-domain-model/validation-report.md`
 
-## Architecture Outputs
+## 架构输出
 
 - `artifacts/03-architecture/context-map.md`
 - `artifacts/03-architecture/architecture-style.md`
@@ -23,17 +26,23 @@ Use this skill in `domain_model` and `architecture` phases.
 - `artifacts/03-architecture/module-structure.md`
 - `artifacts/03-architecture/api-contracts.md`
 - `artifacts/03-architecture/data-model.md`
+- `artifacts/03-architecture/functional-contexts.md`
+- `artifacts/03-architecture/test-strategy.md`
+- `artifacts/03-architecture/test-doubles.md`
+- `artifacts/03-architecture/test-processes/*.md`
 
-## Rules
+## 规则
 
-- Prefer bounded-context boundaries over technical layering when naming modules.
-- Keep API contracts explicit enough to drive implementation.
-- Include Mermaid diagrams when they clarify relationships.
-- Do not invent implementation details that contradict existing artifacts.
+- 命名模块时，优先体现限界上下文边界，而非技术分层。
+- API 契约必须足够明确，能够直接指导实现。
+- 当图能澄清关系时使用 Mermaid。`domain-model.mmd` 必须使用半结构化自然语言：通过注释说明领域术语、关系含义、生命周期和顺序约束。
+- 不得编造与既有工件冲突的实现细节。
+- 使用“就绪”的 Given/When/Then 示例验证模型。每份模型展开必须说明 Given 实体/关系、When 命令、Then 创建/变更/删除的实体和关系、不变量与时间线；在 `validation-report.md` 中记录概念缺失和关系错置。
+- 架构必须把每个已计划场景从 Q2 验收测试映射到功能上下文、Q1 支撑测试和选定测试替身。测试工序是有顺序、可复用且测试先行的工作指令，不是泛化任务清单。
 
-## Embedded Methodology
+## 内嵌方法论
 
-# Domain-Driven Design（领域驱动设计）
+# 领域驱动设计（Domain-Driven Design）
 
 ## 概述
 
@@ -76,21 +85,21 @@ DDD 是一种以**领域**为核心的软件建模方法，强调通过统一语
 
 ## 战术设计
 
-### Repository
+### 仓储（Repository）
 
 - 提供聚合的持久化存取
 - 每个聚合一个 Repository
 
-### Domain Service
+### 领域服务（Domain Service）
 
-- 领域行为，不天然属于某个实体/值对象
+- 表达不天然属于某个实体或值对象的领域行为
 - 无状态
 
-### Application Service
+### 应用服务（Application Service）
 
-- 用例的编排者
-- 协调 Domain Service、Repository 等基础设施
+- 负责用例编排
+- 协调领域服务、Repository 等基础设施
 
-### Factory
+### 工厂（Factory）
 
 - 封装复杂对象的创建逻辑

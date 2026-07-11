@@ -1,39 +1,48 @@
 ---
 name: design-thinking
-description: 'Apply Design Thinking to requirements discovery, personas, problem statements, MVP scope, prioritization, and user story maps. Use during Evidence Workflow requirements analysis.'
+description: '在 Evidence Workflow 的需求工作中应用设计思维、TQA 澄清、示例规格化、用户画像、问题陈述、用户旅程和故事地图。'
 ---
 
-# Design Thinking Requirements Skill
+# 设计思维需求分析 Skill
 
-Use this skill in the `requirements` phase.
+在 Evidence Workflow 的 `frame`、`clarify`、`specify` 与 `validate` 阶段使用本 skill。
 
-## Workflow
+## 工作流程
 
-1. Empathize: derive stakeholder perspectives, personas, pains, and goals.
-2. Define: converge on a problem statement, current state, target state, and constraints.
-3. Ideate: produce MVP scope, MoSCoW prioritization, epics, features, and user stories.
-4. Write stable Markdown artifacts:
-   - `artifacts/01-requirements/personas.md`
-   - `artifacts/01-requirements/problem-statement.md`
-   - `artifacts/01-requirements/story-map.md`
+1. **问题框定（Frame）**：梳理利益相关者视角、用户画像、痛点、目标、业务上下文和用户旅程。在讨论实现方案之前，先定义要解决的问题。
+2. **需求澄清（Clarify）**：为每个候选故事创建一个 `artifacts/01-requirements/stories/US-xxx.md` 文件。使用 TQA（Thought–Question–Answer，思考–提问–回答）提取不可言说的业务知识；每次只提一个高价值业务问题，绝不使用 TQA 询问技术设计问题。
+3. **示例规格化（Specify）**：在 `artifacts/01-requirements/examples/US-xxx-SC-xxx.md` 中写入具体的 Given/When/Then 示例。示例须包含初始业务状态、操作、可观察结果、关键数据以及失败或边界场景。
+4. **需求验证（Validate）**：写入 `artifacts/01-requirements/requirements-validation.md`，将每个故事标记为“就绪”“需要澄清”或“需要拆分”。只有“就绪”故事可以进入领域模型验证。
 
-## Output Rules
+## 输出规则
 
-- User stories must use `US-001` style IDs.
-- Each story must include role, goal, value, priority, and at least 3 acceptance criteria.
-- Keep tables machine-readable and headings stable across runs.
+- 用户故事使用 `US-001` 格式 ID，且每个故事单独存放在一个文件中。
+- 场景使用 `SC-001` 格式 ID，且必须可追溯到唯一的用户故事。
+- 每个故事必须标明角色、目标、价值、优先级、非目标和待澄清问题。
+- **角色 + 价值**必须聚焦问题。UI、API、数据库、HAL 响应、测试框架和部署细节属于方案约束，不属于用户价值。
+- 交互和技术约束应写入适当的上下文或架构工件，不能伪装成用户故事的价值陈述。
+- 表格保持机器可读，标题在多次运行中保持稳定。
 
-## Embedded Methodology
+## TQA 决策规则
 
-# Design Thinking（设计思维）
+收到回答后：
+
+- 对基础概念或业务流程的误解，意味着需要更新 `business-context.md` 或 `user-journeys.md`。
+- 对操作的误解，意味着需要修订 `US-xxx` 故事。
+- 交互细节属于澄清历史，并应在后续落入具体场景。
+- 不得编造答案。明确保留未决事项，并阻止受影响故事进入“就绪”状态。
+
+## 内嵌方法论
+
+# 设计思维（Design Thinking）
 
 ## 概述
 
-Design Thinking 是以人为中心的创新方法论，强调通过同理心理解用户、定义问题、构思解决方案、原型验证的迭代过程。
+设计思维是以人为中心的创新方法论，强调通过同理心理解用户、定义问题、构思解决方案、原型验证的迭代过程。
 
 ## 阶段
 
-### 1. Empathize（同理心）
+### 1. 同理心（Empathize）
 
 目标：理解用户的体验和动机，而非仅仅收集事实。
 
@@ -43,26 +52,20 @@ Design Thinking 是以人为中心的创新方法论，强调通过同理心理�
 - 观察法：关注用户的实际行为而非其声称的行为
 - 换位思考：从不同利益相关者视角出发
 
-### 2. Define（定义）
+### 2. 定义（Define）
 
 目标：将收集到的洞察收敛为明确的问题陈述。
 
 方法：
 
 - 用户画像（Persona）：典型用户的形象化描述
-- 问题陈述（Problem Statement）：以"用户需要……因为……"格式
-- How Might We 提问：将问题转化为创新机会
+- 问题陈述（Problem Statement）：以“用户需要……因为……”格式
+- “我们如何能够”（How Might We）提问：将问题转化为创新机会
 
-### 3. Ideate（构思）
+### 3. 构思（Ideate）
 
-目标：发散生成尽可能多的解决方案候选。
+目标：以用户旅程组织候选故事，随后用 TQA 和示例规格化收敛，而不是一次生成不可验证的大需求文档。
 
-方法：
+### 4. 验证（Validate）
 
-- 头脑风暴：数量优先，暂不评判
-- 用户故事地图：按用户旅程组织功能
-- MoSCoW 优先级排序：Must / Should / Could / Won't
-
-### 4. Prototype（原型）— 元工程中暂不启用
-
-### 5. Test（测试）— 元工程中暂不启用
+目标：确认具体示例能够表达用户价值、规则与边界；尚未澄清的故事不能进入领域建模。

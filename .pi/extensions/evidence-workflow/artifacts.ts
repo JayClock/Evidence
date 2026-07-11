@@ -20,11 +20,17 @@ export function ensureProjectDirs(cwd: string): void {
     'artifacts/gates',
     'artifacts/00-user-input',
     'artifacts/01-requirements',
+    'artifacts/01-requirements/stories',
+    'artifacts/01-requirements/clarifications',
+    'artifacts/01-requirements/examples',
     'artifacts/02-domain-model',
+    'artifacts/02-domain-model/model-expansions',
     'artifacts/03-architecture',
+    'artifacts/03-architecture/test-processes',
     'artifacts/04-planning',
     'artifacts/05-code',
     'artifacts/06-reviews',
+    'artifacts/07-learning',
   ])
     mkdirSync(join(cwd, dir), { recursive: true });
 }

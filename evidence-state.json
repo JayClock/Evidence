@@ -35,9 +35,14 @@
     "coding": "auto",
     "review": "review"
   },
+  "requirements": {
+    "stage": "frame",
+    "clarification_round": 0,
+    "questions": []
+  },
   "pi": {
     "enabled": true,
-    "version": 3,
+    "version": 4,
     "last_migration": "evidence-workflow-init",
     "last_completed_phase": "review",
     "last_run_at": "2026-07-11T08:37:12.772Z",

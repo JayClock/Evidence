@@ -3,7 +3,7 @@ import { collectArtifacts, collectCodeFiles } from './artifacts';
 import { answerGate, completePhase, isGateAnswered } from './gates';
 import { PHASE_META } from './phases';
 import { buildPhasePrompt } from './prompts';
-import { readState } from './state';
+import { readState, selectWorkItem } from './state';
 import { statusMarkdown } from './status';
 import type { Phase } from './types';
 
@@ -44,6 +44,16 @@ const phaseParam = Type.Object({
       description: 'Extra instructions to append to the phase prompt.',
     }),
   ),
+});
+
+const workItemParam = Type.Object({
+  storyId: Type.String({
+    description: 'The selected story id, for example US-001.',
+  }),
+  scenarioId: Type.String({
+    description:
+      'The selected concrete acceptance scenario id, for example SC-001.',
+  }),
 });
 
 export function registerTools(pi: ExtensionAPI): void {
@@ -93,6 +103,31 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state: readState(ctx.cwd) },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_select_work_item',
+    label: 'Select Evidence Workflow Work Item',
+    description:
+      'Select the single user-story acceptance scenario that the coding phase may implement',
+    promptSnippet:
+      'Select one US-xxx / SC-xxx work item for the Evidence Workflow coding phase',
+    promptGuidelines: [
+      'Use evidence_workflow_select_work_item before changing code in the Evidence Workflow coding phase; code exactly one selected user-story scenario at a time.',
+    ],
+    parameters: workItemParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = selectWorkItem(ctx.cwd, params.storyId, params.scenarioId);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Selected coding work item: ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+          },
+        ],
+        details: { state },
       };
     },
   });

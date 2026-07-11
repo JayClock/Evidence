@@ -1,76 +1,128 @@
 import type { GateMode, Phase, PhaseMeta, WorkflowState } from './types';
 
 export const PHASE_ORDER: Phase[] = [
-  'requirements',
+  'frame',
+  'clarify',
+  'specify',
+  'validate',
   'domain_model',
   'architecture',
   'planning',
   'coding',
   'review',
+  'learn',
   'complete',
 ];
 
 export const DEFAULT_STATE: WorkflowState = {
-  phase: 'requirements',
+  phase: 'frame',
   round: 0,
   pending_gate: null,
   failures: 0,
   max_rounds: 5,
   artifacts: [],
   gate_config: {
-    requirements: 'review',
+    frame: 'auto',
+    clarify: 'auto',
+    specify: 'auto',
+    validate: 'review',
     domain_model: 'review',
     architecture: 'review',
     planning: 'auto',
     coding: 'auto',
     review: 'review',
+    learn: 'auto',
   } satisfies Record<string, GateMode>,
   pi: {
     enabled: true,
-    version: 3,
+    version: 4,
   },
 };
 
 export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
-  requirements: {
-    title: '需求分析 — Design Thinking',
+  frame: {
+    title: '问题框定 — Design Thinking',
     skill: 'design-thinking',
     inputs: ['artifacts/00-user-input/requirements.md'],
     outputs: [
       'artifacts/01-requirements/personas.md',
       'artifacts/01-requirements/problem-statement.md',
+      'artifacts/01-requirements/business-context.md',
+      'artifacts/01-requirements/user-journeys.md',
       'artifacts/01-requirements/story-map.md',
     ],
-    gateId: 'GATE-001-requirements',
-    gateTitle: '需求审核',
+    gateId: 'GATE-101-frame',
+    gateTitle: '问题框定审核',
   },
-  domain_model: {
-    title: '领域建模 — DDD Strategic Design',
-    skill: 'ddd',
+  clarify: {
+    title: '需求澄清 — TQA',
+    skill: 'design-thinking',
     inputs: [
-      'artifacts/01-requirements/personas.md',
-      'artifacts/01-requirements/problem-statement.md',
+      'artifacts/01-requirements/business-context.md',
+      'artifacts/01-requirements/user-journeys.md',
       'artifacts/01-requirements/story-map.md',
     ],
     outputs: [
+      'artifacts/01-requirements/stories/',
+      'artifacts/01-requirements/clarifications/',
+    ],
+    gateId: 'GATE-102-clarify',
+    gateTitle: '需求澄清审核',
+  },
+  specify: {
+    title: '示例规格化 — Specification by Example',
+    skill: 'design-thinking',
+    inputs: [
+      'artifacts/01-requirements/stories/',
+      'artifacts/01-requirements/clarifications/',
+      'artifacts/01-requirements/user-journeys.md',
+    ],
+    outputs: ['artifacts/01-requirements/examples/'],
+    gateId: 'GATE-103-specify',
+    gateTitle: '验收示例审核',
+  },
+  validate: {
+    title: '需求验证 — Story and Example Review',
+    skill: 'design-thinking',
+    inputs: [
+      'artifacts/01-requirements/stories/',
+      'artifacts/01-requirements/examples/',
+      'artifacts/01-requirements/business-context.md',
+    ],
+    outputs: ['artifacts/01-requirements/requirements-validation.md'],
+    gateId: 'GATE-104-validate',
+    gateTitle: '需求验证审核',
+  },
+  domain_model: {
+    title: '领域建模与模型展开 — DDD',
+    skill: 'ddd',
+    inputs: [
+      'artifacts/01-requirements/stories/',
+      'artifacts/01-requirements/examples/',
+      'artifacts/01-requirements/requirements-validation.md',
+    ],
+    outputs: [
       'artifacts/02-domain-model/ubiquitous-language.md',
+      'artifacts/02-domain-model/domain-model.mmd',
       'artifacts/02-domain-model/bounded-contexts.md',
       'artifacts/02-domain-model/entities-and-value-objects.md',
       'artifacts/02-domain-model/aggregates.md',
       'artifacts/02-domain-model/domain-events.md',
+      'artifacts/02-domain-model/model-expansions/',
+      'artifacts/02-domain-model/validation-report.md',
     ],
-    gateId: 'GATE-002-domain-model',
+    gateId: 'GATE-105-domain-model',
     gateTitle: '领域模型评审',
   },
   architecture: {
-    title: '架构设计 — DDD Tactical Design + Agile Architecture',
+    title: '架构与测试策略 — DDD Tactical Design',
     skill: 'ddd',
     inputs: [
       'artifacts/02-domain-model/ubiquitous-language.md',
-      'artifacts/02-domain-model/bounded-contexts.md',
-      'artifacts/02-domain-model/entities-and-value-objects.md',
+      'artifacts/02-domain-model/domain-model.mmd',
       'artifacts/02-domain-model/aggregates.md',
-      'artifacts/02-domain-model/domain-events.md',
+      'artifacts/02-domain-model/model-expansions/',
+      'artifacts/02-domain-model/validation-report.md',
     ],
     outputs: [
       'artifacts/03-architecture/context-map.md',
@@ -79,17 +131,23 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
       'artifacts/03-architecture/module-structure.md',
       'artifacts/03-architecture/api-contracts.md',
       'artifacts/03-architecture/data-model.md',
+      'artifacts/03-architecture/functional-contexts.md',
+      'artifacts/03-architecture/test-strategy.md',
+      'artifacts/03-architecture/test-doubles.md',
+      'artifacts/03-architecture/test-processes/',
     ],
-    gateId: 'GATE-003-architecture',
-    gateTitle: '架构评审',
+    gateId: 'GATE-106-architecture',
+    gateTitle: '架构与测试策略评审',
   },
   planning: {
-    title: '迭代计划 — Scrum Planning',
+    title: '垂直切片计划 — Scrum Planning',
     skill: 'scrum',
     inputs: [
-      'artifacts/01-requirements/story-map.md',
-      'artifacts/03-architecture/module-structure.md',
-      'artifacts/03-architecture/api-contracts.md',
+      'artifacts/01-requirements/stories/',
+      'artifacts/01-requirements/examples/',
+      'artifacts/03-architecture/functional-contexts.md',
+      'artifacts/03-architecture/test-strategy.md',
+      'artifacts/03-architecture/test-processes/',
     ],
     outputs: [
       'artifacts/04-planning/product-backlog.md',
@@ -97,35 +155,54 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
       'artifacts/04-planning/sprint-1-backlog.md',
       'artifacts/04-planning/definition-of-done.md',
     ],
-    gateId: 'GATE-004-planning',
-    gateTitle: '迭代计划确认',
+    gateId: 'GATE-107-planning',
+    gateTitle: '垂直切片计划确认',
   },
   coding: {
-    title: '编码与测试 — TDD',
+    title: '单场景编码与测试 — TDD',
     skill: 'tdd',
     inputs: [
+      'artifacts/01-requirements/stories/',
+      'artifacts/01-requirements/examples/',
+      'artifacts/02-domain-model/model-expansions/',
+      'artifacts/03-architecture/test-strategy.md',
+      'artifacts/03-architecture/test-processes/',
       'artifacts/04-planning/sprint-1-backlog.md',
       'artifacts/04-planning/definition-of-done.md',
-      'artifacts/03-architecture/api-contracts.md',
-      'artifacts/03-architecture/module-structure.md',
     ],
     outputs: ['apps/', 'libs/', 'artifacts/05-code/'],
-    gateId: 'GATE-005-code-review',
+    gateId: 'GATE-108-code-review',
     gateTitle: '代码审查',
   },
   review: {
-    title: '持续改进 — Review + Quality Gate',
+    title: '产品与质量评审 — Quality Gate',
     skill: 'evidence-workflow-methodology',
     inputs: [
       'apps/',
       'libs/',
       'artifacts/05-code/',
+      'artifacts/01-requirements/examples/',
+      'artifacts/03-architecture/test-strategy.md',
       'artifacts/04-planning/definition-of-done.md',
-      'artifacts/03-architecture/module-structure.md',
     ],
     outputs: ['artifacts/06-reviews/'],
-    gateId: 'GATE-006-final-review',
-    gateTitle: '最终评审',
+    gateId: 'GATE-109-review',
+    gateTitle: '产品与质量评审',
+  },
+  learn: {
+    title: '学习与下一轮迭代 — Probe Sense Respond',
+    skill: 'evidence-workflow-methodology',
+    inputs: [
+      'artifacts/06-reviews/',
+      'artifacts/01-requirements/stories/',
+      'artifacts/02-domain-model/validation-report.md',
+    ],
+    outputs: [
+      'artifacts/07-learning/iteration-summary.md',
+      'artifacts/07-learning/next-iteration.md',
+    ],
+    gateId: 'GATE-110-learning',
+    gateTitle: '下一轮迭代确认',
   },
 };
 
@@ -138,17 +215,25 @@ export function phaseSpecificInstructions(
   phase: Exclude<Phase, 'complete'>,
 ): string {
   switch (phase) {
-    case 'requirements':
-      return `- 输出 personas、problem statement、story map。\n- 每个用户故事必须有 US-xxx ID、角色、价值、验收标准和优先级。`;
+    case 'frame':
+      return `- 先定义角色、价值、业务边界和用户旅程；角色 + 价值描述问题，避免把 API、HAL、数据库或测试框架伪装成用户价值。\n- 输出业务上下文和故事地图；故事地图只列候选故事，不得替代后续逐故事澄清。`;
+    case 'clarify':
+      return `- 为每个候选 P0/P1 故事建立 artifacts/01-requirements/stories/US-xxx.md。\n- 使用 TQA（Thought-Question-Answer）一次只提出一个高价值业务问题；通过 requirements clarification 工具记录问题和回答。\n- 将已回答问题、仍未决问题及其对故事/上下文的影响写入 artifacts/01-requirements/clarifications/。不得询问技术设计问题。`;
+    case 'specify':
+      return `- 对每个准备进入建模的故事，在 artifacts/01-requirements/examples/ 写 SC-xxx 示例。\n- 每个示例必须是具体的 Given/When/Then，包含可观察结果、关键业务数据和边界/失败场景；不要写实现步骤。`;
+    case 'validate':
+      return `- 审核故事是否仍以角色和价值定义问题，验收示例是否覆盖关键正反场景。\n- 输出 requirements-validation.md，逐项标注 Ready、需澄清或需拆分；只有 Ready 故事可作为领域模型的验证集。`;
     case 'domain_model':
-      return `- 输出统一语言、限界上下文、实体/值对象、聚合、领域事件。\n- 表格列名保持稳定，必要时加入 Mermaid 图。`;
+      return `- 输出概念字典、半结构化 Mermaid 领域模型、限界上下文、实体/值对象、聚合和领域事件。\n- Mermaid 必须通过注释补充概念定义、关系语义、生命周期或时间顺序。\n- 针对每个 Ready 的 P0 场景在 model-expansions/ 生成前置状态、When 后的实体/关系变化、不变量和时间顺序；validation-report.md 必须记录概念缺失、关系错置及修正。`;
     case 'architecture':
-      return `- 输出上下文映射、架构风格、技术栈、模块结构、API 契约、数据模型。\n- API 契约要能指导后续真实代码实现。`;
+      return `- 输出上下文映射、架构风格、技术栈、模块结构、API 契约和数据模型。\n- 新增 functional-contexts.md：场景到功能上下文的映射；test-strategy.md：Q2 验收测试如何被 Q1 组件/领域测试支撑；test-doubles.md：real/fake/stub/spy/mock 的选择。\n- 在 test-processes/ 为每类实现路径写可复用测试工序，按测试先行顺序拆分任务。`;
     case 'planning':
-      return `- 输出 Product Backlog、Sprint Plan、Sprint 1 Backlog、Definition of Done。\n- Sprint 1 Backlog 必须包含可执行开发任务和清晰验收标准。`;
+      return `- 以垂直切片规划，不把“检查现有代码”当作交付任务。\n- 每一个已计划场景都必须追踪：SC-xxx → Q2 验收测试 → 功能上下文 → Q1 测试 → 测试替身 → 实现任务。\n- Sprint 1 Backlog 只选择可在一个场景内完成和验证的最小切片。`;
     case 'coding':
-      return `- 从 Sprint 1 Backlog 选择下一个未实现故事，并先判断所属 Nx/Cargo 项目。\n- Red：在目标项目现有测试位置先写失败测试，不得创建根级 src/ 或 tests/。\n- Green：在 apps/<project>/ 或 libs/<project>/ 中写最小真实实现。\n- Refactor：改善结构并保持测试语义。\n- Web/Nest 增量运行对应 Nx test、lint、typecheck；Rust/Tauri 增量运行 cargo test、clippy、fmt。\n- 将故事 ID、改动路径、Red/Green/Refactor 证据和命令结果写入 artifacts/05-code/。`;
+      return `- 每次 coding 只能实现当前 active work item 指定的一个 US-xxx / SC-xxx；未选择时先调用 evidence_workflow_select_work_item，不能修改业务代码。\n- 严格按对应 test process 执行 Red：先写该场景测试并运行确认预期行为失败；Green：最小真实实现；Refactor：保持全部相关测试通过。\n- 在 artifacts/05-code/<US-xxx>/<SC-xxx>.md 记录场景、改动路径、Red/Green/Refactor 证据和命令结果。`;
     case 'review':
-      return `- 审查 artifacts、apps、libs、测试与 DoD 的一致性。\n- 输出 artifacts/06-reviews/review-round<round>.md。\n- 根据改动表面执行对应 Nx/Cargo 质量门禁，并记录实际命令与结果。\n- 评审报告必须使用中文撰写；代码、命令、路径、API 字段名和专有名词可以保留英文。\n- 明确列出 Critical / Major / Minor 问题和总体结论。`;
+      return `- 对照具体 SC-xxx 的验收示例、模型展开、测试策略、测试工序和 DoD 审查代码。\n- 输出 artifacts/06-reviews/review-round<round>.md，明确 Critical / Major / Minor、实际命令结果及是否验证了用户价值。`;
+    case 'learn':
+      return `- 将本轮 Probe/Sense/Respond 的产品反馈、领域知识修正、质量观察和未完成风险写入 iteration-summary.md。\n- 在 next-iteration.md 形成下一轮可执行问题框定输入；不要把 complete 当作产品开发终点。`;
   }
 }

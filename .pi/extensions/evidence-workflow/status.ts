@@ -4,6 +4,12 @@ import { formatPhaseModel, phaseModelConfig } from './config';
 import { isGateAnswered } from './gates';
 import { readState } from './state';
 
+function requirementsSubstage(phase: string): string {
+  return ['frame', 'clarify', 'specify', 'validate'].includes(phase)
+    ? phase
+    : 'n/a';
+}
+
 export function statusMarkdown(cwd: string): string {
   const state = readState(cwd);
   const artifacts = collectArtifacts(cwd);
@@ -12,12 +18,17 @@ export function statusMarkdown(cwd: string): string {
   const gates = findFiles(join(cwd, 'artifacts', 'gates'), (p) =>
     p.endsWith('.md'),
   ).map((p) => relative(cwd, p));
+  const activeWorkItem = state.active_work_item
+    ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
+    : 'none';
   return [
     `# Evidence Workflow Status`,
     ``,
     `| Field | Value |`,
     `|:---|:---|`,
     `| Phase | ${state.phase} |`,
+    `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
+    `| Active Work Item | ${activeWorkItem} |`,
     `| Configured Model | ${formatPhaseModel(configuredModel)} |`,
     `| Round | ${state.round} |`,
     `| Pending Gate | ${state.pending_gate ?? 'none'} |`,

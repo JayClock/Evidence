@@ -31,6 +31,10 @@ const THINKING_LEVELS = new Set<ThinkingLevel>([
   'max',
 ]);
 
+const LEGACY_PHASE_MODELS: Record<string, Exclude<Phase, 'complete'>> = {
+  requirements: 'frame',
+};
+
 export function workflowConfigPath(cwd: string): string {
   return join(cwd, '.pi', 'evidence-workflow.json');
 }
@@ -42,8 +46,9 @@ export function readWorkflowConfig(cwd: string): WorkflowConfig {
   const parsed = JSON.parse(readFileSync(path, 'utf8')) as {
     phaseModels?: Record<string, Partial<PhaseModelConfig>>;
   };
-  const phaseModels = parsed.phaseModels ?? {};
-  for (const [phase, config] of Object.entries(phaseModels)) {
+  const configuredModels = parsed.phaseModels ?? {};
+  const phaseModels: WorkflowConfig['phaseModels'] = {};
+  for (const [configuredPhase, config] of Object.entries(configuredModels)) {
     if (
       !config ||
       typeof config.provider !== 'string' ||
@@ -51,11 +56,15 @@ export function readWorkflowConfig(cwd: string): WorkflowConfig {
       !THINKING_LEVELS.has(config.thinking as ThinkingLevel)
     ) {
       throw new Error(
-        `Invalid model configuration for phase ${phase} in ${path}.`,
+        `Invalid model configuration for phase ${configuredPhase} in ${path}.`,
       );
     }
+    const phase = LEGACY_PHASE_MODELS[configuredPhase] ?? configuredPhase;
+    if (phase === 'complete') continue;
+    phaseModels[phase as Exclude<Phase, 'complete'>] =
+      config as PhaseModelConfig;
   }
-  return { phaseModels: phaseModels as WorkflowConfig['phaseModels'] };
+  return { phaseModels };
 }
 
 export function phaseModelConfig(
