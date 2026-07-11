@@ -1,52 +1,52 @@
 {
   "phaseModels": {
     "frame": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "high"
     },
     "clarify": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "high"
     },
     "specify": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "high"
     },
     "validate": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "high"
     },
     "domain_model": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "high"
     },
     "architecture": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "xhigh"
     },
     "planning": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-terra",
       "thinking": "medium"
     },
     "coding": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-terra",
       "thinking": "medium"
     },
     "review": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "xhigh"
     },
     "learn": {
-      "provider": "openai",
+      "provider": "openai-codex",
       "model": "gpt-5.6-sol",
       "thinking": "high"
     }
