@@ -7,6 +7,8 @@ use super::{
     AppState,
 };
 
+const DEFAULT_USER_ID: &str = "desktop-user";
+
 #[derive(Serialize)]
 struct RootResource {
     #[serde(rename = "_links")]
@@ -28,7 +30,7 @@ async fn get_root() -> Json<RootResource> {
             ("health".to_string(), Link::new(health_href())),
             (
                 "default-user".to_string(),
-                Link::new(user_href("desktop-user")),
+                Link::new(user_href(DEFAULT_USER_ID)),
             ),
         ]),
     })

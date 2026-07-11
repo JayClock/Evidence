@@ -17,3 +17,4 @@ utoipa = { version = "5.5", features = ["axum_extras", "preserve_path_order", "y
 [dev-dependencies]
 evidence-server-persistent = { path = "../persistent", features = ["test-support"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tower = { version = "0.5", features = ["util"] }

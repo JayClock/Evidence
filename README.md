@@ -101,6 +101,33 @@ Two persistence backends share the same contract tests:
 
 Both backends seed identical defaults: user `desktop-user` → workspace `default-workspace` with owner membership.
 
+## Evidence 工作流
+
+本仓库已接入一套项目本地的 Pi 原生 Evidence 工作流，参考 `../meta-project-poc` 实现。它为 Evidence 提供方法论技能、阶段提示词、命令、工具、状态文件和 Markdown 审核门，用于生成可审计的产品增量。
+
+Pi 中可用命令：
+
+```text
+/evidence-status
+/evidence-run --dry-run
+/evidence-run
+/evidence-gate 通过，进入下一阶段
+/evidence-reset
+```
+
+工作流资产：
+
+| 路径                                | 用途                                                   |
+| ----------------------------------- | ------------------------------------------------------ |
+| `.pi/extensions/evidence-workflow/` | Evidence 工作流状态机、审核门、命令和工具              |
+| `.pi/skills/`                       | 设计思维、DDD、Scrum、TDD 和 Evidence 工作流方法论技能 |
+| `.pi/prompts/`                      | 各阶段提示词模板                                       |
+| `evidence-state.json`               | 当前工作流阶段和审核门状态                             |
+| `artifacts/`                        | Evidence 专用生成工件和审计日志                        |
+| `artifacts/gates/`                  | 配置阶段之间的人类审核门                               |
+
+建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览需求阶段。初始输入位于 `artifacts/00-user-input/requirements.md`。
+
 ## Quick Start
 
 ### Prerequisites
