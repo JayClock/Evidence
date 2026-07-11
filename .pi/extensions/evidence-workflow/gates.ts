@@ -1,6 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { collectArtifacts, ensureProjectDirs } from './artifacts';
+import {
+  collectArtifacts,
+  collectCodeFiles,
+  ensureProjectDirs,
+  missingPaths,
+} from './artifacts';
 import { nextPhase, PHASE_META } from './phases';
 import { readState, writeState } from './state';
 import type { MetaState, Phase } from './types';
@@ -76,11 +81,41 @@ ${summary || '请审阅本阶段输出，确认是否进入下一阶段。'}
   return relative(cwd, file);
 }
 
+export function validatePhaseCompletion(
+  cwd: string,
+  phase: Exclude<Phase, 'complete'>,
+): void {
+  const current = readState(cwd);
+  if (current.phase !== phase) {
+    throw new Error(
+      `Cannot complete ${phase}: current phase is ${current.phase}. Reset the workflow before starting a new iteration.`,
+    );
+  }
+  if (current.pending_gate && !isGateAnswered(cwd, current.pending_gate)) {
+    throw new Error(
+      `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,
+    );
+  }
+
+  const missing = missingPaths(cwd, PHASE_META[phase].outputs);
+  if (missing.length > 0) {
+    throw new Error(
+      `Cannot complete ${phase}: missing required outputs: ${missing.join(', ')}.`,
+    );
+  }
+  if (phase === 'coding' && collectCodeFiles(cwd).length === 0) {
+    throw new Error(
+      'Cannot complete coding: no production or test code was found under apps/ or libs/.',
+    );
+  }
+}
+
 export function completePhase(
   cwd: string,
   phase: Exclude<Phase, 'complete'>,
   summary = '',
 ): MetaState {
+  validatePhaseCompletion(cwd, phase);
   const current = readState(cwd);
   const artifacts = collectArtifacts(cwd);
   const mode = current.gate_config[phase] ?? 'auto';

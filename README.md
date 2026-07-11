@@ -126,7 +126,9 @@ Pi 中可用命令：
 | `artifacts/`                        | Evidence 专用生成工件和审计日志                        |
 | `artifacts/gates/`                  | 配置阶段之间的人类审核门                               |
 
-建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览需求阶段。初始输入位于 `artifacts/00-user-input/requirements.md`。
+建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览当前阶段。开始新迭代时，先更新 `artifacts/00-user-input/requirements.md`，然后执行 `/evidence-reset`。
+
+Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑。
 
 ## Quick Start
 

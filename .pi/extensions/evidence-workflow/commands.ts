@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { ensureProjectDirs } from './artifacts';
+import { ensureProjectDirs, missingPaths } from './artifacts';
 import { answerGate, isGateAnswered } from './gates';
-import { DEFAULT_STATE, PHASE_ORDER } from './phases';
+import { DEFAULT_STATE, PHASE_META, PHASE_ORDER } from './phases';
 import { buildPhasePrompt } from './prompts';
 import { readState, writeState } from './state';
 import { statusMarkdown } from './status';
@@ -79,12 +79,32 @@ export function registerCommands(pi: ExtensionAPI): void {
       const parsed = parseArgs(args);
       if (parsed.reset) writeState(ctx.cwd, DEFAULT_STATE);
       const state = readState(ctx.cwd);
+      if (parsed.phase && parsed.phase !== state.phase) {
+        ctx.ui.notify(
+          `Cannot run ${parsed.phase}: current phase is ${state.phase}. Use /evidence-reset before a new iteration.`,
+          'error',
+        );
+        return;
+      }
       if (state.pending_gate && !isGateAnswered(ctx.cwd, state.pending_gate)) {
         ctx.ui.notify(
           `Gate ${state.pending_gate} is pending. Edit artifacts/gates/${state.pending_gate}.md or run /evidence-gate <decision>.`,
           'info',
         );
         return;
+      }
+      if (state.phase !== 'complete') {
+        const missingInputs = missingPaths(
+          ctx.cwd,
+          PHASE_META[state.phase].inputs,
+        );
+        if (missingInputs.length > 0) {
+          ctx.ui.notify(
+            `Cannot run ${state.phase}: missing inputs: ${missingInputs.join(', ')}.`,
+            'error',
+          );
+          return;
+        }
       }
       const prompt = buildPhasePrompt(ctx.cwd, parsed.phase, parsed.rest);
       if (parsed.dryRun) return ctx.ui.notify(prompt, 'info');

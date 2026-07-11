@@ -109,7 +109,7 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
       'artifacts/03-architecture/api-contracts.md',
       'artifacts/03-architecture/module-structure.md',
     ],
-    outputs: ['src/', 'tests/', 'artifacts/05-code/'],
+    outputs: ['apps/', 'libs/', 'artifacts/05-code/'],
     gateId: 'GATE-005-code-review',
     gateTitle: '代码审查',
   },
@@ -117,8 +117,8 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
     title: '持续改进 — Review + Quality Gate',
     skill: 'evidence-workflow-methodology',
     inputs: [
-      'src/',
-      'tests/',
+      'apps/',
+      'libs/',
       'artifacts/05-code/',
       'artifacts/04-planning/definition-of-done.md',
       'artifacts/03-architecture/module-structure.md',
@@ -147,8 +147,8 @@ export function phaseSpecificInstructions(
     case 'planning':
       return `- 输出 Product Backlog、Sprint Plan、Sprint 1 Backlog、Definition of Done。\n- Sprint 1 Backlog 必须包含可执行开发任务和清晰验收标准。`;
     case 'coding':
-      return `- 从 Sprint 1 Backlog 选择下一个未实现故事。\n- Red：先写真实测试文件到 tests/。\n- Green：写最小真实实现到 src/。\n- Refactor：改善结构并保持测试语义。\n- 尽可能运行项目测试命令；如果没有测试框架，记录原因并提供最小可运行测试。`;
+      return `- 从 Sprint 1 Backlog 选择下一个未实现故事，并先判断所属 Nx/Cargo 项目。\n- Red：在目标项目现有测试位置先写失败测试，不得创建根级 src/ 或 tests/。\n- Green：在 apps/<project>/ 或 libs/<project>/ 中写最小真实实现。\n- Refactor：改善结构并保持测试语义。\n- Web/Nest 增量运行对应 Nx test、lint、typecheck；Rust/Tauri 增量运行 cargo test、clippy、fmt。\n- 将故事 ID、改动路径、Red/Green/Refactor 证据和命令结果写入 artifacts/05-code/。`;
     case 'review':
-      return `- 审查 artifacts、src、tests 与 DoD 的一致性。\n- 输出 artifacts/06-reviews/review-round<round>.md。\n- 评审报告必须使用中文撰写；代码、命令、路径、API 字段名和专有名词可以保留英文。\n- 明确列出 Critical / Major / Minor 问题和总体结论。`;
+      return `- 审查 artifacts、apps、libs、测试与 DoD 的一致性。\n- 输出 artifacts/06-reviews/review-round<round>.md。\n- 根据改动表面执行对应 Nx/Cargo 质量门禁，并记录实际命令与结果。\n- 评审报告必须使用中文撰写；代码、命令、路径、API 字段名和专有名词可以保留英文。\n- 明确列出 Critical / Major / Minor 问题和总体结论。`;
   }
 }

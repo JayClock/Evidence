@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: 'Implement user stories with real test-first development. Use for Red-Green-Refactor loops that create actual src/ and tests/ files, not only markdown artifacts.'
+description: 'Implement Evidence monorepo user stories with real test-first development in apps/ and libs/. Use for Red-Green-Refactor loops that modify runnable code, not only markdown artifacts.'
 ---
 
 # TDD Implementation Skill
@@ -13,16 +13,20 @@ Use this skill in the `coding` phase.
 2. Read API contracts and DoD:
    - `artifacts/03-architecture/api-contracts.md`
    - `artifacts/04-planning/definition-of-done.md`
-3. Red: create or update real tests under `tests/`.
-4. Green: create or update real implementation under `src/`.
-5. Refactor: improve structure while preserving behavior.
-6. Run the relevant test command if a runnable stack exists.
-7. Write concise notes to `artifacts/05-code/` for auditability.
+3. Identify the owning project before editing: React/Nx, Nest/Nx, Rust Axum, or Tauri.
+4. Red: create or update a colocated test in that project's existing test layout and run it to confirm the expected failure.
+5. Green: create or update the minimum implementation under `apps/` or `libs/` and rerun the focused test.
+6. Refactor: improve structure while preserving behavior, then rerun the focused quality gates.
+7. Write the story ID, changed paths, Red/Green/Refactor evidence, and command results to `artifacts/05-code/`.
 
 ## Rules
 
-- Do not stop at Markdown pseudo-code.
-- Prefer the architecture's selected stack; if absent, choose the smallest conventional implementation and document the assumption.
+- Do not stop at Markdown pseudo-code and do not create root-level `src/` or `tests/` directories.
+- Preserve the existing Evidence boundaries and follow `AGENTS.md`.
+- Frontend code belongs in `apps/web` or `libs/web/*`; use the owning Nx project's test, lint, and typecheck targets.
+- Rust server code belongs in `apps/server` or `libs/server/*`; run focused Cargo tests, Clippy, and rustfmt.
+- Nest code belongs in `apps/server-nest` or `libs/server-nest/*`; use its Nx targets and Prisma generation when required.
+- Desktop-only code belongs in `apps/desktop/src-tauri`; shared UI remains in the web surface.
 - Keep tests deterministic and focused on behavior.
 
 ## Embedded Methodology
@@ -86,6 +90,22 @@ LLM 编写测试 ──→ 运行测试（失败） ──→ LLM 编写实现 �
                                                     ▼
                                           LLM 重构代码 ──→ 运行测试（仍通过）
 ```
+
+## Evidence Quality Commands
+
+Choose the smallest applicable set first, then run broader gates before review:
+
+```sh
+pnpm nx test <project> --run
+pnpm nx lint <project>
+pnpm nx typecheck <project>
+cargo test -p evidence-server
+cargo clippy -p evidence-server --all-targets -- -D warnings
+cargo fmt -p evidence-server -- --check
+cargo test -p evidence-desktop
+```
+
+The generic examples below explain TDD mechanics only. They do not override the Evidence monorepo layout.
 
 ## Embedded Scaffolding
 

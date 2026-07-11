@@ -115,15 +115,7 @@ export function registerTools(pi: ExtensionAPI): void {
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       if (params.phase === 'complete' || !(params.phase in PHASE_META)) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Invalid phase for completion: ${params.phase}`,
-            },
-          ],
-          isError: true,
-        };
+        throw new Error(`Invalid phase for completion: ${params.phase}`);
       }
       const state = completePhase(
         ctx.cwd,
@@ -157,32 +149,16 @@ export function registerTools(pi: ExtensionAPI): void {
       decision: Type.String({ description: 'Decision text to write' }),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      try {
-        const { gatePath } = answerGate(
-          ctx.cwd,
-          params.gateId,
-          params.decision,
-        );
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Gate answered: ${params.gateId}. Answered=${isGateAnswered(ctx.cwd, params.gateId)}`,
-            },
-          ],
-          details: { gatePath },
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: error instanceof Error ? error.message : String(error),
-            },
-          ],
-          isError: true,
-        };
-      }
+      const { gatePath } = answerGate(ctx.cwd, params.gateId, params.decision);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Gate answered: ${params.gateId}. Answered=${isGateAnswered(ctx.cwd, params.gateId)}`,
+          },
+        ],
+        details: { gatePath },
+      };
     },
   });
 }
