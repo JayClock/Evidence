@@ -25,6 +25,5 @@ Evidence 是一个领域建模与证据映射平台。它帮助团队通过定�
 ## 仓库约束
 
 - 保留现有 Evidence 架构：React/Vite 前端、Rust Axum 后端、Tauri 桌面壳，以及共享 REST API 语义。
-- 不复制 `meta-project-poc` 已生成的领域工件；Evidence 的工件需要重新生成。
 - 保持 `artifacts/` 作为审计日志，`artifacts/gates/` 作为人类审核界面。
 - 编码阶段必须修改真实 Evidence 代码和测试，不能只生成 Markdown 说明。

@@ -103,7 +103,7 @@ Both backends seed identical defaults: user `desktop-user` → workspace `defaul
 
 ## Evidence 工作流
 
-本仓库已接入一套项目本地的 Pi 原生 Evidence 工作流，参考 `../meta-project-poc` 实现。它为 Evidence 提供方法论技能、阶段提示词、命令、工具、状态文件和 Markdown 审核门，用于生成可审计的产品增量。
+本仓库已接入一套项目本地的 Evidence 工作流。它为 Evidence 提供方法论技能、阶段提示词、命令、工具、状态文件和 Markdown 审核门，用于生成可审计的产品增量。
 
 Pi 中可用命令：
 

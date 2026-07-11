@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEFAULT_STATE } from './phases';
-import type { MetaState } from './types';
+import type { WorkflowState } from './types';
 
 export function statePath(cwd: string): string {
   return join(cwd, 'evidence-state.json');
@@ -12,7 +12,7 @@ function readJsonFile<T>(path: string): T | undefined {
   return JSON.parse(readFileSync(path, 'utf8')) as T;
 }
 
-export function normalizeState(state: MetaState): MetaState {
+export function normalizeState(state: WorkflowState): WorkflowState {
   return {
     ...DEFAULT_STATE,
     ...state,
@@ -21,13 +21,13 @@ export function normalizeState(state: MetaState): MetaState {
   };
 }
 
-export function readState(cwd: string): MetaState {
+export function readState(cwd: string): WorkflowState {
   return normalizeState(
-    readJsonFile<MetaState>(statePath(cwd)) ?? DEFAULT_STATE,
+    readJsonFile<WorkflowState>(statePath(cwd)) ?? DEFAULT_STATE,
   );
 }
 
-export function writeState(cwd: string, state: MetaState): MetaState {
+export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   const normalized = normalizeState(state);
   writeFileSync(statePath(cwd), `${JSON.stringify(normalized, null, 2)}\n`);
   return normalized;

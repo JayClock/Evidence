@@ -8,7 +8,7 @@ export type Phase =
   | 'complete';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 
-export interface MetaState {
+export interface WorkflowState {
   phase: Phase;
   round: number;
   pending_gate: string | null;

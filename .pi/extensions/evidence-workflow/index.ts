@@ -5,12 +5,12 @@ import { ensureProjectDirs } from './artifacts';
 import { registerCommands } from './commands';
 import { readState, statePath, writeState } from './state';
 import { registerTools } from './tools';
-import type { MetaState } from './types';
+import type { WorkflowState } from './types';
 
 const STATUS_KEY = 'evidence-workflow';
 const STATE_WATCH_INTERVAL_MS = 250;
 
-function statusLabel(state: MetaState): string {
+function statusLabel(state: WorkflowState): string {
   return `evidence:${state.phase}${state.pending_gate ? ':gate' : ''}`;
 }
 

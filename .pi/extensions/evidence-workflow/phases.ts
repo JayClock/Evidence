@@ -1,4 +1,4 @@
-import type { GateMode, MetaState, Phase, PhaseMeta } from './types';
+import type { GateMode, Phase, PhaseMeta, WorkflowState } from './types';
 
 export const PHASE_ORDER: Phase[] = [
   'requirements',
@@ -10,7 +10,7 @@ export const PHASE_ORDER: Phase[] = [
   'complete',
 ];
 
-export const DEFAULT_STATE: MetaState = {
+export const DEFAULT_STATE: WorkflowState = {
   phase: 'requirements',
   round: 0,
   pending_gate: null,

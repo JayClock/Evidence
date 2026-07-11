@@ -8,7 +8,7 @@ import {
 } from './artifacts';
 import { nextPhase, PHASE_META } from './phases';
 import { readState, writeState } from './state';
-import type { MetaState, Phase } from './types';
+import type { Phase, WorkflowState } from './types';
 
 export function isGateAnswered(cwd: string, gateId: string): boolean {
   const file = join(cwd, 'artifacts', 'gates', `${gateId}.md`);
@@ -114,7 +114,7 @@ export function completePhase(
   cwd: string,
   phase: Exclude<Phase, 'complete'>,
   summary = '',
-): MetaState {
+): WorkflowState {
   validatePhaseCompletion(cwd, phase);
   const current = readState(cwd);
   const artifacts = collectArtifacts(cwd);
