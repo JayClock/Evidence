@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectCodeFiles, missingPaths } from './artifacts';
+import { phaseModelConfig, readWorkflowConfig } from './config';
 import { completePhase } from './gates';
 import { DEFAULT_STATE } from './phases';
 import { readState, writeState } from './state';
@@ -25,6 +26,53 @@ afterEach(() => {
   for (const cwd of workspaces.splice(0)) {
     rmSync(cwd, { recursive: true, force: true });
   }
+});
+
+describe('phase model configuration', () => {
+  it('loads an OpenAI model and reasoning level for each configured phase', () => {
+    const cwd = workspace();
+    write(
+      cwd,
+      '.pi/evidence-workflow.json',
+      JSON.stringify({
+        phaseModels: {
+          coding: {
+            provider: 'openai',
+            model: 'gpt-5.6-terra',
+            thinking: 'medium',
+          },
+        },
+      }),
+    );
+
+    expect(phaseModelConfig(cwd, 'coding')).toEqual({
+      provider: 'openai',
+      model: 'gpt-5.6-terra',
+      thinking: 'medium',
+    });
+    expect(phaseModelConfig(cwd, 'complete')).toBeUndefined();
+  });
+
+  it('rejects unsupported reasoning levels', () => {
+    const cwd = workspace();
+    write(
+      cwd,
+      '.pi/evidence-workflow.json',
+      JSON.stringify({
+        phaseModels: {
+          review: {
+            provider: 'openai',
+            model: 'gpt-5.6-sol',
+            thinking: 'ultra',
+          },
+        },
+      }),
+    );
+
+    expect(() => readWorkflowConfig(cwd)).toThrow(
+      'Invalid model configuration for phase review',
+    );
+  });
 });
 
 describe('Evidence workflow monorepo discovery', () => {

@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs, missingPaths } from './artifacts';
+import { phaseModelConfig } from './config';
 import { answerGate, isGateAnswered } from './gates';
 import { DEFAULT_STATE, PHASE_META, PHASE_ORDER } from './phases';
 import { buildPhasePrompt } from './prompts';
@@ -106,8 +107,46 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         }
       }
-      const prompt = buildPhasePrompt(ctx.cwd, parsed.phase, parsed.rest);
+      let prompt: string;
+      try {
+        prompt = buildPhasePrompt(ctx.cwd, parsed.phase, parsed.rest);
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+        return;
+      }
       if (parsed.dryRun) return ctx.ui.notify(prompt, 'info');
+
+      const configuredModel = phaseModelConfig(ctx.cwd, state.phase);
+      if (configuredModel) {
+        const model = ctx.modelRegistry.find(
+          configuredModel.provider,
+          configuredModel.model,
+        );
+        if (!model) {
+          ctx.ui.notify(
+            `Configured model is unavailable: ${configuredModel.provider}/${configuredModel.model}. Check /model and .pi/evidence-workflow.json.`,
+            'error',
+          );
+          return;
+        }
+        const selected = await pi.setModel(model);
+        if (!selected) {
+          ctx.ui.notify(
+            `No credentials are available for ${configuredModel.provider}/${configuredModel.model}. Run /login or configure the provider API key.`,
+            'error',
+          );
+          return;
+        }
+        pi.setThinkingLevel(configuredModel.thinking);
+        ctx.ui.notify(
+          `Using ${configuredModel.provider}/${configuredModel.model} with ${configuredModel.thinking} thinking for ${state.phase}.`,
+          'info',
+        );
+      }
+
       const updated = writeState(ctx.cwd, {
         ...state,
         pi: {
