@@ -15,6 +15,8 @@ export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export interface ActiveWorkItem {
   story_id: string;
   scenario_id: string;
+  /** Immutable Git HEAD captured before this scenario's Red step. */
+  git_baseline: string;
 }
 
 export interface WorkflowState {

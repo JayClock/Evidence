@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createCodingGitBaseline } from './evidence';
 import { DEFAULT_STATE } from './phases';
 import type { ActiveWorkItem, Phase, WorkflowState } from './types';
 
@@ -60,6 +61,7 @@ export function selectWorkItem(
   const active_work_item: ActiveWorkItem = {
     story_id: storyId.toUpperCase(),
     scenario_id: scenarioId.toUpperCase(),
+    git_baseline: createCodingGitBaseline(cwd),
   };
   return writeState(cwd, { ...state, active_work_item });
 }

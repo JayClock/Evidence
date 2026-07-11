@@ -1,22 +1,22 @@
 ---
 name: evidence-workflow-tdd
-description: 'Implement real code increments from evidence-workflow user stories using TDD. Use when converting generated TDD markdown artifacts into actual src/ and tests/ files or improving the coding phase.'
+description: '使用测试驱动开发（TDD）将 Evidence Workflow 用户故事转化为真实代码增量。适用于将生成的 TDD 工件落实为实际 src/ 和测试文件，或改进编码阶段。'
 ---
 
-# Evidence Workflow TDD
+# Evidence Workflow 测试驱动开发（TDD）
 
-Use this skill for the coding phase or when the user asks to turn generated implementation markdown into runnable code.
+在编码阶段，或用户要求将生成的实现 Markdown 转化为可运行代码时，使用本技能。
 
-## Workflow
+## 工作流程
 
-1. Pick the target user story from `artifacts/04-planning/sprint-1-backlog.md`.
-2. Read API contracts from `artifacts/03-architecture/api-contracts.md` and DoD from `artifacts/04-planning/definition-of-done.md`.
-3. Determine the owning Evidence project from the story and architecture artifacts.
-4. Red: create or update a colocated test in the owning `apps/*` or `libs/*` project, then run it and record the expected failure.
-5. Green: implement the minimum production change in that project and rerun the focused test.
-6. Refactor: improve names and structure without changing external behavior, then run the applicable Nx or Cargo quality gates.
-7. Record the story ID, changed paths, Red/Green/Refactor evidence, and command results in `artifacts/05-code/*`.
+1. 编辑代码前，通过 `evidence_workflow_select_work_item` 选择唯一的 `US-xxx / SC-xxx`。该操作会记录 Git 基线；若 `apps/` 或 `libs/` 已有未提交改动，不得继续。
+2. 阅读选定场景的具体验收示例、模型展开、测试策略、测试工序和完成定义（DoD）。
+3. 根据场景和架构工件，确定所属的 Evidence 项目。
+4. **红（Red）**：在所属 `apps/*` 或 `libs/*` 项目中创建或更新就近测试；运行测试，记录预期行为失败及非零退出码。
+5. **绿（Green）**：在该项目中完成最小生产代码改动；重新运行聚焦测试，并记录零退出码。
+6. **重构（Refactor）**：在不改变外部行为的前提下改善命名和结构；重新运行适用质量门禁，并记录零退出码。
+7. 在 `artifacts/05-code/<US-xxx>/<SC-xxx>.md` 记录叙述性证据，并在同名 `.json` 中记录机器证据：Git 基线、改动代码路径、场景 → Q2/Q1 测试 → 功能上下文的追踪，以及命令与退出码。
 
-## Important
+## 重要规则
 
-Do not stop at Markdown pseudo-code when the user asks for implementation. Write real files and run tests where possible. Never create generic root-level `src/` or `tests/` directories: React and shared UI belong under `apps/web` or `libs/web/*`, Rust under `apps/server` or `libs/server/*`, Nest under `apps/server-nest` or `libs/server-nest/*`, and desktop-only code under `apps/desktop/src-tauri`.
+用户要求实现时，不得停留在 Markdown 伪代码；必须编写真实文件并在可能时运行测试。一个场景必须在 `apps/` 或 `libs/` 下同时变更至少一个测试文件和一个生产代码文件；JSON 证据必须与所选 Git 基线之后的实际改动完全一致。不得创建通用根级 `src/` 或 `tests/` 目录：React 和共享 UI 位于 `apps/web` 或 `libs/web/*`，Rust 位于 `apps/server` 或 `libs/server/*`，Nest 位于 `apps/server-nest` 或 `libs/server-nest/*`，仅桌面端代码位于 `apps/desktop/src-tauri`。

@@ -100,9 +100,12 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
       'artifacts/01-requirements/stories/',
       'artifacts/01-requirements/examples/',
       'artifacts/01-requirements/requirements-validation.md',
+      '.evidence/entities/',
+      '.evidence/associations/',
     ],
     outputs: [
       'artifacts/02-domain-model/ubiquitous-language.md',
+      'artifacts/02-domain-model/evidence-source-manifest.json',
       'artifacts/02-domain-model/domain-model.mmd',
       'artifacts/02-domain-model/bounded-contexts.md',
       'artifacts/02-domain-model/entities-and-value-objects.md',
@@ -224,13 +227,13 @@ export function phaseSpecificInstructions(
     case 'validate':
       return `- 审核故事是否仍以角色和价值定义问题，验收示例是否覆盖关键正反场景。\n- 输出 requirements-validation.md，逐项标注 Ready、需澄清或需拆分；只有 Ready 故事可作为领域模型的验证集。`;
     case 'domain_model':
-      return `- 输出概念字典、半结构化 Mermaid 领域模型、限界上下文、实体/值对象、聚合和领域事件。\n- Mermaid 必须通过注释补充概念定义、关系语义、生命周期或时间顺序。\n- 针对每个 Ready 的 P0 场景在 model-expansions/ 生成前置状态、When 后的实体/关系变化、不变量和时间顺序；validation-report.md 必须记录概念缺失、关系错置及修正。`;
+      return `- 读取 .evidence/entities/ 与 .evidence/associations/；先在 evidence-source-manifest.json（version=1、source_roots、included_paths）记录完整输入清单。\n- 输出概念字典、半结构化 Mermaid 领域模型、限界上下文、实体/值对象、聚合和领域事件。Mermaid 必须通过注释补充概念定义、关系语义、生命周期或时间顺序。\n- 对每个 Ready 场景生成 model-expansions/US-xxx-SC-xxx.json（version=1），记录 Given 实体/关系、When 命令、Then 变化、不变量、时间线与 evidence_sources；validation-report.md 必须记录概念缺失、关系错置及修正。`;
     case 'architecture':
       return `- 输出上下文映射、架构风格、技术栈、模块结构、API 契约和数据模型。\n- 新增 functional-contexts.md：场景到功能上下文的映射；test-strategy.md：Q2 验收测试如何被 Q1 组件/领域测试支撑；test-doubles.md：real/fake/stub/spy/mock 的选择。\n- 在 test-processes/ 为每类实现路径写可复用测试工序，按测试先行顺序拆分任务。`;
     case 'planning':
       return `- 以垂直切片规划，不把“检查现有代码”当作交付任务。\n- 每一个已计划场景都必须追踪：SC-xxx → Q2 验收测试 → 功能上下文 → Q1 测试 → 测试替身 → 实现任务。\n- Sprint 1 Backlog 只选择可在一个场景内完成和验证的最小切片。`;
     case 'coding':
-      return `- 每次 coding 只能实现当前 active work item 指定的一个 US-xxx / SC-xxx；未选择时先调用 evidence_workflow_select_work_item，不能修改业务代码。\n- 严格按对应 test process 执行 Red：先写该场景测试并运行确认预期行为失败；Green：最小真实实现；Refactor：保持全部相关测试通过。\n- 在 artifacts/05-code/<US-xxx>/<SC-xxx>.md 记录场景、改动路径、Red/Green/Refactor 证据和命令结果。`;
+      return `- 每次 coding 只能实现当前 active work item 指定的一个 US-xxx / SC-xxx；未选择时先调用 evidence_workflow_select_work_item，不能修改业务代码。选择工作项会记录 Git baseline，若 apps/ 或 libs/ 已有未提交变更必须先处理。\n- 严格按对应 test process 执行 Red：先写该场景测试并运行确认预期行为失败；Green：最小真实实现；Refactor：保持全部相关测试通过。\n- 除 Markdown 外，在 artifacts/05-code/<US-xxx>/<SC-xxx>.json 写 version=1 机器证据：work_item（含 git_baseline）、scenario→Q2/Q1 tests→functional contexts 追踪、changed_code_paths、以及 Red（非零且 expected_failure=true）/Green（0）/Refactor（0）的命令和 exit_code。Git 变更必须包含至少一个测试文件和一个生产代码文件。`;
     case 'review':
       return `- 对照具体 SC-xxx 的验收示例、模型展开、测试策略、测试工序和 DoD 审查代码。\n- 输出 artifacts/06-reviews/review-round<round>.md，明确 Critical / Major / Minor、实际命令结果及是否验证了用户价值。`;
     case 'learn':

@@ -10,12 +10,13 @@ description: '应用领域驱动设计（DDD）进行战略与战术建模：统
 ## 领域建模输出
 
 - `artifacts/02-domain-model/ubiquitous-language.md`
+- `artifacts/02-domain-model/evidence-source-manifest.json`
 - `artifacts/02-domain-model/domain-model.mmd`
 - `artifacts/02-domain-model/bounded-contexts.md`
 - `artifacts/02-domain-model/entities-and-value-objects.md`
 - `artifacts/02-domain-model/aggregates.md`
 - `artifacts/02-domain-model/domain-events.md`
-- `artifacts/02-domain-model/model-expansions/US-xxx-SC-xxx.md`
+- `artifacts/02-domain-model/model-expansions/US-xxx-SC-xxx.json`
 - `artifacts/02-domain-model/validation-report.md`
 
 ## 架构输出
@@ -35,9 +36,10 @@ description: '应用领域驱动设计（DDD）进行战略与战术建模：统
 
 - 命名模块时，优先体现限界上下文边界，而非技术分层。
 - API 契约必须足够明确，能够直接指导实现。
+- `.evidence/entities/` 与 `.evidence/associations/` 是可工作的领域知识源。领域建模前必须读取它们，并在 `evidence-source-manifest.json`（`version`、`source_roots`、`included_paths`）中列出完整输入。
 - 当图能澄清关系时使用 Mermaid。`domain-model.mmd` 必须使用半结构化自然语言：通过注释说明领域术语、关系含义、生命周期和顺序约束。
 - 不得编造与既有工件冲突的实现细节。
-- 使用“就绪”的 Given/When/Then 示例验证模型。每份模型展开必须说明 Given 实体/关系、When 命令、Then 创建/变更/删除的实体和关系、不变量与时间线；在 `validation-report.md` 中记录概念缺失和关系错置。
+- 使用“就绪”的 Given/When/Then 示例验证模型。每份 `US-xxx-SC-xxx.json` 模型展开必须说明 Given 实体/关系、When 命令、Then 创建/变更/删除的实体和关系、不变量、时间线和 `evidence_sources`；在 `validation-report.md` 中记录概念缺失和关系错置。
 - 架构必须把每个已计划场景从 Q2 验收测试映射到功能上下文、Q1 支撑测试和选定测试替身。测试工序是有顺序、可复用且测试先行的工作指令，不是泛化任务清单。
 
 ## 内嵌方法论

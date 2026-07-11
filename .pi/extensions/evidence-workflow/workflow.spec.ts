@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -5,6 +6,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { collectCodeFiles, missingPaths } from './artifacts';
 import { phaseModelConfig, readWorkflowConfig } from './config';
 import { completePhase } from './gates';
+import {
+  validateDomainModelEvidence,
+  validateScenarioExecutionEvidence,
+} from './evidence';
 import { DEFAULT_STATE, nextPhase, PHASE_META, PHASE_ORDER } from './phases';
 import { registerCommands } from './commands';
 import { registerTools } from './tools';
@@ -23,6 +28,26 @@ function write(cwd: string, path: string, content = 'content'): void {
   const absolute = join(cwd, path);
   mkdirSync(join(absolute, '..'), { recursive: true });
   writeFileSync(absolute, content);
+}
+
+function initializeGitRepository(cwd: string): void {
+  write(cwd, '.gitignore', 'node_modules\n');
+  execFileSync('git', ['init', '--quiet'], { cwd });
+  execFileSync('git', ['add', '.gitignore'], { cwd });
+  execFileSync(
+    'git',
+    [
+      '-c',
+      'user.name=Evidence Workflow Test',
+      '-c',
+      'user.email=workflow@example.test',
+      'commit',
+      '--quiet',
+      '-m',
+      'initial',
+    ],
+    { cwd },
+  );
 }
 
 afterEach(() => {
@@ -166,14 +191,18 @@ describe('P0 knowledge-feedback workflow', () => {
 
   it('selects exactly one story scenario for the coding phase', () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
 
     const state = selectWorkItem(cwd, 'US-042', 'SC-003');
 
-    expect(state.active_work_item).toEqual({
-      story_id: 'US-042',
-      scenario_id: 'SC-003',
-    });
+    expect(state.active_work_item).toEqual(
+      expect.objectContaining({
+        story_id: 'US-042',
+        scenario_id: 'SC-003',
+        git_baseline: expect.any(String),
+      }),
+    );
     expect(buildPhasePrompt(cwd)).toContain('US-042 / SC-003');
   });
 
@@ -197,7 +226,11 @@ describe('P0 knowledge-feedback workflow', () => {
     writeState(cwd, {
       ...DEFAULT_STATE,
       phase: 'coding',
-      active_work_item: { story_id: 'US-042', scenario_id: 'SC-003' },
+      active_work_item: {
+        story_id: 'US-042',
+        scenario_id: 'SC-003',
+        git_baseline: 'abc123',
+      },
     });
     write(cwd, 'apps/web/src/app.tsx');
     write(cwd, 'libs/web/ui/src/button.spec.tsx');
@@ -206,6 +239,118 @@ describe('P0 knowledge-feedback workflow', () => {
     expect(() => completePhase(cwd, 'coding')).toThrow(
       'missing scenario evidence artifacts/05-code/US-042/SC-003.md',
     );
+  });
+
+  it('requires an auditable .evidence source manifest and structured model expansion for every example', () => {
+    const cwd = workspace();
+    write(cwd, '.evidence/entities/contract.md');
+    write(cwd, '.evidence/associations/contract-to-request.md');
+    write(cwd, 'artifacts/01-requirements/examples/US-042-SC-003.md');
+    write(
+      cwd,
+      'artifacts/02-domain-model/evidence-source-manifest.json',
+      JSON.stringify({
+        version: 1,
+        source_roots: ['.evidence/entities/', '.evidence/associations/'],
+        included_paths: [
+          '.evidence/entities/contract.md',
+          '.evidence/associations/contract-to-request.md',
+        ],
+      }),
+    );
+    write(
+      cwd,
+      'artifacts/02-domain-model/model-expansions/US-042-SC-003.json',
+      JSON.stringify({
+        version: 1,
+        work_item: { story_id: 'US-042', scenario_id: 'SC-003' },
+        source_scenario: 'artifacts/01-requirements/examples/US-042-SC-003.md',
+        given: { entities: [], relationships: [] },
+        when: { command: 'CreateDeliveryRequest' },
+        then: {
+          created_entities: ['DeliveryRequest'],
+          changed_entities: [],
+          created_relationships: ['Contract -> DeliveryRequest'],
+          removed_relationships: [],
+        },
+        invariants: ['Contract exists before DeliveryRequest.'],
+        timeline: ['Contract', 'DeliveryRequest'],
+        evidence_sources: ['.evidence/entities/contract.md'],
+      }),
+    );
+
+    expect(() => validateDomainModelEvidence(cwd)).not.toThrow();
+  });
+
+  it('requires scenario execution evidence to prove Git changes, traceability, Red, Green, and Refactor', () => {
+    const cwd = workspace();
+    write(cwd, 'apps/web/src/app.tsx', 'export const app = 1;\n');
+    write(cwd, 'libs/web/ui/src/index.ts', 'export {};\n');
+    initializeGitRepository(cwd);
+    execFileSync('git', ['add', 'apps', 'libs'], { cwd });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Evidence Workflow Test',
+        '-c',
+        'user.email=workflow@example.test',
+        'commit',
+        '--quiet',
+        '-m',
+        'baseline code',
+      ],
+      { cwd },
+    );
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
+    const state = selectWorkItem(cwd, 'US-042', 'SC-003');
+    const workItem = state.active_work_item!;
+    write(
+      cwd,
+      'artifacts/01-requirements/examples/US-042-SC-003.md',
+      'Given a contract\nWhen a request is created\nThen it is linked\n',
+    );
+    write(cwd, 'apps/web/src/app.tsx', 'export const app = 2;\n');
+    write(cwd, 'apps/web/src/app.spec.tsx', 'export {};\n');
+    write(cwd, 'artifacts/05-code/US-042/SC-003.md', '# TDD evidence\n');
+    write(
+      cwd,
+      'artifacts/05-code/US-042/SC-003.json',
+      JSON.stringify({
+        version: 1,
+        work_item: {
+          story_id: 'US-042',
+          scenario_id: 'SC-003',
+          git_baseline: workItem.git_baseline,
+        },
+        traceability: {
+          scenario: 'artifacts/01-requirements/examples/US-042-SC-003.md',
+          q2_tests: ['apps/web/src/app.spec.tsx'],
+          q1_tests: ['apps/web/src/app.spec.tsx'],
+          functional_contexts: ['web-shell'],
+        },
+        changed_code_paths: [
+          'apps/web/src/app.tsx',
+          'apps/web/src/app.spec.tsx',
+        ],
+        tdd: {
+          red: {
+            command: 'pnpm nx test @evidence/web --run',
+            exit_code: 1,
+            expected_failure: true,
+          },
+          green: { command: 'pnpm nx test @evidence/web --run', exit_code: 0 },
+          refactor: {
+            command: 'pnpm nx test @evidence/web --run',
+            exit_code: 0,
+          },
+        },
+      }),
+    );
+
+    expect(() =>
+      validateScenarioExecutionEvidence(cwd, workItem),
+    ).not.toThrow();
   });
 });
 

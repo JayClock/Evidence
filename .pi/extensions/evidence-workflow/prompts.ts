@@ -27,11 +27,12 @@ export function buildPhasePrompt(
 必须遵守：
 1. 使用项目内 Skill：${meta.skill}；必要时读取 .pi/skills/${meta.skill}/SKILL.md。
 2. 读取并尊重输入文件，不要凭空编造已有工件；已有 artifacts 是审计历史，除非本阶段需要修正，否则不要整体重写。
-3. 将输出写入指定工件路径；如果目录不存在，创建目录。
-4. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。
-5. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。
-6. 保留 artifacts/ 作为审计日志；可以在 artifacts/05-code/ 写实现说明或评审 notes。
-7. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
+3. .evidence/ 是可工作的领域知识源；领域建模阶段必须读取其实体和关联，并在结构化 manifest 中记录实际输入。
+4. 将输出写入指定工件路径；如果目录不存在，创建目录。
+5. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。
+6. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。完成时同时提供场景 Markdown 与机器可读 JSON 证据。
+7. 保留 artifacts/ 作为审计日志；可以在 artifacts/05-code/ 写实现说明或评审 notes。
+8. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
 
 输入文件/目录：
 ${meta.inputs.map((p) => `- ${p}`).join('\n')}

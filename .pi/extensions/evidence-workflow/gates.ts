@@ -6,6 +6,10 @@ import {
   ensureProjectDirs,
   missingPaths,
 } from './artifacts';
+import {
+  validateDomainModelEvidence,
+  validateScenarioExecutionEvidence,
+} from './evidence';
 import { nextPhase, PHASE_META } from './phases';
 import { readState, writeState } from './state';
 import type { Phase, WorkflowState } from './types';
@@ -103,6 +107,7 @@ export function validatePhaseCompletion(
       `Cannot complete ${phase}: missing required outputs: ${missing.join(', ')}.`,
     );
   }
+  if (phase === 'domain_model') validateDomainModelEvidence(cwd);
   if (phase === 'coding') {
     if (!current.active_work_item) {
       throw new Error(
@@ -120,6 +125,7 @@ export function validatePhaseCompletion(
         'Cannot complete coding: no production or test code was found under apps/ or libs/.',
       );
     }
+    validateScenarioExecutionEvidence(cwd, current.active_work_item);
   }
 }
 
