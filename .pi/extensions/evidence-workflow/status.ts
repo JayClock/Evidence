@@ -23,6 +23,9 @@ export function statusMarkdown(cwd: string): string {
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : 'none';
+  const pendingClarification = state.pending_clarification
+    ? `${state.pending_clarification.question_id} · ${state.pending_clarification.story_id}`
+    : 'none';
   return [
     `# Evidence Workflow Status`,
     ``,
@@ -32,6 +35,7 @@ export function statusMarkdown(cwd: string): string {
     `| Phase | ${state.phase} |`,
     `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
     `| Active Work Item | ${activeWorkItem} |`,
+    `| Pending Clarification | ${pendingClarification} |`,
     `| Configured Model | ${formatPhaseModel(configuredModel)} |`,
     `| Round | ${state.round} |`,
     `| Pending Gate | ${state.pending_gate ?? 'none'} |`,

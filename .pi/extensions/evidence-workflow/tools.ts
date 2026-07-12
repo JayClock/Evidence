@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from './artifacts';
+import { answerClarification, askClarification } from './clarifications';
 import {
   answerGate,
   completePhase,
@@ -56,6 +57,28 @@ const phaseFailureParam = Type.Object({
   summary: Type.String({
     description:
       'Concrete failed validation or command result for the next PDCA attempt.',
+  }),
+});
+
+const clarificationQuestionParam = Type.Object({
+  storyId: Type.String({
+    description:
+      'The US-xxx story whose business uncertainty is being clarified.',
+  }),
+  question: Type.String({
+    description:
+      'One high-value, non-technical question for the domain expert. Ask only one question, then stop.',
+  }),
+  target: Type.String({
+    description:
+      'Where an answer belongs: business_context, story, or history.',
+  }),
+});
+
+const clarificationAnswerParam = Type.Object({
+  answer: Type.String({
+    description:
+      'The domain expert’s explicit answer to the sole pending clarification question.',
   }),
 });
 
@@ -116,6 +139,63 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state: readState(ctx.cwd) },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_ask_question',
+    label: 'Ask Evidence Workflow Clarification',
+    description:
+      'Persist one high-value TQA business question and pause the clarification phase for a domain-expert answer',
+    promptSnippet: 'Ask the single next TQA clarification question',
+    promptGuidelines: [
+      'Use only in the clarify phase after the US-xxx story exists.',
+      'Ask exactly one non-technical business question, then stop and wait for the user answer.',
+      'Never answer the question yourself or call another workflow tool until the user responds.',
+    ],
+    parameters: clarificationQuestionParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = askClarification(ctx.cwd, {
+        story_id: params.storyId,
+        question: params.question,
+        target: params.target as 'business_context' | 'story' | 'history',
+      });
+      const pending = state.pending_clarification!;
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `TQA question ${pending.question_id} recorded for ${pending.story_id}. Stop now and wait for the domain expert to answer: ${pending.question}`,
+          },
+        ],
+        details: { state },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_answer_question',
+    label: 'Answer Evidence Workflow Clarification',
+    description:
+      'Record the domain expert’s explicit answer to the sole pending TQA question and route it to its knowledge artifact',
+    promptSnippet:
+      'Record the user’s explicit answer to the pending TQA question',
+    promptGuidelines: [
+      'Use only when the user explicitly supplies an answer to the pending clarification question.',
+      'Do not infer, fabricate, summarize, or answer on behalf of the user.',
+    ],
+    parameters: clarificationAnswerParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = answerClarification(ctx.cwd, params.answer);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).`,
+          },
+        ],
+        details: { state },
       };
     },
   });

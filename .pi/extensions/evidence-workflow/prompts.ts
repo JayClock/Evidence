@@ -38,8 +38,9 @@ export function buildPhasePrompt(
 5. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。
 6. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。完成时同时提供场景 Markdown 与机器可读 JSON 证据。
 7. 本轮工件只写入 artifacts/iterations/${state.iteration_id}/；不要覆盖其他 iteration；.evidence/ 仍是跨迭代的权威模型。
-8. Check 失败时调用 evidence_workflow_report_phase_failure，记录具体失败结果后在同一阶段修正；达到重试上限会创建 emergency Gate。
-9. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
+8. clarify 阶段使用 evidence_workflow_ask_question 一次只记录一个高价值、非技术问题；调用后立刻停止，等待用户明确回答。只有用户明确回答后才可调用 evidence_workflow_answer_question，绝不自行编造答案。pending clarification 会阻止进入下一阶段。
+9. Check 失败时调用 evidence_workflow_report_phase_failure，记录具体失败结果后在同一阶段修正；达到重试上限会创建 emergency Gate。
+10. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
 
 输入文件/目录：
 ${meta.inputs.map((p) => `- ${resolvePath(p)}`).join('\n')}

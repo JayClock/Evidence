@@ -12,12 +12,23 @@ export type Phase =
   | 'complete';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
+export type ClarificationTarget = 'business_context' | 'story' | 'history';
 
 export interface ActiveWorkItem {
   story_id: string;
   scenario_id: string;
   /** Immutable Git HEAD captured before this scenario's Red step. */
   git_baseline: string;
+}
+
+export interface ClarificationRecord {
+  question_id: string;
+  story_id: string;
+  question: string;
+  target: ClarificationTarget;
+  asked_at: string;
+  answer?: string;
+  answered_at?: string;
 }
 
 export interface PhaseFailure {
@@ -45,6 +56,10 @@ export interface WorkflowState {
   artifacts: string[];
   gate_config: Record<string, GateMode>;
   active_work_item?: ActiveWorkItem;
+  /** The sole TQA question awaiting an explicit domain-expert answer. */
+  pending_clarification?: ClarificationRecord;
+  /** Immutable, answered TQA exchanges for the active iteration. */
+  clarification_history?: ClarificationRecord[];
   last_failure?: PhaseFailure;
   halted?: WorkflowHalt;
   pi?: {

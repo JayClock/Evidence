@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { copyFileSync, existsSync } from 'node:fs';
 import { ensureProjectDirs, missingPaths } from './artifacts';
+import { answerClarification } from './clarifications';
 import { phaseModelConfig } from './config';
 import { answerGate, isGateAnswered, resolvePendingGate } from './gates';
 import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
@@ -106,6 +107,25 @@ export function registerCommands(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand('evidence-answer', {
+    description:
+      'Answer the single pending TQA clarification: /evidence-answer <answer>',
+    handler: async (args, ctx) => {
+      try {
+        const state = answerClarification(ctx.cwd, args);
+        ctx.ui.notify(
+          `Answered clarification. Recorded exchanges: ${state.clarification_history?.length ?? 0}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
   pi.registerCommand('evidence-run', {
     description:
       'Run the current Evidence Workflow phase; coding accepts --story=US-xxx --scenario=SC-xxx',
@@ -140,6 +160,14 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.notify(
           `Iteration ${state.iteration_id} is halted: ${state.halted.reason}`,
           'error',
+        );
+        return;
+      }
+      if (state.pending_clarification) {
+        const pending = state.pending_clarification;
+        ctx.ui.notify(
+          `Clarification ${pending.question_id} for ${pending.story_id} is awaiting a domain-expert answer: ${pending.question}. Run /evidence-answer <answer> before continuing.`,
+          'info',
         );
         return;
       }

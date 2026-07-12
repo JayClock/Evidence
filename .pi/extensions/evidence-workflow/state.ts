@@ -32,6 +32,25 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   }
   const iterationId = state.iteration_id ?? DEFAULT_STATE.iteration_id;
   assertIterationId(iterationId);
+  if (state.pending_clarification && phase !== 'clarify') {
+    throw new Error(
+      'A pending clarification is only valid while the workflow is in clarify.',
+    );
+  }
+  if (state.pending_clarification?.answer) {
+    throw new Error(
+      'A pending clarification must not already contain an answer.',
+    );
+  }
+  if (
+    state.clarification_history?.some(
+      (record) => !record.answer || !record.answered_at,
+    )
+  ) {
+    throw new Error(
+      'Clarification history may only contain answered exchanges.',
+    );
+  }
   return {
     iteration_id: iterationId,
     phase: phase as Phase,
@@ -43,6 +62,12 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     gate_config: { ...DEFAULT_STATE.gate_config, ...(state.gate_config ?? {}) },
     ...(state.active_work_item
       ? { active_work_item: state.active_work_item }
+      : {}),
+    ...(state.pending_clarification
+      ? { pending_clarification: state.pending_clarification }
+      : {}),
+    ...(state.clarification_history
+      ? { clarification_history: state.clarification_history }
       : {}),
     ...(state.last_failure ? { last_failure: state.last_failure } : {}),
     ...(state.halted ? { halted: state.halted } : {}),

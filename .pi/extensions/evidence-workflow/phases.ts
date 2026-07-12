@@ -226,7 +226,7 @@ export function phaseSpecificInstructions(
     case 'frame':
       return `- 先定义角色、价值、业务边界和用户旅程；角色 + 价值描述问题，避免把 API、HAL、数据库或测试框架伪装成用户价值。\n- 输出业务上下文和故事地图；故事地图只列候选故事，不得替代后续逐故事澄清。`;
     case 'clarify':
-      return `- 为每个候选 P0/P1 故事建立 artifacts/01-requirements/stories/US-xxx.md。\n- 使用 TQA（Thought-Question-Answer）一次只提出一个高价值业务问题；通过 requirements clarification 工具记录问题和回答。\n- 将已回答问题、仍未决问题及其对故事/上下文的影响写入 artifacts/01-requirements/clarifications/。不得询问技术设计问题。`;
+      return `- 为每个候选 P0/P1 故事建立 artifacts/01-requirements/stories/US-xxx.md。\n- 使用 TQA（Thought-Question-Answer）一次只提出一个高价值、非技术业务问题。调用 evidence_workflow_ask_question 后必须停止，等待领域专家明确回答；不得自问自答或继续运行工作流。\n- 收到用户明确答案后，调用 evidence_workflow_answer_question。目标为 business_context 的答案更新业务上下文，story 的答案更新对应故事，history 的答案仅保留在澄清历史。\n- 每个问答写入 artifacts/01-requirements/clarifications/ 的 Markdown 和 JSON；任何 pending clarification 都会阻止故事进入 Ready 或工作流进入下一阶段。`;
     case 'specify':
       return `- 对每个准备进入建模的故事，在 artifacts/01-requirements/examples/ 写 SC-xxx 示例。\n- 每个示例必须是具体的 Given/When/Then，包含可观察结果、关键业务数据和边界/失败场景；不要写实现步骤。`;
     case 'validate':

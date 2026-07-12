@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   mkdtempSync,
   rmSync,
   writeFileSync,
@@ -10,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectCodeFiles, missingPaths } from './artifacts';
+import { answerClarification, askClarification } from './clarifications';
 import { phaseModelConfig, readWorkflowConfig } from './config';
 import {
   answerGate,
@@ -465,6 +467,119 @@ describe('P0 knowledge-feedback workflow', () => {
     expect(() =>
       validateScenarioExecutionEvidence(cwd, workItem),
     ).not.toThrow();
+  });
+});
+
+describe('P1 TQA clarification workflow', () => {
+  it('persists one pending clarification, routes its answer, and blocks clarification completion until answered', () => {
+    const cwd = workspace();
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
+    writeIterationArtifact(cwd, '01-requirements/business-context.md');
+    writeIterationArtifact(cwd, '01-requirements/stories/US-042.md');
+
+    const asked = askClarification(cwd, {
+      story_id: 'US-042',
+      question: '谁可以批准跨工作区共享的模型？',
+      target: 'business_context',
+    });
+    expect(asked.pending_clarification).toEqual(
+      expect.objectContaining({
+        question_id: 'Q-001',
+        story_id: 'US-042',
+        target: 'business_context',
+      }),
+    );
+    expect(() =>
+      askClarification(cwd, {
+        story_id: 'US-042',
+        question: '第二个问题不应被接受。',
+        target: 'story',
+      }),
+    ).toThrow('pending clarification Q-001');
+    expect(() => completePhase(cwd, 'clarify')).toThrow(
+      'pending clarification Q-001',
+    );
+
+    const answered = answerClarification(cwd, '仅工作区 Owner 可以批准。');
+    expect(answered.pending_clarification).toBeUndefined();
+    expect(answered.clarification_history).toEqual([
+      expect.objectContaining({
+        question_id: 'Q-001',
+        answer: '仅工作区 Owner 可以批准。',
+      }),
+    ]);
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/clarifications/US-042.json',
+        ),
+        'utf8',
+      ),
+    ).toContain('仅工作区 Owner 可以批准。');
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/business-context.md',
+        ),
+        'utf8',
+      ),
+    ).toContain('Q-001');
+
+    askClarification(cwd, {
+      story_id: 'US-042',
+      question: 'Owner 可以委派批准权限吗？',
+      target: 'story',
+    });
+    answerClarification(cwd, '不可以，Owner 必须亲自批准。');
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/stories/US-042.md',
+        ),
+        'utf8',
+      ),
+    ).toContain('Q-002');
+
+    askClarification(cwd, {
+      story_id: 'US-042',
+      question: '该决定是否需要额外沉淀？',
+      target: 'history',
+    });
+    answerClarification(cwd, '仅保留在本次澄清记录中。');
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/clarifications/US-042.md',
+        ),
+        'utf8',
+      ),
+    ).toContain('Q-003');
+  });
+
+  it('requires clarification questions to be scoped to clarify and an existing story', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+
+    expect(() =>
+      askClarification(cwd, {
+        story_id: 'US-042',
+        question: '这不应在 frame 阶段提问。',
+        target: 'history',
+      }),
+    ).toThrow('current phase is frame');
+
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
+    expect(() =>
+      askClarification(cwd, {
+        story_id: 'US-042',
+        question: '缺少故事。',
+        target: 'history',
+      }),
+    ).toThrow('story artifact is missing');
   });
 });
 

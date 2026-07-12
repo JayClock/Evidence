@@ -272,6 +272,11 @@ export function validatePhaseCompletion(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,
     );
   }
+  if (current.pending_clarification) {
+    throw new Error(
+      `Cannot complete ${phase}: pending clarification ${current.pending_clarification.question_id} for ${current.pending_clarification.story_id} must be answered first.`,
+    );
+  }
 
   if (phase === 'coding') {
     if (!current.active_work_item) {
