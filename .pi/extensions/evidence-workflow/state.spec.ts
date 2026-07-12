@@ -17,11 +17,13 @@ import {
 afterEach(cleanupWorkspaces);
 
 describe('state', () => {
-  it('starts the next isolated iteration', () => {
+  it('rejects local iteration initialization in favor of an Issue snapshot', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
     writeIterationArtifact(cwd, '00-user-input/requirements.md');
-    expect(newIterationState(cwd).iteration_id).toBe('ITER-0002');
+    expect(() => newIterationState(cwd)).toThrow(
+      'Local iteration initialization is disabled',
+    );
   });
 
   it('requires one selected scenario before selecting its unique test process', () => {

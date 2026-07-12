@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { relative } from 'node:path';
+import { join, relative } from 'node:path';
 import { findFiles } from './artifacts';
 import type { TestDouble, TestProcessRuntime } from './types';
 
@@ -163,6 +163,11 @@ export interface TestProcessCandidate {
   definition: TestProcessDefinition;
 }
 
+/** Project-owned, versioned working knowledge shared by all iterations. */
+export function catalogTestProcessDirectory(cwd: string): string {
+  return join(cwd, 'engineering/evidence-workflow/test-processes');
+}
+
 /** Find processes that can cover every functional context for a selected scenario. */
 export function matchingTestProcesses(
   cwd: string,
@@ -176,11 +181,36 @@ export function matchingTestProcesses(
   if (new Set(functionalContexts).size !== functionalContexts.length) {
     throw new Error('Functional contexts must be unique.');
   }
-  return findFiles(processDirectory, (path) => path.endsWith('.json'))
-    .map((path) => ({
-      path: relative(cwd, path),
-      definition: readTestProcess(path),
-    }))
+  return matchingTestProcessesInDirectories(
+    cwd,
+    [processDirectory],
+    runtime,
+    functionalContexts,
+  );
+}
+
+/** Search an iteration snapshot and the shared catalog without weakening uniqueness. */
+export function matchingTestProcessesInDirectories(
+  cwd: string,
+  processDirectories: string[],
+  runtime: TestProcessRuntime,
+  functionalContexts: string[],
+): TestProcessCandidate[] {
+  if (functionalContexts.length === 0) {
+    throw new Error('At least one functional context is required.');
+  }
+  if (new Set(functionalContexts).size !== functionalContexts.length) {
+    throw new Error('Functional contexts must be unique.');
+  }
+  return processDirectories
+    .flatMap((processDirectory) =>
+      findFiles(processDirectory, (path) => path.endsWith('.json')).map(
+        (path) => ({
+          path: relative(cwd, path),
+          definition: readTestProcess(path),
+        }),
+      ),
+    )
     .filter(
       ({ definition }) =>
         definition.applies_to.runtime === runtime &&

@@ -14,7 +14,7 @@ import { validateIssueSourceSnapshot } from './issue-source';
 import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
 import { validateTestProcessDirectory } from './test-processes';
 import { nextPhase, PHASE_META } from './phases';
-import { readState, writeState } from './state';
+import { readState, selectedTestProcesses, writeState } from './state';
 import type { GateDecisionAction, Phase, WorkflowState } from './types';
 
 interface GateMetadata {
@@ -292,9 +292,9 @@ export function validatePhaseCompletion(
         'Cannot complete coding: select exactly one US-xxx / SC-xxx work item first.',
       );
     }
-    if (!current.active_work_item.test_process) {
+    if (selectedTestProcesses(current.active_work_item).length === 0) {
       throw new Error(
-        'Cannot complete coding: select one matching test process before changing code.',
+        'Cannot complete coding: select one matching test process before changing code; add additional processes for each runtime.',
       );
     }
     const evidencePath = artifactRelativePath(

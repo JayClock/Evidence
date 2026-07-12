@@ -35,13 +35,23 @@ export interface TestProcessSelection {
   functional_contexts: string[];
 }
 
+/** Ordered, cross-runtime test processes selected for one vertical scenario. */
+export interface TestPlan {
+  version: 1;
+  /** Requires execution records when selected by an Issue-backed iteration. */
+  execution_evidence_version?: 1;
+  processes: TestProcessSelection[];
+}
+
 export interface ActiveWorkItem {
   story_id: string;
   scenario_id: string;
   /** Immutable Git HEAD captured before this scenario's Red step. */
   git_baseline: string;
-  /** Immutable, selected test process that governs this scenario's TDD work. */
+  /** @deprecated Single-process compatibility projection; use test_plan. */
   test_process?: TestProcessSelection;
+  /** Immutable ordered test plan; supports one or more runtime-specific processes. */
+  test_plan?: TestPlan;
 }
 
 export interface ClarificationRecord {
@@ -90,6 +100,8 @@ export interface WorkflowState {
   pi?: {
     enabled: boolean;
     version: number;
+    /** New Issue-backed iterations require tool-observed test execution records. */
+    execution_evidence_version?: 1;
     last_command?: string;
     last_run_at?: string;
     last_completed_phase?: Phase;

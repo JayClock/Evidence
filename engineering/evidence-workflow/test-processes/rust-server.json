@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "rust-server-feature",
+  "applies_to": {
+    "runtime": "rust",
+    "functional_contexts": ["rust-domain", "rust-persistent", "rust-api"]
+  },
+  "steps": [
+    {
+      "id": "domain-q1",
+      "quadrant": "Q1",
+      "functional_context": "rust-domain",
+      "test_double": "real",
+      "task": "Write a focused domain behavior test before implementation."
+    },
+    {
+      "id": "persistent-q1",
+      "quadrant": "Q1",
+      "functional_context": "rust-persistent",
+      "test_double": "fake",
+      "task": "Extend the fake-store or persistence contract test that supports the domain behavior."
+    },
+    {
+      "id": "api-q2",
+      "quadrant": "Q2",
+      "functional_context": "rust-api",
+      "test_double": "fake",
+      "task": "Verify the selected HTTP acceptance behavior through the Axum API with the supported store boundary."
+    }
+  ],
+  "quality_gates": [
+    "cargo test -p evidence-server",
+    "cargo clippy -p evidence-server --all-targets -- -D warnings",
+    "cargo fmt -p evidence-server -- --check"
+  ]
+}

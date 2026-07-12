@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "typescript-web-feature",
+  "applies_to": {
+    "runtime": "typescript",
+    "functional_contexts": ["web-shell", "web-feature", "web-api-client"]
+  },
+  "steps": [
+    {
+      "id": "web-component-q1",
+      "quadrant": "Q1",
+      "functional_context": "web-feature",
+      "test_double": "stub",
+      "task": "Write a colocated Vitest component or hook test before changing the feature implementation."
+    },
+    {
+      "id": "web-resource-q1",
+      "quadrant": "Q1",
+      "functional_context": "web-api-client",
+      "test_double": "mock",
+      "task": "Verify API-resource request and response behavior with the transport boundary isolated."
+    },
+    {
+      "id": "web-acceptance-q2",
+      "quadrant": "Q2",
+      "functional_context": "web-shell",
+      "test_double": "real",
+      "task": "Exercise the selected scenario through the rendered React route using real feature composition."
+    }
+  ],
+  "quality_gates": [
+    "pnpm nx test @evidence/web --run",
+    "pnpm nx typecheck @evidence/web",
+    "pnpm nx lint @evidence/web"
+  ]
+}

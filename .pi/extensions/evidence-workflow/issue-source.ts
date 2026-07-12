@@ -240,7 +240,7 @@ export function startIterationFromIssue(
   const state = writeState(cwd, {
     ...DEFAULT_STATE,
     iteration_id: nextIterationId(cwd),
-    pi: { enabled: true, version: 4 },
+    pi: { enabled: true, version: 5, execution_evidence_version: 1 },
   });
   return persistSnapshot(cwd, state, snapshot);
 }

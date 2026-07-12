@@ -217,6 +217,13 @@ export function registerCommands(pi: ExtensionAPI): void {
         );
         return;
       }
+      if (state.phase !== 'complete' && !state.requirement_source) {
+        ctx.ui.notify(
+          'This bootstrap iteration is archival and cannot run. Start a GitHub Issue-backed iteration with /evidence-reset --issue=<number>.',
+          'error',
+        );
+        return;
+      }
       if (state.pending_clarification) {
         const pending = state.pending_clarification;
         ctx.ui.notify(

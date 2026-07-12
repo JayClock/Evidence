@@ -12,6 +12,7 @@ import { PHASE_META } from './phases';
 import { buildPhasePrompt } from './prompts';
 import { readState, selectTestProcess, selectWorkItem } from './state';
 import { statusMarkdown } from './status';
+import { executeTestStep } from './execution';
 import type { Phase } from './types';
 
 type JsonSchema = Record<string, unknown> & { __optional?: boolean };
@@ -121,6 +122,18 @@ const workItemParam = Type.Object({
   scenarioId: Type.String({
     description:
       'The selected concrete acceptance scenario id, for example SC-001.',
+  }),
+});
+
+const executionStepParam = Type.Object({
+  processId: Type.String({
+    description: 'Selected test-process id that declares the command.',
+  }),
+  stage: Type.String({
+    description: 'TDD stage: red, green, refactor, or quality_gate.',
+  }),
+  command: Type.String({
+    description: 'An exact command declared in that process quality_gates.',
   }),
 });
 
@@ -340,6 +353,45 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_run_test_step',
+    label: 'Run Evidence Workflow Test Step',
+    description:
+      'Run a selected test-process quality command and append tamper-evident execution evidence',
+    promptSnippet:
+      'Run one declared TDD test command and persist its observed result',
+    promptGuidelines: [
+      'Use only in coding after selecting the work item and every applicable test process.',
+      'Run only the exact quality-gate command declared by the selected process.',
+      'Record Red, Green, Refactor, and quality-gate observations instead of manually inventing exit codes.',
+    ],
+    parameters: executionStepParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const stage = params.stage as
+        | 'red'
+        | 'green'
+        | 'refactor'
+        | 'quality_gate';
+      if (!['red', 'green', 'refactor', 'quality_gate'].includes(stage)) {
+        throw new Error(`Unsupported test execution stage: ${params.stage}.`);
+      }
+      const record = executeTestStep(ctx.cwd, {
+        processId: params.processId,
+        stage,
+        command: params.command,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded ${record.stage} for ${record.process_id}: exit=${record.exit_code}.`,
+          },
+        ],
+        details: record,
       };
     },
   });

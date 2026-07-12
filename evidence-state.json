@@ -1,6 +1,6 @@
 {
   "iteration_id": "ITER-0001",
-  "phase": "frame",
+  "phase": "complete",
   "round": 0,
   "pending_gate": null,
   "failures": 0,
@@ -21,7 +21,7 @@
   "pi": {
     "enabled": true,
     "version": 4,
-    "last_command": "/evidence-run",
+    "last_command": "bootstrap iteration archived; use /evidence-reset --issue=<number>",
     "last_run_at": "2026-07-11T23:47:42.373Z"
   }
 }

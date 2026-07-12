@@ -116,6 +116,9 @@ Pi 中可用命令：
 /evidence-run
 /evidence-gate 通过，进入下一阶段
 /evidence-answer <领域专家的回答>
+
+# Coding phase tool
+# evidence_workflow_run_test_step(processId, stage, command)
 ```
 
 工作流资产：
@@ -129,7 +132,7 @@ Pi 中可用命令：
 | `artifacts/iterations/ITER-xxxx/`       | 每轮 Evidence 工件、失败反馈和审计日志（不可覆盖）     |
 | `artifacts/iterations/ITER-xxxx/gates/` | 当前迭代的类型化人工审核门                             |
 
-使用 `/evidence-reset --issue=123 [--repo=owner/evidence]` 从 GitHub Issue 创建新迭代。Issue 是需求权威来源；工作流将其冻结为 `00-user-input/issue.json`，并自动生成只读的 `requirements.md` 投影供 Frame 使用，禁止手工维护该文件。活动迭代由 `evidence-state.json` 的 `iteration_id` 指定，旧工件不会被覆盖。
+使用 `/evidence-reset --issue=123 [--repo=owner/evidence]` 从 GitHub Issue 创建新迭代。Issue 是需求权威来源；工作流将其冻结为 `00-user-input/issue.json`，并自动生成只读的 `requirements.md` 投影供 Frame 使用，禁止手工维护该文件。没有 GitHub Issue source 的 bootstrap iteration 只作为历史记录，不能执行；活动迭代由 `evidence-state.json` 的 `iteration_id` 指定，旧工件不会被覆盖。
 
 `/evidence-issue-status` 检查远端 Issue 是否偏离当前快照。只有仍在 Frame 时才能执行 `/evidence-issue-sync` 显式刷新；Frame 之后的需求变化应开启新迭代，以免破坏 Story、Scenario 和模型展开的输入基线。
 
@@ -137,7 +140,9 @@ Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段�
 
 `clarify` 阶段使用 TQA：Agent 通过 `evidence_workflow_ask_question` 记录一个高价值、非技术问题后必须暂停；领域专家用 `evidence_workflow_answer_question` 或 `/evidence-answer` 明确回答。每个问答同时保存为 Markdown 与 JSON；回答按声明目标写入业务上下文、故事或澄清历史。未回答问题会阻止故事进入 Ready 和工作流进入下一阶段。
 
-`architecture` 阶段必须在 `test-processes/` 提供机器可读 JSON 工序（Q1/Q2 步骤、功能上下文、测试替身和质量门禁）。Coding 在修改代码前用 `evidence_workflow_select_test_process` 唯一选择适用工序；场景证据逐步骤记录 TDD 命令、退出码和实际改动，且必须完整覆盖 Git 变更。
+`architecture` 阶段必须在 `test-processes/` 提供机器可读 JSON 工序（Q1/Q2 步骤、功能上下文、测试替身和质量门禁）。项目已在 `engineering/evidence-workflow/test-processes/` 维护 Rust、Web、Nest 和 Tauri 的可复用工序目录；选择目录工序时，工作流会将精确 JSON 快照复制到当前 iteration，保证审计可重演。一个垂直场景可顺序选择多个 runtime 工序（例如 Web + Rust），并在 `test_plan` 中固定组合。
+
+Coding 在修改代码前用 `evidence_workflow_select_test_process` 选择每个适用工序。Issue 驱动的新 iteration 还必须通过 `evidence_workflow_run_test_step` 执行工序声明的质量命令；该工具会把观察到的退出码、stdout/stderr 哈希与 Git 工作树哈希追加到场景执行日志。场景 JSON evidence 由这些记录验证，不能手工伪造 Red/Green/Refactor 退出码。
 
 Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm workflow:validate` 验证活动迭代状态、输入和 Gate 元数据。
 

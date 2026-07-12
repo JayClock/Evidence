@@ -9,13 +9,13 @@ description: '在 apps/ 与 libs/ 中以真实测试先行开发，每次只实�
 
 ## 工作流程
 
-1. 确认 workflow 已通过 `evidence_workflow_select_work_item` 选择唯一的 `US-xxx / SC-xxx` 活动工作项，并记录 Git 基线；随后通过 `evidence_workflow_select_test_process` 以 runtime 和完整功能上下文唯一选择 JSON 测试工序。未完成两项选择前不得修改业务代码；`apps/` 或 `libs/` 已有未提交改动时不得开始。
+1. 确认 workflow 已通过 `evidence_workflow_select_work_item` 选择唯一的 `US-xxx / SC-xxx` 活动工作项，并记录 Git 基线；随后为每个 owning runtime 通过 `evidence_workflow_select_test_process` 以完整功能上下文唯一选择 JSON 测试工序。选择顺序构成不可变 `test_plan`；目录工序会快照到 iteration。未完成所有选择前不得修改业务代码；`apps/` 或 `libs/` 已有未提交改动时不得开始。
 2. 阅读该故事、Given/When/Then 示例、JSON 模型展开、架构测试策略、适用测试工序、API 契约和完成定义（DoD）。
 3. 编辑前确认所属项目和功能上下文：React/Nx、Nest/Nx、Rust domain/API/persistent crate 或 Tauri。
 4. **红（Red）**：为选定场景的预期行为创建或更新就近测试；运行并记录预期行为失败，而不是只记录缺少依赖或编译配置错误。
 5. **绿（Green）**：在所属项目中做最小生产代码改动，并重新运行聚焦测试。
 6. **重构（Refactor）**：改善结构，同时保持选定场景及所有相关支撑测试通过。
-7. 写入 `artifacts/05-code/<US-xxx>/<SC-xxx>.md`，记录场景、改动路径、Red/Green/Refactor 证据、命令、结果和剩余风险；并在同名 `.json` 记录 Git 基线、所选工序、场景 → Q2/Q1 测试 → 功能上下文 → 测试替身追踪、每个工序步骤的实际改动路径与 Red（非零）/Green（零）/Refactor（零）退出码，以及全部工序质量门禁的零退出码。
+7. Issue 驱动 iteration 使用 `evidence_workflow_run_test_step` 运行每项工序声明的 Red/Green/Refactor 和质量门禁命令；不得手写退出码。写入 `artifacts/05-code/<US-xxx>/<SC-xxx>.md`，记录场景、改动路径和剩余风险；并在同名 `.json` 记录 Git 基线、所选 `test_plan`、场景 → Q2/Q1 测试 → 功能上下文 → 测试替身追踪、每个工序步骤的实际改动路径与工具观测的退出码，以及全部工序质量门禁的零退出码。
 
 ## 规则
 

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "id": "tauri-desktop-shell",
+  "applies_to": {
+    "runtime": "tauri",
+    "functional_contexts": ["desktop-shell"]
+  },
+  "steps": [
+    {
+      "id": "desktop-command-q1",
+      "quadrant": "Q1",
+      "functional_context": "desktop-shell",
+      "test_double": "stub",
+      "task": "Write a focused Tauri command or shell integration test before implementation."
+    },
+    {
+      "id": "desktop-acceptance-q2",
+      "quadrant": "Q2",
+      "functional_context": "desktop-shell",
+      "test_double": "real",
+      "task": "Verify the selected desktop behavior with the real shell boundary."
+    }
+  ],
+  "quality_gates": [
+    "cargo test -p evidence-desktop",
+    "cargo clippy -p evidence-desktop --all-targets -- -D warnings",
+    "cargo fmt -p evidence-desktop -- --check"
+  ]
+}

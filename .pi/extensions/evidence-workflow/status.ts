@@ -28,7 +28,9 @@ export function statusMarkdown(cwd: string): string {
     : 'none';
   const requirementSource = state.requirement_source
     ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}`
-    : 'legacy local snapshot';
+    : state.phase === 'complete'
+      ? 'archived bootstrap iteration'
+      : 'missing — execution blocked';
   return [
     `# Evidence Workflow Status`,
     ``,

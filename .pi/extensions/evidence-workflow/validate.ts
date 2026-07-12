@@ -7,6 +7,10 @@ import { validateIssueSourceSnapshot } from './issue-source';
 import { artifactRelativePath, iterationRoot } from './iteration';
 import { PHASE_META, PHASE_ORDER } from './phases';
 import { readState } from './state';
+import {
+  catalogTestProcessDirectory,
+  validateTestProcessDirectory,
+} from './test-processes';
 
 /** Deterministic CI validation for the active iteration's state and inputs. */
 export function validateWorkflow(cwd: string): void {
@@ -17,7 +21,19 @@ export function validateWorkflow(cwd: string): void {
       `Active iteration artifact root is missing: ${relative(cwd, root)}. Run /evidence-reset or create its seed input.`,
     );
   }
+  if (state.phase !== 'complete' && !state.requirement_source) {
+    throw new Error(
+      'Active iteration has no GitHub Issue requirement source. Start one with /evidence-reset --issue=<number>.',
+    );
+  }
   if (state.requirement_source) validateIssueSourceSnapshot(cwd, state);
+  const catalog = catalogTestProcessDirectory(cwd);
+  if (!existsSync(catalog)) {
+    throw new Error(
+      `Project test-process catalog is missing: ${relative(cwd, catalog)}.`,
+    );
+  }
+  validateTestProcessDirectory(catalog);
   for (const artifact of state.artifacts) {
     if (!existsSync(`${cwd}/${artifact}`)) {
       throw new Error(

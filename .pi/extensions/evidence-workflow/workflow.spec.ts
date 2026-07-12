@@ -888,7 +888,7 @@ describe('P0 iteration isolation and PDCA', () => {
     );
   });
 
-  it('starts a new iteration without deleting a previous iteration root', () => {
+  it('disables local iteration initialization so a GitHub Issue is always the source', () => {
     const cwd = workspace();
     writeIterationArtifact(
       cwd,
@@ -897,10 +897,9 @@ describe('P0 iteration isolation and PDCA', () => {
     );
     writeState(cwd, DEFAULT_STATE);
 
-    const next = newIterationState(cwd);
-
-    expect(next.iteration_id).toBe('ITER-0002');
-    expect(() => readState(cwd)).not.toThrow();
+    expect(() => newIterationState(cwd)).toThrow(
+      'Local iteration initialization is disabled',
+    );
     expect(
       existsSync(
         join(
@@ -960,13 +959,15 @@ describe('P0 iteration isolation and PDCA', () => {
     expect(retried.failures).toBe(0);
   });
 
-  it('validates only the active iteration seed and state in CI', () => {
+  it('rejects legacy active iteration seeds while ignoring stale root-level artifacts', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
     writeIterationArtifact(cwd, '00-user-input/requirements.md', 'seed');
     write(cwd, 'artifacts/00-user-input/requirements.md', 'stale legacy seed');
 
-    expect(() => validateWorkflow(cwd)).not.toThrow();
+    expect(() => validateWorkflow(cwd)).toThrow(
+      'no GitHub Issue requirement source',
+    );
     write(
       cwd,
       'evidence-state.json',

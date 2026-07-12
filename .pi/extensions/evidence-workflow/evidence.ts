@@ -458,6 +458,203 @@ function validateTddStep(
   }
 }
 
+function validateObservedExecutions(
+  cwd: string,
+  artifactRoot: string,
+  workItem: ActiveWorkItem,
+  evidencePath: string,
+  processId: string,
+  tdd: Record<string, unknown>,
+  qualityGates: unknown[],
+): void {
+  const logPath = join(
+    cwd,
+    artifactRoot,
+    '05-code',
+    workItem.story_id,
+    `${workItem.scenario_id}.execution.jsonl`,
+  );
+  if (!existsSync(logPath)) {
+    throw new Error(
+      `${evidencePath} requires tool-observed execution log ${logPath}.`,
+    );
+  }
+  const records = readFileSync(logPath, 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line, index) =>
+      expectRecord(JSON.parse(line), `${logPath}:${index + 1}`),
+    );
+  const hasRecord = (stage: string, command: string, exitCode: number) =>
+    records.some(
+      (record) =>
+        record.process_id === processId &&
+        record.stage === stage &&
+        record.command === command &&
+        record.exit_code === exitCode,
+    );
+  for (const stage of ['red', 'green', 'refactor'] as const) {
+    const step = expectRecord(tdd[stage], `${evidencePath}.tdd.${stage}`);
+    const exitCode = step.exit_code as number;
+    const command = expectString(
+      step.command,
+      `${evidencePath}.tdd.${stage}.command`,
+    );
+    if (!hasRecord(stage, command, exitCode)) {
+      throw new Error(
+        `${evidencePath} has no observed ${stage} execution for ${processId}.`,
+      );
+    }
+  }
+  for (const gate of qualityGates) {
+    const value = expectRecord(
+      gate,
+      `${evidencePath}.test_process.quality_gates`,
+    );
+    const command = expectString(
+      value.command,
+      `${evidencePath}.test_process.quality_gates.command`,
+    );
+    if (!hasRecord('quality_gate', command, 0)) {
+      throw new Error(
+        `${evidencePath} has no observed quality gate execution for ${processId}: ${command}.`,
+      );
+    }
+  }
+}
+
+function validateCompositeProcessEvidence(
+  cwd: string,
+  artifactRoot: string,
+  workItem: ActiveWorkItem,
+  evidencePath: string,
+  evidence: Record<string, unknown>,
+  selections: NonNullable<ActiveWorkItem['test_plan']>['processes'],
+): void {
+  if (selections.length < 2) return;
+  if (!Array.isArray(evidence.test_processes)) {
+    throw new Error(
+      `${evidencePath}.test_processes must record every process in a multi-runtime test plan.`,
+    );
+  }
+  if (evidence.test_processes.length !== selections.length) {
+    throw new Error(
+      `${evidencePath}.test_processes must record every selected process.`,
+    );
+  }
+  for (const selection of selections) {
+    const recorded = evidence.test_processes
+      .map((value, index) =>
+        expectRecord(value, `${evidencePath}.test_processes[${index}]`),
+      )
+      .find(
+        (value) => value.id === selection.id && value.path === selection.path,
+      );
+    if (
+      !recorded ||
+      !Array.isArray(recorded.steps) ||
+      !Array.isArray(recorded.quality_gates)
+    ) {
+      throw new Error(
+        `${evidencePath} is missing complete evidence for test process ${selection.id}.`,
+      );
+    }
+    const definition = readTestProcess(join(cwd, selection.path));
+    if (recorded.steps.length !== definition.steps.length) {
+      throw new Error(
+        `${evidencePath} must record every step for test process ${selection.id}.`,
+      );
+    }
+    for (const definitionStep of definition.steps) {
+      const step = recorded.steps
+        .map((value, index) =>
+          expectRecord(
+            value,
+            `${evidencePath}.test_processes.${selection.id}.steps[${index}]`,
+          ),
+        )
+        .find((value) => value.id === definitionStep.id);
+      if (
+        !step ||
+        step.quadrant !== definitionStep.quadrant ||
+        step.functional_context !== definitionStep.functional_context ||
+        step.test_double !== definitionStep.test_double
+      ) {
+        throw new Error(
+          `${evidencePath} does not match step ${definitionStep.id} in ${selection.id}.`,
+        );
+      }
+      validateTestPaths(
+        cwd,
+        expectNonEmptyStringArray(
+          step.tests,
+          `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tests`,
+        ),
+        `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tests`,
+      );
+      const stepTdd = expectRecord(
+        step.tdd,
+        `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tdd`,
+      );
+      validateTddStep(
+        stepTdd.red,
+        `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tdd.red`,
+        'nonzero',
+      );
+      validateTddStep(
+        stepTdd.green,
+        `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tdd.green`,
+        0,
+      );
+      validateTddStep(
+        stepTdd.refactor,
+        `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tdd.refactor`,
+        0,
+      );
+      if (workItem.test_plan?.execution_evidence_version === 1) {
+        validateObservedExecutions(
+          cwd,
+          artifactRoot,
+          workItem,
+          evidencePath,
+          selection.id,
+          stepTdd,
+          [],
+        );
+      }
+    }
+    for (const command of definition.quality_gates) {
+      const gate = recorded.quality_gates.find(
+        (value) =>
+          isRecord(value) && value.command === command && value.exit_code === 0,
+      );
+      if (!gate)
+        throw new Error(
+          `${evidencePath} must record quality gate ${command} for ${selection.id}.`,
+        );
+      if (workItem.test_plan?.execution_evidence_version === 1) {
+        const firstStep = expectRecord(
+          recorded.steps[0],
+          `${evidencePath}.test_processes.${selection.id}.steps[0]`,
+        );
+        validateObservedExecutions(
+          cwd,
+          artifactRoot,
+          workItem,
+          evidencePath,
+          selection.id,
+          expectRecord(
+            firstStep.tdd,
+            `${evidencePath}.test_processes.${selection.id}.steps[0].tdd`,
+          ),
+          [gate],
+        );
+      }
+    }
+  }
+}
+
 /** Validate machine-readable TDD and Git evidence for one selected acceptance scenario. */
 export function validateScenarioExecutionEvidence(
   cwd: string,
@@ -473,7 +670,10 @@ export function validateScenarioExecutionEvidence(
     throw new Error(
       'Selected coding work item has no Git baseline. Re-select it before coding.',
     );
-  const selectedProcess = workItem.test_process;
+  const selectedProcesses =
+    workItem.test_plan?.processes ??
+    (workItem.test_process ? [workItem.test_process] : []);
+  const selectedProcess = selectedProcesses[0];
   if (!selectedProcess) {
     throw new Error(
       'Selected coding work item has no test process. Select one before changing code.',
@@ -491,9 +691,12 @@ export function validateScenarioExecutionEvidence(
     );
   }
   if (
-    !selectedProcess.functional_contexts.every((context) =>
-      process.applies_to.functional_contexts.includes(context),
-    )
+    !selectedProcesses.every((selection) => {
+      const definition = readTestProcess(join(cwd, selection.path));
+      return selection.functional_contexts.every((context) =>
+        definition.applies_to.functional_contexts.includes(context),
+      );
+    })
   ) {
     throw new Error(
       `Selected test process does not cover every selected functional context.`,
@@ -570,6 +773,38 @@ export function validateScenarioExecutionEvidence(
       `${evidencePath} test process contexts do not match the selected work item.`,
     );
   }
+  if (selectedProcesses.length > 1) {
+    const recordedPlan = expectRecord(
+      recordedWorkItem.test_plan,
+      `${evidencePath}.work_item.test_plan`,
+    );
+    if (recordedPlan.version !== 1 || !Array.isArray(recordedPlan.processes)) {
+      throw new Error(
+        `${evidencePath}.work_item.test_plan must record version=1 and every selected process.`,
+      );
+    }
+    const recordedSelections = recordedPlan.processes.map((entry, index) =>
+      expectRecord(
+        entry,
+        `${evidencePath}.work_item.test_plan.processes[${index}]`,
+      ),
+    );
+    if (
+      recordedSelections.length !== selectedProcesses.length ||
+      !selectedProcesses.every((selection) =>
+        recordedSelections.some(
+          (recorded) =>
+            recorded.id === selection.id &&
+            recorded.path === selection.path &&
+            recorded.runtime === selection.runtime,
+        ),
+      )
+    ) {
+      throw new Error(
+        `${evidencePath} test plan does not match the selected work item.`,
+      );
+    }
+  }
 
   const traceability = expectRecord(
     evidence.traceability,
@@ -599,7 +834,10 @@ export function validateScenarioExecutionEvidence(
     traceability.functional_contexts,
     `${evidencePath}.traceability.functional_contexts`,
   );
-  if (!sameStrings(functionalContexts, selectedProcess.functional_contexts)) {
+  const allSelectedContexts = selectedProcesses.flatMap(
+    ({ functional_contexts }) => functional_contexts,
+  );
+  if (!sameStrings(functionalContexts, allSelectedContexts)) {
     throw new Error(
       `${evidencePath} must trace exactly to the selected functional contexts.`,
     );
@@ -708,8 +946,9 @@ export function validateScenarioExecutionEvidence(
     );
   }
   if (
-    !sameStrings(q1Tests, processQ1Tests) ||
-    !sameStrings(q2Tests, processQ2Tests)
+    selectedProcesses.length === 1 &&
+    (!sameStrings(q1Tests, processQ1Tests) ||
+      !sameStrings(q2Tests, processQ2Tests))
   ) {
     throw new Error(
       `${evidencePath} Q1/Q2 traceability must exactly match test-process steps.`,
@@ -777,4 +1016,23 @@ export function validateScenarioExecutionEvidence(
   }
   validateTddStep(tdd.green, `${evidencePath}.tdd.green`, 0);
   validateTddStep(tdd.refactor, `${evidencePath}.tdd.refactor`, 0);
+  validateCompositeProcessEvidence(
+    cwd,
+    artifactRoot,
+    workItem,
+    evidencePath,
+    evidence,
+    selectedProcesses,
+  );
+  if (workItem.test_plan?.execution_evidence_version === 1) {
+    validateObservedExecutions(
+      cwd,
+      artifactRoot,
+      workItem,
+      evidencePath,
+      process.id,
+      tdd,
+      qualityGates as unknown[],
+    );
+  }
 }

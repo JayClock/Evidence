@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "purpose": "Stable functional-context vocabulary for Evidence vertical slices.",
+  "runtimes": {
+    "typescript": [
+      "web-shell",
+      "web-feature",
+      "web-api-client",
+      "nest-api",
+      "nest-domain",
+      "nest-persistent"
+    ],
+    "rust": ["rust-api", "rust-domain", "rust-persistent"],
+    "tauri": ["desktop-shell"]
+  }
+}

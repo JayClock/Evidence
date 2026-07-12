@@ -1,18 +1,27 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { createCodingGitBaseline } from './evidence';
 import {
   artifactPath,
   artifactRelativePath,
   assertIterationId,
-  nextIterationId,
 } from './iteration';
 import { DEFAULT_STATE, PHASE_ORDER } from './phases';
-import { matchingTestProcesses } from './test-processes';
+import {
+  catalogTestProcessDirectory,
+  matchingTestProcessesInDirectories,
+} from './test-processes';
 import type {
   ActiveWorkItem,
   Phase,
   TestProcessRuntime,
+  TestProcessSelection,
   WorkflowState,
 } from './types';
 
@@ -101,13 +110,14 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   return normalized;
 }
 
-/** Start a clean artifact namespace without deleting prior iteration evidence. */
-export function newIterationState(cwd: string): WorkflowState {
-  return writeState(cwd, {
-    ...DEFAULT_STATE,
-    iteration_id: nextIterationId(cwd),
-    pi: { enabled: true, version: 4 },
-  });
+/**
+ * Legacy local-state initialization is intentionally disabled. Requirements must
+ * be frozen from an Issue by startIterationFromIssue before any active phase runs.
+ */
+export function newIterationState(_cwd: string): never {
+  throw new Error(
+    'Local iteration initialization is disabled. Start with /evidence-reset --issue=<number>.',
+  );
 }
 
 export function selectWorkItem(
@@ -135,7 +145,39 @@ export function selectWorkItem(
   return writeState(cwd, { ...state, active_work_item });
 }
 
-/** Bind a coding scenario to exactly one reusable test process before any code changes. */
+/** Return the ordered selected processes, supporting legacy single-process evidence. */
+export function selectedTestProcesses(
+  workItem: ActiveWorkItem,
+): TestProcessSelection[] {
+  return (
+    workItem.test_plan?.processes ??
+    (workItem.test_process ? [workItem.test_process] : [])
+  );
+}
+
+function snapshotCatalogProcess(
+  cwd: string,
+  state: WorkflowState,
+  path: string,
+): string {
+  const catalog = catalogTestProcessDirectory(cwd);
+  const source = join(cwd, path);
+  if (!source.startsWith(`${catalog}/`)) return path;
+  const targetDirectory = artifactPath(
+    cwd,
+    state,
+    'artifacts/03-architecture/test-processes',
+  );
+  const target = `${targetDirectory}/${path.split('/').at(-1)}`;
+  mkdirSync(targetDirectory, { recursive: true });
+  if (!existsSync(target)) copyFileSync(source, target);
+  return artifactRelativePath(
+    state,
+    `artifacts/03-architecture/test-processes/${path.split('/').at(-1)}`,
+  );
+}
+
+/** Bind one uniquely matching reusable process; repeat for each runtime in a vertical scenario. */
 export function selectTestProcess(
   cwd: string,
   runtime: TestProcessRuntime,
@@ -152,14 +194,12 @@ export function selectTestProcess(
       'Cannot select a test process: select one US-xxx / SC-xxx work item first.',
     );
   }
-  if (state.active_work_item.test_process) {
-    throw new Error(
-      `Test process ${state.active_work_item.test_process.id} is already selected for this work item.`,
-    );
-  }
-  const candidates = matchingTestProcesses(
+  const candidates = matchingTestProcessesInDirectories(
     cwd,
-    artifactPath(cwd, state, 'artifacts/03-architecture/test-processes'),
+    [
+      artifactPath(cwd, state, 'artifacts/03-architecture/test-processes'),
+      catalogTestProcessDirectory(cwd),
+    ],
     runtime,
     functionalContexts,
   );
@@ -174,23 +214,29 @@ export function selectTestProcess(
     );
   }
   const candidate = candidates[0]!;
-  const active_work_item: ActiveWorkItem = {
-    ...state.active_work_item,
-    test_process: {
-      id: candidate.definition.id,
-      path: candidate.path,
-      runtime,
-      functional_contexts: [...functionalContexts],
-    },
+  const selection: TestProcessSelection = {
+    id: candidate.definition.id,
+    path: snapshotCatalogProcess(cwd, state, candidate.path),
+    runtime,
+    functional_contexts: [...functionalContexts],
   };
-  const processRoot = `${artifactRelativePath(
-    state,
-    'artifacts/03-architecture/test-processes',
-  )}/`;
-  if (!candidate.path.startsWith(processRoot)) {
+  const selected = selectedTestProcesses(state.active_work_item);
+  if (selected.some(({ id }) => id === selection.id)) {
     throw new Error(
-      `Test process is outside the active iteration: ${candidate.path}.`,
+      `Test process ${selection.id} is already selected for this work item.`,
     );
   }
+  const active_work_item: ActiveWorkItem = {
+    ...state.active_work_item,
+    // Keep the singleton projection until all consumers have migrated.
+    ...(selected.length === 0 ? { test_process: selection } : {}),
+    test_plan: {
+      version: 1,
+      ...(state.pi?.execution_evidence_version === 1
+        ? { execution_evidence_version: 1 as const }
+        : {}),
+      processes: [...selected, selection],
+    },
+  };
   return writeState(cwd, { ...state, active_work_item });
 }

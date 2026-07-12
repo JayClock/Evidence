@@ -11,11 +11,13 @@ import { validateWorkflow } from './validate';
 afterEach(cleanupWorkspaces);
 
 describe('validate', () => {
-  it('accepts an active iteration with its required phase input', () => {
+  it('rejects a legacy active iteration even when its local requirement file exists', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
     writeIterationArtifact(cwd, '00-user-input/requirements.md');
-    expect(() => validateWorkflow(cwd)).not.toThrow();
+    expect(() => validateWorkflow(cwd)).toThrow(
+      'no GitHub Issue requirement source',
+    );
   });
 
   it('rejects a missing active iteration root', () => {

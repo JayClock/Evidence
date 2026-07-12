@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "typescript-nest-feature",
+  "applies_to": {
+    "runtime": "typescript",
+    "functional_contexts": ["nest-domain", "nest-persistent", "nest-api"]
+  },
+  "steps": [
+    {
+      "id": "nest-domain-q1",
+      "quadrant": "Q1",
+      "functional_context": "nest-domain",
+      "test_double": "real",
+      "task": "Write an isolated domain behavior test before changing Nest application code."
+    },
+    {
+      "id": "nest-persistent-q1",
+      "quadrant": "Q1",
+      "functional_context": "nest-persistent",
+      "test_double": "fake",
+      "task": "Verify repository behavior with an in-memory or Prisma test double."
+    },
+    {
+      "id": "nest-api-q2",
+      "quadrant": "Q2",
+      "functional_context": "nest-api",
+      "test_double": "real",
+      "task": "Exercise the controller scenario through the Nest API module."
+    }
+  ],
+  "quality_gates": [
+    "pnpm nx test @evidence/server-nest --run",
+    "pnpm nx typecheck @evidence/server-nest",
+    "pnpm nx lint @evidence/server-nest"
+  ]
+}
