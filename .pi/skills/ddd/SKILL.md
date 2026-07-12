@@ -34,7 +34,7 @@ description: '应用领域驱动设计（DDD）进行战略与战术建模：统
 - `artifacts/03-architecture/functional-contexts.md`
 - `artifacts/03-architecture/test-strategy.md`
 - `artifacts/03-architecture/test-doubles.md`
-- `artifacts/03-architecture/test-processes/*.md`
+- `artifacts/03-architecture/test-processes/*.json`（可选同名 `.md` 说明）
 
 ## 规则
 
@@ -46,7 +46,7 @@ description: '应用领域驱动设计（DDD）进行战略与战术建模：统
 - 不得编造与既有模型及工件冲突的实现细节。
 - 使用“就绪”的 Given/When/Then 示例验证模型。每份 `US-xxx-SC-xxx.json` 通过 `model_refs.entities` 和 `model_refs.associations` 引用 `.evidence` 稳定 ID，并说明 Given 实体/关系、When 命令、Then 创建/变更/删除的实体和关系、不变量与时间线；在 `validation-report.md` 中记录概念缺失和关系错置。
 - 聚合、值对象、领域事件和事务边界等战术 DDD 决策写入 `tactical-design.md`；它们是模型应用决策，不是第二套问题域模型。
-- 架构必须把每个已计划场景从 Q2 验收测试映射到功能上下文、Q1 支撑测试和选定测试替身。测试工序是有顺序、可复用且测试先行的工作指令，不是泛化任务清单。
+- 架构必须把每个已计划场景从 Q2 验收测试映射到功能上下文、Q1 支撑测试和选定测试替身。测试工序是有顺序、可复用且测试先行的工作指令，不是泛化任务清单；每个 JSON 工序必须有 `version=1`、`id`、`applies_to.runtime`、`applies_to.functional_contexts`、至少一个 Q1 与一个 Q2 step（含 `test_double`）和 `quality_gates`。
 
 ## 内嵌方法论
 

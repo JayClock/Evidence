@@ -133,6 +133,8 @@ Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段�
 
 `clarify` 阶段使用 TQA：Agent 通过 `evidence_workflow_ask_question` 记录一个高价值、非技术问题后必须暂停；领域专家用 `evidence_workflow_answer_question` 或 `/evidence-answer` 明确回答。每个问答同时保存为 Markdown 与 JSON；回答按声明目标写入业务上下文、故事或澄清历史。未回答问题会阻止故事进入 Ready 和工作流进入下一阶段。
 
+`architecture` 阶段必须在 `test-processes/` 提供机器可读 JSON 工序（Q1/Q2 步骤、功能上下文、测试替身和质量门禁）。Coding 在修改代码前用 `evidence_workflow_select_test_process` 唯一选择适用工序；场景证据逐步骤记录 TDD 命令、退出码和实际改动，且必须完整覆盖 Git 变更。
+
 Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm workflow:validate` 验证活动迭代状态、输入和 Gate 元数据。
 
 各阶段的模型策略配置在 `.pi/evidence-workflow.json`。`/evidence-run` 会在执行前切换模型和推理档位；模型不存在或没有凭证时会停止，而不是静默回退。当前策略为：Requirements/Domain 使用 Sol × High，Architecture/Review 使用 Sol × xHigh，Planning/Coding 使用 Terra × Medium。工作流阶段均可拆分，因此默认不使用 Max；Ultra/Pro 不是 API 推理档位，也不写入该配置。
