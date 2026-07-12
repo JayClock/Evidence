@@ -71,6 +71,9 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     max_rounds: state.max_rounds ?? DEFAULT_STATE.max_rounds,
     artifacts: state.artifacts ?? DEFAULT_STATE.artifacts,
     gate_config: { ...DEFAULT_STATE.gate_config, ...(state.gate_config ?? {}) },
+    ...(state.requirement_source
+      ? { requirement_source: state.requirement_source }
+      : {}),
     ...(state.active_work_item
       ? { active_work_item: state.active_work_item }
       : {}),

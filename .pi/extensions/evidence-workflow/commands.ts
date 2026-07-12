@@ -1,18 +1,17 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { copyFileSync, existsSync } from 'node:fs';
 import { ensureProjectDirs, missingPaths } from './artifacts';
 import { answerClarification } from './clarifications';
 import { phaseModelConfig } from './config';
 import { answerGate, isGateAnswered, resolvePendingGate } from './gates';
-import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
+import {
+  checkIssueSourceDrift,
+  startIterationFromIssue,
+  syncIssueSource,
+} from './issue-source';
+import { artifactRelativePath, iterationRoot } from './iteration';
 import { PHASE_META, PHASE_ORDER } from './phases';
 import { buildPhasePrompt } from './prompts';
-import {
-  newIterationState,
-  readState,
-  selectWorkItem,
-  writeState,
-} from './state';
+import { readState, selectWorkItem, writeState } from './state';
 import { statusMarkdown } from './status';
 import type { Phase } from './types';
 
@@ -22,6 +21,8 @@ function parseArgs(args: string): {
   reset: boolean;
   storyId?: string;
   scenarioId?: string;
+  issueNumber?: number;
+  repository?: string;
   rest: string;
 } {
   const parts = args.split(/\s+/).filter(Boolean);
@@ -31,6 +32,8 @@ function parseArgs(args: string): {
     reset: boolean;
     storyId?: string;
     scenarioId?: string;
+    issueNumber?: number;
+    repository?: string;
     rest: string;
   };
   const rest: string[] = [];
@@ -43,6 +46,13 @@ function parseArgs(args: string): {
       parsed.storyId = part.slice('--story='.length);
     else if (part.startsWith('--scenario='))
       parsed.scenarioId = part.slice('--scenario='.length);
+    else if (part.startsWith('--issue=')) {
+      const issueNumber = Number(part.slice('--issue='.length));
+      if (Number.isSafeInteger(issueNumber) && issueNumber > 0)
+        parsed.issueNumber = issueNumber;
+      else rest.push(part);
+    } else if (part.startsWith('--repo='))
+      parsed.repository = part.slice('--repo='.length);
     else if (PHASE_ORDER.includes(part as Phase)) parsed.phase = part;
     else rest.push(part);
   }
@@ -60,29 +70,72 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-reset', {
     description:
-      'Reset Evidence Workflow state to the frame phase for a new iteration',
+      'Start a new iteration from GitHub Issue: /evidence-reset --issue=123 [--repo=owner/repo]',
+    handler: async (args, ctx) => {
+      const parsed = parseArgs(args);
+      if (!parsed.issueNumber) {
+        ctx.ui.notify(
+          'A GitHub Issue is required. Use /evidence-reset --issue=123 [--repo=owner/repo].',
+          'error',
+        );
+        return;
+      }
+      try {
+        const state = startIterationFromIssue(ctx.cwd, {
+          issueNumber: parsed.issueNumber,
+          repository: parsed.repository,
+        });
+        ctx.ui.setStatus('evidence-workflow', `evidence:${state.phase}`);
+        ctx.ui.notify(
+          `Evidence Workflow started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-issue-sync', {
+    description:
+      'Refresh the active GitHub Issue snapshot while the iteration is in frame',
     handler: async (_args, ctx) => {
-      const previous = readState(ctx.cwd);
-      const previousSeed = artifactPath(
-        ctx.cwd,
-        previous,
-        'artifacts/00-user-input/requirements.md',
-      );
-      const legacySeed = `${ctx.cwd}/artifacts/00-user-input/requirements.md`;
-      const state = newIterationState(ctx.cwd);
-      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
-      const nextSeed = artifactPath(
-        ctx.cwd,
-        state,
-        'artifacts/00-user-input/requirements.md',
-      );
-      if (existsSync(previousSeed)) copyFileSync(previousSeed, nextSeed);
-      else if (existsSync(legacySeed)) copyFileSync(legacySeed, nextSeed);
-      ctx.ui.setStatus('evidence-workflow', `evidence:${state.phase}`);
-      ctx.ui.notify(
-        `Evidence Workflow started ${state.iteration_id} at frame; the prior seed input was copied for editing.`,
-        'info',
-      );
+      try {
+        const state = syncIssueSource(ctx.cwd);
+        ctx.ui.notify(
+          `Issue snapshot refreshed: ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-issue-status', {
+    description:
+      'Check whether the live GitHub Issue differs from its snapshot',
+    handler: async (_args, ctx) => {
+      try {
+        const drift = checkIssueSourceDrift(ctx.cwd);
+        ctx.ui.notify(
+          drift.changed
+            ? `Issue changed after snapshot: ${drift.snapshot_hash} → ${drift.remote_hash}. Refresh in frame or start a new iteration.`
+            : `Issue snapshot is current: ${drift.snapshot_hash}.`,
+          drift.changed ? 'warning' : 'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
     },
   });
 
@@ -132,23 +185,24 @@ export function registerCommands(pi: ExtensionAPI): void {
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
       if (parsed.reset) {
-        const previous = readState(ctx.cwd);
-        const seed = artifactPath(
-          ctx.cwd,
-          previous,
-          'artifacts/00-user-input/requirements.md',
-        );
-        const state = newIterationState(ctx.cwd);
-        ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
-        if (existsSync(seed)) {
-          copyFileSync(
-            seed,
-            artifactPath(
-              ctx.cwd,
-              state,
-              'artifacts/00-user-input/requirements.md',
-            ),
+        if (!parsed.issueNumber) {
+          ctx.ui.notify(
+            '--reset requires --issue=123 because requirements are sourced from GitHub Issues.',
+            'error',
           );
+          return;
+        }
+        try {
+          startIterationFromIssue(ctx.cwd, {
+            issueNumber: parsed.issueNumber,
+            repository: parsed.repository,
+          });
+        } catch (error) {
+          ctx.ui.notify(
+            error instanceof Error ? error.message : String(error),
+            'error',
+          );
+          return;
         }
       }
       let state = readState(ctx.cwd);

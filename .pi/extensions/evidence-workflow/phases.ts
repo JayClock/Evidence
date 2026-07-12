@@ -242,6 +242,6 @@ export function phaseSpecificInstructions(
     case 'review':
       return `- 对照具体 SC-xxx 的验收示例、模型展开、测试策略、测试工序和 DoD 审查代码。\n- 输出 artifacts/06-reviews/review-round<round>.md，明确 Critical / Major / Minor、实际命令结果及是否验证了用户价值。`;
     case 'learn':
-      return `- 将本轮 Probe/Sense/Respond 的产品反馈、领域知识修正、质量观察和未完成风险写入 iteration-summary.md。\n- 在 next-iteration.md 形成下一轮可执行问题框定输入；不要把 complete 当作产品开发终点。`;
+      return `- 将本轮 Probe/Sense/Respond 的产品反馈、领域知识修正、质量观察和未完成风险写入 iteration-summary.md。\n- 在 next-iteration.md 形成下一轮可执行问题框定输入；确认后把它更新到 GitHub Issue，再创建下一轮不可变快照。不要手工修改 requirements.md 投影，也不要把 complete 当作产品开发终点。`;
   }
 }

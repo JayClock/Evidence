@@ -3,6 +3,7 @@ import { relative } from 'node:path';
 import { missingPaths } from './artifacts';
 import { validateDomainModelEvidence } from './evidence';
 import { gateDecision } from './gates';
+import { validateIssueSourceSnapshot } from './issue-source';
 import { artifactRelativePath, iterationRoot } from './iteration';
 import { PHASE_META, PHASE_ORDER } from './phases';
 import { readState } from './state';
@@ -16,6 +17,7 @@ export function validateWorkflow(cwd: string): void {
       `Active iteration artifact root is missing: ${relative(cwd, root)}. Run /evidence-reset or create its seed input.`,
     );
   }
+  if (state.requirement_source) validateIssueSourceSnapshot(cwd, state);
   for (const artifact of state.artifacts) {
     if (!existsSync(`${cwd}/${artifact}`)) {
       throw new Error(

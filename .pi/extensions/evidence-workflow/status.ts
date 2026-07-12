@@ -26,6 +26,9 @@ export function statusMarkdown(cwd: string): string {
   const pendingClarification = state.pending_clarification
     ? `${state.pending_clarification.question_id} · ${state.pending_clarification.story_id}`
     : 'none';
+  const requirementSource = state.requirement_source
+    ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}`
+    : 'legacy local snapshot';
   return [
     `# Evidence Workflow Status`,
     ``,
@@ -33,6 +36,7 @@ export function statusMarkdown(cwd: string): string {
     `|:---|:---|`,
     `| Iteration | ${state.iteration_id} |`,
     `| Phase | ${state.phase} |`,
+    `| Requirement Source | ${requirementSource} |`,
     `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
     `| Active Work Item | ${activeWorkItem} |`,
     `| Pending Clarification | ${pendingClarification} |`,

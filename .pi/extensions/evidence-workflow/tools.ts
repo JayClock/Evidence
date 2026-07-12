@@ -7,6 +7,7 @@ import {
   isGateAnswered,
   recordPhaseFailure,
 } from './gates';
+import { startIterationFromIssue, syncIssueSource } from './issue-source';
 import { PHASE_META } from './phases';
 import { buildPhasePrompt } from './prompts';
 import { readState, selectTestProcess, selectWorkItem } from './state';
@@ -46,6 +47,18 @@ const Type = {
     };
   },
 };
+
+const issueSourceParam = Type.Object({
+  issueNumber: Type.String({
+    description: 'GitHub Issue number, for example 123.',
+  }),
+  repository: Type.Optional(
+    Type.String({
+      description:
+        'Optional owner/repository. Defaults to the current GitHub repository.',
+    }),
+  ),
+});
 
 const phaseParam = Type.Object({
   phase: Type.Optional(
@@ -112,6 +125,62 @@ const workItemParam = Type.Object({
 });
 
 export function registerTools(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'evidence_workflow_start_from_issue',
+    label: 'Start Evidence Workflow From Issue',
+    description:
+      'Start a new isolated Evidence iteration from a frozen GitHub Issue snapshot',
+    promptSnippet:
+      'Use a GitHub Issue as the requirement authority for a new iteration',
+    promptGuidelines: [
+      'Use only when the user explicitly identifies the GitHub Issue that should seed a new iteration.',
+      'Do not create or infer an Issue number.',
+    ],
+    parameters: issueSourceParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const issueNumber = Number(params.issueNumber);
+      const state = startIterationFromIssue(ctx.cwd, {
+        issueNumber,
+        repository: params.repository,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
+          },
+        ],
+        details: { state },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_sync_issue',
+    label: 'Sync Evidence Workflow Issue',
+    description:
+      'Explicitly refresh the active GitHub Issue snapshot while still in frame',
+    promptSnippet:
+      'Refresh the frozen requirement snapshot from its GitHub Issue',
+    promptGuidelines: [
+      'Use only when the user explicitly requests a refresh and the workflow is still in frame.',
+      'After frame, preserve the current snapshot and start a new iteration for changed requirements.',
+    ],
+    parameters: Type.Object({}),
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const state = syncIssueSource(ctx.cwd);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Refreshed ${state.requirement_source?.repository}#${state.requirement_source?.issue_number} for ${state.iteration_id}.`,
+          },
+        ],
+        details: { state },
+      };
+    },
+  });
+
   pi.registerTool({
     name: 'evidence_workflow_status',
     label: 'Evidence Workflow Status',

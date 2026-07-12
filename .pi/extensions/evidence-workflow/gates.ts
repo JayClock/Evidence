@@ -10,6 +10,7 @@ import {
   validateDomainModelEvidence,
   validateScenarioExecutionEvidence,
 } from './evidence';
+import { validateIssueSourceSnapshot } from './issue-source';
 import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
 import { validateTestProcessDirectory } from './test-processes';
 import { nextPhase, PHASE_META } from './phases';
@@ -273,6 +274,7 @@ export function validatePhaseCompletion(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,
     );
   }
+  if (current.requirement_source) validateIssueSourceSnapshot(cwd, current);
   if (current.pending_clarification) {
     throw new Error(
       `Cannot complete ${phase}: pending clarification ${current.pending_clarification.question_id} for ${current.pending_clarification.story_id} must be answered first.`,

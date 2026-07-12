@@ -12,7 +12,7 @@ export function buildPhasePrompt(
   const state = readState(cwd);
   const phase = (requestedPhase || state.phase) as Phase;
   if (phase === 'complete') {
-    return 'Evidence Workflow 本轮迭代已完成。读取 artifacts/07-learning/next-iteration.md，以新的问题框定开始下一轮，而不是直接扩写旧工件。';
+    return 'Evidence Workflow 本轮迭代已完成。读取本轮 07-learning/next-iteration.md，将确认后的反馈更新到 GitHub Issue，再通过 /evidence-reset --issue=<number> 创建新快照；不要直接扩写旧工件或手工修改 requirements.md 投影。';
   }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Workflow phase: ${phase}.`);
@@ -20,6 +20,9 @@ export function buildPhasePrompt(
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : '未选择';
+  const requirementSource = state.requirement_source
+    ? `${state.requirement_source.repository}#${state.requirement_source.issue_number} (${state.requirement_source.url})`
+    : 'legacy local snapshot';
   const resolvePath = (path: string) => artifactRelativePath(state, path);
   const instructions = phaseSpecificInstructions(phase).replaceAll(
     'artifacts/',
@@ -28,11 +31,12 @@ export function buildPhasePrompt(
   return `你正在执行 Evidence Workflow 阶段：${phase} — ${meta.title}。
 
 阶段模型：${formatPhaseModel(configuredModel)}
+需求权威来源：${requirementSource}
 当前编码工作项：${activeWorkItem}
 
 必须遵守：
 1. 使用项目内 Skill：${meta.skill}；必要时读取 .pi/skills/${meta.skill}/SKILL.md。
-2. 读取并尊重输入文件，不要凭空编造已有工件；已有 artifacts 是审计历史，除非本阶段需要修正，否则不要整体重写。
+2. 读取并尊重输入文件，不要凭空编造已有工件；已有 artifacts 是审计历史，除非本阶段需要修正，否则不要整体重写。00-user-input/requirements.md 是 GitHub Issue 的自动生成投影，不得手工编辑；需求变化必须更新 Issue，并在 frame 显式同步或开启新迭代。
 3. .evidence/ 是当前项目的权威领域模型；domain_model 阶段必须读取并按场景演进它。artifacts/02-domain-model/ 只保存模型快照、增量、展开、战术设计和验证证据，不得复制另一套模型。
 4. 将输出写入指定工件路径；如果目录不存在，创建目录。
 5. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。

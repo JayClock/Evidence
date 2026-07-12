@@ -16,6 +16,18 @@ export type ClarificationTarget = 'business_context' | 'story' | 'history';
 export type TestProcessRuntime = 'rust' | 'typescript' | 'tauri';
 export type TestDouble = 'real' | 'fake' | 'stub' | 'spy' | 'mock';
 
+export interface GitHubIssueRequirementSource {
+  type: 'github_issue';
+  repository: string;
+  issue_number: number;
+  url: string;
+  snapshot_path: string;
+  projection_path: string;
+  content_hash: string;
+  issue_updated_at: string;
+  fetched_at: string;
+}
+
 export interface TestProcessSelection {
   id: string;
   path: string;
@@ -66,6 +78,8 @@ export interface WorkflowState {
   max_rounds: number;
   artifacts: string[];
   gate_config: Record<string, GateMode>;
+  /** Upstream requirement authority; local files are immutable iteration snapshots. */
+  requirement_source?: GitHubIssueRequirementSource;
   active_work_item?: ActiveWorkItem;
   /** The sole TQA question awaiting an explicit domain-expert answer. */
   pending_clarification?: ClarificationRecord;
