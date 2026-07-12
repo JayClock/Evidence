@@ -9,7 +9,7 @@ import {
 } from './gates';
 import { PHASE_META } from './phases';
 import { buildPhasePrompt } from './prompts';
-import { readState, selectWorkItem } from './state';
+import { readState, selectTestProcess, selectWorkItem } from './state';
 import { statusMarkdown } from './status';
 import type { Phase } from './types';
 
@@ -21,6 +21,14 @@ const Type = {
   },
   Optional(schema: JsonSchema): JsonSchema {
     return { ...schema, __optional: true };
+  },
+  Array(items: JsonSchema): JsonSchema {
+    const { __optional, ...rest } = items;
+    return {
+      type: 'array',
+      items: rest,
+      ...(__optional ? { __optional } : {}),
+    };
   },
   Object(properties: Record<string, JsonSchema>): JsonSchema {
     const cleaned: Record<string, Record<string, unknown>> = {};
@@ -80,6 +88,17 @@ const clarificationAnswerParam = Type.Object({
     description:
       'The domain expert’s explicit answer to the sole pending clarification question.',
   }),
+});
+
+const testProcessParam = Type.Object({
+  runtime: Type.String({
+    description: 'Owning runtime: rust, typescript, or tauri.',
+  }),
+  functionalContexts: Type.Array(
+    Type.String({
+      description: 'One functional context declared by the architecture.',
+    }),
+  ),
 });
 
 const workItemParam = Type.Object({
@@ -218,6 +237,37 @@ export function registerTools(pi: ExtensionAPI): void {
           {
             type: 'text',
             text: `Selected coding work item: ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+          },
+        ],
+        details: { state },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_select_test_process',
+    label: 'Select Evidence Workflow Test Process',
+    description:
+      'Bind the selected coding scenario to one matching, machine-readable test process before code changes',
+    promptSnippet:
+      'Select the test process matching the active scenario runtime and functional contexts',
+    promptGuidelines: [
+      'Use after selecting the US-xxx / SC-xxx coding work item and before writing tests or production code.',
+      'Provide the runtime and all functional contexts declared for the scenario; selection fails on zero or multiple matches.',
+    ],
+    parameters: testProcessParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = selectTestProcess(
+        ctx.cwd,
+        params.runtime as 'rust' | 'typescript' | 'tauri',
+        params.functionalContexts,
+      );
+      const selected = state.active_work_item?.test_process;
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Selected test process ${selected?.id} for ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
           },
         ],
         details: { state },

@@ -11,6 +11,7 @@ import {
   validateScenarioExecutionEvidence,
 } from './evidence';
 import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
+import { validateTestProcessDirectory } from './test-processes';
 import { nextPhase, PHASE_META } from './phases';
 import { readState, writeState } from './state';
 import type { GateDecisionAction, Phase, WorkflowState } from './types';
@@ -278,10 +279,20 @@ export function validatePhaseCompletion(
     );
   }
 
+  if (phase === 'architecture') {
+    validateTestProcessDirectory(
+      artifactPath(cwd, current, 'artifacts/03-architecture/test-processes'),
+    );
+  }
   if (phase === 'coding') {
     if (!current.active_work_item) {
       throw new Error(
         'Cannot complete coding: select exactly one US-xxx / SC-xxx work item first.',
+      );
+    }
+    if (!current.active_work_item.test_process) {
+      throw new Error(
+        'Cannot complete coding: select one matching test process before changing code.',
       );
     }
     const evidencePath = artifactRelativePath(

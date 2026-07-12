@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { findFiles } from './artifacts';
+import { readTestProcess } from './test-processes';
 import type { ActiveWorkItem } from './types';
 
 const CODE_ROOTS = ['apps/', 'libs/'];
@@ -420,6 +421,22 @@ function changedCodePathsSince(cwd: string, baseline: string): string[] {
   ].sort();
 }
 
+function sameStrings(left: string[], right: string[]): boolean {
+  return (
+    JSON.stringify([...new Set(left)].sort()) ===
+    JSON.stringify([...new Set(right)].sort())
+  );
+}
+
+function validateTestPaths(cwd: string, paths: string[], name: string): void {
+  for (const testPath of paths) {
+    if (!isCodePath(testPath) || !isTestPath(testPath)) {
+      throw new Error(`${name} must contain test paths under apps/ or libs/.`);
+    }
+    requireFile(cwd, testPath, name);
+  }
+}
+
 function validateTddStep(
   value: unknown,
   name: string,
@@ -456,6 +473,32 @@ export function validateScenarioExecutionEvidence(
     throw new Error(
       'Selected coding work item has no Git baseline. Re-select it before coding.',
     );
+  const selectedProcess = workItem.test_process;
+  if (!selectedProcess) {
+    throw new Error(
+      'Selected coding work item has no test process. Select one before changing code.',
+    );
+  }
+  const process = readTestProcess(join(cwd, selectedProcess.path));
+  if (process.id !== selectedProcess.id) {
+    throw new Error(
+      `Selected test process id ${selectedProcess.id} does not match ${selectedProcess.path}.`,
+    );
+  }
+  if (process.applies_to.runtime !== selectedProcess.runtime) {
+    throw new Error(
+      `Selected test process runtime does not match ${selectedProcess.path}.`,
+    );
+  }
+  if (
+    !selectedProcess.functional_contexts.every((context) =>
+      process.applies_to.functional_contexts.includes(context),
+    )
+  ) {
+    throw new Error(
+      `Selected test process does not cover every selected functional context.`,
+    );
+  }
   const evidencePath = `${artifactRoot}/05-code/${storyId}/${scenarioId}.json`;
   const evidence = expectRecord(
     readJson(join(cwd, evidencePath)),
@@ -494,6 +537,39 @@ export function validateScenarioExecutionEvidence(
       `${evidencePath} Git baseline does not match the selected work item.`,
     );
   }
+  const recordedProcess = expectRecord(
+    recordedWorkItem.test_process,
+    `${evidencePath}.work_item.test_process`,
+  );
+  for (const [field, expected] of Object.entries({
+    id: selectedProcess.id,
+    path: selectedProcess.path,
+    runtime: selectedProcess.runtime,
+  })) {
+    if (
+      expectString(
+        recordedProcess[field],
+        `${evidencePath}.work_item.test_process.${field}`,
+      ) !== expected
+    ) {
+      throw new Error(
+        `${evidencePath} test process does not match the selected work item.`,
+      );
+    }
+  }
+  if (
+    !sameStrings(
+      expectNonEmptyStringArray(
+        recordedProcess.functional_contexts,
+        `${evidencePath}.work_item.test_process.functional_contexts`,
+      ),
+      selectedProcess.functional_contexts,
+    )
+  ) {
+    throw new Error(
+      `${evidencePath} test process contexts do not match the selected work item.`,
+    );
+  }
 
   const traceability = expectRecord(
     evidence.traceability,
@@ -509,23 +585,159 @@ export function validateScenarioExecutionEvidence(
     throw new Error(`${evidencePath} must trace to ${scenarioPath}.`);
   }
   requireFile(cwd, scenarioPath, `${evidencePath}.traceability.scenario`);
-  for (const field of ['q2_tests', 'q1_tests']) {
-    for (const testPath of expectNonEmptyStringArray(
-      traceability[field],
-      `${evidencePath}.traceability.${field}`,
-    )) {
-      if (!isCodePath(testPath) || !isTestPath(testPath)) {
-        throw new Error(
-          `${evidencePath}.traceability.${field} must contain test paths under apps/ or libs/.`,
-        );
-      }
-      requireFile(cwd, testPath, `${evidencePath}.traceability.${field}`);
-    }
-  }
-  expectNonEmptyStringArray(
+  const q2Tests = expectNonEmptyStringArray(
+    traceability.q2_tests,
+    `${evidencePath}.traceability.q2_tests`,
+  );
+  const q1Tests = expectNonEmptyStringArray(
+    traceability.q1_tests,
+    `${evidencePath}.traceability.q1_tests`,
+  );
+  validateTestPaths(cwd, q2Tests, `${evidencePath}.traceability.q2_tests`);
+  validateTestPaths(cwd, q1Tests, `${evidencePath}.traceability.q1_tests`);
+  const functionalContexts = expectNonEmptyStringArray(
     traceability.functional_contexts,
     `${evidencePath}.traceability.functional_contexts`,
   );
+  if (!sameStrings(functionalContexts, selectedProcess.functional_contexts)) {
+    throw new Error(
+      `${evidencePath} must trace exactly to the selected functional contexts.`,
+    );
+  }
+
+  const processEvidence = expectRecord(
+    evidence.test_process,
+    `${evidencePath}.test_process`,
+  );
+  if (
+    expectString(processEvidence.id, `${evidencePath}.test_process.id`) !==
+      process.id ||
+    expectString(processEvidence.path, `${evidencePath}.test_process.path`) !==
+      selectedProcess.path
+  ) {
+    throw new Error(`${evidencePath} must identify the selected test process.`);
+  }
+  if (!Array.isArray(processEvidence.steps)) {
+    throw new Error(`${evidencePath}.test_process.steps must be an array.`);
+  }
+  const evidenceSteps = processEvidence.steps.map((step, index) =>
+    expectRecord(step, `${evidencePath}.test_process.steps[${index}]`),
+  );
+  if (evidenceSteps.length !== process.steps.length) {
+    throw new Error(
+      `${evidencePath} must record every selected test-process step.`,
+    );
+  }
+  const processQ1Tests: string[] = [];
+  const processQ2Tests: string[] = [];
+  const processChangedCodePaths: string[] = [];
+  for (const processStep of process.steps) {
+    const step = evidenceSteps.find(
+      (candidate) => candidate.id === processStep.id,
+    );
+    if (!step) {
+      throw new Error(
+        `${evidencePath} is missing test-process step ${processStep.id}.`,
+      );
+    }
+    for (const [field, expected] of Object.entries({
+      quadrant: processStep.quadrant,
+      functional_context: processStep.functional_context,
+      test_double: processStep.test_double,
+    })) {
+      if (
+        expectString(
+          step[field],
+          `${evidencePath}.test_process.steps.${processStep.id}.${field}`,
+        ) !== expected
+      ) {
+        throw new Error(
+          `${evidencePath} test-process step ${processStep.id} does not match its definition.`,
+        );
+      }
+    }
+    const stepTests = expectNonEmptyStringArray(
+      step.tests,
+      `${evidencePath}.test_process.steps.${processStep.id}.tests`,
+    );
+    validateTestPaths(
+      cwd,
+      stepTests,
+      `${evidencePath}.test_process.steps.${processStep.id}.tests`,
+    );
+    if (processStep.quadrant === 'Q1') processQ1Tests.push(...stepTests);
+    else processQ2Tests.push(...stepTests);
+    const stepChanges = expectNonEmptyStringArray(
+      step.changed_code_paths,
+      `${evidencePath}.test_process.steps.${processStep.id}.changed_code_paths`,
+    );
+    if (!stepChanges.every(isCodePath)) {
+      throw new Error(
+        `${evidencePath} test-process step ${processStep.id} changed_code_paths must only contain apps/ or libs/ paths.`,
+      );
+    }
+    processChangedCodePaths.push(...stepChanges);
+    const stepTdd = expectRecord(
+      step.tdd,
+      `${evidencePath}.test_process.steps.${processStep.id}.tdd`,
+    );
+    validateTddStep(
+      stepTdd.red,
+      `${evidencePath}.test_process.steps.${processStep.id}.tdd.red`,
+      'nonzero',
+    );
+    if (
+      expectRecord(
+        stepTdd.red,
+        `${evidencePath}.test_process.steps.${processStep.id}.tdd.red`,
+      ).expected_failure !== true
+    ) {
+      throw new Error(
+        `${evidencePath} test-process Red step ${processStep.id} must be an expected failure.`,
+      );
+    }
+    validateTddStep(
+      stepTdd.green,
+      `${evidencePath}.test_process.steps.${processStep.id}.tdd.green`,
+      0,
+    );
+    validateTddStep(
+      stepTdd.refactor,
+      `${evidencePath}.test_process.steps.${processStep.id}.tdd.refactor`,
+      0,
+    );
+  }
+  if (
+    !sameStrings(q1Tests, processQ1Tests) ||
+    !sameStrings(q2Tests, processQ2Tests)
+  ) {
+    throw new Error(
+      `${evidencePath} Q1/Q2 traceability must exactly match test-process steps.`,
+    );
+  }
+  const qualityGates = processEvidence.quality_gates;
+  if (
+    !Array.isArray(qualityGates) ||
+    qualityGates.length !== process.quality_gates.length
+  ) {
+    throw new Error(
+      `${evidencePath}.test_process.quality_gates must record every defined gate.`,
+    );
+  }
+  for (const command of process.quality_gates) {
+    const gate = qualityGates.find(
+      (candidate) => isRecord(candidate) && candidate.command === command,
+    );
+    if (
+      !gate ||
+      expectRecord(gate, `${evidencePath}.test_process.quality_gates`)
+        .exit_code !== 0
+    ) {
+      throw new Error(
+        `${evidencePath} quality gate ${command} must exit with 0.`,
+      );
+    }
+  }
 
   const recordedChanges = expectNonEmptyStringArray(
     evidence.changed_code_paths,
@@ -540,6 +752,11 @@ export function validateScenarioExecutionEvidence(
   if (JSON.stringify(recordedChanges) !== JSON.stringify(actualChanges)) {
     throw new Error(
       `${evidencePath}.changed_code_paths must exactly match Git changes since the work-item baseline.`,
+    );
+  }
+  if (!sameStrings(processChangedCodePaths, actualChanges)) {
+    throw new Error(
+      `${evidencePath} test-process step changes must exactly cover Git changes since the work-item baseline.`,
     );
   }
   if (

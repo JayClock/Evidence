@@ -1,9 +1,20 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createCodingGitBaseline } from './evidence';
-import { assertIterationId, nextIterationId } from './iteration';
+import {
+  artifactPath,
+  artifactRelativePath,
+  assertIterationId,
+  nextIterationId,
+} from './iteration';
 import { DEFAULT_STATE, PHASE_ORDER } from './phases';
-import type { ActiveWorkItem, Phase, WorkflowState } from './types';
+import { matchingTestProcesses } from './test-processes';
+import type {
+  ActiveWorkItem,
+  Phase,
+  TestProcessRuntime,
+  WorkflowState,
+} from './types';
 
 const CONFIGURABLE_PHASES = new Set(
   PHASE_ORDER.filter((phase) => phase !== 'complete'),
@@ -118,5 +129,65 @@ export function selectWorkItem(
     scenario_id: scenarioId.toUpperCase(),
     git_baseline: createCodingGitBaseline(cwd),
   };
+  return writeState(cwd, { ...state, active_work_item });
+}
+
+/** Bind a coding scenario to exactly one reusable test process before any code changes. */
+export function selectTestProcess(
+  cwd: string,
+  runtime: TestProcessRuntime,
+  functionalContexts: string[],
+): WorkflowState {
+  const state = readState(cwd);
+  if (state.phase !== 'coding') {
+    throw new Error(
+      `Cannot select a test process: current phase is ${state.phase}.`,
+    );
+  }
+  if (!state.active_work_item) {
+    throw new Error(
+      'Cannot select a test process: select one US-xxx / SC-xxx work item first.',
+    );
+  }
+  if (state.active_work_item.test_process) {
+    throw new Error(
+      `Test process ${state.active_work_item.test_process.id} is already selected for this work item.`,
+    );
+  }
+  const candidates = matchingTestProcesses(
+    cwd,
+    artifactPath(cwd, state, 'artifacts/03-architecture/test-processes'),
+    runtime,
+    functionalContexts,
+  );
+  if (candidates.length === 0) {
+    throw new Error(
+      `No test process matches runtime=${runtime} and contexts=${functionalContexts.join(', ')}.`,
+    );
+  }
+  if (candidates.length > 1) {
+    throw new Error(
+      `Test process selection is ambiguous for runtime=${runtime} and contexts=${functionalContexts.join(', ')}: ${candidates.map((candidate) => candidate.definition.id).join(', ')}.`,
+    );
+  }
+  const candidate = candidates[0]!;
+  const active_work_item: ActiveWorkItem = {
+    ...state.active_work_item,
+    test_process: {
+      id: candidate.definition.id,
+      path: candidate.path,
+      runtime,
+      functional_contexts: [...functionalContexts],
+    },
+  };
+  const processRoot = `${artifactRelativePath(
+    state,
+    'artifacts/03-architecture/test-processes',
+  )}/`;
+  if (!candidate.path.startsWith(processRoot)) {
+    throw new Error(
+      `Test process is outside the active iteration: ${candidate.path}.`,
+    );
+  }
   return writeState(cwd, { ...state, active_work_item });
 }

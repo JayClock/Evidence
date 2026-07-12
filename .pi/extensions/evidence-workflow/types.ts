@@ -13,12 +13,23 @@ export type Phase =
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
+export type TestProcessRuntime = 'rust' | 'typescript' | 'tauri';
+export type TestDouble = 'real' | 'fake' | 'stub' | 'spy' | 'mock';
+
+export interface TestProcessSelection {
+  id: string;
+  path: string;
+  runtime: TestProcessRuntime;
+  functional_contexts: string[];
+}
 
 export interface ActiveWorkItem {
   story_id: string;
   scenario_id: string;
   /** Immutable Git HEAD captured before this scenario's Red step. */
   git_baseline: string;
+  /** Immutable, selected test process that governs this scenario's TDD work. */
+  test_process?: TestProcessSelection;
 }
 
 export interface ClarificationRecord {
