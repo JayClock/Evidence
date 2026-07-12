@@ -19,7 +19,7 @@ description: '运行 Evidence 的反馈驱动工作流：TQA 需求澄清、模�
    - `planning`：`.pi/skills/scrum/SKILL.md`
    - `coding`：`.pi/skills/tdd/SKILL.md`
    - `review`、`learn`：严格对照示例、模型展开、测试策略、DoD 和产品反馈进行评审
-6. 用户故事是上下文边界。先用 TQA 澄清，再用具体示例规格化，随后验证它的领域模型展开，最后才计划实现。
+6. 用户故事是上下文边界。先用 TQA 澄清，再用具体示例规格化，随后验证它的领域模型展开，最后才计划实现。TQA 每次只能通过 `evidence_workflow_ask_question` 提出一个问题；必须等待用户明确回答并调用 `evidence_workflow_answer_question`，不能由 Agent 自问自答。
 7. 每个已计划场景必须具备追踪链：`SC-xxx → Q2 验收测试 → 功能上下文 → Q1 支撑测试 → 测试替身 → 测试工序`。
 8. 编码一次只实现一个选定的 `US-xxx / SC-xxx`。代码编辑前使用 `evidence_workflow_select_work_item` 或 `/evidence-run --story=US-xxx --scenario=SC-xxx`；该操作会记录 Git baseline，开始前不能已有未提交的 `apps/` 或 `libs/` 改动。
 9. 每个模型展开使用 `US-xxx-SC-xxx.json`，通过 `model_refs` 引用 `.evidence` 中的稳定实体/关联 ID；`model-snapshot.json` 和 `model-delta.json` 必须让本轮模型变更可审计。每个编码场景同时维护 Markdown 说明和 JSON 执行证据，记录 Git baseline、场景到 Q2/Q1 的追踪、实际改动路径，以及 Red（非零）/Green（零）/Refactor（零）的命令退出码。

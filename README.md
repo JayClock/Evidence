@@ -112,6 +112,7 @@ Pi 中可用命令：
 /evidence-run --dry-run
 /evidence-run
 /evidence-gate 通过，进入下一阶段
+/evidence-answer <领域专家的回答>
 /evidence-reset
 ```
 
@@ -129,6 +130,8 @@ Pi 中可用命令：
 建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览当前阶段。活动迭代由 `evidence-state.json` 的 `iteration_id` 指定；其种子输入位于 `artifacts/iterations/<iteration_id>/00-user-input/requirements.md`。`/evidence-reset` 会创建新 `ITER-xxxx` 命名空间并复制上一轮种子，旧工件不会被覆盖。
 
 Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段，`/evidence-gate revise <说明>` 回到被审核阶段，`/evidence-gate reject <说明>` 停止当前迭代。阶段 Check 失败会保留反馈并在同一阶段重试；达到 `max_rounds` 后创建 emergency Gate。
+
+`clarify` 阶段使用 TQA：Agent 通过 `evidence_workflow_ask_question` 记录一个高价值、非技术问题后必须暂停；领域专家用 `evidence_workflow_answer_question` 或 `/evidence-answer` 明确回答。每个问答同时保存为 Markdown 与 JSON；回答按声明目标写入业务上下文、故事或澄清历史。未回答问题会阻止故事进入 Ready 和工作流进入下一阶段。
 
 Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm workflow:validate` 验证活动迭代状态、输入和 Gate 元数据。
 
