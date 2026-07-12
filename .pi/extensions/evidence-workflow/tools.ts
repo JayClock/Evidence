@@ -1,6 +1,11 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from './artifacts';
-import { answerGate, completePhase, isGateAnswered } from './gates';
+import {
+  answerGate,
+  completePhase,
+  isGateAnswered,
+  recordPhaseFailure,
+} from './gates';
 import { PHASE_META } from './phases';
 import { buildPhasePrompt } from './prompts';
 import { readState, selectWorkItem } from './state';
@@ -44,6 +49,14 @@ const phaseParam = Type.Object({
       description: 'Extra instructions to append to the phase prompt.',
     }),
   ),
+});
+
+const phaseFailureParam = Type.Object({
+  phase: Type.String({ description: 'The phase whose Check step failed.' }),
+  summary: Type.String({
+    description:
+      'Concrete failed validation or command result for the next PDCA attempt.',
+  }),
 });
 
 const workItemParam = Type.Object({
@@ -152,16 +165,68 @@ export function registerTools(pi: ExtensionAPI): void {
       if (params.phase === 'complete' || !(params.phase in PHASE_META)) {
         throw new Error(`Invalid phase for completion: ${params.phase}`);
       }
-      const state = completePhase(
+      try {
+        const state = completePhase(
+          ctx.cwd,
+          params.phase as Exclude<Phase, 'complete'>,
+          params.summary ?? '',
+        );
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Completed ${params.phase}. Next phase=${state.phase}. Pending gate=${state.pending_gate ?? 'none'}.`,
+            },
+          ],
+          details: { state },
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const current = readState(ctx.cwd);
+        if (
+          current.phase !== params.phase ||
+          current.pending_gate ||
+          current.halted
+        ) {
+          throw new Error(message);
+        }
+        const failed = recordPhaseFailure(
+          ctx.cwd,
+          params.phase as Exclude<Phase, 'complete'>,
+          params.summary || message,
+        );
+        throw new Error(
+          `${message} Check failure recorded for ${failed.iteration_id}, round ${failed.round}.`,
+        );
+      }
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_workflow_report_phase_failure',
+    label: 'Evidence Workflow Report Phase Failure',
+    description:
+      'Record a failed Check step, persist feedback, and trigger an emergency gate at the retry limit',
+    promptSnippet:
+      'Record a failed Evidence Workflow Check step for PDCA retry',
+    promptGuidelines: [
+      'Use after a deterministic validation or quality check fails and before retrying the same phase.',
+    ],
+    parameters: phaseFailureParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      if (params.phase === 'complete' || !(params.phase in PHASE_META)) {
+        throw new Error(`Invalid phase for failure recording: ${params.phase}`);
+      }
+      const state = recordPhaseFailure(
         ctx.cwd,
         params.phase as Exclude<Phase, 'complete'>,
-        params.summary ?? '',
+        params.summary,
       );
       return {
         content: [
           {
             type: 'text',
-            text: `Completed ${params.phase}. Next phase=${state.phase}. Pending gate=${state.pending_gate ?? 'none'}.`,
+            text: `Recorded failed Check for ${params.phase}: round=${state.round}, pending gate=${state.pending_gate ?? 'none'}.`,
           },
         ],
         details: { state },

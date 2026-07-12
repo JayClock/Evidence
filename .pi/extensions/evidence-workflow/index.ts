@@ -2,6 +2,7 @@ import { watchFile, unwatchFile } from 'node:fs';
 import type { Stats } from 'node:fs';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs } from './artifacts';
+import { iterationRoot } from './iteration';
 import { registerCommands } from './commands';
 import { readState, statePath, writeState } from './state';
 import { registerTools } from './tools';
@@ -30,10 +31,9 @@ export default function evidenceWorkflowExtension(pi: ExtensionAPI) {
 
   pi.on('session_start', (_event, ctx) => {
     closeStateWatcher();
-    ensureProjectDirs(ctx.cwd);
-
     const currentStatePath = statePath(ctx.cwd);
     const state = writeState(ctx.cwd, readState(ctx.cwd));
+    ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
     ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
 
     const refreshStatus = () => {

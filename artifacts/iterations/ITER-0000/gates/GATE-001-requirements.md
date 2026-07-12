@@ -11,10 +11,10 @@
 
 ## 当前工件
 
-- [artifacts/00-user-input/requirements.md](../../artifacts/00-user-input/requirements.md)
-- [artifacts/01-requirements/personas.md](../../artifacts/01-requirements/personas.md)
-- [artifacts/01-requirements/problem-statement.md](../../artifacts/01-requirements/problem-statement.md)
-- [artifacts/01-requirements/story-map.md](../../artifacts/01-requirements/story-map.md)
+- [artifacts/00-user-input/requirements.md](../00-user-input/requirements.md)
+- [artifacts/01-requirements/personas.md](../01-requirements/personas.md)
+- [artifacts/01-requirements/problem-statement.md](../01-requirements/problem-statement.md)
+- [artifacts/01-requirements/story-map.md](../01-requirements/story-map.md)
 
 ## 自动摘要
 

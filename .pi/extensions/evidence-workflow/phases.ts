@@ -15,6 +15,7 @@ export const PHASE_ORDER: Phase[] = [
 ];
 
 export const DEFAULT_STATE: WorkflowState = {
+  iteration_id: 'ITER-0001',
   phase: 'frame',
   round: 0,
   pending_gate: null,

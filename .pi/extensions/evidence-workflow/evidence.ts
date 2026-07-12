@@ -85,8 +85,8 @@ function requireFile(cwd: string, path: string, name: string): void {
   }
 }
 
-function examplePaths(cwd: string): string[] {
-  const root = join(cwd, 'artifacts/01-requirements/examples');
+function examplePaths(cwd: string, artifactRoot: string): string[] {
+  const root = join(cwd, artifactRoot, '01-requirements/examples');
   return findFiles(root, (path) =>
     EXAMPLE_PATTERN.test(path.split('/').pop() ?? ''),
   );
@@ -148,6 +148,7 @@ function buildModelIndex(cwd: string, paths: string[]): ModelIndex {
 
 function validateModelExpansion(
   cwd: string,
+  artifactRoot: string,
   examplePath: string,
   modelIndex: ModelIndex,
 ): void {
@@ -156,7 +157,7 @@ function validateModelExpansion(
   const storyId = match?.[1]?.toUpperCase();
   const scenarioId = match?.[2]?.toUpperCase();
   if (!storyId || !scenarioId) return;
-  const expansionPath = `artifacts/02-domain-model/model-expansions/${storyId}-${scenarioId}.json`;
+  const expansionPath = `${artifactRoot}/02-domain-model/model-expansions/${storyId}-${scenarioId}.json`;
   const expansion = expectRecord(
     readJson(join(cwd, expansionPath)),
     expansionPath,
@@ -283,7 +284,10 @@ function changedModelPathsSince(cwd: string, baseline: string): ModelChanges {
 }
 
 /** Validate .evidence as the canonical project model and artifacts as iteration evidence. */
-export function validateDomainModelEvidence(cwd: string): void {
+export function validateDomainModelEvidence(
+  cwd: string,
+  artifactRoot = 'artifacts',
+): void {
   const modelMetadataPath = '.evidence/model.json';
   const modelMetadata = expectRecord(
     readJson(join(cwd, modelMetadataPath)),
@@ -294,7 +298,7 @@ export function validateDomainModelEvidence(cwd: string): void {
   expectString(modelMetadata.project_name, `${modelMetadataPath}.project_name`);
   expectString(modelMetadata.purpose, `${modelMetadataPath}.purpose`);
 
-  const snapshotPath = 'artifacts/02-domain-model/model-snapshot.json';
+  const snapshotPath = `${artifactRoot}/02-domain-model/model-snapshot.json`;
   const snapshot = expectRecord(
     readJson(join(cwd, snapshotPath)),
     snapshotPath,
@@ -334,7 +338,7 @@ export function validateDomainModelEvidence(cwd: string): void {
   }
   const modelIndex = buildModelIndex(cwd, expectedSourcePaths);
 
-  const deltaPath = 'artifacts/02-domain-model/model-delta.json';
+  const deltaPath = `${artifactRoot}/02-domain-model/model-delta.json`;
   const delta = expectRecord(readJson(join(cwd, deltaPath)), deltaPath);
   if (delta.version !== 1) throw new Error(`${deltaPath}.version must be 1.`);
   if (
@@ -358,7 +362,7 @@ export function validateDomainModelEvidence(cwd: string): void {
     }
   }
 
-  const examples = examplePaths(cwd);
+  const examples = examplePaths(cwd, artifactRoot);
   if (examples.length === 0) {
     throw new Error(
       'No US-xxx-SC-xxx acceptance examples were found for model expansion.',
@@ -367,6 +371,7 @@ export function validateDomainModelEvidence(cwd: string): void {
   for (const absoluteExamplePath of examples) {
     validateModelExpansion(
       cwd,
+      artifactRoot,
       absoluteExamplePath.slice(cwd.length + 1),
       modelIndex,
     );
@@ -440,6 +445,7 @@ function validateTddStep(
 export function validateScenarioExecutionEvidence(
   cwd: string,
   workItem: ActiveWorkItem,
+  artifactRoot = 'artifacts',
 ): void {
   const {
     story_id: storyId,
@@ -450,7 +456,7 @@ export function validateScenarioExecutionEvidence(
     throw new Error(
       'Selected coding work item has no Git baseline. Re-select it before coding.',
     );
-  const evidencePath = `artifacts/05-code/${storyId}/${scenarioId}.json`;
+  const evidencePath = `${artifactRoot}/05-code/${storyId}/${scenarioId}.json`;
   const evidence = expectRecord(
     readJson(join(cwd, evidencePath)),
     evidencePath,
@@ -493,7 +499,7 @@ export function validateScenarioExecutionEvidence(
     evidence.traceability,
     `${evidencePath}.traceability`,
   );
-  const scenarioPath = `artifacts/01-requirements/examples/${storyId}-${scenarioId}.md`;
+  const scenarioPath = `${artifactRoot}/01-requirements/examples/${storyId}-${scenarioId}.md`;
   if (
     expectString(
       traceability.scenario,

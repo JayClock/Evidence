@@ -11,12 +11,12 @@
 
 ## 当前工件
 
-- [artifacts/03-architecture/context-map.md](../../artifacts/03-architecture/context-map.md)
-- [artifacts/03-architecture/architecture-style.md](../../artifacts/03-architecture/architecture-style.md)
-- [artifacts/03-architecture/tech-stack.md](../../artifacts/03-architecture/tech-stack.md)
-- [artifacts/03-architecture/module-structure.md](../../artifacts/03-architecture/module-structure.md)
-- [artifacts/03-architecture/api-contracts.md](../../artifacts/03-architecture/api-contracts.md)
-- [artifacts/03-architecture/data-model.md](../../artifacts/03-architecture/data-model.md)
+- [artifacts/03-architecture/context-map.md](../03-architecture/context-map.md)
+- [artifacts/03-architecture/architecture-style.md](../03-architecture/architecture-style.md)
+- [artifacts/03-architecture/tech-stack.md](../03-architecture/tech-stack.md)
+- [artifacts/03-architecture/module-structure.md](../03-architecture/module-structure.md)
+- [artifacts/03-architecture/api-contracts.md](../03-architecture/api-contracts.md)
+- [artifacts/03-architecture/data-model.md](../03-architecture/data-model.md)
 
 ## 自动摘要
 

@@ -1,10 +1,17 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { copyFileSync, existsSync } from 'node:fs';
 import { ensureProjectDirs, missingPaths } from './artifacts';
 import { phaseModelConfig } from './config';
-import { answerGate, isGateAnswered } from './gates';
-import { DEFAULT_STATE, PHASE_META, PHASE_ORDER } from './phases';
+import { answerGate, isGateAnswered, resolvePendingGate } from './gates';
+import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
+import { PHASE_META, PHASE_ORDER } from './phases';
 import { buildPhasePrompt } from './prompts';
-import { readState, selectWorkItem, writeState } from './state';
+import {
+  newIterationState,
+  readState,
+  selectWorkItem,
+  writeState,
+} from './state';
 import { statusMarkdown } from './status';
 import type { Phase } from './types';
 
@@ -54,11 +61,25 @@ export function registerCommands(pi: ExtensionAPI): void {
     description:
       'Reset Evidence Workflow state to the frame phase for a new iteration',
     handler: async (_args, ctx) => {
-      ensureProjectDirs(ctx.cwd);
-      const state = writeState(ctx.cwd, DEFAULT_STATE);
+      const previous = readState(ctx.cwd);
+      const previousSeed = artifactPath(
+        ctx.cwd,
+        previous,
+        'artifacts/00-user-input/requirements.md',
+      );
+      const legacySeed = `${ctx.cwd}/artifacts/00-user-input/requirements.md`;
+      const state = newIterationState(ctx.cwd);
+      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+      const nextSeed = artifactPath(
+        ctx.cwd,
+        state,
+        'artifacts/00-user-input/requirements.md',
+      );
+      if (existsSync(previousSeed)) copyFileSync(previousSeed, nextSeed);
+      else if (existsSync(legacySeed)) copyFileSync(legacySeed, nextSeed);
       ctx.ui.setStatus('evidence-workflow', `evidence:${state.phase}`);
       ctx.ui.notify(
-        'Evidence Workflow state reset to frame for a new iteration.',
+        `Evidence Workflow started ${state.iteration_id} at frame; the prior seed input was copied for editing.`,
         'info',
       );
     },
@@ -89,10 +110,39 @@ export function registerCommands(pi: ExtensionAPI): void {
     description:
       'Run the current Evidence Workflow phase; coding accepts --story=US-xxx --scenario=SC-xxx',
     handler: async (args, ctx) => {
-      ensureProjectDirs(ctx.cwd);
       const parsed = parseArgs(args);
-      if (parsed.reset) writeState(ctx.cwd, DEFAULT_STATE);
-      const state = readState(ctx.cwd);
+      if (parsed.reset) {
+        const previous = readState(ctx.cwd);
+        const seed = artifactPath(
+          ctx.cwd,
+          previous,
+          'artifacts/00-user-input/requirements.md',
+        );
+        const state = newIterationState(ctx.cwd);
+        ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+        if (existsSync(seed)) {
+          copyFileSync(
+            seed,
+            artifactPath(
+              ctx.cwd,
+              state,
+              'artifacts/00-user-input/requirements.md',
+            ),
+          );
+        }
+      }
+      let state = readState(ctx.cwd);
+      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+      if (state.pending_gate && isGateAnswered(ctx.cwd, state.pending_gate)) {
+        state = resolvePendingGate(ctx.cwd);
+      }
+      if (state.halted) {
+        ctx.ui.notify(
+          `Iteration ${state.iteration_id} is halted: ${state.halted.reason}`,
+          'error',
+        );
+        return;
+      }
       if (parsed.phase && parsed.phase !== state.phase) {
         ctx.ui.notify(
           `Cannot run ${parsed.phase}: current phase is ${state.phase}. Use /evidence-reset before a new iteration.`,
@@ -131,7 +181,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         !isGateAnswered(ctx.cwd, current.pending_gate)
       ) {
         ctx.ui.notify(
-          `Gate ${current.pending_gate} is pending. Edit artifacts/gates/${current.pending_gate}.md or run /evidence-gate <decision>.`,
+          `Gate ${current.pending_gate} is pending. Edit ${artifactRelativePath(current, `artifacts/gates/${current.pending_gate}.md`)} or run /evidence-gate <decision>.`,
           'info',
         );
         return;
@@ -139,7 +189,9 @@ export function registerCommands(pi: ExtensionAPI): void {
       if (current.phase !== 'complete') {
         const missingInputs = missingPaths(
           ctx.cwd,
-          PHASE_META[current.phase].inputs,
+          PHASE_META[current.phase].inputs.map((path) =>
+            artifactRelativePath(current, path),
+          ),
         );
         if (missingInputs.length > 0) {
           ctx.ui.notify(

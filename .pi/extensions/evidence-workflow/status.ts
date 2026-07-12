@@ -2,6 +2,7 @@ import { join, relative } from 'node:path';
 import { collectArtifacts, collectCodeFiles, findFiles } from './artifacts';
 import { formatPhaseModel, phaseModelConfig } from './config';
 import { isGateAnswered } from './gates';
+import { iterationRoot } from './iteration';
 import { readState } from './state';
 
 function requirementsSubstage(phase: string): string {
@@ -12,12 +13,13 @@ function requirementsSubstage(phase: string): string {
 
 export function statusMarkdown(cwd: string): string {
   const state = readState(cwd);
-  const artifacts = collectArtifacts(cwd);
+  const root = iterationRoot(cwd, state);
+  const artifacts = collectArtifacts(cwd, root);
   const codeFiles = collectCodeFiles(cwd);
   const configuredModel = phaseModelConfig(cwd, state.phase);
-  const gates = findFiles(join(cwd, 'artifacts', 'gates'), (p) =>
-    p.endsWith('.md'),
-  ).map((p) => relative(cwd, p));
+  const gates = findFiles(join(root, 'gates'), (p) => p.endsWith('.md')).map(
+    (p) => relative(cwd, p),
+  );
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : 'none';
@@ -26,6 +28,7 @@ export function statusMarkdown(cwd: string): string {
     ``,
     `| Field | Value |`,
     `|:---|:---|`,
+    `| Iteration | ${state.iteration_id} |`,
     `| Phase | ${state.phase} |`,
     `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
     `| Active Work Item | ${activeWorkItem} |`,
@@ -34,6 +37,7 @@ export function statusMarkdown(cwd: string): string {
     `| Pending Gate | ${state.pending_gate ?? 'none'} |`,
     `| Pending Gate Answered | ${state.pending_gate ? (isGateAnswered(cwd, state.pending_gate) ? 'yes' : 'no') : 'n/a'} |`,
     `| Failures | ${state.failures} / ${state.max_rounds} |`,
+    `| Halted | ${state.halted ? state.halted.reason : 'no'} |`,
     `| Last Run | ${state.pi?.last_run_at ?? 'never'} |`,
     ``,
     `## Artifacts (${artifacts.length})`,

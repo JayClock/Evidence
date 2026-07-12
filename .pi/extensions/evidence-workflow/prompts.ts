@@ -1,4 +1,5 @@
 import { formatPhaseModel, phaseModelConfig } from './config';
+import { artifactRelativePath } from './iteration';
 import { PHASE_META, phaseSpecificInstructions } from './phases';
 import { readState } from './state';
 import type { Phase } from './types';
@@ -19,6 +20,11 @@ export function buildPhasePrompt(
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : '未选择';
+  const resolvePath = (path: string) => artifactRelativePath(state, path);
+  const instructions = phaseSpecificInstructions(phase).replaceAll(
+    'artifacts/',
+    `artifacts/iterations/${state.iteration_id}/`,
+  );
   return `你正在执行 Evidence Workflow 阶段：${phase} — ${meta.title}。
 
 阶段模型：${formatPhaseModel(configuredModel)}
@@ -31,17 +37,18 @@ export function buildPhasePrompt(
 4. 将输出写入指定工件路径；如果目录不存在，创建目录。
 5. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。
 6. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。完成时同时提供场景 Markdown 与机器可读 JSON 证据。
-7. 保留 artifacts/ 作为审计日志；可以在 artifacts/05-code/ 写实现说明或评审 notes。
-8. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
+7. 本轮工件只写入 artifacts/iterations/${state.iteration_id}/；不要覆盖其他 iteration；.evidence/ 仍是跨迭代的权威模型。
+8. Check 失败时调用 evidence_workflow_report_phase_failure，记录具体失败结果后在同一阶段修正；达到重试上限会创建 emergency Gate。
+9. 完成后调用 evidence_workflow_complete_phase 工具，phase 必须传入 "${phase}"，summary 简述本阶段完成内容。
 
 输入文件/目录：
-${meta.inputs.map((p) => `- ${p}`).join('\n')}
+${meta.inputs.map((p) => `- ${resolvePath(p)}`).join('\n')}
 
 必须产出：
-${meta.outputs.map((p) => `- ${p}`).join('\n')}
+${meta.outputs.map((p) => `- ${resolvePath(p)}`).join('\n')}
 
 阶段要求：
-${phaseSpecificInstructions(phase)}
+${instructions}
 
 额外用户指令：
 ${extra || '（无）'}

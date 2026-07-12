@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createCodingGitBaseline } from './evidence';
+import { assertIterationId, nextIterationId } from './iteration';
 import { DEFAULT_STATE, PHASE_ORDER } from './phases';
 import type { ActiveWorkItem, Phase, WorkflowState } from './types';
 
@@ -29,7 +30,10 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       );
     }
   }
+  const iterationId = state.iteration_id ?? DEFAULT_STATE.iteration_id;
+  assertIterationId(iterationId);
   return {
+    iteration_id: iterationId,
     phase: phase as Phase,
     round: state.round ?? DEFAULT_STATE.round,
     pending_gate: state.pending_gate ?? DEFAULT_STATE.pending_gate,
@@ -40,6 +44,8 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(state.active_work_item
       ? { active_work_item: state.active_work_item }
       : {}),
+    ...(state.last_failure ? { last_failure: state.last_failure } : {}),
+    ...(state.halted ? { halted: state.halted } : {}),
     pi: { enabled: true, version: 4, ...(state.pi ?? {}) },
   };
 }
@@ -54,6 +60,15 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   const normalized = normalizeState(state);
   writeFileSync(statePath(cwd), `${JSON.stringify(normalized, null, 2)}\n`);
   return normalized;
+}
+
+/** Start a clean artifact namespace without deleting prior iteration evidence. */
+export function newIterationState(cwd: string): WorkflowState {
+  return writeState(cwd, {
+    ...DEFAULT_STATE,
+    iteration_id: nextIterationId(cwd),
+    pi: { enabled: true, version: 4 },
+  });
 }
 
 export function selectWorkItem(

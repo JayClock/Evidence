@@ -11,11 +11,11 @@
 
 ## 当前工件
 
-- [artifacts/02-domain-model/ubiquitous-language.md](../../artifacts/02-domain-model/ubiquitous-language.md)
-- [artifacts/02-domain-model/bounded-contexts.md](../../artifacts/02-domain-model/bounded-contexts.md)
-- [artifacts/02-domain-model/entities-and-value-objects.md](../../artifacts/02-domain-model/entities-and-value-objects.md)
-- [artifacts/02-domain-model/aggregates.md](../../artifacts/02-domain-model/aggregates.md)
-- [artifacts/02-domain-model/domain-events.md](../../artifacts/02-domain-model/domain-events.md)
+- [artifacts/02-domain-model/ubiquitous-language.md](../02-domain-model/ubiquitous-language.md)
+- [artifacts/02-domain-model/bounded-contexts.md](../02-domain-model/bounded-contexts.md)
+- [artifacts/02-domain-model/entities-and-value-objects.md](../02-domain-model/entities-and-value-objects.md)
+- [artifacts/02-domain-model/aggregates.md](../02-domain-model/aggregates.md)
+- [artifacts/02-domain-model/domain-events.md](../02-domain-model/domain-events.md)
 
 ## 自动摘要
 

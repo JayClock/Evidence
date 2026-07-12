@@ -14,25 +14,32 @@ const IGNORED_DIRECTORIES = new Set([
 const CODE_FILE_PATTERN =
   /\.(c|cc|cpp|cs|go|h|hpp|java|js|jsx|kt|mjs|mts|py|rs|ts|tsx)$/;
 
-export function ensureProjectDirs(cwd: string): void {
+/** Create the directory structure for one isolated iteration artifact root. */
+export function ensureProjectDirs(
+  cwd: string,
+  artifactRoot = join(cwd, 'artifacts'),
+): void {
   for (const dir of [
-    'artifacts',
-    'artifacts/gates',
-    'artifacts/00-user-input',
-    'artifacts/01-requirements',
-    'artifacts/01-requirements/stories',
-    'artifacts/01-requirements/clarifications',
-    'artifacts/01-requirements/examples',
-    'artifacts/02-domain-model',
-    'artifacts/02-domain-model/model-expansions',
-    'artifacts/03-architecture',
-    'artifacts/03-architecture/test-processes',
-    'artifacts/04-planning',
-    'artifacts/05-code',
-    'artifacts/06-reviews',
-    'artifacts/07-learning',
+    '.',
+    'gates',
+    '00-user-input',
+    '01-requirements',
+    '01-requirements/stories',
+    '01-requirements/clarifications',
+    '01-requirements/examples',
+    '02-domain-model',
+    '02-domain-model/model-expansions',
+    '03-architecture',
+    '03-architecture/test-processes',
+    '04-planning',
+    '05-code',
+    '06-reviews',
+    '07-learning',
+    'feedback',
   ])
-    mkdirSync(join(cwd, dir), { recursive: true });
+    mkdirSync(join(artifactRoot, dir), { recursive: true });
+  // Keep cwd in the signature to make call sites explicit about project scope.
+  void cwd;
 }
 
 export function findFiles(
@@ -54,9 +61,12 @@ export function findFiles(
   return results.sort();
 }
 
-export function collectArtifacts(cwd: string): string[] {
-  return findFiles(join(cwd, 'artifacts'), (p) => p.endsWith('.md'))
-    .filter((p) => !relative(cwd, p).startsWith('artifacts/gates/'))
+export function collectArtifacts(
+  cwd: string,
+  artifactRoot = join(cwd, 'artifacts'),
+): string[] {
+  return findFiles(artifactRoot, (p) => p.endsWith('.md'))
+    .filter((p) => !relative(artifactRoot, p).startsWith('gates/'))
     .map((p) => relative(cwd, p));
 }
 

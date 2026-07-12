@@ -117,18 +117,20 @@ Pi 中可用命令：
 
 工作流资产：
 
-| 路径                                | 用途                                                   |
-| ----------------------------------- | ------------------------------------------------------ |
-| `.pi/extensions/evidence-workflow/` | Evidence 工作流状态机、审核门、命令和工具              |
-| `.pi/skills/`                       | 设计思维、DDD、Scrum、TDD 和 Evidence 工作流方法论技能 |
-| `.pi/prompts/`                      | 各阶段提示词模板                                       |
-| `evidence-state.json`               | 当前工作流阶段和审核门状态                             |
-| `artifacts/`                        | Evidence 专用生成工件和审计日志                        |
-| `artifacts/gates/`                  | 配置阶段之间的人类审核门                               |
+| 路径                                    | 用途                                                   |
+| --------------------------------------- | ------------------------------------------------------ |
+| `.pi/extensions/evidence-workflow/`     | Evidence 工作流状态机、审核门、命令和工具              |
+| `.pi/skills/`                           | 设计思维、DDD、Scrum、TDD 和 Evidence 工作流方法论技能 |
+| `.pi/prompts/`                          | 各阶段提示词模板                                       |
+| `evidence-state.json`                   | 当前工作流阶段和审核门状态                             |
+| `artifacts/iterations/ITER-xxxx/`       | 每轮 Evidence 工件、失败反馈和审计日志（不可覆盖）     |
+| `artifacts/iterations/ITER-xxxx/gates/` | 当前迭代的类型化人工审核门                             |
 
-建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览当前阶段。开始新迭代时，先更新 `artifacts/00-user-input/requirements.md`，然后执行 `/evidence-reset`。
+建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览当前阶段。活动迭代由 `evidence-state.json` 的 `iteration_id` 指定；其种子输入位于 `artifacts/iterations/<iteration_id>/00-user-input/requirements.md`。`/evidence-reset` 会创建新 `ITER-xxxx` 命名空间并复制上一轮种子，旧工件不会被覆盖。
 
-Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑。
+Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段，`/evidence-gate revise <说明>` 回到被审核阶段，`/evidence-gate reject <说明>` 停止当前迭代。阶段 Check 失败会保留反馈并在同一阶段重试；达到 `max_rounds` 后创建 emergency Gate。
+
+Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm workflow:validate` 验证活动迭代状态、输入和 Gate 元数据。
 
 各阶段的模型策略配置在 `.pi/evidence-workflow.json`。`/evidence-run` 会在执行前切换模型和推理档位；模型不存在或没有凭证时会停止，而不是静默回退。当前策略为：Requirements/Domain 使用 Sol × High，Architecture/Review 使用 Sol × xHigh，Planning/Coding 使用 Terra × Medium。工作流阶段均可拆分，因此默认不使用 Max；Ultra/Pro 不是 API 推理档位，也不写入该配置。
 

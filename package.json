@@ -19,6 +19,7 @@
     "ui:shadcn": "pnpm --filter @evidence/ui exec shadcn",
     "ui:ai-elements": "pnpm --filter @evidence/ui exec elements add",
     "workflow:test": "vitest run --config .pi/extensions/evidence-workflow/vitest.config.ts",
+    "workflow:validate": "node -r @swc-node/register .pi/extensions/evidence-workflow/validate.ts",
     "format": "nx format:write",
     "format:check": "nx format:check",
     "lint:staged": "lint-staged",

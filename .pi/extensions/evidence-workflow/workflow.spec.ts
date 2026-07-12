@@ -1,20 +1,38 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectCodeFiles, missingPaths } from './artifacts';
 import { phaseModelConfig, readWorkflowConfig } from './config';
-import { completePhase } from './gates';
+import {
+  answerGate,
+  completePhase,
+  recordPhaseFailure,
+  resolvePendingGate,
+} from './gates';
 import {
   validateDomainModelEvidence,
   validateScenarioExecutionEvidence,
 } from './evidence';
+import { artifactRelativePath, iterationRoot } from './iteration';
 import { DEFAULT_STATE, nextPhase, PHASE_META, PHASE_ORDER } from './phases';
 import { registerCommands } from './commands';
 import { registerTools } from './tools';
 import { buildPhasePrompt } from './prompts';
-import { readState, selectWorkItem, writeState } from './state';
+import {
+  newIterationState,
+  readState,
+  selectWorkItem,
+  writeState,
+} from './state';
+import { validateWorkflow } from './validate';
 
 const workspaces: string[] = [];
 
@@ -28,6 +46,14 @@ function write(cwd: string, path: string, content = 'content'): void {
   const absolute = join(cwd, path);
   mkdirSync(join(absolute, '..'), { recursive: true });
   writeFileSync(absolute, content);
+}
+
+function writeIterationArtifact(
+  cwd: string,
+  path: string,
+  content = 'content',
+): void {
+  write(cwd, `artifacts/iterations/ITER-0001/${path}`, content);
 }
 
 function initializeGitRepository(cwd: string): void {
@@ -264,7 +290,7 @@ describe('P0 knowledge-feedback workflow', () => {
     write(cwd, 'artifacts/05-code/other.md');
 
     expect(() => completePhase(cwd, 'coding')).toThrow(
-      'missing scenario evidence artifacts/05-code/US-042/SC-003.md',
+      'missing scenario evidence artifacts/iterations/ITER-0001/05-code/US-042/SC-003.md',
     );
   });
 
@@ -442,6 +468,112 @@ describe('P0 knowledge-feedback workflow', () => {
   });
 });
 
+describe('P0 iteration isolation and PDCA', () => {
+  it('resolves logical artifact paths into an immutable iteration namespace', () => {
+    const cwd = workspace();
+    const state = writeState(cwd, DEFAULT_STATE);
+
+    expect(
+      artifactRelativePath(state, 'artifacts/01-requirements/story-map.md'),
+    ).toBe('artifacts/iterations/ITER-0001/01-requirements/story-map.md');
+    expect(iterationRoot(cwd, state)).toBe(
+      join(cwd, 'artifacts/iterations/ITER-0001'),
+    );
+    expect(buildPhasePrompt(cwd)).toContain(
+      'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+    );
+  });
+
+  it('starts a new iteration without deleting a previous iteration root', () => {
+    const cwd = workspace();
+    writeIterationArtifact(
+      cwd,
+      '00-user-input/requirements.md',
+      'existing seed',
+    );
+    writeState(cwd, DEFAULT_STATE);
+
+    const next = newIterationState(cwd);
+
+    expect(next.iteration_id).toBe('ITER-0002');
+    expect(() => readState(cwd)).not.toThrow();
+    expect(
+      existsSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('applies typed gate decisions by approving, revising, or halting an iteration', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      gate_config: { ...DEFAULT_STATE.gate_config, frame: 'review' },
+    });
+    for (const output of PHASE_META.frame.outputs) {
+      writeIterationArtifact(cwd, output.slice('artifacts/'.length));
+    }
+    const advanced = completePhase(cwd, 'frame', 'ready for review');
+    expect(advanced.phase).toBe('clarify');
+    expect(advanced.pending_gate).toBe('GATE-101-frame');
+
+    answerGate(cwd, 'GATE-101-frame', 'revise: clarify the problem boundary');
+    const revised = resolvePendingGate(cwd);
+    expect(revised.phase).toBe('frame');
+    expect(revised.pending_gate).toBeNull();
+    expect(revised.round).toBe(1);
+
+    completePhase(cwd, 'frame', 'revised');
+    answerGate(cwd, 'GATE-101-frame', 'approve: scope is clear');
+    expect(resolvePendingGate(cwd).phase).toBe('clarify');
+
+    writeState(cwd, { ...readState(cwd), pending_gate: 'GATE-101-frame' });
+    answerGate(cwd, 'GATE-101-frame', 'reject: stop this iteration');
+    expect(resolvePendingGate(cwd).halted?.reason).toContain('reject');
+  });
+
+  it('records failed Check steps and creates an emergency gate at the retry limit', () => {
+    const cwd = workspace();
+    writeState(cwd, { ...DEFAULT_STATE, max_rounds: 2 });
+
+    expect(
+      recordPhaseFailure(cwd, 'frame', 'missing a user journey').round,
+    ).toBe(1);
+    const blocked = recordPhaseFailure(
+      cwd,
+      'frame',
+      'still missing a user journey',
+    );
+    expect(blocked.pending_gate).toBe('GATE-EMERGENCY-frame');
+    expect(readState(cwd).last_failure?.summary).toContain('still missing');
+
+    answerGate(cwd, 'GATE-EMERGENCY-frame', 'approve: retry after workshop');
+    const retried = resolvePendingGate(cwd);
+    expect(retried.round).toBe(0);
+    expect(retried.failures).toBe(0);
+  });
+
+  it('validates only the active iteration seed and state in CI', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+    writeIterationArtifact(cwd, '00-user-input/requirements.md', 'seed');
+    write(cwd, 'artifacts/00-user-input/requirements.md', 'stale legacy seed');
+
+    expect(() => validateWorkflow(cwd)).not.toThrow();
+    write(
+      cwd,
+      'evidence-state.json',
+      JSON.stringify({ ...DEFAULT_STATE, iteration_id: 'ITER-0002' }),
+    );
+    expect(() => validateWorkflow(cwd)).toThrow(
+      'Active iteration artifact root is missing',
+    );
+  });
+});
+
 describe('phase completion guardrails', () => {
   it('rejects completing a phase that is not current', () => {
     const cwd = workspace();
@@ -464,11 +596,11 @@ describe('phase completion guardrails', () => {
   it('advances after required outputs exist and creates the configured gate', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
-    write(cwd, 'artifacts/01-requirements/personas.md');
-    write(cwd, 'artifacts/01-requirements/problem-statement.md');
-    write(cwd, 'artifacts/01-requirements/business-context.md');
-    write(cwd, 'artifacts/01-requirements/user-journeys.md');
-    write(cwd, 'artifacts/01-requirements/story-map.md');
+    writeIterationArtifact(cwd, '01-requirements/personas.md');
+    writeIterationArtifact(cwd, '01-requirements/problem-statement.md');
+    writeIterationArtifact(cwd, '01-requirements/business-context.md');
+    writeIterationArtifact(cwd, '01-requirements/user-journeys.md');
+    writeIterationArtifact(cwd, '01-requirements/story-map.md');
 
     const state = completePhase(cwd, 'frame', 'ready');
 
