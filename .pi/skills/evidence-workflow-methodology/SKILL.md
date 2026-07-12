@@ -10,7 +10,7 @@ description: '运行 Evidence 的反馈驱动工作流：TQA 需求澄清、模�
 ## 工作流程
 
 1. 读取 `evidence-state.json`，识别当前阶段、活动工作项、轮次和待处理 gate。
-2. 读取 `iteration_id`，使用 `artifacts/iterations/<iteration_id>/00-user-input/requirements.md` 作为种子输入；后续迭代使用同一目录下的 `07-learning/next-iteration.md` 作为反馈输入。
+2. 新迭代以 GitHub Issue 为需求权威来源，通过 `/evidence-reset --issue=<number>` 冻结 `artifacts/iterations/<iteration_id>/00-user-input/issue.json`，并生成只读 `requirements.md` 投影。后续迭代应将同一目录下 `07-learning/next-iteration.md` 的反馈更新到 Issue 后再创建新快照；不得手工维护投影。
 3. 保留 `artifacts/iterations/<iteration_id>/` 作为该轮可审计的事实来源。不能因为开始新阶段或新迭代就覆盖任何历史证据。阶段提示词中出现的 `artifacts/...` 逻辑路径必须解析到活动 `iteration_id` 目录。
 4. `.evidence/` 是当前项目长期演进的权威领域模型，也是 `domain_model` 阶段的输入和输出。`artifacts/02-domain-model/` 只保存本轮模型快照、模型增量、场景展开、战术设计和验证报告，不得维护另一套重复模型。
 5. 按阶段应用技能：
@@ -30,10 +30,12 @@ description: '运行 Evidence 的反馈驱动工作流：TQA 需求澄清、模�
 
 ```bash
 /evidence-status
+/evidence-reset --issue=123
+/evidence-issue-status
+/evidence-issue-sync
 /evidence-run
 /evidence-run --dry-run
 /evidence-run --story=US-001 --scenario=SC-001
-/evidence-reset
 /evidence-gate 通过，进入下一阶段
 ```
 

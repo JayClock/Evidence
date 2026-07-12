@@ -109,11 +109,13 @@ Pi 中可用命令：
 
 ```text
 /evidence-status
+/evidence-reset --issue=123 [--repo=owner/evidence]
+/evidence-issue-status
+/evidence-issue-sync
 /evidence-run --dry-run
 /evidence-run
 /evidence-gate 通过，进入下一阶段
 /evidence-answer <领域专家的回答>
-/evidence-reset
 ```
 
 工作流资产：
@@ -127,7 +129,9 @@ Pi 中可用命令：
 | `artifacts/iterations/ITER-xxxx/`       | 每轮 Evidence 工件、失败反馈和审计日志（不可覆盖）     |
 | `artifacts/iterations/ITER-xxxx/gates/` | 当前迭代的类型化人工审核门                             |
 
-建议先执行 `/evidence-status`，再执行 `/evidence-run --dry-run` 预览当前阶段。活动迭代由 `evidence-state.json` 的 `iteration_id` 指定；其种子输入位于 `artifacts/iterations/<iteration_id>/00-user-input/requirements.md`。`/evidence-reset` 会创建新 `ITER-xxxx` 命名空间并复制上一轮种子，旧工件不会被覆盖。
+使用 `/evidence-reset --issue=123 [--repo=owner/evidence]` 从 GitHub Issue 创建新迭代。Issue 是需求权威来源；工作流将其冻结为 `00-user-input/issue.json`，并自动生成只读的 `requirements.md` 投影供 Frame 使用，禁止手工维护该文件。活动迭代由 `evidence-state.json` 的 `iteration_id` 指定，旧工件不会被覆盖。
+
+`/evidence-issue-status` 检查远端 Issue 是否偏离当前快照。只有仍在 Frame 时才能执行 `/evidence-issue-sync` 显式刷新；Frame 之后的需求变化应开启新迭代，以免破坏 Story、Scenario 和模型展开的输入基线。
 
 Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段，`/evidence-gate revise <说明>` 回到被审核阶段，`/evidence-gate reject <说明>` 停止当前迭代。阶段 Check 失败会保留反馈并在同一阶段重试；达到 `max_rounds` 后创建 emergency Gate。
 
@@ -148,6 +152,7 @@ Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所
 - Rust toolchain (`cargo`, `rustc`)
 - Tauri system dependencies: https://tauri.app/start/prerequisites/
 - PostgreSQL (for the backend)
+- GitHub CLI (`gh`) authenticated with access to the requirement repository
 
 ### Install
 
