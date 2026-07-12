@@ -101,9 +101,9 @@ Two persistence backends share the same contract tests:
 
 Both backends seed identical defaults: user `desktop-user` → workspace `default-workspace` with owner membership.
 
-## Evidence 工作流
+## Evidence Orchestrator
 
-本仓库已接入一套项目本地的 Evidence 工作流。它为 Evidence 提供方法论技能、阶段提示词、命令、工具、状态文件和 Markdown 审核门，用于生成可审计的产品增量。
+本仓库已接入项目本地的 Evidence Orchestrator。它通过独立阶段 subagent、确定性命令与工具、状态文件和 Markdown 审核门编排可审计的产品增量。
 
 Pi 中可用命令：
 
@@ -118,7 +118,7 @@ Pi 中可用命令：
 /evidence-answer <领域专家的回答>
 
 # Coding phase tool
-# evidence_workflow_run_test_step(processId, stage, command)
+# evidence_orchestrator_run_test_step(processId, stage, command)
 ```
 
 工作流资产：
@@ -129,9 +129,9 @@ Pi 中可用命令：
 | `.evidence/`                            | 跨迭代权威领域模型                                      |
 | `docs/architecture/`                    | 跨迭代统一维护的架构与测试策略                          |
 | `contracts/`                            | 可执行 API 契约                                         |
-| `engineering/evidence-workflow/`        | 功能上下文、测试工序目录和统一 DoD                      |
-| `.pi/extensions/evidence-workflow/`     | 工作流状态机、审核门、命令和工具                        |
-| `.pi/skills/`、`.pi/prompts/`           | 方法论技能和阶段提示词                                  |
+| `engineering/evidence-orchestrator/`    | 功能上下文、测试工序目录和统一 DoD                      |
+| `.pi/extensions/evidence-orchestrator/` | 工作流状态机、审核门、命令、工具与 subagent 执行器      |
+| `.pi/agents/`                           | 隔离上下文的阶段角色、模型、推理档位和工具权限          |
 | `evidence-state.json`                   | 当前工作流阶段和审核门状态                              |
 | `artifacts/iterations/ITER-xxxx/`       | 单轮输入、切片、delta、决策、执行证据和反馈（不可覆盖） |
 | `artifacts/iterations/ITER-xxxx/gates/` | 当前迭代的类型化人工审核门                              |
@@ -144,13 +144,13 @@ Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段�
 
 `frame` 先读取 `docs/product/` 的统一产品知识，只在 iteration 输出问题陈述、上下文增量、旅程切片和故事地图增量。`clarify` 使用 TQA：业务上下文回答先追加到 `product-context-delta.md`，不得直接改写统一产品知识；经 Learn/Gate 确认后才提升到 `docs/product/`。未回答问题会阻止故事进入 Ready 和下一阶段。
 
-`architecture` 读取 `docs/architecture/`、`contracts/` 和 `engineering/evidence-workflow/`，iteration 只输出架构决策、API/data delta 和机器可读 `scenario-context-map.json`。项目级目录维护 Rust、Web、Nest 和 Tauri 工序；Coding 选择工序时快照到本轮 `selected-test-processes/`。一个垂直场景可顺序选择多个 runtime 工序并在 `test_plan` 中固定组合。GitHub Issues/Projects 是 Product Backlog 权威来源，统一 DoD 位于 `engineering/evidence-workflow/definition-of-done.md`，两者都不在 iteration 重复生成。
+`architecture` 读取 `docs/architecture/`、`contracts/` 和 `engineering/evidence-orchestrator/`，iteration 只输出架构决策、API/data delta 和机器可读 `scenario-context-map.json`。项目级目录维护 Rust、Web、Nest 和 Tauri 工序；Coding 选择工序时快照到本轮 `selected-test-processes/`。一个垂直场景可顺序选择多个 runtime 工序并在 `test_plan` 中固定组合。GitHub Issues/Projects 是 Product Backlog 权威来源，统一 DoD 位于 `engineering/evidence-orchestrator/definition-of-done.md`，两者都不在 iteration 重复生成。
 
-Coding 在修改代码前用 `evidence_workflow_select_test_process` 选择每个适用工序。Issue 驱动的新 iteration 还必须通过 `evidence_workflow_run_test_step` 执行工序声明的质量命令；该工具会把观察到的退出码、stdout/stderr 哈希与 Git 工作树哈希追加到场景执行日志。场景 JSON evidence 由这些记录验证，不能手工伪造 Red/Green/Refactor 退出码。
+Coding 在修改代码前用 `evidence_orchestrator_select_test_process` 选择每个适用工序。Issue 驱动的新 iteration 还必须通过 `evidence_orchestrator_run_test_step` 执行工序声明的质量命令；该工具会把观察到的退出码、stdout/stderr 哈希与 Git 工作树哈希追加到场景执行日志。场景 JSON evidence 由这些记录验证，不能手工伪造 Red/Green/Refactor 退出码。
 
-Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm workflow:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm workflow:validate` 验证活动迭代状态、输入和 Gate 元数据。
+Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm orchestrator:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm orchestrator:validate` 验证活动迭代状态、输入和 Gate 元数据。
 
-各阶段的模型策略配置在 `.pi/evidence-workflow.json`。`/evidence-run` 会在执行前切换模型和推理档位；模型不存在或没有凭证时会停止，而不是静默回退。当前策略为：Requirements/Domain 使用 Sol × High，Architecture/Review 使用 Sol × xHigh，Planning/Coding 使用 Terra × Medium。工作流阶段均可拆分，因此默认不使用 Max；Ultra/Pro 不是 API 推理档位，也不写入该配置。
+`/evidence-run` 直接启动 `.pi/agents/` 中当前阶段所属的独立 pi subagent；父会话不再切换模型或代执行阶段任务。每个 agent 的 frontmatter 是其角色、模型、推理档位和工具权限的唯一配置：Requirements/Domain/Learn 使用 Sol × High，Architecture/Review 使用 Sol × xHigh，Planning/Coding 使用 Terra × Medium。缺少 agent、模型或凭证时执行会显式失败，不做回退。
 
 ## Quick Start
 
@@ -263,7 +263,7 @@ cargo test -p evidence-server --features postgres-tests
 | `docs/product/`                                      | Canonical product knowledge                                    |
 | `.evidence/`                                         | Canonical domain model                                         |
 | `docs/architecture/`                                 | Canonical architecture knowledge                               |
-| `engineering/evidence-workflow/`                     | Runtime contexts, test processes and shared DoD                |
+| `engineering/evidence-orchestrator/`                 | Runtime contexts, test processes and shared DoD                |
 | `artifacts/iterations/`                              | Immutable iteration evidence                                   |
 | `AGENTS.md`                                          | Agent coding standards, domain guide, repo map, git discipline |
 

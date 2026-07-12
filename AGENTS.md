@@ -176,7 +176,9 @@ API 遵循 HAL 风格约定：
 | `.evidence/`                              | Evidence 产品权威领域模型                                       |
 | `docs/architecture/`                      | 跨迭代统一维护的架构与测试策略                                  |
 | `contracts/`                              | 可执行 API 契约                                                 |
-| `engineering/evidence-workflow/`          | 运行时上下文、可复用测试工序与统一 DoD                          |
+| `.pi/extensions/evidence-orchestrator/`   | 确定性多 Agent 编排器、状态机、Gate 与执行证据                  |
+| `.pi/agents/`                             | 隔离上下文的阶段专业 Agent                                      |
+| `engineering/evidence-orchestrator/`      | 运行时上下文、可复用测试工序与统一 DoD                          |
 | `artifacts/iterations/`                   | 不可变的单轮输入、增量、决策与执行证据                          |
 | `apps/desktop/`                           | Tauri 2 桌面壳                                                  |
 | `apps/desktop/src-tauri/`                 | Tauri Rust crate、配置与 capabilities                           |
@@ -237,5 +239,5 @@ cargo test -p evidence-server --features postgres-tests
 4. `libs/server/api/src/api/mod.rs`：Axum 路由注册与中间件。
 5. `libs/server/persistent/src/persistent/store.rs`：Rust 持久化设置与种子数据。
 6. `libs/server/persistent/src/persistent/test_support.rs`：用于理解预期行为的契约测试。
-7. `engineering/evidence-workflow/runtime-contexts.json`：稳定的功能上下文词汇与所属运行时。
+7. `engineering/evidence-orchestrator/runtime-contexts.json`：稳定的功能上下文词汇与所属运行时。
 8. `apps/desktop/src-tauri/tauri.conf.json`：Desktop/Web 边界配置。

@@ -2,17 +2,17 @@
 
 ## Authority map
 
-| Knowledge              | Authority                                             | Iteration representation                            |
-| ---------------------- | ----------------------------------------------------- | --------------------------------------------------- |
-| Requirement request    | GitHub Issue/Projects                                 | Frozen `issue.json` and read-only projection        |
-| Product solution       | `docs/product/`                                       | Problem, journey slice and product/story-map deltas |
-| Domain model           | `.evidence/`                                          | Model snapshot, delta and scenario expansion        |
-| Architecture           | `docs/architecture/`                                  | Decisions and scenario context map                  |
-| API contract           | `contracts/api.yaml`                                  | API contract delta                                  |
-| Data model             | Migrations, Prisma schema and SeaORM entities         | Data-model delta                                    |
-| Testing process        | `engineering/evidence-workflow/test-processes/`       | Selected immutable process snapshots                |
-| Definition of Done     | `engineering/evidence-workflow/definition-of-done.md` | Git version plus scenario-specific additions        |
-| Execution and feedback | `artifacts/iterations/`                               | Immutable evidence                                  |
+| Knowledge              | Authority                                                 | Iteration representation                            |
+| ---------------------- | --------------------------------------------------------- | --------------------------------------------------- |
+| Requirement request    | GitHub Issue/Projects                                     | Frozen `issue.json` and read-only projection        |
+| Product solution       | `docs/product/`                                           | Problem, journey slice and product/story-map deltas |
+| Domain model           | `.evidence/`                                              | Model snapshot, delta and scenario expansion        |
+| Architecture           | `docs/architecture/`                                      | Decisions and scenario context map                  |
+| API contract           | `contracts/api.yaml`                                      | API contract delta                                  |
+| Data model             | Migrations, Prisma schema and SeaORM entities             | Data-model delta                                    |
+| Testing process        | `engineering/evidence-orchestrator/test-processes/`       | Selected immutable process snapshots                |
+| Definition of Done     | `engineering/evidence-orchestrator/definition-of-done.md` | Git version plus scenario-specific additions        |
+| Execution and feedback | `artifacts/iterations/`                                   | Immutable evidence                                  |
 
 ## Promotion lifecycle
 

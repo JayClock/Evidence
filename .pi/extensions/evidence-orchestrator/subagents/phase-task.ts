@@ -1,0 +1,61 @@
+import { artifactRelativePath } from '../workflow/iteration-paths';
+import {
+  PHASE_META,
+  phaseSpecificInstructions,
+} from '../workflow/phase-catalog';
+import { readState } from '../workflow/state-store';
+import type { Phase } from '../workflow/types';
+
+export function buildPhaseTask(
+  cwd: string,
+  requestedPhase?: string,
+  extra = '',
+): string {
+  const state = readState(cwd);
+  const phase = (requestedPhase || state.phase) as Phase;
+  if (phase === 'complete') {
+    return 'Evidence Orchestrator 本轮迭代已完成。读取本轮 07-learning/next-iteration.md，将确认后的反馈更新到 GitHub Issue，再通过 /evidence-reset --issue=<number> 创建新快照；不要直接扩写旧工件或手工修改 requirements.md 投影。';
+  }
+  const meta = PHASE_META[phase];
+  if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
+  const activeWorkItem = state.active_work_item
+    ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
+    : '未选择';
+  const requirementSource = state.requirement_source
+    ? `${state.requirement_source.repository}#${state.requirement_source.issue_number} (${state.requirement_source.url})`
+    : 'legacy local snapshot';
+  const resolvePath = (path: string) => artifactRelativePath(state, path);
+  const instructions = phaseSpecificInstructions(phase).replaceAll(
+    'artifacts/',
+    `artifacts/iterations/${state.iteration_id}/`,
+  );
+
+  return `执行 Evidence Orchestrator 阶段：${phase} — ${meta.title}。
+
+需求权威来源：${requirementSource}
+当前编码工作项：${activeWorkItem}
+
+执行约束：
+1. 读取并尊重输入文件，不得编造已有工件。已有 artifacts 是审计历史；00-user-input/requirements.md 是 GitHub Issue 的自动生成投影，不得手工编辑。
+2. 统一知识源包括 docs/product/、.evidence/、docs/architecture/、contracts/ 和 engineering/evidence-orchestrator/。Iteration 只保存切片、delta、决策和执行证据。
+3. .evidence/ 是权威领域模型；domain_model 阶段按场景演进它，artifacts/02-domain-model/ 只保存本轮证据。
+4. 输出仅写入指定路径。本轮工件只写入 artifacts/iterations/${state.iteration_id}/，不得覆盖其他 iteration。
+5. 用户故事使用 artifacts/01-requirements/stories/US-xxx.md；验收示例使用 artifacts/01-requirements/examples/US-xxx-SC-xxx.md。
+6. Coding 必须修改所属 apps/* 或 libs/* 的真实测试与实现，不得创建根级 src/、tests/，也不得用 Markdown 伪代码代替代码；同时产出场景 Markdown 与机器可读 JSON 证据。
+7. Clarify 使用 evidence_orchestrator_ask_question 一次只记录一个高价值、非技术问题；调用后立即停止。只有用户明确回答后才能调用 evidence_orchestrator_answer_question。
+8. Check 失败时调用 evidence_orchestrator_report_phase_failure，记录具体失败结果后在同一阶段修正。
+9. 完成后调用 evidence_orchestrator_complete_phase，phase 必须为 "${phase}"。
+
+输入文件/目录：
+${meta.inputs.map((path) => `- ${resolvePath(path)}`).join('\n')}
+
+必须产出：
+${meta.outputs.map((path) => `- ${resolvePath(path)}`).join('\n')}
+
+阶段要求：
+${instructions}
+
+额外用户指令：
+${extra || '（无）'}
+`;
+}

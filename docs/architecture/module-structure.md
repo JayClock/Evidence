@@ -43,12 +43,14 @@ libs/
 - Rust server track ↔ Nest server track 的实现级混合。
 - Runtime code → `artifacts/iterations`。
 
-## Workflow 知识结构
+## Orchestrator 与知识结构
 
 ```text
-.evidence/                         canonical domain model
-docs/product/                      canonical product knowledge
-docs/architecture/                 canonical technical solution
-engineering/evidence-workflow/     contexts, processes and DoD
-artifacts/iterations/               immutable iteration evidence
+.pi/extensions/evidence-orchestrator/  deterministic orchestration runtime
+.pi/agents/                             isolated phase agents
+.evidence/                              canonical domain model
+docs/product/                           canonical product knowledge
+docs/architecture/                      canonical technical solution
+engineering/evidence-orchestrator/      contexts, processes and DoD
+artifacts/iterations/                    immutable iteration evidence
 ```

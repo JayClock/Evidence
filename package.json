@@ -18,8 +18,8 @@
     "prisma:generate": "pnpm --filter @evidence/server-nest exec prisma generate --schema prisma/schema.prisma",
     "ui:shadcn": "pnpm --filter @evidence/ui exec shadcn",
     "ui:ai-elements": "pnpm --filter @evidence/ui exec elements add",
-    "workflow:test": "vitest run --config .pi/extensions/evidence-workflow/vitest.config.ts",
-    "workflow:validate": "node -r @swc-node/register .pi/extensions/evidence-workflow/validate.ts",
+    "orchestrator:test": "vitest run --config .pi/extensions/evidence-orchestrator/vitest.config.ts",
+    "orchestrator:validate": "node -r @swc-node/register .pi/extensions/evidence-orchestrator/validation/workflow-validator.ts",
     "format": "nx format:write",
     "format:check": "nx format:check",
     "lint:staged": "lint-staged",
@@ -93,12 +93,6 @@
   "pi": {
     "extensions": [
       ".pi/extensions"
-    ],
-    "skills": [
-      ".pi/skills"
-    ],
-    "prompts": [
-      ".pi/prompts"
     ]
   }
 }
