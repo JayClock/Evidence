@@ -31,6 +31,7 @@ import { buildPhasePrompt } from './prompts';
 import {
   newIterationState,
   readState,
+  selectTestProcess,
   selectWorkItem,
   writeState,
 } from './state';
@@ -292,7 +293,7 @@ describe('P0 knowledge-feedback workflow', () => {
     write(cwd, 'artifacts/05-code/other.md');
 
     expect(() => completePhase(cwd, 'coding')).toThrow(
-      'missing scenario evidence artifacts/iterations/ITER-0001/05-code/US-042/SC-003.md',
+      'select one matching test process before changing code',
     );
   });
 
@@ -417,7 +418,37 @@ describe('P0 knowledge-feedback workflow', () => {
       { cwd },
     );
     writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
-    const state = selectWorkItem(cwd, 'US-042', 'SC-003');
+    writeIterationArtifact(
+      cwd,
+      '03-architecture/test-processes/web-shell.json',
+      JSON.stringify({
+        version: 1,
+        id: 'web-shell',
+        applies_to: {
+          runtime: 'typescript',
+          functional_contexts: ['web-shell'],
+        },
+        steps: [
+          {
+            id: 'component-q1',
+            quadrant: 'Q1',
+            functional_context: 'web-shell',
+            test_double: 'stub',
+            task: 'Test the shell component in isolation.',
+          },
+          {
+            id: 'acceptance-q2',
+            quadrant: 'Q2',
+            functional_context: 'web-shell',
+            test_double: 'real',
+            task: 'Verify the acceptance behavior.',
+          },
+        ],
+        quality_gates: ['pnpm nx test @evidence/web --run'],
+      }),
+    );
+    selectWorkItem(cwd, 'US-042', 'SC-003');
+    const state = selectTestProcess(cwd, 'typescript', ['web-shell']);
     const workItem = state.active_work_item;
     expect(workItem).toBeDefined();
     if (!workItem) throw new Error('Expected an active coding work item.');
@@ -434,16 +465,67 @@ describe('P0 knowledge-feedback workflow', () => {
       'artifacts/05-code/US-042/SC-003.json',
       JSON.stringify({
         version: 1,
-        work_item: {
-          story_id: 'US-042',
-          scenario_id: 'SC-003',
-          git_baseline: workItem.git_baseline,
-        },
+        work_item: workItem,
         traceability: {
           scenario: 'artifacts/01-requirements/examples/US-042-SC-003.md',
           q2_tests: ['apps/web/src/app.spec.tsx'],
           q1_tests: ['apps/web/src/app.spec.tsx'],
           functional_contexts: ['web-shell'],
+        },
+        test_process: {
+          id: 'web-shell',
+          path: 'artifacts/iterations/ITER-0001/03-architecture/test-processes/web-shell.json',
+          steps: [
+            {
+              id: 'component-q1',
+              quadrant: 'Q1',
+              functional_context: 'web-shell',
+              test_double: 'stub',
+              tests: ['apps/web/src/app.spec.tsx'],
+              changed_code_paths: ['apps/web/src/app.spec.tsx'],
+              tdd: {
+                red: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 1,
+                  expected_failure: true,
+                },
+                green: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+                refactor: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+              },
+            },
+            {
+              id: 'acceptance-q2',
+              quadrant: 'Q2',
+              functional_context: 'web-shell',
+              test_double: 'real',
+              tests: ['apps/web/src/app.spec.tsx'],
+              changed_code_paths: ['apps/web/src/app.tsx'],
+              tdd: {
+                red: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 1,
+                  expected_failure: true,
+                },
+                green: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+                refactor: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+              },
+            },
+          ],
+          quality_gates: [
+            { command: 'pnpm nx test @evidence/web --run', exit_code: 0 },
+          ],
         },
         changed_code_paths: [
           'apps/web/src/app.tsx',
@@ -466,6 +548,213 @@ describe('P0 knowledge-feedback workflow', () => {
 
     expect(() =>
       validateScenarioExecutionEvidence(cwd, workItem),
+    ).not.toThrow();
+  });
+});
+
+describe('P2 executable test processes', () => {
+  it('selects one schema-validated test process by runtime and functional contexts', () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
+    writeIterationArtifact(
+      cwd,
+      '03-architecture/test-processes/rust-api.json',
+      JSON.stringify({
+        version: 1,
+        id: 'rust-api',
+        applies_to: {
+          runtime: 'rust',
+          functional_contexts: ['server-domain', 'server-api'],
+        },
+        steps: [
+          {
+            id: 'domain-q1',
+            quadrant: 'Q1',
+            functional_context: 'server-domain',
+            test_double: 'real',
+            task: 'Write a domain behavior test first.',
+          },
+          {
+            id: 'api-q2',
+            quadrant: 'Q2',
+            functional_context: 'server-api',
+            test_double: 'fake',
+            task: 'Verify the acceptance scenario through the API.',
+          },
+        ],
+        quality_gates: ['cargo test -p evidence-server'],
+      }),
+    );
+    selectWorkItem(cwd, 'US-042', 'SC-003');
+
+    const selected = selectTestProcess(cwd, 'rust', [
+      'server-domain',
+      'server-api',
+    ]);
+
+    expect(selected.active_work_item?.test_process).toEqual({
+      id: 'rust-api',
+      path: 'artifacts/iterations/ITER-0001/03-architecture/test-processes/rust-api.json',
+      runtime: 'rust',
+      functional_contexts: ['server-domain', 'server-api'],
+    });
+  });
+
+  it('requires execution evidence to trace every selected process step and quality gate', () => {
+    const cwd = workspace();
+    write(cwd, 'apps/web/src/app.tsx', 'export const app = 1;\n');
+    initializeGitRepository(cwd);
+    execFileSync('git', ['add', 'apps'], { cwd });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Evidence Workflow Test',
+        '-c',
+        'user.email=workflow@example.test',
+        'commit',
+        '--quiet',
+        '-m',
+        'baseline code',
+      ],
+      { cwd },
+    );
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
+    writeIterationArtifact(
+      cwd,
+      '03-architecture/test-processes/web-shell.json',
+      JSON.stringify({
+        version: 1,
+        id: 'web-shell',
+        applies_to: {
+          runtime: 'typescript',
+          functional_contexts: ['web-shell'],
+        },
+        steps: [
+          {
+            id: 'component-q1',
+            quadrant: 'Q1',
+            functional_context: 'web-shell',
+            test_double: 'stub',
+            task: 'Test the shell component in isolation.',
+          },
+          {
+            id: 'acceptance-q2',
+            quadrant: 'Q2',
+            functional_context: 'web-shell',
+            test_double: 'real',
+            task: 'Verify the acceptance behavior.',
+          },
+        ],
+        quality_gates: ['pnpm nx test @evidence/web --run'],
+      }),
+    );
+    const workItem = selectWorkItem(cwd, 'US-042', 'SC-003').active_work_item!;
+    const selected = selectTestProcess(cwd, 'typescript', [
+      'web-shell',
+    ]).active_work_item!;
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/examples/US-042-SC-003.md',
+      'Given a workspace\nWhen it loads\nThen the shell is visible\n',
+    );
+    write(cwd, 'apps/web/src/app.tsx', 'export const app = 2;\n');
+    write(cwd, 'apps/web/src/app.spec.tsx', 'export {};\n');
+    writeIterationArtifact(cwd, '05-code/US-042/SC-003.md', '# TDD evidence\n');
+    writeIterationArtifact(
+      cwd,
+      '05-code/US-042/SC-003.json',
+      JSON.stringify({
+        version: 1,
+        work_item: { ...workItem, test_process: selected.test_process },
+        traceability: {
+          scenario:
+            'artifacts/iterations/ITER-0001/01-requirements/examples/US-042-SC-003.md',
+          q2_tests: ['apps/web/src/app.spec.tsx'],
+          q1_tests: ['apps/web/src/app.spec.tsx'],
+          functional_contexts: ['web-shell'],
+        },
+        test_process: {
+          id: 'web-shell',
+          path: 'artifacts/iterations/ITER-0001/03-architecture/test-processes/web-shell.json',
+          steps: [
+            {
+              id: 'component-q1',
+              quadrant: 'Q1',
+              functional_context: 'web-shell',
+              test_double: 'stub',
+              tests: ['apps/web/src/app.spec.tsx'],
+              changed_code_paths: ['apps/web/src/app.spec.tsx'],
+              tdd: {
+                red: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 1,
+                  expected_failure: true,
+                },
+                green: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+                refactor: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+              },
+            },
+            {
+              id: 'acceptance-q2',
+              quadrant: 'Q2',
+              functional_context: 'web-shell',
+              test_double: 'real',
+              tests: ['apps/web/src/app.spec.tsx'],
+              changed_code_paths: ['apps/web/src/app.tsx'],
+              tdd: {
+                red: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 1,
+                  expected_failure: true,
+                },
+                green: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+                refactor: {
+                  command: 'pnpm nx test @evidence/web --run',
+                  exit_code: 0,
+                },
+              },
+            },
+          ],
+          quality_gates: [
+            { command: 'pnpm nx test @evidence/web --run', exit_code: 0 },
+          ],
+        },
+        changed_code_paths: [
+          'apps/web/src/app.tsx',
+          'apps/web/src/app.spec.tsx',
+        ],
+        tdd: {
+          red: {
+            command: 'pnpm nx test @evidence/web --run',
+            exit_code: 1,
+            expected_failure: true,
+          },
+          green: { command: 'pnpm nx test @evidence/web --run', exit_code: 0 },
+          refactor: {
+            command: 'pnpm nx test @evidence/web --run',
+            exit_code: 0,
+          },
+        },
+      }),
+    );
+
+    expect(() =>
+      validateScenarioExecutionEvidence(
+        cwd,
+        selected,
+        'artifacts/iterations/ITER-0001',
+      ),
     ).not.toThrow();
   });
 });
