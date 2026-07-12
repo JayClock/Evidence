@@ -1,0 +1,10 @@
+id: ai-agent-proposes-modeling-proposal
+kind: association
+name: AiAgentProposesModelingProposal
+label: 提出建模提案
+source: ai-modeling-agent
+target: modeling-proposal
+relationshipType: proposes
+direction: directed
+cardinality: one-to-many
+summary: AI 建模助手根据需求提出模型变更建议。

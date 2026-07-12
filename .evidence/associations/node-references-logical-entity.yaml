@@ -1,0 +1,10 @@
+id: node-references-logical-entity
+kind: association
+name: NodeReferencesLogicalEntity
+label: 引用逻辑实体
+source: diagram-node
+target: logical-entity
+relationshipType: reference
+direction: directed
+cardinality: many-to-one
+summary: 图节点负责呈现逻辑实体，不拥有其业务语义。

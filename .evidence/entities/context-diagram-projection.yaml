@@ -1,0 +1,7 @@
+id: context-diagram-projection
+name: DiagramProjectionContext
+label: 图投影
+type: CONTEXT
+subType: bounded_context
+description: |
+  将逻辑实体和逻辑关系投影为图、节点和边的可视化边界。

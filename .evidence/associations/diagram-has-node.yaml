@@ -1,0 +1,10 @@
+id: diagram-has-node
+kind: association
+name: DiagramHasNode
+label: 包含图节点
+source: diagram
+target: diagram-node
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: 图由节点组成。

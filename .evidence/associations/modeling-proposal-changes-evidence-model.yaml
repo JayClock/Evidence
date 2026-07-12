@@ -1,0 +1,10 @@
+id: modeling-proposal-changes-evidence-model
+kind: association
+name: ModelingProposalChangesEvidenceModel
+label: 建议变更模型
+source: modeling-proposal
+target: evidence-model
+relationshipType: changes
+direction: directed
+cardinality: many-to-one
+summary: 经评审接受的建模提案会演进 Evidence 模型。

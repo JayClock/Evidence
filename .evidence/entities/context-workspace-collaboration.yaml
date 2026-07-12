@@ -1,0 +1,7 @@
+id: context-workspace-collaboration
+name: WorkspaceCollaborationContext
+label: 工作区协作
+type: CONTEXT
+subType: bounded_context
+description: |
+  管理用户进入工作区、成员资格及成员角色的协作边界。

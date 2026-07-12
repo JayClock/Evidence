@@ -1,0 +1,8 @@
+id: diagram-node
+name: DiagramNode
+label: 图节点
+type: PARTICIPANT
+subType: thing
+parent: context-diagram-projection
+description: |
+  图中引用逻辑实体并承载位置、尺寸和样式的投影元素。

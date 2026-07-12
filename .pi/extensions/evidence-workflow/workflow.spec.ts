@@ -81,7 +81,7 @@ describe('phase model configuration', () => {
     expect(phaseModelConfig(cwd, 'complete')).toBeUndefined();
   });
 
-  it('rejects unsupported reasoning levels', () => {
+  it('rejects unsupported reasoning levels and obsolete phase names', () => {
     const cwd = workspace();
     write(
       cwd,
@@ -99,6 +99,24 @@ describe('phase model configuration', () => {
 
     expect(() => readWorkflowConfig(cwd)).toThrow(
       'Invalid model configuration for phase review',
+    );
+
+    write(
+      cwd,
+      '.pi/evidence-workflow.json',
+      JSON.stringify({
+        phaseModels: {
+          requirements: {
+            provider: 'openai',
+            model: 'gpt-5.6-sol',
+            thinking: 'high',
+          },
+        },
+      }),
+    );
+
+    expect(() => readWorkflowConfig(cwd)).toThrow(
+      'Unsupported Evidence Workflow phase: requirements',
     );
   });
 });
@@ -151,16 +169,17 @@ describe('P0 knowledge-feedback workflow', () => {
     );
   });
 
-  it('migrates a legacy requirements phase to frame', () => {
+  it('rejects an obsolete requirements phase instead of silently migrating it', () => {
     const cwd = workspace();
-    writeState(cwd, { ...DEFAULT_STATE, phase: 'frame' });
     write(
       cwd,
       'evidence-state.json',
       JSON.stringify({ ...DEFAULT_STATE, phase: 'requirements' }),
     );
 
-    expect(readState(cwd).phase).toBe('frame');
+    expect(() => readState(cwd)).toThrow(
+      'Unsupported Evidence Workflow phase: requirements',
+    );
   });
 
   it('requires TQA clarification and concrete examples in the requirement prompts', () => {
@@ -173,13 +192,21 @@ describe('P0 knowledge-feedback workflow', () => {
     expect(buildPhasePrompt(cwd)).toContain('Given/When/Then');
   });
 
-  it('requires model expansion and test processes before implementation', () => {
+  it('requires a canonical .evidence model, model deltas, expansions, and test processes before implementation', () => {
     expect(PHASE_META.domain_model.outputs).toEqual(
       expect.arrayContaining([
-        'artifacts/02-domain-model/domain-model.mmd',
+        '.evidence/model.json',
+        '.evidence/entities/',
+        '.evidence/associations/',
+        'artifacts/02-domain-model/model-snapshot.json',
+        'artifacts/02-domain-model/model-delta.json',
         'artifacts/02-domain-model/model-expansions/',
+        'artifacts/02-domain-model/tactical-design.md',
         'artifacts/02-domain-model/validation-report.md',
       ]),
+    );
+    expect(PHASE_META.domain_model.outputs).not.toContain(
+      'artifacts/02-domain-model/entities-and-value-objects.md',
     );
     expect(PHASE_META.architecture.outputs).toEqual(
       expect.arrayContaining([
@@ -241,21 +268,77 @@ describe('P0 knowledge-feedback workflow', () => {
     );
   });
 
-  it('requires an auditable .evidence source manifest and structured model expansion for every example', () => {
+  it('treats .evidence as the canonical project model and artifacts as snapshot, delta, and expansion evidence', () => {
     const cwd = workspace();
-    write(cwd, '.evidence/entities/contract.md');
-    write(cwd, '.evidence/associations/contract-to-request.md');
+    initializeGitRepository(cwd);
+    write(
+      cwd,
+      '.evidence/model.json',
+      JSON.stringify({
+        version: 1,
+        project_name: 'Evidence',
+        purpose: 'Model the Evidence product domain for DDD iterations.',
+      }),
+    );
+    write(
+      cwd,
+      '.evidence/entities/contract.yaml',
+      'id: contract\nname: Contract\ntype: EVIDENCE\nsubType: other_evidence\n',
+    );
+    write(
+      cwd,
+      '.evidence/entities/request.yaml',
+      'id: request\nname: Request\ntype: EVIDENCE\nsubType: fulfillment_request\n',
+    );
+    write(
+      cwd,
+      '.evidence/associations/contract-to-request.yaml',
+      'id: contract-to-request\nkind: association\nname: ContractToRequest\nsource: contract\ntarget: request\n',
+    );
+    execFileSync('git', ['add', '.evidence'], { cwd });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Evidence Workflow Test',
+        '-c',
+        'user.email=workflow@example.test',
+        'commit',
+        '--quiet',
+        '-m',
+        'canonical model',
+      ],
+      { cwd },
+    );
+    const baseline = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd,
+      encoding: 'utf8',
+    }).trim();
     write(cwd, 'artifacts/01-requirements/examples/US-042-SC-003.md');
     write(
       cwd,
-      'artifacts/02-domain-model/evidence-source-manifest.json',
+      'artifacts/02-domain-model/model-snapshot.json',
       JSON.stringify({
         version: 1,
-        source_roots: ['.evidence/entities/', '.evidence/associations/'],
+        git_baseline: baseline,
+        model_root: '.evidence/',
         included_paths: [
-          '.evidence/entities/contract.md',
-          '.evidence/associations/contract-to-request.md',
+          '.evidence/entities/contract.yaml',
+          '.evidence/entities/request.yaml',
+          '.evidence/associations/contract-to-request.yaml',
         ],
+      }),
+    );
+    write(
+      cwd,
+      'artifacts/02-domain-model/model-delta.json',
+      JSON.stringify({
+        version: 1,
+        git_baseline: baseline,
+        added: [],
+        changed: [],
+        removed: [],
+        reason: 'The current model already explains the selected scenario.',
       }),
     );
     write(
@@ -265,6 +348,10 @@ describe('P0 knowledge-feedback workflow', () => {
         version: 1,
         work_item: { story_id: 'US-042', scenario_id: 'SC-003' },
         source_scenario: 'artifacts/01-requirements/examples/US-042-SC-003.md',
+        model_refs: {
+          entities: ['contract'],
+          associations: ['contract-to-request'],
+        },
         given: { entities: [], relationships: [] },
         when: { command: 'CreateDeliveryRequest' },
         then: {
@@ -275,7 +362,6 @@ describe('P0 knowledge-feedback workflow', () => {
         },
         invariants: ['Contract exists before DeliveryRequest.'],
         timeline: ['Contract', 'DeliveryRequest'],
-        evidence_sources: ['.evidence/entities/contract.md'],
       }),
     );
 
@@ -304,7 +390,9 @@ describe('P0 knowledge-feedback workflow', () => {
     );
     writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
     const state = selectWorkItem(cwd, 'US-042', 'SC-003');
-    const workItem = state.active_work_item!;
+    const workItem = state.active_work_item;
+    expect(workItem).toBeDefined();
+    if (!workItem) throw new Error('Expected an active coding work item.');
     write(
       cwd,
       'artifacts/01-requirements/examples/US-042-SC-003.md',

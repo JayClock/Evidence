@@ -1,0 +1,8 @@
+id: evidence-model
+name: EvidenceModel
+label: Evidence 模型
+type: PARTICIPANT
+subType: thing
+parent: context-local-model-storage
+description: |
+  存放在 .evidence 目录、描述当前项目领域知识的版本化模型。

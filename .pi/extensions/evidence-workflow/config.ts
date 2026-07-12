@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PHASE_ORDER } from './phases';
 import type { Phase } from './types';
 
 export type ThinkingLevel =
@@ -31,9 +32,9 @@ const THINKING_LEVELS = new Set<ThinkingLevel>([
   'max',
 ]);
 
-const LEGACY_PHASE_MODELS: Record<string, Exclude<Phase, 'complete'>> = {
-  requirements: 'frame',
-};
+const CONFIGURABLE_PHASES = new Set(
+  PHASE_ORDER.filter((phase) => phase !== 'complete'),
+);
 
 export function workflowConfigPath(cwd: string): string {
   return join(cwd, '.pi', 'evidence-workflow.json');
@@ -59,9 +60,12 @@ export function readWorkflowConfig(cwd: string): WorkflowConfig {
         `Invalid model configuration for phase ${configuredPhase} in ${path}.`,
       );
     }
-    const phase = LEGACY_PHASE_MODELS[configuredPhase] ?? configuredPhase;
-    if (phase === 'complete') continue;
-    phaseModels[phase as Exclude<Phase, 'complete'>] =
+    if (!CONFIGURABLE_PHASES.has(configuredPhase as Phase)) {
+      throw new Error(
+        `Unsupported Evidence Workflow phase: ${configuredPhase} in ${path}.`,
+      );
+    }
+    phaseModels[configuredPhase as Exclude<Phase, 'complete'>] =
       config as PhaseModelConfig;
   }
   return { phaseModels };

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "project_name": "Evidence",
+  "purpose": "描述 Evidence 平台自身的领域模型，并作为 DDD 迭代开发的权威模型。"
+}

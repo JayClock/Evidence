@@ -1,0 +1,8 @@
+id: association-file
+name: AssociationFile
+label: 关联文件
+type: PARTICIPANT
+subType: thing
+parent: context-local-model-storage
+description: |
+  持久化一个引用 source 与 target 实体的领域关联的 YAML 文件。

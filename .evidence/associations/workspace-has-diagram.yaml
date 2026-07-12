@@ -1,0 +1,10 @@
+id: workspace-has-diagram
+kind: association
+name: WorkspaceHasDiagram
+label: 包含图
+source: workspace
+target: diagram
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: 工作区提供领域模型的可视化图投影。

@@ -1,0 +1,8 @@
+id: logical-relationship
+name: LogicalRelationship
+label: 逻辑关系
+type: PARTICIPANT
+subType: thing
+parent: context-model-authoring
+description: |
+  工作区中连接两个逻辑实体并承载关系语义的独立概念。

@@ -1,0 +1,8 @@
+id: diagram-edge
+name: DiagramEdge
+label: 图边
+type: PARTICIPANT
+subType: thing
+parent: context-diagram-projection
+description: |
+  图中连接节点并呈现逻辑关系的投影元素。

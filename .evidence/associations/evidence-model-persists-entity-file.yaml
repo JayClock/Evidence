@@ -1,0 +1,10 @@
+id: evidence-model-persists-entity-file
+kind: association
+name: EvidenceModelPersistsEntityFile
+label: 持久化实体文件
+source: evidence-model
+target: entity-file
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: Evidence 模型由多个实体 YAML 文件持久化。

@@ -1,0 +1,8 @@
+id: membership
+name: Membership
+label: 工作区成员资格
+type: PARTICIPANT
+subType: thing
+parent: context-workspace-collaboration
+description: |
+  用户以 owner 或 member 身份参与一个工作区的关系。

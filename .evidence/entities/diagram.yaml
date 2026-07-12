@@ -1,0 +1,8 @@
+id: diagram
+name: Diagram
+label: 图
+type: PARTICIPANT
+subType: thing
+parent: context-diagram-projection
+description: |
+  围绕建模问题组织节点和边的可视化投影。

@@ -1,0 +1,10 @@
+id: workspace-has-membership
+kind: association
+name: WorkspaceHasMembership
+label: 包含成员资格
+source: workspace
+target: membership
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: 工作区包含用户参与协作的成员资格。

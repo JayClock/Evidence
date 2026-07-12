@@ -27,7 +27,7 @@ export function buildPhasePrompt(
 必须遵守：
 1. 使用项目内 Skill：${meta.skill}；必要时读取 .pi/skills/${meta.skill}/SKILL.md。
 2. 读取并尊重输入文件，不要凭空编造已有工件；已有 artifacts 是审计历史，除非本阶段需要修正，否则不要整体重写。
-3. .evidence/ 是可工作的领域知识源；领域建模阶段必须读取其实体和关联，并在结构化 manifest 中记录实际输入。
+3. .evidence/ 是当前项目的权威领域模型；domain_model 阶段必须读取并按场景演进它。artifacts/02-domain-model/ 只保存模型快照、增量、展开、战术设计和验证证据，不得复制另一套模型。
 4. 将输出写入指定工件路径；如果目录不存在，创建目录。
 5. 用户故事以单独文件管理：artifacts/01-requirements/stories/US-xxx.md；验收示例以 artifacts/01-requirements/examples/US-xxx-SC-xxx.md 管理。
 6. 代码阶段必须在所属 apps/* 或 libs/* 项目中创建或修改真实实现与测试，不能创建根级 src/、tests/，也不能只写 Markdown 伪代码。完成时同时提供场景 Markdown 与机器可读 JSON 证据。

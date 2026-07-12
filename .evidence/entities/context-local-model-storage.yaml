@@ -1,0 +1,7 @@
+id: context-local-model-storage
+name: LocalModelStorageContext
+label: 本地模型存储
+type: CONTEXT
+subType: bounded_context
+description: |
+  将 Evidence 领域模型保存为本地 YAML 实体和关联文件的边界。

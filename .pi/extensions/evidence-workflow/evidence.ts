@@ -10,6 +10,7 @@ const EVIDENCE_SOURCE_ROOTS = [
   '.evidence/associations/',
 ];
 const EXAMPLE_PATTERN = /^(US-\d+)-(SC-\d+)\.md$/i;
+const MODEL_FILE_PATTERN = /\.ya?ml$/i;
 
 function runGit(cwd: string, args: string[]): string {
   try {
@@ -93,22 +94,68 @@ function examplePaths(cwd: string): string[] {
 
 function sourceModelPaths(cwd: string): string[] {
   return EVIDENCE_SOURCE_ROOTS.flatMap((root) =>
-    findFiles(join(cwd, root), (path) => path.endsWith('.md')).map((path) =>
-      path.slice(cwd.length + 1),
+    findFiles(join(cwd, root), (path) => MODEL_FILE_PATTERN.test(path)).map(
+      (path) => path.slice(cwd.length + 1),
     ),
   ).sort();
+}
+
+interface ModelIndex {
+  entityIds: Set<string>;
+  associationIds: Set<string>;
+}
+
+function frontmatterValue(text: string, key: string): string | undefined {
+  const match = new RegExp(`^${key}:\\s*(.+?)\\s*$`, 'm').exec(text);
+  return match?.[1]?.replace(/^['"]|['"]$/g, '');
+}
+
+function buildModelIndex(cwd: string, paths: string[]): ModelIndex {
+  const entityIds = new Set<string>();
+  const associationIds = new Set<string>();
+  const allIds = new Set<string>();
+  for (const path of paths) {
+    const text = readFileSync(join(cwd, path), 'utf8');
+    const id = frontmatterValue(text, 'id');
+    if (!id)
+      throw new Error(`Canonical model file has no frontmatter id: ${path}.`);
+    if (allIds.has(id))
+      throw new Error(`Canonical model contains duplicate id ${id}.`);
+    allIds.add(id);
+    if (path.startsWith('.evidence/entities/')) entityIds.add(id);
+    else associationIds.add(id);
+  }
+
+  for (const path of paths.filter((entry) =>
+    entry.startsWith('.evidence/associations/'),
+  )) {
+    const text = readFileSync(join(cwd, path), 'utf8');
+    const source = frontmatterValue(text, 'source');
+    const target = frontmatterValue(text, 'target');
+    if (
+      !source ||
+      !target ||
+      !entityIds.has(source) ||
+      !entityIds.has(target)
+    ) {
+      throw new Error(
+        `Association ${path} must reference existing source and target entity ids.`,
+      );
+    }
+  }
+  return { entityIds, associationIds };
 }
 
 function validateModelExpansion(
   cwd: string,
   examplePath: string,
-  includedSources: Set<string>,
+  modelIndex: ModelIndex,
 ): void {
   const exampleName = examplePath.split('/').pop() ?? '';
   const match = EXAMPLE_PATTERN.exec(exampleName);
-  if (!match) return;
-  const storyId = match[1]!.toUpperCase();
-  const scenarioId = match[2]!.toUpperCase();
+  const storyId = match?.[1]?.toUpperCase();
+  const scenarioId = match?.[2]?.toUpperCase();
+  if (!storyId || !scenarioId) return;
   const expansionPath = `artifacts/02-domain-model/model-expansions/${storyId}-${scenarioId}.json`;
   const expansion = expectRecord(
     readJson(join(cwd, expansionPath)),
@@ -168,61 +215,145 @@ function validateModelExpansion(
     `${expansionPath}.invariants`,
   );
   expectNonEmptyStringArray(expansion.timeline, `${expansionPath}.timeline`);
-  const sources = expectNonEmptyStringArray(
-    expansion.evidence_sources,
-    `${expansionPath}.evidence_sources`,
+  const modelRefs = expectRecord(
+    expansion.model_refs,
+    `${expansionPath}.model_refs`,
   );
-  for (const source of sources) {
-    if (!includedSources.has(source)) {
+  for (const id of expectNonEmptyStringArray(
+    modelRefs.entities,
+    `${expansionPath}.model_refs.entities`,
+  )) {
+    if (!modelIndex.entityIds.has(id)) {
       throw new Error(
-        `${expansionPath} references a source absent from the evidence manifest: ${source}.`,
+        `${expansionPath} references unknown model entity id ${id}.`,
+      );
+    }
+  }
+  for (const id of expectStringArray(
+    modelRefs.associations,
+    `${expansionPath}.model_refs.associations`,
+  )) {
+    if (!modelIndex.associationIds.has(id)) {
+      throw new Error(
+        `${expansionPath} references unknown model association id ${id}.`,
       );
     }
   }
 }
 
-/** Validate that .evidence inputs and all scenario model expansions are auditable. */
+interface ModelChanges {
+  added: string[];
+  changed: string[];
+  removed: string[];
+}
+
+function changedModelPathsSince(cwd: string, baseline: string): ModelChanges {
+  runGit(cwd, ['cat-file', '-e', `${baseline}^{commit}`]);
+  const changes: ModelChanges = { added: [], changed: [], removed: [] };
+  const tracked = runGit(cwd, [
+    'diff',
+    '--name-status',
+    baseline,
+    '--',
+    '.evidence',
+  ])
+    .split('\n')
+    .filter(Boolean);
+  for (const line of tracked) {
+    const [status = '', ...pathParts] = line.split('\t');
+    const path = pathParts.at(-1);
+    if (!path) continue;
+    if (status.startsWith('A')) changes.added.push(path);
+    else if (status.startsWith('D')) changes.removed.push(path);
+    else changes.changed.push(path);
+  }
+  changes.added.push(
+    ...runGit(cwd, [
+      'ls-files',
+      '--others',
+      '--exclude-standard',
+      '--',
+      '.evidence',
+    ])
+      .split('\n')
+      .filter(Boolean),
+  );
+  for (const paths of Object.values(changes)) paths.sort();
+  return changes;
+}
+
+/** Validate .evidence as the canonical project model and artifacts as iteration evidence. */
 export function validateDomainModelEvidence(cwd: string): void {
-  const manifestPath =
-    'artifacts/02-domain-model/evidence-source-manifest.json';
-  const manifest = expectRecord(
-    readJson(join(cwd, manifestPath)),
-    manifestPath,
+  const modelMetadataPath = '.evidence/model.json';
+  const modelMetadata = expectRecord(
+    readJson(join(cwd, modelMetadataPath)),
+    modelMetadataPath,
   );
-  if (manifest.version !== 1)
-    throw new Error(`${manifestPath}.version must be 1.`);
-  const roots = expectNonEmptyStringArray(
-    manifest.source_roots,
-    `${manifestPath}.source_roots`,
+  if (modelMetadata.version !== 1)
+    throw new Error(`${modelMetadataPath}.version must be 1.`);
+  expectString(modelMetadata.project_name, `${modelMetadataPath}.project_name`);
+  expectString(modelMetadata.purpose, `${modelMetadataPath}.purpose`);
+
+  const snapshotPath = 'artifacts/02-domain-model/model-snapshot.json';
+  const snapshot = expectRecord(
+    readJson(join(cwd, snapshotPath)),
+    snapshotPath,
   );
-  for (const root of EVIDENCE_SOURCE_ROOTS) {
-    if (!roots.includes(root))
-      throw new Error(`${manifestPath} must include ${root}.`);
+  if (snapshot.version !== 1)
+    throw new Error(`${snapshotPath}.version must be 1.`);
+  const baseline = expectString(
+    snapshot.git_baseline,
+    `${snapshotPath}.git_baseline`,
+  );
+  if (snapshot.model_root !== '.evidence/') {
+    throw new Error(`${snapshotPath}.model_root must be .evidence/.`);
   }
   const includedPaths = expectNonEmptyStringArray(
-    manifest.included_paths,
-    `${manifestPath}.included_paths`,
-  );
+    snapshot.included_paths,
+    `${snapshotPath}.included_paths`,
+  ).sort();
   for (const path of includedPaths) {
     if (!EVIDENCE_SOURCE_ROOTS.some((root) => path.startsWith(root))) {
       throw new Error(
-        `${manifestPath} includes a path outside the Evidence model roots: ${path}.`,
+        `${snapshotPath} includes a path outside the canonical model: ${path}.`,
       );
     }
-    requireFile(cwd, path, `${manifestPath}.included_paths`);
+    requireFile(cwd, path, `${snapshotPath}.included_paths`);
   }
 
   const expectedSourcePaths = sourceModelPaths(cwd);
   if (expectedSourcePaths.length === 0) {
     throw new Error(
-      'No .evidence entity or association Markdown sources were found.',
+      'The canonical .evidence model has no entity or association files.',
     );
   }
-  const includedSources = new Set(includedPaths);
-  for (const source of expectedSourcePaths) {
-    if (!includedSources.has(source)) {
+  if (JSON.stringify(includedPaths) !== JSON.stringify(expectedSourcePaths)) {
+    throw new Error(
+      `${snapshotPath}.included_paths must exactly match the canonical .evidence model.`,
+    );
+  }
+  const modelIndex = buildModelIndex(cwd, expectedSourcePaths);
+
+  const deltaPath = 'artifacts/02-domain-model/model-delta.json';
+  const delta = expectRecord(readJson(join(cwd, deltaPath)), deltaPath);
+  if (delta.version !== 1) throw new Error(`${deltaPath}.version must be 1.`);
+  if (
+    expectString(delta.git_baseline, `${deltaPath}.git_baseline`) !== baseline
+  ) {
+    throw new Error(
+      `${deltaPath} and ${snapshotPath} must use the same Git baseline.`,
+    );
+  }
+  expectString(delta.reason, `${deltaPath}.reason`);
+  const actualChanges = changedModelPathsSince(cwd, baseline);
+  for (const field of ['added', 'changed', 'removed'] as const) {
+    const recorded = expectStringArray(
+      delta[field],
+      `${deltaPath}.${field}`,
+    ).sort();
+    if (JSON.stringify(recorded) !== JSON.stringify(actualChanges[field])) {
       throw new Error(
-        `${manifestPath} must include discovered source ${source}.`,
+        `${deltaPath}.${field} must exactly match .evidence Git changes since baseline.`,
       );
     }
   }
@@ -237,7 +368,7 @@ export function validateDomainModelEvidence(cwd: string): void {
     validateModelExpansion(
       cwd,
       absoluteExamplePath.slice(cwd.length + 1),
-      includedSources,
+      modelIndex,
     );
   }
 }
@@ -248,7 +379,9 @@ export function createCodingGitBaseline(cwd: string): string {
     runGit(cwd, ['status', '--porcelain=v1', '--untracked-files=all'])
       .split('\n')
       .filter(Boolean)
-      .map((line) => line.slice(3).split(' -> ').at(-1)!.replaceAll('"', '')),
+      .map((line) =>
+        (line.slice(3).split(' -> ').at(-1) ?? '').replaceAll('"', ''),
+      ),
   );
   if (dirtyPaths.length > 0) {
     throw new Error(

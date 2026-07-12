@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createCodingGitBaseline } from './evidence';
-import { DEFAULT_STATE } from './phases';
+import { DEFAULT_STATE, PHASE_ORDER } from './phases';
 import type { ActiveWorkItem, Phase, WorkflowState } from './types';
 
-const LEGACY_PHASES: Record<string, Phase> = {
-  requirements: 'frame',
-};
+const CONFIGURABLE_PHASES = new Set(
+  PHASE_ORDER.filter((phase) => phase !== 'complete'),
+);
 
 export function statePath(cwd: string): string {
   return join(cwd, 'evidence-state.json');
@@ -18,13 +18,28 @@ function readJsonFile<T>(path: string): T | undefined {
 }
 
 export function normalizeState(state: WorkflowState): WorkflowState {
-  const legacyPhase = state.phase as string;
-  const phase = LEGACY_PHASES[legacyPhase] ?? state.phase;
+  const phase = state.phase as string;
+  if (!PHASE_ORDER.includes(phase as Phase)) {
+    throw new Error(`Unsupported Evidence Workflow phase: ${phase}.`);
+  }
+  for (const gatePhase of Object.keys(state.gate_config ?? {})) {
+    if (!CONFIGURABLE_PHASES.has(gatePhase as Phase)) {
+      throw new Error(
+        `Unsupported Evidence Workflow gate configuration: ${gatePhase}.`,
+      );
+    }
+  }
   return {
-    ...DEFAULT_STATE,
-    ...state,
-    phase,
+    phase: phase as Phase,
+    round: state.round ?? DEFAULT_STATE.round,
+    pending_gate: state.pending_gate ?? DEFAULT_STATE.pending_gate,
+    failures: state.failures ?? DEFAULT_STATE.failures,
+    max_rounds: state.max_rounds ?? DEFAULT_STATE.max_rounds,
+    artifacts: state.artifacts ?? DEFAULT_STATE.artifacts,
     gate_config: { ...DEFAULT_STATE.gate_config, ...(state.gate_config ?? {}) },
+    ...(state.active_work_item
+      ? { active_work_item: state.active_work_item }
+      : {}),
     pi: { enabled: true, version: 4, ...(state.pi ?? {}) },
   };
 }

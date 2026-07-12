@@ -1,0 +1,8 @@
+id: modeling-proposal
+name: ModelingProposal
+label: 建模提案
+type: EVIDENCE
+subType: proposal
+parent: context-model-authoring
+description: |
+  AI 建模助手针对需求生成的实体和关系变更建议。

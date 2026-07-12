@@ -1,0 +1,8 @@
+id: logical-entity
+name: LogicalEntity
+label: 逻辑实体
+type: PARTICIPANT
+subType: thing
+parent: context-model-authoring
+description: |
+  工作区中被定义的业务概念，可分类为 Evidence、Participant、Role 或 Context。

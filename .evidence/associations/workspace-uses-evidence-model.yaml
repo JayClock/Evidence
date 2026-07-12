@@ -1,0 +1,10 @@
+id: workspace-uses-evidence-model
+kind: association
+name: WorkspaceUsesEvidenceModel
+label: 使用 Evidence 模型
+source: workspace
+target: evidence-model
+relationshipType: uses
+direction: directed
+cardinality: one-to-one
+summary: 工作区的领域建模由一个 Evidence 模型文件集合支撑。

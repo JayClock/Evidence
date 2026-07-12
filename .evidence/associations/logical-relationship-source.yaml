@@ -1,0 +1,10 @@
+id: logical-relationship-source
+kind: association
+name: LogicalRelationshipSource
+label: 关系源端点
+source: logical-relationship
+target: logical-entity
+relationshipType: source
+direction: directed
+cardinality: many-to-one
+summary: 每个逻辑关系引用一个源逻辑实体。

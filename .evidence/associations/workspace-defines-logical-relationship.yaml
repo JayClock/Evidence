@@ -1,0 +1,10 @@
+id: workspace-defines-logical-relationship
+kind: association
+name: WorkspaceDefinesLogicalRelationship
+label: 定义逻辑关系
+source: workspace
+target: logical-relationship
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: 工作区包含其业务概念之间的关系定义。

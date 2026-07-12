@@ -1,0 +1,8 @@
+id: workspace
+name: Workspace
+label: 工作区
+type: PARTICIPANT
+subType: thing
+parent: context-workspace-collaboration
+description: |
+  协作与模型隔离的容器，拥有成员、逻辑实体、逻辑关系和图投影。

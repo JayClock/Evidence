@@ -1,0 +1,10 @@
+id: logical-relationship-target
+kind: association
+name: LogicalRelationshipTarget
+label: 关系目标端点
+source: logical-relationship
+target: logical-entity
+relationshipType: target
+direction: directed
+cardinality: many-to-one
+summary: 每个逻辑关系引用一个目标逻辑实体。

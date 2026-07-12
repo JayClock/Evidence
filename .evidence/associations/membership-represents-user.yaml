@@ -1,0 +1,10 @@
+id: membership-represents-user
+kind: association
+name: MembershipRepresentsUser
+label: 表示用户参与
+source: membership
+target: user
+relationshipType: represents
+direction: directed
+cardinality: many-to-one
+summary: 成员资格表示一个用户在工作区中的角色。

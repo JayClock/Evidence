@@ -1,0 +1,10 @@
+id: edge-represents-logical-relationship
+kind: association
+name: EdgeRepresentsLogicalRelationship
+label: 呈现逻辑关系
+source: diagram-edge
+target: logical-relationship
+relationshipType: projection
+direction: directed
+cardinality: many-to-one
+summary: 图边负责呈现逻辑关系，不定义关系本身。

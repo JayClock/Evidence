@@ -1,0 +1,10 @@
+id: diagram-has-edge
+kind: association
+name: DiagramHasEdge
+label: 包含图边
+source: diagram
+target: diagram-edge
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: 图由边组成。

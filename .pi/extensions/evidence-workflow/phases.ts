@@ -104,14 +104,13 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
       '.evidence/associations/',
     ],
     outputs: [
-      'artifacts/02-domain-model/ubiquitous-language.md',
-      'artifacts/02-domain-model/evidence-source-manifest.json',
-      'artifacts/02-domain-model/domain-model.mmd',
-      'artifacts/02-domain-model/bounded-contexts.md',
-      'artifacts/02-domain-model/entities-and-value-objects.md',
-      'artifacts/02-domain-model/aggregates.md',
-      'artifacts/02-domain-model/domain-events.md',
+      '.evidence/model.json',
+      '.evidence/entities/',
+      '.evidence/associations/',
+      'artifacts/02-domain-model/model-snapshot.json',
+      'artifacts/02-domain-model/model-delta.json',
       'artifacts/02-domain-model/model-expansions/',
+      'artifacts/02-domain-model/tactical-design.md',
       'artifacts/02-domain-model/validation-report.md',
     ],
     gateId: 'GATE-105-domain-model',
@@ -121,10 +120,13 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
     title: '架构与测试策略 — DDD Tactical Design',
     skill: 'ddd',
     inputs: [
-      'artifacts/02-domain-model/ubiquitous-language.md',
-      'artifacts/02-domain-model/domain-model.mmd',
-      'artifacts/02-domain-model/aggregates.md',
+      '.evidence/model.json',
+      '.evidence/entities/',
+      '.evidence/associations/',
+      'artifacts/02-domain-model/model-snapshot.json',
+      'artifacts/02-domain-model/model-delta.json',
       'artifacts/02-domain-model/model-expansions/',
+      'artifacts/02-domain-model/tactical-design.md',
       'artifacts/02-domain-model/validation-report.md',
     ],
     outputs: [
@@ -198,6 +200,8 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
     inputs: [
       'artifacts/06-reviews/',
       'artifacts/01-requirements/stories/',
+      '.evidence/model.json',
+      'artifacts/02-domain-model/model-delta.json',
       'artifacts/02-domain-model/validation-report.md',
     ],
     outputs: [
@@ -227,7 +231,7 @@ export function phaseSpecificInstructions(
     case 'validate':
       return `- 审核故事是否仍以角色和价值定义问题，验收示例是否覆盖关键正反场景。\n- 输出 requirements-validation.md，逐项标注 Ready、需澄清或需拆分；只有 Ready 故事可作为领域模型的验证集。`;
     case 'domain_model':
-      return `- 读取 .evidence/entities/ 与 .evidence/associations/；先在 evidence-source-manifest.json（version=1、source_roots、included_paths）记录完整输入清单。\n- 输出概念字典、半结构化 Mermaid 领域模型、限界上下文、实体/值对象、聚合和领域事件。Mermaid 必须通过注释补充概念定义、关系语义、生命周期或时间顺序。\n- 对每个 Ready 场景生成 model-expansions/US-xxx-SC-xxx.json（version=1），记录 Given 实体/关系、When 命令、Then 变化、不变量、时间线与 evidence_sources；validation-report.md 必须记录概念缺失、关系错置及修正。`;
+      return `- .evidence/ 是当前项目长期演进的权威领域模型，同时是本阶段输入和输出。先读取现有模型并尝试展开 Ready 场景；只有发现概念缺失、关系错置或生命周期错误时才修改模型。\n- .evidence/model.json 必须声明 version=1、project_name 和 purpose；实体与关联使用稳定 frontmatter id，关联的 source/target 必须引用现有实体。\n- artifacts/02-domain-model/ 只记录本轮证据：model-snapshot.json（Git baseline、model_root、完整 included_paths）、model-delta.json（与 Git 实际变化一致的 added/changed/removed 和原因）、tactical-design.md、validation-report.md。不得再维护一套与 .evidence 重复的领域模型。\n- 对每个 Ready 场景生成 model-expansions/US-xxx-SC-xxx.json（version=1），以 model_refs.entities/associations 引用 .evidence 稳定 ID，并记录 Given、When、Then、不变量和时间线。`;
     case 'architecture':
       return `- 输出上下文映射、架构风格、技术栈、模块结构、API 契约和数据模型。\n- 新增 functional-contexts.md：场景到功能上下文的映射；test-strategy.md：Q2 验收测试如何被 Q1 组件/领域测试支撑；test-doubles.md：real/fake/stub/spy/mock 的选择。\n- 在 test-processes/ 为每类实现路径写可复用测试工序，按测试先行顺序拆分任务。`;
     case 'planning':

@@ -1,0 +1,10 @@
+id: evidence-model-persists-association-file
+kind: association
+name: EvidenceModelPersistsAssociationFile
+label: 持久化关联文件
+source: evidence-model
+target: association-file
+relationshipType: contains
+direction: directed
+cardinality: one-to-many
+summary: Evidence 模型由多个关联 YAML 文件持久化。

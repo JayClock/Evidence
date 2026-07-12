@@ -3,20 +3,24 @@ name: ddd
 description: '应用领域驱动设计（DDD）进行战略与战术建模：统一语言、限界上下文、上下文映射、聚合、实体、值对象、领域事件、API 与架构。'
 ---
 
-# 领域驱动设计（DDD）Skill
+# 领域驱动设计（DDD）技能
 
-在 `domain_model` 与 `architecture` 阶段使用本 skill。
+在 `domain_model` 与 `architecture` 阶段使用本技能。
 
 ## 领域建模输出
 
-- `artifacts/02-domain-model/ubiquitous-language.md`
-- `artifacts/02-domain-model/evidence-source-manifest.json`
-- `artifacts/02-domain-model/domain-model.mmd`
-- `artifacts/02-domain-model/bounded-contexts.md`
-- `artifacts/02-domain-model/entities-and-value-objects.md`
-- `artifacts/02-domain-model/aggregates.md`
-- `artifacts/02-domain-model/domain-events.md`
+权威领域模型：
+
+- `.evidence/model.json`
+- `.evidence/entities/*.yaml`
+- `.evidence/associations/*.yaml`
+
+本轮建模证据：
+
+- `artifacts/02-domain-model/model-snapshot.json`
+- `artifacts/02-domain-model/model-delta.json`
 - `artifacts/02-domain-model/model-expansions/US-xxx-SC-xxx.json`
+- `artifacts/02-domain-model/tactical-design.md`
 - `artifacts/02-domain-model/validation-report.md`
 
 ## 架构输出
@@ -36,10 +40,12 @@ description: '应用领域驱动设计（DDD）进行战略与战术建模：统
 
 - 命名模块时，优先体现限界上下文边界，而非技术分层。
 - API 契约必须足够明确，能够直接指导实现。
-- `.evidence/entities/` 与 `.evidence/associations/` 是可工作的领域知识源。领域建模前必须读取它们，并在 `evidence-source-manifest.json`（`version`、`source_roots`、`included_paths`）中列出完整输入。
-- 当图能澄清关系时使用 Mermaid。`domain-model.mmd` 必须使用半结构化自然语言：通过注释说明领域术语、关系含义、生命周期和顺序约束。
-- 不得编造与既有工件冲突的实现细节。
-- 使用“就绪”的 Given/When/Then 示例验证模型。每份 `US-xxx-SC-xxx.json` 模型展开必须说明 Given 实体/关系、When 命令、Then 创建/变更/删除的实体和关系、不变量、时间线和 `evidence_sources`；在 `validation-report.md` 中记录概念缺失和关系错置。
+- `.evidence/` 是当前项目的权威领域模型，同时是本阶段输入和输出。先用现有模型展开场景；仅在概念缺失、关系错置或生命周期错误时演进模型。
+- `.evidence/model.json` 声明模型所属项目和用途；实体和关联必须使用稳定 frontmatter `id`，关联的 `source` 与 `target` 必须引用已有实体。
+- `artifacts/02-domain-model/` 不得复制另一套完整领域模型。`model-snapshot.json` 记录 Git baseline 和完整模型文件清单，`model-delta.json` 记录与 Git 实际变化一致的 added/changed/removed 及原因。
+- 不得编造与既有模型及工件冲突的实现细节。
+- 使用“就绪”的 Given/When/Then 示例验证模型。每份 `US-xxx-SC-xxx.json` 通过 `model_refs.entities` 和 `model_refs.associations` 引用 `.evidence` 稳定 ID，并说明 Given 实体/关系、When 命令、Then 创建/变更/删除的实体和关系、不变量与时间线；在 `validation-report.md` 中记录概念缺失和关系错置。
+- 聚合、值对象、领域事件和事务边界等战术 DDD 决策写入 `tactical-design.md`；它们是模型应用决策，不是第二套问题域模型。
 - 架构必须把每个已计划场景从 Q2 验收测试映射到功能上下文、Q1 支撑测试和选定测试替身。测试工序是有顺序、可复用且测试先行的工作指令，不是泛化任务清单。
 
 ## 内嵌方法论

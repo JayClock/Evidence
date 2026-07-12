@@ -1,0 +1,8 @@
+id: user
+name: User
+label: 用户
+type: PARTICIPANT
+subType: party
+parent: context-workspace-collaboration
+description: |
+  使用 Evidence 创建、访问或参与工作区的人。

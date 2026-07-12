@@ -1,0 +1,8 @@
+id: ai-modeling-agent
+name: AiModelingAgent
+label: AI 建模助手
+type: ROLE
+subType: 3rd system
+parent: context-model-authoring
+description: |
+  根据建模需求提出模型修改建议的外部 AI 系统角色。

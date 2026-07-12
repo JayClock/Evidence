@@ -1,51 +1,26 @@
 {
-  "phase": "complete",
+  "phase": "frame",
   "round": 0,
   "pending_gate": null,
   "failures": 0,
   "max_rounds": 5,
-  "artifacts": [
-    "artifacts/00-user-input/requirements.md",
-    "artifacts/01-requirements/personas.md",
-    "artifacts/01-requirements/problem-statement.md",
-    "artifacts/01-requirements/story-map.md",
-    "artifacts/02-domain-model/aggregates.md",
-    "artifacts/02-domain-model/bounded-contexts.md",
-    "artifacts/02-domain-model/domain-events.md",
-    "artifacts/02-domain-model/entities-and-value-objects.md",
-    "artifacts/02-domain-model/ubiquitous-language.md",
-    "artifacts/03-architecture/api-contracts.md",
-    "artifacts/03-architecture/architecture-style.md",
-    "artifacts/03-architecture/context-map.md",
-    "artifacts/03-architecture/data-model.md",
-    "artifacts/03-architecture/module-structure.md",
-    "artifacts/03-architecture/tech-stack.md",
-    "artifacts/04-planning/definition-of-done.md",
-    "artifacts/04-planning/product-backlog.md",
-    "artifacts/04-planning/sprint-1-backlog.md",
-    "artifacts/04-planning/sprint-plan.md",
-    "artifacts/05-code/us-001-api-root-tdd.md",
-    "artifacts/06-reviews/review-round0.md"
-  ],
+  "artifacts": [],
   "gate_config": {
-    "requirements": "review",
+    "frame": "auto",
+    "clarify": "auto",
+    "specify": "auto",
+    "validate": "review",
     "domain_model": "review",
     "architecture": "review",
     "planning": "auto",
     "coding": "auto",
-    "review": "review"
-  },
-  "requirements": {
-    "stage": "frame",
-    "clarification_round": 0,
-    "questions": []
+    "review": "review",
+    "learn": "auto"
   },
   "pi": {
     "enabled": true,
     "version": 4,
-    "last_migration": "evidence-workflow-init",
-    "last_completed_phase": "review",
-    "last_run_at": "2026-07-11T08:37:12.772Z",
-    "last_command": "/evidence-run"
+    "last_command": "/evidence-run",
+    "last_run_at": "2026-07-11T23:47:42.373Z"
   }
 }
