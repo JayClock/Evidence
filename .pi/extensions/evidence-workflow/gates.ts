@@ -11,8 +11,11 @@ import {
   validateScenarioExecutionEvidence,
 } from './evidence';
 import { validateIssueSourceSnapshot } from './issue-source';
+import {
+  validateKnowledgePromotion,
+  validateScenarioContextMap,
+} from './knowledge';
 import { artifactPath, artifactRelativePath, iterationRoot } from './iteration';
-import { validateTestProcessDirectory } from './test-processes';
 import { nextPhase, PHASE_META } from './phases';
 import { readState, selectedTestProcesses, writeState } from './state';
 import type { GateDecisionAction, Phase, WorkflowState } from './types';
@@ -282,8 +285,13 @@ export function validatePhaseCompletion(
   }
 
   if (phase === 'architecture') {
-    validateTestProcessDirectory(
-      artifactPath(cwd, current, 'artifacts/03-architecture/test-processes'),
+    validateScenarioContextMap(
+      cwd,
+      artifactPath(
+        cwd,
+        current,
+        'artifacts/03-architecture/scenario-context-map.json',
+      ),
     );
   }
   if (phase === 'coding') {
@@ -318,13 +326,27 @@ export function validatePhaseCompletion(
   }
   const root = relative(cwd, iterationRoot(cwd, current));
   if (phase === 'domain_model') validateDomainModelEvidence(cwd, root);
+  if (phase === 'learn') {
+    validateKnowledgePromotion(
+      cwd,
+      artifactPath(
+        cwd,
+        current,
+        'artifacts/07-learning/knowledge-promotion.json',
+      ),
+    );
+  }
   if (phase === 'coding') {
     if (collectCodeFiles(cwd).length === 0) {
       throw new Error(
         'Cannot complete coding: no production or test code was found under apps/ or libs/.',
       );
     }
-    validateScenarioExecutionEvidence(cwd, current.active_work_item!, root);
+    const workItem = current.active_work_item;
+    if (!workItem) {
+      throw new Error('Cannot complete coding without an active work item.');
+    }
+    validateScenarioExecutionEvidence(cwd, workItem, root);
   }
 }
 

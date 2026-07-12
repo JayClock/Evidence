@@ -83,12 +83,12 @@ describe('delivery controls', () => {
     ).toEqual(['typescript', 'rust']);
     expect(
       existsSync(
-        `${cwd}/artifacts/iterations/ITER-0001/03-architecture/test-processes/typescript.json`,
+        `${cwd}/artifacts/iterations/ITER-0001/03-architecture/selected-test-processes/typescript.json`,
       ),
     ).toBe(true);
     expect(
       existsSync(
-        `${cwd}/artifacts/iterations/ITER-0001/03-architecture/test-processes/rust.json`,
+        `${cwd}/artifacts/iterations/ITER-0001/03-architecture/selected-test-processes/rust.json`,
       ),
     ).toBe(true);
   });

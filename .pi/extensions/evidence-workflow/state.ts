@@ -7,6 +7,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { createCodingGitBaseline } from './evidence';
+import { assertScenarioProcessSelection } from './knowledge';
 import {
   artifactPath,
   artifactRelativePath,
@@ -114,7 +115,8 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
  * Legacy local-state initialization is intentionally disabled. Requirements must
  * be frozen from an Issue by startIterationFromIssue before any active phase runs.
  */
-export function newIterationState(_cwd: string): never {
+export function newIterationState(cwd: string): never {
+  void cwd;
   throw new Error(
     'Local iteration initialization is disabled. Start with /evidence-reset --issue=<number>.',
   );
@@ -166,14 +168,14 @@ function snapshotCatalogProcess(
   const targetDirectory = artifactPath(
     cwd,
     state,
-    'artifacts/03-architecture/test-processes',
+    'artifacts/03-architecture/selected-test-processes',
   );
   const target = `${targetDirectory}/${path.split('/').at(-1)}`;
   mkdirSync(targetDirectory, { recursive: true });
   if (!existsSync(target)) copyFileSync(source, target);
   return artifactRelativePath(
     state,
-    `artifacts/03-architecture/test-processes/${path.split('/').at(-1)}`,
+    `artifacts/03-architecture/selected-test-processes/${path.split('/').at(-1)}`,
   );
 }
 
@@ -197,6 +199,12 @@ export function selectTestProcess(
   const candidates = matchingTestProcessesInDirectories(
     cwd,
     [
+      artifactPath(
+        cwd,
+        state,
+        'artifacts/03-architecture/selected-test-processes',
+      ),
+      // Backward-compatible search for immutable pre-migration iterations.
       artifactPath(cwd, state, 'artifacts/03-architecture/test-processes'),
       catalogTestProcessDirectory(cwd),
     ],
@@ -213,7 +221,24 @@ export function selectTestProcess(
       `Test process selection is ambiguous for runtime=${runtime} and contexts=${functionalContexts.join(', ')}: ${candidates.map((candidate) => candidate.definition.id).join(', ')}.`,
     );
   }
-  const candidate = candidates[0]!;
+  const candidate = candidates[0];
+  if (!candidate) {
+    throw new Error('A uniquely matching test process was not found.');
+  }
+  if (state.pi?.execution_evidence_version === 1) {
+    assertScenarioProcessSelection(
+      artifactPath(
+        cwd,
+        state,
+        'artifacts/03-architecture/scenario-context-map.json',
+      ),
+      state.active_work_item.story_id,
+      state.active_work_item.scenario_id,
+      runtime,
+      functionalContexts,
+      candidate.definition.id,
+    );
+  }
   const selection: TestProcessSelection = {
     id: candidate.definition.id,
     path: snapshotCatalogProcess(cwd, state, candidate.path),

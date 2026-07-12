@@ -30,7 +30,7 @@ export function ensureProjectDirs(
     '02-domain-model',
     '02-domain-model/model-expansions',
     '03-architecture',
-    '03-architecture/test-processes',
+    '03-architecture/selected-test-processes',
     '04-planning',
     '05-code',
     '06-reviews',

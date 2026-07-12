@@ -7,19 +7,25 @@ description: 'Apply Scrum planning to product backlogs, sprint plans, sprint bac
 
 Use this skill in the `planning` phase.
 
+## Inputs
+
+- GitHub Issues/Projects：Product Backlog 权威来源
+- `engineering/evidence-workflow/definition-of-done.md`：团队统一 DoD
+- 本轮故事、示例和 `scenario-context-map.json`
+
 ## Outputs
 
-- `artifacts/04-planning/product-backlog.md`
 - `artifacts/04-planning/sprint-plan.md`
 - `artifacts/04-planning/sprint-1-backlog.md`
-- `artifacts/04-planning/definition-of-done.md`
+- `artifacts/04-planning/backlog-delta.md`
 
 ## Rules
 
-- Product Backlog must preserve `US-xxx` story IDs from the story map.
-- Sprint 1 must contain implementable tasks with estimates and acceptance criteria.
-- Definition of Done must be verifiable through tests, review, docs, and deployment readiness.
-- Keep tables stable for automated review.
+- 不在 iteration 复制完整 Product Backlog 或 DoD。
+- Backlog 变化写入 `backlog-delta.md`，确认后同步 GitHub。
+- Sprint 1 只选择一个可实现的场景切片，并包含估算、验收标准、追踪链及 DoD Git 版本。
+- 场景特有完成条件可以追加，但不能降低统一 DoD。
+- 表格保持稳定以便自动审查。
 
 ## Embedded Methodology
 

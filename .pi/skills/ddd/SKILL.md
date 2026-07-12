@@ -23,23 +23,26 @@ description: '应用领域驱动设计（DDD）进行战略与战术建模：统
 - `artifacts/02-domain-model/tactical-design.md`
 - `artifacts/02-domain-model/validation-report.md`
 
-## 架构输出
+## 统一架构知识
 
-- `artifacts/03-architecture/context-map.md`
-- `artifacts/03-architecture/architecture-style.md`
-- `artifacts/03-architecture/tech-stack.md`
-- `artifacts/03-architecture/module-structure.md`
-- `artifacts/03-architecture/api-contracts.md`
-- `artifacts/03-architecture/data-model.md`
-- `artifacts/03-architecture/functional-contexts.md`
-- `artifacts/03-architecture/test-strategy.md`
-- `artifacts/03-architecture/test-doubles.md`
-- `artifacts/03-architecture/test-processes/*.json`（可选同名 `.md` 说明）
+- `docs/architecture/*.md`
+- `contracts/api.yaml`
+- `engineering/evidence-workflow/runtime-contexts.json`
+- `engineering/evidence-workflow/test-processes/*.json`
+
+## 本轮架构证据
+
+- `artifacts/03-architecture/architecture-decisions.md`
+- `artifacts/03-architecture/api-contract-delta.md`
+- `artifacts/03-architecture/data-model-delta.md`
+- `artifacts/03-architecture/scenario-context-map.json`
+- `artifacts/03-architecture/selected-test-processes/*.json`（Coding 选择时自动快照）
 
 ## 规则
 
 - 命名模块时，优先体现限界上下文边界，而非技术分层。
-- API 契约必须足够明确，能够直接指导实现。
+- `docs/architecture/`、`contracts/api.yaml` 和 `engineering/evidence-workflow/` 是统一架构知识；iteration 只记录场景增量和决策，不得复制完整架构。
+- API 与数据模型变化分别记录 delta，并引用真实 OpenAPI、migration、Prisma 或 SeaORM 文件。
 - `.evidence/` 是当前项目的权威领域模型，同时是本阶段输入和输出。先用现有模型展开场景；仅在概念缺失、关系错置或生命周期错误时演进模型。
 - `.evidence/model.json` 声明模型所属项目和用途；实体和关联必须使用稳定 frontmatter `id`，关联的 `source` 与 `target` 必须引用已有实体。
 - `artifacts/02-domain-model/` 不得复制另一套完整领域模型。`model-snapshot.json` 记录 Git baseline 和完整模型文件清单，`model-delta.json` 记录与 Git 实际变化一致的 added/changed/removed 及原因。

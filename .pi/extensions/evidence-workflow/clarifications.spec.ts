@@ -15,7 +15,7 @@ describe('clarifications', () => {
     const cwd = workspace();
     writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
     writeIterationArtifact(cwd, '01-requirements/stories/US-001.md');
-    writeIterationArtifact(cwd, '01-requirements/business-context.md');
+    writeIterationArtifact(cwd, '01-requirements/product-context-delta.md');
 
     askClarification(cwd, {
       story_id: 'US-001',

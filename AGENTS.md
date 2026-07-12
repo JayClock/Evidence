@@ -172,7 +172,12 @@ API 遵循 HAL 风格约定：
 | `libs/server/infrastructure/src/`         | Rust 基础设施适配器                                             |
 | `apps/server-nest/`、`libs/server-nest/*` | Nest 组合根与 TypeScript 实现路线                               |
 | `libs/web/*`                              | 共享 Web 壳、UI、API 客户端和功能库                             |
-| `engineering/evidence-workflow/`          | 运行时上下文与可复用测试工序目录                                |
+| `docs/product/`                           | 跨迭代统一维护的产品上下文、画像、旅程与故事地图                |
+| `.evidence/`                              | Evidence 产品权威领域模型                                       |
+| `docs/architecture/`                      | 跨迭代统一维护的架构与测试策略                                  |
+| `contracts/`                              | 可执行 API 契约                                                 |
+| `engineering/evidence-workflow/`          | 运行时上下文、可复用测试工序与统一 DoD                          |
+| `artifacts/iterations/`                   | 不可变的单轮输入、增量、决策与执行证据                          |
 | `apps/desktop/`                           | Tauri 2 桌面壳                                                  |
 | `apps/desktop/src-tauri/`                 | Tauri Rust crate、配置与 capabilities                           |
 | `Cargo.toml`                              | Rust workspace（成员：`apps/server`、`apps/desktop/src-tauri`） |

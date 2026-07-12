@@ -15,16 +15,16 @@ Two runtime surfaces, one frontend:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  apps/web                     React + Vite (port 4200)      │
-│  └─ main.tsx → App.tsx        react-router-dom routes       │
+│  apps/web + libs/web/*        React + Vite (port 4200)      │
+│  └─ composition + features    shared Web product            │
 ├─────────────────────────────────────────────────────────────┤
 │  apps/desktop                 Tauri 2 shell                 │
 │  └─ src-tauri/                Wraps apps/web in dev/build   │
 ├─────────────────────────────────────────────────────────────┤
-│  apps/server                  Rust Axum (port 3000)         │
-│  ├─ api/                      REST routes, HAL JSON         │
-│  ├─ domain/                   Pure traits + aggregates      │
-│  └─ persistent/               SeaORM + PostgreSQL           │
+│  apps/server + libs/server/*  Rust Axum track (port 3000)   │
+│  └─ api/domain/persistent     modular implementation        │
+├─────────────────────────────────────────────────────────────┤
+│  apps/server-nest + libs/server-nest/*  Nest track          │
 ├─────────────────────────────────────────────────────────────┤
 │  PostgreSQL                   Persistence                   │
 └─────────────────────────────────────────────────────────────┘
@@ -123,14 +123,18 @@ Pi 中可用命令：
 
 工作流资产：
 
-| 路径                                    | 用途                                                   |
-| --------------------------------------- | ------------------------------------------------------ |
-| `.pi/extensions/evidence-workflow/`     | Evidence 工作流状态机、审核门、命令和工具              |
-| `.pi/skills/`                           | 设计思维、DDD、Scrum、TDD 和 Evidence 工作流方法论技能 |
-| `.pi/prompts/`                          | 各阶段提示词模板                                       |
-| `evidence-state.json`                   | 当前工作流阶段和审核门状态                             |
-| `artifacts/iterations/ITER-xxxx/`       | 每轮 Evidence 工件、失败反馈和审计日志（不可覆盖）     |
-| `artifacts/iterations/ITER-xxxx/gates/` | 当前迭代的类型化人工审核门                             |
+| 路径                                    | 用途                                                    |
+| --------------------------------------- | ------------------------------------------------------- |
+| `docs/product/`                         | 跨迭代统一维护的产品画像、业务上下文、旅程和故事地图    |
+| `.evidence/`                            | 跨迭代权威领域模型                                      |
+| `docs/architecture/`                    | 跨迭代统一维护的架构与测试策略                          |
+| `contracts/`                            | 可执行 API 契约                                         |
+| `engineering/evidence-workflow/`        | 功能上下文、测试工序目录和统一 DoD                      |
+| `.pi/extensions/evidence-workflow/`     | 工作流状态机、审核门、命令和工具                        |
+| `.pi/skills/`、`.pi/prompts/`           | 方法论技能和阶段提示词                                  |
+| `evidence-state.json`                   | 当前工作流阶段和审核门状态                              |
+| `artifacts/iterations/ITER-xxxx/`       | 单轮输入、切片、delta、决策、执行证据和反馈（不可覆盖） |
+| `artifacts/iterations/ITER-xxxx/gates/` | 当前迭代的类型化人工审核门                              |
 
 使用 `/evidence-reset --issue=123 [--repo=owner/evidence]` 从 GitHub Issue 创建新迭代。Issue 是需求权威来源；工作流将其冻结为 `00-user-input/issue.json`，并自动生成只读的 `requirements.md` 投影供 Frame 使用，禁止手工维护该文件。没有 GitHub Issue source 的 bootstrap iteration 只作为历史记录，不能执行；活动迭代由 `evidence-state.json` 的 `iteration_id` 指定，旧工件不会被覆盖。
 
@@ -138,9 +142,9 @@ Pi 中可用命令：
 
 Gate 使用明确决策：`/evidence-gate approve <说明>` 进入下一阶段，`/evidence-gate revise <说明>` 回到被审核阶段，`/evidence-gate reject <说明>` 停止当前迭代。阶段 Check 失败会保留反馈并在同一阶段重试；达到 `max_rounds` 后创建 emergency Gate。
 
-`clarify` 阶段使用 TQA：Agent 通过 `evidence_workflow_ask_question` 记录一个高价值、非技术问题后必须暂停；领域专家用 `evidence_workflow_answer_question` 或 `/evidence-answer` 明确回答。每个问答同时保存为 Markdown 与 JSON；回答按声明目标写入业务上下文、故事或澄清历史。未回答问题会阻止故事进入 Ready 和工作流进入下一阶段。
+`frame` 先读取 `docs/product/` 的统一产品知识，只在 iteration 输出问题陈述、上下文增量、旅程切片和故事地图增量。`clarify` 使用 TQA：业务上下文回答先追加到 `product-context-delta.md`，不得直接改写统一产品知识；经 Learn/Gate 确认后才提升到 `docs/product/`。未回答问题会阻止故事进入 Ready 和下一阶段。
 
-`architecture` 阶段必须在 `test-processes/` 提供机器可读 JSON 工序（Q1/Q2 步骤、功能上下文、测试替身和质量门禁）。项目已在 `engineering/evidence-workflow/test-processes/` 维护 Rust、Web、Nest 和 Tauri 的可复用工序目录；选择目录工序时，工作流会将精确 JSON 快照复制到当前 iteration，保证审计可重演。一个垂直场景可顺序选择多个 runtime 工序（例如 Web + Rust），并在 `test_plan` 中固定组合。
+`architecture` 读取 `docs/architecture/`、`contracts/` 和 `engineering/evidence-workflow/`，iteration 只输出架构决策、API/data delta 和机器可读 `scenario-context-map.json`。项目级目录维护 Rust、Web、Nest 和 Tauri 工序；Coding 选择工序时快照到本轮 `selected-test-processes/`。一个垂直场景可顺序选择多个 runtime 工序并在 `test_plan` 中固定组合。GitHub Issues/Projects 是 Product Backlog 权威来源，统一 DoD 位于 `engineering/evidence-workflow/definition-of-done.md`，两者都不在 iteration 重复生成。
 
 Coding 在修改代码前用 `evidence_workflow_select_test_process` 选择每个适用工序。Issue 驱动的新 iteration 还必须通过 `evidence_workflow_run_test_step` 执行工序声明的质量命令；该工具会把观察到的退出码、stdout/stderr 哈希与 Git 工作树哈希追加到场景执行日志。场景 JSON evidence 由这些记录验证，不能手工伪造 Red/Green/Refactor 退出码。
 
@@ -243,20 +247,25 @@ cargo test -p evidence-server --features postgres-tests
 
 ## Repository Map
 
-| Path                                         | Purpose                                                        |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| `apps/web/`                                  | React + Vite frontend SPA                                      |
-| `apps/server/src/api/`                       | Axum HTTP routes and HAL response builders                     |
-| `apps/server/src/domain/`                    | Pure domain traits and aggregates                              |
-| `apps/server/src/domain/core/`               | `Entity`, `HasMany`, `Ref` base abstractions                   |
-| `apps/server/src/persistent/`                | SeaORM + PostgreSQL implementations                            |
-| `apps/server/src/persistent/test_support.rs` | In-memory fake store + shared contract tests                   |
-| `apps/desktop/`                              | Tauri 2 desktop shell                                          |
-| `apps/desktop/src-tauri/`                    | Tauri Rust config and capabilities                             |
-| `Cargo.toml`                                 | Rust workspace root                                            |
-| `nx.json`                                    | Nx workspace configuration                                     |
-| `pnpm-workspace.yaml`                        | pnpm workspace (packages: `apps/*`)                            |
-| `AGENTS.md`                                  | Agent coding standards, domain guide, repo map, git discipline |
+| Path                                                 | Purpose                                                        |
+| ---------------------------------------------------- | -------------------------------------------------------------- |
+| `apps/web/`                                          | React + Vite frontend composition root                         |
+| `libs/web/*`                                         | Web shell, feature, UI and API-client libraries                |
+| `apps/server/`                                       | Rust Axum composition root                                     |
+| `libs/server/{api,domain,persistent,infrastructure}` | Rust server implementation libraries                           |
+| `apps/server-nest/`                                  | Nest composition root                                          |
+| `libs/server-nest/*`                                 | Nest domain, API and persistence implementation track          |
+| `apps/desktop/`                                      | Tauri 2 desktop shell                                          |
+| `apps/desktop/src-tauri/`                            | Tauri Rust config and capabilities                             |
+| `Cargo.toml`                                         | Rust workspace root                                            |
+| `nx.json`                                            | Nx workspace configuration                                     |
+| `pnpm-workspace.yaml`                                | pnpm workspace (packages: `apps/*`)                            |
+| `docs/product/`                                      | Canonical product knowledge                                    |
+| `.evidence/`                                         | Canonical domain model                                         |
+| `docs/architecture/`                                 | Canonical architecture knowledge                               |
+| `engineering/evidence-workflow/`                     | Runtime contexts, test processes and shared DoD                |
+| `artifacts/iterations/`                              | Immutable iteration evidence                                   |
+| `AGENTS.md`                                          | Agent coding standards, domain guide, repo map, git discipline |
 
 ## Desktop/Web Relationship
 

@@ -9,7 +9,7 @@ description: '在 Evidence Workflow 的需求工作中应用设计思维、TQA �
 
 ## 工作流程
 
-1. **问题框定（Frame）**：读取本轮 `00-user-input/issue.json` 与自动生成的 `requirements.md` 投影，梳理利益相关者视角、用户画像、痛点、目标、业务上下文和用户旅程。在讨论实现方案之前，先定义要解决的问题。Issue 是需求权威来源，不得手工修改投影文件。
+1. **问题框定（Frame）**：读取本轮 Issue 快照，以及 `docs/product/` 中统一维护的画像、业务上下文、核心旅程和故事地图。在讨论实现方案之前定义本轮问题，输出 `problem-statement.md`、`product-context-delta.md`、`journey-slice.md` 和 `story-map-delta.md`。不得把统一知识整份复制到 iteration，也不得手工修改 Issue 投影。
 2. **需求澄清（Clarify）**：为每个候选故事创建一个 `artifacts/01-requirements/stories/US-xxx.md` 文件。使用 TQA（Thought–Question–Answer，思考–提问–回答）提取不可言说的业务知识；每次只提一个高价值业务问题，绝不使用 TQA 询问技术设计问题。调用 `evidence_workflow_ask_question` 后必须停止，等待领域专家明确回答；收到回答后才调用 `evidence_workflow_answer_question`。
 3. **示例规格化（Specify）**：在 `artifacts/01-requirements/examples/US-xxx-SC-xxx.md` 中写入具体的 Given/When/Then 示例。示例须包含初始业务状态、操作、可观察结果、关键数据以及失败或边界场景。
 4. **需求验证（Validate）**：写入 `artifacts/01-requirements/requirements-validation.md`，将每个故事标记为“就绪”“需要澄清”或“需要拆分”。只有“就绪”故事可以进入领域模型验证。
@@ -27,7 +27,7 @@ description: '在 Evidence Workflow 的需求工作中应用设计思维、TQA �
 
 收到回答后：
 
-- 对基础概念或业务流程的误解，意味着需要更新 `business-context.md` 或 `user-journeys.md`。
+- 对基础概念或业务流程的误解，先写入本轮 `product-context-delta.md` 或 `journey-slice.md`；只有经 Learn/Gate 确认后才更新 `docs/product/`。
 - 对操作的误解，意味着需要修订 `US-xxx` 故事。
 - 交互细节属于澄清历史，并应在后续落入具体场景。
 - 不得编造答案。明确保留未决事项，并阻止受影响故事进入“就绪”状态；未决问题会阻止工作流完成当前阶段。

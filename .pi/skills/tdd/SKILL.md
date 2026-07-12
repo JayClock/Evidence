@@ -9,8 +9,8 @@ description: '在 apps/ 与 libs/ 中以真实测试先行开发，每次只实�
 
 ## 工作流程
 
-1. 确认 workflow 已通过 `evidence_workflow_select_work_item` 选择唯一的 `US-xxx / SC-xxx` 活动工作项，并记录 Git 基线；随后为每个 owning runtime 通过 `evidence_workflow_select_test_process` 以完整功能上下文唯一选择 JSON 测试工序。选择顺序构成不可变 `test_plan`；目录工序会快照到 iteration。未完成所有选择前不得修改业务代码；`apps/` 或 `libs/` 已有未提交改动时不得开始。
-2. 阅读该故事、Given/When/Then 示例、JSON 模型展开、架构测试策略、适用测试工序、API 契约和完成定义（DoD）。
+1. 确认 workflow 已选择唯一 `US-xxx / SC-xxx` 并记录 Git 基线；随后严格按照 `scenario-context-map.json` 为每个 owning runtime 选择工序。选择顺序构成不可变 `test_plan`；目录工序自动快照到 `artifacts/03-architecture/selected-test-processes/`。未完成所有选择前不得修改业务代码；`apps/` 或 `libs/` 已有未提交改动时不得开始。
+2. 阅读该故事、Given/When/Then 示例、JSON 模型展开、本轮 `scenario-context-map.json`、`docs/architecture/test-strategy.md`、适用目录工序、`contracts/api.yaml` 和统一 DoD。
 3. 编辑前确认所属项目和功能上下文：React/Nx、Nest/Nx、Rust domain/API/persistent crate 或 Tauri。
 4. **红（Red）**：为选定场景的预期行为创建或更新就近测试；运行并记录预期行为失败，而不是只记录缺少依赖或编译配置错误。
 5. **绿（Green）**：在所属项目中做最小生产代码改动，并重新运行聚焦测试。

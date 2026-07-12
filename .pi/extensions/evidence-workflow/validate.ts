@@ -5,6 +5,7 @@ import { validateDomainModelEvidence } from './evidence';
 import { gateDecision } from './gates';
 import { validateIssueSourceSnapshot } from './issue-source';
 import { artifactRelativePath, iterationRoot } from './iteration';
+import { validateCanonicalKnowledge } from './knowledge';
 import { PHASE_META, PHASE_ORDER } from './phases';
 import { readState } from './state';
 import {
@@ -34,6 +35,7 @@ export function validateWorkflow(cwd: string): void {
     );
   }
   validateTestProcessDirectory(catalog);
+  validateCanonicalKnowledge(cwd);
   for (const artifact of state.artifacts) {
     if (!existsSync(`${cwd}/${artifact}`)) {
       throw new Error(

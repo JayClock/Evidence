@@ -112,7 +112,7 @@ function answerDestination(
       return artifactPath(
         cwd,
         state,
-        'artifacts/01-requirements/business-context.md',
+        'artifacts/01-requirements/product-context-delta.md',
       );
     case 'story':
       return storyPath(cwd, state, clarification.story_id);
@@ -216,7 +216,7 @@ export function askClarification(
       ? artifactPath(
           cwd,
           state,
-          'artifacts/01-requirements/business-context.md',
+          'artifacts/01-requirements/product-context-delta.md',
         )
       : input.target === 'story'
         ? storyPath(cwd, state, storyId)

@@ -237,11 +237,14 @@ describe('P0 knowledge-feedback workflow', () => {
     expect(PHASE_META.domain_model.outputs).not.toContain(
       'artifacts/02-domain-model/entities-and-value-objects.md',
     );
-    expect(PHASE_META.architecture.outputs).toEqual(
+    expect(PHASE_META.architecture.inputs).toEqual(
       expect.arrayContaining([
-        'artifacts/03-architecture/test-strategy.md',
-        'artifacts/03-architecture/test-processes/',
+        'docs/architecture/test-strategy.md',
+        'engineering/evidence-workflow/test-processes/',
       ]),
+    );
+    expect(PHASE_META.architecture.outputs).toContain(
+      'artifacts/03-architecture/scenario-context-map.json',
     );
   });
 
@@ -268,6 +271,7 @@ describe('P0 knowledge-feedback workflow', () => {
     expect(nextPhase('review')).toBe('learn');
     expect(PHASE_META.learn.outputs).toEqual([
       'artifacts/07-learning/iteration-summary.md',
+      'artifacts/07-learning/knowledge-promotion.json',
       'artifacts/07-learning/next-iteration.md',
     ]);
   });
@@ -763,7 +767,7 @@ describe('P1 TQA clarification workflow', () => {
   it('persists one pending clarification, routes its answer, and blocks clarification completion until answered', () => {
     const cwd = workspace();
     writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
-    writeIterationArtifact(cwd, '01-requirements/business-context.md');
+    writeIterationArtifact(cwd, '01-requirements/product-context-delta.md');
     writeIterationArtifact(cwd, '01-requirements/stories/US-042.md');
 
     const asked = askClarification(cwd, {
@@ -810,7 +814,7 @@ describe('P1 TQA clarification workflow', () => {
       readFileSync(
         join(
           cwd,
-          'artifacts/iterations/ITER-0001/01-requirements/business-context.md',
+          'artifacts/iterations/ITER-0001/01-requirements/product-context-delta.md',
         ),
         'utf8',
       ),
@@ -1001,16 +1005,15 @@ describe('phase completion guardrails', () => {
   it('advances after required outputs exist and creates the configured gate', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
-    writeIterationArtifact(cwd, '01-requirements/personas.md');
     writeIterationArtifact(cwd, '01-requirements/problem-statement.md');
-    writeIterationArtifact(cwd, '01-requirements/business-context.md');
-    writeIterationArtifact(cwd, '01-requirements/user-journeys.md');
-    writeIterationArtifact(cwd, '01-requirements/story-map.md');
+    writeIterationArtifact(cwd, '01-requirements/product-context-delta.md');
+    writeIterationArtifact(cwd, '01-requirements/journey-slice.md');
+    writeIterationArtifact(cwd, '01-requirements/story-map-delta.md');
 
     const state = completePhase(cwd, 'frame', 'ready');
 
     expect(state.phase).toBe('clarify');
     expect(state.pending_gate).toBeNull();
-    expect(readState(cwd).artifacts).toHaveLength(5);
+    expect(readState(cwd).artifacts).toHaveLength(4);
   });
 });

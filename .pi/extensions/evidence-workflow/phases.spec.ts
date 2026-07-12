@@ -13,11 +13,16 @@ describe('phases', () => {
     expect(nextPhase('learn')).toBe('complete');
   });
 
-  it('requires machine-readable test processes and selection in the relevant phases', () => {
-    expect(PHASE_META.architecture.outputs).toContain(
-      'artifacts/03-architecture/test-processes/',
+  it('uses canonical test processes and emits only scenario architecture evidence', () => {
+    expect(PHASE_META.architecture.inputs).toContain(
+      'engineering/evidence-workflow/test-processes/',
     );
-    expect(phaseSpecificInstructions('architecture')).toContain('JSON');
+    expect(PHASE_META.architecture.outputs).toContain(
+      'artifacts/03-architecture/scenario-context-map.json',
+    );
+    expect(phaseSpecificInstructions('architecture')).toContain(
+      'scenario-context-map.json',
+    );
     expect(phaseSpecificInstructions('coding')).toContain(
       'evidence_workflow_select_test_process',
     );
