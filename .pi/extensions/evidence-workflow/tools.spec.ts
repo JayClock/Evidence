@@ -12,6 +12,8 @@ describe('tools', () => {
 
     expect(tools).toEqual(
       expect.arrayContaining([
+        'evidence_workflow_start_from_issue',
+        'evidence_workflow_sync_issue',
         'evidence_workflow_ask_question',
         'evidence_workflow_answer_question',
         'evidence_workflow_select_work_item',

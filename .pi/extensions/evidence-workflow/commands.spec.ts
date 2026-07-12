@@ -16,6 +16,8 @@ describe('commands', () => {
         'evidence-reset',
         'evidence-gate',
         'evidence-answer',
+        'evidence-issue-sync',
+        'evidence-issue-status',
       ]),
     );
   });
