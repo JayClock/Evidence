@@ -45,6 +45,7 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
     title: '问题框定 — Design Thinking',
     inputs: [
       'artifacts/00-user-input/requirements.md',
+      'docs/knowledge-governance.md',
       'docs/product/personas.md',
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
@@ -236,7 +237,7 @@ export function phaseSpecificInstructions(
 ): string {
   switch (phase) {
     case 'frame':
-      return `- 先读取 docs/product/ 的产品级画像、业务上下文、核心旅程和故事地图；它们是统一知识源，不得复制到 iteration。\n- 以角色 + 价值定义本轮问题，避免把 API、HAL、数据库或测试框架伪装成用户价值。\n- 输出本轮 problem-statement、product-context-delta、journey-slice 和 story-map-delta；delta 明确新增、修正或无变化，待 learn 阶段经审核后再提升到统一知识源。`;
+      return `- 先读取 docs/knowledge-governance.md 与 docs/product/ 的产品级画像、业务上下文、核心旅程和故事地图；它们是统一基线。引用时写路径及相关标题、活动或步骤 ID，绝不复制基线表格、列表或正文。\n- 以角色 + 价值定义本轮问题，避免把 API、HAL、数据库或测试框架伪装成用户价值。problem-statement 是本轮共享上下文；其余 requirements 工件引用它，不重复角色、价值、范围或非目标。\n- product-context-delta 只记录候选新增、修正或删除的产品知识及其依据、影响和待验证事项；不得写“无变化”行。\n- journey-slice 只标识受影响的基线旅程步骤，并记录本轮改变的路径、可观察结果与边界；不得重述完整旅程。story-map-delta 只标识受影响活动和候选故事；不得重述完整活动主干或列出未变化活动。\n- 所有候选知识在 learn 审核并提升前都不是产品事实。`;
     case 'clarify':
       return `- 为每个候选 P0/P1 故事建立 artifacts/01-requirements/stories/US-xxx.md。\n- 使用 TQA（Thought-Question-Answer）一次只提出一个高价值、非技术业务问题。调用 evidence_orchestrator_ask_question 后必须停止，等待领域专家明确回答；不得自问自答或继续运行工作流。\n- 收到用户明确答案后，调用 evidence_orchestrator_answer_question。目标为 business_context 的答案追加到本轮 product-context-delta.md，不得直接修改 docs/product/business-context.md；story 更新对应故事；history 仅保留澄清历史。\n- 每个问答写入 artifacts/01-requirements/clarifications/ 的 Markdown 和 JSON；任何 pending clarification 都会阻止故事进入 Ready 或工作流进入下一阶段。`;
     case 'specify':

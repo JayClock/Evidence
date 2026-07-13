@@ -37,7 +37,7 @@ export function buildPhaseTask(
 
 执行约束：
 1. 读取并尊重输入文件，不得编造已有工件。已有 artifacts 是审计历史；00-user-input/requirements.md 是 GitHub Issue 的自动生成投影，不得手工编辑。
-2. 统一知识源包括 docs/product/、.evidence/、docs/architecture/、contracts/ 和 engineering/evidence-orchestrator/。Iteration 只保存切片、delta、决策和执行证据。
+2. 统一知识源包括 docs/knowledge-governance.md、docs/product/、.evidence/、docs/architecture/、contracts/ 和 engineering/evidence-orchestrator/。Iteration 只保存切片、delta、决策和执行证据；delta 必须引用基线而不是复制它，且不得用“无变化”内容重复稳定知识。
 3. .evidence/ 是权威领域模型；domain_model 阶段按场景演进它，artifacts/02-domain-model/ 只保存本轮证据。
 4. 输出仅写入指定路径。本轮工件只写入 artifacts/iterations/${state.iteration_id}/，不得覆盖其他 iteration。
 5. 用户故事使用 artifacts/01-requirements/stories/US-xxx.md；验收示例使用 artifacts/01-requirements/examples/US-xxx-SC-xxx.md。
