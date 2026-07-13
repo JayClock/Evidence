@@ -1,26 +1,21 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
 import { answerClarification } from '../requirements/clarifications';
-import {
-  answerGate,
-  isGateAnswered,
-  resolvePendingGate,
-} from '../workflow/gates';
+import { answerGate, isGateAnswered } from '../workflow/gates';
 import {
   checkIssueSourceDrift,
   startIterationFromIssue,
   syncIssueSource,
 } from '../requirements/github-issue';
-import {
-  artifactRelativePath,
-  iterationRoot,
-} from '../workflow/iteration-paths';
-import { PHASE_META, PHASE_ORDER } from '../workflow/phase-catalog';
-import { runPhaseSubagent } from '../subagents/phase-runner';
-import { buildPhaseTask } from '../subagents/phase-task';
-import { readState, selectWorkItem, writeState } from '../workflow/state-store';
+import { PHASE_ORDER } from '../workflow/phase-catalog';
+import { readState } from '../workflow/state-store';
 import type { Phase } from '../workflow/types';
-import { STATUS_KEY, SUBAGENT_MESSAGE_TYPE, statusLabel } from './identity';
+import { STATUS_KEY, statusLabel } from './identity';
+import {
+  foregroundPhaseRequest,
+  isCompletedIteration,
+  PhaseRunBlockedError,
+  preparePhaseRun,
+} from './phase-dispatch';
 import { selectOrCreateGitHubIssue } from './issue-picker';
 import { statusMarkdown } from './status';
 
@@ -169,139 +164,36 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-run', {
     description:
-      'Run the current Evidence Orchestrator phase; coding accepts --story=US-xxx --scenario=SC-xxx',
+      'Queue the current phase for visible execution; coding accepts --story=US-xxx --scenario=SC-xxx',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
-      let state = readState(ctx.cwd);
-      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
-      if (state.pending_gate && isGateAnswered(ctx.cwd, state.pending_gate)) {
-        state = resolvePendingGate(ctx.cwd);
-      }
-      if (state.halted) {
-        ctx.ui.notify(
-          `Iteration ${state.iteration_id} is halted: ${state.halted.reason}`,
-          'error',
-        );
-        return;
-      }
-      if (state.phase !== 'complete' && !state.requirement_source) {
-        ctx.ui.notify(
-          'This bootstrap iteration is archival and cannot run. Select a GitHub Issue with /evidence-new.',
-          'error',
-        );
-        return;
-      }
-      if (state.pending_clarification) {
-        const pending = state.pending_clarification;
-        ctx.ui.notify(
-          `Clarification ${pending.question_id} for ${pending.story_id} is awaiting a domain-expert answer: ${pending.question}. Run /evidence-answer <answer> before continuing.`,
-          'info',
-        );
-        return;
-      }
-      if (parsed.phase && parsed.phase !== state.phase) {
-        ctx.ui.notify(
-          `Cannot run ${parsed.phase}: current phase is ${state.phase}. Use /evidence-new before a new iteration.`,
-          'error',
-        );
-        return;
-      }
-      if (parsed.storyId || parsed.scenarioId) {
-        if (state.phase !== 'coding') {
-          ctx.ui.notify(
-            'A --story/--scenario work item can only be selected during coding.',
-            'error',
-          );
-          return;
-        }
-        if (!parsed.storyId || !parsed.scenarioId) {
-          ctx.ui.notify(
-            'Coding requires both --story=US-xxx and --scenario=SC-xxx.',
-            'error',
-          );
-          return;
-        }
-        try {
-          selectWorkItem(ctx.cwd, parsed.storyId, parsed.scenarioId);
-        } catch (error) {
-          ctx.ui.notify(
-            error instanceof Error ? error.message : String(error),
-            'error',
-          );
-          return;
-        }
-      }
-      const current = readState(ctx.cwd);
-      if (
-        current.pending_gate &&
-        !isGateAnswered(ctx.cwd, current.pending_gate)
-      ) {
-        ctx.ui.notify(
-          `Gate ${current.pending_gate} is pending. Edit ${artifactRelativePath(current, `artifacts/gates/${current.pending_gate}.md`)} or run /evidence-gate <decision>.`,
-          'info',
-        );
-        return;
-      }
-      if (current.phase !== 'complete') {
-        const missingInputs = missingPaths(
-          ctx.cwd,
-          PHASE_META[current.phase].inputs.map((path) =>
-            artifactRelativePath(current, path),
-          ),
-        );
-        if (missingInputs.length > 0) {
-          ctx.ui.notify(
-            `Cannot run ${current.phase}: missing inputs: ${missingInputs.join(', ')}.`,
-            'error',
-          );
-          return;
-        }
-      }
-      let task: string;
       try {
-        task = buildPhaseTask(ctx.cwd, parsed.phase, parsed.rest);
+        const preparation = preparePhaseRun(ctx.cwd, {
+          requestedPhase: parsed.phase,
+          instructions: parsed.rest,
+          storyId: parsed.storyId,
+          scenarioId: parsed.scenarioId,
+        });
+        if (parsed.dryRun || isCompletedIteration(preparation)) {
+          ctx.ui.notify(preparation.task, 'info');
+          return;
+        }
+
+        const request = foregroundPhaseRequest(parsed.rest);
+        if (ctx.isIdle()) {
+          pi.sendUserMessage(request);
+        } else {
+          pi.sendUserMessage(request, { deliverAs: 'followUp' });
+        }
+        ctx.ui.notify(
+          `Queued visible ${preparation.phase} phase execution in this conversation.`,
+          'info',
+        );
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),
-          'error',
+          error instanceof PhaseRunBlockedError ? 'info' : 'error',
         );
-        return;
-      }
-      if (parsed.dryRun || current.phase === 'complete')
-        return ctx.ui.notify(task, 'info');
-
-      const updated = writeState(ctx.cwd, {
-        ...current,
-        pi: {
-          enabled: true,
-          version: 4,
-          ...(current.pi ?? {}),
-          last_command: `/evidence-run ${args}`.trim(),
-          last_run_at: new Date().toISOString(),
-        },
-      });
-      ctx.ui.setStatus(STATUS_KEY, statusLabel(updated, 'subagent'));
-
-      try {
-        const result = await runPhaseSubagent({
-          cwd: ctx.cwd,
-          phase: current.phase,
-          task,
-        });
-        pi.sendMessage({
-          customType: SUBAGENT_MESSAGE_TYPE,
-          content: result.output,
-          display: true,
-          details: result,
-        });
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      } finally {
-        const latest = readState(ctx.cwd);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(latest));
       }
     },
   });

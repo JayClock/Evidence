@@ -1,9 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import {
-  collectArtifacts,
-  collectCodeFiles,
-  missingPaths,
-} from '../evidence/artifact-index';
+import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
 import {
   answerClarification,
   askClarification,
@@ -13,16 +9,13 @@ import {
   completePhase,
   isGateAnswered,
   recordPhaseFailure,
-  resolvePendingGate,
 } from '../workflow/gates';
 import {
   startIterationFromIssue,
   syncIssueSource,
 } from '../requirements/github-issue';
-import { artifactRelativePath } from '../workflow/iteration-paths';
 import { PHASE_META } from '../workflow/phase-catalog';
 import { runPhaseSubagent } from '../subagents/phase-runner';
-import { buildPhaseTask } from '../subagents/phase-task';
 import {
   readState,
   selectTestProcess,
@@ -31,6 +24,8 @@ import {
 } from '../workflow/state-store';
 import { statusMarkdown } from './status';
 import { executeTestStep } from '../testing/execution-recorder';
+import { STATUS_KEY, statusLabel } from './identity';
+import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
 import type { Phase } from '../workflow/types';
 
 type JsonSchema = Record<string, unknown> & { __optional?: boolean };
@@ -241,72 +236,53 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: phaseRunParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      let state = readState(ctx.cwd);
-      if (state.pending_gate && isGateAnswered(ctx.cwd, state.pending_gate)) {
-        state = resolvePendingGate(ctx.cwd);
-      }
-      if (state.phase === 'complete') {
+      const preparation = preparePhaseRun(ctx.cwd, {
+        instructions: params.instructions ?? '',
+      });
+      if (isCompletedIteration(preparation)) {
         throw new Error(
           'The active Evidence Orchestrator iteration is complete.',
         );
       }
-      if (state.halted) {
-        throw new Error(
-          `Iteration ${state.iteration_id} is halted: ${state.halted.reason}`,
-        );
-      }
-      if (!state.requirement_source) {
-        throw new Error(
-          'The active iteration has no GitHub Issue requirement source.',
-        );
-      }
-      if (state.pending_gate) {
-        throw new Error(`Gate ${state.pending_gate} must be answered first.`);
-      }
-      if (state.pending_clarification) {
-        throw new Error(
-          `Clarification ${state.pending_clarification.question_id} must be answered first.`,
-        );
-      }
-      const missingInputs = missingPaths(
-        ctx.cwd,
-        PHASE_META[state.phase].inputs.map((path) =>
-          artifactRelativePath(state, path),
-        ),
-      );
-      if (missingInputs.length) {
-        throw new Error(
-          `Cannot run ${state.phase}: missing inputs: ${missingInputs.join(', ')}.`,
-        );
-      }
-      state = writeState(ctx.cwd, {
-        ...state,
+      const state = writeState(ctx.cwd, {
+        ...preparation.state,
         pi: {
           enabled: true,
-          version: 4,
-          ...(state.pi ?? {}),
+          version: 5,
+          ...(preparation.state.pi ?? {}),
           last_command: 'evidence_orchestrator_run_phase',
           last_run_at: new Date().toISOString(),
         },
       });
-      const result = await runPhaseSubagent({
-        cwd: ctx.cwd,
-        phase: state.phase,
-        task: buildPhaseTask(ctx.cwd, state.phase, params.instructions ?? ''),
-        signal,
-        onUpdate(output) {
-          onUpdate?.({
-            content: [
-              { type: 'text', text: output || '(subagent running...)' },
-            ],
-            details: { agent: state.phase },
-          });
-        },
-      });
-      return {
-        content: [{ type: 'text', text: result.output }],
-        details: result,
-      };
+      ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'subagent'));
+      try {
+        const result = await runPhaseSubagent({
+          cwd: ctx.cwd,
+          phase: preparation.phase,
+          task: preparation.task,
+          signal,
+          onUpdate(output) {
+            onUpdate?.({
+              content: [
+                {
+                  type: 'text',
+                  text: output || `(${preparation.phase} subagent running...)`,
+                },
+              ],
+              details: {
+                phase: preparation.phase,
+                agent: preparation.phase,
+              },
+            });
+          },
+        });
+        return {
+          content: [{ type: 'text', text: result.output }],
+          details: { ...result, phase: preparation.phase },
+        };
+      } finally {
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
+      }
     },
   });
 

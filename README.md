@@ -150,7 +150,7 @@ Coding 在修改代码前用 `evidence_orchestrator_select_test_process` 选择�
 
 Coding 阶段遵循本仓库的 monorepo 边界：实现和测试必须落在所属的 `apps/*` 或 `libs/*` 项目中，不创建根级 `src/`、`tests/`。阶段完成工具会检查当前阶段、待审核 Gate 和必需输出；CI 通过 `pnpm orchestrator:test` 验证工作流状态迁移与代码目录发现逻辑，并通过 `pnpm orchestrator:validate` 验证活动迭代状态、输入和 Gate 元数据。
 
-`/evidence-run` 直接启动 `.pi/agents/` 中当前阶段所属的独立 pi subagent；父会话不再切换模型或代执行阶段任务。每个 agent 的 frontmatter 是其角色、模型、推理档位和工具权限的唯一配置：Requirements/Domain/Learn 使用 Sol × High，Architecture/Review 使用 Sol × xHigh，Planning/Coding 使用 Terra × Medium。缺少 agent、模型或凭证时执行会显式失败，不做回退。
+`/evidence-run` 默认不会在命令处理器中静默启动子进程；它会在当前 Pi 会话排入一个前台请求，由主 Agent 调用 `evidence_orchestrator_run_phase`。该工具再启动 `.pi/agents/` 中当前阶段所属的独立 pi subagent，并把进度和最终结果流式显示在同一轮对话。主 Agent 只负责呈现结果、TQA 问题、Gate 和下一项人类决策，不代替 subagent 执行阶段工作。每个 agent 的 frontmatter 是其角色、模型、推理档位和工具权限的唯一配置：Requirements/Domain/Learn 使用 Sol × High，Architecture/Review 使用 Sol × xHigh，Planning/Coding 使用 Terra × Medium。缺少 agent、模型或凭证时执行会显式失败，不做回退。
 
 ## Quick Start
 

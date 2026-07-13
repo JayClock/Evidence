@@ -3,7 +3,6 @@ import type { WorkflowState } from '../workflow/types';
 export const EXTENSION_ID = 'evidence-orchestrator';
 export const STATUS_KEY = EXTENSION_ID;
 export const STATUS_PREFIX = 'orchestrator';
-export const SUBAGENT_MESSAGE_TYPE = 'evidence-orchestrator-subagent';
 
 export function statusLabel(
   state: WorkflowState | undefined,
