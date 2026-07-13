@@ -304,13 +304,25 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-answer', {
     description:
-      'Answer the single pending TQA clarification: /evidence-answer <answer>',
+      'Answer the pending TQA question and continue the active story dialogue: /evidence-answer <answer>',
     handler: async (args, ctx) => {
       try {
+        await waitForIdle(ctx);
         const state = answerClarification(ctx.cwd, args);
         ctx.ui.notify(
-          `Answered clarification. Recorded exchanges: ${state.clarification_history?.length ?? 0}.`,
+          `Answered clarification. Recorded exchanges: ${state.clarification_history?.length ?? 0}. Continuing ${state.active_clarification_story?.story_id}…`,
           'info',
+        );
+        const preparation = preparePhaseRun(ctx.cwd);
+        if (isCompletedIteration(preparation)) {
+          ctx.ui.notify(preparation.task, 'info');
+          return;
+        }
+        await runPreparedPhaseFromCommand(
+          pi,
+          ctx,
+          preparation,
+          '/evidence-answer',
         );
       } catch (error) {
         ctx.ui.notify(

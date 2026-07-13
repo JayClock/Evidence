@@ -63,6 +63,45 @@ describe('phase subagent renderer', () => {
     expect(output).toContain('The Green step now passes.');
   });
 
+  it('renders a pending TQA question as the visible dialogue turn', () => {
+    const component = renderPhaseSubagentResult(
+      {
+        content: [{ type: 'text', text: 'TQA Q-001 · US-001' }],
+        details: details({
+          phase: 'clarify',
+          task: 'Clarify US-001.',
+          status: 'completed',
+          agent: 'requirements-analyst',
+          output:
+            'TQA Q-001 · US-001\n\n谁可以编辑工作区信息？\n\n请直接回复此问题。',
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'toolCall',
+                  id: 'call-1',
+                  name: 'evidence_orchestrator_ask_question',
+                  arguments: { question: '谁可以编辑工作区信息？' },
+                },
+              ],
+            } as never,
+          ],
+          exitCode: 0,
+        }),
+      },
+      { expanded: false, isPartial: false },
+      theme,
+    );
+
+    const output = component.render(120).join('\n');
+
+    expect(output).toContain('TQA Q-001 · US-001');
+    expect(output).toContain('谁可以编辑工作区信息？');
+    expect(output).toContain('请直接回复此问题。');
+    expect(output).not.toContain('evidence_orchestrator_ask_question');
+  });
+
   it('marks a completed child with a non-zero exit code as failed', () => {
     const component = renderPhaseSubagentResult(
       {

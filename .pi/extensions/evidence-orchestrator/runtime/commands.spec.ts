@@ -220,6 +220,60 @@ describe('commands', () => {
     expect(sendUserMessage).not.toHaveBeenCalled();
   });
 
+  it('records an answer and immediately continues the clarification dialogue', async () => {
+    const cwd = workspace();
+    writePhaseInputs(cwd, 'clarify');
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeIterationArtifact(cwd, '01-requirements/clarifications/.gitkeep', '');
+    writeState(cwd, {
+      ...issueState('clarify'),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        question: '谁可以编辑工作区信息？',
+        target: 'history',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+
+    let answer: ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    const sendMessage = vi.fn();
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof answer }) {
+        if (name === 'evidence-answer') answer = options.handler;
+      },
+      sendMessage,
+    } as never);
+
+    await answer?.('工作区所有者。', commandContext(cwd));
+
+    expect(readState(cwd).pending_clarification).toBeUndefined();
+    expect(readState(cwd).clarification_history).toEqual([
+      expect.objectContaining({
+        question_id: 'Q-001',
+        answer: '工作区所有者。',
+      }),
+    ]);
+    expect(runtimeMocks.runPhaseSubagent).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: 'clarify' }),
+    );
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customType: 'evidence-orchestrator-phase-result',
+        content: 'Phase work completed.',
+      }),
+    );
+    expect(readState(cwd).pi?.last_command).toBe('/evidence-answer');
+  });
+
   it('executes evidence-run directly and records the command invocation', async () => {
     const cwd = workspace();
     writePhaseInputs(cwd, 'frame');

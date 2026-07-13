@@ -40,12 +40,26 @@ function progressDetails(
   };
 }
 
+function completedOutput(
+  preparation: PreparedPhaseRun,
+  result: PhaseAgentResult,
+  state: ReturnType<typeof readState>,
+): string {
+  const pending = state.pending_clarification;
+  if (preparation.phase !== 'clarify' || result.exitCode !== 0 || !pending) {
+    return result.output;
+  }
+  return `TQA ${pending.question_id} · ${pending.story_id}\n\n${pending.question}\n\n请直接回复此问题。`;
+}
+
 function completedDetails(
   preparation: PreparedPhaseRun,
   result: PhaseAgentResult,
+  state: ReturnType<typeof readState>,
 ): PhaseExecutionDetails {
   return {
     ...result,
+    output: completedOutput(preparation, result, state),
     phase: preparation.phase,
     task: preparation.task,
     status: result.exitCode === 0 ? 'completed' : 'failed',
@@ -80,7 +94,7 @@ export async function executePreparedPhaseRun(
         options.onUpdate?.(progressDetails(preparation, progress));
       },
     });
-    return completedDetails(preparation, result);
+    return completedDetails(preparation, result, readState(ctx.cwd));
   } finally {
     ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
   }

@@ -121,8 +121,12 @@ describe('tools', () => {
     const phaseRunner = tools.find(
       ({ name }) => name === 'evidence_orchestrator_run_phase',
     );
+    const clarificationAnswer = tools.find(
+      ({ name }) => name === 'evidence_orchestrator_answer_question',
+    );
     expect(phaseRunner?.renderCall).toBeTypeOf('function');
     expect(phaseRunner?.renderResult).toBeTypeOf('function');
+    expect(clarificationAnswer?.renderResult).toBeTypeOf('function');
     expect(
       toolResultHandler?.({
         toolName: 'evidence_orchestrator_run_phase',
@@ -137,10 +141,101 @@ describe('tools', () => {
     ).toEqual({ isError: true });
     expect(
       toolResultHandler?.({
+        toolName: 'evidence_orchestrator_answer_question',
+        details: { exitCode: 1 },
+      }),
+    ).toEqual({ isError: true });
+    expect(
+      toolResultHandler?.({
         toolName: 'evidence_orchestrator_run_phase',
         details: { exitCode: 0 },
       }),
     ).toBeUndefined();
+  });
+
+  it('records an answer and resumes the clarification dialogue in the same tool call', async () => {
+    const cwd = workspace();
+    writeClarifyInputs(cwd);
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeIterationArtifact(cwd, '01-requirements/clarifications/.gitkeep', '');
+    writeState(cwd, {
+      ...clarifyState(),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        question: '谁可以编辑工作区信息？',
+        target: 'history',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+    let execute:
+      | ((
+          toolCallId: string,
+          params: { answer: string },
+          signal: undefined,
+          onUpdate: (result: unknown) => void,
+          ctx: unknown,
+        ) => Promise<unknown>)
+      | undefined;
+    registerTools({
+      registerTool(definition: { name: string; execute?: typeof execute }) {
+        if (definition.name === 'evidence_orchestrator_answer_question') {
+          execute = definition.execute;
+        }
+      },
+      on() {
+        return undefined;
+      },
+    } as never);
+    const onUpdate = vi.fn();
+
+    const result = await execute?.(
+      '',
+      { answer: '工作区所有者。' },
+      undefined,
+      onUpdate,
+      { cwd, ui: { setStatus: vi.fn() } },
+    );
+
+    expect(readState(cwd).pending_clarification).toBeUndefined();
+    expect(readState(cwd).clarification_history).toEqual([
+      expect.objectContaining({
+        question_id: 'Q-001',
+        answer: '工作区所有者。',
+      }),
+    ]);
+    expect(phaseRunnerMocks.runPhaseSubagent).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: 'clarify' }),
+    );
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        details: expect.objectContaining({ status: 'running' }),
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        terminate: true,
+        content: [
+          expect.objectContaining({
+            text: expect.stringContaining(
+              'Clarification paused for a domain answer.',
+            ),
+          }),
+        ],
+        details: expect.objectContaining({
+          status: 'completed',
+          exitCode: 0,
+        }),
+      }),
+    );
   });
 
   it('selects a story and runs its clarification in the same tool call', async () => {

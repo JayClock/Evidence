@@ -175,7 +175,8 @@ export function registerTools(pi: ExtensionAPI): void {
   pi.on('tool_result', (event) => {
     if (
       (event.toolName === 'evidence_orchestrator_run_phase' ||
-        event.toolName === 'evidence_orchestrator_select_story') &&
+        event.toolName === 'evidence_orchestrator_select_story' ||
+        event.toolName === 'evidence_orchestrator_answer_question') &&
       isPhaseSubagentFailureDetails(event.details)
     ) {
       return { isError: true };
@@ -432,25 +433,46 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_answer_question',
     label: 'Answer Evidence Orchestrator Clarification',
     description:
-      'Record the domain expert’s explicit answer to the sole pending TQA question and route it to its knowledge artifact',
+      'Record the domain expert’s explicit answer, route it to its knowledge artifact, and continue the active story clarification',
     promptSnippet:
-      'Record the user’s explicit answer to the pending TQA question',
+      'Record the user’s answer and continue the interactive TQA dialogue',
     promptGuidelines: [
       'Use only when the user explicitly supplies an answer to the pending clarification question.',
       'Do not infer, fabricate, summarize, or answer on behalf of the user.',
+      'evidence_orchestrator_answer_question automatically resumes the isolated clarification after recording the answer; when it finishes, stop and wait for the user if another question is pending.',
     ],
     parameters: clarificationAnswerParam,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+    async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const state = answerClarification(ctx.cwd, params.answer);
+      const preparation = preparePhaseRun(ctx.cwd);
+      if (isCompletedIteration(preparation)) {
+        throw new Error(
+          'The active Evidence Orchestrator iteration is complete.',
+        );
+      }
+      const details = await executePreparedPhaseRun(ctx, preparation, {
+        invocation: 'evidence_orchestrator_answer_question',
+        signal,
+        onUpdate(progress) {
+          onUpdate?.({
+            content: [{ type: 'text', text: progress.output }],
+            details: progress,
+          });
+        },
+      });
       return {
         content: [
           {
             type: 'text',
-            text: `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).`,
+            text: `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).\n\n${details.output}`,
           },
         ],
-        details: { state },
+        details,
+        terminate: true,
       };
+    },
+    renderResult(result, options, theme) {
+      return renderPhaseSubagentResult(result, options, theme);
     },
   });
 

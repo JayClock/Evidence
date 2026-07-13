@@ -62,8 +62,9 @@ Clarify 是阶段内的故事级子流程：
 
 1. Frame 根据问题、旅程切片和故事地图增量生成候选 `US-xxx.md` 故事卡；Clarify 不再承担常规故事生成。
 2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。选择成功后会在同一次命令或工具调用中直接执行前台 clarify，无须再次执行 `/evidence-run`。
-3. 该运行只能为活动故事提问、记录答案或写入 `clarified`、`needs_split`、`deferred` 结论；存在待回答问题时不能切换故事。
-4. 每个故事结论后必须停止并重新等待人类选择；所有故事都有结论后才能完成 clarify。
+3. 子 agent 的问题显示在当前对话中。领域专家可直接回复，由父 agent 调用 `evidence_orchestrator_answer_question`，也可显式执行 `/evidence-answer <answer>`；答案落盘后会立即重新运行当前故事的 clarify，继续提出下一问或记录故事结论。
+4. 该问答循环一次只处理一个问题和当前活动故事；存在待回答问题时不能切换故事。
+5. 每个故事结论后必须停止并重新等待人类选择；所有故事都有结论后才能完成 clarify。
 
 已进入 Clarify 且缺少故事卡的旧迭代保留一次兼容路径：子 agent 可依据既有 Frame 工件补建故事卡，随后立即停止等待人工选择。
 

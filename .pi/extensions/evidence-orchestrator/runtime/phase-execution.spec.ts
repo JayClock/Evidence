@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_STATE } from '../workflow/phase-catalog';
-import { readState } from '../workflow/state-store';
+import { readState, writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 import type { PreparedPhaseRun } from './phase-dispatch';
 import { executePreparedPhaseRun } from './phase-execution';
@@ -42,6 +42,55 @@ function preparation(): PreparedPhaseRun {
 }
 
 describe('phase execution', () => {
+  it('surfaces a persisted TQA question as the next dialogue turn', async () => {
+    const cwd = workspace();
+    const clarifyPreparation: PreparedPhaseRun = {
+      ...preparation(),
+      state: {
+        ...preparation().state,
+        phase: 'clarify',
+        active_clarification_story: {
+          story_id: 'US-001',
+          selected_at: '2026-07-13T00:00:00.000Z',
+        },
+      },
+      phase: 'clarify',
+      task: 'Clarify US-001.',
+    };
+    phaseRunnerMocks.runPhaseSubagent.mockImplementation(async () => {
+      const state = readState(cwd);
+      writeState(cwd, {
+        ...state,
+        pending_clarification: {
+          question_id: 'Q-001',
+          story_id: 'US-001',
+          question: '谁可以编辑工作区信息？',
+          target: 'history',
+          asked_at: '2026-07-13T00:01:00.000Z',
+        },
+      });
+      return {
+        agent: 'requirements-analyst',
+        model: 'openai/test',
+        thinking: 'medium',
+        output: '(no output)',
+        messages: [],
+        exitCode: 0,
+        stderr: '',
+      };
+    });
+
+    const result = await executePreparedPhaseRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      clarifyPreparation,
+      { invocation: 'evidence_orchestrator_select_story' },
+    );
+
+    expect(result.output).toContain('Q-001 · US-001');
+    expect(result.output).toContain('谁可以编辑工作区信息？');
+    expect(result.output).toContain('请直接回复');
+  });
+
   it('shares state, progress, and status handling across callers', async () => {
     const cwd = workspace();
     const setStatus = vi.fn();

@@ -41,6 +41,10 @@ function firstLines(value: string, maxLines = 3): string {
   return lines.length > maxLines ? `${shown}\n...` : shown;
 }
 
+function isClarificationQuestion(value: string): boolean {
+  return /^TQA Q-\d+ · US-\d+\n\n/.test(value);
+}
+
 function resultText(result: unknown): string {
   if (!isRecord(result) || !Array.isArray(result.content)) return '';
   return result.content
@@ -274,20 +278,29 @@ export function renderPhaseSubagentResult(
     return container;
   }
 
+  const showClarificationQuestion =
+    !running && isClarificationQuestion(details.output);
   let text = header;
-  if (activity) {
+  if (activity && !showClarificationQuestion) {
     text += `\n${activity}`;
   } else if (running) {
     text += `\n${theme.fg('muted', '(waiting for child events...)')}`;
   } else if (details.output) {
-    text += `\n${theme.fg('toolOutput', firstLines(details.output))}`;
+    text += `\n${theme.fg(
+      'toolOutput',
+      showClarificationQuestion ? details.output : firstLines(details.output),
+    )}`;
   } else {
     text += `\n${theme.fg('muted', '(no output)')}`;
   }
   if (details.stderr.trim()) {
     text += `\n${theme.fg('warning', preview(details.stderr, 160))}`;
   }
-  if (items.length > 8 && options.showExpandHint !== false) {
+  if (
+    !showClarificationQuestion &&
+    items.length > 8 &&
+    options.showExpandHint !== false
+  ) {
     text += `\n${theme.fg('muted', '(Ctrl+O to expand)')}`;
   }
   return new Text(text, 0, 0);
