@@ -2,6 +2,7 @@ import {
   appendFileSync,
   existsSync,
   readFileSync,
+  readdirSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -10,6 +11,7 @@ import { artifactPath, iterationRoot } from '../workflow/iteration-paths';
 import { readState, writeState } from '../workflow/state-store';
 import type {
   ClarificationRecord,
+  ClarificationStoryOutcome,
   ClarificationTarget,
   WorkflowState,
 } from '../workflow/types';
@@ -27,10 +29,26 @@ interface ClarificationHistoryDocument {
   clarifications: ClarificationRecord[];
 }
 
+interface ClarificationStoryStatusDocument {
+  version: 1;
+  iteration_id: string;
+  active_story_id: string | null;
+  stories: Array<{
+    story_id: string;
+    status: 'unselected' | 'active' | ClarificationStoryOutcome;
+    summary?: string;
+  }>;
+}
+
 const VALID_TARGETS = new Set<ClarificationTarget>([
   'business_context',
   'story',
   'history',
+]);
+const VALID_STORY_OUTCOMES = new Set<ClarificationStoryOutcome>([
+  'clarified',
+  'needs_split',
+  'deferred',
 ]);
 
 function normalizeStoryId(storyId: string): string {
@@ -68,6 +86,18 @@ function storyPath(cwd: string, state: WorkflowState, storyId: string): string {
   );
 }
 
+function storyDirectory(cwd: string, state: WorkflowState): string {
+  return artifactPath(cwd, state, 'artifacts/01-requirements/stories');
+}
+
+function storyStatusJsonPath(cwd: string, state: WorkflowState): string {
+  return artifactPath(
+    cwd,
+    state,
+    'artifacts/01-requirements/clarifications/story-status.json',
+  );
+}
+
 function historyJsonPath(
   cwd: string,
   state: WorkflowState,
@@ -100,6 +130,70 @@ function requireArtifact(path: string, description: string): void {
   ) {
     throw new Error(`${description} is missing or empty: ${path}.`);
   }
+}
+
+export function clarificationStoryIds(
+  cwd: string,
+  state = readState(cwd),
+): string[] {
+  const directory = storyDirectory(cwd, state);
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && /^US-\d{3,}\.md$/.test(entry.name))
+    .map((entry) => entry.name.replace(/\.md$/, ''))
+    .filter((storyId) => {
+      const path = storyPath(cwd, state, storyId);
+      return statSync(path).size > 0;
+    })
+    .sort();
+}
+
+export function unresolvedClarificationStoryIds(
+  cwd: string,
+  state = readState(cwd),
+): string[] {
+  const completed = new Set(
+    (state.clarification_story_outcomes ?? []).map(({ story_id }) => story_id),
+  );
+  return clarificationStoryIds(cwd, state).filter(
+    (storyId) => !completed.has(storyId),
+  );
+}
+
+function persistStoryStatus(cwd: string, state: WorkflowState): void {
+  ensureProjectDirs(cwd, iterationRoot(cwd, state));
+  const outcomes = new Map(
+    (state.clarification_story_outcomes ?? []).map((outcome) => [
+      outcome.story_id,
+      outcome,
+    ]),
+  );
+  const document: ClarificationStoryStatusDocument = {
+    version: 1,
+    iteration_id: state.iteration_id,
+    active_story_id: state.active_clarification_story?.story_id ?? null,
+    stories: clarificationStoryIds(cwd, state).map((storyId) => {
+      const outcome = outcomes.get(storyId);
+      if (outcome) {
+        return {
+          story_id: storyId,
+          status: outcome.outcome,
+          summary: outcome.summary,
+        };
+      }
+      return {
+        story_id: storyId,
+        status:
+          state.active_clarification_story?.story_id === storyId
+            ? 'active'
+            : 'unselected',
+      };
+    }),
+  };
+  writeFileSync(
+    storyStatusJsonPath(cwd, state),
+    `${JSON.stringify(document, null, 2)}\n`,
+  );
 }
 
 function answerDestination(
@@ -190,6 +284,115 @@ function appendAnswerToDestination(
   );
 }
 
+export function selectClarificationStory(
+  cwd: string,
+  storyId: string,
+): WorkflowState {
+  const state = readState(cwd);
+  assertClarificationPhase(state);
+  if (state.pending_clarification) {
+    throw new Error(
+      `Cannot select a story: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+    );
+  }
+  if (state.active_clarification_story) {
+    throw new Error(
+      `Cannot select another story: ${state.active_clarification_story.story_id} is still active. Complete its clarification first.`,
+    );
+  }
+  const normalizedStoryId = normalizeStoryId(storyId);
+  requireArtifact(
+    storyPath(cwd, state, normalizedStoryId),
+    'Clarification story artifact',
+  );
+  if (
+    state.clarification_story_outcomes?.some(
+      ({ story_id }) => story_id === normalizedStoryId,
+    )
+  ) {
+    throw new Error(
+      `Cannot select ${normalizedStoryId}: its clarification already has an outcome.`,
+    );
+  }
+  const next = writeState(cwd, {
+    ...state,
+    active_clarification_story: {
+      story_id: normalizedStoryId,
+      selected_at: new Date().toISOString(),
+    },
+  });
+  persistStoryStatus(cwd, next);
+  return next;
+}
+
+export function completeClarificationStory(
+  cwd: string,
+  storyId: string,
+  outcome: ClarificationStoryOutcome,
+  summary: string,
+): WorkflowState {
+  const state = readState(cwd);
+  assertClarificationPhase(state);
+  if (state.pending_clarification) {
+    throw new Error(
+      `Cannot complete story clarification: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+    );
+  }
+  const normalizedStoryId = normalizeStoryId(storyId);
+  const activeStoryId = state.active_clarification_story?.story_id;
+  if (!activeStoryId) {
+    throw new Error(
+      'Cannot complete story clarification: select a clarification story first.',
+    );
+  }
+  if (activeStoryId !== normalizedStoryId) {
+    throw new Error(
+      `Cannot complete ${normalizedStoryId}: selected story is ${activeStoryId}.`,
+    );
+  }
+  if (!VALID_STORY_OUTCOMES.has(outcome)) {
+    throw new Error(`Unsupported clarification story outcome: ${outcome}.`);
+  }
+  const next = writeState(cwd, {
+    ...state,
+    active_clarification_story: undefined,
+    clarification_story_outcomes: [
+      ...(state.clarification_story_outcomes ?? []),
+      {
+        story_id: normalizedStoryId,
+        outcome,
+        summary: requireNonEmpty(summary, 'Clarification story summary'),
+        completed_at: new Date().toISOString(),
+      },
+    ],
+  });
+  persistStoryStatus(cwd, next);
+  return next;
+}
+
+export function validateClarificationStoriesComplete(
+  cwd: string,
+  state = readState(cwd),
+): void {
+  const storyIds = clarificationStoryIds(cwd, state);
+  if (storyIds.length === 0) {
+    throw new Error(
+      'Cannot complete clarify: no US-xxx story cards exist. Generate the candidate story cards first.',
+    );
+  }
+  if (state.active_clarification_story) {
+    throw new Error(
+      `Cannot complete clarify: clarification story ${state.active_clarification_story.story_id} is still active.`,
+    );
+  }
+  const unresolved = unresolvedClarificationStoryIds(cwd, state);
+  if (unresolved.length > 0) {
+    throw new Error(
+      `Cannot complete clarify: stories without a clarification outcome: ${unresolved.join(', ')}.`,
+    );
+  }
+}
+
 /** Ask exactly one business clarification question and persist its pending state. */
 export function askClarification(
   cwd: string,
@@ -203,6 +406,17 @@ export function askClarification(
     );
   }
   const storyId = normalizeStoryId(input.story_id);
+  const activeStoryId = state.active_clarification_story?.story_id;
+  if (!activeStoryId) {
+    throw new Error(
+      'Cannot ask a clarification question: select a clarification story first.',
+    );
+  }
+  if (activeStoryId !== storyId) {
+    throw new Error(
+      `Cannot ask for ${storyId}: selected story is ${activeStoryId}.`,
+    );
+  }
   const question = requireNonEmpty(input.question, 'Clarification question');
   if (!VALID_TARGETS.has(input.target)) {
     throw new Error(`Unsupported clarification target: ${input.target}.`);

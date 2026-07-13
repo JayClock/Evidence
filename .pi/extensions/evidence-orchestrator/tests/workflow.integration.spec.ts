@@ -14,6 +14,7 @@ import { collectCodeFiles, missingPaths } from '../evidence/artifact-index';
 import {
   answerClarification,
   askClarification,
+  selectClarificationStory,
 } from '../requirements/clarifications';
 import {
   answerGate,
@@ -135,6 +136,9 @@ describe('P0 knowledge-feedback workflow', () => {
     ]);
     expect(DEFAULT_STATE.phase).toBe('frame');
     expect(PHASE_META.frame.gateId).toBe('GATE-101-frame');
+    expect(PHASE_META.frame.outputs).toContain(
+      'artifacts/01-requirements/stories/',
+    );
     expect(PHASE_META.clarify.outputs).toContain(
       'artifacts/01-requirements/clarifications/',
     );
@@ -717,6 +721,7 @@ describe('P1 TQA clarification workflow', () => {
     writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
     writeIterationArtifact(cwd, '01-requirements/product-context-delta.md');
     writeIterationArtifact(cwd, '01-requirements/stories/US-042.md');
+    selectClarificationStory(cwd, 'US-042');
 
     const asked = askClarification(cwd, {
       story_id: 'US-042',
@@ -814,13 +819,9 @@ describe('P1 TQA clarification workflow', () => {
     ).toThrow('current phase is frame');
 
     writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
-    expect(() =>
-      askClarification(cwd, {
-        story_id: 'US-042',
-        question: '缺少故事。',
-        target: 'history',
-      }),
-    ).toThrow('story artifact is missing');
+    expect(() => selectClarificationStory(cwd, 'US-042')).toThrow(
+      'story artifact is missing',
+    );
   });
 });
 
@@ -869,7 +870,12 @@ describe('P0 iteration isolation and PDCA', () => {
       gate_config: { ...DEFAULT_STATE.gate_config, frame: 'review' },
     });
     for (const output of PHASE_META.frame.outputs) {
-      writeIterationArtifact(cwd, output.slice('artifacts/'.length));
+      writeIterationArtifact(
+        cwd,
+        output.endsWith('/')
+          ? `${output.slice('artifacts/'.length)}US-001.md`
+          : output.slice('artifacts/'.length),
+      );
     }
     const advanced = completePhase(cwd, 'frame', 'ready for review');
     expect(advanced.phase).toBe('clarify');
@@ -957,11 +963,12 @@ describe('phase completion guardrails', () => {
     writeIterationArtifact(cwd, '01-requirements/product-context-delta.md');
     writeIterationArtifact(cwd, '01-requirements/journey-slice.md');
     writeIterationArtifact(cwd, '01-requirements/story-map-delta.md');
+    writeIterationArtifact(cwd, '01-requirements/stories/US-001.md', '# Story');
 
     const state = completePhase(cwd, 'frame', 'ready');
 
     expect(state.phase).toBe('clarify');
     expect(state.pending_gate).toBeNull();
-    expect(readState(cwd).artifacts).toHaveLength(4);
+    expect(readState(cwd).artifacts).toHaveLength(5);
   });
 });

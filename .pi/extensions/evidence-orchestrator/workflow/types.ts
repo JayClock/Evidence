@@ -13,6 +13,10 @@ export type Phase =
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
+export type ClarificationStoryOutcome =
+  | 'clarified'
+  | 'needs_split'
+  | 'deferred';
 export type TestProcessRuntime = 'rust' | 'typescript' | 'tauri';
 export type TestDouble = 'real' | 'fake' | 'stub' | 'spy' | 'mock';
 
@@ -64,6 +68,18 @@ export interface ClarificationRecord {
   answered_at?: string;
 }
 
+export interface ActiveClarificationStory {
+  story_id: string;
+  selected_at: string;
+}
+
+export interface ClarificationStoryOutcomeRecord {
+  story_id: string;
+  outcome: ClarificationStoryOutcome;
+  summary: string;
+  completed_at: string;
+}
+
 export interface PhaseFailure {
   phase: Exclude<Phase, 'complete'>;
   round: number;
@@ -91,6 +107,10 @@ export interface WorkflowState {
   /** Upstream requirement authority; local files are immutable iteration snapshots. */
   requirement_source?: GitHubIssueRequirementSource;
   active_work_item?: ActiveWorkItem;
+  /** The sole story currently allowed to consume TQA feedback. */
+  active_clarification_story?: ActiveClarificationStory;
+  /** Final story-level clarification dispositions for the active iteration. */
+  clarification_story_outcomes?: ClarificationStoryOutcomeRecord[];
   /** The sole TQA question awaiting an explicit domain-expert answer. */
   pending_clarification?: ClarificationRecord;
   /** Immutable, answered TQA exchanges for the active iteration. */

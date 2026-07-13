@@ -10,6 +10,7 @@ import {
   validateDomainModelEvidence,
   validateScenarioExecutionEvidence,
 } from '../evidence/model-and-code';
+import { validateClarificationStoriesComplete } from '../requirements/clarifications';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
 import {
   validateKnowledgePromotion,
@@ -288,6 +289,9 @@ export function validatePhaseCompletion(
     );
   }
 
+  if (phase === 'clarify') {
+    validateClarificationStoriesComplete(cwd, current);
+  }
   if (phase === 'architecture') {
     validateScenarioContextMap(
       cwd,

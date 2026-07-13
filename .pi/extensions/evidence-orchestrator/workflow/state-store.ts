@@ -29,6 +29,12 @@ import type {
 const CONFIGURABLE_PHASES = new Set(
   PHASE_ORDER.filter((phase) => phase !== 'complete'),
 );
+const STORY_ID_PATTERN = /^US-\d{3,}$/;
+const CLARIFICATION_STORY_OUTCOMES = new Set([
+  'clarified',
+  'needs_split',
+  'deferred',
+]);
 
 export function statePath(cwd: string): string {
   return join(cwd, 'evidence-state.json');
@@ -53,9 +59,57 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   }
   const iterationId = state.iteration_id ?? DEFAULT_STATE.iteration_id;
   assertIterationId(iterationId);
+  if (state.active_clarification_story && phase !== 'clarify') {
+    throw new Error(
+      'An active clarification story is only valid while the workflow is in clarify.',
+    );
+  }
+  if (
+    state.active_clarification_story &&
+    (!STORY_ID_PATTERN.test(state.active_clarification_story.story_id) ||
+      typeof state.active_clarification_story.selected_at !== 'string' ||
+      !state.active_clarification_story.selected_at)
+  ) {
+    throw new Error('The active clarification story is invalid.');
+  }
+  const clarificationOutcomes = state.clarification_story_outcomes ?? [];
+  if (
+    new Set(clarificationOutcomes.map(({ story_id }) => story_id)).size !==
+      clarificationOutcomes.length ||
+    clarificationOutcomes.some(
+      ({ story_id, outcome, summary, completed_at }) =>
+        !STORY_ID_PATTERN.test(story_id) ||
+        !CLARIFICATION_STORY_OUTCOMES.has(outcome) ||
+        typeof summary !== 'string' ||
+        !summary.trim() ||
+        typeof completed_at !== 'string' ||
+        !completed_at,
+    )
+  ) {
+    throw new Error('Clarification story outcomes are invalid.');
+  }
+  if (
+    state.active_clarification_story &&
+    clarificationOutcomes.some(
+      ({ story_id }) => story_id === state.active_clarification_story?.story_id,
+    )
+  ) {
+    throw new Error(
+      'The active clarification story cannot already have an outcome.',
+    );
+  }
   if (state.pending_clarification && phase !== 'clarify') {
     throw new Error(
       'A pending clarification is only valid while the workflow is in clarify.',
+    );
+  }
+  if (
+    state.pending_clarification &&
+    state.pending_clarification.story_id !==
+      state.active_clarification_story?.story_id
+  ) {
+    throw new Error(
+      'A pending clarification must belong to the active clarification story.',
     );
   }
   if (state.pending_clarification?.answer) {
@@ -86,6 +140,12 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       : {}),
     ...(state.active_work_item
       ? { active_work_item: state.active_work_item }
+      : {}),
+    ...(state.active_clarification_story
+      ? { active_clarification_story: state.active_clarification_story }
+      : {}),
+    ...(state.clarification_story_outcomes
+      ? { clarification_story_outcomes: state.clarification_story_outcomes }
       : {}),
     ...(state.pending_clarification
       ? { pending_clarification: state.pending_clarification }
