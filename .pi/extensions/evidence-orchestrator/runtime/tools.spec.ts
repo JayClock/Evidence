@@ -3,14 +3,30 @@ import { registerTools } from './tools';
 
 describe('tools', () => {
   it('registers phase-subagent, TQA, work-item, and test-process selection tools', () => {
-    const tools: string[] = [];
+    const tools: Array<{
+      name: string;
+      renderCall?: unknown;
+      renderResult?: unknown;
+    }> = [];
+    let toolResultHandler:
+      | ((event: { toolName: string; details: unknown }) => unknown)
+      | undefined;
     registerTools({
-      registerTool(definition: { name: string }) {
-        tools.push(definition.name);
+      registerTool(definition: {
+        name: string;
+        renderCall?: unknown;
+        renderResult?: unknown;
+      }) {
+        tools.push(definition);
+      },
+      on(event: string, handler: unknown) {
+        if (event === 'tool_result') {
+          toolResultHandler = handler as typeof toolResultHandler;
+        }
       },
     } as never);
 
-    expect(tools).toEqual(
+    expect(tools.map(({ name }) => name)).toEqual(
       expect.arrayContaining([
         'evidence_orchestrator_run_phase',
         'evidence_orchestrator_start_from_issue',
@@ -21,5 +37,22 @@ describe('tools', () => {
         'evidence_orchestrator_select_test_process',
       ]),
     );
+    const phaseRunner = tools.find(
+      ({ name }) => name === 'evidence_orchestrator_run_phase',
+    );
+    expect(phaseRunner?.renderCall).toBeTypeOf('function');
+    expect(phaseRunner?.renderResult).toBeTypeOf('function');
+    expect(
+      toolResultHandler?.({
+        toolName: 'evidence_orchestrator_run_phase',
+        details: { exitCode: 1 },
+      }),
+    ).toEqual({ isError: true });
+    expect(
+      toolResultHandler?.({
+        toolName: 'evidence_orchestrator_run_phase',
+        details: { exitCode: 0 },
+      }),
+    ).toBeUndefined();
   });
 });

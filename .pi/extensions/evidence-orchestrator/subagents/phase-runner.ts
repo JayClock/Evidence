@@ -1,8 +1,8 @@
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import type { Message } from '@earendil-works/pi-ai';
 import type { Phase } from '../workflow/types';
 
@@ -33,6 +33,11 @@ export interface PhaseAgentResult {
   messages: Message[];
   exitCode: number;
   stderr: string;
+}
+
+/** A live child-process snapshot. An exit code of -1 means it is still running. */
+export interface PhaseAgentProgress extends PhaseAgentResult {
+  exitCode: -1;
 }
 
 const PHASE_AGENTS: Record<Exclude<Phase, 'complete'>, string> = {
@@ -75,7 +80,7 @@ function parseAgentFile(content: string): {
   return { frontmatter, body: match[2] };
 }
 
-function finalOutput(messages: Message[]): string {
+export function finalPhaseAgentOutput(messages: readonly Message[]): string {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message.role !== 'assistant') continue;
@@ -86,6 +91,68 @@ function finalOutput(messages: Message[]): string {
     if (text) return text;
   }
   return '';
+}
+
+/**
+ * Retain the same finalized child events as Pi's official subagent example.
+ * Assistant messages carry child tool calls; tool-result messages make progress
+ * updates visible before the child reaches its final response.
+ */
+export function appendPhaseSubagentEvent(
+  messages: Message[],
+  event: { type?: string; message?: Message },
+): boolean {
+  if (
+    (event.type === 'message_end' || event.type === 'tool_result_end') &&
+    event.message
+  ) {
+    messages.push(event.message);
+    return true;
+  }
+  return false;
+}
+
+export function phaseAgentProgress(
+  agent: Pick<PhaseAgent, 'name' | 'model' | 'thinking'>,
+  messages: readonly Message[],
+  stderr = '',
+): PhaseAgentProgress {
+  return {
+    agent: agent.name,
+    model: agent.model,
+    thinking: agent.thinking,
+    output: finalPhaseAgentOutput(messages) || '(running...)',
+    messages: [...messages],
+    exitCode: -1,
+    stderr,
+  };
+}
+
+export function phaseAgentResult(
+  agent: Pick<PhaseAgent, 'name' | 'model' | 'thinking'>,
+  messages: Message[],
+  exitCode: number,
+  stderr = '',
+  spawnError = '',
+): PhaseAgentResult {
+  const output = finalPhaseAgentOutput(messages);
+  const diagnostics = [output, stderr.trim(), spawnError]
+    .filter(Boolean)
+    .join('\n\n');
+  const resultOutput =
+    exitCode === 0
+      ? output || '(no output)'
+      : `Phase subagent ${agent.name} failed with exit ${exitCode}:\n${diagnostics || 'no output'}`;
+
+  return {
+    agent: agent.name,
+    model: agent.model,
+    thinking: agent.thinking,
+    output: resultOutput,
+    messages,
+    exitCode,
+    stderr: stderr || spawnError,
+  };
 }
 
 export function phaseAgentName(phase: Exclude<Phase, 'complete'>): string {
@@ -130,12 +197,34 @@ export function loadPhaseAgent(
   };
 }
 
+/**
+ * Re-invoke the current Pi executable when possible, so a phase child uses the
+ * same installed Pi version as its parent. This mirrors Pi's official
+ * subagent extension and falls back to the `pi` command for generic runtimes.
+ */
+function phaseSubagentInvocation(args: string[]): {
+  command: string;
+  args: string[];
+} {
+  const currentScript = process.argv[1];
+  const isBunVirtualScript = currentScript?.startsWith('/$bunfs/root/');
+  if (currentScript && !isBunVirtualScript && existsSync(currentScript)) {
+    return { command: process.execPath, args: [currentScript, ...args] };
+  }
+
+  const executable = basename(process.execPath).toLowerCase();
+  const isGenericRuntime = /^(node|bun)(\.exe)?$/.test(executable);
+  if (!isGenericRuntime) return { command: process.execPath, args };
+
+  return { command: 'pi', args };
+}
+
 export async function runPhaseSubagent(options: {
   cwd: string;
   phase: Exclude<Phase, 'complete'>;
   task: string;
   signal?: AbortSignal;
-  onUpdate?: (output: string) => void;
+  onUpdate?: (progress: PhaseAgentProgress) => void;
 }): Promise<PhaseAgentResult> {
   const agent = loadPhaseAgent(options.cwd, options.phase);
   const tempDirectory = await mkdtemp(join(tmpdir(), 'evidence-subagent-'));
@@ -164,14 +253,32 @@ export async function runPhaseSubagent(options: {
   let stderr = '';
   let buffer = '';
   let aborted = false;
+  let spawnError = '';
+
+  const emitProgress = () => {
+    options.onUpdate?.(phaseAgentProgress(agent, messages, stderr));
+  };
 
   try {
-    const exitCode = await new Promise<number>((resolve, reject) => {
-      const child = spawn('pi', args, {
+    const exitCode = await new Promise<number>((resolve) => {
+      const invocation = phaseSubagentInvocation(args);
+      const child = spawn(invocation.command, invocation.args, {
         cwd: options.cwd,
         shell: false,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
+      let settled = false;
+      let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
+
+      const finish = (code: number) => {
+        if (settled) return;
+        settled = true;
+        if (forceKillTimer) clearTimeout(forceKillTimer);
+        if (options.signal) {
+          options.signal.removeEventListener('abort', abortChild);
+        }
+        resolve(code);
+      };
 
       const processLine = (line: string) => {
         if (!line.trim()) return;
@@ -181,13 +288,17 @@ export async function runPhaseSubagent(options: {
         } catch {
           return;
         }
-        if (
-          (event.type === 'message_end' || event.type === 'tool_result_end') &&
-          event.message
-        ) {
-          messages.push(event.message);
-          options.onUpdate?.(finalOutput(messages));
-        }
+        if (appendPhaseSubagentEvent(messages, event)) emitProgress();
+      };
+
+      const abortChild = () => {
+        if (aborted) return;
+        aborted = true;
+        child.kill('SIGTERM');
+        forceKillTimer = setTimeout(() => {
+          if (child.exitCode === null) child.kill('SIGKILL');
+        }, 5000);
+        forceKillTimer.unref();
       };
 
       child.stdout.on('data', (chunk) => {
@@ -198,37 +309,24 @@ export async function runPhaseSubagent(options: {
       });
       child.stderr.on('data', (chunk) => {
         stderr += chunk.toString();
+        emitProgress();
       });
-      child.on('error', reject);
+      child.on('error', (error) => {
+        spawnError = error.message;
+        finish(1);
+      });
       child.on('close', (code) => {
         processLine(buffer);
-        resolve(code ?? 1);
+        finish(code ?? 1);
       });
 
-      const abort = () => {
-        aborted = true;
-        child.kill('SIGTERM');
-      };
-      if (options.signal?.aborted) abort();
-      else options.signal?.addEventListener('abort', abort, { once: true });
+      if (options.signal?.aborted) abortChild();
+      else
+        options.signal?.addEventListener('abort', abortChild, { once: true });
     });
 
-    const output = finalOutput(messages);
     if (aborted) throw new Error(`Phase subagent ${agent.name} was aborted.`);
-    if (exitCode !== 0) {
-      throw new Error(
-        `Phase subagent ${agent.name} failed with exit ${exitCode}: ${stderr || output || 'no output'}`,
-      );
-    }
-    return {
-      agent: agent.name,
-      model: agent.model,
-      thinking: agent.thinking,
-      output: output || '(no output)',
-      messages,
-      exitCode,
-      stderr,
-    };
+    return phaseAgentResult(agent, messages, exitCode, stderr, spawnError);
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
   }

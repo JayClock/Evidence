@@ -17,6 +17,12 @@ import {
 import { PHASE_META } from '../workflow/phase-catalog';
 import { runPhaseSubagent } from '../subagents/phase-runner';
 import {
+  isPhaseSubagentFailureDetails,
+  renderPhaseSubagentCall,
+  renderPhaseSubagentResult,
+  type PhaseSubagentToolDetails,
+} from './phase-subagent-renderer';
+import {
   readState,
   selectTestProcess,
   selectWorkItem,
@@ -146,6 +152,16 @@ const executionStepParam = Type.Object({
 });
 
 export function registerTools(pi: ExtensionAPI): void {
+  pi.on('tool_result', (event) => {
+    if (
+      event.toolName === 'evidence_orchestrator_run_phase' &&
+      isPhaseSubagentFailureDetails(event.details)
+    ) {
+      return { isError: true };
+    }
+    return undefined;
+  });
+
   pi.registerTool({
     name: 'evidence_orchestrator_start_from_issue',
     label: 'Start Evidence Orchestrator From Issue',
@@ -261,28 +277,39 @@ export function registerTools(pi: ExtensionAPI): void {
           phase: preparation.phase,
           task: preparation.task,
           signal,
-          onUpdate(output) {
+          onUpdate(progress) {
+            const details: PhaseSubagentToolDetails = {
+              ...progress,
+              phase: preparation.phase,
+              task: preparation.task,
+              status: 'running',
+            };
             onUpdate?.({
-              content: [
-                {
-                  type: 'text',
-                  text: output || `(${preparation.phase} subagent running...)`,
-                },
-              ],
-              details: {
-                phase: preparation.phase,
-                agent: preparation.phase,
-              },
+              content: [{ type: 'text', text: progress.output }],
+              details,
             });
           },
         });
+        const details: PhaseSubagentToolDetails = {
+          ...result,
+          phase: preparation.phase,
+          task: preparation.task,
+          status: result.exitCode === 0 ? 'completed' : 'failed',
+        };
         return {
+          // This is the only child payload added to the parent model context.
           content: [{ type: 'text', text: result.output }],
-          details: { ...result, phase: preparation.phase },
+          details,
         };
       } finally {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
       }
+    },
+    renderCall(args, theme) {
+      return renderPhaseSubagentCall(args, theme);
+    },
+    renderResult(result, options, theme) {
+      return renderPhaseSubagentResult(result, options, theme);
     },
   });
 

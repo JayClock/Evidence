@@ -29,8 +29,14 @@ evidence-orchestrator/
 
 ### `subagents/`
 
-- `phase-runner.ts`：读取 `.pi/agents/*.md` 并启动隔离的 pi 子进程。
+- `phase-runner.ts`：读取 `.pi/agents/*.md` 并启动隔离的 pi 子进程；通过 `--mode json` 收集 `message_end` 和 `tool_result_end`，把子 agent 的完整活动快照流式交给父工具。
 - `phase-task.ts`：根据活动迭代和阶段生成动态任务。
+
+`runtime/phase-subagent-renderer.ts` 采用 Pi 官方 subagent 示例的双通道模式：
+
+- 工具 `content` 只返回子 agent 的最终回答，因此父 agent 获得可执行的紧凑上下文；
+- 工具 `details` 保留子 agent 消息、工具调用、模型和 stderr，TUI 在执行中显示最近活动，使用 `Ctrl+O` 可展开完整委派任务与输出；非零退出码保留诊断并标记为工具错误；
+- 子进程优先复用运行父 agent 的 Pi 可执行文件，避免 PATH 指向不同 Pi 版本。
 
 ### `workflow/`
 
