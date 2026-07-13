@@ -23,7 +23,9 @@ evidence-orchestrator/
 ### `runtime/`
 
 - `identity.ts`：集中声明扩展 ID、状态栏 key、状态前缀和消息类型。
-- `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查。
+- `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查；`/evidence-new` 成功创建迭代后自动排队一次前台 Frame 运行。
+- `github-cli.ts`：将 Pi 的异步、可取消进程执行适配为 GitHub Issue runner。
+- `loading.ts`：为外部操作提供可取消的 `BorderedLoader`；非 TUI 模式退化为临时状态栏。
 - `story-picker.ts`：像 Issue 选择器一样，从未完成的 `US-xxx.md` 中显示标题并由人手动选择。
 - `tools.ts`：注册 `evidence_orchestrator_*` 模型工具。
 - `status.ts`：生成当前工作流状态报告。
@@ -49,8 +51,10 @@ evidence-orchestrator/
 
 ### `requirements/`
 
-- `github-issue.ts`：GitHub Issue 快照、投影、漂移检查与同步。
+- `github-issue.ts`：GitHub Issue 快照、投影、漂移检查与同步；异步入口在持久化前检查取消信号。
 - `clarifications.ts`：故事卡发现与选择、单故事 TQA、故事结论和澄清历史。
+
+GitHub Issue 列表、创建、快照、同步和漂移检查均显示具体的 Loading 文案。用户取消时不写入新状态，也不触发后续 Frame；模型工具入口则通过 `onUpdate` 流式报告相同操作。
 
 Clarify 是阶段内的故事级子流程：
 

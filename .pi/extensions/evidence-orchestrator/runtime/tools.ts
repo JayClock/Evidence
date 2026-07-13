@@ -14,8 +14,8 @@ import {
   recordPhaseFailure,
 } from '../workflow/gates';
 import {
-  startIterationFromIssue,
-  syncIssueSource,
+  startIterationFromIssueAsync,
+  syncIssueSourceAsync,
 } from '../requirements/github-issue';
 import { PHASE_META } from '../workflow/phase-catalog';
 import { runPhaseSubagent } from '../subagents/phase-runner';
@@ -31,6 +31,7 @@ import {
   selectWorkItem,
   writeState,
 } from '../workflow/state-store';
+import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
 import { executeTestStep } from '../testing/execution-recorder';
 import { STATUS_KEY, statusLabel } from './identity';
@@ -200,12 +201,26 @@ export function registerTools(pi: ExtensionAPI): void {
       'Do not create or infer an Issue number.',
     ],
     parameters: issueSourceParam,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+    async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const issueNumber = Number(params.issueNumber);
-      const state = startIterationFromIssue(ctx.cwd, {
-        issueNumber,
-        repository: params.repository,
+      onUpdate?.({
+        content: [
+          {
+            type: 'text',
+            text: `Loading GitHub Issue #${issueNumber} and creating an iteration…`,
+          },
+        ],
+        details: { status: 'loading', issueNumber },
       });
+      const state = await startIterationFromIssueAsync(
+        ctx.cwd,
+        {
+          issueNumber,
+          repository: params.repository,
+        },
+        createGitHubCliRunner(pi),
+        signal,
+      );
       return {
         content: [
           {
@@ -230,8 +245,21 @@ export function registerTools(pi: ExtensionAPI): void {
       'After frame, preserve the current snapshot and start a new iteration for changed requirements.',
     ],
     parameters: Type.Object({}),
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
-      const state = syncIssueSource(ctx.cwd);
+    async execute(_toolCallId, _params, signal, onUpdate, ctx) {
+      onUpdate?.({
+        content: [
+          {
+            type: 'text',
+            text: 'Refreshing the GitHub Issue snapshot…',
+          },
+        ],
+        details: { status: 'loading' },
+      });
+      const state = await syncIssueSourceAsync(
+        ctx.cwd,
+        createGitHubCliRunner(pi),
+        signal,
+      );
       return {
         content: [
           {

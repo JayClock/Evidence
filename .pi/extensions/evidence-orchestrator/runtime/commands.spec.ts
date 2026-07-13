@@ -9,7 +9,19 @@ import {
 } from '../tests/support';
 import { registerCommands } from './commands';
 
-afterEach(cleanupWorkspaces);
+const githubIssueMocks = vi.hoisted(() => ({
+  startIterationFromIssueAsync: vi.fn(),
+}));
+
+vi.mock('../requirements/github-issue', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../requirements/github-issue')>()),
+  startIterationFromIssueAsync: githubIssueMocks.startIterationFromIssueAsync,
+}));
+
+afterEach(() => {
+  cleanupWorkspaces();
+  vi.clearAllMocks();
+});
 
 describe('commands', () => {
   it('registers workflow, gate, and explicit TQA-answer commands', () => {
@@ -30,6 +42,72 @@ describe('commands', () => {
         'evidence-issue-sync',
         'evidence-issue-status',
       ]),
+    );
+  });
+
+  it('queues one visible frame run after starting a new iteration', async () => {
+    const cwd = workspace();
+    githubIssueMocks.startIterationFromIssueAsync.mockResolvedValue({
+      ...DEFAULT_STATE,
+      requirement_source: {
+        type: 'github_issue',
+        repository: 'owner/repo',
+        issue_number: 42,
+        url: 'https://example.test/issues/42',
+        snapshot_path:
+          'artifacts/iterations/ITER-0001/00-user-input/issue.json',
+        projection_path:
+          'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+        content_hash: 'sha256:test',
+        issue_updated_at: '2026-01-01T00:00:00.000Z',
+        fetched_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    let start: ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    const sendUserMessage = vi.fn();
+    const setStatus = vi.fn();
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof start }) {
+        if (name === 'evidence-new') start = options.handler;
+      },
+      exec: vi.fn().mockResolvedValue({
+        code: 0,
+        stdout: JSON.stringify([
+          {
+            number: 42,
+            title: 'Frame this requirement',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+        stderr: '',
+      }),
+      sendUserMessage,
+    } as never);
+
+    await start?.('', {
+      cwd,
+      hasUI: true,
+      isIdle: () => true,
+      ui: {
+        notify: vi.fn(),
+        select: vi
+          .fn()
+          .mockResolvedValue('#42 Frame this requirement · updated 2026-01-01'),
+        setStatus,
+      },
+    });
+
+    expect(setStatus).toHaveBeenCalledWith(
+      'evidence-network',
+      '正在加载 GitHub Issues…',
+    );
+    expect(setStatus).toHaveBeenCalledWith(
+      'evidence-network',
+      '正在冻结 GitHub Issue #42 并创建迭代…',
+    );
+    expect(sendUserMessage).toHaveBeenCalledTimes(1);
+    expect(sendUserMessage).toHaveBeenCalledWith(
+      expect.stringContaining('evidence_orchestrator_run_phase'),
     );
   });
 

@@ -5,9 +5,9 @@ import {
 } from '../requirements/clarifications';
 import { answerGate } from '../workflow/gates';
 import {
-  checkIssueSourceDrift,
-  startIterationFromIssue,
-  syncIssueSource,
+  checkIssueSourceDriftAsync,
+  startIterationFromIssueAsync,
+  syncIssueSourceAsync,
 } from '../requirements/github-issue';
 import { PHASE_ORDER } from '../workflow/phase-catalog';
 import { readState } from '../workflow/state-store';
@@ -19,7 +19,9 @@ import {
   PhaseRunBlockedError,
   preparePhaseRun,
 } from './phase-dispatch';
+import { createGitHubCliRunner } from './github-cli';
 import { selectOrCreateGitHubIssue } from './issue-picker';
+import { runWithLoader } from './loading';
 import { statusMarkdown } from './status';
 import {
   listSelectableClarificationStories,
@@ -69,15 +71,40 @@ export function registerCommands(pi: ExtensionAPI): void {
     description: 'Select or create a GitHub Issue and start a new iteration',
     handler: async (_args, ctx) => {
       try {
-        const issueNumber = await selectOrCreateGitHubIssue(pi, ctx);
+        const issueNumber = await selectOrCreateGitHubIssue(
+          pi,
+          ctx,
+          (message, operation) =>
+            runWithLoader(ctx, message, (signal) => operation(signal)),
+        );
         if (!issueNumber) {
           ctx.ui.notify('New iteration cancelled.', 'info');
           return;
         }
-        const state = startIterationFromIssue(ctx.cwd, { issueNumber });
+        const state = await runWithLoader(
+          ctx,
+          `正在冻结 GitHub Issue #${issueNumber} 并创建迭代…`,
+          (signal) =>
+            startIterationFromIssueAsync(
+              ctx.cwd,
+              { issueNumber },
+              createGitHubCliRunner(pi),
+              signal,
+            ),
+        );
+        if (!state) {
+          ctx.ui.notify('New iteration cancelled.', 'info');
+          return;
+        }
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const request = foregroundPhaseRequest('');
+        if (ctx.isIdle()) {
+          pi.sendUserMessage(request);
+        } else {
+          pi.sendUserMessage(request, { deliverAs: 'followUp' });
+        }
         ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
+          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number} and queued visible frame execution.`,
           'info',
         );
       } catch (error) {
@@ -94,7 +121,16 @@ export function registerCommands(pi: ExtensionAPI): void {
       'Refresh the active GitHub Issue snapshot while the iteration is in frame',
     handler: async (_args, ctx) => {
       try {
-        const state = syncIssueSource(ctx.cwd);
+        const state = await runWithLoader(
+          ctx,
+          '正在刷新 GitHub Issue 快照…',
+          (signal) =>
+            syncIssueSourceAsync(ctx.cwd, createGitHubCliRunner(pi), signal),
+        );
+        if (!state) {
+          ctx.ui.notify('Issue refresh cancelled.', 'info');
+          return;
+        }
         ctx.ui.notify(
           `Issue snapshot refreshed: ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
           'info',
@@ -113,7 +149,20 @@ export function registerCommands(pi: ExtensionAPI): void {
       'Check whether the live GitHub Issue differs from its snapshot',
     handler: async (_args, ctx) => {
       try {
-        const drift = checkIssueSourceDrift(ctx.cwd);
+        const drift = await runWithLoader(
+          ctx,
+          '正在检查 GitHub Issue 是否变化…',
+          (signal) =>
+            checkIssueSourceDriftAsync(
+              ctx.cwd,
+              createGitHubCliRunner(pi),
+              signal,
+            ),
+        );
+        if (!drift) {
+          ctx.ui.notify('Issue drift check cancelled.', 'info');
+          return;
+        }
         ctx.ui.notify(
           drift.changed
             ? `Issue changed after snapshot: ${drift.snapshot_hash} → ${drift.remote_hash}. Refresh in frame or start a new iteration.`
