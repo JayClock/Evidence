@@ -23,16 +23,17 @@ evidence-orchestrator/
 ### `runtime/`
 
 - `identity.ts`：集中声明扩展 ID、状态栏 key、状态前缀和消息类型。
-- `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查；`/evidence-new` 成功创建迭代后自动排队一次前台 Frame 运行。
+- `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查；命令通过共享阶段执行器直接启动隔离 subagent，不再构造合成用户消息触发额外模型轮次。`/evidence-new` 成功创建迭代后立即执行一次前台 Frame。
 - `github-cli.ts`：将 Pi 的异步、可取消进程执行适配为 GitHub Issue runner。
 - `loading.ts`：为外部操作提供可取消的 `BorderedLoader`；非 TUI 模式退化为临时状态栏。
+- `phase-execution.ts`：统一命令与模型工具的阶段执行、状态栏生命周期、运行元数据和进度事件。
 - `story-picker.ts`：像 Issue 选择器一样，从未完成的 `US-xxx.md` 中显示标题并由人手动选择。
 - `tools.ts`：注册 `evidence_orchestrator_*` 模型工具。
 - `status.ts`：生成当前工作流状态报告。
 
 ### `subagents/`
 
-- `phase-runner.ts`：读取 `.pi/agents/*.md` 并启动隔离的 pi 子进程；通过 `--mode json` 收集 `message_end` 和 `tool_result_end`，把子 agent 的完整活动快照流式交给父工具。
+- `phase-runner.ts`：读取 `.pi/agents/*.md` 并启动隔离的 pi 子进程；通过 `--mode json` 收集 `message_end` 和 `tool_result_end`，把子 agent 的完整活动快照流式交给调用方。
 - `phase-task.ts`：根据活动迭代和阶段生成动态任务。
 
 `runtime/phase-subagent-renderer.ts` 采用 Pi 官方 subagent 示例的双通道模式：
@@ -59,7 +60,7 @@ GitHub Issue 列表、创建、快照、同步和漂移检查均显示具体的 
 Clarify 是阶段内的故事级子流程：
 
 1. Frame 根据问题、旅程切片和故事地图增量生成候选 `US-xxx.md` 故事卡；Clarify 不再承担常规故事生成。
-2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。选择成功后会自动排队当前会话中的前台 clarify 运行，无须再次执行 `/evidence-run`。
+2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。选择成功后会在同一次命令或工具调用中直接执行前台 clarify，无须再次执行 `/evidence-run`。
 3. 该运行只能为活动故事提问、记录答案或写入 `clarified`、`needs_split`、`deferred` 结论；存在待回答问题时不能切换故事。
 4. 每个故事结论后必须停止并重新等待人类选择；所有故事都有结论后才能完成 clarify。
 

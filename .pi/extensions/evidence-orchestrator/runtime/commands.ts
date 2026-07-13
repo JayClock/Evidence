@@ -1,4 +1,7 @@
-import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from '@earendil-works/pi-coding-agent';
 import {
   answerClarification,
   selectClarificationStory,
@@ -12,13 +15,17 @@ import {
 import { PHASE_ORDER } from '../workflow/phase-catalog';
 import { readState } from '../workflow/state-store';
 import type { Phase } from '../workflow/types';
-import { STATUS_KEY, statusLabel } from './identity';
+import { PHASE_RESULT_MESSAGE_TYPE, STATUS_KEY, statusLabel } from './identity';
 import {
-  foregroundPhaseRequest,
   isCompletedIteration,
   PhaseRunBlockedError,
   preparePhaseRun,
+  type PreparedPhaseRun,
 } from './phase-dispatch';
+import {
+  executePreparedPhaseRun,
+  type PhaseExecutionDetails,
+} from './phase-execution';
 import { createGitHubCliRunner } from './github-cli';
 import { selectOrCreateGitHubIssue } from './issue-picker';
 import { runWithLoader } from './loading';
@@ -27,6 +34,70 @@ import {
   listSelectableClarificationStories,
   selectClarificationStoryInteractively,
 } from './story-picker';
+
+const PHASE_PROGRESS_WIDGET_KEY = 'evidence-phase-progress';
+
+async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
+  if (!ctx.isIdle()) await ctx.waitForIdle();
+}
+
+function progressLines(details: PhaseExecutionDetails): string[] {
+  const latest = details.output.trim().split('\n').filter(Boolean).slice(-3);
+  return [
+    `Evidence ${details.phase} · ${details.agent} · ${details.model}`,
+    ...(latest.length > 0 ? latest : ['(running...)']),
+  ];
+}
+
+async function runPreparedPhaseFromCommand(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  preparation: PreparedPhaseRun,
+  invocation: string,
+): Promise<PhaseExecutionDetails | undefined> {
+  ctx.ui.setWidget(PHASE_PROGRESS_WIDGET_KEY, [
+    `Evidence ${preparation.phase} phase is starting…`,
+  ]);
+  try {
+    const details = await runWithLoader(
+      ctx,
+      `Running Evidence ${preparation.phase} phase…`,
+      (signal) =>
+        executePreparedPhaseRun(ctx, preparation, {
+          invocation,
+          signal,
+          onUpdate(progress) {
+            ctx.ui.setWidget(
+              PHASE_PROGRESS_WIDGET_KEY,
+              progressLines(progress),
+            );
+          },
+        }),
+    );
+    if (!details) {
+      ctx.ui.notify(
+        `Evidence ${preparation.phase} phase execution cancelled.`,
+        'info',
+      );
+      return undefined;
+    }
+    pi.sendMessage({
+      customType: PHASE_RESULT_MESSAGE_TYPE,
+      content: details.output,
+      display: true,
+      details,
+    });
+    if (details.exitCode !== 0) {
+      ctx.ui.notify(
+        `Evidence ${details.phase} phase failed with exit ${details.exitCode}.`,
+        'error',
+      );
+    }
+    return details;
+  } finally {
+    ctx.ui.setWidget(PHASE_PROGRESS_WIDGET_KEY, undefined);
+  }
+}
 
 function parseArgs(args: string): {
   phase?: string;
@@ -71,6 +142,7 @@ export function registerCommands(pi: ExtensionAPI): void {
     description: 'Select or create a GitHub Issue and start a new iteration',
     handler: async (_args, ctx) => {
       try {
+        await waitForIdle(ctx);
         const issueNumber = await selectOrCreateGitHubIssue(
           pi,
           ctx,
@@ -97,15 +169,20 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         }
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        const request = foregroundPhaseRequest('');
-        if (ctx.isIdle()) {
-          pi.sendUserMessage(request);
-        } else {
-          pi.sendUserMessage(request, { deliverAs: 'followUp' });
-        }
         ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number} and queued visible frame execution.`,
+          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}; running frame now.`,
           'info',
+        );
+        const preparation = preparePhaseRun(ctx.cwd);
+        if (isCompletedIteration(preparation)) {
+          ctx.ui.notify(preparation.task, 'info');
+          return;
+        }
+        await runPreparedPhaseFromCommand(
+          pi,
+          ctx,
+          preparation,
+          '/evidence-new',
         );
       } catch (error) {
         ctx.ui.notify(
@@ -201,9 +278,10 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-story', {
     description:
-      'Select one generated US-xxx story and immediately queue isolated clarification',
+      'Select one generated US-xxx story and immediately run isolated clarification',
     handler: async (args, ctx) => {
       try {
+        await waitForIdle(ctx);
         const current = readState(ctx.cwd);
         if (current.active_clarification_story) {
           ctx.ui.notify(
@@ -226,15 +304,15 @@ export function registerCommands(pi: ExtensionAPI): void {
           ctx.ui.notify(preparation.task, 'info');
           return;
         }
-        const request = foregroundPhaseRequest('');
-        if (ctx.isIdle()) {
-          pi.sendUserMessage(request);
-        } else {
-          pi.sendUserMessage(request, { deliverAs: 'followUp' });
-        }
         ctx.ui.notify(
-          `Selected clarification story ${state.active_clarification_story?.story_id} and queued visible clarify execution.`,
+          `Selected clarification story ${state.active_clarification_story?.story_id}; running clarify now.`,
           'info',
+        );
+        await runPreparedPhaseFromCommand(
+          pi,
+          ctx,
+          preparation,
+          `/evidence-story ${storyId}`,
         );
       } catch (error) {
         ctx.ui.notify(
@@ -266,10 +344,11 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-run', {
     description:
-      'Queue the current phase; clarify accepts --story=US-xxx and coding also requires --scenario=SC-xxx',
+      'Run the current phase; clarify accepts --story=US-xxx and coding also requires --scenario=SC-xxx',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
       try {
+        await waitForIdle(ctx);
         const current = readState(ctx.cwd);
         if (
           current.phase === 'clarify' &&
@@ -299,15 +378,11 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         }
 
-        const request = foregroundPhaseRequest(parsed.rest);
-        if (ctx.isIdle()) {
-          pi.sendUserMessage(request);
-        } else {
-          pi.sendUserMessage(request, { deliverAs: 'followUp' });
-        }
-        ctx.ui.notify(
-          `Queued visible ${preparation.phase} phase execution in this conversation.`,
-          'info',
+        await runPreparedPhaseFromCommand(
+          pi,
+          ctx,
+          preparation,
+          `/evidence-run ${args}`.trim(),
         );
       } catch (error) {
         ctx.ui.notify(

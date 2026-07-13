@@ -3,11 +3,7 @@ import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
 import { selectClarificationStory } from '../requirements/clarifications';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
-import {
-  foregroundPhaseRequest,
-  isCompletedIteration,
-  preparePhaseRun,
-} from './phase-dispatch';
+import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
 
 afterEach(cleanupWorkspaces);
 
@@ -38,7 +34,7 @@ function issueBackedFrameState() {
   };
 }
 
-describe('foreground phase dispatch', () => {
+describe('phase dispatch', () => {
   it('requires an Issue-backed iteration before any phase can be dispatched', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
@@ -91,14 +87,5 @@ describe('foreground phase dispatch', () => {
     if (isCompletedIteration(preparation))
       throw new Error('Unexpected completion.');
     expect(preparation.task).toContain('当前澄清故事：US-001');
-  });
-
-  it('instructs the parent agent to call the visible phase tool and stop at decisions', () => {
-    const request = foregroundPhaseRequest('Keep scope narrow.');
-
-    expect(request).toContain('evidence_orchestrator_run_phase');
-    expect(request).toContain('Keep scope narrow.');
-    expect(request).toContain('TQA');
-    expect(request).toContain('Gate');
   });
 });

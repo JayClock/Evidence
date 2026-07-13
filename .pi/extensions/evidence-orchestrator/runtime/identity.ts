@@ -3,6 +3,7 @@ import type { WorkflowState } from '../workflow/types';
 export const EXTENSION_ID = 'evidence-orchestrator';
 export const STATUS_KEY = EXTENSION_ID;
 export const STATUS_PREFIX = 'orchestrator';
+export const PHASE_RESULT_MESSAGE_TYPE = 'evidence-orchestrator-phase-result';
 
 export function statusLabel(
   state: WorkflowState | undefined,

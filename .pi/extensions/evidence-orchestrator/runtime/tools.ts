@@ -18,28 +18,21 @@ import {
   syncIssueSourceAsync,
 } from '../requirements/github-issue';
 import { PHASE_META } from '../workflow/phase-catalog';
-import { runPhaseSubagent } from '../subagents/phase-runner';
 import {
   isPhaseSubagentFailureDetails,
   renderPhaseSubagentCall,
   renderPhaseSubagentResult,
-  type PhaseSubagentToolDetails,
 } from './phase-subagent-renderer';
 import {
   readState,
   selectTestProcess,
   selectWorkItem,
-  writeState,
 } from '../workflow/state-store';
 import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
 import { executeTestStep } from '../testing/execution-recorder';
-import { STATUS_KEY, statusLabel } from './identity';
-import {
-  foregroundPhaseRequest,
-  isCompletedIteration,
-  preparePhaseRun,
-} from './phase-dispatch';
+import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
+import { executePreparedPhaseRun } from './phase-execution';
 import {
   listSelectableClarificationStories,
   selectClarificationStoryInteractively,
@@ -181,7 +174,8 @@ const executionStepParam = Type.Object({
 export function registerTools(pi: ExtensionAPI): void {
   pi.on('tool_result', (event) => {
     if (
-      event.toolName === 'evidence_orchestrator_run_phase' &&
+      (event.toolName === 'evidence_orchestrator_run_phase' ||
+        event.toolName === 'evidence_orchestrator_select_story') &&
       isPhaseSubagentFailureDetails(event.details)
     ) {
       return { isError: true };
@@ -326,50 +320,21 @@ export function registerTools(pi: ExtensionAPI): void {
           'The active Evidence Orchestrator iteration is complete.',
         );
       }
-      const state = writeState(ctx.cwd, {
-        ...preparation.state,
-        pi: {
-          enabled: true,
-          version: 5,
-          ...(preparation.state.pi ?? {}),
-          last_command: 'evidence_orchestrator_run_phase',
-          last_run_at: new Date().toISOString(),
+      const details = await executePreparedPhaseRun(ctx, preparation, {
+        invocation: 'evidence_orchestrator_run_phase',
+        signal,
+        onUpdate(progress) {
+          onUpdate?.({
+            content: [{ type: 'text', text: progress.output }],
+            details: progress,
+          });
         },
       });
-      ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'subagent'));
-      try {
-        const result = await runPhaseSubagent({
-          cwd: ctx.cwd,
-          phase: preparation.phase,
-          task: preparation.task,
-          signal,
-          onUpdate(progress) {
-            const details: PhaseSubagentToolDetails = {
-              ...progress,
-              phase: preparation.phase,
-              task: preparation.task,
-              status: 'running',
-            };
-            onUpdate?.({
-              content: [{ type: 'text', text: progress.output }],
-              details,
-            });
-          },
-        });
-        const details: PhaseSubagentToolDetails = {
-          ...result,
-          phase: preparation.phase,
-          task: preparation.task,
-          status: result.exitCode === 0 ? 'completed' : 'failed',
-        };
-        return {
-          // This is the only child payload added to the parent model context.
-          content: [{ type: 'text', text: result.output }],
-          details,
-        };
-      } finally {
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
-      }
+      return {
+        // This is the only child payload added to the parent model context.
+        content: [{ type: 'text', text: details.output }],
+        details,
+      };
     },
     renderCall(args, theme) {
       return renderPhaseSubagentCall(args, theme);
@@ -383,36 +348,49 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_select_story',
     label: 'Select Evidence Clarification Story',
     description:
-      'Open an interactive picker, persist the selected story, and queue its visible clarify run',
+      'Open an interactive picker, persist the selected story, and run its isolated clarification',
     promptSnippet:
       'Let the user select one US-xxx story and start its isolated TQA clarification',
     promptGuidelines: [
       'Use evidence_orchestrator_select_story when the user asks to choose a story for clarification; the tool opens the picker and the user makes the decision.',
       'Never infer or pass a story choice on behalf of the user.',
       'Do not switch stories while another story or TQA answer is pending.',
-      'After evidence_orchestrator_select_story queues the visible clarify run, stop and do not call another workflow tool.',
+      'After evidence_orchestrator_select_story finishes the isolated clarify run, stop and do not call another workflow tool.',
     ],
     parameters: clarificationStoryParam,
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+    async execute(_toolCallId, _params, signal, onUpdate, ctx) {
       const selectedStory = await selectClarificationStoryInteractively(ctx);
       if (!selectedStory) throw new Error('Story selection cancelled.');
       const state = selectClarificationStory(ctx.cwd, selectedStory);
-      const request = foregroundPhaseRequest('');
-      if (ctx.isIdle()) {
-        pi.sendUserMessage(request);
-      } else {
-        pi.sendUserMessage(request, { deliverAs: 'followUp' });
+      const preparation = preparePhaseRun(ctx.cwd);
+      if (isCompletedIteration(preparation)) {
+        throw new Error(
+          'The active Evidence Orchestrator iteration is complete.',
+        );
       }
+      const details = await executePreparedPhaseRun(ctx, preparation, {
+        invocation: 'evidence_orchestrator_select_story',
+        signal,
+        onUpdate(progress) {
+          onUpdate?.({
+            content: [{ type: 'text', text: progress.output }],
+            details: progress,
+          });
+        },
+      });
       return {
         content: [
           {
             type: 'text',
-            text: `Selected clarification story ${state.active_clarification_story?.story_id} and queued visible clarify execution.`,
+            text: `Selected clarification story ${state.active_clarification_story?.story_id}.\n\n${details.output}`,
           },
         ],
-        details: { state },
+        details,
         terminate: true,
       };
+    },
+    renderResult(result, options, theme) {
+      return renderPhaseSubagentResult(result, options, theme);
     },
   });
 

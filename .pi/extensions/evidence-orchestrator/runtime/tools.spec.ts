@@ -1,14 +1,84 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
 import { readState, writeState } from '../workflow/state-store';
 import {
   cleanupWorkspaces,
   workspace,
+  write,
   writeIterationArtifact,
 } from '../tests/support';
 import { registerTools } from './tools';
 
-afterEach(cleanupWorkspaces);
+const phaseRunnerMocks = vi.hoisted(() => ({
+  runPhaseSubagent: vi.fn(),
+}));
+
+vi.mock('../subagents/phase-runner', () => ({
+  runPhaseSubagent: phaseRunnerMocks.runPhaseSubagent,
+}));
+
+beforeEach(() => {
+  phaseRunnerMocks.runPhaseSubagent.mockImplementation(
+    async (options: {
+      onUpdate?: (progress: Record<string, unknown>) => void;
+    }) => {
+      options.onUpdate?.({
+        agent: 'requirements-analyst',
+        model: 'openai/test',
+        thinking: 'medium',
+        output: 'Clarification is running.',
+        messages: [],
+        exitCode: -1,
+        stderr: '',
+      });
+      return {
+        agent: 'requirements-analyst',
+        model: 'openai/test',
+        thinking: 'medium',
+        output: 'Clarification paused for a domain answer.',
+        messages: [],
+        exitCode: 0,
+        stderr: '',
+      };
+    },
+  );
+});
+
+afterEach(() => {
+  cleanupWorkspaces();
+  vi.clearAllMocks();
+});
+
+function clarifyState() {
+  return {
+    ...DEFAULT_STATE,
+    phase: 'clarify' as const,
+    requirement_source: {
+      type: 'github_issue' as const,
+      repository: 'owner/repo',
+      issue_number: 1,
+      url: 'https://example.test/issues/1',
+      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
+      projection_path:
+        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+      content_hash: 'sha256:test',
+      issue_updated_at: '2026-01-01T00:00:00.000Z',
+      fetched_at: '2026-01-01T00:00:00.000Z',
+    },
+  };
+}
+
+function writeClarifyInputs(cwd: string): void {
+  for (const path of PHASE_META.clarify.inputs) {
+    write(
+      cwd,
+      path.startsWith('artifacts/')
+        ? `artifacts/iterations/ITER-0001/${path.slice('artifacts/'.length)}`
+        : path,
+      'input',
+    );
+  }
+}
 
 describe('tools', () => {
   it('registers phase-subagent, TQA, work-item, and test-process selection tools', () => {
@@ -61,15 +131,22 @@ describe('tools', () => {
     ).toEqual({ isError: true });
     expect(
       toolResultHandler?.({
+        toolName: 'evidence_orchestrator_select_story',
+        details: { exitCode: 1 },
+      }),
+    ).toEqual({ isError: true });
+    expect(
+      toolResultHandler?.({
         toolName: 'evidence_orchestrator_run_phase',
         details: { exitCode: 0 },
       }),
     ).toBeUndefined();
   });
 
-  it('lets the user choose the clarification story through the picker', async () => {
+  it('selects a story and runs its clarification in the same tool call', async () => {
     const cwd = workspace();
-    writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });
+    writeClarifyInputs(cwd);
+    writeState(cwd, clarifyState());
     writeIterationArtifact(
       cwd,
       '01-requirements/stories/US-001.md',
@@ -80,7 +157,7 @@ describe('tools', () => {
           toolCallId: string,
           params: unknown,
           signal: undefined,
-          onUpdate: undefined,
+          onUpdate: (result: unknown) => void,
           ctx: unknown,
         ) => Promise<unknown>)
       | undefined;
@@ -97,21 +174,35 @@ describe('tools', () => {
       sendUserMessage,
     } as never);
     const select = vi.fn().mockResolvedValue('US-001 · 编辑工作区信息');
+    const onUpdate = vi.fn();
 
-    await execute?.('', {}, undefined, undefined, {
+    const result = await execute?.('', {}, undefined, onUpdate, {
       cwd,
       hasUI: true,
-      isIdle: () => false,
-      ui: { select },
+      ui: { select, setStatus: vi.fn() },
     });
 
     expect(select).toHaveBeenCalledWith('选择一张用户故事卡进行澄清', [
       'US-001 · 编辑工作区信息',
     ]);
     expect(readState(cwd).active_clarification_story?.story_id).toBe('US-001');
-    expect(sendUserMessage).toHaveBeenCalledWith(
-      expect.stringContaining('evidence_orchestrator_run_phase'),
-      { deliverAs: 'followUp' },
+    expect(phaseRunnerMocks.runPhaseSubagent).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: 'clarify' }),
     );
+    expect(onUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        details: expect.objectContaining({ status: 'running' }),
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        terminate: true,
+        details: expect.objectContaining({
+          status: 'completed',
+          exitCode: 0,
+        }),
+      }),
+    );
+    expect(sendUserMessage).not.toHaveBeenCalled();
   });
 });

@@ -151,22 +151,3 @@ export function isCompletedIteration(
 ): preparation is CompletedIteration {
   return isCompleted(preparation);
 }
-
-/**
- * Parent-agent request used by /evidence-run. The parent must invoke the
- * visible tool rather than perform phase work or hide child execution.
- */
-export function foregroundPhaseRequest(instructions = ''): string {
-  return `请在当前会话中以前台、可见方式执行当前 Evidence Orchestrator 阶段。
-
-必须立即调用 evidence_orchestrator_run_phase 工具；不要自行读取、编辑、运行或完成该阶段。该工具会启动隔离的专业 subagent，并将进度流式显示在本次对话中。
-
-调用参数（JSON）：
-${JSON.stringify({ instructions }, null, 2)}
-
-工具返回后，只总结已观测到的工件、验证结果和下一项人类决策：
-- 若出现 TQA 问题，原样向用户提问并停止；
-- 若出现 Gate，展示 Gate 与可选决策并停止；
-- 若阶段仍未完成，说明具体失败或缺失输入；
-- 不要自动跨越阶段或替用户作业务决定。`;
-}

@@ -4,7 +4,13 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs } from './evidence/artifact-index';
 import { iterationRoot } from './workflow/iteration-paths';
 import { registerCommands } from './runtime/commands';
-import { STATUS_KEY, statusLabel } from './runtime/identity';
+import type { PhaseExecutionDetails } from './runtime/phase-execution';
+import { renderPhaseSubagentResult } from './runtime/phase-subagent-renderer';
+import {
+  PHASE_RESULT_MESSAGE_TYPE,
+  STATUS_KEY,
+  statusLabel,
+} from './runtime/identity';
 import { registerTools } from './runtime/tools';
 import { readState, statePath, writeState } from './workflow/state-store';
 
@@ -58,6 +64,19 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
   pi.on('session_shutdown', () => {
     closeStateWatcher();
   });
+
+  pi.registerMessageRenderer<PhaseExecutionDetails>(
+    PHASE_RESULT_MESSAGE_TYPE,
+    (message, options, theme) =>
+      renderPhaseSubagentResult(
+        {
+          content: [{ type: 'text', text: message.content }],
+          details: message.details,
+        },
+        { expanded: options.expanded, isPartial: false },
+        theme,
+      ),
+  );
 
   registerCommands(pi);
   registerTools(pi);

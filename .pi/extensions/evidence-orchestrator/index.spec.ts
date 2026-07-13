@@ -6,6 +6,7 @@ describe('index', () => {
     const events: string[] = [];
     const commands: string[] = [];
     const tools: string[] = [];
+    const messageRenderers: string[] = [];
     evidenceOrchestratorExtension({
       on(name: string) {
         events.push(name);
@@ -16,6 +17,9 @@ describe('index', () => {
       registerTool(definition: { name: string }) {
         tools.push(definition.name);
       },
+      registerMessageRenderer(customType: string) {
+        messageRenderers.push(customType);
+      },
     } as never);
 
     expect(events).toEqual(
@@ -23,5 +27,6 @@ describe('index', () => {
     );
     expect(commands).toContain('evidence-run');
     expect(tools).toContain('evidence_orchestrator_status');
+    expect(messageRenderers).toContain('evidence-orchestrator-phase-result');
   });
 });

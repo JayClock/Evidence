@@ -1,12 +1,7 @@
 import { Container, Spacer, Text } from '@earendil-works/pi-tui';
-import type { PhaseAgentResult } from '../subagents/phase-runner';
-import type { Phase } from '../workflow/types';
+import type { PhaseExecutionDetails } from './phase-execution';
 
-export interface PhaseSubagentToolDetails extends PhaseAgentResult {
-  phase: Exclude<Phase, 'complete'>;
-  task: string;
-  status: 'running' | 'completed' | 'failed';
-}
+export type PhaseSubagentToolDetails = PhaseExecutionDetails;
 
 type RecordValue = Record<string, unknown>;
 
@@ -73,12 +68,12 @@ function phaseDetails(result: unknown): PhaseSubagentToolDetails | undefined {
   }
 
   return {
-    phase: details.phase as Exclude<Phase, 'complete'>,
+    phase: details.phase as PhaseExecutionDetails['phase'],
     agent: details.agent,
     model: details.model,
-    thinking: details.thinking as PhaseAgentResult['thinking'],
+    thinking: details.thinking as PhaseExecutionDetails['thinking'],
     output: details.output,
-    messages: details.messages as PhaseAgentResult['messages'],
+    messages: details.messages as PhaseExecutionDetails['messages'],
     exitCode: details.exitCode,
     stderr: details.stderr,
     task: asText(details.task) ?? '',
