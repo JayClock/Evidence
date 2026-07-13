@@ -12,6 +12,10 @@ describe('status', () => {
     writeState(cwd, {
       ...DEFAULT_STATE,
       phase: 'clarify',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
       pending_clarification: {
         question_id: 'Q-001',
         story_id: 'US-001',
@@ -22,6 +26,7 @@ describe('status', () => {
     });
     const status = statusMarkdown(cwd);
     expect(status).toContain('| Iteration | ITER-0001 |');
+    expect(status).toContain('| Active Clarification Story | US-001 |');
     expect(status).toContain('| Pending Clarification | Q-001 · US-001 |');
   });
 });

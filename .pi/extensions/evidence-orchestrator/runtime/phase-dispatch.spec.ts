@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
+import { selectClarificationStory } from '../requirements/clarifications';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 import {
@@ -61,6 +62,35 @@ describe('foreground phase dispatch', () => {
       throw new Error('Unexpected completion.');
     expect(preparation.phase).toBe('frame');
     expect(preparation.task).toContain('Keep the initial scope narrow.');
+  });
+
+  it('blocks clarification until one generated story is selected', () => {
+    const cwd = workspace();
+    for (const path of PHASE_META.clarify.inputs) {
+      write(
+        cwd,
+        path.startsWith('artifacts/')
+          ? `artifacts/iterations/ITER-0001/${path.slice('artifacts/'.length)}`
+          : path,
+        'input',
+      );
+    }
+    write(
+      cwd,
+      'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
+      '# story',
+    );
+    writeState(cwd, { ...issueBackedFrameState(), phase: 'clarify' });
+
+    expect(() => preparePhaseRun(cwd)).toThrow(
+      'Select one clarification story',
+    );
+
+    selectClarificationStory(cwd, 'US-001');
+    const preparation = preparePhaseRun(cwd);
+    if (isCompletedIteration(preparation))
+      throw new Error('Unexpected completion.');
+    expect(preparation.task).toContain('当前澄清故事：US-001');
   });
 
   it('instructs the parent agent to call the visible phase tool and stop at decisions', () => {

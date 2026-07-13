@@ -35,6 +35,13 @@ export function statusMarkdown(cwd: string): string {
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : 'none';
+  const activeClarificationStory =
+    state.active_clarification_story?.story_id ?? 'none';
+  const clarificationOutcomes = state.clarification_story_outcomes?.length
+    ? state.clarification_story_outcomes
+        .map(({ story_id, outcome }) => `${story_id}=${outcome}`)
+        .join(', ')
+    : 'none';
   const pendingClarification = state.pending_clarification
     ? `${state.pending_clarification.question_id} · ${state.pending_clarification.story_id}`
     : 'none';
@@ -53,6 +60,8 @@ export function statusMarkdown(cwd: string): string {
     `| Requirement Source | ${requirementSource} |`,
     `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
     `| Active Work Item | ${activeWorkItem} |`,
+    `| Active Clarification Story | ${activeClarificationStory} |`,
+    `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,
     `| Phase Subagent | ${phaseAgent} |`,
     `| Round | ${state.round} |`,

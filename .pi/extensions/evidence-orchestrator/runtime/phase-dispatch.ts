@@ -1,4 +1,9 @@
 import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
+import {
+  clarificationStoryIds,
+  selectClarificationStory,
+  unresolvedClarificationStoryIds,
+} from '../requirements/clarifications';
 import { isGateAnswered, resolvePendingGate } from '../workflow/gates';
 import {
   artifactRelativePath,
@@ -18,7 +23,7 @@ export interface PhaseRunRequest {
 
 export class PhaseRunBlockedError extends Error {
   constructor(
-    readonly kind: 'gate' | 'clarification',
+    readonly kind: 'gate' | 'clarification' | 'story_selection',
     message: string,
   ) {
     super(message);
@@ -83,17 +88,24 @@ export function preparePhaseRun(
     );
   }
   if (request.storyId || request.scenarioId) {
-    if (state.phase !== 'coding') {
-      throw new Error(
-        'A --story/--scenario work item can only be selected during coding.',
-      );
+    if (state.phase === 'clarify') {
+      if (!request.storyId || request.scenarioId) {
+        throw new Error('Clarify accepts --story=US-xxx without --scenario.');
+      }
+      state = selectClarificationStory(cwd, request.storyId);
+    } else {
+      if (state.phase !== 'coding') {
+        throw new Error(
+          'A --story selection is only valid during clarify or coding.',
+        );
+      }
+      if (!request.storyId || !request.scenarioId) {
+        throw new Error(
+          'Coding requires both --story=US-xxx and --scenario=SC-xxx.',
+        );
+      }
+      state = selectWorkItem(cwd, request.storyId, request.scenarioId);
     }
-    if (!request.storyId || !request.scenarioId) {
-      throw new Error(
-        'Coding requires both --story=US-xxx and --scenario=SC-xxx.',
-      );
-    }
-    state = selectWorkItem(cwd, request.storyId, request.scenarioId);
   }
 
   const current = readState(cwd);
@@ -102,6 +114,16 @@ export function preparePhaseRun(
       'gate',
       `Gate ${current.pending_gate} is pending. Edit ${artifactRelativePath(current, `artifacts/gates/${current.pending_gate}.md`)} or run /evidence-gate <decision>.`,
     );
+  }
+  if (current.phase === 'clarify' && !current.active_clarification_story) {
+    const storyIds = clarificationStoryIds(cwd, current);
+    const unresolvedStoryIds = unresolvedClarificationStoryIds(cwd, current);
+    if (storyIds.length > 0 && unresolvedStoryIds.length > 0) {
+      throw new PhaseRunBlockedError(
+        'story_selection',
+        `Select one clarification story before running clarify: ${unresolvedStoryIds.join(', ')}. Use /evidence-story <US-xxx> or evidence_orchestrator_select_story.`,
+      );
+    }
   }
   const task = buildPhaseTask(
     cwd,
