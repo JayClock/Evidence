@@ -115,7 +115,6 @@ Pi 中可用命令：
 /evidence-run --dry-run
 /evidence-run
 /evidence-gate 通过，进入下一阶段
-/evidence-answer <领域专家的回答>
 
 # Coding phase tool
 # evidence_orchestrator_run_test_step(processId, stage, command)

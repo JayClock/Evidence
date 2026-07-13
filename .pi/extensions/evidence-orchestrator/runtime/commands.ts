@@ -2,10 +2,7 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
-import {
-  answerClarification,
-  selectClarificationStory,
-} from '../requirements/clarifications';
+import { selectClarificationStory } from '../requirements/clarifications';
 import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDriftAsync,
@@ -292,37 +289,6 @@ export function registerCommands(pi: ExtensionAPI): void {
           ctx,
           preparation,
           `/evidence-story ${storyId}`,
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-answer', {
-    description:
-      'Answer the pending TQA question and continue the active story dialogue: /evidence-answer <answer>',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const state = answerClarification(ctx.cwd, args);
-        ctx.ui.notify(
-          `Answered clarification. Recorded exchanges: ${state.clarification_history?.length ?? 0}. Continuing ${state.active_clarification_story?.story_id}…`,
-          'info',
-        );
-        const preparation = preparePhaseRun(ctx.cwd);
-        if (isCompletedIteration(preparation)) {
-          ctx.ui.notify(preparation.task, 'info');
-          return;
-        }
-        await runPreparedPhaseFromCommand(
-          pi,
-          ctx,
-          preparation,
-          '/evidence-answer',
         );
       } catch (error) {
         ctx.ui.notify(
