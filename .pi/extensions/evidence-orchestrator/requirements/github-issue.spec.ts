@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   checkIssueSourceDrift,
   startIterationFromIssue,
+  startIterationFromIssueAsync,
   syncIssueSource,
   validateIssueSourceSnapshot,
 } from './github-issue';
@@ -71,6 +72,28 @@ describe('issue-source', () => {
     expect(() => validateIssueSourceSnapshot(cwd, state)).toThrow(
       'projection is stale or manually modified',
     );
+  });
+
+  it('starts an iteration through an asynchronous cancellable runner', async () => {
+    const cwd = workspace();
+    const signal = new AbortController().signal;
+    const asyncRunner = async (
+      args: string[],
+      _cwd: string,
+      observed?: AbortSignal,
+    ) => {
+      expect(observed).toBe(signal);
+      return runner()(args);
+    };
+
+    const state = await startIterationFromIssueAsync(
+      cwd,
+      { issueNumber: 42 },
+      asyncRunner,
+      signal,
+    );
+
+    expect(state.requirement_source?.issue_number).toBe(42);
   });
 
   it('detects remote Issue drift without mutating the frozen snapshot', () => {

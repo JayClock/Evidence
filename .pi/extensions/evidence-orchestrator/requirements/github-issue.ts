@@ -12,6 +12,11 @@ import type {
 } from '../workflow/types';
 
 export type GitHubCliRunner = (args: string[], cwd: string) => string;
+export type GitHubCliAsyncRunner = (
+  args: string[],
+  cwd: string,
+  signal?: AbortSignal,
+) => Promise<string>;
 
 export interface StartFromIssueInput {
   issueNumber: number;
@@ -128,28 +133,11 @@ export function issueContentHash(
   return hashPayload(snapshot);
 }
 
-export function fetchGitHubIssue(
-  cwd: string,
+function snapshotFromResponse(
+  repository: string,
   input: StartFromIssueInput,
-  runner: GitHubCliRunner = defaultRunner,
+  response: GitHubIssueResponse,
 ): GitHubIssueSnapshot {
-  requireIssueNumber(input.issueNumber);
-  const repository = input.repository?.trim() || resolveRepository(cwd, runner);
-  const response = parseJson<GitHubIssueResponse>(
-    runner(
-      [
-        'issue',
-        'view',
-        String(input.issueNumber),
-        '--repo',
-        repository,
-        '--json',
-        ISSUE_FIELDS,
-      ],
-      cwd,
-    ),
-    'gh issue view',
-  );
   if (response.number !== input.issueNumber) {
     throw new Error(
       `GitHub returned Issue #${response.number}, expected #${input.issueNumber}.`,
@@ -178,6 +166,68 @@ export function fetchGitHubIssue(
     ...snapshotWithoutHash,
     content_hash: hashPayload(snapshotWithoutHash),
   };
+}
+
+export function fetchGitHubIssue(
+  cwd: string,
+  input: StartFromIssueInput,
+  runner: GitHubCliRunner = defaultRunner,
+): GitHubIssueSnapshot {
+  requireIssueNumber(input.issueNumber);
+  const repository = input.repository?.trim() || resolveRepository(cwd, runner);
+  const response = parseJson<GitHubIssueResponse>(
+    runner(
+      [
+        'issue',
+        'view',
+        String(input.issueNumber),
+        '--repo',
+        repository,
+        '--json',
+        ISSUE_FIELDS,
+      ],
+      cwd,
+    ),
+    'gh issue view',
+  );
+  return snapshotFromResponse(repository, input, response);
+}
+
+export async function fetchGitHubIssueAsync(
+  cwd: string,
+  input: StartFromIssueInput,
+  runner: GitHubCliAsyncRunner,
+  signal?: AbortSignal,
+): Promise<GitHubIssueSnapshot> {
+  requireIssueNumber(input.issueNumber);
+  const repository =
+    input.repository?.trim() ||
+    parseJson<{ nameWithOwner?: string }>(
+      await runner(['repo', 'view', '--json', 'nameWithOwner'], cwd, signal),
+      'gh repo view',
+    ).nameWithOwner?.trim();
+  if (!repository) {
+    throw new Error('Unable to resolve the GitHub repository name.');
+  }
+  signal?.throwIfAborted();
+  const response = parseJson<GitHubIssueResponse>(
+    await runner(
+      [
+        'issue',
+        'view',
+        String(input.issueNumber),
+        '--repo',
+        repository,
+        '--json',
+        ISSUE_FIELDS,
+      ],
+      cwd,
+      signal,
+    ),
+    'gh issue view',
+  );
+  signal?.throwIfAborted();
+  return snapshotFromResponse(repository, input, response);
 }
 
 function sourceFor(
@@ -248,6 +298,22 @@ export function startIterationFromIssue(
   return persistSnapshot(cwd, state, snapshot);
 }
 
+export async function startIterationFromIssueAsync(
+  cwd: string,
+  input: StartFromIssueInput,
+  runner: GitHubCliAsyncRunner,
+  signal?: AbortSignal,
+): Promise<WorkflowState> {
+  const snapshot = await fetchGitHubIssueAsync(cwd, input, runner, signal);
+  signal?.throwIfAborted();
+  const state = writeState(cwd, {
+    ...DEFAULT_STATE,
+    iteration_id: nextIterationId(cwd),
+    pi: { enabled: true, version: 5, execution_evidence_version: 1 },
+  });
+  return persistSnapshot(cwd, state, snapshot);
+}
+
 function requireIssueSource(
   state: WorkflowState,
 ): GitHubIssueRequirementSource {
@@ -279,6 +345,27 @@ export function checkIssueSourceDrift(
   };
 }
 
+export async function checkIssueSourceDriftAsync(
+  cwd: string,
+  runner: GitHubCliAsyncRunner,
+  signal?: AbortSignal,
+): Promise<IssueSourceDrift> {
+  const state = readState(cwd);
+  const source = requireIssueSource(state);
+  const remote = await fetchGitHubIssueAsync(
+    cwd,
+    { issueNumber: source.issue_number, repository: source.repository },
+    runner,
+    signal,
+  );
+  return {
+    changed: remote.content_hash !== source.content_hash,
+    snapshot_hash: source.content_hash,
+    remote_hash: remote.content_hash,
+    issue_updated_at: remote.updated_at,
+  };
+}
+
 /** Explicitly refresh an Issue snapshot before framing has completed. */
 export function syncIssueSource(
   cwd: string,
@@ -296,6 +383,28 @@ export function syncIssueSource(
     { issueNumber: source.issue_number, repository: source.repository },
     runner,
   );
+  return persistSnapshot(cwd, state, remote);
+}
+
+export async function syncIssueSourceAsync(
+  cwd: string,
+  runner: GitHubCliAsyncRunner,
+  signal?: AbortSignal,
+): Promise<WorkflowState> {
+  const state = readState(cwd);
+  if (state.phase !== 'frame') {
+    throw new Error(
+      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to frame.`,
+    );
+  }
+  const source = requireIssueSource(state);
+  const remote = await fetchGitHubIssueAsync(
+    cwd,
+    { issueNumber: source.issue_number, repository: source.repository },
+    runner,
+    signal,
+  );
+  signal?.throwIfAborted();
   return persistSnapshot(cwd, state, remote);
 }
 
