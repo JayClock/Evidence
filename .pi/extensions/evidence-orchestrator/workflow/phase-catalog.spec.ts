@@ -13,6 +13,13 @@ describe('phases', () => {
     expect(nextPhase('learn')).toBe('complete');
   });
 
+  it('creates selectable story cards during frame', () => {
+    expect(PHASE_META.frame.outputs).toContain(
+      'artifacts/01-requirements/stories/',
+    );
+    expect(phaseSpecificInstructions('frame')).toContain('stories/US-xxx.md');
+  });
+
   it('uses canonical test processes and emits only scenario architecture evidence', () => {
     expect(PHASE_META.architecture.inputs).toContain(
       'engineering/evidence-orchestrator/test-processes/',

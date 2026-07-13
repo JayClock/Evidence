@@ -24,16 +24,33 @@ export function buildPhaseTask(
   const requirementSource = state.requirement_source
     ? `${state.requirement_source.repository}#${state.requirement_source.issue_number} (${state.requirement_source.url})`
     : 'legacy local snapshot';
+  const activeClarificationStory =
+    state.active_clarification_story?.story_id ?? '未选择';
+  const clarificationOutcomes = state.clarification_story_outcomes?.length
+    ? state.clarification_story_outcomes
+        .map(({ story_id, outcome }) => `${story_id}=${outcome}`)
+        .join(', ')
+    : '无';
   const resolvePath = (path: string) => artifactRelativePath(state, path);
   const instructions = phaseSpecificInstructions(phase).replaceAll(
     'artifacts/',
     `artifacts/iterations/${state.iteration_id}/`,
   );
+  const clarificationExecution =
+    phase !== 'clarify'
+      ? ''
+      : state.active_clarification_story
+        ? `\n- 当前运行只处理当前选中的故事 ${activeClarificationStory}；只读取或修改它的故事卡和澄清记录，不得处理其他故事。若仍有业务不确定性，调用 evidence_orchestrator_ask_question 后停止；若已足够清晰，调用 evidence_orchestrator_complete_story 记录结论后停止，不得顺带选择下一故事或完成 clarify 阶段。`
+        : state.clarification_story_outcomes?.length
+          ? `\n- 当前没有活动故事，且已记录故事结论。只检查是否所有故事均已有结论；若是，完成 clarify 阶段；不得自行选择故事。`
+          : `\n- 当前没有活动故事且 stories/ 为空，这只允许作为旧迭代兼容路径：依据已有 frame 工件补建候选 US-xxx.md 后停止，等待人类选择；不得提问、选择故事或完成 clarify 阶段。新迭代的故事卡必须由 frame 生成。`;
 
   return `执行 Evidence Orchestrator 阶段：${phase} — ${meta.title}。
 
 需求权威来源：${requirementSource}
 当前编码工作项：${activeWorkItem}
+当前澄清故事：${activeClarificationStory}
+已完成故事澄清：${clarificationOutcomes}
 
 执行约束：
 1. 读取并尊重输入文件，不得编造已有工件。已有 artifacts 是审计历史；00-user-input/requirements.md 是 GitHub Issue 的自动生成投影，不得手工编辑。
@@ -42,7 +59,7 @@ export function buildPhaseTask(
 4. 输出仅写入指定路径。本轮工件只写入 artifacts/iterations/${state.iteration_id}/，不得覆盖其他 iteration。
 5. 用户故事使用 artifacts/01-requirements/stories/US-xxx.md；验收示例使用 artifacts/01-requirements/examples/US-xxx-SC-xxx.md。
 6. Coding 必须修改所属 apps/* 或 libs/* 的真实测试与实现，不得创建根级 src/、tests/，也不得用 Markdown 伪代码代替代码；同时产出场景 Markdown 与机器可读 JSON 证据。
-7. Clarify 使用 evidence_orchestrator_ask_question 一次只记录一个高价值、非技术问题；调用后立即停止。只有用户明确回答后才能调用 evidence_orchestrator_answer_question。
+7. Clarify 必须先由人类选择一张活动故事卡。只处理该故事；使用 evidence_orchestrator_ask_question 一次记录一个高价值、非技术问题并立即停止。只有用户明确回答后才能调用 evidence_orchestrator_answer_question；故事澄清结束时调用 evidence_orchestrator_complete_story 并停止。
 8. Check 失败时调用 evidence_orchestrator_report_phase_failure，记录具体失败结果后在同一阶段修正。
 9. 完成后调用 evidence_orchestrator_complete_phase，phase 必须为 "${phase}"。
 
@@ -53,7 +70,7 @@ ${meta.inputs.map((path) => `- ${resolvePath(path)}`).join('\n')}
 ${meta.outputs.map((path) => `- ${resolvePath(path)}`).join('\n')}
 
 阶段要求：
-${instructions}
+${instructions}${clarificationExecution}
 
 额外用户指令：
 ${extra || '（无）'}
