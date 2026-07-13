@@ -2,7 +2,12 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
-import { selectClarificationStory } from '../requirements/clarifications';
+import {
+  confirmClarificationStoryOutcome,
+  continueClarificationStory,
+  selectClarificationStory,
+  unresolvedClarificationStoryIds,
+} from '../requirements/clarifications';
 import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDriftAsync,
@@ -11,7 +16,11 @@ import {
 } from '../requirements/github-issue';
 import { PHASE_ORDER } from '../workflow/phase-catalog';
 import { readState } from '../workflow/state-store';
-import type { Phase } from '../workflow/types';
+import type {
+  ClarificationStoryOutcome,
+  ClarificationStoryOutcomeProposal,
+  Phase,
+} from '../workflow/types';
 import { PHASE_RESULT_MESSAGE_TYPE, STATUS_KEY, statusLabel } from './identity';
 import {
   isCompletedIteration,
@@ -35,6 +44,102 @@ import {
 
 async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
   if (!ctx.isIdle()) await ctx.waitForIdle();
+}
+
+type StoryDecision =
+  | {
+      kind: 'complete';
+      outcome: ClarificationStoryOutcome;
+      summary: string;
+    }
+  | { kind: 'continue'; reason: string };
+
+const STORY_OUTCOMES: ClarificationStoryOutcome[] = [
+  'clarified',
+  'needs_split',
+  'deferred',
+];
+
+function parseStoryDecision(
+  args: string,
+  proposal: ClarificationStoryOutcomeProposal,
+): StoryDecision | undefined {
+  const [rawAction, ...summaryParts] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = rawAction.toLowerCase();
+  const summary = summaryParts.join(' ').trim();
+  if (action === 'confirm') {
+    return {
+      kind: 'complete',
+      outcome: proposal.outcome,
+      summary: proposal.summary,
+    };
+  }
+  if (action === 'continue') {
+    if (!summary) {
+      throw new Error(
+        'Continue requires a reason: /evidence-story-complete continue <remaining business uncertainty>.',
+      );
+    }
+    return { kind: 'continue', reason: summary };
+  }
+  if (STORY_OUTCOMES.includes(action as ClarificationStoryOutcome)) {
+    if (!summary) {
+      throw new Error(
+        `Overriding the proposal requires a reason: /evidence-story-complete ${action} <business reason>.`,
+      );
+    }
+    return {
+      kind: 'complete',
+      outcome: action as ClarificationStoryOutcome,
+      summary,
+    };
+  }
+  throw new Error(
+    'Usage: /evidence-story-complete [confirm | continue <reason> | clarified <reason> | needs_split <reason> | deferred <reason>].',
+  );
+}
+
+async function promptStoryDecision(
+  ctx: ExtensionCommandContext,
+  proposal: ClarificationStoryOutcomeProposal,
+): Promise<StoryDecision | undefined> {
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Story completion requires an interactive mode or an explicit command argument.',
+    );
+  }
+  const confirmOption = `确认 AI 建议：${proposal.outcome} · ${proposal.summary}`;
+  const continueOption = '继续澄清（拒绝本次建议）';
+  const outcomeOptions = STORY_OUTCOMES.filter(
+    (outcome) => outcome !== proposal.outcome,
+  ).map((outcome) => `改为 ${outcome}`);
+  const selected = await ctx.ui.select(
+    `决定 ${proposal.story_id} 的最终澄清结论`,
+    [confirmOption, continueOption, ...outcomeOptions],
+  );
+  if (!selected) return undefined;
+  if (selected === confirmOption) {
+    return {
+      kind: 'complete',
+      outcome: proposal.outcome,
+      summary: proposal.summary,
+    };
+  }
+  if (selected === continueOption) {
+    const reason = (
+      await ctx.ui.input('请说明仍需澄清的业务不确定性', '必须明确说明')
+    )?.trim();
+    return reason ? { kind: 'continue', reason } : undefined;
+  }
+  const outcome = STORY_OUTCOMES.find(
+    (candidate) => selected === `改为 ${candidate}`,
+  );
+  if (!outcome) return undefined;
+  const summary = (
+    await ctx.ui.input(`请说明将 ${proposal.story_id} 标记为 ${outcome} 的理由`)
+  )?.trim();
+  return summary ? { kind: 'complete', outcome, summary } : undefined;
 }
 
 async function runPreparedPhaseFromCommand(
@@ -294,6 +399,72 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),
           'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-story-complete', {
+    description:
+      'Human-only decision for the active Story outcome: confirm, override, or continue',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const current = readState(ctx.cwd);
+        const proposal = current.proposed_clarification_story_outcome;
+        if (!proposal) {
+          ctx.ui.notify(
+            'No Story outcome proposal is awaiting human confirmation.',
+            'info',
+          );
+          return;
+        }
+        const decision =
+          parseStoryDecision(args, proposal) ??
+          (await promptStoryDecision(ctx, proposal));
+        if (!decision) {
+          ctx.ui.notify(
+            'Story decision cancelled; the proposal is unchanged.',
+            'info',
+          );
+          return;
+        }
+        if (decision.kind === 'complete') {
+          const state = confirmClarificationStoryOutcome(
+            ctx.cwd,
+            decision.outcome,
+            decision.summary,
+          );
+          const remaining = unresolvedClarificationStoryIds(ctx.cwd, state);
+          ctx.ui.notify(
+            `Human confirmed ${proposal.story_id}=${decision.outcome}. Remaining stories: ${remaining.join(', ') || 'none'}.`,
+            'info',
+          );
+          return;
+        }
+
+        continueClarificationStory(ctx.cwd);
+        const preparation = preparePhaseRun(ctx.cwd, {
+          instructions: `领域专家拒绝了 AI 的 ${proposal.outcome} 建议并要求继续澄清：${decision.reason}`,
+        });
+        if (isCompletedIteration(preparation)) {
+          ctx.ui.notify(preparation.task, 'info');
+          return;
+        }
+        ctx.ui.notify(
+          `Human requested more clarification for ${proposal.story_id}; resuming clarify now.`,
+          'info',
+        );
+        await runPreparedPhaseFromCommand(
+          pi,
+          ctx,
+          preparation,
+          `/evidence-story-complete continue ${decision.reason}`,
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          error instanceof PhaseRunBlockedError ? 'info' : 'error',
         );
       }
     },

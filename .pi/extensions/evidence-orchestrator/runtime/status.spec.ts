@@ -29,4 +29,26 @@ describe('status', () => {
     expect(status).toContain('| Active Clarification Story | US-001 |');
     expect(status).toContain('| Pending Clarification | Q-001 · US-001 |');
   });
+
+  it('reports an outcome proposal awaiting human confirmation', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      phase: 'clarify',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      proposed_clarification_story_outcome: {
+        story_id: 'US-001',
+        outcome: 'clarified',
+        summary: 'Clear.',
+        proposed_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+
+    expect(statusMarkdown(cwd)).toContain(
+      '| Pending Story Decision | US-001 · clarified |',
+    );
+  });
 });

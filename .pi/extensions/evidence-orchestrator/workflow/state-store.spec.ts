@@ -26,6 +26,23 @@ describe('state', () => {
     );
   });
 
+  it('requires every proposed story outcome to belong to the active story', () => {
+    const cwd = workspace();
+
+    expect(() =>
+      writeState(cwd, {
+        ...DEFAULT_STATE,
+        phase: 'clarify',
+        proposed_clarification_story_outcome: {
+          story_id: 'US-001',
+          outcome: 'clarified',
+          summary: 'Clear.',
+          proposed_at: '2026-01-01T00:00:00.000Z',
+        },
+      }),
+    ).toThrow('must belong to the active clarification story');
+  });
+
   it('requires one selected scenario before selecting its unique test process', () => {
     const cwd = workspace();
     initializeGitRepository(cwd);

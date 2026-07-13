@@ -91,6 +91,54 @@ describe('phase execution', () => {
     expect(result.output).toContain('请直接回复');
   });
 
+  it('surfaces an AI outcome proposal as a human-only decision', async () => {
+    const cwd = workspace();
+    const clarifyPreparation: PreparedPhaseRun = {
+      ...preparation(),
+      state: {
+        ...preparation().state,
+        phase: 'clarify',
+        active_clarification_story: {
+          story_id: 'US-001',
+          selected_at: '2026-07-13T00:00:00.000Z',
+        },
+      },
+      phase: 'clarify',
+      task: 'Clarify US-001.',
+    };
+    phaseRunnerMocks.runPhaseSubagent.mockImplementation(async () => {
+      const state = readState(cwd);
+      writeState(cwd, {
+        ...state,
+        proposed_clarification_story_outcome: {
+          story_id: 'US-001',
+          outcome: 'clarified',
+          summary: '业务边界已经明确。',
+          proposed_at: '2026-07-13T00:01:00.000Z',
+        },
+      });
+      return {
+        agent: 'requirements-analyst',
+        model: 'openai/test',
+        thinking: 'medium',
+        output: '(no output)',
+        messages: [],
+        exitCode: 0,
+        stderr: '',
+      };
+    });
+
+    const result = await executePreparedPhaseRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      clarifyPreparation,
+      { invocation: 'evidence_orchestrator_select_story' },
+    );
+
+    expect(result.output).toContain('AI 建议');
+    expect(result.output).toContain('US-001');
+    expect(result.output).toContain('/evidence-story-complete');
+  });
+
   it('shares state, progress, and status handling across callers', async () => {
     const cwd = workspace();
     const setStatus = vi.fn();

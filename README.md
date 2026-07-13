@@ -158,7 +158,7 @@ flowchart LR
 | 阶段           | 目标                                     | 关键输出                                     | 默认 Gate  |
 | :------------- | :--------------------------------------- | :------------------------------------------- | :--------: |
 | `frame`        | 以用户角色、需求和价值界定本轮问题       | 问题陈述、旅程切片、故事地图增量、候选故事卡 |    auto    |
-| `clarify`      | 一次澄清一张人工选择的故事卡             | TQA 问答记录、故事结论                       |    auto    |
+| `clarify`      | 单故事 TQA，AI 提议、人类定案            | TQA 问答、AI 建议、人工确认的故事结论        |    auto    |
 | `specify`      | 将故事转换为可观察的验收示例             | Given / When / Then `SC-xxx`                 |    auto    |
 | `validate`     | 检查故事与示例是否可进入建模             | Ready / 需澄清 / 需拆分验证报告              | **review** |
 | `domain_model` | 用就绪场景验证并演进权威领域模型         | 模型快照、delta、场景展开、战术设计          | **review** |
@@ -198,8 +198,9 @@ flowchart LR
 - 人类通过 `/evidence-story` 选择当前故事，Orchestrator 不代替用户选择；
 - 一次只处理一张故事卡和一个非技术业务问题；
 - 领域专家直接在当前对话回答，答案被记录后继续同一故事；
-- 每张故事最终标记为 `clarified`、`needs_split` 或 `deferred`；
-- 存在待回答问题时不能切换故事或进入下一阶段。
+- AI 只能提出 `clarified`、`needs_split` 或 `deferred` 建议，不能结束或释放故事；
+- 领域专家通过 `/evidence-story-complete` 确认建议、覆盖最终结论或要求继续澄清；
+- 存在待回答问题或待人工决定的建议时，不能切换故事或进入下一阶段。
 
 ### Coding 规则
 
@@ -226,6 +227,9 @@ Rust 与 Nest 是互斥的服务端实现轨道：同一个服务端能力只能
 /evidence-run                         # 执行当前阶段
 /evidence-story                       # 在 Clarify 中人工选择一张故事卡
 /evidence-story US-001                # 显式选择故事并执行 Clarify
+/evidence-story-complete               # 人工确认、覆盖或拒绝 AI 的 Story 建议
+/evidence-story-complete confirm       # 确认当前建议
+/evidence-story-complete continue <原因> # 拒绝建议并继续澄清
 /evidence-run --story=US-001 --scenario=SC-001
                                       # 在 Coding 中选择唯一工作项并执行
 /evidence-issue-status                # 检查远端 Issue 与快照是否偏离

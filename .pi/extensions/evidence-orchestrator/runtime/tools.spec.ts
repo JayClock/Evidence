@@ -113,10 +113,13 @@ describe('tools', () => {
         'evidence_orchestrator_ask_question',
         'evidence_orchestrator_answer_question',
         'evidence_orchestrator_select_story',
-        'evidence_orchestrator_complete_story',
+        'evidence_orchestrator_propose_story_outcome',
         'evidence_orchestrator_select_work_item',
         'evidence_orchestrator_select_test_process',
       ]),
+    );
+    expect(tools.map(({ name }) => name)).not.toContain(
+      'evidence_orchestrator_complete_story',
     );
     const phaseRunner = tools.find(
       ({ name }) => name === 'evidence_orchestrator_run_phase',
@@ -151,6 +154,71 @@ describe('tools', () => {
         details: { exitCode: 0 },
       }),
     ).toBeUndefined();
+  });
+
+  it('lets the AI propose an outcome without releasing the story', async () => {
+    const cwd = workspace();
+    writeClarifyInputs(cwd);
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeState(cwd, {
+      ...clarifyState(),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    let execute:
+      | ((
+          toolCallId: string,
+          params: { storyId: string; outcome: string; summary: string },
+          signal: undefined,
+          onUpdate: undefined,
+          ctx: unknown,
+        ) => Promise<unknown>)
+      | undefined;
+    registerTools({
+      registerTool(definition: { name: string; execute?: typeof execute }) {
+        if (definition.name === 'evidence_orchestrator_propose_story_outcome') {
+          execute = definition.execute;
+        }
+      },
+      on() {
+        return undefined;
+      },
+    } as never);
+
+    const result = await execute?.(
+      '',
+      {
+        storyId: 'US-001',
+        outcome: 'clarified',
+        summary: '业务边界已经明确。',
+      },
+      undefined,
+      undefined,
+      { cwd },
+    );
+
+    const state = readState(cwd);
+    expect(state.active_clarification_story?.story_id).toBe('US-001');
+    expect(state.clarification_story_outcomes).toBeUndefined();
+    expect(state.proposed_clarification_story_outcome).toEqual(
+      expect.objectContaining({ outcome: 'clarified' }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        terminate: true,
+        content: [
+          expect.objectContaining({
+            text: expect.stringContaining('/evidence-story-complete'),
+          }),
+        ],
+      }),
+    );
   });
 
   it('records an answer and resumes the clarification dialogue in the same tool call', async () => {

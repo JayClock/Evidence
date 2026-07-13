@@ -40,6 +40,9 @@ describe('phase tasks', () => {
 
     expect(task).toContain('当前澄清故事：US-007');
     expect(task).toContain('只处理当前选中的故事');
+    expect(task).toContain('evidence_orchestrator_propose_story_outcome');
+    expect(task).toContain('/evidence-story-complete');
+    expect(task).not.toContain('evidence_orchestrator_complete_story');
   });
 
   it('instructs coding to select a test process before implementation', () => {

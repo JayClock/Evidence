@@ -12,6 +12,7 @@ import { readState, writeState } from '../workflow/state-store';
 import type {
   ClarificationRecord,
   ClarificationStoryOutcome,
+  ClarificationStoryOutcomeProposal,
   ClarificationTarget,
   WorkflowState,
 } from '../workflow/types';
@@ -30,13 +31,20 @@ interface ClarificationHistoryDocument {
 }
 
 interface ClarificationStoryStatusDocument {
-  version: 1;
+  version: 2;
   iteration_id: string;
   active_story_id: string | null;
   stories: Array<{
     story_id: string;
-    status: 'unselected' | 'active' | ClarificationStoryOutcome;
+    status:
+      | 'unselected'
+      | 'active'
+      | 'awaiting_human_decision'
+      | ClarificationStoryOutcome;
     summary?: string;
+    proposal?: ClarificationStoryOutcomeProposal;
+    decided_by?: 'human';
+    confirmed_at?: string;
   }>;
 }
 
@@ -168,8 +176,9 @@ function persistStoryStatus(cwd: string, state: WorkflowState): void {
       outcome,
     ]),
   );
+  const proposal = state.proposed_clarification_story_outcome;
   const document: ClarificationStoryStatusDocument = {
-    version: 1,
+    version: 2,
     iteration_id: state.iteration_id,
     active_story_id: state.active_clarification_story?.story_id ?? null,
     stories: clarificationStoryIds(cwd, state).map((storyId) => {
@@ -179,6 +188,21 @@ function persistStoryStatus(cwd: string, state: WorkflowState): void {
           story_id: storyId,
           status: outcome.outcome,
           summary: outcome.summary,
+          ...(outcome.decided_by
+            ? {
+                decided_by: outcome.decided_by,
+                confirmed_at: outcome.confirmed_at,
+                proposal: outcome.proposal,
+              }
+            : {}),
+        };
+      }
+      if (proposal?.story_id === storyId) {
+        return {
+          story_id: storyId,
+          status: 'awaiting_human_decision',
+          summary: proposal.summary,
+          proposal,
         };
       }
       return {
@@ -325,7 +349,7 @@ export function selectClarificationStory(
   return next;
 }
 
-export function completeClarificationStory(
+export function proposeClarificationStoryOutcome(
   cwd: string,
   storyId: string,
   outcome: ClarificationStoryOutcome,
@@ -335,34 +359,113 @@ export function completeClarificationStory(
   assertClarificationPhase(state);
   if (state.pending_clarification) {
     throw new Error(
-      `Cannot complete story clarification: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+      `Cannot propose a story outcome: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+    );
+  }
+  if (state.proposed_clarification_story_outcome) {
+    throw new Error(
+      `Cannot propose another story outcome: ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision.`,
     );
   }
   const normalizedStoryId = normalizeStoryId(storyId);
   const activeStoryId = state.active_clarification_story?.story_id;
   if (!activeStoryId) {
     throw new Error(
-      'Cannot complete story clarification: select a clarification story first.',
+      'Cannot propose a story outcome: select a clarification story first.',
     );
   }
   if (activeStoryId !== normalizedStoryId) {
     throw new Error(
-      `Cannot complete ${normalizedStoryId}: selected story is ${activeStoryId}.`,
+      `Cannot propose an outcome for ${normalizedStoryId}: selected story is ${activeStoryId}.`,
     );
   }
   if (!VALID_STORY_OUTCOMES.has(outcome)) {
     throw new Error(`Unsupported clarification story outcome: ${outcome}.`);
   }
+  requireArtifact(
+    storyPath(cwd, state, normalizedStoryId),
+    'Clarification story artifact',
+  );
+  const proposed_clarification_story_outcome: ClarificationStoryOutcomeProposal =
+    {
+      story_id: normalizedStoryId,
+      outcome,
+      summary: requireNonEmpty(summary, 'Clarification story outcome summary'),
+      proposed_at: new Date().toISOString(),
+    };
+  const next = writeState(cwd, {
+    ...state,
+    proposed_clarification_story_outcome,
+  });
+  persistStoryStatus(cwd, next);
+  return next;
+}
+
+/** Reject the AI proposal while keeping the human-selected story active. */
+export function continueClarificationStory(cwd: string): WorkflowState {
+  const state = readState(cwd);
+  assertClarificationPhase(state);
+  const proposal = state.proposed_clarification_story_outcome;
+  if (!proposal) {
+    throw new Error(
+      'Cannot continue clarification: there is no story outcome proposal to reject.',
+    );
+  }
+  if (state.active_clarification_story?.story_id !== proposal.story_id) {
+    throw new Error(
+      'Cannot continue clarification: the proposal does not belong to the active story.',
+    );
+  }
+  const next = writeState(cwd, {
+    ...state,
+    proposed_clarification_story_outcome: undefined,
+  });
+  persistStoryStatus(cwd, next);
+  return next;
+}
+
+/** Commit the final disposition from the human-only command channel. */
+export function confirmClarificationStoryOutcome(
+  cwd: string,
+  outcome: ClarificationStoryOutcome,
+  summary: string,
+): WorkflowState {
+  const state = readState(cwd);
+  assertClarificationPhase(state);
+  if (state.pending_clarification) {
+    throw new Error(
+      `Cannot confirm a story outcome: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+    );
+  }
+  const proposal = state.proposed_clarification_story_outcome;
+  if (!proposal) {
+    throw new Error(
+      'Cannot confirm a story outcome: the AI must propose an outcome first.',
+    );
+  }
+  if (state.active_clarification_story?.story_id !== proposal.story_id) {
+    throw new Error(
+      'Cannot confirm a story outcome: the proposal does not belong to the active story.',
+    );
+  }
+  if (!VALID_STORY_OUTCOMES.has(outcome)) {
+    throw new Error(`Unsupported clarification story outcome: ${outcome}.`);
+  }
+  const confirmedAt = new Date().toISOString();
   const next = writeState(cwd, {
     ...state,
     active_clarification_story: undefined,
+    proposed_clarification_story_outcome: undefined,
     clarification_story_outcomes: [
       ...(state.clarification_story_outcomes ?? []),
       {
-        story_id: normalizedStoryId,
+        story_id: proposal.story_id,
         outcome,
         summary: requireNonEmpty(summary, 'Clarification story summary'),
-        completed_at: new Date().toISOString(),
+        completed_at: confirmedAt,
+        decided_by: 'human',
+        confirmed_at: confirmedAt,
+        proposal,
       },
     ],
   });
@@ -378,6 +481,11 @@ export function validateClarificationStoriesComplete(
   if (storyIds.length === 0) {
     throw new Error(
       'Cannot complete clarify: no US-xxx story cards exist. Generate the candidate story cards first.',
+    );
+  }
+  if (state.proposed_clarification_story_outcome) {
+    throw new Error(
+      `Cannot complete clarify: ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision on the proposed ${state.proposed_clarification_story_outcome.outcome} outcome.`,
     );
   }
   if (state.active_clarification_story) {
@@ -403,6 +511,11 @@ export function askClarification(
   if (state.pending_clarification) {
     throw new Error(
       `Cannot ask another question: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+    );
+  }
+  if (state.proposed_clarification_story_outcome) {
+    throw new Error(
+      `Cannot ask another question: proposed outcome for ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision.`,
     );
   }
   const storyId = normalizeStoryId(input.story_id);

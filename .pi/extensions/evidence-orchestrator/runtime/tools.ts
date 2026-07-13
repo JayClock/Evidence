@@ -3,9 +3,8 @@ import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
 import {
   answerClarification,
   askClarification,
-  completeClarificationStory,
+  proposeClarificationStoryOutcome,
   selectClarificationStory,
-  unresolvedClarificationStoryIds,
 } from '../requirements/clarifications';
 import {
   answerGate,
@@ -125,7 +124,7 @@ const clarificationAnswerParam = Type.Object({
 
 const clarificationStoryParam = Type.Object({});
 
-const clarificationStoryCompletionParam = Type.Object({
+const clarificationStoryOutcomeProposalParam = Type.Object({
   storyId: Type.String({
     description: 'The active clarification story id, for example US-001.',
   }),
@@ -477,34 +476,35 @@ export function registerTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: 'evidence_orchestrator_complete_story',
-    label: 'Complete Evidence Story Clarification',
+    name: 'evidence_orchestrator_propose_story_outcome',
+    label: 'Propose Evidence Story Clarification Outcome',
     description:
-      'Record the outcome of the active story-level clarification and release the story selection',
+      'Propose an outcome for the active story without completing or releasing it',
     promptSnippet:
-      'Finish the selected US-xxx clarification as clarified, needs_split, or deferred',
+      'Propose clarified, needs_split, or deferred for human confirmation',
     promptGuidelines: [
-      'Use evidence_orchestrator_complete_story only in clarify for the active selected story after its pending TQA answer is resolved.',
-      'After calling evidence_orchestrator_complete_story, stop; never select or process another story in the same run.',
-      'Use clarified only when no high-value business uncertainty remains; otherwise use needs_split or deferred with a concrete reason.',
+      'Use evidence_orchestrator_propose_story_outcome only in clarify for the active human-selected story after its pending TQA answer is resolved.',
+      'After calling evidence_orchestrator_propose_story_outcome, stop and wait for the domain expert to decide through /evidence-story-complete.',
+      'evidence_orchestrator_propose_story_outcome never completes or releases a story; never claim that the proposed outcome is final.',
+      'Propose clarified only when no high-value business uncertainty remains; otherwise propose needs_split or deferred with a concrete reason.',
     ],
-    parameters: clarificationStoryCompletionParam,
+    parameters: clarificationStoryOutcomeProposalParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = completeClarificationStory(
+      const state = proposeClarificationStoryOutcome(
         ctx.cwd,
         params.storyId,
         params.outcome as ClarificationStoryOutcome,
         params.summary,
       );
-      const remaining = unresolvedClarificationStoryIds(ctx.cwd, state);
       return {
         content: [
           {
             type: 'text',
-            text: `Recorded ${params.outcome} for ${params.storyId.toUpperCase()}. Stop now. Remaining unselected stories: ${remaining.join(', ') || 'none'}.`,
+            text: `Proposed ${params.outcome} for ${params.storyId.toUpperCase()}; the story remains active. Stop now and ask the domain expert to run /evidence-story-complete to confirm, override, or continue clarification.`,
           },
         ],
-        details: { state, remaining },
+        details: { state },
+        terminate: true,
       };
     },
   });

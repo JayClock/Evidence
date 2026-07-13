@@ -45,11 +45,18 @@ function completedOutput(
   result: PhaseAgentResult,
   state: ReturnType<typeof readState>,
 ): string {
-  const pending = state.pending_clarification;
-  if (preparation.phase !== 'clarify' || result.exitCode !== 0 || !pending) {
+  if (preparation.phase !== 'clarify' || result.exitCode !== 0) {
     return result.output;
   }
-  return `TQA ${pending.question_id} · ${pending.story_id}\n\n${pending.question}\n\n请直接回复此问题。`;
+  const pending = state.pending_clarification;
+  if (pending) {
+    return `TQA ${pending.question_id} · ${pending.story_id}\n\n${pending.question}\n\n请直接回复此问题。`;
+  }
+  const proposal = state.proposed_clarification_story_outcome;
+  if (proposal) {
+    return `AI 建议将 ${proposal.story_id} 标记为 ${proposal.outcome}。\n\n理由：${proposal.summary}\n\nStory 仍保持活动，且尚未形成最终结论。请由领域专家运行 /evidence-story-complete，选择确认、修改结论或继续澄清。`;
+  }
+  return result.output;
 }
 
 function completedDetails(

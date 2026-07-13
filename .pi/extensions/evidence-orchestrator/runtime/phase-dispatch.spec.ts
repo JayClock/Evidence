@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
-import { selectClarificationStory } from '../requirements/clarifications';
+import {
+  proposeClarificationStoryOutcome,
+  selectClarificationStory,
+} from '../requirements/clarifications';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
@@ -87,5 +90,9 @@ describe('phase dispatch', () => {
     if (isCompletedIteration(preparation))
       throw new Error('Unexpected completion.');
     expect(preparation.task).toContain('当前澄清故事：US-001');
+
+    proposeClarificationStoryOutcome(cwd, 'US-001', 'clarified', 'Clear.');
+    expect(() => preparePhaseRun(cwd)).toThrow('awaiting a human decision');
+    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-story-complete');
   });
 });

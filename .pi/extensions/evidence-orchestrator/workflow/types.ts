@@ -73,11 +73,23 @@ export interface ActiveClarificationStory {
   selected_at: string;
 }
 
+/** AI-authored recommendation that cannot release or disposition a story. */
+export interface ClarificationStoryOutcomeProposal {
+  story_id: string;
+  outcome: ClarificationStoryOutcome;
+  summary: string;
+  proposed_at: string;
+}
+
 export interface ClarificationStoryOutcomeRecord {
   story_id: string;
   outcome: ClarificationStoryOutcome;
   summary: string;
   completed_at: string;
+  /** Present on human-confirmed records; absent only on legacy iterations. */
+  decided_by?: 'human';
+  confirmed_at?: string;
+  proposal?: ClarificationStoryOutcomeProposal;
 }
 
 export interface PhaseFailure {
@@ -109,7 +121,9 @@ export interface WorkflowState {
   active_work_item?: ActiveWorkItem;
   /** The sole story currently allowed to consume TQA feedback. */
   active_clarification_story?: ActiveClarificationStory;
-  /** Final story-level clarification dispositions for the active iteration. */
+  /** AI recommendation awaiting an explicit human story-level decision. */
+  proposed_clarification_story_outcome?: ClarificationStoryOutcomeProposal;
+  /** Final, human-confirmed story-level dispositions for the active iteration. */
   clarification_story_outcomes?: ClarificationStoryOutcomeRecord[];
   /** The sole TQA question awaiting an explicit domain-expert answer. */
   pending_clarification?: ClarificationRecord;

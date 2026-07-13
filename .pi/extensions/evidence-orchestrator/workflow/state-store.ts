@@ -20,6 +20,7 @@ import {
 } from '../testing/process-catalog';
 import type {
   ActiveWorkItem,
+  ClarificationStoryOutcomeProposal,
   Phase,
   TestProcessRuntime,
   TestProcessSelection,
@@ -35,6 +36,19 @@ const CLARIFICATION_STORY_OUTCOMES = new Set([
   'needs_split',
   'deferred',
 ]);
+
+function isValidClarificationOutcomeProposal(
+  proposal: ClarificationStoryOutcomeProposal,
+): boolean {
+  return (
+    STORY_ID_PATTERN.test(proposal.story_id) &&
+    CLARIFICATION_STORY_OUTCOMES.has(proposal.outcome) &&
+    typeof proposal.summary === 'string' &&
+    Boolean(proposal.summary.trim()) &&
+    typeof proposal.proposed_at === 'string' &&
+    Boolean(proposal.proposed_at)
+  );
+}
 
 export function statePath(cwd: string): string {
   return join(cwd, 'evidence-state.json');
@@ -72,19 +86,60 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   ) {
     throw new Error('The active clarification story is invalid.');
   }
+  const proposedOutcome = state.proposed_clarification_story_outcome;
+  if (proposedOutcome && phase !== 'clarify') {
+    throw new Error(
+      'A proposed clarification story outcome is only valid while the workflow is in clarify.',
+    );
+  }
+  if (
+    proposedOutcome &&
+    !isValidClarificationOutcomeProposal(proposedOutcome)
+  ) {
+    throw new Error('The proposed clarification story outcome is invalid.');
+  }
+  if (
+    proposedOutcome &&
+    proposedOutcome.story_id !== state.active_clarification_story?.story_id
+  ) {
+    throw new Error(
+      'A proposed clarification story outcome must belong to the active clarification story.',
+    );
+  }
   const clarificationOutcomes = state.clarification_story_outcomes ?? [];
   if (
     new Set(clarificationOutcomes.map(({ story_id }) => story_id)).size !==
       clarificationOutcomes.length ||
-    clarificationOutcomes.some(
-      ({ story_id, outcome, summary, completed_at }) =>
+    clarificationOutcomes.some((record) => {
+      const {
+        story_id,
+        outcome,
+        summary,
+        completed_at,
+        decided_by,
+        confirmed_at,
+        proposal,
+      } = record;
+      const invalidBase =
         !STORY_ID_PATTERN.test(story_id) ||
         !CLARIFICATION_STORY_OUTCOMES.has(outcome) ||
         typeof summary !== 'string' ||
         !summary.trim() ||
         typeof completed_at !== 'string' ||
-        !completed_at,
-    )
+        !completed_at;
+      if (invalidBase) return true;
+      if (decided_by === undefined) {
+        return confirmed_at !== undefined || proposal !== undefined;
+      }
+      return (
+        decided_by !== 'human' ||
+        typeof confirmed_at !== 'string' ||
+        !confirmed_at ||
+        !proposal ||
+        proposal.story_id !== story_id ||
+        !isValidClarificationOutcomeProposal(proposal)
+      );
+    })
   ) {
     throw new Error('Clarification story outcomes are invalid.');
   }
@@ -117,6 +172,11 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       'A pending clarification must not already contain an answer.',
     );
   }
+  if (state.pending_clarification && proposedOutcome) {
+    throw new Error(
+      'A clarification question and a proposed story outcome cannot both be pending.',
+    );
+  }
   if (
     state.clarification_history?.some(
       (record) => !record.answer || !record.answered_at,
@@ -143,6 +203,12 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       : {}),
     ...(state.active_clarification_story
       ? { active_clarification_story: state.active_clarification_story }
+      : {}),
+    ...(state.proposed_clarification_story_outcome
+      ? {
+          proposed_clarification_story_outcome:
+            state.proposed_clarification_story_outcome,
+        }
       : {}),
     ...(state.clarification_story_outcomes
       ? { clarification_story_outcomes: state.clarification_story_outcomes }

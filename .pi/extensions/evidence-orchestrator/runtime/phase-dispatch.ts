@@ -23,7 +23,11 @@ export interface PhaseRunRequest {
 
 export class PhaseRunBlockedError extends Error {
   constructor(
-    readonly kind: 'gate' | 'clarification' | 'story_selection',
+    readonly kind:
+      | 'gate'
+      | 'clarification'
+      | 'story_decision'
+      | 'story_selection',
     message: string,
   ) {
     super(message);
@@ -80,6 +84,13 @@ export function preparePhaseRun(
     throw new PhaseRunBlockedError(
       'clarification',
       `Clarification ${pending.question_id} for ${pending.story_id} is awaiting a domain-expert answer: ${pending.question}`,
+    );
+  }
+  if (state.proposed_clarification_story_outcome) {
+    const proposal = state.proposed_clarification_story_outcome;
+    throw new PhaseRunBlockedError(
+      'story_decision',
+      `${proposal.story_id} is awaiting a human decision on the proposed ${proposal.outcome} outcome. Run /evidence-story-complete to confirm, override, or continue clarification.`,
     );
   }
   if (request.requestedPhase && request.requestedPhase !== state.phase) {
