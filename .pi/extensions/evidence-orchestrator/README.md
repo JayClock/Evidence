@@ -26,6 +26,7 @@ evidence-orchestrator/
 - `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查；命令通过共享阶段执行器直接启动隔离 subagent，不再构造合成用户消息触发额外模型轮次。`/evidence-new` 成功创建迭代后立即执行一次前台 Frame。
 - `github-cli.ts`：将 Pi 的异步、可取消进程执行适配为 GitHub Issue runner。
 - `loading.ts`：为外部操作提供可取消的 `BorderedLoader`；非 TUI 模式退化为临时状态栏。
+- `phase-progress.ts`：为命令直接启动的阶段提供可取消前台面板，以主题 `toolPendingBg` 渲染 subagent 工具调用和最新输出；非 TUI 模式退化为状态栏与 widget。
 - `phase-execution.ts`：统一命令与模型工具的阶段执行、状态栏生命周期、运行元数据和进度事件。
 - `story-picker.ts`：像 Issue 选择器一样，从未完成的 `US-xxx.md` 中显示标题并由人手动选择。
 - `tools.ts`：注册 `evidence_orchestrator_*` 模型工具。

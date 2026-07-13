@@ -55,3 +55,35 @@ export class Container implements Component {
     this.children.forEach((child) => child.invalidate());
   }
 }
+
+export class Box implements Component {
+  private readonly children: Component[] = [];
+
+  constructor(
+    private readonly paddingX = 0,
+    private readonly paddingY = 0,
+    private readonly background?: (text: string) => string,
+  ) {}
+
+  addChild(child: Component): void {
+    this.children.push(child);
+  }
+
+  render(width: number): string[] {
+    const horizontalPadding = ' '.repeat(this.paddingX);
+    const contentWidth = Math.max(1, width - this.paddingX * 2);
+    const content = this.children.flatMap((child) =>
+      child
+        .render(contentWidth)
+        .map((line) => `${horizontalPadding}${line}${horizontalPadding}`),
+    );
+    const verticalPadding = Array.from({ length: this.paddingY }, () => '');
+    return [...verticalPadding, ...content, ...verticalPadding].map((line) =>
+      this.background ? this.background(line) : line,
+    );
+  }
+
+  invalidate(): void {
+    this.children.forEach((child) => child.invalidate());
+  }
+}

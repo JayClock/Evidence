@@ -17,6 +17,7 @@ interface ThemeLike {
 interface ResultOptions {
   expanded: boolean;
   isPartial?: boolean;
+  showExpandHint?: boolean;
 }
 
 function isRecord(value: unknown): value is RecordValue {
@@ -286,7 +287,7 @@ export function renderPhaseSubagentResult(
   if (details.stderr.trim()) {
     text += `\n${theme.fg('warning', preview(details.stderr, 160))}`;
   }
-  if (items.length > 8) {
+  if (items.length > 8 && options.showExpandHint !== false) {
     text += `\n${theme.fg('muted', '(Ctrl+O to expand)')}`;
   }
   return new Text(text, 0, 0);

@@ -29,24 +29,15 @@ import {
 import { createGitHubCliRunner } from './github-cli';
 import { selectOrCreateGitHubIssue } from './issue-picker';
 import { runWithLoader } from './loading';
+import { runWithPhaseProgress } from './phase-progress';
 import { statusMarkdown } from './status';
 import {
   listSelectableClarificationStories,
   selectClarificationStoryInteractively,
 } from './story-picker';
 
-const PHASE_PROGRESS_WIDGET_KEY = 'evidence-phase-progress';
-
 async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
   if (!ctx.isIdle()) await ctx.waitForIdle();
-}
-
-function progressLines(details: PhaseExecutionDetails): string[] {
-  const latest = details.output.trim().split('\n').filter(Boolean).slice(-3);
-  return [
-    `Evidence ${details.phase} · ${details.agent} · ${details.model}`,
-    ...(latest.length > 0 ? latest : ['(running...)']),
-  ];
 }
 
 async function runPreparedPhaseFromCommand(
@@ -55,48 +46,36 @@ async function runPreparedPhaseFromCommand(
   preparation: PreparedPhaseRun,
   invocation: string,
 ): Promise<PhaseExecutionDetails | undefined> {
-  ctx.ui.setWidget(PHASE_PROGRESS_WIDGET_KEY, [
-    `Evidence ${preparation.phase} phase is starting…`,
-  ]);
-  try {
-    const details = await runWithLoader(
-      ctx,
-      `Running Evidence ${preparation.phase} phase…`,
-      (signal) =>
-        executePreparedPhaseRun(ctx, preparation, {
-          invocation,
-          signal,
-          onUpdate(progress) {
-            ctx.ui.setWidget(
-              PHASE_PROGRESS_WIDGET_KEY,
-              progressLines(progress),
-            );
-          },
-        }),
+  const details = await runWithPhaseProgress(
+    ctx,
+    `Running Evidence ${preparation.phase} phase…`,
+    (signal, onUpdate) =>
+      executePreparedPhaseRun(ctx, preparation, {
+        invocation,
+        signal,
+        onUpdate,
+      }),
+  );
+  if (!details) {
+    ctx.ui.notify(
+      `Evidence ${preparation.phase} phase execution cancelled.`,
+      'info',
     );
-    if (!details) {
-      ctx.ui.notify(
-        `Evidence ${preparation.phase} phase execution cancelled.`,
-        'info',
-      );
-      return undefined;
-    }
-    pi.sendMessage({
-      customType: PHASE_RESULT_MESSAGE_TYPE,
-      content: details.output,
-      display: true,
-      details,
-    });
-    if (details.exitCode !== 0) {
-      ctx.ui.notify(
-        `Evidence ${details.phase} phase failed with exit ${details.exitCode}.`,
-        'error',
-      );
-    }
-    return details;
-  } finally {
-    ctx.ui.setWidget(PHASE_PROGRESS_WIDGET_KEY, undefined);
+    return undefined;
   }
+  pi.sendMessage({
+    customType: PHASE_RESULT_MESSAGE_TYPE,
+    content: details.output,
+    display: true,
+    details,
+  });
+  if (details.exitCode !== 0) {
+    ctx.ui.notify(
+      `Evidence ${details.phase} phase failed with exit ${details.exitCode}.`,
+      'error',
+    );
+  }
+  return details;
 }
 
 function parseArgs(args: string): {

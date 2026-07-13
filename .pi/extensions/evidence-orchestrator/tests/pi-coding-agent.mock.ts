@@ -22,6 +22,14 @@ export class BorderedLoader {
     this.abortHandler?.();
   }
 
+  handleInput(data: string): void {
+    if (data === 'escape') this.abort();
+  }
+
+  dispose(): void {
+    return undefined;
+  }
+
   render(): string[] {
     return [this.message];
   }
