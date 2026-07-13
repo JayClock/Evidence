@@ -24,6 +24,7 @@ evidence-orchestrator/
 
 - `identity.ts`：集中声明扩展 ID、状态栏 key、状态前缀和消息类型。
 - `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查。
+- `story-picker.ts`：像 Issue 选择器一样，从未完成的 `US-xxx.md` 中显示标题并由人手动选择。
 - `tools.ts`：注册 `evidence_orchestrator_*` 模型工具。
 - `status.ts`：生成当前工作流状态报告。
 
@@ -49,7 +50,16 @@ evidence-orchestrator/
 ### `requirements/`
 
 - `github-issue.ts`：GitHub Issue 快照、投影、漂移检查与同步。
-- `clarifications.ts`：TQA 问题、回答和澄清历史。
+- `clarifications.ts`：故事卡发现与选择、单故事 TQA、故事结论和澄清历史。
+
+Clarify 是阶段内的故事级子流程：
+
+1. Frame 根据问题、旅程切片和故事地图增量生成候选 `US-xxx.md` 故事卡；Clarify 不再承担常规故事生成。
+2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。选择成功后会自动排队当前会话中的前台 clarify 运行，无须再次执行 `/evidence-run`。
+3. 该运行只能为活动故事提问、记录答案或写入 `clarified`、`needs_split`、`deferred` 结论；存在待回答问题时不能切换故事。
+4. 每个故事结论后必须停止并重新等待人类选择；所有故事都有结论后才能完成 clarify。
+
+已进入 Clarify 且缺少故事卡的旧迭代保留一次兼容路径：子 agent 可依据既有 Frame 工件补建故事卡，随后立即停止等待人工选择。
 
 ### `evidence/`
 

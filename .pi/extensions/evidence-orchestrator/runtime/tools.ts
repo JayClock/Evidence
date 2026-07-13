@@ -3,6 +3,9 @@ import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
 import {
   answerClarification,
   askClarification,
+  completeClarificationStory,
+  selectClarificationStory,
+  unresolvedClarificationStoryIds,
 } from '../requirements/clarifications';
 import {
   answerGate,
@@ -31,8 +34,16 @@ import {
 import { statusMarkdown } from './status';
 import { executeTestStep } from '../testing/execution-recorder';
 import { STATUS_KEY, statusLabel } from './identity';
-import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
-import type { Phase } from '../workflow/types';
+import {
+  foregroundPhaseRequest,
+  isCompletedIteration,
+  preparePhaseRun,
+} from './phase-dispatch';
+import {
+  listSelectableClarificationStories,
+  selectClarificationStoryInteractively,
+} from './story-picker';
+import type { ClarificationStoryOutcome, Phase } from '../workflow/types';
 
 type JsonSchema = Record<string, unknown> & { __optional?: boolean };
 
@@ -115,6 +126,21 @@ const clarificationAnswerParam = Type.Object({
   answer: Type.String({
     description:
       'The domain expert’s explicit answer to the sole pending clarification question.',
+  }),
+});
+
+const clarificationStoryParam = Type.Object({});
+
+const clarificationStoryCompletionParam = Type.Object({
+  storyId: Type.String({
+    description: 'The active clarification story id, for example US-001.',
+  }),
+  outcome: Type.String({
+    description: 'Story clarification outcome.',
+    enum: ['clarified', 'needs_split', 'deferred'],
+  }),
+  summary: Type.String({
+    description: 'Brief business reason for the story outcome.',
   }),
 });
 
@@ -252,6 +278,18 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: phaseRunParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
+      const current = readState(ctx.cwd);
+      if (
+        current.phase === 'clarify' &&
+        !current.active_clarification_story &&
+        !current.pending_gate &&
+        !current.halted &&
+        listSelectableClarificationStories(ctx.cwd).length > 0
+      ) {
+        const selectedStory = await selectClarificationStoryInteractively(ctx);
+        if (!selectedStory) throw new Error('Story selection cancelled.');
+        selectClarificationStory(ctx.cwd, selectedStory);
+      }
       const preparation = preparePhaseRun(ctx.cwd, {
         instructions: params.instructions ?? '',
       });
@@ -314,13 +352,50 @@ export function registerTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
+    name: 'evidence_orchestrator_select_story',
+    label: 'Select Evidence Clarification Story',
+    description:
+      'Open an interactive picker, persist the selected story, and queue its visible clarify run',
+    promptSnippet:
+      'Let the user select one US-xxx story and start its isolated TQA clarification',
+    promptGuidelines: [
+      'Use evidence_orchestrator_select_story when the user asks to choose a story for clarification; the tool opens the picker and the user makes the decision.',
+      'Never infer or pass a story choice on behalf of the user.',
+      'Do not switch stories while another story or TQA answer is pending.',
+      'After evidence_orchestrator_select_story queues the visible clarify run, stop and do not call another workflow tool.',
+    ],
+    parameters: clarificationStoryParam,
+    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const selectedStory = await selectClarificationStoryInteractively(ctx);
+      if (!selectedStory) throw new Error('Story selection cancelled.');
+      const state = selectClarificationStory(ctx.cwd, selectedStory);
+      const request = foregroundPhaseRequest('');
+      if (ctx.isIdle()) {
+        pi.sendUserMessage(request);
+      } else {
+        pi.sendUserMessage(request, { deliverAs: 'followUp' });
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Selected clarification story ${state.active_clarification_story?.story_id} and queued visible clarify execution.`,
+          },
+        ],
+        details: { state },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: 'evidence_orchestrator_ask_question',
     label: 'Ask Evidence Orchestrator Clarification',
     description:
       'Persist one high-value TQA business question and pause the clarification phase for a domain-expert answer',
     promptSnippet: 'Ask the single next TQA clarification question',
     promptGuidelines: [
-      'Use only in the clarify phase after the US-xxx story exists.',
+      'Use only in the clarify phase for the active human-selected US-xxx story.',
       'Ask exactly one non-technical business question, then stop and wait for the user answer.',
       'Never answer the question yourself or call another workflow tool until the user responds.',
     ],
@@ -369,6 +444,39 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_complete_story',
+    label: 'Complete Evidence Story Clarification',
+    description:
+      'Record the outcome of the active story-level clarification and release the story selection',
+    promptSnippet:
+      'Finish the selected US-xxx clarification as clarified, needs_split, or deferred',
+    promptGuidelines: [
+      'Use evidence_orchestrator_complete_story only in clarify for the active selected story after its pending TQA answer is resolved.',
+      'After calling evidence_orchestrator_complete_story, stop; never select or process another story in the same run.',
+      'Use clarified only when no high-value business uncertainty remains; otherwise use needs_split or deferred with a concrete reason.',
+    ],
+    parameters: clarificationStoryCompletionParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = completeClarificationStory(
+        ctx.cwd,
+        params.storyId,
+        params.outcome as ClarificationStoryOutcome,
+        params.summary,
+      );
+      const remaining = unresolvedClarificationStoryIds(ctx.cwd, state);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded ${params.outcome} for ${params.storyId.toUpperCase()}. Stop now. Remaining unselected stories: ${remaining.join(', ') || 'none'}.`,
+          },
+        ],
+        details: { state, remaining },
       };
     },
   });

@@ -1,6 +1,9 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { answerClarification } from '../requirements/clarifications';
-import { answerGate, isGateAnswered } from '../workflow/gates';
+import {
+  answerClarification,
+  selectClarificationStory,
+} from '../requirements/clarifications';
+import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDrift,
   startIterationFromIssue,
@@ -18,6 +21,10 @@ import {
 } from './phase-dispatch';
 import { selectOrCreateGitHubIssue } from './issue-picker';
 import { statusMarkdown } from './status';
+import {
+  listSelectableClarificationStories,
+  selectClarificationStoryInteractively,
+} from './story-picker';
 
 function parseArgs(args: string): {
   phase?: string;
@@ -143,6 +150,52 @@ export function registerCommands(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand('evidence-story', {
+    description:
+      'Select one generated US-xxx story and immediately queue isolated clarification',
+    handler: async (args, ctx) => {
+      try {
+        const current = readState(ctx.cwd);
+        if (current.active_clarification_story) {
+          ctx.ui.notify(
+            `Clarification story ${current.active_clarification_story.story_id} is already active.`,
+            'info',
+          );
+          return;
+        }
+        let storyId = args.trim().toUpperCase();
+        if (!storyId) {
+          storyId = (await selectClarificationStoryInteractively(ctx)) ?? '';
+          if (!storyId) {
+            ctx.ui.notify('Story selection cancelled.', 'info');
+            return;
+          }
+        }
+        const state = selectClarificationStory(ctx.cwd, storyId);
+        const preparation = preparePhaseRun(ctx.cwd);
+        if (isCompletedIteration(preparation)) {
+          ctx.ui.notify(preparation.task, 'info');
+          return;
+        }
+        const request = foregroundPhaseRequest('');
+        if (ctx.isIdle()) {
+          pi.sendUserMessage(request);
+        } else {
+          pi.sendUserMessage(request, { deliverAs: 'followUp' });
+        }
+        ctx.ui.notify(
+          `Selected clarification story ${state.active_clarification_story?.story_id} and queued visible clarify execution.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
   pi.registerCommand('evidence-answer', {
     description:
       'Answer the single pending TQA clarification: /evidence-answer <answer>',
@@ -164,10 +217,28 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-run', {
     description:
-      'Queue the current phase for visible execution; coding accepts --story=US-xxx --scenario=SC-xxx',
+      'Queue the current phase; clarify accepts --story=US-xxx and coding also requires --scenario=SC-xxx',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
       try {
+        const current = readState(ctx.cwd);
+        if (
+          current.phase === 'clarify' &&
+          !current.active_clarification_story &&
+          !current.pending_gate &&
+          !current.halted &&
+          !parsed.dryRun &&
+          !parsed.storyId &&
+          listSelectableClarificationStories(ctx.cwd).length > 0
+        ) {
+          const selectedStory =
+            await selectClarificationStoryInteractively(ctx);
+          if (!selectedStory) {
+            ctx.ui.notify('Story selection cancelled.', 'info');
+            return;
+          }
+          selectClarificationStory(ctx.cwd, selectedStory);
+        }
         const preparation = preparePhaseRun(ctx.cwd, {
           requestedPhase: parsed.phase,
           instructions: parsed.rest,
