@@ -21,7 +21,7 @@
   "pi": {
     "enabled": true,
     "version": 4,
-    "last_command": "bootstrap iteration archived; use /evidence-reset --issue=<number>",
+    "last_command": "bootstrap iteration archived; use /evidence-new",
     "last_run_at": "2026-07-11T23:47:42.373Z"
   }
 }

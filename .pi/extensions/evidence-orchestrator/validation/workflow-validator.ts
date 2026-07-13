@@ -22,12 +22,12 @@ export function validateWorkflow(cwd: string): void {
   const root = iterationRoot(cwd, state);
   if (!existsSync(root)) {
     throw new Error(
-      `Active iteration artifact root is missing: ${relative(cwd, root)}. Run /evidence-reset or create its seed input.`,
+      `Active iteration artifact root is missing: ${relative(cwd, root)}. Run /evidence-new or create its seed input.`,
     );
   }
   if (state.phase !== 'complete' && !state.requirement_source) {
     throw new Error(
-      'Active iteration has no GitHub Issue requirement source. Start one with /evidence-reset --issue=<number>.',
+      'Active iteration has no GitHub Issue requirement source. Select one with /evidence-new.',
     );
   }
   if (state.requirement_source) validateIssueSourceSnapshot(cwd, state);

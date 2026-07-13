@@ -13,7 +13,7 @@ describe('commands', () => {
     expect(commands).toEqual(
       expect.arrayContaining([
         'evidence-run',
-        'evidence-reset',
+        'evidence-new',
         'evidence-gate',
         'evidence-answer',
         'evidence-issue-sync',

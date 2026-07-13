@@ -118,7 +118,7 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
 export function newIterationState(cwd: string): never {
   void cwd;
   throw new Error(
-    'Local iteration initialization is disabled. Start with /evidence-reset --issue=<number>.',
+    'Local iteration initialization is disabled. Select a GitHub Issue with /evidence-new.',
   );
 }
 

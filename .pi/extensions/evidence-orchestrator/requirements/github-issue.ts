@@ -253,7 +253,7 @@ function requireIssueSource(
 ): GitHubIssueRequirementSource {
   if (!state.requirement_source) {
     throw new Error(
-      'The active iteration has no GitHub Issue requirement source. Start one with /evidence-reset --issue=<number>.',
+      'The active iteration has no GitHub Issue requirement source. Select one with /evidence-new.',
     );
   }
   return state.requirement_source;

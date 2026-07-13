@@ -21,46 +21,33 @@ import { buildPhaseTask } from '../subagents/phase-task';
 import { readState, selectWorkItem, writeState } from '../workflow/state-store';
 import type { Phase } from '../workflow/types';
 import { STATUS_KEY, SUBAGENT_MESSAGE_TYPE, statusLabel } from './identity';
+import { selectOrCreateGitHubIssue } from './issue-picker';
 import { statusMarkdown } from './status';
 
 function parseArgs(args: string): {
   phase?: string;
   dryRun: boolean;
-  reset: boolean;
   storyId?: string;
   scenarioId?: string;
-  issueNumber?: number;
-  repository?: string;
   rest: string;
 } {
   const parts = args.split(/\s+/).filter(Boolean);
-  const parsed = { dryRun: false, reset: false, rest: '' } as {
+  const parsed = { dryRun: false, rest: '' } as {
     phase?: string;
     dryRun: boolean;
-    reset: boolean;
     storyId?: string;
     scenarioId?: string;
-    issueNumber?: number;
-    repository?: string;
     rest: string;
   };
   const rest: string[] = [];
   for (const part of parts) {
     if (part === '--dry-run') parsed.dryRun = true;
-    else if (part === '--reset') parsed.reset = true;
     else if (part.startsWith('--phase='))
       parsed.phase = part.slice('--phase='.length);
     else if (part.startsWith('--story='))
       parsed.storyId = part.slice('--story='.length);
     else if (part.startsWith('--scenario='))
       parsed.scenarioId = part.slice('--scenario='.length);
-    else if (part.startsWith('--issue=')) {
-      const issueNumber = Number(part.slice('--issue='.length));
-      if (Number.isSafeInteger(issueNumber) && issueNumber > 0)
-        parsed.issueNumber = issueNumber;
-      else rest.push(part);
-    } else if (part.startsWith('--repo='))
-      parsed.repository = part.slice('--repo='.length);
     else if (PHASE_ORDER.includes(part as Phase)) parsed.phase = part;
     else rest.push(part);
   }
@@ -76,23 +63,16 @@ export function registerCommands(pi: ExtensionAPI): void {
       ctx.ui.notify(statusMarkdown(ctx.cwd), 'info'),
   });
 
-  pi.registerCommand('evidence-reset', {
-    description:
-      'Start a new iteration from GitHub Issue: /evidence-reset --issue=123 [--repo=owner/repo]',
-    handler: async (args, ctx) => {
-      const parsed = parseArgs(args);
-      if (!parsed.issueNumber) {
-        ctx.ui.notify(
-          'A GitHub Issue is required. Use /evidence-reset --issue=123 [--repo=owner/repo].',
-          'error',
-        );
-        return;
-      }
+  pi.registerCommand('evidence-new', {
+    description: 'Select or create a GitHub Issue and start a new iteration',
+    handler: async (_args, ctx) => {
       try {
-        const state = startIterationFromIssue(ctx.cwd, {
-          issueNumber: parsed.issueNumber,
-          repository: parsed.repository,
-        });
+        const issueNumber = await selectOrCreateGitHubIssue(pi, ctx);
+        if (!issueNumber) {
+          ctx.ui.notify('New iteration cancelled.', 'info');
+          return;
+        }
+        const state = startIterationFromIssue(ctx.cwd, { issueNumber });
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
           `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
@@ -192,27 +172,6 @@ export function registerCommands(pi: ExtensionAPI): void {
       'Run the current Evidence Orchestrator phase; coding accepts --story=US-xxx --scenario=SC-xxx',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
-      if (parsed.reset) {
-        if (!parsed.issueNumber) {
-          ctx.ui.notify(
-            '--reset requires --issue=123 because requirements are sourced from GitHub Issues.',
-            'error',
-          );
-          return;
-        }
-        try {
-          startIterationFromIssue(ctx.cwd, {
-            issueNumber: parsed.issueNumber,
-            repository: parsed.repository,
-          });
-        } catch (error) {
-          ctx.ui.notify(
-            error instanceof Error ? error.message : String(error),
-            'error',
-          );
-          return;
-        }
-      }
       let state = readState(ctx.cwd);
       ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
       if (state.pending_gate && isGateAnswered(ctx.cwd, state.pending_gate)) {
@@ -227,7 +186,7 @@ export function registerCommands(pi: ExtensionAPI): void {
       }
       if (state.phase !== 'complete' && !state.requirement_source) {
         ctx.ui.notify(
-          'This bootstrap iteration is archival and cannot run. Start a GitHub Issue-backed iteration with /evidence-reset --issue=<number>.',
+          'This bootstrap iteration is archival and cannot run. Select a GitHub Issue with /evidence-new.',
           'error',
         );
         return;
@@ -242,7 +201,7 @@ export function registerCommands(pi: ExtensionAPI): void {
       }
       if (parsed.phase && parsed.phase !== state.phase) {
         ctx.ui.notify(
-          `Cannot run ${parsed.phase}: current phase is ${state.phase}. Use /evidence-reset before a new iteration.`,
+          `Cannot run ${parsed.phase}: current phase is ${state.phase}. Use /evidence-new before a new iteration.`,
           'error',
         );
         return;

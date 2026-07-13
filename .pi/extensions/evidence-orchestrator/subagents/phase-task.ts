@@ -14,7 +14,7 @@ export function buildPhaseTask(
   const state = readState(cwd);
   const phase = (requestedPhase || state.phase) as Phase;
   if (phase === 'complete') {
-    return 'Evidence Orchestrator 本轮迭代已完成。读取本轮 07-learning/next-iteration.md，将确认后的反馈更新到 GitHub Issue，再通过 /evidence-reset --issue=<number> 创建新快照；不要直接扩写旧工件或手工修改 requirements.md 投影。';
+    return 'Evidence Orchestrator 本轮迭代已完成。读取本轮 07-learning/next-iteration.md，将确认后的反馈更新到 GitHub Issue，再通过 /evidence-new 选择 Issue 并创建新快照；不要直接扩写旧工件或手工修改 requirements.md 投影。';
   }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
