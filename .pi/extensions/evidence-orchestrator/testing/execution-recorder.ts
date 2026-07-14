@@ -111,6 +111,7 @@ function assertLockedMaterializedPlan(
     runtime: plan.runtime,
     functional_contexts: plan.functional_contexts,
     technical_boundaries: plan.technical_boundaries,
+    selected_step_ids: plan.selected_step_ids,
     command_variables: plan.command_variables,
     focused_commands: plan.focused_commands,
     quality_gates: plan.quality_gates,
@@ -123,6 +124,7 @@ function assertLockedMaterializedPlan(
     runtime: selection.runtime,
     functional_contexts: selection.functional_contexts,
     technical_boundaries: selection.technical_boundaries,
+    selected_step_ids: selection.selected_step_ids,
     command_variables: selection.command_variables,
     focused_commands: selection.focused_commands,
     quality_gates: process.quality_gates,
@@ -137,7 +139,14 @@ function assertV2ExecutionOrder(
   request: TestExecutionRequest,
   process: ReturnType<typeof readTestProcess>,
   records: TestExecutionRecord[],
+  selectedStepIds?: string[],
 ): void {
+  const steps = selectedStepIds
+    ? process.steps.filter(({ id }) => selectedStepIds.includes(id))
+    : process.steps;
+  if (selectedStepIds && steps.length !== selectedStepIds.length) {
+    throw new Error(`Selected step list drifted for ${request.processId}.`);
+  }
   const processRecords = records.filter(
     ({ process_id }) => process_id === request.processId,
   );
@@ -152,7 +161,7 @@ function assertV2ExecutionOrder(
     ) {
       throw new Error(`Quality gate was already executed: ${request.command}`);
     }
-    const incomplete = process.steps.filter(
+    const incomplete = steps.filter(
       ({ id }) =>
         !processRecords.some(
           ({ step_id, stage, exit_code }) =>
@@ -171,13 +180,13 @@ function assertV2ExecutionOrder(
   if (!request.stepId) {
     throw new Error(`A v2 ${request.stage} execution requires stepId.`);
   }
-  const stepIndex = process.steps.findIndex(({ id }) => id === request.stepId);
+  const stepIndex = steps.findIndex(({ id }) => id === request.stepId);
   if (stepIndex < 0) {
     throw new Error(
       `Test process ${request.processId} does not declare step ${request.stepId}.`,
     );
   }
-  const previous = process.steps[stepIndex - 1];
+  const previous = steps[stepIndex - 1];
   if (
     previous &&
     !processRecords.some(
@@ -259,10 +268,15 @@ export function executeTestStep(
         `Selected test process definition drifted: ${request.processId}.`,
       );
     }
-    const rematerialized = materializeFocusedCommands(
+    const allMaterialized = materializeFocusedCommands(
       process,
       selection.command_variables ?? {},
     );
+    const rematerialized = selection.selected_step_ids
+      ? allMaterialized.filter(({ step_id }) =>
+          selection.selected_step_ids?.includes(step_id),
+        )
+      : allMaterialized;
     const materializedSha256 = materializedProcessSha256(
       request.processId,
       actualHash,
@@ -294,7 +308,12 @@ export function executeTestStep(
         `Command is not the locked focused command for ${request.processId}/${request.stepId ?? 'missing-step'}: ${request.command}`,
       );
     }
-    assertV2ExecutionOrder(request, process, priorRecords);
+    assertV2ExecutionOrder(
+      request,
+      process,
+      priorRecords,
+      selection.selected_step_ids,
+    );
   } else if (!process.quality_gates.includes(request.command)) {
     throw new Error(
       `Command is not declared by selected test process ${request.processId}: ${request.command}`,

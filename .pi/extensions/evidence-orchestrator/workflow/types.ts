@@ -72,6 +72,17 @@ export type ClarificationStoryOutcome =
   | 'deferred';
 export type TestProcessRuntime = 'rust' | 'typescript' | 'tauri';
 export type TestDouble = 'real' | 'fake' | 'stub' | 'spy' | 'mock';
+export type TaskingStage =
+  | 'drafting'
+  | 'desk_check'
+  | 'knowledge_gap'
+  | 'approved';
+export type DeskCheckAction =
+  | 'approve'
+  | 'revise'
+  | 'architecture_gap'
+  | 'process_gap'
+  | 'scenario_gap';
 
 export interface GitHubIssueRequirementSource {
   type: 'github_issue';
@@ -100,6 +111,8 @@ export interface TestProcessSelection {
   process_version?: 1 | 2;
   /** Hash of the immutable snapshotted process definition. */
   definition_sha256?: string;
+  /** Ordered v2 steps applicable to this Scenario's selected capabilities. */
+  selected_step_ids?: string[];
   /** Whitelist inputs retained so commands can be deterministically re-materialized. */
   command_variables?: Record<string, string>;
   /** Whitelist-expanded commands locked before Pairing. */
@@ -114,6 +127,58 @@ export interface TestPlan {
   /** Requires execution records when selected by an Issue-backed iteration. */
   execution_evidence_version?: 1;
   processes: TestProcessSelection[];
+}
+
+export interface TaskingTestItem {
+  id: string;
+  quadrant: 'Q1' | 'Q2';
+  intent: string;
+  runtime_plan_id: string;
+  process_id: string;
+  step_id: string;
+  supported_by: string[];
+  scenario_outcome?: string;
+  business_data: string[];
+}
+
+export interface TaskingImplementationTask {
+  id: string;
+  description: string;
+  test_ids: string[];
+  depends_on: string[];
+}
+
+export interface TaskingCandidate {
+  version: 1;
+  draft_id: string;
+  story_id: string;
+  scenario_id: string;
+  tests: TaskingTestItem[];
+  tasks: TaskingImplementationTask[];
+  processes: TestProcessSelection[];
+  test_list_path: string;
+  task_list_path: string;
+  candidate_path: string;
+  test_list_sha256: string;
+  task_list_sha256: string;
+  candidate_sha256: string;
+  proposed_at: string;
+}
+
+export interface TaskingGap {
+  kind: 'architecture_gap' | 'process_gap';
+  reason: string;
+  recorded_at: string;
+}
+
+export interface DeskCheckDecision {
+  action: DeskCheckAction;
+  reason: string;
+  draft_id?: string;
+  candidate_sha256?: string;
+  decided_by: 'human';
+  artifact_path: string;
+  decided_at: string;
 }
 
 export interface ActiveWorkItem {
@@ -348,6 +413,11 @@ export interface WorkflowState {
   model_change_application?: ModelChangeApplication;
   model_projection?: ModelProjectionRecord;
   model_challenges?: ModelChallengeRecord[];
+  tasking_stage?: TaskingStage;
+  tasking_candidate?: TaskingCandidate;
+  tasking_gap?: TaskingGap;
+  desk_check_decisions?: DeskCheckDecision[];
+  approved_test_plan_path?: string;
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

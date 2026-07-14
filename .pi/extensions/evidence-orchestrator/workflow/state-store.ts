@@ -87,6 +87,19 @@ const MODEL_CHALLENGE_OUTCOMES = new Set([
   'model_gap',
   'method_gap',
 ]);
+const TASKING_STAGES = new Set([
+  'drafting',
+  'desk_check',
+  'knowledge_gap',
+  'approved',
+]);
+const DESK_CHECK_ACTIONS = new Set([
+  'approve',
+  'revise',
+  'architecture_gap',
+  'process_gap',
+  'scenario_gap',
+]);
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
@@ -519,6 +532,81 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   ) {
     throw new Error('The v5 model challenge history is invalid.');
   }
+  const taskingStage =
+    state.tasking_stage ??
+    (workflowVersion === 5 && loop === 'tasking' ? 'drafting' : undefined);
+  const taskingCandidate = state.tasking_candidate;
+  const taskingGap = state.tasking_gap;
+  const deskCheckDecisions = state.desk_check_decisions ?? [];
+  const approvedTestPlanPath = state.approved_test_plan_path;
+  if (
+    workflowVersion === 4 &&
+    (taskingStage !== undefined ||
+      taskingCandidate !== undefined ||
+      taskingGap !== undefined ||
+      deskCheckDecisions.length > 0 ||
+      approvedTestPlanPath !== undefined)
+  ) {
+    throw new Error('A legacy v4 workflow must not declare v5 Tasking data.');
+  }
+  if (taskingStage !== undefined && !TASKING_STAGES.has(taskingStage)) {
+    throw new Error(`Unsupported v5 Tasking stage: ${taskingStage}.`);
+  }
+  if (
+    taskingCandidate &&
+    (taskingCandidate.version !== 1 ||
+      !/^DRAFT-\d{3,}$/.test(taskingCandidate.draft_id) ||
+      !STORY_ID_PATTERN.test(taskingCandidate.story_id) ||
+      !/^SC-\d{3,}$/.test(taskingCandidate.scenario_id) ||
+      !Array.isArray(taskingCandidate.tests) ||
+      taskingCandidate.tests.length === 0 ||
+      !Array.isArray(taskingCandidate.tasks) ||
+      taskingCandidate.tasks.length === 0 ||
+      !Array.isArray(taskingCandidate.processes) ||
+      taskingCandidate.processes.length === 0 ||
+      !isNonEmptyString(taskingCandidate.test_list_path) ||
+      !isNonEmptyString(taskingCandidate.task_list_path) ||
+      !isNonEmptyString(taskingCandidate.candidate_path) ||
+      !isNonEmptyString(taskingCandidate.test_list_sha256) ||
+      !isNonEmptyString(taskingCandidate.task_list_sha256) ||
+      !isNonEmptyString(taskingCandidate.candidate_sha256) ||
+      !isNonEmptyString(taskingCandidate.proposed_at))
+  ) {
+    throw new Error('The v5 Tasking candidate is invalid.');
+  }
+  if (taskingStage === 'desk_check' && !taskingCandidate) {
+    throw new Error('Tasking Desk Check requires a candidate plan.');
+  }
+  if (
+    taskingGap &&
+    (!['architecture_gap', 'process_gap'].includes(taskingGap.kind) ||
+      !isNonEmptyString(taskingGap.reason) ||
+      !isNonEmptyString(taskingGap.recorded_at))
+  ) {
+    throw new Error('The v5 Tasking knowledge gap is invalid.');
+  }
+  if (
+    deskCheckDecisions.some(
+      (decision) =>
+        !DESK_CHECK_ACTIONS.has(decision.action) ||
+        !isNonEmptyString(decision.reason) ||
+        decision.decided_by !== 'human' ||
+        !isNonEmptyString(decision.artifact_path) ||
+        !isNonEmptyString(decision.decided_at),
+    )
+  ) {
+    throw new Error('The v5 Desk Check history is invalid.');
+  }
+  if (
+    taskingStage === 'approved' &&
+    (!isNonEmptyString(approvedTestPlanPath) ||
+      !state.active_work_item ||
+      state.active_work_item.test_plan?.version !== 2)
+  ) {
+    throw new Error(
+      'Approved Tasking requires an immutable v2 test plan and active work item.',
+    );
+  }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
       'An active clarification story is only valid while the workflow is in clarify.',
@@ -719,6 +807,15 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(modelChallenges.length > 0
       ? { model_challenges: modelChallenges }
       : {}),
+    ...(taskingStage ? { tasking_stage: taskingStage } : {}),
+    ...(taskingCandidate ? { tasking_candidate: taskingCandidate } : {}),
+    ...(taskingGap ? { tasking_gap: taskingGap } : {}),
+    ...(deskCheckDecisions.length > 0
+      ? { desk_check_decisions: deskCheckDecisions }
+      : {}),
+    ...(approvedTestPlanPath
+      ? { approved_test_plan_path: approvedTestPlanPath }
+      : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0
       ? { feedback_history: feedbackHistory }
@@ -818,6 +915,23 @@ export function selectWorkItem(
   scenarioId: string,
 ): WorkflowState {
   const state = readState(cwd);
+  const normalizedStoryId = storyId.toUpperCase();
+  const normalizedScenarioId = scenarioId.toUpperCase();
+  if (
+    state.workflow_version === 5 &&
+    state.loop === 'pair' &&
+    state.tasking_stage === 'approved'
+  ) {
+    if (
+      state.active_work_item?.story_id === normalizedStoryId &&
+      state.active_work_item.scenario_id === normalizedScenarioId
+    ) {
+      return state;
+    }
+    throw new Error(
+      'The human-approved v5 work item is immutable during Pair.',
+    );
+  }
   if (state.phase !== 'coding') {
     throw new Error(
       `Cannot select a work item: current phase is ${state.phase}.`,
@@ -830,8 +944,8 @@ export function selectWorkItem(
     throw new Error(`Invalid scenario id: ${scenarioId}. Expected SC-xxx.`);
   }
   const active_work_item: ActiveWorkItem = {
-    story_id: storyId.toUpperCase(),
-    scenario_id: scenarioId.toUpperCase(),
+    story_id: normalizedStoryId,
+    scenario_id: normalizedScenarioId,
     git_baseline: createCodingGitBaseline(cwd),
   };
   return writeState(cwd, { ...state, active_work_item });
@@ -892,6 +1006,7 @@ function lockMaterializedTestPlan(
     runtime: selection.runtime,
     functional_contexts: selection.functional_contexts,
     technical_boundaries: selection.technical_boundaries,
+    selected_step_ids: selection.selected_step_ids,
     command_variables: selection.command_variables,
     focused_commands: selection.focused_commands,
     quality_gates: qualityGates,

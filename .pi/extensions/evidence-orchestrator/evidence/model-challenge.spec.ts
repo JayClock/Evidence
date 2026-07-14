@@ -201,6 +201,7 @@ describe('independent model challenge', () => {
       loop: 'tasking',
       phase: 'architecture',
       modeling_stage: 'challenged',
+      tasking_stage: 'drafting',
     });
     expect(state.model_challenges?.at(-1)).toMatchObject({
       outcome: 'pass',

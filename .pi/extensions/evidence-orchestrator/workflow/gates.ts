@@ -306,6 +306,11 @@ export function validatePhaseCompletion(
       'A v5 model builder cannot complete or approve its own work. Record a structured analysis and wait for the independent model challenge.',
     );
   }
+  if (isV5Workflow(current) && current.loop === 'tasking') {
+    throw new Error(
+      'v5 Tasking cannot be completed by a phase Agent. Only a human /evidence-desk-check approval can lock the test plan and enter Pair.',
+    );
+  }
   if (current.pending_gate) {
     throw new Error(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,

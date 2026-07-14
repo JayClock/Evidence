@@ -28,10 +28,19 @@ describe('v5 knowledge-loop catalog', () => {
       'respond',
       'complete',
     ] as const) {
+      if (state.loop === 'tasking') {
+        state = { ...state, tasking_stage: 'approved' };
+      }
       state = transitionLoopState(state, { to: expected });
       expect(state.loop).toBe(expected);
       expect(state.phase).toBe(compatibilityPhaseForLoop(expected));
     }
+  });
+
+  it('blocks Tasking from entering Pair before human Desk Check approval', () => {
+    expect(() =>
+      transitionLoopState(v5State('tasking'), { to: 'pair' }),
+    ).toThrow('human-approved Desk Check');
   });
 
   it('rejects a forward skip', () => {

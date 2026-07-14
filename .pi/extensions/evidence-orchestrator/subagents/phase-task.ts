@@ -156,6 +156,63 @@ ${extra || '（无）'}
       `v5 modeling stage ${state.modeling_stage ?? 'unset'} cannot run a model task.`,
     );
   }
+  if (isV5Workflow(state) && state.loop === 'tasking') {
+    const scenario = state.confirmed_scenario;
+    if (!scenario || !state.model_expansion_path) {
+      throw new Error(
+        'v5 Tasking requires a confirmed Scenario and model expansion.',
+      );
+    }
+    const gap = state.tasking_gap;
+    return `执行 Evidence Orchestrator v5 Tasking：${scenario.story_id} / ${scenario.scenario_id}。
+
+读取：
+- ${scenario.artifact_path}
+- ${state.model_expansion_path}
+- ${state.model_projection?.context_path ?? '.evidence/model.json'}
+- docs/architecture/context-map.md
+- docs/architecture/module-structure.md
+- docs/architecture/tech-stack.md
+- docs/architecture/test-strategy.md
+- docs/architecture/test-doubles.md
+- contracts/api.yaml
+- engineering/evidence-orchestrator/runtime-contexts.json
+- engineering/evidence-orchestrator/test-processes/
+- engineering/evidence-orchestrator/definition-of-done.md
+- ${artifactRelativePath(state, 'artifacts/04-planning/test-list.md')}（存在时，包含人类修改）
+- ${artifactRelativePath(state, 'artifacts/04-planning/task-list.md')}（存在时）
+
+${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}\n先核对并修正对应的稳定架构或项目级 v2 工序；不得猜选 process，也不得借机重新设计无关架构。` : '复用稳定架构和项目级 v2 测试工序；只有确有架构或工序知识缺失时才修改统一知识。'}
+
+任务：
+1. 先用自然语言列出确认 Scenario、原样业务数据和 Q2 验收意图，再为每个 Q2 配置可定位失败的 Q1 支撑测试。不得从非目标反推测试，不得增加 Scenario 之外的结果或数据。
+2. 将 Workspace、Logical Model、Diagram Projection、Model Proposal 等稳定功能上下文与 runtime、API/ORM/UI/Shell 技术边界分开。一个服务端场景只能选择 Rust 或 Nest。
+3. 用完整能力和技术边界唯一匹配 v2 process；零匹配或多匹配必须由工具路由知识缺口，绝不自行挑选。
+4. 覆盖 process 的全部有序步骤，明确真实边界、被替换边界和替身；使用可安全物化的聚焦测试标识。
+5. 生成按依赖排序的实现任务；每项任务必须追踪至少一个 TEST-xxx，且不得把代码侦察、Scrum 仪式、Sprint Backlog 或无 Scenario 支撑的功能列为交付任务。
+6. 只调用 evidence_orchestrator_propose_tasking。工具会生成 test-list.md、task-list.md 和候选机器计划；调用后立即停止，等待人类 /evidence-desk-check。
+7. 不得写测试代码或生产代码，不得生成 sprint-plan.md、sprint-1-backlog.md、backlog-delta.md，也不得调用 evidence_orchestrator_complete_phase。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+  }
+  if (isV5Workflow(state) && state.loop === 'pair') {
+    if (
+      state.tasking_stage !== 'approved' ||
+      !state.approved_test_plan_path ||
+      !state.active_work_item
+    ) {
+      throw new Error('v5 Pair requires an approved Tasking test plan.');
+    }
+    return `Evidence Orchestrator v5 Pair 已由人工 Desk Check 放行：${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}。
+
+读取 ${state.approved_test_plan_path}，不得读取或生成 sprint-plan.md、sprint-1-backlog.md 或 backlog-delta.md。当前任务只建立 Tasking→Pair 边界，尚未启用交互式 Test/Production Driver；不要写测试或生产代码，不要调用阶段完成工具，立即停止等待 Navigator 启动 Pairing。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+  }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
   const activeWorkItem = state.active_work_item

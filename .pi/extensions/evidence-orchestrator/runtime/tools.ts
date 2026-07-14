@@ -37,6 +37,7 @@ import {
 import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
 import { executeTestStep } from '../testing/execution-recorder';
+import { proposeTaskingDraft } from '../testing/tasking';
 import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
 import { executePreparedPhaseRun } from './phase-execution';
 import {
@@ -218,6 +219,52 @@ const modelChallengeParam = Type.Object({
   summary: Type.String({
     description: 'Concrete business reason for the challenge outcome.',
   }),
+});
+
+const taskingDraftParam = Type.Object({
+  runtimes: Type.Array(
+    Type.Object({
+      id: Type.String({ description: 'Unique RUNTIME-xxx plan id.' }),
+      runtime: Type.String({ enum: ['rust', 'typescript', 'tauri'] }),
+      functionalContexts: Type.Array(
+        Type.String({ description: 'Stable business capability.' }),
+      ),
+      technicalBoundaries: Type.Array(
+        Type.String({ description: 'Independent technical boundary.' }),
+      ),
+      testFilter: Type.String({
+        description: 'Whitelist-safe focused test identifier.',
+      }),
+    }),
+  ),
+  tests: Type.Array(
+    Type.Object({
+      id: Type.String({ description: 'Unique TEST-xxx id.' }),
+      quadrant: Type.String({ enum: ['Q1', 'Q2'] }),
+      intent: Type.String({ description: 'Reviewable behavior intent.' }),
+      runtimePlanId: Type.String({ description: 'Owning RUNTIME-xxx id.' }),
+      stepId: Type.String({ description: 'Exact ordered v2 process step id.' }),
+      supportedBy: Type.Array(
+        Type.String({ description: 'Q1 TEST-xxx supporting a Q2 item.' }),
+      ),
+      scenarioOutcome: Type.Optional(
+        Type.String({ description: 'Exact confirmed Then outcome.' }),
+      ),
+      businessData: Type.Array(
+        Type.String({ description: 'Exact confirmed business datum.' }),
+      ),
+    }),
+  ),
+  tasks: Type.Array(
+    Type.Object({
+      id: Type.String({ description: 'Unique TASK-xxx id.' }),
+      description: Type.String({ description: 'Implementation task intent.' }),
+      testIds: Type.Array(Type.String({ description: 'Linked TEST-xxx id.' })),
+      dependsOn: Type.Array(
+        Type.String({ description: 'Earlier TASK-xxx dependency.' }),
+      ),
+    }),
+  ),
 });
 
 const clarificationQuestionParam = Type.Object({
@@ -720,6 +767,64 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state, challenge },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_propose_tasking',
+    label: 'Propose Evidence Tasking Draft',
+    description:
+      'Generate one reviewable test list, ordered task list, and deterministic v2 process plan for human Desk Check',
+    promptSnippet:
+      'Trace the confirmed Scenario through Q2, Q1, boundaries, process steps, and implementation tasks',
+    promptGuidelines: [
+      'Use only in v5 Tasking after the independent model challenge passes.',
+      'Use exact confirmed Scenario outcomes and business data; non-goals never become tests.',
+      'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
+      'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
+    ],
+    parameters: taskingDraftParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = proposeTaskingDraft(ctx.cwd, {
+        runtimes: params.runtimes.map((runtime) => ({
+          id: runtime.id,
+          runtime: runtime.runtime as 'rust' | 'typescript' | 'tauri',
+          functionalContexts: runtime.functionalContexts,
+          technicalBoundaries: runtime.technicalBoundaries,
+          testFilter: runtime.testFilter,
+        })),
+        tests: params.tests.map((test) => ({
+          id: test.id,
+          quadrant: test.quadrant as 'Q1' | 'Q2',
+          intent: test.intent,
+          runtimePlanId: test.runtimePlanId,
+          stepId: test.stepId,
+          supportedBy: test.supportedBy,
+          ...(test.scenarioOutcome
+            ? { scenarioOutcome: test.scenarioOutcome }
+            : {}),
+          businessData: test.businessData,
+        })),
+        tasks: params.tasks.map((task) => ({
+          id: task.id,
+          description: task.description,
+          testIds: task.testIds,
+          dependsOn: task.dependsOn,
+        })),
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text:
+              state.tasking_stage === 'desk_check'
+                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-desk-check.`
+                : `Tasking stopped at ${state.tasking_gap?.kind}: ${state.tasking_gap?.reason}`,
+          },
+        ],
+        details: { state },
         terminate: true,
       };
     },

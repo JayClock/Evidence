@@ -11,6 +11,7 @@ import {
 import { confirmModelingProfile } from '../evidence/modeling';
 import { decideKickoff } from '../requirements/kickoff';
 import { decideUnderstanding } from '../requirements/scenarios';
+import { decideTasking } from '../testing/tasking';
 import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDriftAsync,
@@ -22,6 +23,7 @@ import { readState } from '../workflow/state-store';
 import type {
   ClarificationStoryOutcome,
   ClarificationStoryOutcomeProposal,
+  DeskCheckAction,
   KickoffDecisionAction,
   ModelingMethod,
   ModelingSubject,
@@ -84,6 +86,13 @@ const SCENARIO_ACTIONS: Record<string, UnderstandingDecisionAction> = {
   split: 'split',
   defer: 'deferred',
   deferred: 'deferred',
+};
+const DESK_CHECK_ACTIONS: Record<string, DeskCheckAction> = {
+  approve: 'approve',
+  revise: 'revise',
+  architecture_gap: 'architecture_gap',
+  process_gap: 'process_gap',
+  scenario_gap: 'scenario_gap',
 };
 
 function parseKickoffDecision(
@@ -247,6 +256,62 @@ function parseModelingProfileDecision(
     modelChangeRequired: rawRequired === 'true',
     reason,
   };
+}
+
+interface DeskCheckDecisionInput {
+  action: DeskCheckAction;
+  reason: string;
+}
+
+function parseDeskCheckDecision(
+  args: string,
+): DeskCheckDecisionInput | undefined {
+  const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = DESK_CHECK_ACTIONS[rawAction.toLowerCase()];
+  if (!action) {
+    throw new Error(
+      'Usage: /evidence-desk-check <approve|revise|architecture_gap|process_gap|scenario_gap> <reason>.',
+    );
+  }
+  const reason = reasonParts.join(' ').trim();
+  if (!reason) throw new Error(`Desk Check ${rawAction} requires a reason.`);
+  return { action, reason };
+}
+
+async function promptDeskCheckDecision(
+  ctx: ExtensionCommandContext,
+): Promise<DeskCheckDecisionInput | undefined> {
+  const candidate = readState(ctx.cwd).tasking_candidate;
+  if (!candidate) throw new Error('No Tasking draft awaits Desk Check.');
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Desk Check requires interactive mode or explicit command arguments.',
+    );
+  }
+  const labels = [
+    '批准并进入 Pair',
+    '修改测试/任务列表',
+    '架构知识缺口',
+    '测试工序缺口',
+    'Scenario 理解缺口',
+  ];
+  const selected = await ctx.ui.select(
+    `${candidate.draft_id} · ${candidate.test_list_path}`,
+    labels,
+  );
+  if (!selected) return undefined;
+  const actions: Record<string, DeskCheckAction> = {
+    批准并进入Pair: 'approve',
+    修改测试任务列表: 'revise',
+    架构知识缺口: 'architecture_gap',
+    测试工序缺口: 'process_gap',
+    Scenario理解缺口: 'scenario_gap',
+  };
+  const action = actions[selected.replace(/[ /]/g, '')];
+  if (!action) return undefined;
+  const reason = (await ctx.ui.input(`请说明“${selected}”的理由`))?.trim();
+  return reason ? { action, reason } : undefined;
 }
 
 async function promptModelingProfileDecision(
@@ -626,6 +691,48 @@ export function registerCommands(pi: ExtensionAPI): void {
           `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
           'info',
         );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-desk-check', {
+    description:
+      'Human-only Tasking decision: approve, revise, architecture_gap, process_gap, or scenario_gap',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseDeskCheckDecision(args) ?? (await promptDeskCheckDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Desk Check cancelled; the Tasking draft is unchanged.',
+            'info',
+          );
+          return;
+        }
+        const state = decideTasking(ctx.cwd, decision.action, decision.reason);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        if (decision.action === 'approve') {
+          ctx.ui.notify(
+            `Human approved ${state.approved_test_plan_path}; Pair is ready for ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+            'info',
+          );
+        } else if (decision.action === 'scenario_gap') {
+          ctx.ui.notify(
+            'Desk Check routed the Scenario gap to Understand TQA.',
+            'info',
+          );
+        } else {
+          ctx.ui.notify(
+            `Desk Check recorded ${decision.action}; run /evidence-run to revise Tasking knowledge and regenerate the plan.`,
+            'info',
+          );
+        }
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),

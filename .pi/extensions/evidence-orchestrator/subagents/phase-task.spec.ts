@@ -148,6 +148,66 @@ describe('phase tasks', () => {
     expect(challengeTask).toContain('不得修改 .evidence');
   });
 
+  it('uses v5 Tasking instead of Scrum planning and waits for Desk Check', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'tasking',
+      phase: 'architecture',
+      understand_stage: 'modeling',
+      confirmed_scenario: {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: 'Create workspace',
+        given: ['No Alpha workspace exists'],
+        when: 'The owner creates Alpha',
+        then: ['Alpha is available'],
+        business_data: ['name=Alpha'],
+        artifact_path: 'examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: 'Smallest value.',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+      modeling_stage: 'challenged',
+      modeling_profile: {
+        version: 1,
+        subject: 'domain',
+        method: 'object',
+        model_change_required: false,
+        reason: 'Existing model.',
+        confirmed_by: 'human',
+        confirmed_at: '2026-01-01T00:01:00.000Z',
+      },
+      model_expansion_path: 'expansions/US-001-SC-001.json',
+      model_git_baseline: 'abc123',
+      model_challenges: [
+        {
+          version: 1,
+          requested_outcome: 'pass',
+          outcome: 'pass',
+          summary: 'Model passes.',
+          checked_regression_ids: ['REG-001'],
+          projection_sha256: 'projection',
+          artifact_path: 'challenges/CHALLENGE-001.json',
+          challenged_by: 'model-challenger',
+          challenged_at: '2026-01-01T00:02:00.000Z',
+        },
+      ],
+      tasking_stage: 'drafting',
+    });
+
+    const task = buildPhaseTask(cwd);
+
+    expect(task).toContain('evidence_orchestrator_propose_tasking');
+    expect(task).toContain('/evidence-desk-check');
+    expect(task).toContain('不得从非目标反推测试');
+    expect(task).toContain('不得生成 sprint-plan.md');
+    expect(task).toContain('不得调用 evidence_orchestrator_complete_phase');
+  });
+
   it('scopes clarification work to the selected story', () => {
     const cwd = workspace();
     writeState(cwd, {

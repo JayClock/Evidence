@@ -109,7 +109,16 @@ export function statusMarkdown(cwd: string): string {
       ? 'legacy v4 · read-only'
       : 'legacy v4 active — complete or halt before starting v5; in-place migration is disabled';
   const allowedActions = v5
-    ? allowedLoopActions(state.loop).join(', ') || 'none'
+    ? state.loop === 'tasking' && state.tasking_stage !== 'approved'
+      ? [
+          ...allowedLoopActions(state.loop).filter(
+            (action) => action !== 'advance:pair',
+          ),
+          ...(state.tasking_stage === 'desk_check'
+            ? ['human:/evidence-desk-check']
+            : []),
+        ].join(', ') || 'none'
+      : allowedLoopActions(state.loop).join(', ') || 'none'
     : 'legacy phase controls only';
   return [
     `# Evidence Orchestrator Status`,
@@ -136,6 +145,10 @@ export function statusMarkdown(cwd: string): string {
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,
     `| Model Change Proposal | ${state.model_change_proposal?.artifact_path ?? 'none'} |`,
     `| Latest Model Challenge | ${latestModelChallenge} |`,
+    `| Tasking Stage | ${state.tasking_stage ?? 'none'} |`,
+    `| Tasking Draft | ${state.tasking_candidate ? `${state.tasking_candidate.draft_id} · ${state.tasking_candidate.test_list_path}` : 'none'} |`,
+    `| Tasking Gap | ${state.tasking_gap ? `${state.tasking_gap.kind} · ${state.tasking_gap.reason}` : 'none'} |`,
+    `| Approved Test Plan | ${state.approved_test_plan_path ?? 'none'} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

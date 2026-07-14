@@ -158,10 +158,22 @@ export function transitionLoopState(
       `Invalid v5 workflow transition: ${from} -> ${request.to}. Allowed next action: ${FORWARD_LOOP[from] ?? 'none'}.`,
     );
   }
+  if (
+    from === 'tasking' &&
+    request.to === 'pair' &&
+    state.tasking_stage !== 'approved'
+  ) {
+    throw new Error(
+      'Tasking cannot enter Pair before a human-approved Desk Check.',
+    );
+  }
 
   return {
     ...state,
     loop: request.to,
+    ...(request.to === 'tasking' && from !== 'tasking'
+      ? { tasking_stage: 'drafting' as const }
+      : {}),
     phase: compatibilityPhaseForLoop(request.to),
     round: 0,
     ...(recordedFeedback

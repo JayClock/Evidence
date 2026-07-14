@@ -34,6 +34,7 @@ export class PhaseRunBlockedError extends Error {
       | 'clarification'
       | 'scenario_decision'
       | 'modeling_profile'
+      | 'desk_check'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -153,6 +154,17 @@ export function preparePhaseRun(
   ) {
     current = prepareModelProjection(cwd);
   }
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'tasking' &&
+    current.tasking_stage === 'desk_check' &&
+    current.tasking_candidate
+  ) {
+    throw new PhaseRunBlockedError(
+      'desk_check',
+      `Tasking draft ${current.tasking_candidate.draft_id} awaits a human decision. Review ${current.tasking_candidate.test_list_path} and run /evidence-desk-check.`,
+    );
+  }
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
     throw new PhaseRunBlockedError(
@@ -230,9 +242,47 @@ export function preparePhaseRun(
               : []),
           ]
         : undefined;
+  const v5TaskingInputs =
+    current.workflow_version === 5 && current.loop === 'tasking'
+      ? [
+          current.confirmed_scenario?.artifact_path ??
+            'artifacts/01-requirements/examples/missing.md',
+          current.model_expansion_path ??
+            'artifacts/02-domain-model/model-expansions/missing.json',
+          'docs/architecture/context-map.md',
+          'docs/architecture/module-structure.md',
+          'docs/architecture/tech-stack.md',
+          'docs/architecture/test-strategy.md',
+          'docs/architecture/test-doubles.md',
+          'contracts/api.yaml',
+          'engineering/evidence-orchestrator/runtime-contexts.json',
+          'engineering/evidence-orchestrator/test-processes/',
+          'engineering/evidence-orchestrator/definition-of-done.md',
+        ]
+      : undefined;
+  const v5PairInputs =
+    current.workflow_version === 5 && current.loop === 'pair'
+      ? [
+          current.confirmed_scenario?.artifact_path ??
+            'artifacts/01-requirements/examples/missing.md',
+          current.model_expansion_path ??
+            'artifacts/02-domain-model/model-expansions/missing.json',
+          current.approved_test_plan_path ??
+            'artifacts/04-planning/test-plan.json',
+          ...(current.active_work_item?.test_plan?.processes.map(
+            ({ path }) => path,
+          ) ?? []),
+          'engineering/evidence-orchestrator/definition-of-done.md',
+        ]
+      : undefined;
   const missingInputs = missingPaths(
     cwd,
-    (v5UnderstandInputs ?? PHASE_META[current.phase].inputs).map((path) =>
+    (
+      v5UnderstandInputs ??
+      v5TaskingInputs ??
+      v5PairInputs ??
+      PHASE_META[current.phase].inputs
+    ).map((path) =>
       path.startsWith(`artifacts/iterations/${current.iteration_id}/`)
         ? path
         : artifactRelativePath(current, path),
