@@ -39,6 +39,6 @@ graph TD
 
 ## 架构变更规则
 
-- 场景若符合现有架构，iteration 的 `architecture-decisions.md` 明确记录“无新架构决策”。
-- 新决策先以 iteration ADR 形式评审；只有跨 Feature 稳定适用时才提升到本目录。
+- 场景若符合现有架构，只在 `04-design/delivery-plan.md` 引用适用规则；不创建“无变化”架构占位文档。
+- 新决策先在当前 delivery plan 中说明问题、选择与影响；只有跨 Feature 稳定适用时才提升到本目录。
 - 运行时契约事实优先由源码、OpenAPI、migration 和测试表达，Markdown 不得成为重复真相源。

@@ -9,4 +9,4 @@
 
 两者均为**归档参考**，不是当前 Orchestrator 流程正确性或产品完成状态的证据。不得用新模板回填、修正或继续执行这些目录。
 
-新的 iteration 由显式 GitHub Issue 创建，并使用创建时生效的工作流与 Schema。`evidence-state.json` 中的 complete bootstrap 状态仅用于表示当前没有进行中的旧 iteration；后续破坏性工作流版本不会为这些归档提供兼容读取路径。
+新的 iteration 由显式 GitHub Issue 创建，并使用创建时生效的工作流与 Schema。`evidence-state.json` 使用 `idle` 表示当前没有 iteration；v2 不读取或迁移这些 bootstrap 目录中的旧状态与旧工件布局。

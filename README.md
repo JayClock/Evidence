@@ -143,104 +143,76 @@ Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。它是维
 ```mermaid
 flowchart LR
   I[GitHub Issue] --> S[冻结快照]
-  S --> F[Frame]
-  F --> C[Clarify]
-  C --> E[Specify]
-  E --> V[Validate]
-  V --> D[Domain Model]
-  D --> A[Architecture]
-  A --> P[Planning]
-  P --> T[Coding]
-  T --> R[Review]
-  R --> L[Learn]
+  S --> K[Kickoff]
+  K --> D[Discover: TQA + Examples]
+  D --> M[Model: Expand + Check]
+  M --> DD[Delivery Design]
+  DD --> B[Build: TDD]
+  B --> SH[Showcase]
+  SH --> L[Learn]
   L --> X[Complete]
 ```
 
-| 阶段           | 目标                                     | 关键输出                                     | 默认 Gate  |
-| :------------- | :--------------------------------------- | :------------------------------------------- | :--------: |
-| `frame`        | 以用户角色、需求和价值界定本轮问题       | 问题陈述、旅程切片、故事地图增量、候选故事卡 |    auto    |
-| `clarify`      | 单故事 TQA，AI 提议、人类定案            | TQA 问答、AI 建议、人工确认的故事结论        |    auto    |
-| `specify`      | 将故事转换为可观察的验收示例             | Given / When / Then `SC-xxx`                 |    auto    |
-| `validate`     | 检查故事与示例是否可进入建模             | Ready / 需澄清 / 需拆分验证报告              | **review** |
-| `domain_model` | 用就绪场景验证并演进权威领域模型         | 模型快照、delta、场景展开、战术设计          | **review** |
-| `architecture` | 映射运行时、架构增量、契约和测试策略     | 架构决策、API / data delta、场景上下文映射   | **review** |
-| `planning`     | 规划一个最小可验证的垂直场景             | Sprint 计划、场景 backlog、追踪链            |    auto    |
-| `coding`       | 通过 Red → Green → Refactor 实现一个场景 | 测试、生产代码、机器执行证据                 |    auto    |
-| `review`       | 独立验证用户价值、架构、测试与 DoD       | Critical / Major / Minor 评审报告            | **review** |
-| `learn`        | 处理反馈并形成下一轮输入                 | 迭代总结、知识提升决策、下一轮建议           |    auto    |
+| 阶段       | 目标                                       | 关键输出                                 | 人工反馈 |
+| :--------- | :----------------------------------------- | :--------------------------------------- | :------: |
+| `kickoff`  | 选择一个现在值得解决的问题并固定唯一 Story | `kickoff.md`、`story.md`                 | **Gate** |
+| `discover` | 用 TQA 提取隐性知识并以具体示例确认        | TQA、discovery、Given/When/Then          |  对话内  |
+| `model`    | 展开场景、寻找反例并最小演进权威模型       | snapshot、delta、expansions、walkthrough | **Gate** |
+| `design`   | 将一个场景映射到运行时、上下文、测试与工序 | delivery plan、scenario context map      |   auto   |
+| `build`    | 以有语义的 Red → Green → Refactor 实现场景 | 测试、生产代码、`*.execution.jsonl`      |   auto   |
+| `showcase` | 展示可运行增量并检查价值、模型与质量       | `showcase.md`                            | **Gate** |
+| `learn`    | 将反馈转为权威知识变化或一个后续问题       | Probe/Sense/Respond、promotion、Issue    |   auto   |
 
-默认状态配置位于 `evidence-state.json`；阶段顺序以及硬性输入 / 输出规则位于 `.pi/extensions/evidence-orchestrator/workflow/phase-catalog.ts`。
+一个 iteration 只有一张 Story；Build 只有一个 active Scenario。`clarify/specify/validate` 已合并为 Discover，`architecture/planning` 已合并为 Design。旧 phase、旧状态字段和旧 artifact layout 不提供兼容迁移。
 
-阶段检查失败时，Orchestrator 会保存反馈并增加重试轮次；达到 `max_rounds` 后创建 Emergency Gate。Gate 支持三种决策：
-
-- `approve`：通过并进入下一阶段；
-- `revise`：携带审核反馈回到原阶段；
-- `reject`：停止当前 iteration。
+确定性检查失败时，Orchestrator 保存反馈并重试；达到 `max_rounds` 才创建 Emergency Gate。常规人工反馈只出现在 Kickoff、Model walkthrough/desk check 和 Showcase。Gate 决策必须显式为 `approve`、`revise` 或 `reject`。
 
 ### 知识与证据位置
 
-| 内容       | 权威来源                                                  | Iteration 中的记录                                 |
-| :--------- | :-------------------------------------------------------- | :------------------------------------------------- |
-| 需求请求   | GitHub Issue / Projects                                   | `issue.json` 冻结快照与只读 `requirements.md` 投影 |
-| 产品知识   | `docs/product/`                                           | 问题陈述、旅程切片、产品与故事地图 delta           |
-| 领域模型   | `.evidence/`                                              | Git 快照、模型 delta、场景展开和验证报告           |
-| 架构       | `docs/architecture/`                                      | 场景相关决策与上下文映射                           |
-| API 契约   | `contracts/api.yaml`                                      | API contract delta                                 |
-| 数据模型   | Migration、Prisma schema、SeaORM entity                   | Data model delta                                   |
-| 测试工序   | `engineering/evidence-orchestrator/test-processes/`       | 当前场景选定的工序快照                             |
-| 完成定义   | `engineering/evidence-orchestrator/definition-of-done.md` | Git 版本与场景附加条件                             |
-| 执行与反馈 | `artifacts/iterations/ITER-xxxx/`                         | 输入、决策、Gate、命令证据和学习结果               |
+| 内容       | 权威来源                                                  | Iteration 中的记录                                  |
+| :--------- | :-------------------------------------------------------- | :-------------------------------------------------- |
+| 需求请求   | GitHub Issue / Projects                                   | `00-input/issue.json` 与只读需求投影                |
+| 产品知识   | `docs/product/`                                           | Kickoff/Discover 中候选产品知识                     |
+| 领域模型   | `.evidence/`                                              | `03-model/` 中 Git 快照、delta、展开与检查          |
+| 架构       | `docs/architecture/`                                      | `04-design/delivery-plan.md` 中确有必要的场景增量   |
+| API 契约   | `contracts/api.yaml`                                      | 实际契约变化及其源码引用                            |
+| 测试工序   | `engineering/evidence-orchestrator/test-processes/`       | `04-design/selected-test-processes/` 不可变快照     |
+| 完成定义   | `engineering/evidence-orchestrator/definition-of-done.md` | 场景特有完成条件                                    |
+| 执行与反馈 | `artifacts/iterations/ITER-xxxx/`                         | TQA、模型检查、设计、JSONL 执行事实、Showcase、学习 |
 
-候选知识经场景验证、Review 和 Learn 确认后，才会更新对应权威来源；历史 iteration 不覆盖。
+稳定知识只有经过示例、模型展开、可运行软件和 Showcase 反馈后才提升到权威来源。命令事实只以 `*.execution.jsonl` 保存一次；Markdown 报告引用它，不复制退出码和哈希。
 
-### Clarify 规则
+### TQA 与 Build 规则
 
-- Frame 为候选 P0 / P1 生成 `US-xxx.md` 故事卡；
-- 人类通过 `/evidence-story` 选择当前故事，Orchestrator 不代替用户选择；
-- 一次只处理一张故事卡和一个非技术业务问题；
-- 领域专家直接在当前对话回答，答案被记录后继续同一故事；
-- AI 只能提出 `clarified`、`needs_split` 或 `deferred` 建议，不能结束或释放故事；
-- 领域专家通过 `/evidence-story-complete` 确认建议、覆盖最终结论或要求继续澄清；
-- 可随时切换到另一张未完成 Story；当前问题或建议按 Story 暂停并在切回时恢复，但所有 Story 未定案前不能进入下一阶段。
+- Kickoff 直接创建唯一 `01-kickoff/story.md`，不生成候选 Story 队列或 Story picker。
+- Discover 每次先记录一个 Thought，再提出一个高价值、非技术 Question，并立即等待领域专家明确 Answer。
+- 没有关键未知后，Discover 为唯一 Story 形成至少一个具体 Given/When/Then。
+- Design 只选择一个已展开 Scenario，并为每个 owning runtime 唯一匹配测试工序。
+- Build 先选择 `US-xxx / SC-xxx` 并记录干净 Git baseline，再执行 Red、Green、Refactor 与质量门禁。
+- Red 必须由预期业务断言失败造成；依赖、编译、配置或环境错误不算 Red。
+- 同时提交真实测试和生产代码，并保持 `SC → Q2 → contexts → Q1 → test double → process → code` 追踪。
 
-### Coding 规则
-
-Coding 一次只实现一个 `US-xxx / SC-xxx`：
-
-1. 选择工作项并记录修改前 Git baseline；
-2. 根据 Architecture 声明的 runtime 与 functional contexts 匹配测试工序；
-3. 每个适用 runtime 必须唯一匹配一个 `test-processes/*.json`；
-4. 使用工序声明的精确命令执行 Red、Green、Refactor 和全部 quality gates；
-5. 记录退出码、stdout / stderr 哈希和 Git 工作树哈希；
-6. 同时提交真实测试文件和生产代码改动；
-7. 通过 `SC-xxx → Q2 → functional contexts → Q1 → test double → test process → code` 完成追踪。
-
-Rust 与 Nest 是互斥的服务端实现轨道：同一个服务端能力只能选择其中一个。Web 与 Desktop 可以组成同一垂直场景，但必须共享 REST 与领域语义。
+Rust 与 Nest 是互斥的服务端实现轨道；Web 与 Desktop 可以组成同一垂直场景，但共享 REST 与领域语义。
 
 ### 在 Pi 中使用
 
 前置条件：已在仓库根目录启动 Pi，且 `gh auth status` 能访问当前 GitHub 仓库。
 
 ```text
-/evidence-new                         # 选择/创建 Issue、冻结快照并执行 Frame
-/evidence-status                      # 查看阶段、Gate、故事、工件和代码状态
+/evidence-new                         # 选择/创建 Issue、冻结快照并执行 Kickoff
+/evidence-status                      # 查看反馈循环、Gate、TQA、工件和代码状态
 /evidence-run --dry-run               # 预览当前阶段任务
 /evidence-run                         # 执行当前阶段
-/evidence-story                       # 在 Clarify 中人工选择一张故事卡
-/evidence-story US-001                # 显式选择故事并执行 Clarify
-/evidence-story-complete               # 人工确认、覆盖或拒绝 AI 的 Story 建议
-/evidence-story-complete confirm       # 确认当前建议
-/evidence-story-complete continue <原因> # 拒绝建议并继续澄清
 /evidence-run --story=US-001 --scenario=SC-001
-                                      # 在 Coding 中选择唯一工作项并执行
+                                      # 在 Build 中选择唯一场景并执行
 /evidence-issue-status                # 检查远端 Issue 与快照是否偏离
-/evidence-issue-sync                  # 仅在 Frame 中显式刷新快照
-/evidence-gate approve <说明>         # 通过
-/evidence-gate revise <说明>          # 返回修改
-/evidence-gate reject <说明>          # 停止迭代
+/evidence-issue-sync                  # 仅在 Kickoff 中显式刷新快照
+/evidence-gate approve <说明>         # 通过人工反馈点
+/evidence-gate revise <说明>          # 携带反馈返回修改
+/evidence-gate reject <说明>          # 停止 iteration
 ```
 
-Issue 是本轮需求权威来源。只有仍在 Frame 时才能刷新快照；后续阶段若需求变化，应创建新 iteration，避免破坏 Story、Scenario 和模型展开的输入基线。
+Issue 是本轮需求权威来源。只有 Kickoff 期间可以刷新快照；之后需求变化必须创建新 iteration。
 
 ### Orchestrator 验证
 
