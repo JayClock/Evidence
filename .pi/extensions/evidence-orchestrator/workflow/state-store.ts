@@ -100,6 +100,16 @@ const DESK_CHECK_ACTIONS = new Set([
   'process_gap',
   'scenario_gap',
 ]);
+const PAIR_CHECKPOINTS = new Set([
+  'plan_confirmed',
+  'test_written',
+  'red_observed',
+  'implementation_written',
+  'green_observed',
+  'refactored',
+  'quality_gate_failed',
+  'quality_gates_passed',
+]);
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
@@ -539,13 +549,15 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   const taskingGap = state.tasking_gap;
   const deskCheckDecisions = state.desk_check_decisions ?? [];
   const approvedTestPlanPath = state.approved_test_plan_path;
+  const pairSession = state.pair_session;
   if (
     workflowVersion === 4 &&
     (taskingStage !== undefined ||
       taskingCandidate !== undefined ||
       taskingGap !== undefined ||
       deskCheckDecisions.length > 0 ||
-      approvedTestPlanPath !== undefined)
+      approvedTestPlanPath !== undefined ||
+      pairSession !== undefined)
   ) {
     throw new Error('A legacy v4 workflow must not declare v5 Tasking data.');
   }
@@ -606,6 +618,40 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     throw new Error(
       'Approved Tasking requires an immutable v2 test plan and active work item.',
     );
+  }
+  if (
+    pairSession &&
+    (pairSession.version !== 1 ||
+      !STORY_ID_PATTERN.test(pairSession.story_id) ||
+      !/^SC-\d{3,}$/.test(pairSession.scenario_id) ||
+      !isNonEmptyString(pairSession.git_baseline) ||
+      !PAIR_CHECKPOINTS.has(pairSession.checkpoint) ||
+      !isNonEmptyString(pairSession.process_id) ||
+      !isNonEmptyString(pairSession.step_id) ||
+      !Array.isArray(pairSession.completed_step_ids) ||
+      !Array.isArray(pairSession.test_paths) ||
+      !Array.isArray(pairSession.production_paths) ||
+      !isNonEmptyString(pairSession.expected_red) ||
+      !Number.isInteger(pairSession.quality_gate_index) ||
+      pairSession.quality_gate_index < 0 ||
+      !Array.isArray(pairSession.feedback) ||
+      !Array.isArray(pairSession.driver_history))
+  ) {
+    throw new Error('The v5 Pair session is invalid.');
+  }
+  if (
+    pairSession &&
+    (!state.active_work_item ||
+      pairSession.story_id !== state.active_work_item.story_id ||
+      pairSession.scenario_id !== state.active_work_item.scenario_id ||
+      pairSession.git_baseline !== state.active_work_item.git_baseline)
+  ) {
+    throw new Error(
+      'The Pair session must retain its approved work item baseline.',
+    );
+  }
+  if (taskingStage === 'approved' && loop === 'pair' && !pairSession) {
+    throw new Error('An approved v5 Pair loop requires a Pair session.');
   }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
@@ -816,6 +862,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(approvedTestPlanPath
       ? { approved_test_plan_path: approvedTestPlanPath }
       : {}),
+    ...(pairSession ? { pair_session: pairSession } : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0
       ? { feedback_history: feedbackHistory }

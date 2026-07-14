@@ -7,6 +7,12 @@ import {
   phaseSpecificInstructions,
 } from '../workflow/phase-catalog';
 import { readState } from '../workflow/state-store';
+import {
+  buildPairDriverTask,
+  pairDeterministicAction,
+  pairDriverMode,
+  pairNextInstruction,
+} from '../testing/pairing';
 import type { Phase } from '../workflow/types';
 
 export function buildPhaseTask(
@@ -201,17 +207,18 @@ ${extra || '（无）'}
     if (
       state.tasking_stage !== 'approved' ||
       !state.approved_test_plan_path ||
-      !state.active_work_item
+      !state.active_work_item ||
+      !state.pair_session
     ) {
       throw new Error('v5 Pair requires an approved Tasking test plan.');
     }
-    return `Evidence Orchestrator v5 Pair 已由人工 Desk Check 放行：${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}。
-
-读取 ${state.approved_test_plan_path}，不得读取或生成 sprint-plan.md、sprint-1-backlog.md 或 backlog-delta.md。当前任务只建立 Tasking→Pair 边界，尚未启用交互式 Test/Production Driver；不要写测试或生产代码，不要调用阶段完成工具，立即停止等待 Navigator 启动 Pairing。
-
-额外用户指令：
-${extra || '（无）'}
-`;
+    const mode = pairDriverMode(state);
+    if (mode) return buildPairDriverTask(cwd, state, mode);
+    const action = pairDeterministicAction(cwd, state);
+    if (action) {
+      return `执行 Evidence Orchestrator v5 Pair 的一个确定性 checkpoint：${action}。只运行当前锁定的 focused command 或下一条最终 quality gate，记录真实结果后立即停止；不得启动 Driver、修改代码或连续推进第二个 checkpoint。`;
+    }
+    return `Evidence Orchestrator v5 Pair 暂停于 ${state.pair_session.checkpoint}。下一选择：${pairNextInstruction(state)}。不得自动继续或调用旧 Coder。`;
   }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);

@@ -274,7 +274,7 @@ describe('v5 Tasking and Desk Check', () => {
       ),
     ).toBe(true);
     expect(buildPhaseTask(cwd)).toContain(
-      '尚未启用交互式 Test/Production Driver',
+      '一个且仅一个 Test Driver checkpoint',
     );
     expect(buildPhaseTask(cwd)).not.toContain(
       'evidence_orchestrator_select_test_process',

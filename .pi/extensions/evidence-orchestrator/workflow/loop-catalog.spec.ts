@@ -31,6 +31,27 @@ describe('v5 knowledge-loop catalog', () => {
       if (state.loop === 'tasking') {
         state = { ...state, tasking_stage: 'approved' };
       }
+      if (state.loop === 'pair') {
+        state = {
+          ...state,
+          pair_session: {
+            version: 1,
+            story_id: 'US-001',
+            scenario_id: 'SC-001',
+            git_baseline: 'baseline',
+            checkpoint: 'quality_gates_passed',
+            process_id: 'process',
+            step_id: 'step',
+            completed_step_ids: ['process/step'],
+            test_paths: ['tests/example.test.ts'],
+            production_paths: ['src/example.ts'],
+            expected_red: 'Behavior is absent.',
+            quality_gate_index: 1,
+            feedback: [],
+            driver_history: [],
+          },
+        };
+      }
       state = transitionLoopState(state, { to: expected });
       expect(state.loop).toBe(expected);
       expect(state.phase).toBe(compatibilityPhaseForLoop(expected));
@@ -41,6 +62,12 @@ describe('v5 knowledge-loop catalog', () => {
     expect(() =>
       transitionLoopState(v5State('tasking'), { to: 'pair' }),
     ).toThrow('human-approved Desk Check');
+  });
+
+  it('blocks Pair from entering Showcase before final quality gates pass', () => {
+    expect(() =>
+      transitionLoopState(v5State('pair'), { to: 'showcase' }),
+    ).toThrow('every final quality gate passes');
   });
 
   it('rejects a forward skip', () => {

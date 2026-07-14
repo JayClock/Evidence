@@ -83,6 +83,29 @@ export type DeskCheckAction =
   | 'architecture_gap'
   | 'process_gap'
   | 'scenario_gap';
+export type PairCheckpoint =
+  | 'plan_confirmed'
+  | 'test_written'
+  | 'red_observed'
+  | 'implementation_written'
+  | 'green_observed'
+  | 'refactored'
+  | 'quality_gate_failed'
+  | 'quality_gates_passed';
+export type PairDriverMode = 'test' | 'implementation' | 'refactor';
+export type PairDeterministicAction =
+  | 'run_red'
+  | 'run_green'
+  | 'run_refactor'
+  | 'run_quality_gate';
+export type RedFailureKind =
+  | 'behavior'
+  | 'compile'
+  | 'dependency'
+  | 'configuration'
+  | 'network'
+  | 'fixture'
+  | 'other';
 
 export interface GitHubIssueRequirementSource {
   type: 'github_issue';
@@ -179,6 +202,62 @@ export interface DeskCheckDecision {
   decided_by: 'human';
   artifact_path: string;
   decided_at: string;
+}
+
+export interface PairObservation {
+  process_id: string;
+  step_id?: string;
+  stage: 'red' | 'green' | 'refactor' | 'quality_gate';
+  command: string;
+  sequence: number;
+  exit_code: number;
+  expected_failure: boolean;
+  accepted?: boolean;
+  failure_kind?: RedFailureKind;
+  review_reason?: string;
+  reviewed_at?: string;
+}
+
+export interface PairFeedbackRecord {
+  action:
+    | 'back_test'
+    | 'back_implementation'
+    | 'back_tasking'
+    | 'reject_red'
+    | 'retry_quality'
+    | 'driver_blocked';
+  reason: string;
+  decided_by: 'human' | 'system';
+  recorded_at: string;
+}
+
+export interface PairDriverRecord {
+  mode: PairDriverMode;
+  process_id: string;
+  step_id: string;
+  changed_paths: string[];
+  diff_sha256: string;
+  summary: string;
+  completed_at: string;
+}
+
+export interface PairSession {
+  version: 1;
+  story_id: string;
+  scenario_id: string;
+  git_baseline: string;
+  checkpoint: PairCheckpoint;
+  process_id: string;
+  step_id: string;
+  completed_step_ids: string[];
+  test_paths: string[];
+  production_paths: string[];
+  expected_red: string;
+  red_observation?: PairObservation;
+  last_observation?: PairObservation;
+  quality_gate_index: number;
+  feedback: PairFeedbackRecord[];
+  driver_history: PairDriverRecord[];
 }
 
 export interface ActiveWorkItem {
@@ -418,6 +497,7 @@ export interface WorkflowState {
   tasking_gap?: TaskingGap;
   desk_check_decisions?: DeskCheckDecision[];
   approved_test_plan_path?: string;
+  pair_session?: PairSession;
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

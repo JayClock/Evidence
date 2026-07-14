@@ -1,6 +1,11 @@
 import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
 import { prepareModelProjection } from '../evidence/model-projection';
 import {
+  pairDeterministicAction,
+  pairDriverMode,
+  pairNextInstruction,
+} from '../testing/pairing';
+import {
   clarificationStoryIds,
   selectClarificationStory,
   unresolvedClarificationStoryIds,
@@ -16,7 +21,11 @@ import {
 } from '../workflow/iteration-paths';
 import { PHASE_META } from '../workflow/phase-catalog';
 import { readState, selectWorkItem } from '../workflow/state-store';
-import type { Phase, WorkflowState } from '../workflow/types';
+import type {
+  PairDeterministicAction,
+  Phase,
+  WorkflowState,
+} from '../workflow/types';
 import { buildPhaseTask } from '../subagents/phase-task';
 
 export interface PhaseRunRequest {
@@ -35,6 +44,7 @@ export class PhaseRunBlockedError extends Error {
       | 'scenario_decision'
       | 'modeling_profile'
       | 'desk_check'
+      | 'pair_navigation'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -48,6 +58,7 @@ export interface PreparedPhaseRun {
   state: WorkflowState;
   phase: Exclude<Phase, 'complete'>;
   agentName?: string;
+  pairAction?: PairDeterministicAction;
   task: string;
 }
 
@@ -165,6 +176,20 @@ export function preparePhaseRun(
       `Tasking draft ${current.tasking_candidate.draft_id} awaits a human decision. Review ${current.tasking_candidate.test_list_path} and run /evidence-desk-check.`,
     );
   }
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'pair' &&
+    current.pair_session &&
+    ((current.pair_session.checkpoint === 'red_observed' &&
+      current.pair_session.red_observation?.accepted !== true) ||
+      current.pair_session.checkpoint === 'quality_gate_failed' ||
+      current.pair_session.checkpoint === 'quality_gates_passed')
+  ) {
+    throw new PhaseRunBlockedError(
+      'pair_navigation',
+      `Pair is paused at ${current.pair_session.checkpoint}. ${pairNextInstruction(current)}.`,
+    );
+  }
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
     throw new PhaseRunBlockedError(
@@ -267,6 +292,10 @@ export function preparePhaseRun(
             'artifacts/01-requirements/examples/missing.md',
           current.model_expansion_path ??
             'artifacts/02-domain-model/model-expansions/missing.json',
+          current.tasking_candidate?.test_list_path ??
+            'artifacts/04-planning/test-list.md',
+          current.tasking_candidate?.task_list_path ??
+            'artifacts/04-planning/task-list.md',
           current.approved_test_plan_path ??
             'artifacts/04-planning/test-plan.json',
           ...(current.active_work_item?.test_plan?.processes.map(
@@ -293,13 +322,27 @@ export function preparePhaseRun(
       `Cannot run ${current.phase}: missing inputs: ${missingInputs.join(', ')}.`,
     );
   }
+  const pairMode =
+    current.workflow_version === 5 && current.loop === 'pair'
+      ? pairDriverMode(current)
+      : undefined;
+  const pairAction =
+    current.workflow_version === 5 && current.loop === 'pair'
+      ? pairDeterministicAction(cwd, current)
+      : undefined;
   return {
     state: current,
     phase: current.phase,
     ...(current.workflow_version === 5 &&
     current.modeling_stage === 'candidate_ready'
       ? { agentName: 'model-challenger' }
-      : {}),
+      : pairMode
+        ? {
+            agentName:
+              pairMode === 'test' ? 'test-driver' : 'production-driver',
+          }
+        : {}),
+    ...(pairAction ? { pairAction } : {}),
     task,
   };
 }

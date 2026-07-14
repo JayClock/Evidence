@@ -54,6 +54,26 @@ describe('phase subagents', () => {
     );
   });
 
+  it('loads short-lived Pair Drivers without test-execution or phase-completion tools', () => {
+    const testDriver = loadPhaseAgent(process.cwd(), 'coding', 'test-driver');
+    const productionDriver = loadPhaseAgent(
+      process.cwd(),
+      'coding',
+      'production-driver',
+    );
+
+    expect(testDriver.name).toBe('test-driver');
+    expect(productionDriver.name).toBe('production-driver');
+    for (const driver of [testDriver, productionDriver]) {
+      expect(driver.tools).not.toEqual(
+        expect.arrayContaining([
+          'evidence_orchestrator_run_test_step',
+          'evidence_orchestrator_complete_phase',
+        ]),
+      );
+    }
+  });
+
   it('loads the phase role, model, thinking level, and tools from one agent definition', () => {
     const cwd = workspace();
     write(

@@ -152,6 +152,7 @@ describe('commands', () => {
         'evidence-scenario',
         'evidence-modeling-profile',
         'evidence-desk-check',
+        'evidence-pair',
         'evidence-gate',
         'evidence-story',
         'evidence-story-complete',

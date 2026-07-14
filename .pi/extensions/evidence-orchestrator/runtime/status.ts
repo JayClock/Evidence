@@ -9,6 +9,7 @@ import {
   allPendingClarifications,
 } from '../requirements/clarifications';
 import { isGateAnswered } from '../workflow/gates';
+import { pairDriverMode, pairNextInstruction } from '../testing/pairing';
 import { iterationRoot } from '../workflow/iteration-paths';
 import { allowedLoopActions, isV5Workflow } from '../workflow/loop-catalog';
 import { readState } from '../workflow/state-store';
@@ -27,18 +28,27 @@ export function statusMarkdown(cwd: string): string {
   const codeFiles = collectCodeFiles(cwd);
   let phaseAgent = 'none';
   if (state.phase !== 'complete') {
-    try {
-      const agent = loadPhaseAgent(
-        cwd,
-        state.phase,
-        state.workflow_version === 5 &&
-          state.modeling_stage === 'candidate_ready'
-          ? 'model-challenger'
-          : undefined,
-      );
-      phaseAgent = `${agent.name} · ${agent.model} (thinking=${agent.thinking})`;
-    } catch {
-      phaseAgent = 'missing';
+    const pairMode = pairDriverMode(state);
+    if (state.workflow_version === 5 && state.loop === 'pair' && !pairMode) {
+      phaseAgent = 'pair-controller · deterministic / human Navigator';
+    } else {
+      try {
+        const agent = loadPhaseAgent(
+          cwd,
+          state.phase,
+          state.workflow_version === 5 &&
+            state.modeling_stage === 'candidate_ready'
+            ? 'model-challenger'
+            : pairMode === 'test'
+              ? 'test-driver'
+              : pairMode
+                ? 'production-driver'
+                : undefined,
+        );
+        phaseAgent = `${agent.name} · ${agent.model} (thinking=${agent.thinking})`;
+      } catch {
+        phaseAgent = 'missing';
+      }
     }
   }
   const gates = findFiles(join(root, 'gates'), (p) => p.endsWith('.md')).map(
@@ -118,7 +128,9 @@ export function statusMarkdown(cwd: string): string {
             ? ['human:/evidence-desk-check']
             : []),
         ].join(', ') || 'none'
-      : allowedLoopActions(state.loop).join(', ') || 'none'
+      : state.loop === 'pair'
+        ? pairNextInstruction(state)
+        : allowedLoopActions(state.loop).join(', ') || 'none'
     : 'legacy phase controls only';
   return [
     `# Evidence Orchestrator Status`,
@@ -149,6 +161,9 @@ export function statusMarkdown(cwd: string): string {
     `| Tasking Draft | ${state.tasking_candidate ? `${state.tasking_candidate.draft_id} · ${state.tasking_candidate.test_list_path}` : 'none'} |`,
     `| Tasking Gap | ${state.tasking_gap ? `${state.tasking_gap.kind} · ${state.tasking_gap.reason}` : 'none'} |`,
     `| Approved Test Plan | ${state.approved_test_plan_path ?? 'none'} |`,
+    `| Pair Checkpoint | ${state.pair_session?.checkpoint ?? 'none'} |`,
+    `| Pair Step | ${state.pair_session ? `${state.pair_session.process_id}/${state.pair_session.step_id}` : 'none'} |`,
+    `| Pair Next | ${state.pair_session ? pairNextInstruction(state) : 'none'} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

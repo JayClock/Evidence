@@ -167,6 +167,15 @@ export function transitionLoopState(
       'Tasking cannot enter Pair before a human-approved Desk Check.',
     );
   }
+  if (
+    from === 'pair' &&
+    request.to === 'showcase' &&
+    state.pair_session?.checkpoint !== 'quality_gates_passed'
+  ) {
+    throw new Error(
+      'Pair cannot enter Showcase before every final quality gate passes.',
+    );
+  }
 
   return {
     ...state,

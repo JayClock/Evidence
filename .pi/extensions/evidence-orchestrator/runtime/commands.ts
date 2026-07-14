@@ -12,6 +12,12 @@ import { confirmModelingProfile } from '../evidence/modeling';
 import { decideKickoff } from '../requirements/kickoff';
 import { decideUnderstanding } from '../requirements/scenarios';
 import { decideTasking } from '../testing/tasking';
+import {
+  navigatePair,
+  pairNextInstruction,
+  reviewPairRed,
+  type PairNavigationAction,
+} from '../testing/pairing';
 import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDriftAsync,
@@ -28,6 +34,7 @@ import type {
   ModelingMethod,
   ModelingSubject,
   Phase,
+  RedFailureKind,
   UnderstandingDecisionAction,
 } from '../workflow/types';
 import { PHASE_RESULT_MESSAGE_TYPE, STATUS_KEY, statusLabel } from './identity';
@@ -312,6 +319,123 @@ async function promptDeskCheckDecision(
   if (!action) return undefined;
   const reason = (await ctx.ui.input(`请说明“${selected}”的理由`))?.trim();
   return reason ? { action, reason } : undefined;
+}
+
+type PairDecisionInput =
+  | { kind: 'red'; failureKind: RedFailureKind; reason: string }
+  | { kind: 'navigate'; action: PairNavigationAction; reason: string };
+
+const RED_FAILURE_KINDS: RedFailureKind[] = [
+  'behavior',
+  'compile',
+  'dependency',
+  'configuration',
+  'network',
+  'fixture',
+  'other',
+];
+
+function parsePairDecision(args: string): PairDecisionInput | undefined {
+  const [rawAction, ...rest] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = rawAction.toLowerCase().replaceAll('-', '_');
+  if (action === 'accept_red') {
+    const reason = rest.join(' ').trim();
+    if (!reason) throw new Error('accept-red requires a behavior reason.');
+    return { kind: 'red', failureKind: 'behavior', reason };
+  }
+  if (action === 'reject_red') {
+    const failureKind = rest.shift() as RedFailureKind | undefined;
+    const reason = rest.join(' ').trim();
+    if (!failureKind || !RED_FAILURE_KINDS.includes(failureKind) || !reason) {
+      throw new Error(
+        'reject-red requires <compile|dependency|configuration|network|fixture|other> <reason>.',
+      );
+    }
+    if (failureKind === 'behavior') {
+      throw new Error('Use accept-red for a legitimate behavior failure.');
+    }
+    return { kind: 'red', failureKind, reason };
+  }
+  const navigation = action as PairNavigationAction;
+  if (
+    ![
+      'back_test',
+      'back_implementation',
+      'back_tasking',
+      'retry_quality',
+    ].includes(navigation)
+  ) {
+    throw new Error(
+      'Usage: /evidence-pair accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>.',
+    );
+  }
+  const reason = rest.join(' ').trim();
+  if (!reason) throw new Error(`${rawAction} requires a reason.`);
+  return { kind: 'navigate', action: navigation, reason };
+}
+
+async function promptPairDecision(
+  ctx: ExtensionCommandContext,
+): Promise<PairDecisionInput | undefined> {
+  const session = readState(ctx.cwd).pair_session;
+  if (!session) throw new Error('No Pair session is active.');
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Pair navigation requires interactive mode or explicit command arguments.',
+    );
+  }
+  if (
+    session.checkpoint === 'red_observed' &&
+    session.red_observation?.accepted !== true
+  ) {
+    const choice = await ctx.ui.select('判断实际 Red 的失败性质', [
+      '接受：预期业务行为尚未实现',
+      '拒绝：编译失败',
+      '拒绝：依赖失败',
+      '拒绝：配置失败',
+      '拒绝：网络失败',
+      '拒绝：Fixture 损坏',
+      '拒绝：其他非行为失败',
+    ]);
+    if (!choice) return undefined;
+    const kinds: Record<string, RedFailureKind> = {
+      '接受：预期业务行为尚未实现': 'behavior',
+      '拒绝：编译失败': 'compile',
+      '拒绝：依赖失败': 'dependency',
+      '拒绝：配置失败': 'configuration',
+      '拒绝：网络失败': 'network',
+      '拒绝：Fixture 损坏': 'fixture',
+      '拒绝：其他非行为失败': 'other',
+    };
+    const failureKind = kinds[choice];
+    const reason = (await ctx.ui.input('请说明判断依据'))?.trim();
+    return failureKind && reason
+      ? { kind: 'red', failureKind, reason }
+      : undefined;
+  }
+  const options = [
+    '返回当前 Test Driver',
+    '返回当前 Production Driver',
+    '返回 Tasking Desk Check',
+    ...(session.checkpoint === 'quality_gate_failed'
+      ? ['重试当前 Quality Gate']
+      : []),
+  ];
+  const choice = await ctx.ui.select(
+    `Pair checkpoint: ${session.checkpoint}`,
+    options,
+  );
+  if (!choice) return undefined;
+  const actions: Record<string, PairNavigationAction> = {
+    返回当前TestDriver: 'back_test',
+    返回当前ProductionDriver: 'back_implementation',
+    返回TaskingDeskCheck: 'back_tasking',
+    重试当前QualityGate: 'retry_quality',
+  };
+  const action = actions[choice.replaceAll(' ', '')];
+  const reason = (await ctx.ui.input(`请说明“${choice}”的理由`))?.trim();
+  return action && reason ? { kind: 'navigate', action, reason } : undefined;
 }
 
 async function promptModelingProfileDecision(
@@ -742,6 +866,36 @@ export function registerCommands(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand('evidence-pair', {
+    description:
+      'Human Navigator decision for Red acceptance or a return to test, implementation, Tasking, or quality-gate retry',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parsePairDecision(args) ?? (await promptPairDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify('Pair decision cancelled; state is unchanged.', 'info');
+          return;
+        }
+        const state =
+          decision.kind === 'red'
+            ? reviewPairRed(ctx.cwd, decision.failureKind, decision.reason)
+            : navigatePair(ctx.cwd, decision.action, decision.reason);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        ctx.ui.notify(
+          `Pair decision recorded. ${pairNextInstruction(state)}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
   pi.registerCommand('evidence-issue-sync', {
     description:
       'Refresh the active GitHub Issue snapshot while the iteration is in frame',
@@ -942,7 +1096,7 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-run', {
     description:
-      'Run the current phase; clarify accepts --story=US-xxx and coding also requires --scenario=SC-xxx',
+      'Run the current activity; v5 Pair advances at most one Driver or command checkpoint per invocation',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
       try {

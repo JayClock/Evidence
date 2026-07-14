@@ -3,8 +3,15 @@ import type {
   PhaseAgentResult,
 } from '../subagents/phase-runner';
 import { runPhaseSubagent } from '../subagents/phase-runner';
+import {
+  capturePairWorktree,
+  completePairDriver,
+  executePairAction,
+  failPairDriver,
+  pairDriverMode,
+} from '../testing/pairing';
 import { readState, writeState } from '../workflow/state-store';
-import type { Phase } from '../workflow/types';
+import type { PairDriverMode, Phase } from '../workflow/types';
 import { STATUS_KEY, statusLabel } from './identity';
 import type { PreparedPhaseRun } from './phase-dispatch';
 
@@ -92,7 +99,25 @@ export async function executePreparedPhaseRun(
   ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'subagent'));
 
   try {
-    const result = await runPhaseSubagent({
+    if (preparation.pairAction) {
+      const action = executePairAction(ctx.cwd, preparation.pairAction);
+      return completedDetails(
+        preparation,
+        {
+          agent: 'pair-controller',
+          model: 'deterministic',
+          thinking: 'off',
+          output: action.output,
+          messages: [],
+          exitCode: 0,
+          stderr: '',
+        },
+        action.state,
+      );
+    }
+    const mode = pairDriverMode(state);
+    const snapshot = mode ? capturePairWorktree(ctx.cwd) : undefined;
+    let result = await runPhaseSubagent({
       cwd: ctx.cwd,
       phase: preparation.phase,
       agentName: preparation.agentName,
@@ -102,6 +127,32 @@ export async function executePreparedPhaseRun(
         options.onUpdate?.(progressDetails(preparation, progress));
       },
     });
+    if (mode && snapshot) {
+      const completion =
+        result.exitCode === 0
+          ? completePairDriver(
+              ctx.cwd,
+              mode as PairDriverMode,
+              snapshot,
+              result.output,
+              (options.now ?? (() => new Date().toISOString()))(),
+            )
+          : failPairDriver(
+              ctx.cwd,
+              mode as PairDriverMode,
+              snapshot,
+              `${result.output}\n${result.stderr}`,
+              (options.now ?? (() => new Date().toISOString()))(),
+            );
+      result = {
+        ...result,
+        exitCode: completion.blocked ? 1 : result.exitCode,
+        output: `${result.output}\n\n${completion.output}`,
+        ...(completion.blocked
+          ? { stderr: `${result.stderr}\n${completion.output}`.trim() }
+          : {}),
+      };
+    }
     return completedDetails(preparation, result, readState(ctx.cwd));
   } finally {
     ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));

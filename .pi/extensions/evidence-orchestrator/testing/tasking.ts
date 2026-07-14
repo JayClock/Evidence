@@ -750,6 +750,23 @@ export function decideTasking(
       `${JSON.stringify(approvedPlan, null, 2)}\n`,
     );
     persistDecision(cwd, decision);
+    const firstProcess = processes[0];
+    const firstStepId =
+      firstProcess?.selected_step_ids?.[0] ??
+      firstProcess?.focused_commands?.[0]?.step_id;
+    if (!firstProcess || !firstStepId) {
+      throw new Error('Approved Tasking has no first Pair process step.');
+    }
+    const expectedRed = state.tasking_candidate.tests
+      .filter(
+        ({ process_id, step_id }) =>
+          process_id === firstProcess.id && step_id === firstStepId,
+      )
+      .map(({ intent }) => intent)
+      .join('；');
+    if (!expectedRed) {
+      throw new Error('Approved Tasking has no expected Red behavior.');
+    }
     const approved = {
       ...state,
       tasking_stage: 'approved' as const,
@@ -768,6 +785,22 @@ export function decideTasking(
             : {}),
           processes,
         },
+      },
+      pair_session: {
+        version: 1 as const,
+        story_id: state.tasking_candidate.story_id,
+        scenario_id: state.tasking_candidate.scenario_id,
+        git_baseline: baseline,
+        checkpoint: 'plan_confirmed' as const,
+        process_id: firstProcess.id,
+        step_id: firstStepId,
+        completed_step_ids: [],
+        test_paths: [],
+        production_paths: [],
+        expected_red: expectedRed,
+        quality_gate_index: 0,
+        feedback: [],
+        driver_history: [],
       },
     };
     return writeState(cwd, transitionLoopState(approved, { to: 'pair' }, now));

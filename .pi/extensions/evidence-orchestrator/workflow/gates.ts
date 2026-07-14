@@ -311,6 +311,11 @@ export function validatePhaseCompletion(
       'v5 Tasking cannot be completed by a phase Agent. Only a human /evidence-desk-check approval can lock the test plan and enter Pair.',
     );
   }
+  if (isV5Workflow(current) && current.loop === 'pair') {
+    throw new Error(
+      'v5 Pair advances one Navigator-controlled checkpoint at a time and cannot be completed by the legacy Coder phase tool.',
+    );
+  }
   if (current.pending_gate) {
     throw new Error(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,

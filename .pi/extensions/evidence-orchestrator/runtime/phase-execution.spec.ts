@@ -8,14 +8,23 @@ import { executePreparedPhaseRun } from './phase-execution';
 const phaseRunnerMocks = vi.hoisted(() => ({
   runPhaseSubagent: vi.fn(),
 }));
+const pairingMocks = vi.hoisted(() => ({
+  pairDriverMode: vi.fn(() => undefined),
+  capturePairWorktree: vi.fn(() => ({ snapshot: true })),
+  completePairDriver: vi.fn(),
+  failPairDriver: vi.fn(),
+  executePairAction: vi.fn(),
+}));
 
 vi.mock('../subagents/phase-runner', () => ({
   runPhaseSubagent: phaseRunnerMocks.runPhaseSubagent,
 }));
+vi.mock('../testing/pairing', () => pairingMocks);
 
 afterEach(() => {
   cleanupWorkspaces();
   vi.clearAllMocks();
+  pairingMocks.pairDriverMode.mockReturnValue(undefined);
 });
 
 function preparation(): PreparedPhaseRun {
@@ -169,6 +178,68 @@ describe('phase execution', () => {
         agentName: 'model-challenger',
       }),
     );
+  });
+
+  it('executes one deterministic Pair checkpoint without starting a Driver', async () => {
+    const cwd = workspace();
+    const pairPreparation: PreparedPhaseRun = {
+      ...preparation(),
+      phase: 'coding',
+      pairAction: 'run_red',
+      task: 'Run one Red.',
+    };
+    pairingMocks.executePairAction.mockReturnValue({
+      state: pairPreparation.state,
+      output: 'Observed Red; waiting for Navigator.',
+    });
+
+    const result = await executePreparedPhaseRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      pairPreparation,
+      { invocation: '/evidence-run' },
+    );
+
+    expect(phaseRunnerMocks.runPhaseSubagent).not.toHaveBeenCalled();
+    expect(pairingMocks.executePairAction).toHaveBeenCalledWith(cwd, 'run_red');
+    expect(result.output).toContain('waiting for Navigator');
+  });
+
+  it('runs one Pair Driver then returns its guarded diff to the parent', async () => {
+    const cwd = workspace();
+    const pairPreparation: PreparedPhaseRun = {
+      ...preparation(),
+      phase: 'coding',
+      agentName: 'test-driver',
+      task: 'Write one test.',
+    };
+    pairingMocks.pairDriverMode.mockReturnValue('test');
+    pairingMocks.completePairDriver.mockReturnValue({
+      state: pairPreparation.state,
+      blocked: false,
+      changedPaths: ['apps/web/tests/example.test.ts'],
+      diff: '+ expected behavior',
+      output: 'Changed paths and diff; waiting for Navigator.',
+    });
+    phaseRunnerMocks.runPhaseSubagent.mockResolvedValue({
+      agent: 'test-driver',
+      model: 'openai/test',
+      thinking: 'medium',
+      output: 'Added the expected assertion.',
+      messages: [],
+      exitCode: 0,
+      stderr: '',
+    });
+
+    const result = await executePreparedPhaseRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      pairPreparation,
+      { invocation: '/evidence-run' },
+    );
+
+    expect(pairingMocks.capturePairWorktree).toHaveBeenCalledOnce();
+    expect(pairingMocks.completePairDriver).toHaveBeenCalledOnce();
+    expect(result.output).toContain('Added the expected assertion');
+    expect(result.output).toContain('Changed paths and diff');
   });
 
   it('shares state, progress, and status handling across callers', async () => {
