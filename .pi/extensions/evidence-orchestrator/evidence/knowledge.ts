@@ -56,6 +56,25 @@ function strings(value: unknown, name: string): string[] {
   return value;
 }
 
+function serverTrack(
+  runtime: string,
+  functionalContexts: string[],
+): 'rust' | 'nest' | undefined {
+  if (
+    runtime === 'rust' &&
+    functionalContexts.some((context) => context.startsWith('rust-'))
+  ) {
+    return 'rust';
+  }
+  if (
+    runtime === 'typescript' &&
+    functionalContexts.some((context) => context.startsWith('nest-'))
+  ) {
+    return 'nest';
+  }
+  return undefined;
+}
+
 function scenarioContextDocument(path: string): Record<string, unknown> {
   return record(JSON.parse(readFileSync(path, 'utf8')), path);
 }
@@ -102,6 +121,7 @@ export function validateScenarioContextMap(cwd: string, path: string): void {
         `${path}.scenarios[${index}] has invalid work item or runtimes.`,
       );
     }
+    let selectedServerTrack: 'rust' | 'nest' | undefined;
     for (const [runtimeIndex, runtimeValue] of scenario.runtimes.entries()) {
       const runtime = record(
         runtimeValue,
@@ -117,6 +137,17 @@ export function validateScenarioContextMap(cwd: string, path: string): void {
         runtime.functional_contexts,
         `${path}.scenarios[${index}].runtimes[${runtimeIndex}].functional_contexts`,
       );
+      const currentServerTrack = serverTrack(runtime.runtime, contexts);
+      if (
+        currentServerTrack &&
+        selectedServerTrack &&
+        currentServerTrack !== selectedServerTrack
+      ) {
+        throw new Error(
+          `${path}.scenarios[${index}] must not mix the Rust and Nest server tracks.`,
+        );
+      }
+      selectedServerTrack ??= currentServerTrack;
       const allowed = runtimeContexts[runtime.runtime] as string[];
       if (!contexts.every((context) => allowed.includes(context))) {
         throw new Error(`${path} references an unknown functional context.`);
