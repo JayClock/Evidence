@@ -347,6 +347,110 @@ describe('commands', () => {
     expect(sendMessage).toHaveBeenCalledOnce();
   });
 
+  it('lets the human directly complete a story with a pending question', async () => {
+    const cwd = workspace();
+    writePhaseInputs(cwd, 'clarify');
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/clarifications/.gitkeep',
+      'placeholder',
+    );
+    writeState(cwd, {
+      ...issueState('clarify'),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        question: '还需要明确哪些边界？',
+        target: 'history',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+
+    let complete: ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof complete }) {
+        if (name === 'evidence-story-complete') complete = options.handler;
+      },
+      sendMessage: vi.fn(),
+    } as never);
+    const ctx = commandContext(cwd);
+
+    await complete?.('clarified 现有信息已足够。', ctx);
+
+    const state = readState(cwd);
+    expect(state.active_clarification_story).toBeUndefined();
+    expect(state.pending_clarification).toBeUndefined();
+    expect(state.clarification_history?.[0]).toEqual(
+      expect.objectContaining({
+        question_id: 'Q-001',
+        waived_by: 'human',
+        waived_reason: '现有信息已足够。',
+      }),
+    );
+    expect(state.clarification_story_outcomes?.[0]).toEqual(
+      expect.objectContaining({
+        story_id: 'US-001',
+        outcome: 'clarified',
+        summary: '现有信息已足够。',
+      }),
+    );
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'Human confirmed US-001=clarified. Remaining stories: none.',
+      'info',
+    );
+  });
+
+  it('offers direct human outcomes when no AI proposal exists', async () => {
+    const cwd = workspace();
+    writePhaseInputs(cwd, 'clarify');
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeState(cwd, {
+      ...issueState('clarify'),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    let complete: ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof complete }) {
+        if (name === 'evidence-story-complete') complete = options.handler;
+      },
+      sendMessage: vi.fn(),
+    } as never);
+    const ctx = commandContext(cwd);
+    ctx.ui.select.mockResolvedValue('直接标记为 clarified');
+    ctx.ui.input.mockResolvedValue('领域专家认为已足够清晰。');
+
+    await complete?.('', ctx);
+
+    expect(ctx.ui.select).toHaveBeenCalledWith(
+      '决定 US-001 的最终澄清结论',
+      expect.arrayContaining([
+        '直接标记为 clarified',
+        '直接标记为 needs_split',
+        '直接标记为 deferred',
+      ]),
+    );
+    expect(readState(cwd).clarification_story_outcomes?.[0]).toEqual(
+      expect.objectContaining({ outcome: 'clarified', decided_by: 'human' }),
+    );
+  });
+
   it('reserves final story completion for an explicit human command', async () => {
     const cwd = workspace();
     prepareProposedStory(cwd);

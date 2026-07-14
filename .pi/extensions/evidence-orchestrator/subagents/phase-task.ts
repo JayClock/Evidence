@@ -70,7 +70,7 @@ export function buildPhaseTask(
 4. 输出仅写入指定路径。本轮工件只写入 artifacts/iterations/${state.iteration_id}/，不得覆盖其他 iteration。
 5. 用户故事使用 artifacts/01-requirements/stories/US-xxx.md；验收示例使用 artifacts/01-requirements/examples/US-xxx-SC-xxx.md。
 6. Coding 必须修改所属 apps/* 或 libs/* 的真实测试与实现，不得创建根级 src/、tests/，也不得用 Markdown 伪代码代替代码；同时产出场景 Markdown 与机器可读 JSON 证据。
-7. Clarify 必须先由人类选择一张活动故事卡。只处理该故事；使用 evidence_orchestrator_ask_question 一次记录一个高价值、非技术问题并立即停止。只有用户明确回答后才能调用 evidence_orchestrator_answer_question。AI 只能调用 evidence_orchestrator_propose_story_outcome 提出故事结论建议并停止；只有领域专家通过 /evidence-story-complete 才能确认、覆盖或拒绝建议并最终释放 Story。
+7. Clarify 必须先由人类选择一张活动故事卡。只处理该故事；使用 evidence_orchestrator_ask_question 一次记录一个高价值、非技术问题并立即停止。只有用户明确回答后才能调用 evidence_orchestrator_answer_question。AI 只能调用 evidence_orchestrator_propose_story_outcome 提出故事结论建议并停止；只有领域专家通过 /evidence-story-complete 才能确认、覆盖或拒绝建议，或直接决定结论并最终释放 Story。
 8. Check 失败时调用 evidence_orchestrator_report_phase_failure，记录具体失败结果后在同一阶段修正。
 9. 完成后调用 evidence_orchestrator_complete_phase，phase 必须为 "${phase}"。
 

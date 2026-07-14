@@ -62,13 +62,18 @@ const STORY_OUTCOMES: ClarificationStoryOutcome[] = [
 
 function parseStoryDecision(
   args: string,
-  proposal: ClarificationStoryOutcomeProposal,
+  proposal?: ClarificationStoryOutcomeProposal,
 ): StoryDecision | undefined {
   const [rawAction, ...summaryParts] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase();
   const summary = summaryParts.join(' ').trim();
   if (action === 'confirm') {
+    if (!proposal) {
+      throw new Error(
+        'Confirm requires an AI proposal; use /evidence-story-complete <outcome> <business reason> for a direct human decision.',
+      );
+    }
     return {
       kind: 'complete',
       outcome: proposal.outcome,
@@ -76,6 +81,11 @@ function parseStoryDecision(
     };
   }
   if (action === 'continue') {
+    if (!proposal) {
+      throw new Error(
+        'Continue requires an AI proposal to reject; keep clarifying by answering the pending question instead.',
+      );
+    }
     if (!summary) {
       throw new Error(
         'Continue requires a reason: /evidence-story-complete continue <remaining business uncertainty>.',
@@ -86,7 +96,7 @@ function parseStoryDecision(
   if (STORY_OUTCOMES.includes(action as ClarificationStoryOutcome)) {
     if (!summary) {
       throw new Error(
-        `Overriding the proposal requires a reason: /evidence-story-complete ${action} <business reason>.`,
+        `Completing the Story requires a reason: /evidence-story-complete ${action} <business reason>.`,
       );
     }
     return {
@@ -102,12 +112,30 @@ function parseStoryDecision(
 
 async function promptStoryDecision(
   ctx: ExtensionCommandContext,
-  proposal: ClarificationStoryOutcomeProposal,
+  storyId: string,
+  proposal?: ClarificationStoryOutcomeProposal,
 ): Promise<StoryDecision | undefined> {
   if (!ctx.hasUI) {
     throw new Error(
       'Story completion requires an interactive mode or an explicit command argument.',
     );
+  }
+  if (!proposal) {
+    const outcomeOptions = STORY_OUTCOMES.map(
+      (outcome) => `直接标记为 ${outcome}`,
+    );
+    const selected = await ctx.ui.select(
+      `决定 ${storyId} 的最终澄清结论`,
+      outcomeOptions,
+    );
+    const outcome = STORY_OUTCOMES.find(
+      (candidate) => selected === `直接标记为 ${candidate}`,
+    );
+    if (!outcome) return undefined;
+    const summary = (
+      await ctx.ui.input(`请说明将 ${storyId} 标记为 ${outcome} 的理由`)
+    )?.trim();
+    return summary ? { kind: 'complete', outcome, summary } : undefined;
   }
   const confirmOption = `确认 AI 建议：${proposal.outcome} · ${proposal.summary}`;
   const continueOption = '继续澄清（拒绝本次建议）';
@@ -398,25 +426,23 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-story-complete', {
     description:
-      'Human-only decision for the active Story outcome: confirm, override, or continue',
+      'Human-only decision for the active Story: complete directly, confirm, override, or continue',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
         const current = readState(ctx.cwd);
-        const proposal = current.proposed_clarification_story_outcome;
-        if (!proposal) {
-          ctx.ui.notify(
-            'No Story outcome proposal is awaiting human confirmation.',
-            'info',
-          );
+        const activeStoryId = current.active_clarification_story?.story_id;
+        if (!activeStoryId) {
+          ctx.ui.notify('No clarification Story is active.', 'info');
           return;
         }
+        const proposal = current.proposed_clarification_story_outcome;
         const decision =
           parseStoryDecision(args, proposal) ??
-          (await promptStoryDecision(ctx, proposal));
+          (await promptStoryDecision(ctx, activeStoryId, proposal));
         if (!decision) {
           ctx.ui.notify(
-            'Story decision cancelled; the proposal is unchanged.',
+            'Story decision cancelled; the clarification state is unchanged.',
             'info',
           );
           return;
@@ -429,12 +455,17 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
           const remaining = unresolvedClarificationStoryIds(ctx.cwd, state);
           ctx.ui.notify(
-            `Human confirmed ${proposal.story_id}=${decision.outcome}. Remaining stories: ${remaining.join(', ') || 'none'}.`,
+            `Human confirmed ${activeStoryId}=${decision.outcome}. Remaining stories: ${remaining.join(', ') || 'none'}.`,
             'info',
           );
           return;
         }
 
+        if (!proposal) {
+          throw new Error(
+            'Cannot continue: there is no AI Story outcome proposal to reject.',
+          );
+        }
         continueClarificationStory(ctx.cwd);
         const preparation = preparePhaseRun(ctx.cwd, {
           instructions: `领域专家拒绝了 AI 的 ${proposal.outcome} 建议并要求继续澄清：${decision.reason}`,
