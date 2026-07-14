@@ -45,6 +45,36 @@ export function buildPhaseTask(
 ${extra || '（无）'}
 `;
   }
+  if (
+    isV5Workflow(state) &&
+    state.loop === 'understand' &&
+    state.understand_stage === 'tqa'
+  ) {
+    const storyId = state.active_clarification_story?.story_id;
+    if (!storyId) {
+      throw new Error('v5 Understand TQA requires one active Story.');
+    }
+    return `执行 Evidence Orchestrator v5 Understand TQA：${storyId}。
+
+读取：
+- ${artifactRelativePath(state, 'artifacts/01-requirements/problem-statement.md')}
+- ${artifactRelativePath(state, `artifacts/01-requirements/stories/${storyId}.md`)}
+- ${artifactRelativePath(state, `artifacts/01-requirements/clarifications/${storyId}.json`)}（存在时）
+- ${artifactRelativePath(state, 'artifacts/01-requirements/product-context-delta.md')}（存在时）
+- docs/product/business-context.md
+- docs/product/user-journeys.md
+
+任务：
+1. 只处理 ${storyId}，不得选择或切换其他 Story。
+2. 如果仍有高价值业务不确定性，调用 evidence_orchestrator_ask_question 提出一个非技术问题，然后立即停止等待领域专家回答。
+3. 如果现有业务信息已足够，调用 evidence_orchestrator_propose_scenarios 提出一到五个具体 Given/When/Then 草案；包含关键业务数据和可观察结果，不包含实现步骤，然后立即停止。
+4. 不再调用 evidence_orchestrator_propose_story_outcome，不生成批量 Specify，不写 requirements-validation.md，也不得调用 evidence_orchestrator_complete_phase。
+5. Story 的拆分、延期以及最终 Scenario 选择均由人类通过 /evidence-scenario 决定。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+  }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
   const activeWorkItem = state.active_work_item

@@ -53,6 +53,14 @@ export function statusMarkdown(cwd: string): string {
     : 'none';
   const activeClarificationStory =
     state.active_clarification_story?.story_id ?? 'none';
+  const scenarioDrafts = state.scenario_drafts?.length
+    ? state.scenario_drafts
+        .map(({ draft_id, title }) => `${draft_id} · ${title}`)
+        .join(', ')
+    : 'none';
+  const confirmedScenario = state.confirmed_scenario
+    ? `${state.confirmed_scenario.story_id} / ${state.confirmed_scenario.scenario_id}`
+    : 'none';
   const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
   const pendingStoryDecision = pendingStoryDecisions.length
     ? pendingStoryDecisions
@@ -105,6 +113,9 @@ export function statusMarkdown(cwd: string): string {
     `| Kickoff Decisions | ${kickoffDecisions} |`,
     `| Active Work Item | ${activeWorkItem} |`,
     `| Active Clarification Story | ${activeClarificationStory} |`,
+    `| Understand Stage | ${state.understand_stage ?? 'none'} |`,
+    `| Scenario Drafts | ${scenarioDrafts} |`,
+    `| Confirmed Scenario | ${confirmedScenario} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

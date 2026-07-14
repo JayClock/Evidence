@@ -288,6 +288,15 @@ export function validatePhaseCompletion(
       'A v5 Kickoff cannot be completed by a phase Agent. Only a human /evidence-kickoff confirmation can create and release the Story.',
     );
   }
+  if (
+    isV5Workflow(current) &&
+    current.loop === 'understand' &&
+    ['clarify', 'specify', 'validate'].includes(phase)
+  ) {
+    throw new Error(
+      'v5 TQA and specification stay inside Understand. Only a human /evidence-scenario decision can advance to model validation.',
+    );
+  }
   if (current.pending_gate) {
     throw new Error(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,

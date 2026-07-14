@@ -5,6 +5,7 @@ import {
   selectClarificationStory,
 } from '../requirements/clarifications';
 import { proposeKickoffCandidate } from '../requirements/kickoff';
+import { proposeScenarioDrafts } from '../requirements/scenarios';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
@@ -84,6 +85,48 @@ describe('phase dispatch', () => {
 
     expect(() => preparePhaseRun(cwd)).toThrow('is awaiting a human decision');
     expect(() => preparePhaseRun(cwd)).toThrow('/evidence-kickoff');
+  });
+
+  it('runs v5 Understand without optional deltas and blocks on Scenario review', () => {
+    const cwd = workspace();
+    for (const path of [
+      'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+      'artifacts/iterations/ITER-0001/01-requirements/problem-statement.md',
+      'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
+      'docs/product/business-context.md',
+      'docs/product/user-journeys.md',
+    ]) {
+      write(cwd, path, 'input');
+    }
+    writeState(cwd, {
+      ...issueBackedFrameState(),
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'clarify',
+      understand_stage: 'tqa',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    const prepared = preparePhaseRun(cwd);
+    if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');
+    expect(prepared.task).toContain('v5 Understand TQA');
+
+    proposeScenarioDrafts(cwd, 'US-001', [
+      {
+        title: '确认当前模型',
+        given: ['v3 已确认'],
+        when: '负责人打开模型',
+        then: ['显示 v3'],
+        businessData: ['版本：v3'],
+      },
+    ]);
+    expect(() => preparePhaseRun(cwd)).toThrow(
+      'Scenario draft(s) await a human decision',
+    );
+    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-scenario');
   });
 
   it('blocks clarification until one generated story is selected', () => {

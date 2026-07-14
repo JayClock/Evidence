@@ -7,6 +7,7 @@ import {
   selectClarificationStory,
 } from '../requirements/clarifications';
 import { proposeKickoffCandidate } from '../requirements/kickoff';
+import { proposeScenarioDrafts } from '../requirements/scenarios';
 import {
   answerGate,
   completePhase,
@@ -119,6 +120,25 @@ const kickoffCandidateParam = Type.Object({
     Type.String({
       description:
         'Issue or stable product-context path and heading reference.',
+    }),
+  ),
+});
+
+const scenarioDraftParam = Type.Object({
+  storyId: Type.String({ description: 'The active v5 Story id.' }),
+  candidates: Type.Array(
+    Type.Object({
+      title: Type.String({ description: 'Short business Scenario title.' }),
+      given: Type.Array(
+        Type.String({ description: 'Concrete starting business fact.' }),
+      ),
+      when: Type.String({ description: 'One business action or event.' }),
+      then: Type.Array(
+        Type.String({ description: 'Observable business result.' }),
+      ),
+      businessData: Type.Array(
+        Type.String({ description: 'Concrete key business datum.' }),
+      ),
     }),
   ),
 });
@@ -457,6 +477,38 @@ export function registerTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
+    name: 'evidence_orchestrator_propose_scenarios',
+    label: 'Propose Evidence Scenarios',
+    description:
+      'Persist concrete Given/When/Then drafts for one human Scenario decision',
+    promptSnippet:
+      'Propose one to five concrete business examples after v5 TQA is sufficient',
+    promptGuidelines: [
+      'Use only in the v5 Understand TQA stage for the active Story and only when no high-value business uncertainty remains.',
+      'Use concrete business data and observable results; do not include implementation steps.',
+      'After calling this tool, stop. Only a human can confirm one Scenario, continue TQA, split, or defer.',
+    ],
+    parameters: scenarioDraftParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = proposeScenarioDrafts(
+        ctx.cwd,
+        params.storyId,
+        params.candidates,
+      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
+          },
+        ],
+        details: { state },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
     name: 'evidence_orchestrator_ask_question',
     label: 'Ask Evidence Orchestrator Clarification',
     description:
@@ -545,7 +597,8 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Propose clarified, needs_split, or deferred for human confirmation',
     promptGuidelines: [
-      'Use evidence_orchestrator_propose_story_outcome only in clarify for the active human-selected story after its pending TQA answer is resolved.',
+      'Legacy v4 only. v5 uses evidence_orchestrator_propose_scenarios and a human Scenario decision instead.',
+      'Use evidence_orchestrator_propose_story_outcome only in v4 clarify for the active human-selected story after its pending TQA answer is resolved.',
       'After calling evidence_orchestrator_propose_story_outcome, stop and wait for the domain expert to decide through /evidence-story-complete.',
       'evidence_orchestrator_propose_story_outcome never completes or releases a story; never claim that the proposed outcome is final.',
       'Propose clarified only when no high-value business uncertainty remains; otherwise propose needs_split or deferred with a concrete reason.',
@@ -708,7 +761,8 @@ export function registerTools(pi: ExtensionAPI): void {
           current.phase !== params.phase ||
           current.pending_gate ||
           current.halted ||
-          (current.workflow_version === 5 && current.loop === 'kickoff')
+          (current.workflow_version === 5 &&
+            ['kickoff', 'understand'].includes(current.loop ?? ''))
         ) {
           throw new Error(message);
         }

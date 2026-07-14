@@ -41,6 +41,29 @@ describe('phase tasks', () => {
     expect(task).not.toContain('必须产出');
   });
 
+  it('keeps v5 TQA and Scenario drafting in one Understand task', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'clarify',
+      understand_stage: 'tqa',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    const task = buildPhaseTask(cwd);
+
+    expect(task).toContain('evidence_orchestrator_ask_question');
+    expect(task).toContain('evidence_orchestrator_propose_scenarios');
+    expect(task).toContain('/evidence-scenario');
+    expect(task).not.toContain('Specify 的完整批处理范围');
+    expect(task).toContain('不写 requirements-validation.md');
+  });
+
   it('scopes clarification work to the selected story', () => {
     const cwd = workspace();
     writeState(cwd, {

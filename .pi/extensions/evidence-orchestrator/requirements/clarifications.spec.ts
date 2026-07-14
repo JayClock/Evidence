@@ -294,6 +294,46 @@ describe('clarifications', () => {
     expect(completePhase(cwd, 'clarify').phase).toBe('specify');
   });
 
+  it('keeps v5 on one Story and creates a product delta only after a business answer', () => {
+    const cwd = workspace();
+    writeIterationArtifact(cwd, '01-requirements/stories/US-001.md');
+    writeIterationArtifact(cwd, '01-requirements/stories/US-002.md');
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'clarify',
+      understand_stage: 'tqa',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    askClarification(cwd, {
+      story_id: 'US-001',
+      question: '谁确认当前模型？',
+      target: 'business_context',
+    });
+    answerClarification(cwd, '仅工作区 Owner 可以确认。');
+
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/product-context-delta.md',
+        ),
+        'utf8',
+      ),
+    ).toContain('仅工作区 Owner 可以确认。');
+    expect(() => selectClarificationStory(cwd, 'US-002')).toThrow(
+      'has one human-confirmed Story',
+    );
+    expect(() =>
+      proposeClarificationStoryOutcome(cwd, 'US-001', 'clarified', 'Clear.'),
+    ).toThrow('Propose concrete Given/When/Then Scenario drafts instead');
+  });
+
   it('does not permit a second question while an answer is pending', () => {
     const cwd = workspace();
     prepareStory(cwd);

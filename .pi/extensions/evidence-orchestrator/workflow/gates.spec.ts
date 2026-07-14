@@ -50,6 +50,21 @@ describe('gates', () => {
     );
   });
 
+  it('does not split v5 Understand into clarify, specify, or validate completion', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'clarify',
+      understand_stage: 'tqa',
+    });
+
+    expect(() => completePhase(cwd, 'clarify')).toThrow(
+      'Only a human /evidence-scenario decision',
+    );
+  });
+
   it('rejects completion when a required output is absent', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);

@@ -9,6 +9,7 @@ import {
   unresolvedClarificationStoryIds,
 } from '../requirements/clarifications';
 import { decideKickoff } from '../requirements/kickoff';
+import { decideUnderstanding } from '../requirements/scenarios';
 import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDriftAsync,
@@ -22,6 +23,7 @@ import type {
   ClarificationStoryOutcomeProposal,
   KickoffDecisionAction,
   Phase,
+  UnderstandingDecisionAction,
 } from '../workflow/types';
 import { PHASE_RESULT_MESSAGE_TYPE, STATUS_KEY, statusLabel } from './identity';
 import {
@@ -71,6 +73,14 @@ const KICKOFF_ACTIONS: Record<string, KickoffDecisionAction> = {
   deferred: 'deferred',
   stop: 'stopped',
   stopped: 'stopped',
+};
+const SCENARIO_ACTIONS: Record<string, UnderstandingDecisionAction> = {
+  confirm: 'confirmed',
+  confirmed: 'confirmed',
+  continue: 'continue',
+  split: 'split',
+  defer: 'deferred',
+  deferred: 'deferred',
 };
 
 function parseKickoffDecision(
@@ -124,6 +134,64 @@ async function promptKickoffDecision(
   if (!action) return undefined;
   const reason = (await ctx.ui.input(`请说明 ${selected} 的业务理由`))?.trim();
   return reason ? { action, reason } : undefined;
+}
+
+interface ScenarioDecision {
+  action: UnderstandingDecisionAction;
+  reason: string;
+  draftId?: string;
+}
+
+function parseScenarioDecision(args: string): ScenarioDecision | undefined {
+  const [rawAction, ...rest] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = SCENARIO_ACTIONS[rawAction.toLowerCase()];
+  if (!action) {
+    throw new Error(
+      'Usage: /evidence-scenario confirm <DRAFT-xxx> <reason> | continue <reason> | split <reason> | defer <reason>.',
+    );
+  }
+  const draftId =
+    action === 'confirmed' ? rest.shift()?.toUpperCase() : undefined;
+  if (action === 'confirmed' && !draftId) {
+    throw new Error('Scenario confirmation requires a DRAFT-xxx id.');
+  }
+  const reason = rest.join(' ').trim();
+  if (!reason) throw new Error(`Scenario ${rawAction} requires a reason.`);
+  return { action, reason, ...(draftId ? { draftId } : {}) };
+}
+
+async function promptScenarioDecision(
+  ctx: ExtensionCommandContext,
+): Promise<ScenarioDecision | undefined> {
+  const state = readState(ctx.cwd);
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Scenario confirmation requires interactive mode or explicit command arguments.',
+    );
+  }
+  const confirmOptions = (state.scenario_drafts ?? []).map(
+    ({ draft_id, title }) => `确认 ${draft_id} · ${title}`,
+  );
+  const options = [...confirmOptions, '继续 TQA', '拆分 Story', '延期 Story'];
+  const selected = await ctx.ui.select('决定本轮最小业务 Scenario', options);
+  if (!selected) return undefined;
+  let action: UnderstandingDecisionAction;
+  let draftId: string | undefined;
+  if (selected.startsWith('确认 ')) {
+    action = 'confirmed';
+    draftId = selected.split(/\s+/)[1];
+  } else if (selected === '继续 TQA') {
+    action = 'continue';
+  } else if (selected === '拆分 Story') {
+    action = 'split';
+  } else {
+    action = 'deferred';
+  }
+  const reason = (await ctx.ui.input(`请说明“${selected}”的业务理由`))?.trim();
+  return reason
+    ? { action, reason, ...(draftId ? { draftId } : {}) }
+    : undefined;
 }
 
 function parseStoryDecision(
@@ -399,6 +467,48 @@ export function registerCommands(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand('evidence-scenario', {
+    description:
+      'Human-only Scenario decision: confirm one draft, continue TQA, split, or defer',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseScenarioDecision(args) ?? (await promptScenarioDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Scenario decision cancelled; Understand is unchanged.',
+            'info',
+          );
+          return;
+        }
+        const state = decideUnderstanding(ctx.cwd, decision);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        if (decision.action === 'confirmed') {
+          ctx.ui.notify(
+            `Human confirmed ${state.confirmed_scenario?.story_id} / ${state.confirmed_scenario?.scenario_id}; model validation is next.`,
+            'info',
+          );
+        } else if (decision.action === 'continue') {
+          ctx.ui.notify(
+            'Human requested more business understanding; TQA is ready to resume.',
+            'info',
+          );
+        } else {
+          ctx.ui.notify(
+            `Human chose ${decision.action}; the single-Story iteration is halted.`,
+            'info',
+          );
+        }
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
   pi.registerCommand('evidence-issue-sync', {
     description:
       'Refresh the active GitHub Issue snapshot while the iteration is in frame',
@@ -528,6 +638,13 @@ export function registerCommands(pi: ExtensionAPI): void {
       try {
         await waitForIdle(ctx);
         const current = readState(ctx.cwd);
+        if (current.workflow_version === 5) {
+          ctx.ui.notify(
+            'v5 Story understanding is decided through /evidence-scenario, not /evidence-story-complete.',
+            'info',
+          );
+          return;
+        }
         const activeStoryId = current.active_clarification_story?.story_id;
         if (!activeStoryId) {
           ctx.ui.notify('No clarification Story is active.', 'info');

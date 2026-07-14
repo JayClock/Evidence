@@ -111,6 +111,7 @@ describe('tools', () => {
         'evidence_orchestrator_start_from_issue',
         'evidence_orchestrator_sync_issue',
         'evidence_orchestrator_propose_kickoff',
+        'evidence_orchestrator_propose_scenarios',
         'evidence_orchestrator_ask_question',
         'evidence_orchestrator_answer_question',
         'evidence_orchestrator_select_story',
@@ -217,6 +218,83 @@ describe('tools', () => {
         content: [
           expect.objectContaining({
             text: expect.stringContaining('/evidence-kickoff'),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('lets the AI propose concrete Scenarios without confirming one', async () => {
+    const cwd = workspace();
+    writeIterationArtifact(cwd, '01-requirements/stories/US-001.md', '# Story');
+    writeState(cwd, {
+      ...clarifyState(),
+      workflow_version: 5,
+      loop: 'understand',
+      understand_stage: 'tqa',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    let execute:
+      | ((
+          toolCallId: string,
+          params: {
+            storyId: string;
+            candidates: Array<{
+              title: string;
+              given: string[];
+              when: string;
+              then: string[];
+              businessData: string[];
+            }>;
+          },
+          signal: undefined,
+          onUpdate: undefined,
+          ctx: unknown,
+        ) => Promise<unknown>)
+      | undefined;
+    registerTools({
+      registerTool(definition: { name: string; execute?: typeof execute }) {
+        if (definition.name === 'evidence_orchestrator_propose_scenarios') {
+          execute = definition.execute;
+        }
+      },
+      on() {
+        return undefined;
+      },
+    } as never);
+
+    const result = await execute?.(
+      '',
+      {
+        storyId: 'US-001',
+        candidates: [
+          {
+            title: '确认当前模型',
+            given: ['v3 已确认'],
+            when: '负责人打开模型',
+            then: ['显示 v3'],
+            businessData: ['版本：v3'],
+          },
+        ],
+      },
+      undefined,
+      undefined,
+      { cwd },
+    );
+
+    expect(readState(cwd)).toMatchObject({
+      understand_stage: 'scenario_review',
+      scenario_drafts: [{ draft_id: 'DRAFT-001' }],
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        terminate: true,
+        content: [
+          expect.objectContaining({
+            text: expect.stringContaining('/evidence-scenario'),
           }),
         ],
       }),

@@ -31,6 +31,7 @@ export class PhaseRunBlockedError extends Error {
       | 'gate'
       | 'kickoff_decision'
       | 'clarification'
+      | 'scenario_decision'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -121,6 +122,17 @@ export function preparePhaseRun(
       `Kickoff candidate ${current.kickoff_candidate.artifact_path} is awaiting a human decision. Run /evidence-kickoff to confirm, revise, split, defer, or stop.`,
     );
   }
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'understand' &&
+    current.understand_stage === 'scenario_review' &&
+    current.scenario_drafts?.length
+  ) {
+    throw new PhaseRunBlockedError(
+      'scenario_decision',
+      `${current.scenario_drafts.length} Scenario draft(s) await a human decision. Run /evidence-scenario to confirm one, continue TQA, split, or defer.`,
+    );
+  }
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
     throw new PhaseRunBlockedError(
@@ -167,9 +179,21 @@ export function preparePhaseRun(
   const task = buildPhaseTask(cwd, current.phase, request.instructions ?? '');
   if (current.phase === 'complete') return { state: current, task };
 
+  const v5UnderstandInputs =
+    current.workflow_version === 5 &&
+    current.loop === 'understand' &&
+    current.understand_stage === 'tqa'
+      ? [
+          'artifacts/00-user-input/requirements.md',
+          'artifacts/01-requirements/problem-statement.md',
+          `artifacts/01-requirements/stories/${current.active_clarification_story?.story_id ?? 'missing'}.md`,
+          'docs/product/business-context.md',
+          'docs/product/user-journeys.md',
+        ]
+      : undefined;
   const missingInputs = missingPaths(
     cwd,
-    PHASE_META[current.phase].inputs.map((path) =>
+    (v5UnderstandInputs ?? PHASE_META[current.phase].inputs).map((path) =>
       artifactRelativePath(current, path),
     ),
   );

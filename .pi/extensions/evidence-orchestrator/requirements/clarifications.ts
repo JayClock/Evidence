@@ -374,6 +374,11 @@ export function selectClarificationStory(
     );
     return state;
   }
+  if (state.workflow_version === 5) {
+    throw new Error(
+      `A v5 Understand loop has one human-confirmed Story and cannot switch to ${normalizedStoryId}. Finish, split, defer, or stop the current Story first.`,
+    );
+  }
   requireArtifact(
     storyPath(cwd, state, normalizedStoryId),
     'Clarification story artifact',
@@ -429,6 +434,11 @@ export function proposeClarificationStoryOutcome(
 ): WorkflowState {
   const state = readState(cwd);
   assertClarificationPhase(state);
+  if (state.workflow_version === 5) {
+    throw new Error(
+      'v5 does not use AI story-outcome proposals. Propose concrete Given/When/Then Scenario drafts instead.',
+    );
+  }
   if (state.pending_clarification) {
     throw new Error(
       `Cannot propose a story outcome: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
@@ -504,6 +514,11 @@ export function confirmClarificationStoryOutcome(
 ): WorkflowState {
   const state = readState(cwd);
   assertClarificationPhase(state);
+  if (state.workflow_version === 5) {
+    throw new Error(
+      'v5 Story understanding is completed by a human-confirmed Scenario, not a story-outcome proposal.',
+    );
+  }
   const activeStoryId = state.active_clarification_story?.story_id;
   if (!activeStoryId) {
     throw new Error(
@@ -615,6 +630,11 @@ export function askClarification(
       `Cannot ask another question: proposed outcome for ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision.`,
     );
   }
+  if (state.scenario_drafts?.length) {
+    throw new Error(
+      'Cannot ask another question while Scenario drafts await a human decision.',
+    );
+  }
   const storyId = normalizeStoryId(input.story_id);
   const activeStoryId = state.active_clarification_story?.story_id;
   if (!activeStoryId) {
@@ -645,8 +665,16 @@ export function askClarification(
       : input.target === 'story'
         ? storyPath(cwd, state, storyId)
         : undefined;
-  if (destination)
+  if (
+    destination &&
+    !(
+      state.workflow_version === 5 &&
+      input.target === 'business_context' &&
+      !existsSync(destination)
+    )
+  ) {
     requireArtifact(destination, 'Clarification destination artifact');
+  }
 
   ensureProjectDirs(cwd, iterationRoot(cwd, state));
   const pending_clarification: ClarificationRecord = {
@@ -671,6 +699,17 @@ export function answerClarification(
   const pending = state.pending_clarification;
   if (!pending) throw new Error('There is no pending clarification to answer.');
   const destination = answerDestination(cwd, state, pending);
+  if (
+    destination &&
+    state.workflow_version === 5 &&
+    pending.target === 'business_context' &&
+    !existsSync(destination)
+  ) {
+    writeFileSync(
+      destination,
+      '# 候选产品上下文增量\n\n仅记录本轮 TQA 新发现；未经 Respond 提升前不是稳定产品事实。\n',
+    );
+  }
   if (destination)
     requireArtifact(destination, 'Clarification destination artifact');
 
@@ -686,5 +725,30 @@ export function answerClarification(
   });
   persistHistory(cwd, next, answered.story_id);
   if (destination) appendAnswerToDestination(destination, answered);
+  return next;
+}
+
+/** Preserve a pending TQA as explicitly waived by a human split/defer decision. */
+export function waivePendingClarification(
+  cwd: string,
+  reason: string,
+  now = new Date().toISOString(),
+): WorkflowState {
+  const state = readState(cwd);
+  assertClarificationPhase(state);
+  const pending = state.pending_clarification;
+  if (!pending) return state;
+  const waived: ClarificationRecord = {
+    ...pending,
+    waived_by: 'human',
+    waived_reason: requireNonEmpty(reason, 'Clarification waiver reason'),
+    waived_at: now,
+  };
+  const next = writeState(cwd, {
+    ...state,
+    pending_clarification: undefined,
+    clarification_history: [...(state.clarification_history ?? []), waived],
+  });
+  persistHistory(cwd, next, waived.story_id);
   return next;
 }

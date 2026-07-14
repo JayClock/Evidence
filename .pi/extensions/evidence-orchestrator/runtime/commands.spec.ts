@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { proposeClarificationStoryOutcome } from '../requirements/clarifications';
 import { startIterationFromIssue } from '../requirements/github-issue';
 import { proposeKickoffCandidate } from '../requirements/kickoff';
+import { proposeScenarioDrafts } from '../requirements/scenarios';
 import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
 import { readState, writeState } from '../workflow/state-store';
 import type { Phase, WorkflowState } from '../workflow/types';
@@ -147,6 +148,7 @@ describe('commands', () => {
         'evidence-run',
         'evidence-new',
         'evidence-kickoff',
+        'evidence-scenario',
         'evidence-gate',
         'evidence-story',
         'evidence-story-complete',
@@ -247,6 +249,55 @@ describe('commands', () => {
     });
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       'Human confirmed US-001; Kickoff is complete and Understand is ready.',
+      'info',
+    );
+  });
+
+  it('lets a human confirm one Scenario without a Specify phase', async () => {
+    const cwd = workspace();
+    writeIterationArtifact(cwd, '01-requirements/stories/US-001.md', '# Story');
+    writeState(cwd, {
+      ...issueState('clarify'),
+      workflow_version: 5,
+      loop: 'understand',
+      understand_stage: 'tqa',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    proposeScenarioDrafts(cwd, 'US-001', [
+      {
+        title: '确认当前模型',
+        given: ['v3 已确认'],
+        when: '负责人打开模型',
+        then: ['显示 v3'],
+        businessData: ['版本：v3'],
+      },
+    ]);
+    let decideScenario:
+      | ((args: string, ctx: unknown) => Promise<void>)
+      | undefined;
+    registerCommands({
+      registerCommand(
+        name: string,
+        options: { handler: typeof decideScenario },
+      ) {
+        if (name === 'evidence-scenario') decideScenario = options.handler;
+      },
+    } as never);
+    const ctx = commandContext(cwd);
+
+    await decideScenario?.('confirm DRAFT-001 这是本轮最小用户价值。', ctx);
+
+    expect(readState(cwd)).toMatchObject({
+      phase: 'domain_model',
+      loop: 'understand',
+      understand_stage: 'modeling',
+      confirmed_scenario: { scenario_id: 'SC-001' },
+    });
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'Human confirmed US-001 / SC-001; model validation is next.',
       'info',
     );
   });
@@ -587,7 +638,7 @@ describe('commands', () => {
     expect(sendMessage).toHaveBeenCalledOnce();
   });
 
-  it('runs specify directly when evidence-run follows the final Story outcome', async () => {
+  it('keeps the legacy v4 direct transition to Specify', async () => {
     const cwd = workspace();
     const started = startIterationFromIssue(
       cwd,
@@ -623,6 +674,8 @@ describe('commands', () => {
     );
     writeState(cwd, {
       ...started,
+      workflow_version: 4,
+      loop: undefined,
       phase: 'clarify',
       clarification_story_outcomes: [
         {

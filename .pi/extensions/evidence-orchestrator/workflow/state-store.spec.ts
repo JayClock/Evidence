@@ -72,6 +72,32 @@ describe('state', () => {
     ).toThrow('must belong to the active clarification story');
   });
 
+  it('rejects paused multi-Story clarification state in v5 Understand', () => {
+    const cwd = workspace();
+    expect(() =>
+      writeState(cwd, {
+        ...DEFAULT_STATE,
+        workflow_version: 5,
+        loop: 'understand',
+        phase: 'clarify',
+        understand_stage: 'tqa',
+        active_clarification_story: {
+          story_id: 'US-001',
+          selected_at: '2026-01-01T00:00:00.000Z',
+        },
+        paused_clarifications: [
+          {
+            question_id: 'Q-001',
+            story_id: 'US-002',
+            question: 'Who approves?',
+            target: 'history',
+            asked_at: '2026-01-01T00:01:00.000Z',
+          },
+        ],
+      }),
+    ).toThrow('cannot pause questions or decisions for another Story');
+  });
+
   it('accepts paused clarification state only for non-active stories', () => {
     const cwd = workspace();
     const state = writeState(cwd, {

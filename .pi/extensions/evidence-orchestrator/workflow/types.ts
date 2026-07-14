@@ -39,6 +39,12 @@ export type KickoffDecisionAction =
   | 'split'
   | 'deferred'
   | 'stopped';
+export type UnderstandStage = 'tqa' | 'scenario_review' | 'modeling';
+export type UnderstandingDecisionAction =
+  | 'confirmed'
+  | 'continue'
+  | 'split'
+  | 'deferred';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
@@ -160,6 +166,44 @@ export interface KickoffDecision {
   story_id?: string;
 }
 
+export interface ScenarioDraft {
+  version: 1;
+  draft_id: string;
+  story_id: string;
+  title: string;
+  given: string[];
+  when: string;
+  then: string[];
+  business_data: string[];
+  proposed_at: string;
+  artifact_path: string;
+}
+
+export interface ConfirmedScenario {
+  version: 1;
+  story_id: string;
+  scenario_id: string;
+  source_draft_id: string;
+  title: string;
+  given: string[];
+  when: string;
+  then: string[];
+  business_data: string[];
+  artifact_path: string;
+  confirmed_by: 'human';
+  confirmation_reason: string;
+  confirmed_at: string;
+}
+
+export interface UnderstandingDecision {
+  action: UnderstandingDecisionAction;
+  reason: string;
+  decided_by: 'human';
+  decided_at: string;
+  draft_id?: string;
+  scenario_id?: string;
+}
+
 export interface WorkflowFeedback {
   target: FeedbackTarget;
   from_loop: WorkflowLoop;
@@ -180,6 +224,11 @@ export interface WorkflowState {
   kickoff_candidate?: KickoffCandidate;
   /** Immutable human decisions made during Kickoff. */
   kickoff_decisions?: KickoffDecision[];
+  understand_stage?: UnderstandStage;
+  /** AI-authored examples awaiting one human Scenario decision. */
+  scenario_drafts?: ScenarioDraft[];
+  confirmed_scenario?: ConfirmedScenario;
+  understanding_decisions?: UnderstandingDecision[];
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

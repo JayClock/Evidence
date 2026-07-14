@@ -230,6 +230,7 @@ export function decideKickoff(
       ...(state.kickoff_decisions ?? []),
       { ...decision, story_id: storyId },
     ],
+    understand_stage: 'tqa',
     active_clarification_story: {
       story_id: storyId,
       selected_at: now,

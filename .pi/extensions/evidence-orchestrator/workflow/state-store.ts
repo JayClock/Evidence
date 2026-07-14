@@ -53,9 +53,24 @@ const KICKOFF_DECISIONS = new Set([
   'deferred',
   'stopped',
 ]);
+const UNDERSTAND_STAGES = new Set(['tqa', 'scenario_review', 'modeling']);
+const UNDERSTANDING_DECISIONS = new Set([
+  'confirmed',
+  'continue',
+  'split',
+  'deferred',
+]);
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
+}
+
+function isNonEmptyStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((entry) => isNonEmptyString(entry))
+  );
 }
 
 function isValidClarificationOutcomeProposal(
@@ -229,6 +244,97 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   ) {
     throw new Error('The v5 Kickoff decision history is invalid.');
   }
+  const understandStage = state.understand_stage;
+  const scenarioDrafts = state.scenario_drafts ?? [];
+  const confirmedScenario = state.confirmed_scenario;
+  const understandingDecisions = state.understanding_decisions ?? [];
+  if (
+    workflowVersion === 4 &&
+    (understandStage !== undefined ||
+      scenarioDrafts.length > 0 ||
+      confirmedScenario !== undefined ||
+      understandingDecisions.length > 0)
+  ) {
+    throw new Error(
+      'A legacy v4 workflow must not declare v5 Understand data.',
+    );
+  }
+  if (
+    understandStage !== undefined &&
+    !UNDERSTAND_STAGES.has(understandStage)
+  ) {
+    throw new Error(`Unsupported v5 Understand stage: ${understandStage}.`);
+  }
+  if (
+    workflowVersion === 5 &&
+    ((state.paused_clarifications?.length ?? 0) > 0 ||
+      (state.paused_clarification_story_outcome_proposals?.length ?? 0) > 0)
+  ) {
+    throw new Error(
+      'A v5 Understand loop cannot pause questions or decisions for another Story.',
+    );
+  }
+  if (
+    scenarioDrafts.some(
+      (draft) =>
+        draft.version !== 1 ||
+        !/^DRAFT-\d{3,}$/.test(draft.draft_id) ||
+        !STORY_ID_PATTERN.test(draft.story_id) ||
+        !isNonEmptyString(draft.title) ||
+        !isNonEmptyStringArray(draft.given) ||
+        !isNonEmptyString(draft.when) ||
+        !isNonEmptyStringArray(draft.then) ||
+        !isNonEmptyStringArray(draft.business_data) ||
+        !isNonEmptyString(draft.proposed_at) ||
+        !isNonEmptyString(draft.artifact_path),
+    ) ||
+    new Set(scenarioDrafts.map(({ draft_id }) => draft_id)).size !==
+      scenarioDrafts.length
+  ) {
+    throw new Error('The v5 Scenario drafts are invalid.');
+  }
+  if (understandStage === 'scenario_review' && scenarioDrafts.length === 0) {
+    throw new Error('Scenario review requires at least one Scenario draft.');
+  }
+  if (understandStage === 'tqa' && scenarioDrafts.length > 0) {
+    throw new Error('TQA cannot retain Scenario drafts awaiting review.');
+  }
+  if (
+    confirmedScenario &&
+    (confirmedScenario.version !== 1 ||
+      !STORY_ID_PATTERN.test(confirmedScenario.story_id) ||
+      !/^SC-\d{3,}$/.test(confirmedScenario.scenario_id) ||
+      !/^DRAFT-\d{3,}$/.test(confirmedScenario.source_draft_id) ||
+      !isNonEmptyString(confirmedScenario.title) ||
+      !isNonEmptyStringArray(confirmedScenario.given) ||
+      !isNonEmptyString(confirmedScenario.when) ||
+      !isNonEmptyStringArray(confirmedScenario.then) ||
+      !isNonEmptyStringArray(confirmedScenario.business_data) ||
+      !isNonEmptyString(confirmedScenario.artifact_path) ||
+      confirmedScenario.confirmed_by !== 'human' ||
+      !isNonEmptyString(confirmedScenario.confirmation_reason) ||
+      !isNonEmptyString(confirmedScenario.confirmed_at))
+  ) {
+    throw new Error('The v5 confirmed Scenario is invalid.');
+  }
+  if (confirmedScenario && understandStage !== 'modeling') {
+    throw new Error('A confirmed Scenario must enter the modeling stage.');
+  }
+  if (
+    understandingDecisions.some(
+      (decision) =>
+        !UNDERSTANDING_DECISIONS.has(decision.action) ||
+        !isNonEmptyString(decision.reason) ||
+        decision.decided_by !== 'human' ||
+        !isNonEmptyString(decision.decided_at) ||
+        (decision.draft_id !== undefined &&
+          !/^DRAFT-\d{3,}$/.test(decision.draft_id)) ||
+        (decision.scenario_id !== undefined &&
+          !/^SC-\d{3,}$/.test(decision.scenario_id)),
+    )
+  ) {
+    throw new Error('The v5 Understand decision history is invalid.');
+  }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
       'An active clarification story is only valid while the workflow is in clarify.',
@@ -250,6 +356,11 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(proposedOutcome ? [proposedOutcome] : []),
     ...pausedProposals,
   ];
+  if (workflowVersion === 5 && allProposals.length > 0) {
+    throw new Error(
+      'A v5 Understand loop uses concrete Scenario drafts, not story-outcome proposals.',
+    );
+  }
   if (allProposals.length > 0 && phase !== 'clarify') {
     throw new Error(
       'A proposed clarification story outcome is only valid while the workflow is in clarify.',
@@ -276,6 +387,11 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   }
 
   const clarificationOutcomes = state.clarification_story_outcomes ?? [];
+  if (workflowVersion === 5 && clarificationOutcomes.length > 0) {
+    throw new Error(
+      'A v5 Understand loop is finalized by one human-confirmed Scenario, not batch story outcomes.',
+    );
+  }
   if (
     new Set(clarificationOutcomes.map(({ story_id }) => story_id)).size !==
       clarificationOutcomes.length ||
@@ -397,6 +513,12 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(kickoffCandidate ? { kickoff_candidate: kickoffCandidate } : {}),
     ...(kickoffDecisions.length > 0
       ? { kickoff_decisions: kickoffDecisions }
+      : {}),
+    ...(understandStage ? { understand_stage: understandStage } : {}),
+    ...(scenarioDrafts.length > 0 ? { scenario_drafts: scenarioDrafts } : {}),
+    ...(confirmedScenario ? { confirmed_scenario: confirmedScenario } : {}),
+    ...(understandingDecisions.length > 0
+      ? { understanding_decisions: understandingDecisions }
       : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0
