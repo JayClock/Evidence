@@ -1,113 +1,90 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
 import {
-  proposeClarificationStoryOutcome,
-  selectClarificationStory,
-} from '../requirements/clarifications';
+  isCompletedIteration,
+  PhaseRunBlockedError,
+  preparePhaseRun,
+} from './phase-dispatch';
+import {
+  PHASE_META,
+  DEFAULT_STATE,
+  IDLE_STATE,
+} from '../workflow/phase-catalog';
 import { writeState } from '../workflow/state-store';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
-import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
+import {
+  cleanupWorkspaces,
+  LEAN_STORY_CARD,
+  workspace,
+  write,
+  writeIterationArtifact,
+} from '../tests/support';
 
 afterEach(cleanupWorkspaces);
 
-function writeFrameInputs(cwd: string): void {
-  for (const path of PHASE_META.frame.inputs) {
+const SOURCE = {
+  type: 'github_issue' as const,
+  repository: 'owner/evidence',
+  issue_number: 42,
+  url: 'https://github.com/owner/evidence/issues/42',
+  snapshot_path: 'snapshot',
+  projection_path: 'projection',
+  content_hash: 'sha256:test',
+  issue_updated_at: '2026-01-01T00:00:00Z',
+  fetched_at: '2026-01-01T00:00:00Z',
+};
+
+function writeInputs(cwd: string, phase: keyof typeof PHASE_META): void {
+  for (const path of PHASE_META[phase].inputs) {
     const resolved = path.startsWith('artifacts/')
       ? `artifacts/iterations/ITER-0001/${path.slice('artifacts/'.length)}`
       : path;
-    write(cwd, resolved, 'input');
+    if (resolved.endsWith('/')) write(cwd, `${resolved}input.md`);
+    else write(cwd, resolved);
   }
 }
 
-function issueBackedFrameState() {
-  return {
-    ...DEFAULT_STATE,
-    requirement_source: {
-      type: 'github_issue' as const,
-      repository: 'owner/repo',
-      issue_number: 1,
-      url: 'https://example.test/issues/1',
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
-      projection_path:
-        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-      content_hash: 'sha256:test',
-      issue_updated_at: '2026-01-01T00:00:00.000Z',
-      fetched_at: '2026-01-01T00:00:00.000Z',
-    },
-  };
-}
-
 describe('phase dispatch', () => {
-  it('requires an Issue-backed iteration before any phase can be dispatched', () => {
+  it('returns a terminal instruction while idle', () => {
+    const cwd = workspace();
+    writeState(cwd, IDLE_STATE);
+    const preparation = preparePhaseRun(cwd);
+    expect(isCompletedIteration(preparation)).toBe(true);
+    expect(preparation.task).toContain('选择 GitHub Issue');
+  });
+
+  it('requires a frozen Issue for an active phase', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
-
-    expect(() => preparePhaseRun(cwd)).toThrow(
-      'bootstrap iteration is archival',
-    );
+    expect(() => preparePhaseRun(cwd)).toThrow('no frozen GitHub Issue');
   });
 
-  it('prepares the current issue-backed phase without starting a subagent', () => {
+  it('prepares the current Kickoff without starting an agent', () => {
     const cwd = workspace();
-    writeFrameInputs(cwd);
-    writeState(cwd, issueBackedFrameState());
-
-    const preparation = preparePhaseRun(cwd, {
-      instructions: 'Keep the initial scope narrow.',
-    });
-
-    expect(isCompletedIteration(preparation)).toBe(false);
-    if (isCompletedIteration(preparation))
-      throw new Error('Unexpected completion.');
-    expect(preparation.phase).toBe('frame');
-    expect(preparation.task).toContain('Keep the initial scope narrow.');
-  });
-
-  it('blocks clarification until one generated story is selected', () => {
-    const cwd = workspace();
-    for (const path of PHASE_META.clarify.inputs) {
-      write(
-        cwd,
-        path.startsWith('artifacts/')
-          ? `artifacts/iterations/ITER-0001/${path.slice('artifacts/'.length)}`
-          : path,
-        'input',
-      );
-    }
-    write(
-      cwd,
-      'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
-      '# story',
-    );
-    writeState(cwd, { ...issueBackedFrameState(), phase: 'clarify' });
-
-    expect(() => preparePhaseRun(cwd)).toThrow(
-      'Select one clarification story',
-    );
-
-    selectClarificationStory(cwd, 'US-001');
+    writeInputs(cwd, 'kickoff');
+    writeState(cwd, { ...DEFAULT_STATE, requirement_source: SOURCE });
     const preparation = preparePhaseRun(cwd);
-    if (isCompletedIteration(preparation))
-      throw new Error('Unexpected completion.');
-    expect(preparation.task).toContain('当前澄清故事：US-001');
+    expect(isCompletedIteration(preparation)).toBe(false);
+    if (isCompletedIteration(preparation)) return;
+    expect(preparation.phase).toBe('kickoff');
+    expect(preparation.task).toContain('单 Story Kickoff');
+  });
 
-    proposeClarificationStoryOutcome(cwd, 'US-001', 'clarified', 'Clear.');
-    expect(() => preparePhaseRun(cwd)).toThrow('awaiting a human decision');
-    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-story-complete');
-
-    write(
-      cwd,
-      'artifacts/iterations/ITER-0001/01-requirements/stories/US-002.md',
-      '# another story',
-    );
-    const switched = preparePhaseRun(cwd, { storyId: 'US-002' });
-    if (isCompletedIteration(switched))
-      throw new Error('Unexpected completion.');
-    expect(switched.state.active_clarification_story?.story_id).toBe('US-002');
-    expect(switched.state.proposed_clarification_story_outcome).toBeUndefined();
-    expect(
-      switched.state.paused_clarification_story_outcome_proposals?.[0]
-        ?.story_id,
-    ).toBe('US-001');
+  it('blocks Discover while one TQA Question awaits the domain expert', () => {
+    const cwd = workspace();
+    writeInputs(cwd, 'discover');
+    writeIterationArtifact(cwd, '01-kickoff/story.md', LEAN_STORY_CARD);
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      phase: 'discover',
+      requirement_source: SOURCE,
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        thought: 'The result is unclear.',
+        question: 'What is visible?',
+        asked_at: '2026-01-01T00:00:00Z',
+      },
+    });
+    expect(() => preparePhaseRun(cwd)).toThrow(PhaseRunBlockedError);
+    expect(() => preparePhaseRun(cwd)).toThrow('awaiting the domain expert');
   });
 });

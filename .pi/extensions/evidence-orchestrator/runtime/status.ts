@@ -4,23 +4,26 @@ import {
   collectCodeFiles,
   findFiles,
 } from '../evidence/artifact-index';
-import {
-  allClarificationStoryOutcomeProposals,
-  allPendingClarifications,
-} from '../requirements/clarifications';
+import { singleStoryId } from '../requirements/story-cards';
+import { loadPhaseAgent } from '../subagents/phase-runner';
 import { isGateAnswered } from '../workflow/gates';
 import { iterationRoot } from '../workflow/iteration-paths';
 import { readState } from '../workflow/state-store';
-import { loadPhaseAgent } from '../subagents/phase-runner';
-
-function requirementsSubstage(phase: string): string {
-  return ['frame', 'clarify', 'specify', 'validate'].includes(phase)
-    ? phase
-    : 'n/a';
-}
 
 export function statusMarkdown(cwd: string): string {
   const state = readState(cwd);
+  if (state.phase === 'idle') {
+    return [
+      '# Evidence Orchestrator Status',
+      '',
+      '| Field | Value |',
+      '|:---|:---|',
+      '| Iteration | none |',
+      '| Phase | idle |',
+      '| Next feedback | Select a GitHub Issue and run Kickoff |',
+    ].join('\n');
+  }
+
   const root = iterationRoot(cwd, state);
   const artifacts = collectArtifacts(cwd, root);
   const codeFiles = collectCodeFiles(cwd);
@@ -33,68 +36,58 @@ export function statusMarkdown(cwd: string): string {
       phaseAgent = 'missing';
     }
   }
-  const gates = findFiles(join(root, 'gates'), (p) => p.endsWith('.md')).map(
-    (p) => relative(cwd, p),
-  );
+  const gates = findFiles(join(root, 'gates'), (path) =>
+    path.endsWith('.md'),
+  ).map((path) => relative(cwd, path));
+  let storyId = 'not created';
+  if (!['kickoff'].includes(state.phase)) {
+    try {
+      storyId = singleStoryId(cwd, state);
+    } catch {
+      storyId = 'missing or invalid';
+    }
+  }
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : 'none';
-  const activeClarificationStory =
-    state.active_clarification_story?.story_id ?? 'none';
-  const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
-  const pendingStoryDecision = pendingStoryDecisions.length
-    ? pendingStoryDecisions
-        .map(({ story_id, outcome }) => `${story_id} · ${outcome}`)
-        .join(', ')
-    : 'none';
-  const clarificationOutcomes = state.clarification_story_outcomes?.length
-    ? state.clarification_story_outcomes
-        .map(
-          ({ story_id, outcome, decided_by }) =>
-            `${story_id}=${outcome}${decided_by ? ` (${decided_by})` : ''}`,
-        )
-        .join(', ')
-    : 'none';
-  const pendingClarifications = allPendingClarifications(state);
-  const pendingClarification = pendingClarifications.length
-    ? pendingClarifications
-        .map(({ question_id, story_id }) => `${question_id} · ${story_id}`)
-        .join(', ')
+  const pendingClarification = state.pending_clarification
+    ? `${state.pending_clarification.question_id} · ${state.pending_clarification.story_id}`
     : 'none';
   const requirementSource = state.requirement_source
     ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}`
-    : state.phase === 'complete'
-      ? 'archived bootstrap iteration'
-      : 'missing — execution blocked';
+    : 'missing';
+
   return [
-    `# Evidence Orchestrator Status`,
-    ``,
-    `| Field | Value |`,
-    `|:---|:---|`,
+    '# Evidence Orchestrator Status',
+    '',
+    '| Field | Value |',
+    '|:---|:---|',
     `| Iteration | ${state.iteration_id} |`,
     `| Phase | ${state.phase} |`,
     `| Requirement Source | ${requirementSource} |`,
-    `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
-    `| Active Work Item | ${activeWorkItem} |`,
-    `| Active Clarification Story | ${activeClarificationStory} |`,
-    `| Pending Story Decision | ${pendingStoryDecision} |`,
-    `| Clarification Outcomes | ${clarificationOutcomes} |`,
-    `| Pending Clarification | ${pendingClarification} |`,
-    `| Phase Subagent | ${phaseAgent} |`,
+    `| Single Story | ${storyId} |`,
+    `| Active Build Scenario | ${activeWorkItem} |`,
+    `| Pending TQA | ${pendingClarification} |`,
+    `| Answered TQA Exchanges | ${state.clarification_history?.length ?? 0} |`,
+    `| Phase Agent | ${phaseAgent} |`,
     `| Round | ${state.round} |`,
-    `| Pending Gate | ${state.pending_gate ?? 'none'} |`,
-    `| Pending Gate Answered | ${state.pending_gate ? (isGateAnswered(cwd, state.pending_gate) ? 'yes' : 'no') : 'n/a'} |`,
+    `| Pending Feedback Gate | ${state.pending_gate ?? 'none'} |`,
+    `| Gate Answered | ${state.pending_gate ? (isGateAnswered(cwd, state.pending_gate) ? 'yes' : 'no') : 'n/a'} |`,
     `| Failures | ${state.failures} / ${state.max_rounds} |`,
     `| Halted | ${state.halted ? state.halted.reason : 'no'} |`,
     `| Last Run | ${state.pi?.last_run_at ?? 'never'} |`,
-    ``,
+    '',
     `## Artifacts (${artifacts.length})`,
-    artifacts.length ? artifacts.map((a) => `- ${a}`).join('\n') : `- none`,
-    ``,
+    artifacts.length
+      ? artifacts.map((path) => `- ${path}`).join('\n')
+      : '- none',
+    '',
     `## Code Files (${codeFiles.length})`,
-    codeFiles.length ? codeFiles.map((a) => `- ${a}`).join('\n') : `- none`,
-    ``,
+    codeFiles.length
+      ? codeFiles.map((path) => `- ${path}`).join('\n')
+      : '- none',
+    '',
     `## Gates (${gates.length})`,
-    gates.length ? gates.map((g) => `- ${g}`).join('\n') : `- none`,
+    gates.length ? gates.map((path) => `- ${path}`).join('\n') : '- none',
   ].join('\n');
 }

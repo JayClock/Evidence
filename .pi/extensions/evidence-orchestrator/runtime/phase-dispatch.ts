@@ -1,22 +1,13 @@
 import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
-import {
-  clarificationStoryIds,
-  selectClarificationStory,
-  unresolvedClarificationStoryIds,
-} from '../requirements/clarifications';
-import {
-  completePhase,
-  isGateAnswered,
-  resolvePendingGate,
-} from '../workflow/gates';
+import { buildPhaseTask } from '../subagents/phase-task';
+import { isGateAnswered, resolvePendingGate } from '../workflow/gates';
 import {
   artifactRelativePath,
   iterationRoot,
 } from '../workflow/iteration-paths';
 import { PHASE_META } from '../workflow/phase-catalog';
 import { readState, selectWorkItem } from '../workflow/state-store';
-import type { Phase, WorkflowState } from '../workflow/types';
-import { buildPhaseTask } from '../subagents/phase-task';
+import type { ActivePhase, WorkflowState } from '../workflow/types';
 
 export interface PhaseRunRequest {
   requestedPhase?: string;
@@ -27,11 +18,7 @@ export interface PhaseRunRequest {
 
 export class PhaseRunBlockedError extends Error {
   constructor(
-    readonly kind:
-      | 'gate'
-      | 'clarification'
-      | 'story_decision'
-      | 'story_selection',
+    readonly kind: 'gate' | 'clarification' | 'idle',
     message: string,
   ) {
     super(message);
@@ -41,33 +28,25 @@ export class PhaseRunBlockedError extends Error {
 
 export interface PreparedPhaseRun {
   state: WorkflowState;
-  phase: Exclude<Phase, 'complete'>;
+  phase: ActivePhase;
   task: string;
 }
 
-export interface CompletedIteration {
+export interface TerminalIteration {
   state: WorkflowState;
   task: string;
 }
 
-export type PhaseRunPreparation = PreparedPhaseRun | CompletedIteration;
+export type PhaseRunPreparation = PreparedPhaseRun | TerminalIteration;
 
-function isCompleted(
-  preparation: PhaseRunPreparation,
-): preparation is CompletedIteration {
-  return preparation.state.phase === 'complete';
-}
-
-/**
- * Resolve one run deterministically before handing it to a phase subagent.
- * This function deliberately performs no agent work and never starts a child
- * process, so commands and tools cannot diverge in their guardrails.
- */
 export function preparePhaseRun(
   cwd: string,
   request: PhaseRunRequest = {},
 ): PhaseRunPreparation {
   let state = readState(cwd);
+  if (state.phase === 'idle') {
+    return { state, task: buildPhaseTask(cwd) };
+  }
   ensureProjectDirs(cwd, iterationRoot(cwd, state));
 
   if (state.pending_gate && isGateAnswered(cwd, state.pending_gate)) {
@@ -80,98 +59,62 @@ export function preparePhaseRun(
   }
   if (state.phase !== 'complete' && !state.requirement_source) {
     throw new Error(
-      'This bootstrap iteration is archival and cannot run. Select a GitHub Issue with /evidence-new.',
+      'The active iteration has no frozen GitHub Issue. Start a new iteration with /evidence-new.',
     );
   }
   if (request.requestedPhase && request.requestedPhase !== state.phase) {
     throw new Error(
-      `Cannot run ${request.requestedPhase}: current phase is ${state.phase}. Use /evidence-new before a new iteration.`,
+      `Cannot run ${request.requestedPhase}: current phase is ${state.phase}.`,
     );
   }
   if (request.storyId || request.scenarioId) {
-    if (state.phase === 'clarify') {
-      if (!request.storyId || request.scenarioId) {
-        throw new Error('Clarify accepts --story=US-xxx without --scenario.');
-      }
-      state = selectClarificationStory(cwd, request.storyId);
-    } else {
-      if (state.phase !== 'coding') {
-        throw new Error(
-          'A --story selection is only valid during clarify or coding.',
-        );
-      }
-      if (!request.storyId || !request.scenarioId) {
-        throw new Error(
-          'Coding requires both --story=US-xxx and --scenario=SC-xxx.',
-        );
-      }
-      state = selectWorkItem(cwd, request.storyId, request.scenarioId);
+    if (state.phase !== 'build') {
+      throw new Error(
+        '--story and --scenario are only valid while the workflow is in build.',
+      );
     }
+    if (!request.storyId || !request.scenarioId) {
+      throw new Error(
+        'Build selection requires both --story=US-xxx and --scenario=SC-xxx.',
+      );
+    }
+    state = selectWorkItem(cwd, request.storyId, request.scenarioId);
   }
 
-  let current = readState(cwd);
-  if (current.pending_clarification) {
-    const pending = current.pending_clarification;
+  if (state.pending_clarification) {
+    const pending = state.pending_clarification;
     throw new PhaseRunBlockedError(
       'clarification',
-      `Clarification ${pending.question_id} for ${pending.story_id} is awaiting a domain-expert answer: ${pending.question}`,
+      `TQA ${pending.question_id} for ${pending.story_id} is awaiting the domain expert: ${pending.question}`,
     );
   }
-  if (current.proposed_clarification_story_outcome) {
-    const proposal = current.proposed_clarification_story_outcome;
-    throw new PhaseRunBlockedError(
-      'story_decision',
-      `${proposal.story_id} is awaiting a human decision on the proposed ${proposal.outcome} outcome. Run /evidence-story-complete to confirm, override, or continue clarification.`,
-    );
-  }
-  if (current.pending_gate && !isGateAnswered(cwd, current.pending_gate)) {
+  if (state.pending_gate && !isGateAnswered(cwd, state.pending_gate)) {
     throw new PhaseRunBlockedError(
       'gate',
-      `Gate ${current.pending_gate} is pending. Edit ${artifactRelativePath(current, `artifacts/gates/${current.pending_gate}.md`)} or run /evidence-gate <decision>.`,
+      `Gate ${state.pending_gate} is pending. Run /evidence-gate approve|revise|reject <reason>.`,
     );
   }
-  if (current.phase === 'clarify' && !current.active_clarification_story) {
-    const storyIds = clarificationStoryIds(cwd, current);
-    const unresolvedStoryIds = unresolvedClarificationStoryIds(cwd, current);
-    if (storyIds.length > 0 && unresolvedStoryIds.length > 0) {
-      throw new PhaseRunBlockedError(
-        'story_selection',
-        `Select one clarification story before running clarify: ${unresolvedStoryIds.join(', ')}. Use /evidence-story <US-xxx> or evidence_orchestrator_select_story.`,
-      );
-    }
-    if (storyIds.length > 0) {
-      current = completePhase(
-        cwd,
-        'clarify',
-        'All clarification stories have human-confirmed outcomes; advancing directly to specify.',
-      );
-      if (current.pending_gate) {
-        throw new PhaseRunBlockedError(
-          'gate',
-          `Gate ${current.pending_gate} is pending. Edit ${artifactRelativePath(current, `artifacts/gates/${current.pending_gate}.md`)} or run /evidence-gate <decision>.`,
-        );
-      }
-    }
+  if (state.phase === 'complete') {
+    return { state, task: buildPhaseTask(cwd) };
   }
-  const task = buildPhaseTask(cwd, current.phase, request.instructions ?? '');
-  if (current.phase === 'complete') return { state: current, task };
 
+  const task = buildPhaseTask(cwd, state.phase, request.instructions ?? '');
   const missingInputs = missingPaths(
     cwd,
-    PHASE_META[current.phase].inputs.map((path) =>
-      artifactRelativePath(current, path),
+    PHASE_META[state.phase].inputs.map((path) =>
+      artifactRelativePath(state, path),
     ),
   );
   if (missingInputs.length > 0) {
     throw new Error(
-      `Cannot run ${current.phase}: missing inputs: ${missingInputs.join(', ')}.`,
+      `Cannot run ${state.phase}: missing inputs: ${missingInputs.join(', ')}.`,
     );
   }
-  return { state: current, phase: current.phase, task };
+  return { state, phase: state.phase, task };
 }
 
 export function isCompletedIteration(
   preparation: PhaseRunPreparation,
-): preparation is CompletedIteration {
-  return isCompleted(preparation);
+): preparation is TerminalIteration {
+  return ['idle', 'complete'].includes(preparation.state.phase);
 }

@@ -34,7 +34,9 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
     closeStateWatcher();
     const currentStatePath = statePath(ctx.cwd);
     const state = writeState(ctx.cwd, readState(ctx.cwd));
-    ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+    if (state.phase !== 'idle') {
+      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+    }
     ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
 
     const refreshStatus = () => {

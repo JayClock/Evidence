@@ -4,12 +4,12 @@ import type {
 } from '../subagents/phase-runner';
 import { runPhaseSubagent } from '../subagents/phase-runner';
 import { readState, writeState } from '../workflow/state-store';
-import type { Phase } from '../workflow/types';
+import type { ActivePhase } from '../workflow/types';
 import { STATUS_KEY, statusLabel } from './identity';
 import type { PreparedPhaseRun } from './phase-dispatch';
 
 export interface PhaseExecutionDetails extends PhaseAgentResult {
-  phase: Exclude<Phase, 'complete'>;
+  phase: ActivePhase;
   task: string;
   status: 'running' | 'completed' | 'failed';
 }
@@ -45,18 +45,12 @@ function completedOutput(
   result: PhaseAgentResult,
   state: ReturnType<typeof readState>,
 ): string {
-  if (preparation.phase !== 'clarify' || result.exitCode !== 0) {
+  if (preparation.phase !== 'discover' || result.exitCode !== 0) {
     return result.output;
   }
   const pending = state.pending_clarification;
-  if (pending) {
-    return `TQA ${pending.question_id} · ${pending.story_id}\n\n${pending.question}\n\n请直接回复此问题。`;
-  }
-  const proposal = state.proposed_clarification_story_outcome;
-  if (proposal) {
-    return `AI 建议将 ${proposal.story_id} 标记为 ${proposal.outcome}。\n\n理由：${proposal.summary}\n\nStory 仍保持活动，且尚未形成最终结论。请由领域专家运行 /evidence-story-complete，选择确认、修改结论或继续澄清。`;
-  }
-  return result.output;
+  if (!pending) return result.output;
+  return `TQA ${pending.question_id} · ${pending.story_id}\n\nThought: ${pending.thought}\n\nQuestion: ${pending.question}\n\n请由领域专家直接回答此问题。`;
 }
 
 function completedDetails(
@@ -83,8 +77,8 @@ export async function executePreparedPhaseRun(
     ...preparation.state,
     pi: {
       enabled: true,
-      version: 5,
       ...(preparation.state.pi ?? {}),
+      version: 6,
       last_command: options.invocation,
       last_run_at: (options.now ?? (() => new Date().toISOString()))(),
     },
