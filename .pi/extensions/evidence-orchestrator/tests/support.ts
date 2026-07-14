@@ -11,7 +11,9 @@ export const LEAN_STORY_CARD = `# US-001 编辑既有工作区信息
 > **我希望**修正既有工作区的信息，
 > **从而**让协作者识别正确的协作空间。
 
-- **问题上下文**：[\`../problem-statement.md\`](../problem-statement.md)
+**成功信号**：重新进入工作区时显示已确认的新标题。
+
+- **Kickoff 上下文**：[\`kickoff.md\`](./kickoff.md)
 `;
 
 export function workspace(): string {
