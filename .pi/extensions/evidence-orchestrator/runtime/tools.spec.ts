@@ -3,45 +3,28 @@ import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
 import { readState, writeState } from '../workflow/state-store';
 import {
   cleanupWorkspaces,
+  LEAN_STORY_CARD,
   workspace,
   write,
   writeIterationArtifact,
 } from '../tests/support';
 import { registerTools } from './tools';
 
-const phaseRunnerMocks = vi.hoisted(() => ({
-  runPhaseSubagent: vi.fn(),
-}));
-
+const phaseRunnerMocks = vi.hoisted(() => ({ runPhaseSubagent: vi.fn() }));
 vi.mock('../subagents/phase-runner', () => ({
   runPhaseSubagent: phaseRunnerMocks.runPhaseSubagent,
 }));
 
 beforeEach(() => {
-  phaseRunnerMocks.runPhaseSubagent.mockImplementation(
-    async (options: {
-      onUpdate?: (progress: Record<string, unknown>) => void;
-    }) => {
-      options.onUpdate?.({
-        agent: 'requirements-analyst',
-        model: 'openai/test',
-        thinking: 'medium',
-        output: 'Clarification is running.',
-        messages: [],
-        exitCode: -1,
-        stderr: '',
-      });
-      return {
-        agent: 'requirements-analyst',
-        model: 'openai/test',
-        thinking: 'medium',
-        output: 'Clarification paused for a domain answer.',
-        messages: [],
-        exitCode: 0,
-        stderr: '',
-      };
-    },
-  );
+  phaseRunnerMocks.runPhaseSubagent.mockResolvedValue({
+    agent: 'requirements-analyst',
+    model: 'openai/test',
+    thinking: 'medium',
+    output: 'Discover resumed.',
+    messages: [],
+    exitCode: 0,
+    stderr: '',
+  });
 });
 
 afterEach(() => {
@@ -49,323 +32,128 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function clarifyState() {
-  return {
-    ...DEFAULT_STATE,
-    phase: 'clarify' as const,
-    requirement_source: {
-      type: 'github_issue' as const,
-      repository: 'owner/repo',
-      issue_number: 1,
-      url: 'https://example.test/issues/1',
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
-      projection_path:
-        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-      content_hash: 'sha256:test',
-      issue_updated_at: '2026-01-01T00:00:00.000Z',
-      fetched_at: '2026-01-01T00:00:00.000Z',
+type Execute = (
+  id: string,
+  params: Record<string, unknown>,
+  signal: AbortSignal | undefined,
+  onUpdate: ((result: unknown) => void) | undefined,
+  ctx: Record<string, unknown>,
+) => Promise<unknown>;
+
+function registeredTools() {
+  const tools: Array<{
+    name: string;
+    parameters?: Record<string, unknown>;
+    execute?: Execute;
+    renderCall?: unknown;
+    renderResult?: unknown;
+  }> = [];
+  let resultHandler:
+    | ((event: { toolName: string; details: unknown }) => unknown)
+    | undefined;
+  registerTools({
+    registerTool(definition: (typeof tools)[number]) {
+      tools.push(definition);
     },
-  };
+    on(event: string, handler: typeof resultHandler) {
+      if (event === 'tool_result') resultHandler = handler;
+    },
+  } as never);
+  return { tools, resultHandler };
 }
 
-function writeClarifyInputs(cwd: string): void {
-  for (const path of PHASE_META.clarify.inputs) {
-    write(
-      cwd,
-      path.startsWith('artifacts/')
-        ? `artifacts/iterations/ITER-0001/${path.slice('artifacts/'.length)}`
-        : path,
-      'input',
-    );
+const SOURCE = {
+  type: 'github_issue' as const,
+  repository: 'owner/repo',
+  issue_number: 1,
+  url: 'https://example.test/issues/1',
+  snapshot_path: 'snapshot',
+  projection_path: 'projection',
+  content_hash: 'sha256:test',
+  issue_updated_at: '2026-01-01T00:00:00Z',
+  fetched_at: '2026-01-01T00:00:00Z',
+};
+
+function discoverInputs(cwd: string): void {
+  for (const path of PHASE_META.discover.inputs) {
+    const resolved = path.startsWith('artifacts/')
+      ? `artifacts/iterations/ITER-0001/${path.slice('artifacts/'.length)}`
+      : path;
+    write(cwd, resolved, 'input');
   }
+  writeIterationArtifact(cwd, '01-kickoff/story.md', LEAN_STORY_CARD);
 }
 
 describe('tools', () => {
-  it('registers phase-subagent, TQA, work-item, and test-process selection tools', () => {
-    const tools: Array<{
-      name: string;
-      renderCall?: unknown;
-      renderResult?: unknown;
-    }> = [];
-    let toolResultHandler:
-      | ((event: { toolName: string; details: unknown }) => unknown)
-      | undefined;
-    registerTools({
-      registerTool(definition: {
-        name: string;
-        renderCall?: unknown;
-        renderResult?: unknown;
-      }) {
-        tools.push(definition);
-      },
-      on(event: string, handler: unknown) {
-        if (event === 'tool_result') {
-          toolResultHandler = handler as typeof toolResultHandler;
-        }
-      },
-    } as never);
-
-    expect(tools.map(({ name }) => name)).toEqual(
-      expect.arrayContaining([
-        'evidence_orchestrator_run_phase',
-        'evidence_orchestrator_start_from_issue',
-        'evidence_orchestrator_sync_issue',
-        'evidence_orchestrator_ask_question',
-        'evidence_orchestrator_answer_question',
-        'evidence_orchestrator_select_story',
-        'evidence_orchestrator_propose_story_outcome',
-        'evidence_orchestrator_select_work_item',
-        'evidence_orchestrator_select_test_process',
-      ]),
-    );
-    expect(tools.map(({ name }) => name)).not.toContain(
-      'evidence_orchestrator_complete_story',
-    );
-    const phaseRunner = tools.find(
-      ({ name }) => name === 'evidence_orchestrator_run_phase',
-    );
-    const clarificationAnswer = tools.find(
-      ({ name }) => name === 'evidence_orchestrator_answer_question',
-    );
-    expect(phaseRunner?.renderCall).toBeTypeOf('function');
-    expect(phaseRunner?.renderResult).toBeTypeOf('function');
-    expect(clarificationAnswer?.renderResult).toBeTypeOf('function');
+  it('registers the reduced single-Story tool surface', () => {
+    const { tools, resultHandler } = registeredTools();
+    const names = tools.map(({ name }) => name);
+    expect(names).toContain('evidence_orchestrator_run_phase');
+    expect(names).toContain('evidence_orchestrator_ask_question');
+    expect(names).toContain('evidence_orchestrator_answer_question');
+    expect(names).toContain('evidence_orchestrator_select_work_item');
+    expect(names).not.toContain('evidence_orchestrator_select_story');
+    expect(names).not.toContain('evidence_orchestrator_propose_story_outcome');
     expect(
-      toolResultHandler?.({
+      resultHandler?.({
         toolName: 'evidence_orchestrator_run_phase',
         details: { exitCode: 1 },
       }),
     ).toEqual({ isError: true });
-    expect(
-      toolResultHandler?.({
-        toolName: 'evidence_orchestrator_select_story',
-        details: { exitCode: 1 },
-      }),
-    ).toEqual({ isError: true });
-    expect(
-      toolResultHandler?.({
-        toolName: 'evidence_orchestrator_answer_question',
-        details: { exitCode: 1 },
-      }),
-    ).toEqual({ isError: true });
-    expect(
-      toolResultHandler?.({
-        toolName: 'evidence_orchestrator_run_phase',
-        details: { exitCode: 0 },
-      }),
-    ).toBeUndefined();
   });
 
-  it('lets the AI propose an outcome without releasing the story', async () => {
-    const cwd = workspace();
-    writeClarifyInputs(cwd);
-    writeIterationArtifact(
-      cwd,
-      '01-requirements/stories/US-001.md',
-      '# 编辑工作区信息\n',
+  it('requires Thought as part of the TQA Question schema', () => {
+    const { tools } = registeredTools();
+    const question = tools.find(
+      ({ name }) => name === 'evidence_orchestrator_ask_question',
     );
-    writeState(cwd, {
-      ...clarifyState(),
-      active_clarification_story: {
-        story_id: 'US-001',
-        selected_at: '2026-01-01T00:00:00.000Z',
-      },
-    });
-    let execute:
-      | ((
-          toolCallId: string,
-          params: { storyId: string; outcome: string; summary: string },
-          signal: undefined,
-          onUpdate: undefined,
-          ctx: unknown,
-        ) => Promise<unknown>)
-      | undefined;
-    registerTools({
-      registerTool(definition: { name: string; execute?: typeof execute }) {
-        if (definition.name === 'evidence_orchestrator_propose_story_outcome') {
-          execute = definition.execute;
-        }
-      },
-      on() {
-        return undefined;
-      },
-    } as never);
-
-    const result = await execute?.(
-      '',
-      {
-        storyId: 'US-001',
-        outcome: 'clarified',
-        summary: '业务边界已经明确。',
-      },
-      undefined,
-      undefined,
-      { cwd },
-    );
-
-    const state = readState(cwd);
-    expect(state.active_clarification_story?.story_id).toBe('US-001');
-    expect(state.clarification_story_outcomes).toBeUndefined();
-    expect(state.proposed_clarification_story_outcome).toEqual(
-      expect.objectContaining({ outcome: 'clarified' }),
-    );
-    expect(result).toEqual(
-      expect.objectContaining({
-        terminate: true,
-        content: [
-          expect.objectContaining({
-            text: expect.stringContaining('/evidence-story-complete'),
-          }),
-        ],
-      }),
-    );
+    expect(question?.parameters?.required).toEqual([
+      'storyId',
+      'thought',
+      'question',
+    ]);
   });
 
-  it('records an answer and resumes the clarification dialogue in the same tool call', async () => {
+  it('records an explicit Answer and resumes Discover in the same call', async () => {
     const cwd = workspace();
-    writeClarifyInputs(cwd);
-    writeIterationArtifact(
-      cwd,
-      '01-requirements/stories/US-001.md',
-      '# 编辑工作区信息\n',
-    );
-    writeIterationArtifact(cwd, '01-requirements/clarifications/.gitkeep', '');
+    discoverInputs(cwd);
     writeState(cwd, {
-      ...clarifyState(),
-      active_clarification_story: {
-        story_id: 'US-001',
-        selected_at: '2026-01-01T00:00:00.000Z',
-      },
+      ...DEFAULT_STATE,
+      phase: 'discover',
+      requirement_source: SOURCE,
       pending_clarification: {
         question_id: 'Q-001',
         story_id: 'US-001',
-        question: '谁可以编辑工作区信息？',
-        target: 'history',
-        asked_at: '2026-01-01T00:01:00.000Z',
+        thought: 'Editing authority is unclear.',
+        question: 'Who may edit the workspace title?',
+        asked_at: '2026-01-01T00:00:00Z',
       },
     });
-    let execute:
-      | ((
-          toolCallId: string,
-          params: { answer: string },
-          signal: undefined,
-          onUpdate: (result: unknown) => void,
-          ctx: unknown,
-        ) => Promise<unknown>)
-      | undefined;
-    registerTools({
-      registerTool(definition: { name: string; execute?: typeof execute }) {
-        if (definition.name === 'evidence_orchestrator_answer_question') {
-          execute = definition.execute;
-        }
-      },
-      on() {
-        return undefined;
-      },
-    } as never);
+    const { tools } = registeredTools();
+    const execute = tools.find(
+      ({ name }) => name === 'evidence_orchestrator_answer_question',
+    )?.execute;
     const onUpdate = vi.fn();
-
     const result = await execute?.(
       '',
-      { answer: '工作区所有者。' },
+      { answer: 'The workspace owner.' },
       undefined,
       onUpdate,
       { cwd, ui: { setStatus: vi.fn() } },
     );
 
     expect(readState(cwd).pending_clarification).toBeUndefined();
-    expect(readState(cwd).clarification_history).toEqual([
-      expect.objectContaining({
-        question_id: 'Q-001',
-        answer: '工作区所有者。',
-      }),
-    ]);
-    expect(phaseRunnerMocks.runPhaseSubagent).toHaveBeenCalledWith(
-      expect.objectContaining({ phase: 'clarify' }),
+    expect(readState(cwd).clarification_history?.[0]?.answer).toBe(
+      'The workspace owner.',
     );
-    expect(onUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        details: expect.objectContaining({ status: 'running' }),
-      }),
+    expect(phaseRunnerMocks.runPhaseSubagent).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: 'discover' }),
     );
     expect(result).toEqual(
       expect.objectContaining({
         terminate: true,
-        content: [
-          expect.objectContaining({
-            text: expect.stringContaining(
-              'Clarification paused for a domain answer.',
-            ),
-          }),
-        ],
-        details: expect.objectContaining({
-          status: 'completed',
-          exitCode: 0,
-        }),
+        details: expect.objectContaining({ status: 'completed' }),
       }),
     );
-  });
-
-  it('selects a story and runs its clarification in the same tool call', async () => {
-    const cwd = workspace();
-    writeClarifyInputs(cwd);
-    writeState(cwd, clarifyState());
-    writeIterationArtifact(
-      cwd,
-      '01-requirements/stories/US-001.md',
-      '# 编辑工作区信息\n',
-    );
-    let execute:
-      | ((
-          toolCallId: string,
-          params: unknown,
-          signal: undefined,
-          onUpdate: (result: unknown) => void,
-          ctx: unknown,
-        ) => Promise<unknown>)
-      | undefined;
-    const sendUserMessage = vi.fn();
-    registerTools({
-      registerTool(definition: { name: string; execute?: typeof execute }) {
-        if (definition.name === 'evidence_orchestrator_select_story') {
-          execute = definition.execute;
-        }
-      },
-      on() {
-        return undefined;
-      },
-      sendUserMessage,
-    } as never);
-    const select = vi.fn().mockResolvedValue('US-001 · 编辑工作区信息');
-    const onUpdate = vi.fn();
-
-    const result = await execute?.('', {}, undefined, onUpdate, {
-      cwd,
-      hasUI: true,
-      ui: { select, setStatus: vi.fn() },
-    });
-
-    expect(select).toHaveBeenCalledWith('选择一张用户故事卡进行澄清', [
-      'US-001 · 编辑工作区信息',
-    ]);
-    expect(readState(cwd).active_clarification_story?.story_id).toBe('US-001');
-    expect(phaseRunnerMocks.runPhaseSubagent).toHaveBeenCalledWith(
-      expect.objectContaining({ phase: 'clarify' }),
-    );
-    expect(onUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        details: expect.objectContaining({ status: 'running' }),
-      }),
-    );
-    expect(result).toEqual(
-      expect.objectContaining({
-        terminate: true,
-        details: expect.objectContaining({
-          status: 'completed',
-          exitCode: 0,
-        }),
-      }),
-    );
-    expect(sendUserMessage).not.toHaveBeenCalled();
   });
 });

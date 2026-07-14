@@ -3,40 +3,35 @@ import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
 import {
   answerClarification,
   askClarification,
-  proposeClarificationStoryOutcome,
-  selectClarificationStory,
 } from '../requirements/clarifications';
+import {
+  startIterationFromIssueAsync,
+  syncIssueSourceAsync,
+} from '../requirements/github-issue';
+import { executeTestStep } from '../testing/execution-recorder';
 import {
   answerGate,
   completePhase,
   isGateAnswered,
   recordPhaseFailure,
 } from '../workflow/gates';
-import {
-  startIterationFromIssueAsync,
-  syncIssueSourceAsync,
-} from '../requirements/github-issue';
 import { PHASE_META } from '../workflow/phase-catalog';
+import {
+  readState,
+  selectTestProcess,
+  selectWorkItem,
+  selectedTestProcesses,
+} from '../workflow/state-store';
+import type { ActivePhase } from '../workflow/types';
+import { createGitHubCliRunner } from './github-cli';
+import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
+import { executePreparedPhaseRun } from './phase-execution';
 import {
   isPhaseSubagentFailureDetails,
   renderPhaseSubagentCall,
   renderPhaseSubagentResult,
 } from './phase-subagent-renderer';
-import {
-  readState,
-  selectTestProcess,
-  selectWorkItem,
-} from '../workflow/state-store';
-import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
-import { executeTestStep } from '../testing/execution-recorder';
-import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
-import { executePreparedPhaseRun } from './phase-execution';
-import {
-  listSelectableClarificationStories,
-  selectClarificationStoryInteractively,
-} from './story-picker';
-import type { ClarificationStoryOutcome, Phase } from '../workflow/types';
 
 type JsonSchema = Record<string, unknown> & { __optional?: boolean };
 
@@ -84,56 +79,17 @@ const issueSourceParam = Type.Object({
   ),
 });
 
-const phaseRunParam = Type.Object({
-  instructions: Type.Optional(
-    Type.String({
-      description: 'Extra instructions for the current phase subagent.',
-    }),
-  ),
-});
-
-const phaseFailureParam = Type.Object({
-  phase: Type.String({ description: 'The phase whose Check step failed.' }),
-  summary: Type.String({
-    description:
-      'Concrete failed validation or command result for the next PDCA attempt.',
-  }),
-});
-
 const clarificationQuestionParam = Type.Object({
   storyId: Type.String({
+    description: 'The sole Kickoff Story id, for example US-001.',
+  }),
+  thought: Type.String({
     description:
-      'The US-xxx story whose business uncertainty is being clarified.',
+      'Why this is the highest-value remaining business uncertainty.',
   }),
   question: Type.String({
     description:
-      'One high-value, non-technical question for the domain expert. Ask only one question, then stop.',
-  }),
-  target: Type.String({
-    description:
-      'Where an answer belongs: business_context, story, or history.',
-  }),
-});
-
-const clarificationAnswerParam = Type.Object({
-  answer: Type.String({
-    description:
-      'The domain expert’s explicit answer to the sole pending clarification question.',
-  }),
-});
-
-const clarificationStoryParam = Type.Object({});
-
-const clarificationStoryOutcomeProposalParam = Type.Object({
-  storyId: Type.String({
-    description: 'The active clarification story id, for example US-001.',
-  }),
-  outcome: Type.String({
-    description: 'Story clarification outcome.',
-    enum: ['clarified', 'needs_split', 'deferred'],
-  }),
-  summary: Type.String({
-    description: 'Brief business reason for the story outcome.',
+      'One concise, non-technical question for the domain expert. Ask it and stop.',
   }),
 });
 
@@ -143,38 +99,15 @@ const testProcessParam = Type.Object({
   }),
   functionalContexts: Type.Array(
     Type.String({
-      description: 'One functional context declared by the architecture.',
+      description: 'One functional context declared by Delivery Design.',
     }),
   ),
-});
-
-const workItemParam = Type.Object({
-  storyId: Type.String({
-    description: 'The selected story id, for example US-001.',
-  }),
-  scenarioId: Type.String({
-    description:
-      'The selected concrete acceptance scenario id, for example SC-001.',
-  }),
-});
-
-const executionStepParam = Type.Object({
-  processId: Type.String({
-    description: 'Selected test-process id that declares the command.',
-  }),
-  stage: Type.String({
-    description: 'TDD stage: red, green, refactor, or quality_gate.',
-  }),
-  command: Type.String({
-    description: 'An exact command declared in that process quality_gates.',
-  }),
 });
 
 export function registerTools(pi: ExtensionAPI): void {
   pi.on('tool_result', (event) => {
     if (
       (event.toolName === 'evidence_orchestrator_run_phase' ||
-        event.toolName === 'evidence_orchestrator_select_story' ||
         event.toolName === 'evidence_orchestrator_answer_question') &&
       isPhaseSubagentFailureDetails(event.details)
     ) {
@@ -185,14 +118,14 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_start_from_issue',
-    label: 'Start Evidence Orchestrator From Issue',
+    label: 'Start Evidence Iteration From Issue',
     description:
-      'Start a new isolated Evidence iteration from a frozen GitHub Issue snapshot',
+      'Start a clean single-Story iteration from a frozen GitHub Issue snapshot',
     promptSnippet:
-      'Use a GitHub Issue as the requirement authority for a new iteration',
+      'Use an explicitly identified GitHub Issue as the iteration authority',
     promptGuidelines: [
-      'Use only when the user explicitly identifies the GitHub Issue that should seed a new iteration.',
-      'Do not create or infer an Issue number.',
+      'Use evidence_orchestrator_start_from_issue only when the user explicitly identifies the GitHub Issue.',
+      'Never create or infer an Issue number on the user’s behalf.',
     ],
     parameters: issueSourceParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
@@ -208,10 +141,7 @@ export function registerTools(pi: ExtensionAPI): void {
       });
       const state = await startIterationFromIssueAsync(
         ctx.cwd,
-        {
-          issueNumber,
-          repository: params.repository,
-        },
+        { issueNumber, repository: params.repository },
         createGitHubCliRunner(pi),
         signal,
       );
@@ -229,23 +159,18 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_sync_issue',
-    label: 'Sync Evidence Orchestrator Issue',
-    description:
-      'Explicitly refresh the active GitHub Issue snapshot while still in frame',
-    promptSnippet:
-      'Refresh the frozen requirement snapshot from its GitHub Issue',
+    label: 'Refresh Evidence Issue Snapshot',
+    description: 'Refresh the frozen GitHub Issue snapshot during Kickoff only',
+    promptSnippet: 'Refresh the active Issue snapshot during Kickoff',
     promptGuidelines: [
-      'Use only when the user explicitly requests a refresh and the workflow is still in frame.',
-      'After frame, preserve the current snapshot and start a new iteration for changed requirements.',
+      'Use evidence_orchestrator_sync_issue only when the user explicitly requests a refresh and the phase is kickoff.',
+      'After Kickoff, preserve the snapshot and start a new iteration for changed requirements.',
     ],
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, signal, onUpdate, ctx) {
       onUpdate?.({
         content: [
-          {
-            type: 'text',
-            text: 'Refreshing the GitHub Issue snapshot…',
-          },
+          { type: 'text', text: 'Refreshing the GitHub Issue snapshot…' },
         ],
         details: { status: 'loading' },
       });
@@ -258,7 +183,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Refreshed ${state.requirement_source?.repository}#${state.requirement_source?.issue_number} for ${state.iteration_id}.`,
+            text: `Refreshed ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
           },
         ],
         details: { state },
@@ -270,10 +195,10 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_status',
     label: 'Evidence Orchestrator Status',
     description:
-      'Read Evidence Orchestrator state, gates, artifacts, and code files',
-    promptSnippet: 'Inspect the current Evidence Orchestrator pipeline status',
+      'Read the current feedback loop, gate, artifacts, and code files',
+    promptSnippet: 'Inspect the Evidence Orchestrator feedback loop',
     promptGuidelines: [
-      'Use evidence_orchestrator_status when the user asks what the Evidence Orchestrator pipeline is doing or what remains.',
+      'Use evidence_orchestrator_status when the user asks what the workflow is doing or what remains.',
     ],
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
@@ -290,35 +215,26 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_run_phase',
-    label: 'Run Evidence Orchestrator Phase Subagent',
+    label: 'Run Evidence Phase Subagent',
     description:
-      'Execute the current Evidence Orchestrator phase in its isolated project subagent',
-    promptSnippet:
-      'Run the current Evidence Orchestrator phase in its dedicated subagent',
+      'Execute the current feedback-loop phase in its isolated agent',
+    promptSnippet: 'Run the current phase in its dedicated subagent',
     promptGuidelines: [
-      'Use evidence_orchestrator_run_phase to execute the current workflow phase; do not execute phase work in the parent agent.',
+      'Use evidence_orchestrator_run_phase for phase work; do not perform that work in the parent agent.',
     ],
-    parameters: phaseRunParam,
+    parameters: Type.Object({
+      instructions: Type.Optional(
+        Type.String({
+          description: 'Extra instructions for the current phase.',
+        }),
+      ),
+    }),
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      const current = readState(ctx.cwd);
-      if (
-        current.phase === 'clarify' &&
-        !current.active_clarification_story &&
-        !current.pending_gate &&
-        !current.halted &&
-        listSelectableClarificationStories(ctx.cwd).length > 0
-      ) {
-        const selectedStory = await selectClarificationStoryInteractively(ctx);
-        if (!selectedStory) throw new Error('Story selection cancelled.');
-        selectClarificationStory(ctx.cwd, selectedStory);
-      }
       const preparation = preparePhaseRun(ctx.cwd, {
         instructions: params.instructions ?? '',
       });
       if (isCompletedIteration(preparation)) {
-        throw new Error(
-          'The active Evidence Orchestrator iteration is complete.',
-        );
+        throw new Error(preparation.task);
       }
       const details = await executePreparedPhaseRun(ctx, preparation, {
         invocation: 'evidence_orchestrator_run_phase',
@@ -331,7 +247,6 @@ export function registerTools(pi: ExtensionAPI): void {
         },
       });
       return {
-        // This is the only child payload added to the parent model context.
         content: [{ type: 'text', text: details.output }],
         details,
       };
@@ -345,82 +260,30 @@ export function registerTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: 'evidence_orchestrator_select_story',
-    label: 'Select Evidence Clarification Story',
-    description:
-      'Open an interactive picker, select, resume, or switch stories, and run isolated clarification',
-    promptSnippet:
-      'Let the user select, resume, or switch to one US-xxx story for isolated TQA clarification',
-    promptGuidelines: [
-      'Use evidence_orchestrator_select_story when the user asks to choose, resume, or switch stories for clarification; the tool opens the picker and the user makes the decision.',
-      'Never infer or pass a story choice on behalf of the user.',
-      'The user may switch to any unresolved story at any time; switching pauses the current story’s open question or proposal and restores the selected story’s state.',
-      'After evidence_orchestrator_select_story finishes the isolated clarify run, stop and do not call another workflow tool.',
-    ],
-    parameters: clarificationStoryParam,
-    async execute(_toolCallId, _params, signal, onUpdate, ctx) {
-      const selectedStory = await selectClarificationStoryInteractively(ctx);
-      if (!selectedStory) throw new Error('Story selection cancelled.');
-      const state = selectClarificationStory(ctx.cwd, selectedStory);
-      const preparation = preparePhaseRun(ctx.cwd);
-      if (isCompletedIteration(preparation)) {
-        throw new Error(
-          'The active Evidence Orchestrator iteration is complete.',
-        );
-      }
-      const details = await executePreparedPhaseRun(ctx, preparation, {
-        invocation: 'evidence_orchestrator_select_story',
-        signal,
-        onUpdate(progress) {
-          onUpdate?.({
-            content: [{ type: 'text', text: progress.output }],
-            details: progress,
-          });
-        },
-      });
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Selected clarification story ${state.active_clarification_story?.story_id}.\n\n${details.output}`,
-          },
-        ],
-        details,
-        terminate: true,
-      };
-    },
-    renderResult(result, options, theme) {
-      return renderPhaseSubagentResult(result, options, theme);
-    },
-  });
-
-  pi.registerTool({
     name: 'evidence_orchestrator_ask_question',
-    label: 'Ask Evidence Orchestrator Clarification',
+    label: 'Ask Evidence TQA Question',
     description:
-      'Persist one high-value TQA business question and pause the clarification phase for a domain-expert answer',
-    promptSnippet: 'Ask the single next TQA clarification question',
+      'Record one Thought and one high-value business Question, then wait for the domain expert',
+    promptSnippet: 'Ask the sole next TQA business question',
     promptGuidelines: [
-      'Use only in the clarify phase for the active human-selected US-xxx story.',
-      'Ask exactly one non-technical business question, then stop and wait for the user answer.',
-      'Never answer the question yourself or call another workflow tool until the user responds.',
+      'Use evidence_orchestrator_ask_question only during discover for the sole Kickoff Story.',
+      'Record one Thought and ask exactly one non-technical Question, then stop.',
+      'Never answer the Question yourself or call another workflow tool before the user responds.',
     ],
     parameters: clarificationQuestionParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const state = askClarification(ctx.cwd, {
         story_id: params.storyId,
+        thought: params.thought,
         question: params.question,
-        target: params.target as 'business_context' | 'story' | 'history',
       });
       const pending = state.pending_clarification;
-      if (!pending) {
-        throw new Error('Clarification was not persisted.');
-      }
+      if (!pending) throw new Error('TQA question was not persisted.');
       return {
         content: [
           {
             type: 'text',
-            text: `TQA question ${pending.question_id} recorded for ${pending.story_id}. Stop now and wait for the domain expert to answer: ${pending.question}`,
+            text: `Recorded ${pending.question_id} for ${pending.story_id}. Stop and wait for the domain expert: ${pending.question}`,
           },
         ],
         details: { state },
@@ -430,25 +293,25 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_answer_question',
-    label: 'Answer Evidence Orchestrator Clarification',
+    label: 'Record Evidence TQA Answer',
     description:
-      'Record the domain expert’s explicit answer, route it to its knowledge artifact, and continue the active story clarification',
+      'Record the domain expert’s explicit answer and resume isolated Discover',
     promptSnippet:
-      'Record the user’s answer and continue the interactive TQA dialogue',
+      'Record the user’s explicit TQA answer and continue Discover',
     promptGuidelines: [
-      'Use only when the user explicitly supplies an answer to the pending clarification question.',
-      'Do not infer, fabricate, summarize, or answer on behalf of the user.',
-      'evidence_orchestrator_answer_question automatically resumes the isolated clarification after recording the answer; when it finishes, stop and wait for the user if another question is pending.',
+      'Use evidence_orchestrator_answer_question only when the user explicitly answers the pending TQA Question.',
+      'Do not infer, fabricate, translate, or summarize an answer on the user’s behalf.',
+      'After the resumed Discover agent finishes, stop and wait if it asks another Question.',
     ],
-    parameters: clarificationAnswerParam,
+    parameters: Type.Object({
+      answer: Type.String({
+        description: 'The domain expert’s explicit answer.',
+      }),
+    }),
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const state = answerClarification(ctx.cwd, params.answer);
       const preparation = preparePhaseRun(ctx.cwd);
-      if (isCompletedIteration(preparation)) {
-        throw new Error(
-          'The active Evidence Orchestrator iteration is complete.',
-        );
-      }
+      if (isCompletedIteration(preparation)) throw new Error(preparation.task);
       const details = await executePreparedPhaseRun(ctx, preparation, {
         invocation: 'evidence_orchestrator_answer_question',
         signal,
@@ -463,7 +326,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).\n\n${details.output}`,
+            text: `Recorded the answer; ${state.clarification_history?.length ?? 0} TQA exchange(s) answered.\n\n${details.output}`,
           },
         ],
         details,
@@ -476,57 +339,27 @@ export function registerTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: 'evidence_orchestrator_propose_story_outcome',
-    label: 'Propose Evidence Story Clarification Outcome',
-    description:
-      'Propose an outcome for the active story without completing or releasing it',
-    promptSnippet:
-      'Propose clarified, needs_split, or deferred for human confirmation',
-    promptGuidelines: [
-      'Use evidence_orchestrator_propose_story_outcome only in clarify for the active human-selected story after its pending TQA answer is resolved.',
-      'After calling evidence_orchestrator_propose_story_outcome, stop and wait for the domain expert to decide through /evidence-story-complete.',
-      'evidence_orchestrator_propose_story_outcome never completes or releases a story; never claim that the proposed outcome is final.',
-      'Propose clarified only when no high-value business uncertainty remains; otherwise propose needs_split or deferred with a concrete reason.',
-    ],
-    parameters: clarificationStoryOutcomeProposalParam,
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = proposeClarificationStoryOutcome(
-        ctx.cwd,
-        params.storyId,
-        params.outcome as ClarificationStoryOutcome,
-        params.summary,
-      );
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Proposed ${params.outcome} for ${params.storyId.toUpperCase()}; the story remains active. Stop now and ask the domain expert to run /evidence-story-complete to confirm, override, or continue clarification.`,
-          },
-        ],
-        details: { state },
-        terminate: true,
-      };
-    },
-  });
-
-  pi.registerTool({
     name: 'evidence_orchestrator_select_work_item',
-    label: 'Select Evidence Orchestrator Work Item',
-    description:
-      'Select the single user-story acceptance scenario that the coding phase may implement',
+    label: 'Select Evidence Build Scenario',
+    description: 'Bind Build to the sole Story and one acceptance Scenario',
     promptSnippet:
-      'Select one US-xxx / SC-xxx work item for the Evidence Orchestrator coding phase',
+      'Select the one US-xxx / SC-xxx scenario Build may implement',
     promptGuidelines: [
-      'Use evidence_orchestrator_select_work_item before changing code in the Evidence Orchestrator coding phase; code exactly one selected user-story scenario at a time.',
+      'Use evidence_orchestrator_select_work_item before changing code in build; implement exactly one acceptance Scenario.',
     ],
-    parameters: workItemParam,
+    parameters: Type.Object({
+      storyId: Type.String({ description: 'The sole Story id, e.g. US-001.' }),
+      scenarioId: Type.String({
+        description: 'The selected Scenario id, e.g. SC-001.',
+      }),
+    }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const state = selectWorkItem(ctx.cwd, params.storyId, params.scenarioId);
       return {
         content: [
           {
             type: 'text',
-            text: `Selected coding work item: ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+            text: `Selected Build work item: ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
           },
         ],
         details: { state },
@@ -536,14 +369,14 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_select_test_process',
-    label: 'Select Evidence Orchestrator Test Process',
+    label: 'Select Evidence Test Process',
     description:
-      'Bind the selected coding scenario to one matching, machine-readable test process before code changes',
+      'Bind the active Scenario to the uniquely matching test process before code changes',
     promptSnippet:
-      'Select the test process matching the active scenario runtime and functional contexts',
+      'Select the process matching runtime and functional contexts',
     promptGuidelines: [
-      'Use after selecting the US-xxx / SC-xxx coding work item and before writing tests or production code.',
-      'Provide the runtime and all functional contexts declared for the scenario; selection fails on zero or multiple matches.',
+      'Use evidence_orchestrator_select_test_process after selecting the Build work item and before writing tests or production code.',
+      'Pass every functional context declared by Delivery Design; zero or multiple matches must return to Design.',
     ],
     parameters: testProcessParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -552,12 +385,15 @@ export function registerTools(pi: ExtensionAPI): void {
         params.runtime as 'rust' | 'typescript' | 'tauri',
         params.functionalContexts,
       );
-      const selected = state.active_work_item?.test_process;
+      const workItem = state.active_work_item;
+      const selected = workItem
+        ? selectedTestProcesses(workItem).at(-1)
+        : undefined;
       return {
         content: [
           {
             type: 'text',
-            text: `Selected test process ${selected?.id} for ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+            text: `Selected test process ${selected?.id} for ${workItem?.story_id} / ${workItem?.scenario_id}.`,
           },
         ],
         details: { state },
@@ -567,17 +403,22 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_run_test_step',
-    label: 'Run Evidence Orchestrator Test Step',
+    label: 'Run Evidence Test Step',
     description:
-      'Run a selected test-process quality command and append tamper-evident execution evidence',
-    promptSnippet:
-      'Run one declared TDD test command and persist its observed result',
+      'Run a declared process command and append tamper-evident execution facts',
+    promptSnippet: 'Run one declared TDD or quality command and record it',
     promptGuidelines: [
-      'Use only in coding after selecting the work item and every applicable test process.',
-      'Run only the exact quality-gate command declared by the selected process.',
-      'Record Red, Green, Refactor, and quality-gate observations instead of manually inventing exit codes.',
+      'Use evidence_orchestrator_run_test_step only during Build after selecting every applicable process.',
+      'Run only an exact command declared by the selected process.',
+      'A Red observation is valid only when the focused assertion fails for the expected missing business behavior.',
     ],
-    parameters: executionStepParam,
+    parameters: Type.Object({
+      processId: Type.String({ description: 'Selected test-process id.' }),
+      stage: Type.String({
+        description: 'red, green, refactor, or quality_gate.',
+      }),
+      command: Type.String({ description: 'Exact declared command.' }),
+    }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const stage = params.stage as
         | 'red'
@@ -606,35 +447,35 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_complete_phase',
-    label: 'Evidence Orchestrator Complete Phase',
+    label: 'Complete Evidence Phase',
     description:
-      'Mark an Evidence Orchestrator phase complete, update state, and create a gate if configured',
+      'Run deterministic checks, advance, and create feedback Gate if configured',
     promptSnippet:
-      'Complete an Evidence Orchestrator phase after all required artifacts and code are written',
+      'Complete the current phase after outputs and checks are ready',
     promptGuidelines: [
-      'Use evidence_orchestrator_complete_phase after finishing all required outputs for an Evidence Orchestrator phase.',
+      'Use evidence_orchestrator_complete_phase only after all required outputs and deterministic checks for the current phase are ready.',
     ],
     parameters: Type.Object({
-      phase: Type.String({ description: 'Completed phase name' }),
+      phase: Type.String({ description: 'Current active phase name.' }),
       summary: Type.Optional(
-        Type.String({ description: 'Brief completion summary' }),
+        Type.String({ description: 'Brief completion or feedback summary.' }),
       ),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      if (params.phase === 'complete' || !(params.phase in PHASE_META)) {
+      if (!(params.phase in PHASE_META)) {
         throw new Error(`Invalid phase for completion: ${params.phase}`);
       }
       try {
         const state = completePhase(
           ctx.cwd,
-          params.phase as Exclude<Phase, 'complete'>,
+          params.phase as ActivePhase,
           params.summary ?? '',
         );
         return {
           content: [
             {
               type: 'text',
-              text: `Completed ${params.phase}. Next phase=${state.phase}. Pending gate=${state.pending_gate ?? 'none'}.`,
+              text: `Completed ${params.phase}. Next=${state.phase}. Pending Gate=${state.pending_gate ?? 'none'}.`,
             },
           ],
           details: { state },
@@ -651,7 +492,7 @@ export function registerTools(pi: ExtensionAPI): void {
         }
         const failed = recordPhaseFailure(
           ctx.cwd,
-          params.phase as Exclude<Phase, 'complete'>,
+          params.phase as ActivePhase,
           params.summary || message,
         );
         throw new Error(
@@ -663,29 +504,31 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_report_phase_failure',
-    label: 'Evidence Orchestrator Report Phase Failure',
+    label: 'Report Evidence Phase Failure',
     description:
-      'Record a failed Check step, persist feedback, and trigger an emergency gate at the retry limit',
-    promptSnippet:
-      'Record a failed Evidence Orchestrator Check step for PDCA retry',
+      'Persist a deterministic Check failure and open an emergency Gate at the retry limit',
+    promptSnippet: 'Record a failed Check before retrying the same phase',
     promptGuidelines: [
-      'Use after a deterministic validation or quality check fails and before retrying the same phase.',
+      'Use evidence_orchestrator_report_phase_failure after a deterministic validation fails and before retrying the phase.',
     ],
-    parameters: phaseFailureParam,
+    parameters: Type.Object({
+      phase: Type.String({ description: 'The active phase that failed.' }),
+      summary: Type.String({ description: 'Concrete observed failure.' }),
+    }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      if (params.phase === 'complete' || !(params.phase in PHASE_META)) {
+      if (!(params.phase in PHASE_META)) {
         throw new Error(`Invalid phase for failure recording: ${params.phase}`);
       }
       const state = recordPhaseFailure(
         ctx.cwd,
-        params.phase as Exclude<Phase, 'complete'>,
+        params.phase as ActivePhase,
         params.summary,
       );
       return {
         content: [
           {
             type: 'text',
-            text: `Recorded failed Check for ${params.phase}: round=${state.round}, pending gate=${state.pending_gate ?? 'none'}.`,
+            text: `Recorded failed Check for ${params.phase}: round=${state.round}, pending Gate=${state.pending_gate ?? 'none'}.`,
           },
         ],
         details: { state },
@@ -695,17 +538,18 @@ export function registerTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'evidence_orchestrator_gate',
-    label: 'Evidence Orchestrator Gate',
-    description: 'Write a decision into an Evidence Orchestrator gate file',
-    promptSnippet: 'Answer a pending Evidence Orchestrator Markdown gate',
+    label: 'Answer Evidence Feedback Gate',
+    description:
+      'Persist the user’s explicit approve, revise, or reject decision',
+    promptSnippet: 'Record an explicit human feedback decision',
     promptGuidelines: [
-      'Use evidence_orchestrator_gate only when the user explicitly approves, rejects, or answers an Evidence Orchestrator gate.',
+      'Use evidence_orchestrator_gate only when the user explicitly approves, revises, or rejects a pending Gate.',
     ],
     parameters: Type.Object({
-      gateId: Type.String({
-        description: 'Gate id, e.g. GATE-001-requirements',
+      gateId: Type.String({ description: 'Pending Gate id.' }),
+      decision: Type.String({
+        description: 'Explicit approve/revise/reject decision and reason.',
       }),
-      decision: Type.String({ description: 'Decision text to write' }),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const { gatePath } = answerGate(ctx.cwd, params.gateId, params.decision);
