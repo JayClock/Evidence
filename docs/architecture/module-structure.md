@@ -43,7 +43,7 @@ libs/
 - Rust server track ↔ Nest server track 的实现级混合。
 - Runtime code → `artifacts/iterations`。
 
-## Orchestrator 与知识结构
+## 内部 Orchestrator 与知识结构
 
 ```text
 .pi/extensions/evidence-orchestrator/  deterministic orchestration runtime
@@ -54,3 +54,5 @@ docs/architecture/                      canonical technical solution
 engineering/evidence-orchestrator/      contexts, processes and DoD
 artifacts/iterations/                    immutable iteration evidence
 ```
+
+以上 Orchestrator、Agent、Working Knowledge 与 iteration evidence 都属于当前仓库的内部研发工具链，不是 `apps/*` / `libs/*` 中的 Evidence 产品模块。产品运行时代码不得依赖它们，`.evidence/` 也不得为其建立交付流程概念。Evidence 项目使用自身产品模型进行 dogfooding 只是开发验证方式。

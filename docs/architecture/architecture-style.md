@@ -11,7 +11,7 @@ Evidence 是 Nx/pnpm 与 Cargo 组成的模块化全栈 monorepo：
 - `apps/server-nest`：TypeScript/Nest 组合根，模块位于 `libs/server-nest/*`。
 - `apps/desktop`：Tauri 2 壳，复用 Web 前端。
 
-Rust 与 Nest 是两个服务端实现轨道。一个 Feature 必须在架构阶段明确 owning runtime，不得在同一服务端能力中混合两套模块。
+Rust 与 Nest 是两个服务端实现轨道。一个 Feature 必须明确 owning runtime，不得在同一服务端能力中混合两套模块。项目本地 Evidence Orchestrator 只辅助这些模块的研发，不属于产品运行时或依赖图。
 
 ## 核心原则
 

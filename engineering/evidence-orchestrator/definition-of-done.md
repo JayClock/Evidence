@@ -1,6 +1,6 @@
 # Evidence Definition of Done
 
-本文件是团队统一完成标准。Iteration 不得复制或改写整份 DoD，只能引用当前 Git commit，并记录场景特有的附加条件。
+本文件是当前仓库开发 Evidence 的内部团队统一完成标准，不是 Evidence 产品向用户提供的能力或合同。Iteration 不得复制或改写整份 DoD，只能引用当前 Git commit，并记录场景特有的附加条件。
 
 ## 所有增量
 

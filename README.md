@@ -1,6 +1,6 @@
 # Evidence
 
-Evidence 是一个领域建模与证据映射平台，帮助领域专家、分析师和交付团队定义业务概念，把证据、参与者、角色与上下文组织成可演进的逻辑模型，并通过关系图进行理解和评审。
+Evidence 是一个领域建模与证据映射平台，帮助领域专家和业务分析师定义业务概念，把证据、参与者、角色与上下文组织成可演进的逻辑模型，并通过关系图进行理解和评审。
 
 项目提供三个运行时界面：
 
@@ -8,7 +8,7 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家、分�
 - **Server**：Rust Axum 主实现，以及独立的 TypeScript / Nest 实现轨道；
 - **Desktop**：Tauri 2 壳，复用同一个 Web 前端并内嵌本地 API。
 
-仓库还包含项目本地的 **Evidence Orchestrator**，用于将 GitHub Issue 按阶段推进为需求、模型、架构、计划、代码、评审与学习证据。
+仓库还包含项目本地的 **Evidence Orchestrator**，仅用于辅助当前仓库开发 Evidence。它是内部研发工具，不是 Evidence 面向用户的产品能力；Evidence 自身作为 dogfooding 示例不改变这一边界。边界决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
 
 [产品能力](#产品能力) · [产品架构](#产品架构) · [Evidence Orchestrator](#evidence-orchestrator) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
 
@@ -19,7 +19,6 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家、分�
 3. **图投影**：使用 `Diagram`、`DiagramNode` 和 `DiagramEdge` 展示逻辑模型；图元素不是逻辑实体本身。
 4. **AI 模型辅助**：AI Modeling Agent 可以提出 `ModelingProposal`，但必须由用户确认后才能改变权威模型。
 5. **Web / Desktop 一致体验**：Tauri 复用唯一的 React 前端，不维护第二套产品语义。
-6. **可审计交付**：Issue、场景、模型展开、测试工序、代码证据和学习反馈形成追踪链。
 
 ## 产品架构
 
@@ -135,6 +134,8 @@ cargo test -p evidence-server --features postgres-tests
 
 ## Evidence Orchestrator
 
+> **内部工具边界**：本节说明当前仓库贡献者如何开发 Evidence，不属于上面的产品能力、产品画像、用户旅程或 `.evidence` 产品领域模型。
+
 Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。扩展负责工作流状态、命令、工具、Gate、校验和执行证据；阶段角色位于 `.pi/agents/`，阶段工作在隔离的 Pi 子进程中执行。
 
 ### 工作流
@@ -200,7 +201,7 @@ flowchart LR
 - 领域专家直接在当前对话回答，答案被记录后继续同一故事；
 - AI 只能提出 `clarified`、`needs_split` 或 `deferred` 建议，不能结束或释放故事；
 - 领域专家通过 `/evidence-story-complete` 确认建议、覆盖最终结论或要求继续澄清；
-- 存在待回答问题或待人工决定的建议时，不能切换故事或进入下一阶段。
+- 存在待回答问题或待人工决定的建议时不能进入下一阶段，但人类可以切换到任一未解决 Story；切换会暂停当前 Story 的问题或建议，并在切回时恢复。
 
 ### Coding 规则
 

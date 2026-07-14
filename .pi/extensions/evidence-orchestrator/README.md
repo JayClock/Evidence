@@ -1,6 +1,6 @@
 # Evidence Orchestrator 扩展维护指南
 
-该目录只保存确定性的工作流状态、执行、保护与审计代码。`.pi/agents/` 只定义隔离角色、工具边界、停止条件和 Skill 触发；Complicated/Complex 方法知识位于 `.pi/skills/`，Clear 固定任务位于 Pi 可直接发现的 `.pi/prompts/`。所有活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
+该目录只保存当前仓库开发 Evidence 所用的确定性工作流状态、执行、保护与审计代码。它是[内部研发工具](../../../engineering/evidence-orchestrator/product-boundary.md)，不是 Evidence 产品 runtime 或 bounded context；使用 Evidence 自身模型和代码属于 dogfooding。`.pi/agents/` 只定义隔离角色、工具边界、停止条件和 Skill 触发；Complicated/Complex 方法知识位于 `.pi/skills/`，Clear 固定任务位于 Pi 可直接发现的 `.pi/prompts/`。所有活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
 
 ## 目录结构
 

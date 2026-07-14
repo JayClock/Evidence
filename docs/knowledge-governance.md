@@ -1,5 +1,9 @@
 # Evidence 工作知识治理
 
+## 产品与内部工具边界
+
+人工产品决定 [`EOV5-015-A`](../engineering/evidence-orchestrator/product-boundary.md) 将 Evidence Orchestrator 定义为当前仓库的内部研发工具。`docs/product/` 与 `.evidence/` 只承载 Evidence 建模平台的用户知识；`.pi/`、`engineering/evidence-orchestrator/` 和 `artifacts/iterations/` 承载如何开发该产品的工作知识与证据。用 Evidence 自身验证 Orchestrator 属于 dogfooding，不会自动产生产品能力。
+
 ## 权威映射
 
 | 知识         | 权威来源                                                   | 迭代中的表示形式                          |

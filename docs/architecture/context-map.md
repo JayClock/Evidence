@@ -21,9 +21,13 @@
 | AI Modeling          | `libs/server/infrastructure` 与 domain architect port | 按场景明确                                     | diagrams AI UI                   |
 | Resource Navigation  | HAL API                                               | REST controller                                | resource-browser、web-shell      |
 
+## 内部研发工具边界
+
+Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具，不是产品 bounded context、运行时能力或对外集成方，因此不出现在上面的产品关系与实现映射中。它可以读取产品知识和 `.evidence` 模型来验证开发场景，但这种 dogfooding 不构成产品依赖或用户能力。
+
 ## 边界规则
 
 - Diagram 图元素是逻辑模型的投影，不是第二份领域模型。
 - Rust 与 Nest 可实现相同 REST/domain 语义，但一个场景必须选择唯一 owning server runtime。
 - OpenAPI 是服务端与 Web API client 的 Published Language。
-- `.evidence/` 描述 Evidence 产品领域；`artifacts/iterations` 只保存场景展开和模型增量证据。
+- `.evidence/` 只描述 Evidence 建模平台领域，不承载 Orchestrator 的内部交付状态或流程语义；`artifacts/iterations` 是研发审计证据，不是产品数据。
