@@ -222,7 +222,8 @@ export function buildPairDriverTask(
   const definition = readTestProcess(join(cwd, step.process.path));
   const processStep = definition.steps.find(({ id }) => id === step.stepId);
   if (!processStep) throw new Error(`Missing process step ${stepKey(step)}.`);
-  const common = `当前工作项：${session.story_id} / ${session.scenario_id}
+  const common = `方法：先加载并遵守 .pi/skills/evidence-pairing/SKILL.md。
+当前工作项：${session.story_id} / ${session.scenario_id}
 当前步骤：${stepKey(step)} · ${processStep.purpose}
 Git baseline：${session.git_baseline}
 确认 Scenario：${state.confirmed_scenario?.artifact_path ?? 'missing'}
@@ -236,9 +237,9 @@ Git baseline：${session.git_baseline}
 
 ${common}
 
-读取确认 Scenario、test-list、task-list、锁定 process 和最近邻测试。只在以下 roots 新增或修改测试：${processStep.nearest_test.roots.join(', ')}。预期 Red 行为：${session.expected_red}。
+允许的测试 roots：${processStep.nearest_test.roots.join(', ')}。预期 Red 行为：${session.expected_red}。
 
-只写当前行为测试；不得修改生产代码、配置、计划、状态或执行证据，不得运行聚焦命令，不得提交 Git。写完测试后立即停止，并在最终回答中说明新增断言预期为何失败。所有越界路径会被确定性恢复并阻止 checkpoint。`;
+任务：写当前步骤的一个最小行为测试后立即停止。不得修改生产代码、配置、计划、状态或执行证据，不得运行命令或提交；报告路径、断言和预期失败。越界修改会被恢复并阻止 checkpoint。`;
   }
   if (mode === 'implementation') {
     return `执行一个且仅一个 Production Driver Green checkpoint。

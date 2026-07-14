@@ -1,0 +1,17 @@
+{
+  "skill_name": "evidence-story-tqa",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "US-012 says a modeling lead wants to see the current model. We know v3 exists but not who can mark it current. What should Understand do next?",
+      "expected_output": "Asks exactly one non-technical authority question and stops without inventing an answer or implementation.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The role, value, authority, version v3, trigger and visible outcome are confirmed. Prepare the smallest Scenario candidates.",
+      "expected_output": "Produces concrete Given/When/Then candidates with exact business data and leaves confirmation to the human.",
+      "files": []
+    }
+  ]
+}

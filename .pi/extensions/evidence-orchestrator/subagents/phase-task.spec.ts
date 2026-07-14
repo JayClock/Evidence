@@ -57,6 +57,7 @@ describe('phase tasks', () => {
 
     const task = buildPhaseTask(cwd);
 
+    expect(task).toContain('.pi/skills/evidence-story-tqa/SKILL.md');
     expect(task).toContain('evidence_orchestrator_ask_question');
     expect(task).toContain('evidence_orchestrator_propose_scenarios');
     expect(task).toContain('/evidence-scenario');
@@ -96,7 +97,9 @@ describe('phase tasks', () => {
     expect(profileTask).toContain(
       'evidence_orchestrator_propose_modeling_profile',
     );
-    expect(profileTask).toContain('business、domain 还是 tool');
+    expect(profileTask).toContain(
+      '.pi/skills/evidence-modeling-router/SKILL.md',
+    );
     expect(profileTask).toContain('不得编辑 .evidence');
 
     writeState(cwd, {
@@ -116,7 +119,9 @@ describe('phase tasks', () => {
     expect(expansionTask).toContain(
       'evidence_orchestrator_record_model_analysis',
     );
-    expect(expansionTask).toContain('operations 必须为空');
+    expect(expansionTask).toContain(
+      '.pi/skills/evidence-model-expansion/SKILL.md',
+    );
     expect(expansionTask).toContain('不得直接 edit/write .evidence');
 
     writeState(cwd, {
@@ -142,6 +147,9 @@ describe('phase tasks', () => {
     });
     const challengeTask = buildPhaseTask(cwd);
     expect(challengeTask).toContain('独立 Model Challenge');
+    expect(challengeTask).toContain(
+      '.pi/skills/evidence-model-expansion/SKILL.md',
+    );
     expect(challengeTask).toContain(
       'evidence_orchestrator_record_model_challenge',
     );
@@ -201,6 +209,7 @@ describe('phase tasks', () => {
 
     const task = buildPhaseTask(cwd);
 
+    expect(task).toContain('.pi/skills/evidence-test-process/SKILL.md');
     expect(task).toContain('evidence_orchestrator_propose_tasking');
     expect(task).toContain('/evidence-desk-check');
     expect(task).toContain('不得从非目标反推测试');

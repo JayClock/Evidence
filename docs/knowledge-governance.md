@@ -2,17 +2,27 @@
 
 ## 权威映射
 
-| 知识         | 权威来源                                                  | 迭代中的表示形式                          |
-| ------------ | --------------------------------------------------------- | ----------------------------------------- |
-| 需求请求     | GitHub Issue / Projects                                   | 冻结的 `issue.json` 与只读投影            |
-| 产品解决方案 | `docs/product/`                                           | 问题陈述、旅程切片以及产品 / 故事地图增量 |
-| 领域模型     | `.evidence/`                                              | 模型快照、增量和场景展开                  |
-| 架构         | `docs/architecture/`                                      | 架构决策和场景上下文映射                  |
-| API 契约     | `contracts/api.yaml`                                      | API 契约增量                              |
-| 数据模型     | Migrations、Prisma schema 和 SeaORM entities              | 数据模型增量                              |
-| 测试工序     | `engineering/evidence-orchestrator/test-processes/`       | 已选定的不可变工序快照                    |
-| 完成定义     | `engineering/evidence-orchestrator/definition-of-done.md` | Git 版本与场景特有的附加条件              |
-| 执行与反馈   | `artifacts/iterations/`                                   | 不可变的执行证据                          |
+| 知识         | 权威来源                                                   | 迭代中的表示形式                          |
+| ------------ | ---------------------------------------------------------- | ----------------------------------------- |
+| 需求请求     | GitHub Issue / Projects                                    | 冻结的 `issue.json` 与只读投影            |
+| 产品解决方案 | `docs/product/`                                            | 问题陈述、旅程切片以及产品 / 故事地图增量 |
+| 领域模型     | `.evidence/`                                               | 模型快照、增量和场景展开                  |
+| 架构         | `docs/architecture/`                                       | 架构决策和场景上下文映射                  |
+| API 契约     | `contracts/api.yaml`                                       | API 契约增量                              |
+| 数据模型     | Migrations、Prisma schema 和 SeaORM entities               | 数据模型增量                              |
+| 测试工序     | `engineering/evidence-orchestrator/test-processes/`        | 已选定的不可变工序快照                    |
+| 方法工作知识 | `.pi/skills/`、`.pi/prompts/` 与 Working Knowledge catalog | 实际加载版本、使用场景和反馈证据          |
+| 完成定义     | `engineering/evidence-orchestrator/definition-of-done.md`  | Git 版本与场景特有的附加条件              |
+| 执行与反馈   | `artifacts/iterations/`                                    | 不可变的执行证据                          |
+
+## Working Knowledge 分层
+
+- Extension 只承担确定性状态、执行、路径保护和审计；不得隐藏业务或交付方法。
+- Agent 只定义隔离角色、可用工具、停止条件与何时加载 Skill，不复制方法步骤。
+- `Complicated` / `Complex` 工作通过 `.pi/skills/*/SKILL.md` 渐进加载；Skill 必须说明输入、方法、项目示例、反馈出口和停止条件，并提供 reviewable `evals/evals.json`。
+- `Clear` 的结构检查、格式化和摘要使用 Pi 直接发现的 `.pi/prompts/*.md`，不启动重量级阶段 Agent。Prompt 不做状态变更或人工决定。
+- `engineering/evidence-orchestrator/working-knowledge-catalog.json` 是活动 Skill/Prompt 的目录，记录 ID、语义版本、负责人、认知行为、路径、已验证场景、最新反馈和 supersedes。`pnpm orchestrator:validate` 会拒绝未编目或不可发现的条目。
+- phase task 只传本轮 Scenario、输入路径、单一任务和停止边界；方法更新只修改 catalog 指向的 Skill/Prompt，避免 Agent、task 与文档三份漂移。
 
 ## 知识提升生命周期
 

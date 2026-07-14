@@ -1,6 +1,6 @@
 # Evidence Orchestrator 扩展维护指南
 
-该目录只保存确定性的工作流执行代码。阶段角色及方法论位于仓库根目录的 `.pi/agents/`。
+该目录只保存确定性的工作流状态、执行、保护与审计代码。`.pi/agents/` 只定义隔离角色、工具边界、停止条件和 Skill 触发；Complicated/Complex 方法知识位于 `.pi/skills/`，Clear 固定任务位于 Pi 可直接发现的 `.pi/prompts/`。所有活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
 
 ## 目录结构
 
@@ -35,7 +35,7 @@ evidence-orchestrator/
 ### `subagents/`
 
 - `phase-runner.ts`：读取 `.pi/agents/*.md` 并启动隔离的 pi 子进程；通过 `--mode json` 收集 `message_end` 和 `tool_result_end`，把子 agent 的完整活动快照流式交给调用方。
-- `phase-task.ts`：根据活动迭代和阶段生成动态任务。
+- `phase-task.ts`：只注入活动迭代的上下文、单次任务与停止边界；方法步骤通过对应 Skill 渐进加载，不复制到 task。
 
 `runtime/phase-subagent-renderer.ts` 采用 Pi 官方 subagent 示例的双通道模式：
 
@@ -78,6 +78,7 @@ Clarify 是阶段内的故事级子流程：
 - `model-and-code.ts`：v4 只读兼容导出；v5 不再从此处读取手写编码证据。
 - `knowledge.ts`：统一知识、场景上下文和知识提升验证。
 - `respond.ts`：生成可选、可验证的知识响应与 next Probe，并等待人工确认迭代边界。
+- `working-knowledge.ts`：验证 Skill/Prompt 可发现性、认知模式、版本、负责人、已验证场景、反馈、替代关系与 reviewable eval。
 
 ### `testing/`
 
@@ -89,7 +90,7 @@ Clarify 是阶段内的故事级子流程：
 
 ### `validation/`
 
-- `workflow-validator.ts`：`pnpm orchestrator:validate` 的确定性 CI 入口。
+- `workflow-validator.ts`：`pnpm orchestrator:validate` 的确定性 CI 入口；同时验证 Working Knowledge catalog，阻止未编目的 Skill/Prompt。
 
 ## 依赖方向
 

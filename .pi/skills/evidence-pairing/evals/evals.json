@@ -1,0 +1,17 @@
+{
+  "skill_name": "evidence-pairing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The approved first checkpoint needs a failing Web test. Explain the next Driver turn.",
+      "expected_output": "Runs one Test Driver edit only, then returns for controller observation and human Red classification.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "A focused command exits nonzero because dependencies cannot resolve. Treat it as Red and continue to production.",
+      "expected_output": "Rejects it as behavior Red and routes to Test Driver or Tasking rather than producing code.",
+      "files": []
+    }
+  ]
+}

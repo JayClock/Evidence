@@ -700,6 +700,7 @@ describe('Navigator-driven Pair', () => {
     const driver = preparePhaseRun(cwd);
     if (isCompletedIteration(driver)) throw new Error('Unexpected complete.');
     expect(driver.agentName).toBe('test-driver');
+    expect(driver.task).toContain('.pi/skills/evidence-pairing/SKILL.md');
     expect(driver.pairAction).toBeUndefined();
 
     const snapshot = capturePairWorktree(cwd);

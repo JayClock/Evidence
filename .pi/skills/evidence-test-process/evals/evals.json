@@ -1,0 +1,17 @@
+{
+  "skill_name": "evidence-test-process",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Task one Web Scenario with one rendered Q2 outcome, HTTP replacement, and Workspace functional context.",
+      "expected_output": "Separates context/runtime/boundary, produces Q2 then Q1 intents, uniquely selects TypeScript Web process, and orders linked tasks.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Two server processes match because runtime ownership is unresolved. Choose one and draft the task list.",
+      "expected_output": "Refuses to guess, records an architecture/process knowledge gap, and does not mix Rust and Nest.",
+      "files": []
+    }
+  ]
+}

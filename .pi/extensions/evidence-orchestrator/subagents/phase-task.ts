@@ -62,20 +62,16 @@ ${extra || '（无）'}
     }
     return `执行 Evidence Orchestrator v5 Understand TQA：${storyId}。
 
-读取：
+方法：加载并遵守 .pi/skills/evidence-story-tqa/SKILL.md，不在本任务中复制 TQA 方法。
+
+上下文：
 - ${artifactRelativePath(state, 'artifacts/01-requirements/problem-statement.md')}
 - ${artifactRelativePath(state, `artifacts/01-requirements/stories/${storyId}.md`)}
 - ${artifactRelativePath(state, `artifacts/01-requirements/clarifications/${storyId}.json`)}（存在时）
-- ${artifactRelativePath(state, 'artifacts/01-requirements/product-context-delta.md')}（存在时）
 - docs/product/business-context.md
 - docs/product/user-journeys.md
 
-任务：
-1. 只处理 ${storyId}，不得选择或切换其他 Story。
-2. 如果仍有高价值业务不确定性，调用 evidence_orchestrator_ask_question 提出一个非技术问题，然后立即停止等待领域专家回答。
-3. 如果现有业务信息已足够，调用 evidence_orchestrator_propose_scenarios 提出一到五个具体 Given/When/Then 草案；包含关键业务数据和可观察结果，不包含实现步骤，然后立即停止。
-4. 不再调用 evidence_orchestrator_propose_story_outcome，不生成批量 Specify，不写 requirements-validation.md，也不得调用 evidence_orchestrator_complete_phase。
-5. Story 的拆分、延期以及最终 Scenario 选择均由人类通过 /evidence-scenario 决定。
+任务：只处理 ${storyId}。下一步只能调用 evidence_orchestrator_ask_question 或 evidence_orchestrator_propose_scenarios 一次并停止；人类通过 /evidence-scenario 决定确认、继续、拆分或延期。不写 requirements-validation.md，不调用阶段完成工具。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -90,20 +86,11 @@ ${extra || '（无）'}
     if (!scenario)
       throw new Error('v5 modeling requires a confirmed Scenario.');
     if (state.modeling_stage === 'profile') {
-      return `执行 Evidence Orchestrator v5 建模方法选择：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator v5 建模 Profile：${scenario.story_id} / ${scenario.scenario_id}。
 
-先读取：
-- ${scenario.artifact_path}
-- .evidence/model.json
-- .evidence/entities/
-- .evidence/associations/
-
-任务：
-1. 判断本场景处理的是 business、domain 还是 tool；这是建模对象，不是技术 runtime。
-2. 选择 none、object、event、four_color、eight_x_flow 或 algorithmic。eight_x_flow 只适用于业务系统；工具允许 none。
-3. 先尝试用现有模型解释场景，再判断 modelChangeRequired 为 true、false 或 unknown。
-4. 只调用 evidence_orchestrator_propose_modeling_profile 并停止，等待人类通过 /evidence-modeling-profile 确认或覆盖。
-5. 此时不得编辑 .evidence，不得创建模型补丁，不得调用阶段完成工具。
+方法：加载并遵守 .pi/skills/evidence-modeling-router/SKILL.md。
+上下文：${scenario.artifact_path}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
+任务：为这个 Scenario 提出 subject、method 与 modelChangeRequired，只调用 evidence_orchestrator_propose_modeling_profile 一次后停止，等待人类 /evidence-modeling-profile。不得编辑 .evidence 或推进下一动作。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -112,21 +99,10 @@ ${extra || '（无）'}
     if (state.modeling_stage === 'expansion') {
       return `执行 Evidence Orchestrator v5 模型展开：${scenario.story_id} / ${scenario.scenario_id}。
 
-人类已确认建模 Profile：
-${JSON.stringify(state.modeling_profile, null, 2)}
-
-读取：
-- ${scenario.artifact_path}
-- .evidence/model.json
-- .evidence/entities/
-- .evidence/associations/
-
-任务：
-1. 必须先使用现有 .evidence 模型展开 Given/When/Then、关键业务数据、不变量和时间线。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? ' 当前 Profile 为 business/eight_x_flow，先读取 .pi/skills/evidence-8x-flow/SKILL.md；仅此 Profile 启用 8X 规则。' : ' 当前 Profile 不是 business/eight_x_flow，不得套用 8X 规则。'}
-2. model_change_required=false 时，operations 必须为空，不得制造 model delta。
-3. model_change_required=true 时，只在概念缺失、关系错置、生命周期或方法特有不变量失败时提出结构化 add/update/remove operation。路径限定为 .evidence/entities/<id>.yaml 或 .evidence/associations/<id>.yaml；update/remove 必须提供当前文件 sha256。
-4. 只调用 evidence_orchestrator_record_model_analysis。该工具记录展开和候选补丁；不得直接 edit/write .evidence，也不得输出 shell patch。
-5. 调用后立即停止，等待独立 Model Challenger；不得自行验证或完成阶段。
+方法：加载并遵守 .pi/skills/evidence-model-expansion/SKILL.md。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
+人类确认 Profile：${JSON.stringify(state.modeling_profile)}
+上下文：${scenario.artifact_path}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
+任务：记录一次现有/候选模型展开，只调用 evidence_orchestrator_record_model_analysis 后停止。不得直接 edit/write .evidence、修订 Scenario、自我挑战或推进下一动作。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -141,18 +117,10 @@ ${extra || '（无）'}
       }
       return `执行 Evidence Orchestrator v5 独立 Model Challenge：${scenario.story_id} / ${scenario.scenario_id}。
 
-只读输入：
-- ${projection.mermaid_path}
-- ${projection.glossary_path}
-- ${projection.context_path}
-
-任务：
-1. 你是独立 Challenger，不是生成候选补丁的 Builder。只能读取生成视图和场景，不得修改 .evidence、候选补丁、场景或任何代码。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? ' 当前 Profile 为 business/eight_x_flow，读取 .pi/skills/evidence-8x-flow/SKILL.md 并检查方法特有规则。' : ' 当前 Profile 不启用 8X，不得用合同/履约规则误判模型。'}
-2. 将当前确认 Scenario 与 context 中标记为 regression/holdout 的历史场景分开检查。
-3. 检查概念缺失、关系错置、生命周期/时间线、不变量及建模方法是否能解释这些场景。
-4. 确定性回归预检结果：${projection.regression_failures.length ? projection.regression_failures.join('；') : '通过'}。方法特有预检结果：${projection.method_failures.length ? projection.method_failures.join('；') : '通过'}。
-5. 只调用 evidence_orchestrator_record_model_challenge，选择 pass、scenario_gap、model_gap 或 method_gap 并给出具体业务理由，然后停止。
-6. 不得直接修模型；失败会自动路由到 TQA、Model Builder 或 Modeling Profile。
+方法：加载 .pi/skills/evidence-model-expansion/SKILL.md 的 Challenger 部分。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
+只读输入：${projection.mermaid_path}、${projection.glossary_path}、${projection.context_path}。
+预检：regression=${projection.regression_failures.length ? projection.regression_failures.join('；') : '通过'}；method=${projection.method_failures.length ? projection.method_failures.join('；') : '通过'}。
+任务：作为独立 Challenger，只调用 evidence_orchestrator_record_model_challenge 一次并停止。不得修改 .evidence、候选、Scenario 或代码，不得自行修复或推进下一动作。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -172,6 +140,8 @@ ${extra || '（无）'}
     const gap = state.tasking_gap;
     return `执行 Evidence Orchestrator v5 Tasking：${scenario.story_id} / ${scenario.scenario_id}。
 
+方法：加载并遵守 .pi/skills/evidence-test-process/SKILL.md；本任务只提供上下文和输出边界。
+
 读取：
 - ${scenario.artifact_path}
 - ${state.model_expansion_path}
@@ -190,14 +160,7 @@ ${extra || '（无）'}
 
 ${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}\n先核对并修正对应的稳定架构或项目级 v2 工序；不得猜选 process，也不得借机重新设计无关架构。` : '复用稳定架构和项目级 v2 测试工序；只有确有架构或工序知识缺失时才修改统一知识。'}
 
-任务：
-1. 先用自然语言列出确认 Scenario、原样业务数据和 Q2 验收意图，再为每个 Q2 配置可定位失败的 Q1 支撑测试。不得从非目标反推测试，不得增加 Scenario 之外的结果或数据。
-2. 将 Workspace、Logical Model、Diagram Projection、Model Proposal 等稳定功能上下文与 runtime、API/ORM/UI/Shell 技术边界分开。一个服务端场景只能选择 Rust 或 Nest。
-3. 用完整能力和技术边界唯一匹配 v2 process；零匹配或多匹配必须由工具路由知识缺口，绝不自行挑选。
-4. 覆盖 process 的全部有序步骤，明确真实边界、被替换边界和替身；使用可安全物化的聚焦测试标识。
-5. 生成按依赖排序的实现任务；每项任务必须追踪至少一个 TEST-xxx，且不得把代码侦察、Scrum 仪式、Sprint Backlog 或无 Scenario 支撑的功能列为交付任务。
-6. 只调用 evidence_orchestrator_propose_tasking。工具会生成 test-list.md、task-list.md 和候选机器计划；调用后立即停止，等待人类 /evidence-desk-check。
-7. 不得写测试代码或生产代码，不得生成 sprint-plan.md、sprint-1-backlog.md、backlog-delta.md，也不得调用 evidence_orchestrator_complete_phase。
+任务：只为确认 Scenario 生成一次可追踪的 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list；不得从非目标反推测试、混用 Rust/Nest、猜选 process 或写代码；不得生成 sprint-plan.md。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得调用 evidence_orchestrator_complete_phase。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -216,7 +179,7 @@ ${extra || '（无）'}
     if (mode) return buildPairDriverTask(cwd, state, mode);
     const action = pairDeterministicAction(cwd, state);
     if (action) {
-      return `执行 Evidence Orchestrator v5 Pair 的一个确定性 checkpoint：${action}。只运行当前锁定的 focused command 或下一条最终 quality gate，记录真实结果后立即停止；不得启动 Driver、修改代码或连续推进第二个 checkpoint。`;
+      return `执行 Evidence Orchestrator v5 Pair 的一个确定性 checkpoint：${action}。加载 .pi/skills/evidence-pairing/SKILL.md 以解释当前 checkpoint；只运行锁定命令并记录真实结果后停止，不启动 Driver、修改代码或推进第二个 checkpoint。`;
     }
     return `Evidence Orchestrator v5 Pair 暂停于 ${state.pair_session.checkpoint}。下一选择：${pairNextInstruction(state)}。不得自动继续或调用旧 Coder。`;
   }

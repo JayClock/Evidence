@@ -14,6 +14,7 @@ import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
 } from '../evidence/knowledge';
+import { validateWorkingKnowledgeCatalog } from '../evidence/working-knowledge';
 import { PHASE_META, PHASE_ORDER } from '../workflow/phase-catalog';
 import { readState } from '../workflow/state-store';
 import {
@@ -91,6 +92,7 @@ export function validateWorkflow(cwd: string): void {
 
 export function main(argv = process.argv): void {
   const cwd = argv[2] ?? process.cwd();
+  validateWorkingKnowledgeCatalog(cwd);
   validateWorkflow(cwd);
   const state = readState(cwd);
   const phaseIndex = PHASE_ORDER.indexOf(state.phase);

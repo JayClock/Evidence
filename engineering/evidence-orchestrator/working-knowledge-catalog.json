@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "owner": "Evidence delivery team",
+  "entries": [
+    {
+      "id": "WK-STORY-TQA",
+      "version": "1.0.0",
+      "owner": "Product discovery",
+      "cognitive_behaviors": ["complicated", "complex"],
+      "skill_path": ".pi/skills/evidence-story-tqa/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": [
+        "EOV5-004: one-Story TQA and Scenario confirmation"
+      ],
+      "latest_feedback": "Keep one high-value non-technical question and one human-confirmed Scenario.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-MODELING-ROUTER",
+      "version": "1.0.0",
+      "owner": "Domain modeling",
+      "cognitive_behaviors": ["complicated", "complex"],
+      "skill_path": ".pi/skills/evidence-modeling-router/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": ["EOV5-005: human-confirmed modeling Profile"],
+      "latest_feedback": "Try the current model before selecting a subject-specific method.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-MODEL-EXPANSION",
+      "version": "1.0.0",
+      "owner": "Domain modeling",
+      "cognitive_behaviors": ["complicated", "complex"],
+      "skill_path": ".pi/skills/evidence-model-expansion/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": [
+        "REG-001-current-workspace-model",
+        "EOV5-006: independent model challenge"
+      ],
+      "latest_feedback": "Builder proposes minimal structured operations; Challenger remains projection-only.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-8X-FLOW",
+      "version": "1.0.0",
+      "owner": "Business modeling",
+      "cognitive_behaviors": ["complex"],
+      "skill_path": ".pi/skills/evidence-8x-flow/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": [
+        "laptop-procurement request-confirmation evidence chain"
+      ],
+      "latest_feedback": "Use only for business commitments and fulfillment, never generic event/file domains.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-TEST-PROCESS",
+      "version": "1.0.0",
+      "owner": "Test strategy",
+      "cognitive_behaviors": ["complicated"],
+      "skill_path": ".pi/skills/evidence-test-process/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": ["EOV5-009: immutable Desk-Checked Tasking"],
+      "latest_feedback": "Keep functional context independent from runtime and technical boundaries.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-PAIRING",
+      "version": "1.0.0",
+      "owner": "Delivery",
+      "cognitive_behaviors": ["complicated"],
+      "skill_path": ".pi/skills/evidence-pairing/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": [
+        "EOV5-010: Navigator-controlled Red/Green/Refactor",
+        "EOV5-011: generated execution evidence"
+      ],
+      "latest_feedback": "One short-lived Driver and one observed checkpoint at a time.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-PROMPT-MODEL-CHECK",
+      "version": "1.0.0",
+      "owner": "Domain modeling",
+      "cognitive_behaviors": ["clear"],
+      "skill_path": null,
+      "prompt_paths": [".pi/prompts/evidence-model-check.md"],
+      "validated_scenarios": ["EOV5-006: deterministic projection review"],
+      "latest_feedback": "Keep structural checks read-only and distinguish Scenario, model, and method gaps.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-PROMPT-TEST-LIST",
+      "version": "1.0.0",
+      "owner": "Test strategy",
+      "cognitive_behaviors": ["clear"],
+      "skill_path": null,
+      "prompt_paths": [".pi/prompts/evidence-test-list.md"],
+      "validated_scenarios": ["EOV5-009: Q2/Q1 test-list format"],
+      "latest_feedback": "Reformat known facts only; process selection remains a Tasking decision.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-PROMPT-DESK-CHECK",
+      "version": "1.0.0",
+      "owner": "Test strategy",
+      "cognitive_behaviors": ["clear"],
+      "skill_path": null,
+      "prompt_paths": [".pi/prompts/evidence-desk-check.md"],
+      "validated_scenarios": ["EOV5-009: human Desk Check"],
+      "latest_feedback": "Summarize traceability and gaps without approving the plan.",
+      "supersedes": []
+    },
+    {
+      "id": "WK-PROMPT-EXECUTION-SUMMARY",
+      "version": "1.0.0",
+      "owner": "Delivery",
+      "cognitive_behaviors": ["clear"],
+      "skill_path": null,
+      "prompt_paths": [".pi/prompts/evidence-execution-summary.md"],
+      "validated_scenarios": ["EOV5-011: generated execution manifest"],
+      "latest_feedback": "Summaries must render observed manifest facts rather than invent execution evidence.",
+      "supersedes": []
+    }
+  ]
+}

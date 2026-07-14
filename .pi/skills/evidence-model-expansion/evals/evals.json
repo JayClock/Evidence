@@ -1,0 +1,17 @@
+{
+  "skill_name": "evidence-model-expansion",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Expand a Scenario already explained by workspace and member model IDs; no invariant is missing.",
+      "expected_output": "Maps Given/When/Then, data, invariants and timeline while returning an empty operation list.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Challenge a candidate whose confirmation points to no request and breaks REG-001.",
+      "expected_output": "Returns model_gap, cites the relation and regression failure, and does not repair the candidate.",
+      "files": []
+    }
+  ]
+}
