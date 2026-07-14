@@ -58,6 +58,8 @@ evidence-orchestrator/
 
 GitHub Issue 列表、创建、快照、同步和漂移检查均显示具体的 Loading 文案。用户取消时不写入新状态，也不触发后续 Frame；模型工具入口则通过 `onUpdate` 流式报告相同操作。
 
+用户故事工件遵循 3C 分工：`stories/US-xxx.md` 只保存简短 Card（角色、可协商目标和价值），`clarifications/` 保存 Conversation，`examples/US-xxx-SC-xxx.md` 保存沟通确认后的 Confirmation。共享范围和非目标留在 `problem-statement.md`，候选优先级留在 `story-map-delta.md`；非目标不会生成反向验收场景或测试。
+
 Clarify 是阶段内的故事级子流程：
 
 1. Frame 根据问题、旅程切片和故事地图增量生成候选 `US-xxx.md` 故事卡；Clarify 不再承担常规故事生成。
