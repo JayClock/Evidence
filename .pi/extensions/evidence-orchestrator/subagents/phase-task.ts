@@ -1,3 +1,4 @@
+import { allClarificationStoryOutcomeProposals } from '../requirements/clarifications';
 import { artifactRelativePath } from '../workflow/iteration-paths';
 import {
   PHASE_META,
@@ -26,10 +27,13 @@ export function buildPhaseTask(
     : 'legacy local snapshot';
   const activeClarificationStory =
     state.active_clarification_story?.story_id ?? '未选择';
-  const proposedClarificationOutcome =
-    state.proposed_clarification_story_outcome
-      ? `${state.proposed_clarification_story_outcome.story_id}=${state.proposed_clarification_story_outcome.outcome}（待人类确认）`
-      : '无';
+  const clarificationOutcomeProposals =
+    allClarificationStoryOutcomeProposals(state);
+  const proposedClarificationOutcome = clarificationOutcomeProposals.length
+    ? clarificationOutcomeProposals
+        .map(({ story_id, outcome }) => `${story_id}=${outcome}（待人类确认）`)
+        .join(', ')
+    : '无';
   const clarificationOutcomes = state.clarification_story_outcomes?.length
     ? state.clarification_story_outcomes
         .map(({ story_id, outcome }) => `${story_id}=${outcome}`)

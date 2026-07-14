@@ -348,13 +348,13 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_select_story',
     label: 'Select Evidence Clarification Story',
     description:
-      'Open an interactive picker, persist the selected story, and run its isolated clarification',
+      'Open an interactive picker, select, resume, or switch stories, and run isolated clarification',
     promptSnippet:
-      'Let the user select one US-xxx story and start its isolated TQA clarification',
+      'Let the user select, resume, or switch to one US-xxx story for isolated TQA clarification',
     promptGuidelines: [
-      'Use evidence_orchestrator_select_story when the user asks to choose a story for clarification; the tool opens the picker and the user makes the decision.',
+      'Use evidence_orchestrator_select_story when the user asks to choose, resume, or switch stories for clarification; the tool opens the picker and the user makes the decision.',
       'Never infer or pass a story choice on behalf of the user.',
-      'Do not switch stories while another story or TQA answer is pending.',
+      'The user may switch to any unresolved story at any time; switching pauses the current story’s open question or proposal and restores the selected story’s state.',
       'After evidence_orchestrator_select_story finishes the isolated clarify run, stop and do not call another workflow tool.',
     ],
     parameters: clarificationStoryParam,

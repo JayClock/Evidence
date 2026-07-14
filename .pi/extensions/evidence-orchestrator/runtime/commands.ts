@@ -359,18 +359,10 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-story', {
     description:
-      'Select one generated US-xxx story and immediately run isolated clarification',
+      'Select, resume, or switch to one US-xxx story and immediately run isolated clarification',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
-        const current = readState(ctx.cwd);
-        if (current.active_clarification_story) {
-          ctx.ui.notify(
-            `Clarification story ${current.active_clarification_story.story_id} is already active.`,
-            'info',
-          );
-          return;
-        }
         let storyId = args.trim().toUpperCase();
         if (!storyId) {
           storyId = (await selectClarificationStoryInteractively(ctx)) ?? '';
@@ -398,7 +390,7 @@ export function registerCommands(pi: ExtensionAPI): void {
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),
-          'error',
+          error instanceof PhaseRunBlockedError ? 'info' : 'error',
         );
       }
     },

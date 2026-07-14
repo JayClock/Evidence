@@ -42,6 +42,33 @@ describe('clarification story picker', () => {
     ]);
   });
 
+  it('keeps every unresolved story selectable while one is active', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      phase: 'clarify',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-002.md',
+      '# 删除工作区\n',
+    );
+
+    expect(listSelectableClarificationStories(cwd)).toEqual([
+      { storyId: 'US-001', title: '编辑工作区信息' },
+      { storyId: 'US-002', title: '删除工作区' },
+    ]);
+  });
+
   it('returns the story manually selected by the user', async () => {
     const cwd = workspace();
     writeState(cwd, { ...DEFAULT_STATE, phase: 'clarify' });

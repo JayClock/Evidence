@@ -4,6 +4,10 @@ import {
   collectCodeFiles,
   findFiles,
 } from '../evidence/artifact-index';
+import {
+  allClarificationStoryOutcomeProposals,
+  allPendingClarifications,
+} from '../requirements/clarifications';
 import { isGateAnswered } from '../workflow/gates';
 import { iterationRoot } from '../workflow/iteration-paths';
 import { readState } from '../workflow/state-store';
@@ -37,8 +41,11 @@ export function statusMarkdown(cwd: string): string {
     : 'none';
   const activeClarificationStory =
     state.active_clarification_story?.story_id ?? 'none';
-  const pendingStoryDecision = state.proposed_clarification_story_outcome
-    ? `${state.proposed_clarification_story_outcome.story_id} · ${state.proposed_clarification_story_outcome.outcome}`
+  const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
+  const pendingStoryDecision = pendingStoryDecisions.length
+    ? pendingStoryDecisions
+        .map(({ story_id, outcome }) => `${story_id} · ${outcome}`)
+        .join(', ')
     : 'none';
   const clarificationOutcomes = state.clarification_story_outcomes?.length
     ? state.clarification_story_outcomes
@@ -48,8 +55,11 @@ export function statusMarkdown(cwd: string): string {
         )
         .join(', ')
     : 'none';
-  const pendingClarification = state.pending_clarification
-    ? `${state.pending_clarification.question_id} · ${state.pending_clarification.story_id}`
+  const pendingClarifications = allPendingClarifications(state);
+  const pendingClarification = pendingClarifications.length
+    ? pendingClarifications
+        .map(({ question_id, story_id }) => `${question_id} · ${story_id}`)
+        .join(', ')
     : 'none';
   const requirementSource = state.requirement_source
     ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}`

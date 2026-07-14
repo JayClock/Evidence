@@ -244,6 +244,109 @@ describe('commands', () => {
     expect(sendUserMessage).not.toHaveBeenCalled();
   });
 
+  it('lets the active story be selected again and surfaces its pending question', async () => {
+    const cwd = workspace();
+    writePhaseInputs(cwd, 'clarify');
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeState(cwd, {
+      ...issueState('clarify'),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        question: '谁可以编辑工作区信息？',
+        target: 'business_context',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+
+    let selectStory:
+      | ((args: string, ctx: unknown) => Promise<void>)
+      | undefined;
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof selectStory }) {
+        if (name === 'evidence-story') selectStory = options.handler;
+      },
+      sendMessage: vi.fn(),
+    } as never);
+    const ctx = commandContext(cwd);
+    ctx.ui.select.mockResolvedValue('US-001 · 编辑工作区信息');
+
+    await selectStory?.('', ctx);
+
+    expect(ctx.ui.select).toHaveBeenCalledWith('选择一张用户故事卡进行澄清', [
+      'US-001 · 编辑工作区信息',
+    ]);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'Clarification Q-001 for US-001 is awaiting a domain-expert answer: 谁可以编辑工作区信息？',
+      'info',
+    );
+    expect(runtimeMocks.runPhaseSubagent).not.toHaveBeenCalled();
+    expect(readState(cwd).active_clarification_story?.story_id).toBe('US-001');
+  });
+
+  it('switches to another story while the current question is pending', async () => {
+    const cwd = workspace();
+    writePhaseInputs(cwd, 'clarify');
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      '# 编辑工作区信息\n',
+    );
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-002.md',
+      '# 删除工作区\n',
+    );
+    writeState(cwd, {
+      ...issueState('clarify'),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        question: '谁可以编辑工作区信息？',
+        target: 'business_context',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+
+    let selectStory:
+      | ((args: string, ctx: unknown) => Promise<void>)
+      | undefined;
+    const sendMessage = vi.fn();
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof selectStory }) {
+        if (name === 'evidence-story') selectStory = options.handler;
+      },
+      sendMessage,
+    } as never);
+    const ctx = commandContext(cwd);
+    ctx.ui.select.mockResolvedValue('US-002 · 删除工作区');
+
+    await selectStory?.('', ctx);
+
+    const state = readState(cwd);
+    expect(state.active_clarification_story?.story_id).toBe('US-002');
+    expect(state.pending_clarification).toBeUndefined();
+    expect(state.paused_clarifications).toEqual([
+      expect.objectContaining({ question_id: 'Q-001', story_id: 'US-001' }),
+    ]);
+    expect(runtimeMocks.runPhaseSubagent).toHaveBeenCalledWith(
+      expect.objectContaining({ phase: 'clarify' }),
+    );
+    expect(sendMessage).toHaveBeenCalledOnce();
+  });
+
   it('reserves final story completion for an explicit human command', async () => {
     const cwd = workspace();
     prepareProposedStory(cwd);

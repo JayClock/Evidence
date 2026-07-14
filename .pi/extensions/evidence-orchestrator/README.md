@@ -61,9 +61,9 @@ GitHub Issue 列表、创建、快照、同步和漂移检查均显示具体的 
 Clarify 是阶段内的故事级子流程：
 
 1. Frame 根据问题、旅程切片和故事地图增量生成候选 `US-xxx.md` 故事卡；Clarify 不再承担常规故事生成。
-2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。选择成功后会在同一次命令或工具调用中直接执行前台 clarify，无须再次执行 `/evidence-run`。
+2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。人类可随时切换到任一未完成 Story；切换会暂停当前 Story 的待答问题或待确认建议，并恢复目标 Story 先前暂停的状态。选择成功后会在同一次命令或工具调用中直接执行前台 clarify，无须再次执行 `/evidence-run`。
 3. 子 agent 的问题显示在当前对话中。领域专家直接回复，父 agent 在内部调用 `evidence_orchestrator_answer_question`；答案落盘后会立即重新运行当前故事的 clarify，继续提出下一问或形成结论建议。
-4. AI 通过 `evidence_orchestrator_propose_story_outcome` 只能提出 `clarified`、`needs_split` 或 `deferred` 建议。建议写入状态后 Story 仍保持活动，继续运行、切换 Story 和完成 clarify 都会被阻止。
+4. AI 通过 `evidence_orchestrator_propose_story_outcome` 只能提出 `clarified`、`needs_split` 或 `deferred` 建议。建议写入状态后 Story 仍保持活动；当前 Story 不能继续运行或完成 clarify，但人类可以切换到其他 Story，建议会被暂停并在切回时恢复。
 5. 领域专家执行 `/evidence-story-complete` 打开选择器，可确认 AI 建议、覆盖为其他结论，或说明原因后继续澄清；也可显式执行 `/evidence-story-complete confirm`、`/evidence-story-complete <outcome> <理由>` 或 `/evidence-story-complete continue <原因>`。
 6. 只有人工决定会写入最终结论、记录 `decided_by=human` 与确认时间并释放 Story。每个故事结论后重新等待人类选择；所有故事都有人工确认的结论后才能完成 clarify。
 

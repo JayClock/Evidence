@@ -33,11 +33,6 @@ export function listSelectableClarificationStories(
       `Cannot select a clarification story: current phase is ${state.phase}.`,
     );
   }
-  if (state.active_clarification_story) {
-    throw new Error(
-      `Cannot select another story: ${state.active_clarification_story.story_id} is still active.`,
-    );
-  }
   return unresolvedClarificationStoryIds(cwd, state).map((storyId) => {
     const path = artifactPath(
       cwd,
@@ -59,7 +54,7 @@ export async function selectClarificationStoryInteractively(
   }
   const stories = listSelectableClarificationStories(ctx.cwd);
   if (stories.length === 0) {
-    throw new Error('No unselected clarification stories are available.');
+    throw new Error('No unresolved clarification stories are available.');
   }
   const storyByOption = new Map(
     stories.map((story) => [
