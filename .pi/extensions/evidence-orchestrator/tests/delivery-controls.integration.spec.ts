@@ -360,7 +360,16 @@ describe('delivery controls', () => {
       command: 'node -e "process.exit(0)"',
     });
 
-    expect(record.exit_code).toBe(0);
+    expect(record).toMatchObject({
+      version: 2,
+      exit_code: 0,
+      invocation: 'test-tool',
+      git_baseline: expect.stringMatching(/^[0-9a-f]{40}$/),
+      stdout_summary: '',
+      stderr_summary: '',
+      previous_record_sha256: '0'.repeat(64),
+      record_sha256: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
     expect(() =>
       executeTestStep(cwd, {
         processId: 'web',

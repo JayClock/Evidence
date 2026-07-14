@@ -74,13 +74,16 @@ Clarify 是阶段内的故事级子流程：
 ### `evidence/`
 
 - `artifact-index.ts`：工件目录和真实代码文件扫描。
-- `model-and-code.ts`：领域模型展开与场景编码证据验证。
+- `model-validation.ts`：领域模型展开与迭代模型证据验证。
+- `model-and-code.ts`：v4 只读兼容导出；v5 不再从此处读取手写编码证据。
 - `knowledge.ts`：统一知识、场景上下文和知识提升验证。
 
 ### `testing/`
 
 - `process-catalog.ts`：测试工序 Schema、目录读取和唯一匹配。
-- `execution-recorder.ts`：执行声明命令并写入防篡改观测证据。
+- `execution-recorder.ts`：执行锁定命令并写入 hash-chained append-only 观测日志。
+- `execution-manifest.ts`：从观测日志、批准计划与 Git 变化确定性生成/验证 manifest 和人读摘要。
+- `legacy-execution-evidence.ts`：仅验证不可变 v4 iteration 的手写编码证据。
 
 ### `validation/`
 

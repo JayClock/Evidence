@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { relative } from 'node:path';
 import { missingPaths } from '../evidence/artifact-index';
-import { validateDomainModelEvidence } from '../evidence/model-and-code';
+import { validateDomainModelEvidence } from '../evidence/model-validation';
+import { validateExecutionEvidence } from '../testing/execution-manifest';
 import { gateDecision } from '../workflow/gates';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
 import {
@@ -51,6 +52,15 @@ export function validateWorkflow(cwd: string): void {
     gateDecision(cwd, state, state.pending_gate);
   }
   if (state.halted) return;
+  if (
+    state.workflow_version === 5 &&
+    state.pair_session?.checkpoint === 'quality_gates_passed'
+  ) {
+    validateExecutionEvidence(cwd);
+  }
+  // v5 loop-specific tools validate their own focused inputs and generated
+  // evidence; legacy PHASE_META/Scrum requirements apply only to v4.
+  if (state.workflow_version === 5) return;
   if (state.phase === 'complete') return;
 
   const inputs = PHASE_META[state.phase].inputs.map((path) =>

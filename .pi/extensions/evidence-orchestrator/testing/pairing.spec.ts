@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -17,6 +18,10 @@ import {
   transitionWorkflowLoop,
   writeState,
 } from '../workflow/state-store';
+import {
+  generateExecutionEvidence,
+  validateExecutionEvidence,
+} from './execution-manifest';
 import {
   materializeFocusedCommands,
   materializedProcessSha256,
@@ -132,7 +137,6 @@ function preparePair(cwd: string): void {
       materialized_sha256: materializedSha256,
     }),
   );
-  write(cwd, 'artifacts/iterations/ITER-0001/04-planning/test-plan.json', '{}');
   write(
     cwd,
     'artifacts/iterations/ITER-0001/04-planning/test-list.md',
@@ -161,7 +165,7 @@ function preparePair(cwd: string): void {
   write(
     cwd,
     'focused.js',
-    "const fs=require('node:fs');process.exit(fs.existsSync('apps/web/src/feature.ts')?0:1);",
+    "const fs=require('node:fs');const code=fs.existsSync('apps/web/src/feature.ts')?fs.readFileSync('apps/web/src/feature.ts','utf8'):'';const q1=!fs.existsSync('apps/web/tests/component.test.ts')||code.includes('q1');const q2=!fs.existsSync('apps/web/tests/workspace.test.ts')||code.includes('q2');process.exit(q1&&q2?0:1);",
   );
   write(cwd, 'quality.js', 'process.exit(1);');
   const baseline = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -182,6 +186,29 @@ function preparePair(cwd: string): void {
     materialized_sha256: materializedSha256,
     materialized_plan_path: planPath,
   };
+  const taskingTest = {
+    id: 'TEST-001',
+    quadrant: 'Q2' as const,
+    intent: 'The owner sees the new workspace.',
+    runtime_plan_id: 'RUNTIME-001',
+    process_id: definition.id,
+    step_id: 'acceptance-q2',
+    supported_by: [] as string[],
+    scenario_outcome: 'Workspace is visible',
+    business_data: ['name=Alpha'],
+  };
+  const approvedPlanContent = JSON.stringify({
+    version: 2,
+    story_id: 'US-001',
+    scenario_id: 'SC-001',
+    tests: [taskingTest],
+    processes: [{ ...selection, quality_gates: definition.quality_gates }],
+  });
+  write(
+    cwd,
+    'artifacts/iterations/ITER-0001/04-planning/test-plan.json',
+    approvedPlanContent,
+  );
   writeState(cwd, {
     ...DEFAULT_STATE,
     workflow_version: 5,
@@ -245,6 +272,9 @@ function preparePair(cwd: string): void {
     tasking_stage: 'approved',
     approved_test_plan_path:
       'artifacts/iterations/ITER-0001/04-planning/test-plan.json',
+    approved_test_plan_sha256: createHash('sha256')
+      .update(approvedPlanContent)
+      .digest('hex'),
     active_work_item: {
       story_id: 'US-001',
       scenario_id: 'SC-001',
@@ -257,19 +287,7 @@ function preparePair(cwd: string): void {
       draft_id: 'DRAFT-001',
       story_id: 'US-001',
       scenario_id: 'SC-001',
-      tests: [
-        {
-          id: 'TEST-001',
-          quadrant: 'Q2',
-          intent: 'The owner sees the new workspace.',
-          runtime_plan_id: 'RUNTIME-001',
-          process_id: definition.id,
-          step_id: 'acceptance-q2',
-          supported_by: [],
-          scenario_outcome: 'Workspace is visible',
-          business_data: ['name=Alpha'],
-        },
-      ],
+      tests: [taskingTest],
       tasks: [
         {
           id: 'TASK-001',
@@ -300,9 +318,255 @@ function preparePair(cwd: string): void {
       test_paths: [],
       production_paths: [],
       expected_red: 'The owner sees the new workspace.',
+      accepted_reds: [],
       quality_gate_index: 0,
       feedback: [],
       driver_history: [],
+    },
+  });
+}
+
+function addWebQ1Step(cwd: string): void {
+  const state = readState(cwd);
+  const workItem = state.active_work_item;
+  const candidate = state.tasking_candidate;
+  const current = workItem?.test_plan?.processes[0];
+  if (
+    !workItem?.test_plan ||
+    !candidate ||
+    !current?.command_variables ||
+    !current.materialized_plan_path ||
+    !state.approved_test_plan_path
+  ) {
+    throw new Error('Pair fixture has no Web process.');
+  }
+  const definition = readTestProcess(`${cwd}/${current.path}`);
+  const commands = materializeFocusedCommands(
+    definition,
+    current.command_variables,
+  );
+  const selectedStepIds = ['component-q1', 'acceptance-q2'];
+  const materializedSha256 = materializedProcessSha256(
+    current.id,
+    current.definition_sha256 ?? '',
+    current.command_variables,
+    commands,
+  );
+  const selection = {
+    ...current,
+    selected_step_ids: selectedStepIds,
+    focused_commands: commands,
+    materialized_sha256: materializedSha256,
+  };
+  write(
+    cwd,
+    current.materialized_plan_path,
+    JSON.stringify({
+      version: 2,
+      story_id: 'US-001',
+      scenario_id: 'SC-001',
+      process_id: selection.id,
+      process_path: selection.path,
+      definition_sha256: selection.definition_sha256,
+      runtime: selection.runtime,
+      functional_contexts: selection.functional_contexts,
+      technical_boundaries: selection.technical_boundaries,
+      selected_step_ids: selectedStepIds,
+      command_variables: selection.command_variables,
+      focused_commands: commands,
+      quality_gates: definition.quality_gates,
+      materialized_sha256: materializedSha256,
+    }),
+  );
+  const tests = [
+    {
+      id: 'TEST-Q1',
+      quadrant: 'Q1' as const,
+      intent: 'Workspace visibility is exposed by the feature.',
+      runtime_plan_id: 'RUNTIME-001',
+      process_id: selection.id,
+      step_id: 'component-q1',
+      supported_by: [] as string[],
+      business_data: ['name=Alpha'],
+    },
+    ...candidate.tests.map((test) =>
+      test.quadrant === 'Q2' ? { ...test, supported_by: ['TEST-Q1'] } : test,
+    ),
+  ];
+  const selections = [selection, ...workItem.test_plan.processes.slice(1)];
+  const approvedPlanContent = JSON.stringify({
+    version: 2,
+    story_id: workItem.story_id,
+    scenario_id: workItem.scenario_id,
+    tests,
+    processes: selections.map((process) => ({
+      ...process,
+      quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
+    })),
+  });
+  write(cwd, state.approved_test_plan_path, approvedPlanContent);
+  writeState(cwd, {
+    ...state,
+    approved_test_plan_sha256: createHash('sha256')
+      .update(approvedPlanContent)
+      .digest('hex'),
+    active_work_item: {
+      ...workItem,
+      test_process: selection,
+      test_plan: {
+        ...workItem.test_plan,
+        processes: selections,
+      },
+    },
+    tasking_candidate: {
+      ...candidate,
+      tests,
+      processes: [selection, ...candidate.processes.slice(1)],
+    },
+    pair_session: state.pair_session
+      ? {
+          ...state.pair_session,
+          process_id: selection.id,
+          step_id: 'component-q1',
+          expected_red: 'Workspace visibility is exposed by the feature.',
+        }
+      : undefined,
+  });
+}
+
+function addTauriProcess(cwd: string): void {
+  const source = processDefinition();
+  const tauri = {
+    ...source,
+    id: 'tauri-pair',
+    owner: 'desktop-platform',
+    runtime: 'tauri',
+    applies_to: {
+      capabilities: ['workspace'],
+      technical_boundaries: ['tauri-shell', 'webview'],
+      when: 'A workspace Scenario changes the desktop shell.',
+    },
+    steps: source.steps.map((step) => ({
+      ...step,
+      real_boundaries: ['tauri-shell'],
+      replaced_boundaries: [
+        { boundary: 'webview', test_double: 'stub' as const },
+      ],
+      nearest_test: {
+        rule: 'Use the nearest desktop test.',
+        roots: ['apps/desktop/tests'],
+      },
+      focused_command: {
+        template: 'node desktop-focused.js {{test_filter}}',
+        allowed_variables: ['test_filter'],
+      },
+    })),
+    quality_gates: ['node desktop-quality.js'],
+  };
+  const processPath =
+    'artifacts/iterations/ITER-0001/03-architecture/selected-test-processes/tauri-pair.json';
+  write(cwd, processPath, JSON.stringify(tauri));
+  const definition = readTestProcess(`${cwd}/${processPath}`);
+  const definitionSha256 = testProcessDefinitionSha256(`${cwd}/${processPath}`);
+  const variables = { test_filter: 'desktop_behavior' };
+  const commands = materializeFocusedCommands(definition, variables).filter(
+    ({ step_id }) => step_id === 'acceptance-q2',
+  );
+  const materializedSha256 = materializedProcessSha256(
+    definition.id,
+    definitionSha256,
+    variables,
+    commands,
+  );
+  const planPath =
+    'artifacts/iterations/ITER-0001/04-planning/test-plans/US-001-SC-001-tauri-pair.json';
+  const selection = {
+    id: definition.id,
+    path: processPath,
+    runtime: 'tauri' as const,
+    functional_contexts: ['workspace'],
+    technical_boundaries: ['tauri-shell'],
+    process_version: 2 as const,
+    definition_sha256: definitionSha256,
+    selected_step_ids: ['acceptance-q2'],
+    command_variables: variables,
+    focused_commands: commands,
+    materialized_sha256: materializedSha256,
+    materialized_plan_path: planPath,
+  };
+  write(
+    cwd,
+    planPath,
+    JSON.stringify({
+      version: 2,
+      story_id: 'US-001',
+      scenario_id: 'SC-001',
+      process_id: definition.id,
+      process_path: processPath,
+      definition_sha256: definitionSha256,
+      runtime: 'tauri',
+      functional_contexts: ['workspace'],
+      technical_boundaries: ['tauri-shell'],
+      selected_step_ids: ['acceptance-q2'],
+      command_variables: variables,
+      focused_commands: commands,
+      quality_gates: definition.quality_gates,
+      materialized_sha256: materializedSha256,
+    }),
+  );
+  write(
+    cwd,
+    'desktop-focused.js',
+    "const fs=require('node:fs');process.exit(fs.existsSync('apps/desktop/src/feature.rs')?0:1);",
+  );
+  const state = readState(cwd);
+  const workItem = state.active_work_item;
+  const candidate = state.tasking_candidate;
+  if (!workItem?.test_plan || !candidate || !state.approved_test_plan_path) {
+    throw new Error('Pair fixture has no approved plan.');
+  }
+  const tests = [
+    ...candidate.tests,
+    {
+      id: 'TEST-002',
+      quadrant: 'Q2' as const,
+      intent: 'The desktop shell opens the visible workspace.',
+      runtime_plan_id: 'RUNTIME-002',
+      process_id: definition.id,
+      step_id: 'acceptance-q2',
+      supported_by: ['TEST-Q1'],
+      scenario_outcome: 'Workspace is visible',
+      business_data: ['name=Alpha'],
+    },
+  ];
+  const selections = [...workItem.test_plan.processes, selection];
+  const approvedPlanContent = JSON.stringify({
+    version: 2,
+    story_id: workItem.story_id,
+    scenario_id: workItem.scenario_id,
+    tests,
+    processes: selections.map((process) => ({
+      ...process,
+      quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
+    })),
+  });
+  write(cwd, state.approved_test_plan_path, approvedPlanContent);
+  writeState(cwd, {
+    ...state,
+    approved_test_plan_sha256: createHash('sha256')
+      .update(approvedPlanContent)
+      .digest('hex'),
+    active_work_item: {
+      ...workItem,
+      test_plan: {
+        ...workItem.test_plan,
+        processes: selections,
+      },
+    },
+    tasking_candidate: {
+      ...candidate,
+      tests,
+      processes: [...candidate.processes, selection],
     },
   });
 }
@@ -312,6 +576,82 @@ function writeFocusedTest(
   content = 'expect(workspace).toBeVisible();',
 ) {
   write(cwd, 'apps/web/tests/workspace.test.ts', content);
+}
+
+function completePairSuccessfully(cwd: string): void {
+  write(cwd, 'quality.js', 'process.exit(0);');
+  write(cwd, 'desktop-quality.js', 'process.exit(0);');
+  for (let guard = 0; guard < 30; guard += 1) {
+    const session = readState(cwd).pair_session;
+    if (!session) throw new Error('Missing Pair session.');
+    if (session.checkpoint === 'quality_gates_passed') return;
+    const desktop = session.process_id === 'tauri-pair';
+    if (session.checkpoint === 'plan_confirmed') {
+      const snapshot = capturePairWorktree(cwd);
+      write(
+        cwd,
+        desktop
+          ? 'apps/desktop/tests/shell.test.ts'
+          : session.step_id === 'component-q1'
+            ? 'apps/web/tests/component.test.ts'
+            : 'apps/web/tests/workspace.test.ts',
+        desktop
+          ? 'expect(shell).toOpen();'
+          : session.step_id === 'component-q1'
+            ? 'expect(component).toExposeWorkspace();'
+            : 'expect(workspace).toBeVisible();',
+      );
+      completePairDriver(cwd, 'test', snapshot, 'Added focused test.');
+      continue;
+    }
+    if (session.checkpoint === 'test_written') {
+      executePairAction(cwd, 'run_red');
+      continue;
+    }
+    if (
+      session.checkpoint === 'red_observed' &&
+      session.red_observation?.accepted !== true
+    ) {
+      reviewPairRed(cwd, 'behavior', 'The expected behavior is absent.');
+      continue;
+    }
+    if (session.checkpoint === 'red_observed') {
+      const snapshot = capturePairWorktree(cwd);
+      const productionPath = desktop
+        ? 'apps/desktop/src/feature.rs'
+        : 'apps/web/src/feature.ts';
+      const existing = existsSync(`${cwd}/${productionPath}`)
+        ? readFileSync(`${cwd}/${productionPath}`, 'utf8')
+        : '';
+      write(
+        cwd,
+        productionPath,
+        desktop
+          ? 'pub fn open() {}'
+          : `${existing}\nexport const ${session.step_id === 'component-q1' ? 'q1' : 'q2'} = true;`,
+      );
+      completePairDriver(cwd, 'implementation', snapshot, 'Minimal Green.');
+      continue;
+    }
+    if (session.checkpoint === 'implementation_written') {
+      executePairAction(cwd, 'run_green');
+      continue;
+    }
+    if (session.checkpoint === 'green_observed') {
+      const snapshot = capturePairWorktree(cwd);
+      completePairDriver(cwd, 'refactor', snapshot, 'No-op Refactor.');
+      continue;
+    }
+    if (session.checkpoint === 'refactored') {
+      executePairAction(
+        cwd,
+        pairDeterministicAction(cwd, readState(cwd)) ?? 'run_quality_gate',
+      );
+      continue;
+    }
+    throw new Error(`Unexpected Pair checkpoint: ${session.checkpoint}.`);
+  }
+  throw new Error('Pair completion exceeded its checkpoint guard.');
 }
 
 describe('Navigator-driven Pair', () => {
@@ -412,7 +752,7 @@ describe('Navigator-driven Pair', () => {
 
     snapshot = capturePairWorktree(cwd);
     writeFocusedTest(cwd, 'expect(true).toBe(true);');
-    write(cwd, 'apps/web/src/feature.ts', 'export const visible = true;');
+    write(cwd, 'apps/web/src/feature.ts', 'export const q2 = true;');
     const outcome = completePairDriver(
       cwd,
       'implementation',
@@ -438,7 +778,7 @@ describe('Navigator-driven Pair', () => {
     reviewPairRed(cwd, 'behavior', 'The expected workspace is absent.');
 
     snapshot = capturePairWorktree(cwd);
-    write(cwd, 'apps/web/src/feature.ts', 'export const visible = true;');
+    write(cwd, 'apps/web/src/feature.ts', 'export const q2 = true;');
     const implementation = completePairDriver(
       cwd,
       'implementation',
@@ -485,6 +825,140 @@ describe('Navigator-driven Pair', () => {
     expect(passed.state.pair_session?.checkpoint).toBe('quality_gates_passed');
     expect(transitionWorkflowLoop(cwd, { to: 'showcase' }).loop).toBe(
       'showcase',
+    );
+  });
+
+  it('replays byte-stable generated evidence and detects command tampering', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    addWebQ1Step(cwd);
+    completePairSuccessfully(cwd);
+
+    const first = generateExecutionEvidence(cwd);
+    const replay = generateExecutionEvidence(cwd);
+    expect(replay.manifestContent).toBe(first.manifestContent);
+    expect(replay.summaryContent).toBe(first.summaryContent);
+    expect(validateExecutionEvidence(cwd)).toEqual(first.manifest);
+
+    const approvedPath = readState(cwd).approved_test_plan_path ?? '';
+    const approvedPlan = readFileSync(`${cwd}/${approvedPath}`, 'utf8');
+    write(cwd, approvedPath, `${approvedPlan} `);
+    expect(() => validateExecutionEvidence(cwd)).toThrow(
+      'Approved aggregate test plan hash drifted',
+    );
+    write(cwd, approvedPath, approvedPlan);
+
+    const planPath =
+      readState(cwd).active_work_item?.test_plan?.processes[0]
+        ?.materialized_plan_path ?? '';
+    const lockedPlan = readFileSync(`${cwd}/${planPath}`, 'utf8');
+    write(
+      cwd,
+      planPath,
+      lockedPlan.replace('node focused.js', 'node drift.js'),
+    );
+    expect(() => validateExecutionEvidence(cwd)).toThrow(
+      'Materialized test plan drifted',
+    );
+    write(cwd, planPath, lockedPlan);
+
+    const codePath = first.manifest.changed_paths.production[0] ?? '';
+    const observedCode = readFileSync(`${cwd}/${codePath}`, 'utf8');
+    write(cwd, codePath, `${observedCode}\n// after quality gates`);
+    expect(() => validateExecutionEvidence(cwd)).toThrow(
+      'Generated execution manifest is missing or stale',
+    );
+    write(cwd, codePath, observedCode);
+    expect(validateExecutionEvidence(cwd)).toEqual(first.manifest);
+
+    const logPath = `${cwd}/${first.manifest.source.execution_log}`;
+    const lines = readFileSync(logPath, 'utf8').trim().split('\n');
+    const firstRecord = JSON.parse(lines[0] ?? '{}') as Record<string, unknown>;
+    firstRecord.command = 'echo tampered';
+    lines[0] = JSON.stringify(firstRecord);
+    write(cwd, first.manifest.source.execution_log, `${lines.join('\n')}\n`);
+    expect(() => validateExecutionEvidence(cwd)).toThrow('hash chain failed');
+  });
+
+  it('rejects empty, partial, and deleted execution logs', () => {
+    const emptyCwd = workspace();
+    preparePair(emptyCwd);
+    expect(() => generateExecutionEvidence(emptyCwd)).toThrow(
+      'Execution log is empty',
+    );
+
+    const partialCwd = workspace();
+    preparePair(partialCwd);
+    const snapshot = capturePairWorktree(partialCwd);
+    writeFocusedTest(partialCwd);
+    completePairDriver(partialCwd, 'test', snapshot, 'Added Q2.');
+    executePairAction(partialCwd, 'run_red');
+    reviewPairRed(partialCwd, 'behavior', 'Expected behavior is absent.');
+    expect(() => generateExecutionEvidence(partialCwd)).toThrow('has no green');
+
+    const deletedCwd = workspace();
+    preparePair(deletedCwd);
+    addWebQ1Step(deletedCwd);
+    completePairSuccessfully(deletedCwd);
+    const generated = generateExecutionEvidence(deletedCwd);
+    const log = readFileSync(
+      `${deletedCwd}/${generated.manifest.source.execution_log}`,
+      'utf8',
+    )
+      .trim()
+      .split('\n');
+    log.splice(1, 1);
+    write(
+      deletedCwd,
+      generated.manifest.source.execution_log,
+      `${log.join('\n')}\n`,
+    );
+    expect(() => validateExecutionEvidence(deletedCwd)).toThrow(
+      /sequence drifted|hash chain failed/,
+    );
+  });
+
+  it('generates complete traceability for a multi-runtime process plan', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    addWebQ1Step(cwd);
+    addTauriProcess(cwd);
+    completePairSuccessfully(cwd);
+
+    const manifest = validateExecutionEvidence(cwd);
+
+    expect(manifest.processes.map(({ runtime }) => runtime)).toEqual([
+      'typescript',
+      'tauri',
+    ]);
+    expect(manifest.processes.map(({ steps }) => steps.length)).toEqual([2, 1]);
+    expect(manifest.traceability.q1).toHaveLength(1);
+    expect(manifest.traceability.q2).toHaveLength(2);
+    expect(manifest.traceability.functional_contexts).toEqual(['workspace']);
+    expect(manifest.processes[0]?.steps[0]?.replaced_boundaries).toContainEqual(
+      { boundary: 'http-server', test_double: 'stub' },
+    );
+    expect(
+      manifest.processes.flatMap(({ steps }) =>
+        steps.flatMap(({ changed_paths }) => changed_paths.production),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        'apps/web/src/feature.ts',
+        'apps/desktop/src/feature.rs',
+      ]),
+    );
+    expect(manifest.changed_paths.tests).toEqual(
+      expect.arrayContaining([
+        'apps/web/tests/workspace.test.ts',
+        'apps/desktop/tests/shell.test.ts',
+      ]),
+    );
+    expect(manifest.changed_paths.production).toEqual(
+      expect.arrayContaining([
+        'apps/web/src/feature.ts',
+        'apps/desktop/src/feature.rs',
+      ]),
     );
   });
 

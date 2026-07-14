@@ -253,6 +253,7 @@ export interface PairSession {
   test_paths: string[];
   production_paths: string[];
   expected_red: string;
+  accepted_reds: PairObservation[];
   red_observation?: PairObservation;
   last_observation?: PairObservation;
   quality_gate_index: number;
@@ -497,6 +498,7 @@ export interface WorkflowState {
   tasking_gap?: TaskingGap;
   desk_check_decisions?: DeskCheckDecision[];
   approved_test_plan_path?: string;
+  approved_test_plan_sha256?: string;
   pair_session?: PairSession;
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;

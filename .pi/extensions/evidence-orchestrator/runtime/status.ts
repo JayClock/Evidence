@@ -10,6 +10,7 @@ import {
 } from '../requirements/clarifications';
 import { isGateAnswered } from '../workflow/gates';
 import { pairDriverMode, pairNextInstruction } from '../testing/pairing';
+import { executionEvidencePaths } from '../testing/execution-manifest';
 import { iterationRoot } from '../workflow/iteration-paths';
 import { allowedLoopActions, isV5Workflow } from '../workflow/loop-catalog';
 import { readState } from '../workflow/state-store';
@@ -57,6 +58,7 @@ export function statusMarkdown(cwd: string): string {
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : 'none';
+  const executionEvidence = executionEvidencePaths(cwd);
   const kickoffCandidate = state.kickoff_candidate
     ? `${state.kickoff_candidate.title} · ${state.kickoff_candidate.cognitive_mode} · ${state.kickoff_candidate.artifact_path}`
     : 'none';
@@ -161,9 +163,13 @@ export function statusMarkdown(cwd: string): string {
     `| Tasking Draft | ${state.tasking_candidate ? `${state.tasking_candidate.draft_id} · ${state.tasking_candidate.test_list_path}` : 'none'} |`,
     `| Tasking Gap | ${state.tasking_gap ? `${state.tasking_gap.kind} · ${state.tasking_gap.reason}` : 'none'} |`,
     `| Approved Test Plan | ${state.approved_test_plan_path ?? 'none'} |`,
+    `| Approved Plan Hash | ${state.approved_test_plan_sha256 ?? 'none'} |`,
     `| Pair Checkpoint | ${state.pair_session?.checkpoint ?? 'none'} |`,
     `| Pair Step | ${state.pair_session ? `${state.pair_session.process_id}/${state.pair_session.step_id}` : 'none'} |`,
     `| Pair Next | ${state.pair_session ? pairNextInstruction(state) : 'none'} |`,
+    `| Execution Log | ${executionEvidence.log ?? 'none'} |`,
+    `| Execution Manifest / v4 JSON | ${executionEvidence.manifest ?? 'none'} |`,
+    `| Execution Summary / v4 Markdown | ${executionEvidence.summary ?? 'none'} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

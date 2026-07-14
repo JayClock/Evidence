@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { findFiles } from '../evidence/artifact-index';
-import { createCodingGitBaseline } from '../evidence/model-and-code';
+import { createCodingGitBaseline } from './code-baseline';
 import {
   artifactPath,
   artifactRelativePath,
@@ -745,9 +745,10 @@ export function decideTasking(
         quality_gates: readTestProcess(join(cwd, process.path)).quality_gates,
       })),
     };
+    const approvedPlanContent = `${JSON.stringify(approvedPlan, null, 2)}\n`;
     immutableWrite(
       artifactPath(cwd, state, approvedRelative),
-      `${JSON.stringify(approvedPlan, null, 2)}\n`,
+      approvedPlanContent,
     );
     persistDecision(cwd, decision);
     const firstProcess = processes[0];
@@ -773,6 +774,7 @@ export function decideTasking(
       tasking_gap: undefined,
       desk_check_decisions: decisions,
       approved_test_plan_path: approvedPath,
+      approved_test_plan_sha256: digest(approvedPlanContent),
       active_work_item: {
         story_id: state.tasking_candidate.story_id,
         scenario_id: state.tasking_candidate.scenario_id,
@@ -798,6 +800,7 @@ export function decideTasking(
         test_paths: [],
         production_paths: [],
         expected_red: expectedRed,
+        accepted_reds: [],
         quality_gate_index: 0,
         feedback: [],
         driver_history: [],
@@ -874,6 +877,7 @@ export function decideTasking(
     tasking_candidate: undefined,
     tasking_gap: undefined,
     approved_test_plan_path: undefined,
+    approved_test_plan_sha256: undefined,
     desk_check_decisions: decisions,
     active_work_item: undefined,
   });

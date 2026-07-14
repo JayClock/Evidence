@@ -46,6 +46,7 @@ describe('v5 knowledge-loop catalog', () => {
             test_paths: ['tests/example.test.ts'],
             production_paths: ['src/example.ts'],
             expected_red: 'Behavior is absent.',
+            accepted_reds: [],
             quality_gate_index: 1,
             feedback: [],
             driver_history: [],

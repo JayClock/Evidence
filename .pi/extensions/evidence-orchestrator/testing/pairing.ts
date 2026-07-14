@@ -29,6 +29,7 @@ import {
   executeTestStep,
   type TestExecutionRecord,
 } from './execution-recorder';
+import { generateExecutionEvidence } from './execution-manifest';
 import { readTestProcess } from './process-catalog';
 
 interface PairStep {
@@ -648,6 +649,7 @@ export function executePairAction(
       stepId: step.stepId,
       stage: 'red',
       command: step.command,
+      invocation: 'pair-controller',
     });
     const red = observation(record);
     const next = saveSession(cwd, state, {
@@ -668,6 +670,7 @@ export function executePairAction(
       stepId: step.stepId,
       stage: 'green',
       command: step.command,
+      invocation: 'pair-controller',
     });
     const green = observation(record);
     const passed = record.exit_code === 0;
@@ -690,6 +693,7 @@ export function executePairAction(
       stepId: step.stepId,
       stage: 'refactor',
       command: step.command,
+      invocation: 'pair-controller',
     });
     const refactor = observation(record);
     if (record.exit_code !== 0) {
@@ -757,6 +761,7 @@ export function executePairAction(
     processId: gate.processId,
     stage: 'quality_gate',
     command: gate.command,
+    invocation: 'pair-controller',
   });
   const gateObservation = observation(record);
   if (record.exit_code !== 0) {
@@ -779,11 +784,12 @@ export function executePairAction(
     quality_gate_index: nextIndex,
     last_observation: gateObservation,
   });
+  if (complete) generateExecutionEvidence(cwd);
   return {
     state: next,
     record,
     output: complete
-      ? 'All final quality gates passed. Pair is complete and ready for Showcase.'
+      ? 'All final quality gates passed. Deterministic execution manifest and summary were generated; Pair is ready for Showcase.'
       : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; /evidence-run executes only the next one.`,
   };
 }
@@ -804,15 +810,23 @@ export function reviewPairRed(
     throw new Error('A passing command cannot be accepted as Red.');
   }
   if (kind === 'behavior') {
+    const accepted: PairObservation = {
+      ...red,
+      accepted: true,
+      failure_kind: kind,
+      review_reason: normalized,
+      reviewed_at: now,
+    };
     return saveSession(cwd, state, {
       ...state.pair_session,
-      red_observation: {
-        ...red,
-        accepted: true,
-        failure_kind: kind,
-        review_reason: normalized,
-        reviewed_at: now,
-      },
+      accepted_reds: [
+        ...state.pair_session.accepted_reds.filter(
+          ({ process_id, step_id }) =>
+            process_id !== accepted.process_id || step_id !== accepted.step_id,
+        ),
+        accepted,
+      ],
+      red_observation: accepted,
     });
   }
   return saveSession(cwd, state, {
@@ -875,6 +889,7 @@ export function navigatePair(
         recorded_at: now,
       },
       approved_test_plan_path: undefined,
+      approved_test_plan_sha256: undefined,
       active_work_item: undefined,
       pair_session: undefined,
     });

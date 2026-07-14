@@ -21,10 +21,11 @@ export interface TestExecutionRequest {
   stage: TestExecutionStage;
   stepId?: string;
   command: string;
+  invocation?: 'pair-controller' | 'model-tool' | 'command' | 'test-tool';
 }
 
 export interface TestExecutionRecord {
-  version: 1;
+  version: 1 | 2;
   process_id: string;
   stage: TestExecutionStage;
   step_id?: string;
@@ -36,9 +37,17 @@ export interface TestExecutionRecord {
   completed_at: string;
   stdout_sha256: string;
   stderr_sha256: string;
+  stdout_summary?: string;
+  stderr_summary?: string;
   git_head: string;
+  git_baseline?: string;
   worktree_sha256: string;
   definition_sha256?: string;
+  test_plan_sha256?: string;
+  approved_plan_sha256?: string;
+  invocation?: string;
+  previous_record_sha256?: string;
+  record_sha256?: string;
 }
 
 function digest(value: string): string {
@@ -59,10 +68,17 @@ function worktreeDigest(cwd: string): string {
   );
 }
 
-function executionRecords(path: string): TestExecutionRecord[] {
+function unsignedRecordSha256(record: TestExecutionRecord): string {
+  const { record_sha256: ignored, ...unsigned } = record;
+  void ignored;
+  return digest(JSON.stringify(unsigned));
+}
+
+export function readExecutionRecords(path: string): TestExecutionRecord[] {
   if (!existsSync(path)) return [];
+  let records: TestExecutionRecord[];
   try {
-    return readFileSync(path, 'utf8')
+    records = readFileSync(path, 'utf8')
       .trim()
       .split('\n')
       .filter(Boolean)
@@ -70,9 +86,39 @@ function executionRecords(path: string): TestExecutionRecord[] {
   } catch {
     throw new Error(`Execution log is not valid append-only JSONL: ${path}.`);
   }
+  let previous = '0'.repeat(64);
+  let sawV2 = false;
+  for (const [index, record] of records.entries()) {
+    if (record.sequence !== index + 1) {
+      throw new Error(`Execution log sequence drifted at record ${index + 1}.`);
+    }
+    if (record.version === 2) {
+      sawV2 = true;
+      if (
+        record.previous_record_sha256 !== previous ||
+        record.record_sha256 !== unsignedRecordSha256(record)
+      ) {
+        throw new Error(
+          `Execution log hash chain failed at record ${index + 1}.`,
+        );
+      }
+      previous = record.record_sha256;
+    } else if (record.version !== 1) {
+      throw new Error(`Unsupported execution record version at ${index + 1}.`);
+    } else if (sawV2) {
+      throw new Error(
+        'Legacy execution records cannot follow v2 hash-chain records.',
+      );
+    }
+  }
+  return records;
 }
 
-function assertLockedMaterializedPlan(
+function outputSummary(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').slice(0, 512);
+}
+
+export function assertLockedMaterializedPlan(
   cwd: string,
   selection: ReturnType<typeof selectedTestProcesses>[number],
   process: ReturnType<typeof readTestProcess>,
@@ -256,7 +302,7 @@ export function executeTestStep(
   );
   mkdirSync(root, { recursive: true });
   const logPath = `${root}/${state.active_work_item.scenario_id}.execution.jsonl`;
-  const priorRecords = executionRecords(logPath);
+  const priorRecords = readExecutionRecords(logPath);
   if (selection.process_version === 2) {
     assertLockedMaterializedPlan(cwd, selection, process);
     const actualHash = testProcessDefinitionSha256(definitionPath);
@@ -320,6 +366,17 @@ export function executeTestStep(
     );
   }
 
+  const approvedPlanSha256 =
+    state.approved_test_plan_path &&
+    existsSync(join(cwd, state.approved_test_plan_path))
+      ? digest(readFileSync(join(cwd, state.approved_test_plan_path), 'utf8'))
+      : undefined;
+  if (
+    state.approved_test_plan_sha256 &&
+    approvedPlanSha256 !== state.approved_test_plan_sha256
+  ) {
+    throw new Error('Approved aggregate test plan drifted before execution.');
+  }
   const startedAt = new Date().toISOString();
   const result = spawnSync(request.command, {
     cwd,
@@ -329,8 +386,10 @@ export function executeTestStep(
   });
   const exitCode = result.status ?? (result.error ? 1 : 0);
   const sequence = priorRecords.length + 1;
-  const record: TestExecutionRecord = {
-    version: 1,
+  const stdout = result.stdout ?? '';
+  const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;
+  const unsigned: TestExecutionRecord = {
+    version: 2,
     process_id: request.processId,
     stage: request.stage,
     ...(request.stepId ? { step_id: request.stepId } : {}),
@@ -340,15 +399,27 @@ export function executeTestStep(
     expected_failure: request.stage === 'red' && exitCode !== 0,
     started_at: startedAt,
     completed_at: new Date().toISOString(),
-    stdout_sha256: digest(result.stdout ?? ''),
-    stderr_sha256: digest(
-      `${result.stderr ?? ''}${result.error?.message ?? ''}`,
-    ),
+    stdout_sha256: digest(stdout),
+    stderr_sha256: digest(stderr),
+    stdout_summary: outputSummary(stdout),
+    stderr_summary: outputSummary(stderr),
     git_head: git(cwd, ['rev-parse', '--verify', 'HEAD']).trim(),
+    git_baseline: state.active_work_item.git_baseline,
     worktree_sha256: worktreeDigest(cwd),
     ...(selection.definition_sha256
       ? { definition_sha256: selection.definition_sha256 }
       : {}),
+    ...(selection.materialized_sha256
+      ? { test_plan_sha256: selection.materialized_sha256 }
+      : {}),
+    ...(approvedPlanSha256 ? { approved_plan_sha256: approvedPlanSha256 } : {}),
+    invocation: request.invocation ?? 'test-tool',
+    previous_record_sha256:
+      priorRecords.at(-1)?.record_sha256 ?? '0'.repeat(64),
+  };
+  const record: TestExecutionRecord = {
+    ...unsigned,
+    record_sha256: unsignedRecordSha256(unsigned),
   };
   appendFileSync(logPath, `${JSON.stringify(record)}\n`);
   return record;

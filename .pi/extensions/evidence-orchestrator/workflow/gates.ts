@@ -6,10 +6,9 @@ import {
   ensureProjectDirs,
   missingPaths,
 } from '../evidence/artifact-index';
-import {
-  validateDomainModelEvidence,
-  validateScenarioExecutionEvidence,
-} from '../evidence/model-and-code';
+import { validateDomainModelEvidence } from '../evidence/model-validation';
+import { validateScenarioExecutionEvidence as validateLegacyScenarioExecutionEvidence } from '../testing/legacy-execution-evidence';
+import { validateExecutionEvidence } from '../testing/execution-manifest';
 import {
   allPendingClarifications,
   validateClarificationStoriesComplete,
@@ -356,14 +355,16 @@ export function validatePhaseCompletion(
         'Cannot complete coding: select one matching test process before changing code; add additional processes for each runtime.',
       );
     }
-    const evidencePath = artifactRelativePath(
-      current,
-      `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.md`,
-    );
-    if (missingPaths(cwd, [evidencePath]).length > 0) {
-      throw new Error(
-        `Cannot complete coding: missing scenario evidence ${evidencePath}.`,
+    if (current.workflow_version !== 5) {
+      const evidencePath = artifactRelativePath(
+        current,
+        `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.md`,
       );
+      if (missingPaths(cwd, [evidencePath]).length > 0) {
+        throw new Error(
+          `Cannot complete coding: missing scenario evidence ${evidencePath}.`,
+        );
+      }
     }
   }
   const outputs = PHASE_META[phase].outputs.map((path) =>
@@ -398,7 +399,11 @@ export function validatePhaseCompletion(
     if (!workItem) {
       throw new Error('Cannot complete coding without an active work item.');
     }
-    validateScenarioExecutionEvidence(cwd, workItem, root);
+    if (current.workflow_version === 5) {
+      validateExecutionEvidence(cwd, workItem);
+    } else {
+      validateLegacyScenarioExecutionEvidence(cwd, workItem, root);
+    }
   }
 }
 

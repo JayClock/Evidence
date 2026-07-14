@@ -6,7 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import { createCodingGitBaseline } from '../evidence/model-and-code';
+import { createCodingGitBaseline } from '../testing/code-baseline';
 import { assertScenarioProcessSelection } from '../evidence/knowledge';
 import {
   artifactPath,
@@ -549,6 +549,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   const taskingGap = state.tasking_gap;
   const deskCheckDecisions = state.desk_check_decisions ?? [];
   const approvedTestPlanPath = state.approved_test_plan_path;
+  const approvedTestPlanSha256 = state.approved_test_plan_sha256;
   const pairSession = state.pair_session;
   if (
     workflowVersion === 4 &&
@@ -557,6 +558,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       taskingGap !== undefined ||
       deskCheckDecisions.length > 0 ||
       approvedTestPlanPath !== undefined ||
+      approvedTestPlanSha256 !== undefined ||
       pairSession !== undefined)
   ) {
     throw new Error('A legacy v4 workflow must not declare v5 Tasking data.');
@@ -612,6 +614,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   if (
     taskingStage === 'approved' &&
     (!isNonEmptyString(approvedTestPlanPath) ||
+      !isNonEmptyString(approvedTestPlanSha256) ||
       !state.active_work_item ||
       state.active_work_item.test_plan?.version !== 2)
   ) {
@@ -632,6 +635,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       !Array.isArray(pairSession.test_paths) ||
       !Array.isArray(pairSession.production_paths) ||
       !isNonEmptyString(pairSession.expected_red) ||
+      !Array.isArray(pairSession.accepted_reds) ||
       !Number.isInteger(pairSession.quality_gate_index) ||
       pairSession.quality_gate_index < 0 ||
       !Array.isArray(pairSession.feedback) ||
@@ -861,6 +865,9 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       : {}),
     ...(approvedTestPlanPath
       ? { approved_test_plan_path: approvedTestPlanPath }
+      : {}),
+    ...(approvedTestPlanSha256
+      ? { approved_test_plan_sha256: approvedTestPlanSha256 }
       : {}),
     ...(pairSession ? { pair_session: pairSession } : {}),
     phase: phase as Phase,

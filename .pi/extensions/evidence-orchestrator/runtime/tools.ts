@@ -1031,6 +1031,7 @@ export function registerTools(pi: ExtensionAPI): void {
         stage,
         ...(params.stepId ? { stepId: params.stepId } : {}),
         command: params.command,
+        invocation: 'model-tool',
       });
       return {
         content: [
