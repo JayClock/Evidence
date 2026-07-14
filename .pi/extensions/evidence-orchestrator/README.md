@@ -83,6 +83,7 @@ Clarify 是阶段内的故事级子流程：
 - `process-catalog.ts`：测试工序 Schema、目录读取和唯一匹配。
 - `execution-recorder.ts`：执行锁定命令并写入 hash-chained append-only 观测日志。
 - `execution-manifest.ts`：从观测日志、批准计划与 Git 变化确定性生成/验证 manifest 和人读摘要。
+- `showcase.ts`：重跑已选 Q2、记录 Q3/Q4 风险、保护只读 Reviewer，并将人工反馈按知识缺口路由。
 - `legacy-execution-evidence.ts`：仅验证不可变 v4 iteration 的手写编码证据。
 
 ### `validation/`

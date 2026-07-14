@@ -220,6 +220,39 @@ ${extra || '（无）'}
     }
     return `Evidence Orchestrator v5 Pair 暂停于 ${state.pair_session.checkpoint}。下一选择：${pairNextInstruction(state)}。不得自动继续或调用旧 Coder。`;
   }
+  if (isV5Workflow(state) && state.loop === 'showcase') {
+    const workItem = state.active_work_item;
+    if (!workItem || state.showcase_stage !== 'reviewing') {
+      throw new Error(
+        'v5 Showcase Reviewer requires passed Q2, explicit Q3/Q4 decisions, and reviewing stage.',
+      );
+    }
+    const base = `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}`;
+    return `执行 Evidence Orchestrator v5 独立只读 Showcase Review：${workItem.story_id} / ${workItem.scenario_id}。
+
+读取：
+- ${state.confirmed_scenario?.artifact_path ?? 'missing-scenario.md'}
+- ${state.model_expansion_path ?? 'missing-model-expansion.json'}
+- ${state.model_projection?.context_path ?? '.evidence/model.json'}
+- ${state.approved_test_plan_path ?? 'missing-test-plan.json'}
+- ${artifactRelativePath(state, `${base}.manifest.json`)}
+- ${artifactRelativePath(state, `${base}.summary.md`)}
+- engineering/evidence-orchestrator/definition-of-done.md
+
+Q3/Q4 风险决定：
+${JSON.stringify(state.showcase_risk_decisions, null, 2)}
+
+任务：
+1. 只读验证确认 Scenario 的 Given/When/Then 是否由 Showcase Q2 的实际结果支持；命令全绿不能替代用户价值判断。
+2. 核对模型候选、测试、生产实现和 manifest 是否共享同一 Story/Scenario 与 Git baseline。
+3. 明确分离 observed facts、product/domain feedback、technical quality feedback、unresolved assumptions；没有内容的反馈类别使用空数组，不得把假设写成事实。
+4. Q3/Q4 为 required 时，检查声明的评价活动是否仍是未解决假设或已有可复核事实；不要求无风险场景执行所有象限。
+5. 只调用 evidence_orchestrator_record_showcase_review 一次并立即停止。不得 write/edit 文件，不得修改代码、测试、模型、计划、状态或执行证据，不得调用阶段完成/失败工具，也不得替人 accept、revise 或 reject。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+  }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
   const activeWorkItem = state.active_work_item

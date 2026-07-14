@@ -14,14 +14,24 @@ import {
   testProcessDefinitionSha256,
 } from './process-catalog';
 
-export type TestExecutionStage = 'red' | 'green' | 'refactor' | 'quality_gate';
+export type TestExecutionStage =
+  | 'red'
+  | 'green'
+  | 'refactor'
+  | 'quality_gate'
+  | 'showcase';
 
 export interface TestExecutionRequest {
   processId: string;
   stage: TestExecutionStage;
   stepId?: string;
   command: string;
-  invocation?: 'pair-controller' | 'model-tool' | 'command' | 'test-tool';
+  invocation?:
+    | 'pair-controller'
+    | 'showcase-controller'
+    | 'model-tool'
+    | 'command'
+    | 'test-tool';
 }
 
 export interface TestExecutionRecord {
@@ -196,15 +206,47 @@ function assertV2ExecutionOrder(
   const processRecords = records.filter(
     ({ process_id }) => process_id === request.processId,
   );
+  if (request.stage === 'showcase') {
+    if (!request.stepId) {
+      throw new Error('A Showcase execution requires one selected Q2 step.');
+    }
+    const step = steps.find(({ id }) => id === request.stepId);
+    if (!step || step.quadrant !== 'Q2') {
+      throw new Error(
+        `Showcase can execute only a selected Q2 step: ${request.processId}/${request.stepId}.`,
+      );
+    }
+    const missingGates = process.quality_gates.filter(
+      (command) =>
+        !processRecords.some(
+          ({ stage, command: observed, exit_code }) =>
+            stage === 'quality_gate' && observed === command && exit_code === 0,
+        ),
+    );
+    if (missingGates.length > 0) {
+      throw new Error(
+        `Showcase requires passed final quality gates: ${missingGates.join(', ')}.`,
+      );
+    }
+    return;
+  }
   if (request.stage === 'quality_gate') {
-    if (
-      processRecords.some(
+    const latestPass = processRecords
+      .filter(
         ({ stage, command, exit_code }) =>
           stage === 'quality_gate' &&
           command === request.command &&
           exit_code === 0,
       )
-    ) {
+      .at(-1);
+    const revisedAfterPass = latestPass
+      ? records.some(
+          ({ stage, sequence }) =>
+            ['red', 'green', 'refactor'].includes(stage) &&
+            sequence > latestPass.sequence,
+        )
+      : false;
+    if (latestPass && !revisedAfterPass) {
       throw new Error(`Quality gate was already executed: ${request.command}`);
     }
     const incomplete = steps.filter(
@@ -280,9 +322,24 @@ export function executeTestStep(
   request: TestExecutionRequest,
 ): TestExecutionRecord {
   const state = readState(cwd);
-  if (state.phase !== 'coding' || !state.active_work_item) {
+  const showcaseExecution =
+    request.stage === 'showcase' &&
+    state.workflow_version === 5 &&
+    state.loop === 'showcase';
+  if (
+    (!showcaseExecution && state.phase !== 'coding') ||
+    !state.active_work_item
+  ) {
     throw new Error(
       'A selected coding work item is required to execute a test step.',
+    );
+  }
+  if (
+    showcaseExecution &&
+    state.pair_session?.checkpoint !== 'quality_gates_passed'
+  ) {
+    throw new Error(
+      'Showcase Q2 requires a Pair session with passed final quality gates.',
     );
   }
   const selection = selectedTestProcesses(state.active_work_item).find(

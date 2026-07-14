@@ -97,6 +97,61 @@ describe('v5 Kickoff', () => {
     ).toContain('**从而**让协作者依据同一业务模型开展讨论');
   });
 
+  it('revisits the same Story after Showcase problem feedback', () => {
+    const cwd = workspace();
+    prepareKickoff(cwd);
+    proposeKickoffCandidate(cwd, candidate());
+    const first = decideKickoff(
+      cwd,
+      'confirmed',
+      'Initial problem boundary.',
+      '2026-01-01T00:01:00.000Z',
+    );
+    writeState(cwd, {
+      ...first,
+      loop: 'kickoff',
+      phase: 'frame',
+      kickoff_candidate: undefined,
+      understand_stage: undefined,
+      active_clarification_story: undefined,
+      feedback_history: [
+        {
+          target: 'problem',
+          from_loop: 'showcase',
+          to_loop: 'kickoff',
+          reason: 'The demonstrated value exposes the wrong problem.',
+          decided_by: 'human',
+          recorded_at: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+    proposeKickoffCandidate(
+      cwd,
+      candidate({
+        title: '修正共享模型问题',
+        goal: '识别当前有效模型',
+      }),
+    );
+
+    const revised = decideKickoff(
+      cwd,
+      'confirmed',
+      'The corrected problem keeps the same single Story identity.',
+    );
+
+    expect(revised.active_clarification_story?.story_id).toBe('US-001');
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
+        ),
+        'utf8',
+      ),
+    ).toContain('修正共享模型问题');
+    expect(revised.kickoff_decisions).toHaveLength(2);
+  });
+
   it('records revision feedback and accepts a replacement candidate', () => {
     const cwd = workspace();
     prepareKickoff(cwd);

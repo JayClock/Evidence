@@ -612,6 +612,9 @@ export function completePairDriver(
 }
 
 function observation(record: TestExecutionRecord): PairObservation {
+  if (record.stage === 'showcase') {
+    throw new Error('Showcase observations do not belong to a Pair session.');
+  }
   return {
     process_id: record.process_id,
     ...(record.step_id ? { step_id: record.step_id } : {}),

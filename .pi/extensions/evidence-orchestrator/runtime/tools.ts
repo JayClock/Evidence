@@ -38,6 +38,7 @@ import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
 import { executeTestStep } from '../testing/execution-recorder';
 import { proposeTaskingDraft } from '../testing/tasking';
+import { recordShowcaseReview } from '../testing/showcase';
 import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
 import { executePreparedPhaseRun } from './phase-execution';
 import {
@@ -265,6 +266,25 @@ const taskingDraftParam = Type.Object({
       ),
     }),
   ),
+});
+
+const showcaseReviewParam = Type.Object({
+  observedFacts: Type.Array(
+    Type.String({ description: 'Directly reproducible observed fact.' }),
+  ),
+  productDomainFeedback: Type.Array(
+    Type.String({ description: 'Product or domain feedback, if any.' }),
+  ),
+  technicalQualityFeedback: Type.Array(
+    Type.String({ description: 'Technical quality feedback, if any.' }),
+  ),
+  unresolvedAssumptions: Type.Array(
+    Type.String({ description: 'Unverified assumption, if any.' }),
+  ),
+  recommendation: Type.String({
+    description: 'Reviewer recommendation; only a human decides.',
+    enum: ['accept', 'revise'],
+  }),
 });
 
 const clarificationQuestionParam = Type.Object({
@@ -825,6 +845,40 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_record_showcase_review',
+    label: 'Record Evidence Showcase Review',
+    description:
+      'Record one independent structured, read-only Showcase review for a human decision',
+    promptSnippet:
+      'Separate observed facts, product/domain feedback, technical feedback, and unresolved assumptions',
+    promptGuidelines: [
+      'Use only from the isolated v5 showcase-reviewer after passed Q2 and explicit Q3/Q4 decisions.',
+      'Do not modify code, tests, models, plans, logs, or reports directly.',
+      'A recommendation never accepts or routes the Scenario; stop for the human decision.',
+    ],
+    parameters: showcaseReviewParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const review = recordShowcaseReview(ctx.cwd, {
+        observedFacts: params.observedFacts,
+        productDomainFeedback: params.productDomainFeedback,
+        technicalQualityFeedback: params.technicalQualityFeedback,
+        unresolvedAssumptions: params.unresolvedAssumptions,
+        recommendation: params.recommendation as 'accept' | 'revise',
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-showcase decision is required.`,
+          },
+        ],
+        details: { review, state: readState(ctx.cwd) },
         terminate: true,
       };
     },

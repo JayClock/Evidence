@@ -6,6 +6,12 @@ import {
   pairNextInstruction,
 } from '../testing/pairing';
 import {
+  enterShowcase,
+  missingShowcaseRisks,
+  prepareShowcaseReview,
+  showcaseNextInstruction,
+} from '../testing/showcase';
+import {
   clarificationStoryIds,
   selectClarificationStory,
   unresolvedClarificationStoryIds,
@@ -45,6 +51,8 @@ export class PhaseRunBlockedError extends Error {
       | 'modeling_profile'
       | 'desk_check'
       | 'pair_navigation'
+      | 'showcase_risk'
+      | 'showcase_decision'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -59,6 +67,7 @@ export interface PreparedPhaseRun {
   phase: Exclude<Phase, 'complete'>;
   agentName?: string;
   pairAction?: PairDeterministicAction;
+  showcaseAction?: 'run_q2';
   task: string;
 }
 
@@ -127,6 +136,40 @@ export function preparePhaseRun(
   }
 
   let current = readState(cwd);
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'pair' &&
+    current.pair_session?.checkpoint === 'quality_gates_passed'
+  ) {
+    current = enterShowcase(cwd);
+  }
+  let showcaseAction: PreparedPhaseRun['showcaseAction'];
+  if (current.workflow_version === 5 && current.loop === 'showcase') {
+    const q2 = current.showcase_q2_observations ?? [];
+    if (q2.length === 0) {
+      showcaseAction = 'run_q2';
+    } else if (q2.some(({ exit_code }) => exit_code !== 0)) {
+      throw new PhaseRunBlockedError(
+        'showcase_decision',
+        `A selected Showcase Q2 failed. Accept is blocked. ${showcaseNextInstruction(cwd)}.`,
+      );
+    } else {
+      const missingRisks = missingShowcaseRisks(current);
+      if (missingRisks.length > 0) {
+        throw new PhaseRunBlockedError(
+          'showcase_risk',
+          `Showcase requires explicit ${missingRisks.join(' and ')} risk decisions. ${showcaseNextInstruction(cwd)}.`,
+        );
+      }
+      if (current.showcase_stage === 'decision') {
+        throw new PhaseRunBlockedError(
+          'showcase_decision',
+          `Independent review is complete. ${showcaseNextInstruction(cwd)}.`,
+        );
+      }
+      current = prepareShowcaseReview(cwd);
+    }
+  }
   if (
     current.workflow_version === 5 &&
     current.loop === 'kickoff' &&
@@ -233,7 +276,9 @@ export function preparePhaseRun(
       }
     }
   }
-  const task = buildPhaseTask(cwd, current.phase, request.instructions ?? '');
+  const task = showcaseAction
+    ? 'Execute the approved Showcase Q2 commands deterministically and display the confirmed Given/When/Then observation.'
+    : buildPhaseTask(cwd, current.phase, request.instructions ?? '');
   if (current.phase === 'complete') return { state: current, task };
 
   const v5UnderstandInputs =
@@ -304,12 +349,31 @@ export function preparePhaseRun(
           'engineering/evidence-orchestrator/definition-of-done.md',
         ]
       : undefined;
+  const v5ShowcaseInputs =
+    current.workflow_version === 5 && current.loop === 'showcase'
+      ? [
+          current.confirmed_scenario?.artifact_path ??
+            'artifacts/01-requirements/examples/missing.md',
+          current.model_expansion_path ??
+            'artifacts/02-domain-model/model-expansions/missing.json',
+          current.approved_test_plan_path ??
+            'artifacts/04-planning/test-plan.json',
+          current.active_work_item
+            ? `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.manifest.json`
+            : 'artifacts/05-code/missing/manifest.json',
+          current.active_work_item
+            ? `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.summary.md`
+            : 'artifacts/05-code/missing/summary.md',
+          'engineering/evidence-orchestrator/definition-of-done.md',
+        ]
+      : undefined;
   const missingInputs = missingPaths(
     cwd,
     (
       v5UnderstandInputs ??
       v5TaskingInputs ??
       v5PairInputs ??
+      v5ShowcaseInputs ??
       PHASE_META[current.phase].inputs
     ).map((path) =>
       path.startsWith(`artifacts/iterations/${current.iteration_id}/`)
@@ -333,16 +397,19 @@ export function preparePhaseRun(
   return {
     state: current,
     phase: current.phase,
-    ...(current.workflow_version === 5 &&
-    current.modeling_stage === 'candidate_ready'
-      ? { agentName: 'model-challenger' }
-      : pairMode
-        ? {
-            agentName:
-              pairMode === 'test' ? 'test-driver' : 'production-driver',
-          }
-        : {}),
+    ...(current.workflow_version === 5 && current.loop === 'showcase'
+      ? { agentName: 'showcase-reviewer' }
+      : current.workflow_version === 5 &&
+          current.modeling_stage === 'candidate_ready'
+        ? { agentName: 'model-challenger' }
+        : pairMode
+          ? {
+              agentName:
+                pairMode === 'test' ? 'test-driver' : 'production-driver',
+            }
+          : {}),
     ...(pairAction ? { pairAction } : {}),
+    ...(showcaseAction ? { showcaseAction } : {}),
     task,
   };
 }

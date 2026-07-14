@@ -40,6 +40,7 @@ export const FEEDBACK_LOOP_BY_TARGET: Record<FeedbackTarget, WorkflowLoop> = {
   implementation: 'pair',
   refactor: 'pair',
   value_validation: 'showcase',
+  showcase_setup: 'showcase',
 };
 
 const COMPATIBILITY_PHASE_BY_LOOP: Record<WorkflowLoop, Phase> = {
@@ -176,12 +177,24 @@ export function transitionLoopState(
       'Pair cannot enter Showcase before every final quality gate passes.',
     );
   }
+  if (
+    from === 'showcase' &&
+    request.to === 'respond' &&
+    state.showcase_stage !== 'accepted'
+  ) {
+    throw new Error(
+      'Showcase cannot enter Respond before a human accept decision.',
+    );
+  }
 
   return {
     ...state,
     loop: request.to,
     ...(request.to === 'tasking' && from !== 'tasking'
       ? { tasking_stage: 'drafting' as const }
+      : {}),
+    ...(request.to === 'showcase' && from !== 'showcase'
+      ? { showcase_stage: 'setup' as const }
       : {}),
     phase: compatibilityPhaseForLoop(request.to),
     round: 0,

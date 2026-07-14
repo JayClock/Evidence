@@ -10,6 +10,7 @@ import {
 } from '../requirements/clarifications';
 import { isGateAnswered } from '../workflow/gates';
 import { pairDriverMode, pairNextInstruction } from '../testing/pairing';
+import { showcaseNextInstruction } from '../testing/showcase';
 import { executionEvidencePaths } from '../testing/execution-manifest';
 import { iterationRoot } from '../workflow/iteration-paths';
 import { allowedLoopActions, isV5Workflow } from '../workflow/loop-catalog';
@@ -37,14 +38,15 @@ export function statusMarkdown(cwd: string): string {
         const agent = loadPhaseAgent(
           cwd,
           state.phase,
-          state.workflow_version === 5 &&
-            state.modeling_stage === 'candidate_ready'
-            ? 'model-challenger'
-            : pairMode === 'test'
-              ? 'test-driver'
-              : pairMode
-                ? 'production-driver'
-                : undefined,
+          state.workflow_version === 5 && state.loop === 'showcase'
+            ? 'showcase-reviewer'
+            : state.modeling_stage === 'candidate_ready'
+              ? 'model-challenger'
+              : pairMode === 'test'
+                ? 'test-driver'
+                : pairMode
+                  ? 'production-driver'
+                  : undefined,
         );
         phaseAgent = `${agent.name} · ${agent.model} (thinking=${agent.thinking})`;
       } catch {
@@ -108,6 +110,16 @@ export function statusMarkdown(cwd: string): string {
         .map(({ question_id, story_id }) => `${question_id} · ${story_id}`)
         .join(', ')
     : 'none';
+  const showcaseRisks = state.showcase_risk_decisions?.length
+    ? state.showcase_risk_decisions
+        .map(
+          ({ quadrant, disposition, activities }) =>
+            `${quadrant}=${disposition}${activities.length ? ` (${activities.join(', ')})` : ''}`,
+        )
+        .join('; ')
+    : 'none';
+  const latestShowcaseReview = state.showcase_reviews?.at(-1);
+  const latestShowcaseDecision = state.showcase_decisions?.at(-1);
   const requirementSource = state.requirement_source
     ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}`
     : state.phase === 'complete'
@@ -121,18 +133,22 @@ export function statusMarkdown(cwd: string): string {
       ? 'legacy v4 · read-only'
       : 'legacy v4 active — complete or halt before starting v5; in-place migration is disabled';
   const allowedActions = v5
-    ? state.loop === 'tasking' && state.tasking_stage !== 'approved'
-      ? [
-          ...allowedLoopActions(state.loop).filter(
-            (action) => action !== 'advance:pair',
-          ),
-          ...(state.tasking_stage === 'desk_check'
-            ? ['human:/evidence-desk-check']
-            : []),
-        ].join(', ') || 'none'
-      : state.loop === 'pair'
-        ? pairNextInstruction(state)
-        : allowedLoopActions(state.loop).join(', ') || 'none'
+    ? state.halted
+      ? 'none — iteration halted'
+      : state.loop === 'tasking' && state.tasking_stage !== 'approved'
+        ? [
+            ...allowedLoopActions(state.loop).filter(
+              (action) => action !== 'advance:pair',
+            ),
+            ...(state.tasking_stage === 'desk_check'
+              ? ['human:/evidence-desk-check']
+              : []),
+          ].join(', ') || 'none'
+        : state.loop === 'pair'
+          ? pairNextInstruction(state)
+          : state.loop === 'showcase'
+            ? showcaseNextInstruction(cwd)
+            : allowedLoopActions(state.loop).join(', ') || 'none'
     : 'legacy phase controls only';
   return [
     `# Evidence Orchestrator Status`,
@@ -170,6 +186,11 @@ export function statusMarkdown(cwd: string): string {
     `| Execution Log | ${executionEvidence.log ?? 'none'} |`,
     `| Execution Manifest / v4 JSON | ${executionEvidence.manifest ?? 'none'} |`,
     `| Execution Summary / v4 Markdown | ${executionEvidence.summary ?? 'none'} |`,
+    `| Showcase Stage | ${state.showcase_stage ?? 'none'} |`,
+    `| Showcase Q2 | ${state.showcase_q2_observations?.map(({ process_id, step_id, exit_code }) => `${process_id}/${step_id}=exit${exit_code}`).join(', ') || 'none'} |`,
+    `| Showcase Q3/Q4 | ${showcaseRisks} |`,
+    `| Showcase Review | ${latestShowcaseReview ? `${latestShowcaseReview.recommendation} · ${latestShowcaseReview.artifact_path}` : 'none'} |`,
+    `| Showcase Decision | ${latestShowcaseDecision ? `${latestShowcaseDecision.action}${latestShowcaseDecision.feedback_target ? ` → ${latestShowcaseDecision.feedback_target}` : ''}` : 'none'} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

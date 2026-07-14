@@ -17,6 +17,7 @@
 - 已确认范围内的拒绝、失败和边界行为属于对应验收场景，应按所选测试工序验证。
 - 同时存在真实测试和生产代码改动；Markdown 不替代实现。
 - 受控 append-only `execution.jsonl` 是命令、退出码、输出摘要/哈希、计划哈希和 Git 工作树哈希的唯一原始执行事实；`manifest.json` 与可选 `summary.md` 只能由工具确定性生成，Agent 不手填命令、退出码或 changed paths。
+- Showcase 重新观测已选 Q2 并展示确认的 Given/When/Then；Q3/Q4 均有带理由的显式风险决定，`required` 同时声明具体评价活动。只有人类 accept 才能进入 Respond。
 - Rust 与 Nest server track 不混合实现同一服务端能力。
 - Domain 不依赖 HTTP、ORM、UI 或桌面框架；协议层不承载业务规则。
 

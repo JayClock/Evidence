@@ -620,37 +620,56 @@ function lockApprovedProcesses(
   return candidate.processes.map((process) => {
     const source = join(cwd, process.path);
     const definition = readTestProcess(source);
-    const definitionRelative = `artifacts/03-architecture/selected-test-processes/${process.id}.json`;
-    const definitionPath = artifactPath(cwd, state, definitionRelative);
+    const firstDefinitionRelative = `artifacts/03-architecture/selected-test-processes/${process.id}.json`;
+    const firstDefinitionPath = artifactPath(
+      cwd,
+      state,
+      firstDefinitionRelative,
+    );
     const definitionContent = readFileSync(source, 'utf8');
-    immutableWrite(definitionPath, definitionContent);
+    const definitionRelative =
+      existsSync(firstDefinitionPath) &&
+      readFileSync(firstDefinitionPath, 'utf8') !== definitionContent
+        ? `artifacts/03-architecture/selected-test-processes/${process.id}-${candidate.draft_id}.json`
+        : firstDefinitionRelative;
+    immutableWrite(
+      artifactPath(cwd, state, definitionRelative),
+      definitionContent,
+    );
     const selectedPath = artifactRelativePath(state, definitionRelative);
-    const planRelative = `artifacts/04-planning/test-plans/${candidate.story_id}-${candidate.scenario_id}-${process.id}.json`;
-    const locked: TestProcessSelection = {
+    const lockedBase: TestProcessSelection = {
       ...process,
       path: selectedPath,
-      materialized_plan_path: artifactRelativePath(state, planRelative),
     };
     const plan = {
       version: 2,
       story_id: candidate.story_id,
       scenario_id: candidate.scenario_id,
-      process_id: locked.id,
-      process_path: locked.path,
-      definition_sha256: locked.definition_sha256,
-      runtime: locked.runtime,
-      functional_contexts: locked.functional_contexts,
-      technical_boundaries: locked.technical_boundaries,
-      selected_step_ids: locked.selected_step_ids,
-      command_variables: locked.command_variables,
-      focused_commands: locked.focused_commands,
+      process_id: lockedBase.id,
+      process_path: lockedBase.path,
+      definition_sha256: lockedBase.definition_sha256,
+      runtime: lockedBase.runtime,
+      functional_contexts: lockedBase.functional_contexts,
+      technical_boundaries: lockedBase.technical_boundaries,
+      selected_step_ids: lockedBase.selected_step_ids,
+      command_variables: lockedBase.command_variables,
+      focused_commands: lockedBase.focused_commands,
       quality_gates: definition.quality_gates,
-      materialized_sha256: locked.materialized_sha256,
+      materialized_sha256: lockedBase.materialized_sha256,
     };
-    immutableWrite(
-      artifactPath(cwd, state, planRelative),
-      `${JSON.stringify(plan, null, 2)}\n`,
-    );
+    const planContent = `${JSON.stringify(plan, null, 2)}\n`;
+    const firstPlanRelative = `artifacts/04-planning/test-plans/${candidate.story_id}-${candidate.scenario_id}-${process.id}.json`;
+    const firstPlanPath = artifactPath(cwd, state, firstPlanRelative);
+    const planRelative =
+      existsSync(firstPlanPath) &&
+      readFileSync(firstPlanPath, 'utf8') !== planContent
+        ? `artifacts/04-planning/test-plans/${candidate.story_id}-${candidate.scenario_id}-${candidate.draft_id}-${process.id}.json`
+        : firstPlanRelative;
+    const locked: TestProcessSelection = {
+      ...lockedBase,
+      materialized_plan_path: artifactRelativePath(state, planRelative),
+    };
+    immutableWrite(artifactPath(cwd, state, planRelative), planContent);
     return locked;
   });
 }
@@ -726,7 +745,12 @@ export function decideTasking(
       state,
       state.tasking_candidate,
     );
-    const approvedRelative = 'artifacts/04-planning/test-plan.json';
+    const firstApprovedRelative = 'artifacts/04-planning/test-plan.json';
+    const approvedRelative = existsSync(
+      artifactPath(cwd, state, firstApprovedRelative),
+    )
+      ? `artifacts/04-planning/test-plans/${state.tasking_candidate.story_id}-${state.tasking_candidate.scenario_id}-${state.tasking_candidate.draft_id}.approved.json`
+      : firstApprovedRelative;
     const approvedPath = artifactRelativePath(state, approvedRelative);
     const approvedPlan = {
       version: 2,

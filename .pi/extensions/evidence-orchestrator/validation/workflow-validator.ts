@@ -3,6 +3,7 @@ import { relative } from 'node:path';
 import { missingPaths } from '../evidence/artifact-index';
 import { validateDomainModelEvidence } from '../evidence/model-validation';
 import { validateExecutionEvidence } from '../testing/execution-manifest';
+import { validateShowcaseEvidence } from '../testing/showcase';
 import { gateDecision } from '../workflow/gates';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
 import {
@@ -57,6 +58,7 @@ export function validateWorkflow(cwd: string): void {
     state.pair_session?.checkpoint === 'quality_gates_passed'
   ) {
     validateExecutionEvidence(cwd);
+    validateShowcaseEvidence(cwd);
   }
   // v5 loop-specific tools validate their own focused inputs and generated
   // evidence; legacy PHASE_META/Scrum requirements apply only to v4.

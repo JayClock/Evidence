@@ -23,6 +23,17 @@ import {
   validateExecutionEvidence,
 } from './execution-manifest';
 import {
+  captureShowcaseReviewer,
+  completeShowcaseReviewer,
+  decideShowcase,
+  enterShowcase,
+  executeShowcaseQ2,
+  prepareShowcaseReview,
+  recordShowcaseReview,
+  recordShowcaseRisk,
+  validateShowcaseEvidence,
+} from './showcase';
+import {
   materializeFocusedCommands,
   materializedProcessSha256,
   readTestProcess,
@@ -654,6 +665,28 @@ function completePairSuccessfully(cwd: string): void {
   throw new Error('Pair completion exceeded its checkpoint guard.');
 }
 
+function prepareShowcaseForReview(cwd: string): void {
+  preparePair(cwd);
+  completePairSuccessfully(cwd);
+  enterShowcase(cwd);
+  executeShowcaseQ2(cwd);
+  recordShowcaseRisk(
+    cwd,
+    'Q3',
+    'not_required',
+    [],
+    'No exploratory or usability risk is material for this Scenario.',
+  );
+  recordShowcaseRisk(
+    cwd,
+    'Q4',
+    'not_required',
+    [],
+    'No material non-functional risk is introduced by this Scenario.',
+  );
+  prepareShowcaseReview(cwd);
+}
+
 describe('Navigator-driven Pair', () => {
   it('dispatches at most one Driver or deterministic checkpoint per run', () => {
     const cwd = workspace();
@@ -960,6 +993,273 @@ describe('Navigator-driven Pair', () => {
         'apps/desktop/src/feature.rs',
       ]),
     );
+  });
+
+  it('blocks Showcase acceptance before selected Q2 is observed', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    completePairSuccessfully(cwd);
+    enterShowcase(cwd);
+
+    expect(() =>
+      decideShowcase(
+        cwd,
+        'accept',
+        'Commands were green during Pair, so accept without Showcase.',
+      ),
+    ).toThrow('passed selected Q2 observation');
+  });
+
+  it('showcases selected Q2, records Q3/Q4, and requires human acceptance', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    completePairSuccessfully(cwd);
+
+    const prepared = preparePhaseRun(cwd);
+    if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');
+    expect(prepared).toMatchObject({
+      phase: 'review',
+      showcaseAction: 'run_q2',
+      state: { loop: 'showcase', showcase_stage: 'setup' },
+    });
+    const observed = executeShowcaseQ2(cwd, '2026-01-02T00:00:00.000Z');
+    expect(observed.output).toContain('Given: No visible workspace exists');
+    expect(observed.output).toContain('When: The owner creates Alpha');
+    expect(observed.output).toContain('Then: Workspace is visible');
+    expect(observed.records).toHaveLength(1);
+    expect(observed.records[0]).toMatchObject({
+      stage: 'showcase',
+      invocation: 'showcase-controller',
+      exit_code: 0,
+    });
+    expect(() => preparePhaseRun(cwd)).toThrow('Q3 and Q4 risk decisions');
+
+    recordShowcaseRisk(
+      cwd,
+      'Q3',
+      'not_required',
+      [],
+      'The deterministic behavior has no exploratory interaction risk.',
+    );
+    recordShowcaseRisk(
+      cwd,
+      'Q4',
+      'required',
+      ['performance', 'security'],
+      'Production rollout still needs non-functional evaluation.',
+    );
+    const reviewerPreparation = preparePhaseRun(cwd);
+    if (isCompletedIteration(reviewerPreparation)) {
+      throw new Error('Unexpected complete.');
+    }
+    expect(reviewerPreparation).toMatchObject({
+      agentName: 'showcase-reviewer',
+      state: { showcase_stage: 'reviewing' },
+    });
+    expect(reviewerPreparation.task).toContain('observed facts');
+    expect(reviewerPreparation.task).toContain('unresolved assumptions');
+    const review = recordShowcaseReview(cwd, {
+      observedFacts: ['The selected Q2 command exited with zero.'],
+      productDomainFeedback: [],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [
+        'Production performance and security remain to be evaluated.',
+      ],
+      recommendation: 'accept',
+    });
+    const accepted = decideShowcase(
+      cwd,
+      'accept',
+      'The Scenario value was observed and residual risks are explicit.',
+    );
+
+    expect(review.reviewed_by).toBe('showcase-reviewer');
+    expect(accepted).toMatchObject({
+      loop: 'respond',
+      phase: 'learn',
+      showcase_stage: 'accepted',
+    });
+    expect(accepted.showcase_decisions?.at(-1)).toMatchObject({
+      action: 'accept',
+      decided_by: 'human',
+    });
+    expect(
+      readFileSync(
+        `${cwd}/artifacts/iterations/ITER-0001/06-review/showcase-risks.jsonl`,
+        'utf8',
+      )
+        .trim()
+        .split('\n'),
+    ).toHaveLength(2);
+    expect(
+      readFileSync(
+        `${cwd}/artifacts/iterations/ITER-0001/06-review/showcase-decisions.jsonl`,
+        'utf8',
+      ),
+    ).toContain('"action":"accept"');
+    expect(validateExecutionEvidence(cwd).showcase.status).toBe('passed');
+    expect(() => validateShowcaseEvidence(cwd)).not.toThrow();
+  });
+
+  it('routes technical and domain Showcase feedback to their owning loops', () => {
+    const technicalCwd = workspace();
+    prepareShowcaseForReview(technicalCwd);
+    recordShowcaseReview(technicalCwd, {
+      observedFacts: ['Q2 passed on the approved Git baseline.'],
+      productDomainFeedback: [],
+      technicalQualityFeedback: ['The implementation needs revision.'],
+      unresolvedAssumptions: [],
+      recommendation: 'revise',
+    });
+    const pair = decideShowcase(
+      technicalCwd,
+      'revise',
+      'The implementation does not meet the technical quality bar.',
+      'implementation',
+    );
+    expect(pair).toMatchObject({
+      loop: 'pair',
+      phase: 'coding',
+      pair_session: { checkpoint: 'red_observed', quality_gate_index: 0 },
+    });
+    expect(pair.feedback_history?.at(-1)).toMatchObject({
+      target: 'implementation',
+      from_loop: 'showcase',
+      to_loop: 'pair',
+      decided_by: 'human',
+    });
+    completePairSuccessfully(technicalCwd);
+    expect(readState(technicalCwd).pair_session?.checkpoint).toBe(
+      'quality_gates_passed',
+    );
+    expect(() => validateExecutionEvidence(technicalCwd)).not.toThrow();
+
+    const domainCwd = workspace();
+    prepareShowcaseForReview(domainCwd);
+    recordShowcaseReview(domainCwd, {
+      observedFacts: ['Q2 passed as currently specified.'],
+      productDomainFeedback: ['The Scenario meaning is incomplete.'],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [],
+      recommendation: 'revise',
+    });
+    const understand = decideShowcase(
+      domainCwd,
+      'revise',
+      'The observable result reflects a domain misunderstanding.',
+      'scenario',
+    );
+    expect(understand).toMatchObject({
+      loop: 'understand',
+      phase: 'clarify',
+      understand_stage: 'tqa',
+      active_clarification_story: { story_id: 'US-001' },
+    });
+    expect(understand.confirmed_scenario).toBeUndefined();
+    expect(understand.feedback_history?.at(-1)?.target).toBe('scenario');
+  });
+
+  it('blocks Review when model, tests, and implementation do not share a baseline', () => {
+    const cwd = workspace();
+    prepareShowcaseForReview(cwd);
+    const state = readState(cwd);
+    writeState(cwd, { ...state, model_git_baseline: 'drifted-baseline' });
+
+    expect(() =>
+      recordShowcaseReview(cwd, {
+        observedFacts: ['Q2 passed.'],
+        productDomainFeedback: [],
+        technicalQualityFeedback: [],
+        unresolvedAssumptions: [],
+        recommendation: 'accept',
+      }),
+    ).toThrow('do not share the Scenario Git baseline');
+  });
+
+  it('allows only the structured Reviewer report and state transition', () => {
+    const cwd = workspace();
+    prepareShowcaseForReview(cwd);
+    const snapshot = captureShowcaseReviewer(cwd);
+    const review = recordShowcaseReview(cwd, {
+      observedFacts: ['Q2 passed on the approved baseline.'],
+      productDomainFeedback: [],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [],
+      recommendation: 'accept',
+    });
+
+    const completion = completeShowcaseReviewer(
+      cwd,
+      snapshot,
+      0,
+      'Structured review recorded.',
+    );
+
+    expect(completion.blocked).toBe(false);
+    expect(completion.state.showcase_stage).toBe('decision');
+    expect(existsSync(`${cwd}/${review.artifact_path}`)).toBe(true);
+    expect(existsSync(`${cwd}/${review.summary_path}`)).toBe(true);
+  });
+
+  it('restores Reviewer writes and preserves a failed read-only audit', () => {
+    const cwd = workspace();
+    prepareShowcaseForReview(cwd);
+    const snapshot = captureShowcaseReviewer(cwd);
+    const before = readFileSync(`${cwd}/apps/web/src/feature.ts`, 'utf8');
+    const review = recordShowcaseReview(cwd, {
+      observedFacts: ['Q2 passed.'],
+      productDomainFeedback: [],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [],
+      recommendation: 'accept',
+    });
+    write(cwd, 'apps/web/src/feature.ts', `${before}\n// reviewer mutation`);
+
+    const completion = completeShowcaseReviewer(
+      cwd,
+      snapshot,
+      0,
+      'Review attempted a production edit.',
+      '2026-01-02T00:00:00.000Z',
+    );
+
+    expect(completion.blocked).toBe(true);
+    expect(readFileSync(`${cwd}/apps/web/src/feature.ts`, 'utf8')).toBe(before);
+    expect(existsSync(`${cwd}/${review.artifact_path}`)).toBe(false);
+    expect(readState(cwd)).toMatchObject({
+      showcase_stage: 'reviewing',
+      showcase_review_failures: [
+        expect.objectContaining({
+          reason: expect.stringContaining('read-only boundary'),
+        }),
+      ],
+    });
+  });
+
+  it('rejects the iteration while preserving Showcase facts and feedback', () => {
+    const cwd = workspace();
+    prepareShowcaseForReview(cwd);
+    recordShowcaseReview(cwd, {
+      observedFacts: ['The selected Q2 command passed.'],
+      productDomainFeedback: ['The delivered value is unacceptable.'],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [],
+      recommendation: 'revise',
+    });
+    const rejected = decideShowcase(
+      cwd,
+      'reject',
+      'The demonstrated behavior must not be released.',
+    );
+
+    expect(rejected).toMatchObject({
+      loop: 'showcase',
+      showcase_stage: 'rejected',
+      halted: { phase: 'review' },
+    });
+    expect(rejected.showcase_q2_observations).toHaveLength(1);
+    expect(rejected.showcase_reviews).toHaveLength(1);
+    expect(rejected.showcase_decisions?.at(-1)?.action).toBe('reject');
   });
 
   it('lets Navigator return to test or Tasking without changing the Git baseline', () => {

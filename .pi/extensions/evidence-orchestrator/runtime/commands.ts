@@ -13,6 +13,12 @@ import { decideKickoff } from '../requirements/kickoff';
 import { decideUnderstanding } from '../requirements/scenarios';
 import { decideTasking } from '../testing/tasking';
 import {
+  decideShowcase,
+  missingShowcaseRisks,
+  recordShowcaseRisk,
+  showcaseNextInstruction,
+} from '../testing/showcase';
+import {
   navigatePair,
   pairNextInstruction,
   reviewPairRed,
@@ -35,6 +41,11 @@ import type {
   ModelingSubject,
   Phase,
   RedFailureKind,
+  ShowcaseDecisionAction,
+  ShowcaseEvaluationActivity,
+  ShowcaseRiskDisposition,
+  ShowcaseRiskQuadrant,
+  FeedbackTarget,
   UnderstandingDecisionAction,
 } from '../workflow/types';
 import { PHASE_RESULT_MESSAGE_TYPE, STATUS_KEY, statusLabel } from './identity';
@@ -436,6 +447,211 @@ async function promptPairDecision(
   const action = actions[choice.replaceAll(' ', '')];
   const reason = (await ctx.ui.input(`请说明“${choice}”的理由`))?.trim();
   return action && reason ? { kind: 'navigate', action, reason } : undefined;
+}
+
+export type ShowcaseDecisionInput =
+  | {
+      kind: 'risk';
+      quadrant: ShowcaseRiskQuadrant;
+      disposition: ShowcaseRiskDisposition;
+      activities: ShowcaseEvaluationActivity[];
+      reason: string;
+    }
+  | {
+      kind: 'decision';
+      action: ShowcaseDecisionAction;
+      target?: FeedbackTarget;
+      reason: string;
+    };
+
+const SHOWCASE_ACTIVITIES: ShowcaseEvaluationActivity[] = [
+  'exploratory',
+  'usability',
+  'accessibility',
+  'performance',
+  'security',
+  'reliability',
+  'operability',
+  'compatibility',
+  'other',
+];
+
+const SHOWCASE_TARGETS: Record<string, FeedbackTarget> = {
+  problem: 'problem',
+  business: 'business_knowledge',
+  business_knowledge: 'business_knowledge',
+  scenario: 'scenario',
+  model: 'model',
+  modeling_method: 'modeling_method',
+  architecture: 'architecture',
+  process: 'test_process',
+  test_process: 'test_process',
+  test_strategy: 'test_strategy',
+  test: 'test',
+  code: 'implementation',
+  implementation: 'implementation',
+  refactor: 'refactor',
+  value: 'value_validation',
+  value_validation: 'value_validation',
+  showcase_setup: 'showcase_setup',
+};
+
+export function parseShowcaseDecision(
+  args: string,
+): ShowcaseDecisionInput | undefined {
+  const [rawAction, ...rest] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = rawAction.toLowerCase().replaceAll('_', '-');
+  if (action === 'risk') {
+    const quadrant = rest.shift()?.toUpperCase() as
+      | ShowcaseRiskQuadrant
+      | undefined;
+    const rawDisposition = rest.shift()?.toLowerCase().replaceAll('-', '_');
+    if (
+      !quadrant ||
+      !['Q3', 'Q4'].includes(quadrant) ||
+      !['not_required', 'required'].includes(rawDisposition ?? '')
+    ) {
+      throw new Error(
+        'Usage: /evidence-showcase risk <q3|q4> <not-required|required> [activity,activity] <reason>.',
+      );
+    }
+    const disposition = rawDisposition as ShowcaseRiskDisposition;
+    const activities =
+      disposition === 'required'
+        ? (rest.shift()?.split(',').filter(Boolean) as
+            | ShowcaseEvaluationActivity[]
+            | undefined)
+        : [];
+    if (
+      disposition === 'required' &&
+      (!activities?.length ||
+        activities.some((item) => !SHOWCASE_ACTIVITIES.includes(item)))
+    ) {
+      throw new Error(
+        `Showcase required activities must use: ${SHOWCASE_ACTIVITIES.join(', ')}.`,
+      );
+    }
+    const reason = rest.join(' ').trim();
+    if (!reason)
+      throw new Error(`${quadrant} risk decision requires a reason.`);
+    return {
+      kind: 'risk',
+      quadrant,
+      disposition,
+      activities: activities ?? [],
+      reason,
+    };
+  }
+  if (!['accept', 'revise', 'reject'].includes(action)) {
+    throw new Error(
+      'Usage: /evidence-showcase accept <reason> | revise <target> <reason> | reject <reason> | risk ...',
+    );
+  }
+  const decisionAction = action as ShowcaseDecisionAction;
+  const target =
+    decisionAction === 'revise'
+      ? SHOWCASE_TARGETS[rest.shift()?.toLowerCase() ?? '']
+      : undefined;
+  if (decisionAction === 'revise' && !target) {
+    throw new Error(
+      `Showcase revise target must use: ${Object.keys(SHOWCASE_TARGETS).join(', ')}.`,
+    );
+  }
+  const reason = rest.join(' ').trim();
+  if (!reason) throw new Error(`Showcase ${action} requires a reason.`);
+  return {
+    kind: 'decision',
+    action: decisionAction,
+    ...(target ? { target } : {}),
+    reason,
+  };
+}
+
+async function promptShowcaseDecision(
+  ctx: ExtensionCommandContext,
+): Promise<ShowcaseDecisionInput | undefined> {
+  const state = readState(ctx.cwd);
+  if (state.workflow_version !== 5 || state.loop !== 'showcase') {
+    throw new Error('No v5 Showcase is awaiting a decision.');
+  }
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Showcase decisions require interactive mode or explicit command arguments.',
+    );
+  }
+  const missing = missingShowcaseRisks(state);
+  if (missing.length > 0) {
+    const quadrant = (await ctx.ui.select('选择风险象限', missing)) as
+      | ShowcaseRiskQuadrant
+      | undefined;
+    if (!quadrant) return undefined;
+    const choice = await ctx.ui.select(`${quadrant} 风险决定`, [
+      '无需额外评价活动',
+      '需要评价活动',
+    ]);
+    if (!choice) return undefined;
+    const disposition: ShowcaseRiskDisposition =
+      choice === '需要评价活动' ? 'required' : 'not_required';
+    const activityInput =
+      disposition === 'required'
+        ? (
+            await ctx.ui.input(
+              `输入逗号分隔活动：${SHOWCASE_ACTIVITIES.join(', ')}`,
+            )
+          )?.trim()
+        : '';
+    const activities = activityInput
+      ? (activityInput
+          .split(',')
+          .map((item) => item.trim()) as ShowcaseEvaluationActivity[])
+      : [];
+    if (activities.some((item) => !SHOWCASE_ACTIVITIES.includes(item))) {
+      throw new Error('Showcase contains an unsupported evaluation activity.');
+    }
+    const reason = (await ctx.ui.input(`请说明 ${quadrant} 决定理由`))?.trim();
+    return reason
+      ? { kind: 'risk', quadrant, disposition, activities, reason }
+      : undefined;
+  }
+  const selected = await ctx.ui.select('Showcase 人工决定', [
+    '接受并进入 Respond',
+    '修改并路由反馈',
+    '拒绝并停止本轮',
+  ]);
+  if (!selected) return undefined;
+  const action: ShowcaseDecisionAction = selected.startsWith('接受')
+    ? 'accept'
+    : selected.startsWith('修改')
+      ? 'revise'
+      : 'reject';
+  let target: FeedbackTarget | undefined;
+  if (action === 'revise') {
+    const label = await ctx.ui.select('反馈属于哪个知识活动', [
+      'problem',
+      'business',
+      'scenario',
+      'model',
+      'modeling_method',
+      'architecture',
+      'process',
+      'test',
+      'code',
+      'refactor',
+      'showcase_setup',
+    ]);
+    target = label ? SHOWCASE_TARGETS[label] : undefined;
+    if (!target) return undefined;
+  }
+  const reason = (await ctx.ui.input(`请说明“${selected}”的理由`))?.trim();
+  return reason
+    ? {
+        kind: 'decision',
+        action,
+        ...(target ? { target } : {}),
+        reason,
+      }
+    : undefined;
 }
 
 async function promptModelingProfileDecision(
@@ -885,6 +1101,54 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
           `Pair decision recorded. ${pairNextInstruction(state)}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-showcase', {
+    description:
+      'Human-only Showcase risk and accept/revise/reject decisions with semantic feedback routing',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseShowcaseDecision(args) ?? (await promptShowcaseDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Showcase decision cancelled; state is unchanged.',
+            'info',
+          );
+          return;
+        }
+        const state =
+          decision.kind === 'risk'
+            ? recordShowcaseRisk(
+                ctx.cwd,
+                decision.quadrant,
+                decision.disposition,
+                decision.activities,
+                decision.reason,
+              )
+            : decideShowcase(
+                ctx.cwd,
+                decision.action,
+                decision.reason,
+                decision.target,
+              );
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        ctx.ui.notify(
+          decision.kind === 'risk'
+            ? `Recorded ${decision.quadrant}=${decision.disposition}. ${showcaseNextInstruction(ctx.cwd)}.`
+            : decision.action === 'reject'
+              ? 'Human rejected the Showcase; this iteration is halted with facts and feedback preserved.'
+              : `Human recorded Showcase ${decision.action}; workflow loop=${state.loop}.`,
           'info',
         );
       } catch (error) {

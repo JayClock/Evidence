@@ -299,6 +299,59 @@ describe('v5 Tasking and Desk Check', () => {
     );
   });
 
+  it('versions immutable approved plans after feedback returns to Tasking', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    proposeTaskingDraft(cwd, draftInput());
+    const first = decideTasking(cwd, 'approve', 'Initial plan is approved.');
+    writeState(cwd, {
+      ...first,
+      loop: 'tasking',
+      phase: 'architecture',
+      tasking_stage: 'drafting',
+      tasking_candidate: undefined,
+      approved_test_plan_path: undefined,
+      approved_test_plan_sha256: undefined,
+      active_work_item: undefined,
+      pair_session: undefined,
+      feedback_history: [
+        ...(first.feedback_history ?? []),
+        {
+          target: 'test_process',
+          from_loop: 'showcase',
+          to_loop: 'tasking',
+          reason: 'The focused filter must change.',
+          decided_by: 'human',
+          recorded_at: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+    const revisedInput = draftInput();
+    revisedInput.runtimes[0] = {
+      ...revisedInput.runtimes[0],
+      testFilter: 'workspace_revised',
+    };
+    proposeTaskingDraft(cwd, revisedInput);
+
+    const revised = decideTasking(
+      cwd,
+      'approve',
+      'The revised focused process is approved.',
+    );
+
+    expect(revised.approved_test_plan_path).toContain(
+      'US-001-SC-001-DRAFT-002.approved.json',
+    );
+    expect(
+      revised.active_work_item?.test_plan?.processes[0]?.materialized_plan_path,
+    ).toContain('US-001-SC-001-DRAFT-002-rust-workspace.json');
+    expect(
+      existsSync(
+        `${cwd}/artifacts/iterations/ITER-0001/04-planning/test-plan.json`,
+      ),
+    ).toBe(true);
+  });
+
   it('routes a Scenario gap back to Understand', () => {
     const cwd = workspace();
     prepare(cwd);

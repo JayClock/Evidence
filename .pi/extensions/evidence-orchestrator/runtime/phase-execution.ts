@@ -10,6 +10,11 @@ import {
   failPairDriver,
   pairDriverMode,
 } from '../testing/pairing';
+import {
+  captureShowcaseReviewer,
+  completeShowcaseReviewer,
+  executeShowcaseQ2,
+} from '../testing/showcase';
 import { readState, writeState } from '../workflow/state-store';
 import type { PairDriverMode, Phase } from '../workflow/types';
 import { STATUS_KEY, statusLabel } from './identity';
@@ -115,8 +120,30 @@ export async function executePreparedPhaseRun(
         action.state,
       );
     }
+    if (preparation.showcaseAction === 'run_q2') {
+      const action = executeShowcaseQ2(ctx.cwd);
+      return completedDetails(
+        preparation,
+        {
+          agent: 'showcase-controller',
+          model: 'deterministic',
+          thinking: 'off',
+          output: action.output,
+          messages: [],
+          exitCode: 0,
+          stderr: '',
+        },
+        action.state,
+      );
+    }
     const mode = pairDriverMode(state);
     const snapshot = mode ? capturePairWorktree(ctx.cwd) : undefined;
+    const showcaseSnapshot =
+      state.workflow_version === 5 &&
+      state.loop === 'showcase' &&
+      state.showcase_stage === 'reviewing'
+        ? captureShowcaseReviewer(ctx.cwd)
+        : undefined;
     let result = await runPhaseSubagent({
       cwd: ctx.cwd,
       phase: preparation.phase,
@@ -144,6 +171,23 @@ export async function executePreparedPhaseRun(
               `${result.output}\n${result.stderr}`,
               (options.now ?? (() => new Date().toISOString()))(),
             );
+      result = {
+        ...result,
+        exitCode: completion.blocked ? 1 : result.exitCode,
+        output: `${result.output}\n\n${completion.output}`,
+        ...(completion.blocked
+          ? { stderr: `${result.stderr}\n${completion.output}`.trim() }
+          : {}),
+      };
+    }
+    if (showcaseSnapshot) {
+      const completion = completeShowcaseReviewer(
+        ctx.cwd,
+        showcaseSnapshot,
+        result.exitCode,
+        `${result.output}\n${result.stderr}`,
+        (options.now ?? (() => new Date().toISOString()))(),
+      );
       result = {
         ...result,
         exitCode: completion.blocked ? 1 : result.exitCode,

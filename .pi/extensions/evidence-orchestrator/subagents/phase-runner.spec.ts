@@ -54,6 +54,26 @@ describe('phase subagents', () => {
     );
   });
 
+  it('loads the read-only Showcase Reviewer with only its structured record tool', () => {
+    const agent = loadPhaseAgent(process.cwd(), 'review', 'showcase-reviewer');
+
+    expect(agent.name).toBe('showcase-reviewer');
+    expect(agent.tools).toEqual(
+      expect.arrayContaining([
+        'read',
+        'bash',
+        'evidence_orchestrator_record_showcase_review',
+      ]),
+    );
+    expect(agent.tools).not.toEqual(
+      expect.arrayContaining([
+        'write',
+        'edit',
+        'evidence_orchestrator_complete_phase',
+      ]),
+    );
+  });
+
   it('loads short-lived Pair Drivers without test-execution or phase-completion tools', () => {
     const testDriver = loadPhaseAgent(process.cwd(), 'coding', 'test-driver');
     const productionDriver = loadPhaseAgent(

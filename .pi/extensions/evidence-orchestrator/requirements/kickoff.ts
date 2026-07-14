@@ -147,6 +147,15 @@ function storyCard(candidate: KickoffCandidate, storyId: string): string {
 `;
 }
 
+function showcaseProblemRevision(state: WorkflowState): boolean {
+  const feedback = state.feedback_history?.at(-1);
+  return (
+    feedback?.target === 'problem' &&
+    feedback.from_loop === 'showcase' &&
+    feedback.to_loop === 'kickoff'
+  );
+}
+
 function ensureNoStoryCard(cwd: string, state: WorkflowState): void {
   const directory = artifactPath(
     cwd,
@@ -156,7 +165,10 @@ function ensureNoStoryCard(cwd: string, state: WorkflowState): void {
   const existing = existsSync(directory)
     ? readdirSync(directory).filter((name) => /^US-\d{3,}\.md$/.test(name))
     : [];
-  if (existing.length > 0) {
+  if (
+    existing.length > 0 &&
+    !(showcaseProblemRevision(state) && existing.join(',') === 'US-001.md')
+  ) {
     throw new Error(
       `A v5 Kickoff can confirm exactly one Story, but found: ${existing.join(', ')}.`,
     );

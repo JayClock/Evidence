@@ -315,6 +315,11 @@ export function validatePhaseCompletion(
       'v5 Pair advances one Navigator-controlled checkpoint at a time and cannot be completed by the legacy Coder phase tool.',
     );
   }
+  if (isV5Workflow(current) && current.loop === 'showcase') {
+    throw new Error(
+      'v5 Showcase can enter Respond only through a human /evidence-showcase accept decision.',
+    );
+  }
   if (current.pending_gate) {
     throw new Error(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,

@@ -15,11 +15,17 @@ const pairingMocks = vi.hoisted(() => ({
   failPairDriver: vi.fn(),
   executePairAction: vi.fn(),
 }));
+const showcaseMocks = vi.hoisted(() => ({
+  executeShowcaseQ2: vi.fn(),
+  captureShowcaseReviewer: vi.fn(),
+  completeShowcaseReviewer: vi.fn(),
+}));
 
 vi.mock('../subagents/phase-runner', () => ({
   runPhaseSubagent: phaseRunnerMocks.runPhaseSubagent,
 }));
 vi.mock('../testing/pairing', () => pairingMocks);
+vi.mock('../testing/showcase', () => showcaseMocks);
 
 afterEach(() => {
   cleanupWorkspaces();
@@ -202,6 +208,31 @@ describe('phase execution', () => {
     expect(phaseRunnerMocks.runPhaseSubagent).not.toHaveBeenCalled();
     expect(pairingMocks.executePairAction).toHaveBeenCalledWith(cwd, 'run_red');
     expect(result.output).toContain('waiting for Navigator');
+  });
+
+  it('executes selected Showcase Q2 without starting the Reviewer', async () => {
+    const cwd = workspace();
+    const showcasePreparation: PreparedPhaseRun = {
+      ...preparation(),
+      phase: 'review',
+      showcaseAction: 'run_q2',
+      task: 'Observe selected Q2.',
+    };
+    showcaseMocks.executeShowcaseQ2.mockReturnValue({
+      state: showcasePreparation.state,
+      records: [],
+      output: 'Given/When/Then observed; Q2 passed.',
+    });
+
+    const result = await executePreparedPhaseRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      showcasePreparation,
+      { invocation: '/evidence-run' },
+    );
+
+    expect(phaseRunnerMocks.runPhaseSubagent).not.toHaveBeenCalled();
+    expect(showcaseMocks.executeShowcaseQ2).toHaveBeenCalledWith(cwd);
+    expect(result.output).toContain('Q2 passed');
   });
 
   it('runs one Pair Driver then returns its guarded diff to the parent', async () => {

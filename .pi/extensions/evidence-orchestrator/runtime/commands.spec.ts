@@ -13,7 +13,7 @@ import {
   write,
   writeIterationArtifact,
 } from '../tests/support';
-import { registerCommands } from './commands';
+import { parseShowcaseDecision, registerCommands } from './commands';
 
 const runtimeMocks = vi.hoisted(() => ({
   startIterationFromIssueAsync: vi.fn(),
@@ -153,6 +153,7 @@ describe('commands', () => {
         'evidence-modeling-profile',
         'evidence-desk-check',
         'evidence-pair',
+        'evidence-showcase',
         'evidence-gate',
         'evidence-story',
         'evidence-story-complete',
@@ -160,6 +161,31 @@ describe('commands', () => {
         'evidence-issue-status',
       ]),
     );
+  });
+
+  it('parses explicit Showcase risks and semantic feedback targets', () => {
+    expect(
+      parseShowcaseDecision(
+        'risk q4 required performance,security Production rollout risk.',
+      ),
+    ).toEqual({
+      kind: 'risk',
+      quadrant: 'Q4',
+      disposition: 'required',
+      activities: ['performance', 'security'],
+      reason: 'Production rollout risk.',
+    });
+    expect(
+      parseShowcaseDecision('revise code Implementation quality is weak.'),
+    ).toEqual({
+      kind: 'decision',
+      action: 'revise',
+      target: 'implementation',
+      reason: 'Implementation quality is weak.',
+    });
+    expect(() =>
+      parseShowcaseDecision('risk q3 required none Missing activity.'),
+    ).toThrow('required activities');
   });
 
   it('stops after freezing a new Issue and waits for Kickoff', async () => {

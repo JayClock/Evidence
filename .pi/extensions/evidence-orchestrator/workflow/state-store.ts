@@ -110,6 +110,27 @@ const PAIR_CHECKPOINTS = new Set([
   'quality_gate_failed',
   'quality_gates_passed',
 ]);
+const SHOWCASE_STAGES = new Set([
+  'setup',
+  'reviewing',
+  'decision',
+  'accepted',
+  'rejected',
+]);
+const SHOWCASE_RISK_DISPOSITIONS = new Set(['not_required', 'required']);
+const SHOWCASE_ACTIVITIES = new Set([
+  'exploratory',
+  'usability',
+  'accessibility',
+  'performance',
+  'security',
+  'reliability',
+  'operability',
+  'compatibility',
+  'other',
+]);
+const SHOWCASE_DECISIONS = new Set(['accept', 'revise', 'reject']);
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
@@ -657,6 +678,133 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   if (taskingStage === 'approved' && loop === 'pair' && !pairSession) {
     throw new Error('An approved v5 Pair loop requires a Pair session.');
   }
+  const showcaseStage = state.showcase_stage;
+  const showcaseQ2 = state.showcase_q2_observations ?? [];
+  const showcaseRisks = state.showcase_risk_decisions ?? [];
+  const showcaseReviews = state.showcase_reviews ?? [];
+  const showcaseDecisions = state.showcase_decisions ?? [];
+  const showcaseFailures = state.showcase_review_failures ?? [];
+  if (
+    workflowVersion === 4 &&
+    (showcaseStage !== undefined ||
+      showcaseQ2.length > 0 ||
+      showcaseRisks.length > 0 ||
+      showcaseReviews.length > 0 ||
+      showcaseDecisions.length > 0 ||
+      showcaseFailures.length > 0)
+  ) {
+    throw new Error('A legacy v4 workflow must not declare v5 Showcase data.');
+  }
+  if (showcaseStage !== undefined && !SHOWCASE_STAGES.has(showcaseStage)) {
+    throw new Error(`Unsupported v5 Showcase stage: ${showcaseStage}.`);
+  }
+  if (loop === 'showcase' && !showcaseStage) {
+    throw new Error('The v5 Showcase loop requires a Showcase stage.');
+  }
+  if (
+    showcaseQ2.some(
+      (observation) =>
+        !isNonEmptyString(observation.process_id) ||
+        !isNonEmptyString(observation.step_id) ||
+        !isNonEmptyStringArray(observation.test_ids) ||
+        !isNonEmptyString(observation.command) ||
+        !Number.isInteger(observation.sequence) ||
+        observation.sequence < 1 ||
+        !Number.isInteger(observation.exit_code) ||
+        typeof observation.stdout_summary !== 'string' ||
+        typeof observation.stderr_summary !== 'string' ||
+        !isNonEmptyString(observation.observed_at),
+    )
+  ) {
+    throw new Error('The v5 Showcase Q2 observations are invalid.');
+  }
+  if (
+    showcaseRisks.length > 2 ||
+    new Set(showcaseRisks.map(({ quadrant }) => quadrant)).size !==
+      showcaseRisks.length ||
+    showcaseRisks.some(
+      (decision) =>
+        !['Q3', 'Q4'].includes(decision.quadrant) ||
+        !SHOWCASE_RISK_DISPOSITIONS.has(decision.disposition) ||
+        !Array.isArray(decision.activities) ||
+        decision.activities.some(
+          (activity) => !SHOWCASE_ACTIVITIES.has(activity),
+        ) ||
+        (decision.disposition === 'required'
+          ? decision.activities.length === 0
+          : decision.activities.length !== 0) ||
+        !isNonEmptyString(decision.reason) ||
+        decision.decided_by !== 'human' ||
+        !isNonEmptyString(decision.decided_at),
+    )
+  ) {
+    throw new Error('The v5 Showcase risk decisions are invalid.');
+  }
+  if (
+    showcaseReviews.some(
+      (review) =>
+        review.version !== 1 ||
+        !STORY_ID_PATTERN.test(review.story_id) ||
+        !/^SC-\d{3,}$/.test(review.scenario_id) ||
+        !isNonEmptyString(review.git_baseline) ||
+        !isNonEmptyString(review.execution_manifest_path) ||
+        !SHA256_PATTERN.test(review.execution_manifest_sha256) ||
+        !isNonEmptyStringArray(review.observed_facts) ||
+        !Array.isArray(review.product_domain_feedback) ||
+        review.product_domain_feedback.some(
+          (item) => !isNonEmptyString(item),
+        ) ||
+        !Array.isArray(review.technical_quality_feedback) ||
+        review.technical_quality_feedback.some(
+          (item) => !isNonEmptyString(item),
+        ) ||
+        !Array.isArray(review.unresolved_assumptions) ||
+        review.unresolved_assumptions.some((item) => !isNonEmptyString(item)) ||
+        !['accept', 'revise'].includes(review.recommendation) ||
+        !isNonEmptyString(review.artifact_path) ||
+        !isNonEmptyString(review.summary_path) ||
+        !SHA256_PATTERN.test(review.artifact_sha256) ||
+        review.reviewed_by !== 'showcase-reviewer' ||
+        !isNonEmptyString(review.reviewed_at),
+    )
+  ) {
+    throw new Error('The v5 Showcase reviews are invalid.');
+  }
+  if (
+    showcaseDecisions.some(
+      (decision) =>
+        !SHOWCASE_DECISIONS.has(decision.action) ||
+        !isNonEmptyString(decision.reason) ||
+        decision.from_loop !== 'showcase' ||
+        (decision.feedback_target !== undefined &&
+          !FEEDBACK_LOOP_BY_TARGET[decision.feedback_target]) ||
+        (decision.action === 'revise'
+          ? !decision.feedback_target ||
+            decision.to_loop !==
+              FEEDBACK_LOOP_BY_TARGET[decision.feedback_target]
+          : decision.feedback_target !== undefined) ||
+        (decision.action === 'accept' && decision.to_loop !== 'respond') ||
+        (decision.action === 'reject' && decision.to_loop !== undefined) ||
+        (decision.review_artifact_sha256 !== undefined &&
+          !SHA256_PATTERN.test(decision.review_artifact_sha256)) ||
+        decision.decided_by !== 'human' ||
+        !isNonEmptyString(decision.artifact_path) ||
+        !isNonEmptyString(decision.decided_at),
+    )
+  ) {
+    throw new Error('The v5 Showcase decisions are invalid.');
+  }
+  if (
+    showcaseFailures.some(
+      (failure) =>
+        !isNonEmptyString(failure.reason) ||
+        !Array.isArray(failure.restored_paths) ||
+        failure.restored_paths.some((path) => !isNonEmptyString(path)) ||
+        !isNonEmptyString(failure.recorded_at),
+    )
+  ) {
+    throw new Error('The v5 Showcase Reviewer failures are invalid.');
+  }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
       'An active clarification story is only valid while the workflow is in clarify.',
@@ -870,6 +1018,20 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       ? { approved_test_plan_sha256: approvedTestPlanSha256 }
       : {}),
     ...(pairSession ? { pair_session: pairSession } : {}),
+    ...(showcaseStage ? { showcase_stage: showcaseStage } : {}),
+    ...(showcaseQ2.length > 0 ? { showcase_q2_observations: showcaseQ2 } : {}),
+    ...(showcaseRisks.length > 0
+      ? { showcase_risk_decisions: showcaseRisks }
+      : {}),
+    ...(showcaseReviews.length > 0
+      ? { showcase_reviews: showcaseReviews }
+      : {}),
+    ...(showcaseDecisions.length > 0
+      ? { showcase_decisions: showcaseDecisions }
+      : {}),
+    ...(showcaseFailures.length > 0
+      ? { showcase_review_failures: showcaseFailures }
+      : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0
       ? { feedback_history: feedbackHistory }

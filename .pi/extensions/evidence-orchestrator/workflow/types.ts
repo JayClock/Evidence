@@ -31,7 +31,8 @@ export type FeedbackTarget =
   | 'test'
   | 'implementation'
   | 'refactor'
-  | 'value_validation';
+  | 'value_validation'
+  | 'showcase_setup';
 export type FeedbackDecider = 'human' | 'system';
 export type CognitiveMode = 'clear' | 'complicated' | 'complex';
 export type KickoffDecisionAction =
@@ -98,6 +99,27 @@ export type PairDeterministicAction =
   | 'run_green'
   | 'run_refactor'
   | 'run_quality_gate';
+export type ShowcaseStage =
+  | 'setup'
+  | 'reviewing'
+  | 'decision'
+  | 'accepted'
+  | 'rejected';
+export type ShowcaseRiskQuadrant = 'Q3' | 'Q4';
+export type ShowcaseRiskDisposition = 'not_required' | 'required';
+export type ShowcaseEvaluationActivity =
+  | 'exploratory'
+  | 'usability'
+  | 'accessibility'
+  | 'performance'
+  | 'security'
+  | 'reliability'
+  | 'operability'
+  | 'compatibility'
+  | 'other';
+export type ShowcaseDecisionAction = 'accept' | 'revise' | 'reject';
+export type ShowcaseReviewRecommendation = 'accept' | 'revise';
+
 export type RedFailureKind =
   | 'behavior'
   | 'compile'
@@ -259,6 +281,64 @@ export interface PairSession {
   quality_gate_index: number;
   feedback: PairFeedbackRecord[];
   driver_history: PairDriverRecord[];
+}
+
+export interface ShowcaseQ2Observation {
+  process_id: string;
+  step_id: string;
+  test_ids: string[];
+  command: string;
+  sequence: number;
+  exit_code: number;
+  stdout_summary: string;
+  stderr_summary: string;
+  observed_at: string;
+}
+
+export interface ShowcaseRiskDecision {
+  quadrant: ShowcaseRiskQuadrant;
+  disposition: ShowcaseRiskDisposition;
+  activities: ShowcaseEvaluationActivity[];
+  reason: string;
+  decided_by: 'human';
+  decided_at: string;
+}
+
+export interface ShowcaseReviewRecord {
+  version: 1;
+  story_id: string;
+  scenario_id: string;
+  git_baseline: string;
+  execution_manifest_path: string;
+  execution_manifest_sha256: string;
+  observed_facts: string[];
+  product_domain_feedback: string[];
+  technical_quality_feedback: string[];
+  unresolved_assumptions: string[];
+  recommendation: ShowcaseReviewRecommendation;
+  artifact_path: string;
+  summary_path: string;
+  artifact_sha256: string;
+  reviewed_by: 'showcase-reviewer';
+  reviewed_at: string;
+}
+
+export interface ShowcaseDecisionRecord {
+  action: ShowcaseDecisionAction;
+  reason: string;
+  feedback_target?: FeedbackTarget;
+  from_loop: 'showcase';
+  to_loop?: WorkflowLoop;
+  review_artifact_sha256?: string;
+  decided_by: 'human';
+  artifact_path: string;
+  decided_at: string;
+}
+
+export interface ShowcaseReviewFailure {
+  reason: string;
+  restored_paths: string[];
+  recorded_at: string;
 }
 
 export interface ActiveWorkItem {
@@ -500,6 +580,12 @@ export interface WorkflowState {
   approved_test_plan_path?: string;
   approved_test_plan_sha256?: string;
   pair_session?: PairSession;
+  showcase_stage?: ShowcaseStage;
+  showcase_q2_observations?: ShowcaseQ2Observation[];
+  showcase_risk_decisions?: ShowcaseRiskDecision[];
+  showcase_reviews?: ShowcaseReviewRecord[];
+  showcase_decisions?: ShowcaseDecisionRecord[];
+  showcase_review_failures?: ShowcaseReviewFailure[];
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

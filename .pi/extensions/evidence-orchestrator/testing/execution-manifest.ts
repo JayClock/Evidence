@@ -48,6 +48,19 @@ export interface ExecutionManifest {
     q2: TaskingTestItem[];
   };
   processes: ExecutionProcessManifest[];
+  showcase: {
+    q2: Array<{
+      process_id: string;
+      step_id: string;
+      test_ids: string[];
+      command: string;
+      sequence: number;
+      exit_code: number;
+      stdout_summary: string;
+      stderr_summary: string;
+    }>;
+    status: 'not_run' | 'failed' | 'passed';
+  };
   changed_paths: {
     code: string[];
     tests: string[];
@@ -59,6 +72,7 @@ export interface ExecutionManifest {
     green: 'passed';
     refactor: 'passed';
     quality_gates: 'passed';
+    q2_showcase: 'not_run' | 'failed' | 'passed';
   };
 }
 
@@ -404,6 +418,7 @@ function processManifest(
   records: TestExecutionRecord[],
   driverHistory: PairDriverRecord[],
   observedCodePaths: string[],
+  qualityGateAfter: number,
 ): ExecutionProcessManifest {
   const definition = readTestProcess(join(cwd, selection.path));
   assertLockedMaterializedPlan(cwd, selection, definition);
@@ -491,7 +506,7 @@ function processManifest(
   const lastStepSequence = Math.max(
     ...steps.map(({ refactor }) => refactor.sequence),
   );
-  let after = lastStepSequence;
+  let after = Math.max(lastStepSequence, qualityGateAfter);
   const quality_gates = definition.quality_gates.map((command) => {
     const gate = records.find(
       (record) =>
@@ -522,6 +537,83 @@ function processManifest(
     test_plan_sha256: selection.materialized_sha256,
     steps,
     quality_gates,
+  };
+}
+
+function showcaseManifest(
+  cwd: string,
+  selections: TestProcessSelection[],
+  tests: TaskingTestItem[],
+  records: TestExecutionRecord[],
+): ExecutionManifest['showcase'] {
+  const expected = selections.flatMap((selection) => {
+    return selectedSteps(cwd, selection)
+      .filter(({ quadrant }) => quadrant === 'Q2')
+      .map((step) => {
+        const command = selection.focused_commands?.find(
+          ({ step_id }) => step_id === step.id,
+        )?.command;
+        if (!command) {
+          throw new Error(
+            `Showcase Q2 command drifted: ${selection.id}/${step.id}.`,
+          );
+        }
+        return {
+          processId: selection.id,
+          stepId: step.id,
+          command,
+          testIds: tests
+            .filter(
+              ({ quadrant, process_id, step_id }) =>
+                quadrant === 'Q2' &&
+                process_id === selection.id &&
+                step_id === step.id,
+            )
+            .map(({ id }) => id),
+        };
+      });
+  });
+  if (expected.some(({ testIds }) => testIds.length === 0)) {
+    throw new Error('A selected Showcase Q2 step has no approved Q2 intent.');
+  }
+  const observations = records
+    .filter(({ stage }) => stage === 'showcase')
+    .map((record) => {
+      const match = expected.find(
+        ({ processId, stepId, command }) =>
+          processId === record.process_id &&
+          stepId === record.step_id &&
+          command === record.command,
+      );
+      if (!match) {
+        throw new Error(
+          `Execution record ${record.sequence} is not an approved Showcase Q2 command.`,
+        );
+      }
+      return {
+        process_id: record.process_id,
+        step_id: record.step_id ?? '',
+        test_ids: match.testIds,
+        command: record.command,
+        sequence: record.sequence,
+        exit_code: record.exit_code,
+        stdout_summary: record.stdout_summary ?? '',
+        stderr_summary: record.stderr_summary ?? '',
+      };
+    });
+  if (observations.length === 0) return { q2: [], status: 'not_run' };
+  const latestPassed = expected.every(({ processId, stepId }) => {
+    const latest = observations
+      .filter(
+        ({ process_id, step_id }) =>
+          process_id === processId && step_id === stepId,
+      )
+      .at(-1);
+    return latest?.exit_code === 0;
+  });
+  return {
+    q2: observations,
+    status: latestPassed ? 'passed' : 'failed',
   };
 }
 
@@ -573,6 +665,12 @@ function buildManifest(
     throw new Error('Execution manifest requires a completed Pair session.');
   }
   const code = gitChangedPaths(cwd, workItem.git_baseline, ['apps', 'libs']);
+  const qualityGateAfter = Math.max(
+    0,
+    ...records
+      .filter(({ stage, exit_code }) => stage === 'refactor' && exit_code === 0)
+      .map(({ sequence }) => sequence),
+  );
   const processManifests = processes.map((selection) =>
     processManifest(
       cwd,
@@ -582,8 +680,10 @@ function buildManifest(
       records,
       pairSession.driver_history,
       code,
+      qualityGateAfter,
     ),
   );
+  const showcase = showcaseManifest(cwd, processes, approved.tests, records);
   const testPaths = [...new Set(pairSession.test_paths)]
     .filter((path) => code.includes(path))
     .sort();
@@ -662,6 +762,7 @@ function buildManifest(
       q2: tests.filter(({ quadrant }) => quadrant === 'Q2'),
     },
     processes: processManifests,
+    showcase,
     changed_paths: {
       code,
       tests: testPaths,
@@ -673,6 +774,7 @@ function buildManifest(
       green: 'passed',
       refactor: 'passed',
       quality_gates: 'passed',
+      q2_showcase: showcase.status,
     },
   };
 }
@@ -694,6 +796,14 @@ function renderSummary(manifest: ExecutionManifest): string {
       ),
     )
     .join('\n');
+  const showcase = manifest.showcase.q2.length
+    ? manifest.showcase.q2
+        .map(
+          ({ process_id, step_id, sequence, exit_code, command }) =>
+            `- ${process_id}/${step_id} · record ${sequence} · exit ${exit_code} · \`${command}\``,
+        )
+        .join('\n')
+    : '- not run';
   return `# Execution Summary — ${manifest.story_id} / ${manifest.scenario_id}
 
 > Deterministically generated from \`${manifest.source.execution_log}\` and the approved test plan. Do not edit by hand.
@@ -720,6 +830,10 @@ Functional contexts: ${manifest.traceability.functional_contexts.join(', ')}
 ## Final quality gates
 
 ${gates}
+
+## Showcase Q2 (${manifest.showcase.status})
+
+${showcase}
 
 ## Git-observed changed paths
 

@@ -3,6 +3,7 @@ import { DEFAULT_STATE } from './phase-catalog';
 import {
   allowedLoopActions,
   compatibilityPhaseForLoop,
+  FEEDBACK_LOOP_BY_TARGET,
   loopForCompatibilityPhase,
   transitionLoopState,
 } from './loop-catalog';
@@ -53,6 +54,9 @@ describe('v5 knowledge-loop catalog', () => {
           },
         };
       }
+      if (state.loop === 'showcase') {
+        state = { ...state, showcase_stage: 'accepted' };
+      }
       state = transitionLoopState(state, { to: expected });
       expect(state.loop).toBe(expected);
       expect(state.phase).toBe(compatibilityPhaseForLoop(expected));
@@ -69,6 +73,12 @@ describe('v5 knowledge-loop catalog', () => {
     expect(() =>
       transitionLoopState(v5State('pair'), { to: 'showcase' }),
     ).toThrow('every final quality gate passes');
+  });
+
+  it('blocks Showcase from entering Respond before human acceptance', () => {
+    expect(() =>
+      transitionLoopState(v5State('showcase'), { to: 'respond' }),
+    ).toThrow('human accept decision');
   });
 
   it('rejects a forward skip', () => {
@@ -102,6 +112,26 @@ describe('v5 knowledge-loop catalog', () => {
       },
     ]);
   });
+
+  it.each(Object.entries(FEEDBACK_LOOP_BY_TARGET))(
+    'routes Showcase feedback target %s to %s',
+    (target, destination) => {
+      const state = transitionLoopState(v5State('showcase'), {
+        to: destination,
+        feedback: {
+          target: target as keyof typeof FEEDBACK_LOOP_BY_TARGET,
+          reason: `Observed ${target} knowledge gap.`,
+          decided_by: 'human',
+        },
+      });
+      expect(state.loop).toBe(destination);
+      expect(state.feedback_history?.at(-1)).toMatchObject({
+        target,
+        to_loop: destination,
+        decided_by: 'human',
+      });
+    },
+  );
 
   it('rejects feedback sent to the wrong loop or used as a forward action', () => {
     expect(() =>
