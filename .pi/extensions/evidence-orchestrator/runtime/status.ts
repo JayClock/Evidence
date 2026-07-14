@@ -10,6 +10,7 @@ import {
 } from '../requirements/clarifications';
 import { isGateAnswered } from '../workflow/gates';
 import { iterationRoot } from '../workflow/iteration-paths';
+import { allowedLoopActions, isV5Workflow } from '../workflow/loop-catalog';
 import { readState } from '../workflow/state-store';
 import { loadPhaseAgent } from '../subagents/phase-runner';
 
@@ -66,12 +67,26 @@ export function statusMarkdown(cwd: string): string {
     : state.phase === 'complete'
       ? 'archived bootstrap iteration'
       : 'missing — execution blocked';
+  const v5 = isV5Workflow(state);
+  const workflowVersion = state.workflow_version ?? 4;
+  const workflowCompatibility = v5
+    ? 'native v5'
+    : state.phase === 'complete' || state.halted
+      ? 'legacy v4 · read-only'
+      : 'legacy v4 active — complete or halt before starting v5; in-place migration is disabled';
+  const allowedActions = v5
+    ? allowedLoopActions(state.loop).join(', ') || 'none'
+    : 'legacy phase controls only';
   return [
     `# Evidence Orchestrator Status`,
     ``,
     `| Field | Value |`,
     `|:---|:---|`,
     `| Iteration | ${state.iteration_id} |`,
+    `| Workflow Version | v${workflowVersion} |`,
+    `| Loop | ${v5 ? state.loop : 'n/a (legacy phase)'} |`,
+    `| Allowed Actions | ${allowedActions} |`,
+    `| Workflow Compatibility | ${workflowCompatibility} |`,
     `| Phase | ${state.phase} |`,
     `| Requirement Source | ${requirementSource} |`,
     `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,

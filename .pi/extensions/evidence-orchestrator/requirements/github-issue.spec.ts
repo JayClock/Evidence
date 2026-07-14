@@ -8,6 +8,7 @@ import {
   syncIssueSource,
   validateIssueSourceSnapshot,
 } from './github-issue';
+import { DEFAULT_STATE } from '../workflow/phase-catalog';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 
@@ -38,11 +39,17 @@ describe('issue-source', () => {
 
     const state = startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
 
-    expect(state.requirement_source).toMatchObject({
-      type: 'github_issue',
-      repository: 'owner/evidence',
-      issue_number: 42,
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
+    expect(state).toMatchObject({
+      workflow_version: 5,
+      loop: 'kickoff',
+      phase: 'frame',
+      requirement_source: {
+        type: 'github_issue',
+        repository: 'owner/evidence',
+        issue_number: 42,
+        snapshot_path:
+          'artifacts/iterations/ITER-0001/00-user-input/issue.json',
+      },
     });
     expect(
       existsSync(
@@ -71,6 +78,17 @@ describe('issue-source', () => {
     );
     expect(() => validateIssueSourceSnapshot(cwd, state)).toThrow(
       'projection is stale or manually modified',
+    );
+  });
+
+  it('refuses to migrate or replace an active v4 iteration in place', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+
+    expect(() =>
+      startIterationFromIssue(cwd, { issueNumber: 42 }, runner()),
+    ).toThrow(
+      'Complete or halt it first; active workflow state is never migrated in place',
     );
   });
 

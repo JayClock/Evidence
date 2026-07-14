@@ -5,6 +5,7 @@ import {
   readState,
   selectTestProcess,
   selectWorkItem,
+  transitionWorkflowLoop,
   writeState,
 } from './state-store';
 import {
@@ -17,6 +18,34 @@ import {
 afterEach(cleanupWorkspaces);
 
 describe('state', () => {
+  it('persists v5 loop transitions and their compatibility phase', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+
+    const state = transitionWorkflowLoop(cwd, { to: 'understand' });
+
+    expect(state).toMatchObject({
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'clarify',
+    });
+    expect(readState(cwd).loop).toBe('understand');
+  });
+
+  it('requires v5 states to declare a loop', () => {
+    const cwd = workspace();
+    expect(() =>
+      writeState(cwd, {
+        ...DEFAULT_STATE,
+        workflow_version: 5,
+      }),
+    ).toThrow('must declare its current knowledge loop');
+  });
+
   it('rejects local iteration initialization in favor of an Issue snapshot', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);

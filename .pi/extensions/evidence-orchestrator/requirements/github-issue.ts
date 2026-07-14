@@ -5,7 +5,11 @@ import { join } from 'node:path';
 import { ensureProjectDirs } from '../evidence/artifact-index';
 import { iterationRoot, nextIterationId } from '../workflow/iteration-paths';
 import { DEFAULT_STATE } from '../workflow/phase-catalog';
-import { readState, writeState } from '../workflow/state-store';
+import {
+  assertCanStartV5Iteration,
+  readState,
+  writeState,
+} from '../workflow/state-store';
 import type {
   GitHubIssueRequirementSource,
   WorkflowState,
@@ -289,10 +293,13 @@ export function startIterationFromIssue(
   input: StartFromIssueInput,
   runner: GitHubCliRunner = defaultRunner,
 ): WorkflowState {
+  assertCanStartV5Iteration(cwd);
   const snapshot = fetchGitHubIssue(cwd, input, runner);
   const state = writeState(cwd, {
     ...DEFAULT_STATE,
     iteration_id: nextIterationId(cwd),
+    workflow_version: 5,
+    loop: 'kickoff',
     pi: { enabled: true, version: 5, execution_evidence_version: 1 },
   });
   return persistSnapshot(cwd, state, snapshot);
@@ -304,11 +311,14 @@ export async function startIterationFromIssueAsync(
   runner: GitHubCliAsyncRunner,
   signal?: AbortSignal,
 ): Promise<WorkflowState> {
+  assertCanStartV5Iteration(cwd);
   const snapshot = await fetchGitHubIssueAsync(cwd, input, runner, signal);
   signal?.throwIfAborted();
   const state = writeState(cwd, {
     ...DEFAULT_STATE,
     iteration_id: nextIterationId(cwd),
+    workflow_version: 5,
+    loop: 'kickoff',
     pi: { enabled: true, version: 5, execution_evidence_version: 1 },
   });
   return persistSnapshot(cwd, state, snapshot);

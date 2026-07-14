@@ -15,6 +15,13 @@ import {
 } from './iteration-paths';
 import { DEFAULT_STATE, PHASE_ORDER } from './phase-catalog';
 import {
+  FEEDBACK_LOOP_BY_TARGET,
+  LOOP_ORDER,
+  loopForCompatibilityPhase,
+  transitionLoopState,
+  type LoopTransitionRequest,
+} from './loop-catalog';
+import {
   catalogTestProcessDirectory,
   matchingTestProcessesInDirectories,
 } from '../testing/process-catalog';
@@ -124,6 +131,52 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   }
   const iterationId = state.iteration_id ?? DEFAULT_STATE.iteration_id;
   assertIterationId(iterationId);
+  const workflowVersion = state.workflow_version ?? 4;
+  if (workflowVersion !== 4 && workflowVersion !== 5) {
+    throw new Error(
+      `Unsupported Evidence Orchestrator workflow version: ${workflowVersion}.`,
+    );
+  }
+  if (workflowVersion === 4 && state.loop !== undefined) {
+    throw new Error('A legacy v4 workflow must not declare a v5 loop.');
+  }
+  if (workflowVersion === 5 && state.loop === undefined) {
+    throw new Error('A v5 workflow must declare its current knowledge loop.');
+  }
+  if (
+    state.loop !== undefined &&
+    !LOOP_ORDER.includes(state.loop as (typeof LOOP_ORDER)[number])
+  ) {
+    throw new Error(`Unsupported Evidence Orchestrator loop: ${state.loop}.`);
+  }
+  const loop =
+    workflowVersion === 5
+      ? // The phase remains a compatibility projection until EOV5-016. Legacy
+        // phase writers therefore determine the containing loop during migration.
+        loopForCompatibilityPhase(phase as Phase)
+      : undefined;
+  const feedbackHistory = state.feedback_history ?? [];
+  if (workflowVersion === 4 && feedbackHistory.length > 0) {
+    throw new Error('A legacy v4 workflow must not declare v5 feedback.');
+  }
+  if (
+    feedbackHistory.some((feedback) => {
+      const expected = FEEDBACK_LOOP_BY_TARGET[feedback.target];
+      return (
+        !expected ||
+        feedback.to_loop !== expected ||
+        !LOOP_ORDER.includes(feedback.from_loop) ||
+        !LOOP_ORDER.includes(feedback.to_loop) ||
+        typeof feedback.reason !== 'string' ||
+        !feedback.reason.trim() ||
+        !['human', 'system'].includes(feedback.decided_by) ||
+        typeof feedback.recorded_at !== 'string' ||
+        !feedback.recorded_at
+      );
+    })
+  ) {
+    throw new Error('The v5 workflow feedback history is invalid.');
+  }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
       'An active clarification story is only valid while the workflow is in clarify.',
@@ -285,7 +338,14 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   }
   return {
     iteration_id: iterationId,
+    ...(state.workflow_version !== undefined
+      ? { workflow_version: workflowVersion }
+      : {}),
+    ...(loop ? { loop } : {}),
     phase: phase as Phase,
+    ...(feedbackHistory.length > 0
+      ? { feedback_history: feedbackHistory }
+      : {}),
     round: state.round ?? DEFAULT_STATE.round,
     pending_gate: state.pending_gate ?? DEFAULT_STATE.pending_gate,
     failures: state.failures ?? DEFAULT_STATE.failures,
@@ -340,6 +400,28 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   const normalized = normalizeState(state);
   writeFileSync(statePath(cwd), `${JSON.stringify(normalized, null, 2)}\n`);
   return normalized;
+}
+
+export function transitionWorkflowLoop(
+  cwd: string,
+  request: LoopTransitionRequest,
+): WorkflowState {
+  return writeState(cwd, transitionLoopState(readState(cwd), request));
+}
+
+export function assertCanStartV5Iteration(cwd: string): void {
+  if (!existsSync(statePath(cwd))) return;
+  const current = readState(cwd);
+  const complete =
+    current.workflow_version === 5
+      ? current.loop === 'complete'
+      : current.phase === 'complete';
+  if (!complete && !current.halted) {
+    const version = current.workflow_version ?? 4;
+    throw new Error(
+      `Cannot start a v5 iteration while ${current.iteration_id} is active on workflow v${version}. Complete or halt it first; active workflow state is never migrated in place.`,
+    );
+  }
 }
 
 /**

@@ -26,8 +26,37 @@ describe('status', () => {
     });
     const status = statusMarkdown(cwd);
     expect(status).toContain('| Iteration | ITER-0001 |');
+    expect(status).toContain('| Workflow Version | v4 |');
+    expect(status).toContain(
+      '| Workflow Compatibility | legacy v4 active — complete or halt before starting v5; in-place migration is disabled |',
+    );
     expect(status).toContain('| Active Clarification Story | US-001 |');
     expect(status).toContain('| Pending Clarification | Q-001 · US-001 |');
+  });
+
+  it('reports the current v5 loop and its allowed actions', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+
+    const status = statusMarkdown(cwd);
+
+    expect(status).toContain('| Workflow Version | v5 |');
+    expect(status).toContain('| Loop | kickoff |');
+    expect(status).toContain('advance:understand');
+    expect(status).toContain('| Workflow Compatibility | native v5 |');
+  });
+
+  it('reports completed legacy state as read-only', () => {
+    const cwd = workspace();
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'complete' });
+
+    expect(statusMarkdown(cwd)).toContain(
+      '| Workflow Compatibility | legacy v4 · read-only |',
+    );
   });
 
   it('reports paused clarification work across stories', () => {

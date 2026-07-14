@@ -10,6 +10,28 @@ export type Phase =
   | 'review'
   | 'learn'
   | 'complete';
+export type WorkflowVersion = 4 | 5;
+export type WorkflowLoop =
+  | 'kickoff'
+  | 'understand'
+  | 'tasking'
+  | 'pair'
+  | 'showcase'
+  | 'respond'
+  | 'complete';
+export type FeedbackTarget =
+  | 'problem'
+  | 'business_knowledge'
+  | 'scenario'
+  | 'model'
+  | 'architecture'
+  | 'test_strategy'
+  | 'test_process'
+  | 'test'
+  | 'implementation'
+  | 'refactor'
+  | 'value_validation';
+export type FeedbackDecider = 'human' | 'system';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
@@ -110,10 +132,25 @@ export interface WorkflowHalt {
   recorded_at: string;
 }
 
+export interface WorkflowFeedback {
+  target: FeedbackTarget;
+  from_loop: WorkflowLoop;
+  to_loop: WorkflowLoop;
+  reason: string;
+  decided_by: FeedbackDecider;
+  recorded_at: string;
+}
+
 export interface WorkflowState {
   /** Immutable namespace for this iteration's generated artifacts and gates. */
   iteration_id: string;
+  /** Absent means a legacy v4 state. New iterations always write version 5. */
+  workflow_version?: WorkflowVersion;
+  /** Primary v5 knowledge activity. */
+  loop?: WorkflowLoop;
+  /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
+  feedback_history?: WorkflowFeedback[];
   /** Number of retries for the current phase. */
   round: number;
   pending_gate: string | null;
