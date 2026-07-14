@@ -1,8 +1,8 @@
 Evidence 是一个领域建模与证据映射平台，具有三个运行时界面：
 
 - **Web**：位于 `apps/web/` 的 React + Vite SPA，由 `libs/web/*` 组成。
-- **Server**：位于 `apps/server/` 的 Rust Axum 组合根；实现在 `libs/server/{api,domain,persistent,infrastructure}`。
-- **Desktop**：位于 `apps/desktop/` 的 Tauri 2 桌面壳，加载和构建 `apps/web`。
+- **Server**：位于 `apps/server/` 的 Rust Axum 组合根；实现在 `libs/server/{api,domain,persistent,infrastructure}`，浏览器模式使用 PostgreSQL。
+- **Desktop**：位于 `apps/desktop/` 的 Tauri 2 桌面壳，加载和构建 `apps/web`，并在进程内启动复用同一 Rust API 的 SQLite 服务。
 
 `apps/server-nest/` 和 `libs/server-nest/*` 是 TypeScript/Nest 实现路线。不得在同一个功能中混用 Rust 与 Nest 模块：架构必须选择所属服务端运行时及其对应的测试工序。Web 与 Desktop 仍是同一个前端产品，共享 REST/API 语义与领域语义。
 
@@ -22,12 +22,19 @@ PostgreSQL                 持久化层
 apps/server-nest/          Nest 组合根（TypeScript 路线）
     ↓
 libs/server-nest/*         API、领域和 Prisma 持久化
+
+apps/desktop/              Tauri 壳 + apps/web
+    ↓ command 动态发现
+内嵌 Rust Axum API（随机 localhost 端口）
+    ↓ SeaORM
+SQLite（应用数据目录）
 ```
 
 Desktop 模式在 Tauri 壳中包装 `apps/web`：
 
-- **dev**：Tauri 在 `http://127.0.0.1:4200` 启动 `apps/web` 并打开它。
+- **dev**：Tauri 在 `http://127.0.0.1:4200` 启动 `apps/web`，同时启动内嵌 API。
 - **build**：Tauri 运行 `pnpm nx build @evidence/web`，并打包 `apps/web/dist`。
+- 前端通过 `get_api_base_url` command 获取随机端口，不依赖外部 PostgreSQL Server。
 
 ### 领域模型
 
@@ -37,27 +44,28 @@ Desktop 模式在 Tauri 壳中包装 `apps/web`：
 | ------------- | --------------------------------- | --------------------------------------------------------------------------------- |
 | Axum API      | `libs/server/api/src/api/`        | Axum 路由、请求解析、带 `_links` 的 HAL 风格 JSON 响应                            |
 | Rust 领域层   | `libs/server/domain/src/domain/`  | 纯领域 trait（`Entity`、`HasMany`、`Users`、`WorkspaceMembers` 等），不依赖持久化 |
-| Rust 持久化层 | `libs/server/persistent/src/`     | 基于 SeaORM + PostgreSQL 的领域 trait 实现                                        |
+| Rust 持久化层 | `libs/server/persistent/src/`     | 基于 SeaORM + PostgreSQL/SQLite 的领域 trait 实现                                 |
 | 基础设施      | `libs/server/infrastructure/src/` | Pi RPC 领域架构等适配器                                                           |
 | Nest 路线     | `libs/server-nest/*/src/`         | TypeScript/Nest 实现；仅在场景归属该运行时时使用                                  |
 
 #### 核心抽象（`src/domain/core/`）
 
 - **`Entity`**：trait，提供 `identity()` → `&Self::Identity` 和 `description()` → `&Self::Description`。
-- **`HasMany<T>`**：子集合 trait，提供 `find_all(from, to)`、`find_by_identity(id)`、`size()`。
+- **`HasOne<T>` / `HasMany<T>`**：关联读取抽象；集合提供 `find_all(from, to)`、`find_by_identity(id)`、`size()`。
 - **`Ref<T>`**：用于跨实体关系的类型化引用包装器。
 
 #### 领域聚合
 
-| 聚合            | 路径                       | 说明                                                                            |
-| --------------- | -------------------------- | ------------------------------------------------------------------------------- |
-| `User`          | `domain/user.rs`           | 用户身份及 `UserWorkspaces` 子集合                                              |
-| `Workspace`     | `domain/workspace.rs`      | 包含 `WorkspaceMembers`、`WorkspaceDiagrams`、`WorkspaceLogicalEntities` 的容器 |
-| `Member`        | `domain/member.rs`         | 工作区成员资格（用户引用 + 角色）                                               |
-| `Diagram`       | `domain/diagram/`          | 包含 `DiagramNodes`、`DiagramEdges` 的可视化图                                  |
-| `DiagramNode`   | `domain/diagram/node.rs`   | 图上的节点（类型、位置、逻辑实体引用、样式）                                    |
-| `DiagramEdge`   | `domain/diagram/edge.rs`   | 节点间边（源/目标、关系类型、标签）                                             |
-| `LogicalEntity` | `domain/logical_entity.rs` | 类型化领域概念：Evidence、Participant、Role 或 Context；具有属性、行为和子类型  |
+| 聚合 / 概念           | 路径                             | 说明                                                  |
+| --------------------- | -------------------------------- | ----------------------------------------------------- |
+| `User`                | `domain/user.rs`                 | 用户身份及 `UserWorkspaces` 子集合                    |
+| `Workspace`           | `domain/workspace.rs`            | 成员、单一当前图、逻辑实体与逻辑关系的容器            |
+| `Member`              | `domain/member.rs`               | 工作区成员资格（用户引用 + 角色）                     |
+| `Diagram`             | `domain/diagram/`                | 包含节点和边的逻辑模型投影                            |
+| `DiagramNode`         | `domain/diagram/node.rs`         | 引用逻辑实体的位置与样式投影                          |
+| `DiagramEdge`         | `domain/diagram/edge.rs`         | 可引用逻辑关系的连线投影                              |
+| `LogicalEntity`       | `domain/logical_entity.rs`       | Evidence、Participant、Role 或 Context 类型的业务概念 |
+| `LogicalRelationship` | `domain/logical_relationship.rs` | 工作区内两个逻辑实体之间的业务关系                    |
 
 #### 逻辑实体类型
 
@@ -78,45 +86,44 @@ API 遵循 HAL 风格约定：
 
 #### API 路由
 
-| 路由                                                | 方法             | 说明                                   |
-| --------------------------------------------------- | ---------------- | -------------------------------------- |
-| `/api`                                              | GET              | 根资源，含 health 和 default-user 链接 |
-| `/health`                                           | GET              | 健康检查                               |
-| `/api/users/{userId}`                               | GET              | 用户资源                               |
-| `/api/users/{userId}/workspaces`                    | GET、POST        | 列出/创建工作区                        |
-| `/api/users/{userId}/workspaces/{id}`               | GET、PUT、DELETE | 工作区 CRUD                            |
-| `/api/users/{userId}/workspaces/{id}/members`       | GET、POST        | 列出/添加成员                          |
-| `/api/users/{userId}/workspaces/{id}/members/{mid}` | DELETE           | 移除成员                               |
-| `/api/workspaces/{id}/diagrams`                     | GET、POST        | 列出/创建图                            |
-| `/api/workspaces/{id}/diagrams/{did}`               | GET、PUT、DELETE | 图 CRUD                                |
-| `/api/workspaces/{id}/diagrams/{did}/nodes`         | GET、POST        | 列出/创建节点                          |
-| `/api/workspaces/{id}/diagrams/{did}/nodes/{nid}`   | GET、PUT、DELETE | 节点 CRUD                              |
-| `/api/workspaces/{id}/diagrams/{did}/edges`         | GET、POST        | 列出/创建边                            |
-| `/api/workspaces/{id}/diagrams/{did}/edges/{eid}`   | GET、PUT、DELETE | 边 CRUD                                |
-| `/api/workspaces/{id}/logical-entities`             | GET、POST        | 列出/创建逻辑实体                      |
-| `/api/workspaces/{id}/logical-entities/{eid}`       | GET、PUT、DELETE | 逻辑实体 CRUD                          |
+| 路由                                                                     | 方法                   | 说明                       |
+| ------------------------------------------------------------------------ | ---------------------- | -------------------------- |
+| `/api`、`/health`、`/api/openapi.json`                                   | GET                    | 根资源、健康检查与 OpenAPI |
+| `/api/users/{userId}`                                                    | GET                    | 用户资源                   |
+| `/api/users/{userId}/sidebar`                                            | GET                    | 工作区导航投影             |
+| `/api/users/{userId}/workspaces[/{workspaceId}]`                         | GET、POST、PUT、DELETE | 工作区 CRUD                |
+| `/api/users/{userId}/workspaces/{workspaceId}/members[/{memberId}]`      | GET、POST、DELETE      | 成员查询、添加与移除       |
+| `/api/workspaces/{workspaceId}/diagram`                                  | GET                    | 当前工作区图               |
+| `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`                 | GET                    | 图节点投影                 |
+| `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                 | GET                    | 图边投影                   |
+| `/api/workspaces/{workspaceId}/diagram/propose-model`                    | POST (SSE)             | 流式生成 AI 建模提案       |
+| `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | GET、POST、PUT、DELETE | 逻辑实体 CRUD              |
+| `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | GET、POST、PUT、DELETE | 逻辑关系 CRUD              |
 
 ### 测试策略
 
-两种持久化实现共享相同的**契约测试**：
+Fake、SQLite 与 PostgreSQL 实现共享相同的**契约测试**：
 
 1. **Fake store**（`persistent/test_support.rs` 中的 `FakeUsers`）：内存实现，始终运行。
-2. **PostgreSQL**（`persistent/users.rs` 中的 `PgUsers`）：位于 `#[cfg(feature = "postgres-tests")]` 后，需要 Docker 或 `TEST_DATABASE_URL`。
+2. **SQLite**（`DbUsers`）：位于 `sqlite-tests` feature 后，使用临时数据库。
+3. **PostgreSQL**（`DbUsers`）：位于 `postgres-tests` feature 后，需要 Docker 或 `TEST_DATABASE_URL`。
 
-契约测试定义在 `persistent/test_support.rs::contracts`，并由两种实现共同执行：
+契约测试定义在 `persistent/test_support.rs::contracts`，并由各实现共同执行：
 
 - `user_sees_seed_workspace`
 - `creating_workspace_adds_owner_member`
 - `duplicate_member_is_conflict`
+- `workspace_has_one_diagram`
 - `workspace_logical_entities_crud`
+- `workspace_logical_relationships_crud`
 
-两种实现均注入相同默认数据：`desktop-user` → `default-workspace`。
+各实现均注入相同默认数据：`desktop-user` → `default-workspace`。
 
 ## 编码规范
 
 ### TypeScript（前端）
 
-- `apps/web` 是唯一的前端源码入口。所有 React 组件都位于此处。
+- `apps/web` 是唯一的前端组合根；可复用 React shell、feature 和组件位于 `libs/web/*`，Desktop 不复制前端源码。
 - 路由使用 `react-router-dom`。当前路由只是脚手架，应替换为领域专用视图。
 - Nx 插件 `@nx/vite` 负责 build/test/serve/dev/preview targets；不得在 `project.json` 中手动配置 Vite targets。
 - Nx 插件 `@nx/vitest` 负责 test targets；测试文件匹配 `{src,tests}/**/*.{test,spec}.*`。
@@ -136,8 +143,8 @@ API 遵循 HAL 风格约定：
   2. 在 `persistent/entities/` 创建 SeaORM 实体。
   3. 在 `persistent/` 实现 trait（以 `_test` 模块结束，用于 `#[cfg(test)]` 快速测试）。
   4. 在 `persistent/test_support.rs::contracts` 添加契约测试。
-  5. 在 `persistent/store.rs::init_schema()` 注册表与索引。
-  6. 接入 `FakeStore`（快速测试）和 `PgStore`（集成测试）。
+  5. 在 `persistent/migration/` 添加并注册 migration 与索引。
+  6. 接入 `FakeUsers`（快速测试）和 `DbUsers` 的 SQLite/PostgreSQL 契约测试。
 - 对较长的 handler 文件（如 `api/diagrams.rs` 约 500 行），优先提取资源序列化 helper 到独立模块，再拆分路由。
 
 ### Desktop（Tauri）
@@ -145,7 +152,8 @@ API 遵循 HAL 风格约定：
 - `apps/desktop/project.json` 声明 `implicitDependencies: ["@evidence/web"]`，桌面端始终依赖 Web 前端。
 - `apps/desktop/src-tauri/tauri.conf.json` 是 dev/build/bundle 配置的唯一事实来源。
 - Desktop 通过 Nx executor 使用 `cargo build -p evidence-desktop`、`cargo test -p evidence-desktop`、`cargo clippy -p evidence-desktop`。
-- Tauri 使用基于 capability 的权限（`capabilities/default.json`）：当前为 `core:default` + `opener:default`。
+- Tauri 使用基于 capability 的权限（`capabilities/default.json`）：当前为 `core:default`、`dialog:allow-open` 与 `opener:default`。
+- Desktop 在应用数据目录维护 `evidence.sqlite`，并通过 `get_api_base_url` 暴露内嵌 API 地址。
 
 ### Git Hooks 与提交信息
 
@@ -168,7 +176,7 @@ API 遵循 HAL 风格约定：
 | `apps/server/`                            | Rust Axum 组合根                                                |
 | `libs/server/api/src/api/`                | Axum HTTP 路由与 HAL 响应构建器                                 |
 | `libs/server/domain/src/domain/`          | 纯领域 trait 与聚合（无框架依赖）                               |
-| `libs/server/persistent/src/`             | SeaORM + PostgreSQL 实现                                        |
+| `libs/server/persistent/src/`             | SeaORM + PostgreSQL/SQLite 实现                                 |
 | `libs/server/infrastructure/src/`         | Rust 基础设施适配器                                             |
 | `apps/server-nest/`、`libs/server-nest/*` | Nest 组合根与 TypeScript 实现路线                               |
 | `libs/web/*`                              | 共享 Web 壳、UI、API 客户端和功能库                             |
@@ -184,7 +192,7 @@ API 遵循 HAL 风格约定：
 | `apps/desktop/src-tauri/`                 | Tauri Rust crate、配置与 capabilities                           |
 | `Cargo.toml`                              | Rust workspace（成员：`apps/server`、`apps/desktop/src-tauri`） |
 | `nx.json`                                 | Nx workspace 配置与插件注册表                                   |
-| `pnpm-workspace.yaml`                     | pnpm workspace 配置（packages：`apps/*`）                       |
+| `pnpm-workspace.yaml`                     | pnpm workspace package 边界                                     |
 | `package.json`                            | 根脚本与共享开发依赖                                            |
 | `tsconfig.base.json`                      | 共享 TypeScript 基础配置                                        |
 | `vitest.workspace.ts`                     | Vitest workspace 文件发现配置                                   |
