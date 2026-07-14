@@ -65,7 +65,7 @@ Clarify 是阶段内的故事级子流程：
 3. 子 agent 的问题显示在当前对话中。领域专家直接回复，父 agent 在内部调用 `evidence_orchestrator_answer_question`；答案落盘后会立即重新运行当前故事的 clarify，继续提出下一问或形成结论建议。
 4. AI 通过 `evidence_orchestrator_propose_story_outcome` 只能提出 `clarified`、`needs_split` 或 `deferred` 建议。建议写入状态后 Story 仍保持活动；当前 Story 不能继续运行或完成 clarify，但人类可以切换到其他 Story，建议会被暂停并在切回时恢复。
 5. 领域专家执行 `/evidence-story-complete` 打开选择器；无论是否已有 AI 建议或待答问题，都可直接选择最终结论。也可显式执行 `/evidence-story-complete <outcome> <理由>`；若存在待答问题，它会以 `waived_by=human` 和理由保留在审计历史，而不会被伪造为已回答。已有 AI 建议时还可执行 `/evidence-story-complete confirm` 或 `/evidence-story-complete continue <原因>`。
-6. 只有人工决定会写入最终结论、记录 `decided_by=human` 与确认时间并释放 Story。每个故事结论后重新等待人类选择；所有故事都有人工确认的结论后才能完成 clarify。
+6. 只有人工决定会写入最终结论、记录 `decided_by=human` 与确认时间并释放 Story。仍有未完成故事时重新等待人类选择；最后一张故事完成人工确认后，下一次 `/evidence-run` 会确定性结束 Clarify，并在同一次命令中直接执行 Specify，不再启动只负责阶段收尾的 Clarify 子 agent。Specify 会一次处理所有最终结论为 `clarified` 的 Story，并要求每张 Story 至少有一个验收示例；`needs_split` 与 `deferred` Story 在重新澄清前不进入该批次。
 
 已进入 Clarify 且缺少故事卡的旧迭代保留一次兼容路径：子 agent 可依据既有 Frame 工件补建故事卡，随后立即停止等待人工选择。
 

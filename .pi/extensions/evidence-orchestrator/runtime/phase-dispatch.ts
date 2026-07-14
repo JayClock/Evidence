@@ -4,7 +4,11 @@ import {
   selectClarificationStory,
   unresolvedClarificationStoryIds,
 } from '../requirements/clarifications';
-import { isGateAnswered, resolvePendingGate } from '../workflow/gates';
+import {
+  completePhase,
+  isGateAnswered,
+  resolvePendingGate,
+} from '../workflow/gates';
 import {
   artifactRelativePath,
   iterationRoot,
@@ -105,7 +109,7 @@ export function preparePhaseRun(
     }
   }
 
-  const current = readState(cwd);
+  let current = readState(cwd);
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
     throw new PhaseRunBlockedError(
@@ -135,12 +139,21 @@ export function preparePhaseRun(
         `Select one clarification story before running clarify: ${unresolvedStoryIds.join(', ')}. Use /evidence-story <US-xxx> or evidence_orchestrator_select_story.`,
       );
     }
+    if (storyIds.length > 0) {
+      current = completePhase(
+        cwd,
+        'clarify',
+        'All clarification stories have human-confirmed outcomes; advancing directly to specify.',
+      );
+      if (current.pending_gate) {
+        throw new PhaseRunBlockedError(
+          'gate',
+          `Gate ${current.pending_gate} is pending. Edit ${artifactRelativePath(current, `artifacts/gates/${current.pending_gate}.md`)} or run /evidence-gate <decision>.`,
+        );
+      }
+    }
   }
-  const task = buildPhaseTask(
-    cwd,
-    request.requestedPhase,
-    request.instructions ?? '',
-  );
+  const task = buildPhaseTask(cwd, current.phase, request.instructions ?? '');
   if (current.phase === 'complete') return { state: current, task };
 
   const missingInputs = missingPaths(

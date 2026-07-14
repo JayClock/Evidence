@@ -1,4 +1,5 @@
 import { allClarificationStoryOutcomeProposals } from '../requirements/clarifications';
+import { confirmedSpecificationStoryIds } from '../requirements/specifications';
 import { artifactRelativePath } from '../workflow/iteration-paths';
 import {
   PHASE_META,
@@ -54,6 +55,13 @@ export function buildPhaseTask(
           : state.clarification_story_outcomes?.length
             ? `\n- 当前没有活动故事，且已记录人工确认的故事结论。只检查是否所有故事均已有结论；若是，完成 clarify 阶段；不得自行选择故事。`
             : `\n- 当前没有活动故事且 stories/ 为空，这只允许作为旧迭代兼容路径：依据已有 frame 工件补建候选 US-xxx.md 后停止，等待人类选择；不得提问、选择故事或完成 clarify 阶段。新迭代的故事卡必须由 frame 生成。`;
+  const specificationStoryIds = confirmedSpecificationStoryIds(state);
+  const specificationExecution =
+    phase !== 'specify'
+      ? ''
+      : specificationStoryIds.length > 0
+        ? `\n- Specify 的完整批处理范围：${specificationStoryIds.join(', ')}。必须逐一读取并规格化全部 Story，为每个 Story 至少生成一个 US-xxx-SC-xxx.md；不得只处理最后确认的 Story 或任意子集。`
+        : `\n- 当前没有最终结论为 clarified 的 Story，Specify 没有合法处理范围。不得生成虚假示例或完成阶段；应报告确定性检查失败。`;
 
   return `执行 Evidence Orchestrator 阶段：${phase} — ${meta.title}。
 
@@ -81,7 +89,7 @@ ${meta.inputs.map((path) => `- ${resolvePath(path)}`).join('\n')}
 ${meta.outputs.map((path) => `- ${resolvePath(path)}`).join('\n')}
 
 阶段要求：
-${instructions}${clarificationExecution}
+${instructions}${clarificationExecution}${specificationExecution}
 
 额外用户指令：
 ${extra || '（无）'}

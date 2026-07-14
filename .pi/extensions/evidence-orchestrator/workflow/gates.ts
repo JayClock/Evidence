@@ -15,6 +15,7 @@ import {
   validateClarificationStoriesComplete,
 } from '../requirements/clarifications';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
+import { validateConfirmedStoriesSpecified } from '../requirements/specifications';
 import {
   validateKnowledgePromotion,
   validateScenarioContextMap,
@@ -295,6 +296,9 @@ export function validatePhaseCompletion(
 
   if (phase === 'clarify') {
     validateClarificationStoriesComplete(cwd, current);
+  }
+  if (phase === 'specify') {
+    validateConfirmedStoriesSpecified(cwd, current);
   }
   if (phase === 'architecture') {
     validateScenarioContextMap(
