@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { Message } from '@earendil-works/pi-ai';
-import type { Phase } from '../workflow/types';
+import type { ActivePhase } from '../workflow/types';
 
 export type ThinkingLevel =
   | 'off'
@@ -40,16 +40,13 @@ export interface PhaseAgentProgress extends PhaseAgentResult {
   exitCode: -1;
 }
 
-const PHASE_AGENTS: Record<Exclude<Phase, 'complete'>, string> = {
-  frame: 'requirements-analyst',
-  clarify: 'requirements-analyst',
-  specify: 'requirements-analyst',
-  validate: 'requirements-analyst',
-  domain_model: 'domain-modeler',
-  architecture: 'architect',
-  planning: 'planner',
-  coding: 'coder',
-  review: 'reviewer',
+const PHASE_AGENTS: Record<ActivePhase, string> = {
+  kickoff: 'requirements-analyst',
+  discover: 'requirements-analyst',
+  model: 'domain-modeler',
+  design: 'architect',
+  build: 'coder',
+  showcase: 'reviewer',
   learn: 'learner',
 };
 
@@ -155,14 +152,11 @@ export function phaseAgentResult(
   };
 }
 
-export function phaseAgentName(phase: Exclude<Phase, 'complete'>): string {
+export function phaseAgentName(phase: ActivePhase): string {
   return PHASE_AGENTS[phase];
 }
 
-export function loadPhaseAgent(
-  cwd: string,
-  phase: Exclude<Phase, 'complete'>,
-): PhaseAgent {
+export function loadPhaseAgent(cwd: string, phase: ActivePhase): PhaseAgent {
   const name = phaseAgentName(phase);
   const filePath = join(cwd, '.pi', 'agents', `${name}.md`);
   let content: string;
@@ -221,7 +215,7 @@ function phaseSubagentInvocation(args: string[]): {
 
 export async function runPhaseSubagent(options: {
   cwd: string;
-  phase: Exclude<Phase, 'complete'>;
+  phase: ActivePhase;
   task: string;
   signal?: AbortSignal;
   onUpdate?: (progress: PhaseAgentProgress) => void;

@@ -13,15 +13,12 @@ afterEach(cleanupWorkspaces);
 describe('phase subagents', () => {
   it('defines a valid project subagent for every executable phase', () => {
     const phases = [
-      'frame',
-      'clarify',
-      'specify',
-      'validate',
-      'domain_model',
-      'architecture',
-      'planning',
-      'coding',
-      'review',
+      'kickoff',
+      'discover',
+      'model',
+      'design',
+      'build',
+      'showcase',
       'learn',
     ] as const;
 
@@ -41,7 +38,7 @@ describe('phase subagents', () => {
       `---\nname: coder\ndescription: Implements one scenario\nmodel: openai-codex/gpt-test\nthinking: medium\ntools: read, write, evidence_orchestrator_complete_phase\n---\n\nRun strict TDD.\n`,
     );
 
-    expect(loadPhaseAgent(cwd, 'coding')).toMatchObject({
+    expect(loadPhaseAgent(cwd, 'build')).toMatchObject({
       name: 'coder',
       model: 'openai-codex/gpt-test',
       thinking: 'medium',
@@ -120,7 +117,7 @@ describe('phase subagents', () => {
 
   it('does not fall back when the required project agent is absent', () => {
     const cwd = workspace();
-    expect(() => loadPhaseAgent(cwd, 'architecture')).toThrow(
+    expect(() => loadPhaseAgent(cwd, 'design')).toThrow(
       '.pi/agents/architect.md',
     );
   });
