@@ -16,6 +16,7 @@ import {
 } from '../requirements/clarifications';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
 import { validateConfirmedStoriesSpecified } from '../requirements/specifications';
+import { validateStoryCards } from '../requirements/story-cards';
 import {
   validateKnowledgePromotion,
   validateScenarioContextMap,
@@ -340,6 +341,7 @@ export function validatePhaseCompletion(
       `Cannot complete ${phase}: missing required outputs: ${missing.join(', ')}.`,
     );
   }
+  if (phase === 'frame') validateStoryCards(cwd, current);
   const root = relative(cwd, iterationRoot(cwd, current));
   if (phase === 'domain_model') validateDomainModelEvidence(cwd, root);
   if (phase === 'learn') {

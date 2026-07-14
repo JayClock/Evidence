@@ -4,11 +4,24 @@ import { DEFAULT_STATE, PHASE_META } from './phase-catalog';
 import { writeState } from './state-store';
 import {
   cleanupWorkspaces,
+  LEAN_STORY_CARD,
   workspace,
   writeIterationArtifact,
 } from '../tests/support';
 
 afterEach(cleanupWorkspaces);
+
+function writeFrameOutputs(cwd: string, storyCard = LEAN_STORY_CARD): void {
+  for (const output of PHASE_META.frame.outputs) {
+    writeIterationArtifact(
+      cwd,
+      output.endsWith('/')
+        ? `${output.slice('artifacts/'.length)}US-001.md`
+        : output.slice('artifacts/'.length),
+      output.endsWith('/') ? storyCard : 'content',
+    );
+  }
+}
 
 describe('gates', () => {
   it('returns a revise decision to the owning phase', () => {
@@ -17,14 +30,7 @@ describe('gates', () => {
       ...DEFAULT_STATE,
       gate_config: { ...DEFAULT_STATE.gate_config, frame: 'review' },
     });
-    for (const output of PHASE_META.frame.outputs) {
-      writeIterationArtifact(
-        cwd,
-        output.endsWith('/')
-          ? `${output.slice('artifacts/'.length)}US-001.md`
-          : output.slice('artifacts/'.length),
-      );
-    }
+    writeFrameOutputs(cwd);
     completePhase(cwd, 'frame', 'review required');
     answerGate(cwd, 'GATE-101-frame', 'revise: clarify the scope');
     expect(resolvePendingGate(cwd)).toMatchObject({ phase: 'frame', round: 1 });
@@ -35,6 +41,19 @@ describe('gates', () => {
     writeState(cwd, DEFAULT_STATE);
     expect(() => completePhase(cwd, 'frame')).toThrow(
       'missing required outputs',
+    );
+  });
+
+  it('rejects a story card that mixes Card with clarification content', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+    writeFrameOutputs(
+      cwd,
+      `${LEAN_STORY_CARD}\n## 待澄清问题\n\n1. 谁可以编辑？\n`,
+    );
+
+    expect(() => completePhase(cwd, 'frame')).toThrow(
+      'forbidden section "待澄清问题"',
     );
   });
 });

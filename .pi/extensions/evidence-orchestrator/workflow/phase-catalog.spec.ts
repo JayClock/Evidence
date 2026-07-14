@@ -13,11 +13,30 @@ describe('phases', () => {
     expect(nextPhase('learn')).toBe('complete');
   });
 
-  it('creates selectable story cards during frame', () => {
+  it('creates lean 3C story cards during frame', () => {
     expect(PHASE_META.frame.outputs).toContain(
       'artifacts/01-requirements/stories/',
     );
-    expect(phaseSpecificInstructions('frame')).toContain('stories/US-xxx.md');
+    const frameInstructions = phaseSpecificInstructions('frame');
+    expect(frameInstructions).toContain('stories/US-xxx.md');
+    expect(frameInstructions).toContain('Card、Conversation、Confirmation');
+    expect(frameInstructions).toContain('角色、可协商的目标和价值');
+    expect(frameInstructions).toContain(
+      '不得包含元数据表、优先级依据、非目标或预生成的待澄清问题列表',
+    );
+
+    const clarifyInstructions = phaseSpecificInstructions('clarify');
+    expect(clarifyInstructions).toContain(
+      '根据业务上下文、当前故事和澄清历史动态选择',
+    );
+
+    const specifyInstructions = phaseSpecificInstructions('specify');
+    expect(specifyInstructions).toContain('非目标不是反向验收需求');
+
+    const codingInstructions = phaseSpecificInstructions('coding');
+    expect(codingInstructions).toContain(
+      '没有对应验收场景的功能，不得生成测试代码',
+    );
   });
 
   it('uses canonical test processes and emits only scenario architecture evidence', () => {

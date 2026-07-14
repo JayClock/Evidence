@@ -49,6 +49,14 @@ import {
 import { validateWorkflow } from '../validation/workflow-validator';
 
 const workspaces: string[] = [];
+const LEAN_STORY_CARD = `# US-001 编辑既有工作区信息
+
+> **作为**领域建模负责人，
+> **我希望**修正既有工作区的信息，
+> **从而**让协作者识别正确的协作空间。
+
+- **问题上下文**：[\`../problem-statement.md\`](../problem-statement.md)
+`;
 
 function workspace(): string {
   const cwd = mkdtempSync(join(tmpdir(), 'evidence-orchestrator-'));
@@ -875,6 +883,7 @@ describe('P0 iteration isolation and PDCA', () => {
         output.endsWith('/')
           ? `${output.slice('artifacts/'.length)}US-001.md`
           : output.slice('artifacts/'.length),
+        output.endsWith('/') ? LEAN_STORY_CARD : 'content',
       );
     }
     const advanced = completePhase(cwd, 'frame', 'ready for review');
@@ -963,7 +972,11 @@ describe('phase completion guardrails', () => {
     writeIterationArtifact(cwd, '01-requirements/product-context-delta.md');
     writeIterationArtifact(cwd, '01-requirements/journey-slice.md');
     writeIterationArtifact(cwd, '01-requirements/story-map-delta.md');
-    writeIterationArtifact(cwd, '01-requirements/stories/US-001.md', '# Story');
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/stories/US-001.md',
+      LEAN_STORY_CARD,
+    );
 
     const state = completePhase(cwd, 'frame', 'ready');
 
