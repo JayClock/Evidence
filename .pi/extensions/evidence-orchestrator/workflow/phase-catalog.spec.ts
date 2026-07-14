@@ -1,56 +1,66 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_STATE,
+  IDLE_STATE,
   nextPhase,
   PHASE_META,
   PHASE_ORDER,
   phaseSpecificInstructions,
 } from './phase-catalog';
 
-describe('phases', () => {
-  it('orders delivery phases through learning', () => {
-    expect(PHASE_ORDER).toContain('learn');
-    expect(nextPhase('review')).toBe('learn');
+describe('v2 feedback loop phases', () => {
+  it('uses the short single-Story feedback loop', () => {
+    expect(PHASE_ORDER).toEqual([
+      'idle',
+      'kickoff',
+      'discover',
+      'model',
+      'design',
+      'build',
+      'showcase',
+      'learn',
+      'complete',
+    ]);
+    expect(nextPhase('showcase')).toBe('learn');
     expect(nextPhase('learn')).toBe('complete');
   });
 
-  it('creates lean 3C story cards during frame', () => {
-    expect(PHASE_META.frame.outputs).toContain(
-      'artifacts/01-requirements/stories/',
-    );
-    const frameInstructions = phaseSpecificInstructions('frame');
-    expect(frameInstructions).toContain('stories/US-xxx.md');
-    expect(frameInstructions).toContain('Card、Conversation、Confirmation');
-    expect(frameInstructions).toContain('角色、可协商的目标和价值');
-    expect(frameInstructions).toContain(
-      '不得包含元数据表、优先级依据、非目标或预生成的待澄清问题列表',
-    );
+  it('starts Issue-backed iterations at Kickoff and checkouts at idle', () => {
+    expect(DEFAULT_STATE.phase).toBe('kickoff');
+    expect(IDLE_STATE).toMatchObject({ iteration_id: null, phase: 'idle' });
+  });
 
-    const clarifyInstructions = phaseSpecificInstructions('clarify');
-    expect(clarifyInstructions).toContain(
-      '根据业务上下文、当前故事和澄清历史动态选择',
-    );
+  it('uses human feedback only at Kickoff, Model, and Showcase', () => {
+    expect(DEFAULT_STATE.gate_config).toEqual({
+      kickoff: 'review',
+      discover: 'auto',
+      model: 'review',
+      design: 'auto',
+      build: 'auto',
+      showcase: 'review',
+      learn: 'auto',
+    });
+  });
 
-    const specifyInstructions = phaseSpecificInstructions('specify');
-    expect(specifyInstructions).toContain('非目标不是反向验收需求');
-
-    const codingInstructions = phaseSpecificInstructions('coding');
-    expect(codingInstructions).toContain(
-      '没有对应验收场景的功能，不得生成测试代码',
+  it('merges clarification/specification and architecture/planning', () => {
+    expect(PHASE_META.discover.outputs).toEqual([
+      'artifacts/02-discovery/discovery.md',
+      'artifacts/02-discovery/examples/',
+    ]);
+    expect(PHASE_META.design.outputs).toEqual([
+      'artifacts/04-design/delivery-plan.md',
+      'artifacts/04-design/scenario-context-map.json',
+    ]);
+    expect(phaseSpecificInstructions('discover')).toContain(
+      '合并澄清、示例规格化和就绪检查',
     );
   });
 
-  it('uses canonical test processes and emits only scenario architecture evidence', () => {
-    expect(PHASE_META.architecture.inputs).toContain(
-      'engineering/evidence-orchestrator/test-processes/',
+  it('does not require empty architecture or backlog placeholder artifacts', () => {
+    const outputs = Object.values(PHASE_META).flatMap(({ outputs }) => outputs);
+    expect(outputs).not.toContain(
+      'artifacts/03-architecture/architecture-decisions.md',
     );
-    expect(PHASE_META.architecture.outputs).toContain(
-      'artifacts/03-architecture/scenario-context-map.json',
-    );
-    expect(phaseSpecificInstructions('architecture')).toContain(
-      'scenario-context-map.json',
-    );
-    expect(phaseSpecificInstructions('coding')).toContain(
-      'evidence_orchestrator_select_test_process',
-    );
+    expect(outputs).not.toContain('artifacts/04-planning/sprint-plan.md');
   });
 });

@@ -14,13 +14,23 @@ export function assertIterationId(iterationId: string): void {
   }
 }
 
+export function activeIterationId(state: WorkflowState): string {
+  if (!state.iteration_id) {
+    throw new Error(
+      'No Evidence Orchestrator iteration is active. Start one from a GitHub Issue.',
+    );
+  }
+  assertIterationId(state.iteration_id);
+  return state.iteration_id;
+}
+
 export function iterationRootRelative(iterationId: string): string {
   assertIterationId(iterationId);
   return `${ITERATIONS_ROOT}/${iterationId}`;
 }
 
 export function iterationRoot(cwd: string, state: WorkflowState): string {
-  return join(cwd, iterationRootRelative(state.iteration_id));
+  return join(cwd, iterationRootRelative(activeIterationId(state)));
 }
 
 /** Resolve a logical artifacts path into the active iteration namespace. */
@@ -43,7 +53,7 @@ export function artifactRelativePath(
   logicalPath: string,
 ): string {
   if (!logicalPath.startsWith(`${ARTIFACTS_ROOT}/`)) return logicalPath;
-  return `${iterationRootRelative(state.iteration_id)}/${logicalPath.slice(
+  return `${iterationRootRelative(activeIterationId(state))}/${logicalPath.slice(
     `${ARTIFACTS_ROOT}/`.length,
   )}`;
 }

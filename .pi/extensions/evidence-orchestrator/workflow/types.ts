@@ -1,22 +1,14 @@
-export type Phase =
-  | 'frame'
-  | 'clarify'
-  | 'specify'
-  | 'validate'
-  | 'domain_model'
-  | 'architecture'
-  | 'planning'
-  | 'coding'
-  | 'review'
-  | 'learn'
-  | 'complete';
+export type ActivePhase =
+  | 'kickoff'
+  | 'discover'
+  | 'model'
+  | 'design'
+  | 'build'
+  | 'showcase'
+  | 'learn';
+export type Phase = 'idle' | ActivePhase | 'complete';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
-export type ClarificationTarget = 'business_context' | 'story' | 'history';
-export type ClarificationStoryOutcome =
-  | 'clarified'
-  | 'needs_split'
-  | 'deferred';
 export type TestProcessRuntime = 'rust' | 'typescript' | 'tauri';
 export type TestDouble = 'real' | 'fake' | 'stub' | 'spy' | 'mock';
 
@@ -39,115 +31,69 @@ export interface TestProcessSelection {
   functional_contexts: string[];
 }
 
-/** Ordered, cross-runtime test processes selected for one vertical scenario. */
+/** Ordered test processes selected for the single active vertical scenario. */
 export interface TestPlan {
   version: 1;
-  /** Requires execution records when selected by an Issue-backed iteration. */
-  execution_evidence_version?: 1;
   processes: TestProcessSelection[];
 }
 
 export interface ActiveWorkItem {
   story_id: string;
   scenario_id: string;
-  /** Immutable Git HEAD captured before this scenario's Red step. */
+  /** Immutable Git HEAD captured before this scenario's first Red step. */
   git_baseline: string;
-  /** @deprecated Single-process compatibility projection; use test_plan. */
-  test_process?: TestProcessSelection;
-  /** Immutable ordered test plan; supports one or more runtime-specific processes. */
   test_plan?: TestPlan;
 }
 
 export interface ClarificationRecord {
   question_id: string;
   story_id: string;
+  thought: string;
   question: string;
-  target: ClarificationTarget;
   asked_at: string;
   answer?: string;
   answered_at?: string;
-  /** Human explicitly ended the Story without requiring this answer. */
-  waived_by?: 'human';
-  waived_reason?: string;
-  waived_at?: string;
-}
-
-export interface ActiveClarificationStory {
-  story_id: string;
-  selected_at: string;
-}
-
-/** AI-authored recommendation that cannot release or disposition a story. */
-export interface ClarificationStoryOutcomeProposal {
-  story_id: string;
-  outcome: ClarificationStoryOutcome;
-  summary: string;
-  proposed_at: string;
-}
-
-export interface ClarificationStoryOutcomeRecord {
-  story_id: string;
-  outcome: ClarificationStoryOutcome;
-  summary: string;
-  completed_at: string;
-  /** Present on human-confirmed records; absent only on legacy iterations. */
-  decided_by?: 'human';
-  confirmed_at?: string;
-  /** Absent when the human directly completes the Story without an AI proposal. */
-  proposal?: ClarificationStoryOutcomeProposal;
 }
 
 export interface PhaseFailure {
-  phase: Exclude<Phase, 'complete'>;
+  phase: ActivePhase;
   round: number;
   summary: string;
   recorded_at: string;
 }
 
 export interface WorkflowHalt {
-  phase: Exclude<Phase, 'complete'>;
+  phase: ActivePhase;
   reason: string;
   recorded_at: string;
 }
 
 export interface WorkflowState {
-  /** Immutable namespace for this iteration's generated artifacts and gates. */
-  iteration_id: string;
+  /** State schema. Earlier workflow states are intentionally unsupported. */
+  version: 2;
+  /** Null only when no iteration has been started in this checkout. */
+  iteration_id: string | null;
   phase: Phase;
-  /** Number of retries for the current phase. */
   round: number;
   pending_gate: string | null;
   failures: number;
   max_rounds: number;
   artifacts: string[];
-  gate_config: Record<string, GateMode>;
-  /** Upstream requirement authority; local files are immutable iteration snapshots. */
+  gate_config: Record<ActivePhase, GateMode>;
   requirement_source?: GitHubIssueRequirementSource;
   active_work_item?: ActiveWorkItem;
-  /** Story currently in focus; selecting another story pauses this one's open work. */
-  active_clarification_story?: ActiveClarificationStory;
-  /** AI recommendation awaiting a decision for the story currently in focus. */
-  proposed_clarification_story_outcome?: ClarificationStoryOutcomeProposal;
-  /** Recommendations paused while another story is in focus. */
-  paused_clarification_story_outcome_proposals?: ClarificationStoryOutcomeProposal[];
-  /** Final, human-confirmed story-level dispositions for the active iteration. */
-  clarification_story_outcomes?: ClarificationStoryOutcomeRecord[];
-  /** TQA question awaiting an answer for the story currently in focus. */
+  /** The sole TQA question waiting for an explicit domain-expert answer. */
   pending_clarification?: ClarificationRecord;
-  /** Questions paused while another story is in focus. */
-  paused_clarifications?: ClarificationRecord[];
-  /** Immutable, answered or human-waived TQA exchanges for the iteration. */
+  /** Answered TQA exchanges for this iteration's single Story. */
   clarification_history?: ClarificationRecord[];
   last_failure?: PhaseFailure;
   halted?: WorkflowHalt;
   pi?: {
     enabled: boolean;
     version: number;
-    /** New Issue-backed iterations require tool-observed test execution records. */
-    execution_evidence_version?: 1;
     last_command?: string;
     last_run_at?: string;
-    last_completed_phase?: Phase;
+    last_completed_phase?: ActivePhase;
   };
 }
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from './phase-catalog';
+import { DEFAULT_STATE, IDLE_STATE } from './phase-catalog';
 import {
-  newIterationState,
+  initialIterationState,
   readState,
   selectTestProcess,
   selectWorkItem,
@@ -11,157 +11,123 @@ import {
   cleanupWorkspaces,
   initializeGitRepository,
   workspace,
+  write,
   writeIterationArtifact,
 } from '../tests/support';
 
 afterEach(cleanupWorkspaces);
 
-describe('state', () => {
-  it('rejects local iteration initialization in favor of an Issue snapshot', () => {
+const PROCESS = {
+  version: 1,
+  id: 'web',
+  applies_to: { runtime: 'typescript', functional_contexts: ['shell'] },
+  steps: [
+    {
+      id: 'q1',
+      quadrant: 'Q1',
+      functional_context: 'shell',
+      test_double: 'stub',
+      task: 'Component test.',
+    },
+    {
+      id: 'q2',
+      quadrant: 'Q2',
+      functional_context: 'shell',
+      test_double: 'real',
+      task: 'Acceptance test.',
+    },
+  ],
+  quality_gates: ['pnpm test'],
+};
+
+describe('v2 state', () => {
+  it('uses idle state when no iteration exists', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    writeIterationArtifact(cwd, '00-user-input/requirements.md');
-    expect(() => newIterationState(cwd)).toThrow(
-      'Local iteration initialization is disabled',
-    );
+    expect(readState(cwd)).toEqual(IDLE_STATE);
   });
 
-  it('requires every proposed story outcome to belong to the active story', () => {
-    const cwd = workspace();
+  it('constructs a clean single-Story iteration state', () => {
+    expect(initialIterationState('ITER-0042')).toMatchObject({
+      version: 2,
+      iteration_id: 'ITER-0042',
+      phase: 'kickoff',
+    });
+  });
 
+  it('rejects legacy state instead of migrating it', () => {
+    const cwd = workspace();
     expect(() =>
+      writeState(cwd, { ...DEFAULT_STATE, version: 1 } as never),
+    ).toThrow('legacy state is not migrated');
+  });
+
+  it('allows only one pending TQA Question during Discover', () => {
+    const cwd = workspace();
+    const pending = {
+      question_id: 'Q-001',
+      story_id: 'US-001',
+      thought: 'The outcome is unclear.',
+      question: 'What is visible?',
+      asked_at: '2026-01-01T00:00:00.000Z',
+    };
+    expect(() =>
+      writeState(cwd, { ...DEFAULT_STATE, pending_clarification: pending }),
+    ).toThrow('pending TQA clarification is invalid');
+    expect(
       writeState(cwd, {
         ...DEFAULT_STATE,
-        phase: 'clarify',
-        proposed_clarification_story_outcome: {
-          story_id: 'US-001',
-          outcome: 'clarified',
-          summary: 'Clear.',
-          proposed_at: '2026-01-01T00:00:00.000Z',
-        },
-      }),
-    ).toThrow('must belong to the active clarification story');
+        phase: 'discover',
+        pending_clarification: pending,
+      }).pending_clarification,
+    ).toEqual(pending);
   });
 
-  it('accepts paused clarification state only for non-active stories', () => {
-    const cwd = workspace();
-    const state = writeState(cwd, {
-      ...DEFAULT_STATE,
-      phase: 'clarify',
-      active_clarification_story: {
-        story_id: 'US-002',
-        selected_at: '2026-01-01T00:00:00.000Z',
-      },
-      paused_clarifications: [
-        {
-          question_id: 'Q-001',
-          story_id: 'US-001',
-          question: 'Who approves?',
-          target: 'history',
-          asked_at: '2026-01-01T00:01:00.000Z',
-        },
-      ],
-      paused_clarification_story_outcome_proposals: [
-        {
-          story_id: 'US-003',
-          outcome: 'clarified',
-          summary: 'Clear.',
-          proposed_at: '2026-01-01T00:02:00.000Z',
-        },
-      ],
-    });
-
-    expect(state.paused_clarifications?.[0]?.story_id).toBe('US-001');
-    expect(
-      state.paused_clarification_story_outcome_proposals?.[0]?.story_id,
-    ).toBe('US-003');
-    expect(() =>
-      writeState(cwd, {
-        ...state,
-        paused_clarifications: [
-          {
-            question_id: 'Q-002',
-            story_id: 'US-002',
-            question: 'Conflicts with active.',
-            target: 'history',
-            asked_at: '2026-01-01T00:03:00.000Z',
-          },
-        ],
-      }),
-    ).toThrow('must not belong to the active clarification story');
-  });
-
-  it('accepts a direct human outcome and a waived clarification', () => {
-    const cwd = workspace();
-    const state = writeState(cwd, {
-      ...DEFAULT_STATE,
-      phase: 'clarify',
-      clarification_story_outcomes: [
-        {
-          story_id: 'US-001',
-          outcome: 'clarified',
-          summary: 'Current detail is sufficient.',
-          completed_at: '2026-01-01T00:03:00.000Z',
-          decided_by: 'human',
-          confirmed_at: '2026-01-01T00:03:00.000Z',
-        },
-      ],
-      clarification_history: [
-        {
-          question_id: 'Q-001',
-          story_id: 'US-001',
-          question: 'Which edge case remains?',
-          target: 'history',
-          asked_at: '2026-01-01T00:01:00.000Z',
-          waived_by: 'human',
-          waived_reason: 'Current detail is sufficient.',
-          waived_at: '2026-01-01T00:03:00.000Z',
-        },
-      ],
-    });
-
-    expect(state.clarification_story_outcomes?.[0]?.proposal).toBeUndefined();
-    expect(state.clarification_history?.[0]?.waived_by).toBe('human');
-  });
-
-  it('requires one selected scenario before selecting its unique test process', () => {
+  it('selects one acceptance Scenario before its unique process', () => {
     const cwd = workspace();
     initializeGitRepository(cwd);
-    writeState(cwd, { ...DEFAULT_STATE, phase: 'coding' });
+    writeState(cwd, { ...DEFAULT_STATE, phase: 'build' });
     writeIterationArtifact(
       cwd,
-      '03-architecture/test-processes/web.json',
+      '02-discovery/examples/US-001-SC-001.md',
+      'Given x\nWhen y\nThen z\n',
+    );
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/test-processes/web.json',
+      JSON.stringify(PROCESS),
+    );
+    writeIterationArtifact(
+      cwd,
+      '04-design/scenario-context-map.json',
       JSON.stringify({
         version: 1,
-        id: 'web',
-        applies_to: { runtime: 'typescript', functional_contexts: ['shell'] },
-        steps: [
+        scenarios: [
           {
-            id: 'q1',
-            quadrant: 'Q1',
-            functional_context: 'shell',
-            test_double: 'stub',
-            task: 'Component test.',
-          },
-          {
-            id: 'q2',
-            quadrant: 'Q2',
-            functional_context: 'shell',
-            test_double: 'real',
-            task: 'Acceptance test.',
+            story_id: 'US-001',
+            scenario_id: 'SC-001',
+            runtimes: [
+              {
+                runtime: 'typescript',
+                functional_contexts: ['shell'],
+                q1_tests: ['component'],
+                q2_tests: ['acceptance'],
+                test_doubles: ['stub'],
+                candidate_process_ids: ['web'],
+              },
+            ],
           },
         ],
-        quality_gates: ['pnpm test'],
       }),
     );
+
     expect(() => selectTestProcess(cwd, 'typescript', ['shell'])).toThrow(
       'select one US-xxx',
     );
     selectWorkItem(cwd, 'US-001', 'SC-001');
-    expect(
-      selectTestProcess(cwd, 'typescript', ['shell']).active_work_item
-        ?.test_process?.id,
-    ).toBe('web');
-    expect(readState(cwd).active_work_item?.test_process?.id).toBe('web');
+    const selected = selectTestProcess(cwd, 'typescript', ['shell']);
+    expect(selected.active_work_item?.test_plan?.processes[0]?.id).toBe('web');
+    expect(readState(cwd).active_work_item?.test_plan?.processes).toHaveLength(
+      1,
+    );
   });
 });

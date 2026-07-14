@@ -9,97 +9,36 @@ import { join } from 'node:path';
 import { createCodingGitBaseline } from '../evidence/model-and-code';
 import { assertScenarioProcessSelection } from '../evidence/knowledge';
 import {
+  catalogTestProcessDirectory,
+  matchingTestProcessesInDirectories,
+} from '../testing/process-catalog';
+import {
   artifactPath,
   artifactRelativePath,
   assertIterationId,
 } from './iteration-paths';
-import { DEFAULT_STATE, PHASE_ORDER } from './phase-catalog';
-import {
-  catalogTestProcessDirectory,
-  matchingTestProcessesInDirectories,
-} from '../testing/process-catalog';
+import { DEFAULT_STATE, IDLE_STATE, PHASE_ORDER } from './phase-catalog';
 import type {
+  ActivePhase,
   ActiveWorkItem,
   ClarificationRecord,
-  ClarificationStoryOutcomeProposal,
   Phase,
   TestProcessRuntime,
   TestProcessSelection,
   WorkflowState,
 } from './types';
 
-const CONFIGURABLE_PHASES = new Set(
-  PHASE_ORDER.filter((phase) => phase !== 'complete'),
-);
-const STORY_ID_PATTERN = /^US-\d{3,}$/;
-const CLARIFICATION_TARGETS = new Set(['business_context', 'story', 'history']);
-const CLARIFICATION_STORY_OUTCOMES = new Set([
-  'clarified',
-  'needs_split',
-  'deferred',
+const ACTIVE_PHASES = new Set<ActivePhase>([
+  'kickoff',
+  'discover',
+  'model',
+  'design',
+  'build',
+  'showcase',
+  'learn',
 ]);
-
-function isValidClarificationOutcomeProposal(
-  proposal: ClarificationStoryOutcomeProposal,
-): boolean {
-  return (
-    STORY_ID_PATTERN.test(proposal.story_id) &&
-    CLARIFICATION_STORY_OUTCOMES.has(proposal.outcome) &&
-    typeof proposal.summary === 'string' &&
-    Boolean(proposal.summary.trim()) &&
-    typeof proposal.proposed_at === 'string' &&
-    Boolean(proposal.proposed_at)
-  );
-}
-
-function isValidClarificationBase(clarification: ClarificationRecord): boolean {
-  return (
-    typeof clarification.question_id === 'string' &&
-    Boolean(clarification.question_id.trim()) &&
-    STORY_ID_PATTERN.test(clarification.story_id) &&
-    typeof clarification.question === 'string' &&
-    Boolean(clarification.question.trim()) &&
-    CLARIFICATION_TARGETS.has(clarification.target) &&
-    typeof clarification.asked_at === 'string' &&
-    Boolean(clarification.asked_at)
-  );
-}
-
-function isValidPendingClarification(
-  clarification: ClarificationRecord,
-): boolean {
-  return (
-    isValidClarificationBase(clarification) &&
-    clarification.answer === undefined &&
-    clarification.answered_at === undefined &&
-    clarification.waived_by === undefined &&
-    clarification.waived_reason === undefined &&
-    clarification.waived_at === undefined
-  );
-}
-
-function isValidClarificationHistoryRecord(
-  clarification: ClarificationRecord,
-): boolean {
-  if (!isValidClarificationBase(clarification)) return false;
-  const answered =
-    typeof clarification.answer === 'string' &&
-    Boolean(clarification.answer.trim()) &&
-    typeof clarification.answered_at === 'string' &&
-    Boolean(clarification.answered_at) &&
-    clarification.waived_by === undefined &&
-    clarification.waived_reason === undefined &&
-    clarification.waived_at === undefined;
-  const waived =
-    clarification.answer === undefined &&
-    clarification.answered_at === undefined &&
-    clarification.waived_by === 'human' &&
-    typeof clarification.waived_reason === 'string' &&
-    Boolean(clarification.waived_reason.trim()) &&
-    typeof clarification.waived_at === 'string' &&
-    Boolean(clarification.waived_at);
-  return answered || waived;
-}
+const STORY_ID_PATTERN = /^US-\d{3,}$/;
+const SCENARIO_ID_PATTERN = /^SC-\d{3,}$/;
 
 export function statePath(cwd: string): string {
   return join(cwd, 'evidence-state.json');
@@ -110,229 +49,155 @@ function readJsonFile<T>(path: string): T | undefined {
   return JSON.parse(readFileSync(path, 'utf8')) as T;
 }
 
-export function normalizeState(state: WorkflowState): WorkflowState {
-  const phase = state.phase as string;
-  if (!PHASE_ORDER.includes(phase as Phase)) {
-    throw new Error(`Unsupported Evidence Orchestrator phase: ${phase}.`);
-  }
-  for (const gatePhase of Object.keys(state.gate_config ?? {})) {
-    if (!CONFIGURABLE_PHASES.has(gatePhase as Phase)) {
-      throw new Error(
-        `Unsupported Evidence Orchestrator gate configuration: ${gatePhase}.`,
-      );
+function validQuestionBase(record: ClarificationRecord): boolean {
+  return (
+    /^Q-\d{3,}$/.test(record.question_id) &&
+    STORY_ID_PATTERN.test(record.story_id) &&
+    typeof record.thought === 'string' &&
+    Boolean(record.thought.trim()) &&
+    typeof record.question === 'string' &&
+    Boolean(record.question.trim()) &&
+    typeof record.asked_at === 'string' &&
+    Boolean(record.asked_at)
+  );
+}
+
+function validateClarifications(state: WorkflowState): void {
+  const pending = state.pending_clarification;
+  if (pending) {
+    if (
+      state.phase !== 'discover' ||
+      !validQuestionBase(pending) ||
+      pending.answer !== undefined ||
+      pending.answered_at !== undefined
+    ) {
+      throw new Error('The pending TQA clarification is invalid.');
     }
   }
-  const iterationId = state.iteration_id ?? DEFAULT_STATE.iteration_id;
-  assertIterationId(iterationId);
-  if (state.active_clarification_story && phase !== 'clarify') {
-    throw new Error(
-      'An active clarification story is only valid while the workflow is in clarify.',
-    );
-  }
-  if (
-    state.active_clarification_story &&
-    (!STORY_ID_PATTERN.test(state.active_clarification_story.story_id) ||
-      typeof state.active_clarification_story.selected_at !== 'string' ||
-      !state.active_clarification_story.selected_at)
-  ) {
-    throw new Error('The active clarification story is invalid.');
-  }
-  const activeStoryId = state.active_clarification_story?.story_id;
-  const proposedOutcome = state.proposed_clarification_story_outcome;
-  const pausedProposals =
-    state.paused_clarification_story_outcome_proposals ?? [];
-  const allProposals = [
-    ...(proposedOutcome ? [proposedOutcome] : []),
-    ...pausedProposals,
-  ];
-  if (allProposals.length > 0 && phase !== 'clarify') {
-    throw new Error(
-      'A proposed clarification story outcome is only valid while the workflow is in clarify.',
-    );
-  }
-  if (
-    allProposals.some(
-      (proposal) => !isValidClarificationOutcomeProposal(proposal),
-    ) ||
-    new Set(allProposals.map(({ story_id }) => story_id)).size !==
-      allProposals.length
-  ) {
-    throw new Error('The proposed clarification story outcomes are invalid.');
-  }
-  if (proposedOutcome && proposedOutcome.story_id !== activeStoryId) {
-    throw new Error(
-      'A proposed clarification story outcome must belong to the active clarification story.',
-    );
-  }
-  if (pausedProposals.some(({ story_id }) => story_id === activeStoryId)) {
-    throw new Error(
-      'A paused clarification story outcome proposal must not belong to the active clarification story.',
-    );
-  }
 
-  const clarificationOutcomes = state.clarification_story_outcomes ?? [];
+  const history = state.clarification_history ?? [];
   if (
-    new Set(clarificationOutcomes.map(({ story_id }) => story_id)).size !==
-      clarificationOutcomes.length ||
-    clarificationOutcomes.some((record) => {
-      const {
-        story_id,
-        outcome,
-        summary,
-        completed_at,
-        decided_by,
-        confirmed_at,
-        proposal,
-      } = record;
-      const invalidBase =
-        !STORY_ID_PATTERN.test(story_id) ||
-        !CLARIFICATION_STORY_OUTCOMES.has(outcome) ||
-        typeof summary !== 'string' ||
-        !summary.trim() ||
-        typeof completed_at !== 'string' ||
-        !completed_at;
-      if (invalidBase) return true;
-      if (decided_by === undefined) {
-        return confirmed_at !== undefined || proposal !== undefined;
-      }
-      return (
-        decided_by !== 'human' ||
-        typeof confirmed_at !== 'string' ||
-        !confirmed_at ||
-        (proposal !== undefined &&
-          (proposal.story_id !== story_id ||
-            !isValidClarificationOutcomeProposal(proposal)))
+    history.some(
+      (record) =>
+        !validQuestionBase(record) ||
+        typeof record.answer !== 'string' ||
+        !record.answer.trim() ||
+        typeof record.answered_at !== 'string' ||
+        !record.answered_at,
+    ) ||
+    new Set(history.map(({ question_id }) => question_id)).size !==
+      history.length ||
+    (pending &&
+      history.some(({ question_id }) => question_id === pending.question_id))
+  ) {
+    throw new Error('The answered TQA clarification history is invalid.');
+  }
+}
+
+function validateWorkItem(workItem: ActiveWorkItem): void {
+  if (
+    !STORY_ID_PATTERN.test(workItem.story_id) ||
+    !SCENARIO_ID_PATTERN.test(workItem.scenario_id) ||
+    typeof workItem.git_baseline !== 'string' ||
+    !workItem.git_baseline
+  ) {
+    throw new Error('The active build work item is invalid.');
+  }
+  if (workItem.test_plan) {
+    if (
+      workItem.test_plan.version !== 1 ||
+      !Array.isArray(workItem.test_plan.processes) ||
+      workItem.test_plan.processes.length === 0 ||
+      new Set(workItem.test_plan.processes.map(({ id }) => id)).size !==
+        workItem.test_plan.processes.length
+    ) {
+      throw new Error('The active build test plan is invalid.');
+    }
+  }
+}
+
+export function normalizeState(state: WorkflowState): WorkflowState {
+  if (state.version !== 2) {
+    throw new Error(
+      'Unsupported Evidence Orchestrator state schema. Start a new v2 iteration; legacy state is not migrated.',
+    );
+  }
+  if (!PHASE_ORDER.includes(state.phase as Phase)) {
+    throw new Error(`Unsupported Evidence Orchestrator phase: ${state.phase}.`);
+  }
+  if (state.phase === 'idle') {
+    if (state.iteration_id !== null) {
+      throw new Error('Idle workflow state must not identify an iteration.');
+    }
+  } else {
+    if (!state.iteration_id) {
+      throw new Error(
+        `Workflow phase ${state.phase} requires an iteration id.`,
       );
-    })
-  ) {
-    throw new Error('Clarification story outcomes are invalid.');
+    }
+    assertIterationId(state.iteration_id);
   }
-  const completedStoryIds = new Set(
-    clarificationOutcomes.map(({ story_id }) => story_id),
-  );
-  if (activeStoryId && completedStoryIds.has(activeStoryId)) {
+
+  const configuredPhases = Object.keys(state.gate_config ?? {});
+  if (
+    configuredPhases.length !== ACTIVE_PHASES.size ||
+    configuredPhases.some((phase) => !ACTIVE_PHASES.has(phase as ActivePhase))
+  ) {
     throw new Error(
-      'The active clarification story cannot already have an outcome.',
+      'Evidence Orchestrator gate configuration must define exactly the active v2 phases.',
     );
   }
-  if (allProposals.some(({ story_id }) => completedStoryIds.has(story_id))) {
+  if (state.pending_gate && (state.phase === 'idle' || !state.iteration_id)) {
+    throw new Error('An idle workflow cannot have a pending gate.');
+  }
+  if (state.halted && !ACTIVE_PHASES.has(state.halted.phase)) {
+    throw new Error('The workflow halt references an invalid phase.');
+  }
+  if (state.last_failure && !ACTIVE_PHASES.has(state.last_failure.phase)) {
+    throw new Error('The last phase failure references an invalid phase.');
+  }
+  validateClarifications(state);
+  if (state.active_work_item) validateWorkItem(state.active_work_item);
+  if (
+    state.active_work_item &&
+    !['build', 'showcase', 'learn', 'complete'].includes(state.phase)
+  ) {
     throw new Error(
-      'A story with a clarification outcome cannot retain a proposed outcome.',
+      'An active work item is only valid from Build through iteration completion.',
     );
   }
 
-  const pendingClarification = state.pending_clarification;
-  const pausedClarifications = state.paused_clarifications ?? [];
-  const allPendingClarifications = [
-    ...(pendingClarification ? [pendingClarification] : []),
-    ...pausedClarifications,
-  ];
-  if (allPendingClarifications.length > 0 && phase !== 'clarify') {
-    throw new Error(
-      'A pending clarification is only valid while the workflow is in clarify.',
-    );
-  }
-  if (
-    allPendingClarifications.some(
-      (clarification) => !isValidPendingClarification(clarification),
-    ) ||
-    new Set(allPendingClarifications.map(({ question_id }) => question_id))
-      .size !== allPendingClarifications.length ||
-    new Set(allPendingClarifications.map(({ story_id }) => story_id)).size !==
-      allPendingClarifications.length
-  ) {
-    throw new Error('Pending clarifications are invalid.');
-  }
-  if (pendingClarification && pendingClarification.story_id !== activeStoryId) {
-    throw new Error(
-      'A pending clarification must belong to the active clarification story.',
-    );
-  }
-  if (pausedClarifications.some(({ story_id }) => story_id === activeStoryId)) {
-    throw new Error(
-      'A paused clarification must not belong to the active clarification story.',
-    );
-  }
-  const proposedStoryIds = new Set(
-    allProposals.map(({ story_id }) => story_id),
-  );
-  if (
-    allPendingClarifications.some(({ story_id }) =>
-      proposedStoryIds.has(story_id),
-    )
-  ) {
-    throw new Error(
-      'A clarification question and a proposed story outcome cannot both be pending for one story.',
-    );
-  }
-  if (
-    allPendingClarifications.some(({ story_id }) =>
-      completedStoryIds.has(story_id),
-    )
-  ) {
-    throw new Error(
-      'A story with a clarification outcome cannot retain a pending clarification.',
-    );
-  }
-  if (
-    state.clarification_history?.some(
-      (record) => !isValidClarificationHistoryRecord(record),
-    )
-  ) {
-    throw new Error(
-      'Clarification history may only contain answered or human-waived exchanges.',
-    );
-  }
   return {
-    iteration_id: iterationId,
-    phase: phase as Phase,
-    round: state.round ?? DEFAULT_STATE.round,
-    pending_gate: state.pending_gate ?? DEFAULT_STATE.pending_gate,
-    failures: state.failures ?? DEFAULT_STATE.failures,
-    max_rounds: state.max_rounds ?? DEFAULT_STATE.max_rounds,
-    artifacts: state.artifacts ?? DEFAULT_STATE.artifacts,
-    gate_config: { ...DEFAULT_STATE.gate_config, ...(state.gate_config ?? {}) },
+    version: 2,
+    iteration_id: state.iteration_id,
+    phase: state.phase,
+    round: state.round ?? 0,
+    pending_gate: state.pending_gate ?? null,
+    failures: state.failures ?? 0,
+    max_rounds: state.max_rounds ?? 5,
+    artifacts: state.artifacts ?? [],
+    gate_config: { ...state.gate_config },
     ...(state.requirement_source
       ? { requirement_source: state.requirement_source }
       : {}),
     ...(state.active_work_item
       ? { active_work_item: state.active_work_item }
       : {}),
-    ...(state.active_clarification_story
-      ? { active_clarification_story: state.active_clarification_story }
-      : {}),
-    ...(state.proposed_clarification_story_outcome
-      ? {
-          proposed_clarification_story_outcome:
-            state.proposed_clarification_story_outcome,
-        }
-      : {}),
-    ...(pausedProposals.length > 0
-      ? {
-          paused_clarification_story_outcome_proposals: pausedProposals,
-        }
-      : {}),
-    ...(state.clarification_story_outcomes
-      ? { clarification_story_outcomes: state.clarification_story_outcomes }
-      : {}),
     ...(state.pending_clarification
       ? { pending_clarification: state.pending_clarification }
-      : {}),
-    ...(pausedClarifications.length > 0
-      ? { paused_clarifications: pausedClarifications }
       : {}),
     ...(state.clarification_history
       ? { clarification_history: state.clarification_history }
       : {}),
     ...(state.last_failure ? { last_failure: state.last_failure } : {}),
     ...(state.halted ? { halted: state.halted } : {}),
-    pi: { enabled: true, version: 4, ...(state.pi ?? {}) },
+    pi: { enabled: true, version: 6, ...(state.pi ?? {}) },
   };
 }
 
 export function readState(cwd: string): WorkflowState {
   return normalizeState(
-    readJsonFile<WorkflowState>(statePath(cwd)) ?? DEFAULT_STATE,
+    readJsonFile<WorkflowState>(statePath(cwd)) ?? IDLE_STATE,
   );
 }
 
@@ -342,15 +207,14 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   return normalized;
 }
 
-/**
- * Legacy local-state initialization is intentionally disabled. Requirements must
- * be frozen from an Issue by startIterationFromIssue before any active phase runs.
- */
-export function newIterationState(cwd: string): never {
-  void cwd;
-  throw new Error(
-    'Local iteration initialization is disabled. Select a GitHub Issue with /evidence-new.',
-  );
+/** Construct a clean Issue-backed iteration state without legacy projections. */
+export function initialIterationState(iterationId: string): WorkflowState {
+  assertIterationId(iterationId);
+  return normalizeState({
+    ...DEFAULT_STATE,
+    iteration_id: iterationId,
+    gate_config: { ...DEFAULT_STATE.gate_config },
+  });
 }
 
 export function selectWorkItem(
@@ -359,33 +223,41 @@ export function selectWorkItem(
   scenarioId: string,
 ): WorkflowState {
   const state = readState(cwd);
-  if (state.phase !== 'coding') {
+  if (state.phase !== 'build') {
     throw new Error(
-      `Cannot select a work item: current phase is ${state.phase}.`,
+      `Cannot select a work item: current phase is ${state.phase}; expected build.`,
     );
   }
-  if (!/^US-\d{3,}$/i.test(storyId)) {
+  const normalizedStoryId = storyId.trim().toUpperCase();
+  const normalizedScenarioId = scenarioId.trim().toUpperCase();
+  if (!STORY_ID_PATTERN.test(normalizedStoryId)) {
     throw new Error(`Invalid story id: ${storyId}. Expected US-xxx.`);
   }
-  if (!/^SC-\d{3,}$/i.test(scenarioId)) {
+  if (!SCENARIO_ID_PATTERN.test(normalizedScenarioId)) {
     throw new Error(`Invalid scenario id: ${scenarioId}. Expected SC-xxx.`);
   }
+  const scenario = artifactPath(
+    cwd,
+    state,
+    `artifacts/02-discovery/examples/${normalizedStoryId}-${normalizedScenarioId}.md`,
+  );
+  if (!existsSync(scenario)) {
+    throw new Error(
+      `Cannot select ${normalizedStoryId}/${normalizedScenarioId}: acceptance example is missing.`,
+    );
+  }
   const active_work_item: ActiveWorkItem = {
-    story_id: storyId.toUpperCase(),
-    scenario_id: scenarioId.toUpperCase(),
+    story_id: normalizedStoryId,
+    scenario_id: normalizedScenarioId,
     git_baseline: createCodingGitBaseline(cwd),
   };
   return writeState(cwd, { ...state, active_work_item });
 }
 
-/** Return the ordered selected processes, supporting legacy single-process evidence. */
 export function selectedTestProcesses(
   workItem: ActiveWorkItem,
 ): TestProcessSelection[] {
-  return (
-    workItem.test_plan?.processes ??
-    (workItem.test_process ? [workItem.test_process] : [])
-  );
+  return workItem.test_plan?.processes ?? [];
 }
 
 function snapshotCatalogProcess(
@@ -399,27 +271,28 @@ function snapshotCatalogProcess(
   const targetDirectory = artifactPath(
     cwd,
     state,
-    'artifacts/03-architecture/selected-test-processes',
+    'artifacts/04-design/selected-test-processes',
   );
-  const target = `${targetDirectory}/${path.split('/').at(-1)}`;
+  const fileName = path.split('/').at(-1);
+  if (!fileName) throw new Error(`Invalid test process path: ${path}.`);
+  const target = `${targetDirectory}/${fileName}`;
   mkdirSync(targetDirectory, { recursive: true });
   if (!existsSync(target)) copyFileSync(source, target);
   return artifactRelativePath(
     state,
-    `artifacts/03-architecture/selected-test-processes/${path.split('/').at(-1)}`,
+    `artifacts/04-design/selected-test-processes/${fileName}`,
   );
 }
 
-/** Bind one uniquely matching reusable process; repeat for each runtime in a vertical scenario. */
 export function selectTestProcess(
   cwd: string,
   runtime: TestProcessRuntime,
   functionalContexts: string[],
 ): WorkflowState {
   const state = readState(cwd);
-  if (state.phase !== 'coding') {
+  if (state.phase !== 'build') {
     throw new Error(
-      `Cannot select a test process: current phase is ${state.phase}.`,
+      `Cannot select a test process: current phase is ${state.phase}; expected build.`,
     );
   }
   if (!state.active_work_item) {
@@ -429,16 +302,7 @@ export function selectTestProcess(
   }
   const candidates = matchingTestProcessesInDirectories(
     cwd,
-    [
-      artifactPath(
-        cwd,
-        state,
-        'artifacts/03-architecture/selected-test-processes',
-      ),
-      // Backward-compatible search for immutable pre-migration iterations.
-      artifactPath(cwd, state, 'artifacts/03-architecture/test-processes'),
-      catalogTestProcessDirectory(cwd),
-    ],
+    [catalogTestProcessDirectory(cwd)],
     runtime,
     functionalContexts,
   );
@@ -453,21 +317,22 @@ export function selectTestProcess(
     );
   }
   const candidate = candidates[0];
-  if (!candidate) {
+  if (!candidate)
     throw new Error('A uniquely matching test process was not found.');
-  }
-  if (state.pi?.execution_evidence_version === 1) {
-    assertScenarioProcessSelection(
-      artifactPath(
-        cwd,
-        state,
-        'artifacts/03-architecture/scenario-context-map.json',
-      ),
-      state.active_work_item.story_id,
-      state.active_work_item.scenario_id,
-      runtime,
-      functionalContexts,
-      candidate.definition.id,
+
+  assertScenarioProcessSelection(
+    artifactPath(cwd, state, 'artifacts/04-design/scenario-context-map.json'),
+    state.active_work_item.story_id,
+    state.active_work_item.scenario_id,
+    runtime,
+    functionalContexts,
+    candidate.definition.id,
+  );
+
+  const selected = selectedTestProcesses(state.active_work_item);
+  if (selected.some(({ id }) => id === candidate.definition.id)) {
+    throw new Error(
+      `Test process ${candidate.definition.id} is already selected for this work item.`,
     );
   }
   const selection: TestProcessSelection = {
@@ -476,23 +341,11 @@ export function selectTestProcess(
     runtime,
     functional_contexts: [...functionalContexts],
   };
-  const selected = selectedTestProcesses(state.active_work_item);
-  if (selected.some(({ id }) => id === selection.id)) {
-    throw new Error(
-      `Test process ${selection.id} is already selected for this work item.`,
-    );
-  }
-  const active_work_item: ActiveWorkItem = {
-    ...state.active_work_item,
-    // Keep the singleton projection until all consumers have migrated.
-    ...(selected.length === 0 ? { test_process: selection } : {}),
-    test_plan: {
-      version: 1,
-      ...(state.pi?.execution_evidence_version === 1
-        ? { execution_evidence_version: 1 as const }
-        : {}),
-      processes: [...selected, selection],
+  return writeState(cwd, {
+    ...state,
+    active_work_item: {
+      ...state.active_work_item,
+      test_plan: { version: 1, processes: [...selected, selection] },
     },
-  };
-  return writeState(cwd, { ...state, active_work_item });
+  });
 }

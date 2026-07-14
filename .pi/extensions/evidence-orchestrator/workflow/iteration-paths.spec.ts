@@ -14,10 +14,10 @@ describe('iteration', () => {
     expect(
       artifactRelativePath(
         DEFAULT_STATE,
-        'artifacts/03-architecture/test-processes/rust.json',
+        'artifacts/04-design/selected-test-processes/rust.json',
       ),
     ).toBe(
-      'artifacts/iterations/ITER-0001/03-architecture/test-processes/rust.json',
+      'artifacts/iterations/ITER-0001/04-design/selected-test-processes/rust.json',
     );
   });
 

@@ -1,27 +1,23 @@
 {
-  "iteration_id": "ITER-0001",
-  "phase": "complete",
+  "version": 2,
+  "iteration_id": null,
+  "phase": "idle",
   "round": 0,
   "pending_gate": null,
   "failures": 0,
   "max_rounds": 5,
   "artifacts": [],
   "gate_config": {
-    "frame": "auto",
-    "clarify": "auto",
-    "specify": "auto",
-    "validate": "review",
-    "domain_model": "review",
-    "architecture": "review",
-    "planning": "auto",
-    "coding": "auto",
-    "review": "review",
+    "kickoff": "review",
+    "discover": "auto",
+    "model": "review",
+    "design": "auto",
+    "build": "auto",
+    "showcase": "review",
     "learn": "auto"
   },
   "pi": {
     "enabled": true,
-    "version": 4,
-    "last_command": "bootstrap iteration archived; use /evidence-new",
-    "last_run_at": "2026-07-11T23:47:42.373Z"
+    "version": 6
   }
 }

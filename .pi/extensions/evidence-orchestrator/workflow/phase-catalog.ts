@@ -1,141 +1,117 @@
-import type { GateMode, Phase, PhaseMeta, WorkflowState } from './types';
+import type {
+  ActivePhase,
+  GateMode,
+  Phase,
+  PhaseMeta,
+  WorkflowState,
+} from './types';
 
 export const PHASE_ORDER: Phase[] = [
-  'frame',
-  'clarify',
-  'specify',
-  'validate',
-  'domain_model',
-  'architecture',
-  'planning',
-  'coding',
-  'review',
+  'idle',
+  'kickoff',
+  'discover',
+  'model',
+  'design',
+  'build',
+  'showcase',
   'learn',
   'complete',
 ];
 
+const GATE_CONFIG: Record<ActivePhase, GateMode> = {
+  kickoff: 'review',
+  discover: 'auto',
+  model: 'review',
+  design: 'auto',
+  build: 'auto',
+  showcase: 'review',
+  learn: 'auto',
+};
+
+/** State used after a GitHub Issue has been frozen for a new iteration. */
 export const DEFAULT_STATE: WorkflowState = {
+  version: 2,
   iteration_id: 'ITER-0001',
-  phase: 'frame',
+  phase: 'kickoff',
   round: 0,
   pending_gate: null,
   failures: 0,
   max_rounds: 5,
   artifacts: [],
-  gate_config: {
-    frame: 'auto',
-    clarify: 'auto',
-    specify: 'auto',
-    validate: 'review',
-    domain_model: 'review',
-    architecture: 'review',
-    planning: 'auto',
-    coding: 'auto',
-    review: 'review',
-    learn: 'auto',
-  } satisfies Record<string, GateMode>,
+  gate_config: { ...GATE_CONFIG },
   pi: {
     enabled: true,
-    version: 4,
+    version: 6,
   },
 };
 
-export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
-  frame: {
-    title: '问题框定 — Design Thinking',
+/** State used when the checkout has no active or completed v2 iteration. */
+export const IDLE_STATE: WorkflowState = {
+  ...DEFAULT_STATE,
+  iteration_id: null,
+  phase: 'idle',
+};
+
+export const PHASE_META: Record<ActivePhase, PhaseMeta> = {
+  kickoff: {
+    title: '单 Story Kickoff',
     inputs: [
-      'artifacts/00-user-input/requirements.md',
+      'artifacts/00-input/requirements.md',
       'docs/knowledge-governance.md',
       'docs/product/personas.md',
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
       'docs/product/story-map.md',
+      'engineering/evidence-orchestrator/delivery-journey.md',
+      'engineering/evidence-orchestrator/knowledge-process-principles.md',
     ],
     outputs: [
-      'artifacts/01-requirements/problem-statement.md',
-      'artifacts/01-requirements/product-context-delta.md',
-      'artifacts/01-requirements/journey-slice.md',
-      'artifacts/01-requirements/story-map-delta.md',
-      'artifacts/01-requirements/stories/',
+      'artifacts/01-kickoff/kickoff.md',
+      'artifacts/01-kickoff/story.md',
     ],
-    gateId: 'GATE-101-frame',
-    gateTitle: '问题框定审核',
+    gateId: 'GATE-101-kickoff',
+    gateTitle: 'Kickoff 价值确认',
   },
-  clarify: {
-    title: '需求澄清 — TQA',
+  discover: {
+    title: 'TQA 与具体示例',
     inputs: [
+      'artifacts/01-kickoff/kickoff.md',
+      'artifacts/01-kickoff/story.md',
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
-      'docs/product/story-map.md',
-      'artifacts/01-requirements/problem-statement.md',
-      'artifacts/01-requirements/product-context-delta.md',
-      'artifacts/01-requirements/journey-slice.md',
-      'artifacts/01-requirements/story-map-delta.md',
     ],
     outputs: [
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/clarifications/',
+      'artifacts/02-discovery/discovery.md',
+      'artifacts/02-discovery/examples/',
     ],
-    gateId: 'GATE-102-clarify',
-    gateTitle: '需求澄清审核',
+    gateId: 'GATE-102-discover',
+    gateTitle: '业务理解检查',
   },
-  specify: {
-    title: '示例规格化 — Specification by Example',
+  model: {
+    title: '模型展开与检查循环',
     inputs: [
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/clarifications/',
-      'docs/product/user-journeys.md',
-      'artifacts/01-requirements/journey-slice.md',
-    ],
-    outputs: ['artifacts/01-requirements/examples/'],
-    gateId: 'GATE-103-specify',
-    gateTitle: '验收示例审核',
-  },
-  validate: {
-    title: '需求验证 — Story and Example Review',
-    inputs: [
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/examples/',
-      'docs/product/business-context.md',
-      'artifacts/01-requirements/product-context-delta.md',
-    ],
-    outputs: ['artifacts/01-requirements/requirements-validation.md'],
-    gateId: 'GATE-104-validate',
-    gateTitle: '需求验证审核',
-  },
-  domain_model: {
-    title: '领域建模与模型展开 — DDD',
-    inputs: [
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/examples/',
-      'artifacts/01-requirements/requirements-validation.md',
-      '.evidence/entities/',
-      '.evidence/associations/',
-    ],
-    outputs: [
+      'artifacts/01-kickoff/story.md',
+      'artifacts/02-discovery/discovery.md',
+      'artifacts/02-discovery/examples/',
       '.evidence/model.json',
       '.evidence/entities/',
       '.evidence/associations/',
-      'artifacts/02-domain-model/model-snapshot.json',
-      'artifacts/02-domain-model/model-delta.json',
-      'artifacts/02-domain-model/model-expansions/',
-      'artifacts/02-domain-model/tactical-design.md',
-      'artifacts/02-domain-model/validation-report.md',
     ],
-    gateId: 'GATE-105-domain-model',
-    gateTitle: '领域模型评审',
+    outputs: [
+      'artifacts/03-model/model-snapshot.json',
+      'artifacts/03-model/model-delta.json',
+      'artifacts/03-model/expansions/',
+      'artifacts/03-model/walkthrough.md',
+    ],
+    gateId: 'GATE-103-model',
+    gateTitle: '模型 Walkthrough / Desk Check',
   },
-  architecture: {
-    title: '架构与测试策略 — DDD Tactical Design',
+  design: {
+    title: '单场景交付设计',
     inputs: [
-      '.evidence/model.json',
-      '.evidence/entities/',
-      '.evidence/associations/',
-      'artifacts/02-domain-model/model-snapshot.json',
-      'artifacts/02-domain-model/model-delta.json',
-      'artifacts/02-domain-model/model-expansions/',
-      'artifacts/02-domain-model/tactical-design.md',
-      'artifacts/02-domain-model/validation-report.md',
+      'artifacts/01-kickoff/story.md',
+      'artifacts/02-discovery/examples/',
+      'artifacts/03-model/expansions/',
       'docs/architecture/context-map.md',
       'docs/architecture/architecture-style.md',
       'docs/architecture/tech-stack.md',
@@ -145,117 +121,87 @@ export const PHASE_META: Record<Exclude<Phase, 'complete'>, PhaseMeta> = {
       'contracts/api.yaml',
       'engineering/evidence-orchestrator/runtime-contexts.json',
       'engineering/evidence-orchestrator/test-processes/',
+      'engineering/evidence-orchestrator/definition-of-done.md',
     ],
     outputs: [
-      'artifacts/03-architecture/architecture-decisions.md',
-      'artifacts/03-architecture/api-contract-delta.md',
-      'artifacts/03-architecture/data-model-delta.md',
-      'artifacts/03-architecture/scenario-context-map.json',
+      'artifacts/04-design/delivery-plan.md',
+      'artifacts/04-design/scenario-context-map.json',
     ],
-    gateId: 'GATE-106-architecture',
-    gateTitle: '架构与测试策略评审',
+    gateId: 'GATE-104-design',
+    gateTitle: '单场景交付设计检查',
   },
-  planning: {
-    title: '垂直切片计划 — Scrum Planning',
+  build: {
+    title: '单场景 TDD',
     inputs: [
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/examples/',
-      'artifacts/03-architecture/scenario-context-map.json',
+      'artifacts/01-kickoff/story.md',
+      'artifacts/02-discovery/examples/',
+      'artifacts/03-model/expansions/',
+      'artifacts/04-design/delivery-plan.md',
+      'artifacts/04-design/scenario-context-map.json',
       'docs/architecture/test-strategy.md',
       'engineering/evidence-orchestrator/test-processes/',
       'engineering/evidence-orchestrator/definition-of-done.md',
     ],
-    outputs: [
-      'artifacts/04-planning/sprint-plan.md',
-      'artifacts/04-planning/sprint-1-backlog.md',
-      'artifacts/04-planning/backlog-delta.md',
-    ],
-    gateId: 'GATE-107-planning',
-    gateTitle: '垂直切片计划确认',
+    outputs: ['apps/', 'libs/', 'artifacts/05-build/'],
+    gateId: 'GATE-105-build',
+    gateTitle: 'TDD 执行检查',
   },
-  coding: {
-    title: '单场景编码与测试 — TDD',
+  showcase: {
+    title: '可运行增量 Showcase',
     inputs: [
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/examples/',
-      'artifacts/02-domain-model/model-expansions/',
-      'artifacts/03-architecture/scenario-context-map.json',
-      'docs/architecture/test-strategy.md',
-      'engineering/evidence-orchestrator/test-processes/',
-      'artifacts/04-planning/sprint-1-backlog.md',
-      'engineering/evidence-orchestrator/definition-of-done.md',
-    ],
-    outputs: ['apps/', 'libs/', 'artifacts/05-code/'],
-    gateId: 'GATE-108-code-review',
-    gateTitle: '代码审查',
-  },
-  review: {
-    title: '产品与质量评审 — Quality Gate',
-    inputs: [
+      'artifacts/01-kickoff/story.md',
+      'artifacts/02-discovery/examples/',
+      'artifacts/03-model/walkthrough.md',
+      'artifacts/05-build/',
       'apps/',
       'libs/',
-      'artifacts/05-code/',
-      'artifacts/01-requirements/examples/',
-      'docs/architecture/test-strategy.md',
       'engineering/evidence-orchestrator/definition-of-done.md',
     ],
-    outputs: ['artifacts/06-reviews/'],
-    gateId: 'GATE-109-review',
-    gateTitle: '产品与质量评审',
+    outputs: ['artifacts/06-showcase/showcase.md'],
+    gateId: 'GATE-106-showcase',
+    gateTitle: 'Showcase 价值反馈',
   },
   learn: {
-    title: '学习与下一轮迭代 — Probe Sense Respond',
+    title: 'Probe / Sense / Respond',
     inputs: [
-      'artifacts/06-reviews/',
-      'artifacts/01-requirements/stories/',
-      'artifacts/01-requirements/product-context-delta.md',
-      'artifacts/01-requirements/story-map-delta.md',
-      '.evidence/model.json',
-      'artifacts/02-domain-model/model-delta.json',
-      'artifacts/02-domain-model/validation-report.md',
-      'artifacts/03-architecture/architecture-decisions.md',
-      'artifacts/03-architecture/api-contract-delta.md',
-      'artifacts/03-architecture/data-model-delta.md',
-      'artifacts/04-planning/backlog-delta.md',
+      'artifacts/01-kickoff/kickoff.md',
+      'artifacts/02-discovery/discovery.md',
+      'artifacts/03-model/model-delta.json',
+      'artifacts/04-design/delivery-plan.md',
+      'artifacts/06-showcase/showcase.md',
     ],
     outputs: [
-      'artifacts/07-learning/iteration-summary.md',
-      'artifacts/07-learning/knowledge-promotion.json',
-      'artifacts/07-learning/next-iteration.md',
+      'artifacts/07-learn/iteration-summary.md',
+      'artifacts/07-learn/knowledge-promotion.json',
+      'artifacts/07-learn/next-issue.md',
     ],
-    gateId: 'GATE-110-learning',
-    gateTitle: '下一轮迭代确认',
+    gateId: 'GATE-107-learn',
+    gateTitle: '学习闭环检查',
   },
 };
 
-export function nextPhase(phase: Phase): Phase {
+export function nextPhase(phase: ActivePhase): Exclude<Phase, 'idle'> {
   const index = PHASE_ORDER.indexOf(phase);
-  return PHASE_ORDER[Math.min(index + 1, PHASE_ORDER.length - 1)] ?? 'complete';
+  const next = PHASE_ORDER[index + 1];
+  if (!next || next === 'idle') return 'complete';
+  return next;
 }
 
-export function phaseSpecificInstructions(
-  phase: Exclude<Phase, 'complete'>,
-): string {
+export function phaseSpecificInstructions(phase: ActivePhase): string {
   switch (phase) {
-    case 'frame':
-      return `- 先读取 docs/knowledge-governance.md 与 docs/product/ 的产品级画像、业务上下文、核心旅程和故事地图；它们是统一基线。引用时写路径及相关标题、活动或步骤 ID，绝不复制基线表格、列表或正文。\n- 以角色 + 价值定义本轮问题，避免把 API、HAL、数据库或测试框架伪装成用户价值。problem-statement 是本轮共享上下文；除故事卡表达 Card 所需的角色、目标和价值外，其余 requirements 工件只引用它，不重复角色、价值、范围或非目标。\n- product-context-delta 只记录候选新增、修正或删除的产品知识及其依据、影响和待验证事项；不得写“无变化”行。\n- journey-slice 只标识受影响的基线旅程步骤，并记录本轮改变的路径、可观察结果与边界；不得重述完整旅程。\n- 用户故事遵循 3C（Card、Conversation、Confirmation）：stories/ 只承载简短 Card，clarifications/ 承载 Conversation，examples/ 承载 Confirmation。\n- 在 artifacts/01-requirements/stories/US-xxx.md 为每个候选 P0/P1 建立故事卡；每张卡仅保留带 US ID 的标题、角色、可协商的目标和价值，以及 problem-statement 上下文链接。不得包含元数据表、优先级依据、非目标或预生成的待澄清问题列表。优先级只写入 story-map-delta，共享范围与非目标只写入 problem-statement；story-map-delta 直接引用相同的 US-xxx ID，不得使用等待 clarify 再映射的临时候选 ID，也不得重述完整活动主干或列出未变化活动。\n- 所有候选知识和故事卡在后续澄清、验证与 learn 提升前都不是产品事实。`;
-    case 'clarify':
-      return `- stories/ 中的 US-xxx.md 由 frame 生成；clarify 不再批量生成故事卡。仅为兼容已进入 clarify 且没有故事卡的旧迭代，允许依据既有 frame 工件补建一次，然后停止等待人类选择。\n- 人类可通过 evidence_orchestrator_select_story 或 /evidence-story 随时选择或切换到任一未完成故事；切换会按 Story 暂停并恢复待答问题或待确认建议。每次运行仍只澄清当前故事，不得读取、修改、提问或结束其他故事。\n- 根据业务上下文、当前故事和澄清历史动态选择仍不清楚的最高价值业务问题；不得从故事卡中的预置问题清单逐项照问。使用 TQA（Thought-Question-Answer）一次只提出一个非技术业务问题。调用 evidence_orchestrator_ask_question 后必须停止，等待领域专家明确回答；不得自问自答或继续运行工作流。\n- 收到用户明确答案后，调用 evidence_orchestrator_answer_question。目标为 business_context 的答案追加到本轮 product-context-delta.md，不得直接修改 docs/product/business-context.md；story 只修正对应故事的角色、可协商目标或价值；history 仅保留澄清历史，不得向故事卡追加问题列表。\n- 当前故事已足够清晰、需要拆分或应暂缓时，AI 只调用 evidence_orchestrator_propose_story_outcome 提出 clarified、needs_split 或 deferred 建议并停止。建议不会释放 Story；领域专家可通过 /evidence-story-complete 确认、覆盖、拒绝建议，或在没有建议时直接决定结论。\n- 未经人类确认的建议会阻止对应 Story 继续运行和完成 clarify，但不阻止人类切换到其他 Story。每个最终结论记录 decided_by=human 和确认时间；有 AI 建议时同时保留原始建议，无建议时允许人工直接结案。所有故事均有人工确认的结论后才能完成 clarify。\n- 每个问答写入 artifacts/01-requirements/clarifications/ 的 Markdown 和 JSON；每个 Story 最多保留一个待答问题，切换后可并行暂停多个 Story。待答问题会阻止工作流进入下一阶段；若领域专家直接结束该 Story，则问题以人工放弃及其理由保留在历史中。`;
-    case 'specify':
-      return `- 将 clarification_story_outcomes 中所有最终结论为 clarified 的 Story 作为同一次 Specify 的完整批处理范围；不得只处理最后确认的 Story 或任意子集。needs_split 与 deferred Story 在重新澄清并获得 clarified 结论前不进入规格化。\n- examples/ 是用户故事 3C 中的 Confirmation。对批处理范围内每个 Story，在 artifacts/01-requirements/examples/ 至少写一个 US-xxx-SC-xxx.md 示例；沟通确认后的示例才定义故事的具体功能范围。\n- 每个示例必须是具体的 Given/When/Then，包含可观察结果和关键业务数据。仅为已确认范围内的业务规则补充必要的失败或边界场景；非目标不是反向验收需求，不得为未要求或不存在的功能创建示例。不要写实现步骤。`;
-    case 'validate':
-      return `- 审核故事是否仍以角色和价值定义问题，验收示例是否覆盖已确认范围内的关键成功及必要失败/边界行为；不得要求用反向示例证明非目标功能不存在。\n- 输出 requirements-validation.md，逐项标注 Ready、需澄清或需拆分；只有 Ready 故事可作为领域模型的验证集。`;
-    case 'domain_model':
-      return `- .evidence/ 是当前项目长期演进的权威领域模型，同时是本阶段输入和输出。先读取现有模型并尝试展开 Ready 场景；只有发现概念缺失、关系错置或生命周期错误时才修改模型。\n- .evidence/model.json 必须声明 version=1、project_name 和 purpose；实体与关联使用稳定 frontmatter id，关联的 source/target 必须引用现有实体。\n- artifacts/02-domain-model/ 只记录本轮证据：model-snapshot.json（Git baseline、model_root、完整 included_paths）、model-delta.json（与 Git 实际变化一致的 added/changed/removed 和原因）、tactical-design.md、validation-report.md。不得再维护一套与 .evidence 重复的领域模型。\n- 对每个 Ready 场景生成 model-expansions/US-xxx-SC-xxx.json（version=1），以 model_refs.entities/associations 引用 .evidence 稳定 ID，并记录 Given、When、Then、不变量和时间线。`;
-    case 'architecture':
-      return `- 读取 docs/architecture/、contracts/api.yaml 和 engineering/evidence-orchestrator/，不得在 iteration 复制完整架构、技术栈、API、数据模型、测试策略或工序。\n- architecture-decisions.md 只记录本场景新增或偏离既有架构的决策；无变化也要明确记录。api-contract-delta.md 与 data-model-delta.md 只描述本轮增量及对应权威源码路径。\n- scenario-context-map.json（version=1）把每个 Ready 场景映射到 owning runtimes、完整 functional contexts、Q2/Q1 测试意图、测试替身和候选目录工序。\n- 目录未覆盖时才修改 engineering/evidence-orchestrator/test-processes/；具体工序由 coding 选择后快照到 selected-test-processes/。`;
-    case 'planning':
-      return `- 以垂直切片规划，不把“检查现有代码”当作交付任务。\n- GitHub Issues/Projects 是 Product Backlog 权威来源；iteration 仅输出 sprint-plan、sprint-1-backlog 和 backlog-delta，不复制完整 Product Backlog。\n- engineering/evidence-orchestrator/definition-of-done.md 是统一 DoD；本轮只引用其版本并在 sprint backlog 记录额外完成条件。\n- 每一个已计划场景必须追踪：SC-xxx → Q2 验收测试 → 功能上下文 → Q1 测试 → 测试替身 → 实现任务。没有已确认 SC-xxx 的功能不进入实现或测试计划，非目标不产生反向任务。Sprint 1 只选择一个可验证的最小场景切片。`;
-    case 'coding':
-      return `- 每次 coding 只能实现当前 active work item 指定的一个 US-xxx / SC-xxx；未选择时先调用 evidence_orchestrator_select_work_item，不能修改业务代码。选择工作项会记录 Git baseline，若 apps/ 或 libs/ 已有未提交变更必须先处理。\n- 没有对应验收场景的功能，不得生成测试代码或生产代码；非目标不产生反向测试。已确认范围内的拒绝或边界行为仍属于对应 SC-xxx，按该场景测试。\n- 选择场景后、修改代码前，必须为每个 owning runtime 调用 evidence_orchestrator_select_test_process，以 runtime 和完整 functional contexts 唯一匹配 JSON 工序；零个或多个匹配都必须回到架构修正，不能自行挑选。多个 runtime 的选择顺序构成该场景的 test_plan。\n- 严格按对应 test plan 的每一个 process/step 执行 Red：先写该场景测试并运行确认预期行为失败；Green：最小真实实现；Refactor：保持全部相关测试通过。Issue 驱动 iteration 必须使用 evidence_orchestrator_run_test_step 执行工序声明命令，不能手填退出码。\n- 除 Markdown 外，在 artifacts/05-code/<US-xxx>/<SC-xxx>.json 写 version=1 机器证据：work_item（含 git_baseline 与 test_plan）、SC→Q2→functional contexts→Q1→test double→每个 process step 的 tests/TDD、process quality_gates、changed_code_paths，以及总 Red（非零且 expected_failure=true）/Green（0）/Refactor（0）的命令和退出码。Git 变更必须包含至少一个测试文件和一个生产代码文件。`;
-    case 'review':
-      return `- 对照具体 SC-xxx 的验收示例、模型展开、测试策略、测试工序和 DoD 审查代码。\n- 输出 artifacts/06-reviews/review-round<round>.md，明确 Critical / Major / Minor、实际命令结果及是否验证了用户价值。`;
+    case 'kickoff':
+      return `- 从冻结 Issue 中只选择一个现在值得解决的问题，不生成候选 Story 队列。若 Issue 太大，在 kickoff.md 记录留在 GitHub backlog 的其余范围。\n- story.md 必须且只能定义一张带稳定 US-xxx ID 的 Card：角色、问题/目标、价值、成功信号；不要预写问题、验收示例、实现方案或优先级表。\n- kickoff.md 记录本轮问题、价值假设、受影响产品旅程、边界和非目标，并引用产品基线而非复制它。\n- 完成后由人类 Gate 判断这个问题现在是否值得进入 Discover。`;
+    case 'discover':
+      return `- 只处理 01-kickoff/story.md 中的一张 Story。根据已有答案选择当前最高价值的业务未知，先形成 Thought，再调用 evidence_orchestrator_ask_question 提出一个非技术 Question，并立即停止。Answer 只能来自领域专家。\n- 没有高价值未知后，写 discovery.md，总结已确认规则、术语、关键数据、仍有风险及答案来源；不要把推测写成事实。\n- 在 examples/ 写至少一个具体 US-xxx-SC-xxx.md，使用 Given/When/Then 和可观察结果。只为已确认范围内的必要失败或边界行为增加场景；非目标不生成反向示例。\n- Discover 合并澄清、示例规格化和就绪检查，不再创建独立验证报告或 Story 结论状态。`;
+    case 'model':
+      return `- 先尝试用当前 .evidence 模型展开每个示例的 Given、When、Then、关系、不变量和时间线；只有解释失败时才修改权威模型。\n- model-snapshot.json 与 model-delta.json 必须基于同一 Git baseline；delta 与真实 .evidence Git 变化一致。\n- 每个示例在 expansions/ 生成一个 US-xxx-SC-xxx.json，并只引用存在的稳定模型 ID。\n- walkthrough.md 面向领域专家说明模型如何解释例子、仍需关注的反例和本轮最小模型变化；不要用战术设计文档复制模型。`;
+    case 'design':
+      return `- 从已展开示例中只选择一个最小可验收场景；其他场景返回后续 Issue，不建立并行 Sprint backlog。\n- delivery-plan.md 只记录该场景的价值切片、实现边界、架构/API/data 增量（确有变化时）、风险和完成条件。\n- scenario-context-map.json 把唯一场景映射到 owning runtimes、完整 functional contexts、Q2/Q1 测试意图、测试替身和唯一候选工序。\n- 不复制完整架构、契约、测试策略、工序或 DoD，也不生成“无变化”占位 delta。`;
+    case 'build':
+      return `- 只能实现 active work item 指定的一张 Story 和一个 Scenario；未选择时先调用 evidence_orchestrator_select_work_item。\n- 修改代码前，为每个 owning runtime 调用 evidence_orchestrator_select_test_process，以完整 functional contexts 唯一选择测试工序；零个或多个匹配都返回 Design 修正。\n- 对每个工序执行有语义的 Red → 最小 Green → 保持 Green 的 Refactor。Red 必须由聚焦测试中的预期业务断言失败造成；依赖、编译、配置或环境错误不算 Red。\n- 所有命令通过 evidence_orchestrator_run_test_step 执行并追加到 05-build/<US>/<SC>.execution.jsonl；同时提交真实测试、生产代码和机器场景证据。`;
+    case 'showcase':
+      return `- 对领域专家展示实际可运行的唯一场景，而不是只展示测试报告或代码 diff。\n- showcase.md 连接 Story 成功信号、Given/When/Then、模型解释、运行方式、观察结果、已知限制和待反馈问题；命令事实引用 execution.jsonl，不手填退出码。\n- 独立检查实现是否越过场景边界、模型是否仍能解释行为、质量门禁是否真实通过。Critical/Major 问题必须在进入 Learn 前解决或由人明确停止。\n- 完成后由人类 Gate 判断可运行增量是否解决了 Kickoff 问题。`;
     case 'learn':
-      return `- 将本轮 Probe/Sense/Respond 的产品反馈、领域知识修正、架构/工序观察和未完成风险写入 iteration-summary.md。\n- 审核 product-context-delta、story-map-delta、架构决策和 backlog-delta；被接受的稳定知识必须提升到 docs/product/、docs/architecture/、.evidence/ 或 engineering/evidence-orchestrator/，iteration 文件仍保持历史证据。\n- knowledge-promotion.json 使用 version=1 和非空 promotions；每项记录 source、decision（promoted/deferred/rejected）、reason，promoted 还必须记录存在的 canonical target。\n- 在 next-iteration.md 形成下一轮可执行问题框定输入；确认后更新 GitHub Issue，再创建新快照。不要手工修改 requirements.md 投影，也不要把 complete 当作产品开发终点。`;
+      return `- iteration-summary.md 使用 Probe/Sense/Respond 记录本轮观察、解释和下一动作；不要只复述阶段完成情况。\n- knowledge-promotion.json 逐项记录候选知识的 promoted/deferred/rejected 及理由；promoted 必须指向真实权威目标。没有候选变化时允许空 promotions，但不得创建虚假变化。\n- next-issue.md 形成一个后续问题或明确说明停止；GitHub Issue 仍是下一轮权威来源。\n- iteration 只保留 delta、决策和执行证据，稳定知识提升到 docs/product/、.evidence/、docs/architecture/、contracts/ 或 engineering/evidence-orchestrator/。`;
   }
 }
