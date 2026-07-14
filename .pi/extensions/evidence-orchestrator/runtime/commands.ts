@@ -10,6 +10,7 @@ import {
 } from '../requirements/clarifications';
 import { confirmModelingProfile } from '../evidence/modeling';
 import { decideKickoff } from '../requirements/kickoff';
+import { decideKnowledgeResponse } from '../evidence/respond';
 import { decideUnderstanding } from '../requirements/scenarios';
 import { decideTasking } from '../testing/tasking';
 import {
@@ -654,6 +655,52 @@ async function promptShowcaseDecision(
     : undefined;
 }
 
+interface RespondDecisionInput {
+  action: 'approve' | 'revise';
+  reason: string;
+}
+
+export function parseRespondDecision(
+  args: string,
+): RespondDecisionInput | undefined {
+  const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = rawAction.toLowerCase() as RespondDecisionInput['action'];
+  if (!['approve', 'revise'].includes(action)) {
+    throw new Error('Usage: /evidence-respond <approve|revise> <reason>.');
+  }
+  const reason = reasonParts.join(' ').trim();
+  if (!reason) throw new Error(`Respond ${action} requires a reason.`);
+  return { action, reason };
+}
+
+async function promptRespondDecision(
+  ctx: ExtensionCommandContext,
+): Promise<RespondDecisionInput | undefined> {
+  const state = readState(ctx.cwd);
+  if (
+    state.workflow_version !== 5 ||
+    state.loop !== 'respond' ||
+    state.respond_stage !== 'decision' ||
+    !state.respond_candidate
+  ) {
+    throw new Error('No Respond candidate awaits a human decision.');
+  }
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Respond decision requires interactive mode or explicit arguments.',
+    );
+  }
+  const selected = await ctx.ui.select(
+    `${state.respond_candidate.promotions.length} knowledge decision(s) · next Probe: ${state.respond_candidate.next_probe.question}`,
+    ['批准知识响应并结束本轮', '要求修订知识响应'],
+  );
+  if (!selected) return undefined;
+  const action = selected.startsWith('批准') ? 'approve' : 'revise';
+  const reason = (await ctx.ui.input(`请说明“${selected}”的理由`))?.trim();
+  return reason ? { action, reason } : undefined;
+}
+
 async function promptModelingProfileDecision(
   ctx: ExtensionCommandContext,
 ): Promise<ModelingProfileDecision | undefined> {
@@ -1149,6 +1196,42 @@ export function registerCommands(pi: ExtensionAPI): void {
             : decision.action === 'reject'
               ? 'Human rejected the Showcase; this iteration is halted with facts and feedback preserved.'
               : `Human recorded Showcase ${decision.action}; workflow loop=${state.loop}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-respond', {
+    description:
+      'Human-only Respond approval or revision for validated knowledge and the next Probe',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseRespondDecision(args) ?? (await promptRespondDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Respond decision cancelled; state is unchanged.',
+            'info',
+          );
+          return;
+        }
+        const state = decideKnowledgeResponse(
+          ctx.cwd,
+          decision.action,
+          decision.reason,
+        );
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        ctx.ui.notify(
+          decision.action === 'approve'
+            ? `Human approved the knowledge response. ${state.iteration_id} is complete; update the GitHub Issue explicitly before starting the next snapshot.`
+            : 'Human requested a revised knowledge response; run /evidence-run to resume Respond.',
           'info',
         );
       } catch (error) {

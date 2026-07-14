@@ -186,6 +186,15 @@ export function transitionLoopState(
       'Showcase cannot enter Respond before a human accept decision.',
     );
   }
+  if (
+    from === 'respond' &&
+    request.to === 'complete' &&
+    state.respond_stage !== 'complete'
+  ) {
+    throw new Error(
+      'Respond cannot complete before a human-approved knowledge response.',
+    );
+  }
 
   return {
     ...state,
@@ -195,6 +204,9 @@ export function transitionLoopState(
       : {}),
     ...(request.to === 'showcase' && from !== 'showcase'
       ? { showcase_stage: 'setup' as const }
+      : {}),
+    ...(request.to === 'respond' && from !== 'respond'
+      ? { respond_stage: 'drafting' as const }
       : {}),
     phase: compatibilityPhaseForLoop(request.to),
     round: 0,

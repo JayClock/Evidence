@@ -130,6 +130,18 @@ const SHOWCASE_ACTIVITIES = new Set([
   'other',
 ]);
 const SHOWCASE_DECISIONS = new Set(['accept', 'revise', 'reject']);
+const RESPOND_STAGES = new Set(['drafting', 'decision', 'complete']);
+const KNOWLEDGE_KINDS = new Set([
+  'product',
+  'model',
+  'architecture',
+  'contract',
+  'test_process',
+  'skill',
+  'prompt',
+  'other',
+]);
+const KNOWLEDGE_DECISIONS = new Set(['promoted', 'deferred', 'rejected']);
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 
 function isNonEmptyString(value: unknown): value is string {
@@ -805,6 +817,95 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   ) {
     throw new Error('The v5 Showcase Reviewer failures are invalid.');
   }
+  const respondStage = state.respond_stage;
+  const respondCandidate = state.respond_candidate;
+  const respondDecisions = state.respond_decisions ?? [];
+  const knowledgePromotionPath = state.knowledge_promotion_path;
+  const nextProbe = state.next_probe;
+  if (
+    workflowVersion === 4 &&
+    (respondStage !== undefined ||
+      respondCandidate !== undefined ||
+      respondDecisions.length > 0 ||
+      knowledgePromotionPath !== undefined ||
+      nextProbe !== undefined)
+  ) {
+    throw new Error('A legacy v4 workflow must not declare v5 Respond data.');
+  }
+  if (respondStage !== undefined && !RESPOND_STAGES.has(respondStage)) {
+    throw new Error(`Unsupported v5 Respond stage: ${respondStage}.`);
+  }
+  if (loop === 'respond' && !respondStage) {
+    throw new Error('The v5 Respond loop requires a Respond stage.');
+  }
+  if (
+    respondCandidate &&
+    (respondCandidate.version !== 1 ||
+      !Array.isArray(respondCandidate.promotions) ||
+      (respondCandidate.promotions.length === 0
+        ? !isNonEmptyString(respondCandidate.no_promotion_reason)
+        : respondCandidate.no_promotion_reason !== undefined) ||
+      respondCandidate.promotions.some(
+        (promotion) =>
+          !isNonEmptyString(promotion.source) ||
+          !KNOWLEDGE_KINDS.has(promotion.kind) ||
+          !KNOWLEDGE_DECISIONS.has(promotion.decision) ||
+          !isNonEmptyString(promotion.reason) ||
+          !isNonEmptyStringArray(promotion.validation_evidence) ||
+          (promotion.decision === 'promoted' &&
+            !isNonEmptyString(promotion.canonical_target)),
+      ) ||
+      !isNonEmptyStringArray(respondCandidate.observed_outcomes) ||
+      !Array.isArray(respondCandidate.residual_risks) ||
+      respondCandidate.residual_risks.some((risk) => !isNonEmptyString(risk)) ||
+      !isNonEmptyString(respondCandidate.next_probe.question) ||
+      !isNonEmptyString(respondCandidate.next_probe.why_now) ||
+      !isNonEmptyStringArray(respondCandidate.next_probe.evidence_refs) ||
+      !isNonEmptyString(respondCandidate.next_probe.first_action) ||
+      !isNonEmptyString(respondCandidate.consistency.story_id) ||
+      !isNonEmptyString(respondCandidate.consistency.scenario_id) ||
+      !isNonEmptyString(respondCandidate.consistency.git_baseline) ||
+      !isNonEmptyString(respondCandidate.consistency.execution_manifest) ||
+      !Array.isArray(respondCandidate.consistency.model_paths) ||
+      !isNonEmptyStringArray(respondCandidate.consistency.code_paths) ||
+      respondCandidate.consistency.consistent !== true ||
+      !isNonEmptyString(respondCandidate.artifact_path) ||
+      !isNonEmptyString(respondCandidate.proposed_at))
+  ) {
+    throw new Error('The v5 Respond candidate is invalid.');
+  }
+  if (respondStage === 'decision' && !respondCandidate) {
+    throw new Error('Respond decision stage requires a candidate.');
+  }
+  if (
+    respondDecisions.some(
+      (decision) =>
+        !['approve', 'revise'].includes(decision.action) ||
+        !isNonEmptyString(decision.reason) ||
+        decision.decided_by !== 'human' ||
+        !isNonEmptyString(decision.artifact_path) ||
+        !isNonEmptyString(decision.decided_at),
+    )
+  ) {
+    throw new Error('The v5 Respond decision history is invalid.');
+  }
+  if (
+    nextProbe &&
+    (!isNonEmptyString(nextProbe.question) ||
+      !isNonEmptyString(nextProbe.why_now) ||
+      !isNonEmptyStringArray(nextProbe.evidence_refs) ||
+      !isNonEmptyString(nextProbe.first_action))
+  ) {
+    throw new Error('The v5 next Probe is invalid.');
+  }
+  if (
+    respondStage === 'complete' &&
+    (!isNonEmptyString(knowledgePromotionPath) || !nextProbe)
+  ) {
+    throw new Error(
+      'Completed Respond requires final knowledge promotion and next Probe.',
+    );
+  }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
       'An active clarification story is only valid while the workflow is in clarify.',
@@ -1032,6 +1133,15 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(showcaseFailures.length > 0
       ? { showcase_review_failures: showcaseFailures }
       : {}),
+    ...(respondStage ? { respond_stage: respondStage } : {}),
+    ...(respondCandidate ? { respond_candidate: respondCandidate } : {}),
+    ...(respondDecisions.length > 0
+      ? { respond_decisions: respondDecisions }
+      : {}),
+    ...(knowledgePromotionPath
+      ? { knowledge_promotion_path: knowledgePromotionPath }
+      : {}),
+    ...(nextProbe ? { next_probe: nextProbe } : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0
       ? { feedback_history: feedbackHistory }

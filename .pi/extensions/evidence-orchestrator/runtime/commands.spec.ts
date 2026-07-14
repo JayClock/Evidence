@@ -13,7 +13,11 @@ import {
   write,
   writeIterationArtifact,
 } from '../tests/support';
-import { parseShowcaseDecision, registerCommands } from './commands';
+import {
+  parseRespondDecision,
+  parseShowcaseDecision,
+  registerCommands,
+} from './commands';
 
 const runtimeMocks = vi.hoisted(() => ({
   startIterationFromIssueAsync: vi.fn(),
@@ -154,6 +158,7 @@ describe('commands', () => {
         'evidence-desk-check',
         'evidence-pair',
         'evidence-showcase',
+        'evidence-respond',
         'evidence-gate',
         'evidence-story',
         'evidence-story-complete',
@@ -186,6 +191,18 @@ describe('commands', () => {
     expect(() =>
       parseShowcaseDecision('risk q3 required none Missing activity.'),
     ).toThrow('required activities');
+  });
+
+  it('parses human Respond approval and revision reasons', () => {
+    expect(parseRespondDecision('approve Evidence is sufficient.')).toEqual({
+      action: 'approve',
+      reason: 'Evidence is sufficient.',
+    });
+    expect(parseRespondDecision('revise Probe is too broad.')).toEqual({
+      action: 'revise',
+      reason: 'Probe is too broad.',
+    });
+    expect(() => parseRespondDecision('approve')).toThrow('requires a reason');
   });
 
   it('stops after freezing a new Issue and waits for Kickoff', async () => {

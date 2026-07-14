@@ -19,9 +19,10 @@
 1. Frame 及后续阶段将候选知识变化记录为迭代增量。
 2. 场景验证候选知识是否能够解释并支持真实行为。
 3. Review 评估产品价值、架构适配性和质量。
-4. Learn 在 `knowledge-promotion.json` 中将每项增量记录为 `promoted`、`deferred` 或 `rejected`。
-5. 被提升的条目更新其权威目标，同时保留原始增量作为审计证据。
-6. 下一轮迭代从更新后的统一知识和新的冻结 Issue 快照开始。
+4. Respond 只对本轮实际使用并由 Scenario、Showcase 与执行事实验证的候选提出 `promoted`、`deferred` 或 `rejected`；测试工序、Skill、Prompt/CoT 也属于可审查的 Working Knowledge。
+5. 人类逐轮确认 Respond 候选。`promotions: []` 合法，但必须说明为何没有可复用知识；`promoted` 必须给出 canonical target 和验证证据，`deferred/rejected` 只保留理由而不改变权威来源。
+6. 被提升的条目更新其权威目标，同时保留原始增量、Showcase 决定和人工确认作为审计证据。未应用或未与实现共同验证的模型补丁不得提升。
+7. Respond 输出一个明确待学习问题、依据与第一步行动作为 next Probe。更新 GitHub Issue 与创建新快照始终由人类明确触发；`complete` 只表示迭代边界。
 
 ## 迭代增量编写规则
 
@@ -32,6 +33,8 @@
 - Frame 为候选 P0/P1 分配稳定的 `US-xxx` ID 并生成独立故事卡；卡片不得包含元数据表、优先级依据、非目标、预生成的待澄清问题列表或验收示例。`story-map-delta.md` 直接引用这些 ID 并承载候选优先级，不保留等待 Clarify 再映射的临时候选 ID。
 - 非目标不是反向需求：不得为了证明未要求或不存在的功能而创建验收示例、实现任务或测试代码。只有已确认范围内的拒绝、失败和边界行为才进入 Confirmation 与后续测试。
 - `journey-slice.md` 标识受影响的基线旅程步骤，再记录本轮改变的路径、结果和边界情形。`story-map-delta.md` 只列出受影响活动和候选故事，绝不复制完整活动主干。
-- 候选事实在 Learn 提升前始终属于迭代增量；不得将其表述为既定产品事实，也不得过早复制到统一知识中。
+- 候选事实在 Respond 经人工确认前始终属于迭代增量；不得将其表述为既定产品事实，也不得过早复制到统一知识中。
+- 每项 promotion 至少记录 `source`、`kind`、`decision`、`reason`、`validation_evidence[]` 和人工决定；只有 `promoted` 记录 `canonical_target`。目标文件存在本身不是验证。
+- 模型路径与代码路径必须由同一 Git baseline 的 execution manifest 计算；二者不一致时 Respond 不得完成。
 
 历史迭代（包括 `ITER-0000`）即使其中复制的知识已过时，也绝不重写。

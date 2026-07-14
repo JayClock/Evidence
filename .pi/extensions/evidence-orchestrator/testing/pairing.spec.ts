@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import {
+  decideKnowledgeResponse,
+  proposeKnowledgeResponse,
+} from '../evidence/respond';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -173,6 +177,7 @@ function preparePair(cwd: string): void {
     'engineering/evidence-orchestrator/definition-of-done.md',
     '# DoD',
   );
+  write(cwd, 'docs/knowledge-governance.md', '# Knowledge governance');
   write(
     cwd,
     'focused.js',
@@ -1099,6 +1104,50 @@ describe('Navigator-driven Pair', () => {
     ).toContain('"action":"accept"');
     expect(validateExecutionEvidence(cwd).showcase.status).toBe('passed');
     expect(() => validateShowcaseEvidence(cwd)).not.toThrow();
+
+    const respondPreparation = preparePhaseRun(cwd);
+    if (isCompletedIteration(respondPreparation)) {
+      throw new Error('Unexpected complete.');
+    }
+    expect(respondPreparation).toMatchObject({
+      phase: 'learn',
+      agentName: 'respond-learner',
+      state: { loop: 'respond', respond_stage: 'drafting' },
+    });
+    const manifestPath =
+      'artifacts/iterations/ITER-0001/05-code/US-001/SC-001.manifest.json';
+    const response = proposeKnowledgeResponse(cwd, {
+      promotions: [],
+      noPromotionReason:
+        'The Scenario validated existing behavior but introduced no reusable working knowledge.',
+      observedOutcomes: ['The selected Q2 behavior passed in Showcase.'],
+      residualRisks: ['Performance and security evaluation remain explicit.'],
+      nextProbe: {
+        question:
+          'How should the declared performance and security activities be evaluated in production-like conditions?',
+        why_now: 'Q4 remains required after the accepted behavior Showcase.',
+        evidence_refs: [review.artifact_path, manifestPath],
+        first_action:
+          'Design one bounded production-like performance and security probe.',
+      },
+    });
+    expect(response.promotions).toEqual([]);
+    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-respond');
+    const completed = decideKnowledgeResponse(
+      cwd,
+      'approve',
+      'The empty promotion decision and next Probe are evidence-based.',
+    );
+    expect(completed).toMatchObject({
+      loop: 'complete',
+      phase: 'complete',
+      respond_stage: 'complete',
+      knowledge_promotion_path:
+        'artifacts/iterations/ITER-0001/07-learning/knowledge-promotion.json',
+    });
+    expect(completed.next_probe?.question).toContain(
+      'performance and security',
+    );
   });
 
   it('routes technical and domain Showcase feedback to their owning loops', () => {
@@ -1174,6 +1223,36 @@ describe('Navigator-driven Pair', () => {
         recommendation: 'accept',
       }),
     ).toThrow('do not share the Scenario Git baseline');
+  });
+
+  it('blocks Respond when accepted model and code baselines diverge', () => {
+    const cwd = workspace();
+    prepareShowcaseForReview(cwd);
+    recordShowcaseReview(cwd, {
+      observedFacts: ['Q2 passed.'],
+      productDomainFeedback: [],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [],
+      recommendation: 'accept',
+    });
+    decideShowcase(cwd, 'accept', 'The observed Scenario is accepted.');
+    const state = readState(cwd);
+    writeState(cwd, { ...state, model_git_baseline: 'diverged-baseline' });
+
+    expect(() =>
+      proposeKnowledgeResponse(cwd, {
+        promotions: [],
+        noPromotionReason: 'No reusable knowledge was introduced.',
+        observedOutcomes: ['Q2 passed.'],
+        residualRisks: [],
+        nextProbe: {
+          question: 'Which risk should the next bounded Probe evaluate?',
+          why_now: 'One uncertainty remains.',
+          evidence_refs: [state.showcase_reviews?.at(-1)?.artifact_path ?? ''],
+          first_action: 'Select one measurable risk.',
+        },
+      }),
+    ).toThrow('do not share the accepted Scenario Git baseline');
   });
 
   it('allows only the structured Reviewer report and state transition', () => {

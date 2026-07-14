@@ -320,6 +320,11 @@ export function validatePhaseCompletion(
       'v5 Showcase can enter Respond only through a human /evidence-showcase accept decision.',
     );
   }
+  if (isV5Workflow(current) && current.loop === 'respond') {
+    throw new Error(
+      'v5 Respond can complete only through a human /evidence-respond approve decision.',
+    );
+  }
   if (current.pending_gate) {
     throw new Error(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,

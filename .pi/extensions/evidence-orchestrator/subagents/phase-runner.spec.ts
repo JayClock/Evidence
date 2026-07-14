@@ -74,6 +74,25 @@ describe('phase subagents', () => {
     );
   });
 
+  it('loads the read-only Respond Learner with a human-gated proposal tool', () => {
+    const agent = loadPhaseAgent(process.cwd(), 'learn', 'respond-learner');
+
+    expect(agent.name).toBe('respond-learner');
+    expect(agent.tools).toEqual(
+      expect.arrayContaining([
+        'read',
+        'evidence_orchestrator_propose_response',
+      ]),
+    );
+    expect(agent.tools).not.toEqual(
+      expect.arrayContaining([
+        'write',
+        'edit',
+        'evidence_orchestrator_complete_phase',
+      ]),
+    );
+  });
+
   it('loads short-lived Pair Drivers without test-execution or phase-completion tools', () => {
     const testDriver = loadPhaseAgent(process.cwd(), 'coding', 'test-driver');
     const productionDriver = loadPhaseAgent(

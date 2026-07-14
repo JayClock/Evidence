@@ -53,6 +53,7 @@ export class PhaseRunBlockedError extends Error {
       | 'pair_navigation'
       | 'showcase_risk'
       | 'showcase_decision'
+      | 'respond_decision'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -169,6 +170,16 @@ export function preparePhaseRun(
       }
       current = prepareShowcaseReview(cwd);
     }
+  }
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'respond' &&
+    current.respond_stage === 'decision'
+  ) {
+    throw new PhaseRunBlockedError(
+      'respond_decision',
+      `Respond candidate ${current.respond_candidate?.artifact_path ?? 'missing'} awaits a human decision. Run /evidence-respond approve|revise <reason>.`,
+    );
   }
   if (
     current.workflow_version === 5 &&
@@ -367,6 +378,22 @@ export function preparePhaseRun(
           'engineering/evidence-orchestrator/definition-of-done.md',
         ]
       : undefined;
+  const v5RespondInputs =
+    current.workflow_version === 5 && current.loop === 'respond'
+      ? [
+          current.confirmed_scenario?.artifact_path ??
+            'artifacts/01-requirements/examples/missing.md',
+          current.active_work_item
+            ? `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.manifest.json`
+            : 'artifacts/05-code/missing/manifest.json',
+          current.showcase_reviews?.at(-1)?.artifact_path ??
+            'artifacts/06-review/missing-review.json',
+          current.showcase_decisions?.at(-1)?.artifact_path ??
+            'artifacts/06-review/missing-decision.jsonl',
+          'docs/knowledge-governance.md',
+          'engineering/evidence-orchestrator/definition-of-done.md',
+        ]
+      : undefined;
   const missingInputs = missingPaths(
     cwd,
     (
@@ -374,6 +401,7 @@ export function preparePhaseRun(
       v5TaskingInputs ??
       v5PairInputs ??
       v5ShowcaseInputs ??
+      v5RespondInputs ??
       PHASE_META[current.phase].inputs
     ).map((path) =>
       path.startsWith(`artifacts/iterations/${current.iteration_id}/`)
@@ -399,15 +427,17 @@ export function preparePhaseRun(
     phase: current.phase,
     ...(current.workflow_version === 5 && current.loop === 'showcase'
       ? { agentName: 'showcase-reviewer' }
-      : current.workflow_version === 5 &&
-          current.modeling_stage === 'candidate_ready'
-        ? { agentName: 'model-challenger' }
-        : pairMode
-          ? {
-              agentName:
-                pairMode === 'test' ? 'test-driver' : 'production-driver',
-            }
-          : {}),
+      : current.workflow_version === 5 && current.loop === 'respond'
+        ? { agentName: 'respond-learner' }
+        : current.workflow_version === 5 &&
+            current.modeling_stage === 'candidate_ready'
+          ? { agentName: 'model-challenger' }
+          : pairMode
+            ? {
+                agentName:
+                  pairMode === 'test' ? 'test-driver' : 'production-driver',
+              }
+            : {}),
     ...(pairAction ? { pairAction } : {}),
     ...(showcaseAction ? { showcaseAction } : {}),
     task,

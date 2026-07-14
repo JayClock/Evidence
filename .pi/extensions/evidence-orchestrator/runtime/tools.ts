@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
+import { proposeKnowledgeResponse } from '../evidence/respond';
 import { recordModelChallenge } from '../evidence/model-challenge';
 import {
   proposeModelingProfile,
@@ -266,6 +267,55 @@ const taskingDraftParam = Type.Object({
       ),
     }),
   ),
+});
+
+const respondProposalParam = Type.Object({
+  promotions: Type.Array(
+    Type.Object({
+      source: Type.String({ description: 'Iteration evidence source path.' }),
+      kind: Type.String({
+        enum: [
+          'product',
+          'model',
+          'architecture',
+          'contract',
+          'test_process',
+          'skill',
+          'prompt',
+          'other',
+        ],
+      }),
+      decision: Type.String({
+        enum: ['promoted', 'deferred', 'rejected'],
+      }),
+      reason: Type.String({ description: 'Evidence-based decision reason.' }),
+      validationEvidence: Type.Array(
+        Type.String({ description: 'Existing validation evidence path.' }),
+      ),
+      canonicalTarget: Type.Optional(
+        Type.String({ description: 'Required only for promoted knowledge.' }),
+      ),
+    }),
+  ),
+  noPromotionReason: Type.Optional(
+    Type.String({
+      description: 'Required when promotions is empty; otherwise omitted.',
+    }),
+  ),
+  observedOutcomes: Type.Array(
+    Type.String({ description: 'Observed iteration outcome.' }),
+  ),
+  residualRisks: Type.Array(
+    Type.String({ description: 'Residual risk retained after Showcase.' }),
+  ),
+  nextProbe: Type.Object({
+    question: Type.String({ description: 'Concrete next learning question.' }),
+    whyNow: Type.String({ description: 'Why this question matters next.' }),
+    evidenceRefs: Type.Array(
+      Type.String({ description: 'Existing evidence path.' }),
+    ),
+    firstAction: Type.String({ description: 'First executable probe action.' }),
+  }),
 });
 
 const showcaseReviewParam = Type.Object({
@@ -879,6 +929,63 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { review, state: readState(ctx.cwd) },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_propose_response',
+    label: 'Propose Evidence Knowledge Response',
+    description:
+      'Propose validated knowledge decisions and one executable next Probe for human confirmation',
+    promptSnippet:
+      'Respond only to knowledge actually used and validated by the accepted Scenario',
+    promptGuidelines: [
+      'Use only in v5 Respond after a human accepts Showcase.',
+      'Promoted items must cite Scenario, Showcase decision, execution evidence, and an actually changed canonical target.',
+      'Empty promotions are valid only with a concrete no-promotion reason.',
+      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-respond.',
+    ],
+    parameters: respondProposalParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const candidate = proposeKnowledgeResponse(ctx.cwd, {
+        promotions: params.promotions.map((promotion) => ({
+          source: promotion.source,
+          kind: promotion.kind as
+            | 'product'
+            | 'model'
+            | 'architecture'
+            | 'contract'
+            | 'test_process'
+            | 'skill'
+            | 'prompt'
+            | 'other',
+          decision: promotion.decision as 'promoted' | 'deferred' | 'rejected',
+          reason: promotion.reason,
+          validation_evidence: promotion.validationEvidence,
+          ...(promotion.canonicalTarget
+            ? { canonical_target: promotion.canonicalTarget }
+            : {}),
+        })),
+        noPromotionReason: params.noPromotionReason,
+        observedOutcomes: params.observedOutcomes,
+        residualRisks: params.residualRisks,
+        nextProbe: {
+          question: params.nextProbe.question,
+          why_now: params.nextProbe.whyNow,
+          evidence_refs: params.nextProbe.evidenceRefs,
+          first_action: params.nextProbe.firstAction,
+        },
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-respond approval or revision.`,
+          },
+        ],
+        details: { candidate, state: readState(ctx.cwd) },
         terminate: true,
       };
     },

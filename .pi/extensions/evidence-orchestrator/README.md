@@ -77,6 +77,7 @@ Clarify 是阶段内的故事级子流程：
 - `model-validation.ts`：领域模型展开与迭代模型证据验证。
 - `model-and-code.ts`：v4 只读兼容导出；v5 不再从此处读取手写编码证据。
 - `knowledge.ts`：统一知识、场景上下文和知识提升验证。
+- `respond.ts`：生成可选、可验证的知识响应与 next Probe，并等待人工确认迭代边界。
 
 ### `testing/`
 

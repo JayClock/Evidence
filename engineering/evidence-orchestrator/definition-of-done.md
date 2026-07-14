@@ -37,10 +37,10 @@
 - Tauri：desktop cargo test、clippy 和 fmt check。
 - Workflow：`pnpm orchestrator:test` 与 `pnpm orchestrator:validate`。
 
-## Review 与学习
+## Showcase 与 Respond
 
-- Review 对照验收示例、模型展开、统一架构、测试策略、工序和本 DoD。
-- Critical 问题阻止完成；Major 问题必须修复或由 Gate 明确接受。
-- Probe/Sense/Respond 反馈进入 iteration summary。
-- 经确认的产品、模型、架构或工序知识已提升到对应统一知识源。
-- 下一轮问题已更新到 GitHub Issue，旧 iteration 保持不可变。
+- 独立 Showcase Reviewer 对照验收示例、模型展开、统一架构、测试策略、工序和本 DoD；问题由人类按知识缺口路由。
+- Probe/Sense/Respond 反馈进入 iteration summary；模型和代码使用同一 Git baseline，路径不一致时不得完成。
+- 只提升被本 Scenario 实际使用、经执行与 Showcase 验证并由人类确认的产品、模型、架构、工序或 Skill/Prompt 知识；本轮无可复用知识时允许空 promotions，但必须说明原因。
+- deferred/rejected 候选保留理由且不污染权威来源；未应用或未验证的模型补丁不得提升。
+- 下一轮输出一个明确待学习问题及第一步 Probe。更新 GitHub Issue 和创建新快照由人类在迭代边界后明确执行，旧 iteration 保持不可变。

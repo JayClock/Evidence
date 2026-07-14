@@ -57,6 +57,9 @@ describe('v5 knowledge-loop catalog', () => {
       if (state.loop === 'showcase') {
         state = { ...state, showcase_stage: 'accepted' };
       }
+      if (state.loop === 'respond') {
+        state = { ...state, respond_stage: 'complete' };
+      }
       state = transitionLoopState(state, { to: expected });
       expect(state.loop).toBe(expected);
       expect(state.phase).toBe(compatibilityPhaseForLoop(expected));
@@ -79,6 +82,15 @@ describe('v5 knowledge-loop catalog', () => {
     expect(() =>
       transitionLoopState(v5State('showcase'), { to: 'respond' }),
     ).toThrow('human accept decision');
+  });
+
+  it('blocks Respond completion before human knowledge approval', () => {
+    expect(() =>
+      transitionLoopState(
+        { ...v5State('respond'), respond_stage: 'drafting' },
+        { to: 'complete' },
+      ),
+    ).toThrow('human-approved knowledge response');
   });
 
   it('rejects a forward skip', () => {

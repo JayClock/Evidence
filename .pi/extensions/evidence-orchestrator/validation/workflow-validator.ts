@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { relative } from 'node:path';
+import { join, relative } from 'node:path';
 import { missingPaths } from '../evidence/artifact-index';
 import { validateDomainModelEvidence } from '../evidence/model-validation';
 import { validateExecutionEvidence } from '../testing/execution-manifest';
@@ -10,7 +10,10 @@ import {
   artifactRelativePath,
   iterationRoot,
 } from '../workflow/iteration-paths';
-import { validateCanonicalKnowledge } from '../evidence/knowledge';
+import {
+  validateCanonicalKnowledge,
+  validateKnowledgePromotion,
+} from '../evidence/knowledge';
 import { PHASE_META, PHASE_ORDER } from '../workflow/phase-catalog';
 import { readState } from '../workflow/state-store';
 import {
@@ -59,6 +62,13 @@ export function validateWorkflow(cwd: string): void {
   ) {
     validateExecutionEvidence(cwd);
     validateShowcaseEvidence(cwd);
+  }
+  if (state.workflow_version === 5 && state.knowledge_promotion_path) {
+    validateKnowledgePromotion(
+      cwd,
+      join(cwd, state.knowledge_promotion_path),
+      state,
+    );
   }
   // v5 loop-specific tools validate their own focused inputs and generated
   // evidence; legacy PHASE_META/Scrum requirements apply only to v4.

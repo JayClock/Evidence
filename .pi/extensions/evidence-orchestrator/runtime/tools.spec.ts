@@ -117,6 +117,7 @@ describe('tools', () => {
         'evidence_orchestrator_record_model_challenge',
         'evidence_orchestrator_propose_tasking',
         'evidence_orchestrator_record_showcase_review',
+        'evidence_orchestrator_propose_response',
         'evidence_orchestrator_ask_question',
         'evidence_orchestrator_answer_question',
         'evidence_orchestrator_select_story',

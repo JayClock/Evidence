@@ -119,6 +119,17 @@ export type ShowcaseEvaluationActivity =
   | 'other';
 export type ShowcaseDecisionAction = 'accept' | 'revise' | 'reject';
 export type ShowcaseReviewRecommendation = 'accept' | 'revise';
+export type RespondStage = 'drafting' | 'decision' | 'complete';
+export type KnowledgeKind =
+  | 'product'
+  | 'model'
+  | 'architecture'
+  | 'contract'
+  | 'test_process'
+  | 'skill'
+  | 'prompt'
+  | 'other';
+export type KnowledgeDecision = 'promoted' | 'deferred' | 'rejected';
 
 export type RedFailureKind =
   | 'behavior'
@@ -339,6 +350,50 @@ export interface ShowcaseReviewFailure {
   reason: string;
   restored_paths: string[];
   recorded_at: string;
+}
+
+export interface KnowledgePromotionProposal {
+  source: string;
+  kind: KnowledgeKind;
+  decision: KnowledgeDecision;
+  reason: string;
+  validation_evidence: string[];
+  canonical_target?: string;
+}
+
+export interface NextProbe {
+  question: string;
+  why_now: string;
+  evidence_refs: string[];
+  first_action: string;
+}
+
+export interface RespondCandidate {
+  version: 1;
+  promotions: KnowledgePromotionProposal[];
+  no_promotion_reason?: string;
+  observed_outcomes: string[];
+  residual_risks: string[];
+  next_probe: NextProbe;
+  consistency: {
+    story_id: string;
+    scenario_id: string;
+    git_baseline: string;
+    execution_manifest: string;
+    model_paths: string[];
+    code_paths: string[];
+    consistent: true;
+  };
+  artifact_path: string;
+  proposed_at: string;
+}
+
+export interface RespondDecisionRecord {
+  action: 'approve' | 'revise';
+  reason: string;
+  decided_by: 'human';
+  artifact_path: string;
+  decided_at: string;
 }
 
 export interface ActiveWorkItem {
@@ -586,6 +641,11 @@ export interface WorkflowState {
   showcase_reviews?: ShowcaseReviewRecord[];
   showcase_decisions?: ShowcaseDecisionRecord[];
   showcase_review_failures?: ShowcaseReviewFailure[];
+  respond_stage?: RespondStage;
+  respond_candidate?: RespondCandidate;
+  respond_decisions?: RespondDecisionRecord[];
+  knowledge_promotion_path?: string;
+  next_probe?: NextProbe;
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

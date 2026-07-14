@@ -88,6 +88,108 @@ describe('canonical working knowledge', () => {
     expect(() => validateKnowledgePromotion(cwd, path)).not.toThrow();
   });
 
+  it('allows an empty v2 promotion set only with a concrete reason', () => {
+    const cwd = workspace();
+    write(cwd, 'manifest.json', '{}');
+    write(
+      cwd,
+      'promotion.json',
+      JSON.stringify({
+        version: 2,
+        no_promotion_reason:
+          'This iteration validated product behavior but introduced no reusable working knowledge.',
+        promotions: [],
+        consistency: {
+          story_id: 'US-001',
+          scenario_id: 'SC-001',
+          git_baseline: 'baseline',
+          execution_manifest: 'manifest.json',
+          model_paths: [],
+          code_paths: ['apps/web/src/feature.ts'],
+          consistent: true,
+        },
+      }),
+    );
+
+    expect(() =>
+      validateKnowledgePromotion(cwd, `${cwd}/promotion.json`),
+    ).not.toThrow();
+
+    write(
+      cwd,
+      'promotion.json',
+      JSON.stringify({
+        version: 2,
+        promotions: [],
+        consistency: {
+          story_id: 'US-001',
+          scenario_id: 'SC-001',
+          git_baseline: 'baseline',
+          execution_manifest: 'manifest.json',
+          model_paths: [],
+          code_paths: [],
+          consistent: true,
+        },
+      }),
+    );
+    expect(() =>
+      validateKnowledgePromotion(cwd, `${cwd}/promotion.json`),
+    ).toThrow('no_promotion_reason');
+  });
+
+  it('requires promoted v2 knowledge to carry evidence and a human decision', () => {
+    const cwd = workspace();
+    for (const path of [
+      'source.md',
+      'scenario.md',
+      'showcase.jsonl',
+      'manifest.json',
+      'docs/architecture/test-strategy.md',
+    ]) {
+      write(cwd, path, path);
+    }
+    write(
+      cwd,
+      'promotion.json',
+      JSON.stringify({
+        version: 2,
+        promotions: [
+          {
+            source: 'source.md',
+            kind: 'architecture',
+            decision: 'promoted',
+            reason: 'The accepted Scenario exercised this strategy.',
+            validation_evidence: [
+              'scenario.md',
+              'showcase.jsonl',
+              'manifest.json',
+            ],
+            canonical_target: 'docs/architecture/test-strategy.md',
+            human_decision: {
+              decision: 'promoted',
+              reason: 'The evidence is sufficient.',
+              confirmed_by: 'human',
+              confirmed_at: '2026-01-01T00:00:00.000Z',
+            },
+          },
+        ],
+        consistency: {
+          story_id: 'US-001',
+          scenario_id: 'SC-001',
+          git_baseline: 'baseline',
+          execution_manifest: 'manifest.json',
+          model_paths: [],
+          code_paths: ['apps/web/src/feature.ts'],
+          consistent: true,
+        },
+      }),
+    );
+
+    expect(() =>
+      validateKnowledgePromotion(cwd, `${cwd}/promotion.json`),
+    ).not.toThrow();
+  });
+
   it('validates scenario mappings against the shared runtime vocabulary', () => {
     const cwd = workspace();
     write(

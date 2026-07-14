@@ -253,6 +253,47 @@ ${JSON.stringify(state.showcase_risk_decisions, null, 2)}
 ${extra || '（无）'}
 `;
   }
+  if (isV5Workflow(state) && state.loop === 'respond') {
+    const workItem = state.active_work_item;
+    const review = state.showcase_reviews?.at(-1);
+    if (
+      !workItem ||
+      state.showcase_stage !== 'accepted' ||
+      state.respond_stage !== 'drafting' ||
+      !review
+    ) {
+      throw new Error(
+        'v5 Respond requires an accepted Showcase and drafting stage.',
+      );
+    }
+    const base = `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}`;
+    return `执行 Evidence Orchestrator v5 Respond：${workItem.story_id} / ${workItem.scenario_id}。
+
+只读输入：
+- ${state.confirmed_scenario?.artifact_path ?? 'missing-scenario.md'}
+- ${state.model_expansion_path ?? 'missing-model-expansion.json'}
+- ${state.model_change_proposal?.artifact_path ?? 'no-model-change-proposal'}
+- ${artifactRelativePath(state, `${base}.manifest.json`)}
+- ${review.artifact_path}
+- ${state.showcase_decisions?.at(-1)?.artifact_path ?? 'missing-showcase-decision.jsonl'}
+- docs/knowledge-governance.md
+- engineering/evidence-orchestrator/test-processes/
+- .pi/skills/
+- .pi/prompts/（存在时）
+
+任务：
+1. 只分析本轮实际使用、执行和 Showcase 接受的知识；目标文件存在本身不是验证。
+2. 对每项候选给出 source、kind、promoted/deferred/rejected、reason 和 validationEvidence。promoted 必须引用确认 Scenario、人工 Showcase accept 与 execution manifest，并指向本轮相对同一 Git baseline 实际变化的 canonicalTarget。
+3. 已应用模型变化只有与代码共同通过 Pair、Showcase 且覆盖全部 changed model paths 时才能 promoted；否则不得让未接受模型污染 .evidence。
+4. 测试工序、Skill、Prompt/CoT 可以是 Working Knowledge；只有本 Scenario 实际使用并可由工序哈希、模型 Profile 或回归结果复核时才可 promoted。
+5. 可以提交空 promotions，但必须提供具体 noPromotionReason。
+6. nextProbe 必须包含一个待学习问题、whyNow、实际 evidenceRefs 和 firstAction，不得输出泛化待办。
+7. 只调用 evidence_orchestrator_propose_response 一次并立即停止。不得修改权威知识、代码、Issue 或工件，不得完成阶段；人类通过 /evidence-respond 决定。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+  }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
   const activeWorkItem = state.active_work_item

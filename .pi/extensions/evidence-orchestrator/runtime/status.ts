@@ -40,13 +40,15 @@ export function statusMarkdown(cwd: string): string {
           state.phase,
           state.workflow_version === 5 && state.loop === 'showcase'
             ? 'showcase-reviewer'
-            : state.modeling_stage === 'candidate_ready'
-              ? 'model-challenger'
-              : pairMode === 'test'
-                ? 'test-driver'
-                : pairMode
-                  ? 'production-driver'
-                  : undefined,
+            : state.workflow_version === 5 && state.loop === 'respond'
+              ? 'respond-learner'
+              : state.modeling_stage === 'candidate_ready'
+                ? 'model-challenger'
+                : pairMode === 'test'
+                  ? 'test-driver'
+                  : pairMode
+                    ? 'production-driver'
+                    : undefined,
         );
         phaseAgent = `${agent.name} · ${agent.model} (thinking=${agent.thinking})`;
       } catch {
@@ -148,7 +150,11 @@ export function statusMarkdown(cwd: string): string {
           ? pairNextInstruction(state)
           : state.loop === 'showcase'
             ? showcaseNextInstruction(cwd)
-            : allowedLoopActions(state.loop).join(', ') || 'none'
+            : state.loop === 'respond'
+              ? state.respond_stage === 'decision'
+                ? 'human:/evidence-respond approve|revise <reason>'
+                : '/evidence-run proposes one knowledge response'
+              : allowedLoopActions(state.loop).join(', ') || 'none'
     : 'legacy phase controls only';
   return [
     `# Evidence Orchestrator Status`,
@@ -191,6 +197,10 @@ export function statusMarkdown(cwd: string): string {
     `| Showcase Q3/Q4 | ${showcaseRisks} |`,
     `| Showcase Review | ${latestShowcaseReview ? `${latestShowcaseReview.recommendation} · ${latestShowcaseReview.artifact_path}` : 'none'} |`,
     `| Showcase Decision | ${latestShowcaseDecision ? `${latestShowcaseDecision.action}${latestShowcaseDecision.feedback_target ? ` → ${latestShowcaseDecision.feedback_target}` : ''}` : 'none'} |`,
+    `| Respond Stage | ${state.respond_stage ?? 'none'} |`,
+    `| Respond Candidate | ${state.respond_candidate?.artifact_path ?? 'none'} |`,
+    `| Knowledge Promotion | ${state.knowledge_promotion_path ?? 'none'} |`,
+    `| Next Probe | ${state.next_probe?.question ?? state.respond_candidate?.next_probe.question ?? 'none'} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,
