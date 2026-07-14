@@ -29,6 +29,7 @@ export class PhaseRunBlockedError extends Error {
   constructor(
     readonly kind:
       | 'gate'
+      | 'kickoff_decision'
       | 'clarification'
       | 'story_decision'
       | 'story_selection',
@@ -110,6 +111,16 @@ export function preparePhaseRun(
   }
 
   let current = readState(cwd);
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'kickoff' &&
+    current.kickoff_candidate
+  ) {
+    throw new PhaseRunBlockedError(
+      'kickoff_decision',
+      `Kickoff candidate ${current.kickoff_candidate.artifact_path} is awaiting a human decision. Run /evidence-kickoff to confirm, revise, split, defer, or stop.`,
+    );
+  }
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
     throw new PhaseRunBlockedError(

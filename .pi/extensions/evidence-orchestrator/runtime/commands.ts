@@ -8,6 +8,7 @@ import {
   selectClarificationStory,
   unresolvedClarificationStoryIds,
 } from '../requirements/clarifications';
+import { decideKickoff } from '../requirements/kickoff';
 import { answerGate } from '../workflow/gates';
 import {
   checkIssueSourceDriftAsync,
@@ -19,6 +20,7 @@ import { readState } from '../workflow/state-store';
 import type {
   ClarificationStoryOutcome,
   ClarificationStoryOutcomeProposal,
+  KickoffDecisionAction,
   Phase,
 } from '../workflow/types';
 import { PHASE_RESULT_MESSAGE_TYPE, STATUS_KEY, statusLabel } from './identity';
@@ -59,6 +61,70 @@ const STORY_OUTCOMES: ClarificationStoryOutcome[] = [
   'needs_split',
   'deferred',
 ];
+
+const KICKOFF_ACTIONS: Record<string, KickoffDecisionAction> = {
+  confirm: 'confirmed',
+  confirmed: 'confirmed',
+  revise: 'revise',
+  split: 'split',
+  defer: 'deferred',
+  deferred: 'deferred',
+  stop: 'stopped',
+  stopped: 'stopped',
+};
+
+function parseKickoffDecision(
+  args: string,
+): { action: KickoffDecisionAction; reason: string } | undefined {
+  const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = KICKOFF_ACTIONS[rawAction.toLowerCase()];
+  if (!action) {
+    throw new Error(
+      'Usage: /evidence-kickoff [confirm | revise | split | defer | stop] <business reason>.',
+    );
+  }
+  const reason = reasonParts.join(' ').trim();
+  if (!reason) {
+    throw new Error(`Kickoff ${rawAction} requires a business reason.`);
+  }
+  return { action, reason };
+}
+
+async function promptKickoffDecision(
+  ctx: ExtensionCommandContext,
+): Promise<{ action: KickoffDecisionAction; reason: string } | undefined> {
+  const state = readState(ctx.cwd);
+  const candidate = state.kickoff_candidate;
+  if (!candidate) throw new Error('No Kickoff candidate is awaiting review.');
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Kickoff confirmation requires interactive mode or explicit command arguments.',
+    );
+  }
+  const options = [
+    '确认这张 Story',
+    '要求修改候选',
+    '先拆分问题',
+    '延期本轮',
+    '停止本轮',
+  ];
+  const selected = await ctx.ui.select(
+    `${candidate.title} · ${candidate.role} → ${candidate.value}`,
+    options,
+  );
+  const actions: Record<string, KickoffDecisionAction> = {
+    确认这张Story: 'confirmed',
+    要求修改候选: 'revise',
+    先拆分问题: 'split',
+    延期本轮: 'deferred',
+    停止本轮: 'stopped',
+  };
+  const action = selected ? actions[selected.replaceAll(' ', '')] : undefined;
+  if (!action) return undefined;
+  const reason = (await ctx.ui.input(`请说明 ${selected} 的业务理由`))?.trim();
+  return reason ? { action, reason } : undefined;
+}
 
 function parseStoryDecision(
   args: string,
@@ -279,20 +345,51 @@ export function registerCommands(pi: ExtensionAPI): void {
         }
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}; running frame now.`,
+          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}. The Issue is frozen; run /evidence-run to prepare one Kickoff candidate, then /evidence-kickoff for the human decision.`,
           'info',
         );
-        const preparation = preparePhaseRun(ctx.cwd);
-        if (isCompletedIteration(preparation)) {
-          ctx.ui.notify(preparation.task, 'info');
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-kickoff', {
+    description:
+      'Human-only decision for the pending Kickoff candidate: confirm, revise, split, defer, or stop',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseKickoffDecision(args) ?? (await promptKickoffDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Kickoff decision cancelled; the candidate is unchanged.',
+            'info',
+          );
           return;
         }
-        await runPreparedPhaseFromCommand(
-          pi,
-          ctx,
-          preparation,
-          '/evidence-new',
-        );
+        const state = decideKickoff(ctx.cwd, decision.action, decision.reason);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        if (decision.action === 'confirmed') {
+          ctx.ui.notify(
+            `Human confirmed ${state.active_clarification_story?.story_id}; Kickoff is complete and Understand is ready.`,
+            'info',
+          );
+        } else if (decision.action === 'revise') {
+          ctx.ui.notify(
+            'Human requested a revised Kickoff candidate. Run /evidence-run with the feedback before continuing.',
+            'info',
+          );
+        } else {
+          ctx.ui.notify(
+            `Human chose ${decision.action}; this iteration is halted with the decision preserved.`,
+            'info',
+          );
+        }
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),

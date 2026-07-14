@@ -4,6 +4,7 @@ import {
   proposeClarificationStoryOutcome,
   selectClarificationStory,
 } from '../requirements/clarifications';
+import { proposeKickoffCandidate } from '../requirements/kickoff';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
@@ -61,6 +62,28 @@ describe('phase dispatch', () => {
       throw new Error('Unexpected completion.');
     expect(preparation.phase).toBe('frame');
     expect(preparation.task).toContain('Keep the initial scope narrow.');
+  });
+
+  it('blocks another v5 Kickoff run while its candidate awaits a human', () => {
+    const cwd = workspace();
+    writeFrameInputs(cwd);
+    writeState(cwd, {
+      ...issueBackedFrameState(),
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+    proposeKickoffCandidate(cwd, {
+      title: '共享模型',
+      problem: '协作者无法识别当前模型。',
+      role: '领域建模负责人',
+      goal: '确认当前有效模型',
+      value: '让协作者依据同一模型讨论',
+      cognitiveMode: 'complex',
+      sourceRefs: ['docs/product/user-journeys.md#旅程-a'],
+    });
+
+    expect(() => preparePhaseRun(cwd)).toThrow('is awaiting a human decision');
+    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-kickoff');
   });
 
   it('blocks clarification until one generated story is selected', () => {

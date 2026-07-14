@@ -110,6 +110,7 @@ describe('tools', () => {
         'evidence_orchestrator_run_phase',
         'evidence_orchestrator_start_from_issue',
         'evidence_orchestrator_sync_issue',
+        'evidence_orchestrator_propose_kickoff',
         'evidence_orchestrator_ask_question',
         'evidence_orchestrator_answer_question',
         'evidence_orchestrator_select_story',
@@ -154,6 +155,72 @@ describe('tools', () => {
         details: { exitCode: 0 },
       }),
     ).toBeUndefined();
+  });
+
+  it('lets the AI propose one Kickoff candidate without creating a Story', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+    let execute:
+      | ((
+          toolCallId: string,
+          params: {
+            title: string;
+            problem: string;
+            role: string;
+            goal: string;
+            value: string;
+            cognitiveMode: string;
+            sourceRefs: string[];
+          },
+          signal: undefined,
+          onUpdate: undefined,
+          ctx: unknown,
+        ) => Promise<unknown>)
+      | undefined;
+    registerTools({
+      registerTool(definition: { name: string; execute?: typeof execute }) {
+        if (definition.name === 'evidence_orchestrator_propose_kickoff') {
+          execute = definition.execute;
+        }
+      },
+      on() {
+        return undefined;
+      },
+    } as never);
+
+    const result = await execute?.(
+      '',
+      {
+        title: '共享模型',
+        problem: '协作者无法识别当前模型。',
+        role: '领域建模负责人',
+        goal: '确认当前有效模型',
+        value: '让协作者依据同一模型讨论',
+        cognitiveMode: 'complex',
+        sourceRefs: ['docs/product/user-journeys.md#旅程-a'],
+      },
+      undefined,
+      undefined,
+      { cwd },
+    );
+
+    expect(readState(cwd).kickoff_candidate).toEqual(
+      expect.objectContaining({ title: '共享模型' }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        terminate: true,
+        content: [
+          expect.objectContaining({
+            text: expect.stringContaining('/evidence-kickoff'),
+          }),
+        ],
+      }),
+    );
   });
 
   it('lets the AI propose an outcome without releasing the story', async () => {

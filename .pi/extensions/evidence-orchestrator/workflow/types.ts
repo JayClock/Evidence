@@ -32,6 +32,13 @@ export type FeedbackTarget =
   | 'refactor'
   | 'value_validation';
 export type FeedbackDecider = 'human' | 'system';
+export type CognitiveMode = 'clear' | 'complicated' | 'complex';
+export type KickoffDecisionAction =
+  | 'confirmed'
+  | 'revise'
+  | 'split'
+  | 'deferred'
+  | 'stopped';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
@@ -132,6 +139,27 @@ export interface WorkflowHalt {
   recorded_at: string;
 }
 
+export interface KickoffCandidate {
+  version: 1;
+  title: string;
+  problem: string;
+  role: string;
+  goal: string;
+  value: string;
+  cognitive_mode: CognitiveMode;
+  source_refs: string[];
+  proposed_at: string;
+  artifact_path: string;
+}
+
+export interface KickoffDecision {
+  action: KickoffDecisionAction;
+  reason: string;
+  decided_by: 'human';
+  decided_at: string;
+  story_id?: string;
+}
+
 export interface WorkflowFeedback {
   target: FeedbackTarget;
   from_loop: WorkflowLoop;
@@ -148,6 +176,10 @@ export interface WorkflowState {
   workflow_version?: WorkflowVersion;
   /** Primary v5 knowledge activity. */
   loop?: WorkflowLoop;
+  /** One AI-authored candidate awaiting a human Kickoff decision. */
+  kickoff_candidate?: KickoffCandidate;
+  /** Immutable human decisions made during Kickoff. */
+  kickoff_decisions?: KickoffDecision[];
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

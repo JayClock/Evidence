@@ -26,6 +26,7 @@ import {
   artifactRelativePath,
   iterationRoot,
 } from './iteration-paths';
+import { isV5Workflow } from './loop-catalog';
 import { nextPhase, PHASE_META } from './phase-catalog';
 import { readState, selectedTestProcesses, writeState } from './state-store';
 import type { GateDecisionAction, Phase, WorkflowState } from './types';
@@ -280,6 +281,11 @@ export function validatePhaseCompletion(
   if (current.phase !== phase) {
     throw new Error(
       `Cannot complete ${phase}: current phase is ${current.phase}. Reset the workflow before starting a new iteration.`,
+    );
+  }
+  if (isV5Workflow(current) && current.loop === 'kickoff') {
+    throw new Error(
+      'A v5 Kickoff cannot be completed by a phase Agent. Only a human /evidence-kickoff confirmation can create and release the Story.',
     );
   }
   if (current.pending_gate) {

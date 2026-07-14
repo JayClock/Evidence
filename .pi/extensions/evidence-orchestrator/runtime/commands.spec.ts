@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { proposeClarificationStoryOutcome } from '../requirements/clarifications';
 import { startIterationFromIssue } from '../requirements/github-issue';
+import { proposeKickoffCandidate } from '../requirements/kickoff';
 import { DEFAULT_STATE, PHASE_META } from '../workflow/phase-catalog';
 import { readState, writeState } from '../workflow/state-store';
 import type { Phase, WorkflowState } from '../workflow/types';
@@ -145,6 +146,7 @@ describe('commands', () => {
       expect.arrayContaining([
         'evidence-run',
         'evidence-new',
+        'evidence-kickoff',
         'evidence-gate',
         'evidence-story',
         'evidence-story-complete',
@@ -154,9 +156,13 @@ describe('commands', () => {
     );
   });
 
-  it('runs frame directly after starting a new iteration', async () => {
+  it('stops after freezing a new Issue and waits for Kickoff', async () => {
     const cwd = workspace();
-    const state = issueState();
+    const state = {
+      ...issueState(),
+      workflow_version: 5 as const,
+      loop: 'kickoff' as const,
+    };
     writePhaseInputs(cwd, 'frame');
     writeState(cwd, state);
     runtimeMocks.startIterationFromIssueAsync.mockResolvedValue(state);
@@ -189,15 +195,14 @@ describe('commands', () => {
 
     await start?.('', ctx);
 
-    expect(runtimeMocks.runPhaseSubagent).toHaveBeenCalledWith(
-      expect.objectContaining({ phase: 'frame' }),
-    );
+    expect(runtimeMocks.runPhaseSubagent).not.toHaveBeenCalled();
     expect(sendUserMessage).not.toHaveBeenCalled();
-    expect(sendMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customType: 'evidence-orchestrator-phase-result',
-        content: 'Phase work completed.',
-      }),
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'run /evidence-run to prepare one Kickoff candidate',
+      ),
+      'info',
     );
     expect(ctx.ui.setStatus).toHaveBeenCalledWith(
       'evidence-network',
@@ -206,6 +211,43 @@ describe('commands', () => {
     expect(ctx.ui.setStatus).toHaveBeenCalledWith(
       'evidence-network',
       '正在冻结 GitHub Issue #42 并创建迭代…',
+    );
+  });
+
+  it('lets a human confirm one Kickoff candidate and enter Understand', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...issueState(),
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+    proposeKickoffCandidate(cwd, {
+      title: '共享模型',
+      problem: '协作者无法识别当前模型。',
+      role: '领域建模负责人',
+      goal: '确认当前有效模型',
+      value: '让协作者依据同一模型讨论',
+      cognitiveMode: 'complex',
+      sourceRefs: ['docs/product/user-journeys.md#旅程-a'],
+    });
+    let kickoff: ((args: string, ctx: unknown) => Promise<void>) | undefined;
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof kickoff }) {
+        if (name === 'evidence-kickoff') kickoff = options.handler;
+      },
+    } as never);
+    const ctx = commandContext(cwd);
+
+    await kickoff?.('confirm 角色和价值已由领域专家确认。', ctx);
+
+    expect(readState(cwd)).toMatchObject({
+      loop: 'understand',
+      phase: 'clarify',
+      active_clarification_story: { story_id: 'US-001' },
+    });
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'Human confirmed US-001; Kickoff is complete and Understand is ready.',
+      'info',
     );
   });
 

@@ -1,6 +1,7 @@
 import { allClarificationStoryOutcomeProposals } from '../requirements/clarifications';
 import { confirmedSpecificationStoryIds } from '../requirements/specifications';
 import { artifactRelativePath } from '../workflow/iteration-paths';
+import { isV5Workflow } from '../workflow/loop-catalog';
 import {
   PHASE_META,
   phaseSpecificInstructions,
@@ -17,6 +18,32 @@ export function buildPhaseTask(
   const phase = (requestedPhase || state.phase) as Phase;
   if (phase === 'complete') {
     return 'Evidence Orchestrator 本轮迭代已完成。读取本轮 07-learning/next-iteration.md，将确认后的反馈更新到 GitHub Issue，再通过 /evidence-new 选择 Issue 并创建新快照；不要直接扩写旧工件或手工修改 requirements.md 投影。';
+  }
+  if (isV5Workflow(state) && state.loop === 'kickoff') {
+    const requirements = artifactRelativePath(
+      state,
+      'artifacts/00-user-input/requirements.md',
+    );
+    return `执行 Evidence Orchestrator v5 Kickoff 候选准备。
+
+读取：
+- ${requirements}
+- docs/product/personas.md
+- docs/product/business-context.md
+- docs/product/user-journeys.md
+- docs/product/story-map.md
+
+任务：
+1. 从 Issue 中识别一个用户或业务问题，不要把 API、数据库、框架、测试或实现任务伪装成价值。
+2. 提出一个角色、一个可协商目标和一个价值，只形成一张候选 Story，不分配 US-xxx，不生成 P0/P1 Backlog。
+3. 判断团队此刻更适合 clear、complicated 或 complex 的认知行为；这不是给需求永久分类。
+4. 使用 Issue 投影以及产品文档的路径/标题作为 sourceRefs，不复制完整稳定知识。
+5. 如果 Issue 实际包含多个独立问题，不得替人选择或批量建卡；停止并明确要求人类先选择或拆分。
+6. 信息足够时只调用 evidence_orchestrator_propose_kickoff，并立即停止。不得直接写 problem-statement、Story Card 或 delta，不得调用 evidence_orchestrator_complete_phase。
+
+额外用户指令：
+${extra || '（无）'}
+`;
   }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);

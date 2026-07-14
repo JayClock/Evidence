@@ -6,6 +6,7 @@ import {
   proposeClarificationStoryOutcome,
   selectClarificationStory,
 } from '../requirements/clarifications';
+import { proposeKickoffCandidate } from '../requirements/kickoff';
 import {
   answerGate,
   completePhase,
@@ -98,6 +99,28 @@ const phaseFailureParam = Type.Object({
     description:
       'Concrete failed validation or command result for the next PDCA attempt.',
   }),
+});
+
+const kickoffCandidateParam = Type.Object({
+  title: Type.String({ description: 'Short candidate Story title.' }),
+  problem: Type.String({
+    description: 'One user or business problem, without an implementation.',
+  }),
+  role: Type.String({
+    description: 'The user or business role that benefits.',
+  }),
+  goal: Type.String({ description: 'The negotiable outcome the role wants.' }),
+  value: Type.String({ description: 'The business or user value produced.' }),
+  cognitiveMode: Type.String({
+    description: 'Current team cognitive behavior, not a permanent label.',
+    enum: ['clear', 'complicated', 'complex'],
+  }),
+  sourceRefs: Type.Array(
+    Type.String({
+      description:
+        'Issue or stable product-context path and heading reference.',
+    }),
+  ),
 });
 
 const clarificationQuestionParam = Type.Object({
@@ -284,6 +307,45 @@ export function registerTools(pi: ExtensionAPI): void {
           artifacts: collectArtifacts(ctx.cwd),
           codeFiles: collectCodeFiles(ctx.cwd),
         },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_propose_kickoff',
+    label: 'Propose Evidence Kickoff',
+    description:
+      'Persist one problem, actor, value, and Story candidate for a human Kickoff decision',
+    promptSnippet:
+      'Propose one Issue-backed Story candidate without assigning a Story id',
+    promptGuidelines: [
+      'Use only in a v5 kickoff loop after reading the Issue and stable product context.',
+      'Propose exactly one problem and one role-value Story candidate; do not generate a backlog or assign US-xxx.',
+      'After calling this tool, stop. Only a human can confirm, revise, split, defer, or stop the Kickoff.',
+    ],
+    parameters: kickoffCandidateParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = proposeKickoffCandidate(ctx.cwd, {
+        title: params.title,
+        problem: params.problem,
+        role: params.role,
+        goal: params.goal,
+        value: params.value,
+        cognitiveMode: params.cognitiveMode as
+          | 'clear'
+          | 'complicated'
+          | 'complex',
+        sourceRefs: params.sourceRefs,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-kickoff to confirm, revise, split, defer, or stop.`,
+          },
+        ],
+        details: { state },
+        terminate: true,
       };
     },
   });
@@ -645,7 +707,8 @@ export function registerTools(pi: ExtensionAPI): void {
         if (
           current.phase !== params.phase ||
           current.pending_gate ||
-          current.halted
+          current.halted ||
+          (current.workflow_version === 5 && current.loop === 'kickoff')
         ) {
           throw new Error(message);
         }

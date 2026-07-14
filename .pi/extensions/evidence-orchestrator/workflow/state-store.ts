@@ -45,6 +45,18 @@ const CLARIFICATION_STORY_OUTCOMES = new Set([
   'needs_split',
   'deferred',
 ]);
+const COGNITIVE_MODES = new Set(['clear', 'complicated', 'complex']);
+const KICKOFF_DECISIONS = new Set([
+  'confirmed',
+  'revise',
+  'split',
+  'deferred',
+  'stopped',
+]);
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && Boolean(value.trim());
+}
 
 function isValidClarificationOutcomeProposal(
   proposal: ClarificationStoryOutcomeProposal,
@@ -176,6 +188,46 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     })
   ) {
     throw new Error('The v5 workflow feedback history is invalid.');
+  }
+  const kickoffCandidate = state.kickoff_candidate;
+  const kickoffDecisions = state.kickoff_decisions ?? [];
+  if (
+    workflowVersion === 4 &&
+    (kickoffCandidate !== undefined || kickoffDecisions.length > 0)
+  ) {
+    throw new Error('A legacy v4 workflow must not declare v5 Kickoff data.');
+  }
+  if (
+    kickoffCandidate &&
+    (kickoffCandidate.version !== 1 ||
+      !isNonEmptyString(kickoffCandidate.title) ||
+      !isNonEmptyString(kickoffCandidate.problem) ||
+      !isNonEmptyString(kickoffCandidate.role) ||
+      !isNonEmptyString(kickoffCandidate.goal) ||
+      !isNonEmptyString(kickoffCandidate.value) ||
+      !COGNITIVE_MODES.has(kickoffCandidate.cognitive_mode) ||
+      !Array.isArray(kickoffCandidate.source_refs) ||
+      kickoffCandidate.source_refs.length === 0 ||
+      kickoffCandidate.source_refs.some(
+        (reference) => !isNonEmptyString(reference),
+      ) ||
+      !isNonEmptyString(kickoffCandidate.proposed_at) ||
+      !isNonEmptyString(kickoffCandidate.artifact_path))
+  ) {
+    throw new Error('The v5 Kickoff candidate is invalid.');
+  }
+  if (
+    kickoffDecisions.some(
+      (decision) =>
+        !KICKOFF_DECISIONS.has(decision.action) ||
+        !isNonEmptyString(decision.reason) ||
+        decision.decided_by !== 'human' ||
+        !isNonEmptyString(decision.decided_at) ||
+        (decision.story_id !== undefined &&
+          !STORY_ID_PATTERN.test(decision.story_id)),
+    )
+  ) {
+    throw new Error('The v5 Kickoff decision history is invalid.');
   }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
@@ -342,6 +394,10 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       ? { workflow_version: workflowVersion }
       : {}),
     ...(loop ? { loop } : {}),
+    ...(kickoffCandidate ? { kickoff_candidate: kickoffCandidate } : {}),
+    ...(kickoffDecisions.length > 0
+      ? { kickoff_decisions: kickoffDecisions }
+      : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0
       ? { feedback_history: feedbackHistory }

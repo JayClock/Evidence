@@ -40,6 +40,17 @@ export function statusMarkdown(cwd: string): string {
   const activeWorkItem = state.active_work_item
     ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
     : 'none';
+  const kickoffCandidate = state.kickoff_candidate
+    ? `${state.kickoff_candidate.title} · ${state.kickoff_candidate.cognitive_mode} · ${state.kickoff_candidate.artifact_path}`
+    : 'none';
+  const kickoffDecisions = state.kickoff_decisions?.length
+    ? state.kickoff_decisions
+        .map(
+          ({ action, story_id }) =>
+            `${action}${story_id ? ` (${story_id})` : ''}`,
+        )
+        .join(', ')
+    : 'none';
   const activeClarificationStory =
     state.active_clarification_story?.story_id ?? 'none';
   const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
@@ -90,6 +101,8 @@ export function statusMarkdown(cwd: string): string {
     `| Phase | ${state.phase} |`,
     `| Requirement Source | ${requirementSource} |`,
     `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
+    `| Kickoff Candidate | ${kickoffCandidate} |`,
+    `| Kickoff Decisions | ${kickoffDecisions} |`,
     `| Active Work Item | ${activeWorkItem} |`,
     `| Active Clarification Story | ${activeClarificationStory} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,

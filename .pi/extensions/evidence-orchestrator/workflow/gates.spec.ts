@@ -36,6 +36,20 @@ describe('gates', () => {
     expect(resolvePendingGate(cwd)).toMatchObject({ phase: 'frame', round: 1 });
   });
 
+  it('reserves v5 Kickoff completion for the human decision', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+    writeFrameOutputs(cwd);
+
+    expect(() => completePhase(cwd, 'frame')).toThrow(
+      'Only a human /evidence-kickoff confirmation',
+    );
+  });
+
   it('rejects completion when a required output is absent', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);

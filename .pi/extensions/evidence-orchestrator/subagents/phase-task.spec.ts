@@ -25,6 +25,22 @@ describe('phase tasks', () => {
     expect(task).toContain('stories/US-xxx.md');
   });
 
+  it('prepares one unnumbered v5 Kickoff candidate for human review', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'kickoff',
+    });
+
+    const task = buildPhaseTask(cwd);
+
+    expect(task).toContain('evidence_orchestrator_propose_kickoff');
+    expect(task).toContain('不分配 US-xxx');
+    expect(task).toContain('不得调用 evidence_orchestrator_complete_phase');
+    expect(task).not.toContain('必须产出');
+  });
+
   it('scopes clarification work to the selected story', () => {
     const cwd = workspace();
     writeState(cwd, {
