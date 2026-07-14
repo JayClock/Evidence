@@ -6,6 +6,7 @@ import {
 } from '../requirements/clarifications';
 import { proposeKickoffCandidate } from '../requirements/kickoff';
 import { proposeScenarioDrafts } from '../requirements/scenarios';
+import { proposeModelingProfile } from '../evidence/modeling';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 import { isCompletedIteration, preparePhaseRun } from './phase-dispatch';
@@ -127,6 +128,56 @@ describe('phase dispatch', () => {
       'Scenario draft(s) await a human decision',
     );
     expect(() => preparePhaseRun(cwd)).toThrow('/evidence-scenario');
+  });
+
+  it('prepares v5 model routing and blocks while its Profile awaits a human', () => {
+    const cwd = workspace();
+    for (const path of [
+      'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+      '.evidence/model.json',
+      '.evidence/entities/workspace.yaml',
+      '.evidence/associations/workspace-self.yaml',
+    ]) {
+      write(cwd, path, 'input');
+    }
+    writeState(cwd, {
+      ...issueBackedFrameState(),
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'domain_model',
+      understand_stage: 'modeling',
+      modeling_stage: 'profile',
+      confirmed_scenario: {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: '确认当前模型',
+        given: ['v3 已确认'],
+        when: '负责人打开模型',
+        then: ['显示 v3'],
+        business_data: ['版本：v3'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: '最小价值。',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+
+    const prepared = preparePhaseRun(cwd);
+    if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');
+    expect(prepared.task).toContain(
+      'evidence_orchestrator_propose_modeling_profile',
+    );
+
+    proposeModelingProfile(cwd, {
+      subject: 'domain',
+      method: 'object',
+      modelChangeRequired: false,
+      reason: 'Use the existing model.',
+    });
+    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-modeling-profile');
   });
 
   it('blocks clarification until one generated story is selected', () => {

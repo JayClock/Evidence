@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { proposeModelingProfile } from '../evidence/modeling';
 import { proposeClarificationStoryOutcome } from '../requirements/clarifications';
 import { startIterationFromIssue } from '../requirements/github-issue';
 import { proposeKickoffCandidate } from '../requirements/kickoff';
@@ -149,6 +150,7 @@ describe('commands', () => {
         'evidence-new',
         'evidence-kickoff',
         'evidence-scenario',
+        'evidence-modeling-profile',
         'evidence-gate',
         'evidence-story',
         'evidence-story-complete',
@@ -298,6 +300,74 @@ describe('commands', () => {
     });
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       'Human confirmed US-001 / SC-001; model validation is next.',
+      'info',
+    );
+  });
+
+  it('lets a human confirm the modeling Profile before expansion', async () => {
+    const cwd = workspace();
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/examples/US-001-SC-001.md',
+      '# Scenario',
+    );
+    writeState(cwd, {
+      ...issueState('domain_model'),
+      workflow_version: 5,
+      loop: 'understand',
+      understand_stage: 'modeling',
+      modeling_stage: 'profile',
+      confirmed_scenario: {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: '确认当前模型',
+        given: ['v3 已确认'],
+        when: '负责人打开模型',
+        then: ['显示 v3'],
+        business_data: ['版本：v3'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: '最小价值。',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    proposeModelingProfile(cwd, {
+      subject: 'domain',
+      method: 'object',
+      modelChangeRequired: false,
+      reason: 'Use the existing object model.',
+    });
+    let confirmProfile:
+      | ((args: string, ctx: unknown) => Promise<void>)
+      | undefined;
+    registerCommands({
+      registerCommand(
+        name: string,
+        options: { handler: typeof confirmProfile },
+      ) {
+        if (name === 'evidence-modeling-profile') {
+          confirmProfile = options.handler;
+        }
+      },
+    } as never);
+    const ctx = commandContext(cwd);
+
+    await confirmProfile?.('confirm 领域专家确认现有对象模型足够。', ctx);
+
+    expect(readState(cwd)).toMatchObject({
+      modeling_stage: 'expansion',
+      modeling_profile: {
+        subject: 'domain',
+        method: 'object',
+        model_change_required: false,
+        confirmed_by: 'human',
+      },
+    });
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('Run /evidence-run to expand the Scenario'),
       'info',
     );
   });

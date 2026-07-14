@@ -60,6 +60,23 @@ const UNDERSTANDING_DECISIONS = new Set([
   'split',
   'deferred',
 ]);
+const MODELING_STAGES = new Set([
+  'profile',
+  'profile_review',
+  'expansion',
+  'candidate_ready',
+]);
+const MODELING_SUBJECTS = new Set(['business', 'domain', 'tool']);
+const MODELING_METHODS = new Set([
+  'none',
+  'object',
+  'event',
+  'four_color',
+  'eight_x_flow',
+  'algorithmic',
+]);
+const MODEL_OPERATION_ACTIONS = new Set(['add', 'update', 'remove']);
+const MODEL_ELEMENT_KINDS = new Set(['entity', 'association']);
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
@@ -335,6 +352,121 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   ) {
     throw new Error('The v5 Understand decision history is invalid.');
   }
+  const modelingStage = state.modeling_stage;
+  const profileProposal = state.modeling_profile_proposal;
+  const modelingProfile = state.modeling_profile;
+  const modelExpansionPath = state.model_expansion_path;
+  const modelGitBaseline = state.model_git_baseline;
+  const modelChangeProposal = state.model_change_proposal;
+  const modelChangeApplication = state.model_change_application;
+  if (
+    workflowVersion === 4 &&
+    (modelingStage !== undefined ||
+      profileProposal !== undefined ||
+      modelingProfile !== undefined ||
+      modelExpansionPath !== undefined ||
+      modelGitBaseline !== undefined ||
+      modelChangeProposal !== undefined ||
+      modelChangeApplication !== undefined)
+  ) {
+    throw new Error('A legacy v4 workflow must not declare v5 modeling data.');
+  }
+  if (modelingStage !== undefined && !MODELING_STAGES.has(modelingStage)) {
+    throw new Error(`Unsupported v5 modeling stage: ${modelingStage}.`);
+  }
+  if (
+    profileProposal &&
+    (profileProposal.version !== 1 ||
+      !MODELING_SUBJECTS.has(profileProposal.subject) ||
+      !MODELING_METHODS.has(profileProposal.method) ||
+      ![true, false, 'unknown'].includes(
+        profileProposal.model_change_required,
+      ) ||
+      !isNonEmptyString(profileProposal.reason) ||
+      !isNonEmptyString(profileProposal.proposed_at))
+  ) {
+    throw new Error('The v5 modeling Profile proposal is invalid.');
+  }
+  if (
+    modelingProfile &&
+    (modelingProfile.version !== 1 ||
+      !MODELING_SUBJECTS.has(modelingProfile.subject) ||
+      !MODELING_METHODS.has(modelingProfile.method) ||
+      typeof modelingProfile.model_change_required !== 'boolean' ||
+      !isNonEmptyString(modelingProfile.reason) ||
+      modelingProfile.confirmed_by !== 'human' ||
+      !isNonEmptyString(modelingProfile.confirmed_at))
+  ) {
+    throw new Error('The v5 confirmed modeling Profile is invalid.');
+  }
+  if (modelingStage === 'profile_review' && !profileProposal) {
+    throw new Error('Modeling Profile review requires an AI proposal.');
+  }
+  if (
+    ['expansion', 'candidate_ready'].includes(modelingStage ?? '') &&
+    !modelingProfile
+  ) {
+    throw new Error(
+      `${modelingStage} requires a human-confirmed modeling Profile.`,
+    );
+  }
+  if (
+    modelChangeProposal &&
+    (modelChangeProposal.version !== 1 ||
+      !STORY_ID_PATTERN.test(modelChangeProposal.story_id) ||
+      !/^SC-\d{3,}$/.test(modelChangeProposal.scenario_id) ||
+      !isNonEmptyString(modelChangeProposal.git_baseline) ||
+      !isNonEmptyString(modelChangeProposal.reason) ||
+      !Array.isArray(modelChangeProposal.operations) ||
+      modelChangeProposal.operations.length === 0 ||
+      modelChangeProposal.operations.some(
+        (operation) =>
+          !MODEL_OPERATION_ACTIONS.has(operation.action) ||
+          !MODEL_ELEMENT_KINDS.has(operation.kind) ||
+          !isNonEmptyString(operation.id) ||
+          !isNonEmptyString(operation.path),
+      ) ||
+      !isNonEmptyString(modelChangeProposal.artifact_path) ||
+      !isNonEmptyString(modelChangeProposal.proposed_at))
+  ) {
+    throw new Error('The v5 model-change proposal is invalid.');
+  }
+  if (
+    modelingStage === 'candidate_ready' &&
+    (!isNonEmptyString(modelExpansionPath) ||
+      !isNonEmptyString(modelGitBaseline))
+  ) {
+    throw new Error(
+      'A model candidate requires its expansion path and Git baseline.',
+    );
+  }
+  if (
+    modelChangeProposal &&
+    (modelingProfile?.model_change_required !== true ||
+      modelChangeProposal.git_baseline !== modelGitBaseline)
+  ) {
+    throw new Error(
+      'The model-change proposal must match the confirmed Profile and Git baseline.',
+    );
+  }
+  if (
+    modelingStage === 'candidate_ready' &&
+    modelingProfile?.model_change_required === true &&
+    !modelChangeProposal
+  ) {
+    throw new Error('The confirmed Profile requires a model-change proposal.');
+  }
+  if (
+    modelChangeApplication &&
+    (!modelChangeProposal ||
+      !isNonEmptyString(modelChangeApplication.git_baseline) ||
+      modelChangeApplication.git_baseline !==
+        modelChangeProposal.git_baseline ||
+      !isNonEmptyStringArray(modelChangeApplication.changed_paths) ||
+      !isNonEmptyString(modelChangeApplication.applied_at))
+  ) {
+    throw new Error('The v5 model-change application is invalid.');
+  }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
       'An active clarification story is only valid while the workflow is in clarify.',
@@ -519,6 +651,17 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     ...(confirmedScenario ? { confirmed_scenario: confirmedScenario } : {}),
     ...(understandingDecisions.length > 0
       ? { understanding_decisions: understandingDecisions }
+      : {}),
+    ...(modelingStage ? { modeling_stage: modelingStage } : {}),
+    ...(profileProposal ? { modeling_profile_proposal: profileProposal } : {}),
+    ...(modelingProfile ? { modeling_profile: modelingProfile } : {}),
+    ...(modelExpansionPath ? { model_expansion_path: modelExpansionPath } : {}),
+    ...(modelGitBaseline ? { model_git_baseline: modelGitBaseline } : {}),
+    ...(modelChangeProposal
+      ? { model_change_proposal: modelChangeProposal }
+      : {}),
+    ...(modelChangeApplication
+      ? { model_change_application: modelChangeApplication }
       : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0

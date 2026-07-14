@@ -8,6 +8,7 @@ import {
   selectClarificationStory,
   unresolvedClarificationStoryIds,
 } from '../requirements/clarifications';
+import { confirmModelingProfile } from '../evidence/modeling';
 import { decideKickoff } from '../requirements/kickoff';
 import { decideUnderstanding } from '../requirements/scenarios';
 import { answerGate } from '../workflow/gates';
@@ -22,6 +23,8 @@ import type {
   ClarificationStoryOutcome,
   ClarificationStoryOutcomeProposal,
   KickoffDecisionAction,
+  ModelingMethod,
+  ModelingSubject,
   Phase,
   UnderstandingDecisionAction,
 } from '../workflow/types';
@@ -192,6 +195,98 @@ async function promptScenarioDecision(
   return reason
     ? { action, reason, ...(draftId ? { draftId } : {}) }
     : undefined;
+}
+
+interface ModelingProfileDecision {
+  reason: string;
+  subject?: ModelingSubject;
+  method?: ModelingMethod;
+  modelChangeRequired?: boolean;
+}
+
+const MODELING_SUBJECTS: ModelingSubject[] = ['business', 'domain', 'tool'];
+const MODELING_METHODS: ModelingMethod[] = [
+  'none',
+  'object',
+  'event',
+  'four_color',
+  'eight_x_flow',
+  'algorithmic',
+];
+
+function parseModelingProfileDecision(
+  args: string,
+): ModelingProfileDecision | undefined {
+  const [rawAction, ...rest] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  if (rawAction === 'confirm') {
+    const reason = rest.join(' ').trim();
+    if (!reason) throw new Error('Profile confirmation requires a reason.');
+    return { reason };
+  }
+  if (rawAction !== 'set') {
+    throw new Error(
+      'Usage: /evidence-modeling-profile confirm <reason> | set <business|domain|tool> <method> <true|false> <reason>.',
+    );
+  }
+  const [rawSubject, rawMethod, rawRequired, ...reasonParts] = rest;
+  if (
+    !MODELING_SUBJECTS.includes(rawSubject as ModelingSubject) ||
+    !MODELING_METHODS.includes(rawMethod as ModelingMethod) ||
+    !['true', 'false'].includes(rawRequired ?? '')
+  ) {
+    throw new Error(
+      'Profile override requires a valid subject, method, and true/false model-change decision.',
+    );
+  }
+  const reason = reasonParts.join(' ').trim();
+  if (!reason) throw new Error('Profile override requires a reason.');
+  return {
+    subject: rawSubject as ModelingSubject,
+    method: rawMethod as ModelingMethod,
+    modelChangeRequired: rawRequired === 'true',
+    reason,
+  };
+}
+
+async function promptModelingProfileDecision(
+  ctx: ExtensionCommandContext,
+): Promise<ModelingProfileDecision | undefined> {
+  const proposal = readState(ctx.cwd).modeling_profile_proposal;
+  if (!proposal) throw new Error('No modeling Profile is awaiting review.');
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Modeling Profile confirmation requires interactive mode or explicit command arguments.',
+    );
+  }
+  const canConfirm = proposal.model_change_required !== 'unknown';
+  const choice = await ctx.ui.select(
+    `建模建议：${proposal.subject}/${proposal.method} · change=${proposal.model_change_required}`,
+    [...(canConfirm ? ['确认 AI 建议'] : []), '覆盖 AI 建议'],
+  );
+  if (!choice) return undefined;
+  if (choice === '确认 AI 建议') {
+    const reason = (await ctx.ui.input('请说明确认该建模方法的理由'))?.trim();
+    return reason ? { reason } : undefined;
+  }
+  const subject = (await ctx.ui.select('选择建模对象', MODELING_SUBJECTS)) as
+    | ModelingSubject
+    | undefined;
+  const method = (await ctx.ui.select('选择建模方法', MODELING_METHODS)) as
+    | ModelingMethod
+    | undefined;
+  const required = await ctx.ui.select('权威模型是否需要变化', [
+    '需要变化',
+    '无需变化',
+  ]);
+  const reason = (await ctx.ui.input('请说明覆盖建议的理由'))?.trim();
+  if (!subject || !method || !required || !reason) return undefined;
+  return {
+    subject,
+    method,
+    modelChangeRequired: required === '需要变化',
+    reason,
+  };
 }
 
 function parseStoryDecision(
@@ -500,6 +595,37 @@ export function registerCommands(pi: ExtensionAPI): void {
             'info',
           );
         }
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  pi.registerCommand('evidence-modeling-profile', {
+    description:
+      'Human-only modeling Profile confirmation or override for the confirmed Scenario',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseModelingProfileDecision(args) ??
+          (await promptModelingProfileDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Modeling Profile decision cancelled; the proposal is unchanged.',
+            'info',
+          );
+          return;
+        }
+        const state = confirmModelingProfile(ctx.cwd, decision);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        ctx.ui.notify(
+          `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
+          'info',
+        );
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),

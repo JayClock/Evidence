@@ -65,6 +65,22 @@ describe('gates', () => {
     );
   });
 
+  it('does not let a v5 model builder approve its own candidate', () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'domain_model',
+      understand_stage: 'modeling',
+      modeling_stage: 'profile',
+    });
+
+    expect(() => completePhase(cwd, 'domain_model')).toThrow(
+      'cannot complete or approve its own work',
+    );
+  });
+
   it('rejects completion when a required output is absent', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);

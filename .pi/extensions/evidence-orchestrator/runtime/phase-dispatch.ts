@@ -32,6 +32,8 @@ export class PhaseRunBlockedError extends Error {
       | 'kickoff_decision'
       | 'clarification'
       | 'scenario_decision'
+      | 'modeling_profile'
+      | 'model_candidate'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -133,6 +135,26 @@ export function preparePhaseRun(
       `${current.scenario_drafts.length} Scenario draft(s) await a human decision. Run /evidence-scenario to confirm one, continue TQA, split, or defer.`,
     );
   }
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'understand' &&
+    current.modeling_stage === 'profile_review'
+  ) {
+    throw new PhaseRunBlockedError(
+      'modeling_profile',
+      'The modeling Profile awaits a human decision. Run /evidence-modeling-profile to confirm or override it.',
+    );
+  }
+  if (
+    current.workflow_version === 5 &&
+    current.loop === 'understand' &&
+    current.modeling_stage === 'candidate_ready'
+  ) {
+    throw new PhaseRunBlockedError(
+      'model_candidate',
+      `Model expansion ${current.model_expansion_path} is ready for an independent model challenge; the builder must not self-approve it.`,
+    );
+  }
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
     throw new PhaseRunBlockedError(
@@ -190,11 +212,23 @@ export function preparePhaseRun(
           'docs/product/business-context.md',
           'docs/product/user-journeys.md',
         ]
-      : undefined;
+      : current.workflow_version === 5 &&
+          current.loop === 'understand' &&
+          current.understand_stage === 'modeling'
+        ? [
+            current.confirmed_scenario?.artifact_path ??
+              'artifacts/01-requirements/examples/missing.md',
+            '.evidence/model.json',
+            '.evidence/entities/',
+            '.evidence/associations/',
+          ]
+        : undefined;
   const missingInputs = missingPaths(
     cwd,
     (v5UnderstandInputs ?? PHASE_META[current.phase].inputs).map((path) =>
-      artifactRelativePath(current, path),
+      path.startsWith(`artifacts/iterations/${current.iteration_id}/`)
+        ? path
+        : artifactRelativePath(current, path),
     ),
   );
   if (missingInputs.length > 0) {

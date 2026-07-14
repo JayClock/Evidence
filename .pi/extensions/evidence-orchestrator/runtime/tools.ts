@@ -1,6 +1,10 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
 import {
+  proposeModelingProfile,
+  recordModelAnalysis,
+} from '../evidence/modeling';
+import {
   answerClarification,
   askClarification,
   proposeClarificationStoryOutcome,
@@ -141,6 +145,68 @@ const scenarioDraftParam = Type.Object({
       ),
     }),
   ),
+});
+
+const modelingProfileParam = Type.Object({
+  subject: Type.String({
+    description: 'Modeling subject: business, domain, or tool.',
+    enum: ['business', 'domain', 'tool'],
+  }),
+  method: Type.String({
+    description:
+      'Modeling method: none, object, event, four_color, eight_x_flow, or algorithmic.',
+    enum: [
+      'none',
+      'object',
+      'event',
+      'four_color',
+      'eight_x_flow',
+      'algorithmic',
+    ],
+  }),
+  modelChangeRequired: Type.String({
+    description:
+      'Whether the canonical model needs change: true, false, unknown.',
+    enum: ['true', 'false', 'unknown'],
+  }),
+  reason: Type.String({ description: 'Business modeling rationale.' }),
+});
+
+const modelOperationParam = Type.Object({
+  action: Type.String({ enum: ['add', 'update', 'remove'] }),
+  kind: Type.String({ enum: ['entity', 'association'] }),
+  id: Type.String({ description: 'Stable lowercase model id.' }),
+  path: Type.String({ description: 'Exact canonical .evidence YAML path.' }),
+  content: Type.Optional(
+    Type.String({ description: 'Complete candidate YAML for add/update.' }),
+  ),
+  expected_sha256: Type.Optional(
+    Type.String({ description: 'Expected current hash for update/remove.' }),
+  ),
+});
+
+const modelAnalysisParam = Type.Object({
+  reason: Type.String({
+    description: 'Why the existing/candidate model explains the Scenario.',
+  }),
+  modelRefs: Type.Object({
+    entities: Type.Array(Type.String()),
+    associations: Type.Array(Type.String()),
+  }),
+  given: Type.Object({
+    entities: Type.Array(Type.String()),
+    relationships: Type.Array(Type.String()),
+  }),
+  when: Type.String({ description: 'Business command or event.' }),
+  then: Type.Object({
+    createdEntities: Type.Array(Type.String()),
+    changedEntities: Type.Array(Type.String()),
+    createdRelationships: Type.Array(Type.String()),
+    removedRelationships: Type.Array(Type.String()),
+  }),
+  invariants: Type.Array(Type.String()),
+  timeline: Type.Array(Type.String()),
+  operations: Type.Array(modelOperationParam),
 });
 
 const clarificationQuestionParam = Type.Object({
@@ -500,6 +566,89 @@ export function registerTools(pi: ExtensionAPI): void {
           {
             type: 'text',
             text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
+          },
+        ],
+        details: { state },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_propose_modeling_profile',
+    label: 'Propose Evidence Modeling Profile',
+    description:
+      'Propose the modeling subject, method, and change need for human confirmation',
+    promptSnippet:
+      'Classify the confirmed Scenario before modifying or expanding a model',
+    promptGuidelines: [
+      'Use only in v5 Understand after a human confirms one Scenario.',
+      'Distinguish business systems, domain systems, and tools before selecting a method.',
+      'After calling this tool, stop. Only a human can confirm or override the Profile.',
+    ],
+    parameters: modelingProfileParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const requirement =
+        params.modelChangeRequired === 'unknown'
+          ? 'unknown'
+          : params.modelChangeRequired === 'true';
+      const state = proposeModelingProfile(ctx.cwd, {
+        subject: params.subject as 'business' | 'domain' | 'tool',
+        method: params.method as
+          | 'none'
+          | 'object'
+          | 'event'
+          | 'four_color'
+          | 'eight_x_flow'
+          | 'algorithmic',
+        modelChangeRequired: requirement,
+        reason: params.reason,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-modeling-profile.`,
+          },
+        ],
+        details: { state },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_record_model_analysis',
+    label: 'Record Evidence Model Analysis',
+    description:
+      'Record one Scenario expansion and an optional structured candidate model change without editing .evidence',
+    promptSnippet:
+      'Expand the confirmed Scenario through the selected model and record only a candidate change',
+    promptGuidelines: [
+      'Use only after the human confirms a v5 modeling Profile.',
+      'Try the existing canonical model first. Operations must be empty when it already explains the Scenario.',
+      'Never edit .evidence in Understand. Candidate operations are structured add/update/remove records, not shell patches.',
+      'After calling this tool, stop for independent model checking.',
+    ],
+    parameters: modelAnalysisParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = recordModelAnalysis(ctx.cwd, {
+        reason: params.reason,
+        modelRefs: params.modelRefs,
+        given: params.given,
+        when: params.when,
+        then: params.then,
+        invariants: params.invariants,
+        timeline: params.timeline,
+        operations: params.operations,
+      });
+      return {
+        content: [
+          {
+            type: 'text',
+            text: state.model_change_proposal
+              ? `Recorded model expansion and candidate proposal ${state.model_change_proposal.artifact_path}; .evidence is unchanged.`
+              : `Recorded model expansion ${state.model_expansion_path}; the existing model is sufficient and no model delta was created.`,
           },
         ],
         details: { state },

@@ -61,6 +61,11 @@ export function statusMarkdown(cwd: string): string {
   const confirmedScenario = state.confirmed_scenario
     ? `${state.confirmed_scenario.story_id} / ${state.confirmed_scenario.scenario_id}`
     : 'none';
+  const modelingProfile = state.modeling_profile
+    ? `${state.modeling_profile.subject}/${state.modeling_profile.method} · change=${state.modeling_profile.model_change_required}`
+    : state.modeling_profile_proposal
+      ? `proposed ${state.modeling_profile_proposal.subject}/${state.modeling_profile_proposal.method} · change=${state.modeling_profile_proposal.model_change_required}`
+      : 'none';
   const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
   const pendingStoryDecision = pendingStoryDecisions.length
     ? pendingStoryDecisions
@@ -116,6 +121,10 @@ export function statusMarkdown(cwd: string): string {
     `| Understand Stage | ${state.understand_stage ?? 'none'} |`,
     `| Scenario Drafts | ${scenarioDrafts} |`,
     `| Confirmed Scenario | ${confirmedScenario} |`,
+    `| Modeling Stage | ${state.modeling_stage ?? 'none'} |`,
+    `| Modeling Profile | ${modelingProfile} |`,
+    `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,
+    `| Model Change Proposal | ${state.model_change_proposal?.artifact_path ?? 'none'} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

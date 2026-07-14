@@ -297,6 +297,15 @@ export function validatePhaseCompletion(
       'v5 TQA and specification stay inside Understand. Only a human /evidence-scenario decision can advance to model validation.',
     );
   }
+  if (
+    isV5Workflow(current) &&
+    current.loop === 'understand' &&
+    phase === 'domain_model'
+  ) {
+    throw new Error(
+      'A v5 model builder cannot complete or approve its own work. Record a structured analysis and wait for the independent model challenge.',
+    );
+  }
   if (current.pending_gate) {
     throw new Error(
       `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,

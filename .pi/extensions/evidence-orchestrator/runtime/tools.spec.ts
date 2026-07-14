@@ -112,6 +112,8 @@ describe('tools', () => {
         'evidence_orchestrator_sync_issue',
         'evidence_orchestrator_propose_kickoff',
         'evidence_orchestrator_propose_scenarios',
+        'evidence_orchestrator_propose_modeling_profile',
+        'evidence_orchestrator_record_model_analysis',
         'evidence_orchestrator_ask_question',
         'evidence_orchestrator_answer_question',
         'evidence_orchestrator_select_story',
@@ -295,6 +297,97 @@ describe('tools', () => {
         content: [
           expect.objectContaining({
             text: expect.stringContaining('/evidence-scenario'),
+          }),
+        ],
+      }),
+    );
+  });
+
+  it('lets the AI propose a modeling Profile without confirming it', async () => {
+    const cwd = workspace();
+    writeIterationArtifact(
+      cwd,
+      '01-requirements/examples/US-001-SC-001.md',
+      '# Scenario',
+    );
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'domain_model',
+      understand_stage: 'modeling',
+      modeling_stage: 'profile',
+      confirmed_scenario: {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: '确认当前模型',
+        given: ['v3 已确认'],
+        when: '负责人打开模型',
+        then: ['显示 v3'],
+        business_data: ['版本：v3'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: '最小价值。',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    let execute:
+      | ((
+          toolCallId: string,
+          params: {
+            subject: string;
+            method: string;
+            modelChangeRequired: string;
+            reason: string;
+          },
+          signal: undefined,
+          onUpdate: undefined,
+          ctx: unknown,
+        ) => Promise<unknown>)
+      | undefined;
+    registerTools({
+      registerTool(definition: { name: string; execute?: typeof execute }) {
+        if (
+          definition.name === 'evidence_orchestrator_propose_modeling_profile'
+        ) {
+          execute = definition.execute;
+        }
+      },
+      on() {
+        return undefined;
+      },
+    } as never);
+
+    const result = await execute?.(
+      '',
+      {
+        subject: 'domain',
+        method: 'object',
+        modelChangeRequired: 'false',
+        reason: 'The existing object model may explain the Scenario.',
+      },
+      undefined,
+      undefined,
+      { cwd },
+    );
+
+    expect(readState(cwd)).toMatchObject({
+      modeling_stage: 'profile_review',
+      modeling_profile_proposal: {
+        subject: 'domain',
+        method: 'object',
+        model_change_required: false,
+      },
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        terminate: true,
+        content: [
+          expect.objectContaining({
+            text: expect.stringContaining('/evidence-modeling-profile'),
           }),
         ],
       }),

@@ -75,6 +75,61 @@ ${extra || '（无）'}
 ${extra || '（无）'}
 `;
   }
+  if (
+    isV5Workflow(state) &&
+    state.loop === 'understand' &&
+    state.understand_stage === 'modeling'
+  ) {
+    const scenario = state.confirmed_scenario;
+    if (!scenario)
+      throw new Error('v5 modeling requires a confirmed Scenario.');
+    if (state.modeling_stage === 'profile') {
+      return `执行 Evidence Orchestrator v5 建模方法选择：${scenario.story_id} / ${scenario.scenario_id}。
+
+先读取：
+- ${scenario.artifact_path}
+- .evidence/model.json
+- .evidence/entities/
+- .evidence/associations/
+
+任务：
+1. 判断本场景处理的是 business、domain 还是 tool；这是建模对象，不是技术 runtime。
+2. 选择 none、object、event、four_color、eight_x_flow 或 algorithmic。eight_x_flow 只适用于业务系统；工具允许 none。
+3. 先尝试用现有模型解释场景，再判断 modelChangeRequired 为 true、false 或 unknown。
+4. 只调用 evidence_orchestrator_propose_modeling_profile 并停止，等待人类通过 /evidence-modeling-profile 确认或覆盖。
+5. 此时不得编辑 .evidence，不得创建模型补丁，不得调用阶段完成工具。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+    }
+    if (state.modeling_stage === 'expansion') {
+      return `执行 Evidence Orchestrator v5 模型展开：${scenario.story_id} / ${scenario.scenario_id}。
+
+人类已确认建模 Profile：
+${JSON.stringify(state.modeling_profile, null, 2)}
+
+读取：
+- ${scenario.artifact_path}
+- .evidence/model.json
+- .evidence/entities/
+- .evidence/associations/
+
+任务：
+1. 必须先使用现有 .evidence 模型展开 Given/When/Then、关键业务数据、不变量和时间线。
+2. model_change_required=false 时，operations 必须为空，不得制造 model delta。
+3. model_change_required=true 时，只在概念缺失、关系错置、生命周期或方法特有不变量失败时提出结构化 add/update/remove operation。路径限定为 .evidence/entities/<id>.yaml 或 .evidence/associations/<id>.yaml；update/remove 必须提供当前文件 sha256。
+4. 只调用 evidence_orchestrator_record_model_analysis。该工具记录展开和候选补丁；不得直接 edit/write .evidence，也不得输出 shell patch。
+5. 调用后立即停止，等待独立 Model Challenger；不得自行验证或完成阶段。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+    }
+    throw new Error(
+      `v5 modeling stage ${state.modeling_stage ?? 'unset'} cannot run a builder task.`,
+    );
+  }
   const meta = PHASE_META[phase];
   if (!meta) throw new Error(`Unknown Evidence Orchestrator phase: ${phase}.`);
   const activeWorkItem = state.active_work_item

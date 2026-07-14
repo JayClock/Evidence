@@ -45,6 +45,22 @@ export type UnderstandingDecisionAction =
   | 'continue'
   | 'split'
   | 'deferred';
+export type ModelingSubject = 'business' | 'domain' | 'tool';
+export type ModelingMethod =
+  | 'none'
+  | 'object'
+  | 'event'
+  | 'four_color'
+  | 'eight_x_flow'
+  | 'algorithmic';
+export type ModelChangeRequirement = boolean | 'unknown';
+export type ModelingStage =
+  | 'profile'
+  | 'profile_review'
+  | 'expansion'
+  | 'candidate_ready';
+export type ModelOperationAction = 'add' | 'update' | 'remove';
+export type ModelElementKind = 'entity' | 'association';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
 export type GateDecisionAction = 'approve' | 'revise' | 'reject';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
@@ -204,6 +220,52 @@ export interface UnderstandingDecision {
   scenario_id?: string;
 }
 
+export interface ModelingProfileProposal {
+  version: 1;
+  subject: ModelingSubject;
+  method: ModelingMethod;
+  model_change_required: ModelChangeRequirement;
+  reason: string;
+  proposed_at: string;
+}
+
+export interface ConfirmedModelingProfile {
+  version: 1;
+  subject: ModelingSubject;
+  method: ModelingMethod;
+  model_change_required: boolean;
+  reason: string;
+  confirmed_by: 'human';
+  confirmed_at: string;
+  proposal?: ModelingProfileProposal;
+}
+
+export interface ModelOperation {
+  action: ModelOperationAction;
+  kind: ModelElementKind;
+  id: string;
+  path: string;
+  content?: string;
+  expected_sha256?: string;
+}
+
+export interface ModelChangeProposal {
+  version: 1;
+  story_id: string;
+  scenario_id: string;
+  git_baseline: string;
+  reason: string;
+  operations: ModelOperation[];
+  artifact_path: string;
+  proposed_at: string;
+}
+
+export interface ModelChangeApplication {
+  git_baseline: string;
+  changed_paths: string[];
+  applied_at: string;
+}
+
 export interface WorkflowFeedback {
   target: FeedbackTarget;
   from_loop: WorkflowLoop;
@@ -229,6 +291,13 @@ export interface WorkflowState {
   scenario_drafts?: ScenarioDraft[];
   confirmed_scenario?: ConfirmedScenario;
   understanding_decisions?: UnderstandingDecision[];
+  modeling_stage?: ModelingStage;
+  modeling_profile_proposal?: ModelingProfileProposal;
+  modeling_profile?: ConfirmedModelingProfile;
+  model_expansion_path?: string;
+  model_git_baseline?: string;
+  model_change_proposal?: ModelChangeProposal;
+  model_change_application?: ModelChangeApplication;
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

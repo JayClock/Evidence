@@ -317,6 +317,7 @@ export function decideUnderstanding(
     ...state,
     phase: 'domain_model',
     understand_stage: 'modeling',
+    modeling_stage: 'profile',
     active_clarification_story: undefined,
     confirmed_scenario: confirmed,
     understanding_decisions: [
