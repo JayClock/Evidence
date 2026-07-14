@@ -13,13 +13,13 @@ describe('artifacts', () => {
   it('creates an isolated artifact tree and discovers only source code', () => {
     const cwd = workspace();
     ensureProjectDirs(cwd, `${cwd}/artifacts/iterations/ITER-0001`);
-    write(cwd, 'artifacts/iterations/ITER-0001/01-requirements/story.md');
+    write(cwd, 'artifacts/iterations/ITER-0001/01-kickoff/story.md');
     write(cwd, 'apps/web/src/app.tsx');
     write(cwd, 'apps/web/dist/app.js');
 
     expect(
       collectArtifacts(cwd, `${cwd}/artifacts/iterations/ITER-0001`),
-    ).toEqual(['artifacts/iterations/ITER-0001/01-requirements/story.md']);
+    ).toEqual(['artifacts/iterations/ITER-0001/01-kickoff/story.md']);
     expect(collectCodeFiles(cwd)).toEqual(['apps/web/src/app.tsx']);
   });
 

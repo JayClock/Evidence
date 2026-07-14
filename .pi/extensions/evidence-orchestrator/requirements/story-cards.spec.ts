@@ -1,53 +1,52 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { singleStoryId, validateSingleStoryCard } from './story-cards';
+import { DEFAULT_STATE } from '../workflow/phase-catalog';
 import {
   cleanupWorkspaces,
   LEAN_STORY_CARD,
   workspace,
   writeIterationArtifact,
 } from '../tests/support';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
-import { validateStoryCards } from './story-cards';
 
 afterEach(cleanupWorkspaces);
 
-describe('lean story cards', () => {
-  it('accepts a concise Card with context linkage', () => {
+describe('single Story Card', () => {
+  it('accepts one lean Card and returns its stable ID', () => {
     const cwd = workspace();
-    writeIterationArtifact(
-      cwd,
-      '01-requirements/stories/US-001.md',
-      LEAN_STORY_CARD,
-    );
-
-    expect(() => validateStoryCards(cwd, DEFAULT_STATE)).not.toThrow();
+    writeIterationArtifact(cwd, '01-kickoff/story.md', LEAN_STORY_CARD);
+    expect(singleStoryId(cwd, DEFAULT_STATE)).toBe('US-001');
+    expect(() => validateSingleStoryCard(cwd, DEFAULT_STATE)).not.toThrow();
   });
 
-  it.each(['故事元数据', '优先级依据', '非目标', '待澄清问题'])(
-    'rejects the redundant %s section',
-    (section) => {
-      const cwd = workspace();
-      writeIterationArtifact(
-        cwd,
-        '01-requirements/stories/US-001.md',
-        `${LEAN_STORY_CARD}\n## ${section}\n\ncontent\n`,
-      );
+  it('requires the fixed story.md output instead of a Story queue', () => {
+    const cwd = workspace();
+    writeIterationArtifact(cwd, '01-kickoff/US-001.md', LEAN_STORY_CARD);
+    expect(() => validateSingleStoryCard(cwd, DEFAULT_STATE)).toThrow(
+      'exactly one non-empty story.md',
+    );
+  });
 
-      expect(() => validateStoryCards(cwd, DEFAULT_STATE)).toThrow(
-        `forbidden section "${section}"`,
-      );
-    },
-  );
-
-  it('rejects metadata tables and incomplete three-part stories', () => {
+  it('rejects clarification and implementation content in the Card', () => {
     const cwd = workspace();
     writeIterationArtifact(
       cwd,
-      '01-requirements/stories/US-001.md',
-      `# US-001 编辑工作区\n\n| 字段 | 值 |\n| --- | --- |\n| Story ID | US-001 |\n`,
+      '01-kickoff/story.md',
+      `${LEAN_STORY_CARD}\n## 待澄清问题\n\n谁可以编辑？\n`,
     );
+    expect(() => validateSingleStoryCard(cwd, DEFAULT_STATE)).toThrow(
+      'forbidden section "待澄清问题"',
+    );
+  });
 
-    expect(() => validateStoryCards(cwd, DEFAULT_STATE)).toThrow(
-      'metadata tables are not allowed',
+  it('requires a success signal and Kickoff context', () => {
+    const cwd = workspace();
+    writeIterationArtifact(
+      cwd,
+      '01-kickoff/story.md',
+      '# US-001 标题\n\n作为用户，我希望保存，从而看到结果。\n',
+    );
+    expect(() => validateSingleStoryCard(cwd, DEFAULT_STATE)).toThrow(
+      'missing Card marker "成功信号"',
     );
   });
 });

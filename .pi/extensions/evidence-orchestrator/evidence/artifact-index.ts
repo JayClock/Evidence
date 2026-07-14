@@ -19,25 +19,12 @@ export function ensureProjectDirs(
   cwd: string,
   artifactRoot = join(cwd, 'artifacts'),
 ): void {
-  for (const dir of [
-    '.',
-    'gates',
-    '00-user-input',
-    '01-requirements',
-    '01-requirements/stories',
-    '01-requirements/clarifications',
-    '01-requirements/examples',
-    '02-domain-model',
-    '02-domain-model/model-expansions',
-    '03-architecture',
-    '03-architecture/selected-test-processes',
-    '04-planning',
-    '05-code',
-    '06-reviews',
-    '07-learning',
-    'feedback',
-  ])
+  // Create only infrastructure directories. Phase writers create semantic
+  // directories on demand so an iteration does not begin as an empty tree of
+  // stage-shaped placeholders.
+  for (const dir of ['.', 'gates', 'feedback']) {
     mkdirSync(join(artifactRoot, dir), { recursive: true });
+  }
   // Keep cwd in the signature to make call sites explicit about project scope.
   void cwd;
 }
