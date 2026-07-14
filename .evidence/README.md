@@ -5,5 +5,6 @@
 - `model.json`：模型元数据。
 - `entities/*.yaml`：具有稳定 `id` 的领域概念。
 - `associations/*.yaml`：引用实体 `source` 与 `target` 的领域关系。
+- `scenarios/*.json`：经领域专家确认、用于检测候选模型退化的稳定回归或 holdout 场景；它们引用模型 ID，但不复制模型定义。
 
-`artifacts/02-domain-model/` 仅记录每轮 DDD 的模型快照、增量、场景展开、战术设计和验证报告。采购履约示例位于 `examples/laptop-procurement/.evidence/`。
+`artifacts/02-domain-model/projections/` 中的 Mermaid、Glossary 和 model context 均由权威模型、候选补丁与回归场景确定性生成，可随时重建，不是第二份模型。其他 `artifacts/02-domain-model/` 内容只记录单轮候选、展开、决策与验证证据。采购履约示例位于 `examples/laptop-procurement/.evidence/`。

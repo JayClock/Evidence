@@ -32,6 +32,7 @@ export const FEEDBACK_LOOP_BY_TARGET: Record<FeedbackTarget, WorkflowLoop> = {
   business_knowledge: 'understand',
   scenario: 'understand',
   model: 'understand',
+  modeling_method: 'understand',
   architecture: 'tasking',
   test_strategy: 'tasking',
   test_process: 'tasking',

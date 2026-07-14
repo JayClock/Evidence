@@ -33,6 +33,27 @@ describe('phase subagents', () => {
     }
   });
 
+  it('loads the read-only Model Challenger as an explicit domain-model override', () => {
+    const agent = loadPhaseAgent(
+      process.cwd(),
+      'domain_model',
+      'model-challenger',
+    );
+
+    expect(phaseAgentName('domain_model', 'model-challenger')).toBe(
+      'model-challenger',
+    );
+    expect(agent.name).toBe('model-challenger');
+    expect(agent.tools).toEqual([
+      'read',
+      'evidence_orchestrator_status',
+      'evidence_orchestrator_record_model_challenge',
+    ]);
+    expect(agent.tools).not.toEqual(
+      expect.arrayContaining(['write', 'edit', 'bash']),
+    );
+  });
+
   it('loads the phase role, model, thinking level, and tools from one agent definition', () => {
     const cwd = workspace();
     write(

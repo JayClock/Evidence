@@ -155,15 +155,23 @@ export function phaseAgentResult(
   };
 }
 
-export function phaseAgentName(phase: Exclude<Phase, 'complete'>): string {
-  return PHASE_AGENTS[phase];
+export function phaseAgentName(
+  phase: Exclude<Phase, 'complete'>,
+  override?: string,
+): string {
+  const name = override ?? PHASE_AGENTS[phase];
+  if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+    throw new Error(`Invalid phase subagent name: ${name}.`);
+  }
+  return name;
 }
 
 export function loadPhaseAgent(
   cwd: string,
   phase: Exclude<Phase, 'complete'>,
+  override?: string,
 ): PhaseAgent {
-  const name = phaseAgentName(phase);
+  const name = phaseAgentName(phase, override);
   const filePath = join(cwd, '.pi', 'agents', `${name}.md`);
   let content: string;
   try {
@@ -222,11 +230,12 @@ function phaseSubagentInvocation(args: string[]): {
 export async function runPhaseSubagent(options: {
   cwd: string;
   phase: Exclude<Phase, 'complete'>;
+  agentName?: string;
   task: string;
   signal?: AbortSignal;
   onUpdate?: (progress: PhaseAgentProgress) => void;
 }): Promise<PhaseAgentResult> {
-  const agent = loadPhaseAgent(options.cwd, options.phase);
+  const agent = loadPhaseAgent(options.cwd, options.phase, options.agentName);
   const tempDirectory = await mkdtemp(join(tmpdir(), 'evidence-subagent-'));
   const promptPath = join(tempDirectory, `${agent.name}.md`);
   await writeFile(promptPath, agent.systemPrompt, {

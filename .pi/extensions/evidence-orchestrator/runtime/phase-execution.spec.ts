@@ -139,6 +139,38 @@ describe('phase execution', () => {
     expect(result.output).toContain('/evidence-story-complete');
   });
 
+  it('passes an explicit isolated agent override to the phase runner', async () => {
+    const cwd = workspace();
+    phaseRunnerMocks.runPhaseSubagent.mockResolvedValue({
+      agent: 'model-challenger',
+      model: 'openai/test',
+      thinking: 'high',
+      output: 'Challenge recorded.',
+      messages: [],
+      exitCode: 0,
+      stderr: '',
+    });
+    const challengerPreparation: PreparedPhaseRun = {
+      ...preparation(),
+      phase: 'domain_model',
+      agentName: 'model-challenger',
+      task: 'Challenge the candidate model.',
+    };
+
+    await executePreparedPhaseRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      challengerPreparation,
+      { invocation: '/evidence-run' },
+    );
+
+    expect(phaseRunnerMocks.runPhaseSubagent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phase: 'domain_model',
+        agentName: 'model-challenger',
+      }),
+    );
+  });
+
   it('shares state, progress, and status handling across callers', async () => {
     const cwd = workspace();
     const setStatus = vi.fn();

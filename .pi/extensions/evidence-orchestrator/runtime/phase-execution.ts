@@ -95,6 +95,7 @@ export async function executePreparedPhaseRun(
     const result = await runPhaseSubagent({
       cwd: ctx.cwd,
       phase: preparation.phase,
+      agentName: preparation.agentName,
       task: preparation.task,
       signal: options.signal,
       onUpdate(progress) {

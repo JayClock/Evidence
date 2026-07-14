@@ -1,4 +1,5 @@
 import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
+import { prepareModelProjection } from '../evidence/model-projection';
 import {
   clarificationStoryIds,
   selectClarificationStory,
@@ -33,7 +34,6 @@ export class PhaseRunBlockedError extends Error {
       | 'clarification'
       | 'scenario_decision'
       | 'modeling_profile'
-      | 'model_candidate'
       | 'story_decision'
       | 'story_selection',
     message: string,
@@ -46,6 +46,7 @@ export class PhaseRunBlockedError extends Error {
 export interface PreparedPhaseRun {
   state: WorkflowState;
   phase: Exclude<Phase, 'complete'>;
+  agentName?: string;
   task: string;
 }
 
@@ -150,10 +151,7 @@ export function preparePhaseRun(
     current.loop === 'understand' &&
     current.modeling_stage === 'candidate_ready'
   ) {
-    throw new PhaseRunBlockedError(
-      'model_candidate',
-      `Model expansion ${current.model_expansion_path} is ready for an independent model challenge; the builder must not self-approve it.`,
-    );
+    current = prepareModelProjection(cwd);
   }
   if (current.pending_clarification) {
     const pending = current.pending_clarification;
@@ -221,6 +219,15 @@ export function preparePhaseRun(
             '.evidence/model.json',
             '.evidence/entities/',
             '.evidence/associations/',
+            ...(current.modeling_stage === 'candidate_ready'
+              ? [
+                  current.model_projection?.mermaid_path ?? 'missing-model.mmd',
+                  current.model_projection?.glossary_path ??
+                    'missing-glossary.md',
+                  current.model_projection?.context_path ??
+                    'missing-context.json',
+                ]
+              : []),
           ]
         : undefined;
   const missingInputs = missingPaths(
@@ -236,7 +243,15 @@ export function preparePhaseRun(
       `Cannot run ${current.phase}: missing inputs: ${missingInputs.join(', ')}.`,
     );
   }
-  return { state: current, phase: current.phase, task };
+  return {
+    state: current,
+    phase: current.phase,
+    ...(current.workflow_version === 5 &&
+    current.modeling_stage === 'candidate_ready'
+      ? { agentName: 'model-challenger' }
+      : {}),
+    task,
+  };
 }
 
 export function isCompletedIteration(

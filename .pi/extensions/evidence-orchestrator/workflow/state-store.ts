@@ -65,6 +65,7 @@ const MODELING_STAGES = new Set([
   'profile_review',
   'expansion',
   'candidate_ready',
+  'challenged',
 ]);
 const MODELING_SUBJECTS = new Set(['business', 'domain', 'tool']);
 const MODELING_METHODS = new Set([
@@ -77,6 +78,12 @@ const MODELING_METHODS = new Set([
 ]);
 const MODEL_OPERATION_ACTIONS = new Set(['add', 'update', 'remove']);
 const MODEL_ELEMENT_KINDS = new Set(['entity', 'association']);
+const MODEL_CHALLENGE_OUTCOMES = new Set([
+  'pass',
+  'scenario_gap',
+  'model_gap',
+  'method_gap',
+]);
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
@@ -359,6 +366,8 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   const modelGitBaseline = state.model_git_baseline;
   const modelChangeProposal = state.model_change_proposal;
   const modelChangeApplication = state.model_change_application;
+  const modelProjection = state.model_projection;
+  const modelChallenges = state.model_challenges ?? [];
   if (
     workflowVersion === 4 &&
     (modelingStage !== undefined ||
@@ -367,7 +376,9 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       modelExpansionPath !== undefined ||
       modelGitBaseline !== undefined ||
       modelChangeProposal !== undefined ||
-      modelChangeApplication !== undefined)
+      modelChangeApplication !== undefined ||
+      modelProjection !== undefined ||
+      modelChallenges.length > 0)
   ) {
     throw new Error('A legacy v4 workflow must not declare v5 modeling data.');
   }
@@ -403,7 +414,9 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     throw new Error('Modeling Profile review requires an AI proposal.');
   }
   if (
-    ['expansion', 'candidate_ready'].includes(modelingStage ?? '') &&
+    ['expansion', 'candidate_ready', 'challenged'].includes(
+      modelingStage ?? '',
+    ) &&
     !modelingProfile
   ) {
     throw new Error(
@@ -432,7 +445,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     throw new Error('The v5 model-change proposal is invalid.');
   }
   if (
-    modelingStage === 'candidate_ready' &&
+    ['candidate_ready', 'challenged'].includes(modelingStage ?? '') &&
     (!isNonEmptyString(modelExpansionPath) ||
       !isNonEmptyString(modelGitBaseline))
   ) {
@@ -450,7 +463,7 @@ export function normalizeState(state: WorkflowState): WorkflowState {
     );
   }
   if (
-    modelingStage === 'candidate_ready' &&
+    ['candidate_ready', 'challenged'].includes(modelingStage ?? '') &&
     modelingProfile?.model_change_required === true &&
     !modelChangeProposal
   ) {
@@ -466,6 +479,38 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       !isNonEmptyString(modelChangeApplication.applied_at))
   ) {
     throw new Error('The v5 model-change application is invalid.');
+  }
+  if (
+    modelProjection &&
+    (modelProjection.version !== 1 ||
+      !isNonEmptyString(modelProjection.model_sha256) ||
+      !isNonEmptyString(modelProjection.mermaid_path) ||
+      !isNonEmptyString(modelProjection.glossary_path) ||
+      !isNonEmptyString(modelProjection.context_path) ||
+      !isNonEmptyStringArray(modelProjection.regression_ids) ||
+      !Array.isArray(modelProjection.regression_failures) ||
+      modelProjection.regression_failures.some(
+        (failure) => !isNonEmptyString(failure),
+      ) ||
+      !isNonEmptyString(modelProjection.generated_at))
+  ) {
+    throw new Error('The v5 model projection record is invalid.');
+  }
+  if (
+    modelChallenges.some(
+      (challenge) =>
+        challenge.version !== 1 ||
+        !MODEL_CHALLENGE_OUTCOMES.has(challenge.requested_outcome) ||
+        !MODEL_CHALLENGE_OUTCOMES.has(challenge.outcome) ||
+        !isNonEmptyString(challenge.summary) ||
+        !isNonEmptyStringArray(challenge.checked_regression_ids) ||
+        !isNonEmptyString(challenge.projection_sha256) ||
+        !isNonEmptyString(challenge.artifact_path) ||
+        challenge.challenged_by !== 'model-challenger' ||
+        !isNonEmptyString(challenge.challenged_at),
+    )
+  ) {
+    throw new Error('The v5 model challenge history is invalid.');
   }
   if (state.active_clarification_story && phase !== 'clarify') {
     throw new Error(
@@ -662,6 +707,10 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       : {}),
     ...(modelChangeApplication
       ? { model_change_application: modelChangeApplication }
+      : {}),
+    ...(modelProjection ? { model_projection: modelProjection } : {}),
+    ...(modelChallenges.length > 0
+      ? { model_challenges: modelChallenges }
       : {}),
     phase: phase as Phase,
     ...(feedbackHistory.length > 0

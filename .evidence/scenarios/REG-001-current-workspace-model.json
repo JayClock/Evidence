@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "REG-001",
+  "title": "工作区使用经评审的当前 Evidence 模型",
+  "status": "regression",
+  "model_refs": {
+    "entities": ["workspace", "evidence-model", "modeling-proposal"],
+    "associations": [
+      "workspace-uses-evidence-model",
+      "modeling-proposal-changes-evidence-model"
+    ]
+  },
+  "given": [
+    "工作区已关联一个当前 Evidence 模型",
+    "AI 建模助手提出了结构化建模提案"
+  ],
+  "when": "领域专家接受建模提案",
+  "then": [
+    "建模提案演进该工作区使用的 Evidence 模型",
+    "模型变化仍可追溯到被接受的提案"
+  ],
+  "business_data": ["工作区标识", "Evidence 模型版本", "建模提案标识"],
+  "invariants": ["未经评审接受的建模提案不能成为当前 Evidence 模型事实"],
+  "timeline": ["提案生成", "领域专家评审", "提案被接受", "模型演进"]
+}

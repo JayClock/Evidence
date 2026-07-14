@@ -350,6 +350,21 @@ function simulateOperations(
   };
 }
 
+export interface CandidateModelSource {
+  path: string;
+  content: string;
+}
+
+/** Return the canonical model with a structured proposal applied in memory only. */
+export function candidateModelSources(
+  cwd: string,
+  operations: ModelOperation[] = [],
+): CandidateModelSource[] {
+  return [...simulateOperations(currentModel(cwd), operations).model]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([path, content]) => ({ path, content }));
+}
+
 function validateModelRefs(
   profile: ConfirmedModelingProfile,
   refs: ModelExpansionInput['modelRefs'],

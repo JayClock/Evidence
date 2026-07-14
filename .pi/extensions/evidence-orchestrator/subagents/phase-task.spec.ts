@@ -118,6 +118,33 @@ describe('phase tasks', () => {
     );
     expect(expansionTask).toContain('operations 必须为空');
     expect(expansionTask).toContain('不得直接 edit/write .evidence');
+
+    writeState(cwd, {
+      ...readState(cwd),
+      modeling_stage: 'candidate_ready',
+      model_expansion_path:
+        'artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json',
+      model_git_baseline: 'abc123',
+      model_projection: {
+        version: 1,
+        model_sha256: 'sha256:model',
+        mermaid_path:
+          'artifacts/iterations/ITER-0001/02-domain-model/projections/model.mmd',
+        glossary_path:
+          'artifacts/iterations/ITER-0001/02-domain-model/projections/glossary.md',
+        context_path:
+          'artifacts/iterations/ITER-0001/02-domain-model/projections/model-context.json',
+        regression_ids: ['REG-001'],
+        regression_failures: [],
+        generated_at: '2026-01-01T00:02:00.000Z',
+      },
+    });
+    const challengeTask = buildPhaseTask(cwd);
+    expect(challengeTask).toContain('独立 Model Challenge');
+    expect(challengeTask).toContain(
+      'evidence_orchestrator_record_model_challenge',
+    );
+    expect(challengeTask).toContain('不得修改 .evidence');
   });
 
   it('scopes clarification work to the selected story', () => {

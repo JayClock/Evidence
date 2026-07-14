@@ -28,7 +28,14 @@ export function statusMarkdown(cwd: string): string {
   let phaseAgent = 'none';
   if (state.phase !== 'complete') {
     try {
-      const agent = loadPhaseAgent(cwd, state.phase);
+      const agent = loadPhaseAgent(
+        cwd,
+        state.phase,
+        state.workflow_version === 5 &&
+          state.modeling_stage === 'candidate_ready'
+          ? 'model-challenger'
+          : undefined,
+      );
       phaseAgent = `${agent.name} · ${agent.model} (thinking=${agent.thinking})`;
     } catch {
       phaseAgent = 'missing';
@@ -66,6 +73,9 @@ export function statusMarkdown(cwd: string): string {
     : state.modeling_profile_proposal
       ? `proposed ${state.modeling_profile_proposal.subject}/${state.modeling_profile_proposal.method} · change=${state.modeling_profile_proposal.model_change_required}`
       : 'none';
+  const latestModelChallenge = state.model_challenges?.at(-1)
+    ? `${state.model_challenges.at(-1)?.outcome} · ${state.model_challenges.at(-1)?.artifact_path}`
+    : 'none';
   const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
   const pendingStoryDecision = pendingStoryDecisions.length
     ? pendingStoryDecisions
@@ -125,6 +135,7 @@ export function statusMarkdown(cwd: string): string {
     `| Modeling Profile | ${modelingProfile} |`,
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,
     `| Model Change Proposal | ${state.model_change_proposal?.artifact_path ?? 'none'} |`,
+    `| Latest Model Challenge | ${latestModelChallenge} |`,
     `| Pending Story Decision | ${pendingStoryDecision} |`,
     `| Clarification Outcomes | ${clarificationOutcomes} |`,
     `| Pending Clarification | ${pendingClarification} |`,

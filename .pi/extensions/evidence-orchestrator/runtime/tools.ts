@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
+import { recordModelChallenge } from '../evidence/model-challenge';
 import {
   proposeModelingProfile,
   recordModelAnalysis,
@@ -207,6 +208,16 @@ const modelAnalysisParam = Type.Object({
   invariants: Type.Array(Type.String()),
   timeline: Type.Array(Type.String()),
   operations: Type.Array(modelOperationParam),
+});
+
+const modelChallengeParam = Type.Object({
+  outcome: Type.String({
+    description: 'Challenge outcome.',
+    enum: ['pass', 'scenario_gap', 'model_gap', 'method_gap'],
+  }),
+  summary: Type.String({
+    description: 'Concrete business reason for the challenge outcome.',
+  }),
 });
 
 const clarificationQuestionParam = Type.Object({
@@ -652,6 +663,42 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         ],
         details: { state },
+        terminate: true,
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_record_model_challenge',
+    label: 'Record Evidence Model Challenge',
+    description:
+      'Record one independent read-only model challenge and route any knowledge gap',
+    promptSnippet:
+      'Conclude the model challenge with pass, scenario_gap, model_gap, or method_gap',
+    promptGuidelines: [
+      'Use only from the read-only model-challenger subagent after checking current and regression scenarios.',
+      'Do not repair the model. The tool routes feedback to TQA, Model Builder, or Modeling Profile.',
+      'A pass is overridden when deterministic model regression fails.',
+    ],
+    parameters: modelChallengeParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = recordModelChallenge(ctx.cwd, {
+        outcome: params.outcome as
+          | 'pass'
+          | 'scenario_gap'
+          | 'model_gap'
+          | 'method_gap',
+        summary: params.summary,
+      });
+      const challenge = state.model_challenges?.at(-1);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded model challenge ${challenge?.outcome}. Workflow loop=${state.loop}; next modeling stage=${state.modeling_stage ?? 'none'}.`,
+          },
+        ],
+        details: { state, challenge },
         terminate: true,
       };
     },

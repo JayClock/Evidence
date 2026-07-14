@@ -114,6 +114,7 @@ describe('tools', () => {
         'evidence_orchestrator_propose_scenarios',
         'evidence_orchestrator_propose_modeling_profile',
         'evidence_orchestrator_record_model_analysis',
+        'evidence_orchestrator_record_model_challenge',
         'evidence_orchestrator_ask_question',
         'evidence_orchestrator_answer_question',
         'evidence_orchestrator_select_story',

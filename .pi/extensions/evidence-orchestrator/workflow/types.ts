@@ -24,6 +24,7 @@ export type FeedbackTarget =
   | 'business_knowledge'
   | 'scenario'
   | 'model'
+  | 'modeling_method'
   | 'architecture'
   | 'test_strategy'
   | 'test_process'
@@ -58,7 +59,8 @@ export type ModelingStage =
   | 'profile'
   | 'profile_review'
   | 'expansion'
-  | 'candidate_ready';
+  | 'candidate_ready'
+  | 'challenged';
 export type ModelOperationAction = 'add' | 'update' | 'remove';
 export type ModelElementKind = 'entity' | 'association';
 export type GateMode = 'auto' | 'review' | 'review_if' | 'override';
@@ -266,6 +268,35 @@ export interface ModelChangeApplication {
   applied_at: string;
 }
 
+export interface ModelProjectionRecord {
+  version: 1;
+  model_sha256: string;
+  mermaid_path: string;
+  glossary_path: string;
+  context_path: string;
+  regression_ids: string[];
+  regression_failures: string[];
+  generated_at: string;
+}
+
+export type ModelChallengeOutcome =
+  | 'pass'
+  | 'scenario_gap'
+  | 'model_gap'
+  | 'method_gap';
+
+export interface ModelChallengeRecord {
+  version: 1;
+  requested_outcome: ModelChallengeOutcome;
+  outcome: ModelChallengeOutcome;
+  summary: string;
+  checked_regression_ids: string[];
+  projection_sha256: string;
+  artifact_path: string;
+  challenged_by: 'model-challenger';
+  challenged_at: string;
+}
+
 export interface WorkflowFeedback {
   target: FeedbackTarget;
   from_loop: WorkflowLoop;
@@ -298,6 +329,8 @@ export interface WorkflowState {
   model_git_baseline?: string;
   model_change_proposal?: ModelChangeProposal;
   model_change_application?: ModelChangeApplication;
+  model_projection?: ModelProjectionRecord;
+  model_challenges?: ModelChallengeRecord[];
   /** @deprecated v5 compatibility projection used until v4 phase code is removed. */
   phase: Phase;
   feedback_history?: WorkflowFeedback[];

@@ -126,8 +126,34 @@ ${JSON.stringify(state.modeling_profile, null, 2)}
 ${extra || '（无）'}
 `;
     }
+    if (state.modeling_stage === 'candidate_ready') {
+      const projection = state.model_projection;
+      if (!projection) {
+        throw new Error(
+          'Model Challenger requires generated model projections.',
+        );
+      }
+      return `执行 Evidence Orchestrator v5 独立 Model Challenge：${scenario.story_id} / ${scenario.scenario_id}。
+
+只读输入：
+- ${projection.mermaid_path}
+- ${projection.glossary_path}
+- ${projection.context_path}
+
+任务：
+1. 你是独立 Challenger，不是生成候选补丁的 Builder。只能读取生成视图和场景，不得修改 .evidence、候选补丁、场景或任何代码。
+2. 将当前确认 Scenario 与 context 中标记为 regression/holdout 的历史场景分开检查。
+3. 检查概念缺失、关系错置、生命周期/时间线、不变量及建模方法是否能解释这些场景。
+4. 确定性回归预检结果：${projection.regression_failures.length ? projection.regression_failures.join('；') : '通过'}。
+5. 只调用 evidence_orchestrator_record_model_challenge，选择 pass、scenario_gap、model_gap 或 method_gap 并给出具体业务理由，然后停止。
+6. 不得直接修模型；失败会自动路由到 TQA、Model Builder 或 Modeling Profile。
+
+额外用户指令：
+${extra || '（无）'}
+`;
+    }
     throw new Error(
-      `v5 modeling stage ${state.modeling_stage ?? 'unset'} cannot run a builder task.`,
+      `v5 modeling stage ${state.modeling_stage ?? 'unset'} cannot run a model task.`,
     );
   }
   const meta = PHASE_META[phase];

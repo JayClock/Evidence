@@ -180,6 +180,93 @@ describe('phase dispatch', () => {
     expect(() => preparePhaseRun(cwd)).toThrow('/evidence-modeling-profile');
   });
 
+  it('dispatches a candidate-ready model to the isolated Challenger', () => {
+    const cwd = workspace();
+    const scenarioPath =
+      'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md';
+    const expansionPath =
+      'artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json';
+    write(cwd, scenarioPath, '# Scenario');
+    write(cwd, expansionPath, JSON.stringify({ version: 2 }));
+    write(
+      cwd,
+      '.evidence/model.json',
+      JSON.stringify({ version: 1, project_name: 'Evidence', purpose: 'Test' }),
+    );
+    write(
+      cwd,
+      '.evidence/entities/workspace.yaml',
+      'id: workspace\nname: Workspace\ntype: CONTEXT\nsubType: bounded_context\n',
+    );
+    write(
+      cwd,
+      '.evidence/associations/workspace-self.yaml',
+      'id: workspace-self\nname: WorkspaceSelf\nsource: workspace\ntarget: workspace\nkind: association\n',
+    );
+    write(
+      cwd,
+      '.evidence/scenarios/REG-001.json',
+      JSON.stringify({
+        version: 1,
+        id: 'REG-001',
+        title: 'Workspace remains addressable',
+        status: 'regression',
+        model_refs: {
+          entities: ['workspace'],
+          associations: ['workspace-self'],
+        },
+        given: ['Workspace exists'],
+        when: 'It is addressed',
+        then: ['Workspace remains available'],
+        business_data: ['Workspace id'],
+        invariants: ['Identity is stable'],
+        timeline: ['Created', 'Addressed'],
+      }),
+    );
+    writeState(cwd, {
+      ...issueBackedFrameState(),
+      workflow_version: 5,
+      loop: 'understand',
+      phase: 'domain_model',
+      understand_stage: 'modeling',
+      modeling_stage: 'candidate_ready',
+      confirmed_scenario: {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: 'Workspace remains addressable',
+        given: ['Workspace exists'],
+        when: 'It is addressed',
+        then: ['Workspace remains available'],
+        business_data: ['Workspace id'],
+        artifact_path: scenarioPath,
+        confirmed_by: 'human',
+        confirmation_reason: 'Regression fixture.',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+      modeling_profile: {
+        version: 1,
+        subject: 'domain',
+        method: 'object',
+        model_change_required: false,
+        reason: 'Existing model.',
+        confirmed_by: 'human',
+        confirmed_at: '2026-01-01T00:01:00.000Z',
+      },
+      model_expansion_path: expansionPath,
+      model_git_baseline: 'abc123',
+    });
+
+    const prepared = preparePhaseRun(cwd);
+    if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');
+    expect(prepared.agentName).toBe('model-challenger');
+    expect(prepared.task).toContain('独立 Model Challenge');
+    expect(prepared.state.model_projection?.regression_ids).toEqual([
+      'REG-001',
+    ]);
+  });
+
   it('blocks clarification until one generated story is selected', () => {
     const cwd = workspace();
     for (const path of PHASE_META.clarify.inputs) {
