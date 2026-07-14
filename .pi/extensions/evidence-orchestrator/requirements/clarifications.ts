@@ -31,7 +31,7 @@ interface ClarificationHistoryDocument {
 }
 
 interface ClarificationStoryStatusDocument {
-  version: 2;
+  version: 3;
   iteration_id: string;
   active_story_id: string | null;
   stories: Array<{
@@ -39,9 +39,11 @@ interface ClarificationStoryStatusDocument {
     status:
       | 'unselected'
       | 'active'
+      | 'awaiting_domain_expert'
       | 'awaiting_human_decision'
       | ClarificationStoryOutcome;
     summary?: string;
+    question_id?: string;
     proposal?: ClarificationStoryOutcomeProposal;
     decided_by?: 'human';
     confirmed_at?: string;
@@ -168,6 +170,26 @@ export function unresolvedClarificationStoryIds(
   );
 }
 
+export function allPendingClarifications(
+  state: WorkflowState,
+): ClarificationRecord[] {
+  return [
+    ...(state.pending_clarification ? [state.pending_clarification] : []),
+    ...(state.paused_clarifications ?? []),
+  ];
+}
+
+export function allClarificationStoryOutcomeProposals(
+  state: WorkflowState,
+): ClarificationStoryOutcomeProposal[] {
+  return [
+    ...(state.proposed_clarification_story_outcome
+      ? [state.proposed_clarification_story_outcome]
+      : []),
+    ...(state.paused_clarification_story_outcome_proposals ?? []),
+  ];
+}
+
 function persistStoryStatus(cwd: string, state: WorkflowState): void {
   ensureProjectDirs(cwd, iterationRoot(cwd, state));
   const outcomes = new Map(
@@ -176,9 +198,20 @@ function persistStoryStatus(cwd: string, state: WorkflowState): void {
       outcome,
     ]),
   );
-  const proposal = state.proposed_clarification_story_outcome;
+  const proposals = new Map(
+    allClarificationStoryOutcomeProposals(state).map((proposal) => [
+      proposal.story_id,
+      proposal,
+    ]),
+  );
+  const pausedClarifications = new Map(
+    (state.paused_clarifications ?? []).map((clarification) => [
+      clarification.story_id,
+      clarification,
+    ]),
+  );
   const document: ClarificationStoryStatusDocument = {
-    version: 2,
+    version: 3,
     iteration_id: state.iteration_id,
     active_story_id: state.active_clarification_story?.story_id ?? null,
     stories: clarificationStoryIds(cwd, state).map((storyId) => {
@@ -197,12 +230,21 @@ function persistStoryStatus(cwd: string, state: WorkflowState): void {
             : {}),
         };
       }
-      if (proposal?.story_id === storyId) {
+      const proposal = proposals.get(storyId);
+      if (proposal) {
         return {
           story_id: storyId,
           status: 'awaiting_human_decision',
           summary: proposal.summary,
           proposal,
+        };
+      }
+      const pausedClarification = pausedClarifications.get(storyId);
+      if (pausedClarification) {
+        return {
+          story_id: storyId,
+          status: 'awaiting_domain_expert',
+          question_id: pausedClarification.question_id,
         };
       }
       return {
@@ -242,7 +284,7 @@ function answerDestination(
 function nextQuestionId(state: WorkflowState): string {
   const records = [
     ...(state.clarification_history ?? []),
-    ...(state.pending_clarification ? [state.pending_clarification] : []),
+    ...allPendingClarifications(state),
   ];
   const highest = records.reduce((max, record) => {
     const matched = /^Q-(\d+)$/.exec(record.question_id);
@@ -258,9 +300,10 @@ function recordsForStory(
   const records = (state.clarification_history ?? []).filter(
     (record) => record.story_id === storyId,
   );
-  if (state.pending_clarification?.story_id === storyId) {
-    records.push(state.pending_clarification);
-  }
+  const pending = allPendingClarifications(state).find(
+    (record) => record.story_id === storyId,
+  );
+  if (pending) records.push(pending);
   return records;
 }
 
@@ -314,17 +357,14 @@ export function selectClarificationStory(
 ): WorkflowState {
   const state = readState(cwd);
   assertClarificationPhase(state);
-  if (state.pending_clarification) {
-    throw new Error(
-      `Cannot select a story: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
-    );
-  }
-  if (state.active_clarification_story) {
-    throw new Error(
-      `Cannot select another story: ${state.active_clarification_story.story_id} is still active. Complete its clarification first.`,
-    );
-  }
   const normalizedStoryId = normalizeStoryId(storyId);
+  if (state.active_clarification_story?.story_id === normalizedStoryId) {
+    requireArtifact(
+      storyPath(cwd, state, normalizedStoryId),
+      'Clarification story artifact',
+    );
+    return state;
+  }
   requireArtifact(
     storyPath(cwd, state, normalizedStoryId),
     'Clarification story artifact',
@@ -338,12 +378,35 @@ export function selectClarificationStory(
       `Cannot select ${normalizedStoryId}: its clarification already has an outcome.`,
     );
   }
+
+  const pendingClarifications = allPendingClarifications(state);
+  const pending_clarification = pendingClarifications.find(
+    ({ story_id }) => story_id === normalizedStoryId,
+  );
+  const paused_clarifications = pendingClarifications.filter(
+    ({ story_id }) => story_id !== normalizedStoryId,
+  );
+  const proposals = allClarificationStoryOutcomeProposals(state);
+  const proposed_clarification_story_outcome = proposals.find(
+    ({ story_id }) => story_id === normalizedStoryId,
+  );
+  const paused_clarification_story_outcome_proposals = proposals.filter(
+    ({ story_id }) => story_id !== normalizedStoryId,
+  );
   const next = writeState(cwd, {
     ...state,
     active_clarification_story: {
       story_id: normalizedStoryId,
       selected_at: new Date().toISOString(),
     },
+    pending_clarification,
+    paused_clarifications:
+      paused_clarifications.length > 0 ? paused_clarifications : undefined,
+    proposed_clarification_story_outcome,
+    paused_clarification_story_outcome_proposals:
+      paused_clarification_story_outcome_proposals.length > 0
+        ? paused_clarification_story_outcome_proposals
+        : undefined,
   });
   persistStoryStatus(cwd, next);
   return next;
@@ -483,9 +546,16 @@ export function validateClarificationStoriesComplete(
       'Cannot complete clarify: no US-xxx story cards exist. Generate the candidate story cards first.',
     );
   }
-  if (state.proposed_clarification_story_outcome) {
+  const pendingClarification = allPendingClarifications(state)[0];
+  if (pendingClarification) {
     throw new Error(
-      `Cannot complete clarify: ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision on the proposed ${state.proposed_clarification_story_outcome.outcome} outcome.`,
+      `Cannot complete clarify: pending clarification ${pendingClarification.question_id} for ${pendingClarification.story_id} must be answered first.`,
+    );
+  }
+  const proposal = allClarificationStoryOutcomeProposals(state)[0];
+  if (proposal) {
+    throw new Error(
+      `Cannot complete clarify: ${proposal.story_id} is awaiting a human decision on the proposed ${proposal.outcome} outcome.`,
     );
   }
   if (state.active_clarification_story) {

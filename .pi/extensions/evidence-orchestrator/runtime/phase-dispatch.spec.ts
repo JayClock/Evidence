@@ -94,5 +94,20 @@ describe('phase dispatch', () => {
     proposeClarificationStoryOutcome(cwd, 'US-001', 'clarified', 'Clear.');
     expect(() => preparePhaseRun(cwd)).toThrow('awaiting a human decision');
     expect(() => preparePhaseRun(cwd)).toThrow('/evidence-story-complete');
+
+    write(
+      cwd,
+      'artifacts/iterations/ITER-0001/01-requirements/stories/US-002.md',
+      '# another story',
+    );
+    const switched = preparePhaseRun(cwd, { storyId: 'US-002' });
+    if (isCompletedIteration(switched))
+      throw new Error('Unexpected completion.');
+    expect(switched.state.active_clarification_story?.story_id).toBe('US-002');
+    expect(switched.state.proposed_clarification_story_outcome).toBeUndefined();
+    expect(
+      switched.state.paused_clarification_story_outcome_proposals?.[0]
+        ?.story_id,
+    ).toBe('US-001');
   });
 });

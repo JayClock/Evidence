@@ -43,6 +43,54 @@ describe('state', () => {
     ).toThrow('must belong to the active clarification story');
   });
 
+  it('accepts paused clarification state only for non-active stories', () => {
+    const cwd = workspace();
+    const state = writeState(cwd, {
+      ...DEFAULT_STATE,
+      phase: 'clarify',
+      active_clarification_story: {
+        story_id: 'US-002',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      paused_clarifications: [
+        {
+          question_id: 'Q-001',
+          story_id: 'US-001',
+          question: 'Who approves?',
+          target: 'history',
+          asked_at: '2026-01-01T00:01:00.000Z',
+        },
+      ],
+      paused_clarification_story_outcome_proposals: [
+        {
+          story_id: 'US-003',
+          outcome: 'clarified',
+          summary: 'Clear.',
+          proposed_at: '2026-01-01T00:02:00.000Z',
+        },
+      ],
+    });
+
+    expect(state.paused_clarifications?.[0]?.story_id).toBe('US-001');
+    expect(
+      state.paused_clarification_story_outcome_proposals?.[0]?.story_id,
+    ).toBe('US-003');
+    expect(() =>
+      writeState(cwd, {
+        ...state,
+        paused_clarifications: [
+          {
+            question_id: 'Q-002',
+            story_id: 'US-002',
+            question: 'Conflicts with active.',
+            target: 'history',
+            asked_at: '2026-01-01T00:03:00.000Z',
+          },
+        ],
+      }),
+    ).toThrow('must not belong to the active clarification story');
+  });
+
   it('requires one selected scenario before selecting its unique test process', () => {
     const cwd = workspace();
     initializeGitRepository(cwd);

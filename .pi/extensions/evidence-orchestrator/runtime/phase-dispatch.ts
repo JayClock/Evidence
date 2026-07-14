@@ -79,20 +79,6 @@ export function preparePhaseRun(
       'This bootstrap iteration is archival and cannot run. Select a GitHub Issue with /evidence-new.',
     );
   }
-  if (state.pending_clarification) {
-    const pending = state.pending_clarification;
-    throw new PhaseRunBlockedError(
-      'clarification',
-      `Clarification ${pending.question_id} for ${pending.story_id} is awaiting a domain-expert answer: ${pending.question}`,
-    );
-  }
-  if (state.proposed_clarification_story_outcome) {
-    const proposal = state.proposed_clarification_story_outcome;
-    throw new PhaseRunBlockedError(
-      'story_decision',
-      `${proposal.story_id} is awaiting a human decision on the proposed ${proposal.outcome} outcome. Run /evidence-story-complete to confirm, override, or continue clarification.`,
-    );
-  }
   if (request.requestedPhase && request.requestedPhase !== state.phase) {
     throw new Error(
       `Cannot run ${request.requestedPhase}: current phase is ${state.phase}. Use /evidence-new before a new iteration.`,
@@ -120,6 +106,20 @@ export function preparePhaseRun(
   }
 
   const current = readState(cwd);
+  if (current.pending_clarification) {
+    const pending = current.pending_clarification;
+    throw new PhaseRunBlockedError(
+      'clarification',
+      `Clarification ${pending.question_id} for ${pending.story_id} is awaiting a domain-expert answer: ${pending.question}`,
+    );
+  }
+  if (current.proposed_clarification_story_outcome) {
+    const proposal = current.proposed_clarification_story_outcome;
+    throw new PhaseRunBlockedError(
+      'story_decision',
+      `${proposal.story_id} is awaiting a human decision on the proposed ${proposal.outcome} outcome. Run /evidence-story-complete to confirm, override, or continue clarification.`,
+    );
+  }
   if (current.pending_gate && !isGateAnswered(cwd, current.pending_gate)) {
     throw new PhaseRunBlockedError(
       'gate',

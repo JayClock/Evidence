@@ -119,14 +119,18 @@ export interface WorkflowState {
   /** Upstream requirement authority; local files are immutable iteration snapshots. */
   requirement_source?: GitHubIssueRequirementSource;
   active_work_item?: ActiveWorkItem;
-  /** The sole story currently allowed to consume TQA feedback. */
+  /** Story currently in focus; selecting another story pauses this one's open work. */
   active_clarification_story?: ActiveClarificationStory;
-  /** AI recommendation awaiting an explicit human story-level decision. */
+  /** AI recommendation awaiting a decision for the story currently in focus. */
   proposed_clarification_story_outcome?: ClarificationStoryOutcomeProposal;
+  /** Recommendations paused while another story is in focus. */
+  paused_clarification_story_outcome_proposals?: ClarificationStoryOutcomeProposal[];
   /** Final, human-confirmed story-level dispositions for the active iteration. */
   clarification_story_outcomes?: ClarificationStoryOutcomeRecord[];
-  /** The sole TQA question awaiting an explicit domain-expert answer. */
+  /** TQA question awaiting an answer for the story currently in focus. */
   pending_clarification?: ClarificationRecord;
+  /** Questions paused while another story is in focus. */
+  paused_clarifications?: ClarificationRecord[];
   /** Immutable, answered TQA exchanges for the active iteration. */
   clarification_history?: ClarificationRecord[];
   last_failure?: PhaseFailure;

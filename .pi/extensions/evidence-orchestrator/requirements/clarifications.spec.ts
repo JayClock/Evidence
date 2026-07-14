@@ -96,7 +96,7 @@ describe('clarifications', () => {
       version: number;
       stories: Array<Record<string, unknown>>;
     };
-    expect(status.version).toBe(2);
+    expect(status.version).toBe(3);
     expect(status.stories[0]).toEqual(
       expect.objectContaining({
         status: 'clarified',
@@ -107,37 +107,91 @@ describe('clarifications', () => {
     );
   });
 
-  it('does not permit switching stories or asking outside the selected story', () => {
+  it('treats reselecting the active story as an idempotent resume', () => {
+    const cwd = workspace();
+    prepareStory(cwd);
+    const selected = selectClarificationStory(cwd, 'US-001');
+    askClarification(cwd, {
+      story_id: 'US-001',
+      question: 'Who approves publication?',
+      target: 'history',
+    });
+
+    const resumed = selectClarificationStory(cwd, 'US-001');
+
+    expect(resumed.active_clarification_story).toEqual(
+      selected.active_clarification_story,
+    );
+    expect(resumed.pending_clarification).toEqual(
+      expect.objectContaining({ question_id: 'Q-001', story_id: 'US-001' }),
+    );
+  });
+
+  it('switches stories with pending questions and restores each TQA', () => {
     const cwd = workspace();
     prepareStory(cwd);
     writeIterationArtifact(cwd, '01-requirements/stories/US-002.md');
     selectClarificationStory(cwd, 'US-001');
+    askClarification(cwd, {
+      story_id: 'US-001',
+      question: 'Who approves publication?',
+      target: 'history',
+    });
 
-    expect(() => selectClarificationStory(cwd, 'US-002')).toThrow(
-      'US-001 is still active',
+    const switched = selectClarificationStory(cwd, 'US-002');
+    expect(switched.active_clarification_story?.story_id).toBe('US-002');
+    expect(switched.pending_clarification).toBeUndefined();
+    expect(switched.paused_clarifications).toEqual([
+      expect.objectContaining({ question_id: 'Q-001', story_id: 'US-001' }),
+    ]);
+    expect(() => completePhase(cwd, 'clarify')).toThrow(
+      'pending clarification Q-001',
     );
-    expect(() =>
-      askClarification(cwd, {
-        story_id: 'US-002',
-        question: 'Who shares it?',
-        target: 'history',
-      }),
-    ).toThrow('selected story is US-001');
+
+    askClarification(cwd, {
+      story_id: 'US-002',
+      question: 'Who shares it?',
+      target: 'history',
+    });
+    const resumedFirst = selectClarificationStory(cwd, 'US-001');
+    expect(resumedFirst.pending_clarification).toEqual(
+      expect.objectContaining({ question_id: 'Q-001', story_id: 'US-001' }),
+    );
+    expect(resumedFirst.paused_clarifications).toEqual([
+      expect.objectContaining({ question_id: 'Q-002', story_id: 'US-002' }),
+    ]);
+
+    answerClarification(cwd, 'The workspace owner.');
+    const resumedSecond = selectClarificationStory(cwd, 'US-002');
+    expect(resumedSecond.pending_clarification).toEqual(
+      expect.objectContaining({ question_id: 'Q-002', story_id: 'US-002' }),
+    );
   });
 
-  it('does not complete or switch stories while a human decision is pending', () => {
+  it('switches stories while a human decision is pending and restores it', () => {
     const cwd = workspace();
     prepareStory(cwd);
     writeIterationArtifact(cwd, '01-requirements/stories/US-002.md');
     selectClarificationStory(cwd, 'US-001');
     proposeClarificationStoryOutcome(cwd, 'US-001', 'clarified', 'Clear.');
 
-    expect(() => selectClarificationStory(cwd, 'US-002')).toThrow(
-      'US-001 is still active',
-    );
+    const switched = selectClarificationStory(cwd, 'US-002');
+    expect(switched.active_clarification_story?.story_id).toBe('US-002');
+    expect(switched.proposed_clarification_story_outcome).toBeUndefined();
+    expect(switched.paused_clarification_story_outcome_proposals).toEqual([
+      expect.objectContaining({ story_id: 'US-001', outcome: 'clarified' }),
+    ]);
     expect(() =>
       validateClarificationStoriesComplete(cwd, readState(cwd)),
     ).toThrow('awaiting a human decision');
+
+    const resumed = selectClarificationStory(cwd, 'US-001');
+    expect(resumed.proposed_clarification_story_outcome).toEqual(
+      expect.objectContaining({ story_id: 'US-001', outcome: 'clarified' }),
+    );
+    expect(
+      resumed.paused_clarification_story_outcome_proposals,
+    ).toBeUndefined();
   });
 
   it('allows the human to override the AI proposal before completing the story', () => {

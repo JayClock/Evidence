@@ -10,7 +10,10 @@ import {
   validateDomainModelEvidence,
   validateScenarioExecutionEvidence,
 } from '../evidence/model-and-code';
-import { validateClarificationStoriesComplete } from '../requirements/clarifications';
+import {
+  allPendingClarifications,
+  validateClarificationStoriesComplete,
+} from '../requirements/clarifications';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
 import {
   validateKnowledgePromotion,
@@ -283,9 +286,10 @@ export function validatePhaseCompletion(
     );
   }
   if (current.requirement_source) validateIssueSourceSnapshot(cwd, current);
-  if (current.pending_clarification) {
+  const pendingClarification = allPendingClarifications(current)[0];
+  if (pendingClarification) {
     throw new Error(
-      `Cannot complete ${phase}: pending clarification ${current.pending_clarification.question_id} for ${current.pending_clarification.story_id} must be answered first.`,
+      `Cannot complete ${phase}: pending clarification ${pendingClarification.question_id} for ${pendingClarification.story_id} must be answered first.`,
     );
   }
 
