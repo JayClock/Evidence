@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { answerGate, completePhase, resolvePendingGate } from './gates';
-import { DEFAULT_STATE, PHASE_META } from './phase-catalog';
+import { DEFAULT_STATE } from './phase-catalog';
 import { writeState } from './state-store';
 import {
   cleanupWorkspaces,
@@ -11,48 +11,47 @@ import {
 
 afterEach(cleanupWorkspaces);
 
-function writeFrameOutputs(cwd: string, storyCard = LEAN_STORY_CARD): void {
-  for (const output of PHASE_META.frame.outputs) {
-    writeIterationArtifact(
-      cwd,
-      output.endsWith('/')
-        ? `${output.slice('artifacts/'.length)}US-001.md`
-        : output.slice('artifacts/'.length),
-      output.endsWith('/') ? storyCard : 'content',
-    );
-  }
+function writeKickoffOutputs(cwd: string, story = LEAN_STORY_CARD): void {
+  writeIterationArtifact(cwd, '01-kickoff/kickoff.md', '# Kickoff\n');
+  writeIterationArtifact(cwd, '01-kickoff/story.md', story);
 }
 
-describe('gates', () => {
-  it('returns a revise decision to the owning phase', () => {
+describe('feedback Gates', () => {
+  it('creates the Kickoff human feedback point and supports revise', () => {
     const cwd = workspace();
-    writeState(cwd, {
-      ...DEFAULT_STATE,
-      gate_config: { ...DEFAULT_STATE.gate_config, frame: 'review' },
+    writeState(cwd, DEFAULT_STATE);
+    writeKickoffOutputs(cwd);
+
+    const advanced = completePhase(cwd, 'kickoff', 'Value ready for review');
+    expect(advanced).toMatchObject({
+      phase: 'discover',
+      pending_gate: 'GATE-101-kickoff',
     });
-    writeFrameOutputs(cwd);
-    completePhase(cwd, 'frame', 'review required');
-    answerGate(cwd, 'GATE-101-frame', 'revise: clarify the scope');
-    expect(resolvePendingGate(cwd)).toMatchObject({ phase: 'frame', round: 1 });
+
+    answerGate(cwd, 'GATE-101-kickoff', 'revise: narrow the value signal');
+    expect(resolvePendingGate(cwd)).toMatchObject({
+      phase: 'kickoff',
+      round: 1,
+      pending_gate: null,
+    });
   });
 
   it('rejects completion when a required output is absent', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
-    expect(() => completePhase(cwd, 'frame')).toThrow(
+    expect(() => completePhase(cwd, 'kickoff')).toThrow(
       'missing required outputs',
     );
   });
 
-  it('rejects a story card that mixes Card with clarification content', () => {
+  it('rejects a Story Card that contains a prewritten question list', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
-    writeFrameOutputs(
+    writeKickoffOutputs(
       cwd,
       `${LEAN_STORY_CARD}\n## 待澄清问题\n\n1. 谁可以编辑？\n`,
     );
-
-    expect(() => completePhase(cwd, 'frame')).toThrow(
+    expect(() => completePhase(cwd, 'kickoff')).toThrow(
       'forbidden section "待澄清问题"',
     );
   });

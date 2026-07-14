@@ -1,36 +1,24 @@
 import { existsSync } from 'node:fs';
 import { relative } from 'node:path';
 import { missingPaths } from '../evidence/artifact-index';
-import { validateDomainModelEvidence } from '../evidence/model-and-code';
-import { gateDecision } from '../workflow/gates';
-import { validateIssueSourceSnapshot } from '../requirements/github-issue';
-import {
-  artifactRelativePath,
-  iterationRoot,
-} from '../workflow/iteration-paths';
 import { validateCanonicalKnowledge } from '../evidence/knowledge';
-import { PHASE_META, PHASE_ORDER } from '../workflow/phase-catalog';
-import { readState } from '../workflow/state-store';
+import { validateDomainModelEvidence } from '../evidence/model-and-code';
+import { validateIssueSourceSnapshot } from '../requirements/github-issue';
 import {
   catalogTestProcessDirectory,
   validateTestProcessDirectory,
 } from '../testing/process-catalog';
+import { gateDecision } from '../workflow/gates';
+import {
+  artifactRelativePath,
+  iterationRoot,
+} from '../workflow/iteration-paths';
+import { PHASE_META, PHASE_ORDER } from '../workflow/phase-catalog';
+import { readState } from '../workflow/state-store';
 
-/** Deterministic CI validation for the active iteration's state and inputs. */
+/** Deterministic validation for canonical knowledge and the active v2 iteration. */
 export function validateWorkflow(cwd: string): void {
   const state = readState(cwd);
-  const root = iterationRoot(cwd, state);
-  if (!existsSync(root)) {
-    throw new Error(
-      `Active iteration artifact root is missing: ${relative(cwd, root)}. Run /evidence-new or create its seed input.`,
-    );
-  }
-  if (state.phase !== 'complete' && !state.requirement_source) {
-    throw new Error(
-      'Active iteration has no GitHub Issue requirement source. Select one with /evidence-new.',
-    );
-  }
-  if (state.requirement_source) validateIssueSourceSnapshot(cwd, state);
   const catalog = catalogTestProcessDirectory(cwd);
   if (!existsSync(catalog)) {
     throw new Error(
@@ -39,30 +27,40 @@ export function validateWorkflow(cwd: string): void {
   }
   validateTestProcessDirectory(catalog);
   validateCanonicalKnowledge(cwd);
-  for (const artifact of state.artifacts) {
-    if (!existsSync(`${cwd}/${artifact}`)) {
-      throw new Error(
-        `State references a missing iteration artifact: ${artifact}.`,
-      );
-    }
-  }
-  if (state.pending_gate) {
-    // This also verifies the gate belongs to the active iteration and has valid metadata.
-    gateDecision(cwd, state, state.pending_gate);
-  }
-  if (state.halted) return;
-  if (state.phase === 'complete') return;
 
-  const inputs = PHASE_META[state.phase].inputs.map((path) =>
-    artifactRelativePath(state, path),
-  );
-  const missing = missingPaths(cwd, inputs);
-  if (missing.length > 0) {
+  if (state.phase === 'idle') return;
+  const root = iterationRoot(cwd, state);
+  if (!existsSync(root)) {
     throw new Error(
-      `Active iteration ${state.iteration_id} cannot run ${state.phase}: missing inputs: ${missing.join(', ')}.`,
+      `Iteration artifact root is missing: ${relative(cwd, root)}.`,
     );
   }
-  if (PHASE_ORDER.indexOf(state.phase) > PHASE_ORDER.indexOf('domain_model')) {
+  if (!state.requirement_source) {
+    throw new Error(
+      'The iteration has no frozen GitHub Issue requirement source.',
+    );
+  }
+  validateIssueSourceSnapshot(cwd, state);
+  for (const artifact of state.artifacts) {
+    if (!existsSync(`${cwd}/${artifact}`)) {
+      throw new Error(`State references a missing artifact: ${artifact}.`);
+    }
+  }
+  if (state.pending_gate) gateDecision(cwd, state, state.pending_gate);
+  if (state.halted || state.phase === 'complete') return;
+
+  const missing = missingPaths(
+    cwd,
+    PHASE_META[state.phase].inputs.map((path) =>
+      artifactRelativePath(state, path),
+    ),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `Iteration ${state.iteration_id} cannot run ${state.phase}: missing inputs: ${missing.join(', ')}.`,
+    );
+  }
+  if (PHASE_ORDER.indexOf(state.phase) > PHASE_ORDER.indexOf('model')) {
     validateDomainModelEvidence(cwd, relative(cwd, root));
   }
 }
@@ -71,9 +69,8 @@ export function main(argv = process.argv): void {
   const cwd = argv[2] ?? process.cwd();
   validateWorkflow(cwd);
   const state = readState(cwd);
-  const phaseIndex = PHASE_ORDER.indexOf(state.phase);
   console.log(
-    `Evidence Orchestrator validation passed: ${state.iteration_id} phase=${state.phase} index=${phaseIndex}.`,
+    `Evidence Orchestrator validation passed: iteration=${state.iteration_id ?? 'none'} phase=${state.phase} index=${PHASE_ORDER.indexOf(state.phase)}.`,
   );
 }
 

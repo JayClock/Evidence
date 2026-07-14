@@ -10,31 +10,28 @@ import {
   validateDomainModelEvidence,
   validateScenarioExecutionEvidence,
 } from '../evidence/model-and-code';
-import {
-  allPendingClarifications,
-  validateClarificationStoriesComplete,
-} from '../requirements/clarifications';
+import { validateAcceptanceExamples } from '../requirements/examples';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
-import { validateConfirmedStoriesSpecified } from '../requirements/specifications';
-import { validateStoryCards } from '../requirements/story-cards';
+import { validateSingleStoryCard } from '../requirements/story-cards';
 import {
   validateKnowledgePromotion,
   validateScenarioContextMap,
 } from '../evidence/knowledge';
 import {
+  activeIterationId,
   artifactPath,
   artifactRelativePath,
   iterationRoot,
 } from './iteration-paths';
 import { nextPhase, PHASE_META } from './phase-catalog';
 import { readState, selectedTestProcesses, writeState } from './state-store';
-import type { GateDecisionAction, Phase, WorkflowState } from './types';
+import type { ActivePhase, GateDecisionAction, WorkflowState } from './types';
 
 interface GateMetadata {
   version: 1;
   id: string;
   iteration_id: string;
-  phase: Exclude<Phase, 'complete'>;
+  phase: ActivePhase;
   kind: 'phase' | 'emergency';
   decision?: { action: GateDecisionAction; comment: string };
 }
@@ -177,8 +174,7 @@ export function resolvePendingGate(cwd: string): WorkflowState {
     return writeState(cwd, {
       ...state,
       pending_gate: null,
-      active_work_item:
-        metadata.phase === 'coding' ? undefined : state.active_work_item,
+      active_work_item: state.active_work_item,
     });
   }
   if (decision.action === 'reject') {
@@ -210,7 +206,7 @@ export function resolvePendingGate(cwd: string): WorkflowState {
 
 export function generateGate(
   cwd: string,
-  phase: Exclude<Phase, 'complete'>,
+  phase: ActivePhase,
   artifacts: string[],
   summary = '',
   kind: GateMetadata['kind'] = 'phase',
@@ -229,7 +225,7 @@ export function generateGate(
   const metadata: GateMetadata = {
     version: 1,
     id,
-    iteration_id: state.iteration_id,
+    iteration_id: activeIterationId(state),
     phase,
     kind,
   };
@@ -267,10 +263,7 @@ ${summary || '请审阅本阶段输出，确认下一步。'}
   return relative(cwd, file);
 }
 
-export function validatePhaseCompletion(
-  cwd: string,
-  phase: Exclude<Phase, 'complete'>,
-): void {
+export function validatePhaseCompletion(cwd: string, phase: ActivePhase): void {
   const current = readState(cwd);
   if (current.halted) {
     throw new Error(
@@ -279,59 +272,21 @@ export function validatePhaseCompletion(
   }
   if (current.phase !== phase) {
     throw new Error(
-      `Cannot complete ${phase}: current phase is ${current.phase}. Reset the workflow before starting a new iteration.`,
+      `Cannot complete ${phase}: current phase is ${current.phase}.`,
     );
   }
   if (current.pending_gate) {
     throw new Error(
-      `Cannot complete ${phase}: gate ${current.pending_gate} is pending.`,
+      `Cannot complete ${phase}: Gate ${current.pending_gate} is pending.`,
     );
   }
   if (current.requirement_source) validateIssueSourceSnapshot(cwd, current);
-  const pendingClarification = allPendingClarifications(current)[0];
-  if (pendingClarification) {
+  if (current.pending_clarification) {
     throw new Error(
-      `Cannot complete ${phase}: pending clarification ${pendingClarification.question_id} for ${pendingClarification.story_id} must be answered first.`,
+      `Cannot complete ${phase}: TQA ${current.pending_clarification.question_id} must be answered first.`,
     );
   }
 
-  if (phase === 'clarify') {
-    validateClarificationStoriesComplete(cwd, current);
-  }
-  if (phase === 'specify') {
-    validateConfirmedStoriesSpecified(cwd, current);
-  }
-  if (phase === 'architecture') {
-    validateScenarioContextMap(
-      cwd,
-      artifactPath(
-        cwd,
-        current,
-        'artifacts/03-architecture/scenario-context-map.json',
-      ),
-    );
-  }
-  if (phase === 'coding') {
-    if (!current.active_work_item) {
-      throw new Error(
-        'Cannot complete coding: select exactly one US-xxx / SC-xxx work item first.',
-      );
-    }
-    if (selectedTestProcesses(current.active_work_item).length === 0) {
-      throw new Error(
-        'Cannot complete coding: select one matching test process before changing code; add additional processes for each runtime.',
-      );
-    }
-    const evidencePath = artifactRelativePath(
-      current,
-      `artifacts/05-code/${current.active_work_item.story_id}/${current.active_work_item.scenario_id}.md`,
-    );
-    if (missingPaths(cwd, [evidencePath]).length > 0) {
-      throw new Error(
-        `Cannot complete coding: missing scenario evidence ${evidencePath}.`,
-      );
-    }
-  }
   const outputs = PHASE_META[phase].outputs.map((path) =>
     artifactRelativePath(current, path),
   );
@@ -341,37 +296,60 @@ export function validatePhaseCompletion(
       `Cannot complete ${phase}: missing required outputs: ${missing.join(', ')}.`,
     );
   }
-  if (phase === 'frame') validateStoryCards(cwd, current);
-  const root = relative(cwd, iterationRoot(cwd, current));
-  if (phase === 'domain_model') validateDomainModelEvidence(cwd, root);
-  if (phase === 'learn') {
-    validateKnowledgePromotion(
+
+  if (phase === 'kickoff') validateSingleStoryCard(cwd, current);
+  if (phase === 'discover') validateAcceptanceExamples(cwd, current);
+  if (phase === 'model') {
+    validateDomainModelEvidence(
+      cwd,
+      relative(cwd, iterationRoot(cwd, current)),
+    );
+  }
+  if (phase === 'design') {
+    validateScenarioContextMap(
       cwd,
       artifactPath(
         cwd,
         current,
-        'artifacts/07-learning/knowledge-promotion.json',
+        'artifacts/04-design/scenario-context-map.json',
       ),
     );
   }
-  if (phase === 'coding') {
-    if (collectCodeFiles(cwd).length === 0) {
-      throw new Error(
-        'Cannot complete coding: no production or test code was found under apps/ or libs/.',
-      );
-    }
+  if (phase === 'build') {
     const workItem = current.active_work_item;
     if (!workItem) {
-      throw new Error('Cannot complete coding without an active work item.');
+      throw new Error(
+        'Cannot complete build: select exactly one US-xxx / SC-xxx work item first.',
+      );
     }
-    validateScenarioExecutionEvidence(cwd, workItem, root);
+    if (selectedTestProcesses(workItem).length === 0) {
+      throw new Error(
+        'Cannot complete build: select every matching runtime test process before changing code.',
+      );
+    }
+    if (collectCodeFiles(cwd).length === 0) {
+      throw new Error(
+        'Cannot complete build: no production or test code exists under apps/ or libs/.',
+      );
+    }
+    validateScenarioExecutionEvidence(
+      cwd,
+      workItem,
+      relative(cwd, iterationRoot(cwd, current)),
+    );
+  }
+  if (phase === 'learn') {
+    validateKnowledgePromotion(
+      cwd,
+      artifactPath(cwd, current, 'artifacts/07-learn/knowledge-promotion.json'),
+    );
   }
 }
 
 /** Record a failed Check step and create an emergency human gate at the retry limit. */
 export function recordPhaseFailure(
   cwd: string,
-  phase: Exclude<Phase, 'complete'>,
+  phase: ActivePhase,
   summary: string,
 ): WorkflowState {
   const current = readState(cwd);
@@ -422,7 +400,7 @@ export function recordPhaseFailure(
 
 export function completePhase(
   cwd: string,
-  phase: Exclude<Phase, 'complete'>,
+  phase: ActivePhase,
   summary = '',
 ): WorkflowState {
   validatePhaseCompletion(cwd, phase);
@@ -443,12 +421,11 @@ export function completePhase(
     failures: 0,
     last_failure: undefined,
     artifacts,
-    active_work_item:
-      phase === 'coding' && !shouldGate ? undefined : current.active_work_item,
+    active_work_item: current.active_work_item,
     pi: {
       enabled: true,
-      version: 4,
       ...(current.pi ?? {}),
+      version: 6,
       last_completed_phase: phase,
       last_run_at: new Date().toISOString(),
     },
