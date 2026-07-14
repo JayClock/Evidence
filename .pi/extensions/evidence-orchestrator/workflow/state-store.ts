@@ -492,6 +492,10 @@ export function normalizeState(state: WorkflowState): WorkflowState {
       modelProjection.regression_failures.some(
         (failure) => !isNonEmptyString(failure),
       ) ||
+      !Array.isArray(modelProjection.method_failures) ||
+      modelProjection.method_failures.some(
+        (failure) => !isNonEmptyString(failure),
+      ) ||
       !isNonEmptyString(modelProjection.generated_at))
   ) {
     throw new Error('The v5 model projection record is invalid.');

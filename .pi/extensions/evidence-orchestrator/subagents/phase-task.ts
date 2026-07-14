@@ -116,7 +116,7 @@ ${JSON.stringify(state.modeling_profile, null, 2)}
 - .evidence/associations/
 
 任务：
-1. 必须先使用现有 .evidence 模型展开 Given/When/Then、关键业务数据、不变量和时间线。
+1. 必须先使用现有 .evidence 模型展开 Given/When/Then、关键业务数据、不变量和时间线。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? ' 当前 Profile 为 business/eight_x_flow，先读取 .pi/skills/evidence-8x-flow/SKILL.md；仅此 Profile 启用 8X 规则。' : ' 当前 Profile 不是 business/eight_x_flow，不得套用 8X 规则。'}
 2. model_change_required=false 时，operations 必须为空，不得制造 model delta。
 3. model_change_required=true 时，只在概念缺失、关系错置、生命周期或方法特有不变量失败时提出结构化 add/update/remove operation。路径限定为 .evidence/entities/<id>.yaml 或 .evidence/associations/<id>.yaml；update/remove 必须提供当前文件 sha256。
 4. 只调用 evidence_orchestrator_record_model_analysis。该工具记录展开和候选补丁；不得直接 edit/write .evidence，也不得输出 shell patch。
@@ -141,10 +141,10 @@ ${extra || '（无）'}
 - ${projection.context_path}
 
 任务：
-1. 你是独立 Challenger，不是生成候选补丁的 Builder。只能读取生成视图和场景，不得修改 .evidence、候选补丁、场景或任何代码。
+1. 你是独立 Challenger，不是生成候选补丁的 Builder。只能读取生成视图和场景，不得修改 .evidence、候选补丁、场景或任何代码。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? ' 当前 Profile 为 business/eight_x_flow，读取 .pi/skills/evidence-8x-flow/SKILL.md 并检查方法特有规则。' : ' 当前 Profile 不启用 8X，不得用合同/履约规则误判模型。'}
 2. 将当前确认 Scenario 与 context 中标记为 regression/holdout 的历史场景分开检查。
 3. 检查概念缺失、关系错置、生命周期/时间线、不变量及建模方法是否能解释这些场景。
-4. 确定性回归预检结果：${projection.regression_failures.length ? projection.regression_failures.join('；') : '通过'}。
+4. 确定性回归预检结果：${projection.regression_failures.length ? projection.regression_failures.join('；') : '通过'}。方法特有预检结果：${projection.method_failures.length ? projection.method_failures.join('；') : '通过'}。
 5. 只调用 evidence_orchestrator_record_model_challenge，选择 pass、scenario_gap、model_gap 或 method_gap 并给出具体业务理由，然后停止。
 6. 不得直接修模型；失败会自动路由到 TQA、Model Builder 或 Modeling Profile。
 

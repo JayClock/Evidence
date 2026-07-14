@@ -276,6 +276,7 @@ export interface ModelProjectionRecord {
   context_path: string;
   regression_ids: string[];
   regression_failures: string[];
+  method_failures: string[];
   generated_at: string;
 }
 

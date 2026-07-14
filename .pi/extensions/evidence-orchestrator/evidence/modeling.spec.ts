@@ -243,6 +243,28 @@ describe('v5 modeling method routing', () => {
     });
   });
 
+  it('runs method-specific validation for a confirmed 8X Profile', () => {
+    const cwd = workspace();
+    prepareModeling(cwd);
+    confirmProfile(cwd, 'business', 'eight_x_flow', true);
+
+    expect(() =>
+      recordModelAnalysis(
+        cwd,
+        expansion([
+          {
+            action: 'add',
+            kind: 'entity',
+            id: 'delivery-confirmation',
+            path: '.evidence/entities/delivery-confirmation.yaml',
+            content:
+              'id: delivery-confirmation\nname: DeliveryConfirmation\ntype: EVIDENCE\nsubType: fulfillment_confirmation\n',
+          },
+        ]),
+      ),
+    ).toThrow('8X Flow 业务模型校验失败');
+  });
+
   it('rejects method misuse and operations that contradict the human Profile', () => {
     const cwd = workspace();
     prepareModeling(cwd);

@@ -5,6 +5,7 @@ import { artifactRelativePath } from '../workflow/iteration-paths';
 import { readState, writeState } from '../workflow/state-store';
 import type { ModelProjectionRecord, WorkflowState } from '../workflow/types';
 import { findFiles } from './artifact-index';
+import { eightXValidationIssues } from './eight-x';
 import { candidateModelSources, type CandidateModelSource } from './modeling';
 
 export interface ModelRegressionScenario {
@@ -48,6 +49,7 @@ export interface CandidateModelProjection {
   associations: ProjectedAssociation[];
   regressions: ModelRegressionScenario[];
   regression_failures: string[];
+  method_failures: string[];
   mermaid: string;
   glossary: string;
   context: string;
@@ -329,6 +331,9 @@ export function projectCandidateModel(
     projected.entities,
     projected.associations,
   );
+  const methodFailures = state.modeling_profile
+    ? eightXValidationIssues(state.modeling_profile, sources)
+    : ['候选模型缺少人类确认的建模 Profile。'];
   const context = `${JSON.stringify(
     {
       version: 1,
@@ -337,6 +342,7 @@ export function projectCandidateModel(
       current_expansion: currentExpansion,
       regression_scenarios: regressions,
       regression_failures: failures,
+      method_failures: methodFailures,
     },
     null,
     2,
@@ -348,6 +354,7 @@ export function projectCandidateModel(
     associations: projected.associations,
     regressions,
     regression_failures: failures,
+    method_failures: methodFailures,
     mermaid: renderMermaid(projected.entities, projected.associations),
     glossary: renderGlossary(projected.entities, projected.associations),
     context,
@@ -399,6 +406,7 @@ export function prepareModelProjection(
     context_path: contextPath,
     regression_ids: projection.regressions.map(({ id }) => id),
     regression_failures: projection.regression_failures,
+    method_failures: projection.method_failures,
     generated_at: now,
   };
   return writeState(cwd, { ...state, model_projection: recordValue });

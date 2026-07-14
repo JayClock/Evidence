@@ -14,6 +14,7 @@ import type {
   WorkflowState,
 } from '../workflow/types';
 import { findFiles } from './artifact-index';
+import { validateEightXModel } from './eight-x';
 
 const SUBJECTS = new Set<ModelingSubject>(['business', 'domain', 'tool']);
 const METHODS = new Set<ModelingMethod>([
@@ -415,6 +416,12 @@ export function recordModelAnalysis(
   }
   const baseline = git(cwd, ['rev-parse', '--verify', 'HEAD']);
   const simulated = simulateOperations(currentModel(cwd), input.operations);
+  validateEightXModel(
+    profile,
+    [...simulated.model]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([path, content]) => ({ path, content })),
+  );
   const modelRefs = validateModelRefs(
     profile,
     input.modelRefs,

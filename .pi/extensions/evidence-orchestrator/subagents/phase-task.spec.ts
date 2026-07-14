@@ -136,6 +136,7 @@ describe('phase tasks', () => {
           'artifacts/iterations/ITER-0001/02-domain-model/projections/model-context.json',
         regression_ids: ['REG-001'],
         regression_failures: [],
+        method_failures: [],
         generated_at: '2026-01-01T00:02:00.000Z',
       },
     });

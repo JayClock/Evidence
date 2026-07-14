@@ -116,9 +116,15 @@ export function recordModelChallenge(
   } catch (error) {
     regressionError = error instanceof Error ? error.message : String(error);
   }
-  const outcome: ModelChallengeOutcome = regressionError
-    ? 'model_gap'
-    : input.outcome;
+  const methodError = projection.method_failures.length
+    ? `Method-specific validation failed: ${projection.method_failures.join(' ')}`
+    : undefined;
+  const deterministicError = methodError ?? regressionError;
+  const outcome: ModelChallengeOutcome = methodError
+    ? 'method_gap'
+    : regressionError
+      ? 'model_gap'
+      : input.outcome;
   const sequence = (state.model_challenges?.length ?? 0) + 1;
   const artifactPath = artifactRelativePath(
     state,
@@ -128,8 +134,8 @@ export function recordModelChallenge(
     version: 1,
     requested_outcome: input.outcome,
     outcome,
-    summary: regressionError
-      ? `${requiredSummary(input.summary)} Deterministic regression: ${regressionError}`
+    summary: deterministicError
+      ? `${requiredSummary(input.summary)} Deterministic check: ${deterministicError}`
       : requiredSummary(input.summary),
     checked_regression_ids: projection.regressions.map(({ id }) => id),
     projection_sha256: projection.model_sha256,
