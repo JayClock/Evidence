@@ -52,9 +52,7 @@ function isValidClarificationOutcomeProposal(
   );
 }
 
-function isValidPendingClarification(
-  clarification: ClarificationRecord,
-): boolean {
+function isValidClarificationBase(clarification: ClarificationRecord): boolean {
   return (
     typeof clarification.question_id === 'string' &&
     Boolean(clarification.question_id.trim()) &&
@@ -63,10 +61,44 @@ function isValidPendingClarification(
     Boolean(clarification.question.trim()) &&
     CLARIFICATION_TARGETS.has(clarification.target) &&
     typeof clarification.asked_at === 'string' &&
-    Boolean(clarification.asked_at) &&
-    clarification.answer === undefined &&
-    clarification.answered_at === undefined
+    Boolean(clarification.asked_at)
   );
+}
+
+function isValidPendingClarification(
+  clarification: ClarificationRecord,
+): boolean {
+  return (
+    isValidClarificationBase(clarification) &&
+    clarification.answer === undefined &&
+    clarification.answered_at === undefined &&
+    clarification.waived_by === undefined &&
+    clarification.waived_reason === undefined &&
+    clarification.waived_at === undefined
+  );
+}
+
+function isValidClarificationHistoryRecord(
+  clarification: ClarificationRecord,
+): boolean {
+  if (!isValidClarificationBase(clarification)) return false;
+  const answered =
+    typeof clarification.answer === 'string' &&
+    Boolean(clarification.answer.trim()) &&
+    typeof clarification.answered_at === 'string' &&
+    Boolean(clarification.answered_at) &&
+    clarification.waived_by === undefined &&
+    clarification.waived_reason === undefined &&
+    clarification.waived_at === undefined;
+  const waived =
+    clarification.answer === undefined &&
+    clarification.answered_at === undefined &&
+    clarification.waived_by === 'human' &&
+    typeof clarification.waived_reason === 'string' &&
+    Boolean(clarification.waived_reason.trim()) &&
+    typeof clarification.waived_at === 'string' &&
+    Boolean(clarification.waived_at);
+  return answered || waived;
 }
 
 export function statePath(cwd: string): string {
@@ -167,9 +199,9 @@ export function normalizeState(state: WorkflowState): WorkflowState {
         decided_by !== 'human' ||
         typeof confirmed_at !== 'string' ||
         !confirmed_at ||
-        !proposal ||
-        proposal.story_id !== story_id ||
-        !isValidClarificationOutcomeProposal(proposal)
+        (proposal !== undefined &&
+          (proposal.story_id !== story_id ||
+            !isValidClarificationOutcomeProposal(proposal)))
       );
     })
   ) {
@@ -244,11 +276,11 @@ export function normalizeState(state: WorkflowState): WorkflowState {
   }
   if (
     state.clarification_history?.some(
-      (record) => !record.answer || !record.answered_at,
+      (record) => !isValidClarificationHistoryRecord(record),
     )
   ) {
     throw new Error(
-      'Clarification history may only contain answered exchanges.',
+      'Clarification history may only contain answered or human-waived exchanges.',
     );
   }
   return {

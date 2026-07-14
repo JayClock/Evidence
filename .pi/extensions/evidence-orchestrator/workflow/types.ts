@@ -66,6 +66,10 @@ export interface ClarificationRecord {
   asked_at: string;
   answer?: string;
   answered_at?: string;
+  /** Human explicitly ended the Story without requiring this answer. */
+  waived_by?: 'human';
+  waived_reason?: string;
+  waived_at?: string;
 }
 
 export interface ActiveClarificationStory {
@@ -89,6 +93,7 @@ export interface ClarificationStoryOutcomeRecord {
   /** Present on human-confirmed records; absent only on legacy iterations. */
   decided_by?: 'human';
   confirmed_at?: string;
+  /** Absent when the human directly completes the Story without an AI proposal. */
   proposal?: ClarificationStoryOutcomeProposal;
 }
 
@@ -131,7 +136,7 @@ export interface WorkflowState {
   pending_clarification?: ClarificationRecord;
   /** Questions paused while another story is in focus. */
   paused_clarifications?: ClarificationRecord[];
-  /** Immutable, answered TQA exchanges for the active iteration. */
+  /** Immutable, answered or human-waived TQA exchanges for the iteration. */
   clarification_history?: ClarificationRecord[];
   last_failure?: PhaseFailure;
   halted?: WorkflowHalt;

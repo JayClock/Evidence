@@ -91,6 +91,39 @@ describe('state', () => {
     ).toThrow('must not belong to the active clarification story');
   });
 
+  it('accepts a direct human outcome and a waived clarification', () => {
+    const cwd = workspace();
+    const state = writeState(cwd, {
+      ...DEFAULT_STATE,
+      phase: 'clarify',
+      clarification_story_outcomes: [
+        {
+          story_id: 'US-001',
+          outcome: 'clarified',
+          summary: 'Current detail is sufficient.',
+          completed_at: '2026-01-01T00:03:00.000Z',
+          decided_by: 'human',
+          confirmed_at: '2026-01-01T00:03:00.000Z',
+        },
+      ],
+      clarification_history: [
+        {
+          question_id: 'Q-001',
+          story_id: 'US-001',
+          question: 'Which edge case remains?',
+          target: 'history',
+          asked_at: '2026-01-01T00:01:00.000Z',
+          waived_by: 'human',
+          waived_reason: 'Current detail is sufficient.',
+          waived_at: '2026-01-01T00:03:00.000Z',
+        },
+      ],
+    });
+
+    expect(state.clarification_story_outcomes?.[0]?.proposal).toBeUndefined();
+    expect(state.clarification_history?.[0]?.waived_by).toBe('human');
+  });
+
   it('requires one selected scenario before selecting its unique test process', () => {
     const cwd = workspace();
     initializeGitRepository(cwd);

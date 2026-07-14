@@ -24,7 +24,7 @@ export interface AskClarificationInput {
 }
 
 interface ClarificationHistoryDocument {
-  version: 1;
+  version: 2;
   iteration_id: string;
   story_id: string;
   clarifications: ClarificationRecord[];
@@ -307,15 +307,24 @@ function recordsForStory(
   return records;
 }
 
+function markdownForRecord(record: ClarificationRecord): string {
+  const status = record.answer
+    ? '已回答'
+    : record.waived_at
+      ? '已放弃'
+      : '待回答';
+  const resolution = record.answer
+    ? `- 回答：${record.answer}\n- 回答时间：${record.answered_at}`
+    : record.waived_at
+      ? `- 放弃理由：${record.waived_reason}\n- 决定人：${record.waived_by}\n- 放弃时间：${record.waived_at}`
+      : '';
+  return `## ${record.question_id}\n\n- 状态：${status}\n- 目标：${record.target}\n- 提问时间：${record.asked_at}\n- 问题：${record.question}\n${resolution}`;
+}
+
 function markdownForHistory(state: WorkflowState, storyId: string): string {
   const records = recordsForStory(state, storyId);
   const exchanges = records.length
-    ? records
-        .map(
-          (record) =>
-            `## ${record.question_id}\n\n- 状态：${record.answer ? '已回答' : '待回答'}\n- 目标：${record.target}\n- 提问时间：${record.asked_at}\n- 问题：${record.question}\n${record.answer ? `- 回答：${record.answer}\n- 回答时间：${record.answered_at}` : ''}`,
-        )
-        .join('\n\n')
+    ? records.map(markdownForRecord).join('\n\n')
     : '尚无澄清记录。';
   return `# TQA 澄清记录 — ${storyId}\n\n${exchanges}\n`;
 }
@@ -328,7 +337,7 @@ function persistHistory(
   const jsonPath = historyJsonPath(cwd, state, storyId);
   const markdownPath = historyMarkdownPath(cwd, state, storyId);
   const document: ClarificationHistoryDocument = {
-    version: 1,
+    version: 2,
     iteration_id: state.iteration_id,
     story_id: storyId,
     clarifications: recordsForStory(state, storyId),
@@ -487,7 +496,7 @@ export function continueClarificationStory(cwd: string): WorkflowState {
   return next;
 }
 
-/** Commit the final disposition from the human-only command channel. */
+/** Commit a direct or proposal-backed disposition from the human-only channel. */
 export function confirmClarificationStoryOutcome(
   cwd: string,
   outcome: ClarificationStoryOutcome,
@@ -495,18 +504,14 @@ export function confirmClarificationStoryOutcome(
 ): WorkflowState {
   const state = readState(cwd);
   assertClarificationPhase(state);
-  if (state.pending_clarification) {
+  const activeStoryId = state.active_clarification_story?.story_id;
+  if (!activeStoryId) {
     throw new Error(
-      `Cannot confirm a story outcome: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
+      'Cannot confirm a story outcome: select a clarification story first.',
     );
   }
   const proposal = state.proposed_clarification_story_outcome;
-  if (!proposal) {
-    throw new Error(
-      'Cannot confirm a story outcome: the AI must propose an outcome first.',
-    );
-  }
-  if (state.active_clarification_story?.story_id !== proposal.story_id) {
+  if (proposal && proposal.story_id !== activeStoryId) {
     throw new Error(
       'Cannot confirm a story outcome: the proposal does not belong to the active story.',
     );
@@ -514,25 +519,47 @@ export function confirmClarificationStoryOutcome(
   if (!VALID_STORY_OUTCOMES.has(outcome)) {
     throw new Error(`Unsupported clarification story outcome: ${outcome}.`);
   }
+  const normalizedSummary = requireNonEmpty(
+    summary,
+    'Clarification story summary',
+  );
   const confirmedAt = new Date().toISOString();
+  const waivedClarification = state.pending_clarification
+    ? {
+        ...state.pending_clarification,
+        waived_by: 'human' as const,
+        waived_reason: normalizedSummary,
+        waived_at: confirmedAt,
+      }
+    : undefined;
   const next = writeState(cwd, {
     ...state,
     active_clarification_story: undefined,
+    pending_clarification: undefined,
     proposed_clarification_story_outcome: undefined,
+    ...(waivedClarification
+      ? {
+          clarification_history: [
+            ...(state.clarification_history ?? []),
+            waivedClarification,
+          ],
+        }
+      : {}),
     clarification_story_outcomes: [
       ...(state.clarification_story_outcomes ?? []),
       {
-        story_id: proposal.story_id,
+        story_id: activeStoryId,
         outcome,
-        summary: requireNonEmpty(summary, 'Clarification story summary'),
+        summary: normalizedSummary,
         completed_at: confirmedAt,
         decided_by: 'human',
         confirmed_at: confirmedAt,
-        proposal,
+        ...(proposal ? { proposal } : {}),
       },
     ],
   });
   persistStoryStatus(cwd, next);
+  if (waivedClarification) persistHistory(cwd, next, activeStoryId);
   return next;
 }
 

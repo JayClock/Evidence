@@ -194,6 +194,54 @@ describe('clarifications', () => {
     ).toBeUndefined();
   });
 
+  it('lets the human complete directly and waives the pending question', () => {
+    const cwd = workspace();
+    prepareStory(cwd);
+    selectClarificationStory(cwd, 'US-001');
+    askClarification(cwd, {
+      story_id: 'US-001',
+      question: 'Which edge case remains?',
+      target: 'history',
+    });
+
+    const completed = confirmClarificationStoryOutcome(
+      cwd,
+      'clarified',
+      'The domain expert considers the current detail sufficient.',
+    );
+
+    expect(completed.active_clarification_story).toBeUndefined();
+    expect(completed.pending_clarification).toBeUndefined();
+    expect(completed.clarification_history?.[0]).toEqual(
+      expect.objectContaining({
+        question_id: 'Q-001',
+        waived_by: 'human',
+        waived_reason:
+          'The domain expert considers the current detail sufficient.',
+        waived_at: expect.any(String),
+      }),
+    );
+    expect(completed.clarification_story_outcomes?.[0]).toEqual(
+      expect.objectContaining({
+        story_id: 'US-001',
+        outcome: 'clarified',
+        decided_by: 'human',
+      }),
+    );
+    expect(
+      completed.clarification_story_outcomes?.[0]?.proposal,
+    ).toBeUndefined();
+    expect(
+      readFileSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/clarifications/US-001.md',
+        ),
+        'utf8',
+      ),
+    ).toContain('状态：已放弃');
+  });
+
   it('allows the human to override the AI proposal before completing the story', () => {
     const cwd = workspace();
     prepareStory(cwd);
