@@ -18,7 +18,7 @@ function runGit(cwd: string, args: string[]): string {
     return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
   } catch {
     throw new Error(
-      'Evidence Orchestrator requires a Git repository with an initial commit to create auditable coding evidence.',
+      'Evidence Orchestrator requires a Git repository with an initial commit to create auditable Build evidence.',
     );
   }
 }
@@ -87,7 +87,7 @@ function requireFile(cwd: string, path: string, name: string): void {
 }
 
 function examplePaths(cwd: string, artifactRoot: string): string[] {
-  const root = join(cwd, artifactRoot, '01-requirements/examples');
+  const root = join(cwd, artifactRoot, '02-discovery/examples');
   return findFiles(root, (path) =>
     EXAMPLE_PATTERN.test(path.split('/').pop() ?? ''),
   );
@@ -158,7 +158,7 @@ function validateModelExpansion(
   const storyId = match?.[1]?.toUpperCase();
   const scenarioId = match?.[2]?.toUpperCase();
   if (!storyId || !scenarioId) return;
-  const expansionPath = `${artifactRoot}/02-domain-model/model-expansions/${storyId}-${scenarioId}.json`;
+  const expansionPath = `${artifactRoot}/03-model/expansions/${storyId}-${scenarioId}.json`;
   const expansion = expectRecord(
     readJson(join(cwd, expansionPath)),
     expansionPath,
@@ -299,7 +299,7 @@ export function validateDomainModelEvidence(
   expectString(modelMetadata.project_name, `${modelMetadataPath}.project_name`);
   expectString(modelMetadata.purpose, `${modelMetadataPath}.purpose`);
 
-  const snapshotPath = `${artifactRoot}/02-domain-model/model-snapshot.json`;
+  const snapshotPath = `${artifactRoot}/03-model/model-snapshot.json`;
   const snapshot = expectRecord(
     readJson(join(cwd, snapshotPath)),
     snapshotPath,
@@ -339,7 +339,7 @@ export function validateDomainModelEvidence(
   }
   const modelIndex = buildModelIndex(cwd, expectedSourcePaths);
 
-  const deltaPath = `${artifactRoot}/02-domain-model/model-delta.json`;
+  const deltaPath = `${artifactRoot}/03-model/model-delta.json`;
   const delta = expectRecord(readJson(join(cwd, deltaPath)), deltaPath);
   if (delta.version !== 1) throw new Error(`${deltaPath}.version must be 1.`);
   if (
@@ -379,7 +379,7 @@ export function validateDomainModelEvidence(
   }
 }
 
-/** Refuse ambiguous coding attribution when the work tree already contains code edits. */
+/** Refuse ambiguous Build attribution when the work tree already contains code edits. */
 export function createCodingGitBaseline(cwd: string): string {
   const dirtyPaths = codePaths(
     runGit(cwd, ['status', '--porcelain=v1', '--untracked-files=all'])
@@ -391,7 +391,7 @@ export function createCodingGitBaseline(cwd: string): string {
   );
   if (dirtyPaths.length > 0) {
     throw new Error(
-      `Cannot select a coding work item with pre-existing code changes: ${dirtyPaths.join(', ')}. Commit, stash, or revert them first.`,
+      `Cannot select a Build work item with pre-existing code changes: ${dirtyPaths.join(', ')}. Commit, stash, or revert them first.`,
     );
   }
   return runGit(cwd, ['rev-parse', '--verify', 'HEAD']);
@@ -470,7 +470,7 @@ function validateObservedExecutions(
   const logPath = join(
     cwd,
     artifactRoot,
-    '05-code',
+    '05-build',
     workItem.story_id,
     `${workItem.scenario_id}.execution.jsonl`,
   );
@@ -612,17 +612,15 @@ function validateCompositeProcessEvidence(
         `${evidencePath}.test_processes.${selection.id}.steps.${definitionStep.id}.tdd.refactor`,
         0,
       );
-      if (workItem.test_plan?.execution_evidence_version === 1) {
-        validateObservedExecutions(
-          cwd,
-          artifactRoot,
-          workItem,
-          evidencePath,
-          selection.id,
-          stepTdd,
-          [],
-        );
-      }
+      validateObservedExecutions(
+        cwd,
+        artifactRoot,
+        workItem,
+        evidencePath,
+        selection.id,
+        stepTdd,
+        [],
+      );
     }
     for (const command of definition.quality_gates) {
       const gate = recorded.quality_gates.find(
@@ -633,24 +631,22 @@ function validateCompositeProcessEvidence(
         throw new Error(
           `${evidencePath} must record quality gate ${command} for ${selection.id}.`,
         );
-      if (workItem.test_plan?.execution_evidence_version === 1) {
-        const firstStep = expectRecord(
-          recorded.steps[0],
-          `${evidencePath}.test_processes.${selection.id}.steps[0]`,
-        );
-        validateObservedExecutions(
-          cwd,
-          artifactRoot,
-          workItem,
-          evidencePath,
-          selection.id,
-          expectRecord(
-            firstStep.tdd,
-            `${evidencePath}.test_processes.${selection.id}.steps[0].tdd`,
-          ),
-          [gate],
-        );
-      }
+      const firstStep = expectRecord(
+        recorded.steps[0],
+        `${evidencePath}.test_processes.${selection.id}.steps[0]`,
+      );
+      validateObservedExecutions(
+        cwd,
+        artifactRoot,
+        workItem,
+        evidencePath,
+        selection.id,
+        expectRecord(
+          firstStep.tdd,
+          `${evidencePath}.test_processes.${selection.id}.steps[0].tdd`,
+        ),
+        [gate],
+      );
     }
   }
 }
@@ -668,15 +664,13 @@ export function validateScenarioExecutionEvidence(
   } = workItem;
   if (!baseline)
     throw new Error(
-      'Selected coding work item has no Git baseline. Re-select it before coding.',
+      'Selected Build work item has no Git baseline. Re-select it before Build.',
     );
-  const selectedProcesses =
-    workItem.test_plan?.processes ??
-    (workItem.test_process ? [workItem.test_process] : []);
+  const selectedProcesses = workItem.test_plan?.processes ?? [];
   const selectedProcess = selectedProcesses[0];
   if (!selectedProcess) {
     throw new Error(
-      'Selected coding work item has no test process. Select one before changing code.',
+      'Selected Build work item has no test process. Select one before changing code.',
     );
   }
   const process = readTestProcess(join(cwd, selectedProcess.path));
@@ -702,7 +696,7 @@ export function validateScenarioExecutionEvidence(
       `Selected test process does not cover every selected functional context.`,
     );
   }
-  const evidencePath = `${artifactRoot}/05-code/${storyId}/${scenarioId}.json`;
+  const evidencePath = `${artifactRoot}/05-build/${storyId}/${scenarioId}.json`;
   const evidence = expectRecord(
     readJson(join(cwd, evidencePath)),
     evidencePath,
@@ -810,7 +804,7 @@ export function validateScenarioExecutionEvidence(
     evidence.traceability,
     `${evidencePath}.traceability`,
   );
-  const scenarioPath = `${artifactRoot}/01-requirements/examples/${storyId}-${scenarioId}.md`;
+  const scenarioPath = `${artifactRoot}/02-discovery/examples/${storyId}-${scenarioId}.md`;
   if (
     expectString(
       traceability.scenario,
@@ -1024,15 +1018,13 @@ export function validateScenarioExecutionEvidence(
     evidence,
     selectedProcesses,
   );
-  if (workItem.test_plan?.execution_evidence_version === 1) {
-    validateObservedExecutions(
-      cwd,
-      artifactRoot,
-      workItem,
-      evidencePath,
-      process.id,
-      tdd,
-      qualityGates as unknown[],
-    );
-  }
+  validateObservedExecutions(
+    cwd,
+    artifactRoot,
+    workItem,
+    evidencePath,
+    process.id,
+    tdd,
+    qualityGates as unknown[],
+  );
 }

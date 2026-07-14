@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  CANONICAL_KNOWLEDGE_PATHS,
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
   validateScenarioContextMap,
@@ -9,67 +10,87 @@ import { cleanupWorkspaces, workspace, write } from '../tests/support';
 
 afterEach(cleanupWorkspaces);
 
+const PROCESS = {
+  version: 1,
+  id: 'typescript-web-feature',
+  applies_to: {
+    runtime: 'typescript',
+    functional_contexts: ['web-feature'],
+  },
+  steps: [
+    {
+      id: 'q1',
+      quadrant: 'Q1',
+      functional_context: 'web-feature',
+      test_double: 'stub',
+      task: 'Component behavior.',
+    },
+    {
+      id: 'q2',
+      quadrant: 'Q2',
+      functional_context: 'web-feature',
+      test_double: 'real',
+      task: 'Acceptance behavior.',
+    },
+  ],
+  quality_gates: ['pnpm test'],
+};
+
+function contextMap(scenarios = 1): object {
+  return {
+    version: 1,
+    scenarios: Array.from({ length: scenarios }, (_, index) => ({
+      story_id: 'US-001',
+      scenario_id: `SC-${String(index + 1).padStart(3, '0')}`,
+      runtimes: [
+        {
+          runtime: 'typescript',
+          functional_contexts: ['web-feature'],
+          q1_tests: ['component behavior'],
+          q2_tests: ['rendered acceptance scenario'],
+          test_doubles: ['stub'],
+          candidate_process_ids: ['typescript-web-feature'],
+        },
+      ],
+    })),
+  };
+}
+
 describe('canonical working knowledge', () => {
-  it('keeps stable product, architecture, and DoD knowledge out of iteration outputs', () => {
-    expect(PHASE_META.frame.inputs).toEqual(
-      expect.arrayContaining([
-        'docs/product/personas.md',
-        'docs/product/business-context.md',
-        'docs/product/user-journeys.md',
-        'docs/product/story-map.md',
-      ]),
+  it('keeps product knowledge as input and emits only current Design evidence', () => {
+    expect(PHASE_META.kickoff.inputs).toContain(
+      'docs/product/business-context.md',
     );
-    expect(PHASE_META.frame.outputs).not.toContain(
-      'artifacts/01-requirements/personas.md',
-    );
-    expect(PHASE_META.architecture.outputs).toEqual(
-      expect.arrayContaining([
-        'artifacts/03-architecture/architecture-decisions.md',
-        'artifacts/03-architecture/api-contract-delta.md',
-        'artifacts/03-architecture/data-model-delta.md',
-        'artifacts/03-architecture/scenario-context-map.json',
-      ]),
-    );
-    expect(PHASE_META.architecture.outputs).not.toContain(
-      'artifacts/03-architecture/architecture-style.md',
-    );
-    expect(PHASE_META.planning.outputs).not.toContain(
-      'artifacts/04-planning/product-backlog.md',
-    );
-    expect(PHASE_META.planning.outputs).not.toContain(
-      'artifacts/04-planning/definition-of-done.md',
-    );
+    expect(PHASE_META.design.outputs).toEqual([
+      'artifacts/04-design/delivery-plan.md',
+      'artifacts/04-design/scenario-context-map.json',
+    ]);
   });
 
-  it('requires every canonical knowledge document', () => {
+  it('requires every canonical knowledge document including delivery principles', () => {
     const cwd = workspace();
     expect(() => validateCanonicalKnowledge(cwd)).toThrow(
       'Canonical working knowledge is missing',
     );
-    for (const path of [
-      'docs/knowledge-governance.md',
-      'docs/product/personas.md',
-      'docs/product/business-context.md',
-      'docs/product/user-journeys.md',
-      'docs/product/story-map.md',
-      'docs/architecture/context-map.md',
-      'docs/architecture/architecture-style.md',
-      'docs/architecture/tech-stack.md',
-      'docs/architecture/module-structure.md',
-      'docs/architecture/test-strategy.md',
-      'docs/architecture/test-doubles.md',
-      'engineering/evidence-orchestrator/definition-of-done.md',
-      'engineering/evidence-orchestrator/runtime-contexts.json',
-    ]) {
-      write(cwd, path, '# knowledge\n');
-    }
+    for (const path of CANONICAL_KNOWLEDGE_PATHS) write(cwd, path, 'knowledge');
     expect(() => validateCanonicalKnowledge(cwd)).not.toThrow();
   });
 
-  it('requires accepted iteration knowledge to name its canonical target', () => {
+  it('allows no knowledge promotion when no candidate knowledge changed', () => {
+    const cwd = workspace();
+    write(
+      cwd,
+      'promotion.json',
+      JSON.stringify({ version: 1, promotions: [] }),
+    );
+    expect(() =>
+      validateKnowledgePromotion(cwd, `${cwd}/promotion.json`),
+    ).not.toThrow();
+  });
+
+  it('requires promoted knowledge to name an existing canonical target', () => {
     const cwd = workspace();
     write(cwd, 'docs/product/business-context.md', '# context\n');
-    const path = `${cwd}/promotion.json`;
     write(
       cwd,
       'promotion.json',
@@ -77,80 +98,39 @@ describe('canonical working knowledge', () => {
         version: 1,
         promotions: [
           {
-            source: 'artifacts/01-requirements/product-context-delta.md',
+            source: 'artifacts/02-discovery/discovery.md',
             decision: 'promoted',
             target: 'docs/product/business-context.md',
-            reason: 'Validated by the selected scenario.',
+            reason: 'Validated in Showcase.',
           },
         ],
       }),
     );
-    expect(() => validateKnowledgePromotion(cwd, path)).not.toThrow();
+    expect(() =>
+      validateKnowledgePromotion(cwd, `${cwd}/promotion.json`),
+    ).not.toThrow();
   });
 
-  it('validates scenario mappings against the shared runtime vocabulary', () => {
+  it('requires exactly one designed Scenario and one candidate process', () => {
     const cwd = workspace();
     write(
       cwd,
       'engineering/evidence-orchestrator/runtime-contexts.json',
-      JSON.stringify({
-        version: 1,
-        runtimes: { typescript: ['web-feature'], rust: ['rust-api'] },
-      }),
+      JSON.stringify({ version: 1, runtimes: { typescript: ['web-feature'] } }),
     );
     write(
       cwd,
       'engineering/evidence-orchestrator/test-processes/typescript.json',
-      JSON.stringify({
-        version: 1,
-        id: 'typescript-web-feature',
-        applies_to: {
-          runtime: 'typescript',
-          functional_contexts: ['web-feature'],
-        },
-        steps: [
-          {
-            id: 'q1',
-            quadrant: 'Q1',
-            functional_context: 'web-feature',
-            test_double: 'stub',
-            task: 'Component behavior.',
-          },
-          {
-            id: 'q2',
-            quadrant: 'Q2',
-            functional_context: 'web-feature',
-            test_double: 'real',
-            task: 'Acceptance behavior.',
-          },
-        ],
-        quality_gates: ['pnpm test'],
-      }),
+      JSON.stringify(PROCESS),
     );
-    const path = `${cwd}/scenario-context-map.json`;
-    write(
-      cwd,
-      'scenario-context-map.json',
-      JSON.stringify({
-        version: 1,
-        scenarios: [
-          {
-            story_id: 'US-001',
-            scenario_id: 'SC-001',
-            runtimes: [
-              {
-                runtime: 'typescript',
-                functional_contexts: ['web-feature'],
-                q1_tests: ['component behavior'],
-                q2_tests: ['rendered acceptance scenario'],
-                test_doubles: ['stub'],
-                candidate_process_ids: ['typescript-web-feature'],
-              },
-            ],
-          },
-        ],
-      }),
-    );
-    expect(() => validateScenarioContextMap(cwd, path)).not.toThrow();
+    write(cwd, 'scenario.json', JSON.stringify(contextMap()));
+    expect(() =>
+      validateScenarioContextMap(cwd, `${cwd}/scenario.json`),
+    ).not.toThrow();
+
+    write(cwd, 'scenario.json', JSON.stringify(contextMap(2)));
+    expect(() =>
+      validateScenarioContextMap(cwd, `${cwd}/scenario.json`),
+    ).toThrow('exactly one active delivery Scenario');
   });
 });

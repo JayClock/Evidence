@@ -42,22 +42,16 @@ describe('issue-source', () => {
       type: 'github_issue',
       repository: 'owner/evidence',
       issue_number: 42,
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
+      snapshot_path: 'artifacts/iterations/ITER-0001/00-input/issue.json',
     });
     expect(
       existsSync(
-        join(
-          cwd,
-          'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-        ),
+        join(cwd, 'artifacts/iterations/ITER-0001/00-input/requirements.md'),
       ),
     ).toBe(true);
     expect(
       readFileSync(
-        join(
-          cwd,
-          'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-        ),
+        join(cwd, 'artifacts/iterations/ITER-0001/00-input/requirements.md'),
         'utf8',
       ),
     ).toContain('此文件由 GitHub Issue 自动生成，请勿手工维护');
@@ -109,7 +103,7 @@ describe('issue-source', () => {
     expect(drift.snapshot_hash).not.toBe(drift.remote_hash);
   });
 
-  it('only refreshes the active snapshot while still in frame', () => {
+  it('only refreshes the active snapshot while still in Kickoff', () => {
     const cwd = workspace();
     const initial = startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
     const refreshed = syncIssueSource(
@@ -120,9 +114,9 @@ describe('issue-source', () => {
       initial.requirement_source?.content_hash,
     );
 
-    writeState(cwd, { ...refreshed, phase: 'clarify' });
+    writeState(cwd, { ...refreshed, phase: 'discover' });
     expect(() => syncIssueSource(cwd, runner('Another change.'))).toThrow(
-      'Cannot refresh the Issue snapshot in phase clarify',
+      'Cannot refresh the Issue snapshot in phase discover',
     );
   });
 });

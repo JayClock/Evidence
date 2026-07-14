@@ -60,9 +60,9 @@ export function executeTestStep(
   request: TestExecutionRequest,
 ): TestExecutionRecord {
   const state = readState(cwd);
-  if (state.phase !== 'coding' || !state.active_work_item) {
+  if (state.phase !== 'build' || !state.active_work_item) {
     throw new Error(
-      'A selected coding work item is required to execute a test step.',
+      'A selected Build work item is required to execute a test step.',
     );
   }
   const selection = selectedTestProcesses(state.active_work_item).find(
@@ -91,7 +91,7 @@ export function executeTestStep(
   const root = artifactPath(
     cwd,
     state,
-    `artifacts/05-code/${state.active_work_item.story_id}`,
+    `artifacts/05-build/${state.active_work_item.story_id}`,
   );
   mkdirSync(root, { recursive: true });
   const logPath = `${root}/${state.active_work_item.scenario_id}.execution.jsonl`;
@@ -131,6 +131,6 @@ export function executionLogPath(cwd: string): string | undefined {
   if (!state.active_work_item) return undefined;
   return artifactRelativePath(
     state,
-    `artifacts/05-code/${state.active_work_item.story_id}/${state.active_work_item.scenario_id}.execution.jsonl`,
+    `artifacts/05-build/${state.active_work_item.story_id}/${state.active_work_item.scenario_id}.execution.jsonl`,
   );
 }

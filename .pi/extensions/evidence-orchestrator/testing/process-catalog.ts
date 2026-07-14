@@ -138,7 +138,7 @@ export function readTestProcess(path: string): TestProcessDefinition {
   };
 }
 
-/** Validate every machine-readable process in an architecture iteration. */
+/** Validate every machine-readable process in the project delivery catalog. */
 export function validateTestProcessDirectory(
   processDirectory: string,
 ): TestProcessDefinition[] {

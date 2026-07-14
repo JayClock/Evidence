@@ -1,11 +1,18 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { ensureProjectDirs } from '../evidence/artifact-index';
-import { iterationRoot, nextIterationId } from '../workflow/iteration-paths';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
-import { readState, writeState } from '../workflow/state-store';
+import {
+  activeIterationId,
+  iterationRoot,
+  nextIterationId,
+} from '../workflow/iteration-paths';
+import {
+  initialIterationState,
+  readState,
+  writeState,
+} from '../workflow/state-store';
 import type {
   GitHubIssueRequirementSource,
   WorkflowState,
@@ -239,8 +246,8 @@ function sourceFor(
     repository: snapshot.repository,
     issue_number: snapshot.issue_number,
     url: snapshot.url,
-    snapshot_path: `artifacts/iterations/${iterationId}/00-user-input/issue.json`,
-    projection_path: `artifacts/iterations/${iterationId}/00-user-input/requirements.md`,
+    snapshot_path: `artifacts/iterations/${iterationId}/00-input/issue.json`,
+    projection_path: `artifacts/iterations/${iterationId}/00-input/requirements.md`,
     content_hash: snapshot.content_hash,
     issue_updated_at: snapshot.updated_at,
     fetched_at: snapshot.fetched_at,
@@ -273,8 +280,9 @@ function persistSnapshot(
   state: WorkflowState,
   snapshot: GitHubIssueSnapshot,
 ): WorkflowState {
-  const source = sourceFor(state.iteration_id, snapshot);
+  const source = sourceFor(activeIterationId(state), snapshot);
   ensureProjectDirs(cwd, iterationRoot(cwd, state));
+  mkdirSync(dirname(join(cwd, source.snapshot_path)), { recursive: true });
   writeFileSync(
     join(cwd, source.snapshot_path),
     `${JSON.stringify(snapshot, null, 2)}\n`,
@@ -290,11 +298,7 @@ export function startIterationFromIssue(
   runner: GitHubCliRunner = defaultRunner,
 ): WorkflowState {
   const snapshot = fetchGitHubIssue(cwd, input, runner);
-  const state = writeState(cwd, {
-    ...DEFAULT_STATE,
-    iteration_id: nextIterationId(cwd),
-    pi: { enabled: true, version: 5, execution_evidence_version: 1 },
-  });
+  const state = writeState(cwd, initialIterationState(nextIterationId(cwd)));
   return persistSnapshot(cwd, state, snapshot);
 }
 
@@ -306,11 +310,7 @@ export async function startIterationFromIssueAsync(
 ): Promise<WorkflowState> {
   const snapshot = await fetchGitHubIssueAsync(cwd, input, runner, signal);
   signal?.throwIfAborted();
-  const state = writeState(cwd, {
-    ...DEFAULT_STATE,
-    iteration_id: nextIterationId(cwd),
-    pi: { enabled: true, version: 5, execution_evidence_version: 1 },
-  });
+  const state = writeState(cwd, initialIterationState(nextIterationId(cwd)));
   return persistSnapshot(cwd, state, snapshot);
 }
 
@@ -366,15 +366,15 @@ export async function checkIssueSourceDriftAsync(
   };
 }
 
-/** Explicitly refresh an Issue snapshot before framing has completed. */
+/** Explicitly refresh an Issue snapshot before Kickoff has completed. */
 export function syncIssueSource(
   cwd: string,
   runner: GitHubCliRunner = defaultRunner,
 ): WorkflowState {
   const state = readState(cwd);
-  if (state.phase !== 'frame') {
+  if (state.phase !== 'kickoff') {
     throw new Error(
-      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to frame.`,
+      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to kickoff.`,
     );
   }
   const source = requireIssueSource(state);
@@ -392,9 +392,9 @@ export async function syncIssueSourceAsync(
   signal?: AbortSignal,
 ): Promise<WorkflowState> {
   const state = readState(cwd);
-  if (state.phase !== 'frame') {
+  if (state.phase !== 'kickoff') {
     throw new Error(
-      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to frame.`,
+      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to kickoff.`,
     );
   }
   const source = requireIssueSource(state);

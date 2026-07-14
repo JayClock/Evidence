@@ -19,6 +19,8 @@ export const CANONICAL_KNOWLEDGE_PATHS = [
   'docs/architecture/test-strategy.md',
   'docs/architecture/test-doubles.md',
   'engineering/evidence-orchestrator/definition-of-done.md',
+  'engineering/evidence-orchestrator/delivery-journey.md',
+  'engineering/evidence-orchestrator/knowledge-process-principles.md',
   'engineering/evidence-orchestrator/runtime-contexts.json',
 ] as const;
 
@@ -79,8 +81,10 @@ export function validateScenarioContextMap(cwd: string, path: string): void {
     vocabulary.runtimes,
     'runtime-contexts.json.runtimes',
   );
-  if (document.scenarios.length === 0) {
-    throw new Error(`${path}.scenarios must not be empty.`);
+  if (document.scenarios.length !== 1) {
+    throw new Error(
+      `${path}.scenarios must contain exactly one active delivery Scenario.`,
+    );
   }
   const processes = validateTestProcessDirectory(
     catalogTestProcessDirectory(cwd),
@@ -137,6 +141,11 @@ export function validateScenarioContextMap(cwd: string, path: string): void {
         runtime.candidate_process_ids,
         `${path}.scenarios[${index}].runtimes[${runtimeIndex}].candidate_process_ids`,
       );
+      if (candidates.length !== 1) {
+        throw new Error(
+          `${path} must identify exactly one candidate process per runtime.`,
+        );
+      }
       if (
         !candidates.every((id) => {
           const process = processById.get(id);
@@ -158,12 +167,8 @@ export function validateScenarioContextMap(cwd: string, path: string): void {
 
 export function validateKnowledgePromotion(cwd: string, path: string): void {
   const document = record(JSON.parse(readFileSync(path, 'utf8')), path);
-  if (
-    document.version !== 1 ||
-    !Array.isArray(document.promotions) ||
-    document.promotions.length === 0
-  ) {
-    throw new Error(`${path} must declare version=1 and non-empty promotions.`);
+  if (document.version !== 1 || !Array.isArray(document.promotions)) {
+    throw new Error(`${path} must declare version=1 and promotions.`);
   }
   for (const [index, value] of document.promotions.entries()) {
     const promotion = record(value, `${path}.promotions[${index}]`);
@@ -190,7 +195,7 @@ export function validateKnowledgePromotion(cwd: string, path: string): void {
   }
 }
 
-/** Ensure Coding cannot silently deviate from the architecture scenario mapping. */
+/** Ensure Build cannot silently deviate from the Delivery Design mapping. */
 export function assertScenarioProcessSelection(
   path: string,
   storyId: string,
