@@ -1,6 +1,6 @@
 # Evidence 核心用户旅程
 
-本文件只维护跨 Feature 稳定的核心旅程。每次迭代在 `journey-slice.md` 描述本轮触及的步骤、异常和反馈。
+本文件只维护 Evidence 产品用户跨 Feature 稳定的核心旅程。每次迭代只描述本轮触及的步骤、异常和反馈。软件团队如何交付产品增量属于工程知识，见 `engineering/evidence-orchestrator/delivery-journey.md`。
 
 ## 旅程 A：建立业务模型
 
@@ -21,20 +21,9 @@
 5. 用户接受或拒绝提案。
 6. 只有接受的提案改变权威模型，结果重新投影到图。
 
-## 旅程 C：从产品想法交付 Evidence 增量
-
-1. 产品人员以 GitHub Issue 定义问题。
-2. 团队通过 TQA 澄清隐性业务知识。
-3. 用 Given/When/Then 示例定义可观察价值。
-4. 用 `.evidence` 模型展开场景并识别模型增量。
-5. 从统一架构、测试策略和工序目录选择垂直切片。
-6. 对单个场景执行可观测的 Red/Green/Refactor。
-7. 评审产品价值和质量，沉淀 Probe/Sense/Respond 学习。
-8. 将稳定知识提升到统一知识源，把下一问题更新到 Issue。
-
-## 旅程 D：跨 Web/Desktop 使用
+## 旅程 C：跨 Web/Desktop 使用
 
 1. Web 用户通过浏览器访问共享前端。
 2. Desktop 用户通过 Tauri WebView 使用同一前端。
-3. 两者消费一致的 REST/domain 语义。
+3. Desktop 在本地启动内嵌 API，并通过动态发现的地址保持与 Web 相同的 REST/domain 语义。
 4. Desktop 特有能力通过 Tauri command/capability 提供，不复制业务页面。

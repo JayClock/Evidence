@@ -1,6 +1,6 @@
 # Evidence
 
-Evidence 是一个领域建模与证据映射平台，帮助领域专家、分析师和交付团队定义业务概念，把证据、参与者、角色与上下文组织成可演进的逻辑模型，并通过关系图进行理解和评审。
+Evidence 是一个采用 8X Flow 语义的领域建模与证据映射平台，帮助领域专家和分析师定义业务概念，把证据、参与者、角色与上下文组织成可演进的逻辑模型，并通过关系图进行理解和评审。
 
 项目提供三个运行时界面：
 
@@ -19,7 +19,8 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家、分�
 3. **图投影**：使用 `Diagram`、`DiagramNode` 和 `DiagramEdge` 展示逻辑模型；图元素不是逻辑实体本身。
 4. **AI 模型辅助**：AI Modeling Agent 可以提出 `ModelingProposal`，但必须由用户确认后才能改变权威模型。
 5. **Web / Desktop 一致体验**：Tauri 复用唯一的 React 前端，不维护第二套产品语义。
-6. **可审计交付**：Issue、场景、模型展开、测试工序、代码证据和学习反馈形成追踪链。
+
+Evidence 当前固定使用 `EVIDENCE`、`PARTICIPANT`、`ROLE` 与 `CONTEXT` 作为产品语言；它不是可任意配置类型的通用元模型编辑器。
 
 ## 产品架构
 
@@ -135,7 +136,7 @@ cargo test -p evidence-server --features postgres-tests
 
 ## Evidence Orchestrator
 
-Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。扩展负责工作流状态、命令、工具、Gate、校验和执行证据；阶段角色位于 `.pi/agents/`，阶段工作在隔离的 Pi 子进程中执行。
+Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。它是维护本仓库的工程能力，不是 Evidence 产品用户能力。扩展负责工作流状态、命令、工具、Gate、校验和执行证据；阶段角色位于 `.pi/agents/`，阶段工作在隔离的 Pi 子进程中执行。工程反馈循环和方法原则分别见 `engineering/evidence-orchestrator/delivery-journey.md` 与 `knowledge-process-principles.md`。
 
 ### 工作流
 
@@ -200,7 +201,7 @@ flowchart LR
 - 领域专家直接在当前对话回答，答案被记录后继续同一故事；
 - AI 只能提出 `clarified`、`needs_split` 或 `deferred` 建议，不能结束或释放故事；
 - 领域专家通过 `/evidence-story-complete` 确认建议、覆盖最终结论或要求继续澄清；
-- 存在待回答问题或待人工决定的建议时，不能切换故事或进入下一阶段。
+- 可随时切换到另一张未完成 Story；当前问题或建议按 Story 暂停并在切回时恢复，但所有 Story 未定案前不能进入下一阶段。
 
 ### Coding 规则
 
@@ -346,26 +347,26 @@ pnpm orchestrator:validate
 
 ## 仓库地图
 
-| 路径                                                  | 用途                                         |
-| :---------------------------------------------------- | :------------------------------------------- |
-| `apps/web/`                                           | React + Vite 前端组合根                      |
-| `libs/web/*`                                          | Web shell、feature、UI 与 HATEOAS API client |
-| `apps/server/`                                        | Rust Axum 组合根                             |
-| `libs/server/{api,domain,persistent,infrastructure}/` | Rust 服务端分层实现                          |
-| `apps/server-nest/`                                   | Nest 组合根（独立服务端轨道）                |
-| `libs/server-nest/*`                                  | Nest API、domain 与 Prisma persistence       |
-| `apps/desktop/`                                       | Tauri 2 Desktop 壳与内嵌 API 启动            |
-| `contracts/api.yaml`                                  | OpenAPI 权威契约                             |
-| `libs/contracts/api-contracts/`                       | 可执行 API 契约测试                          |
-| `docs/product/`                                       | 跨迭代统一产品知识                           |
-| `.evidence/`                                          | Evidence 平台权威领域模型                    |
-| `docs/architecture/`                                  | 跨迭代统一架构与测试策略                     |
-| `engineering/evidence-orchestrator/`                  | Runtime contexts、测试工序与统一 DoD         |
-| `.pi/extensions/evidence-orchestrator/`               | 工作流扩展、状态机、Gate 与证据记录          |
-| `.pi/agents/`                                         | 隔离阶段 Agent 配置                          |
-| `evidence-state.json`                                 | 当前 iteration、phase、Gate 与活动工作项状态 |
-| `artifacts/iterations/`                               | 单轮输入、delta、决策与执行证据              |
-| `AGENTS.md`                                           | 架构边界、编码规范、验证与 Git 纪律          |
+| 路径                                                  | 用途                                                     |
+| :---------------------------------------------------- | :------------------------------------------------------- |
+| `apps/web/`                                           | React + Vite 前端组合根                                  |
+| `libs/web/*`                                          | Web shell、feature、UI 与 HATEOAS API client             |
+| `apps/server/`                                        | Rust Axum 组合根                                         |
+| `libs/server/{api,domain,persistent,infrastructure}/` | Rust 服务端分层实现                                      |
+| `apps/server-nest/`                                   | Nest 组合根（独立服务端轨道）                            |
+| `libs/server-nest/*`                                  | Nest API、domain 与 Prisma persistence                   |
+| `apps/desktop/`                                       | Tauri 2 Desktop 壳与内嵌 API 启动                        |
+| `contracts/api.yaml`                                  | OpenAPI 权威契约                                         |
+| `libs/contracts/api-contracts/`                       | 可执行 API 契约测试                                      |
+| `docs/product/`                                       | 跨迭代统一产品知识                                       |
+| `.evidence/`                                          | Evidence 平台权威领域模型                                |
+| `docs/architecture/`                                  | 跨迭代统一架构与测试策略                                 |
+| `engineering/evidence-orchestrator/`                  | Runtime contexts、测试工序与统一 DoD                     |
+| `.pi/extensions/evidence-orchestrator/`               | 工作流扩展、状态机、Gate 与证据记录                      |
+| `.pi/agents/`                                         | 隔离阶段 Agent 配置                                      |
+| `evidence-state.json`                                 | 当前 iteration、phase、Gate 与活动工作项状态             |
+| `artifacts/iterations/`                               | 单轮输入、delta、决策与执行证据；旧 bootstrap 见目录说明 |
+| `AGENTS.md`                                           | 架构边界、编码规范、验证与 Git 纪律                      |
 
 ## 开发约定
 
