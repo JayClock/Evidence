@@ -85,16 +85,32 @@ export interface GitHubIssueRequirementSource {
   fetched_at: string;
 }
 
+export interface MaterializedTestCommand {
+  step_id: string;
+  command: string;
+}
+
 export interface TestProcessSelection {
   id: string;
   path: string;
   runtime: TestProcessRuntime;
   functional_contexts: string[];
+  /** Present for v2 plans; runtime and technical boundaries are independent dimensions. */
+  technical_boundaries?: string[];
+  process_version?: 1 | 2;
+  /** Hash of the immutable snapshotted process definition. */
+  definition_sha256?: string;
+  /** Whitelist inputs retained so commands can be deterministically re-materialized. */
+  command_variables?: Record<string, string>;
+  /** Whitelist-expanded commands locked before Pairing. */
+  focused_commands?: MaterializedTestCommand[];
+  materialized_sha256?: string;
+  materialized_plan_path?: string;
 }
 
 /** Ordered, cross-runtime test processes selected for one vertical scenario. */
 export interface TestPlan {
-  version: 1;
+  version: 1 | 2;
   /** Requires execution records when selected by an Issue-backed iteration. */
   execution_evidence_version?: 1;
   processes: TestProcessSelection[];

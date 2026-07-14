@@ -1,31 +1,110 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "typescript-nest-feature",
+  "owner": "server-platform",
+  "runtime": "typescript",
   "applies_to": {
-    "runtime": "typescript",
-    "functional_contexts": ["nest-domain", "nest-persistent", "nest-api"]
+    "capabilities": [
+      "workspace",
+      "logical-model",
+      "diagram-projection",
+      "model-proposal"
+    ],
+    "technical_boundaries": ["nest-domain", "prisma-store", "nest-api"],
+    "when": "The selected Scenario belongs to the Nest server route and must not use Rust server modules."
   },
   "steps": [
     {
       "id": "nest-domain-q1",
+      "purpose": "Drive the business rule through the isolated Nest domain module.",
       "quadrant": "Q1",
-      "functional_context": "nest-domain",
-      "test_double": "real",
-      "task": "Write an isolated domain behavior test before changing Nest application code."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["nest-domain"],
+      "replaced_boundaries": [],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Use the test adjacent to the owning Nest domain module.",
+        "roots": ["libs/server-nest/domain/src"]
+      },
+      "focused_command": {
+        "template": "pnpm nx test @evidence/server-nest --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The selected domain expectation fails for missing behavior, not framework setup."
+      },
+      "green": {
+        "done_when": "The focused domain behavior passes without moving rules into controllers."
+      },
+      "refactor": {
+        "done_when": "Domain responsibilities improve and the focused command remains green."
+      }
     },
     {
       "id": "nest-persistent-q1",
+      "purpose": "Drive repository behavior behind an explicit store boundary.",
       "quadrant": "Q1",
-      "functional_context": "nest-persistent",
-      "test_double": "fake",
-      "task": "Verify repository behavior with an in-memory or Prisma test double."
+      "functional_contexts": ["workspace", "logical-model", "model-proposal"],
+      "real_boundaries": ["nest-domain"],
+      "replaced_boundaries": [
+        { "boundary": "prisma-store", "test_double": "fake" }
+      ],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Extend the nearest repository contract or in-memory adapter test.",
+        "roots": ["libs/server-nest/persistent/src"]
+      },
+      "focused_command": {
+        "template": "pnpm nx test @evidence/server-nest --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The repository contract fails for the missing persistence behavior."
+      },
+      "green": {
+        "done_when": "The repository behavior passes without coupling domain tests to Prisma."
+      },
+      "refactor": {
+        "done_when": "Fixtures and adapters remain focused while the contract stays green."
+      }
     },
     {
       "id": "nest-api-q2",
+      "purpose": "Confirm the Scenario through the composed Nest API module.",
       "quadrant": "Q2",
-      "functional_context": "nest-api",
-      "test_double": "real",
-      "task": "Exercise the controller scenario through the Nest API module."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["nest-api", "nest-domain"],
+      "replaced_boundaries": [
+        { "boundary": "prisma-store", "test_double": "fake" }
+      ],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Extend the acceptance test nearest the owning controller module.",
+        "roots": ["apps/server-nest/src", "libs/server-nest/api/src"]
+      },
+      "focused_command": {
+        "template": "pnpm nx test @evidence/server-nest --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The selected API status or response expectation fails through Nest composition."
+      },
+      "green": {
+        "done_when": "The confirmed API Scenario passes without mixing Rust server modules."
+      },
+      "refactor": {
+        "done_when": "Controller delegation is clear and the focused Scenario stays green."
+      }
     }
   ],
   "quality_gates": [

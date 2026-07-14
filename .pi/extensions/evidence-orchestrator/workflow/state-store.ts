@@ -24,6 +24,9 @@ import {
 import {
   catalogTestProcessDirectory,
   matchingTestProcessesInDirectories,
+  materializeFocusedCommands,
+  materializedProcessSha256,
+  testProcessDefinitionSha256,
 } from '../testing/process-catalog';
 import type {
   ActiveWorkItem,
@@ -866,11 +869,52 @@ function snapshotCatalogProcess(
   );
 }
 
+function lockMaterializedTestPlan(
+  cwd: string,
+  state: WorkflowState,
+  selection: TestProcessSelection,
+  qualityGates: string[],
+): string {
+  if (!state.active_work_item) {
+    throw new Error(
+      'A work item is required to lock a materialized test plan.',
+    );
+  }
+  const relativePath = `artifacts/04-planning/test-plans/${state.active_work_item.story_id}-${state.active_work_item.scenario_id}-${selection.id}.json`;
+  const path = artifactPath(cwd, state, relativePath);
+  const document = {
+    version: 2,
+    story_id: state.active_work_item.story_id,
+    scenario_id: state.active_work_item.scenario_id,
+    process_id: selection.id,
+    process_path: selection.path,
+    definition_sha256: selection.definition_sha256,
+    runtime: selection.runtime,
+    functional_contexts: selection.functional_contexts,
+    technical_boundaries: selection.technical_boundaries,
+    command_variables: selection.command_variables,
+    focused_commands: selection.focused_commands,
+    quality_gates: qualityGates,
+    materialized_sha256: selection.materialized_sha256,
+  };
+  const content = `${JSON.stringify(document, null, 2)}\n`;
+  mkdirSync(join(path, '..'), { recursive: true });
+  if (existsSync(path) && readFileSync(path, 'utf8') !== content) {
+    throw new Error(
+      `Materialized test plan is immutable and already differs: ${relativePath}.`,
+    );
+  }
+  if (!existsSync(path)) writeFileSync(path, content);
+  return artifactRelativePath(state, relativePath);
+}
+
 /** Bind one uniquely matching reusable process; repeat for each runtime in a vertical scenario. */
 export function selectTestProcess(
   cwd: string,
   runtime: TestProcessRuntime,
   functionalContexts: string[],
+  technicalBoundaries: string[] = [],
+  commandVariables: Record<string, string> = {},
 ): WorkflowState {
   const state = readState(cwd);
   if (state.phase !== 'coding') {
@@ -897,6 +941,7 @@ export function selectTestProcess(
     ],
     runtime,
     functionalContexts,
+    technicalBoundaries,
   );
   if (candidates.length === 0) {
     throw new Error(
@@ -912,6 +957,23 @@ export function selectTestProcess(
   if (!candidate) {
     throw new Error('A uniquely matching test process was not found.');
   }
+  if (state.workflow_version === 5 && candidate.definition.version !== 2) {
+    throw new Error(
+      `A v5 iteration cannot select legacy test process ${candidate.definition.id} v${candidate.definition.version}.`,
+    );
+  }
+  const selected = selectedTestProcesses(state.active_work_item);
+  if (
+    state.active_work_item.test_plan &&
+    state.active_work_item.test_plan.version !== candidate.definition.version
+  ) {
+    throw new Error('One test plan cannot mix v1 and v2 process definitions.');
+  }
+  if (selected.some(({ id }) => id === candidate.definition.id)) {
+    throw new Error(
+      `Test process ${candidate.definition.id} is already selected for this work item.`,
+    );
+  }
   if (state.pi?.execution_evidence_version === 1) {
     assertScenarioProcessSelection(
       artifactPath(
@@ -924,26 +986,57 @@ export function selectTestProcess(
       runtime,
       functionalContexts,
       candidate.definition.id,
+      technicalBoundaries,
     );
   }
-  const selection: TestProcessSelection = {
+  const selectedPath = snapshotCatalogProcess(cwd, state, candidate.path);
+  let v2Selection: Partial<TestProcessSelection> = {};
+  if (candidate.definition.version === 2) {
+    const focusedCommands = materializeFocusedCommands(
+      candidate.definition,
+      commandVariables,
+    );
+    const definitionSha256 = testProcessDefinitionSha256(
+      join(cwd, selectedPath),
+    );
+    v2Selection = {
+      technical_boundaries: [...technicalBoundaries],
+      process_version: 2,
+      definition_sha256: definitionSha256,
+      command_variables: { ...commandVariables },
+      focused_commands: focusedCommands,
+      materialized_sha256: materializedProcessSha256(
+        candidate.definition.id,
+        definitionSha256,
+        commandVariables,
+        focusedCommands,
+      ),
+    };
+  }
+  let selection: TestProcessSelection = {
     id: candidate.definition.id,
-    path: snapshotCatalogProcess(cwd, state, candidate.path),
+    path: selectedPath,
     runtime,
     functional_contexts: [...functionalContexts],
+    ...v2Selection,
   };
-  const selected = selectedTestProcesses(state.active_work_item);
-  if (selected.some(({ id }) => id === selection.id)) {
-    throw new Error(
-      `Test process ${selection.id} is already selected for this work item.`,
-    );
+  if (candidate.definition.version === 2) {
+    selection = {
+      ...selection,
+      materialized_plan_path: lockMaterializedTestPlan(
+        cwd,
+        state,
+        selection,
+        candidate.definition.quality_gates,
+      ),
+    };
   }
   const active_work_item: ActiveWorkItem = {
     ...state.active_work_item,
     // Keep the singleton projection until all consumers have migrated.
     ...(selected.length === 0 ? { test_process: selection } : {}),
     test_plan: {
-      version: 1,
+      version: candidate.definition.version,
       ...(state.pi?.execution_evidence_version === 1
         ? { execution_evidence_version: 1 as const }
         : {}),

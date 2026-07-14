@@ -263,7 +263,22 @@ const testProcessParam = Type.Object({
   }),
   functionalContexts: Type.Array(
     Type.String({
-      description: 'One functional context declared by the architecture.',
+      description:
+        'One stable business capability declared by the architecture.',
+    }),
+  ),
+  technicalBoundaries: Type.Optional(
+    Type.Array(
+      Type.String({
+        description:
+          'Independent technical boundaries used to disambiguate a runtime process.',
+      }),
+    ),
+  ),
+  testFilter: Type.Optional(
+    Type.String({
+      description:
+        'Whitelist-safe Scenario or test identifier used to materialize focused commands.',
     }),
   ),
 });
@@ -285,8 +300,14 @@ const executionStepParam = Type.Object({
   stage: Type.String({
     description: 'TDD stage: red, green, refactor, or quality_gate.',
   }),
+  stepId: Type.Optional(
+    Type.String({
+      description: 'Required v2 process step id for red, green, and refactor.',
+    }),
+  ),
   command: Type.String({
-    description: 'An exact command declared in that process quality_gates.',
+    description:
+      'An exact locked focused command or final quality-gate command from the selected process.',
   }),
 });
 
@@ -854,7 +875,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Select the test process matching the active scenario runtime and functional contexts',
     promptGuidelines: [
       'Use after selecting the US-xxx / SC-xxx coding work item and before writing tests or production code.',
-      'Provide the runtime and all functional contexts declared for the scenario; selection fails on zero or multiple matches.',
+      'Provide the runtime, stable business capabilities, technical boundaries, and whitelist-safe test filter; selection fails on zero or multiple matches.',
     ],
     parameters: testProcessParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -862,6 +883,8 @@ export function registerTools(pi: ExtensionAPI): void {
         ctx.cwd,
         params.runtime as 'rust' | 'typescript' | 'tauri',
         params.functionalContexts,
+        params.technicalBoundaries ?? [],
+        params.testFilter ? { test_filter: params.testFilter } : {},
       );
       const selected = state.active_work_item?.test_process;
       return {
@@ -880,12 +903,12 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_run_test_step',
     label: 'Run Evidence Orchestrator Test Step',
     description:
-      'Run a selected test-process quality command and append tamper-evident execution evidence',
+      'Run a locked focused command or one final quality gate and append tamper-evident execution evidence',
     promptSnippet:
       'Run one declared TDD test command and persist its observed result',
     promptGuidelines: [
       'Use only in coding after selecting the work item and every applicable test process.',
-      'Run only the exact quality-gate command declared by the selected process.',
+      'For Red, Green, or Refactor, run only the exact focused command locked for that process step; run quality gates only after the process steps.',
       'Record Red, Green, Refactor, and quality-gate observations instead of manually inventing exit codes.',
     ],
     parameters: executionStepParam,
@@ -901,6 +924,7 @@ export function registerTools(pi: ExtensionAPI): void {
       const record = executeTestStep(ctx.cwd, {
         processId: params.processId,
         stage,
+        ...(params.stepId ? { stepId: params.stepId } : {}),
         command: params.command,
       });
       return {

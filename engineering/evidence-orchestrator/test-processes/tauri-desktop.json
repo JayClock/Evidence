@@ -1,24 +1,80 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "tauri-desktop-shell",
+  "owner": "desktop-platform",
+  "runtime": "tauri",
   "applies_to": {
-    "runtime": "tauri",
-    "functional_contexts": ["desktop-shell"]
+    "capabilities": [
+      "workspace",
+      "logical-model",
+      "diagram-projection",
+      "model-proposal"
+    ],
+    "technical_boundaries": ["tauri-shell", "webview"],
+    "when": "The selected Scenario changes native Tauri shell behavior rather than shared Web feature behavior."
   },
   "steps": [
     {
       "id": "desktop-command-q1",
+      "purpose": "Drive a native command or shell rule without a live WebView.",
       "quadrant": "Q1",
-      "functional_context": "desktop-shell",
-      "test_double": "stub",
-      "task": "Write a focused Tauri command or shell integration test before implementation."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["tauri-shell"],
+      "replaced_boundaries": [{ "boundary": "webview", "test_double": "stub" }],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Place the Rust test next to the owning Tauri command or shell module.",
+        "roots": ["apps/desktop/src-tauri/src"]
+      },
+      "focused_command": {
+        "template": "cargo test -p evidence-desktop {{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The native command expectation fails because shell behavior is absent, not because Web assets are unavailable."
+      },
+      "green": {
+        "done_when": "The focused native behavior passes with capabilities kept least-privileged."
+      },
+      "refactor": {
+        "done_when": "Command boundaries remain small and the focused command stays green."
+      }
     },
     {
       "id": "desktop-acceptance-q2",
+      "purpose": "Confirm native shell integration with the real WebView boundary.",
       "quadrant": "Q2",
-      "functional_context": "desktop-shell",
-      "test_double": "real",
-      "task": "Verify the selected desktop behavior with the real shell boundary."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["tauri-shell", "webview"],
+      "replaced_boundaries": [],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Extend the nearest desktop integration test for the selected Scenario.",
+        "roots": ["apps/desktop/src-tauri"]
+      },
+      "focused_command": {
+        "template": "cargo test -p evidence-desktop {{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The selected native-shell acceptance outcome fails at the real boundary."
+      },
+      "green": {
+        "done_when": "The desktop Scenario passes without duplicating shared Web behavior in Rust."
+      },
+      "refactor": {
+        "done_when": "The Web/Desktop boundary remains explicit and the focused Scenario stays green."
+      }
     }
   ],
   "quality_gates": [

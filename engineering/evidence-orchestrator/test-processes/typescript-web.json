@@ -1,31 +1,122 @@
 {
-  "version": 1,
+  "version": 2,
   "id": "typescript-web-feature",
+  "owner": "web-platform",
+  "runtime": "typescript",
   "applies_to": {
-    "runtime": "typescript",
-    "functional_contexts": ["web-shell", "web-feature", "web-api-client"]
+    "capabilities": [
+      "workspace",
+      "logical-model",
+      "diagram-projection",
+      "model-proposal"
+    ],
+    "technical_boundaries": [
+      "react-route",
+      "react-feature",
+      "rest-client",
+      "http-server"
+    ],
+    "when": "The selected Scenario changes the shared React Web/Desktop frontend or its REST client."
   },
   "steps": [
     {
-      "id": "web-component-q1",
+      "id": "web-feature-q1",
+      "purpose": "Drive feature behavior from the nearest component or hook test.",
       "quadrant": "Q1",
-      "functional_context": "web-feature",
-      "test_double": "stub",
-      "task": "Write a colocated Vitest component or hook test before changing the feature implementation."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["react-feature"],
+      "replaced_boundaries": [
+        { "boundary": "rest-client", "test_double": "stub" }
+      ],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Colocate the test with the changed feature component or hook.",
+        "roots": ["libs/web", "apps/web/src"]
+      },
+      "focused_command": {
+        "template": "pnpm nx test @evidence/web --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The selected business expectation fails for an assertion reason, not setup or import failure."
+      },
+      "green": {
+        "done_when": "The focused feature expectation passes with the smallest production change."
+      },
+      "refactor": {
+        "done_when": "The same focused command stays green after removing duplication and naming intent."
+      }
     },
     {
       "id": "web-resource-q1",
+      "purpose": "Drive REST resource semantics while isolating transport.",
       "quadrant": "Q1",
-      "functional_context": "web-api-client",
-      "test_double": "mock",
-      "task": "Verify API-resource request and response behavior with the transport boundary isolated."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["rest-client"],
+      "replaced_boundaries": [
+        { "boundary": "http-server", "test_double": "mock" }
+      ],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Use the test adjacent to the API resource module.",
+        "roots": ["libs/web"]
+      },
+      "focused_command": {
+        "template": "pnpm nx test @evidence/web --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The request, HAL link, or response mapping expectation fails while the transport double remains healthy."
+      },
+      "green": {
+        "done_when": "The focused resource contract passes without weakening assertions."
+      },
+      "refactor": {
+        "done_when": "Resource and fixture duplication is reduced while the focused command remains green."
+      }
     },
     {
       "id": "web-acceptance-q2",
+      "purpose": "Confirm the Scenario through real route and feature composition.",
       "quadrant": "Q2",
-      "functional_context": "web-shell",
-      "test_double": "real",
-      "task": "Exercise the selected scenario through the rendered React route using real feature composition."
+      "functional_contexts": [
+        "workspace",
+        "logical-model",
+        "diagram-projection",
+        "model-proposal"
+      ],
+      "real_boundaries": ["react-route", "react-feature", "rest-client"],
+      "replaced_boundaries": [
+        { "boundary": "http-server", "test_double": "stub" }
+      ],
+      "test_list_template": "evidence-test-list-v1",
+      "nearest_test": {
+        "rule": "Extend the nearest rendered-route acceptance test for the selected Scenario.",
+        "roots": ["apps/web/src", "libs/web"]
+      },
+      "focused_command": {
+        "template": "pnpm nx test @evidence/web --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["test_filter"]
+      },
+      "red": {
+        "expected_failure": "The confirmed Scenario outcome fails at the rendered route boundary."
+      },
+      "green": {
+        "done_when": "The route-level Scenario passes through real frontend composition."
+      },
+      "refactor": {
+        "done_when": "Composition remains observable and the focused Scenario stays green."
+      }
     }
   ],
   "quality_gates": [

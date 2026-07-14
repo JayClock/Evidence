@@ -1,7 +1,38 @@
 {
-  "version": 1,
-  "purpose": "Stable functional-context vocabulary for Evidence vertical slices.",
-  "runtimes": {
+  "version": 2,
+  "purpose": "Stable business capabilities and independent technical boundaries for Evidence vertical slices.",
+  "functional_contexts": [
+    {
+      "id": "workspace",
+      "description": "Workspace ownership, membership, and collaboration behavior."
+    },
+    {
+      "id": "logical-model",
+      "description": "Logical entities, relationships, invariants, and lifecycle behavior."
+    },
+    {
+      "id": "diagram-projection",
+      "description": "Diagram, node, and edge projections of a logical model."
+    },
+    {
+      "id": "model-proposal",
+      "description": "Candidate model changes, challenge, confirmation, and application."
+    }
+  ],
+  "technical_boundaries": {
+    "typescript": [
+      "react-route",
+      "react-feature",
+      "rest-client",
+      "http-server",
+      "nest-api",
+      "nest-domain",
+      "prisma-store"
+    ],
+    "rust": ["axum-api", "rust-domain", "seaorm-store"],
+    "tauri": ["tauri-shell", "webview"]
+  },
+  "legacy_v1_runtime_contexts": {
     "typescript": [
       "web-shell",
       "web-feature",

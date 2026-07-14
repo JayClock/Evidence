@@ -95,8 +95,8 @@ export function validateScenarioContextMap(cwd: string, path: string): void {
     'runtime-contexts.json',
   );
   const runtimeContexts = record(
-    vocabulary.runtimes,
-    'runtime-contexts.json.runtimes',
+    vocabulary.runtimes ?? vocabulary.legacy_v1_runtime_contexts,
+    'runtime-contexts.json.runtimes|legacy_v1_runtime_contexts',
   );
   if (document.scenarios.length === 0) {
     throw new Error(`${path}.scenarios must not be empty.`);
