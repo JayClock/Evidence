@@ -1,9 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  transitionWorkflowLoop,
-  writeState,
-} from '../../iteration/state-repository';
+import { writeState } from '../../iteration/state-repository';
+import { transitionLoopState } from '../../iteration/transition-graph';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
   cleanupWorkspaces,
@@ -39,7 +37,6 @@ function processDefinition(id = 'rust-workspace') {
         functional_contexts: ['workspace'],
         real_boundaries: ['rust-domain'],
         replaced_boundaries: [],
-        test_list_template: 'evidence-test-list-v1',
         nearest_test: { rule: 'Nearest domain test.', roots: ['domain'] },
         focused_command: {
           template: 'node focused.js {{test_filter}}',
@@ -58,7 +55,6 @@ function processDefinition(id = 'rust-workspace') {
         replaced_boundaries: [
           { boundary: 'seaorm-store', test_double: 'fake' },
         ],
-        test_list_template: 'evidence-test-list-v1',
         nearest_test: { rule: 'Nearest API test.', roots: ['api'] },
         focused_command: {
           template: 'node focused.js {{test_filter}}',
@@ -206,7 +202,7 @@ describe('Tasking and Desk Check', () => {
     expect(
       readFileSync(`${cwd}/${draft.tasking_candidate?.test_list_path}`, 'utf8'),
     ).toContain('Workspace Alpha is available to the owner');
-    expect(() => transitionWorkflowLoop(cwd, { to: 'pair' })).toThrow(
+    expect(() => transitionLoopState(draft, { to: 'pair' })).toThrow(
       'human-approved Desk Check',
     );
     write(

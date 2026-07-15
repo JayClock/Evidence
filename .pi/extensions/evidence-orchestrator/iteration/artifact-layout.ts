@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import type { WorkflowState } from './state';
 
 type IterationIdentity = Pick<WorkflowState, 'iteration_id'>;
@@ -48,16 +48,6 @@ export function artifactRelativePath(
   return `${iterationRootRelative(state.iteration_id)}/${logicalPath.slice(
     `${ARTIFACTS_ROOT}/`.length,
   )}`;
-}
-
-export function resolveArtifactPaths(
-  cwd: string,
-  state: IterationIdentity,
-  logicalPaths: string[],
-): string[] {
-  return logicalPaths.map((path) =>
-    relative(cwd, artifactPath(cwd, state, path)),
-  );
 }
 
 export function nextIterationId(cwd: string): string {

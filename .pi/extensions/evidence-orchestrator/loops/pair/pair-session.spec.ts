@@ -17,11 +17,8 @@ import {
   prepareActivityRun,
 } from '../../adapters/pi/activity/dispatch';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import {
-  readState,
-  transitionWorkflowLoop,
-  writeState,
-} from '../../iteration/state-repository';
+import { readState, writeState } from '../../iteration/state-repository';
+import { transitionLoopState } from '../../iteration/transition-graph';
 import {
   generateExecutionEvidence,
   validateExecutionEvidence,
@@ -75,7 +72,6 @@ function processDefinition() {
         functional_contexts: ['workspace'],
         real_boundaries: ['react-feature'],
         replaced_boundaries: [{ boundary: 'http-server', test_double: 'stub' }],
-        test_list_template: 'test-list',
         nearest_test: {
           rule: 'Use the nearest test.',
           roots: ['apps/web/tests'],
@@ -95,7 +91,6 @@ function processDefinition() {
         functional_contexts: ['workspace'],
         real_boundaries: ['react-feature'],
         replaced_boundaries: [{ boundary: 'http-server', test_double: 'stub' }],
-        test_list_template: 'test-list',
         nearest_test: {
           rule: 'Use the nearest test.',
           roots: ['apps/web/tests'],
@@ -858,7 +853,7 @@ describe('Navigator-driven Pair', () => {
     );
     const passed = executePairAction(cwd, 'run_quality_gate');
     expect(passed.state.pair_session?.checkpoint).toBe('quality_gates_passed');
-    expect(transitionWorkflowLoop(cwd, { to: 'showcase' }).loop).toBe(
+    expect(transitionLoopState(readState(cwd), { to: 'showcase' }).loop).toBe(
       'showcase',
     );
   });

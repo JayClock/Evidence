@@ -16,7 +16,3 @@ export const FEEDBACK_LOOP_BY_TARGET: Record<FeedbackTarget, WorkflowLoop> = {
   value_validation: 'showcase',
   showcase_setup: 'showcase',
 };
-
-export function feedbackDestination(target: FeedbackTarget): WorkflowLoop {
-  return FEEDBACK_LOOP_BY_TARGET[target];
-}

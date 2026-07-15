@@ -2,10 +2,6 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DEFAULT_STATE } from './default-state';
 import { normalizeState } from './state-codec';
-import {
-  transitionLoopState,
-  type LoopTransitionRequest,
-} from './transition-graph';
 import type {
   ActiveWorkItem,
   TestProcessSelection,
@@ -48,13 +44,6 @@ export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   const normalized = normalizeState(state);
   writeFileSync(statePath(cwd), `${JSON.stringify(normalized, null, 2)}\n`);
   return normalized;
-}
-
-export function transitionWorkflowLoop(
-  cwd: string,
-  request: LoopTransitionRequest,
-): WorkflowState {
-  return writeState(cwd, transitionLoopState(readState(cwd), request));
 }
 
 export function assertCanStartIteration(cwd: string): void {

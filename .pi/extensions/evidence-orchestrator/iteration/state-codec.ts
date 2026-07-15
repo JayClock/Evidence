@@ -3,16 +3,51 @@ import { assertIterationId } from './artifact-layout';
 import { LOOP_ORDER } from './transition-graph';
 import type { ClarificationRecord, WorkflowState } from './state';
 
-const UNSUPPORTED_STATE_FIELDS = [
-  'workflow_version',
-  'phase',
-  'round',
-  'pending_gate',
-  'failures',
-  'max_rounds',
-  'gate_config',
-  'last_failure',
-] as const;
+const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
+  iteration_id: true,
+  loop: true,
+  kickoff_candidate: true,
+  kickoff_decisions: true,
+  understand_stage: true,
+  scenario_drafts: true,
+  confirmed_scenario: true,
+  understanding_decisions: true,
+  modeling_stage: true,
+  modeling_profile_proposal: true,
+  modeling_profile: true,
+  model_expansion_path: true,
+  model_git_baseline: true,
+  model_change_proposal: true,
+  model_change_application: true,
+  model_projection: true,
+  model_challenges: true,
+  tasking_stage: true,
+  tasking_candidate: true,
+  tasking_gap: true,
+  desk_check_decisions: true,
+  approved_test_plan_path: true,
+  approved_test_plan_sha256: true,
+  pair_session: true,
+  showcase_stage: true,
+  showcase_q2_observations: true,
+  showcase_risk_decisions: true,
+  showcase_reviews: true,
+  showcase_decisions: true,
+  showcase_review_failures: true,
+  respond_stage: true,
+  respond_candidate: true,
+  respond_decisions: true,
+  knowledge_promotion_path: true,
+  next_probe: true,
+  feedback_history: true,
+  requirement_source: true,
+  active_work_item: true,
+  active_clarification_story: true,
+  pending_clarification: true,
+  clarification_history: true,
+  halted: true,
+  pi: true,
+};
 const STORY_ID_PATTERN = /^US-\d{3,}$/;
 const SCENARIO_ID_PATTERN = /^SC-\d{3,}$/;
 const COGNITIVE_MODES = new Set(['clear', 'complicated', 'complex']);
@@ -119,13 +154,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     );
   }
   for (const field of Object.keys(state)) {
-    if (
-      UNSUPPORTED_STATE_FIELDS.includes(
-        field as (typeof UNSUPPORTED_STATE_FIELDS)[number],
-      ) ||
-      field.startsWith('paused_') ||
-      field.includes('clarification_story_outcome')
-    ) {
+    if (!Object.hasOwn(WORKFLOW_STATE_FIELDS, field)) {
       throw new Error(`Unsupported workflow state field: ${field}.`);
     }
   }

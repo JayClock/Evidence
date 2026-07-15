@@ -2,10 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  artifactPath,
-  artifactRelativePath,
-} from '../../iteration/artifact-layout';
+import { artifactPath } from '../../iteration/artifact-layout';
 import {
   readState,
   selectedTestProcesses,
@@ -463,13 +460,4 @@ export function executeTestStep(
   };
   appendFileSync(logPath, `${JSON.stringify(record)}\n`);
   return record;
-}
-
-export function executionLogPath(cwd: string): string | undefined {
-  const state = readState(cwd);
-  if (!state.active_work_item) return undefined;
-  return artifactRelativePath(
-    state,
-    `artifacts/05-code/${state.active_work_item.story_id}/${state.active_work_item.scenario_id}.execution.jsonl`,
-  );
 }

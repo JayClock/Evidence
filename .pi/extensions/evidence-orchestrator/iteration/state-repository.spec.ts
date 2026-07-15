@@ -4,11 +4,11 @@ import {
   assertCanStartIteration,
   readPersistedState,
   readState,
-  transitionWorkflowLoop,
   writeState,
 } from './state-repository';
 import { cleanupWorkspaces, workspace } from '../test-support/support';
 import type { WorkflowState } from './state';
+import { transitionLoopState } from './transition-graph';
 
 afterEach(cleanupWorkspaces);
 
@@ -17,20 +17,24 @@ describe('workflow state', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
 
-    const state = transitionWorkflowLoop(cwd, { to: 'understand' });
+    const state = writeState(
+      cwd,
+      transitionLoopState(readState(cwd), { to: 'understand' }),
+    );
 
     expect(state.loop).toBe('understand');
     expect(readState(cwd).loop).toBe('understand');
     expect(state).not.toHaveProperty('phase');
   });
 
-  it('rejects retired version, phase, gate, and runtime metadata fields', () => {
+  it('rejects every field outside the native state contract', () => {
     const cwd = workspace();
     for (const field of [
       'workflow_version',
       'phase',
       'pending_gate',
       'paused_questions',
+      'unknown_field',
     ]) {
       expect(() =>
         writeState(cwd, {
