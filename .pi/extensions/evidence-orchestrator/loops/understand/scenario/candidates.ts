@@ -177,9 +177,10 @@ ${scenario.business_data.map((item) => `- ${item}`).join('\n')}
 }
 
 function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
-  if (state.confirmed_scenario) {
+  if (state.confirmed_scenarios?.length || state.confirmed_scenario) {
+    const current = state.confirmed_scenarios?.[0] ?? state.confirmed_scenario;
     throw new Error(
-      `${state.confirmed_scenario.story_id}/${state.confirmed_scenario.scenario_id} is already confirmed.`,
+      `${current?.story_id}/${current?.scenario_id} is already confirmed.`,
     );
   }
   const directory = artifactPath(
@@ -211,7 +212,9 @@ function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
 export interface UnderstandingDecisionInput {
   action: UnderstandingDecisionAction;
   reason?: string;
+  /** @deprecated Use draftIds for the complete Story acceptance set. */
   draftId?: string;
+  draftIds?: string[];
 }
 
 /** Apply a human-only decision to concrete Scenario drafts or the active Story. */
@@ -282,61 +285,85 @@ export function decideUnderstanding(
     });
   }
 
-  const draftId = requiredText(
-    input.draftId ?? '',
-    'Scenario draft id',
-    true,
-  ).toUpperCase();
-  const draft = state.scenario_drafts.find(
-    (candidate) => candidate.draft_id === draftId,
-  );
-  if (!draft) {
-    throw new Error(
-      `Unknown Scenario draft ${draftId}. Available drafts: ${state.scenario_drafts.map(({ draft_id }) => draft_id).join(', ')}.`,
-    );
+  const requestedDraftIds =
+    input.draftIds ?? (input.draftId ? [input.draftId] : []);
+  if (requestedDraftIds.length === 0) {
+    throw new Error('Scenario confirmation requires at least one draft id.');
   }
+  const draftIds = requestedDraftIds.map((value, index) =>
+    requiredText(value, `Scenario draft id[${index}]`, true).toUpperCase(),
+  );
+  if (new Set(draftIds).size !== draftIds.length) {
+    throw new Error('Scenario confirmation draft ids must be unique.');
+  }
+  const drafts = draftIds.map((draftId) => {
+    const draft = state.scenario_drafts?.find(
+      (candidate) => candidate.draft_id === draftId,
+    );
+    if (!draft) {
+      throw new Error(
+        `Unknown Scenario draft ${draftId}. Available drafts: ${state.scenario_drafts?.map(({ draft_id }) => draft_id).join(', ') ?? 'none'}.`,
+      );
+    }
+    return draft;
+  });
   ensureNoConfirmedScenario(cwd, state);
   const priorScenarioNumbers = (state.understanding_decisions ?? [])
     .filter((decision) => decision.action === 'confirmed')
-    .map((decision) => Number(decision.scenario_id?.replace('SC-', '')))
+    .flatMap(
+      (decision) =>
+        decision.scenario_ids ??
+        (decision.scenario_id ? [decision.scenario_id] : []),
+    )
+    .map((scenarioId) => Number(scenarioId.replace('SC-', '')))
     .filter(Number.isFinite);
-  const scenarioId = `SC-${String(Math.max(0, ...priorScenarioNumbers) + 1).padStart(3, '0')}`;
-  const artifactPathValue = artifactRelativePath(
-    state,
-    `artifacts/01-requirements/examples/${activeStoryId}-${scenarioId}.md`,
-  );
-  const confirmed: ConfirmedScenario = {
-    version: 1,
-    story_id: activeStoryId,
-    scenario_id: scenarioId,
-    source_draft_id: draft.draft_id,
-    title: draft.title,
-    given: draft.given,
-    when: draft.when,
-    then: draft.then,
-    business_data: draft.business_data,
-    artifact_path: artifactPathValue,
-    confirmed_by: 'human',
-    ...(reason ? { confirmation_reason: reason } : {}),
-    confirmed_at: now,
-  };
-  const absolute = `${cwd}/${artifactPathValue}`;
-  mkdirSync(dirname(absolute), { recursive: true });
-  writeFileSync(absolute, confirmedScenarioMarkdown(confirmed));
+  const firstNumber = Math.max(0, ...priorScenarioNumbers) + 1;
+  const confirmed = drafts.map((draft, index): ConfirmedScenario => {
+    const scenarioId = `SC-${String(firstNumber + index).padStart(3, '0')}`;
+    const artifactPathValue = artifactRelativePath(
+      state,
+      `artifacts/01-requirements/examples/${activeStoryId}-${scenarioId}.md`,
+    );
+    return {
+      version: 1,
+      story_id: activeStoryId,
+      scenario_id: scenarioId,
+      source_draft_id: draft.draft_id,
+      title: draft.title,
+      given: draft.given,
+      when: draft.when,
+      then: draft.then,
+      business_data: draft.business_data,
+      artifact_path: artifactPathValue,
+      confirmed_by: 'human',
+      ...(reason ? { confirmation_reason: reason } : {}),
+      confirmed_at: now,
+    };
+  });
+  for (const scenario of confirmed) {
+    const absolute = `${cwd}/${scenario.artifact_path}`;
+    mkdirSync(dirname(absolute), { recursive: true });
+    writeFileSync(absolute, confirmedScenarioMarkdown(scenario));
+  }
+  const scenarioIds = confirmed.map(({ scenario_id }) => scenario_id);
   const decision: UnderstandingDecision = {
     action: 'confirmed',
     ...(reason ? { reason } : {}),
     decided_by: 'human',
     decided_at: now,
-    draft_id: draft.draft_id,
-    scenario_id: scenarioId,
+    draft_ids: draftIds,
+    scenario_ids: scenarioIds,
+    // Keep the first ids readable by archived single-Scenario consumers during migration.
+    draft_id: draftIds[0],
+    scenario_id: scenarioIds[0],
   };
   return writeState(cwd, {
     ...state,
     understand_stage: 'modeling',
     modeling_stage: 'profile',
     active_clarification_story: undefined,
-    confirmed_scenario: confirmed,
+    confirmed_scenarios: confirmed,
+    confirmed_scenario: confirmed[0],
     understanding_decisions: [
       ...(state.understanding_decisions ?? []),
       decision,

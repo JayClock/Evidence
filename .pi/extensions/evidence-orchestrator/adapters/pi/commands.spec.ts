@@ -139,9 +139,9 @@ describe('commands', () => {
       reason: 'The projection and ubiquitous language match the conversation.',
     });
     expect(parseKickoffDecision('confirm')).toEqual({ action: 'confirmed' });
-    expect(parseScenarioDecision('confirm DRAFT-001')).toEqual({
+    expect(parseScenarioDecision('confirm DRAFT-001,DRAFT-002')).toEqual({
       action: 'confirmed',
-      draftId: 'DRAFT-001',
+      draftIds: ['DRAFT-001', 'DRAFT-002'],
     });
     expect(parseModelDecision('confirm')).toEqual({ action: 'confirm' });
     expect(() => parseKickoffDecision('revise')).toThrow(
@@ -284,7 +284,7 @@ describe('commands', () => {
     });
   });
 
-  it('does not prefill a reason for the selected minimal Scenario', async () => {
+  it('does not prefill a reason for the complete Scenario Set', async () => {
     const cwd = workspace();
     writeState(cwd, {
       ...issueState(),
@@ -310,13 +310,13 @@ describe('commands', () => {
       ],
     });
     const ctx = context(cwd);
-    const selected = '确认 DRAFT-001 · 领域建模负责人修改工作区名称和描述';
+    const selected = '确认完整 Scenario Set';
     ctx.ui.select.mockResolvedValue(selected);
     ctx.ui.editor.mockResolvedValue('');
 
     await expect(promptScenarioDecision(ctx as never)).resolves.toEqual({
       action: 'confirmed',
-      draftId: 'DRAFT-001',
+      draftIds: ['DRAFT-001'],
     });
     expect(ctx.ui.editor).toHaveBeenCalledWith(
       `请确认或修改“${selected}”的业务理由`,
@@ -346,13 +346,13 @@ describe('commands', () => {
       ],
     });
     const scenarioCtx = context(cwd);
-    scenarioCtx.ui.select.mockResolvedValue('确认 DRAFT-001 · 修改工作区信息');
+    scenarioCtx.ui.select.mockResolvedValue('确认完整 Scenario Set');
     scenarioCtx.ui.editor.mockResolvedValue('');
 
     await expect(promptScenarioDecision(scenarioCtx as never)).resolves.toEqual(
       {
         action: 'confirmed',
-        draftId: 'DRAFT-001',
+        draftIds: ['DRAFT-001'],
       },
     );
 
@@ -417,13 +417,13 @@ describe('commands', () => {
       ],
     });
     const ctx = context(cwd);
-    ctx.ui.select.mockResolvedValue('确认 DRAFT-001 · 修改工作区信息');
-    ctx.ui.editor.mockResolvedValue('该场景覆盖本轮最小可交付业务结果。');
+    ctx.ui.select.mockResolvedValue('确认完整 Scenario Set');
+    ctx.ui.editor.mockResolvedValue('该场景集合覆盖本轮完整可交付业务结果。');
 
     await expect(promptScenarioDecision(ctx as never)).resolves.toEqual({
       action: 'confirmed',
-      draftId: 'DRAFT-001',
-      reason: '该场景覆盖本轮最小可交付业务结果。',
+      draftIds: ['DRAFT-001'],
+      reason: '该场景集合覆盖本轮完整可交付业务结果。',
     });
   });
 

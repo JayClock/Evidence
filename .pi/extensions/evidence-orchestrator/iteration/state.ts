@@ -550,6 +550,10 @@ export interface UnderstandingDecision {
   decided_at: string;
   draft_id?: string;
   scenario_id?: string;
+  /** Complete human-selected draft set for one Story acceptance boundary. */
+  draft_ids?: string[];
+  /** Scenario ids allocated atomically for the confirmed set. */
+  scenario_ids?: string[];
 }
 
 export interface ModelingProfileProposal {
@@ -663,6 +667,9 @@ export interface WorkflowState {
   understand_stage?: UnderstandStage;
   /** AI-authored examples awaiting one human Scenario decision. */
   scenario_drafts?: ScenarioDraft[];
+  /** Complete acceptance boundary confirmed before Modeling. */
+  confirmed_scenarios?: ConfirmedScenario[];
+  /** @deprecated Temporary single-Scenario projection during Story-level migration. */
   confirmed_scenario?: ConfirmedScenario;
   understanding_decisions?: UnderstandingDecision[];
   modeling_stage?: ModelingStage;

@@ -330,13 +330,13 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_propose_scenarios',
     label: 'Propose Evidence Scenarios',
     description:
-      'Persist concrete Given/When/Then drafts for one human Scenario decision',
+      'Persist a concrete Given/When/Then set for one human Story acceptance-boundary decision',
     promptSnippet:
       'Propose one to five concrete business examples after TQA is sufficient',
     promptGuidelines: [
       'Use only in the Understand TQA stage for the active Story and only when no high-value business uncertainty remains.',
       'Use concrete business data and observable results. A product-visible interaction or external interface may appear only when already confirmed; never include internal implementation steps.',
-      'After calling this tool, stop. Only a human can confirm one Scenario, continue TQA, split, or defer.',
+      'After calling this tool, stop. Only a human can confirm the Scenario Set, continue TQA, split, or defer.',
     ],
     parameters: scenarioDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -349,7 +349,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
+            text: `Recorded a ${state.scenario_drafts?.length ?? 0}-Scenario acceptance set for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
           },
         ],
         details: { state },

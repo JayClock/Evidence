@@ -78,7 +78,7 @@ describe('concrete Scenario understanding', () => {
     ).toBe(false);
   });
 
-  it('lets a human confirm one draft as the only active Scenario', () => {
+  it('lets a human atomically confirm the Story Scenario Set', () => {
     const cwd = workspace();
     prepareUnderstand(cwd);
     proposeScenarioDrafts(cwd, 'US-001', candidates());
@@ -87,8 +87,8 @@ describe('concrete Scenario understanding', () => {
       cwd,
       {
         action: 'confirmed',
-        draftId: 'DRAFT-001',
-        reason: '这是可独立验证的最小用户价值。',
+        draftIds: ['DRAFT-001', 'DRAFT-002'],
+        reason: '这些场景共同定义完整的 Story 验收边界。',
       },
       '2026-01-01T00:02:00.000Z',
     );
@@ -103,6 +103,10 @@ describe('concrete Scenario understanding', () => {
         confirmed_by: 'human',
       },
     });
+    expect(state.confirmed_scenarios).toHaveLength(2);
+    expect(
+      state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id),
+    ).toEqual(['SC-001', 'SC-002']);
     expect(state.active_clarification_story).toBeUndefined();
     const markdown = readFileSync(
       join(
@@ -144,6 +148,7 @@ describe('concrete Scenario understanding', () => {
         story_id: 'US-001',
         selected_at: '2026-01-01T00:03:00.000Z',
       },
+      confirmed_scenarios: undefined,
       confirmed_scenario: undefined,
       scenario_drafts: undefined,
     });

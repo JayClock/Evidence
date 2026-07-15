@@ -129,7 +129,7 @@ export async function promptKickoffDecision(
 interface ScenarioDecision {
   action: UnderstandingDecisionAction;
   reason?: string;
-  draftId?: string;
+  draftIds?: string[];
 }
 
 export function parseScenarioDecision(
@@ -140,13 +140,24 @@ export function parseScenarioDecision(
   const action = SCENARIO_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-scenario confirm <DRAFT-xxx> [reason] | continue <reason> | split <reason> | defer <reason>.',
+      'Usage: /evidence-scenario confirm <DRAFT-xxx,...> [reason] | continue <reason> | split <reason> | defer <reason>.',
     );
   }
-  const draftId =
-    action === 'confirmed' ? rest.shift()?.toUpperCase() : undefined;
-  if (action === 'confirmed' && !draftId) {
-    throw new Error('Scenario confirmation requires a DRAFT-xxx id.');
+  const draftIds =
+    action === 'confirmed'
+      ? rest
+          .shift()
+          ?.split(',')
+          .map((value) => value.trim().toUpperCase())
+          .filter(Boolean)
+      : undefined;
+  if (action === 'confirmed' && !draftIds?.length) {
+    throw new Error(
+      'Scenario confirmation requires one or more DRAFT-xxx ids.',
+    );
+  }
+  if (draftIds?.some((id) => !/^DRAFT-\d{3,}$/.test(id))) {
+    throw new Error('Scenario confirmation ids must be DRAFT-xxx values.');
   }
   const reason = rest.join(' ').trim();
   if (!reason && action !== 'confirmed') {
@@ -155,7 +166,7 @@ export function parseScenarioDecision(
   return {
     action,
     ...(reason ? { reason } : {}),
-    ...(draftId ? { draftId } : {}),
+    ...(draftIds ? { draftIds } : {}),
   };
 }
 
@@ -168,17 +179,25 @@ export async function promptScenarioDecision(
       'Scenario confirmation requires interactive mode or explicit command arguments.',
     );
   }
-  const confirmOptions = (state.scenario_drafts ?? []).map(
-    ({ draft_id, title }) => `确认 ${draft_id} · ${title}`,
+  const scenarioSummary = (state.scenario_drafts ?? [])
+    .map(({ draft_id, title }) => `${draft_id} · ${title}`)
+    .join('；');
+  const options = [
+    '确认完整 Scenario Set',
+    '继续 TQA',
+    '拆分 Story',
+    '延期 Story',
+  ];
+  const selected = await ctx.ui.select(
+    `决定 Story 验收边界：${scenarioSummary}`,
+    options,
   );
-  const options = [...confirmOptions, '继续 TQA', '拆分 Story', '延期 Story'];
-  const selected = await ctx.ui.select('决定本轮最小业务 Scenario', options);
   if (!selected) return undefined;
   let action: UnderstandingDecisionAction;
-  let draftId: string | undefined;
-  if (selected.startsWith('确认 ')) {
+  let draftIds: string[] | undefined;
+  if (selected === '确认完整 Scenario Set') {
     action = 'confirmed';
-    draftId = selected.split(/\s+/)[1];
+    draftIds = (state.scenario_drafts ?? []).map(({ draft_id }) => draft_id);
   } else if (selected === '继续 TQA') {
     action = 'continue';
   } else if (selected === '拆分 Story') {
@@ -202,9 +221,9 @@ export async function promptScenarioDecision(
     )
   )?.trim();
   return reason
-    ? { action, reason, ...(draftId ? { draftId } : {}) }
+    ? { action, reason, ...(draftIds ? { draftIds } : {}) }
     : action === 'confirmed'
-      ? { action, ...(draftId ? { draftId } : {}) }
+      ? { action, ...(draftIds ? { draftIds } : {}) }
       : undefined;
 }
 

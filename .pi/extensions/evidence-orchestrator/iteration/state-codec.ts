@@ -10,6 +10,7 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   kickoff_decisions: true,
   understand_stage: true,
   scenario_drafts: true,
+  confirmed_scenarios: true,
   confirmed_scenario: true,
   understanding_decisions: true,
   modeling_stage: true,
@@ -256,10 +257,44 @@ export function normalizeState(input: WorkflowState): WorkflowState {
         decision.decided_by !== 'human' ||
         (decision.action !== 'confirmed' && !text(decision.reason)) ||
         (decision.reason !== undefined && !text(decision.reason)) ||
+        (decision.draft_ids !== undefined &&
+          (!textArray(decision.draft_ids) ||
+            new Set(decision.draft_ids).size !== decision.draft_ids.length)) ||
+        (decision.scenario_ids !== undefined &&
+          (!textArray(decision.scenario_ids) ||
+            !decision.scenario_ids.every((id) =>
+              SCENARIO_ID_PATTERN.test(id),
+            ) ||
+            new Set(decision.scenario_ids).size !==
+              decision.scenario_ids.length)) ||
         !text(decision.decided_at),
     )
   ) {
     throw new Error('The Understand decision history is invalid.');
+  }
+  if (
+    state.confirmed_scenarios &&
+    (state.confirmed_scenarios.length === 0 ||
+      state.confirmed_scenarios.some(
+        (scenario) =>
+          scenario.version !== 1 ||
+          !STORY_ID_PATTERN.test(scenario.story_id) ||
+          !SCENARIO_ID_PATTERN.test(scenario.scenario_id) ||
+          !textArray(scenario.given) ||
+          !text(scenario.when) ||
+          !textArray(scenario.then) ||
+          !textArray(scenario.business_data) ||
+          scenario.confirmed_by !== 'human' ||
+          (scenario.confirmation_reason !== undefined &&
+            !text(scenario.confirmation_reason)) ||
+          !text(scenario.confirmed_at),
+      ) ||
+      new Set(state.confirmed_scenarios.map(({ scenario_id }) => scenario_id))
+        .size !== state.confirmed_scenarios.length ||
+      new Set(state.confirmed_scenarios.map(({ story_id }) => story_id))
+        .size !== 1)
+  ) {
+    throw new Error('The confirmed Scenario Set is invalid.');
   }
   if (
     state.confirmed_scenario &&
