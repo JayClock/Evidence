@@ -12,6 +12,18 @@
       "prompt": "The role, value, authority, version v3, trigger and visible outcome are confirmed. Prepare the smallest Scenario candidates.",
       "expected_output": "Produces concrete Given/When/Then candidates with exact business data and leaves confirmation to the human.",
       "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "An integration partner needs the confirmed model. The product context says a published API is the agreed delivery channel, but the response expected after requesting version v3 is unclear. What should TQA do?",
+      "expected_output": "Asks one business-facing question about the externally observable API outcome without selecting an API framework, runtime, database, or test approach.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "The Story says the modeling lead benefits, but the domain expert indicates the collaboration lead receives the value. How should TQA route the clarification?",
+      "expected_output": "Targets the question to story, records only the explicit answer, and returns the Card correction to Kickoff for a replacement candidate and human confirmation instead of appending clarification sections to the Story.",
+      "files": []
     }
   ]
 }

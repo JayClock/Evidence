@@ -60,7 +60,10 @@ export const kickoffCandidateParam = Type.Object({
   role: Type.String({
     description: 'The user or business role that benefits.',
   }),
-  goal: Type.String({ description: 'The negotiable outcome the role wants.' }),
+  goal: Type.String({
+    description:
+      'The negotiable outcome the role wants, without an inferred internal implementation choice.',
+  }),
   value: Type.String({ description: 'The business or user value produced.' }),
   cognitiveMode: Type.String({
     description: 'Current team cognitive behavior, not a permanent label.',
@@ -82,7 +85,10 @@ export const scenarioDraftParam = Type.Object({
       given: Type.Array(
         Type.String({ description: 'Concrete starting business fact.' }),
       ),
-      when: Type.String({ description: 'One business action or event.' }),
+      when: Type.String({
+        description:
+          'One business action or event; a confirmed product interaction is allowed, but not an internal implementation step.',
+      }),
       then: Type.Array(
         Type.String({ description: 'Observable business result.' }),
       ),
@@ -296,11 +302,11 @@ export const clarificationQuestionParam = Type.Object({
   }),
   question: Type.String({
     description:
-      'One high-value, non-technical question for the domain expert. Ask only one question, then stop.',
+      'One high-value business-facing question for the domain expert. It may clarify a product-confirmed channel or external interaction, but must not ask for an internal implementation choice. Ask only one question, then stop.',
   }),
   target: Type.String({
     description:
-      'Where an answer belongs: business_context, story, or history.',
+      'Where an answer belongs: business_context, story, or history. Use story only when the role, negotiable goal, or value needs revision.',
   }),
 });
 

@@ -33,7 +33,7 @@ flowchart LR
 每轮只处理一张人工确认的 `US-xxx` 和一个人工确认的 `SC-xxx`：
 
 1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后才分配 `US-xxx`。
-2. **Understand**：针对该 Story 一次提出一个非技术 TQA 问题；人类直接回答。AI 提出 Scenario 候选，人类确认一个。随后由人类确认建模 Profile，Builder 展开模型，独立只读 Challenger 检查 Scenario 与回归集；即使检查通过，也必须由人类确认模型投影、统一语言及候选变更后才能进入 Tasking。
+2. **Understand**：针对该 Story 一次提出一个面向业务的 TQA 问题；人类直接回答。已确认的产品渠道、外部接口和用户交互可以成为 Conversation 或 Scenario 事实，但框架、数据库、运行时、内部组件和测试选择留给 Tasking。若回答修正角色、可协商目标或价值，则返回 Kickoff 生成同一张 Story 的替代候选并再次由人类确认，不向精简 Card 追加问答章节。AI 提出 Scenario 候选后由人类确认一个。随后由人类确认建模 Profile，Builder 展开模型，独立只读 Challenger 检查 Scenario 与回归集；即使检查通过，也必须由人类确认模型投影、统一语言及候选变更后才能进入 Tasking。
 3. **Tasking**：根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成带模型引用的自然语言 test/task list；每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定计划，并在同一 Git baseline 应用已确认模型候选。
 4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint，process step 只提供边界与锁定命令。短生命周期 Test Driver 与 Production Driver 受路径保护；每个 TEST 分别产生 Red、Green、Refactor，全部完成后运行最终 quality gates。
 5. **Showcase**：重新执行已选 Q2，要求人类记录实际产品行为和价值观察；标记 required 的 Q3/Q4 活动必须执行并留下证据，未解决 concern 阻止评审与接受。独立只读 Reviewer 只辅助核查，只有人类 `accept` 才能进入 Respond。`revise` 按知识缺口回到 Kickoff、Understand、Tasking 或 Pair，`reject` 终止本轮。

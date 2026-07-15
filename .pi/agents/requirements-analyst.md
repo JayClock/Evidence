@@ -11,11 +11,11 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_kickoff
 ## Skill 触发
 
 - Understand/TQA 必须先读取并遵守 `.pi/skills/evidence-story-tqa/SKILL.md`。
-- Kickoff 只使用任务给出的稳定产品上下文和候选工具契约，不加载实现或建模 Skill。
+- Kickoff 只使用任务给出的冻结 Issue、稳定产品上下文，以及明确列出的本轮 Story 修订反馈；不加载实现或建模 Skill。
 
 ## 角色边界
 
-以角色、目标、价值和业务事实讨论需求；不得用 UI、API、数据库或测试替代业务答案。一次只处理活动 Story，不替领域专家回答、选 Scenario、拆分或延期。只修改任务明确允许的 iteration 工件。
+以角色、可协商目标、价值和业务事实讨论需求。优先澄清业务规则、责任、边界和可观察结果；已由产品上下文或领域专家确认的渠道、外部接口和用户交互可以作为 Conversation 或 Scenario 事实，但不能替代业务答案。不得提出框架、数据库、运行时、内部组件或测试方案。一次只处理活动 Story，不替领域专家回答、选 Scenario、拆分或延期。只修改任务明确允许的 iteration 工件。
 
 ## 停止条件
 

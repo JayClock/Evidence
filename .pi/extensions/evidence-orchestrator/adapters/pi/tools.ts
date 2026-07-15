@@ -262,7 +262,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Propose one to five concrete business examples after TQA is sufficient',
     promptGuidelines: [
       'Use only in the Understand TQA stage for the active Story and only when no high-value business uncertainty remains.',
-      'Use concrete business data and observable results; do not include implementation steps.',
+      'Use concrete business data and observable results. A product-visible interaction or external interface may appear only when already confirmed; never include internal implementation steps.',
       'After calling this tool, stop. Only a human can confirm one Scenario, continue TQA, split, or defer.',
     ],
     parameters: scenarioDraftParam,
@@ -563,11 +563,11 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_ask_question',
     label: 'Ask Evidence Orchestrator Clarification',
     description:
-      'Persist one high-value TQA business question and pause Understand for a domain-expert answer',
+      'Persist one high-value TQA business-facing question and pause Understand for a domain-expert answer',
     promptSnippet: 'Ask the single next TQA clarification question',
     promptGuidelines: [
       'Use only in Understand/TQA for the single human-confirmed US-xxx Story.',
-      'Ask exactly one non-technical business question, then stop and wait for the user answer.',
+      'Ask exactly one business-facing question, then stop and wait for the user answer. It may clarify a confirmed product channel or external interaction, but must not ask for frameworks, databases, runtimes, internal components, or tests.',
       'Never answer the question yourself or call another workflow tool until the user responds.',
     ],
     parameters: clarificationQuestionParam,
@@ -597,13 +597,13 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_answer_question',
     label: 'Answer Evidence Orchestrator Clarification',
     description:
-      'Record the domain expert’s explicit answer, route it to its knowledge artifact, and continue the active story clarification',
+      'Record the domain expert’s explicit answer, route context/history answers, and return Story corrections to Kickoff before continuing clarification',
     promptSnippet:
       'Record the user’s answer and continue the interactive TQA dialogue',
     promptGuidelines: [
       'Use only when the user explicitly supplies an answer to the pending clarification question.',
       'Do not infer, fabricate, summarize, or answer on behalf of the user.',
-      'evidence_orchestrator_answer_question automatically resumes the isolated clarification after recording the answer; when it finishes, stop and wait for the user if another question is pending.',
+      'evidence_orchestrator_answer_question automatically runs the next isolated activity after recording the answer: TQA normally continues, while a story-target answer returns to Kickoff for a replacement candidate. When it finishes, stop for the next human answer or decision.',
     ],
     parameters: clarificationAnswerParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {

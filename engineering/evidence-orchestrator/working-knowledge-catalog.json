@@ -4,7 +4,7 @@
   "entries": [
     {
       "id": "WK-STORY-TQA",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Product discovery",
       "cognitive_behaviors": ["complicated", "complex"],
       "skill_path": ".pi/skills/evidence-story-tqa/SKILL.md",
@@ -12,7 +12,7 @@
       "validated_scenarios": [
         "EOV5-004: one-Story TQA and Scenario confirmation"
       ],
-      "latest_feedback": "Keep one high-value non-technical question and one human-confirmed Scenario.",
+      "latest_feedback": "Keep one high-value business-facing question and one human-confirmed Scenario; product-confirmed interactions may inform acceptance, while Card corrections return to Kickoff instead of mixing Conversation into the lean Story.",
       "supersedes": []
     },
     {
