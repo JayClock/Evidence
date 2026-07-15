@@ -17,19 +17,18 @@ import type {
   WorkflowState,
 } from '../../iteration/state';
 
-export type GitHubCliRunner = (args: string[], cwd: string) => string;
 export type GitHubCliAsyncRunner = (
   args: string[],
   cwd: string,
   signal?: AbortSignal,
 ) => Promise<string>;
 
-export interface StartFromIssueInput {
+interface StartFromIssueInput {
   issueNumber: number;
   repository?: string;
 }
 
-export interface GitHubIssueSnapshot {
+interface GitHubIssueSnapshot {
   version: 1;
   provider: 'github';
   repository: string;
@@ -46,7 +45,7 @@ export interface GitHubIssueSnapshot {
   content_hash: string;
 }
 
-export interface IssueSourceDrift {
+interface IssueSourceDrift {
   changed: boolean;
   snapshot_hash: string;
   remote_hash: string;
@@ -82,17 +81,6 @@ function requireIssueNumber(issueNumber: number): void {
   }
 }
 
-function resolveRepository(cwd: string, runner: GitHubCliRunner): string {
-  const response = parseJson<{ nameWithOwner?: string }>(
-    runner(['repo', 'view', '--json', 'nameWithOwner'], cwd),
-    'gh repo view',
-  );
-  if (!response.nameWithOwner?.trim()) {
-    throw new Error('Unable to resolve the GitHub repository name.');
-  }
-  return response.nameWithOwner;
-}
-
 function hashPayload(snapshot: {
   repository: string;
   issue_number: number;
@@ -112,21 +100,6 @@ function hashPayload(snapshot: {
     updated_at: snapshot.updated_at,
   });
   return `sha256:${createHash('sha256').update(payload).digest('hex')}`;
-}
-
-export function issueContentHash(
-  snapshot: Omit<
-    GitHubIssueSnapshot,
-    | 'content_hash'
-    | 'fetched_at'
-    | 'version'
-    | 'provider'
-    | 'url'
-    | 'author'
-    | 'created_at'
-  >,
-): string {
-  return hashPayload(snapshot);
 }
 
 function snapshotFromResponse(
@@ -164,32 +137,7 @@ function snapshotFromResponse(
   };
 }
 
-export function fetchGitHubIssue(
-  cwd: string,
-  input: StartFromIssueInput,
-  runner: GitHubCliRunner,
-): GitHubIssueSnapshot {
-  requireIssueNumber(input.issueNumber);
-  const repository = input.repository?.trim() || resolveRepository(cwd, runner);
-  const response = parseJson<GitHubIssueResponse>(
-    runner(
-      [
-        'issue',
-        'view',
-        String(input.issueNumber),
-        '--repo',
-        repository,
-        '--json',
-        ISSUE_FIELDS,
-      ],
-      cwd,
-    ),
-    'gh issue view',
-  );
-  return snapshotFromResponse(repository, input, response);
-}
-
-export async function fetchGitHubIssueAsync(
+async function fetchGitHubIssueAsync(
   cwd: string,
   input: StartFromIssueInput,
   runner: GitHubCliAsyncRunner,
@@ -280,21 +228,6 @@ function persistSnapshot(
 }
 
 /** Start a new immutable iteration whose upstream requirement authority is one GitHub Issue. */
-export function startIterationFromIssue(
-  cwd: string,
-  input: StartFromIssueInput,
-  runner: GitHubCliRunner,
-): WorkflowState {
-  assertCanStartIteration(cwd);
-  const snapshot = fetchGitHubIssue(cwd, input, runner);
-  const state = writeState(cwd, {
-    ...DEFAULT_STATE,
-    iteration_id: nextIterationId(cwd),
-    loop: 'kickoff',
-  });
-  return persistSnapshot(cwd, state, snapshot);
-}
-
 export async function startIterationFromIssueAsync(
   cwd: string,
   input: StartFromIssueInput,
@@ -324,25 +257,6 @@ function requireIssueSource(
 }
 
 /** Compare the live Issue with the frozen iteration snapshot without modifying local evidence. */
-export function checkIssueSourceDrift(
-  cwd: string,
-  runner: GitHubCliRunner,
-): IssueSourceDrift {
-  const state = readState(cwd);
-  const source = requireIssueSource(state);
-  const remote = fetchGitHubIssue(
-    cwd,
-    { issueNumber: source.issue_number, repository: source.repository },
-    runner,
-  );
-  return {
-    changed: remote.content_hash !== source.content_hash,
-    snapshot_hash: source.content_hash,
-    remote_hash: remote.content_hash,
-    issue_updated_at: remote.updated_at,
-  };
-}
-
 export async function checkIssueSourceDriftAsync(
   cwd: string,
   runner: GitHubCliAsyncRunner,
@@ -365,25 +279,6 @@ export async function checkIssueSourceDriftAsync(
 }
 
 /** Explicitly refresh an Issue snapshot before framing has completed. */
-export function syncIssueSource(
-  cwd: string,
-  runner: GitHubCliRunner,
-): WorkflowState {
-  const state = readState(cwd);
-  if (state.loop !== 'kickoff') {
-    throw new Error(
-      `Cannot refresh the Issue snapshot in ${state.loop}. Start a new iteration or return to Kickoff.`,
-    );
-  }
-  const source = requireIssueSource(state);
-  const remote = fetchGitHubIssue(
-    cwd,
-    { issueNumber: source.issue_number, repository: source.repository },
-    runner,
-  );
-  return persistSnapshot(cwd, state, remote);
-}
-
 export async function syncIssueSourceAsync(
   cwd: string,
   runner: GitHubCliAsyncRunner,

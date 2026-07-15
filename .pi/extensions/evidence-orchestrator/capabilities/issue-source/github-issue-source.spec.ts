@@ -2,10 +2,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  checkIssueSourceDrift,
-  startIterationFromIssue,
+  checkIssueSourceDriftAsync,
   startIterationFromIssueAsync,
-  syncIssueSource,
+  syncIssueSourceAsync,
   validateIssueSourceSnapshot,
 } from './github-issue-source';
 import { DEFAULT_STATE } from '../../iteration/default-state';
@@ -15,7 +14,7 @@ import { cleanupWorkspaces, workspace } from '../../test-support/support';
 afterEach(cleanupWorkspaces);
 
 function runner(body = 'As a modeler, I need safe deletion.') {
-  return (args: string[]) => {
+  return async (args: string[]) => {
     if (args[0] === 'repo') {
       return JSON.stringify({ nameWithOwner: 'owner/evidence' });
     }
@@ -34,10 +33,14 @@ function runner(body = 'As a modeler, I need safe deletion.') {
 }
 
 describe('issue-source', () => {
-  it('starts an isolated iteration from a GitHub Issue snapshot', () => {
+  it('starts an isolated iteration from a GitHub Issue snapshot', async () => {
     const cwd = workspace();
 
-    const state = startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
+    const state = await startIterationFromIssueAsync(
+      cwd,
+      { issueNumber: 42 },
+      runner(),
+    );
 
     expect(state).toMatchObject({
       loop: 'kickoff',
@@ -79,13 +82,13 @@ describe('issue-source', () => {
     );
   });
 
-  it('refuses to replace any active iteration in place', () => {
+  it('refuses to replace any active iteration in place', async () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
 
-    expect(() =>
-      startIterationFromIssue(cwd, { issueNumber: 42 }, runner()),
-    ).toThrow(
+    await expect(
+      startIterationFromIssueAsync(cwd, { issueNumber: 42 }, runner()),
+    ).rejects.toThrow(
       'Complete, reject, split, or defer it first; state is never migrated in place',
     );
   });
@@ -112,11 +115,11 @@ describe('issue-source', () => {
     expect(state.requirement_source?.issue_number).toBe(42);
   });
 
-  it('detects remote Issue drift without mutating the frozen snapshot', () => {
+  it('detects remote Issue drift without mutating the frozen snapshot', async () => {
     const cwd = workspace();
-    startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
+    await startIterationFromIssueAsync(cwd, { issueNumber: 42 }, runner());
 
-    const drift = checkIssueSourceDrift(
+    const drift = await checkIssueSourceDriftAsync(
       cwd,
       runner('The business requirement changed.'),
     );
@@ -125,10 +128,14 @@ describe('issue-source', () => {
     expect(drift.snapshot_hash).not.toBe(drift.remote_hash);
   });
 
-  it('only refreshes the active snapshot while still in Kickoff', () => {
+  it('only refreshes the active snapshot while still in Kickoff', async () => {
     const cwd = workspace();
-    const initial = startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
-    const refreshed = syncIssueSource(
+    const initial = await startIterationFromIssueAsync(
+      cwd,
+      { issueNumber: 42 },
+      runner(),
+    );
+    const refreshed = await syncIssueSourceAsync(
       cwd,
       runner('The clarified requirement.'),
     );
@@ -141,8 +148,8 @@ describe('issue-source', () => {
       loop: 'understand',
       understand_stage: 'tqa',
     });
-    expect(() => syncIssueSource(cwd, runner('Another change.'))).toThrow(
-      'Cannot refresh the Issue snapshot in understand',
-    );
+    await expect(
+      syncIssueSourceAsync(cwd, runner('Another change.')),
+    ).rejects.toThrow('Cannot refresh the Issue snapshot in understand');
   });
 });

@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { startIterationFromIssue } from '../capabilities/issue-source/github-issue-source';
+import { startIterationFromIssueAsync } from '../capabilities/issue-source/github-issue-source';
 import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
 import { decideKickoff } from '../loops/kickoff/story-decision';
 import {
@@ -46,7 +46,7 @@ import {
   write,
 } from './support';
 
-function issueRunner(args: string[]): string {
+async function issueRunner(args: string[]): Promise<string> {
   if (args[0] === 'repo')
     return JSON.stringify({ nameWithOwner: 'owner/repo' });
   return JSON.stringify({
@@ -138,7 +138,6 @@ function prepareProject(cwd: string): void {
           functional_contexts: ['workspace'],
           real_boundaries: ['react-feature'],
           replaced_boundaries: [],
-          test_list_template: 'evidence-test-list-v1',
           nearest_test: {
             rule: 'Nearest feature test.',
             roots: ['apps/web/tests'],
@@ -158,7 +157,6 @@ function prepareProject(cwd: string): void {
           functional_contexts: ['workspace'],
           real_boundaries: ['react-feature'],
           replaced_boundaries: [],
-          test_list_template: 'evidence-test-list-v1',
           nearest_test: {
             rule: 'Nearest feature test.',
             roots: ['apps/web/tests'],
@@ -201,10 +199,10 @@ function prepareProject(cwd: string): void {
 afterEach(cleanupWorkspaces);
 
 describe('native full knowledge loop', () => {
-  it('runs Issue snapshot through human-approved Respond using native loop controls', () => {
+  it('runs Issue snapshot through human-approved Respond using native loop controls', async () => {
     const cwd = workspace();
     prepareProject(cwd);
-    startIterationFromIssue(cwd, { issueNumber: 15 }, issueRunner);
+    await startIterationFromIssueAsync(cwd, { issueNumber: 15 }, issueRunner);
 
     proposeKickoffCandidate(cwd, {
       title: 'Show the confirmed model version',
