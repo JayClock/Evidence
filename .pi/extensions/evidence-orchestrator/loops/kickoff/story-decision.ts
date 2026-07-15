@@ -86,7 +86,7 @@ function nextStoryId(cwd: string, state: WorkflowState): string {
 export function decideKickoff(
   cwd: string,
   action: KickoffDecisionAction,
-  reason: string,
+  reason?: string,
   now = new Date().toISOString(),
 ): WorkflowState {
   const state = requireKickoffState(cwd);
@@ -97,9 +97,15 @@ export function decideKickoff(
   if (!KICKOFF_ACTIONS.has(action)) {
     throw new Error(`Unsupported Kickoff decision: ${action}.`);
   }
+  const normalizedReason = reason
+    ? kickoffText(reason, 'decision reason')
+    : undefined;
+  if (action !== 'confirmed' && !normalizedReason) {
+    throw new Error(`Kickoff ${action} requires a business reason.`);
+  }
   const decision: KickoffDecision = {
     action,
-    reason: kickoffText(reason, 'decision reason'),
+    ...(normalizedReason ? { reason: normalizedReason } : {}),
     decided_by: 'human',
     decided_at: now,
   };
@@ -119,7 +125,7 @@ export function decideKickoff(
       kickoff_decisions: decisions,
       halted: {
         loop: 'kickoff',
-        reason: `${action}: ${decision.reason}`,
+        reason: `${action}: ${normalizedReason}`,
         recorded_at: now,
       },
     });

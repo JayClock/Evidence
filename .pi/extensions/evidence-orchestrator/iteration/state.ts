@@ -508,7 +508,7 @@ export interface KickoffCandidate {
 
 export interface KickoffDecision {
   action: KickoffDecisionAction;
-  reason: string;
+  reason?: string;
   decided_by: 'human';
   decided_at: string;
   story_id?: string;
@@ -539,13 +539,13 @@ export interface ConfirmedScenario {
   business_data: string[];
   artifact_path: string;
   confirmed_by: 'human';
-  confirmation_reason: string;
+  confirmation_reason?: string;
   confirmed_at: string;
 }
 
 export interface UnderstandingDecision {
   action: UnderstandingDecisionAction;
-  reason: string;
+  reason?: string;
   decided_by: 'human';
   decided_at: string;
   draft_id?: string;
@@ -566,7 +566,7 @@ export interface ConfirmedModelingProfile {
   subject: ModelingSubject;
   method: ModelingMethod;
   model_change_required: boolean;
-  reason: string;
+  reason?: string;
   confirmed_by: 'human';
   confirmed_at: string;
   proposal?: ModelingProfileProposal;
@@ -631,7 +631,7 @@ export interface ModelChallengeRecord {
 export interface ModelDecisionRecord {
   version: 1;
   action: ModelDecisionAction;
-  reason: string;
+  reason?: string;
   challenge_artifact_path: string;
   challenge_artifact_sha256: string;
   projection_sha256: string;

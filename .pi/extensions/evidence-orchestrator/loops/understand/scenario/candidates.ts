@@ -210,7 +210,7 @@ function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
 
 export interface UnderstandingDecisionInput {
   action: UnderstandingDecisionAction;
-  reason: string;
+  reason?: string;
   draftId?: string;
 }
 
@@ -224,17 +224,22 @@ export function decideUnderstanding(
   if (!UNDERSTANDING_ACTIONS.has(input.action)) {
     throw new Error(`Unsupported Understand decision: ${input.action}.`);
   }
-  const reason = requiredText(input.reason, 'Understand decision reason');
+  const reason = input.reason
+    ? requiredText(input.reason, 'Understand decision reason')
+    : undefined;
+  if (input.action !== 'confirmed' && !reason) {
+    throw new Error(`Understand ${input.action} requires a reason.`);
+  }
   const activeStoryId = state.active_clarification_story?.story_id;
   if (!activeStoryId) {
     throw new Error('No active Story is available for an Understand decision.');
   }
 
   if (input.action === 'split' || input.action === 'deferred') {
-    state = waivePendingClarification(cwd, reason, now);
+    state = waivePendingClarification(cwd, reason!, now);
     const decision: UnderstandingDecision = {
       action: input.action,
-      reason,
+      reason: reason!,
       decided_by: 'human',
       decided_at: now,
     };
@@ -246,7 +251,7 @@ export function decideUnderstanding(
       ],
       halted: {
         loop: 'understand',
-        reason: `${input.action}: ${reason}`,
+        reason: `${input.action}: ${reason!}`,
         recorded_at: now,
       },
     });
@@ -262,7 +267,7 @@ export function decideUnderstanding(
   if (input.action === 'continue') {
     const decision: UnderstandingDecision = {
       action: 'continue',
-      reason,
+      reason: reason!,
       decided_by: 'human',
       decided_at: now,
     };
@@ -312,7 +317,7 @@ export function decideUnderstanding(
     business_data: draft.business_data,
     artifact_path: artifactPathValue,
     confirmed_by: 'human',
-    confirmation_reason: reason,
+    ...(reason ? { confirmation_reason: reason } : {}),
     confirmed_at: now,
   };
   const absolute = `${cwd}/${artifactPathValue}`;
@@ -320,7 +325,7 @@ export function decideUnderstanding(
   writeFileSync(absolute, confirmedScenarioMarkdown(confirmed));
   const decision: UnderstandingDecision = {
     action: 'confirmed',
-    reason,
+    ...(reason ? { reason } : {}),
     decided_by: 'human',
     decided_at: now,
     draft_id: draft.draft_id,

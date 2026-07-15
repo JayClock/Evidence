@@ -42,7 +42,7 @@ function persistDecision(
   cwd: string,
   state: WorkflowState,
   action: ModelDecisionAction,
-  reason: string,
+  reason: string | undefined,
   now: string,
 ): ModelDecisionRecord {
   const challenge = state.model_challenges?.at(-1);
@@ -81,7 +81,7 @@ function persistDecision(
   const record: ModelDecisionRecord = {
     version: 1,
     action,
-    reason,
+    ...(reason ? { reason } : {}),
     challenge_artifact_path: challenge.artifact_path,
     challenge_artifact_sha256: digest(readFileSync(challengePath)),
     projection_sha256: projection.model_sha256,
@@ -109,7 +109,7 @@ function persistDecision(
 export function decideModel(
   cwd: string,
   action: ModelDecisionAction,
-  reason: string,
+  reason?: string,
   now = new Date().toISOString(),
 ): WorkflowState {
   const state = readState(cwd);
@@ -123,7 +123,12 @@ export function decideModel(
   if (!ACTIONS.has(action)) {
     throw new Error(`Unsupported model decision: ${action}.`);
   }
-  const normalizedReason = required(reason, 'Model decision reason');
+  const normalizedReason = reason
+    ? required(reason, 'Model decision reason')
+    : undefined;
+  if (action !== 'confirm' && !normalizedReason) {
+    throw new Error(`Model ${action} requires a reason.`);
+  }
   const decision = persistDecision(cwd, state, action, normalizedReason, now);
   const decisions = [...(state.model_decisions ?? []), decision];
 
@@ -148,7 +153,7 @@ export function decideModel(
       to: 'understand',
       feedback: {
         target,
-        reason: normalizedReason,
+        reason: normalizedReason!,
         decided_by: 'human',
       },
     },

@@ -15,8 +15,11 @@ import {
   registerCommands,
 } from './commands';
 import {
+  parseKickoffDecision,
   parseModelingProfileDecision,
+  parseScenarioDecision,
   promptKickoffDecision,
+  promptModelDecision,
   promptScenarioDecision,
 } from './command-inputs';
 
@@ -135,6 +138,19 @@ describe('commands', () => {
       action: 'confirm',
       reason: 'The projection and ubiquitous language match the conversation.',
     });
+    expect(parseKickoffDecision('confirm')).toEqual({ action: 'confirmed' });
+    expect(parseScenarioDecision('confirm DRAFT-001')).toEqual({
+      action: 'confirmed',
+      draftId: 'DRAFT-001',
+    });
+    expect(parseModelDecision('confirm')).toEqual({ action: 'confirm' });
+    expect(() => parseKickoffDecision('revise')).toThrow(
+      'requires a business reason',
+    );
+    expect(() => parseScenarioDecision('continue')).toThrow(
+      'requires a reason',
+    );
+    expect(() => parseModelDecision('revise')).toThrow('requires a reason');
     expect(
       parseShowcaseDecision(
         'risk q4 required performance,security Production risk.',
@@ -181,10 +197,6 @@ describe('commands', () => {
 
   it.each([
     [
-      '确认这张 Story',
-      '候选“Confirm the workspace model”准确表达了本轮需要解决的业务问题、受益角色和预期价值。',
-    ],
-    [
       '要求修改候选',
       '候选“Confirm the workspace model”尚未准确表达本轮业务问题、受益角色或预期价值，需要修改。',
     ],
@@ -225,7 +237,32 @@ describe('commands', () => {
     expect(decision?.reason).toBe(reason);
   });
 
-  it('uses the edited Kickoff reason instead of the prefilled value', async () => {
+  it('accepts an empty optional Kickoff confirmation reason', async () => {
+    const cwd = workspace();
+    writeState(cwd, issueState());
+    proposeKickoffCandidate(cwd, {
+      title: 'Confirm the workspace model',
+      problem: 'The current model is not visibly confirmed.',
+      role: 'modeling lead',
+      goal: 'see the confirmed model',
+      value: 'continue with shared understanding',
+      cognitiveMode: 'clear',
+      sourceRefs: ['issue#42'],
+    });
+    const ctx = context(cwd);
+    ctx.ui.select.mockResolvedValue('确认这张 Story');
+    ctx.ui.editor.mockResolvedValue('');
+
+    await expect(promptKickoffDecision(ctx as never)).resolves.toEqual({
+      action: 'confirmed',
+    });
+    expect(ctx.ui.editor).toHaveBeenCalledWith(
+      '请确认或修改“确认这张 Story”的业务理由',
+      '',
+    );
+  });
+
+  it('uses an edited Kickoff reason when supplied', async () => {
     const cwd = workspace();
     writeState(cwd, issueState());
     proposeKickoffCandidate(cwd, {
@@ -247,7 +284,7 @@ describe('commands', () => {
     });
   });
 
-  it('prefills an editable reason for the selected minimal Scenario', async () => {
+  it('does not prefill a reason for the selected minimal Scenario', async () => {
     const cwd = workspace();
     writeState(cwd, {
       ...issueState(),
@@ -274,20 +311,88 @@ describe('commands', () => {
     });
     const ctx = context(cwd);
     const selected = '确认 DRAFT-001 · 领域建模负责人修改工作区名称和描述';
-    const defaultReason =
-      '“DRAFT-001 · 领域建模负责人修改工作区名称和描述”是本轮可独立验证并交付用户价值的最小业务 Scenario。';
     ctx.ui.select.mockResolvedValue(selected);
-    ctx.ui.editor.mockResolvedValue(defaultReason);
+    ctx.ui.editor.mockResolvedValue('');
 
     await expect(promptScenarioDecision(ctx as never)).resolves.toEqual({
       action: 'confirmed',
       draftId: 'DRAFT-001',
-      reason: defaultReason,
     });
     expect(ctx.ui.editor).toHaveBeenCalledWith(
       `请确认或修改“${selected}”的业务理由`,
-      defaultReason,
+      '',
     );
+  });
+
+  it('accepts empty optional Scenario and model confirmation reasons', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'understand',
+      understand_stage: 'scenario_review',
+      scenario_drafts: [
+        {
+          version: 1,
+          draft_id: 'DRAFT-001',
+          story_id: 'US-001',
+          title: '修改工作区信息',
+          given: ['负责人可进入工作区'],
+          when: '负责人保存修改',
+          then: ['修改生效'],
+          business_data: ['工作区名称'],
+          proposed_at: '2026-01-01T00:01:00.000Z',
+          artifact_path: 'draft.json',
+        },
+      ],
+    });
+    const scenarioCtx = context(cwd);
+    scenarioCtx.ui.select.mockResolvedValue('确认 DRAFT-001 · 修改工作区信息');
+    scenarioCtx.ui.editor.mockResolvedValue('');
+
+    await expect(promptScenarioDecision(scenarioCtx as never)).resolves.toEqual(
+      {
+        action: 'confirmed',
+        draftId: 'DRAFT-001',
+      },
+    );
+
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'understand',
+      understand_stage: 'modeling',
+      modeling_stage: 'model_review',
+      modeling_profile: {
+        version: 1,
+        subject: 'domain',
+        method: 'object',
+        model_change_required: false,
+        reason: 'The existing model is sufficient.',
+        confirmed_by: 'human',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+      model_expansion_path: 'expansion.json',
+      model_git_baseline: 'baseline',
+      model_challenges: [
+        {
+          version: 1,
+          requested_outcome: 'pass',
+          outcome: 'pass',
+          summary: 'The projection passed.',
+          checked_regression_ids: [],
+          projection_sha256: 'hash',
+          artifact_path: 'challenge.json',
+          challenged_by: 'model-challenger',
+          challenged_at: '2026-01-01T00:01:00.000Z',
+        },
+      ],
+    });
+    const modelCtx = context(cwd);
+    modelCtx.ui.select.mockResolvedValue('确认模型与统一语言');
+    modelCtx.ui.input.mockResolvedValue('');
+
+    await expect(promptModelDecision(modelCtx as never)).resolves.toEqual({
+      action: 'confirm',
+    });
   });
 
   it('uses an edited Scenario reason instead of its prefilled value', async () => {

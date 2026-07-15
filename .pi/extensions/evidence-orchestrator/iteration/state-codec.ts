@@ -211,7 +211,8 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       (decision) =>
         !KICKOFF_DECISIONS.has(decision.action) ||
         decision.decided_by !== 'human' ||
-        !text(decision.reason) ||
+        (decision.action !== 'confirmed' && !text(decision.reason)) ||
+        (decision.reason !== undefined && !text(decision.reason)) ||
         !text(decision.decided_at) ||
         (decision.story_id !== undefined &&
           !STORY_ID_PATTERN.test(decision.story_id)),
@@ -253,7 +254,8 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       (decision) =>
         !UNDERSTANDING_DECISIONS.has(decision.action) ||
         decision.decided_by !== 'human' ||
-        !text(decision.reason) ||
+        (decision.action !== 'confirmed' && !text(decision.reason)) ||
+        (decision.reason !== undefined && !text(decision.reason)) ||
         !text(decision.decided_at),
     )
   ) {
@@ -269,7 +271,8 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !textArray(state.confirmed_scenario.then) ||
       !textArray(state.confirmed_scenario.business_data) ||
       state.confirmed_scenario.confirmed_by !== 'human' ||
-      !text(state.confirmed_scenario.confirmation_reason) ||
+      (state.confirmed_scenario.confirmation_reason !== undefined &&
+        !text(state.confirmed_scenario.confirmation_reason)) ||
       !text(state.confirmed_scenario.confirmed_at))
   ) {
     throw new Error('The confirmed Scenario is invalid.');
@@ -326,7 +329,8 @@ export function normalizeState(input: WorkflowState): WorkflowState {
           decision.action,
         ) ||
         decision.decided_by !== 'human' ||
-        !text(decision.reason) ||
+        (decision.action !== 'confirm' && !text(decision.reason)) ||
+        (decision.reason !== undefined && !text(decision.reason)) ||
         !text(decision.challenge_artifact_path) ||
         !text(decision.challenge_artifact_sha256) ||
         !text(decision.projection_sha256) ||

@@ -116,9 +116,14 @@ export function confirmModelingProfile(
     subject,
     method,
     model_change_required: modelChangeRequired,
-    reason: input.reason
-      ? modelingText(input.reason, 'Modeling Profile confirmation reason')
-      : proposal.reason,
+    ...(input.reason
+      ? {
+          reason: modelingText(
+            input.reason,
+            'Modeling Profile confirmation reason',
+          ),
+        }
+      : {}),
     confirmed_by: 'human',
     confirmed_at: now,
     proposal,

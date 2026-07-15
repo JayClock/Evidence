@@ -46,7 +46,7 @@ function nextActions(cwd: string, state: WorkflowState): string {
     return 'human:/evidence-respond approve|revise <reason>';
   }
   if (state.loop === 'understand' && state.modeling_stage === 'model_review') {
-    return 'human:/evidence-model confirm|revise|scenario-gap|method-gap <reason>';
+    return 'human:/evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>';
   }
   if (state.loop === 'tasking' && state.tasking_stage === 'desk_check') {
     return 'human:/evidence-desk-check';

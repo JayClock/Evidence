@@ -192,9 +192,9 @@ describe('modeling method routing', () => {
       subject: 'domain',
       method: 'object',
       model_change_required: true,
-      reason: 'Workspace name and description are stable domain attributes.',
       confirmed_by: 'human',
     });
+    expect(confirmed.modeling_profile).not.toHaveProperty('reason');
   });
 
   it('requires a human decision when the AI cannot determine model change need', () => {

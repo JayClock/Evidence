@@ -338,7 +338,7 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'model_decision',
-      'The challenged model and ubiquitous language await human /evidence-model confirm|revise|scenario-gap|method-gap <reason>.',
+      'The challenged model and ubiquitous language await human /evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>.',
     );
   }
   if (current.loop === 'tasking' && current.tasking_stage === 'desk_check') {

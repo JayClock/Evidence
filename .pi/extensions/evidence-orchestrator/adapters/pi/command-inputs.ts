@@ -57,25 +57,25 @@ const DESK_CHECK_ACTIONS: Record<string, DeskCheckAction> = {
 
 export function parseKickoffDecision(
   args: string,
-): { action: KickoffDecisionAction; reason: string } | undefined {
+): { action: KickoffDecisionAction; reason?: string } | undefined {
   const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = KICKOFF_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-kickoff [confirm | revise | split | defer | stop] <business reason>.',
+      'Usage: /evidence-kickoff confirm [business reason] | <revise|split|defer|stop> <business reason>.',
     );
   }
   const reason = reasonParts.join(' ').trim();
-  if (!reason) {
+  if (!reason && action !== 'confirmed') {
     throw new Error(`Kickoff ${rawAction} requires a business reason.`);
   }
-  return { action, reason };
+  return { action, ...(reason ? { reason } : {}) };
 }
 
 export async function promptKickoffDecision(
   ctx: ExtensionCommandContext,
-): Promise<{ action: KickoffDecisionAction; reason: string } | undefined> {
+): Promise<{ action: KickoffDecisionAction; reason?: string } | undefined> {
   const state = readState(ctx.cwd);
   const candidate = state.kickoff_candidate;
   if (!candidate) throw new Error('No Kickoff candidate is awaiting review.');
@@ -104,8 +104,10 @@ export async function promptKickoffDecision(
   };
   const action = selected ? actions[selected.replaceAll(' ', '')] : undefined;
   if (!action) return undefined;
-  const defaultReasons: Record<KickoffDecisionAction, string> = {
-    confirmed: `候选“${candidate.title}”准确表达了本轮需要解决的业务问题、受益角色和预期价值。`,
+  const defaultReasons: Record<
+    Exclude<KickoffDecisionAction, 'confirmed'>,
+    string
+  > = {
     revise: `候选“${candidate.title}”尚未准确表达本轮业务问题、受益角色或预期价值，需要修改。`,
     split: `候选“${candidate.title}”包含多个可独立验证的业务结果，需要先拆分。`,
     deferred: `候选“${candidate.title}”当前不具备继续推进所需的业务条件，本轮延期。`,
@@ -114,15 +116,19 @@ export async function promptKickoffDecision(
   const reason = (
     await ctx.ui.editor(
       `请确认或修改“${selected}”的业务理由`,
-      defaultReasons[action],
+      action === 'confirmed' ? '' : defaultReasons[action],
     )
   )?.trim();
-  return reason ? { action, reason } : undefined;
+  return reason
+    ? { action, reason }
+    : action === 'confirmed'
+      ? { action }
+      : undefined;
 }
 
 interface ScenarioDecision {
   action: UnderstandingDecisionAction;
-  reason: string;
+  reason?: string;
   draftId?: string;
 }
 
@@ -134,7 +140,7 @@ export function parseScenarioDecision(
   const action = SCENARIO_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-scenario confirm <DRAFT-xxx> <reason> | continue <reason> | split <reason> | defer <reason>.',
+      'Usage: /evidence-scenario confirm <DRAFT-xxx> [reason] | continue <reason> | split <reason> | defer <reason>.',
     );
   }
   const draftId =
@@ -143,8 +149,14 @@ export function parseScenarioDecision(
     throw new Error('Scenario confirmation requires a DRAFT-xxx id.');
   }
   const reason = rest.join(' ').trim();
-  if (!reason) throw new Error(`Scenario ${rawAction} requires a reason.`);
-  return { action, reason, ...(draftId ? { draftId } : {}) };
+  if (!reason && action !== 'confirmed') {
+    throw new Error(`Scenario ${rawAction} requires a reason.`);
+  }
+  return {
+    action,
+    ...(reason ? { reason } : {}),
+    ...(draftId ? { draftId } : {}),
+  };
 }
 
 export async function promptScenarioDecision(
@@ -174,11 +186,10 @@ export async function promptScenarioDecision(
   } else {
     action = 'deferred';
   }
-  const selectedDraft = draftId
-    ? state.scenario_drafts?.find((draft) => draft.draft_id === draftId)
-    : undefined;
-  const defaultReasons: Record<UnderstandingDecisionAction, string> = {
-    confirmed: `“${draftId} · ${selectedDraft?.title ?? '候选 Scenario'}”是本轮可独立验证并交付用户价值的最小业务 Scenario。`,
+  const defaultReasons: Record<
+    Exclude<UnderstandingDecisionAction, 'confirmed'>,
+    string
+  > = {
     continue:
       '当前候选尚未消除影响 Scenario 边界或预期结果的关键业务不确定性，需要继续 TQA。',
     split: '当前候选包含多个可独立验证的业务结果，需要拆分 Story 后分别确认。',
@@ -187,12 +198,14 @@ export async function promptScenarioDecision(
   const reason = (
     await ctx.ui.editor(
       `请确认或修改“${selected}”的业务理由`,
-      defaultReasons[action],
+      action === 'confirmed' ? '' : defaultReasons[action],
     )
   )?.trim();
   return reason
     ? { action, reason, ...(draftId ? { draftId } : {}) }
-    : undefined;
+    : action === 'confirmed'
+      ? { action, ...(draftId ? { draftId } : {}) }
+      : undefined;
 }
 
 interface ModelingProfileDecision {
@@ -223,7 +236,7 @@ export function parseModelingProfileDecision(
   }
   if (rawAction !== 'set') {
     throw new Error(
-      'Usage: /evidence-modeling-profile confirm <reason> | set <business|domain|tool> <method> <true|false> <reason>.',
+      'Usage: /evidence-modeling-profile confirm [reason] | set <business|domain|tool> <method> <true|false> <reason>.',
     );
   }
   const [rawSubject, rawMethod, rawRequired, ...reasonParts] = rest;
@@ -248,7 +261,7 @@ export function parseModelingProfileDecision(
 
 export interface ModelDecisionInput {
   action: ModelDecisionAction;
-  reason: string;
+  reason?: string;
 }
 
 const MODEL_DECISIONS: Record<string, ModelDecisionAction> = {
@@ -268,12 +281,14 @@ export function parseModelDecision(
   const action = MODEL_DECISIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-model <confirm|revise|scenario-gap|method-gap> <business reason>.',
+      'Usage: /evidence-model confirm [business reason] | <revise|scenario-gap|method-gap> <business reason>.',
     );
   }
   const reason = reasonParts.join(' ').trim();
-  if (!reason) throw new Error(`Model ${rawAction} requires a reason.`);
-  return { action, reason };
+  if (!reason && action !== 'confirm') {
+    throw new Error(`Model ${rawAction} requires a reason.`);
+  }
+  return { action, ...(reason ? { reason } : {}) };
 }
 
 export async function promptModelDecision(
@@ -309,8 +324,14 @@ export async function promptModelDecision(
       : selected.startsWith('Scenario')
         ? 'scenario_gap'
         : 'method_gap';
-  const reason = (await ctx.ui.input(`请说明“${selected}”的业务理由`))?.trim();
-  return reason ? { action, reason } : undefined;
+  const reason = (
+    await ctx.ui.input(`请说明“${selected}”的业务理由（确认时可选）`)
+  )?.trim();
+  return reason
+    ? { action, reason }
+    : action === 'confirm'
+      ? { action }
+      : undefined;
 }
 
 interface DeskCheckDecisionInput {
