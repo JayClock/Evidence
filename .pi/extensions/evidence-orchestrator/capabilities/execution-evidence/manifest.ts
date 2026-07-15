@@ -11,6 +11,7 @@ import type {
   ActiveWorkItem,
   PairDriverRecord,
   PairObservation,
+  TaskingImplementationTask,
   TaskingTestItem,
   TestProcessSelection,
   WorkflowState,
@@ -26,7 +27,7 @@ import {
 } from '../test-process/catalog';
 
 export interface ExecutionManifest {
-  version: 1;
+  version: 2;
   story_id: string;
   scenario_id: string;
   source: {
@@ -46,9 +47,12 @@ export interface ExecutionManifest {
   traceability: {
     scenario: string;
     model_expansion?: string;
+    model_expansion_sha256?: string;
+    model_decision?: string;
     functional_contexts: string[];
     q1: TaskingTestItem[];
     q2: TaskingTestItem[];
+    tasks: TaskingImplementationTask[];
   };
   processes: ExecutionProcessManifest[];
   showcase: {
@@ -96,13 +100,21 @@ export interface ExecutionProcessManifest {
       test_double: string;
     }>;
     tests: TaskingTestItem[];
+    work_units: Array<{
+      task: TaskingImplementationTask;
+      test: TaskingTestItem;
+      changed_paths: {
+        tests: string[];
+        production: string[];
+      };
+      red: PairObservation;
+      green: Pick<TestExecutionRecord, 'sequence' | 'command' | 'exit_code'>;
+      refactor: Pick<TestExecutionRecord, 'sequence' | 'command' | 'exit_code'>;
+    }>;
     changed_paths: {
       tests: string[];
       production: string[];
     };
-    red: PairObservation;
-    green: Pick<TestExecutionRecord, 'sequence' | 'command' | 'exit_code'>;
-    refactor: Pick<TestExecutionRecord, 'sequence' | 'command' | 'exit_code'>;
   }>;
   quality_gates: Array<{
     command: string;
@@ -143,11 +155,21 @@ function isStringArray(value: unknown): value is string[] {
   );
 }
 
+function isModelRefs(
+  value: unknown,
+): value is { entities: string[]; associations: string[] } {
+  return (
+    isRecord(value) &&
+    isStringArray(value.entities) &&
+    isStringArray(value.associations)
+  );
+}
+
 function approvedPlanData(
   content: Buffer,
   workItem: ActiveWorkItem,
   selections: TestProcessSelection[],
-): { tests: TaskingTestItem[] } {
+): { tests: TaskingTestItem[]; tasks: TaskingImplementationTask[] } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(content.toString('utf8')) as unknown;
@@ -160,6 +182,7 @@ function approvedPlanData(
     parsed.story_id !== workItem.story_id ||
     parsed.scenario_id !== workItem.scenario_id ||
     !Array.isArray(parsed.tests) ||
+    !Array.isArray(parsed.tasks) ||
     !Array.isArray(parsed.processes)
   ) {
     throw new Error(
@@ -178,12 +201,49 @@ function approvedPlanData(
       (value.scenario_outcome === undefined ||
         typeof value.scenario_outcome === 'string') &&
       isStringArray(value.supported_by) &&
-      isStringArray(value.business_data),
+      isStringArray(value.business_data) &&
+      isModelRefs(value.model_refs),
   );
   if (tests.length !== parsed.tests.length || tests.length === 0) {
     throw new Error(
       'Approved aggregate test plan has invalid test traceability.',
     );
+  }
+  const tasks = parsed.tasks.filter(
+    (value): value is TaskingImplementationTask =>
+      isRecord(value) &&
+      typeof value.id === 'string' &&
+      typeof value.description === 'string' &&
+      isStringArray(value.test_ids) &&
+      isStringArray(value.depends_on) &&
+      isModelRefs(value.model_refs),
+  );
+  if (tasks.length !== parsed.tasks.length || tasks.length === 0) {
+    throw new Error(
+      'Approved aggregate test plan has invalid task traceability.',
+    );
+  }
+  const ownedTestIds = tasks.flatMap(({ test_ids }) => test_ids);
+  if (
+    ownedTestIds.length !== tests.length ||
+    new Set(ownedTestIds).size !== tests.length ||
+    tests.some(({ id }) => !ownedTestIds.includes(id))
+  ) {
+    throw new Error('Every approved TEST must belong to exactly one TASK.');
+  }
+  for (const task of tasks) {
+    const linked = tests.filter(({ id }) => task.test_ids.includes(id));
+    const expected = {
+      entities: [
+        ...new Set(linked.flatMap(({ model_refs }) => model_refs.entities)),
+      ].sort(),
+      associations: [
+        ...new Set(linked.flatMap(({ model_refs }) => model_refs.associations)),
+      ].sort(),
+    };
+    if (JSON.stringify(task.model_refs) !== JSON.stringify(expected)) {
+      throw new Error(`${task.id} model traceability drifted from its TESTs.`);
+    }
   }
   for (const selection of selections) {
     const approved = parsed.processes.find(
@@ -230,7 +290,7 @@ function approvedPlanData(
       'Approved test traceability does not match selected process steps.',
     );
   }
-  return { tests };
+  return { tests, tasks };
 }
 
 function gitChangedContentSha256(
@@ -337,6 +397,8 @@ function assertV2Record(
     record.git_baseline !== workItem.git_baseline ||
     record.approved_plan_sha256 !== approvedPlanSha256 ||
     !record.invocation ||
+    (['red', 'green', 'refactor'].includes(record.stage) &&
+      (!record.task_id || !record.test_id || !record.step_id)) ||
     !record.started_at ||
     !record.completed_at
   ) {
@@ -350,6 +412,8 @@ function recordFor(
   records: TestExecutionRecord[],
   processId: string,
   stepId: string | undefined,
+  taskId: string,
+  testId: string,
   stage: TestExecutionRecord['stage'],
   options: { after?: number; exitCode?: number } = {},
 ): TestExecutionRecord {
@@ -357,6 +421,8 @@ function recordFor(
     (record) =>
       record.process_id === processId &&
       record.step_id === stepId &&
+      record.task_id === taskId &&
+      record.test_id === testId &&
       record.stage === stage &&
       record.sequence > (options.after ?? 0) &&
       (options.exitCode === undefined || record.exit_code === options.exitCode),
@@ -364,7 +430,7 @@ function recordFor(
   const record = candidates.at(-1);
   if (!record) {
     throw new Error(
-      `Execution log is incomplete: ${processId}/${stepId ?? 'quality_gate'} has no ${stage}.`,
+      `Execution log is incomplete: ${taskId}/${testId} at ${processId}/${stepId ?? 'quality_gate'} has no ${stage}.`,
     );
   }
   return record;
@@ -375,10 +441,15 @@ function acceptedRed(
   records: TestExecutionRecord[],
   processId: string,
   stepId: string,
+  taskId: string,
+  testId: string,
 ): PairObservation {
   const review = accepted.find(
     (candidate) =>
-      candidate.process_id === processId && candidate.step_id === stepId,
+      candidate.process_id === processId &&
+      candidate.step_id === stepId &&
+      candidate.task_id === taskId &&
+      candidate.test_id === testId,
   );
   if (
     !review ||
@@ -388,7 +459,7 @@ function acceptedRed(
     review.exit_code === 0
   ) {
     throw new Error(
-      `Red for ${processId}/${stepId} lacks Navigator acceptance as an expected behavior failure.`,
+      `Red for ${taskId}/${testId} at ${processId}/${stepId} lacks Navigator acceptance as an expected behavior failure.`,
     );
   }
   const raw = records.find(({ sequence }) => sequence === review.sequence);
@@ -396,6 +467,8 @@ function acceptedRed(
     !raw ||
     raw.process_id !== processId ||
     raw.step_id !== stepId ||
+    raw.task_id !== taskId ||
+    raw.test_id !== testId ||
     raw.stage !== 'red' ||
     raw.command !== review.command ||
     raw.exit_code !== review.exit_code ||
@@ -414,6 +487,7 @@ function processManifest(
   cwd: string,
   selection: TestProcessSelection,
   tests: TaskingTestItem[],
+  tasks: TaskingImplementationTask[],
   accepted: PairObservation[],
   records: TestExecutionRecord[],
   driverHistory: PairDriverRecord[],
@@ -428,52 +502,109 @@ function processManifest(
   ) {
     throw new Error(`Manifest process definition drifted: ${selection.id}.`);
   }
+  const unitOrder = new Map(
+    tasks
+      .flatMap(({ test_ids }) => test_ids)
+      .map((testId, index) => [testId, index]),
+  );
   const steps = selectedSteps(cwd, selection).map((step) => {
-    const red = acceptedRed(accepted, records, selection.id, step.id);
-    const green = recordFor(records, selection.id, step.id, 'green', {
-      after: red.sequence,
-      exitCode: 0,
-    });
-    const refactor = recordFor(records, selection.id, step.id, 'refactor', {
-      after: green.sequence,
-      exitCode: 0,
-    });
-    const stepTests = tests.filter(
-      ({ process_id, step_id }) =>
-        process_id === selection.id && step_id === step.id,
-    );
+    const stepTests = tests
+      .filter(
+        ({ process_id, step_id }) =>
+          process_id === selection.id && step_id === step.id,
+      )
+      .sort(
+        (left, right) =>
+          (unitOrder.get(left.id) ?? 0) - (unitOrder.get(right.id) ?? 0),
+      );
     if (stepTests.length === 0) {
       throw new Error(
         `Manifest step ${selection.id}/${step.id} has no test intent.`,
       );
     }
-    const stepRuns = driverHistory.filter(
-      ({ process_id, step_id }) =>
-        process_id === selection.id && step_id === step.id,
-    );
-    const testPaths = [
-      ...new Set(
-        stepRuns
-          .filter(({ mode }) => mode === 'test')
-          .flatMap(({ changed_paths }) => changed_paths),
-      ),
-    ]
-      .filter((path) => observedCodePaths.includes(path))
-      .sort();
-    const productionPaths = [
-      ...new Set(
-        stepRuns
-          .filter(({ mode }) => mode !== 'test')
-          .flatMap(({ changed_paths }) => changed_paths),
-      ),
-    ]
-      .filter((path) => observedCodePaths.includes(path))
-      .sort();
-    if (testPaths.length === 0 || productionPaths.length === 0) {
-      throw new Error(
-        `Manifest step ${selection.id}/${step.id} lacks Git-observed test or production changes.`,
+    const workUnits = stepTests.map((test) => {
+      const owners = tasks.filter(({ test_ids }) => test_ids.includes(test.id));
+      const task = owners[0];
+      if (owners.length !== 1 || !task) {
+        throw new Error(`${test.id} must have exactly one TASK owner.`);
+      }
+      const red = acceptedRed(
+        accepted,
+        records,
+        selection.id,
+        step.id,
+        task.id,
+        test.id,
       );
-    }
+      const green = recordFor(
+        records,
+        selection.id,
+        step.id,
+        task.id,
+        test.id,
+        'green',
+        { after: red.sequence, exitCode: 0 },
+      );
+      const refactor = recordFor(
+        records,
+        selection.id,
+        step.id,
+        task.id,
+        test.id,
+        'refactor',
+        { after: green.sequence, exitCode: 0 },
+      );
+      const runs = driverHistory.filter(
+        ({ task_id, test_id }) => task_id === task.id && test_id === test.id,
+      );
+      if (
+        runs.some(
+          ({ model_refs }) =>
+            JSON.stringify(model_refs) !== JSON.stringify(test.model_refs),
+        )
+      ) {
+        throw new Error(`${task.id}/${test.id} model traceability drifted.`);
+      }
+      const testPaths = [
+        ...new Set(
+          runs
+            .filter(({ mode }) => mode === 'test')
+            .flatMap(({ changed_paths }) => changed_paths),
+        ),
+      ]
+        .filter((path) => observedCodePaths.includes(path))
+        .sort();
+      const productionPaths = [
+        ...new Set(
+          runs
+            .filter(({ mode }) => mode !== 'test')
+            .flatMap(({ changed_paths }) => changed_paths),
+        ),
+      ]
+        .filter((path) => observedCodePaths.includes(path))
+        .sort();
+      if (testPaths.length === 0 || productionPaths.length === 0) {
+        throw new Error(
+          `Manifest unit ${task.id}/${test.id} lacks Git-observed test or production changes.`,
+        );
+      }
+      return {
+        task,
+        test,
+        changed_paths: { tests: testPaths, production: productionPaths },
+        red,
+        green: {
+          sequence: green.sequence,
+          command: green.command,
+          exit_code: green.exit_code,
+        },
+        refactor: {
+          sequence: refactor.sequence,
+          command: refactor.command,
+          exit_code: refactor.exit_code,
+        },
+      };
+    });
     return {
       id: step.id,
       quadrant: step.quadrant,
@@ -483,25 +614,25 @@ function processManifest(
         ({ boundary, test_double }) => ({ boundary, test_double }),
       ),
       tests: stepTests,
+      work_units: workUnits,
       changed_paths: {
-        tests: testPaths,
-        production: productionPaths,
-      },
-      red,
-      green: {
-        sequence: green.sequence,
-        command: green.command,
-        exit_code: green.exit_code,
-      },
-      refactor: {
-        sequence: refactor.sequence,
-        command: refactor.command,
-        exit_code: refactor.exit_code,
+        tests: [
+          ...new Set(
+            workUnits.flatMap(({ changed_paths }) => changed_paths.tests),
+          ),
+        ].sort(),
+        production: [
+          ...new Set(
+            workUnits.flatMap(({ changed_paths }) => changed_paths.production),
+          ),
+        ].sort(),
       },
     };
   });
   const lastStepSequence = Math.max(
-    ...steps.map(({ refactor }) => refactor.sequence),
+    ...steps.flatMap(({ work_units }) =>
+      work_units.map(({ refactor }) => refactor.sequence),
+    ),
   );
   let after = Math.max(lastStepSequence, qualityGateAfter);
   const quality_gates = definition.quality_gates.map((command) => {
@@ -661,6 +792,18 @@ function buildManifest(
   if (!pairSession) {
     throw new Error('Execution manifest requires a completed Pair session.');
   }
+  if (
+    approved.tests.some(
+      ({ id }) => !pairSession.completed_test_ids.includes(id),
+    ) ||
+    approved.tasks.some(
+      ({ id }) => !pairSession.completed_task_ids.includes(id),
+    )
+  ) {
+    throw new Error(
+      'Execution manifest requires every approved TASK/TEST unit to complete.',
+    );
+  }
   const code = gitChangedPaths(cwd, workItem.git_baseline, ['apps', 'libs']);
   const qualityGateAfter = Math.max(
     0,
@@ -673,6 +816,7 @@ function buildManifest(
       cwd,
       selection,
       approved.tests,
+      approved.tasks,
       pairSession.accepted_reds,
       records,
       pairSession.driver_history,
@@ -700,6 +844,37 @@ function buildManifest(
   }
   const modelBaseline = state.model_git_baseline ?? workItem.git_baseline;
   const model = gitChangedPaths(cwd, modelBaseline, ['.evidence']);
+  if (state.model_change_proposal) {
+    const expected = state.model_change_proposal.operations
+      .map(({ path }) => path)
+      .sort();
+    const applied = state.model_change_application?.changed_paths ?? [];
+    const contentDrift = state.model_change_proposal.operations.some(
+      (operation) => {
+        const absolute = join(cwd, operation.path);
+        if (operation.action === 'remove') return existsSync(absolute);
+        if (!existsSync(absolute) || operation.content === undefined)
+          return true;
+        return (
+          readFileSync(absolute, 'utf8') !== `${operation.content.trim()}\n`
+        );
+      },
+    );
+    if (
+      state.model_change_application?.git_baseline !== workItem.git_baseline ||
+      JSON.stringify([...applied].sort()) !== JSON.stringify(expected) ||
+      JSON.stringify(model) !== JSON.stringify(expected) ||
+      contentDrift
+    ) {
+      throw new Error(
+        'Execution manifest requires the human-confirmed model proposal to be applied on the Pair baseline.',
+      );
+    }
+  } else if (state.model_change_application || model.length > 0) {
+    throw new Error(
+      'Execution manifest observed an unapproved canonical model change.',
+    );
+  }
   const last = records.at(-1);
   if (!last?.record_sha256 || !last.completed_at) {
     throw new Error('Execution log has no stable chain head.');
@@ -722,8 +897,27 @@ function buildManifest(
       `Model expansion evidence is missing: ${state.model_expansion_path}.`,
     );
   }
+  const modelDecision = state.model_decisions?.at(-1);
+  const modelExpansionSha256 = state.model_expansion_path
+    ? digest(readFileSync(join(cwd, state.model_expansion_path)))
+    : undefined;
+  if (
+    !modelDecision ||
+    modelDecision.action !== 'confirm' ||
+    !existsSync(join(cwd, modelDecision.artifact_path)) ||
+    JSON.stringify(
+      JSON.parse(
+        readFileSync(join(cwd, modelDecision.artifact_path), 'utf8'),
+      ) as unknown,
+    ) !== JSON.stringify(modelDecision) ||
+    modelDecision.model_expansion_sha256 !== modelExpansionSha256
+  ) {
+    throw new Error(
+      'Execution manifest requires the unchanged human-confirmed model expansion.',
+    );
+  }
   return {
-    version: 1,
+    version: 2,
     story_id: workItem.story_id,
     scenario_id: workItem.scenario_id,
     source: {
@@ -747,8 +941,12 @@ function buildManifest(
     },
     traceability: {
       scenario,
-      ...(state.model_expansion_path
-        ? { model_expansion: state.model_expansion_path }
+      ...(state.model_expansion_path && modelExpansionSha256
+        ? {
+            model_expansion: state.model_expansion_path,
+            model_expansion_sha256: modelExpansionSha256,
+            model_decision: modelDecision.artifact_path,
+          }
         : {}),
       functional_contexts: [
         ...new Set(
@@ -757,6 +955,7 @@ function buildManifest(
       ].sort(),
       q1: tests.filter(({ quadrant }) => quadrant === 'Q1'),
       q2: tests.filter(({ quadrant }) => quadrant === 'Q2'),
+      tasks: approved.tasks,
     },
     processes: processManifests,
     showcase,
@@ -779,9 +978,11 @@ function buildManifest(
 function renderSummary(manifest: ExecutionManifest): string {
   const processRows = manifest.processes
     .flatMap((process) =>
-      process.steps.map(
-        (step) =>
-          `| ${process.id} | ${step.id} | ${step.quadrant} | ${step.tests.map(({ id }) => id).join(', ')} | ${[...step.changed_paths.tests, ...step.changed_paths.production].join('<br>')} | ${step.red.sequence} | ${step.green.sequence} | ${step.refactor.sequence} |`,
+      process.steps.flatMap((step) =>
+        step.work_units.map(
+          ({ task, test, changed_paths, red, green, refactor }) =>
+            `| ${task.id} | ${test.id} | ${test.model_refs.entities.join(', ') || 'none'} / ${test.model_refs.associations.join(', ') || 'none'} | ${process.id} | ${step.id} | ${step.quadrant} | ${[...changed_paths.tests, ...changed_paths.production].join('<br>')} | ${red.sequence} | ${green.sequence} | ${refactor.sequence} |`,
+        ),
       ),
     )
     .join('\n');
@@ -816,10 +1017,10 @@ function renderSummary(manifest: ExecutionManifest): string {
 - Model content hash: \`${manifest.source.model_content_sha256}\`
 - Execution chain head: \`${manifest.source.chain_head}\`
 
-## SC → Q1/Q2 → process trace
+## SC → model → TASK/TEST → process → code trace
 
-| Process | Step | Quadrant | Tests | Git-observed code | Red record | Green record | Refactor record |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: |
+| Task | Test | Model refs (entities / associations) | Process | Step | Quadrant | Git-observed code | Red record | Green record | Refactor record |
+| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: |
 ${processRows}
 
 Functional contexts: ${manifest.traceability.functional_contexts.join(', ')}

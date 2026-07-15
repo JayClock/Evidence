@@ -31,7 +31,7 @@ Use for model Builder expansion and read-only Challenger review. Load the method
 1. Use only generated projections plus current and regression Scenarios.
 2. Check concept coverage, relationship direction/meaning, lifecycle, timeline, invariants, and method fit.
 3. Return exactly one of `pass`, `scenario_gap`, `model_gap`, or `method_gap` through `evidence_orchestrator_record_model_challenge`.
-4. Never repair the candidate in the challenge session.
+4. Never repair the candidate in the challenge session. A pass only prepares human review; it does not approve the model or advance Tasking.
 
 ## Project examples
 
@@ -44,7 +44,8 @@ Use for model Builder expansion and read-only Challenger review. Load the method
 - Model gap → Builder expansion.
 - Method gap → Modeling Router.
 - Regression failure → no pass.
-- Pass → Tasking may consume the expansion.
+- Pass → human reviews Mermaid, glossary, Scenario expansion and exact proposal.
+- Human confirm → Tasking may consume the expansion; an approved Desk Check applies the exact proposal on the shared Pair Git baseline.
 
 ## References
 

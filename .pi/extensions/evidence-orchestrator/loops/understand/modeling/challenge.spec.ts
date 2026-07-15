@@ -13,6 +13,7 @@ import {
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { writeState } from '../../../iteration/state-repository';
 import { recordModelChallenge } from './challenge';
+import { decideModel } from './model-decision';
 import { recordModelAnalysis } from './candidate-model';
 import { confirmModelingProfile, proposeModelingProfile } from './profile';
 import {
@@ -181,11 +182,11 @@ describe('independent model challenge', () => {
     });
   });
 
-  it('advances to Tasking only after an independent passing challenge', () => {
+  it('advances to Tasking only after an independent pass and human model confirmation', () => {
     const cwd = workspace();
     prepareCandidate(cwd);
 
-    const state = recordModelChallenge(
+    const challenged = recordModelChallenge(
       cwd,
       {
         outcome: 'pass',
@@ -194,15 +195,56 @@ describe('independent model challenge', () => {
       '2026-01-01T00:02:00.000Z',
     );
 
-    expect(state).toMatchObject({
-      loop: 'tasking',
-      modeling_stage: 'challenged',
-      tasking_stage: 'drafting',
+    expect(challenged).toMatchObject({
+      loop: 'understand',
+      modeling_stage: 'model_review',
     });
-    expect(state.model_challenges?.at(-1)).toMatchObject({
+    expect(challenged.model_challenges?.at(-1)).toMatchObject({
       outcome: 'pass',
       checked_regression_ids: ['REG-001'],
       challenged_by: 'model-challenger',
+    });
+
+    const state = decideModel(
+      cwd,
+      'confirm',
+      'The projection and ubiquitous language match the business conversation.',
+      '2026-01-01T00:03:00.000Z',
+    );
+    expect(state).toMatchObject({
+      loop: 'tasking',
+      modeling_stage: 'model_confirmed',
+      tasking_stage: 'drafting',
+    });
+    expect(state.model_decisions?.at(-1)).toMatchObject({
+      action: 'confirm',
+      decided_by: 'human',
+    });
+  });
+
+  it('routes human revision of an existing-model decision back through Profile', () => {
+    const cwd = workspace();
+    prepareCandidate(cwd);
+    recordModelChallenge(cwd, {
+      outcome: 'pass',
+      summary: 'The existing model appears sufficient.',
+    });
+
+    const state = decideModel(
+      cwd,
+      'revise',
+      'The conversation exposed a missing canonical concept.',
+    );
+
+    expect(state).toMatchObject({
+      loop: 'understand',
+      understand_stage: 'modeling',
+      modeling_stage: 'profile',
+    });
+    expect(state.modeling_profile).toBeUndefined();
+    expect(state.feedback_history?.at(-1)).toMatchObject({
+      target: 'model',
+      decided_by: 'human',
     });
   });
 

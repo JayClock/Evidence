@@ -1,11 +1,14 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { confirmModelingProfile } from '../../loops/understand/modeling/profile';
+import { decideModel } from '../../loops/understand/modeling/model-decision';
 import { decideKickoff } from '../../loops/kickoff/story-decision';
 import { decideKnowledgeResponse } from '../../loops/respond/response-cycle';
 import { decideUnderstanding } from '../../loops/understand/scenario/candidates';
 import { decideTasking } from '../../loops/tasking/desk-check';
 import {
   decideShowcase,
+  recordShowcaseEvaluation,
+  recordShowcaseProductObservation,
   recordShowcaseRisk,
   showcaseNextInstruction,
 } from '../../loops/showcase/showcase-session';
@@ -32,6 +35,7 @@ import { statusMarkdown } from './status';
 import {
   parseDeskCheckDecision,
   parseKickoffDecision,
+  parseModelDecision,
   parseModelingProfileDecision,
   parsePairDecision,
   parseRespondDecision,
@@ -39,6 +43,7 @@ import {
   parseShowcaseDecision,
   promptDeskCheckDecision,
   promptKickoffDecision,
+  promptModelDecision,
   promptModelingProfileDecision,
   promptPairDecision,
   promptRespondDecision,
@@ -48,7 +53,11 @@ import {
 } from './command-inputs';
 import { parseArgs, runPreparedActivityFromCommand } from './activity-command';
 
-export { parseRespondDecision, parseShowcaseDecision } from './command-inputs';
+export {
+  parseModelDecision,
+  parseRespondDecision,
+  parseShowcaseDecision,
+} from './command-inputs';
 
 export function registerCommands(pi: ExtensionAPI): void {
   pi.registerCommand('evidence-status', {
@@ -217,6 +226,38 @@ export function registerCommands(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand('evidence-model', {
+    description:
+      'Human-only decision for the challenged model and ubiquitous language',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const decision =
+          parseModelDecision(args) ?? (await promptModelDecision(ctx));
+        if (!decision) {
+          ctx.ui.notify(
+            'Model decision cancelled; state is unchanged.',
+            'info',
+          );
+          return;
+        }
+        const state = decideModel(ctx.cwd, decision.action, decision.reason);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        ctx.ui.notify(
+          decision.action === 'confirm'
+            ? `Human confirmed the model and ubiquitous language; Tasking is ready for ${state.confirmed_scenario?.story_id} / ${state.confirmed_scenario?.scenario_id}.`
+            : `Human recorded ${decision.action}; workflow returned to ${state.understand_stage}/${state.modeling_stage ?? 'tqa'}.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
   pi.registerCommand('evidence-desk-check', {
     description:
       'Human-only Tasking decision: approve, revise, architecture_gap, process_gap, or scenario_gap',
@@ -313,19 +354,27 @@ export function registerCommands(pi: ExtensionAPI): void {
                 decision.activities,
                 decision.reason,
               )
-            : decideShowcase(
-                ctx.cwd,
-                decision.action,
-                decision.reason,
-                decision.target,
-              );
+            : decision.kind === 'observation'
+              ? recordShowcaseProductObservation(ctx.cwd, decision)
+              : decision.kind === 'evaluation'
+                ? recordShowcaseEvaluation(ctx.cwd, decision)
+                : decideShowcase(
+                    ctx.cwd,
+                    decision.action,
+                    decision.reason,
+                    decision.target,
+                  );
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
           decision.kind === 'risk'
             ? `Recorded ${decision.quadrant}=${decision.disposition}. ${showcaseNextInstruction(ctx.cwd)}.`
-            : decision.action === 'reject'
-              ? 'Human rejected the Showcase; this iteration is halted with facts and feedback preserved.'
-              : `Human recorded Showcase ${decision.action}; workflow loop=${state.loop}.`,
+            : decision.kind === 'observation'
+              ? `Recorded human product/value observation. ${showcaseNextInstruction(ctx.cwd)}.`
+              : decision.kind === 'evaluation'
+                ? `Recorded ${decision.quadrant}/${decision.activity}=${decision.outcome}. ${showcaseNextInstruction(ctx.cwd)}.`
+                : decision.action === 'reject'
+                  ? 'Human rejected the Showcase; this iteration is halted with facts and feedback preserved.'
+                  : `Human recorded Showcase ${decision.action}; workflow loop=${state.loop}.`,
           'info',
         );
       } catch (error) {

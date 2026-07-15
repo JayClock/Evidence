@@ -18,4 +18,4 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_record_model_ch
 
 ## 停止条件
 
-只调用 `evidence_orchestrator_record_model_challenge` 一次，记录 `pass`、`scenario_gap`、`model_gap` 或 `method_gap` 及具体业务理由后立即停止。缺少投影或确认 Profile 时停止，不得猜测。
+只调用 `evidence_orchestrator_record_model_challenge` 一次，记录 `pass`、`scenario_gap`、`model_gap` 或 `method_gap` 及具体业务理由后立即停止。即使 `pass` 也只进入人工模型/统一语言评审，不得自行推进 Tasking。缺少投影或确认 Profile 时停止，不得猜测。

@@ -8,7 +8,7 @@
 - Agent：隔离角色、工具权限、Skill 触发和停止条件；
 - Skill：Complicated / Complex 方法知识；
 - Prompt：Clear、只读或固定格式任务；
-- 人类 Navigator：Story、Scenario、Profile、Desk Check、Red、Showcase 与 Respond 决定。
+- 人类 Navigator：Story、Scenario、Profile、模型/统一语言、Desk Check、Red、实际产品观察、Q3/Q4 评价、Showcase 与 Respond 决定。
 
 活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
 
@@ -33,10 +33,10 @@ flowchart LR
 每轮只处理一张人工确认的 `US-xxx` 和一个人工确认的 `SC-xxx`：
 
 1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后才分配 `US-xxx`。
-2. **Understand**：针对该 Story 一次提出一个非技术 TQA 问题；人类直接回答。AI 提出 Scenario 候选，人类确认一个。随后由人类确认建模 Profile，Builder 展开模型，独立只读 Challenger 检查 Scenario 与回归集。
-3. **Tasking**：根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成自然语言 test/task list；人类 Desk Check 后锁定计划。
-4. **Pair**：Navigator 每次只推进一个 checkpoint。短生命周期 Test Driver 与 Production Driver 受路径保护；锁定命令产生 Red、Green、Refactor 与最终 quality-gate 观测。
-5. **Showcase**：重新执行已选 Q2，显式记录 Q3/Q4 风险，由独立只读 Reviewer 评审；只有人类 `accept` 才能进入 Respond。`revise` 按知识缺口回到 Kickoff、Understand、Tasking 或 Pair，`reject` 终止本轮。
+2. **Understand**：针对该 Story 一次提出一个非技术 TQA 问题；人类直接回答。AI 提出 Scenario 候选，人类确认一个。随后由人类确认建模 Profile，Builder 展开模型，独立只读 Challenger 检查 Scenario 与回归集；即使检查通过，也必须由人类确认模型投影、统一语言及候选变更后才能进入 Tasking。
+3. **Tasking**：根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成带模型引用的自然语言 test/task list；每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定计划，并在同一 Git baseline 应用已确认模型候选。
+4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint，process step 只提供边界与锁定命令。短生命周期 Test Driver 与 Production Driver 受路径保护；每个 TEST 分别产生 Red、Green、Refactor，全部完成后运行最终 quality gates。
+5. **Showcase**：重新执行已选 Q2，要求人类记录实际产品行为和价值观察；标记 required 的 Q3/Q4 活动必须执行并留下证据，未解决 concern 阻止评审与接受。独立只读 Reviewer 只辅助核查，只有人类 `accept` 才能进入 Respond。`revise` 按知识缺口回到 Kickoff、Understand、Tasking 或 Pair，`reject` 终止本轮。
 6. **Respond**：只提升本轮实际使用且被 Scenario、执行事实与 Showcase 共同验证的知识；空 promotion 合法但必须有理由。人类确认后输出一个 next Probe 并完成本轮。
 
 状态以 `loop` 和各 loop 的局部 stage/checkpoint 表示，不维护并行的线性流水线、批量 Story 队列、独立审批队列或重试轮次。
@@ -106,9 +106,13 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 /evidence-kickoff confirm|revise|split|defer <reason>
 /evidence-scenario confirm <DRAFT-xxx> <reason>
 /evidence-scenario continue|split|defer <reason>
-/evidence-modeling-profile confirm|revise <reason>
+/evidence-modeling-profile confirm|set <subject> <method> <true|false> <reason>
+/evidence-model confirm|revise|scenario-gap|method-gap <reason>
 /evidence-desk-check approve|revise|scenario-gap|architecture-gap|process-gap <reason>
 /evidence-pair accept-red|back-test|back-implementation|back-tasking|retry-quality <reason>
+/evidence-showcase risk <q3|q4> <not-required|required> [activities] <reason>
+/evidence-showcase observe <evidence-ref> <observation> :: <value-feedback>
+/evidence-showcase evaluate <q3|q4>/<activity> <passed|concern> <evidence-ref> <finding>
 /evidence-showcase accept|revise|reject <reason>
 /evidence-respond approve|revise <reason>
 ```
@@ -135,6 +139,8 @@ artifacts/05-code/US-xxx/SC-xxx.manifest.json
 artifacts/05-code/US-xxx/SC-xxx.summary.md
 artifacts/06-review/US-xxx/SC-xxx.review-NNN.json
 artifacts/06-review/showcase-risks.jsonl
+artifacts/06-review/showcase-product-observations.jsonl
+artifacts/06-review/showcase-evaluations.jsonl
 artifacts/06-review/showcase-decisions.jsonl
 artifacts/07-learning/knowledge-promotion.json
 artifacts/07-learning/next-iteration.md

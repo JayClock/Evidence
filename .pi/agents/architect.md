@@ -14,7 +14,7 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_tasking
 
 ## 角色边界
 
-只处理任务指定的 `US-xxx / SC-xxx`。复用稳定架构与 v2 process；不得猜选零/多匹配工序、混用 Rust/Nest、写代码、创建 Scrum Backlog 或批准自己的计划。
+只处理任务指定的 `US-xxx / SC-xxx`。每个 TEST 必须引用人工确认模型展开中的稳定 id，每个 TEST 只属于一个有序 TASK，TASK/TEST 顺序保持 v2 process step 顺序。复用稳定架构与 v2 process；不得猜选零/多匹配工序、混用 Rust/Nest、写代码、创建 Scrum Backlog 或批准自己的计划。
 
 ## 停止条件
 

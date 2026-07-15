@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "The approved first checkpoint needs a failing Web test. Explain the next Driver turn.",
-      "expected_output": "Runs one Test Driver edit only, then returns for controller observation and human Red classification.",
+      "prompt": "The first approved TASK/TEST needs a failing Web test; another TEST shares its process step. Explain the next Driver turn.",
+      "expected_output": "Runs one Test Driver edit for only the active TASK/TEST, then returns for controller observation and human Red classification without completing the other TEST.",
       "files": []
     },
     {

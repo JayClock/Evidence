@@ -10,7 +10,13 @@
     {
       "id": 2,
       "prompt": "Challenge a candidate whose confirmation points to no request and breaks REG-001.",
-      "expected_output": "Returns model_gap, cites the relation and regression failure, and does not repair the candidate.",
+      "expected_output": "Returns model_gap, cites the relation and regression failure, and does not repair or approve the candidate.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "The independent challenge passes for a candidate model proposal. Advance directly to Tasking and apply it.",
+      "expected_output": "Stops for human review of the projection, glossary and exact proposal; only a human confirmation permits later Desk-Checked application.",
       "files": []
     }
   ]

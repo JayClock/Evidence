@@ -21,6 +21,7 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   model_change_application: true,
   model_projection: true,
   model_challenges: true,
+  model_decisions: true,
   tasking_stage: true,
   tasking_candidate: true,
   tasking_gap: true,
@@ -31,6 +32,8 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   showcase_stage: true,
   showcase_q2_observations: true,
   showcase_risk_decisions: true,
+  showcase_product_observations: true,
+  showcase_evaluation_observations: true,
   showcase_reviews: true,
   showcase_decisions: true,
   showcase_review_failures: true,
@@ -70,7 +73,8 @@ const MODELING_STAGES = new Set([
   'profile_review',
   'expansion',
   'candidate_ready',
-  'challenged',
+  'model_review',
+  'model_confirmed',
 ]);
 const TASKING_STAGES = new Set([
   'drafting',
@@ -108,6 +112,12 @@ function textArray(value: unknown, allowEmpty = false): value is string[] {
     (allowEmpty || value.length > 0) &&
     value.every((item) => text(item))
   );
+}
+
+function validModelRefs(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const refs = value as { entities?: unknown; associations?: unknown };
+  return textArray(refs.entities, true) && textArray(refs.associations, true);
 }
 
 function validPending(record: ClarificationRecord): boolean {
@@ -276,18 +286,67 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     throw new Error('Modeling Profile review requires an AI proposal.');
   }
   if (
-    ['expansion', 'candidate_ready', 'challenged'].includes(
-      state.modeling_stage ?? '',
-    ) &&
+    [
+      'expansion',
+      'candidate_ready',
+      'model_review',
+      'model_confirmed',
+    ].includes(state.modeling_stage ?? '') &&
     !state.modeling_profile
   ) {
     throw new Error(`${state.modeling_stage} requires a confirmed Profile.`);
   }
   if (
-    ['candidate_ready', 'challenged'].includes(state.modeling_stage ?? '') &&
+    ['candidate_ready', 'model_review', 'model_confirmed'].includes(
+      state.modeling_stage ?? '',
+    ) &&
     (!text(state.model_expansion_path) || !text(state.model_git_baseline))
   ) {
     throw new Error('A model candidate requires expansion and Git baseline.');
+  }
+  if (
+    state.modeling_stage === 'model_review' &&
+    state.model_challenges?.at(-1)?.outcome !== 'pass'
+  ) {
+    throw new Error('Human model review requires a passing challenge.');
+  }
+  if (
+    state.modeling_stage === 'model_confirmed' &&
+    (state.model_challenges?.at(-1)?.outcome !== 'pass' ||
+      state.model_decisions?.at(-1)?.action !== 'confirm')
+  ) {
+    throw new Error('Tasking requires a human-confirmed model decision.');
+  }
+  if (
+    (state.model_decisions ?? []).some(
+      (decision) =>
+        decision.version !== 1 ||
+        !['confirm', 'revise', 'scenario_gap', 'method_gap'].includes(
+          decision.action,
+        ) ||
+        decision.decided_by !== 'human' ||
+        !text(decision.reason) ||
+        !text(decision.challenge_artifact_path) ||
+        !text(decision.challenge_artifact_sha256) ||
+        !text(decision.projection_sha256) ||
+        !text(decision.model_expansion_sha256) ||
+        (decision.model_change_proposal_sha256 !== undefined &&
+          !text(decision.model_change_proposal_sha256)) ||
+        !text(decision.artifact_path) ||
+        !text(decision.decided_at),
+    )
+  ) {
+    throw new Error('The human model decision history is invalid.');
+  }
+  if (
+    state.model_change_application &&
+    (!state.model_change_proposal ||
+      state.model_decisions?.at(-1)?.action !== 'confirm' ||
+      !text(state.model_change_application.git_baseline) ||
+      !textArray(state.model_change_application.changed_paths) ||
+      !text(state.model_change_application.applied_at))
+  ) {
+    throw new Error('The applied model change is invalid.');
   }
   if (
     state.tasking_stage !== undefined &&
@@ -297,6 +356,33 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   }
   if (state.tasking_stage === 'desk_check' && !state.tasking_candidate) {
     throw new Error('Tasking Desk Check requires a candidate plan.');
+  }
+  if (
+    state.tasking_candidate &&
+    (state.tasking_candidate.version !== 2 ||
+      !Array.isArray(state.tasking_candidate.tests) ||
+      state.tasking_candidate.tests.length === 0 ||
+      state.tasking_candidate.tests.some(
+        (test) =>
+          !text(test.id) ||
+          !text(test.intent) ||
+          !text(test.process_id) ||
+          !text(test.step_id) ||
+          !textArray(test.business_data) ||
+          !validModelRefs(test.model_refs),
+      ) ||
+      !Array.isArray(state.tasking_candidate.tasks) ||
+      state.tasking_candidate.tasks.length === 0 ||
+      state.tasking_candidate.tasks.some(
+        (task) =>
+          !text(task.id) ||
+          !text(task.description) ||
+          !textArray(task.test_ids) ||
+          !textArray(task.depends_on, true) ||
+          !validModelRefs(task.model_refs),
+      ))
+  ) {
+    throw new Error('The Tasking candidate traceability is invalid.');
   }
   if (
     state.tasking_stage === 'approved' &&
@@ -335,11 +421,15 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   }
   if (
     state.pair_session &&
-    (state.pair_session.version !== 1 ||
+    (state.pair_session.version !== 2 ||
       !PAIR_CHECKPOINTS.has(state.pair_session.checkpoint) ||
+      !text(state.pair_session.task_id) ||
+      !text(state.pair_session.test_id) ||
       !text(state.pair_session.process_id) ||
       !text(state.pair_session.step_id) ||
       !text(state.pair_session.git_baseline) ||
+      !Array.isArray(state.pair_session.completed_task_ids) ||
+      !Array.isArray(state.pair_session.completed_test_ids) ||
       !Array.isArray(state.pair_session.completed_step_ids) ||
       !Array.isArray(state.pair_session.test_paths) ||
       !Array.isArray(state.pair_session.production_paths) ||
@@ -348,6 +438,29 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !Array.isArray(state.pair_session.driver_history))
   ) {
     throw new Error('The Pair session is invalid.');
+  }
+  if (
+    state.pair_session &&
+    (!state.tasking_candidate ||
+      !state.tasking_candidate.tasks.some(
+        ({ id, test_ids }) =>
+          id === state.pair_session?.task_id &&
+          test_ids.includes(state.pair_session?.test_id ?? ''),
+      ) ||
+      !state.tasking_candidate.tests.some(
+        ({ id, process_id, step_id }) =>
+          id === state.pair_session?.test_id &&
+          process_id === state.pair_session?.process_id &&
+          step_id === state.pair_session?.step_id,
+      ) ||
+      state.pair_session.completed_task_ids.some(
+        (id) => !state.tasking_candidate?.tasks.some((task) => task.id === id),
+      ) ||
+      state.pair_session.completed_test_ids.some(
+        (id) => !state.tasking_candidate?.tests.some((test) => test.id === id),
+      ))
+  ) {
+    throw new Error('The Pair session TASK/TEST traceability is invalid.');
   }
   if (
     state.pair_session &&
@@ -369,6 +482,94 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   }
   if (state.loop === 'showcase' && !state.showcase_stage) {
     throw new Error('The Showcase loop requires a Showcase stage.');
+  }
+  if (
+    (state.showcase_risk_decisions ?? []).some((decision) => {
+      const allowed =
+        decision.quadrant === 'Q3'
+          ? [
+              'exploratory',
+              'usability',
+              'accessibility',
+              'compatibility',
+              'other',
+            ]
+          : decision.quadrant === 'Q4'
+            ? ['performance', 'security', 'reliability', 'operability', 'other']
+            : [];
+      return (
+        !['Q3', 'Q4'].includes(decision.quadrant) ||
+        !['required', 'not_required'].includes(decision.disposition) ||
+        !Array.isArray(decision.activities) ||
+        decision.activities.some((activity) => !allowed.includes(activity)) ||
+        (decision.disposition === 'required'
+          ? decision.activities.length === 0
+          : decision.activities.length > 0) ||
+        !text(decision.reason) ||
+        decision.decided_by !== 'human' ||
+        !text(decision.decided_at)
+      );
+    })
+  ) {
+    throw new Error('The Showcase risk decisions are invalid.');
+  }
+  if (
+    (state.showcase_product_observations ?? []).some(
+      (observation) =>
+        observation.version !== 1 ||
+        !text(observation.observation_id) ||
+        !STORY_ID_PATTERN.test(observation.story_id) ||
+        !SCENARIO_ID_PATTERN.test(observation.scenario_id) ||
+        !textArray(observation.given) ||
+        !text(observation.when) ||
+        !textArray(observation.observed_outcomes) ||
+        !textArray(observation.business_data) ||
+        !text(observation.observation) ||
+        !text(observation.value_feedback) ||
+        !textArray(observation.evidence_refs) ||
+        !text(observation.artifact_path) ||
+        observation.observed_by !== 'human' ||
+        !text(observation.observed_at),
+    )
+  ) {
+    throw new Error('The Showcase product observations are invalid.');
+  }
+  if (
+    (state.showcase_evaluation_observations ?? []).some(
+      (observation) =>
+        observation.version !== 1 ||
+        !text(observation.evaluation_id) ||
+        !['Q3', 'Q4'].includes(observation.quadrant) ||
+        !(
+          observation.quadrant === 'Q3'
+            ? [
+                'exploratory',
+                'usability',
+                'accessibility',
+                'compatibility',
+                'other',
+              ]
+            : ['performance', 'security', 'reliability', 'operability', 'other']
+        ).includes(observation.activity) ||
+        !['passed', 'concern'].includes(observation.outcome) ||
+        !text(observation.finding) ||
+        !textArray(observation.evidence_refs) ||
+        !text(observation.artifact_path) ||
+        observation.observed_by !== 'human' ||
+        !text(observation.observed_at),
+    )
+  ) {
+    throw new Error('The Showcase evaluation observations are invalid.');
+  }
+  if (
+    (state.showcase_reviews ?? []).some(
+      (review) =>
+        review.version !== 2 ||
+        !textArray(review.product_observation_ids) ||
+        !textArray(review.evaluation_ids, true),
+    )
+  ) {
+    throw new Error('The Showcase review records are invalid.');
   }
   if (
     state.respond_stage !== undefined &&

@@ -379,6 +379,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Use only from the read-only model-challenger subagent after checking current and regression scenarios.',
       'Do not repair the model. The tool routes feedback to TQA, Model Builder, or Modeling Profile.',
       'A pass is overridden when deterministic model regression fails.',
+      'A pass stops for human model and ubiquitous-language review; it never advances Tasking directly.',
     ],
     parameters: modelChallengeParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -395,7 +396,10 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded model challenge ${challenge?.outcome}. Workflow loop=${state.loop}; next modeling stage=${state.modeling_stage ?? 'none'}.`,
+            text:
+              challenge?.outcome === 'pass'
+                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-model before Tasking.`
+                : `Recorded model challenge ${challenge?.outcome}. Workflow loop=${state.loop}; next modeling stage=${state.modeling_stage ?? 'none'}.`,
           },
         ],
         details: { state, challenge },
@@ -410,10 +414,11 @@ export function registerTools(pi: ExtensionAPI): void {
     description:
       'Generate one reviewable test list, ordered task list, and deterministic v2 process plan for human Desk Check',
     promptSnippet:
-      'Trace the confirmed Scenario through Q2, Q1, boundaries, process steps, and implementation tasks',
+      'Trace the confirmed Scenario and model through Q2, Q1, boundaries, process steps, and implementation tasks',
     promptGuidelines: [
-      'Use only in Tasking after the independent model challenge passes.',
-      'Use exact confirmed Scenario outcomes and business data; non-goals never become tests.',
+      'Use only in Tasking after the independent challenge and human model/ubiquitous-language confirmation.',
+      'Use exact confirmed Scenario outcomes, business data, and model ids; non-goals never become tests.',
+      'Give every TEST exactly one ordered TASK owner and preserve selected process-step order.',
       'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
       'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
     ],
@@ -438,6 +443,7 @@ export function registerTools(pi: ExtensionAPI): void {
             ? { scenarioOutcome: test.scenarioOutcome }
             : {}),
           businessData: test.businessData,
+          modelRefs: test.modelRefs,
         })),
         tasks: params.tasks.map((task) => ({
           id: task.id,

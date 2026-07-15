@@ -146,10 +146,9 @@ export function recordModelChallenge(
   writeFileSync(absolute, `${JSON.stringify(record, null, 2)}\n`);
 
   if (outcome === 'pass') {
-    const advanced = transitionLoopState(state, { to: 'tasking' }, now);
     return writeState(cwd, {
-      ...advanced,
-      modeling_stage: 'challenged',
+      ...state,
+      modeling_stage: 'model_review',
       model_challenges: [...(state.model_challenges ?? []), record],
     });
   }

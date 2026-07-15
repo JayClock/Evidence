@@ -28,7 +28,7 @@
     },
     {
       "id": "WK-MODEL-EXPANSION",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Domain modeling",
       "cognitive_behaviors": ["complicated", "complex"],
       "skill_path": ".pi/skills/evidence-model-expansion/SKILL.md",
@@ -37,7 +37,7 @@
         "REG-001-current-workspace-model",
         "EOV5-006: independent model challenge"
       ],
-      "latest_feedback": "Builder proposes minimal structured operations; Challenger remains projection-only.",
+      "latest_feedback": "Builder proposes minimal structured operations; Challenger remains projection-only and a human confirms the model and ubiquitous language before Tasking.",
       "supersedes": []
     },
     {
@@ -55,27 +55,31 @@
     },
     {
       "id": "WK-TEST-PROCESS",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Test strategy",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-test-process/SKILL.md",
       "prompt_paths": [],
-      "validated_scenarios": ["EOV5-009: immutable Desk-Checked Tasking"],
-      "latest_feedback": "Keep functional context independent from runtime and technical boundaries.",
+      "validated_scenarios": [
+        "EOV5-009: immutable Desk-Checked Tasking",
+        "Tasking spec: model proposal applied on the Desk-Checked Pair baseline"
+      ],
+      "latest_feedback": "Keep functional context independent from runtime and technical boundaries; every TEST has confirmed model refs and exactly one ordered TASK owner.",
       "supersedes": []
     },
     {
       "id": "WK-PAIRING",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Delivery",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-pairing/SKILL.md",
       "prompt_paths": [],
       "validated_scenarios": [
         "EOV5-010: Navigator-controlled Red/Green/Refactor",
-        "EOV5-011: generated execution evidence"
+        "EOV5-011: generated execution evidence",
+        "Pair spec: separate TASK/TEST cycles on one process step"
       ],
-      "latest_feedback": "One short-lived Driver and one observed checkpoint at a time.",
+      "latest_feedback": "One short-lived Driver and one active TASK/TEST at a time; process steps supply boundaries rather than replacing tasks.",
       "supersedes": []
     },
     {
@@ -91,7 +95,7 @@
     },
     {
       "id": "WK-PROMPT-TEST-LIST",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Test strategy",
       "cognitive_behaviors": ["clear"],
       "skill_path": null,
@@ -102,7 +106,7 @@
     },
     {
       "id": "WK-PROMPT-DESK-CHECK",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Test strategy",
       "cognitive_behaviors": ["clear"],
       "skill_path": null,
@@ -113,7 +117,7 @@
     },
     {
       "id": "WK-PROMPT-EXECUTION-SUMMARY",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Delivery",
       "cognitive_behaviors": ["clear"],
       "skill_path": null,

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "Task one Web Scenario with one rendered Q2 outcome, HTTP replacement, and Workspace functional context.",
-      "expected_output": "Separates context/runtime/boundary, produces Q2 then Q1 intents, uniquely selects TypeScript Web process, and orders linked tasks.",
+      "expected_output": "Separates context/runtime/boundary, gives each Q2/Q1 intent confirmed model refs and one TASK owner, uniquely selects the TypeScript Web process, and preserves process order.",
       "files": []
     },
     {

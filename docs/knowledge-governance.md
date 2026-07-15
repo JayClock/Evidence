@@ -31,8 +31,8 @@
 ## 知识提升生命周期
 
 1. Kickoff 与 Understand 将一个 Story/Scenario 的候选知识变化记录为迭代增量。
-2. Understand 的模型挑战与 Pair 的测试实现验证候选知识能否解释并支持真实行为。
-3. Showcase 重新观测 Q2、显式处理 Q3/Q4 风险，并区分产品/领域与技术质量反馈。
+2. Understand 的独立模型挑战之后由人类确认模型与统一语言；Desk Check 在共享 Git baseline 应用精确候选，Pair 以 model refs → TASK/TEST → changed paths 验证候选知识能否解释并支持真实行为。
+3. Showcase 重新观测 Q2，由人类记录实际产品行为与价值；`required` 的 Q3/Q4 活动必须执行并留下证据，未解决 concern 不能接受。
 4. Respond 只对本轮实际使用并由 Scenario、Showcase 与执行事实验证的候选提出 `promoted`、`deferred` 或 `rejected`；测试工序、Skill、Prompt/CoT 也属于可审查的 Working Knowledge。
 5. 人类逐轮确认 Respond 候选。`promotions: []` 合法，但必须说明为何没有可复用知识；`promoted` 必须给出 canonical target 和验证证据，`deferred/rejected` 只保留理由而不改变权威来源。
 6. 被提升的条目更新其权威目标，同时保留原始增量、Showcase 决定和人工确认作为审计证据。未应用或未与实现共同验证的模型补丁不得提升。
@@ -49,6 +49,6 @@
 - `journey-slice.md` 标识受影响的基线旅程步骤，再记录本轮改变的路径、结果和边界情形。`story-map-delta.md` 只列出受影响活动和候选故事，绝不复制完整活动主干。
 - 候选事实在 Respond 经人工确认前始终属于迭代增量；不得将其表述为既定产品事实，也不得过早复制到统一知识中。
 - 每项 promotion 至少记录 `source`、`kind`、`decision`、`reason`、`validation_evidence[]` 和人工决定；只有 `promoted` 记录 `canonical_target`。目标文件存在本身不是验证。
-- 模型路径与代码路径必须由同一 Git baseline 的 execution manifest 计算；二者不一致时 Respond 不得完成。
+- 模型路径与代码路径必须由同一 Git baseline 的 execution manifest 计算；每个 TEST/TASK 同时保留确认模型引用和实际 changed paths，任一候选内容、路径或追踪不一致时 Respond 不得完成。
 
 历史迭代（包括 `ITER-0000`）即使其中复制的知识已过时，也绝不重写。

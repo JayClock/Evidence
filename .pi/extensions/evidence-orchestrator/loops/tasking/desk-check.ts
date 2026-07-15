@@ -7,6 +7,7 @@ import {
   artifactRelativePath,
 } from '../../iteration/artifact-layout';
 import { transitionLoopState } from '../../iteration/transition-graph';
+import { applyModelChangeProposal } from '../understand/public';
 import { readState, writeState } from '../../iteration/state-repository';
 import type {
   DeskCheckAction,
@@ -20,7 +21,7 @@ import {
   testProcessDefinitionSha256,
 } from '../../capabilities/test-process/catalog';
 
-function digest(value: string): string {
+function digest(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
@@ -36,6 +37,44 @@ function immutableWrite(path: string, content: string): void {
     throw new Error(`Approved test-plan artifact is immutable: ${path}.`);
   }
   if (!existsSync(path)) writeFileSync(path, content);
+}
+
+function verifyModelDecision(cwd: string, state: WorkflowState): void {
+  const decision = state.model_decisions?.at(-1);
+  if (!decision || decision.action !== 'confirm') {
+    throw new Error('Tasking has no human-confirmed model decision.');
+  }
+  const path = join(cwd, decision.artifact_path);
+  if (!existsSync(path)) {
+    throw new Error(
+      `Human model decision is missing: ${decision.artifact_path}.`,
+    );
+  }
+  const challenge = state.model_challenges?.at(-1);
+  const challengePath = join(cwd, decision.challenge_artifact_path);
+  const expansionPath = state.model_expansion_path
+    ? join(cwd, state.model_expansion_path)
+    : undefined;
+  const persisted = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+  const persistedChallenge = existsSync(challengePath)
+    ? (JSON.parse(readFileSync(challengePath, 'utf8')) as unknown)
+    : undefined;
+  if (
+    !challenge ||
+    !expansionPath ||
+    !existsSync(expansionPath) ||
+    digest(readFileSync(expansionPath)) !== decision.model_expansion_sha256 ||
+    challenge.artifact_path !== decision.challenge_artifact_path ||
+    JSON.stringify(persistedChallenge) !== JSON.stringify(challenge) ||
+    digest(readFileSync(challengePath)) !==
+      decision.challenge_artifact_sha256 ||
+    state.model_projection?.model_sha256 !== decision.projection_sha256 ||
+    JSON.stringify(persisted) !== JSON.stringify(decision)
+  ) {
+    throw new Error(
+      'The human model decision or its reviewed evidence drifted before Desk Check.',
+    );
+  }
 }
 
 function verifyCandidate(cwd: string, candidate: TaskingCandidate): void {
@@ -199,7 +238,18 @@ export function decideTasking(
 
   if (action === 'approve') {
     verifyCandidate(cwd, state.tasking_candidate);
+    verifyModelDecision(cwd, state);
     const baseline = createCodingGitBaseline(cwd);
+    if (
+      state.model_git_baseline !== baseline ||
+      state.model_decisions?.at(-1)?.action !== 'confirm' ||
+      state.modeling_profile?.model_change_required !==
+        Boolean(state.model_change_proposal)
+    ) {
+      throw new Error(
+        'Desk Check approval requires the human-confirmed model on the same Git baseline.',
+      );
+    }
     const processes = lockApprovedProcesses(
       cwd,
       state,
@@ -234,26 +284,23 @@ export function decideTasking(
       artifactPath(cwd, state, approvedRelative),
       approvedPlanContent,
     );
+    const stateWithAppliedModel = state.model_change_proposal
+      ? applyModelChangeProposal(cwd, now)
+      : state;
     persistDecision(cwd, decision);
-    const firstProcess = processes[0];
-    const firstStepId =
-      firstProcess?.selected_step_ids?.[0] ??
-      firstProcess?.focused_commands?.[0]?.step_id;
-    if (!firstProcess || !firstStepId) {
-      throw new Error('Approved Tasking has no first Pair process step.');
+    const firstTask = state.tasking_candidate.tasks[0];
+    const firstTest = state.tasking_candidate.tests.find(
+      ({ id }) => id === firstTask?.test_ids[0],
+    );
+    const firstProcess = processes.find(
+      ({ id }) => id === firstTest?.process_id,
+    );
+    if (!firstTask || !firstTest || !firstProcess) {
+      throw new Error('Approved Tasking has no first TASK/TEST Pair unit.');
     }
-    const expectedRed = state.tasking_candidate.tests
-      .filter(
-        ({ process_id, step_id }) =>
-          process_id === firstProcess.id && step_id === firstStepId,
-      )
-      .map(({ intent }) => intent)
-      .join('；');
-    if (!expectedRed) {
-      throw new Error('Approved Tasking has no expected Red behavior.');
-    }
+    const expectedRed = firstTest.intent;
     const approved = {
-      ...state,
+      ...stateWithAppliedModel,
       tasking_stage: 'approved' as const,
       tasking_gap: undefined,
       desk_check_decisions: decisions,
@@ -269,13 +316,17 @@ export function decideTasking(
         },
       },
       pair_session: {
-        version: 1 as const,
+        version: 2 as const,
         story_id: state.tasking_candidate.story_id,
         scenario_id: state.tasking_candidate.scenario_id,
         git_baseline: baseline,
         checkpoint: 'plan_confirmed' as const,
+        task_id: firstTask.id,
+        test_id: firstTest.id,
         process_id: firstProcess.id,
-        step_id: firstStepId,
+        step_id: firstTest.step_id,
+        completed_task_ids: [],
+        completed_test_ids: [],
         completed_step_ids: [],
         test_paths: [],
         production_paths: [],

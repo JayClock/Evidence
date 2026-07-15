@@ -29,13 +29,17 @@ describe('knowledge-loop catalog', () => {
         state = {
           ...state,
           pair_session: {
-            version: 1,
+            version: 2,
             story_id: 'US-001',
             scenario_id: 'SC-001',
             git_baseline: 'baseline',
             checkpoint: 'quality_gates_passed',
+            task_id: 'TASK-001',
+            test_id: 'TEST-001',
             process_id: 'process',
             step_id: 'step',
+            completed_task_ids: ['TASK-001'],
+            completed_test_ids: ['TEST-001'],
             completed_step_ids: ['process/step'],
             test_paths: ['tests/example.test.ts'],
             production_paths: ['src/example.ts'],

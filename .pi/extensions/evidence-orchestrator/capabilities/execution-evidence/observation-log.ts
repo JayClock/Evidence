@@ -25,6 +25,8 @@ export interface TestExecutionRequest {
   processId: string;
   stage: TestExecutionStage;
   stepId?: string;
+  taskId?: string;
+  testId?: string;
   command: string;
   invocation?:
     | 'pair-controller'
@@ -39,6 +41,8 @@ export interface TestExecutionRecord {
   process_id: string;
   stage: TestExecutionStage;
   step_id?: string;
+  task_id?: string;
+  test_id?: string;
   command: string;
   sequence: number;
   exit_code: number;
@@ -258,8 +262,10 @@ function assertV2ExecutionOrder(
     }
     return;
   }
-  if (!request.stepId) {
-    throw new Error(`A v2 ${request.stage} execution requires stepId.`);
+  if (!request.stepId || !request.taskId || !request.testId) {
+    throw new Error(
+      `A v2 ${request.stage} execution requires stepId, taskId, and testId.`,
+    );
   }
   const stepIndex = steps.findIndex(({ id }) => id === request.stepId);
   if (stepIndex < 0) {
@@ -282,7 +288,10 @@ function assertV2ExecutionOrder(
     );
   }
   const stepRecords = processRecords.filter(
-    ({ step_id }) => step_id === request.stepId,
+    ({ step_id, task_id, test_id }) =>
+      step_id === request.stepId &&
+      task_id === request.taskId &&
+      test_id === request.testId,
   );
   if (
     request.stage === 'green' &&
@@ -331,6 +340,28 @@ export function executeTestStep(
   ) {
     throw new Error(
       'Showcase Q2 requires a Pair session with passed final quality gates.',
+    );
+  }
+  if (
+    request.stage === 'quality_gate' &&
+    state.tasking_candidate?.tests.some(
+      ({ id }) => !state.pair_session?.completed_test_ids.includes(id),
+    )
+  ) {
+    throw new Error(
+      'Quality gates require every approved TEST to be completed.',
+    );
+  }
+  if (
+    !showcaseExecution &&
+    request.stage !== 'quality_gate' &&
+    (state.pair_session?.task_id !== request.taskId ||
+      state.pair_session?.test_id !== request.testId ||
+      state.pair_session?.process_id !== request.processId ||
+      state.pair_session?.step_id !== request.stepId)
+  ) {
+    throw new Error(
+      'The execution request does not match the active TASK/TEST unit.',
     );
   }
   const selection = selectedTestProcesses(state.active_work_item).find(
@@ -430,6 +461,8 @@ export function executeTestStep(
     process_id: request.processId,
     stage: request.stage,
     ...(request.stepId ? { step_id: request.stepId } : {}),
+    ...(request.taskId ? { task_id: request.taskId } : {}),
+    ...(request.testId ? { test_id: request.testId } : {}),
     command: request.command,
     sequence,
     exit_code: exitCode,

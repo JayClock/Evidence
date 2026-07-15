@@ -14,6 +14,7 @@ import {
 } from '../loops/understand/scenario/candidates';
 import { recordModelAnalysis } from '../loops/understand/modeling/candidate-model';
 import { recordModelChallenge } from '../loops/understand/modeling/challenge';
+import { decideModel } from '../loops/understand/modeling/model-decision';
 import {
   confirmModelingProfile,
   proposeModelingProfile,
@@ -31,6 +32,7 @@ import {
   enterShowcase,
   executeShowcaseQ2,
   prepareShowcaseReview,
+  recordShowcaseProductObservation,
   recordShowcaseReview,
   recordShowcaseRisk,
 } from '../loops/showcase/showcase-session';
@@ -267,6 +269,11 @@ describe('native full knowledge loop', () => {
       outcome: 'pass',
       summary: 'The Scenario and regression remain explainable.',
     });
+    decideModel(
+      cwd,
+      'confirm',
+      'The projection and ubiquitous language match the business conversation.',
+    );
 
     proposeTaskingDraft(cwd, {
       runtimes: [
@@ -287,6 +294,10 @@ describe('native full knowledge loop', () => {
           stepId: 'component-q1',
           supportedBy: [],
           businessData: ['workspace=Alpha', 'version=v3'],
+          modelRefs: {
+            entities: ['workspace'],
+            associations: ['workspace-self'],
+          },
         },
         {
           id: 'TEST-002',
@@ -297,6 +308,10 @@ describe('native full knowledge loop', () => {
           supportedBy: ['TEST-001'],
           scenarioOutcome: 'Model v3 is shown as current',
           businessData: ['workspace=Alpha', 'version=v3'],
+          modelRefs: {
+            entities: ['workspace'],
+            associations: ['workspace-self'],
+          },
         },
       ],
       tasks: [
@@ -367,6 +382,11 @@ describe('native full knowledge loop', () => {
       [],
       'No additional non-functional risk for this bounded behavior.',
     );
+    recordShowcaseProductObservation(cwd, {
+      observation: 'Opening workspace Alpha shows model version v3 as current.',
+      valueFeedback: 'The modeling lead can identify the confirmed version.',
+      evidenceRefs: ['manual://workspace-alpha/current-model-v3'],
+    });
     prepareShowcaseReview(cwd);
     recordShowcaseReview(cwd, {
       observedFacts: ['The selected Q2 exits zero and displays version v3.'],

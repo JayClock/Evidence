@@ -94,7 +94,7 @@ describe('activity tasks', () => {
       loop: 'tasking',
       understand_stage: 'modeling',
       confirmed_scenario: scenario,
-      modeling_stage: 'challenged',
+      modeling_stage: 'model_confirmed',
       modeling_profile: {
         version: 1,
         subject: 'domain',
@@ -106,6 +106,33 @@ describe('activity tasks', () => {
       },
       model_expansion_path: 'expansions/US-001-SC-001.json',
       model_git_baseline: 'baseline',
+      model_challenges: [
+        {
+          version: 1,
+          requested_outcome: 'pass',
+          outcome: 'pass',
+          summary: 'The model explains the Scenario.',
+          checked_regression_ids: ['REG-001'],
+          projection_sha256: 'projection-sha',
+          artifact_path: 'challenge.json',
+          challenged_by: 'model-challenger',
+          challenged_at: '2026-01-01T00:01:30.000Z',
+        },
+      ],
+      model_decisions: [
+        {
+          version: 1,
+          action: 'confirm',
+          reason: 'The model language is shared.',
+          challenge_artifact_path: 'challenge.json',
+          challenge_artifact_sha256: 'challenge-sha',
+          projection_sha256: 'projection-sha',
+          model_expansion_sha256: 'expansion-sha',
+          artifact_path: 'model-decision.json',
+          decided_by: 'human',
+          decided_at: '2026-01-01T00:02:00.000Z',
+        },
+      ],
       tasking_stage: 'drafting',
     });
 

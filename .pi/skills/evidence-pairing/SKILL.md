@@ -13,19 +13,20 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 
 - One `US-xxx / SC-xxx`, clean Git baseline, confirmed Scenario, model expansion.
 - Human-approved test/task list and immutable v2 process plans.
-- Current process step and expected Red behavior.
+- Current ordered `TASK-xxx / TEST-xxx`, its model references, owning process step, and expected Red behavior.
 
 ## Checkpoint loop
 
-1. **Test Driver** writes only the nearest focused behavior test and returns without running it.
-2. Controller runs the exact locked command and records Red.
-3. Human classifies Red. Only an expected behavior failure may be accepted.
-4. **Production Driver** writes the minimum implementation without changing confirmed tests.
-5. Controller records Green.
-6. Production Driver performs a bounded Refactor or explicit no-op.
-7. Controller records Refactor.
-8. Repeat for the next process step; after all steps, run each final quality gate once per revision cycle.
-9. Generate execution evidence from observations; do not hand-copy commands, exits, or paths.
+1. Navigator activates exactly one approved `TASK-xxx / TEST-xxx`; the process step supplies boundaries and the locked command, but does not replace the task.
+2. **Test Driver** writes only that TEST's nearest focused behavior test and returns without running it.
+3. Controller runs the exact locked command and records Red against the active TASK/TEST identity.
+4. Human classifies Red. Only an expected behavior failure may be accepted.
+5. **Production Driver** writes the minimum implementation without changing confirmed tests.
+6. Controller records Green.
+7. Production Driver performs a bounded Refactor or explicit no-op.
+8. Controller records Refactor and the model → TASK/TEST → changed-path trace.
+9. Repeat for the next ordered TEST, including another TEST on the same process step. After every approved TASK/TEST completes, run each final quality gate once per revision cycle.
+10. Generate execution evidence from observations; do not hand-copy commands, exits, paths, task ids, or model refs.
 
 ## Project examples
 

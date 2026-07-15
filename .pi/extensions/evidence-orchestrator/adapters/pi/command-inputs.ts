@@ -5,15 +5,22 @@ import type {
   KickoffDecisionAction,
   ModelingMethod,
   ModelingSubject,
+  ModelDecisionAction,
   RedFailureKind,
   ShowcaseDecisionAction,
   ShowcaseEvaluationActivity,
+  ShowcaseEvaluationOutcome,
   ShowcaseRiskDisposition,
   ShowcaseRiskQuadrant,
   FeedbackTarget,
   UnderstandingDecisionAction,
 } from '../../iteration/state';
-import { missingShowcaseRisks } from '../../loops/showcase/showcase-session';
+import {
+  concerningShowcaseEvaluations,
+  missingShowcaseEvaluations,
+  missingShowcaseRisks,
+  showcaseActivitiesForQuadrant,
+} from '../../loops/showcase/showcase-session';
 import type { PairNavigationAction } from '../../loops/pair/pair-session';
 
 export async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
@@ -211,6 +218,73 @@ export function parseModelingProfileDecision(
   };
 }
 
+export interface ModelDecisionInput {
+  action: ModelDecisionAction;
+  reason: string;
+}
+
+const MODEL_DECISIONS: Record<string, ModelDecisionAction> = {
+  confirm: 'confirm',
+  revise: 'revise',
+  scenario_gap: 'scenario_gap',
+  'scenario-gap': 'scenario_gap',
+  method_gap: 'method_gap',
+  'method-gap': 'method_gap',
+};
+
+export function parseModelDecision(
+  args: string,
+): ModelDecisionInput | undefined {
+  const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
+  if (!rawAction) return undefined;
+  const action = MODEL_DECISIONS[rawAction.toLowerCase()];
+  if (!action) {
+    throw new Error(
+      'Usage: /evidence-model <confirm|revise|scenario-gap|method-gap> <business reason>.',
+    );
+  }
+  const reason = reasonParts.join(' ').trim();
+  if (!reason) throw new Error(`Model ${rawAction} requires a reason.`);
+  return { action, reason };
+}
+
+export async function promptModelDecision(
+  ctx: ExtensionCommandContext,
+): Promise<ModelDecisionInput | undefined> {
+  const state = readState(ctx.cwd);
+  if (
+    state.modeling_stage !== 'model_review' ||
+    state.model_challenges?.at(-1)?.outcome !== 'pass'
+  ) {
+    throw new Error('No challenged model awaits human review.');
+  }
+  if (!ctx.hasUI) {
+    throw new Error(
+      'Model review requires interactive mode or explicit command arguments.',
+    );
+  }
+  const projection = state.model_projection;
+  const selected = await ctx.ui.select(
+    [
+      `模型投影：${projection?.mermaid_path ?? 'missing'}`,
+      `统一语言：${projection?.glossary_path ?? 'missing'}`,
+      `候选变更：${state.model_change_proposal?.artifact_path ?? 'none'}`,
+      `独立检查：${state.model_challenges?.at(-1)?.summary ?? 'missing'}`,
+    ].join('\n'),
+    ['确认模型与统一语言', '修改模型', 'Scenario 理解缺口', '建模方法缺口'],
+  );
+  if (!selected) return undefined;
+  const action: ModelDecisionAction = selected.startsWith('确认')
+    ? 'confirm'
+    : selected.startsWith('修改')
+      ? 'revise'
+      : selected.startsWith('Scenario')
+        ? 'scenario_gap'
+        : 'method_gap';
+  const reason = (await ctx.ui.input(`请说明“${selected}”的业务理由`))?.trim();
+  return reason ? { action, reason } : undefined;
+}
+
 interface DeskCheckDecisionInput {
   action: DeskCheckAction;
   reason: string;
@@ -386,6 +460,20 @@ export async function promptPairDecision(
 
 export type ShowcaseDecisionInput =
   | {
+      kind: 'observation';
+      observation: string;
+      valueFeedback: string;
+      evidenceRefs: string[];
+    }
+  | {
+      kind: 'evaluation';
+      quadrant: ShowcaseRiskQuadrant;
+      activity: ShowcaseEvaluationActivity;
+      outcome: ShowcaseEvaluationOutcome;
+      finding: string;
+      evidenceRefs: string[];
+    }
+  | {
       kind: 'risk';
       quadrant: ShowcaseRiskQuadrant;
       disposition: ShowcaseRiskDisposition;
@@ -398,18 +486,6 @@ export type ShowcaseDecisionInput =
       target?: FeedbackTarget;
       reason: string;
     };
-
-const SHOWCASE_ACTIVITIES: ShowcaseEvaluationActivity[] = [
-  'exploratory',
-  'usability',
-  'accessibility',
-  'performance',
-  'security',
-  'reliability',
-  'operability',
-  'compatibility',
-  'other',
-];
 
 const SHOWCASE_TARGETS: Record<string, FeedbackTarget> = {
   problem: 'problem',
@@ -437,6 +513,58 @@ export function parseShowcaseDecision(
   const [rawAction, ...rest] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase().replaceAll('_', '-');
+  if (action === 'observe') {
+    const evidenceRef = rest.shift();
+    const [observation, valueFeedback, ...extra] = rest
+      .join(' ')
+      .split(/\s+::\s+/);
+    if (
+      !evidenceRef ||
+      !observation?.trim() ||
+      !valueFeedback?.trim() ||
+      extra.length > 0
+    ) {
+      throw new Error(
+        'Usage: /evidence-showcase observe <evidence-ref> <observation> :: <value-feedback>.',
+      );
+    }
+    return {
+      kind: 'observation',
+      observation: observation.trim(),
+      valueFeedback: valueFeedback.trim(),
+      evidenceRefs: [evidenceRef],
+    };
+  }
+  if (action === 'evaluate') {
+    const rawScope = rest.shift() ?? '';
+    const [rawQuadrant, scopedActivity] = rawScope.split('/');
+    const rawActivity = scopedActivity || rest.shift();
+    const rawOutcome = rest.shift();
+    const evidenceRef = rest.shift();
+    const finding = rest.join(' ').trim();
+    const quadrant = rawQuadrant.toUpperCase() as ShowcaseRiskQuadrant;
+    const activity = rawActivity as ShowcaseEvaluationActivity;
+    const outcome = rawOutcome as ShowcaseEvaluationOutcome;
+    if (
+      !['Q3', 'Q4'].includes(quadrant) ||
+      !showcaseActivitiesForQuadrant(quadrant).includes(activity) ||
+      !['passed', 'concern'].includes(outcome) ||
+      !evidenceRef ||
+      !finding
+    ) {
+      throw new Error(
+        'Usage: /evidence-showcase evaluate <q3|q4>/<activity> <passed|concern> <evidence-ref> <finding>.',
+      );
+    }
+    return {
+      kind: 'evaluation',
+      quadrant,
+      activity,
+      outcome,
+      finding,
+      evidenceRefs: [evidenceRef],
+    };
+  }
   if (action === 'risk') {
     const quadrant = rest.shift()?.toUpperCase() as
       | ShowcaseRiskQuadrant
@@ -461,10 +589,12 @@ export function parseShowcaseDecision(
     if (
       disposition === 'required' &&
       (!activities?.length ||
-        activities.some((item) => !SHOWCASE_ACTIVITIES.includes(item)))
+        activities.some(
+          (item) => !showcaseActivitiesForQuadrant(quadrant).includes(item),
+        ))
     ) {
       throw new Error(
-        `Showcase required activities must use: ${SHOWCASE_ACTIVITIES.join(', ')}.`,
+        `Showcase ${quadrant} activities must use: ${showcaseActivitiesForQuadrant(quadrant).join(', ')}.`,
       );
     }
     const reason = rest.join(' ').trim();
@@ -480,7 +610,7 @@ export function parseShowcaseDecision(
   }
   if (!['accept', 'revise', 'reject'].includes(action)) {
     throw new Error(
-      'Usage: /evidence-showcase accept <reason> | revise <target> <reason> | reject <reason> | risk ...',
+      'Usage: /evidence-showcase observe ... | risk ... | evaluate ... | accept <reason> | revise <target> <reason> | reject <reason>.',
     );
   }
   const decisionAction = action as ShowcaseDecisionAction;
@@ -515,6 +645,33 @@ export async function promptShowcaseDecision(
       'Showcase decisions require interactive mode or explicit command arguments.',
     );
   }
+  if (
+    !(state.showcase_q2_observations?.length ?? 0) ||
+    state.showcase_q2_observations?.some(({ exit_code }) => exit_code !== 0)
+  ) {
+    throw new Error(
+      'Run and pass the selected Showcase Q2 observation before human product decisions.',
+    );
+  }
+  if (!(state.showcase_product_observations?.length ?? 0)) {
+    const evidenceRef = (
+      await ctx.ui.input('输入实际产品演示的证据引用（路径或 URL）')
+    )?.trim();
+    const observation = (
+      await ctx.ui.input('记录亲自观察到的产品行为')
+    )?.trim();
+    const valueFeedback = (
+      await ctx.ui.input('记录该行为带来的业务价值反馈')
+    )?.trim();
+    return evidenceRef && observation && valueFeedback
+      ? {
+          kind: 'observation',
+          observation,
+          valueFeedback,
+          evidenceRefs: [evidenceRef],
+        }
+      : undefined;
+  }
   const missing = missingShowcaseRisks(state);
   if (missing.length > 0) {
     const quadrant = (await ctx.ui.select('选择风险象限', missing)) as
@@ -532,7 +689,7 @@ export async function promptShowcaseDecision(
       disposition === 'required'
         ? (
             await ctx.ui.input(
-              `输入逗号分隔活动：${SHOWCASE_ACTIVITIES.join(', ')}`,
+              `输入逗号分隔活动：${showcaseActivitiesForQuadrant(quadrant).join(', ')}`,
             )
           )?.trim()
         : '';
@@ -541,12 +698,51 @@ export async function promptShowcaseDecision(
           .split(',')
           .map((item) => item.trim()) as ShowcaseEvaluationActivity[])
       : [];
-    if (activities.some((item) => !SHOWCASE_ACTIVITIES.includes(item))) {
+    if (
+      activities.some(
+        (item) => !showcaseActivitiesForQuadrant(quadrant).includes(item),
+      )
+    ) {
       throw new Error('Showcase contains an unsupported evaluation activity.');
     }
     const reason = (await ctx.ui.input(`请说明 ${quadrant} 决定理由`))?.trim();
     return reason
       ? { kind: 'risk', quadrant, disposition, activities, reason }
+      : undefined;
+  }
+  const evaluationScopes = [
+    ...new Set([
+      ...missingShowcaseEvaluations(state),
+      ...concerningShowcaseEvaluations(state),
+    ]),
+  ];
+  if (evaluationScopes.length > 0) {
+    const scope = await ctx.ui.select(
+      '选择待执行或需复核的 Q3/Q4 评价活动',
+      evaluationScopes,
+    );
+    if (!scope) return undefined;
+    const [quadrant, activity] = scope.split('/') as [
+      ShowcaseRiskQuadrant,
+      ShowcaseEvaluationActivity,
+    ];
+    const outcome = (await ctx.ui.select('记录评价结果', [
+      'passed',
+      'concern',
+    ])) as ShowcaseEvaluationOutcome | undefined;
+    const evidenceRef = (
+      await ctx.ui.input('输入评价活动的证据引用（路径或 URL）')
+    )?.trim();
+    const finding = (await ctx.ui.input('记录可复现的评价发现'))?.trim();
+    return outcome && evidenceRef && finding
+      ? {
+          kind: 'evaluation',
+          quadrant,
+          activity,
+          outcome,
+          finding,
+          evidenceRefs: [evidenceRef],
+        }
       : undefined;
   }
   const selected = await ctx.ui.select('Showcase 人工决定', [

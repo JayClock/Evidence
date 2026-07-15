@@ -9,7 +9,9 @@ import {
   pairNextInstruction,
 } from '../../../loops/pair/pair-session';
 import {
+  concerningShowcaseEvaluations,
   enterShowcase,
+  missingShowcaseEvaluations,
   missingShowcaseRisks,
   prepareShowcaseReview,
   showcaseNextInstruction,
@@ -37,9 +39,12 @@ export class ActivityRunBlockedError extends Error {
       | 'clarification'
       | 'scenario_decision'
       | 'modeling_profile'
+      | 'model_decision'
       | 'desk_check'
       | 'pair_navigation'
       | 'showcase_risk'
+      | 'showcase_observation'
+      | 'showcase_evaluation'
       | 'showcase_decision'
       | 'respond_decision',
     message: string,
@@ -70,6 +75,7 @@ function agentFor(state: WorkflowState): string | undefined {
   if (state.loop === 'kickoff') return 'requirements-analyst';
   if (state.loop === 'understand') {
     if (state.understand_stage === 'tqa') return 'requirements-analyst';
+    if (state.modeling_stage === 'model_review') return undefined;
     return state.modeling_stage === 'candidate_ready'
       ? 'model-challenger'
       : 'domain-modeler';
@@ -129,6 +135,8 @@ function requiredInputs(state: WorkflowState): string[] {
         'artifacts/01-requirements/examples/missing.md',
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
+      state.model_decisions?.at(-1)?.artifact_path ??
+        'artifacts/02-domain-model/model-decisions/missing.json',
       'docs/architecture/context-map.md',
       'docs/architecture/module-structure.md',
       'docs/architecture/tech-stack.md',
@@ -146,6 +154,8 @@ function requiredInputs(state: WorkflowState): string[] {
         'artifacts/01-requirements/examples/missing.md',
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
+      state.model_decisions?.at(-1)?.artifact_path ??
+        'artifacts/02-domain-model/model-decisions/missing.json',
       state.tasking_candidate?.test_list_path ??
         'artifacts/04-planning/test-list.md',
       state.tasking_candidate?.task_list_path ??
@@ -178,6 +188,14 @@ function requiredInputs(state: WorkflowState): string[] {
         : 'artifacts/05-code/missing/manifest.json',
       state.showcase_reviews?.at(-1)?.artifact_path ??
         'artifacts/06-review/missing-review.json',
+      state.showcase_product_observations?.at(-1)?.artifact_path ??
+        'artifacts/06-review/missing-product-observation.jsonl',
+      ...(state.showcase_evaluation_observations?.length
+        ? [
+            state.showcase_evaluation_observations.at(-1)?.artifact_path ??
+              'artifacts/06-review/missing-evaluation.jsonl',
+          ]
+        : []),
       'docs/knowledge-governance.md',
       'engineering/evidence-orchestrator/definition-of-done.md',
     ];
@@ -224,11 +242,31 @@ export function prepareActivityRun(
         `A selected Showcase Q2 failed. ${showcaseNextInstruction(cwd)}.`,
       );
     } else {
+      if (!(current.showcase_product_observations?.length ?? 0)) {
+        throw new ActivityRunBlockedError(
+          'showcase_observation',
+          `Showcase requires a human product/value observation. ${showcaseNextInstruction(cwd)}.`,
+        );
+      }
       const missing = missingShowcaseRisks(current);
       if (missing.length > 0) {
         throw new ActivityRunBlockedError(
           'showcase_risk',
           `Showcase requires explicit ${missing.join(' and ')} risk decisions. ${showcaseNextInstruction(cwd)}.`,
+        );
+      }
+      const missingEvaluations = missingShowcaseEvaluations(current);
+      if (missingEvaluations.length > 0) {
+        throw new ActivityRunBlockedError(
+          'showcase_evaluation',
+          `Showcase requires evaluation evidence for ${missingEvaluations.join(', ')}. ${showcaseNextInstruction(cwd)}.`,
+        );
+      }
+      const concerns = concerningShowcaseEvaluations(current);
+      if (concerns.length > 0) {
+        throw new ActivityRunBlockedError(
+          'showcase_decision',
+          `Showcase has unresolved concerns: ${concerns.join(', ')}. ${showcaseNextInstruction(cwd)}.`,
         );
       }
       if (current.showcase_stage === 'decision') {
@@ -275,6 +313,15 @@ export function prepareActivityRun(
     current.modeling_stage === 'candidate_ready'
   ) {
     current = prepareModelProjection(cwd);
+  }
+  if (
+    current.loop === 'understand' &&
+    current.modeling_stage === 'model_review'
+  ) {
+    throw new ActivityRunBlockedError(
+      'model_decision',
+      'The challenged model and ubiquitous language await human /evidence-model confirm|revise|scenario-gap|method-gap <reason>.',
+    );
   }
   if (current.loop === 'tasking' && current.tasking_stage === 'desk_check') {
     throw new ActivityRunBlockedError(

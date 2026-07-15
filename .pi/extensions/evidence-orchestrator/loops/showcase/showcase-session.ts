@@ -27,6 +27,9 @@ import type {
   ShowcaseDecisionAction,
   ShowcaseDecisionRecord,
   ShowcaseEvaluationActivity,
+  ShowcaseEvaluationObservation,
+  ShowcaseEvaluationOutcome,
+  ShowcaseProductObservation,
   ShowcaseQ2Observation,
   ShowcaseReviewRecord,
   ShowcaseReviewRecommendation,
@@ -52,17 +55,19 @@ import {
   worktreeDelta,
 } from '../../capabilities/worktree-protection/snapshot';
 
-const ACTIVITIES = new Set<ShowcaseEvaluationActivity>([
-  'exploratory',
-  'usability',
-  'accessibility',
-  'performance',
-  'security',
-  'reliability',
-  'operability',
-  'compatibility',
-  'other',
-]);
+const ACTIVITIES_BY_QUADRANT: Record<
+  ShowcaseRiskQuadrant,
+  ShowcaseEvaluationActivity[]
+> = {
+  Q3: ['exploratory', 'usability', 'accessibility', 'compatibility', 'other'],
+  Q4: ['performance', 'security', 'reliability', 'operability', 'other'],
+};
+
+export function showcaseActivitiesForQuadrant(
+  quadrant: ShowcaseRiskQuadrant,
+): ShowcaseEvaluationActivity[] {
+  return [...ACTIVITIES_BY_QUADRANT[quadrant]];
+}
 
 interface ShowcaseState extends WorkflowState {
   loop: 'showcase';
@@ -74,6 +79,20 @@ export interface ShowcaseActionResult {
   state: WorkflowState;
   output: string;
   records: TestExecutionRecord[];
+}
+
+export interface ShowcaseProductObservationInput {
+  observation: string;
+  valueFeedback: string;
+  evidenceRefs: string[];
+}
+
+export interface ShowcaseEvaluationInput {
+  quadrant: ShowcaseRiskQuadrant;
+  activity: ShowcaseEvaluationActivity;
+  outcome: ShowcaseEvaluationOutcome;
+  finding: string;
+  evidenceRefs: string[];
 }
 
 export interface ShowcaseReviewInput {
@@ -133,6 +152,20 @@ function riskPath(state: WorkflowState): string {
   );
 }
 
+function productObservationPath(state: WorkflowState): string {
+  return artifactRelativePath(
+    state,
+    'artifacts/06-review/showcase-product-observations.jsonl',
+  );
+}
+
+function evaluationObservationPath(state: WorkflowState): string {
+  return artifactRelativePath(
+    state,
+    'artifacts/06-review/showcase-evaluations.jsonl',
+  );
+}
+
 function decisionPath(state: WorkflowState): string {
   return artifactRelativePath(
     state,
@@ -144,6 +177,12 @@ function appendAudit(cwd: string, path: string, value: unknown): void {
   const absolute = join(cwd, path);
   mkdirSync(dirname(absolute), { recursive: true });
   appendFileSync(absolute, `${JSON.stringify(value)}\n`);
+}
+
+function auditCount(cwd: string, path: string): number {
+  const absolute = join(cwd, path);
+  if (!existsSync(absolute)) return 0;
+  return readFileSync(absolute, 'utf8').split('\n').filter(Boolean).length;
 }
 
 function currentRisk(
@@ -160,6 +199,62 @@ export function missingShowcaseRisks(
 ): ShowcaseRiskQuadrant[] {
   return (['Q3', 'Q4'] as const).filter(
     (quadrant) => !currentRisk(state, quadrant),
+  );
+}
+
+function latestEvaluation(
+  state: WorkflowState,
+  quadrant: ShowcaseRiskQuadrant,
+  activity: ShowcaseEvaluationActivity,
+): ShowcaseEvaluationObservation | undefined {
+  return state.showcase_evaluation_observations
+    ?.filter(
+      (observation) =>
+        observation.quadrant === quadrant && observation.activity === activity,
+    )
+    .at(-1);
+}
+
+export function missingShowcaseEvaluations(state: WorkflowState): string[] {
+  return (state.showcase_risk_decisions ?? []).flatMap((decision) =>
+    decision.disposition === 'required'
+      ? decision.activities
+          .filter(
+            (activity) => !latestEvaluation(state, decision.quadrant, activity),
+          )
+          .map((activity) => `${decision.quadrant}/${activity}`)
+      : [],
+  );
+}
+
+export function concerningShowcaseEvaluations(state: WorkflowState): string[] {
+  return (state.showcase_risk_decisions ?? []).flatMap((decision) =>
+    decision.disposition === 'required'
+      ? decision.activities
+          .filter(
+            (activity) =>
+              latestEvaluation(state, decision.quadrant, activity)?.outcome ===
+              'concern',
+          )
+          .map((activity) => `${decision.quadrant}/${activity}`)
+      : [],
+  );
+}
+
+function hasProductObservation(state: WorkflowState): boolean {
+  const scenario = state.confirmed_scenario;
+  const observation = state.showcase_product_observations?.at(-1);
+  return Boolean(
+    scenario &&
+      observation &&
+      observation.story_id === scenario.story_id &&
+      observation.scenario_id === scenario.scenario_id &&
+      JSON.stringify(observation.given) === JSON.stringify(scenario.given) &&
+      observation.when === scenario.when &&
+      JSON.stringify(observation.observed_outcomes) ===
+        JSON.stringify(scenario.then) &&
+      JSON.stringify(observation.business_data) ===
+        JSON.stringify(scenario.business_data),
   );
 }
 
@@ -233,6 +328,8 @@ export function enterShowcase(
     showcase_stage: 'setup',
     showcase_q2_observations: undefined,
     showcase_risk_decisions: undefined,
+    showcase_product_observations: undefined,
+    showcase_evaluation_observations: undefined,
   });
 }
 
@@ -307,7 +404,7 @@ Then: ${scenario?.then.join('；') ?? 'missing'}
 
 ${result}
 
-${observations.every(({ exit_code }) => exit_code === 0) ? 'All selected Q2 observations passed. Record explicit Q3 and Q4 risk decisions next.' : 'At least one selected Q2 observation failed. Accept is blocked; route the feedback with /evidence-showcase revise.'}`,
+${observations.every(({ exit_code }) => exit_code === 0) ? 'All selected Q2 observations passed. A human must now observe the actual product behavior and value.' : 'At least one selected Q2 observation failed. Accept is blocked; route the feedback with /evidence-showcase revise.'}`,
   };
 }
 
@@ -331,8 +428,15 @@ export function recordShowcaseRisk(
   }
   const normalizedReason = nonEmpty(reason, `${quadrant} risk decision`);
   const normalizedActivities = [...new Set(activities)];
-  if (normalizedActivities.some((activity) => !ACTIVITIES.has(activity))) {
-    throw new Error(`${quadrant} has an unsupported evaluation activity.`);
+  const allowedActivities = showcaseActivitiesForQuadrant(quadrant);
+  if (
+    normalizedActivities.some(
+      (activity) => !allowedActivities.includes(activity),
+    )
+  ) {
+    throw new Error(
+      `${quadrant} activities must use: ${allowedActivities.join(', ')}.`,
+    );
   }
   if (
     (disposition === 'required' && normalizedActivities.length === 0) ||
@@ -359,6 +463,105 @@ export function recordShowcaseRisk(
       ),
       decision,
     ].sort((left, right) => left.quadrant.localeCompare(right.quadrant)),
+  });
+}
+
+export function recordShowcaseProductObservation(
+  cwd: string,
+  input: ShowcaseProductObservationInput,
+  now = new Date().toISOString(),
+): WorkflowState {
+  const state = showcaseState(cwd);
+  if (state.showcase_stage !== 'setup' || !latestQ2Passed(cwd, state)) {
+    throw new Error(
+      'A human product observation requires passed Showcase Q2 during setup.',
+    );
+  }
+  const scenario = state.confirmed_scenario;
+  if (!scenario) throw new Error('Showcase has no confirmed Scenario.');
+  const path = productObservationPath(state);
+  const observation: ShowcaseProductObservation = {
+    version: 1,
+    observation_id: `OBS-${String(auditCount(cwd, path) + 1).padStart(3, '0')}`,
+    story_id: scenario.story_id,
+    scenario_id: scenario.scenario_id,
+    given: [...scenario.given],
+    when: scenario.when,
+    observed_outcomes: [...scenario.then],
+    business_data: [...scenario.business_data],
+    observation: nonEmpty(input.observation, 'Product observation'),
+    value_feedback: nonEmpty(input.valueFeedback, 'Product value feedback'),
+    evidence_refs: nonEmptyItems(input.evidenceRefs, 'Product evidence refs'),
+    artifact_path: path,
+    observed_by: 'human',
+    observed_at: now,
+  };
+  if (observation.evidence_refs.length === 0) {
+    throw new Error('Product observation requires at least one evidence ref.');
+  }
+  appendAudit(cwd, path, observation);
+  return writeState(cwd, {
+    ...state,
+    showcase_product_observations: [
+      ...(state.showcase_product_observations ?? []),
+      observation,
+    ],
+  });
+}
+
+export function recordShowcaseEvaluation(
+  cwd: string,
+  input: ShowcaseEvaluationInput,
+  now = new Date().toISOString(),
+): WorkflowState {
+  const state = showcaseState(cwd);
+  if (state.showcase_stage !== 'setup' || !latestQ2Passed(cwd, state)) {
+    throw new Error('A Showcase evaluation requires passed Q2 during setup.');
+  }
+  const risk = currentRisk(state, input.quadrant);
+  if (
+    !risk ||
+    risk.disposition !== 'required' ||
+    !risk.activities.includes(input.activity)
+  ) {
+    throw new Error(
+      `${input.quadrant}/${input.activity} is not a required Showcase activity.`,
+    );
+  }
+  if (!showcaseActivitiesForQuadrant(input.quadrant).includes(input.activity)) {
+    throw new Error(
+      `${input.activity} is not an activity for ${input.quadrant}.`,
+    );
+  }
+  if (!['passed', 'concern'].includes(input.outcome)) {
+    throw new Error('Showcase evaluation outcome must be passed or concern.');
+  }
+  const path = evaluationObservationPath(state);
+  const observation: ShowcaseEvaluationObservation = {
+    version: 1,
+    evaluation_id: `EVAL-${String(auditCount(cwd, path) + 1).padStart(3, '0')}`,
+    quadrant: input.quadrant,
+    activity: input.activity,
+    outcome: input.outcome,
+    finding: nonEmpty(input.finding, 'Showcase evaluation finding'),
+    evidence_refs: nonEmptyItems(
+      input.evidenceRefs,
+      'Showcase evaluation evidence refs',
+    ),
+    artifact_path: path,
+    observed_by: 'human',
+    observed_at: now,
+  };
+  if (observation.evidence_refs.length === 0) {
+    throw new Error('Showcase evaluation requires at least one evidence ref.');
+  }
+  appendAudit(cwd, path, observation);
+  return writeState(cwd, {
+    ...state,
+    showcase_evaluation_observations: [
+      ...(state.showcase_evaluation_observations ?? []),
+      observation,
+    ],
   });
 }
 
@@ -421,6 +624,23 @@ export function validateShowcaseReadiness(
       `Showcase requires explicit risk decisions for ${missing.join(' and ')}.`,
     );
   }
+  if (!hasProductObservation(state)) {
+    throw new Error(
+      'Showcase requires a human observation of the actual product behavior and value.',
+    );
+  }
+  const missingEvaluations = missingShowcaseEvaluations(state);
+  if (missingEvaluations.length > 0) {
+    throw new Error(
+      `Showcase requires execution evidence for ${missingEvaluations.join(', ')}.`,
+    );
+  }
+  const concerns = concerningShowcaseEvaluations(state);
+  if (concerns.length > 0) {
+    throw new Error(
+      `Showcase has unresolved evaluation concerns: ${concerns.join(', ')}. Route feedback before acceptance.`,
+    );
+  }
   if (requireReview && state.showcase_stage !== 'decision') {
     throw new Error('Showcase requires an independent Reviewer report.');
   }
@@ -479,13 +699,21 @@ export function recordShowcaseReview(
   const base = `artifacts/06-review/${workItem.story_id}/${workItem.scenario_id}.review-${String(round).padStart(3, '0')}`;
   const artifactPathValue = artifactRelativePath(state, `${base}.json`);
   const summaryPathValue = artifactRelativePath(state, `${base}.md`);
+  const productObservationIds = (state.showcase_product_observations ?? []).map(
+    ({ observation_id }) => observation_id,
+  );
+  const evaluationIds = (state.showcase_evaluation_observations ?? []).map(
+    ({ evaluation_id }) => evaluation_id,
+  );
   const document = {
-    version: 1 as const,
+    version: 2 as const,
     story_id: workItem.story_id,
     scenario_id: workItem.scenario_id,
     git_baseline: workItem.git_baseline,
     execution_manifest_path: evidence.manifest,
     execution_manifest_sha256: digest(manifestContent),
+    product_observation_ids: productObservationIds,
+    evaluation_ids: evaluationIds,
     observed_facts: observedFacts,
     product_domain_feedback: productDomainFeedback,
     technical_quality_feedback: technicalQualityFeedback,
@@ -497,7 +725,13 @@ export function recordShowcaseReview(
   const content = `${JSON.stringify(document, null, 2)}\n`;
   const summary = `# Showcase Review — ${workItem.story_id} / ${workItem.scenario_id}
 
-## Observed facts
+## Human product observations
+${(state.showcase_product_observations ?? []).map(({ observation_id, given, when, observed_outcomes, business_data, observation, value_feedback }) => `- ${observation_id}: Given ${given.join('；')} · When ${when} · Then ${observed_outcomes.join('；')} · data=${business_data.join('；')} · observed=${observation} · value=${value_feedback}`).join('\n')}
+
+## Q3/Q4 evaluations
+${(state.showcase_evaluation_observations ?? []).map(({ evaluation_id, quadrant, activity, outcome, finding }) => `- ${evaluation_id}: ${quadrant}/${activity}=${outcome} · ${finding}`).join('\n') || '- none required'}
+
+## Reviewer-observed facts
 ${observedFacts.map((item) => `- ${item}`).join('\n')}
 
 ## Product / domain feedback
@@ -622,6 +856,8 @@ function clearShowcaseCurrent(state: WorkflowState): WorkflowState {
     showcase_stage: undefined,
     showcase_q2_observations: undefined,
     showcase_risk_decisions: undefined,
+    showcase_product_observations: undefined,
+    showcase_evaluation_observations: undefined,
   };
 }
 
@@ -658,6 +894,12 @@ function routeRevision(
             : target === 'refactor'
               ? 'green_observed'
               : 'red_observed',
+        completed_task_ids: session.completed_task_ids.filter(
+          (id) => id !== session.task_id,
+        ),
+        completed_test_ids: session.completed_test_ids.filter(
+          (id) => id !== session.test_id,
+        ),
         completed_step_ids: session.completed_step_ids.filter(
           (key) => key !== currentKey,
         ),
@@ -844,6 +1086,36 @@ export function validateShowcaseEvidence(cwd: string): void {
       throw new Error('Showcase risk audit is missing or stale.');
     }
   }
+  const productObservations = state.showcase_product_observations ?? [];
+  if (productObservations.length > 0) {
+    const audit = readFileSync(
+      join(cwd, productObservationPath(state)),
+      'utf8',
+    );
+    if (
+      productObservations.some(
+        (observation) => !audit.includes(JSON.stringify(observation)),
+      )
+    ) {
+      throw new Error(
+        'Showcase product-observation audit is missing or stale.',
+      );
+    }
+  }
+  const evaluations = state.showcase_evaluation_observations ?? [];
+  if (evaluations.length > 0) {
+    const audit = readFileSync(
+      join(cwd, evaluationObservationPath(state)),
+      'utf8',
+    );
+    if (
+      evaluations.some(
+        (observation) => !audit.includes(JSON.stringify(observation)),
+      )
+    ) {
+      throw new Error('Showcase evaluation audit is missing or stale.');
+    }
+  }
   for (const review of state.showcase_reviews ?? []) {
     const content = readFileSync(join(cwd, review.artifact_path));
     if (
@@ -865,14 +1137,22 @@ export function validateShowcaseEvidence(cwd: string): void {
   if (['decision', 'accepted'].includes(state.showcase_stage)) {
     const latestReview = state.showcase_reviews?.at(-1);
     const currentManifestPath = executionEvidencePaths(cwd).manifest;
+    const productIds = productObservations.map(
+      ({ observation_id }) => observation_id,
+    );
+    const evaluationIds = evaluations.map(({ evaluation_id }) => evaluation_id);
     if (
       !latestReview ||
       !currentManifestPath ||
       digest(readFileSync(join(cwd, currentManifestPath))) !==
-        latestReview.execution_manifest_sha256
+        latestReview.execution_manifest_sha256 ||
+      JSON.stringify(latestReview.product_observation_ids) !==
+        JSON.stringify(productIds) ||
+      JSON.stringify(latestReview.evaluation_ids) !==
+        JSON.stringify(evaluationIds)
     ) {
       throw new Error(
-        'The latest Showcase review references a stale manifest.',
+        'The latest Showcase review references stale execution or human-observation evidence.',
       );
     }
     const q2Passed =
@@ -880,10 +1160,13 @@ export function validateShowcaseEvidence(cwd: string): void {
     if (
       !q2Passed ||
       missingShowcaseRisks(state).length > 0 ||
+      !hasProductObservation(state) ||
+      missingShowcaseEvaluations(state).length > 0 ||
+      concerningShowcaseEvaluations(state).length > 0 ||
       !state.showcase_reviews?.length
     ) {
       throw new Error(
-        'Completed Showcase evidence requires passed Q2, Q3/Q4 decisions, and an independent review.',
+        'Completed Showcase evidence requires passed Q2, human product observation, executed Q3/Q4 decisions, and an independent review.',
       );
     }
   }
@@ -907,9 +1190,20 @@ export function showcaseNextInstruction(cwd: string): string {
       ? '/evidence-showcase revise <target> <reason>'
       : '/evidence-run executes the selected Q2 Showcase observation';
   }
+  if (!hasProductObservation(state)) {
+    return '/evidence-showcase observe <evidence-ref> <observation> :: <value-feedback>';
+  }
   const missing = missingShowcaseRisks(state);
   if (missing.length > 0) {
     return `/evidence-showcase risk ${missing[0]?.toLowerCase()} <not-required|required> [activities] <reason>`;
+  }
+  const missingEvaluations = missingShowcaseEvaluations(state);
+  if (missingEvaluations.length > 0) {
+    return `/evidence-showcase evaluate ${missingEvaluations[0]} <passed|concern> <evidence-ref> <finding>`;
+  }
+  const concerns = concerningShowcaseEvaluations(state);
+  if (concerns.length > 0) {
+    return `/evidence-showcase evaluate ${concerns[0]} <passed|concern> <evidence-ref> <finding> or revise <target> <reason> — unresolved: ${concerns.join(', ')}`;
   }
   if (state.showcase_stage === 'decision') {
     return '/evidence-showcase accept|revise|reject <reason>';

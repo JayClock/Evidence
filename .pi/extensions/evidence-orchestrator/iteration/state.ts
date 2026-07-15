@@ -48,7 +48,13 @@ export type ModelingStage =
   | 'profile_review'
   | 'expansion'
   | 'candidate_ready'
-  | 'challenged';
+  | 'model_review'
+  | 'model_confirmed';
+export type ModelDecisionAction =
+  | 'confirm'
+  | 'revise'
+  | 'scenario_gap'
+  | 'method_gap';
 export type ModelOperationAction = 'add' | 'update' | 'remove';
 export type ModelElementKind = 'entity' | 'association';
 export type ClarificationTarget = 'business_context' | 'story' | 'history';
@@ -155,13 +161,19 @@ export interface TestProcessSelection {
   /** Whitelist-expanded commands locked before Pairing. */
   focused_commands: MaterializedTestCommand[];
   materialized_sha256: string;
-  materialized_plan_path: string;
+  /** Present only after human Desk Check locks the selected process. */
+  materialized_plan_path?: string;
 }
 
 /** Ordered, cross-runtime v2 test processes selected for one vertical Scenario. */
 export interface TestPlan {
   version: 2;
   processes: TestProcessSelection[];
+}
+
+export interface ModelRefs {
+  entities: string[];
+  associations: string[];
 }
 
 export interface TaskingTestItem {
@@ -174,6 +186,8 @@ export interface TaskingTestItem {
   supported_by: string[];
   scenario_outcome?: string;
   business_data: string[];
+  /** Canonical model facts exercised by this test intent. */
+  model_refs: ModelRefs;
 }
 
 export interface TaskingImplementationTask {
@@ -181,10 +195,12 @@ export interface TaskingImplementationTask {
   description: string;
   test_ids: string[];
   depends_on: string[];
+  /** Deterministic union of the linked tests' model references. */
+  model_refs: ModelRefs;
 }
 
 export interface TaskingCandidate {
-  version: 1;
+  version: 2;
   draft_id: string;
   story_id: string;
   scenario_id: string;
@@ -219,6 +235,8 @@ export interface DeskCheckDecision {
 export interface PairObservation {
   process_id: string;
   step_id?: string;
+  task_id?: string;
+  test_id?: string;
   stage: 'red' | 'green' | 'refactor' | 'quality_gate';
   command: string;
   sequence: number;
@@ -245,8 +263,11 @@ export interface PairFeedbackRecord {
 
 export interface PairDriverRecord {
   mode: PairDriverMode;
+  task_id: string;
+  test_id: string;
   process_id: string;
   step_id: string;
+  model_refs: ModelRefs;
   changed_paths: string[];
   diff_sha256: string;
   summary: string;
@@ -254,13 +275,17 @@ export interface PairDriverRecord {
 }
 
 export interface PairSession {
-  version: 1;
+  version: 2;
   story_id: string;
   scenario_id: string;
   git_baseline: string;
   checkpoint: PairCheckpoint;
+  task_id: string;
+  test_id: string;
   process_id: string;
   step_id: string;
+  completed_task_ids: string[];
+  completed_test_ids: string[];
   completed_step_ids: string[];
   test_paths: string[];
   production_paths: string[];
@@ -294,13 +319,47 @@ export interface ShowcaseRiskDecision {
   decided_at: string;
 }
 
-export interface ShowcaseReviewRecord {
+export interface ShowcaseProductObservation {
   version: 1;
+  observation_id: string;
+  story_id: string;
+  scenario_id: string;
+  given: string[];
+  when: string;
+  observed_outcomes: string[];
+  business_data: string[];
+  observation: string;
+  value_feedback: string;
+  evidence_refs: string[];
+  artifact_path: string;
+  observed_by: 'human';
+  observed_at: string;
+}
+
+export type ShowcaseEvaluationOutcome = 'passed' | 'concern';
+
+export interface ShowcaseEvaluationObservation {
+  version: 1;
+  evaluation_id: string;
+  quadrant: ShowcaseRiskQuadrant;
+  activity: ShowcaseEvaluationActivity;
+  outcome: ShowcaseEvaluationOutcome;
+  finding: string;
+  evidence_refs: string[];
+  artifact_path: string;
+  observed_by: 'human';
+  observed_at: string;
+}
+
+export interface ShowcaseReviewRecord {
+  version: 2;
   story_id: string;
   scenario_id: string;
   git_baseline: string;
   execution_manifest_path: string;
   execution_manifest_sha256: string;
+  product_observation_ids: string[];
+  evaluation_ids: string[];
   observed_facts: string[];
   product_domain_feedback: string[];
   technical_quality_feedback: string[];
@@ -544,6 +603,20 @@ export interface ModelChallengeRecord {
   challenged_at: string;
 }
 
+export interface ModelDecisionRecord {
+  version: 1;
+  action: ModelDecisionAction;
+  reason: string;
+  challenge_artifact_path: string;
+  challenge_artifact_sha256: string;
+  projection_sha256: string;
+  model_expansion_sha256: string;
+  model_change_proposal_sha256?: string;
+  artifact_path: string;
+  decided_by: 'human';
+  decided_at: string;
+}
+
 export interface WorkflowFeedback {
   target: FeedbackTarget;
   from_loop: WorkflowLoop;
@@ -576,6 +649,7 @@ export interface WorkflowState {
   model_change_application?: ModelChangeApplication;
   model_projection?: ModelProjectionRecord;
   model_challenges?: ModelChallengeRecord[];
+  model_decisions?: ModelDecisionRecord[];
   tasking_stage?: TaskingStage;
   tasking_candidate?: TaskingCandidate;
   tasking_gap?: TaskingGap;
@@ -586,6 +660,8 @@ export interface WorkflowState {
   showcase_stage?: ShowcaseStage;
   showcase_q2_observations?: ShowcaseQ2Observation[];
   showcase_risk_decisions?: ShowcaseRiskDecision[];
+  showcase_product_observations?: ShowcaseProductObservation[];
+  showcase_evaluation_observations?: ShowcaseEvaluationObservation[];
   showcase_reviews?: ShowcaseReviewRecord[];
   showcase_decisions?: ShowcaseDecisionRecord[];
   showcase_review_failures?: ShowcaseReviewFailure[];

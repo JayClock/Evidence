@@ -7,27 +7,28 @@ description: Turn one confirmed Evidence Scenario into a reviewable Q2/Q1 test l
 
 ## When to use
 
-Use only after model challenge passes and before Pair. Reuse after architecture, strategy, or process feedback routes to Tasking.
+Use only after the independent model challenge passes **and a human confirms the model and ubiquitous language**, before Pair. Reuse after architecture, strategy, or process feedback routes to Tasking.
 
 ## Inputs
 
 - Confirmed Scenario, exact Then outcomes, and business data.
-- Model expansion and generated context projection.
+- Human-confirmed model expansion and generated context projection, including stable entity and association ids.
 - Stable context map, test strategy, test doubles, runtime vocabulary, API contract, and v2 process catalog.
 
 ## Tasking sequence
 
 1. List Q2 acceptance intent directly from each confirmed Then outcome and preserve business data verbatim.
 2. Add Q1 tests that localize likely Q2 failures; non-goals never become reverse tests.
-3. Separate dimensions:
+3. Give every `TEST-xxx` explicit `modelRefs` drawn only from the confirmed expansion. Across the test list, cover every expansion reference; method `none` is the only valid empty trace.
+4. Separate dimensions:
    - functional context = stable business capability;
    - runtime = Rust, TypeScript, or Tauri;
    - technical boundary = API, ORM, UI, shell, etc.
-4. Select Rust **or** Nest for one server capability, never both.
-5. Match v2 processes by all capabilities and boundaries. Zero or multiple matches are knowledge gaps; do not choose heuristically.
-6. Cover selected process steps in declared order, including real boundaries, replaced boundaries, doubles, focused-command variables, and final gates.
-7. Build dependency-ordered tasks; every task references at least one `TEST-xxx`.
-8. Call `evidence_orchestrator_propose_tasking` and stop for human Desk Check.
+5. Select Rust **or** Nest for one server capability, never both.
+6. Match v2 processes by all capabilities and boundaries. Zero or multiple matches are knowledge gaps; do not choose heuristically.
+7. Cover selected process steps in declared order, including real boundaries, replaced boundaries, doubles, focused-command variables, and final gates.
+8. Build dependency-ordered tasks. Every `TEST-xxx` belongs to exactly one task; task/test order must preserve process-step order. Task model refs are the deterministic union of their tests.
+9. Call `evidence_orchestrator_propose_tasking` and stop for human Desk Check.
 
 ## Project examples
 

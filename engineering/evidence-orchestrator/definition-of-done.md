@@ -5,19 +5,19 @@
 ## 所有增量
 
 - 用户价值由一个明确的 `US-xxx / SC-xxx` Given/When/Then 场景定义。
-- 场景已通过 `.evidence` 模型展开，概念、关系、不变量和时间线可解释。
-- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整。
+- 场景已通过 `.evidence` 模型展开和独立挑战，并由人类确认模型投影、概念、关系、统一语言、不变量、时间线及候选变更。
+- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；Scenario → model refs → TASK/TEST → code paths 可复核。
 - 稳定知识写入统一知识源；iteration 仅保存输入、delta、决策和执行证据。
 - 所有改动遵守 `AGENTS.md` 的模块和 runtime 边界。
 
 ## 编码
 
-- 先产生预期行为失败的 Red，再完成最小 Green，最后安全 Refactor。
+- 每个批准的 TASK/TEST 分别先产生预期行为失败的 Red，再完成最小 Green，最后安全 Refactor；同一 process step 下的多个 TEST 不得合并完成。
 - 每项功能测试和实现都可追踪到已确认的 `US-xxx / SC-xxx`；没有对应验收场景的功能不生成生产代码或测试代码，非目标不产生反向测试。
 - 已确认范围内的拒绝、失败和边界行为属于对应验收场景，应按所选测试工序验证。
 - 同时存在真实测试和生产代码改动；Markdown 不替代实现。
 - 受控 append-only `execution.jsonl` 是命令、退出码、输出摘要/哈希、计划哈希和 Git 工作树哈希的唯一原始执行事实；`manifest.json` 与可选 `summary.md` 只能由工具确定性生成，Agent 不手填命令、退出码或 changed paths。
-- Showcase 重新观测已选 Q2 并展示确认的 Given/When/Then；Q3/Q4 均有带理由的显式风险决定，`required` 同时声明具体评价活动。只有人类 accept 才能进入 Respond。
+- Showcase 重新观测已选 Q2，并由人类记录实际产品 Given/When/Then、业务数据和价值反馈；Q3/Q4 均有带理由的显式风险决定，`required` 的每项活动都有执行证据且没有未解决 concern。只有人类 accept 才能进入 Respond。
 - Rust 与 Nest server track 不混合实现同一服务端能力。
 - Domain 不依赖 HTTP、ORM、UI 或桌面框架；协议层不承载业务规则。
 

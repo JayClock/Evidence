@@ -18,6 +18,7 @@ function agentName(state: WorkflowState): string | undefined {
   if (state.loop === 'kickoff') return 'requirements-analyst';
   if (state.loop === 'understand') {
     if (state.understand_stage === 'tqa') return 'requirements-analyst';
+    if (state.modeling_stage === 'model_review') return undefined;
     return state.modeling_stage === 'candidate_ready'
       ? 'model-challenger'
       : 'domain-modeler';
@@ -42,6 +43,9 @@ function nextActions(cwd: string, state: WorkflowState): string {
   if (state.loop === 'showcase') return showcaseNextInstruction(cwd);
   if (state.loop === 'respond' && state.respond_stage === 'decision') {
     return 'human:/evidence-respond approve|revise <reason>';
+  }
+  if (state.loop === 'understand' && state.modeling_stage === 'model_review') {
+    return 'human:/evidence-model confirm|revise|scenario-gap|method-gap <reason>';
   }
   if (state.loop === 'tasking' && state.tasking_stage === 'desk_check') {
     return 'human:/evidence-desk-check';
@@ -106,15 +110,19 @@ export function statusMarkdown(cwd: string): string {
     `| Modeling Stage | ${state.modeling_stage ?? 'none'} |`,
     `| Modeling Profile | ${state.modeling_profile ? `${state.modeling_profile.subject}/${state.modeling_profile.method}` : 'none'} |`,
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,
+    `| Model Decision | ${state.model_decisions?.at(-1)?.action ?? 'none'} |`,
     `| Tasking Stage | ${state.tasking_stage ?? 'none'} |`,
     `| Tasking Draft | ${state.tasking_candidate?.draft_id ?? 'none'} |`,
     `| Approved Test Plan | ${state.approved_test_plan_path ?? 'none'} |`,
     `| Pair Checkpoint | ${state.pair_session?.checkpoint ?? 'none'} |`,
+    `| Pair Unit | ${state.pair_session ? `${state.pair_session.task_id}/${state.pair_session.test_id}` : 'none'} |`,
     `| Pair Step | ${state.pair_session ? `${state.pair_session.process_id}/${state.pair_session.step_id}` : 'none'} |`,
     `| Execution Log | ${execution.log ?? 'none'} |`,
     `| Execution Manifest | ${execution.manifest ?? 'none'} |`,
     `| Execution Summary | ${execution.summary ?? 'none'} |`,
     `| Showcase Stage | ${state.showcase_stage ?? 'none'} |`,
+    `| Human Product Observations | ${state.showcase_product_observations?.length ?? 0} |`,
+    `| Q3/Q4 Evaluation Observations | ${state.showcase_evaluation_observations?.length ?? 0} |`,
     `| Showcase Review | ${reviews ? `${reviews.recommendation} · ${reviews.artifact_path}` : 'none'} |`,
     `| Showcase Decision | ${decision?.action ?? 'none'} |`,
     `| Respond Stage | ${state.respond_stage ?? 'none'} |`,

@@ -22,6 +22,8 @@ import type {
   PairObservation,
   PairSession,
   RedFailureKind,
+  TaskingImplementationTask,
+  TaskingTestItem,
   TestProcessSelection,
   WorkflowState,
 } from '../../iteration/state';
@@ -36,6 +38,11 @@ interface PairStep {
   process: TestProcessSelection;
   stepId: string;
   command: string;
+}
+
+interface PairWorkUnit extends PairStep {
+  task: TaskingImplementationTask;
+  test: TaskingTestItem;
 }
 
 interface PairQualityGate {
@@ -138,40 +145,92 @@ function qualityGates(cwd: string, state: WorkflowState): PairQualityGate[] {
   );
 }
 
-function currentStep(cwd: string, state: WorkflowState): PairStep {
+function pairWorkUnits(cwd: string, state: WorkflowState): PairWorkUnit[] {
+  const candidate = state.tasking_candidate;
+  if (!candidate || !state.approved_test_plan_path) {
+    throw new Error('Pair has no approved Tasking candidate.');
+  }
+  const approvedContent = readFileSync(
+    join(cwd, state.approved_test_plan_path),
+    'utf8',
+  );
+  const approved = JSON.parse(approvedContent) as {
+    tests?: unknown;
+    tasks?: unknown;
+  };
+  if (
+    digest(approvedContent) !== state.approved_test_plan_sha256 ||
+    JSON.stringify(approved.tests) !== JSON.stringify(candidate.tests) ||
+    JSON.stringify(approved.tasks) !== JSON.stringify(candidate.tasks)
+  ) {
+    throw new Error('Approved TASK/TEST traceability drifted before Pair.');
+  }
+  const steps = new Map(
+    pairSteps(cwd, state).map((step) => [
+      `${step.process.id}/${step.stepId}`,
+      step,
+    ]),
+  );
+  const tests = new Map(candidate.tests.map((test) => [test.id, test]));
+  const seen = new Set<string>();
+  const units = candidate.tasks.flatMap((task) =>
+    task.test_ids.map((testId) => {
+      if (seen.has(testId)) {
+        throw new Error(`${testId} belongs to more than one Pair task.`);
+      }
+      seen.add(testId);
+      const test = tests.get(testId);
+      if (!test) throw new Error(`${task.id} references missing ${testId}.`);
+      const step = steps.get(`${test.process_id}/${test.step_id}`);
+      if (!step) {
+        throw new Error(`${testId} references an unapproved process step.`);
+      }
+      return { ...step, task, test };
+    }),
+  );
+  if (units.length !== candidate.tests.length) {
+    throw new Error(
+      'Every approved test must belong to exactly one Pair task.',
+    );
+  }
+  return units;
+}
+
+function currentWorkUnit(cwd: string, state: WorkflowState): PairWorkUnit {
   const session = state.pair_session;
   if (!session) throw new Error('Pair has no session.');
-  const step = pairSteps(cwd, state).find(
-    ({ process, stepId }) =>
-      process.id === session.process_id && stepId === session.step_id,
+  const unit = pairWorkUnits(cwd, state).find(
+    ({ task, test, process, stepId }) =>
+      task.id === session.task_id &&
+      test.id === session.test_id &&
+      process.id === session.process_id &&
+      stepId === session.step_id,
   );
-  if (!step) throw new Error('Current Pair process step is not approved.');
-  return step;
+  if (!unit) throw new Error('Current Pair TASK/TEST unit is not approved.');
+  return unit;
 }
 
 function stepKey(step: PairStep): string {
   return `${step.process.id}/${step.stepId}`;
 }
 
-function nextIncompleteStep(
-  cwd: string,
-  state: WorkflowState,
-): PairStep | undefined {
-  const completed = new Set(state.pair_session?.completed_step_ids ?? []);
-  return pairSteps(cwd, state).find((step) => !completed.has(stepKey(step)));
+function unitKey(unit: PairWorkUnit): string {
+  return `${unit.task.id}/${unit.test.id}`;
 }
 
-function expectedRed(state: WorkflowState, step: PairStep): string {
-  const intents = state.tasking_candidate?.tests
-    .filter(
-      ({ process_id, step_id }) =>
-        process_id === step.process.id && step_id === step.stepId,
-    )
-    .map(({ intent }) => intent)
-    .join('；');
-  if (!intents)
-    throw new Error(`No approved test intent for ${stepKey(step)}.`);
-  return intents;
+function nextIncompleteWorkUnit(
+  cwd: string,
+  state: WorkflowState,
+): PairWorkUnit | undefined {
+  const completed = new Set(state.pair_session?.completed_test_ids ?? []);
+  return pairWorkUnits(cwd, state).find(({ test }) => !completed.has(test.id));
+}
+
+function expectedRed(unit: PairWorkUnit): string {
+  if (!unit.test.intent.trim()) {
+    throw new Error(`No approved test intent for ${unitKey(unit)}.`);
+  }
+  return unit.test.intent;
 }
 
 export function pairDriverMode(
@@ -199,9 +258,7 @@ export function pairDeterministicAction(
   if (session.checkpoint === 'test_written') return 'run_red';
   if (session.checkpoint === 'implementation_written') return 'run_green';
   if (session.checkpoint === 'refactored') {
-    return session.completed_step_ids.includes(
-      `${session.process_id}/${session.step_id}`,
-    )
+    return session.completed_test_ids.includes(session.test_id)
       ? 'run_quality_gate'
       : 'run_refactor';
   }
@@ -217,20 +274,24 @@ export function buildPairDriverTask(
   if (!session || !state.approved_test_plan_path) {
     throw new Error('Pair Driver requires an approved plan and session.');
   }
-  const step = currentStep(cwd, state);
-  const definition = readTestProcess(join(cwd, step.process.path));
-  const processStep = definition.steps.find(({ id }) => id === step.stepId);
-  if (!processStep) throw new Error(`Missing process step ${stepKey(step)}.`);
+  const unit = currentWorkUnit(cwd, state);
+  const definition = readTestProcess(join(cwd, unit.process.path));
+  const processStep = definition.steps.find(({ id }) => id === unit.stepId);
+  if (!processStep) throw new Error(`Missing process step ${stepKey(unit)}.`);
   const common = `方法：先加载并遵守 .pi/skills/evidence-pairing/SKILL.md。
 当前工作项：${session.story_id} / ${session.scenario_id}
-当前步骤：${stepKey(step)} · ${processStep.purpose}
+当前 TASK：${unit.task.id} · ${unit.task.description}
+当前 TEST：${unit.test.id} · ${unit.test.intent}
+模型追踪：entities=${unit.test.model_refs.entities.join(',') || 'none'}；associations=${unit.test.model_refs.associations.join(',') || 'none'}
+当前步骤：${stepKey(unit)} · ${processStep.purpose}
 Git baseline：${session.git_baseline}
 确认 Scenario：${state.confirmed_scenario?.artifact_path ?? 'missing'}
 模型展开：${state.model_expansion_path ?? 'missing'}
+人工模型决定：${state.model_decisions?.at(-1)?.artifact_path ?? 'missing'}
 测试列表：${state.tasking_candidate?.test_list_path ?? 'missing'}
 任务列表：${state.tasking_candidate?.task_list_path ?? 'missing'}
 锁定计划：${state.approved_test_plan_path}
-聚焦命令（Driver 不运行）：${step.command}`;
+聚焦命令（Driver 不运行）：${unit.command}`;
   if (mode === 'test') {
     return `执行一个且仅一个 Test Driver checkpoint。
 
@@ -386,7 +447,7 @@ function allowedDriverPath(
   snapshot: PairWorktreeSnapshot,
 ): boolean {
   if (mode === 'test') {
-    const step = currentStep(cwd, state);
+    const step = currentWorkUnit(cwd, state);
     const definition = readTestProcess(join(cwd, step.process.path));
     const roots = definition.steps.find(({ id }) => id === step.stepId)
       ?.nearest_test.roots;
@@ -398,7 +459,7 @@ function allowedDriverPath(
             preservesRustRegion(cwd, snapshot, path, 'production'))),
     );
   }
-  const process = currentStep(cwd, state).process;
+  const process = currentWorkUnit(cwd, state).process;
   const technical = readTestProcess(
     join(cwd, process.path),
   ).technical_boundaries;
@@ -568,11 +629,14 @@ export function completePairDriver(
     );
   }
   const diff = diffForPaths(cwd, changedPaths);
-  const step = currentStep(cwd, state);
+  const unit = currentWorkUnit(cwd, state);
   const record = {
     mode,
-    process_id: step.process.id,
-    step_id: step.stepId,
+    task_id: unit.task.id,
+    test_id: unit.test.id,
+    process_id: unit.process.id,
+    step_id: unit.stepId,
+    model_refs: unit.test.model_refs,
     changed_paths: changedPaths,
     diff_sha256: digest(diff),
     summary: summary.trim() || `${mode} Driver completed.`,
@@ -618,6 +682,8 @@ function observation(record: TestExecutionRecord): PairObservation {
   return {
     process_id: record.process_id,
     ...(record.step_id ? { step_id: record.step_id } : {}),
+    ...(record.task_id ? { task_id: record.task_id } : {}),
+    ...(record.test_id ? { test_id: record.test_id } : {}),
     stage: record.stage,
     command: record.command,
     sequence: record.sequence,
@@ -645,13 +711,15 @@ export function executePairAction(
       `Pair checkpoint ${state.pair_session.checkpoint} requires ${expectedAction ?? 'human navigation'}, not ${action}.`,
     );
   }
-  const step = currentStep(cwd, state);
+  const unit = currentWorkUnit(cwd, state);
   if (action === 'run_red') {
     const record = executeTestStep(cwd, {
-      processId: step.process.id,
-      stepId: step.stepId,
+      processId: unit.process.id,
+      stepId: unit.stepId,
+      taskId: unit.task.id,
+      testId: unit.test.id,
       stage: 'red',
-      command: step.command,
+      command: unit.command,
       invocation: 'pair-controller',
     });
     const red = observation(record);
@@ -664,15 +732,17 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `Observed Red for ${stepKey(step)}: exit=${record.exit_code}.\nExpected behavior: ${state.pair_session.expected_red}\nNavigator must run /evidence-pair accept-red <reason> only for a behavior failure, or reject-red <kind> <reason>.`,
+      output: `Observed Red for ${unitKey(unit)} at ${stepKey(unit)}: exit=${record.exit_code}.\nExpected behavior: ${state.pair_session.expected_red}\nNavigator must run /evidence-pair accept-red <reason> only for a behavior failure, or reject-red <kind> <reason>.`,
     };
   }
   if (action === 'run_green') {
     const record = executeTestStep(cwd, {
-      processId: step.process.id,
-      stepId: step.stepId,
+      processId: unit.process.id,
+      stepId: unit.stepId,
+      taskId: unit.task.id,
+      testId: unit.test.id,
       stage: 'green',
-      command: step.command,
+      command: unit.command,
       invocation: 'pair-controller',
     });
     const green = observation(record);
@@ -686,16 +756,18 @@ export function executePairAction(
       state: next,
       record,
       output: passed
-        ? `Observed Green for ${stepKey(step)}. Next: /evidence-run for one bounded Refactor Driver checkpoint.`
-        : `Green failed for ${stepKey(step)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run to retry the Production Driver, or /evidence-pair back-test|back-tasking <reason>.`,
+        ? `Observed Green for ${unitKey(unit)}. Next: /evidence-run for one bounded Refactor Driver checkpoint.`
+        : `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run to retry the Production Driver, or /evidence-pair back-test|back-tasking <reason>.`,
     };
   }
   if (action === 'run_refactor') {
     const record = executeTestStep(cwd, {
-      processId: step.process.id,
-      stepId: step.stepId,
+      processId: unit.process.id,
+      stepId: unit.stepId,
+      taskId: unit.task.id,
+      testId: unit.test.id,
       stage: 'refactor',
-      command: step.command,
+      command: unit.command,
       invocation: 'pair-controller',
     });
     const refactor = observation(record);
@@ -708,37 +780,60 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Refactor verification failed for ${stepKey(step)} with exit=${record.exit_code}. Return to the bounded Refactor Driver; quality gates have not started.`,
+        output: `Refactor verification failed for ${unitKey(unit)} with exit=${record.exit_code}. Return to the bounded Refactor Driver; quality gates have not started.`,
       };
     }
-    const completed = [
-      ...new Set([...state.pair_session.completed_step_ids, stepKey(step)]),
+    const completedTestIds = [
+      ...new Set([...state.pair_session.completed_test_ids, unit.test.id]),
     ];
-    const withCompleted = {
-      ...state,
-      pair_session: {
-        ...state.pair_session,
-        completed_step_ids: completed,
-        last_observation: refactor,
-      },
+    const allUnits = pairWorkUnits(cwd, state);
+    const completedTaskIds = [
+      ...new Set([
+        ...state.pair_session.completed_task_ids,
+        ...(unit.task.test_ids.every((id) => completedTestIds.includes(id))
+          ? [unit.task.id]
+          : []),
+      ]),
+    ];
+    const stepCompleted = allUnits
+      .filter(
+        ({ process, stepId }) =>
+          process.id === unit.process.id && stepId === unit.stepId,
+      )
+      .every(({ test }) => completedTestIds.includes(test.id));
+    const completedStepIds = [
+      ...new Set([
+        ...state.pair_session.completed_step_ids,
+        ...(stepCompleted ? [stepKey(unit)] : []),
+      ]),
+    ];
+    const completedSession: PairSession = {
+      ...state.pair_session,
+      completed_task_ids: completedTaskIds,
+      completed_test_ids: completedTestIds,
+      completed_step_ids: completedStepIds,
+      last_observation: refactor,
     };
-    const nextStep = nextIncompleteStep(cwd, withCompleted);
-    if (nextStep) {
+    const withCompleted = { ...state, pair_session: completedSession };
+    const nextUnit = nextIncompleteWorkUnit(cwd, withCompleted);
+    if (nextUnit) {
       const next = writeState(cwd, {
         ...withCompleted,
         pair_session: {
           ...withCompleted.pair_session,
           checkpoint: 'plan_confirmed',
-          process_id: nextStep.process.id,
-          step_id: nextStep.stepId,
-          expected_red: expectedRed(state, nextStep),
+          task_id: nextUnit.task.id,
+          test_id: nextUnit.test.id,
+          process_id: nextUnit.process.id,
+          step_id: nextUnit.stepId,
+          expected_red: expectedRed(nextUnit),
           red_observation: undefined,
         },
       });
       return {
         state: next,
         record,
-        output: `Refactor verified for ${stepKey(step)}. Paused before next step ${stepKey(nextStep)}; run /evidence-run to start one Test Driver checkpoint.`,
+        output: `Refactor verified for ${unitKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-run to start one Test Driver checkpoint.`,
       };
     }
     const next = writeState(cwd, {
@@ -751,7 +846,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `All focused process steps are Refactor-green. Next /evidence-run executes exactly one final quality gate.`,
+      output: `All approved TASK/TEST units are Refactor-green. Next /evidence-run executes exactly one final quality gate.`,
     };
   }
 
@@ -824,8 +919,7 @@ export function reviewPairRed(
       ...state.pair_session,
       accepted_reds: [
         ...state.pair_session.accepted_reds.filter(
-          ({ process_id, step_id }) =>
-            process_id !== accepted.process_id || step_id !== accepted.step_id,
+          ({ test_id }) => test_id !== accepted.test_id,
         ),
         accepted,
       ],
@@ -910,6 +1004,7 @@ export function navigatePair(
     throw new Error('back_implementation requires a human-accepted Red.');
   }
   const currentKey = `${state.pair_session.process_id}/${state.pair_session.step_id}`;
+  const keepCompletion = action === 'retry_quality';
   const checkpoint =
     action === 'back_test'
       ? 'plan_confirmed'
@@ -919,12 +1014,21 @@ export function navigatePair(
   return saveSession(cwd, state, {
     ...state.pair_session,
     checkpoint,
-    completed_step_ids:
-      action === 'retry_quality'
-        ? state.pair_session.completed_step_ids
-        : state.pair_session.completed_step_ids.filter(
-            (step) => step !== currentKey,
-          ),
+    completed_task_ids: keepCompletion
+      ? state.pair_session.completed_task_ids
+      : state.pair_session.completed_task_ids.filter(
+          (taskId) => taskId !== state.pair_session.task_id,
+        ),
+    completed_test_ids: keepCompletion
+      ? state.pair_session.completed_test_ids
+      : state.pair_session.completed_test_ids.filter(
+          (testId) => testId !== state.pair_session.test_id,
+        ),
+    completed_step_ids: keepCompletion
+      ? state.pair_session.completed_step_ids
+      : state.pair_session.completed_step_ids.filter(
+          (step) => step !== currentKey,
+        ),
     ...(action === 'back_test' ? { red_observation: undefined } : {}),
     feedback: [
       ...state.pair_session.feedback,

@@ -6,8 +6,8 @@ argument-hint: '<MANIFEST-JSON>'
 Read `$1`. Summarize only facts already present:
 
 - Story/Scenario and Git baseline;
-- Q1/Q2 process steps, contexts, doubles, and code paths;
-- accepted Red, passed Green/Refactor, final gates, and Showcase Q2;
-- model/code consistency hashes and residual failed attempts.
+- model refs, ordered TASK/TEST units, Q1/Q2 process steps, contexts, doubles, and code paths;
+- each TEST's accepted Red and passed Green/Refactor, final gates, and automated Showcase Q2;
+- applied model/code consistency hashes and residual failed attempts.
 
 Do not infer missing exits, rewrite the manifest, run commands, or claim user value beyond observed Showcase facts.

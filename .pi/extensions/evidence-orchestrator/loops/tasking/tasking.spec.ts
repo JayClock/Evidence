@@ -1,6 +1,8 @@
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { writeState } from '../../iteration/state-repository';
+import { readState, writeState } from '../../iteration/state-repository';
 import { transitionLoopState } from '../../iteration/transition-graph';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
@@ -76,6 +78,56 @@ function prepare(cwd: string): void {
     'engineering/evidence-orchestrator/test-processes/rust.json',
     JSON.stringify(processDefinition()),
   );
+  write(
+    cwd,
+    'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+    '# Scenario',
+  );
+  write(
+    cwd,
+    'artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json',
+    JSON.stringify({
+      model_refs: { entities: ['workspace'], associations: [] },
+    }),
+  );
+  const baseline = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd,
+    encoding: 'utf8',
+  }).trim();
+  const modelChallenge = {
+    version: 1 as const,
+    requested_outcome: 'pass' as const,
+    outcome: 'pass' as const,
+    summary: 'The model explains the confirmed Scenario.',
+    checked_regression_ids: ['REG-001'],
+    projection_sha256: 'projection-sha',
+    artifact_path: 'challenge.json',
+    challenged_by: 'model-challenger' as const,
+    challenged_at: '2026-01-01T00:02:00.000Z',
+  };
+  const challengeContent = JSON.stringify(modelChallenge);
+  write(cwd, modelChallenge.artifact_path, challengeContent);
+  const modelDecision = {
+    version: 1 as const,
+    action: 'confirm' as const,
+    reason: 'The model and language are shared.',
+    challenge_artifact_path: modelChallenge.artifact_path,
+    challenge_artifact_sha256: createHash('sha256')
+      .update(challengeContent)
+      .digest('hex'),
+    projection_sha256: 'projection-sha',
+    model_expansion_sha256: createHash('sha256')
+      .update(
+        readFileSync(
+          `${cwd}/artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json`,
+        ),
+      )
+      .digest('hex'),
+    artifact_path: 'model-decision.json',
+    decided_by: 'human' as const,
+    decided_at: '2026-01-01T00:03:00.000Z',
+  };
+  write(cwd, modelDecision.artifact_path, JSON.stringify(modelDecision));
   writeState(cwd, {
     ...DEFAULT_STATE,
     loop: 'tasking',
@@ -108,7 +160,7 @@ function prepare(cwd: string): void {
       confirmation_reason: 'This is the smallest valuable outcome.',
       confirmed_at: '2026-01-01T00:00:00.000Z',
     },
-    modeling_stage: 'challenged',
+    modeling_stage: 'model_confirmed',
     modeling_profile: {
       version: 1,
       subject: 'domain',
@@ -120,21 +172,20 @@ function prepare(cwd: string): void {
     },
     model_expansion_path:
       'artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json',
-    model_git_baseline: 'abc123',
-    model_challenges: [
-      {
-        version: 1,
-        requested_outcome: 'pass',
-        outcome: 'pass',
-        summary: 'The model explains the confirmed Scenario.',
-        checked_regression_ids: ['REG-001'],
-        projection_sha256: 'projection-sha',
-        artifact_path:
-          'artifacts/iterations/ITER-0001/02-domain-model/model-challenges/CHALLENGE-001.json',
-        challenged_by: 'model-challenger',
-        challenged_at: '2026-01-01T00:02:00.000Z',
-      },
-    ],
+    model_git_baseline: baseline,
+    model_projection: {
+      version: 1,
+      model_sha256: 'projection-sha',
+      mermaid_path: 'model.mmd',
+      glossary_path: 'glossary.md',
+      context_path: 'model-context.json',
+      regression_ids: ['REG-001'],
+      regression_failures: [],
+      method_failures: [],
+      generated_at: '2026-01-01T00:01:30.000Z',
+    },
+    model_challenges: [modelChallenge],
+    model_decisions: [modelDecision],
     tasking_stage: 'drafting',
   });
 }
@@ -159,6 +210,7 @@ function draftInput(outcome = 'Workspace Alpha is available to the owner') {
         stepId: 'domain-q1',
         supportedBy: [],
         businessData: ['name=Alpha', 'owner=desktop-user'],
+        modelRefs: { entities: ['workspace'], associations: [] },
       },
       {
         id: 'TEST-002',
@@ -170,6 +222,7 @@ function draftInput(outcome = 'Workspace Alpha is available to the owner') {
         supportedBy: ['TEST-001'],
         scenarioOutcome: outcome,
         businessData: ['name=Alpha', 'owner=desktop-user'],
+        modelRefs: { entities: ['workspace'], associations: [] },
       },
     ],
     tasks: [
@@ -270,9 +323,145 @@ describe('Tasking and Desk Check', () => {
         processId: 'rust-workspace',
         stage: 'red',
         stepId: 'domain-q1',
+        taskId: 'TASK-001',
+        testId: 'TEST-001',
         command: 'node focused.js workspace_alpha',
       }).expected_failure,
     ).toBe(true);
+  });
+
+  it('blocks Desk Check when the human-confirmed model expansion drifts', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    proposeTaskingDraft(cwd, draftInput());
+    write(
+      cwd,
+      'artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json',
+      JSON.stringify({
+        model_refs: { entities: ['workspace', 'unreviewed'], associations: [] },
+      }),
+    );
+
+    expect(() =>
+      decideTasking(cwd, 'approve', 'The visible list appears correct.'),
+    ).toThrow('model decision or its reviewed evidence drifted');
+  });
+
+  it('applies a human-confirmed model proposal on the Desk-Checked Pair baseline', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    write(cwd, '.evidence/model.json', JSON.stringify({ version: 1 }));
+    write(
+      cwd,
+      '.evidence/entities/workspace.yaml',
+      'id: workspace\nname: Workspace\ntype: CONTEXT\nsubType: bounded_context\n',
+    );
+    execFileSync('git', ['add', '.'], { cwd });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Evidence Orchestrator Test',
+        '-c',
+        'user.email=workflow@example.test',
+        'commit',
+        '--quiet',
+        '-m',
+        'model proposal baseline',
+      ],
+      { cwd },
+    );
+    const baseline = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd,
+      encoding: 'utf8',
+    }).trim();
+    const proposalPath =
+      'artifacts/iterations/ITER-0001/02-domain-model/model-change-proposal.json';
+    const operation = {
+      action: 'add' as const,
+      kind: 'entity' as const,
+      id: 'model-version',
+      path: '.evidence/entities/model-version.yaml',
+      content:
+        'id: model-version\nname: ModelVersion\ntype: EVIDENCE\nsubType: other_evidence\n',
+    };
+    const proposal = {
+      version: 1 as const,
+      story_id: 'US-001',
+      scenario_id: 'SC-001',
+      git_baseline: baseline,
+      reason: 'The Scenario needs an explicit model version.',
+      operations: [operation],
+      artifact_path: proposalPath,
+      proposed_at: '2026-01-01T00:02:30.000Z',
+    };
+    write(cwd, proposalPath, `${JSON.stringify(proposal, null, 2)}\n`);
+    write(
+      cwd,
+      'artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json',
+      JSON.stringify({
+        model_refs: {
+          entities: ['workspace', 'model-version'],
+          associations: [],
+        },
+      }),
+    );
+    const prepared = readState(cwd);
+    const decisions = prepared.model_decisions?.map((decision, index, all) =>
+      index === all.length - 1
+        ? {
+            ...decision,
+            model_expansion_sha256: createHash('sha256')
+              .update(
+                readFileSync(
+                  `${cwd}/artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json`,
+                ),
+              )
+              .digest('hex'),
+            model_change_proposal_sha256: createHash('sha256')
+              .update(`${JSON.stringify(proposal, null, 2)}\n`)
+              .digest('hex'),
+          }
+        : decision,
+    );
+    const latestDecision = decisions?.at(-1);
+    if (!latestDecision) throw new Error('Missing model decision fixture.');
+    write(cwd, latestDecision.artifact_path, JSON.stringify(latestDecision));
+    writeState(cwd, {
+      ...prepared,
+      model_git_baseline: baseline,
+      modeling_profile: prepared.modeling_profile
+        ? { ...prepared.modeling_profile, model_change_required: true }
+        : undefined,
+      model_change_proposal: proposal,
+      model_decisions: decisions,
+    });
+    const input = draftInput();
+    input.tests = input.tests.map((test) => ({
+      ...test,
+      modelRefs: {
+        entities: ['workspace', 'model-version'],
+        associations: [],
+      },
+    }));
+    proposeTaskingDraft(cwd, input);
+
+    const approved = decideTasking(
+      cwd,
+      'approve',
+      'The test, task, model, and process trace is correct.',
+      '2026-01-01T00:04:00.000Z',
+    );
+
+    expect(existsSync(`${cwd}/.evidence/entities/model-version.yaml`)).toBe(
+      true,
+    );
+    expect(approved.model_change_application).toEqual({
+      git_baseline: baseline,
+      changed_paths: ['.evidence/entities/model-version.yaml'],
+      applied_at: '2026-01-01T00:04:00.000Z',
+    });
+    expect(approved.active_work_item?.git_baseline).toBe(baseline);
   });
 
   it('versions immutable approved plans after feedback returns to Tasking', () => {

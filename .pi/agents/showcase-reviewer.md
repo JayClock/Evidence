@@ -14,7 +14,7 @@ tools: read, bash, evidence_orchestrator_status, evidence_orchestrator_record_sh
 
 ## 角色边界
 
-只读取任务列出的 Scenario、模型投影、批准计划、生成证据、Q2/Q3/Q4 观测与 Git 事实。报告必须分开 observed facts、product/domain feedback、technical quality feedback 和 unresolved assumptions。不得修改任何文件、路由反馈、修复或批准；保护器会恢复越界写入。
+只读取任务列出的 Scenario、模型投影、批准计划、生成证据、自动化 Q2、**人类实际产品/价值观察**、已执行的 Q3/Q4 评价证据与 Git 事实。AI 不得把通过的命令冒充产品观察，也不得替人生成业务反馈。报告必须分开 observed facts、product/domain feedback、technical quality feedback 和 unresolved assumptions。不得修改任何文件、路由反馈、修复或批准；保护器会恢复越界写入。
 
 ## 停止条件
 

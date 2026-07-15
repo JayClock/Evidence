@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { findFiles } from '../../iteration/artifact-inventory';
 import {
@@ -42,6 +42,7 @@ export interface TaskingTestInput {
   supportedBy: string[];
   scenarioOutcome?: string;
   businessData: string[];
+  modelRefs: { entities: string[]; associations: string[] };
 }
 
 export interface TaskingTaskInput {
@@ -96,11 +97,12 @@ function assertTaskingState(state: WorkflowState): void {
   if (
     state.loop !== 'tasking' ||
     !state.confirmed_scenario ||
-    state.modeling_stage !== 'challenged' ||
-    state.model_challenges?.at(-1)?.outcome !== 'pass'
+    state.modeling_stage !== 'model_confirmed' ||
+    state.model_challenges?.at(-1)?.outcome !== 'pass' ||
+    state.model_decisions?.at(-1)?.action !== 'confirm'
   ) {
     throw new Error(
-      'Tasking requires one confirmed, model-challenged Scenario.',
+      'Tasking requires one confirmed Scenario and a human-confirmed challenged model.',
     );
   }
   if (state.tasking_stage === 'desk_check') {
@@ -257,7 +259,39 @@ function resolveRuntimes(
   return resolved;
 }
 
+function expansionModelRefs(
+  cwd: string,
+  state: WorkflowState,
+): { entities: string[]; associations: string[] } {
+  if (!state.model_expansion_path) {
+    throw new Error('Tasking has no confirmed model expansion.');
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(
+      readFileSync(join(cwd, state.model_expansion_path), 'utf8'),
+    ) as unknown;
+  } catch {
+    throw new Error('The confirmed model expansion is not valid JSON.');
+  }
+  const source = parsed as {
+    model_refs?: { entities?: unknown; associations?: unknown };
+  };
+  const entities = source.model_refs?.entities;
+  const associations = source.model_refs?.associations;
+  if (
+    !Array.isArray(entities) ||
+    !entities.every((value) => typeof value === 'string') ||
+    !Array.isArray(associations) ||
+    !associations.every((value) => typeof value === 'string')
+  ) {
+    throw new Error('The confirmed model expansion has invalid model_refs.');
+  }
+  return { entities, associations };
+}
+
 function normalizeTests(
+  cwd: string,
   state: WorkflowState,
   inputs: TaskingTestInput[],
   runtimes: ResolvedRuntime[],
@@ -274,6 +308,9 @@ function normalizeTests(
   const byRuntime = new Map(
     runtimes.map((runtime) => [runtime.input.id, runtime]),
   );
+  const expansionRefs = expansionModelRefs(cwd, state);
+  const allowedEntities = new Set(expansionRefs.entities);
+  const allowedAssociations = new Set(expansionRefs.associations);
   const tests = inputs.map((input) => {
     const runtime = byRuntime.get(input.runtimePlanId);
     if (!runtime)
@@ -291,6 +328,41 @@ function normalizeTests(
       );
     }
     const businessData = unique(input.businessData, `${input.id}.businessData`);
+    if (
+      !input.modelRefs ||
+      !Array.isArray(input.modelRefs.entities) ||
+      !Array.isArray(input.modelRefs.associations)
+    ) {
+      throw new Error(
+        `${input.id}.modelRefs must contain entity and association arrays.`,
+      );
+    }
+    const modelRefs = {
+      entities: unique(
+        input.modelRefs.entities,
+        `${input.id}.modelRefs.entities`,
+        true,
+      ),
+      associations: unique(
+        input.modelRefs.associations,
+        `${input.id}.modelRefs.associations`,
+        true,
+      ),
+    };
+    if (
+      modelRefs.entities.some((id) => !allowedEntities.has(id)) ||
+      modelRefs.associations.some((id) => !allowedAssociations.has(id))
+    ) {
+      throw new Error(
+        `${input.id} contains model references outside the confirmed expansion.`,
+      );
+    }
+    if (
+      state.modeling_profile?.method !== 'none' &&
+      modelRefs.entities.length + modelRefs.associations.length === 0
+    ) {
+      throw new Error(`${input.id} must trace to a confirmed model fact.`);
+    }
     if (
       !businessData.every((datum) => scenario.business_data.includes(datum))
     ) {
@@ -319,6 +391,7 @@ function normalizeTests(
       supported_by: unique(input.supportedBy, `${input.id}.supportedBy`, true),
       ...(outcome ? { scenario_outcome: outcome } : {}),
       business_data: businessData,
+      model_refs: modelRefs,
     } satisfies TaskingTestItem;
   });
   if (
@@ -382,12 +455,27 @@ function normalizeTests(
   ) {
     throw new Error('The test list contains duplicate intent.');
   }
+  const coveredEntities = new Set(
+    tests.flatMap(({ model_refs }) => model_refs.entities),
+  );
+  const coveredAssociations = new Set(
+    tests.flatMap(({ model_refs }) => model_refs.associations),
+  );
+  if (
+    expansionRefs.entities.some((id) => !coveredEntities.has(id)) ||
+    expansionRefs.associations.some((id) => !coveredAssociations.has(id))
+  ) {
+    throw new Error(
+      'Every confirmed model reference must be exercised by at least one test intent.',
+    );
+  }
   return tests;
 }
 
 function normalizeTasks(
   inputs: TaskingTaskInput[],
   tests: TaskingTestItem[],
+  runtimes: ResolvedRuntime[],
 ): TaskingImplementationTask[] {
   if (!Array.isArray(inputs) || inputs.length === 0) {
     throw new Error('Tasking requires implementation tasks.');
@@ -407,17 +495,64 @@ function normalizeTasks(
     if (!dependencies.every((id) => priorIds.has(id))) {
       throw new Error(`${input.id} dependencies must reference earlier tasks.`);
     }
+    const linked = tests.filter(({ id }) => linkedTests.includes(id));
     return {
       id: input.id,
       description: required(input.description, `${input.id}.description`),
       test_ids: linkedTests,
       depends_on: dependencies,
+      model_refs: {
+        entities: [
+          ...new Set(linked.flatMap(({ model_refs }) => model_refs.entities)),
+        ].sort(),
+        associations: [
+          ...new Set(
+            linked.flatMap(({ model_refs }) => model_refs.associations),
+          ),
+        ].sort(),
+      },
     } satisfies TaskingImplementationTask;
   });
   for (const testId of testIds) {
-    if (!tasks.some(({ test_ids }) => test_ids.includes(testId))) {
-      throw new Error(`${testId} has no implementation task.`);
+    const owners = tasks.filter(({ test_ids }) => test_ids.includes(testId));
+    if (owners.length !== 1) {
+      throw new Error(
+        `${testId} must belong to exactly one ordered implementation task.`,
+      );
     }
+  }
+  const stepOrder = new Map(
+    runtimes.flatMap(({ selection }, processIndex) =>
+      selection.selected_step_ids.map(
+        (stepId, stepIndex) =>
+          [
+            `${selection.id}/${stepId}`,
+            processIndex * 10_000 + stepIndex,
+          ] as const,
+      ),
+    ),
+  );
+  const byTest = new Map(tests.map((test) => [test.id, test]));
+  const orderedRanks = tasks.flatMap(({ test_ids }) =>
+    test_ids.map((testId) => {
+      const test = byTest.get(testId);
+      const rank = test
+        ? stepOrder.get(`${test.process_id}/${test.step_id}`)
+        : undefined;
+      if (rank === undefined) {
+        throw new Error(`${testId} has no selected process-step order.`);
+      }
+      return rank;
+    }),
+  );
+  if (
+    orderedRanks.some(
+      (rank, index) => index > 0 && rank < (orderedRanks[index - 1] ?? rank),
+    )
+  ) {
+    throw new Error(
+      'Ordered implementation tasks must preserve the selected test-process step order.',
+    );
   }
   return tasks;
 }
@@ -443,7 +578,7 @@ function renderTestList(
           step?.replaced_boundaries
             .map(({ boundary, test_double }) => `${boundary}:${test_double}`)
             .join(', ') || 'none';
-        return `- **${test.id}** · ${test.process_id}/${test.step_id} · ${test.intent}\n  - 业务数据：${test.business_data.join('；')}\n  - 场景结果：${test.scenario_outcome ?? '通过 Q2 追踪'}\n  - 真实边界：${step?.real_boundaries.join(', ') ?? 'unknown'}\n  - 替换边界：${replaced}${quadrant === 'Q2' ? `\n  - Q1 支撑：${test.supported_by.join(', ')}` : ''}`;
+        return `- **${test.id}** · ${test.process_id}/${test.step_id} · ${test.intent}\n  - 业务数据：${test.business_data.join('；')}\n  - 模型实体：${test.model_refs.entities.join(', ') || 'none'}\n  - 模型关系：${test.model_refs.associations.join(', ') || 'none'}\n  - 场景结果：${test.scenario_outcome ?? '通过 Q2 追踪'}\n  - 真实边界：${step?.real_boundaries.join(', ') ?? 'unknown'}\n  - 替换边界：${replaced}${quadrant === 'Q2' ? `\n  - Q1 支撑：${test.supported_by.join(', ')}` : ''}`;
       })
       .join('\n');
   return `# Test List — ${scenario.story_id} / ${scenario.scenario_id}
@@ -475,7 +610,7 @@ function renderTaskList(tasks: TaskingImplementationTask[]): string {
 ${tasks
   .map(
     (task) =>
-      `## ${task.id}\n\n${task.description}\n\n- Tests: ${task.test_ids.join(', ')}\n- Depends on: ${task.depends_on.join(', ') || 'none'}\n`,
+      `## ${task.id}\n\n${task.description}\n\n- Tests: ${task.test_ids.join(', ')}\n- Model entities: ${task.model_refs.entities.join(', ') || 'none'}\n- Model associations: ${task.model_refs.associations.join(', ') || 'none'}\n- Depends on: ${task.depends_on.join(', ') || 'none'}\n`,
   )
   .join('\n')}`;
 }
@@ -503,8 +638,8 @@ export function proposeTaskingDraft(
   assertTaskingState(state);
   const resolved = resolveRuntimes(cwd, state, input.runtimes, now);
   if (!Array.isArray(resolved)) return resolved;
-  const tests = normalizeTests(state, input.tests, resolved);
-  const tasks = normalizeTasks(input.tasks, tests);
+  const tests = normalizeTests(cwd, state, input.tests, resolved);
+  const tasks = normalizeTasks(input.tasks, tests, resolved);
   const scenario = state.confirmed_scenario;
   if (!scenario) throw new Error('Tasking has no confirmed Scenario.');
   const draftId = nextDraftId(cwd, state);
@@ -523,7 +658,7 @@ export function proposeTaskingDraft(
     'artifacts/04-planning/test-plan.candidate.json',
   );
   const candidateBase = {
-    version: 1 as const,
+    version: 2 as const,
     draft_id: draftId,
     story_id: scenario.story_id,
     scenario_id: scenario.scenario_id,

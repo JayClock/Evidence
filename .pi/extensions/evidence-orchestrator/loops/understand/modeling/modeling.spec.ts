@@ -16,6 +16,8 @@ import {
   applyModelChangeProposal,
   recordModelAnalysis,
 } from './candidate-model';
+import { recordModelChallenge } from './challenge';
+import { decideModel } from './model-decision';
 import { confirmModelingProfile, proposeModelingProfile } from './profile';
 
 function commit(cwd: string, message: string): void {
@@ -47,6 +49,23 @@ function prepareModeling(cwd: string): void {
     cwd,
     '.evidence/entities/workspace.yaml',
     'id: workspace\nname: Workspace\ntype: CONTEXT\nsubType: bounded_context\n',
+  );
+  write(
+    cwd,
+    '.evidence/scenarios/REG-001.json',
+    JSON.stringify({
+      version: 1,
+      id: 'REG-001',
+      title: 'Workspace remains available',
+      status: 'regression',
+      model_refs: { entities: ['workspace'], associations: [] },
+      given: ['Workspace exists'],
+      when: 'Workspace is opened',
+      then: ['Workspace remains available'],
+      business_data: ['workspace=alpha'],
+      invariants: ['Workspace identity is stable'],
+      timeline: ['Exists', 'Opened'],
+    }),
   );
   commit(cwd, 'canonical model');
   writeIterationArtifact(
@@ -231,6 +250,15 @@ describe('modeling method routing', () => {
     });
     expect(existsSync(join(cwd, operation.path))).toBe(false);
 
+    recordModelChallenge(cwd, {
+      outcome: 'pass',
+      summary: 'The candidate explains the Scenario.',
+    });
+    decideModel(
+      cwd,
+      'confirm',
+      'The candidate and language match the domain conversation.',
+    );
     const applied = applyModelChangeProposal(cwd, '2026-01-01T00:03:00.000Z');
     expect(existsSync(join(cwd, operation.path))).toBe(true);
     expect(applied.model_change_application).toEqual({
@@ -238,6 +266,10 @@ describe('modeling method routing', () => {
       changed_paths: [operation.path],
       applied_at: '2026-01-01T00:03:00.000Z',
     });
+    expect(
+      applyModelChangeProposal(cwd, '2026-01-01T00:04:00.000Z')
+        .model_change_application,
+    ).toEqual(applied.model_change_application);
   });
 
   it('runs method-specific validation for a confirmed 8X Profile', () => {

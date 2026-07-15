@@ -197,6 +197,16 @@ export const taskingDraftParam = Type.Object({
       businessData: Type.Array(
         Type.String({ description: 'Exact confirmed business datum.' }),
       ),
+      modelRefs: Type.Object({
+        entities: Type.Array(
+          Type.String({ description: 'Confirmed canonical model entity id.' }),
+        ),
+        associations: Type.Array(
+          Type.String({
+            description: 'Confirmed canonical model association id.',
+          }),
+        ),
+      }),
     }),
   ),
   tasks: Type.Array(

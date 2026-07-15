@@ -1,6 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname } from 'node:path';
 import { artifactRelativePath } from '../../../iteration/artifact-layout';
 import { readState, writeState } from '../../../iteration/state-repository';
@@ -50,6 +56,37 @@ function git(cwd: string, args: string[]): string {
 
 function digest(content: string): string {
   return `sha256:${createHash('sha256').update(content).digest('hex')}`;
+}
+
+function changedModelPaths(cwd: string, baseline: string): string[] {
+  const tracked = git(cwd, ['diff', '--name-only', baseline, '--', '.evidence'])
+    .split('\n')
+    .filter(Boolean);
+  const untracked = git(cwd, [
+    'ls-files',
+    '--others',
+    '--exclude-standard',
+    '--',
+    '.evidence',
+  ])
+    .split('\n')
+    .filter(Boolean);
+  return [...new Set([...tracked, ...untracked])].sort();
+}
+
+function appliedOperationsMatch(
+  cwd: string,
+  operations: ModelOperation[],
+): boolean {
+  return operations.every((operation) => {
+    const absolute = `${cwd}/${operation.path}`;
+    if (operation.action === 'remove') return !existsSync(absolute);
+    return (
+      existsSync(absolute) &&
+      operation.content !== undefined &&
+      readFileSync(absolute, 'utf8') === `${operation.content.trim()}\n`
+    );
+  });
 }
 
 function frontmatterValue(content: string, key: string): string | undefined {
@@ -361,10 +398,56 @@ export function applyModelChangeProposal(
   const state = readState(cwd);
   const proposal = state.model_change_proposal;
   if (!proposal) throw new Error('There is no model-change proposal to apply.');
+  if (
+    state.modeling_stage !== 'model_confirmed' ||
+    state.model_decisions?.at(-1)?.action !== 'confirm'
+  ) {
+    throw new Error(
+      'A human-confirmed challenged model is required before applying its proposal.',
+    );
+  }
+  const decision = state.model_decisions?.at(-1);
+  const proposalContent = readFileSync(
+    `${cwd}/${proposal.artifact_path}`,
+    'utf8',
+  );
+  if (
+    !decision?.model_change_proposal_sha256 ||
+    decision.model_change_proposal_sha256 !==
+      digest(proposalContent).slice(7) ||
+    JSON.stringify(JSON.parse(proposalContent) as unknown) !==
+      JSON.stringify(proposal)
+  ) {
+    throw new Error(
+      'The model-change proposal drifted after human model confirmation.',
+    );
+  }
   const head = git(cwd, ['rev-parse', '--verify', 'HEAD']);
   if (head !== proposal.git_baseline || state.model_git_baseline !== head) {
     throw new Error(
       'The model proposal and current Git baseline do not match.',
+    );
+  }
+  const expectedPaths = proposal.operations.map(({ path }) => path).sort();
+  if (state.model_change_application) {
+    if (
+      state.model_change_application.git_baseline !== head ||
+      JSON.stringify(
+        [...state.model_change_application.changed_paths].sort(),
+      ) !== JSON.stringify(expectedPaths) ||
+      JSON.stringify(changedModelPaths(cwd, head)) !==
+        JSON.stringify(expectedPaths) ||
+      !appliedOperationsMatch(cwd, proposal.operations)
+    ) {
+      throw new Error(
+        'The previously applied model proposal drifted before Pair approval.',
+      );
+    }
+    return state;
+  }
+  if (changedModelPaths(cwd, head).length > 0) {
+    throw new Error(
+      'Canonical .evidence files changed after model review; regenerate the proposal.',
     );
   }
   const simulated = simulateOperations(currentModel(cwd), proposal.operations);
@@ -380,6 +463,13 @@ export function applyModelChangeProposal(
     }
   }
   validateModel(currentModel(cwd));
+  if (
+    JSON.stringify(changedModelPaths(cwd, head)) !==
+      JSON.stringify(expectedPaths) ||
+    !appliedOperationsMatch(cwd, proposal.operations)
+  ) {
+    throw new Error('The model proposal was not applied exactly as confirmed.');
+  }
   return writeState(cwd, {
     ...state,
     model_change_application: {

@@ -7,6 +7,7 @@ import {
   write,
 } from '../../test-support/support';
 import {
+  parseModelDecision,
   parseRespondDecision,
   parseShowcaseDecision,
   registerCommands,
@@ -64,6 +65,7 @@ describe('commands', () => {
       'evidence-kickoff',
       'evidence-scenario',
       'evidence-modeling-profile',
+      'evidence-model',
       'evidence-desk-check',
       'evidence-pair',
       'evidence-showcase',
@@ -74,7 +76,15 @@ describe('commands', () => {
     ]);
   });
 
-  it('parses Showcase risk/feedback and Respond decisions', () => {
+  it('parses model, Showcase, and Respond human decisions', () => {
+    expect(
+      parseModelDecision(
+        'confirm The projection and ubiquitous language match the conversation.',
+      ),
+    ).toEqual({
+      action: 'confirm',
+      reason: 'The projection and ubiquitous language match the conversation.',
+    });
     expect(
       parseShowcaseDecision(
         'risk q4 required performance,security Production risk.',
@@ -84,6 +94,27 @@ describe('commands', () => {
       quadrant: 'Q4',
       disposition: 'required',
       activities: ['performance', 'security'],
+    });
+    expect(() =>
+      parseShowcaseDecision('risk q3 required security Wrong quadrant.'),
+    ).toThrow('Showcase Q3 activities');
+    expect(
+      parseShowcaseDecision(
+        'observe manual://workspace-alpha Workspace Alpha is visible. :: The owner can continue.',
+      ),
+    ).toMatchObject({
+      kind: 'observation',
+      evidenceRefs: ['manual://workspace-alpha'],
+    });
+    expect(
+      parseShowcaseDecision(
+        'evaluate q4/security passed manual://security Only the owner has access.',
+      ),
+    ).toMatchObject({
+      kind: 'evaluation',
+      quadrant: 'Q4',
+      activity: 'security',
+      outcome: 'passed',
     });
     expect(
       parseShowcaseDecision('revise code Implementation quality is weak.'),

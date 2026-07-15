@@ -30,6 +30,8 @@ import {
   enterShowcase,
   executeShowcaseQ2,
   prepareShowcaseReview,
+  recordShowcaseEvaluation,
+  recordShowcaseProductObservation,
   recordShowcaseReview,
   recordShowcaseRisk,
   validateShowcaseEvidence,
@@ -172,6 +174,7 @@ function preparePair(cwd: string): void {
     'engineering/evidence-orchestrator/definition-of-done.md',
     '# DoD',
   );
+  write(cwd, 'model-decision.json', '{"action":"confirm"}');
   write(cwd, 'docs/knowledge-governance.md', '# Knowledge governance');
   write(
     cwd,
@@ -207,12 +210,21 @@ function preparePair(cwd: string): void {
     supported_by: [] as string[],
     scenario_outcome: 'Workspace is visible',
     business_data: ['name=Alpha'],
+    model_refs: { entities: ['workspace'], associations: [] },
+  };
+  const taskingTask = {
+    id: 'TASK-001',
+    description: 'Implement the visible workspace behavior.',
+    test_ids: ['TEST-001'],
+    depends_on: [] as string[],
+    model_refs: { entities: ['workspace'], associations: [] as string[] },
   };
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: 'US-001',
     scenario_id: 'SC-001',
     tests: [taskingTest],
+    tasks: [taskingTask],
     processes: [{ ...selection, quality_gates: definition.quality_gates }],
   });
   write(
@@ -220,7 +232,7 @@ function preparePair(cwd: string): void {
     'artifacts/iterations/ITER-0001/04-planning/test-plan.json',
     approvedPlanContent,
   );
-  writeState(cwd, {
+  const preparedState = writeState(cwd, {
     ...DEFAULT_STATE,
     loop: 'pair',
     requirement_source: {
@@ -252,7 +264,7 @@ function preparePair(cwd: string): void {
       confirmation_reason: 'Smallest value.',
       confirmed_at: '2026-01-01T00:00:00.000Z',
     },
-    modeling_stage: 'challenged',
+    modeling_stage: 'model_confirmed',
     modeling_profile: {
       version: 1,
       subject: 'domain',
@@ -278,6 +290,26 @@ function preparePair(cwd: string): void {
         challenged_at: '2026-01-01T00:02:00.000Z',
       },
     ],
+    model_decisions: [
+      {
+        version: 1,
+        action: 'confirm',
+        reason: 'The model and language are shared.',
+        challenge_artifact_path: 'challenge.json',
+        challenge_artifact_sha256: 'challenge-sha',
+        projection_sha256: 'projection',
+        model_expansion_sha256: createHash('sha256')
+          .update(
+            readFileSync(
+              `${cwd}/artifacts/iterations/ITER-0001/02-domain-model/model-expansions/US-001-SC-001.json`,
+            ),
+          )
+          .digest('hex'),
+        artifact_path: 'model-decision.json',
+        decided_by: 'human',
+        decided_at: '2026-01-01T00:03:00.000Z',
+      },
+    ],
     tasking_stage: 'approved',
     approved_test_plan_path:
       'artifacts/iterations/ITER-0001/04-planning/test-plan.json',
@@ -291,19 +323,12 @@ function preparePair(cwd: string): void {
       test_plan: { version: 2, processes: [selection] },
     },
     tasking_candidate: {
-      version: 1,
+      version: 2,
       draft_id: 'DRAFT-001',
       story_id: 'US-001',
       scenario_id: 'SC-001',
       tests: [taskingTest],
-      tasks: [
-        {
-          id: 'TASK-001',
-          description: 'Implement the visible workspace behavior.',
-          test_ids: ['TEST-001'],
-          depends_on: [],
-        },
-      ],
+      tasks: [taskingTask],
       processes: [selection],
       test_list_path: 'artifacts/iterations/ITER-0001/04-planning/test-list.md',
       task_list_path: 'artifacts/iterations/ITER-0001/04-planning/task-list.md',
@@ -315,13 +340,17 @@ function preparePair(cwd: string): void {
       proposed_at: '2026-01-01T00:00:00.000Z',
     },
     pair_session: {
-      version: 1,
+      version: 2,
       story_id: 'US-001',
       scenario_id: 'SC-001',
       git_baseline: baseline,
       checkpoint: 'plan_confirmed',
+      task_id: taskingTask.id,
+      test_id: taskingTest.id,
       process_id: definition.id,
       step_id: 'acceptance-q2',
+      completed_task_ids: [],
+      completed_test_ids: [],
       completed_step_ids: [],
       test_paths: [],
       production_paths: [],
@@ -331,6 +360,60 @@ function preparePair(cwd: string): void {
       feedback: [],
       driver_history: [],
     },
+  });
+  const modelDecision = preparedState.model_decisions?.at(-1);
+  if (!modelDecision) throw new Error('Missing model decision fixture.');
+  write(cwd, modelDecision.artifact_path, JSON.stringify(modelDecision));
+}
+
+function addSecondQ2Test(cwd: string): void {
+  const state = readState(cwd);
+  const candidate = state.tasking_candidate;
+  const workItem = state.active_work_item;
+  if (!candidate || !workItem || !state.approved_test_plan_path) {
+    throw new Error('Pair fixture has no approved plan.');
+  }
+  const first = candidate.tests[0];
+  if (!first) throw new Error('Pair fixture has no first TEST.');
+  const second = {
+    ...first,
+    id: 'TEST-002',
+    intent: 'The owner identity is visible with workspace Alpha.',
+  };
+  const tests = [...candidate.tests, second];
+  const tasks = [
+    ...candidate.tasks,
+    {
+      id: 'TASK-002',
+      description: 'Expose the owner identity for workspace Alpha.',
+      test_ids: ['TEST-002'],
+      depends_on: [candidate.tasks.at(-1)?.id ?? 'TASK-001'],
+      model_refs: second.model_refs,
+    },
+  ];
+  const approvedPlanContent = JSON.stringify({
+    version: 2,
+    story_id: workItem.story_id,
+    scenario_id: workItem.scenario_id,
+    tests,
+    tasks,
+    processes: workItem.test_plan.processes.map((process) => ({
+      ...process,
+      quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
+    })),
+  });
+  write(cwd, state.approved_test_plan_path, approvedPlanContent);
+  write(
+    cwd,
+    'focused.js',
+    "const fs=require('node:fs');const code=fs.existsSync('apps/web/src/feature.ts')?fs.readFileSync('apps/web/src/feature.ts','utf8'):'';const first=!fs.existsSync('apps/web/tests/workspace.test.ts')||code.includes('q2');const second=!fs.existsSync('apps/web/tests/workspace-owner.test.ts')||code.includes('q2b');process.exit(first&&second?0:1);",
+  );
+  writeState(cwd, {
+    ...state,
+    approved_test_plan_sha256: createHash('sha256')
+      .update(approvedPlanContent)
+      .digest('hex'),
+    tasking_candidate: { ...candidate, tests, tasks },
   });
 }
 
@@ -396,10 +479,24 @@ function addWebQ1Step(cwd: string): void {
       step_id: 'component-q1',
       supported_by: [] as string[],
       business_data: ['name=Alpha'],
+      model_refs: { entities: ['workspace'], associations: [] as string[] },
     },
     ...candidate.tests.map((test) =>
       test.quadrant === 'Q2' ? { ...test, supported_by: ['TEST-Q1'] } : test,
     ),
+  ];
+  const tasks = [
+    {
+      id: 'TASK-Q1',
+      description: 'Expose workspace visibility from the feature.',
+      test_ids: ['TEST-Q1'],
+      depends_on: [] as string[],
+      model_refs: { entities: ['workspace'], associations: [] as string[] },
+    },
+    ...candidate.tasks.map((task) => ({
+      ...task,
+      depends_on: ['TASK-Q1'],
+    })),
   ];
   const selections = [selection, ...workItem.test_plan.processes.slice(1)];
   const approvedPlanContent = JSON.stringify({
@@ -407,6 +504,7 @@ function addWebQ1Step(cwd: string): void {
     story_id: workItem.story_id,
     scenario_id: workItem.scenario_id,
     tests,
+    tasks,
     processes: selections.map((process) => ({
       ...process,
       quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
@@ -428,11 +526,14 @@ function addWebQ1Step(cwd: string): void {
     tasking_candidate: {
       ...candidate,
       tests,
+      tasks,
       processes: [selection, ...candidate.processes.slice(1)],
     },
     pair_session: state.pair_session
       ? {
           ...state.pair_session,
+          task_id: 'TASK-Q1',
+          test_id: 'TEST-Q1',
           process_id: selection.id,
           step_id: 'component-q1',
           expected_red: 'Workspace visibility is exposed by the feature.',
@@ -544,6 +645,17 @@ function addTauriProcess(cwd: string): void {
       supported_by: ['TEST-Q1'],
       scenario_outcome: 'Workspace is visible',
       business_data: ['name=Alpha'],
+      model_refs: { entities: ['workspace'], associations: [] as string[] },
+    },
+  ];
+  const tasks = [
+    ...candidate.tasks,
+    {
+      id: 'TASK-002',
+      description: 'Integrate workspace visibility with the desktop shell.',
+      test_ids: ['TEST-002'],
+      depends_on: [candidate.tasks.at(-1)?.id ?? 'TASK-001'],
+      model_refs: { entities: ['workspace'], associations: [] as string[] },
     },
   ];
   const selections = [...workItem.test_plan.processes, selection];
@@ -552,6 +664,7 @@ function addTauriProcess(cwd: string): void {
     story_id: workItem.story_id,
     scenario_id: workItem.scenario_id,
     tests,
+    tasks,
     processes: selections.map((process) => ({
       ...process,
       quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
@@ -573,6 +686,7 @@ function addTauriProcess(cwd: string): void {
     tasking_candidate: {
       ...candidate,
       tests,
+      tasks,
       processes: [...candidate.processes, selection],
     },
   });
@@ -680,6 +794,11 @@ function prepareShowcaseForReview(cwd: string): void {
     [],
     'No material non-functional risk is introduced by this Scenario.',
   );
+  recordShowcaseProductObservation(cwd, {
+    observation: 'The owner sees workspace Alpha in the actual product flow.',
+    valueFeedback: 'The workspace is available for the owner to continue.',
+    evidenceRefs: ['manual://workspace-alpha-visible'],
+  });
   prepareShowcaseReview(cwd);
 }
 
@@ -858,6 +977,71 @@ describe('Navigator-driven Pair', () => {
     );
   });
 
+  it('drives and records each ordered TASK/TEST unit even when tests share one process step', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    addSecondQ2Test(cwd);
+    write(cwd, 'quality.js', 'process.exit(0);');
+
+    const driveCurrentUnit = (
+      testPath: string,
+      production: string,
+      reason: string,
+    ) => {
+      let snapshot = capturePairWorktree(cwd);
+      write(cwd, testPath, `expect('${reason}').toBeDefined();`);
+      completePairDriver(cwd, 'test', snapshot, `Added ${reason} test.`);
+      executePairAction(cwd, 'run_red');
+      reviewPairRed(cwd, 'behavior', `${reason} is absent.`);
+      snapshot = capturePairWorktree(cwd);
+      const path = 'apps/web/src/feature.ts';
+      const existing = existsSync(`${cwd}/${path}`)
+        ? readFileSync(`${cwd}/${path}`, 'utf8')
+        : '';
+      write(cwd, path, `${existing}\n${production}`);
+      completePairDriver(
+        cwd,
+        'implementation',
+        snapshot,
+        `Implemented ${reason}.`,
+      );
+      executePairAction(cwd, 'run_green');
+      snapshot = capturePairWorktree(cwd);
+      completePairDriver(cwd, 'refactor', snapshot, 'No-op refactor.');
+      executePairAction(cwd, 'run_refactor');
+    };
+
+    driveCurrentUnit(
+      'apps/web/tests/workspace.test.ts',
+      'export const q2 = true;',
+      'workspace visibility',
+    );
+    expect(readState(cwd).pair_session).toMatchObject({
+      task_id: 'TASK-002',
+      test_id: 'TEST-002',
+      completed_task_ids: ['TASK-001'],
+      completed_test_ids: ['TEST-001'],
+    });
+    driveCurrentUnit(
+      'apps/web/tests/workspace-owner.test.ts',
+      'export const q2b = true;',
+      'owner visibility',
+    );
+    executePairAction(cwd, 'run_quality_gate');
+
+    const manifest = validateExecutionEvidence(cwd);
+    expect(manifest.traceability.tasks.map(({ id }) => id)).toEqual([
+      'TASK-001',
+      'TASK-002',
+    ]);
+    expect(manifest.processes[0]?.steps[0]?.work_units).toHaveLength(2);
+    expect(
+      manifest.processes[0]?.steps[0]?.work_units.map(
+        ({ task, test }) => `${task.id}/${test.id}`,
+      ),
+    ).toEqual(['TASK-001/TEST-001', 'TASK-002/TEST-002']);
+  });
+
   it('replays byte-stable generated evidence and detects command tampering', () => {
     const cwd = workspace();
     preparePair(cwd);
@@ -924,7 +1108,9 @@ describe('Navigator-driven Pair', () => {
     completePairDriver(partialCwd, 'test', snapshot, 'Added Q2.');
     executePairAction(partialCwd, 'run_red');
     reviewPairRed(partialCwd, 'behavior', 'Expected behavior is absent.');
-    expect(() => generateExecutionEvidence(partialCwd)).toThrow('has no green');
+    expect(() => generateExecutionEvidence(partialCwd)).toThrow(
+      'every approved TASK/TEST unit to complete',
+    );
 
     const deletedCwd = workspace();
     preparePair(deletedCwd);
@@ -1028,6 +1214,14 @@ describe('Navigator-driven Pair', () => {
       invocation: 'showcase-controller',
       exit_code: 0,
     });
+    expect(() => prepareActivityRun(cwd)).toThrow(
+      'human product/value observation',
+    );
+    recordShowcaseProductObservation(cwd, {
+      observation: 'The owner sees workspace Alpha in the product flow.',
+      valueFeedback: 'The owner can continue work in the created workspace.',
+      evidenceRefs: ['manual://showcase/workspace-alpha'],
+    });
     expect(() => prepareActivityRun(cwd)).toThrow('Q3 and Q4 risk decisions');
 
     recordShowcaseRisk(
@@ -1044,6 +1238,33 @@ describe('Navigator-driven Pair', () => {
       ['performance', 'security'],
       'Production rollout still needs non-functional evaluation.',
     );
+    expect(() => prepareActivityRun(cwd)).toThrow(
+      'Q4/performance, Q4/security',
+    );
+    recordShowcaseEvaluation(cwd, {
+      quadrant: 'Q4',
+      activity: 'performance',
+      outcome: 'concern',
+      finding: 'The first product observation exceeded the response budget.',
+      evidenceRefs: ['manual://showcase/workspace-alpha-performance-first'],
+    });
+    recordShowcaseEvaluation(cwd, {
+      quadrant: 'Q4',
+      activity: 'security',
+      outcome: 'passed',
+      finding: 'Only the owner can observe workspace Alpha.',
+      evidenceRefs: ['manual://showcase/workspace-alpha-security'],
+    });
+    expect(() => prepareActivityRun(cwd)).toThrow(
+      'unresolved concerns: Q4/performance',
+    );
+    recordShowcaseEvaluation(cwd, {
+      quadrant: 'Q4',
+      activity: 'performance',
+      outcome: 'passed',
+      finding: 'A repeated product observation is within the response budget.',
+      evidenceRefs: ['manual://showcase/workspace-alpha-performance-repeat'],
+    });
     const reviewerPreparation = prepareActivityRun(cwd);
     if (isCompletedIteration(reviewerPreparation)) {
       throw new Error('Unexpected complete.');
@@ -1058,9 +1279,7 @@ describe('Navigator-driven Pair', () => {
       observedFacts: ['The selected Q2 command exited with zero.'],
       productDomainFeedback: [],
       technicalQualityFeedback: [],
-      unresolvedAssumptions: [
-        'Production performance and security remain to be evaluated.',
-      ],
+      unresolvedAssumptions: [],
       recommendation: 'accept',
     });
     const accepted = decideShowcase(
@@ -1110,14 +1329,14 @@ describe('Navigator-driven Pair', () => {
       noPromotionReason:
         'The Scenario validated existing behavior but introduced no reusable working knowledge.',
       observedOutcomes: ['The selected Q2 behavior passed in Showcase.'],
-      residualRisks: ['Performance and security evaluation remain explicit.'],
+      residualRisks: [],
       nextProbe: {
-        question:
-          'How should the declared performance and security activities be evaluated in production-like conditions?',
-        why_now: 'Q4 remains required after the accepted behavior Showcase.',
+        question: 'Which adjacent owner workflow should be demonstrated next?',
+        why_now:
+          'The current product behavior and required Q4 activities passed.',
         evidence_refs: [review.artifact_path, manifestPath],
         first_action:
-          'Design one bounded production-like performance and security probe.',
+          'Select one adjacent owner journey step as the next Probe.',
       },
     });
     expect(response.promotions).toEqual([]);
@@ -1133,9 +1352,7 @@ describe('Navigator-driven Pair', () => {
       knowledge_promotion_path:
         'artifacts/iterations/ITER-0001/07-learning/knowledge-promotion.json',
     });
-    expect(completed.next_probe?.question).toContain(
-      'performance and security',
-    );
+    expect(completed.next_probe?.question).toContain('owner workflow');
   });
 
   it('routes technical and domain Showcase feedback to their owning loops', () => {
