@@ -77,6 +77,21 @@ describe('semantic source boundaries', () => {
     expect(sourceBoundaryViolations(root)).toEqual([]);
   });
 
+  it('rejects production source that no extension or validator can reach', () => {
+    const root = workspace();
+    write(root, 'index.ts', "export { live } from './capabilities/live';\n");
+    write(root, 'capabilities/live.ts', 'export const live = true;\n');
+    write(root, 'capabilities/orphan.ts', 'export const orphan = true;\n');
+
+    expect(sourceBoundaryViolations(root)).toEqual([
+      {
+        source: 'capabilities/orphan.ts',
+        reason:
+          'Production source is unreachable from an extension or validation entrypoint.',
+      },
+    ]);
+  });
+
   it.each(['runtime', 'compatibility'])(
     'rejects the retired %s directory when it reappears',
     (directory) => {

@@ -162,6 +162,7 @@ validation → 各层公开 validator
 - `capabilities/` 不依赖 Loop 或 Adapter；
 - Loop 不能直接依赖另一个 Loop 的私有文件；
 - 产品源码和 Loop 不依赖 Pi host；
+- 生产模块必须可从 Extension 或验证入口到达；
 - 已删除的 `runtime/`、`subagents/`、`workflow/`、`requirements/`、`evidence/`、`testing/`、`compatibility/` 不得重新出现。
 
 `.pi/agents/` 不导入扩展代码，只通过注册工具交互。
