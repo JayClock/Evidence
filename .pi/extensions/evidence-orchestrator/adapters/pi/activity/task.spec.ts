@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { readState, writeState } from '../../../iteration/state-repository';
 import { buildActivityTask } from './task';
-import { cleanupWorkspaces, workspace } from '../../../tests/support';
+import { cleanupWorkspaces, workspace } from '../../../test-support/support';
 
 const scenario = {
   version: 1 as const,

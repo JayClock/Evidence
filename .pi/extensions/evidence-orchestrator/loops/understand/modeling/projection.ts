@@ -7,7 +7,7 @@ import type {
   ModelProjectionRecord,
   WorkflowState,
 } from '../../../iteration/state';
-import { findFiles } from '../../../evidence/artifact-index';
+import { findFiles } from '../../../iteration/artifact-inventory';
 import { eightXValidationIssues } from './eight-x-validation';
 import {
   candidateModelSources,

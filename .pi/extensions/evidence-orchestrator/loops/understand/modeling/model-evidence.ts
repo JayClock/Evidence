@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { findFiles } from '../../../evidence/artifact-index';
+import { findFiles } from '../../../iteration/artifact-inventory';
 const EVIDENCE_SOURCE_ROOTS = [
   '.evidence/entities/',
   '.evidence/associations/',

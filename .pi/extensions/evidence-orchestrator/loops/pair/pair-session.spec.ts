@@ -11,7 +11,7 @@ import {
   initializeGitRepository,
   workspace,
   write,
-} from '../../tests/support';
+} from '../../test-support/support';
 import {
   isCompletedIteration,
   prepareActivityRun,

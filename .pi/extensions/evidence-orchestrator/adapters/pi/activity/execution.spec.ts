@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { readState, writeState } from '../../../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../../../tests/support';
+import { cleanupWorkspaces, workspace } from '../../../test-support/support';
 import type { PreparedActivityRun } from './dispatch';
 import { executePreparedActivityRun } from './execution';
 

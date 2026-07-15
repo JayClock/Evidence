@@ -43,71 +43,62 @@ flowchart LR
 
 ## 目录结构
 
+源码按知识行为所有者组织，不再按 requirements/evidence/testing 等技术阶段分桶：
+
 ```text
 evidence-orchestrator/
-├── index.ts                  # Pi 扩展组合根与状态栏生命周期
-├── runtime/                  # 命令、模型工具、状态与活动执行 UI
-├── subagents/                # 活动任务构建与隔离 pi 子进程
-├── workflow/                 # v5 loop 状态、转换和 iteration 路径
-├── requirements/             # Issue、Kickoff、单 Story TQA、Scenario
-├── evidence/                 # 模型、挑战、Respond 与知识验证
-├── testing/                  # 工序、Pair、执行 manifest 与 Showcase
-├── validation/               # CI 确定性验证入口
-├── tests/                    # 跨模块集成测试
+├── index.ts                         # 仅导出 Pi host
+├── iteration/                       # 跨循环聚合、状态、转换、反馈与工件布局
+├── loops/
+│   ├── kickoff/                     # 单 Story 候选与人工 Kickoff 决定
+│   ├── understand/{tqa,scenario,modeling}/
+│   ├── tasking/                     # test/task draft 与 Desk Check
+│   ├── pair/                        # Navigator checkpoint 与 Driver session
+│   ├── showcase/                    # Q2/Q3/Q4、Reviewer 与人工决定
+│   └── respond/                     # knowledge response、人工确认与 next Probe
+├── capabilities/
+│   ├── issue-source/                # 冻结与验证 requirement source
+│   ├── test-process/                # v2 catalog、匹配与命令物化
+│   ├── execution-evidence/          # hash-chained observation 与 manifest
+│   ├── worktree-protection/         # Git baseline、snapshot 与恢复
+│   └── working-knowledge/           # catalog 与 promotion validation
+├── adapters/
+│   ├── pi/                          # 薄 host、命令、工具、状态与 activity host
+│   ├── github/                      # GitHub CLI/Pi process adapter
+│   └── node/                        # 隔离 activity 子进程
+├── compatibility/                  # status query 与终态 v4 只读投影
+├── validation/                      # source boundary 与确定性验证入口
+├── test-support/                    # 跨模块集成测试、fixtures 与 mocks
 └── vitest.config.ts
 ```
 
-### `runtime/`
+### `iteration/`
 
-- `identity.ts`：扩展 ID、状态 key、状态前缀和消息类型。
-- `commands.ts`：注册 `/evidence-*` 人工命令及交互式前置检查。
-- `tools.ts`：注册供隔离 Agent 调用的 `evidence_orchestrator_*` 工具。
-- `activity-dispatch.ts`：根据当前 loop/stage 解析一次活动、确定 Agent 或确定性动作。
-- `activity-execution.ts`：统一命令和模型工具的活动执行、运行元数据与 Driver/Reviewer 保护。
-- `activity-progress.ts`：可取消的前台活动进度；非 TUI 模式使用 status/widget。
-- `activity-subagent-renderer.ts`：在 `details` 保留子进程事件，在 `content` 只返回最终回答。
-- `status.ts`：显示 v5 状态；对终态旧版本仅显示不可变历史投影。
+- `state.ts` 与 `default-state.ts`：v5 iteration envelope、loop 局部事实和唯一默认状态。
+- `state-codec.ts` 与 `state-repository.ts`：严格编解码和持久化；活动旧版本不能恢复、转换或写回。
+- `transition-graph.ts`：合法 loop 转换及核心守卫。
+- `feedback-routing.ts`：把语义缺口路由到知识活动，而不是技术阶段。
+- `artifact-layout.ts` 与 `artifact-inventory.ts`：iteration ID、隔离工件路径、目录和只读清单。
 
-### `subagents/`
+### `loops/`
 
-- `activity-runner.ts`：读取 `.pi/agents/*.md`，以 `--mode json` 启动隔离 Pi 子进程并转发 `message_end` / `tool_result_end`。
-- `activity-task.ts`：只注入当前 Story/Scenario、必要路径、单次任务与停止边界；不复制 Skill 方法正文。
+每个 Loop 拥有自己的候选、人工决定、局部状态推进和相邻规格测试。一个 Loop 不得导入另一个 Loop 的私有实现；确需交接时只消费确认状态、typed outcome，或显式 `public.ts` 契约。共享机制必须提升到 `capabilities/`，不得创建通用 `BaseLoop`。
 
-### `workflow/`
+### `capabilities/`
 
-- `types.ts`：v5 loop、局部状态、人工决定、反馈与证据类型；另含终态旧版本只读投影类型。
-- `default-state.ts`：新 v5 iteration 的唯一默认状态。
-- `loop-catalog.ts`：合法 loop 转换与核心守卫。
-- `state-store.ts`：严格读取/写入 v5 状态；拒绝已删除字段；终态旧版本只能经 `readStateSnapshot()` 查看，不能恢复、转换或写回。
-- `iteration-paths.ts`：iteration ID 与隔离工件路径解析。
+Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Test Process、Execution Evidence、Worktree Protection 与 Working Knowledge 都以 iteration 类型为边界，不依赖 Pi UI 或某个 Loop 的私有实现。
 
-### `requirements/`
+### `adapters/`
 
-- `github-issue.ts`：冻结 Issue 快照、只读 Markdown 投影、漂移检查与 Kickoff 内显式同步。
-- `kickoff.ts`：记录一个未授权候选并执行人工决定；只有确认才创建 `US-xxx` Card。
-- `clarifications.ts`：活动 Story 的单问题 TQA 与回答历史，不支持 Story picker 或暂停切换。
-- `scenarios.ts`：Scenario 候选与人工确认/继续/拆分/延期。
-- `story-cards.ts`：单 Story Card 的文件格式与解析。
+- `pi/host.ts` 是生命周期组合根；根 `index.ts` 保持薄。
+- `pi/commands.ts` 与 `pi/tools.ts` 只注册外部入口；参数解析、Schema 和 activity host 分文件维护。
+- `pi/activity/` 负责任务构建、单 checkpoint 调度、执行、进度和渲染。
+- `github/pi-cli.ts` 把 Pi 的可取消进程执行适配为 Issue Source port。
+- `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`。
 
-### `evidence/`
+### `compatibility/`
 
-- `modeling.ts`：建模方法候选、人工 Profile 和候选模型操作。
-- `model-projection.ts`：从候选模型确定性生成 Mermaid、glossary 和挑战上下文。
-- `model-challenge.ts`：只读 Challenger 结论与语义反馈路由。
-- `model-validation.ts`：Scenario/模型证据校验。
-- `respond.ts`：知识提升候选、人工决定和 next Probe。
-- `knowledge.ts`：统一产品、模型、架构和工序知识验证。
-- `working-knowledge.ts`：验证 Skill/Prompt 的发现性、版本、负责人、认知行为、验证场景、反馈、替代关系和 eval。
-
-### `testing/`
-
-- `process-catalog.ts`：test-process Schema v2、目录读取与唯一匹配。
-- `tasking.ts`：生成 test/task list、物化白名单命令、锁定计划并处理 Desk Check。
-- `pairing.ts`：Navigator checkpoint、Driver 路径保护、Red 分类与 quality gates。
-- `execution-recorder.ts`：执行锁定命令并追加 hash-chained `execution.jsonl`。
-- `execution-manifest.ts`：从执行日志、批准计划和 Git 变化生成/重放 `manifest.json` 与 `summary.md`。
-- `showcase.ts`：Q2 重跑、Q3/Q4 风险、只读 Reviewer 保护、人工决定和反馈路由。
-- `worktree-snapshot.ts`：Driver/Reviewer 前后的确定性工作树比较与恢复。
+`state-snapshot.ts` 只查询活动 v5 或终态 v4 的只读投影；`v4/` 只负责旧文档投影。兼容层不得进入活动 v5 写路径，也不得改写历史 iteration。
 
 ## 人工命令
 
@@ -168,24 +159,33 @@ artifacts/07-learning/next-iteration.md
 ## 依赖方向
 
 ```text
-index/runtime
-  → subagents
-  → workflow
-  → requirements/evidence/testing
-
-validation
-  → workflow/requirements/evidence/testing
+index → adapters/pi
+adapters → loops + capabilities + iteration
+loops → capabilities + iteration
+capabilities → iteration
+compatibility → iteration 的只读状态查询接口
+validation → 各层公开 validator
 ```
 
-底层模块不得反向依赖 `runtime/`。`.pi/agents/` 不导入扩展代码，只通过注册工具交互。
+额外约束由 `validation/source-boundaries.ts` 自动检查：
+
+- `iteration/` 不依赖 Loop、Capability、Adapter 或 compatibility；
+- `capabilities/` 不依赖 Loop、Adapter 或 compatibility；
+- Loop 不能直接依赖另一个 Loop 的私有文件；
+- 产品源码和 Loop 不依赖 Pi host；
+- 已删除的 `runtime/`、`subagents/`、`workflow/`、`requirements/`、`evidence/`、`testing/` 不得重新出现。
+
+`.pi/agents/` 不导入扩展代码，只通过注册工具交互。
 
 ## 维护规则
 
-- 新状态字段先修改 `workflow/types.ts`，再修改 `workflow/state-store.ts` 与相邻规格测试。
-- 新转换或守卫放在 `workflow/loop-catalog.ts`，不要散落到命令或 Agent。
+- 新状态字段先修改 `iteration/state.ts`，再修改 codec、repository 与相邻规格测试；磁盘 Schema 迁移必须是独立变更。
+- 新转换或守卫放在 `iteration/transition-graph.ts`，语义反馈放在 `iteration/feedback-routing.ts`。
+- Loop 行为留在所属 `loops/<loop>/`；只有跨 Loop 稳定复用的机制才进入 `capabilities/`。
+- Pi/GitHub/Node 集成留在 `adapters/`；命令和工具不得复制业务守卫。
 - Agent 不复制方法正文；方法变化更新 catalog 指向的 Skill/Prompt 及 eval。
 - 测试命令必须来自人工批准且哈希锁定的 test-process 计划。
-- 变更必须覆盖 full-loop happy path、主要反馈路由和旧版本只读边界。
+- 变更必须覆盖 full-loop happy path、主要反馈路由、source boundaries 和旧版本只读边界。
 
 ## 验证
 

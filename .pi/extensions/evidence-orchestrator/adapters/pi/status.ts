@@ -3,7 +3,7 @@ import {
   collectArtifacts,
   collectCodeFiles,
   findFiles,
-} from '../../evidence/artifact-index';
+} from '../../iteration/artifact-inventory';
 import {
   pairDriverMode,
   pairNextInstruction,
@@ -12,7 +12,7 @@ import { showcaseNextInstruction } from '../../loops/showcase/showcase-session';
 import { executionEvidencePaths } from '../../capabilities/execution-evidence/manifest';
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { allowedLoopActions } from '../../iteration/transition-graph';
-import { readStateSnapshot } from '../../iteration/state-repository';
+import { readStateSnapshot } from '../../compatibility/state-snapshot';
 import type { WorkflowState } from '../../iteration/state';
 import { loadActivityAgent } from '../node/activity-agent-process';
 

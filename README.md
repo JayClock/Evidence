@@ -136,7 +136,7 @@ cargo test -p evidence-server --features postgres-tests
 
 > **内部工具边界**：本节说明当前仓库贡献者如何开发 Evidence，不属于产品能力、产品画像、用户旅程或 `.evidence` 产品领域模型。完整决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
 
-Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension 负责确定性状态、执行、路径保护和审计；`.pi/agents/` 定义隔离角色；`.pi/skills/` 承载 Complicated / Complex 方法；`.pi/prompts/` 承载 Clear 固定任务。人类始终担任 Navigator。
+Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension 负责确定性状态、执行、路径保护和审计；`.pi/agents/` 定义隔离角色；`.pi/skills/` 承载 Complicated / Complex 方法；`.pi/prompts/` 承载 Clear 固定任务。人类始终担任 Navigator。源码按 `iteration/`、`loops/`、`capabilities/` 与 `adapters/` 组织，旧的线性技术阶段目录已删除。
 
 ### v5 知识循环
 

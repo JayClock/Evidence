@@ -61,13 +61,6 @@ const SHOWCASE_STAGES = new Set([
 ]);
 const RESPOND_STAGES = new Set(['drafting', 'decision', 'complete']);
 
-function record(value: unknown, subject: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${subject} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
 function text(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
 }

@@ -10,7 +10,7 @@ import type {
   ModelOperation,
   WorkflowState,
 } from '../../../iteration/state';
-import { findFiles } from '../../../evidence/artifact-index';
+import { findFiles } from '../../../iteration/artifact-inventory';
 import { validateEightXModel } from './eight-x-validation';
 import {
   modelingStrings as strings,

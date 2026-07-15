@@ -6,7 +6,11 @@ import {
   readTestProcess,
   validateTestProcessDirectory,
 } from './catalog';
-import { cleanupWorkspaces, workspace, write } from '../../tests/support';
+import {
+  cleanupWorkspaces,
+  workspace,
+  write,
+} from '../../test-support/support';
 
 afterEach(cleanupWorkspaces);
 

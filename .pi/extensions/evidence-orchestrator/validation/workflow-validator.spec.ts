@@ -5,7 +5,7 @@ import {
   cleanupWorkspaces,
   workspace,
   writeIterationArtifact,
-} from '../tests/support';
+} from '../test-support/support';
 import { validateWorkflow } from './workflow-validator';
 
 afterEach(cleanupWorkspaces);

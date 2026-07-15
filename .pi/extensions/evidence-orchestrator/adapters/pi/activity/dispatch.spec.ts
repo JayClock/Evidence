@@ -8,7 +8,11 @@ import {
   prepareActivityRun,
   ActivityRunBlockedError,
 } from './dispatch';
-import { cleanupWorkspaces, workspace, write } from '../../../tests/support';
+import {
+  cleanupWorkspaces,
+  workspace,
+  write,
+} from '../../../test-support/support';
 import type { WorkflowState } from '../../../iteration/state';
 
 function issueState(): WorkflowState {

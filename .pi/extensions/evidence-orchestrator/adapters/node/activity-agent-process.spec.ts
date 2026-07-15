@@ -1,6 +1,10 @@
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupWorkspaces, workspace, write } from '../../tests/support';
+import {
+  cleanupWorkspaces,
+  workspace,
+  write,
+} from '../../test-support/support';
 import {
   appendActivitySubagentEvent,
   loadActivityAgent,

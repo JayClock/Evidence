@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { writeState } from '../../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../../tests/support';
+import { cleanupWorkspaces, workspace } from '../../test-support/support';
 import { registerTools } from './tools';
 
 afterEach(cleanupWorkspaces);

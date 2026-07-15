@@ -2,7 +2,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import {
   collectArtifacts,
   collectCodeFiles,
-} from '../../evidence/artifact-index';
+} from '../../iteration/artifact-inventory';
 import { proposeKnowledgeResponse } from '../../loops/respond/response-cycle';
 import { recordModelChallenge } from '../../loops/understand/modeling/challenge';
 import { recordModelAnalysis } from '../../loops/understand/modeling/candidate-model';
@@ -22,7 +22,8 @@ import {
   renderActivitySubagentCall,
   renderActivitySubagentResult,
 } from './activity/subagent-renderer';
-import { readState, readStateSnapshot } from '../../iteration/state-repository';
+import { readStateSnapshot } from '../../compatibility/state-snapshot';
+import { readState } from '../../iteration/state-repository';
 import { createGitHubCliRunner } from '../github/pi-cli';
 import { statusMarkdown } from './status';
 import { proposeTaskingDraft } from '../../loops/tasking/tasking-draft';

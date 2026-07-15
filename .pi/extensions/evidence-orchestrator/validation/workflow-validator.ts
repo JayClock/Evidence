@@ -9,7 +9,7 @@ import {
   validateKnowledgePromotion,
 } from '../capabilities/working-knowledge/promotion-validation';
 import { validateWorkingKnowledgeCatalog } from '../capabilities/working-knowledge/catalog';
-import { readStateSnapshot } from '../iteration/state-repository';
+import { readStateSnapshot } from '../compatibility/state-snapshot';
 import { validateSourceBoundaries } from './source-boundaries';
 import {
   catalogTestProcessDirectory,

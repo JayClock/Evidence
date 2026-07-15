@@ -10,7 +10,7 @@ import {
 } from './github-issue-source';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { writeState } from '../../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../../tests/support';
+import { cleanupWorkspaces, workspace } from '../../test-support/support';
 
 afterEach(cleanupWorkspaces);
 

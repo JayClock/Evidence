@@ -7,7 +7,7 @@ import {
   cleanupWorkspaces,
   workspace,
   writeIterationArtifact,
-} from '../../../tests/support';
+} from '../../../test-support/support';
 import { askClarification } from '../tqa/conversation';
 import { decideUnderstanding, proposeScenarioDrafts } from './candidates';
 

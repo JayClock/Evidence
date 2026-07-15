@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { readTerminalV4State } from '../compatibility/v4/terminal-state-reader';
 import { DEFAULT_STATE } from './default-state';
 import { normalizeState } from './state-codec';
 import {
@@ -10,9 +9,9 @@ import {
 import type {
   ActiveWorkItem,
   TestProcessSelection,
-  WorkflowSnapshot,
   WorkflowState,
 } from './state';
+import { legacyTerminalFacts } from './terminal-policy';
 
 function record(value: unknown, subject: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -35,24 +34,17 @@ function readRawState(cwd: string): Record<string, unknown> | undefined {
     : undefined;
 }
 
-/** Read either an active v5 state or an immutable terminal v4 projection. */
-export function readStateSnapshot(cwd: string): WorkflowSnapshot {
+/** Read active v5 state. Legacy iterations remain status-only. */
+export function readState(cwd: string): WorkflowState {
   const raw = readRawState(cwd);
   if (!raw) return normalizeState(DEFAULT_STATE);
-  return raw.workflow_version === 5
-    ? normalizeState(raw as unknown as WorkflowState)
-    : readTerminalV4State(raw);
-}
-
-/** Read active v5 state. Terminal v4 iterations are status-only. */
-export function readState(cwd: string): WorkflowState {
-  const snapshot = readStateSnapshot(cwd);
-  if (snapshot.workflow_version !== 5) {
+  if (raw.workflow_version !== 5) {
+    const legacy = legacyTerminalFacts(raw);
     throw new Error(
-      `Legacy iteration ${snapshot.iteration_id} is read-only. Start a new Issue-backed v5 iteration before running workflow actions.`,
+      `Legacy iteration ${legacy.iterationId} is read-only. Start a new Issue-backed v5 iteration before running workflow actions.`,
     );
   }
-  return snapshot;
+  return normalizeState(raw as unknown as WorkflowState);
 }
 
 export function writeState(cwd: string, state: WorkflowState): WorkflowState {
@@ -69,17 +61,14 @@ export function transitionWorkflowLoop(
 }
 
 export function assertCanStartV5Iteration(cwd: string): void {
-  if (!existsSync(statePath(cwd))) return;
-  const current = readStateSnapshot(cwd);
-  const terminal =
-    current.workflow_version === 4
-      ? current.terminal
-      : current.loop === 'complete'
-        ? 'complete'
-        : current.halted
-          ? 'halted'
-          : undefined;
-  if (!terminal) {
+  const raw = readRawState(cwd);
+  if (!raw) return;
+  if (raw.workflow_version !== 5) {
+    legacyTerminalFacts(raw);
+    return;
+  }
+  const current = normalizeState(raw as unknown as WorkflowState);
+  if (current.loop !== 'complete' && !current.halted) {
     throw new Error(
       `Cannot start a v5 iteration while ${current.iteration_id} is active. Complete, reject, split, or defer it first; state is never migrated in place.`,
     );

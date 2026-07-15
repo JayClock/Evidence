@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ensureProjectDirs } from '../../evidence/artifact-index';
+import { ensureProjectDirs } from '../../iteration/artifact-inventory';
 import {
   iterationRoot,
   nextIterationId,

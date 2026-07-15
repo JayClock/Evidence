@@ -1,7 +1,7 @@
 import { watchFile, unwatchFile } from 'node:fs';
 import type { Stats } from 'node:fs';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { ensureProjectDirs } from '../../evidence/artifact-index';
+import { ensureProjectDirs } from '../../iteration/artifact-inventory';
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { registerCommands } from './commands';
 import type { ActivityExecutionDetails } from './activity/execution';
@@ -12,7 +12,8 @@ import {
   statusLabel,
 } from './identity';
 import { registerTools } from './tools';
-import { readStateSnapshot, statePath } from '../../iteration/state-repository';
+import { readStateSnapshot } from '../../compatibility/state-snapshot';
+import { statePath } from '../../iteration/state-repository';
 
 const STATE_WATCH_INTERVAL_MS = 250;
 

@@ -5,7 +5,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { ensureProjectDirs } from '../../../evidence/artifact-index';
+import { ensureProjectDirs } from '../../../iteration/artifact-inventory';
 import {
   artifactPath,
   iterationRoot,

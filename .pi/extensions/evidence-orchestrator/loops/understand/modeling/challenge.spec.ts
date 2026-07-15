@@ -8,7 +8,7 @@ import {
   workspace,
   write,
   writeIterationArtifact,
-} from '../../../tests/support';
+} from '../../../test-support/support';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { writeState } from '../../../iteration/state-repository';
 import { recordModelChallenge } from './challenge';

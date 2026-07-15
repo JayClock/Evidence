@@ -10,7 +10,7 @@ import {
   initializeGitRepository,
   workspace,
   write,
-} from '../../tests/support';
+} from '../../test-support/support';
 import { prepareActivityRun } from '../../adapters/pi/activity/dispatch';
 import { statusMarkdown } from '../../adapters/pi/status';
 import { buildActivityTask } from '../../adapters/pi/activity/task';

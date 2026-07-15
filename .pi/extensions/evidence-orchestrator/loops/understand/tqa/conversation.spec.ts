@@ -7,7 +7,11 @@ import {
   askClarification,
   waivePendingClarification,
 } from './conversation';
-import { cleanupWorkspaces, workspace, write } from '../../../tests/support';
+import {
+  cleanupWorkspaces,
+  workspace,
+  write,
+} from '../../../test-support/support';
 
 afterEach(cleanupWorkspaces);
 

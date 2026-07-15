@@ -4,7 +4,7 @@ import {
   LEAN_STORY_CARD,
   workspace,
   writeIterationArtifact,
-} from '../../tests/support';
+} from '../../test-support/support';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { validateStoryCards } from './story-card';
 

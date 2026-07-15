@@ -4,8 +4,8 @@ import {
   collectCodeFiles,
   ensureProjectDirs,
   missingPaths,
-} from './artifact-index';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+} from './artifact-inventory';
+import { cleanupWorkspaces, workspace, write } from '../test-support/support';
 
 afterEach(cleanupWorkspaces);
 

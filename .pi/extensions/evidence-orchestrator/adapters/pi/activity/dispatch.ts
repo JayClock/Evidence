@@ -1,7 +1,7 @@
 import {
   ensureProjectDirs,
   missingPaths,
-} from '../../../evidence/artifact-index';
+} from '../../../iteration/artifact-inventory';
 import { prepareModelProjection } from '../../../loops/understand/modeling/projection';
 import {
   pairDeterministicAction,

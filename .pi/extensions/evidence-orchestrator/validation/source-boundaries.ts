@@ -11,7 +11,7 @@ export const TARGET_SOURCE_ZONES = [
   'test-support',
 ] as const;
 
-export const MIGRATION_SOURCE_ZONES = [
+export const RETIRED_SOURCE_ZONES = [
   'workflow',
   'requirements',
   'evidence',
@@ -30,7 +30,7 @@ export interface SourceBoundaryViolation {
 }
 
 interface SourceLocation {
-  zone: TargetZone | 'root' | 'migration';
+  zone: TargetZone | 'root' | 'retired';
   loop?: string;
   publicContract?: boolean;
 }
@@ -54,8 +54,8 @@ function location(path: string): SourceLocation {
   if ((TARGET_SOURCE_ZONES as readonly string[]).includes(first)) {
     return { zone: first as TargetZone };
   }
-  if ((MIGRATION_SOURCE_ZONES as readonly string[]).includes(first)) {
-    return { zone: 'migration' };
+  if ((RETIRED_SOURCE_ZONES as readonly string[]).includes(first)) {
+    return { zone: 'retired' };
   }
   return { zone: 'root' };
 }
@@ -110,8 +110,11 @@ function boundaryReason(
       return `A shared capability must not depend on ${target.zone}.`;
     }
   }
-  if (source.zone === 'iteration' && target.zone === 'adapters') {
-    return 'Iteration semantics must not depend on adapters.';
+  if (
+    source.zone === 'iteration' &&
+    ['loops', 'capabilities', 'adapters', 'compatibility'].includes(target.zone)
+  ) {
+    return `Iteration semantics must not depend on ${target.zone}.`;
   }
   if (
     source.zone === 'compatibility' &&
@@ -125,9 +128,7 @@ function boundaryReason(
 /** Validate the semantic source layout without treating colocated specs as production dependencies. */
 export function sourceBoundaryViolations(
   extensionRoot: string,
-  options: { allowMigrationSources?: boolean } = {},
 ): SourceBoundaryViolation[] {
-  const allowMigrationSources = options.allowMigrationSources ?? true;
   const files = sourceFiles(extensionRoot).filter(
     (path) =>
       /\.(?:ts|mts)$/.test(path) &&
@@ -139,7 +140,7 @@ export function sourceBoundaryViolations(
   for (const sourcePath of files) {
     const sourceRelative = normalized(relative(extensionRoot, sourcePath));
     const sourceLocation = location(sourceRelative);
-    if (sourceLocation.zone === 'migration' && !allowMigrationSources) {
+    if (sourceLocation.zone === 'retired') {
       violations.push({
         source: sourceRelative,
         reason: 'Source remains in a pre-v5 technical directory.',
@@ -164,11 +165,8 @@ export function sourceBoundaryViolations(
   return violations;
 }
 
-export function validateSourceBoundaries(
-  extensionRoot: string,
-  options: { allowMigrationSources?: boolean } = {},
-): void {
-  const violations = sourceBoundaryViolations(extensionRoot, options);
+export function validateSourceBoundaries(extensionRoot: string): void {
+  const violations = sourceBoundaryViolations(extensionRoot);
   if (violations.length === 0) return;
   throw new Error(
     `Evidence Orchestrator source boundaries failed:\n${violations

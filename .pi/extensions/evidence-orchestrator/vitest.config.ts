@@ -8,8 +8,8 @@ export default defineConfig({
     // Pi provides this package to extensions at runtime; tests use a small
     // structural mock so the product workspace need not depend on Pi itself.
     alias: {
-      '@earendil-works/pi-coding-agent': `${extensionRoot}tests/pi-coding-agent.mock.ts`,
-      '@earendil-works/pi-tui': `${extensionRoot}tests/pi-tui.mock.ts`,
+      '@earendil-works/pi-coding-agent': `${extensionRoot}test-support/pi-coding-agent.mock.ts`,
+      '@earendil-works/pi-tui': `${extensionRoot}test-support/pi-tui.mock.ts`,
     },
   },
   test: {

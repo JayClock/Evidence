@@ -1,15 +1,15 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from './default-state';
+import { readStateSnapshot } from '../compatibility/state-snapshot';
 import {
   assertCanStartV5Iteration,
   readState,
-  readStateSnapshot,
   statePath,
   transitionWorkflowLoop,
   writeState,
 } from './state-repository';
-import { cleanupWorkspaces, workspace } from '../tests/support';
+import { cleanupWorkspaces, workspace } from '../test-support/support';
 import type { WorkflowState } from './state';
 
 afterEach(cleanupWorkspaces);

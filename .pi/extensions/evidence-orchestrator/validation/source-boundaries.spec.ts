@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+import { cleanupWorkspaces, workspace, write } from '../test-support/support';
 import {
-  MIGRATION_SOURCE_ZONES,
+  RETIRED_SOURCE_ZONES,
   TARGET_SOURCE_ZONES,
   sourceBoundaryViolations,
   validateSourceBoundaries,
@@ -20,7 +20,7 @@ describe('semantic source boundaries', () => {
       'validation',
       'test-support',
     ]);
-    expect(MIGRATION_SOURCE_ZONES).toEqual([
+    expect(RETIRED_SOURCE_ZONES).toEqual([
       'workflow',
       'requirements',
       'evidence',
@@ -31,7 +31,7 @@ describe('semantic source boundaries', () => {
     ]);
   });
 
-  it('accepts the repository while explicitly tracking migration source directories', () => {
+  it('accepts the repository after retiring every technical-stage source directory', () => {
     expect(() =>
       validateSourceBoundaries(
         `${process.cwd()}/.pi/extensions/evidence-orchestrator`,
@@ -77,13 +77,11 @@ describe('semantic source boundaries', () => {
     expect(sourceBoundaryViolations(root)).toEqual([]);
   });
 
-  it('can close the migration gate once every old technical directory is empty', () => {
+  it('rejects any retired technical directory that reappears', () => {
     const root = workspace();
     write(root, 'runtime/commands.ts', 'export const old = true;\n');
 
-    expect(
-      sourceBoundaryViolations(root, { allowMigrationSources: false }),
-    ).toEqual([
+    expect(sourceBoundaryViolations(root)).toEqual([
       {
         source: 'runtime/commands.ts',
         reason: 'Source remains in a pre-v5 technical directory.',

@@ -1,10 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  readState,
-  readStateSnapshot,
-  statePath,
-} from '../iteration/state-repository';
+import { readStateSnapshot } from '../compatibility/state-snapshot';
+import { readState, statePath } from '../iteration/state-repository';
 import { statusMarkdown } from '../adapters/pi/status';
 import { cleanupWorkspaces, workspace, write } from './support';
 

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { findFiles } from '../../evidence/artifact-index';
+import { findFiles } from '../../iteration/artifact-inventory';
 import type { TestDouble, TestProcessRuntime } from '../../iteration/state';
 
 export interface TestBoundaryDouble {

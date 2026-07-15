@@ -5,7 +5,7 @@ import {
   nextIterationId,
 } from './artifact-layout';
 import { DEFAULT_STATE } from './default-state';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+import { cleanupWorkspaces, workspace, write } from '../test-support/support';
 
 afterEach(cleanupWorkspaces);
 

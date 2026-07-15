@@ -3,7 +3,11 @@ import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
 } from './promotion-validation';
-import { cleanupWorkspaces, workspace, write } from '../../tests/support';
+import {
+  cleanupWorkspaces,
+  workspace,
+  write,
+} from '../../test-support/support';
 
 afterEach(cleanupWorkspaces);
 

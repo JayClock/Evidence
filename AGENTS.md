@@ -176,7 +176,7 @@ API 遵循 HAL 风格约定：
 | `.evidence/`                              | Evidence 产品权威领域模型                                       |
 | `docs/architecture/`                      | 跨迭代统一维护的架构与测试策略                                  |
 | `contracts/`                              | 可执行 API 契约                                                 |
-| `.pi/extensions/evidence-orchestrator/`   | 内部六循环编排器、确定性状态保护与执行证据                      |
+| `.pi/extensions/evidence-orchestrator/`   | 内部六循环编排器；按 iteration/loops/capabilities/adapters 分层 |
 | `.pi/agents/`                             | 隔离上下文的活动专业角色                                        |
 | `engineering/evidence-orchestrator/`      | 运行时上下文、可复用测试工序与统一 DoD                          |
 | `artifacts/iterations/`                   | 不可变的单轮输入、增量、决策与执行证据                          |
