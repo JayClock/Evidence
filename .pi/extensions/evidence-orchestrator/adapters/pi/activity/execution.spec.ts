@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { readState, writeState } from '../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../tests/support';
-import type { PreparedActivityRun } from './activity-dispatch';
-import { executePreparedActivityRun } from './activity-execution';
+import { DEFAULT_STATE } from '../../../iteration/default-state';
+import { readState, writeState } from '../../../iteration/state-repository';
+import { cleanupWorkspaces, workspace } from '../../../tests/support';
+import type { PreparedActivityRun } from './dispatch';
+import { executePreparedActivityRun } from './execution';
 
 const runner = vi.hoisted(() => ({ runActivitySubagent: vi.fn() }));
 const pairing = vi.hoisted(() => ({
@@ -19,11 +19,11 @@ const showcase = vi.hoisted(() => ({
   completeShowcaseReviewer: vi.fn(),
 }));
 
-vi.mock('../subagents/activity-runner', () => ({
+vi.mock('../../node/activity-agent-process', () => ({
   runActivitySubagent: runner.runActivitySubagent,
 }));
-vi.mock('../loops/pair/pair-session', () => pairing);
-vi.mock('../loops/showcase/showcase-session', () => showcase);
+vi.mock('../../../loops/pair/pair-session', () => pairing);
+vi.mock('../../../loops/showcase/showcase-session', () => showcase);
 
 function preparation(): PreparedActivityRun {
   return {

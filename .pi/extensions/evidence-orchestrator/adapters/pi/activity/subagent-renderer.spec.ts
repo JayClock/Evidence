@@ -3,7 +3,7 @@ import {
   renderActivitySubagentCall,
   renderActivitySubagentResult,
   type ActivitySubagentToolDetails,
-} from './activity-subagent-renderer';
+} from './subagent-renderer';
 
 const theme = {
   fg(_color: string, text: string): string {

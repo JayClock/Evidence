@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { ActivityExecutionDetails } from './activity-execution';
-import { runWithActivityProgress } from './activity-progress';
+import type { ActivityExecutionDetails } from './execution';
+import { runWithActivityProgress } from './progress';
 
 const theme = {
   fg(_color: string, text: string): string {

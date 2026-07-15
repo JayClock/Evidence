@@ -3,18 +3,18 @@ import {
   collectArtifacts,
   collectCodeFiles,
   findFiles,
-} from '../evidence/artifact-index';
+} from '../../evidence/artifact-index';
 import {
   pairDriverMode,
   pairNextInstruction,
-} from '../loops/pair/pair-session';
-import { showcaseNextInstruction } from '../loops/showcase/showcase-session';
-import { executionEvidencePaths } from '../capabilities/execution-evidence/manifest';
-import { iterationRoot } from '../iteration/artifact-layout';
-import { allowedLoopActions } from '../iteration/transition-graph';
-import { readStateSnapshot } from '../iteration/state-repository';
-import type { WorkflowState } from '../iteration/state';
-import { loadActivityAgent } from '../subagents/activity-runner';
+} from '../../loops/pair/pair-session';
+import { showcaseNextInstruction } from '../../loops/showcase/showcase-session';
+import { executionEvidencePaths } from '../../capabilities/execution-evidence/manifest';
+import { iterationRoot } from '../../iteration/artifact-layout';
+import { allowedLoopActions } from '../../iteration/transition-graph';
+import { readStateSnapshot } from '../../iteration/state-repository';
+import type { WorkflowState } from '../../iteration/state';
+import { loadActivityAgent } from '../node/activity-agent-process';
 
 function agentName(state: WorkflowState): string | undefined {
   if (state.loop === 'kickoff') return 'requirements-analyst';

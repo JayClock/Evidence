@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createGitHubCliRunner } from './github-cli';
+import { createGitHubCliRunner } from './pi-cli';
 
 describe('GitHub CLI runner', () => {
   it('passes cancellation and timeout to Pi process execution', async () => {

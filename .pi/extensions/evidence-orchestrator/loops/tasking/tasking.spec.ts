@@ -11,9 +11,9 @@ import {
   workspace,
   write,
 } from '../../tests/support';
-import { prepareActivityRun } from '../../runtime/activity-dispatch';
-import { statusMarkdown } from '../../runtime/status';
-import { buildActivityTask } from '../../subagents/activity-task';
+import { prepareActivityRun } from '../../adapters/pi/activity/dispatch';
+import { statusMarkdown } from '../../adapters/pi/status';
+import { buildActivityTask } from '../../adapters/pi/activity/task';
 import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
 import { decideTasking } from './desk-check';
 import { proposeTaskingDraft } from './tasking-draft';

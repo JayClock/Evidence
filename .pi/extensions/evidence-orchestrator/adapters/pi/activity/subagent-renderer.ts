@@ -1,5 +1,5 @@
 import { Container, Spacer, Text } from '@earendil-works/pi-tui';
-import type { ActivityExecutionDetails } from './activity-execution';
+import type { ActivityExecutionDetails } from './execution';
 
 export type ActivitySubagentToolDetails = ActivityExecutionDetails;
 

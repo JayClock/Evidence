@@ -15,7 +15,7 @@ import {
 import {
   isCompletedIteration,
   prepareActivityRun,
-} from '../../runtime/activity-dispatch';
+} from '../../adapters/pi/activity/dispatch';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
   readState,

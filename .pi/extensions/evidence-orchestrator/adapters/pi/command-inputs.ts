@@ -1,30 +1,5 @@
-import type {
-  ExtensionAPI,
-  ExtensionCommandContext,
-} from '@earendil-works/pi-coding-agent';
-import { confirmModelingProfile } from '../loops/understand/modeling/profile';
-import { decideKickoff } from '../loops/kickoff/story-decision';
-import { decideKnowledgeResponse } from '../loops/respond/response-cycle';
-import { decideUnderstanding } from '../loops/understand/scenario/candidates';
-import { decideTasking } from '../loops/tasking/desk-check';
-import {
-  decideShowcase,
-  missingShowcaseRisks,
-  recordShowcaseRisk,
-  showcaseNextInstruction,
-} from '../loops/showcase/showcase-session';
-import {
-  navigatePair,
-  pairNextInstruction,
-  reviewPairRed,
-  type PairNavigationAction,
-} from '../loops/pair/pair-session';
-import {
-  checkIssueSourceDriftAsync,
-  startIterationFromIssueAsync,
-  syncIssueSourceAsync,
-} from '../capabilities/issue-source/github-issue-source';
-import { readState } from '../iteration/state-repository';
+import type { ExtensionCommandContext } from '@earendil-works/pi-coding-agent';
+import { readState } from '../../iteration/state-repository';
 import type {
   DeskCheckAction,
   KickoffDecisionAction,
@@ -37,29 +12,11 @@ import type {
   ShowcaseRiskQuadrant,
   FeedbackTarget,
   UnderstandingDecisionAction,
-} from '../iteration/state';
-import {
-  ACTIVITY_RESULT_MESSAGE_TYPE,
-  STATUS_KEY,
-  statusLabel,
-} from './identity';
-import {
-  isCompletedIteration,
-  ActivityRunBlockedError,
-  prepareActivityRun,
-  type PreparedActivityRun,
-} from './activity-dispatch';
-import {
-  executePreparedActivityRun,
-  type ActivityExecutionDetails,
-} from './activity-execution';
-import { createGitHubCliRunner } from './github-cli';
-import { selectOrCreateGitHubIssue } from './issue-picker';
-import { runWithLoader } from './loading';
-import { runWithActivityProgress } from './activity-progress';
-import { statusMarkdown } from './status';
+} from '../../iteration/state';
+import { missingShowcaseRisks } from '../../loops/showcase/showcase-session';
+import type { PairNavigationAction } from '../../loops/pair/pair-session';
 
-async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
+export async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
   if (!ctx.isIdle()) await ctx.waitForIdle();
 }
 
@@ -89,7 +46,7 @@ const DESK_CHECK_ACTIONS: Record<string, DeskCheckAction> = {
   scenario_gap: 'scenario_gap',
 };
 
-function parseKickoffDecision(
+export function parseKickoffDecision(
   args: string,
 ): { action: KickoffDecisionAction; reason: string } | undefined {
   const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
@@ -107,7 +64,7 @@ function parseKickoffDecision(
   return { action, reason };
 }
 
-async function promptKickoffDecision(
+export async function promptKickoffDecision(
   ctx: ExtensionCommandContext,
 ): Promise<{ action: KickoffDecisionAction; reason: string } | undefined> {
   const state = readState(ctx.cwd);
@@ -148,7 +105,9 @@ interface ScenarioDecision {
   draftId?: string;
 }
 
-function parseScenarioDecision(args: string): ScenarioDecision | undefined {
+export function parseScenarioDecision(
+  args: string,
+): ScenarioDecision | undefined {
   const [rawAction, ...rest] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = SCENARIO_ACTIONS[rawAction.toLowerCase()];
@@ -167,7 +126,7 @@ function parseScenarioDecision(args: string): ScenarioDecision | undefined {
   return { action, reason, ...(draftId ? { draftId } : {}) };
 }
 
-async function promptScenarioDecision(
+export async function promptScenarioDecision(
   ctx: ExtensionCommandContext,
 ): Promise<ScenarioDecision | undefined> {
   const state = readState(ctx.cwd);
@@ -217,7 +176,7 @@ const MODELING_METHODS: ModelingMethod[] = [
   'algorithmic',
 ];
 
-function parseModelingProfileDecision(
+export function parseModelingProfileDecision(
   args: string,
 ): ModelingProfileDecision | undefined {
   const [rawAction, ...rest] = args.trim().split(/\s+/);
@@ -257,7 +216,7 @@ interface DeskCheckDecisionInput {
   reason: string;
 }
 
-function parseDeskCheckDecision(
+export function parseDeskCheckDecision(
   args: string,
 ): DeskCheckDecisionInput | undefined {
   const [rawAction, ...reasonParts] = args.trim().split(/\s+/);
@@ -273,7 +232,7 @@ function parseDeskCheckDecision(
   return { action, reason };
 }
 
-async function promptDeskCheckDecision(
+export async function promptDeskCheckDecision(
   ctx: ExtensionCommandContext,
 ): Promise<DeskCheckDecisionInput | undefined> {
   const candidate = readState(ctx.cwd).tasking_candidate;
@@ -322,7 +281,7 @@ const RED_FAILURE_KINDS: RedFailureKind[] = [
   'other',
 ];
 
-function parsePairDecision(args: string): PairDecisionInput | undefined {
+export function parsePairDecision(args: string): PairDecisionInput | undefined {
   const [rawAction, ...rest] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase().replaceAll('-', '_');
@@ -362,7 +321,7 @@ function parsePairDecision(args: string): PairDecisionInput | undefined {
   return { kind: 'navigate', action: navigation, reason };
 }
 
-async function promptPairDecision(
+export async function promptPairDecision(
   ctx: ExtensionCommandContext,
 ): Promise<PairDecisionInput | undefined> {
   const session = readState(ctx.cwd).pair_session;
@@ -544,7 +503,7 @@ export function parseShowcaseDecision(
   };
 }
 
-async function promptShowcaseDecision(
+export async function promptShowcaseDecision(
   ctx: ExtensionCommandContext,
 ): Promise<ShowcaseDecisionInput | undefined> {
   const state = readState(ctx.cwd);
@@ -649,7 +608,7 @@ export function parseRespondDecision(
   return { action, reason };
 }
 
-async function promptRespondDecision(
+export async function promptRespondDecision(
   ctx: ExtensionCommandContext,
 ): Promise<RespondDecisionInput | undefined> {
   const state = readState(ctx.cwd);
@@ -676,7 +635,7 @@ async function promptRespondDecision(
   return reason ? { action, reason } : undefined;
 }
 
-async function promptModelingProfileDecision(
+export async function promptModelingProfileDecision(
   ctx: ExtensionCommandContext,
 ): Promise<ModelingProfileDecision | undefined> {
   const proposal = readState(ctx.cwd).modeling_profile_proposal;
@@ -714,464 +673,4 @@ async function promptModelingProfileDecision(
     modelChangeRequired: required === '需要变化',
     reason,
   };
-}
-
-async function runPreparedActivityFromCommand(
-  pi: ExtensionAPI,
-  ctx: ExtensionCommandContext,
-  preparation: PreparedActivityRun,
-  invocation: string,
-): Promise<ActivityExecutionDetails | undefined> {
-  const details = await runWithActivityProgress(
-    ctx,
-    `Running Evidence ${preparation.activity} activity…`,
-    (signal, onUpdate) =>
-      executePreparedActivityRun(ctx, preparation, {
-        invocation,
-        signal,
-        onUpdate,
-      }),
-  );
-  if (!details) {
-    ctx.ui.notify(
-      `Evidence ${preparation.activity} activity execution cancelled.`,
-      'info',
-    );
-    return undefined;
-  }
-  pi.sendMessage({
-    customType: ACTIVITY_RESULT_MESSAGE_TYPE,
-    content: details.output,
-    display: true,
-    details,
-  });
-  if (details.exitCode !== 0) {
-    ctx.ui.notify(
-      `Evidence ${details.activity} activity failed with exit ${details.exitCode}.`,
-      'error',
-    );
-  }
-  return details;
-}
-
-function parseArgs(args: string): { dryRun: boolean; rest: string } {
-  const parts = args.split(/\s+/).filter(Boolean);
-  const rest = parts.filter((part) => part !== '--dry-run');
-  return { dryRun: parts.includes('--dry-run'), rest: rest.join(' ') };
-}
-
-export function registerCommands(pi: ExtensionAPI): void {
-  pi.registerCommand('evidence-status', {
-    description:
-      'Show Evidence Orchestrator loop, decisions, evidence, and code status',
-    handler: async (_args, ctx) =>
-      ctx.ui.notify(statusMarkdown(ctx.cwd), 'info'),
-  });
-
-  pi.registerCommand('evidence-new', {
-    description: 'Select or create a GitHub Issue and start a new iteration',
-    handler: async (_args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const issueNumber = await selectOrCreateGitHubIssue(
-          pi,
-          ctx,
-          (message, operation) =>
-            runWithLoader(ctx, message, (signal) => operation(signal)),
-        );
-        if (!issueNumber) {
-          ctx.ui.notify('New iteration cancelled.', 'info');
-          return;
-        }
-        const state = await runWithLoader(
-          ctx,
-          `正在冻结 GitHub Issue #${issueNumber} 并创建迭代…`,
-          (signal) =>
-            startIterationFromIssueAsync(
-              ctx.cwd,
-              { issueNumber },
-              createGitHubCliRunner(pi),
-              signal,
-            ),
-        );
-        if (!state) {
-          ctx.ui.notify('New iteration cancelled.', 'info');
-          return;
-        }
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}. The Issue is frozen; run /evidence-run to prepare one Kickoff candidate, then /evidence-kickoff for the human decision.`,
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-kickoff', {
-    description:
-      'Human-only decision for the pending Kickoff candidate: confirm, revise, split, defer, or stop',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parseKickoffDecision(args) ?? (await promptKickoffDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify(
-            'Kickoff decision cancelled; the candidate is unchanged.',
-            'info',
-          );
-          return;
-        }
-        const state = decideKickoff(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        if (decision.action === 'confirmed') {
-          ctx.ui.notify(
-            `Human confirmed ${state.active_clarification_story?.story_id}; Kickoff is complete and Understand is ready.`,
-            'info',
-          );
-        } else if (decision.action === 'revise') {
-          ctx.ui.notify(
-            'Human requested a revised Kickoff candidate. Run /evidence-run with the feedback before continuing.',
-            'info',
-          );
-        } else {
-          ctx.ui.notify(
-            `Human chose ${decision.action}; this iteration is halted with the decision preserved.`,
-            'info',
-          );
-        }
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-scenario', {
-    description:
-      'Human-only Scenario decision: confirm one draft, continue TQA, split, or defer',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parseScenarioDecision(args) ?? (await promptScenarioDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify(
-            'Scenario decision cancelled; Understand is unchanged.',
-            'info',
-          );
-          return;
-        }
-        const state = decideUnderstanding(ctx.cwd, decision);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        if (decision.action === 'confirmed') {
-          ctx.ui.notify(
-            `Human confirmed ${state.confirmed_scenario?.story_id} / ${state.confirmed_scenario?.scenario_id}; model validation is next.`,
-            'info',
-          );
-        } else if (decision.action === 'continue') {
-          ctx.ui.notify(
-            'Human requested more business understanding; TQA is ready to resume.',
-            'info',
-          );
-        } else {
-          ctx.ui.notify(
-            `Human chose ${decision.action}; the single-Story iteration is halted.`,
-            'info',
-          );
-        }
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-modeling-profile', {
-    description:
-      'Human-only modeling Profile confirmation or override for the confirmed Scenario',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parseModelingProfileDecision(args) ??
-          (await promptModelingProfileDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify(
-            'Modeling Profile decision cancelled; the proposal is unchanged.',
-            'info',
-          );
-          return;
-        }
-        const state = confirmModelingProfile(ctx.cwd, decision);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        ctx.ui.notify(
-          `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-desk-check', {
-    description:
-      'Human-only Tasking decision: approve, revise, architecture_gap, process_gap, or scenario_gap',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parseDeskCheckDecision(args) ?? (await promptDeskCheckDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify(
-            'Desk Check cancelled; the Tasking draft is unchanged.',
-            'info',
-          );
-          return;
-        }
-        const state = decideTasking(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        if (decision.action === 'approve') {
-          ctx.ui.notify(
-            `Human approved ${state.approved_test_plan_path}; Pair is ready for ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
-            'info',
-          );
-        } else if (decision.action === 'scenario_gap') {
-          ctx.ui.notify(
-            'Desk Check routed the Scenario gap to Understand TQA.',
-            'info',
-          );
-        } else {
-          ctx.ui.notify(
-            `Desk Check recorded ${decision.action}; run /evidence-run to revise Tasking knowledge and regenerate the plan.`,
-            'info',
-          );
-        }
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-pair', {
-    description:
-      'Human Navigator decision for Red acceptance or a return to test, implementation, Tasking, or quality-gate retry',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parsePairDecision(args) ?? (await promptPairDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify('Pair decision cancelled; state is unchanged.', 'info');
-          return;
-        }
-        const state =
-          decision.kind === 'red'
-            ? reviewPairRed(ctx.cwd, decision.failureKind, decision.reason)
-            : navigatePair(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        ctx.ui.notify(
-          `Pair decision recorded. ${pairNextInstruction(state)}.`,
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-showcase', {
-    description:
-      'Human-only Showcase risk and accept/revise/reject decisions with semantic feedback routing',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parseShowcaseDecision(args) ?? (await promptShowcaseDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify(
-            'Showcase decision cancelled; state is unchanged.',
-            'info',
-          );
-          return;
-        }
-        const state =
-          decision.kind === 'risk'
-            ? recordShowcaseRisk(
-                ctx.cwd,
-                decision.quadrant,
-                decision.disposition,
-                decision.activities,
-                decision.reason,
-              )
-            : decideShowcase(
-                ctx.cwd,
-                decision.action,
-                decision.reason,
-                decision.target,
-              );
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        ctx.ui.notify(
-          decision.kind === 'risk'
-            ? `Recorded ${decision.quadrant}=${decision.disposition}. ${showcaseNextInstruction(ctx.cwd)}.`
-            : decision.action === 'reject'
-              ? 'Human rejected the Showcase; this iteration is halted with facts and feedback preserved.'
-              : `Human recorded Showcase ${decision.action}; workflow loop=${state.loop}.`,
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-respond', {
-    description:
-      'Human-only Respond approval or revision for validated knowledge and the next Probe',
-    handler: async (args, ctx) => {
-      try {
-        await waitForIdle(ctx);
-        const decision =
-          parseRespondDecision(args) ?? (await promptRespondDecision(ctx));
-        if (!decision) {
-          ctx.ui.notify(
-            'Respond decision cancelled; state is unchanged.',
-            'info',
-          );
-          return;
-        }
-        const state = decideKnowledgeResponse(
-          ctx.cwd,
-          decision.action,
-          decision.reason,
-        );
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        ctx.ui.notify(
-          decision.action === 'approve'
-            ? `Human approved the knowledge response. ${state.iteration_id} is complete; update the GitHub Issue explicitly before starting the next snapshot.`
-            : 'Human requested a revised knowledge response; run /evidence-run to resume Respond.',
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-issue-sync', {
-    description:
-      'Refresh the active GitHub Issue snapshot while still in Kickoff',
-    handler: async (_args, ctx) => {
-      try {
-        const state = await runWithLoader(
-          ctx,
-          '正在刷新 GitHub Issue 快照…',
-          (signal) =>
-            syncIssueSourceAsync(ctx.cwd, createGitHubCliRunner(pi), signal),
-        );
-        if (!state) {
-          ctx.ui.notify('Issue refresh cancelled.', 'info');
-          return;
-        }
-        ctx.ui.notify(
-          `Issue snapshot refreshed: ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-issue-status', {
-    description:
-      'Check whether the live GitHub Issue differs from its snapshot',
-    handler: async (_args, ctx) => {
-      try {
-        const drift = await runWithLoader(
-          ctx,
-          '正在检查 GitHub Issue 是否变化…',
-          (signal) =>
-            checkIssueSourceDriftAsync(
-              ctx.cwd,
-              createGitHubCliRunner(pi),
-              signal,
-            ),
-        );
-        if (!drift) {
-          ctx.ui.notify('Issue drift check cancelled.', 'info');
-          return;
-        }
-        ctx.ui.notify(
-          drift.changed
-            ? `Issue changed after snapshot: ${drift.snapshot_hash} → ${drift.remote_hash}. Refresh in Kickoff or start a new iteration.`
-            : `Issue snapshot is current: ${drift.snapshot_hash}.`,
-          drift.changed ? 'warning' : 'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-run', {
-    description:
-      'Run the current activity; v5 Pair advances at most one Driver or command checkpoint per invocation',
-    handler: async (args, ctx) => {
-      const parsed = parseArgs(args);
-      try {
-        await waitForIdle(ctx);
-        const preparation = prepareActivityRun(ctx.cwd, {
-          instructions: parsed.rest,
-        });
-        if (parsed.dryRun || isCompletedIteration(preparation)) {
-          ctx.ui.notify(preparation.task, 'info');
-          return;
-        }
-
-        await runPreparedActivityFromCommand(
-          pi,
-          ctx,
-          preparation,
-          `/evidence-run ${args}`.trim(),
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          error instanceof ActivityRunBlockedError ? 'info' : 'error',
-        );
-      }
-    },
-  });
 }

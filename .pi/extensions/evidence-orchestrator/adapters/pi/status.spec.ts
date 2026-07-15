@@ -1,8 +1,8 @@
 import { writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { statePath, writeState } from '../iteration/state-repository';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+import { DEFAULT_STATE } from '../../iteration/default-state';
+import { statePath, writeState } from '../../iteration/state-repository';
+import { cleanupWorkspaces, workspace, write } from '../../tests/support';
 import { statusMarkdown } from './status';
 
 afterEach(cleanupWorkspaces);

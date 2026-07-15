@@ -1,11 +1,11 @@
-import { artifactRelativePath } from '../iteration/artifact-layout';
-import { readState } from '../iteration/state-repository';
+import { artifactRelativePath } from '../../../iteration/artifact-layout';
+import { readState } from '../../../iteration/state-repository';
 import {
   buildPairDriverTask,
   pairDeterministicAction,
   pairDriverMode,
   pairNextInstruction,
-} from '../loops/pair/pair-session';
+} from '../../../loops/pair/pair-session';
 
 /** Build one activity task; methods remain in progressively loaded Skills. */
 export function buildActivityTask(cwd: string, extra = ''): string {

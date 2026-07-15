@@ -3,8 +3,8 @@ import {
   type ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
 import { Box, type Component } from '@earendil-works/pi-tui';
-import type { ActivityExecutionDetails } from './activity-execution';
-import { renderActivitySubagentResult } from './activity-subagent-renderer';
+import type { ActivityExecutionDetails } from './execution';
+import { renderActivitySubagentResult } from './subagent-renderer';
 
 const ACTIVITY_PROGRESS_KEY = 'evidence-activity-progress';
 

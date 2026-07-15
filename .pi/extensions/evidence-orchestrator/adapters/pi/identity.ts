@@ -1,4 +1,4 @@
-import type { WorkflowSnapshot } from '../iteration/state';
+import type { WorkflowSnapshot } from '../../iteration/state';
 
 export const EXTENSION_ID = 'evidence-orchestrator';
 export const STATUS_KEY = EXTENSION_ID;

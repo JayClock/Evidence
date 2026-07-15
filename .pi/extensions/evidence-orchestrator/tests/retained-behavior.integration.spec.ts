@@ -5,7 +5,7 @@ import {
   readStateSnapshot,
   statePath,
 } from '../iteration/state-repository';
-import { statusMarkdown } from '../runtime/status';
+import { statusMarkdown } from '../adapters/pi/status';
 import { cleanupWorkspaces, workspace, write } from './support';
 
 afterEach(cleanupWorkspaces);

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { writeState } from '../iteration/state-repository';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+import { DEFAULT_STATE } from '../../iteration/default-state';
+import { writeState } from '../../iteration/state-repository';
+import { cleanupWorkspaces, workspace, write } from '../../tests/support';
 import {
   parseRespondDecision,
   parseShowcaseDecision,

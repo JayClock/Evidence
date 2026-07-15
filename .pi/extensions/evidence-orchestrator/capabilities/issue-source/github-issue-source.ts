@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -68,16 +67,6 @@ interface GitHubIssueResponse {
 
 const ISSUE_FIELDS =
   'number,title,body,url,state,author,labels,createdAt,updatedAt';
-
-function defaultRunner(args: string[], cwd: string): string {
-  try {
-    return execFileSync('gh', args, { cwd, encoding: 'utf8' });
-  } catch (error) {
-    throw new Error(
-      `Unable to read the GitHub Issue with gh CLI. Authenticate with "gh auth login" and verify repository access. ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
 
 function parseJson<T>(text: string, description: string): T {
   try {
@@ -178,7 +167,7 @@ function snapshotFromResponse(
 export function fetchGitHubIssue(
   cwd: string,
   input: StartFromIssueInput,
-  runner: GitHubCliRunner = defaultRunner,
+  runner: GitHubCliRunner,
 ): GitHubIssueSnapshot {
   requireIssueNumber(input.issueNumber);
   const repository = input.repository?.trim() || resolveRepository(cwd, runner);
@@ -294,7 +283,7 @@ function persistSnapshot(
 export function startIterationFromIssue(
   cwd: string,
   input: StartFromIssueInput,
-  runner: GitHubCliRunner = defaultRunner,
+  runner: GitHubCliRunner,
 ): WorkflowState {
   assertCanStartV5Iteration(cwd);
   const snapshot = fetchGitHubIssue(cwd, input, runner);
@@ -341,7 +330,7 @@ function requireIssueSource(
 /** Compare the live Issue with the frozen iteration snapshot without modifying local evidence. */
 export function checkIssueSourceDrift(
   cwd: string,
-  runner: GitHubCliRunner = defaultRunner,
+  runner: GitHubCliRunner,
 ): IssueSourceDrift {
   const state = readState(cwd);
   const source = requireIssueSource(state);
@@ -382,7 +371,7 @@ export async function checkIssueSourceDriftAsync(
 /** Explicitly refresh an Issue snapshot before framing has completed. */
 export function syncIssueSource(
   cwd: string,
-  runner: GitHubCliRunner = defaultRunner,
+  runner: GitHubCliRunner,
 ): WorkflowState {
   const state = readState(cwd);
   if (state.loop !== 'kickoff') {

@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { writeState } from '../iteration/state-repository';
-import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
-import { proposeScenarioDrafts } from '../loops/understand/scenario/candidates';
+import { DEFAULT_STATE } from '../../../iteration/default-state';
+import { writeState } from '../../../iteration/state-repository';
+import { proposeKickoffCandidate } from '../../../loops/kickoff/story-candidate';
+import { proposeScenarioDrafts } from '../../../loops/understand/scenario/candidates';
 import {
   isCompletedIteration,
   prepareActivityRun,
   ActivityRunBlockedError,
-} from './activity-dispatch';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
-import type { WorkflowState } from '../iteration/state';
+} from './dispatch';
+import { cleanupWorkspaces, workspace, write } from '../../../tests/support';
+import type { WorkflowState } from '../../../iteration/state';
 
 function issueState(): WorkflowState {
   return {

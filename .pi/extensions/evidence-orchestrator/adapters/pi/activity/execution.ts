@@ -1,24 +1,24 @@
 import type {
   ActivityAgentProgress,
   ActivityAgentResult,
-} from '../subagents/activity-runner';
-import { runActivitySubagent } from '../subagents/activity-runner';
+} from '../../node/activity-agent-process';
+import { runActivitySubagent } from '../../node/activity-agent-process';
 import {
   capturePairWorktree,
   completePairDriver,
   executePairAction,
   failPairDriver,
   pairDriverMode,
-} from '../loops/pair/pair-session';
+} from '../../../loops/pair/pair-session';
 import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,
   executeShowcaseQ2,
-} from '../loops/showcase/showcase-session';
-import { readState, writeState } from '../iteration/state-repository';
-import type { PairDriverMode, WorkflowLoop } from '../iteration/state';
-import { STATUS_KEY, statusLabel } from './identity';
-import type { PreparedActivityRun } from './activity-dispatch';
+} from '../../../loops/showcase/showcase-session';
+import { readState, writeState } from '../../../iteration/state-repository';
+import type { PairDriverMode, WorkflowLoop } from '../../../iteration/state';
+import { STATUS_KEY, statusLabel } from '../identity';
+import type { PreparedActivityRun } from './dispatch';
 
 export interface ActivityExecutionDetails extends ActivityAgentResult {
   activity: Exclude<WorkflowLoop, 'complete'>;

@@ -1,13 +1,13 @@
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+import { cleanupWorkspaces, workspace, write } from '../../tests/support';
 import {
   appendActivitySubagentEvent,
   loadActivityAgent,
   activityAgentName,
   activityAgentProgress,
   activityAgentResult,
-} from './activity-runner';
+} from './activity-agent-process';
 
 afterEach(cleanupWorkspaces);
 

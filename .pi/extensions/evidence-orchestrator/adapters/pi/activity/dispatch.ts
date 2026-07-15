@@ -1,27 +1,30 @@
-import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
-import { prepareModelProjection } from '../loops/understand/modeling/projection';
+import {
+  ensureProjectDirs,
+  missingPaths,
+} from '../../../evidence/artifact-index';
+import { prepareModelProjection } from '../../../loops/understand/modeling/projection';
 import {
   pairDeterministicAction,
   pairDriverMode,
   pairNextInstruction,
-} from '../loops/pair/pair-session';
+} from '../../../loops/pair/pair-session';
 import {
   enterShowcase,
   missingShowcaseRisks,
   prepareShowcaseReview,
   showcaseNextInstruction,
-} from '../loops/showcase/showcase-session';
+} from '../../../loops/showcase/showcase-session';
 import {
   artifactRelativePath,
   iterationRoot,
-} from '../iteration/artifact-layout';
-import { readState } from '../iteration/state-repository';
+} from '../../../iteration/artifact-layout';
+import { readState } from '../../../iteration/state-repository';
 import type {
   PairDeterministicAction,
   WorkflowLoop,
   WorkflowState,
-} from '../iteration/state';
-import { buildActivityTask } from '../subagents/activity-task';
+} from '../../../iteration/state';
+import { buildActivityTask } from './task';
 
 export interface ActivityRunRequest {
   instructions?: string;
