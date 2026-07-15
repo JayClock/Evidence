@@ -8,7 +8,7 @@ import {
   pairDriverMode,
   pairNextInstruction,
 } from '../loops/pair/pair-session';
-import { showcaseNextInstruction } from '../testing/showcase';
+import { showcaseNextInstruction } from '../loops/showcase/showcase-session';
 import { executionEvidencePaths } from '../capabilities/execution-evidence/manifest';
 import { iterationRoot } from '../iteration/artifact-layout';
 import { allowedLoopActions } from '../iteration/transition-graph';

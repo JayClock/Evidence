@@ -10,7 +10,7 @@ import {
   missingShowcaseRisks,
   prepareShowcaseReview,
   showcaseNextInstruction,
-} from '../testing/showcase';
+} from '../loops/showcase/showcase-session';
 import {
   artifactRelativePath,
   iterationRoot,

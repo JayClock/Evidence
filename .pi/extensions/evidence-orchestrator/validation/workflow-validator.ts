@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { validateExecutionEvidence } from '../capabilities/execution-evidence/manifest';
-import { validateShowcaseEvidence } from '../testing/showcase';
+import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
 import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
 import { iterationRoot } from '../iteration/artifact-layout';
 import {

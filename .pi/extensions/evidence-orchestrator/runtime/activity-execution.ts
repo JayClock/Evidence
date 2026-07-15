@@ -14,7 +14,7 @@ import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,
   executeShowcaseQ2,
-} from '../testing/showcase';
+} from '../loops/showcase/showcase-session';
 import { readState, writeState } from '../iteration/state-repository';
 import type { PairDriverMode, WorkflowLoop } from '../iteration/state';
 import { STATUS_KEY, statusLabel } from './identity';

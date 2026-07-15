@@ -12,7 +12,7 @@ import {
   missingShowcaseRisks,
   recordShowcaseRisk,
   showcaseNextInstruction,
-} from '../testing/showcase';
+} from '../loops/showcase/showcase-session';
 import {
   navigatePair,
   pairNextInstruction,

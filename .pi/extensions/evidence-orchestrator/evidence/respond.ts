@@ -27,7 +27,7 @@ import {
   validateExecutionEvidence,
 } from '../capabilities/execution-evidence/manifest';
 import { testProcessDefinitionSha256 } from '../capabilities/test-process/catalog';
-import { validateShowcaseEvidence } from '../testing/showcase';
+import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
 import { validateKnowledgePromotion } from './knowledge';
 
 const KNOWLEDGE_KINDS = new Set<KnowledgeKind>([

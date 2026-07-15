@@ -33,7 +33,7 @@ import {
   prepareShowcaseReview,
   recordShowcaseReview,
   recordShowcaseRisk,
-} from '../testing/showcase';
+} from '../loops/showcase/showcase-session';
 import {
   decideKnowledgeResponse,
   proposeKnowledgeResponse,

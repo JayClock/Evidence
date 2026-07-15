@@ -10,16 +10,16 @@ import { dirname, join } from 'node:path';
 import {
   FEEDBACK_LOOP_BY_TARGET,
   transitionLoopState,
-} from '../iteration/transition-graph';
+} from '../../iteration/transition-graph';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../iteration/artifact-layout';
+} from '../../iteration/artifact-layout';
 import {
   readState,
   selectedTestProcesses,
   writeState,
-} from '../iteration/state-repository';
+} from '../../iteration/state-repository';
 import type {
   ActiveWorkItem,
   FeedbackTarget,
@@ -34,23 +34,23 @@ import type {
   ShowcaseRiskDisposition,
   ShowcaseRiskQuadrant,
   WorkflowState,
-} from '../iteration/state';
+} from '../../iteration/state';
 import {
   executeTestStep,
   type TestExecutionRecord,
-} from '../capabilities/execution-evidence/observation-log';
+} from '../../capabilities/execution-evidence/observation-log';
 import {
   executionEvidencePaths,
   generateExecutionEvidence,
   validateExecutionEvidence,
-} from '../capabilities/execution-evidence/manifest';
-import { readTestProcess } from '../capabilities/test-process/catalog';
+} from '../../capabilities/execution-evidence/manifest';
+import { readTestProcess } from '../../capabilities/test-process/catalog';
 import {
   captureWorktreeSnapshot,
   restoreWorktreeSnapshot,
   type WorktreeSnapshot,
   worktreeDelta,
-} from '../capabilities/worktree-protection/snapshot';
+} from '../../capabilities/worktree-protection/snapshot';
 
 const ACTIVITIES = new Set<ShowcaseEvaluationActivity>([
   'exploratory',

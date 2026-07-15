@@ -23,7 +23,7 @@ vi.mock('../subagents/activity-runner', () => ({
   runActivitySubagent: runner.runActivitySubagent,
 }));
 vi.mock('../loops/pair/pair-session', () => pairing);
-vi.mock('../testing/showcase', () => showcase);
+vi.mock('../loops/showcase/showcase-session', () => showcase);
 
 function preparation(): PreparedActivityRun {
   return {

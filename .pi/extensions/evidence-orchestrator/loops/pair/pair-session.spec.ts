@@ -36,7 +36,7 @@ import {
   recordShowcaseReview,
   recordShowcaseRisk,
   validateShowcaseEvidence,
-} from '../../testing/showcase';
+} from '../showcase/showcase-session';
 import {
   materializeFocusedCommands,
   materializedProcessSha256,
