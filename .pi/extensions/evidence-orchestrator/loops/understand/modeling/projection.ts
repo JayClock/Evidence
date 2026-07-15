@@ -322,8 +322,13 @@ export function projectCandidateModel(
   cwd: string,
   state = readState(cwd),
 ): CandidateModelProjection {
-  if (!state.confirmed_scenario || !state.model_expansion_path) {
-    throw new Error('A confirmed Scenario and model expansion are required.');
+  const scenarios =
+    state.confirmed_scenarios ??
+    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  if (scenarios.length === 0 || !state.model_expansion_path) {
+    throw new Error(
+      'A confirmed Scenario Set and model expansion are required.',
+    );
   }
   const sources = candidateModelSources(
     cwd,
@@ -344,7 +349,7 @@ export function projectCandidateModel(
     {
       version: 1,
       model_sha256: projectionHash(sources, regressions, currentExpansion),
-      current_scenario: state.confirmed_scenario,
+      current_scenarios: scenarios,
       current_expansion: currentExpansion,
       regression_scenarios: regressions,
       regression_failures: failures,

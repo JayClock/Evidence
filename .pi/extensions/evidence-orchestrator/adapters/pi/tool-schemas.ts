@@ -137,10 +137,8 @@ export const modelOperationParam = Type.Object({
   ),
 });
 
-export const modelAnalysisParam = Type.Object({
-  reason: Type.String({
-    description: 'Why the existing/candidate model explains the Scenario.',
-  }),
+const scenarioModelExpansionParam = Type.Object({
+  scenarioId: Type.String({ description: 'Exact confirmed SC-xxx id.' }),
   modelRefs: Type.Object({
     entities: Type.Array(Type.String()),
     associations: Type.Array(Type.String()),
@@ -158,6 +156,16 @@ export const modelAnalysisParam = Type.Object({
   }),
   invariants: Type.Array(Type.String()),
   timeline: Type.Array(Type.String()),
+});
+
+export const modelAnalysisParam = Type.Object({
+  reason: Type.String({
+    description:
+      'Why one candidate model consistently explains the complete Scenario Set.',
+  }),
+  scenarios: Type.Array(scenarioModelExpansionParam, {
+    description: 'One expansion for every confirmed Scenario.',
+  }),
   operations: Type.Array(modelOperationParam),
 });
 

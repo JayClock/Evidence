@@ -72,13 +72,23 @@ ${extra || '（无）'}
 `;
   }
   if (state.loop === 'understand' && state.understand_stage === 'modeling') {
-    const scenario = state.confirmed_scenario;
-    if (!scenario) throw new Error('Modeling requires a confirmed Scenario.');
+    const scenarios =
+      state.confirmed_scenarios ??
+      (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+    const scenario = scenarios[0];
+    if (!scenario)
+      throw new Error('Modeling requires a confirmed Scenario Set.');
+    const scenarioIds = scenarios
+      .map(({ scenario_id }) => scenario_id)
+      .join(', ');
+    const scenarioPaths = scenarios
+      .map(({ artifact_path }) => artifact_path)
+      .join('、');
     if (state.modeling_stage === 'profile') {
-      return `执行 Evidence Orchestrator 建模 Profile：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator 建模 Profile：${scenario.story_id} / [${scenarioIds}]。
 
 方法：加载并遵守 .pi/skills/evidence-modeling-router/SKILL.md。
-上下文：${scenario.artifact_path}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
+上下文：${scenarioPaths}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
 任务：提出 subject、method 与 modelChangeRequired，只调用 evidence_orchestrator_propose_modeling_profile 一次后停止，等待人类 /evidence-modeling-profile。不得编辑 .evidence。
 
 额外用户指令：
@@ -86,12 +96,12 @@ ${extra || '（无）'}
 `;
     }
     if (state.modeling_stage === 'expansion') {
-      return `执行 Evidence Orchestrator 模型展开：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator 模型展开：${scenario.story_id} / [${scenarioIds}]。
 
 方法：加载 .pi/skills/evidence-model-expansion/SKILL.md。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
 人类确认 Profile：${JSON.stringify(state.modeling_profile)}
-上下文：${scenario.artifact_path}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
-任务：只调用 evidence_orchestrator_record_model_analysis 一次后停止。不得直接 edit/write .evidence、自我挑战或推进下一动作。
+上下文：${scenarioPaths}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
+任务：逐一展开全部确认 Scenario，检查跨场景一致性，只调用 evidence_orchestrator_record_model_analysis 一次后停止。不得直接 edit/write .evidence、自我挑战或推进下一动作。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -101,12 +111,12 @@ ${extra || '（无）'}
       const projection = state.model_projection;
       if (!projection)
         throw new Error('Model Challenger requires projections.');
-      return `执行 Evidence Orchestrator 独立 Model Challenge：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator 独立 Model Challenge：${scenario.story_id} / [${scenarioIds}]。
 
 方法：加载 .pi/skills/evidence-model-expansion/SKILL.md 的 Challenger 部分。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
 只读输入：${projection.mermaid_path}、${projection.glossary_path}、${projection.context_path}。
 预检：regression=${projection.regression_failures.length ? projection.regression_failures.join('；') : '通过'}；method=${projection.method_failures.length ? projection.method_failures.join('；') : '通过'}。
-任务：只调用 evidence_orchestrator_record_model_challenge 一次并停止。不得修改 .evidence、候选、Scenario 或代码。
+任务：验证全部当前 Scenario 及历史回归场景，只调用 evidence_orchestrator_record_model_challenge 一次并停止。不得修改 .evidence、候选、Scenario 或代码。
 
 额外用户指令：
 ${extra || '（无）'}

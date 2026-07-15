@@ -10,7 +10,7 @@ import {
   writeIterationArtifact,
 } from '../../../test-support/support';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
-import { writeState } from '../../../iteration/state-repository';
+import { readState, writeState } from '../../../iteration/state-repository';
 import type { ModelingMethod, ModelingSubject } from '../../../iteration/state';
 import {
   applyModelChangeProposal,
@@ -233,7 +233,7 @@ describe('modeling method routing', () => {
 
     expect(state.modeling_stage).toBe('candidate_ready');
     expect(state.model_change_proposal).toBeUndefined();
-    expect(state.model_expansion_path).toContain('US-001-SC-001.json');
+    expect(state.model_expansion_path).toContain('US-001.json');
     expect(
       existsSync(
         join(
@@ -245,6 +245,56 @@ describe('modeling method routing', () => {
     expect(
       readFileSync(join(cwd, '.evidence/entities/workspace.yaml'), 'utf8'),
     ).toBe(modelBefore);
+  });
+
+  it('expands every confirmed Scenario into one Story model analysis', () => {
+    const cwd = workspace();
+    prepareModeling(cwd);
+    const current = readState(cwd);
+    const first = current.confirmed_scenario;
+    if (!first) throw new Error('Fixture Scenario is missing.');
+    writeState(cwd, {
+      ...current,
+      confirmed_scenarios: [
+        first,
+        {
+          ...first,
+          scenario_id: 'SC-002',
+          source_draft_id: 'DRAFT-002',
+          title: '没有确认版本',
+          when: '负责人打开没有确认版本的模型',
+          then: ['显示没有当前版本'],
+          business_data: ['版本：无'],
+          artifact_path:
+            'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-002.md',
+        },
+      ],
+    });
+    confirmProfile(cwd, 'domain', 'object', false);
+    const base = expansion();
+
+    const state = recordModelAnalysis(cwd, {
+      reason: 'Both acceptance examples are explained consistently.',
+      scenarios: [
+        { scenarioId: 'SC-001', ...base },
+        {
+          scenarioId: 'SC-002',
+          ...base,
+          when: 'OpenModelWithoutConfirmedVersion',
+          then: {
+            ...base.then,
+            changedEntities: [],
+          },
+        },
+      ],
+      operations: [],
+    });
+    const artifact = JSON.parse(
+      readFileSync(join(cwd, state.model_expansion_path!), 'utf8'),
+    ) as { work_item: { scenario_ids: string[] }; scenarios: unknown[] };
+
+    expect(artifact.work_item.scenario_ids).toEqual(['SC-001', 'SC-002']);
+    expect(artifact.scenarios).toHaveLength(2);
   });
 
   it('records a structured candidate and applies it only through the explicit function', () => {

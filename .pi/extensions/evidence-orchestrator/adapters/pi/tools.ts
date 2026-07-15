@@ -405,12 +405,12 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_record_model_analysis',
     label: 'Record Evidence Model Analysis',
     description:
-      'Record one Scenario expansion and an optional structured candidate model change without editing .evidence',
+      'Record every Story Scenario expansion and one optional structured candidate model change without editing .evidence',
     promptSnippet:
-      'Expand the confirmed Scenario through the selected model and record only a candidate change',
+      'Expand the confirmed Scenario Set through one consistent model and record only a candidate change',
     promptGuidelines: [
       'Use only after the human confirms a modeling Profile.',
-      'Try the existing canonical model first. Operations must be empty when it already explains the Scenario.',
+      'Try the existing canonical model first. Expand every confirmed Scenario exactly once; operations must be empty when the model explains the complete set.',
       'Never edit .evidence in Understand. Candidate operations are structured add/update/remove records, not shell patches.',
       'After calling this tool, stop for independent model checking.',
     ],
@@ -418,12 +418,7 @@ export function registerTools(pi: ExtensionAPI): void {
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const state = recordModelAnalysis(ctx.cwd, {
         reason: params.reason,
-        modelRefs: params.modelRefs,
-        given: params.given,
-        when: params.when,
-        then: params.then,
-        invariants: params.invariants,
-        timeline: params.timeline,
+        scenarios: params.scenarios,
         operations: params.operations,
       });
       return {

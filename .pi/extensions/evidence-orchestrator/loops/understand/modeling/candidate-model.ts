@@ -28,8 +28,8 @@ const MODEL_PATH =
   /^\.evidence\/(entities|associations)\/([a-z0-9][a-z0-9_-]*)\.yaml$/;
 const MODEL_ID = /^[a-z0-9][a-z0-9_-]*$/;
 
-export interface ModelExpansionInput {
-  reason: string;
+export interface ScenarioModelExpansionInput {
+  scenarioId: string;
   modelRefs: { entities: string[]; associations: string[] };
   given: { entities: string[]; relationships: string[] };
   when: string;
@@ -41,6 +41,19 @@ export interface ModelExpansionInput {
   };
   invariants: string[];
   timeline: string[];
+}
+
+export interface ModelExpansionInput {
+  reason: string;
+  /** Complete per-Scenario expansions for a Story-level analysis. */
+  scenarios?: ScenarioModelExpansionInput[];
+  /** @deprecated Single-Scenario compatibility input. */
+  modelRefs?: { entities: string[]; associations: string[] };
+  given?: { entities: string[]; relationships: string[] };
+  when?: string;
+  then?: ScenarioModelExpansionInput['then'];
+  invariants?: string[];
+  timeline?: string[];
   operations: ModelOperation[];
 }
 
@@ -305,13 +318,110 @@ export function recordModelAnalysis(
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([path, content]) => ({ path, content })),
   );
-  const modelRefs = validateModelRefs(
-    profile,
-    input.modelRefs,
-    simulated.index,
-  );
-  const scenario = state.confirmed_scenario;
-  if (!scenario) throw new Error('The confirmed Scenario is missing.');
+  const scenarios =
+    state.confirmed_scenarios ??
+    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  if (scenarios.length === 0) {
+    throw new Error('The confirmed Scenario Set is missing.');
+  }
+  const scenarioInputs =
+    input.scenarios ??
+    (input.modelRefs && input.given && input.when && input.then
+      ? [
+          {
+            scenarioId: scenarios[0]?.scenario_id ?? '',
+            modelRefs: input.modelRefs,
+            given: input.given,
+            when: input.when,
+            then: input.then,
+            invariants: input.invariants ?? [],
+            timeline: input.timeline ?? [],
+          },
+        ]
+      : []);
+  const confirmedIds = scenarios.map(({ scenario_id }) => scenario_id);
+  if (
+    scenarioInputs.length !== scenarios.length ||
+    new Set(scenarioInputs.map(({ scenarioId }) => scenarioId)).size !==
+      scenarioInputs.length ||
+    confirmedIds.some(
+      (scenarioId) =>
+        !scenarioInputs.some(
+          (inputScenario) => inputScenario.scenarioId === scenarioId,
+        ),
+    )
+  ) {
+    throw new Error(
+      'Model analysis must expand every confirmed Scenario exactly once.',
+    );
+  }
+  const scenarioExpansions = scenarios.map((scenario) => {
+    const source = scenarioInputs.find(
+      ({ scenarioId }) => scenarioId === scenario.scenario_id,
+    );
+    if (!source)
+      throw new Error(`Missing model expansion for ${scenario.scenario_id}.`);
+    return {
+      scenario_id: scenario.scenario_id,
+      source_scenario: scenario.artifact_path,
+      model_refs: validateModelRefs(profile, source.modelRefs, simulated.index),
+      given: {
+        entities: strings(
+          source.given.entities,
+          `${scenario.scenario_id}.given.entities`,
+        ),
+        relationships: strings(
+          source.given.relationships,
+          `${scenario.scenario_id}.given.relationships`,
+        ),
+      },
+      when: {
+        command: requiredText(source.when, `${scenario.scenario_id}.when`),
+      },
+      then: {
+        created_entities: strings(
+          source.then.createdEntities,
+          `${scenario.scenario_id}.then.createdEntities`,
+        ),
+        changed_entities: strings(
+          source.then.changedEntities,
+          `${scenario.scenario_id}.then.changedEntities`,
+        ),
+        created_relationships: strings(
+          source.then.createdRelationships,
+          `${scenario.scenario_id}.then.createdRelationships`,
+        ),
+        removed_relationships: strings(
+          source.then.removedRelationships,
+          `${scenario.scenario_id}.then.removedRelationships`,
+        ),
+      },
+      invariants: strings(
+        source.invariants,
+        `${scenario.scenario_id}.invariants`,
+        false,
+      ),
+      timeline: strings(
+        source.timeline,
+        `${scenario.scenario_id}.timeline`,
+        false,
+      ),
+    };
+  });
+  const modelRefs = {
+    entities: [
+      ...new Set(
+        scenarioExpansions.flatMap(({ model_refs }) => model_refs.entities),
+      ),
+    ].sort(),
+    associations: [
+      ...new Set(
+        scenarioExpansions.flatMap(({ model_refs }) => model_refs.associations),
+      ),
+    ].sort(),
+  };
+  const scenario = scenarios[0];
+  if (!scenario) throw new Error('The confirmed Scenario Set is missing.');
   const proposalPath = input.operations.length
     ? artifactRelativePath(
         state,
@@ -320,42 +430,18 @@ export function recordModelAnalysis(
     : undefined;
   const expansionPath = artifactRelativePath(
     state,
-    `artifacts/02-domain-model/model-expansions/${scenario.story_id}-${scenario.scenario_id}.json`,
+    `artifacts/02-domain-model/model-expansions/${scenario.story_id}.json`,
   );
   const expansion = {
-    version: 2,
+    version: 3,
     work_item: {
       story_id: scenario.story_id,
-      scenario_id: scenario.scenario_id,
+      scenario_ids: confirmedIds,
     },
-    source_scenario: scenario.artifact_path,
+    source_scenarios: scenarios.map(({ artifact_path }) => artifact_path),
     modeling_profile: profile,
     model_refs: modelRefs,
-    given: {
-      entities: strings(input.given.entities, 'given.entities'),
-      relationships: strings(input.given.relationships, 'given.relationships'),
-    },
-    when: { command: requiredText(input.when, 'when') },
-    then: {
-      created_entities: strings(
-        input.then.createdEntities,
-        'then.createdEntities',
-      ),
-      changed_entities: strings(
-        input.then.changedEntities,
-        'then.changedEntities',
-      ),
-      created_relationships: strings(
-        input.then.createdRelationships,
-        'then.createdRelationships',
-      ),
-      removed_relationships: strings(
-        input.then.removedRelationships,
-        'then.removedRelationships',
-      ),
-    },
-    invariants: strings(input.invariants, 'invariants', false),
-    timeline: strings(input.timeline, 'timeline', false),
+    scenarios: scenarioExpansions,
     analysis_reason: requiredText(input.reason, 'Model analysis reason'),
     model_change_proposal: proposalPath ?? null,
     git_baseline: baseline,
