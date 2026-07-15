@@ -38,19 +38,19 @@ import type {
 import {
   executeTestStep,
   type TestExecutionRecord,
-} from './execution-recorder';
+} from '../capabilities/execution-evidence/observation-log';
 import {
   executionEvidencePaths,
   generateExecutionEvidence,
   validateExecutionEvidence,
-} from './execution-manifest';
+} from '../capabilities/execution-evidence/manifest';
 import { readTestProcess } from '../capabilities/test-process/catalog';
 import {
   captureWorktreeSnapshot,
   restoreWorktreeSnapshot,
   type WorktreeSnapshot,
   worktreeDelta,
-} from './worktree-snapshot';
+} from '../capabilities/worktree-protection/snapshot';
 
 const ACTIVITIES = new Set<ShowcaseEvaluationActivity>([
   'exploratory',

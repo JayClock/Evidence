@@ -2,11 +2,11 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { artifactRelativePath } from '../iteration/artifact-layout';
+import { artifactRelativePath } from '../../iteration/artifact-layout';
 import {
   readState,
   selectedTestProcesses,
-} from '../iteration/state-repository';
+} from '../../iteration/state-repository';
 import type {
   ActiveWorkItem,
   PairDriverRecord,
@@ -14,16 +14,16 @@ import type {
   TaskingTestItem,
   TestProcessSelection,
   WorkflowState,
-} from '../iteration/state';
+} from '../../iteration/state';
 import {
   assertLockedMaterializedPlan,
   readExecutionRecords,
   type TestExecutionRecord,
-} from './execution-recorder';
+} from './observation-log';
 import {
   readTestProcess,
   testProcessDefinitionSha256,
-} from '../capabilities/test-process/catalog';
+} from '../test-process/catalog';
 
 export interface ExecutionManifest {
   version: 1;

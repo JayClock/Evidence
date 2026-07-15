@@ -10,12 +10,12 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { transitionLoopState } from '../iteration/transition-graph';
+import { transitionLoopState } from '../../iteration/transition-graph';
 import {
   readState,
   selectedTestProcesses,
   writeState,
-} from '../iteration/state-repository';
+} from '../../iteration/state-repository';
 import type {
   PairDeterministicAction,
   PairDriverMode,
@@ -24,13 +24,13 @@ import type {
   RedFailureKind,
   TestProcessSelection,
   WorkflowState,
-} from '../iteration/state';
+} from '../../iteration/state';
 import {
   executeTestStep,
   type TestExecutionRecord,
-} from './execution-recorder';
-import { generateExecutionEvidence } from './execution-manifest';
-import { readTestProcess } from '../capabilities/test-process/catalog';
+} from '../../capabilities/execution-evidence/observation-log';
+import { generateExecutionEvidence } from '../../capabilities/execution-evidence/manifest';
+import { readTestProcess } from '../../capabilities/test-process/catalog';
 
 interface PairStep {
   process: TestProcessSelection;

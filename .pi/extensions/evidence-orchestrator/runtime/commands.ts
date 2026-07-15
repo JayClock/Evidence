@@ -18,7 +18,7 @@ import {
   pairNextInstruction,
   reviewPairRed,
   type PairNavigationAction,
-} from '../testing/pairing';
+} from '../loops/pair/pair-session';
 import {
   checkIssueSourceDriftAsync,
   startIterationFromIssueAsync,

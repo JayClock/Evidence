@@ -22,7 +22,7 @@ const showcase = vi.hoisted(() => ({
 vi.mock('../subagents/activity-runner', () => ({
   runActivitySubagent: runner.runActivitySubagent,
 }));
-vi.mock('../testing/pairing', () => pairing);
+vi.mock('../loops/pair/pair-session', () => pairing);
 vi.mock('../testing/showcase', () => showcase);
 
 function preparation(): PreparedActivityRun {

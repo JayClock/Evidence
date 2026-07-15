@@ -9,7 +9,7 @@ import {
   executePairAction,
   failPairDriver,
   pairDriverMode,
-} from '../testing/pairing';
+} from '../loops/pair/pair-session';
 import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,

@@ -4,7 +4,7 @@ import {
   pairDeterministicAction,
   pairDriverMode,
   pairNextInstruction,
-} from '../testing/pairing';
+} from '../loops/pair/pair-session';
 import {
   enterShowcase,
   missingShowcaseRisks,

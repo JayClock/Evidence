@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import {
   decideKnowledgeResponse,
   proposeKnowledgeResponse,
-} from '../evidence/respond';
+} from '../../evidence/respond';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -11,21 +11,21 @@ import {
   initializeGitRepository,
   workspace,
   write,
-} from '../tests/support';
+} from '../../tests/support';
 import {
   isCompletedIteration,
   prepareActivityRun,
-} from '../runtime/activity-dispatch';
-import { DEFAULT_STATE } from '../iteration/default-state';
+} from '../../runtime/activity-dispatch';
+import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
   readState,
   transitionWorkflowLoop,
   writeState,
-} from '../iteration/state-repository';
+} from '../../iteration/state-repository';
 import {
   generateExecutionEvidence,
   validateExecutionEvidence,
-} from './execution-manifest';
+} from '../../capabilities/execution-evidence/manifest';
 import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,
@@ -36,13 +36,13 @@ import {
   recordShowcaseReview,
   recordShowcaseRisk,
   validateShowcaseEvidence,
-} from './showcase';
+} from '../../testing/showcase';
 import {
   materializeFocusedCommands,
   materializedProcessSha256,
   readTestProcess,
   testProcessDefinitionSha256,
-} from '../capabilities/test-process/catalog';
+} from '../../capabilities/test-process/catalog';
 import {
   capturePairWorktree,
   completePairDriver,
@@ -52,7 +52,7 @@ import {
   pairDeterministicAction,
   pairDriverMode,
   reviewPairRed,
-} from './pairing';
+} from './pair-session';
 
 afterEach(cleanupWorkspaces);
 

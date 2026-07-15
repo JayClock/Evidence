@@ -5,17 +5,17 @@ import { join } from 'node:path';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../iteration/artifact-layout';
+} from '../../iteration/artifact-layout';
 import {
   readState,
   selectedTestProcesses,
-} from '../iteration/state-repository';
+} from '../../iteration/state-repository';
 import {
   materializeFocusedCommands,
   materializedProcessSha256,
   readTestProcess,
   testProcessDefinitionSha256,
-} from '../capabilities/test-process/catalog';
+} from '../test-process/catalog';
 
 export type TestExecutionStage =
   | 'red'

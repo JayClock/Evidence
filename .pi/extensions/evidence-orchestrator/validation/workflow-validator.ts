@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { validateExecutionEvidence } from '../testing/execution-manifest';
+import { validateExecutionEvidence } from '../capabilities/execution-evidence/manifest';
 import { validateShowcaseEvidence } from '../testing/showcase';
 import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
 import { iterationRoot } from '../iteration/artifact-layout';

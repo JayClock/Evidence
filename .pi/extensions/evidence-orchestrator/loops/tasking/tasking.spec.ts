@@ -14,7 +14,7 @@ import {
 import { prepareActivityRun } from '../../runtime/activity-dispatch';
 import { statusMarkdown } from '../../runtime/status';
 import { buildActivityTask } from '../../subagents/activity-task';
-import { executeTestStep } from '../../testing/execution-recorder';
+import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
 import { decideTasking } from './desk-check';
 import { proposeTaskingDraft } from './tasking-draft';
 

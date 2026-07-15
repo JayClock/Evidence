@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { createCodingGitBaseline } from '../../testing/code-baseline';
+import { createCodingGitBaseline } from '../../capabilities/worktree-protection/baseline';
 import {
   artifactPath,
   artifactRelativePath,

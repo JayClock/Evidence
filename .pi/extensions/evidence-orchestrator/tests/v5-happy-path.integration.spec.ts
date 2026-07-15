@@ -25,7 +25,7 @@ import {
   completePairDriver,
   executePairAction,
   reviewPairRed,
-} from '../testing/pairing';
+} from '../loops/pair/pair-session';
 import {
   decideShowcase,
   enterShowcase,

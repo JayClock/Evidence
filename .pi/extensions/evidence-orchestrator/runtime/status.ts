@@ -4,9 +4,12 @@ import {
   collectCodeFiles,
   findFiles,
 } from '../evidence/artifact-index';
-import { pairDriverMode, pairNextInstruction } from '../testing/pairing';
+import {
+  pairDriverMode,
+  pairNextInstruction,
+} from '../loops/pair/pair-session';
 import { showcaseNextInstruction } from '../testing/showcase';
-import { executionEvidencePaths } from '../testing/execution-manifest';
+import { executionEvidencePaths } from '../capabilities/execution-evidence/manifest';
 import { iterationRoot } from '../iteration/artifact-layout';
 import { allowedLoopActions } from '../iteration/transition-graph';
 import { readStateSnapshot } from '../iteration/state-repository';

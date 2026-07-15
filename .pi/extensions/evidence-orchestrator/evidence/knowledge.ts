@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { validateExecutionEvidence } from '../testing/execution-manifest';
+import { validateExecutionEvidence } from '../capabilities/execution-evidence/manifest';
 import type { WorkflowState } from '../iteration/state';
 
 /** Stable project knowledge consumed by every feature iteration. */

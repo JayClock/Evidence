@@ -5,7 +5,7 @@ import {
   pairDeterministicAction,
   pairDriverMode,
   pairNextInstruction,
-} from '../testing/pairing';
+} from '../loops/pair/pair-session';
 
 /** Build one activity task; methods remain in progressively loaded Skills. */
 export function buildActivityTask(cwd: string, extra = ''): string {

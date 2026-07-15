@@ -25,7 +25,7 @@ import type {
 import {
   executionEvidencePaths,
   validateExecutionEvidence,
-} from '../testing/execution-manifest';
+} from '../capabilities/execution-evidence/manifest';
 import { testProcessDefinitionSha256 } from '../capabilities/test-process/catalog';
 import { validateShowcaseEvidence } from '../testing/showcase';
 import { validateKnowledgePromotion } from './knowledge';
