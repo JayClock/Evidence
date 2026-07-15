@@ -127,6 +127,7 @@ impl DomainArchitect for PiRpcDomainArchitect {
             let mut accepted = false;
             let mut saw_message_end = false;
             let mut saw_agent_end = false;
+            let mut saw_agent_settled = false;
 
             loop {
                 let maybe_line = time::timeout(config.timeout, lines.next_line())
@@ -200,19 +201,11 @@ impl DomainArchitect for PiRpcDomainArchitect {
                                 }
                             }
                             Some("toolcall_end") => {
-                                if let Some(tool_call) = assistant_event.get("toolCall") {
-                                    let tool_call_id = tool_call_id(assistant_event)?;
-                                    let tool_name = tool_call
-                                        .get("name")
-                                        .and_then(Value::as_str)
-                                        .unwrap_or("tool")
-                                        .to_string();
-                                    let input = tool_call
-                                        .get("arguments")
-                                        .cloned()
-                                        .unwrap_or(Value::Null);
-                                    yield ModelingEvent::ToolCallReady { tool_call_id, tool_name, input };
-                                }
+                                let tool_call = assistant_tool_call(assistant_event)?;
+                                let tool_call_id = required_string(tool_call, "id", "pi rpc tool call")?;
+                                let tool_name = required_string(tool_call, "name", "pi rpc tool call")?;
+                                let input = required_value(tool_call, "arguments", "pi rpc tool call")?;
+                                yield ModelingEvent::ToolCallReady { tool_call_id, tool_name, input };
                             }
                             _ => {}
                         }
@@ -220,23 +213,26 @@ impl DomainArchitect for PiRpcDomainArchitect {
                     Some("tool_execution_start") => {
                         yield ModelingEvent::ToolExecutionStarted {
                             tool_call_id: required_event_string(&event, "toolCallId")?,
-                            tool_name: event_string(&event, "toolName", "tool"),
-                            args: event.get("args").cloned().unwrap_or(Value::Null),
+                            tool_name: required_event_string(&event, "toolName")?,
+                            args: required_event_value(&event, "args")?,
                         };
                     }
                     Some("tool_execution_update") => {
                         yield ModelingEvent::ToolExecutionUpdated {
                             tool_call_id: required_event_string(&event, "toolCallId")?,
-                            tool_name: event_string(&event, "toolName", "tool"),
-                            args: event.get("args").cloned().unwrap_or(Value::Null),
-                            partial_result: event.get("partialResult").cloned().unwrap_or(Value::Null),
+                            tool_name: required_event_string(&event, "toolName")?,
+                            args: required_event_value(&event, "args")?,
+                            partial_result: required_event_value(&event, "partialResult")?,
                         };
                     }
                     Some("tool_execution_end") => {
                         let tool_call_id = required_event_string(&event, "toolCallId")?;
-                        let tool_name = event_string(&event, "toolName", "tool");
-                        let result = event.get("result").cloned().unwrap_or(Value::Null);
-                        let is_error = event.get("isError").and_then(Value::as_bool).unwrap_or(false);
+                        let tool_name = required_event_string(&event, "toolName")?;
+                        let result = required_event_value(&event, "result")?;
+                        let is_error = event
+                            .get("isError")
+                            .and_then(Value::as_bool)
+                            .ok_or_else(|| ServerError::Internal("pi rpc isError missing".to_string()))?;
                         yield ModelingEvent::ToolExecutionEnded {
                             tool_call_id,
                             tool_name,
@@ -245,14 +241,15 @@ impl DomainArchitect for PiRpcDomainArchitect {
                         };
                     }
                     Some("message_end") => {
-                        saw_message_end = true;
-                        if assistant_text.trim().is_empty() {
-                            let text = extract_message_text(
-                                event.get("message").unwrap_or(&Value::Null),
-                            );
-                            if !text.is_empty() {
-                                assistant_text.push_str(&text);
-                                yield ModelingEvent::TextChunk { chunk: text };
+                        let message = event.get("message").unwrap_or(&Value::Null);
+                        if message.get("role").and_then(Value::as_str) == Some("assistant") {
+                            saw_message_end = true;
+                            if assistant_text.trim().is_empty() {
+                                let text = extract_message_text(message);
+                                if !text.is_empty() {
+                                    assistant_text.push_str(&text);
+                                    yield ModelingEvent::TextChunk { chunk: text };
+                                }
                             }
                         }
                     }
@@ -265,6 +262,9 @@ impl DomainArchitect for PiRpcDomainArchitect {
                                 yield ModelingEvent::TextChunk { chunk: text };
                             }
                         }
+                    }
+                    Some("agent_settled") => {
+                        saw_agent_settled = true;
                         break;
                     }
                     _ => {}
@@ -285,6 +285,12 @@ impl DomainArchitect for PiRpcDomainArchitect {
                     stderr_detail(&stderr_output)
                 )))?;
             }
+            if !saw_agent_settled {
+                Err(ServerError::Internal(format!(
+                    "pi rpc process ended before the agent settled{}",
+                    stderr_detail(&stderr_output)
+                )))?;
+            }
 
             if saw_message_end {
                 yield ModelingEvent::MessageEnded;
@@ -297,60 +303,61 @@ impl DomainArchitect for PiRpcDomainArchitect {
     }
 }
 
+fn assistant_tool_call(assistant_event: &Value) -> Result<&Value, ServerError> {
+    if let Some(tool_call) = assistant_event.get("toolCall") {
+        return Ok(tool_call);
+    }
+
+    assistant_event
+        .get("contentIndex")
+        .and_then(Value::as_u64)
+        .and_then(|content_index| {
+            assistant_event
+                .get("partial")
+                .and_then(|partial| partial.get("content"))
+                .and_then(Value::as_array)
+                .and_then(|content| content.get(content_index as usize))
+        })
+        .ok_or_else(|| ServerError::Internal("pi rpc tool call missing".to_string()))
+}
+
 fn tool_call_id(assistant_event: &Value) -> Result<String, ServerError> {
-    if let Some(id) = assistant_event
-        .get("toolCall")
-        .and_then(|tool_call| tool_call.get("id"))
-        .and_then(Value::as_str)
-    {
-        return Ok(id.to_string());
-    }
-
-    if let Some(id) = assistant_event.get("toolCallId").and_then(Value::as_str) {
-        return Ok(id.to_string());
-    }
-
-    if let Some(content_index) = assistant_event.get("contentIndex").and_then(Value::as_u64) {
-        if let Some(id) = assistant_event
-            .get("partial")
-            .and_then(|partial| partial.get("content"))
-            .and_then(Value::as_array)
-            .and_then(|content| content.get(content_index as usize))
-            .and_then(|tool_call| tool_call.get("id"))
-            .and_then(Value::as_str)
-        {
-            return Ok(id.to_string());
-        }
-    }
-
-    Err(ServerError::Internal(
-        "pi rpc tool call id missing".to_string(),
-    ))
+    required_string(
+        assistant_tool_call(assistant_event)?,
+        "id",
+        "pi rpc tool call",
+    )
 }
 
 fn tool_name(assistant_event: &Value) -> Option<String> {
-    assistant_event
-        .get("toolCall")
+    assistant_tool_call(assistant_event)
+        .ok()
         .and_then(|tool_call| tool_call.get("name"))
         .and_then(Value::as_str)
-        .or_else(|| assistant_event.get("toolName").and_then(Value::as_str))
         .map(str::to_string)
+}
+
+fn required_string(value: &Value, key: &str, subject: &str) -> Result<String, ServerError> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| ServerError::Internal(format!("{subject} {key} missing")))
+}
+
+fn required_value(value: &Value, key: &str, subject: &str) -> Result<Value, ServerError> {
+    value
+        .get(key)
+        .cloned()
+        .ok_or_else(|| ServerError::Internal(format!("{subject} {key} missing")))
 }
 
 fn required_event_string(event: &Value, key: &str) -> Result<String, ServerError> {
-    event
-        .get(key)
-        .and_then(Value::as_str)
-        .map(str::to_string)
-        .ok_or_else(|| ServerError::Internal(format!("pi rpc {key} missing")))
+    required_string(event, key, "pi rpc event")
 }
 
-fn event_string(event: &Value, key: &str, fallback: &str) -> String {
-    event
-        .get(key)
-        .and_then(Value::as_str)
-        .unwrap_or(fallback)
-        .to_string()
+fn required_event_value(event: &Value, key: &str) -> Result<Value, ServerError> {
+    required_value(event, key, "pi rpc event")
 }
 
 fn stderr_detail(stderr: &str) -> String {
@@ -416,6 +423,48 @@ mod tests {
             config.args.get(tools_index + 1).map(String::as_str),
             Some(MODELING_TOOLS)
         );
+    }
+
+    #[test]
+    fn reads_current_tool_call_event_shapes() {
+        let partial = json!({
+            "type": "toolcall_delta",
+            "contentIndex": 0,
+            "partial": {
+                "content": [{
+                    "type": "toolCall",
+                    "id": "call-1",
+                    "name": "edit",
+                    "arguments": {"path": ".evidence/entities/order.yaml"}
+                }]
+            }
+        });
+        let complete = json!({
+            "type": "toolcall_end",
+            "toolCall": {
+                "type": "toolCall",
+                "id": "call-1",
+                "name": "edit",
+                "arguments": {"path": ".evidence/entities/order.yaml"}
+            }
+        });
+
+        assert_eq!(tool_call_id(&partial).unwrap(), "call-1");
+        assert_eq!(tool_name(&partial).as_deref(), Some("edit"));
+        assert_eq!(tool_call_id(&complete).unwrap(), "call-1");
+        assert_eq!(tool_name(&complete).as_deref(), Some("edit"));
+    }
+
+    #[test]
+    fn rejects_retired_top_level_tool_call_fields() {
+        let retired = json!({
+            "type": "toolcall_start",
+            "toolCallId": "call-1",
+            "toolName": "edit"
+        });
+
+        assert!(tool_call_id(&retired).is_err());
+        assert_eq!(tool_name(&retired), None);
     }
 
     #[test]

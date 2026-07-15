@@ -118,7 +118,7 @@ function displayItems(messages: readonly unknown[]): DisplayItem[] {
 
 function formatToolCall(name: string, args: unknown): string {
   const input = isRecord(args) ? args : {};
-  const path = asText(input.path) ?? asText(input.file_path) ?? '...';
+  const path = asText(input.path) ?? '...';
 
   switch (name) {
     case 'bash':
