@@ -98,6 +98,9 @@ export function statusMarkdown(cwd: string): string {
   const execution = executionEvidencePaths(cwd);
   const reviews = state.showcase_reviews?.at(-1);
   const decision = state.showcase_decisions?.at(-1);
+  const scenarios =
+    state.confirmed_scenarios ??
+    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
   return [
     '# Evidence Orchestrator Status',
     '',
@@ -108,11 +111,11 @@ export function statusMarkdown(cwd: string): string {
     `| Allowed Actions | ${nextActions(cwd, state)} |`,
     `| Requirement Source | ${state.requirement_source ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}` : 'missing'} |`,
     `| Kickoff Candidate | ${state.kickoff_candidate?.artifact_path ?? 'none'} |`,
-    `| Story | ${state.active_clarification_story?.story_id ?? state.confirmed_scenario?.story_id ?? 'none'} |`,
+    `| Story | ${state.active_clarification_story?.story_id ?? scenarios[0]?.story_id ?? 'none'} |`,
     `| Understand Stage | ${state.understand_stage ?? 'none'} |`,
     `| Pending TQA | ${state.pending_clarification ? `${state.pending_clarification.question_id} · ${state.pending_clarification.question}` : 'none'} |`,
-    `| Active Scenario | ${state.confirmed_scenario ? `${state.confirmed_scenario.story_id} / ${state.confirmed_scenario.scenario_id}` : 'none'} |`,
-    `| Completed Acceptance Slices | ${(state.completed_work_items ?? []).map(({ story_id, scenario_id }) => `${story_id}/${scenario_id}`).join(', ') || 'none'} |`,
+    `| Scenario Set | ${scenarios.map(({ scenario_id }) => scenario_id).join(', ') || 'none'} |`,
+    `| Completed Stories | ${(state.completed_work_items ?? []).map(({ story_id, scenarios: completedScenarios }) => `${story_id}/[${completedScenarios.map(({ scenario_id }) => scenario_id).join(',')}]`).join(', ') || 'none'} |`,
     `| Modeling Stage | ${state.modeling_stage ?? 'none'} |`,
     `| Modeling Profile | ${state.modeling_profile ? `${state.modeling_profile.subject}/${state.modeling_profile.method}` : 'none'} |`,
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,

@@ -4,16 +4,16 @@
 
 ## 所有增量
 
-- 用户价值由一个明确的 `US-xxx / SC-xxx` Given/When/Then 场景定义。
-- 场景已通过 `.evidence` 模型展开和独立挑战，并由人类确认模型投影、概念、关系、统一语言、不变量、时间线及候选变更。
-- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；Scenario → model refs → TASK/TEST → code paths 可复核。
+- 用户价值由一张 `US-xxx` 及其人工确认的完整 `SC-xxx` Given/When/Then Scenario Set 定义。
+- 全部场景已逐一通过 `.evidence` 模型展开和联合独立挑战，并由人类一次确认模型投影、跨场景一致性、概念、关系、统一语言、不变量、时间线及候选变更。
+- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；每个 Then 有 Q2，公共 Q1 已去重，Scenario → model refs → TASK/TEST → code paths 可复核。
 - 稳定知识写入统一知识源；iteration 仅保存输入、delta、决策和执行证据。
 - 所有改动遵守 `AGENTS.md` 的模块和 runtime 边界。
 
 ## 编码
 
 - 每个批准的 TASK/TEST 分别先产生预期行为失败的 Red，再完成最小 Green，最后安全 Refactor；同一 process step 下的多个 TEST 不得合并完成。
-- 每项功能测试和实现都可追踪到已确认的 `US-xxx / SC-xxx`；没有对应验收场景的功能不生成生产代码或测试代码，非目标不产生反向测试。
+- 每项功能测试和实现都可追踪到已确认的 `US-xxx` Scenario Set；没有对应验收场景的功能不生成生产代码或测试代码，非目标不产生反向测试。
 - 已确认范围内的拒绝、失败和边界行为属于对应验收场景，应按所选测试工序验证。
 - 同时存在真实测试和生产代码改动；Markdown 不替代实现。
 - 受控 append-only `execution.jsonl` 是命令、退出码、输出摘要/哈希、计划哈希和 Git 工作树哈希的唯一原始执行事实；`manifest.json` 与可选 `summary.md` 只能由工具确定性生成，Agent 不手填命令、退出码或 changed paths。
@@ -41,6 +41,6 @@
 
 - 独立 Showcase Reviewer 对照验收示例、模型展开、统一架构、测试策略、工序和本 DoD；问题由人类按知识缺口路由。
 - Probe/Sense/Respond 反馈进入 iteration summary；模型和代码使用同一 Git baseline，路径不一致时不得完成。
-- 只提升被本 Scenario 实际使用、经执行与 Showcase 验证并由人类确认的产品、模型、架构、工序或 Skill/Prompt 知识；本轮无可复用知识时允许空 promotions，但必须说明原因。
+- 只提升被本 Story Scenario Set 实际使用、经执行与 Showcase 验证并由人类确认的产品、模型、架构、工序或 Skill/Prompt 知识；本轮无可复用知识时允许空 promotions，但必须说明原因。
 - deferred/rejected 候选保留理由且不污染权威来源；未应用或未验证的模型补丁不得提升。
 - 下一轮输出一个明确待学习问题及第一步 Probe。更新 GitHub Issue 和创建新快照由人类在迭代边界后明确执行，旧 iteration 保持不可变。

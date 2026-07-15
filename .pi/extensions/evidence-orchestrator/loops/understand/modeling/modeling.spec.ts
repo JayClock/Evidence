@@ -289,8 +289,10 @@ describe('modeling method routing', () => {
       ],
       operations: [],
     });
+    const expansionPath = state.model_expansion_path;
+    if (!expansionPath) throw new Error('Story expansion path is missing.');
     const artifact = JSON.parse(
-      readFileSync(join(cwd, state.model_expansion_path!), 'utf8'),
+      readFileSync(join(cwd, expansionPath), 'utf8'),
     ) as { work_item: { scenario_ids: string[] }; scenarios: unknown[] };
 
     expect(artifact.work_item.scenario_ids).toEqual(['SC-001', 'SC-002']);

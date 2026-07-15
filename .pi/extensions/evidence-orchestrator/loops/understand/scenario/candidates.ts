@@ -239,10 +239,12 @@ export function decideUnderstanding(
   }
 
   if (input.action === 'split' || input.action === 'deferred') {
-    state = waivePendingClarification(cwd, reason!, now);
+    if (!reason)
+      throw new Error(`Understand ${input.action} requires a reason.`);
+    state = waivePendingClarification(cwd, reason, now);
     const decision: UnderstandingDecision = {
       action: input.action,
-      reason: reason!,
+      reason,
       decided_by: 'human',
       decided_at: now,
     };
@@ -254,7 +256,7 @@ export function decideUnderstanding(
       ],
       halted: {
         loop: 'understand',
-        reason: `${input.action}: ${reason!}`,
+        reason: `${input.action}: ${reason}`,
         recorded_at: now,
       },
     });
@@ -268,9 +270,10 @@ export function decideUnderstanding(
   }
 
   if (input.action === 'continue') {
+    if (!reason) throw new Error('Understand continue requires a reason.');
     const decision: UnderstandingDecision = {
       action: 'continue',
-      reason: reason!,
+      reason,
       decided_by: 'human',
       decided_at: now,
     };

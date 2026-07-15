@@ -141,6 +141,9 @@ export function decideModel(
     });
   }
 
+  if (!normalizedReason) {
+    throw new Error(`Model ${action} requires a reason.`);
+  }
   const target =
     action === 'scenario_gap'
       ? 'scenario'
@@ -153,7 +156,7 @@ export function decideModel(
       to: 'understand',
       feedback: {
         target,
-        reason: normalizedReason!,
+        reason: normalizedReason,
         decided_by: 'human',
       },
     },
@@ -161,13 +164,16 @@ export function decideModel(
   );
 
   if (action === 'scenario_gap') {
-    const storyId = state.confirmed_scenario?.story_id;
-    if (!storyId) throw new Error('Scenario feedback requires a Story id.');
+    const storyId =
+      state.confirmed_scenarios?.[0]?.story_id ??
+      state.confirmed_scenario?.story_id;
+    if (!storyId) throw new Error('Scenario Set feedback requires a Story id.');
     return writeState(cwd, {
       ...routed,
       understand_stage: 'tqa',
       active_clarification_story: { story_id: storyId, selected_at: now },
       scenario_drafts: undefined,
+      confirmed_scenarios: undefined,
       confirmed_scenario: undefined,
       modeling_stage: undefined,
       modeling_profile: undefined,

@@ -27,7 +27,7 @@ export function nextStepGuidance(
       return `下一步：直接回答 ${state.pending_clarification.question_id}，无需运行命令。`;
     }
     if (state.understand_stage === 'scenario_review') {
-      return '下一步：运行 /evidence-scenario，选择本轮最小业务 Scenario，或继续 TQA、拆分、延期。';
+      return '下一步：运行 /evidence-scenario，确认本 Story 的完整 Scenario Set，或继续 TQA、拆分、延期。';
     }
     if (state.modeling_stage === 'profile_review') {
       return '下一步：运行 /evidence-modeling-profile，确认或调整建模对象、建模方法及是否需要修改权威模型。';
@@ -39,13 +39,13 @@ export function nextStepGuidance(
       return '下一步：运行 /evidence-run，启动独立模型挑战。';
     }
     if (state.understand_stage === 'modeling') {
-      return '下一步：运行 /evidence-run，将已确认 Scenario 展开到所选模型。';
+      return '下一步：运行 /evidence-run，将全部确认 Scenario 联合展开到所选模型。';
     }
-    return '下一步：运行 /evidence-run，继续单 Story TQA 或生成 Scenario 候选。';
+    return '下一步：运行 /evidence-run，继续单 Story TQA 或生成完整 Scenario Set。';
   }
   if (state.loop === 'tasking') {
     return state.tasking_stage === 'desk_check'
-      ? '下一步：运行 /evidence-desk-check；批准计划或反馈架构、流程、Scenario 缺口。'
+      ? '下一步：运行 /evidence-desk-check；批准 Story 计划或反馈架构、流程、Scenario Set 缺口。'
       : '下一步：运行 /evidence-run，生成或修订可审核的测试与实施计划。';
   }
   if (state.loop === 'pair') {
