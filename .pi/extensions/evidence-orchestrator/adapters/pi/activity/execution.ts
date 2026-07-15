@@ -18,6 +18,7 @@ import {
 import { readState, writeState } from '../../../iteration/state-repository';
 import type { PairDriverMode, WorkflowLoop } from '../../../iteration/state';
 import { STATUS_KEY, statusLabel } from '../identity';
+import { nextStepGuidance } from '../next-step';
 import type { PreparedActivityRun } from './dispatch';
 
 export interface ActivityExecutionDetails extends ActivityAgentResult {
@@ -53,28 +54,34 @@ function progressDetails(
 }
 
 function completedOutput(
+  cwd: string,
   preparation: PreparedActivityRun,
   result: ActivityAgentResult,
   state: ReturnType<typeof readState>,
 ): string {
-  if (preparation.activity !== 'understand' || result.exitCode !== 0) {
-    return result.output;
+  if (result.exitCode !== 0) return result.output;
+  if (preparation.activity === 'understand') {
+    const pending = state.pending_clarification;
+    if (pending) {
+      return `TQA ${pending.question_id} · ${pending.story_id}\n\n${pending.question}\n\n请直接回复此问题。`;
+    }
   }
-  const pending = state.pending_clarification;
-  if (pending) {
-    return `TQA ${pending.question_id} · ${pending.story_id}\n\n${pending.question}\n\n请直接回复此问题。`;
-  }
-  return result.output;
+  const output =
+    result.output.trim() && result.output.trim() !== '(no output)'
+      ? result.output.trim()
+      : `Evidence ${preparation.activity} 活动已完成。`;
+  return `${output}\n\n${nextStepGuidance(cwd, state)}`;
 }
 
 function completedDetails(
+  cwd: string,
   preparation: PreparedActivityRun,
   result: ActivityAgentResult,
   state: ReturnType<typeof readState>,
 ): ActivityExecutionDetails {
   return {
     ...result,
-    output: completedOutput(preparation, result, state),
+    output: completedOutput(cwd, preparation, result, state),
     activity: preparation.activity,
     task: preparation.task,
     status: result.exitCode === 0 ? 'completed' : 'failed',
@@ -101,6 +108,7 @@ export async function executePreparedActivityRun(
     if (preparation.pairAction) {
       const action = executePairAction(ctx.cwd, preparation.pairAction);
       return completedDetails(
+        ctx.cwd,
         preparation,
         {
           agent: 'pair-controller',
@@ -117,6 +125,7 @@ export async function executePreparedActivityRun(
     if (preparation.showcaseAction === 'run_q2') {
       const action = executeShowcaseQ2(ctx.cwd);
       return completedDetails(
+        ctx.cwd,
         preparation,
         {
           agent: 'showcase-controller',
@@ -193,7 +202,7 @@ export async function executePreparedActivityRun(
           : {}),
       };
     }
-    return completedDetails(preparation, result, readState(ctx.cwd));
+    return completedDetails(ctx.cwd, preparation, result, readState(ctx.cwd));
   } finally {
     ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
   }

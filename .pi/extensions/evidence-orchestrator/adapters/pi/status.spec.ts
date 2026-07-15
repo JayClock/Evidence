@@ -30,6 +30,8 @@ describe('status', () => {
 
     expect(status).toContain('| Loop | understand |');
     expect(status).toContain('Q-001 · Who confirms the model?');
+    expect(status).toContain('## 下一步');
+    expect(status).toContain('直接回答 Q-001');
     expect(status).not.toContain('| Schema |');
     expect(status).not.toContain('| Phase |');
     expect(status).not.toContain('| Pending Gate |');
@@ -43,5 +45,6 @@ describe('status', () => {
     expect(status).toContain('| Iteration | none |');
     expect(status).toContain('| Loop | idle |');
     expect(status).toContain('| Allowed Actions | /evidence-new |');
+    expect(status).toContain('运行 /evidence-new');
   });
 });

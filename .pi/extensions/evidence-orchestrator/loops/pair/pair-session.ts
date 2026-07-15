@@ -732,7 +732,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `Observed Red for ${unitKey(unit)} at ${stepKey(unit)}: exit=${record.exit_code}.\nExpected behavior: ${state.pair_session.expected_red}\nNavigator must run /evidence-pair accept-red <reason> only for a behavior failure, or reject-red <kind> <reason>.`,
+      output: `Observed Red for ${unitKey(unit)} at ${stepKey(unit)}: exit=${record.exit_code}.\nExpected behavior: ${state.pair_session.expected_red}\nNavigator must run /evidence-next accept-red <reason> only for a behavior failure, or reject-red <kind> <reason>.`,
     };
   }
   if (action === 'run_green') {
@@ -756,8 +756,8 @@ export function executePairAction(
       state: next,
       record,
       output: passed
-        ? `Observed Green for ${unitKey(unit)}. Next: /evidence-run for one bounded Refactor Driver checkpoint.`
-        : `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run to retry the Production Driver, or /evidence-pair back-test|back-tasking <reason>.`,
+        ? `Observed Green for ${unitKey(unit)}. Next: /evidence-next for one bounded Refactor Driver checkpoint.`
+        : `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-next to retry the Production Driver, or /evidence-next back-test|back-tasking <reason>.`,
     };
   }
   if (action === 'run_refactor') {
@@ -833,7 +833,7 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Refactor verified for ${unitKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-run to start one Test Driver checkpoint.`,
+        output: `Refactor verified for ${unitKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-next to start one Test Driver checkpoint.`,
       };
     }
     const next = writeState(cwd, {
@@ -846,7 +846,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `All approved TASK/TEST units are Refactor-green. Next /evidence-run executes exactly one final quality gate.`,
+      output: `All approved TASK/TEST units are Refactor-green. Next /evidence-next executes exactly one final quality gate.`,
     };
   }
 
@@ -871,7 +871,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `Quality gate failed (exit=${record.exit_code}): ${gate.command}. This is quality-gate feedback, not a Refactor failure. Choose /evidence-pair retry-quality, back-implementation, back-test, or back-tasking with a reason.`,
+      output: `Quality gate failed (exit=${record.exit_code}): ${gate.command}. This is quality-gate feedback, not a Refactor failure. Choose /evidence-next retry-quality, back-implementation, back-test, or back-tasking with a reason.`,
     };
   }
   const nextIndex = state.pair_session.quality_gate_index + 1;
@@ -888,7 +888,7 @@ export function executePairAction(
     record,
     output: complete
       ? 'All final quality gates passed. Deterministic execution manifest and summary were generated; Pair is ready for Showcase.'
-      : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; /evidence-run executes only the next one.`,
+      : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; /evidence-next executes only the next one.`,
   };
 }
 
@@ -1051,13 +1051,13 @@ export function pairNextInstruction(state: WorkflowState): string {
     case 'implementation_written':
     case 'green_observed':
     case 'refactored':
-      return '/evidence-run advances one checkpoint';
+      return '/evidence-next advances one checkpoint';
     case 'red_observed':
       return session.red_observation?.accepted
-        ? '/evidence-run starts one Production Driver checkpoint'
-        : '/evidence-pair accept-red <reason> or reject-red <kind> <reason>';
+        ? '/evidence-next starts one Production Driver checkpoint'
+        : '/evidence-next accept-red <reason> or reject-red <kind> <reason>';
     case 'quality_gate_failed':
-      return '/evidence-pair retry-quality|back-implementation|back-test|back-tasking <reason>';
+      return '/evidence-next retry-quality|back-implementation|back-test|back-tasking <reason>';
     case 'quality_gates_passed':
       return 'Pair is ready for Showcase';
   }

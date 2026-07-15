@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import type { WorkflowState } from '../../iteration/state';
 import {
   collectArtifacts,
   collectCodeFiles,
@@ -49,6 +50,78 @@ import {
   showcaseReviewParam,
   taskingDraftParam,
 } from './tool-schemas';
+
+export const ORCHESTRATOR_TOOL_NAMES = [
+  'evidence_orchestrator_start_from_issue',
+  'evidence_orchestrator_sync_issue',
+  'evidence_orchestrator_status',
+  'evidence_orchestrator_propose_kickoff',
+  'evidence_orchestrator_run_activity',
+  'evidence_orchestrator_propose_scenarios',
+  'evidence_orchestrator_propose_modeling_profile',
+  'evidence_orchestrator_record_model_analysis',
+  'evidence_orchestrator_record_model_challenge',
+  'evidence_orchestrator_propose_tasking',
+  'evidence_orchestrator_record_showcase_review',
+  'evidence_orchestrator_propose_response',
+  'evidence_orchestrator_ask_question',
+  'evidence_orchestrator_answer_question',
+] as const;
+
+export function toolsForState(state: WorkflowState | undefined): string[] {
+  const status = 'evidence_orchestrator_status';
+  const start = 'evidence_orchestrator_start_from_issue';
+  if (!state) return [start, status];
+  if (state.halted || state.loop === 'complete') return [start, status];
+
+  const common = [start, status, 'evidence_orchestrator_run_activity'];
+  if (state.loop === 'kickoff') {
+    return [
+      ...common,
+      'evidence_orchestrator_sync_issue',
+      'evidence_orchestrator_propose_kickoff',
+    ];
+  }
+  if (state.loop === 'understand') {
+    if (state.understand_stage === 'tqa') {
+      return [
+        ...common,
+        'evidence_orchestrator_ask_question',
+        'evidence_orchestrator_answer_question',
+        'evidence_orchestrator_propose_scenarios',
+      ];
+    }
+    if (state.modeling_stage === 'profile') {
+      return [...common, 'evidence_orchestrator_propose_modeling_profile'];
+    }
+    if (state.modeling_stage === 'expansion') {
+      return [...common, 'evidence_orchestrator_record_model_analysis'];
+    }
+    if (state.modeling_stage === 'candidate_ready') {
+      return [...common, 'evidence_orchestrator_record_model_challenge'];
+    }
+    return common;
+  }
+  if (state.loop === 'tasking') {
+    return [...common, 'evidence_orchestrator_propose_tasking'];
+  }
+  if (state.loop === 'showcase') {
+    return [...common, 'evidence_orchestrator_record_showcase_review'];
+  }
+  if (state.loop === 'respond') {
+    return [...common, 'evidence_orchestrator_propose_response'];
+  }
+  return common;
+}
+
+export function syncActiveTools(
+  pi: ExtensionAPI,
+  state: WorkflowState | undefined,
+): void {
+  const owned = new Set<string>(ORCHESTRATOR_TOOL_NAMES);
+  const preserved = pi.getActiveTools().filter((name) => !owned.has(name));
+  pi.setActiveTools([...new Set([...preserved, ...toolsForState(state)])]);
+}
 
 export function registerTools(pi: ExtensionAPI): void {
   pi.on('tool_result', (event) => {
@@ -200,7 +273,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-kickoff to confirm, revise, split, defer, or stop.`,
+            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-next to confirm, revise, split, defer, or stop.`,
           },
         ],
         details: { state },
@@ -276,7 +349,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
+            text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-next.`,
           },
         ],
         details: { state },
@@ -319,7 +392,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-modeling-profile.`,
+            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-next.`,
           },
         ],
         details: { state },
@@ -398,7 +471,7 @@ export function registerTools(pi: ExtensionAPI): void {
             type: 'text',
             text:
               challenge?.outcome === 'pass'
-                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-model before Tasking.`
+                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-next before Tasking.`
                 : `Recorded model challenge ${challenge?.outcome}. Workflow loop=${state.loop}; next modeling stage=${state.modeling_stage ?? 'none'}.`,
           },
         ],
@@ -420,7 +493,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Use exact confirmed Scenario outcomes, business data, and model ids; non-goals never become tests.',
       'Give every TEST exactly one ordered TASK owner and preserve selected process-step order.',
       'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
-      'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
+      'After calling this tool, stop. Only /evidence-next can approve or route the draft.',
     ],
     parameters: taskingDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -458,7 +531,7 @@ export function registerTools(pi: ExtensionAPI): void {
             type: 'text',
             text:
               state.tasking_stage === 'desk_check'
-                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-desk-check.`
+                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-next.`
                 : `Tasking stopped at ${state.tasking_gap?.kind}: ${state.tasking_gap?.reason}`,
           },
         ],
@@ -493,7 +566,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-showcase decision is required.`,
+            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-next decision is required.`,
           },
         ],
         details: { review, state: readState(ctx.cwd) },
@@ -513,7 +586,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Use only in Respond after a human accepts Showcase.',
       'Promoted items must cite Scenario, Showcase decision, execution evidence, and an actually changed canonical target.',
       'Empty promotions are valid only with a concrete no-promotion reason.',
-      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-respond.',
+      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-next.',
     ],
     parameters: respondProposalParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -550,7 +623,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-respond approval or revision.`,
+            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-next approval or revision.`,
           },
         ],
         details: { candidate, state: readState(ctx.cwd) },

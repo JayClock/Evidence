@@ -1340,7 +1340,7 @@ describe('Navigator-driven Pair', () => {
       },
     });
     expect(response.promotions).toEqual([]);
-    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-respond');
+    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-next');
     const completed = decideKnowledgeResponse(
       cwd,
       'approve',

@@ -11,7 +11,8 @@ import {
   STATUS_KEY,
   statusLabel,
 } from './identity';
-import { registerTools } from './tools';
+import { registerTools, syncActiveTools } from './tools';
+import { NEXT_STEP_WIDGET_KEY, nextStepWidget } from './next-step';
 import {
   readPersistedState,
   statePath,
@@ -39,10 +40,19 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
     const state = readPersistedState(ctx.cwd);
     if (state) ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
     ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+    ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, nextStepWidget(ctx.cwd, state), {
+      placement: 'belowEditor',
+    });
+    syncActiveTools(pi, state);
 
     const refreshStatus = () => {
       try {
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(readPersistedState(ctx.cwd)));
+        const state = readPersistedState(ctx.cwd);
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, nextStepWidget(ctx.cwd, state), {
+          placement: 'belowEditor',
+        });
+        syncActiveTools(pi, state);
       } catch (error) {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(undefined, 'state-error'));
         ctx.ui.notify(
@@ -64,8 +74,9 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
     );
   });
 
-  pi.on('session_shutdown', () => {
+  pi.on('session_shutdown', (_event, ctx) => {
     closeStateWatcher();
+    ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, undefined);
   });
 
   pi.registerMessageRenderer<ActivityExecutionDetails>(

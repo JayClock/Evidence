@@ -12,11 +12,13 @@ const pairing = vi.hoisted(() => ({
   completePairDriver: vi.fn(),
   failPairDriver: vi.fn(),
   executePairAction: vi.fn(),
+  pairNextInstruction: vi.fn(() => '/evidence-next advances one checkpoint'),
 }));
 const showcase = vi.hoisted(() => ({
   executeShowcaseQ2: vi.fn(),
   captureShowcaseReviewer: vi.fn(),
   completeShowcaseReviewer: vi.fn(),
+  showcaseNextInstruction: vi.fn(() => '/evidence-next'),
 }));
 
 vi.mock('../../node/activity-agent-process', () => ({
@@ -89,6 +91,29 @@ describe('activity execution', () => {
     expect(result.output).toContain('Who confirms the model?');
   });
 
+  it('replaces an empty child response with explicit next-step guidance', async () => {
+    const cwd = workspace();
+    runner.runActivitySubagent.mockResolvedValue({
+      agent: 'requirements-analyst',
+      model: 'openai/test',
+      thinking: 'high',
+      output: '(no output)',
+      messages: [],
+      exitCode: 0,
+      stderr: '',
+    });
+
+    const result = await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      preparation(),
+      { invocation: '/evidence-next' },
+    );
+
+    expect(result.output).not.toContain('(no output)');
+    expect(result.output).toContain('活动已完成');
+    expect(result.output).toContain('下一步：运行 /evidence-next');
+  });
+
   it('passes the explicit bounded role to the child runner', async () => {
     const cwd = workspace();
     runner.runActivitySubagent.mockResolvedValue({
@@ -104,7 +129,7 @@ describe('activity execution', () => {
     await executePreparedActivityRun(
       { cwd, ui: { setStatus: vi.fn() } },
       preparation(),
-      { invocation: '/evidence-run' },
+      { invocation: '/evidence-next' },
     );
 
     expect(runner.runActivitySubagent).toHaveBeenCalledWith(
@@ -131,7 +156,7 @@ describe('activity execution', () => {
     const result = await executePreparedActivityRun(
       { cwd, ui: { setStatus: vi.fn() } },
       prepared,
-      { invocation: '/evidence-run' },
+      { invocation: '/evidence-next' },
     );
 
     expect(runner.runActivitySubagent).not.toHaveBeenCalled();
@@ -155,7 +180,7 @@ describe('activity execution', () => {
     const result = await executePreparedActivityRun(
       { cwd, ui: { setStatus: vi.fn() } },
       prepared,
-      { invocation: '/evidence-run' },
+      { invocation: '/evidence-next' },
     );
 
     expect(runner.runActivitySubagent).not.toHaveBeenCalled();
@@ -190,7 +215,7 @@ describe('activity execution', () => {
       { cwd, ui: { setStatus: vi.fn() } },
       preparation(),
       {
-        invocation: '/evidence-run',
+        invocation: '/evidence-next',
         now: () => '2026-01-01T00:00:00.000Z',
         onUpdate,
       },
@@ -204,7 +229,7 @@ describe('activity execution', () => {
       status: 'completed',
     });
     expect(readState(cwd).pi).toEqual({
-      last_command: '/evidence-run',
+      last_command: '/evidence-next',
       last_run_at: '2026-01-01T00:00:00.000Z',
     });
   });

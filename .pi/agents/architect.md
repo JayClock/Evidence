@@ -18,4 +18,4 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_tasking
 
 ## 停止条件
 
-只调用 `evidence_orchestrator_propose_tasking` 一次后立即停止，等待人类 `/evidence-desk-check`。发现 Scenario、架构或 process 缺口时记录明确缺口并停止；不得推进 Pair。
+只调用 `evidence_orchestrator_propose_tasking` 一次后立即停止，等待人类 `/evidence-next`。发现 Scenario、架构或 process 缺口时记录明确缺口并停止；不得推进 Pair。

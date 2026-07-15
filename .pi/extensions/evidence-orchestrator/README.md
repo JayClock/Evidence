@@ -100,24 +100,14 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 ```text
 /evidence-new
 /evidence-status
-/evidence-run [--dry-run]
+/evidence-next [当前阶段参数]
 /evidence-issue-status
 /evidence-issue-sync
-/evidence-kickoff confirm|revise|split|defer <reason>
-/evidence-scenario confirm <DRAFT-xxx> <reason>
-/evidence-scenario continue|split|defer <reason>
-/evidence-modeling-profile confirm|set <subject> <method> <true|false> <reason>
-/evidence-model confirm|revise|scenario-gap|method-gap <reason>
-/evidence-desk-check approve|revise|scenario-gap|architecture-gap|process-gap <reason>
-/evidence-pair accept-red|back-test|back-implementation|back-tasking|retry-quality <reason>
-/evidence-showcase risk <q3|q4> <not-required|required> [activities] <reason>
-/evidence-showcase observe <evidence-ref> <observation> :: <value-feedback>
-/evidence-showcase evaluate <q3|q4>/<activity> <passed|concern> <evidence-ref> <finding>
-/evidence-showcase accept|revise|reject <reason>
-/evidence-respond approve|revise <reason>
 ```
 
-`/evidence-run` 只推进当前 loop 的一个活动或确定性 checkpoint。遇到人工决定时必须停止；它不会代替 Navigator 连续运行整个 iteration。
+`/evidence-next` 根据持久化状态路由到当前阶段唯一可用的活动或人工决定。没有待决事项时，它只推进一个 activity/checkpoint；存在 Kickoff、Scenario、Profile、模型、Desk Check、Red、Showcase 或 Respond 决定时，相同命令只接受该决定的参数。省略参数会打开当前决定的交互选择器。它不会连续运行整个 iteration。
+
+Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
 
 ## Agent 工具
 

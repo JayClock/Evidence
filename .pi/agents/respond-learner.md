@@ -18,4 +18,4 @@ tools: read, bash, evidence_orchestrator_status, evidence_orchestrator_propose_r
 
 ## 停止条件
 
-只调用 `evidence_orchestrator_propose_response` 一次后立即停止，等待人类 `/evidence-respond`。缺少共同 Git baseline、验证事实或具体 next Probe 时不得补猜；不得自行完成迭代、提交或推送。
+只调用 `evidence_orchestrator_propose_response` 一次后立即停止，等待人类 `/evidence-next`。缺少共同 Git baseline、验证事实或具体 next Probe 时不得补猜；不得自行完成迭代、提交或推送。

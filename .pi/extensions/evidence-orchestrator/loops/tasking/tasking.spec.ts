@@ -250,8 +250,8 @@ describe('Tasking and Desk Check', () => {
     const draft = proposeTaskingDraft(cwd, draftInput());
 
     expect(draft.tasking_stage).toBe('desk_check');
-    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-desk-check');
-    expect(statusMarkdown(cwd)).toContain('human:/evidence-desk-check');
+    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-next');
+    expect(statusMarkdown(cwd)).toContain('human:/evidence-next');
     expect(
       readFileSync(`${cwd}/${draft.tasking_candidate?.test_list_path}`, 'utf8'),
     ).toContain('Workspace Alpha is available to the owner');

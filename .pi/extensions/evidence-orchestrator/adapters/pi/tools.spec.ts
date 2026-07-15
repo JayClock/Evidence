@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { writeState } from '../../iteration/state-repository';
 import { cleanupWorkspaces, workspace } from '../../test-support/support';
-import { registerTools } from './tools';
+import { registerTools, syncActiveTools, toolsForState } from './tools';
 
 afterEach(cleanupWorkspaces);
 
@@ -34,6 +34,59 @@ describe('tools', () => {
       'evidence_orchestrator_propose_response',
       'evidence_orchestrator_ask_question',
       'evidence_orchestrator_answer_question',
+    ]);
+  });
+
+  it('exposes only tools owned by the current loop and stage', () => {
+    expect(toolsForState(undefined)).toEqual([
+      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_status',
+    ]);
+    expect(toolsForState(DEFAULT_STATE)).toEqual([
+      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_status',
+      'evidence_orchestrator_run_activity',
+      'evidence_orchestrator_sync_issue',
+      'evidence_orchestrator_propose_kickoff',
+    ]);
+    expect(
+      toolsForState({
+        ...DEFAULT_STATE,
+        loop: 'understand',
+        understand_stage: 'tqa',
+      }),
+    ).toEqual([
+      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_status',
+      'evidence_orchestrator_run_activity',
+      'evidence_orchestrator_ask_question',
+      'evidence_orchestrator_answer_question',
+      'evidence_orchestrator_propose_scenarios',
+    ]);
+  });
+
+  it('preserves tools owned by Pi and other extensions when changing stage', () => {
+    const setActiveTools = vi.fn();
+    syncActiveTools(
+      {
+        getActiveTools: () => [
+          'read',
+          'other_extension_tool',
+          'evidence_orchestrator_propose_response',
+        ],
+        setActiveTools,
+      } as never,
+      DEFAULT_STATE,
+    );
+
+    expect(setActiveTools).toHaveBeenCalledWith([
+      'read',
+      'other_extension_tool',
+      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_status',
+      'evidence_orchestrator_run_activity',
+      'evidence_orchestrator_sync_issue',
+      'evidence_orchestrator_propose_kickoff',
     ]);
   });
 

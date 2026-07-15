@@ -8,12 +8,16 @@ import {
   write,
 } from '../../test-support/support';
 import {
+  activeStageCommand,
   parseModelDecision,
   parseRespondDecision,
   parseShowcaseDecision,
   registerCommands,
 } from './commands';
-import { promptKickoffDecision } from './command-inputs';
+import {
+  promptKickoffDecision,
+  promptScenarioDecision,
+} from './command-inputs';
 
 function context(cwd: string) {
   return {
@@ -65,18 +69,48 @@ describe('commands', () => {
     expect(commands).toEqual([
       'evidence-status',
       'evidence-new',
-      'evidence-kickoff',
-      'evidence-scenario',
-      'evidence-modeling-profile',
-      'evidence-model',
-      'evidence-desk-check',
-      'evidence-pair',
-      'evidence-showcase',
-      'evidence-respond',
       'evidence-issue-sync',
       'evidence-issue-status',
-      'evidence-run',
+      'evidence-next',
     ]);
+  });
+
+  it('selects only the command owned by the current stage', () => {
+    expect(activeStageCommand('/unused', issueState())).toBe('evidence-run');
+    expect(
+      activeStageCommand('/unused', {
+        ...issueState(),
+        kickoff_candidate: {
+          version: 1,
+          title: 'Candidate',
+          problem: 'Problem',
+          role: 'Owner',
+          goal: 'Goal',
+          value: 'Value',
+          cognitive_mode: 'clear',
+          source_refs: ['issue#42'],
+          proposed_at: '2026-01-01T00:00:00.000Z',
+          artifact_path: 'candidate.json',
+        },
+      }),
+    ).toBe('evidence-kickoff');
+    expect(
+      activeStageCommand('/unused', {
+        ...issueState(),
+        loop: 'understand',
+        understand_stage: 'scenario_review',
+      }),
+    ).toBe('evidence-scenario');
+    expect(
+      activeStageCommand('/unused', {
+        ...issueState(),
+        loop: 'tasking',
+        tasking_stage: 'desk_check',
+      }),
+    ).toBe('evidence-desk-check');
+    expect(
+      activeStageCommand('/unused', { ...issueState(), loop: 'complete' }),
+    ).toBeUndefined();
   });
 
   it('parses model, Showcase, and Respond human decisions', () => {
@@ -200,6 +234,81 @@ describe('commands', () => {
     });
   });
 
+  it('prefills an editable reason for the selected minimal Scenario', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'understand',
+      understand_stage: 'scenario_review',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      scenario_drafts: [
+        {
+          version: 1,
+          draft_id: 'DRAFT-001',
+          story_id: 'US-001',
+          title: '领域建模负责人修改工作区名称和描述',
+          given: ['负责人可进入工作区'],
+          when: '负责人保存新的名称和描述',
+          then: ['成员看到更新后的名称和描述'],
+          business_data: ['工作区名称不重名'],
+          proposed_at: '2026-01-01T00:01:00.000Z',
+          artifact_path: 'draft.json',
+        },
+      ],
+    });
+    const ctx = context(cwd);
+    const selected = '确认 DRAFT-001 · 领域建模负责人修改工作区名称和描述';
+    const defaultReason =
+      '“DRAFT-001 · 领域建模负责人修改工作区名称和描述”是本轮可独立验证并交付用户价值的最小业务 Scenario。';
+    ctx.ui.select.mockResolvedValue(selected);
+    ctx.ui.editor.mockResolvedValue(defaultReason);
+
+    await expect(promptScenarioDecision(ctx as never)).resolves.toEqual({
+      action: 'confirmed',
+      draftId: 'DRAFT-001',
+      reason: defaultReason,
+    });
+    expect(ctx.ui.editor).toHaveBeenCalledWith(
+      `请确认或修改“${selected}”的业务理由`,
+      defaultReason,
+    );
+  });
+
+  it('uses an edited Scenario reason instead of its prefilled value', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'understand',
+      understand_stage: 'scenario_review',
+      scenario_drafts: [
+        {
+          version: 1,
+          draft_id: 'DRAFT-001',
+          story_id: 'US-001',
+          title: '修改工作区信息',
+          given: ['负责人可进入工作区'],
+          when: '负责人保存修改',
+          then: ['修改生效'],
+          business_data: ['工作区名称'],
+          proposed_at: '2026-01-01T00:01:00.000Z',
+          artifact_path: 'draft.json',
+        },
+      ],
+    });
+    const ctx = context(cwd);
+    ctx.ui.select.mockResolvedValue('确认 DRAFT-001 · 修改工作区信息');
+    ctx.ui.editor.mockResolvedValue('该场景覆盖本轮最小可交付业务结果。');
+
+    await expect(promptScenarioDecision(ctx as never)).resolves.toEqual({
+      action: 'confirmed',
+      draftId: 'DRAFT-001',
+      reason: '该场景覆盖本轮最小可交付业务结果。',
+    });
+  });
+
   it('previews the current activity without phase selector options', async () => {
     const cwd = workspace();
     for (const path of [
@@ -217,7 +326,7 @@ describe('commands', () => {
       | undefined;
     registerCommands({
       registerCommand(name: string, options: { handler: typeof run }) {
-        if (name === 'evidence-run') run = options.handler;
+        if (name === 'evidence-next') run = options.handler;
       },
     } as never);
     const ctx = context(cwd);

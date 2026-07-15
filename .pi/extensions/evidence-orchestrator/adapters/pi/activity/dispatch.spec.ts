@@ -84,7 +84,7 @@ describe('activity dispatch', () => {
     });
 
     expect(() => prepareActivityRun(cwd)).toThrow(ActivityRunBlockedError);
-    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-kickoff');
+    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-next');
   });
 
   it('dispatches the single Story TQA and blocks on Scenario review', () => {
@@ -127,6 +127,6 @@ describe('activity dispatch', () => {
         businessData: ['version=v3'],
       },
     ]);
-    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-scenario');
+    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-next');
   });
 });

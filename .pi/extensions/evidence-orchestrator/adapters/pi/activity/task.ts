@@ -53,7 +53,7 @@ ${extra || '（无）'}
 - docs/product/user-journeys.md
 - docs/product/story-map.md
 
-任务：只处理 ${storyId}。下一步只能调用 evidence_orchestrator_ask_question 或 evidence_orchestrator_propose_scenarios 一次并停止；人类通过 /evidence-scenario 决定确认、继续、拆分或延期。
+任务：只处理 ${storyId}。下一步只能调用 evidence_orchestrator_ask_question 或 evidence_orchestrator_propose_scenarios 一次并停止；人类通过 /evidence-next 决定确认、继续、拆分或延期。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -67,7 +67,7 @@ ${extra || '（无）'}
 
 方法：加载并遵守 .pi/skills/evidence-modeling-router/SKILL.md。
 上下文：${scenario.artifact_path}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
-任务：提出 subject、method 与 modelChangeRequired，只调用 evidence_orchestrator_propose_modeling_profile 一次后停止，等待人类 /evidence-modeling-profile。不得编辑 .evidence。
+任务：提出 subject、method 与 modelChangeRequired，只调用 evidence_orchestrator_propose_modeling_profile 一次后停止，等待人类 /evidence-next。不得编辑 .evidence。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -125,7 +125,7 @@ ${extra || '（无）'}
 - engineering/evidence-orchestrator/definition-of-done.md
 ${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}` : ''}
 
-任务：只为确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 TEST 引用确认模型 id 且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
+任务：只为确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 TEST 引用确认模型 id 且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-next；不得写代码或创建 Sprint 工件。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -179,7 +179,7 @@ ${extra || '（无）'}
     return `执行 Evidence Orchestrator Respond：${workItem.story_id} / ${workItem.scenario_id}。
 
 只读上下文：确认 Scenario、模型展开、execution manifest、${review.artifact_path}、${state.showcase_product_observations?.at(-1)?.artifact_path ?? 'missing-product-observation'}、${state.showcase_evaluation_observations?.at(-1)?.artifact_path ?? 'no-required-evaluation'}、Showcase 人工决定、docs/knowledge-governance.md、Working Knowledge catalog。
-任务：只对实际使用且验证的知识提出 promotions（允许带理由的空列表）和一个 next Probe；只调用 evidence_orchestrator_propose_response 一次后停止，等待人类 /evidence-respond。
+任务：只对实际使用且验证的知识提出 promotions（允许带理由的空列表）和一个 next Probe；只调用 evidence_orchestrator_propose_response 一次后停止，等待人类 /evidence-next。
 
 额外用户指令：
 ${extra || '（无）'}

@@ -13,6 +13,7 @@ import { allowedLoopActions } from '../../iteration/transition-graph';
 import { readPersistedState } from '../../iteration/state-repository';
 import type { WorkflowState } from '../../iteration/state';
 import { loadActivityAgent } from '../node/activity-agent-process';
+import { nextStepGuidance } from './next-step';
 
 function agentName(state: WorkflowState): string | undefined {
   if (state.loop === 'kickoff') return 'requirements-analyst';
@@ -42,13 +43,13 @@ function nextActions(cwd: string, state: WorkflowState): string {
   if (state.loop === 'pair') return pairNextInstruction(state);
   if (state.loop === 'showcase') return showcaseNextInstruction(cwd);
   if (state.loop === 'respond' && state.respond_stage === 'decision') {
-    return 'human:/evidence-respond approve|revise <reason>';
+    return 'human:/evidence-next approve|revise <reason>';
   }
   if (state.loop === 'understand' && state.modeling_stage === 'model_review') {
-    return 'human:/evidence-model confirm|revise|scenario-gap|method-gap <reason>';
+    return 'human:/evidence-next confirm|revise|scenario-gap|method-gap <reason>';
   }
   if (state.loop === 'tasking' && state.tasking_stage === 'desk_check') {
-    return 'human:/evidence-desk-check';
+    return 'human:/evidence-next';
   }
   return allowedLoopActions(state.loop).join(', ') || 'none';
 }
@@ -72,6 +73,10 @@ export function statusMarkdown(cwd: string): string {
       '| Iteration | none |',
       '| Loop | idle |',
       '| Allowed Actions | /evidence-new |',
+      '',
+      '## 下一步',
+      '',
+      nextStepGuidance(cwd, undefined),
       '',
       'No active iteration state is persisted. Start one from an explicit GitHub Issue.',
       '',
@@ -131,6 +136,10 @@ export function statusMarkdown(cwd: string): string {
     `| Activity Agent | ${agent} |`,
     `| Halted | ${state.halted?.reason ?? 'no'} |`,
     `| Last Run | ${state.pi?.last_run_at ?? 'never'} |`,
+    '',
+    '## 下一步',
+    '',
+    nextStepGuidance(cwd, state),
     '',
     ...list('Artifacts', artifacts),
     '',
