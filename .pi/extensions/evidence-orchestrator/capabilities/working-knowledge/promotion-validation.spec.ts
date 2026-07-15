@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
-} from './knowledge';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+} from './promotion-validation';
+import { cleanupWorkspaces, workspace, write } from '../../tests/support';
 
 afterEach(cleanupWorkspaces);
 

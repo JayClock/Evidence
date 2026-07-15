@@ -32,6 +32,7 @@ export interface SourceBoundaryViolation {
 interface SourceLocation {
   zone: TargetZone | 'root' | 'migration';
   loop?: string;
+  publicContract?: boolean;
 }
 
 const IMPORT_PATTERN =
@@ -43,7 +44,13 @@ function normalized(path: string): string {
 
 function location(path: string): SourceLocation {
   const [first, second] = normalized(path).split('/');
-  if (first === 'loops') return { zone: 'loops', loop: second };
+  if (first === 'loops') {
+    return {
+      zone: 'loops',
+      loop: second,
+      publicContract: normalized(path).endsWith('/public.ts'),
+    };
+  }
   if ((TARGET_SOURCE_ZONES as readonly string[]).includes(first)) {
     return { zone: first as TargetZone };
   }
@@ -92,7 +99,8 @@ function boundaryReason(
       target.zone === 'loops' &&
       source.loop &&
       target.loop &&
-      source.loop !== target.loop
+      source.loop !== target.loop &&
+      !target.publicContract
     ) {
       return `Loop ${source.loop} must not import private code from loop ${target.loop}.`;
     }

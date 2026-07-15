@@ -10,9 +10,9 @@ import { dirname, join } from 'node:path';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../iteration/artifact-layout';
-import { transitionLoopState } from '../iteration/transition-graph';
-import { readState, writeState } from '../iteration/state-repository';
+} from '../../iteration/artifact-layout';
+import { transitionLoopState } from '../../iteration/transition-graph';
+import { readState, writeState } from '../../iteration/state-repository';
 import type {
   KnowledgeDecision,
   KnowledgeKind,
@@ -21,14 +21,14 @@ import type {
   RespondCandidate,
   RespondDecisionRecord,
   WorkflowState,
-} from '../iteration/state';
+} from '../../iteration/state';
 import {
   executionEvidencePaths,
   validateExecutionEvidence,
-} from '../capabilities/execution-evidence/manifest';
-import { testProcessDefinitionSha256 } from '../capabilities/test-process/catalog';
-import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
-import { validateKnowledgePromotion } from './knowledge';
+} from '../../capabilities/execution-evidence/manifest';
+import { testProcessDefinitionSha256 } from '../../capabilities/test-process/catalog';
+import { validateShowcaseEvidence } from '../showcase/public';
+import { validateKnowledgePromotion } from '../../capabilities/working-knowledge/promotion-validation';
 
 const KNOWLEDGE_KINDS = new Set<KnowledgeKind>([
   'product',

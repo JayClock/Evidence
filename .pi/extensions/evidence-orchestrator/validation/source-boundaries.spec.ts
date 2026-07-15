@@ -61,6 +61,22 @@ describe('semantic source boundaries', () => {
     ]);
   });
 
+  it('allows a loop to consume another loop only through its explicit public contract', () => {
+    const root = workspace();
+    write(
+      root,
+      'loops/showcase/public.ts',
+      'export const acceptedShowcase = true;\n',
+    );
+    write(
+      root,
+      'loops/respond/response.ts',
+      "import { acceptedShowcase } from '../showcase/public';\nvoid acceptedShowcase;\n",
+    );
+
+    expect(sourceBoundaryViolations(root)).toEqual([]);
+  });
+
   it('can close the migration gate once every old technical directory is empty', () => {
     const root = workspace();
     write(root, 'runtime/commands.ts', 'export const old = true;\n');

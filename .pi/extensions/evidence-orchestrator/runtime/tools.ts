@@ -1,6 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
-import { proposeKnowledgeResponse } from '../evidence/respond';
+import { proposeKnowledgeResponse } from '../loops/respond/response-cycle';
 import { recordModelChallenge } from '../loops/understand/modeling/challenge';
 import { recordModelAnalysis } from '../loops/understand/modeling/candidate-model';
 import { proposeModelingProfile } from '../loops/understand/modeling/profile';

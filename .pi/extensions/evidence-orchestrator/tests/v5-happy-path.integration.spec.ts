@@ -37,7 +37,7 @@ import {
 import {
   decideKnowledgeResponse,
   proposeKnowledgeResponse,
-} from '../evidence/respond';
+} from '../loops/respond/response-cycle';
 import { readState } from '../iteration/state-repository';
 import {
   cleanupWorkspaces,

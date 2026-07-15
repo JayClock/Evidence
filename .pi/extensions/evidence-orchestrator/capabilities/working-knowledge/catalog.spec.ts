@@ -14,7 +14,7 @@ import {
   validateWorkingKnowledgeCatalog,
   workingKnowledgeInstruction,
   WORKING_KNOWLEDGE_CATALOG,
-} from './working-knowledge';
+} from './catalog';
 
 const roots: string[] = [];
 

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import {
   decideKnowledgeResponse,
   proposeKnowledgeResponse,
-} from '../../evidence/respond';
+} from '../respond/response-cycle';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';

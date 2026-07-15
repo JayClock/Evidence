@@ -7,8 +7,8 @@ import { iterationRoot } from '../iteration/artifact-layout';
 import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
-} from '../evidence/knowledge';
-import { validateWorkingKnowledgeCatalog } from '../evidence/working-knowledge';
+} from '../capabilities/working-knowledge/promotion-validation';
+import { validateWorkingKnowledgeCatalog } from '../capabilities/working-knowledge/catalog';
 import { readStateSnapshot } from '../iteration/state-repository';
 import { validateSourceBoundaries } from './source-boundaries';
 import {

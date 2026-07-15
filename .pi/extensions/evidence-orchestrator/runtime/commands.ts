@@ -4,7 +4,7 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import { confirmModelingProfile } from '../loops/understand/modeling/profile';
 import { decideKickoff } from '../loops/kickoff/story-decision';
-import { decideKnowledgeResponse } from '../evidence/respond';
+import { decideKnowledgeResponse } from '../loops/respond/response-cycle';
 import { decideUnderstanding } from '../loops/understand/scenario/candidates';
 import { decideTasking } from '../loops/tasking/desk-check';
 import {
