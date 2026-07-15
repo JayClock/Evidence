@@ -87,10 +87,7 @@ export type PairDeterministicAction =
   | 'run_green'
   | 'run_refactor'
   | 'run_quality_gate';
-export type DeliveryIncrementAction =
-  | 'continue_story'
-  | 'next_story'
-  | 'showcase';
+export type DeliveryIncrementAction = 'showcase';
 export type ShowcaseStage =
   | 'setup'
   | 'reviewing'
@@ -286,6 +283,8 @@ export interface PairDriverRecord {
 export interface PairSession {
   version: 2;
   story_id: string;
+  scenario_ids: string[];
+  /** @deprecated First-Scenario projection for legacy evidence paths. */
   scenario_id: string;
   git_baseline: string;
   checkpoint: PairCheckpoint;
@@ -447,6 +446,8 @@ export interface RespondDecisionRecord {
 
 export interface ActiveWorkItem {
   story_id: string;
+  scenario_ids: string[];
+  /** @deprecated First-Scenario projection for legacy evidence paths. */
   scenario_id: string;
   /** Immutable Git HEAD captured before this scenario's Red step. */
   git_baseline: string;
@@ -459,6 +460,9 @@ export interface CompletedWorkItem {
   version: 1;
   story_id: string;
   scenario_id: string;
+  /** Complete Story acceptance boundary. */
+  scenarios: ConfirmedScenario[];
+  /** @deprecated First-Scenario projection for legacy evidence readers. */
   scenario: ConfirmedScenario;
   work_item: ActiveWorkItem;
   tasking: TaskingCandidate;

@@ -308,6 +308,7 @@ export function decideTasking(
       approved_test_plan_sha256: digest(approvedPlanContent),
       active_work_item: {
         story_id: state.tasking_candidate.story_id,
+        scenario_ids: state.tasking_candidate.scenario_ids,
         scenario_id: state.tasking_candidate.scenario_id,
         git_baseline: baseline,
         test_plan: {
@@ -318,6 +319,7 @@ export function decideTasking(
       pair_session: {
         version: 2 as const,
         story_id: state.tasking_candidate.story_id,
+        scenario_ids: state.tasking_candidate.scenario_ids,
         scenario_id: state.tasking_candidate.scenario_id,
         git_baseline: baseline,
         checkpoint: 'plan_confirmed' as const,

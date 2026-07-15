@@ -887,7 +887,7 @@ export function executePairAction(
     state: next,
     record,
     output: complete
-      ? 'All final quality gates passed. This acceptance slice is complete; the human Navigator must choose another Scenario in this Story, another Story in the iteration, or iteration Showcase.'
+      ? 'All final quality gates passed for the complete Story Scenario Set; the human Navigator must enter iteration Showcase.'
       : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; /evidence-run executes only the next one.`,
   };
 }
@@ -1059,6 +1059,6 @@ export function pairNextInstruction(state: WorkflowState): string {
     case 'quality_gate_failed':
       return '/evidence-pair retry-quality|back-implementation|back-test|back-tasking <reason>';
     case 'quality_gates_passed':
-      return '/evidence-pair continue-story|next-story|showcase <reason> chooses the delivery-iteration boundary';
+      return '/evidence-pair showcase <reason> completes the Story delivery boundary';
   }
 }

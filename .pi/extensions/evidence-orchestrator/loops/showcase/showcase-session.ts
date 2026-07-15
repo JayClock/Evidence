@@ -255,13 +255,19 @@ function showcaseItems(state: WorkflowState): CompletedWorkItem[] {
   return items;
 }
 
+function showcaseScenarios(state: WorkflowState) {
+  return showcaseItems(state).flatMap((item) =>
+    item.scenarios?.length ? item.scenarios : [item.scenario],
+  );
+}
+
 export function missingShowcaseProductObservations(
   state: WorkflowState,
 ): string[] {
   const observations = state.showcase_product_observations ?? [];
-  return showcaseItems(state)
+  return showcaseScenarios(state)
     .filter(
-      ({ scenario }) =>
+      (scenario) =>
         !observations.some(
           (observation) =>
             observation.story_id === scenario.story_id &&
@@ -273,7 +279,7 @@ export function missingShowcaseProductObservations(
 
 function hasProductObservation(state: WorkflowState): boolean {
   const observations = state.showcase_product_observations ?? [];
-  return showcaseItems(state).every(({ scenario }) =>
+  return showcaseScenarios(state).every((scenario) =>
     observations.some(
       (observation) =>
         observation.story_id === scenario.story_id &&
@@ -562,9 +568,9 @@ export function recordShowcaseProductObservation(
       ({ story_id, scenario_id }) => `${story_id}/${scenario_id}`,
     ),
   );
-  const scenario = showcaseItems(state).find(
+  const scenario = showcaseScenarios(state).find(
     ({ story_id, scenario_id }) => !observed.has(`${story_id}/${scenario_id}`),
-  )?.scenario;
+  );
   if (!scenario) {
     throw new Error(
       'Every completed Scenario already has a product observation.',

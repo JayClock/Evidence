@@ -209,6 +209,7 @@ function preparePair(cwd: string): void {
     process_id: definition.id,
     step_id: 'acceptance-q2',
     supported_by: [] as string[],
+    scenario_ids: ['SC-001'],
     scenario_outcome: 'Workspace is visible',
     business_data: ['name=Alpha'],
     model_refs: { entities: ['workspace'], associations: [] },
@@ -319,6 +320,7 @@ function preparePair(cwd: string): void {
       .digest('hex'),
     active_work_item: {
       story_id: 'US-001',
+      scenario_ids: ['SC-001'],
       scenario_id: 'SC-001',
       git_baseline: baseline,
       test_plan: { version: 2, processes: [selection] },
@@ -327,6 +329,7 @@ function preparePair(cwd: string): void {
       version: 2,
       draft_id: 'DRAFT-001',
       story_id: 'US-001',
+      scenario_ids: ['SC-001'],
       scenario_id: 'SC-001',
       tests: [taskingTest],
       tasks: [taskingTask],
@@ -343,6 +346,7 @@ function preparePair(cwd: string): void {
     pair_session: {
       version: 2,
       story_id: 'US-001',
+      scenario_ids: ['SC-001'],
       scenario_id: 'SC-001',
       git_baseline: baseline,
       checkpoint: 'plan_confirmed',
@@ -479,6 +483,7 @@ function addWebQ1Step(cwd: string): void {
       process_id: selection.id,
       step_id: 'component-q1',
       supported_by: [] as string[],
+      scenario_ids: ['SC-001'],
       business_data: ['name=Alpha'],
       model_refs: { entities: ['workspace'], associations: [] as string[] },
     },
@@ -644,6 +649,7 @@ function addTauriProcess(cwd: string): void {
       process_id: definition.id,
       step_id: 'acceptance-q2',
       supported_by: ['TEST-Q1'],
+      scenario_ids: ['SC-001'],
       scenario_outcome: 'Workspace is visible',
       business_data: ['name=Alpha'],
       model_refs: { entities: ['workspace'], associations: [] as string[] },
@@ -1179,7 +1185,7 @@ describe('Navigator-driven Pair', () => {
     );
   });
 
-  it('continues the same Story with another Scenario after a human Git checkpoint', () => {
+  it('closes the complete Story directly into Showcase', () => {
     const cwd = workspace();
     preparePair(cwd);
     completePairSuccessfully(cwd);
@@ -1187,45 +1193,27 @@ describe('Navigator-driven Pair', () => {
     expect(() =>
       decideDeliveryIncrement(
         cwd,
-        'continue_story',
-        'Another acceptance condition remains in this Story.',
+        'continue_story' as never,
+        'A Scenario must not be added after Story Pairing.',
       ),
-    ).toThrow('human-owned Git checkpoint');
+    ).toThrow('Unsupported Story completion decision');
 
-    execFileSync('git', ['add', '.'], { cwd });
-    execFileSync(
-      'git',
-      [
-        '-c',
-        'user.name=Evidence Orchestrator Test',
-        '-c',
-        'user.email=workflow@example.test',
-        'commit',
-        '--quiet',
-        '-m',
-        'complete first acceptance slice',
-      ],
-      { cwd },
-    );
-    const continued = decideDeliveryIncrement(
+    const showcased = decideDeliveryIncrement(
       cwd,
-      'continue_story',
-      'Another acceptance condition remains in this Story.',
+      'showcase',
+      'The complete Story Scenario Set passed Pairing.',
     );
 
-    expect(continued).toMatchObject({
-      loop: 'understand',
-      understand_stage: 'tqa',
-      active_clarification_story: { story_id: 'US-001' },
+    expect(showcased).toMatchObject({
+      loop: 'showcase',
+      showcase_stage: 'setup',
     });
-    expect(continued.completed_work_items).toHaveLength(1);
-    expect(continued.completed_work_items?.[0]).toMatchObject({
+    expect(showcased.completed_work_items).toHaveLength(1);
+    expect(showcased.completed_work_items?.[0]).toMatchObject({
       story_id: 'US-001',
-      scenario_id: 'SC-001',
+      scenarios: [{ scenario_id: 'SC-001' }],
       pair: { checkpoint: 'quality_gates_passed' },
     });
-    expect(continued.confirmed_scenario).toBeUndefined();
-    expect(continued.pair_session).toBeUndefined();
   });
 
   it('blocks Showcase acceptance before selected Q2 is observed', () => {

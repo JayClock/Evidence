@@ -443,6 +443,10 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   if (
     state.active_work_item &&
     (!STORY_ID_PATTERN.test(state.active_work_item.story_id) ||
+      !textArray(state.active_work_item.scenario_ids) ||
+      !state.active_work_item.scenario_ids.every((id) =>
+        SCENARIO_ID_PATTERN.test(id),
+      ) ||
       !SCENARIO_ID_PATTERN.test(state.active_work_item.scenario_id) ||
       !text(state.active_work_item.git_baseline) ||
       state.active_work_item.test_plan.version !== 2 ||
@@ -468,6 +472,10 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   if (
     state.pair_session &&
     (state.pair_session.version !== 2 ||
+      !textArray(state.pair_session.scenario_ids) ||
+      !state.pair_session.scenario_ids.every((id) =>
+        SCENARIO_ID_PATTERN.test(id),
+      ) ||
       !PAIR_CHECKPOINTS.has(state.pair_session.checkpoint) ||
       !text(state.pair_session.task_id) ||
       !text(state.pair_session.test_id) ||
@@ -514,6 +522,13 @@ export function normalizeState(input: WorkflowState): WorkflowState {
         item.version !== 1 ||
         !STORY_ID_PATTERN.test(item.story_id) ||
         !SCENARIO_ID_PATTERN.test(item.scenario_id) ||
+        !Array.isArray(item.scenarios) ||
+        item.scenarios.length === 0 ||
+        item.scenarios.some(
+          (scenario) =>
+            scenario.story_id !== item.story_id ||
+            !SCENARIO_ID_PATTERN.test(scenario.scenario_id),
+        ) ||
         item.scenario.story_id !== item.story_id ||
         item.scenario.scenario_id !== item.scenario_id ||
         item.work_item.story_id !== item.story_id ||

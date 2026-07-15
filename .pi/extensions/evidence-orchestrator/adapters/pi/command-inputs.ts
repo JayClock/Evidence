@@ -428,7 +428,7 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
   const [rawAction, ...rest] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase().replaceAll('-', '_');
-  if (['continue_story', 'next_story', 'showcase'].includes(action)) {
+  if (action === 'showcase') {
     const reason = rest.join(' ').trim();
     if (!reason) throw new Error(`${rawAction} requires a delivery reason.`);
     return {
@@ -465,7 +465,7 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
     ].includes(navigation)
   ) {
     throw new Error(
-      'Usage: /evidence-pair accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason> | continue-story|next-story|showcase <reason>.',
+      'Usage: /evidence-pair accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason> | showcase <reason>.',
     );
   }
   const reason = rest.join(' ').trim();
@@ -513,23 +513,16 @@ export async function promptPairDecision(
       : undefined;
   }
   if (session.checkpoint === 'quality_gates_passed') {
-    const choice = await ctx.ui.select(
-      '当前验收切片已完成，决定交付迭代下一步',
-      [
-        '继续当前 Story 的另一个 Scenario',
-        '规划迭代中的下一个 Story',
-        '关闭迭代范围并进入 Showcase',
-      ],
-    );
+    const choice = await ctx.ui.select('Story 验收集合已完成', [
+      '进入 Showcase',
+    ]);
     if (!choice) return undefined;
-    const actions: Record<string, DeliveryIncrementAction> = {
-      继续当前Story的另一个Scenario: 'continue_story',
-      规划迭代中的下一个Story: 'next_story',
-      关闭迭代范围并进入Showcase: 'showcase',
-    };
-    const action = actions[choice.replaceAll(' ', '')];
-    const reason = (await ctx.ui.input(`请说明“${choice}”的交付理由`))?.trim();
-    return action && reason ? { kind: 'delivery', action, reason } : undefined;
+    const reason = (
+      await ctx.ui.input('请说明进入 Showcase 的交付理由')
+    )?.trim();
+    return reason
+      ? { kind: 'delivery', action: 'showcase', reason }
+      : undefined;
   }
   const options = [
     '返回当前 Test Driver',
