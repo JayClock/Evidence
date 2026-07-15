@@ -389,7 +389,3 @@ export function applyModelChangeProposal(
     },
   });
 }
-
-export function modelContentSha256(content: string): string {
-  return digest(content);
-}

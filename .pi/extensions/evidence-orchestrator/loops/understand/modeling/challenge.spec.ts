@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -12,13 +13,17 @@ import {
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { writeState } from '../../../iteration/state-repository';
 import { recordModelChallenge } from './challenge';
-import { modelContentSha256, recordModelAnalysis } from './candidate-model';
+import { recordModelAnalysis } from './candidate-model';
 import { confirmModelingProfile, proposeModelingProfile } from './profile';
 import {
   prepareModelProjection,
   projectCandidateModel,
   validateModelRegressions,
 } from './projection';
+
+function contentSha256(content: string): string {
+  return `sha256:${createHash('sha256').update(content).digest('hex')}`;
+}
 
 function commit(cwd: string): void {
   execFileSync('git', ['add', '.'], { cwd });
@@ -129,9 +134,7 @@ function prepareCandidate(
           kind: 'association' as const,
           id: 'workspace-uses-model',
           path: '.evidence/associations/workspace-uses-model.yaml',
-          expected_sha256: modelContentSha256(
-            readFileSync(associationPath, 'utf8'),
-          ),
+          expected_sha256: contentSha256(readFileSync(associationPath, 'utf8')),
         },
       ]
     : [];
