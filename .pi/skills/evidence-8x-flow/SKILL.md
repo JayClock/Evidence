@@ -1,6 +1,13 @@
 ---
 name: evidence-8x-flow
-description: Model Evidence business systems with 8X Flow semantics: pre-contract evidence, contracts, roles and things, fulfillment request/confirmation, deadlines, breach, compensation, and cross-context evidence. Use whenever the confirmed modeling Profile is business/eight_x_flow or the Scenario involves procurement, agreements, obligations, SLA/KPI fulfillment, auditable confirmations, or request-confirmation evidence chains. Do not use for a domain system or tool merely because it contains events or files.
+description: >-
+  Model Evidence business systems with 8X Flow semantics: pre-contract evidence,
+  contracts, roles and things, fulfillment request/confirmation, deadlines,
+  breach, compensation, and cross-context evidence. Use whenever the confirmed
+  modeling Profile is business/eight_x_flow or the Scenario involves procurement,
+  agreements, obligations, SLA/KPI fulfillment, auditable confirmations, or
+  request-confirmation evidence chains. Do not use for a domain system or tool
+  merely because it contains events or files.
 ---
 
 # Evidence 8X Flow Modeling
