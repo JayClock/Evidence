@@ -205,6 +205,11 @@ export const taskingDraftParam = Type.Object({
       supportedBy: Type.Array(
         Type.String({ description: 'Q1 TEST-xxx supporting a Q2 item.' }),
       ),
+      scenarioIds: Type.Array(
+        Type.String({
+          description: 'Confirmed SC-xxx exercised by this test.',
+        }),
+      ),
       scenarioOutcome: Type.Optional(
         Type.String({ description: 'Exact confirmed Then outcome.' }),
       ),

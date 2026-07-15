@@ -189,6 +189,8 @@ export interface TaskingTestItem {
   process_id: string;
   step_id: string;
   supported_by: string[];
+  /** Confirmed acceptance examples exercised by this test. */
+  scenario_ids: string[];
   scenario_outcome?: string;
   business_data: string[];
   /** Canonical model facts exercised by this test intent. */
@@ -208,6 +210,8 @@ export interface TaskingCandidate {
   version: 2;
   draft_id: string;
   story_id: string;
+  scenario_ids: string[];
+  /** @deprecated Temporary first-Scenario projection during migration. */
   scenario_id: string;
   tests: TaskingTestItem[];
   tasks: TaskingImplementationTask[];

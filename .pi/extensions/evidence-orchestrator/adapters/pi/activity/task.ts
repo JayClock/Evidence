@@ -127,16 +127,19 @@ ${extra || '（无）'}
     );
   }
   if (state.loop === 'tasking') {
-    const scenario = state.confirmed_scenario;
+    const scenarios =
+      state.confirmed_scenarios ??
+      (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+    const scenario = scenarios[0];
     if (!scenario || !state.model_expansion_path) {
-      throw new Error('Tasking requires a Scenario and model expansion.');
+      throw new Error('Tasking requires a Scenario Set and model expansion.');
     }
     const gap = state.tasking_gap;
-    return `执行 Evidence Orchestrator Tasking：${scenario.story_id} / ${scenario.scenario_id}。
+    return `执行 Evidence Orchestrator Tasking：${scenario.story_id} / [${scenarios.map(({ scenario_id }) => scenario_id).join(', ')}]。
 
 方法：加载并遵守 .pi/skills/evidence-test-process/SKILL.md。
 上下文：
-- ${scenario.artifact_path}
+- ${scenarios.map(({ artifact_path }) => artifact_path).join('\n- ')}
 - ${state.model_expansion_path}
 - ${state.model_decisions?.at(-1)?.artifact_path ?? 'missing-model-decision'}
 - ${state.model_projection?.context_path ?? '.evidence/model.json'}
@@ -147,7 +150,7 @@ ${extra || '（无）'}
 - engineering/evidence-orchestrator/definition-of-done.md
 ${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}` : ''}
 
-任务：只为确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 TEST 引用确认模型 id 且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
+任务：为全部确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 引用 Scenario 与确认模型 id 且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
 
 额外用户指令：
 ${extra || '（无）'}

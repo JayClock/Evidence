@@ -40,6 +40,7 @@ export interface TaskingTestInput {
   runtimePlanId: string;
   stepId: string;
   supportedBy: string[];
+  scenarioIds?: string[];
   scenarioOutcome?: string;
   businessData: string[];
   modelRefs: { entities: string[]; associations: string[] };
@@ -96,13 +97,13 @@ function unique(values: string[], name: string, allowEmpty = false): string[] {
 function assertTaskingState(state: WorkflowState): void {
   if (
     state.loop !== 'tasking' ||
-    !state.confirmed_scenario ||
+    !(state.confirmed_scenarios?.length || state.confirmed_scenario) ||
     state.modeling_stage !== 'model_confirmed' ||
     state.model_challenges?.at(-1)?.outcome !== 'pass' ||
     state.model_decisions?.at(-1)?.action !== 'confirm'
   ) {
     throw new Error(
-      'Tasking requires one confirmed Scenario and a human-confirmed challenged model.',
+      'Tasking requires one confirmed Story Scenario Set and a human-confirmed challenged model.',
     );
   }
   if (state.tasking_stage === 'desk_check') {
@@ -296,8 +297,11 @@ function normalizeTests(
   inputs: TaskingTestInput[],
   runtimes: ResolvedRuntime[],
 ): TaskingTestItem[] {
-  const scenario = state.confirmed_scenario;
-  if (!scenario) throw new Error('Tasking has no confirmed Scenario.');
+  const scenarios =
+    state.confirmed_scenarios ??
+    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  if (scenarios.length === 0)
+    throw new Error('Tasking has no confirmed Scenario Set.');
   if (!Array.isArray(inputs) || inputs.length === 0) {
     throw new Error('Tasking requires a natural-language test list.');
   }
@@ -327,6 +331,24 @@ function normalizeTests(
         `${input.id} must reference an applicable ${input.quadrant} step in its selected process.`,
       );
     }
+    const soleScenario = scenarios.length === 1 ? scenarios[0] : undefined;
+    const scenarioIds =
+      input.scenarioIds ?? (soleScenario ? [soleScenario.scenario_id] : []);
+    const normalizedScenarioIds = unique(
+      scenarioIds,
+      `${input.id}.scenarioIds`,
+    );
+    const referencedScenarios = normalizedScenarioIds.map((scenarioId) => {
+      const scenario = scenarios.find(
+        ({ scenario_id }) => scenario_id === scenarioId,
+      );
+      if (!scenario) {
+        throw new Error(
+          `${input.id} references an unconfirmed Scenario ${scenarioId}.`,
+        );
+      }
+      return scenario;
+    });
     const businessData = unique(input.businessData, `${input.id}.businessData`);
     if (
       !input.modelRefs ||
@@ -363,22 +385,29 @@ function normalizeTests(
     ) {
       throw new Error(`${input.id} must trace to a confirmed model fact.`);
     }
-    if (
-      !businessData.every((datum) => scenario.business_data.includes(datum))
-    ) {
+    const allowedBusinessData = new Set(
+      referencedScenarios.flatMap(({ business_data }) => business_data),
+    );
+    if (!businessData.every((datum) => allowedBusinessData.has(datum))) {
       throw new Error(
-        `${input.id} contains data outside the confirmed Scenario.`,
+        `${input.id} contains data outside its confirmed Scenarios.`,
       );
     }
     const outcome = input.scenarioOutcome?.trim();
-    if (outcome && !scenario.then.includes(outcome)) {
+    if (
+      outcome &&
+      !referencedScenarios.some(({ then }) => then.includes(outcome))
+    ) {
       throw new Error(
-        `${input.id} contains an outcome outside the confirmed Scenario.`,
+        `${input.id} contains an outcome outside its confirmed Scenarios.`,
       );
     }
-    if (input.quadrant === 'Q2' && !outcome) {
+    if (
+      input.quadrant === 'Q2' &&
+      (!outcome || normalizedScenarioIds.length !== 1)
+    ) {
       throw new Error(
-        `${input.id} Q2 requires one exact confirmed Scenario outcome.`,
+        `${input.id} Q2 requires one exact outcome from exactly one confirmed Scenario.`,
       );
     }
     return {
@@ -389,6 +418,7 @@ function normalizeTests(
       process_id: runtime.selection.id,
       step_id: input.stepId,
       supported_by: unique(input.supportedBy, `${input.id}.supportedBy`, true),
+      scenario_ids: normalizedScenarioIds,
       ...(outcome ? { scenario_outcome: outcome } : {}),
       business_data: businessData,
       model_refs: modelRefs,
@@ -430,6 +460,22 @@ function normalizeTests(
     throw new Error(
       'Every Q1 test must support at least one Q2 acceptance test.',
     );
+  }
+  for (const scenario of scenarios) {
+    for (const outcome of scenario.then) {
+      if (
+        !tests.some(
+          (test) =>
+            test.quadrant === 'Q2' &&
+            test.scenario_ids.includes(scenario.scenario_id) &&
+            test.scenario_outcome === outcome,
+        )
+      ) {
+        throw new Error(
+          `Confirmed outcome ${scenario.scenario_id}/${outcome} has no Q2 acceptance test.`,
+        );
+      }
+    }
   }
   for (const runtime of runtimes) {
     for (const step of runtime.definition.steps) {
@@ -562,8 +608,11 @@ function renderTestList(
   tests: TaskingTestItem[],
   runtimes: ResolvedRuntime[],
 ): string {
-  const scenario = state.confirmed_scenario;
-  if (!scenario) throw new Error('Tasking has no confirmed Scenario.');
+  const scenarios =
+    state.confirmed_scenarios ??
+    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenario = scenarios[0];
+  if (!scenario) throw new Error('Tasking has no confirmed Scenario Set.');
   const render = (quadrant: 'Q1' | 'Q2') =>
     tests
       .filter((test) => test.quadrant === quadrant)
@@ -578,17 +627,19 @@ function renderTestList(
           step?.replaced_boundaries
             .map(({ boundary, test_double }) => `${boundary}:${test_double}`)
             .join(', ') || 'none';
-        return `- **${test.id}** · ${test.process_id}/${test.step_id} · ${test.intent}\n  - 业务数据：${test.business_data.join('；')}\n  - 模型实体：${test.model_refs.entities.join(', ') || 'none'}\n  - 模型关系：${test.model_refs.associations.join(', ') || 'none'}\n  - 场景结果：${test.scenario_outcome ?? '通过 Q2 追踪'}\n  - 真实边界：${step?.real_boundaries.join(', ') ?? 'unknown'}\n  - 替换边界：${replaced}${quadrant === 'Q2' ? `\n  - Q1 支撑：${test.supported_by.join(', ')}` : ''}`;
+        return `- **${test.id}** · ${test.process_id}/${test.step_id} · ${test.intent}\n  - Scenarios：${test.scenario_ids.join(', ')}\n  - 业务数据：${test.business_data.join('；')}\n  - 模型实体：${test.model_refs.entities.join(', ') || 'none'}\n  - 模型关系：${test.model_refs.associations.join(', ') || 'none'}\n  - 场景结果：${test.scenario_outcome ?? '通过 Q2 追踪'}\n  - 真实边界：${step?.real_boundaries.join(', ') ?? 'unknown'}\n  - 替换边界：${replaced}${quadrant === 'Q2' ? `\n  - Q1 支撑：${test.supported_by.join(', ')}` : ''}`;
       })
       .join('\n');
-  return `# Test List — ${scenario.story_id} / ${scenario.scenario_id}
+  return `# Test List — ${scenario.story_id}
 
-## Confirmed Scenario
+## Confirmed Scenario Set
 
-- **Given**：${scenario.given.join('；')}
-- **When**：${scenario.when}
-- **Then**：${scenario.then.join('；')}
-- **Business data**：${scenario.business_data.join('；')}
+${scenarios
+  .map(
+    (item) =>
+      `### ${item.scenario_id} · ${item.title}\n\n- **Given**：${item.given.join('；')}\n- **When**：${item.when}\n- **Then**：${item.then.join('；')}\n- **Business data**：${item.business_data.join('；')}`,
+  )
+  .join('\n\n')}
 
 ## Q2 acceptance intent
 
@@ -640,8 +691,11 @@ export function proposeTaskingDraft(
   if (!Array.isArray(resolved)) return resolved;
   const tests = normalizeTests(cwd, state, input.tests, resolved);
   const tasks = normalizeTasks(input.tasks, tests, resolved);
-  const scenario = state.confirmed_scenario;
-  if (!scenario) throw new Error('Tasking has no confirmed Scenario.');
+  const scenarios =
+    state.confirmed_scenarios ??
+    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenario = scenarios[0];
+  if (!scenario) throw new Error('Tasking has no confirmed Scenario Set.');
   const draftId = nextDraftId(cwd, state);
   const testList = renderTestList(state, tests, resolved);
   const taskList = renderTaskList(tasks);
@@ -661,6 +715,7 @@ export function proposeTaskingDraft(
     version: 2 as const,
     draft_id: draftId,
     story_id: scenario.story_id,
+    scenario_ids: scenarios.map(({ scenario_id }) => scenario_id),
     scenario_id: scenario.scenario_id,
     tests,
     tasks,

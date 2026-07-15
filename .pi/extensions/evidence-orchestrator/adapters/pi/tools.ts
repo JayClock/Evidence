@@ -482,10 +482,10 @@ export function registerTools(pi: ExtensionAPI): void {
     description:
       'Generate one reviewable test list, ordered task list, and deterministic v2 process plan for human Desk Check',
     promptSnippet:
-      'Trace the confirmed Scenario and model through Q2, Q1, boundaries, process steps, and implementation tasks',
+      'Trace the confirmed Scenario Set and model through Q2, shared Q1, boundaries, process steps, and one implementation task list',
     promptGuidelines: [
       'Use only in Tasking after the independent challenge and human model/ubiquitous-language confirmation.',
-      'Use exact confirmed Scenario outcomes, business data, and model ids; non-goals never become tests.',
+      'Cover every confirmed Scenario/Then with exact business data and model ids; deduplicate shared Q1 support; non-goals never become tests.',
       'Give every TEST exactly one ordered TASK owner and preserve selected process-step order.',
       'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
       'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
@@ -507,6 +507,7 @@ export function registerTools(pi: ExtensionAPI): void {
           runtimePlanId: test.runtimePlanId,
           stepId: test.stepId,
           supportedBy: test.supportedBy,
+          scenarioIds: test.scenarioIds,
           ...(test.scenarioOutcome
             ? { scenarioOutcome: test.scenarioOutcome }
             : {}),

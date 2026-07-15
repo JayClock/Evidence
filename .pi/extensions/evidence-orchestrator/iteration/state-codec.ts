@@ -400,6 +400,10 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   if (
     state.tasking_candidate &&
     (state.tasking_candidate.version !== 2 ||
+      !textArray(state.tasking_candidate.scenario_ids) ||
+      !state.tasking_candidate.scenario_ids.every((id) =>
+        SCENARIO_ID_PATTERN.test(id),
+      ) ||
       !Array.isArray(state.tasking_candidate.tests) ||
       state.tasking_candidate.tests.length === 0 ||
       state.tasking_candidate.tests.some(
@@ -408,6 +412,8 @@ export function normalizeState(input: WorkflowState): WorkflowState {
           !text(test.intent) ||
           !text(test.process_id) ||
           !text(test.step_id) ||
+          !textArray(test.scenario_ids) ||
+          !test.scenario_ids.every((id) => SCENARIO_ID_PATTERN.test(id)) ||
           !textArray(test.business_data) ||
           !validModelRefs(test.model_refs),
       ) ||

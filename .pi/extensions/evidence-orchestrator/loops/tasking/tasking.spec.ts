@@ -16,7 +16,7 @@ import { statusMarkdown } from '../../adapters/pi/status';
 import { buildActivityTask } from '../../adapters/pi/activity/task';
 import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
 import { decideTasking } from './desk-check';
-import { proposeTaskingDraft } from './tasking-draft';
+import { proposeTaskingDraft, type TaskingDraftInput } from './tasking-draft';
 
 afterEach(cleanupWorkspaces);
 
@@ -190,7 +190,9 @@ function prepare(cwd: string): void {
   });
 }
 
-function draftInput(outcome = 'Workspace Alpha is available to the owner') {
+function draftInput(
+  outcome = 'Workspace Alpha is available to the owner',
+): TaskingDraftInput {
   return {
     runtimes: [
       {
@@ -243,6 +245,58 @@ function draftInput(outcome = 'Workspace Alpha is available to the owner') {
 }
 
 describe('Tasking and Desk Check', () => {
+  it('builds one deduplicated plan that covers every Scenario outcome', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    const current = readState(cwd);
+    const first = current.confirmed_scenario;
+    if (!first) throw new Error('Fixture Scenario is missing.');
+    writeState(cwd, {
+      ...current,
+      confirmed_scenarios: [
+        first,
+        {
+          ...first,
+          scenario_id: 'SC-002',
+          source_draft_id: 'DRAFT-002',
+          title: 'Reject a duplicate workspace',
+          when: 'The owner creates another workspace named Alpha',
+          then: ['The duplicate workspace name is rejected'],
+          artifact_path:
+            'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-002.md',
+        },
+      ],
+    });
+    const input = draftInput();
+    const q1 = input.tests[0];
+    const q2 = input.tests[1];
+    if (!q1 || !q2) throw new Error('Fixture tests are missing.');
+    q1.scenarioIds = ['SC-001', 'SC-002'];
+    q2.scenarioIds = ['SC-001'];
+    input.tests.push({
+      ...q2,
+      id: 'TEST-003',
+      intent: 'Creating duplicate Alpha is rejected through Axum.',
+      scenarioIds: ['SC-002'],
+      scenarioOutcome: 'The duplicate workspace name is rejected',
+    });
+    input.tasks.push({
+      id: 'TASK-003',
+      description: 'Confirm duplicate rejection through Axum.',
+      testIds: ['TEST-003'],
+      dependsOn: ['TASK-002'],
+    });
+
+    const state = proposeTaskingDraft(cwd, input);
+
+    expect(state.tasking_candidate?.scenario_ids).toEqual(['SC-001', 'SC-002']);
+    expect(state.tasking_candidate?.tests).toHaveLength(3);
+    expect(
+      state.tasking_candidate?.tests.find(({ id }) => id === 'TEST-001')
+        ?.scenario_ids,
+    ).toEqual(['SC-001', 'SC-002']);
+  });
+
   it('requires human approval, supports edited-list regeneration, and locks the v2 plan', () => {
     const cwd = workspace();
     prepare(cwd);
@@ -600,6 +654,6 @@ describe('Tasking and Desk Check', () => {
 
     expect(() =>
       proposeTaskingDraft(cwd, draftInput('A non-goal feature is absent')),
-    ).toThrow('outcome outside the confirmed Scenario');
+    ).toThrow('outcome outside its confirmed Scenarios');
   });
 });
