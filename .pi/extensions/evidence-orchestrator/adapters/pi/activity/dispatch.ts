@@ -96,12 +96,21 @@ function agentFor(state: WorkflowState): string | undefined {
 
 function requiredInputs(state: WorkflowState): string[] {
   if (state.loop === 'kickoff') {
+    const feedback = state.feedback_history?.at(-1);
+    const storyRevisionInputs =
+      feedback?.target === 'story' && feedback.to_loop === 'kickoff'
+        ? [
+            'artifacts/01-requirements/stories/US-001.md',
+            'artifacts/01-requirements/clarifications/US-001.json',
+          ]
+        : [];
     return [
       'artifacts/00-user-input/requirements.md',
       'docs/product/personas.md',
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
       'docs/product/story-map.md',
+      ...storyRevisionInputs,
     ];
   }
   if (state.loop === 'understand' && state.understand_stage === 'tqa') {
@@ -111,6 +120,7 @@ function requiredInputs(state: WorkflowState): string[] {
       `artifacts/01-requirements/stories/${state.active_clarification_story?.story_id ?? 'missing'}.md`,
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
+      'docs/product/story-map.md',
     ];
   }
   if (state.loop === 'understand') {

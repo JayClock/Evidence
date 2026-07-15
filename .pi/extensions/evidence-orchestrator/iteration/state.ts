@@ -8,6 +8,7 @@ export type WorkflowLoop =
   | 'complete';
 export type FeedbackTarget =
   | 'problem'
+  | 'story'
   | 'business_knowledge'
   | 'scenario'
   | 'model'

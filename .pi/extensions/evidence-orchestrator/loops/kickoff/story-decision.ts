@@ -49,12 +49,12 @@ function storyCard(candidate: KickoffCandidate, storyId: string): string {
 `;
 }
 
-function showcaseProblemRevision(state: WorkflowState): boolean {
+function revisesConfirmedStory(state: WorkflowState): boolean {
   const feedback = state.feedback_history?.at(-1);
   return (
-    feedback?.target === 'problem' &&
-    feedback.from_loop === 'showcase' &&
-    feedback.to_loop === 'kickoff'
+    feedback?.to_loop === 'kickoff' &&
+    ((feedback.target === 'problem' && feedback.from_loop === 'showcase') ||
+      (feedback.target === 'story' && feedback.from_loop === 'understand'))
   );
 }
 
@@ -69,7 +69,7 @@ function ensureNoStoryCard(cwd: string, state: WorkflowState): void {
     : [];
   if (
     existing.length > 0 &&
-    !(showcaseProblemRevision(state) && existing.join(',') === 'US-001.md')
+    !(revisesConfirmedStory(state) && existing.join(',') === 'US-001.md')
   ) {
     throw new Error(
       `A Kickoff can confirm exactly one Story, but found: ${existing.join(', ')}.`,

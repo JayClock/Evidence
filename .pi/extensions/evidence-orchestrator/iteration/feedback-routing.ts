@@ -3,6 +3,7 @@ import type { FeedbackTarget, WorkflowLoop } from './state';
 /** Route a knowledge gap to the loop that owns the missing knowledge. */
 export const FEEDBACK_LOOP_BY_TARGET: Record<FeedbackTarget, WorkflowLoop> = {
   problem: 'kickoff',
+  story: 'kickoff',
   business_knowledge: 'understand',
   scenario: 'understand',
   model: 'understand',

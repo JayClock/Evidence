@@ -95,6 +95,7 @@ describe('activity dispatch', () => {
       'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
+      'docs/product/story-map.md',
     ]) {
       write(cwd, path, 'input');
     }
@@ -115,6 +116,7 @@ describe('activity dispatch', () => {
       activity: 'understand',
       agentName: 'requirements-analyst',
     });
+    expect(preparation.task).toContain('docs/product/story-map.md');
 
     proposeScenarioDrafts(cwd, 'US-001', [
       {

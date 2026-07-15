@@ -73,6 +73,38 @@ describe('single-Story TQA', () => {
     );
   });
 
+  it('routes a Card correction back to Kickoff without appending Conversation to the Story', () => {
+    const cwd = workspace();
+    prepareTqa(cwd);
+    const storyPath =
+      'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md';
+    const original = readFileSync(`${cwd}/${storyPath}`, 'utf8');
+    askClarification(cwd, {
+      story_id: 'US-001',
+      question: 'Which role actually benefits from confirming the model?',
+      target: 'story',
+    });
+
+    const state = answerClarification(
+      cwd,
+      'The collaboration lead benefits, not the modeling lead.',
+      '2026-01-01T00:02:00.000Z',
+    );
+
+    expect(state.loop).toBe('kickoff');
+    expect(state.understand_stage).toBeUndefined();
+    expect(state.feedback_history?.at(-1)).toMatchObject({
+      target: 'story',
+      from_loop: 'understand',
+      to_loop: 'kickoff',
+      decided_by: 'human',
+    });
+    expect(readFileSync(`${cwd}/${storyPath}`, 'utf8')).toBe(original);
+    expect(readFileSync(`${cwd}/${storyPath}`, 'utf8')).not.toContain(
+      '## TQA 澄清',
+    );
+  });
+
   it('waives the sole pending question only through a human split/defer path', () => {
     const cwd = workspace();
     prepareTqa(cwd);

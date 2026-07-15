@@ -149,6 +149,60 @@ describe('Kickoff', () => {
     expect(revised.kickoff_decisions).toHaveLength(2);
   });
 
+  it('replaces the same lean Story after Understand routes a Card correction', () => {
+    const cwd = workspace();
+    prepareKickoff(cwd);
+    proposeKickoffCandidate(cwd, candidate());
+    const first = decideKickoff(
+      cwd,
+      'confirmed',
+      'Initial role and value.',
+      '2026-01-01T00:01:00.000Z',
+    );
+    writeState(cwd, {
+      ...first,
+      loop: 'kickoff',
+      kickoff_candidate: undefined,
+      understand_stage: undefined,
+      active_clarification_story: undefined,
+      feedback_history: [
+        {
+          target: 'story',
+          from_loop: 'understand',
+          to_loop: 'kickoff',
+          reason:
+            'TQA established that the collaboration lead is the beneficiary.',
+          decided_by: 'human',
+          recorded_at: '2026-01-02T00:00:00.000Z',
+        },
+      ],
+    });
+    proposeKickoffCandidate(
+      cwd,
+      candidate({
+        role: '协作负责人',
+        value: '让参与者依据同一业务模型开展讨论',
+      }),
+    );
+
+    const revised = decideKickoff(
+      cwd,
+      'confirmed',
+      'The domain expert corrected the Story Card.',
+    );
+    const markdown = readFileSync(
+      join(
+        cwd,
+        'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
+      ),
+      'utf8',
+    );
+
+    expect(revised.active_clarification_story?.story_id).toBe('US-001');
+    expect(markdown).toContain('**作为**协作负责人');
+    expect(markdown).not.toContain('## TQA 澄清');
+  });
+
   it('records revision feedback and accepts a replacement candidate', () => {
     const cwd = workspace();
     prepareKickoff(cwd);

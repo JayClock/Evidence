@@ -18,6 +18,11 @@ export function buildActivityTask(cwd: string, extra = ''): string {
       state,
       'artifacts/00-user-input/requirements.md',
     );
+    const feedback = state.feedback_history?.at(-1);
+    const storyRevisionContext =
+      feedback?.target === 'story' && feedback.to_loop === 'kickoff'
+        ? `- ${artifactRelativePath(state, 'artifacts/01-requirements/stories/US-001.md')}\n- ${artifactRelativePath(state, 'artifacts/01-requirements/clarifications/US-001.json')}\n- Story 修订反馈：${feedback.reason}`
+        : '';
     return `执行 Evidence Orchestrator Kickoff 候选准备。
 
 上下文：
@@ -26,8 +31,9 @@ export function buildActivityTask(cwd: string, extra = ''): string {
 - docs/product/business-context.md
 - docs/product/user-journeys.md
 - docs/product/story-map.md
+${storyRevisionContext}
 
-任务：从冻结 Issue 提出一个问题、一个角色、一个可协商目标、一个价值和当前认知行为。只调用 evidence_orchestrator_propose_kickoff 一次后停止；不分配 US-xxx、不批量建卡、不写权威产品知识。
+任务：从冻结 Issue 提出一个问题、一个角色、一个可协商目标、一个价值和当前认知行为。若上下文包含 Story 修订反馈，基于领域专家的明确回答修订同一张 Story，不创建第二张 Story。只调用 evidence_orchestrator_propose_kickoff 一次后停止；不分配 US-xxx、不批量建卡、不写权威产品知识。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -45,6 +51,7 @@ ${extra || '（无）'}
 - ${artifactRelativePath(state, `artifacts/01-requirements/clarifications/${storyId}.json`)}（存在时）
 - docs/product/business-context.md
 - docs/product/user-journeys.md
+- docs/product/story-map.md
 
 任务：只处理 ${storyId}。下一步只能调用 evidence_orchestrator_ask_question 或 evidence_orchestrator_propose_scenarios 一次并停止；人类通过 /evidence-scenario 决定确认、继续、拆分或延期。
 

@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { validateExecutionEvidence } from '../capabilities/execution-evidence/manifest';
 import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
+import { validateStoryCards } from '../loops/kickoff/story-card';
 import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
 import { iterationRoot } from '../iteration/artifact-layout';
 import {
@@ -43,6 +44,13 @@ export function validateWorkflow(cwd: string): void {
   validateCanonicalKnowledge(cwd);
   if (!state) return;
   validateIssueSourceSnapshot(cwd, state);
+  if (
+    state.kickoff_decisions?.some(
+      ({ action, story_id }) => action === 'confirmed' && Boolean(story_id),
+    )
+  ) {
+    validateStoryCards(cwd, state);
+  }
   if (state.halted) return;
   if (state.pair_session?.checkpoint === 'quality_gates_passed') {
     validateExecutionEvidence(cwd);

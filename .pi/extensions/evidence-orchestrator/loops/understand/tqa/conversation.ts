@@ -11,6 +11,7 @@ import {
   iterationRoot,
 } from '../../../iteration/artifact-layout';
 import { readState, writeState } from '../../../iteration/state-repository';
+import { transitionLoopState } from '../../../iteration/transition-graph';
 import type {
   ClarificationRecord,
   ClarificationTarget,
@@ -118,7 +119,6 @@ function answerDestination(
         'artifacts/01-requirements/product-context-delta.md',
       );
     case 'story':
-      return storyPath(cwd, state, clarification.story_id);
     case 'history':
       return undefined;
   }
@@ -233,19 +233,6 @@ export function askClarification(
     storyPath(cwd, state, storyId),
     'Clarification story artifact',
   );
-  const destination =
-    input.target === 'business_context'
-      ? artifactPath(
-          cwd,
-          state,
-          'artifacts/01-requirements/product-context-delta.md',
-        )
-      : input.target === 'story'
-        ? storyPath(cwd, state, storyId)
-        : undefined;
-  if (destination && input.target !== 'business_context') {
-    requireArtifact(destination, 'Clarification destination artifact');
-  }
   const pending: ClarificationRecord = {
     question_id: nextQuestionId(state),
     story_id: storyId,
@@ -286,14 +273,33 @@ export function answerClarification(
     answer: requireNonEmpty(answer, 'Clarification answer'),
     answered_at: now,
   };
-  const next = writeState(cwd, {
+  let next: WorkflowState = {
     ...state,
     pending_clarification: undefined,
     clarification_history: [...(state.clarification_history ?? []), answered],
-  });
-  persistHistory(cwd, next, answered.story_id);
+  };
+  if (answered.target === 'story') {
+    next = {
+      ...transitionLoopState(
+        next,
+        {
+          to: 'kickoff',
+          feedback: {
+            target: 'story',
+            reason: `TQA ${answered.question_id}: ${answered.answer}`,
+            decided_by: 'human',
+          },
+        },
+        now,
+      ),
+      understand_stage: undefined,
+      active_clarification_story: undefined,
+    };
+  }
+  const persisted = writeState(cwd, next);
+  persistHistory(cwd, persisted, answered.story_id);
   if (destination) appendAnswerToDestination(destination, answered);
-  return next;
+  return persisted;
 }
 
 /** Preserve an open question when a human splits or defers the single Story. */
