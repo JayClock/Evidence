@@ -7,7 +7,7 @@ description: Expand one confirmed Scenario through the existing or candidate Evi
 
 ## When to use
 
-Use for v5 model Builder expansion and read-only Challenger review. Load the method-specific Skill only when the confirmed Profile requires it.
+Use for model Builder expansion and read-only Challenger review. Load the method-specific Skill only when the confirmed Profile requires it.
 
 ## Inputs
 

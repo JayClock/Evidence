@@ -51,7 +51,6 @@ libs/
 ├── loops/{kickoff,understand,tasking,pair,showcase,respond}/
 ├── capabilities/                       shared deterministic mechanisms
 ├── adapters/{pi,github,node}/          external hosts and processes
-├── compatibility/{state-snapshot,v4/}  terminal read-only projection
 ├── validation/                         source and evidence validators
 └── test-support/                       integration tests, fixtures and mocks
 
@@ -64,6 +63,6 @@ engineering/evidence-orchestrator/      contexts, processes and DoD
 artifacts/iterations/                    immutable iteration evidence
 ```
 
-Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`；Capability 只承载跨 Loop 稳定复用的机制，Loop 之间只通过确认产物、typed outcome 或显式公开契约交接。`validation/source-boundaries.ts` 阻止反向依赖和旧技术目录复生。
+Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`；Capability 只承载跨 Loop 稳定复用的机制，Loop 之间只通过确认产物、typed outcome 或显式公开契约交接。持久化状态不携带工作流版本标记；`validation/source-boundaries.ts` 阻止反向依赖和已退役目录复生。
 
 以上 Orchestrator、Agent、Working Knowledge 与 iteration evidence 都属于当前仓库的内部研发工具链，不是 `apps/*` / `libs/*` 中的 Evidence 产品模块。产品运行时代码不得依赖它们，`.evidence/` 也不得为其建立交付流程概念。Evidence 项目使用自身产品模型进行 dogfooding 只是开发验证方式。

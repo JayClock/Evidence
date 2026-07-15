@@ -12,8 +12,10 @@ import {
   statusLabel,
 } from './identity';
 import { registerTools } from './tools';
-import { readStateSnapshot } from '../../compatibility/state-snapshot';
-import { statePath } from '../../iteration/state-repository';
+import {
+  readPersistedState,
+  statePath,
+} from '../../iteration/state-repository';
 
 const STATE_WATCH_INTERVAL_MS = 250;
 
@@ -34,15 +36,13 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
   pi.on('session_start', (_event, ctx) => {
     closeStateWatcher();
     const currentStatePath = statePath(ctx.cwd);
-    const state = readStateSnapshot(ctx.cwd);
-    if (state.workflow_version === 5) {
-      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
-    }
+    const state = readPersistedState(ctx.cwd);
+    if (state) ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
     ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
 
     const refreshStatus = () => {
       try {
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(readStateSnapshot(ctx.cwd)));
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(readPersistedState(ctx.cwd)));
       } catch (error) {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(undefined, 'state-error'));
         ctx.ui.notify(

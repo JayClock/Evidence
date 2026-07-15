@@ -227,7 +227,6 @@ function preparePair(cwd: string): void {
   );
   writeState(cwd, {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop: 'pair',
     requirement_source: {
       type: 'github_issue',

@@ -176,7 +176,6 @@ export function decideTasking(
 ): WorkflowState {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'tasking' ||
     state.tasking_stage !== 'desk_check' ||
     !state.tasking_candidate

@@ -203,6 +203,9 @@ describe('activity execution', () => {
       activity: 'kickoff',
       status: 'completed',
     });
-    expect(readState(cwd).pi?.last_command).toBe('/evidence-run');
+    expect(readState(cwd).pi).toEqual({
+      last_command: '/evidence-run',
+      last_run_at: '2026-01-01T00:00:00.000Z',
+    });
   });
 });

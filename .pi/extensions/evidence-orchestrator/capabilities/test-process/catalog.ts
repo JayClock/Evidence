@@ -310,7 +310,7 @@ export function readTestProcess(path: string): TestProcessDefinition {
     throw new Error(`${path}.id must use lowercase kebab-case.`);
   }
   if (source.version !== 2) {
-    throw new Error(`${path}.version must be 2 for active v5 Tasking.`);
+    throw new Error(`${path}.version must be 2 for active Tasking.`);
   }
   return readV2(path, source);
 }

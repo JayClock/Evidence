@@ -194,7 +194,7 @@ function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
     : [];
   if (existing.length > 0) {
     throw new Error(
-      `A v5 Understand loop confirms one Scenario, but found: ${existing.join(', ')}.`,
+      `An Understand loop confirms one Scenario, but found: ${existing.join(', ')}.`,
     );
   }
 }

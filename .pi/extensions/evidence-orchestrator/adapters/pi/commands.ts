@@ -437,7 +437,7 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-run', {
     description:
-      'Run the current activity; v5 Pair advances at most one Driver or command checkpoint per invocation',
+      'Run the current activity; Pair advances at most one Driver or command checkpoint per invocation',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
       try {

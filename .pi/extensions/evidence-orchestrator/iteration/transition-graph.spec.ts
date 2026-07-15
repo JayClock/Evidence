@@ -4,17 +4,16 @@ import { allowedLoopActions, transitionLoopState } from './transition-graph';
 import { FEEDBACK_LOOP_BY_TARGET } from './feedback-routing';
 import type { WorkflowLoop, WorkflowState } from './state';
 
-function v5State(loop: WorkflowLoop): WorkflowState {
+function workflowState(loop: WorkflowLoop): WorkflowState {
   return {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop,
   };
 }
 
-describe('v5 knowledge-loop catalog', () => {
-  it('advances through each loop without using the legacy phase order', () => {
-    let state = v5State('kickoff');
+describe('knowledge-loop catalog', () => {
+  it('advances through each loop using the native loop order', () => {
+    let state = workflowState('kickoff');
     for (const expected of [
       'understand',
       'tasking',
@@ -61,26 +60,26 @@ describe('v5 knowledge-loop catalog', () => {
 
   it('blocks Tasking from entering Pair before human Desk Check approval', () => {
     expect(() =>
-      transitionLoopState(v5State('tasking'), { to: 'pair' }),
+      transitionLoopState(workflowState('tasking'), { to: 'pair' }),
     ).toThrow('human-approved Desk Check');
   });
 
   it('blocks Pair from entering Showcase before final quality gates pass', () => {
     expect(() =>
-      transitionLoopState(v5State('pair'), { to: 'showcase' }),
+      transitionLoopState(workflowState('pair'), { to: 'showcase' }),
     ).toThrow('every final quality gate passes');
   });
 
   it('blocks Showcase from entering Respond before human acceptance', () => {
     expect(() =>
-      transitionLoopState(v5State('showcase'), { to: 'respond' }),
+      transitionLoopState(workflowState('showcase'), { to: 'respond' }),
     ).toThrow('human accept decision');
   });
 
   it('blocks Respond completion before human knowledge approval', () => {
     expect(() =>
       transitionLoopState(
-        { ...v5State('respond'), respond_stage: 'drafting' },
+        { ...workflowState('respond'), respond_stage: 'drafting' },
         { to: 'complete' },
       ),
     ).toThrow('human-approved knowledge response');
@@ -88,13 +87,13 @@ describe('v5 knowledge-loop catalog', () => {
 
   it('rejects a forward skip', () => {
     expect(() =>
-      transitionLoopState(v5State('kickoff'), { to: 'tasking' }),
+      transitionLoopState(workflowState('kickoff'), { to: 'tasking' }),
     ).toThrow('kickoff -> tasking');
   });
 
   it('routes typed feedback to the activity that owns the knowledge gap', () => {
     const state = transitionLoopState(
-      v5State('showcase'),
+      workflowState('showcase'),
       {
         to: 'understand',
         feedback: {
@@ -121,7 +120,7 @@ describe('v5 knowledge-loop catalog', () => {
   it.each(Object.entries(FEEDBACK_LOOP_BY_TARGET))(
     'routes Showcase feedback target %s to %s',
     (target, destination) => {
-      const state = transitionLoopState(v5State('showcase'), {
+      const state = transitionLoopState(workflowState('showcase'), {
         to: destination,
         feedback: {
           target: target as keyof typeof FEEDBACK_LOOP_BY_TARGET,
@@ -140,7 +139,7 @@ describe('v5 knowledge-loop catalog', () => {
 
   it('rejects feedback sent to the wrong loop or used as a forward action', () => {
     expect(() =>
-      transitionLoopState(v5State('showcase'), {
+      transitionLoopState(workflowState('showcase'), {
         to: 'pair',
         feedback: {
           target: 'model',
@@ -150,7 +149,7 @@ describe('v5 knowledge-loop catalog', () => {
       }),
     ).toThrow('must route to understand');
     expect(() =>
-      transitionLoopState(v5State('understand'), {
+      transitionLoopState(workflowState('understand'), {
         to: 'tasking',
         feedback: {
           target: 'test_process',

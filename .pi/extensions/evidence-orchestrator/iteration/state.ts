@@ -556,7 +556,6 @@ export interface WorkflowFeedback {
 export interface WorkflowState {
   /** Immutable namespace for this iteration's generated artifacts. */
   iteration_id: string;
-  workflow_version: 5;
   /** Primary knowledge activity. */
   loop: WorkflowLoop;
   /** One AI-authored candidate awaiting a human Kickoff decision. */
@@ -606,25 +605,9 @@ export interface WorkflowState {
   /** Immutable, answered or human-waived TQA exchanges for the iteration. */
   clarification_history?: ClarificationRecord[];
   halted?: WorkflowHalt;
+  /** Pi runtime observation metadata. */
   pi?: {
-    enabled: boolean;
-    version: number;
-    /** New Issue-backed iterations require tool-observed test execution records. */
     last_command?: string;
     last_run_at?: string;
   };
 }
-
-/** Minimal read-only projection for immutable pre-v5 iteration state. */
-export interface LegacyIterationState {
-  iteration_id: string;
-  workflow_version: 4;
-  legacy_phase: string;
-  terminal: 'complete' | 'halted';
-  halted_reason?: string;
-  requirement_source?: GitHubIssueRequirementSource;
-  active_work_item?: ActiveWorkItem;
-  pi?: { last_run_at?: string };
-}
-
-export type WorkflowSnapshot = WorkflowState | LegacyIterationState;

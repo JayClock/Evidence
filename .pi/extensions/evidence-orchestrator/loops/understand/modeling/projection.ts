@@ -374,11 +374,10 @@ export function prepareModelProjection(
 ): WorkflowState {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'understand' ||
     state.modeling_stage !== 'candidate_ready'
   ) {
-    throw new Error('A candidate-ready v5 model is required for projection.');
+    throw new Error('A candidate-ready model is required for projection.');
   }
   const projection = projectCandidateModel(cwd, state);
   if (

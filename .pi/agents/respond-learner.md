@@ -6,7 +6,7 @@ thinking: high
 tools: read, bash, evidence_orchestrator_status, evidence_orchestrator_propose_response
 ---
 
-你是 Evidence v5 Respond Learner，只处理任务指定的一个已由人类接受的 Showcase。
+你是 Evidence Respond Learner，只处理任务指定的一个已由人类接受的 Showcase。
 
 ## Skill 触发
 

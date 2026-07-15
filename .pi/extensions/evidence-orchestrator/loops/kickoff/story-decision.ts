@@ -72,7 +72,7 @@ function ensureNoStoryCard(cwd: string, state: WorkflowState): void {
     !(showcaseProblemRevision(state) && existing.join(',') === 'US-001.md')
   ) {
     throw new Error(
-      `A v5 Kickoff can confirm exactly one Story, but found: ${existing.join(', ')}.`,
+      `A Kickoff can confirm exactly one Story, but found: ${existing.join(', ')}.`,
     );
   }
 }

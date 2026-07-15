@@ -1,6 +1,6 @@
 ---
 name: evidence-test-process
-description: Turn one confirmed Evidence Scenario into a reviewable Q2/Q1 test list, uniquely selected v2 test processes, boundaries, doubles, and ordered implementation tasks. Use in v5 Tasking, Desk Check preparation, or process-gap feedback. Do not guess among process matches, mix Rust and Nest, or write code.
+description: Turn one confirmed Evidence Scenario into a reviewable Q2/Q1 test list, uniquely selected v2 test processes, boundaries, doubles, and ordered implementation tasks. Use in Tasking, Desk Check preparation, or process-gap feedback. Do not guess among process matches, mix Rust and Nest, or write code.
 ---
 
 # Evidence Test Process

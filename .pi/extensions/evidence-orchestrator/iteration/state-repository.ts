@@ -11,7 +11,6 @@ import type {
   TestProcessSelection,
   WorkflowState,
 } from './state';
-import { legacyTerminalFacts } from './terminal-policy';
 
 function record(value: unknown, subject: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -34,17 +33,15 @@ function readRawState(cwd: string): Record<string, unknown> | undefined {
     : undefined;
 }
 
-/** Read active v5 state. Legacy iterations remain status-only. */
-export function readState(cwd: string): WorkflowState {
+/** Read the persisted native workflow state, if an iteration is active. */
+export function readPersistedState(cwd: string): WorkflowState | undefined {
   const raw = readRawState(cwd);
-  if (!raw) return normalizeState(DEFAULT_STATE);
-  if (raw.workflow_version !== 5) {
-    const legacy = legacyTerminalFacts(raw);
-    throw new Error(
-      `Legacy iteration ${legacy.iterationId} is read-only. Start a new Issue-backed v5 iteration before running workflow actions.`,
-    );
-  }
-  return normalizeState(raw as unknown as WorkflowState);
+  return raw ? normalizeState(raw as unknown as WorkflowState) : undefined;
+}
+
+/** Read native state, using the bootstrap shape when no iteration is active. */
+export function readState(cwd: string): WorkflowState {
+  return readPersistedState(cwd) ?? normalizeState(DEFAULT_STATE);
 }
 
 export function writeState(cwd: string, state: WorkflowState): WorkflowState {
@@ -60,17 +57,12 @@ export function transitionWorkflowLoop(
   return writeState(cwd, transitionLoopState(readState(cwd), request));
 }
 
-export function assertCanStartV5Iteration(cwd: string): void {
-  const raw = readRawState(cwd);
-  if (!raw) return;
-  if (raw.workflow_version !== 5) {
-    legacyTerminalFacts(raw);
-    return;
-  }
-  const current = normalizeState(raw as unknown as WorkflowState);
+export function assertCanStartIteration(cwd: string): void {
+  const current = readPersistedState(cwd);
+  if (!current) return;
   if (current.loop !== 'complete' && !current.halted) {
     throw new Error(
-      `Cannot start a v5 iteration while ${current.iteration_id} is active. Complete, reject, split, or defer it first; state is never migrated in place.`,
+      `Cannot start an iteration while ${current.iteration_id} is active. Complete, reject, split, or defer it first; state is never migrated in place.`,
     );
   }
 }

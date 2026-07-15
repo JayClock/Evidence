@@ -3,7 +3,8 @@ import { assertIterationId } from './artifact-layout';
 import { LOOP_ORDER } from './transition-graph';
 import type { ClarificationRecord, WorkflowState } from './state';
 
-const DELETED_V4_FIELDS = [
+const UNSUPPORTED_STATE_FIELDS = [
+  'workflow_version',
   'phase',
   'round',
   'pending_gate',
@@ -60,6 +61,7 @@ const SHOWCASE_STAGES = new Set([
   'rejected',
 ]);
 const RESPOND_STAGES = new Set(['drafting', 'decision', 'complete']);
+const PI_METADATA_FIELDS = new Set(['last_command', 'last_run_at']);
 
 function text(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
@@ -111,11 +113,6 @@ function jsonClone<T>(value: T): T {
 export function normalizeState(input: WorkflowState): WorkflowState {
   const state = jsonClone(input) as WorkflowState & Record<string, unknown>;
   assertIterationId(state.iteration_id);
-  if (state.workflow_version !== 5) {
-    throw new Error(
-      'Active Evidence Orchestrator state must use workflow_version=5.',
-    );
-  }
   if (!LOOP_ORDER.includes(state.loop)) {
     throw new Error(
       `Unsupported Evidence Orchestrator loop: ${String(state.loop)}.`,
@@ -123,12 +120,22 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   }
   for (const field of Object.keys(state)) {
     if (
-      DELETED_V4_FIELDS.includes(field as (typeof DELETED_V4_FIELDS)[number]) ||
+      UNSUPPORTED_STATE_FIELDS.includes(
+        field as (typeof UNSUPPORTED_STATE_FIELDS)[number],
+      ) ||
       field.startsWith('paused_') ||
       field.includes('clarification_story_outcome')
     ) {
-      throw new Error(`Deleted v4 state field is not supported: ${field}.`);
+      throw new Error(`Unsupported workflow state field: ${field}.`);
     }
+  }
+  if (
+    state.pi &&
+    (Object.keys(state.pi).some((field) => !PI_METADATA_FIELDS.has(field)) ||
+      (state.pi.last_command !== undefined && !text(state.pi.last_command)) ||
+      (state.pi.last_run_at !== undefined && !text(state.pi.last_run_at)))
+  ) {
+    throw new Error('Pi runtime metadata is invalid.');
   }
   if (
     (state.feedback_history ?? []).some((feedback) => {

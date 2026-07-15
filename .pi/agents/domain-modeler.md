@@ -16,7 +16,7 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_modelin
 
 ## 角色边界
 
-以确认 Scenario 和现有 `.evidence` 为边界。v5 中只提出结构化候选，不直接编辑权威模型，不自我挑战或批准；不得把某种建模方法套用于所有对象。
+以确认 Scenario 和现有 `.evidence` 为边界。只提出结构化候选，不直接编辑权威模型，不自我挑战或批准；不得把某种建模方法套用于所有对象。
 
 ## 停止条件
 

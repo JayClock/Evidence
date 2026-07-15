@@ -56,7 +56,6 @@ function prepareModeling(cwd: string): void {
   );
   writeState(cwd, {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop: 'understand',
     understand_stage: 'modeling',
     modeling_stage: 'profile',
@@ -125,7 +124,7 @@ function expansion(
 
 afterEach(cleanupWorkspaces);
 
-describe('v5 modeling method routing', () => {
+describe('modeling method routing', () => {
   it.each([
     ['business', 'eight_x_flow', true],
     ['domain', 'object', false],

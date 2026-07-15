@@ -10,7 +10,6 @@ import { decideKickoff } from './story-decision';
 function prepareKickoff(cwd: string): void {
   writeState(cwd, {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop: 'kickoff',
   });
 }
@@ -33,7 +32,7 @@ function candidate(overrides: Record<string, unknown> = {}) {
 
 afterEach(cleanupWorkspaces);
 
-describe('v5 Kickoff', () => {
+describe('Kickoff', () => {
   it('persists one candidate without assigning a Story id', () => {
     const cwd = workspace();
     prepareKickoff(cwd);
@@ -75,7 +74,6 @@ describe('v5 Kickoff', () => {
     );
 
     expect(state).toMatchObject({
-      workflow_version: 5,
       loop: 'understand',
       active_clarification_story: { story_id: 'US-001' },
     });

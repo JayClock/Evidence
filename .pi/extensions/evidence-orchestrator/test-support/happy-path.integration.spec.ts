@@ -200,8 +200,8 @@ function prepareProject(cwd: string): void {
 
 afterEach(cleanupWorkspaces);
 
-describe('native v5 full knowledge loop', () => {
-  it('runs Issue snapshot through human-approved Respond without legacy phase controls', () => {
+describe('native full knowledge loop', () => {
+  it('runs Issue snapshot through human-approved Respond using native loop controls', () => {
     const cwd = workspace();
     prepareProject(cwd);
     startIterationFromIssue(cwd, { issueNumber: 15 }, issueRunner);
@@ -403,7 +403,6 @@ describe('native v5 full knowledge loop', () => {
     );
 
     expect(completed).toMatchObject({
-      workflow_version: 5,
       loop: 'complete',
       respond_stage: 'complete',
     });

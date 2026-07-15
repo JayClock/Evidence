@@ -105,12 +105,11 @@ function requireFile(cwd: string, path: string, name: string): void {
 function respondState(cwd: string): WorkflowState {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'respond' ||
     state.showcase_stage !== 'accepted' ||
     !state.active_work_item
   ) {
-    throw new Error('Respond requires one human-accepted v5 Showcase.');
+    throw new Error('Respond requires one human-accepted Showcase.');
   }
   return state;
 }

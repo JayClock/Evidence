@@ -1,8 +1,6 @@
-import { join, relative } from 'node:path';
 import {
   collectArtifacts,
   collectCodeFiles,
-  findFiles,
 } from '../../iteration/artifact-inventory';
 import {
   pairDriverMode,
@@ -12,7 +10,7 @@ import { showcaseNextInstruction } from '../../loops/showcase/showcase-session';
 import { executionEvidencePaths } from '../../capabilities/execution-evidence/manifest';
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { allowedLoopActions } from '../../iteration/transition-graph';
-import { readStateSnapshot } from '../../compatibility/state-snapshot';
+import { readPersistedState } from '../../iteration/state-repository';
 import type { WorkflowState } from '../../iteration/state';
 import { loadActivityAgent } from '../node/activity-agent-process';
 
@@ -59,35 +57,25 @@ function list(title: string, values: string[]): string[] {
 }
 
 export function statusMarkdown(cwd: string): string {
-  const snapshot = readStateSnapshot(cwd);
-  const root = iterationRoot(cwd, snapshot);
-  const artifacts = collectArtifacts(cwd, root);
+  const state = readPersistedState(cwd);
   const codeFiles = collectCodeFiles(cwd);
-  if (snapshot.workflow_version === 4) {
-    const legacyArtifacts = findFiles(root, () => true).map((path) =>
-      relative(cwd, path),
-    );
+  if (!state) {
     return [
       '# Evidence Orchestrator Status',
       '',
       '| Field | Value |',
       '|:---|:---|',
-      `| Iteration | ${snapshot.iteration_id} |`,
-      '| Schema | v4 legacy · immutable/read-only |',
-      `| Legacy Phase | ${snapshot.legacy_phase} |`,
-      `| Terminal | ${snapshot.terminal} |`,
-      `| Halted Reason | ${snapshot.halted_reason ?? 'none'} |`,
-      '| Allowed Actions | /evidence-new only |',
-      `| Last Run | ${snapshot.pi?.last_run_at ?? 'unknown'} |`,
+      '| Iteration | none |',
+      '| Loop | idle |',
+      '| Allowed Actions | /evidence-new |',
       '',
-      'Historical files and hand-authored execution evidence are displayed as immutable artifacts; active v5 validators never consume them as execution facts.',
+      'No active iteration state is persisted. Start one from an explicit GitHub Issue.',
       '',
-      ...list('Legacy Artifacts', legacyArtifacts),
-      '',
-      ...list('Current Code Files', codeFiles),
+      ...list('Code Files', codeFiles),
     ].join('\n');
   }
-  const state = snapshot;
+  const root = iterationRoot(cwd, state);
+  const artifacts = collectArtifacts(cwd, root);
   const requestedAgent = agentName(state);
   let agent = 'deterministic controller / human Navigator';
   if (requestedAgent) {
@@ -101,16 +89,12 @@ export function statusMarkdown(cwd: string): string {
   const execution = executionEvidencePaths(cwd);
   const reviews = state.showcase_reviews?.at(-1);
   const decision = state.showcase_decisions?.at(-1);
-  const historicalGates = findFiles(join(root, 'gates'), (path) =>
-    path.endsWith('.md'),
-  ).map((path) => relative(cwd, path));
   return [
     '# Evidence Orchestrator Status',
     '',
     '| Field | Value |',
     '|:---|:---|',
     `| Iteration | ${state.iteration_id} |`,
-    '| Schema | v5 native |',
     `| Loop | ${state.loop} |`,
     `| Allowed Actions | ${nextActions(cwd, state)} |`,
     `| Requirement Source | ${state.requirement_source ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}` : 'missing'} |`,
@@ -143,12 +127,5 @@ export function statusMarkdown(cwd: string): string {
     ...list('Artifacts', artifacts),
     '',
     ...list('Code Files', codeFiles),
-    ...(historicalGates.length
-      ? [
-          '',
-          '## Historical v4 Gate Files (read-only)',
-          historicalGates.map((path) => `- ${path}`).join('\n'),
-        ]
-      : []),
   ].join('\n');
 }

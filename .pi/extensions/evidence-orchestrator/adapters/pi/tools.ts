@@ -3,6 +3,7 @@ import {
   collectArtifacts,
   collectCodeFiles,
 } from '../../iteration/artifact-inventory';
+import { iterationRoot } from '../../iteration/artifact-layout';
 import { proposeKnowledgeResponse } from '../../loops/respond/response-cycle';
 import { recordModelChallenge } from '../../loops/understand/modeling/challenge';
 import { recordModelAnalysis } from '../../loops/understand/modeling/candidate-model';
@@ -22,8 +23,10 @@ import {
   renderActivitySubagentCall,
   renderActivitySubagentResult,
 } from './activity/subagent-renderer';
-import { readStateSnapshot } from '../../compatibility/state-snapshot';
-import { readState } from '../../iteration/state-repository';
+import {
+  readPersistedState,
+  readState,
+} from '../../iteration/state-repository';
 import { createGitHubCliRunner } from '../github/pi-cli';
 import { statusMarkdown } from './status';
 import { proposeTaskingDraft } from '../../loops/tasking/tasking-draft';
@@ -153,11 +156,14 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: Type.Object({}),
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      const state = readPersistedState(ctx.cwd);
       return {
         content: [{ type: 'text', text: statusMarkdown(ctx.cwd) }],
         details: {
-          state: readStateSnapshot(ctx.cwd),
-          artifacts: collectArtifacts(ctx.cwd),
+          state,
+          artifacts: state
+            ? collectArtifacts(ctx.cwd, iterationRoot(ctx.cwd, state))
+            : [],
           codeFiles: collectCodeFiles(ctx.cwd),
         },
       };
@@ -172,7 +178,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Propose one Issue-backed Story candidate without assigning a Story id',
     promptGuidelines: [
-      'Use only in a v5 kickoff loop after reading the Issue and stable product context.',
+      'Use only in the kickoff loop after reading the Issue and stable product context.',
       'Propose exactly one problem and one role-value Story candidate; do not generate a backlog or assign US-xxx.',
       'After calling this tool, stop. Only a human can confirm, revise, split, defer, or stop the Kickoff.',
     ],
@@ -253,9 +259,9 @@ export function registerTools(pi: ExtensionAPI): void {
     description:
       'Persist concrete Given/When/Then drafts for one human Scenario decision',
     promptSnippet:
-      'Propose one to five concrete business examples after v5 TQA is sufficient',
+      'Propose one to five concrete business examples after TQA is sufficient',
     promptGuidelines: [
-      'Use only in the v5 Understand TQA stage for the active Story and only when no high-value business uncertainty remains.',
+      'Use only in the Understand TQA stage for the active Story and only when no high-value business uncertainty remains.',
       'Use concrete business data and observable results; do not include implementation steps.',
       'After calling this tool, stop. Only a human can confirm one Scenario, continue TQA, split, or defer.',
     ],
@@ -287,7 +293,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Classify the confirmed Scenario before modifying or expanding a model',
     promptGuidelines: [
-      'Use only in v5 Understand after a human confirms one Scenario.',
+      'Use only in Understand after a human confirms one Scenario.',
       'Distinguish business systems, domain systems, and tools before selecting a method.',
       'After calling this tool, stop. Only a human can confirm or override the Profile.',
     ],
@@ -330,7 +336,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Expand the confirmed Scenario through the selected model and record only a candidate change',
     promptGuidelines: [
-      'Use only after the human confirms a v5 modeling Profile.',
+      'Use only after the human confirms a modeling Profile.',
       'Try the existing canonical model first. Operations must be empty when it already explains the Scenario.',
       'Never edit .evidence in Understand. Candidate operations are structured add/update/remove records, not shell patches.',
       'After calling this tool, stop for independent model checking.',
@@ -406,7 +412,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Trace the confirmed Scenario through Q2, Q1, boundaries, process steps, and implementation tasks',
     promptGuidelines: [
-      'Use only in v5 Tasking after the independent model challenge passes.',
+      'Use only in Tasking after the independent model challenge passes.',
       'Use exact confirmed Scenario outcomes and business data; non-goals never become tests.',
       'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
       'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
@@ -464,7 +470,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Separate observed facts, product/domain feedback, technical feedback, and unresolved assumptions',
     promptGuidelines: [
-      'Use only from the isolated v5 showcase-reviewer after passed Q2 and explicit Q3/Q4 decisions.',
+      'Use only from the isolated showcase-reviewer after passed Q2 and explicit Q3/Q4 decisions.',
       'Do not modify code, tests, models, plans, logs, or reports directly.',
       'A recommendation never accepts or routes the Scenario; stop for the human decision.',
     ],
@@ -498,7 +504,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Respond only to knowledge actually used and validated by the accepted Scenario',
     promptGuidelines: [
-      'Use only in v5 Respond after a human accepts Showcase.',
+      'Use only in Respond after a human accepts Showcase.',
       'Promoted items must cite Scenario, Showcase decision, execution evidence, and an actually changed canonical target.',
       'Empty promotions are valid only with a concrete no-promotion reason.',
       'Do not edit canonical knowledge or complete the iteration; stop for /evidence-respond.',

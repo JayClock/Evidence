@@ -101,7 +101,7 @@ export function recordModelChallenge(
     state.loop !== 'understand' ||
     state.modeling_stage !== 'candidate_ready'
   ) {
-    throw new Error('A candidate-ready v5 model is required for challenge.');
+    throw new Error('A candidate-ready model is required for challenge.');
   }
   if (!OUTCOMES.has(input.outcome)) {
     throw new Error(`Unsupported model challenge outcome: ${input.outcome}.`);

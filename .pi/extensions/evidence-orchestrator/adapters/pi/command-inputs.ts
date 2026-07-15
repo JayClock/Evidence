@@ -507,8 +507,8 @@ export async function promptShowcaseDecision(
   ctx: ExtensionCommandContext,
 ): Promise<ShowcaseDecisionInput | undefined> {
   const state = readState(ctx.cwd);
-  if (state.workflow_version !== 5 || state.loop !== 'showcase') {
-    throw new Error('No v5 Showcase is awaiting a decision.');
+  if (state.loop !== 'showcase') {
+    throw new Error('No Showcase is awaiting a decision.');
   }
   if (!ctx.hasUI) {
     throw new Error(
@@ -613,7 +613,6 @@ export async function promptRespondDecision(
 ): Promise<RespondDecisionInput | undefined> {
   const state = readState(ctx.cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'respond' ||
     state.respond_stage !== 'decision' ||
     !state.respond_candidate

@@ -1,12 +1,7 @@
-import { writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import { statePath, writeState } from '../../iteration/state-repository';
-import {
-  cleanupWorkspaces,
-  workspace,
-  write,
-} from '../../test-support/support';
+import { writeState } from '../../iteration/state-repository';
+import { cleanupWorkspaces, workspace } from '../../test-support/support';
 import { statusMarkdown } from './status';
 
 afterEach(cleanupWorkspaces);
@@ -33,34 +28,20 @@ describe('status', () => {
 
     const status = statusMarkdown(cwd);
 
-    expect(status).toContain('| Schema | v5 native |');
     expect(status).toContain('| Loop | understand |');
     expect(status).toContain('Q-001 · Who confirms the model?');
+    expect(status).not.toContain('| Schema |');
     expect(status).not.toContain('| Phase |');
     expect(status).not.toContain('| Pending Gate |');
   });
 
-  it('reports terminal v4 state and historical files as read-only', () => {
+  it('reports an idle repository without inventing an iteration', () => {
     const cwd = workspace();
-    writeFileSync(
-      statePath(cwd),
-      `${JSON.stringify({
-        iteration_id: 'ITER-0001',
-        phase: 'complete',
-        pi: { enabled: true, version: 4 },
-      })}\n`,
-    );
-    write(
-      cwd,
-      'artifacts/iterations/ITER-0001/05-code/US-001/SC-001.json',
-      '{}',
-    );
 
     const status = statusMarkdown(cwd);
 
-    expect(status).toContain('v4 legacy · immutable/read-only');
-    expect(status).toContain('| Legacy Phase | complete |');
-    expect(status).toContain('SC-001.json');
-    expect(status).toContain('/evidence-new only');
+    expect(status).toContain('| Iteration | none |');
+    expect(status).toContain('| Loop | idle |');
+    expect(status).toContain('| Allowed Actions | /evidence-new |');
   });
 });

@@ -75,7 +75,7 @@ export const kickoffCandidateParam = Type.Object({
 });
 
 export const scenarioDraftParam = Type.Object({
-  storyId: Type.String({ description: 'The active v5 Story id.' }),
+  storyId: Type.String({ description: 'The active Story id.' }),
   candidates: Type.Array(
     Type.Object({
       title: Type.String({ description: 'Short business Scenario title.' }),

@@ -10,7 +10,7 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_kickoff
 
 ## Skill 触发
 
-- v5 Understand/TQA 必须先读取并遵守 `.pi/skills/evidence-story-tqa/SKILL.md`。
+- Understand/TQA 必须先读取并遵守 `.pi/skills/evidence-story-tqa/SKILL.md`。
 - Kickoff 只使用任务给出的稳定产品上下文和候选工具契约，不加载实现或建模 Skill。
 
 ## 角色边界

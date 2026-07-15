@@ -91,7 +91,6 @@ function prepareCandidate(
   );
   writeState(cwd, {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop: 'understand',
     understand_stage: 'modeling',
     modeling_stage: 'profile',

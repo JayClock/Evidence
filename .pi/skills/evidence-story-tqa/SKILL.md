@@ -1,6 +1,6 @@
 ---
 name: evidence-story-tqa
-description: Clarify exactly one Evidence user Story through TQA and propose concrete Given/When/Then Scenario candidates. Use in the v5 Understand loop when a Story has business uncertainty or needs a human-confirmable Scenario. Do not use for architecture, implementation, batch backlog grooming, or answering the domain question yourself.
+description: Clarify exactly one Evidence user Story through TQA and propose concrete Given/When/Then Scenario candidates. Use in the Understand loop when a Story has business uncertainty or needs a human-confirmable Scenario. Do not use for architecture, implementation, batch backlog grooming, or answering the domain question yourself.
 ---
 
 # Evidence Story TQA

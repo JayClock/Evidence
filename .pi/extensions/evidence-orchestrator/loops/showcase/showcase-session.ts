@@ -65,7 +65,6 @@ const ACTIVITIES = new Set<ShowcaseEvaluationActivity>([
 ]);
 
 interface ShowcaseState extends WorkflowState {
-  workflow_version: 5;
   loop: 'showcase';
   active_work_item: ActiveWorkItem;
   pair_session: PairSession;
@@ -118,12 +117,11 @@ function nonEmptyItems(values: string[], name: string): string[] {
 function showcaseState(cwd: string): ShowcaseState {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'showcase' ||
     !state.active_work_item ||
     !state.pair_session
   ) {
-    throw new Error('Showcase requires the active v5 Scenario and Pair facts.');
+    throw new Error('Showcase requires the active Scenario and Pair facts.');
   }
   return state as ShowcaseState;
 }
@@ -221,7 +219,6 @@ export function enterShowcase(
 ): WorkflowState {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'pair' ||
     state.pair_session?.checkpoint !== 'quality_gates_passed'
   ) {

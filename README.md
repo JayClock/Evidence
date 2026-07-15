@@ -138,7 +138,7 @@ cargo test -p evidence-server --features postgres-tests
 
 Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension 负责确定性状态、执行、路径保护和审计；`.pi/agents/` 定义隔离角色；`.pi/skills/` 承载 Complicated / Complex 方法；`.pi/prompts/` 承载 Clear 固定任务。人类始终担任 Navigator。源码按 `iteration/`、`loops/`、`capabilities/` 与 `adapters/` 组织，旧的线性技术阶段目录已删除。
 
-### v5 知识循环
+### 知识循环
 
 ```mermaid
 flowchart LR
@@ -180,7 +180,7 @@ flowchart LR
 | Working Knowledge | `.pi/skills/`、`.pi/prompts/` 与 catalog            | 实际使用版本和验证反馈                            |
 | 执行与反馈        | `artifacts/iterations/ITER-xxxx/`                   | append-only 观测、manifest、人工决定与 next Probe |
 
-执行日志是命令事实的唯一原始来源；manifest 和 summary 由工具确定性生成。旧 iteration 保持不可变，只提供终态只读查看，不参与 v5 执行或验证。
+执行日志是命令事实的唯一原始来源；manifest 和 summary 由工具确定性生成。已归档 iteration 保持不可变，不参与当前执行或验证。
 
 ### 在 Pi 中使用
 
@@ -329,7 +329,7 @@ pnpm orchestrator:validate
 | `engineering/evidence-orchestrator/`                  | Runtime contexts、测试工序与统一 DoD         |
 | `.pi/extensions/evidence-orchestrator/`               | 内部知识循环、状态保护与执行证据             |
 | `.pi/agents/`                                         | 隔离活动角色配置                             |
-| `evidence-state.json`                                 | 当前 v5 iteration、loop 与活动工作项状态     |
+| `evidence-state.json`                                 | 活动 iteration 状态（idle 时无文件）         |
 | `artifacts/iterations/`                               | 单轮输入、delta、决策与执行证据              |
 | `AGENTS.md`                                           | 架构边界、编码规范、验证与 Git 纪律          |
 

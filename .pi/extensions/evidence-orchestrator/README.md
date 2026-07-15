@@ -12,7 +12,7 @@
 
 活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
 
-## v5 知识循环
+## 知识循环
 
 ```mermaid
 flowchart LR
@@ -66,7 +66,6 @@ evidence-orchestrator/
 │   ├── pi/                          # 薄 host、命令、工具、状态与 activity host
 │   ├── github/                      # GitHub CLI/Pi process adapter
 │   └── node/                        # 隔离 activity 子进程
-├── compatibility/                  # status query 与终态 v4 只读投影
 ├── validation/                      # source boundary 与确定性验证入口
 ├── test-support/                    # 跨模块集成测试、fixtures 与 mocks
 └── vitest.config.ts
@@ -74,8 +73,8 @@ evidence-orchestrator/
 
 ### `iteration/`
 
-- `state.ts` 与 `default-state.ts`：v5 iteration envelope、loop 局部事实和唯一默认状态。
-- `state-codec.ts` 与 `state-repository.ts`：严格编解码和持久化；活动旧版本不能恢复、转换或写回。
+- `state.ts` 与 `default-state.ts`：iteration envelope、loop 局部事实和唯一默认状态。
+- `state-codec.ts` 与 `state-repository.ts`：严格编解码和持久化；状态不携带工作流版本标记。
 - `transition-graph.ts`：合法 loop 转换及核心守卫。
 - `feedback-routing.ts`：把语义缺口路由到知识活动，而不是技术阶段。
 - `artifact-layout.ts` 与 `artifact-inventory.ts`：iteration ID、隔离工件路径、目录和只读清单。
@@ -95,10 +94,6 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 - `pi/activity/` 负责任务构建、单 checkpoint 调度、执行、进度和渲染。
 - `github/pi-cli.ts` 把 Pi 的可取消进程执行适配为 Issue Source port。
 - `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`。
-
-### `compatibility/`
-
-`state-snapshot.ts` 只查询活动 v5 或终态 v4 的只读投影；`v4/` 只负责旧文档投影。兼容层不得进入活动 v5 写路径，也不得改写历史 iteration。
 
 ## 人工命令
 
@@ -147,14 +142,9 @@ artifacts/07-learning/next-iteration.md
 
 `execution.jsonl` 是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。
 
-## 旧 iteration 边界
+## 状态边界
 
-`artifacts/iterations/ITER-0000` 与 `ITER-0001` 等历史目录保持原字节不变。终态旧版本 `evidence-state.json` 仅可通过状态命令读取：
-
-- 不迁移或重写旧状态；
-- 不把旧手写执行 JSON 当作 v5 执行事实；
-- 不恢复仍处于活动状态的旧 iteration；
-- 新工作必须由人类以 `/evidence-new` 创建独立 v5 iteration。
+持久化状态不携带工作流版本标记。没有活动 iteration 时不写入占位状态；新工作必须由人类以 `/evidence-new` 从明确的 GitHub Issue 创建。`artifacts/iterations/` 中已归档的目录仍是不可变研发证据，但运行时不会把其中的手写 JSON 解释为当前执行事实。
 
 ## 依赖方向
 
@@ -163,17 +153,16 @@ index → adapters/pi
 adapters → loops + capabilities + iteration
 loops → capabilities + iteration
 capabilities → iteration
-compatibility → iteration 的只读状态查询接口
 validation → 各层公开 validator
 ```
 
 额外约束由 `validation/source-boundaries.ts` 自动检查：
 
-- `iteration/` 不依赖 Loop、Capability、Adapter 或 compatibility；
-- `capabilities/` 不依赖 Loop、Adapter 或 compatibility；
+- `iteration/` 不依赖 Loop、Capability 或 Adapter；
+- `capabilities/` 不依赖 Loop 或 Adapter；
 - Loop 不能直接依赖另一个 Loop 的私有文件；
 - 产品源码和 Loop 不依赖 Pi host；
-- 已删除的 `runtime/`、`subagents/`、`workflow/`、`requirements/`、`evidence/`、`testing/` 不得重新出现。
+- 已删除的 `runtime/`、`subagents/`、`workflow/`、`requirements/`、`evidence/`、`testing/`、`compatibility/` 不得重新出现。
 
 `.pi/agents/` 不导入扩展代码，只通过注册工具交互。
 
@@ -185,7 +174,7 @@ validation → 各层公开 validator
 - Pi/GitHub/Node 集成留在 `adapters/`；命令和工具不得复制业务守卫。
 - Agent 不复制方法正文；方法变化更新 catalog 指向的 Skill/Prompt 及 eval。
 - 测试命令必须来自人工批准且哈希锁定的 test-process 计划。
-- 变更必须覆盖 full-loop happy path、主要反馈路由、source boundaries 和旧版本只读边界。
+- 变更必须覆盖 full-loop happy path、主要反馈路由、source boundaries，以及 idle/native 状态边界。
 
 ## 验证
 

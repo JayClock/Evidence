@@ -88,7 +88,6 @@ function pairState(
 ): WorkflowState & { pair_session: PairSession } {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'pair' ||
     state.tasking_stage !== 'approved' ||
     !state.active_work_item ||

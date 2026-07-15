@@ -28,10 +28,6 @@ const FORWARD_LOOP: Record<WorkflowLoop, WorkflowLoop | undefined> = {
   complete: undefined,
 };
 
-export function isV5Workflow(state: WorkflowState): boolean {
-  return state.workflow_version === 5;
-}
-
 export interface LoopFeedbackInput {
   target: FeedbackTarget;
   reason: string;
@@ -61,7 +57,7 @@ export function allowedLoopActions(loop: WorkflowLoop): string[] {
   return actions;
 }
 
-/** Pure v5 transition. Persistence is handled by the state repository. */
+/** Pure loop transition. Persistence is handled by the state repository. */
 export function transitionLoopState(
   state: WorkflowState,
   request: LoopTransitionRequest,
@@ -95,7 +91,7 @@ export function transitionLoopState(
     };
   } else if (FORWARD_LOOP[from] !== request.to) {
     throw new Error(
-      `Invalid v5 workflow transition: ${from} -> ${request.to}. Allowed next action: ${FORWARD_LOOP[from] ?? 'none'}.`,
+      `Invalid workflow transition: ${from} -> ${request.to}. Allowed next action: ${FORWARD_LOOP[from] ?? 'none'}.`,
     );
   }
   if (

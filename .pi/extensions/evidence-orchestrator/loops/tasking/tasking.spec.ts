@@ -82,7 +82,6 @@ function prepare(cwd: string): void {
   );
   writeState(cwd, {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop: 'tasking',
     requirement_source: {
       type: 'github_issue',
@@ -194,7 +193,7 @@ function draftInput(outcome = 'Workspace Alpha is available to the owner') {
   };
 }
 
-describe('v5 Tasking and Desk Check', () => {
+describe('Tasking and Desk Check', () => {
   it('requires human approval, supports edited-list regeneration, and locks the v2 plan', () => {
     const cwd = workspace();
     prepare(cwd);

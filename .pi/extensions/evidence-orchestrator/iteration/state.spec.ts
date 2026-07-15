@@ -11,19 +11,14 @@ describe('types', () => {
       technical_boundaries: ['react-feature'],
       process_version: 2,
     };
-    const state: Pick<
-      WorkflowState,
-      'iteration_id' | 'workflow_version' | 'loop'
-    > = {
+    const state: Pick<WorkflowState, 'iteration_id' | 'loop'> = {
       iteration_id: 'ITER-0001',
-      workflow_version: 5,
       loop: 'pair',
     };
 
     expect(selection.process_version).toBe(2);
     expect(state).toEqual({
       iteration_id: 'ITER-0001',
-      workflow_version: 5,
       loop: 'pair',
     });
   });

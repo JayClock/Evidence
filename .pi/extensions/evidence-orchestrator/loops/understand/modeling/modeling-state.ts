@@ -34,7 +34,7 @@ export function requireModelingState(cwd: string): WorkflowState {
     !state.confirmed_scenario
   ) {
     throw new Error(
-      'Modeling is only available for a human-confirmed Scenario in the v5 Understand modeling stage.',
+      'Modeling is only available for a human-confirmed Scenario in the Understand modeling stage.',
     );
   }
   if (state.halted) {

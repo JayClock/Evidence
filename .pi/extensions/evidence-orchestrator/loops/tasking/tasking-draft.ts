@@ -94,14 +94,13 @@ function unique(values: string[], name: string, allowEmpty = false): string[] {
 
 function assertTaskingState(state: WorkflowState): void {
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'tasking' ||
     !state.confirmed_scenario ||
     state.modeling_stage !== 'challenged' ||
     state.model_challenges?.at(-1)?.outcome !== 'pass'
   ) {
     throw new Error(
-      'Tasking requires one confirmed, model-challenged v5 Scenario.',
+      'Tasking requires one confirmed, model-challenged Scenario.',
     );
   }
   if (state.tasking_stage === 'desk_check') {

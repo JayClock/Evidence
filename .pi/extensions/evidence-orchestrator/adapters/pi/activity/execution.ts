@@ -90,8 +90,6 @@ export async function executePreparedActivityRun(
   const state = writeState(ctx.cwd, {
     ...preparation.state,
     pi: {
-      enabled: true,
-      version: 5,
       ...(preparation.state.pi ?? {}),
       last_command: options.invocation,
       last_run_at: (options.now ?? (() => new Date().toISOString()))(),

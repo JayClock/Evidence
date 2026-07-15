@@ -11,14 +11,14 @@ import {
 export function buildActivityTask(cwd: string, extra = ''): string {
   const state = readState(cwd);
   if (state.loop === 'complete') {
-    return 'Evidence Orchestrator 本轮已完成。读取 07-learning/next-iteration.md；由人类更新 GitHub Issue 后用 /evidence-new 创建新的冻结快照，不扩写旧 iteration。';
+    return 'Evidence Orchestrator 本轮已完成。读取 07-learning/next-iteration.md；由人类更新 GitHub Issue 后用 /evidence-new 创建新的冻结快照，不扩写已完成的 iteration。';
   }
   if (state.loop === 'kickoff') {
     const requirements = artifactRelativePath(
       state,
       'artifacts/00-user-input/requirements.md',
     );
-    return `执行 Evidence Orchestrator v5 Kickoff 候选准备。
+    return `执行 Evidence Orchestrator Kickoff 候选准备。
 
 上下文：
 - ${requirements}
@@ -36,7 +36,7 @@ ${extra || '（无）'}
   if (state.loop === 'understand' && state.understand_stage === 'tqa') {
     const storyId = state.active_clarification_story?.story_id;
     if (!storyId) throw new Error('Understand TQA requires one active Story.');
-    return `执行 Evidence Orchestrator v5 Understand TQA：${storyId}。
+    return `执行 Evidence Orchestrator Understand TQA：${storyId}。
 
 方法：加载并遵守 .pi/skills/evidence-story-tqa/SKILL.md。
 上下文：
@@ -56,7 +56,7 @@ ${extra || '（无）'}
     const scenario = state.confirmed_scenario;
     if (!scenario) throw new Error('Modeling requires a confirmed Scenario.');
     if (state.modeling_stage === 'profile') {
-      return `执行 Evidence Orchestrator v5 建模 Profile：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator 建模 Profile：${scenario.story_id} / ${scenario.scenario_id}。
 
 方法：加载并遵守 .pi/skills/evidence-modeling-router/SKILL.md。
 上下文：${scenario.artifact_path}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
@@ -67,7 +67,7 @@ ${extra || '（无）'}
 `;
     }
     if (state.modeling_stage === 'expansion') {
-      return `执行 Evidence Orchestrator v5 模型展开：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator 模型展开：${scenario.story_id} / ${scenario.scenario_id}。
 
 方法：加载 .pi/skills/evidence-model-expansion/SKILL.md。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
 人类确认 Profile：${JSON.stringify(state.modeling_profile)}
@@ -82,7 +82,7 @@ ${extra || '（无）'}
       const projection = state.model_projection;
       if (!projection)
         throw new Error('Model Challenger requires projections.');
-      return `执行 Evidence Orchestrator v5 独立 Model Challenge：${scenario.story_id} / ${scenario.scenario_id}。
+      return `执行 Evidence Orchestrator 独立 Model Challenge：${scenario.story_id} / ${scenario.scenario_id}。
 
 方法：加载 .pi/skills/evidence-model-expansion/SKILL.md 的 Challenger 部分。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
 只读输入：${projection.mermaid_path}、${projection.glossary_path}、${projection.context_path}。
@@ -103,7 +103,7 @@ ${extra || '（无）'}
       throw new Error('Tasking requires a Scenario and model expansion.');
     }
     const gap = state.tasking_gap;
-    return `执行 Evidence Orchestrator v5 Tasking：${scenario.story_id} / ${scenario.scenario_id}。
+    return `执行 Evidence Orchestrator Tasking：${scenario.story_id} / ${scenario.scenario_id}。
 
 方法：加载并遵守 .pi/skills/evidence-test-process/SKILL.md。
 上下文：
@@ -136,9 +136,9 @@ ${extra || '（无）'}
     if (mode) return buildPairDriverTask(cwd, state, mode);
     const action = pairDeterministicAction(cwd, state);
     if (action) {
-      return `执行 Evidence Orchestrator v5 Pair 的一个确定性 checkpoint：${action}。加载 .pi/skills/evidence-pairing/SKILL.md；只运行锁定命令并记录真实结果后停止。`;
+      return `执行 Evidence Orchestrator Pair 的一个确定性 checkpoint：${action}。加载 .pi/skills/evidence-pairing/SKILL.md；只运行锁定命令并记录真实结果后停止。`;
     }
-    return `Evidence Orchestrator v5 Pair 暂停于 ${state.pair_session.checkpoint}。下一选择：${pairNextInstruction(state)}。不得自动继续。`;
+    return `Evidence Orchestrator Pair 暂停于 ${state.pair_session.checkpoint}。下一选择：${pairNextInstruction(state)}。不得自动继续。`;
   }
   if (state.loop === 'showcase') {
     const workItem = state.active_work_item;
@@ -148,7 +148,7 @@ ${extra || '（无）'}
       );
     }
     const base = `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}`;
-    return `执行 Evidence Orchestrator v5 独立只读 Showcase Review：${workItem.story_id} / ${workItem.scenario_id}。
+    return `执行 Evidence Orchestrator 独立只读 Showcase Review：${workItem.story_id} / ${workItem.scenario_id}。
 
 上下文：${state.confirmed_scenario?.artifact_path}、${state.model_expansion_path}、${state.approved_test_plan_path}、${artifactRelativePath(state, `${base}.manifest.json`)}、${artifactRelativePath(state, `${base}.summary.md`)}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}。
 任务：区分 observed facts、product/domain feedback、technical quality feedback 与 unresolved assumptions；只调用 evidence_orchestrator_record_showcase_review 一次后停止。不得修改任何文件或替人决定。
@@ -168,7 +168,7 @@ ${extra || '（无）'}
     ) {
       throw new Error('Respond requires an accepted Showcase.');
     }
-    return `执行 Evidence Orchestrator v5 Respond：${workItem.story_id} / ${workItem.scenario_id}。
+    return `执行 Evidence Orchestrator Respond：${workItem.story_id} / ${workItem.scenario_id}。
 
 只读上下文：确认 Scenario、模型展开、execution manifest、${review.artifact_path}、Showcase 人工决定、docs/knowledge-governance.md、Working Knowledge catalog。
 任务：只对实际使用且验证的知识提出 promotions（允许带理由的空列表）和一个 next Probe；只调用 evidence_orchestrator_propose_response 一次后停止，等待人类 /evidence-respond。

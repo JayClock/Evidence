@@ -19,7 +19,6 @@ function prepareUnderstand(cwd: string): void {
   );
   writeState(cwd, {
     ...DEFAULT_STATE,
-    workflow_version: 5,
     loop: 'understand',
     understand_stage: 'tqa',
     active_clarification_story: {
@@ -50,7 +49,7 @@ function candidates() {
 
 afterEach(cleanupWorkspaces);
 
-describe('v5 concrete Scenario understanding', () => {
+describe('concrete Scenario understanding', () => {
   it('persists concrete drafts and waits for a human decision', () => {
     const cwd = workspace();
     prepareUnderstand(cwd);

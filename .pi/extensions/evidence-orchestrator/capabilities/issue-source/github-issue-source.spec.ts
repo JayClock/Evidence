@@ -40,7 +40,6 @@ describe('issue-source', () => {
     const state = startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
 
     expect(state).toMatchObject({
-      workflow_version: 5,
       loop: 'kickoff',
       requirement_source: {
         type: 'github_issue',

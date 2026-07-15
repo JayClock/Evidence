@@ -185,7 +185,7 @@ function requiredInputs(state: WorkflowState): string[] {
   return [];
 }
 
-/** Resolve one v5 activity without performing agent work. */
+/** Resolve one activity without performing agent work. */
 export function prepareActivityRun(
   cwd: string,
   request: ActivityRunRequest = {},

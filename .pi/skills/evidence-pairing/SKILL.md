@@ -7,7 +7,7 @@ description: Execute Navigator-controlled Evidence Pairing with short-lived Test
 
 ## When to use
 
-Use for the approved v5 Pair loop. The human is Navigator; Drivers are short-lived and return after one bounded edit.
+Use for the approved Pair loop. The human is Navigator; Drivers are short-lived and return after one bounded edit.
 
 ## Inputs
 

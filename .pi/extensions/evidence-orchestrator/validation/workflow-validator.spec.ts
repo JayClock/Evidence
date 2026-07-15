@@ -11,7 +11,7 @@ import { validateWorkflow } from './workflow-validator';
 afterEach(cleanupWorkspaces);
 
 describe('validate', () => {
-  it('rejects a legacy active iteration even when its local requirement file exists', () => {
+  it('rejects an active iteration without an Issue requirement source', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
     writeIterationArtifact(cwd, '00-user-input/requirements.md');

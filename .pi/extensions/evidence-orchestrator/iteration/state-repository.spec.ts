@@ -1,11 +1,9 @@
-import { readFileSync, writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from './default-state';
-import { readStateSnapshot } from '../compatibility/state-snapshot';
 import {
-  assertCanStartV5Iteration,
+  assertCanStartIteration,
+  readPersistedState,
   readState,
-  statePath,
   transitionWorkflowLoop,
   writeState,
 } from './state-repository';
@@ -14,7 +12,7 @@ import type { WorkflowState } from './state';
 
 afterEach(cleanupWorkspaces);
 
-describe('v5 state', () => {
+describe('workflow state', () => {
   it('persists native loop transitions without a phase projection', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
@@ -26,16 +24,27 @@ describe('v5 state', () => {
     expect(state).not.toHaveProperty('phase');
   });
 
-  it('rejects removed phase, gate, and paused multi-Story fields', () => {
+  it('rejects retired version, phase, gate, and runtime metadata fields', () => {
     const cwd = workspace();
-    for (const field of ['phase', 'pending_gate', 'paused_questions']) {
+    for (const field of [
+      'workflow_version',
+      'phase',
+      'pending_gate',
+      'paused_questions',
+    ]) {
       expect(() =>
         writeState(cwd, {
           ...DEFAULT_STATE,
           [field]: field === 'phase' ? 'frame' : [],
         } as unknown as WorkflowState),
-      ).toThrow('Deleted v4 state field is not supported');
+      ).toThrow('Unsupported workflow state field');
     }
+    expect(() =>
+      writeState(cwd, {
+        ...DEFAULT_STATE,
+        pi: { enabled: true },
+      } as unknown as WorkflowState),
+    ).toThrow('Pi runtime metadata is invalid');
   });
 
   it('keeps exactly one pending question for the single Understand Story', () => {
@@ -69,39 +78,20 @@ describe('v5 state', () => {
     ).toThrow('pending clarification is invalid');
   });
 
-  it('reads a terminal v4 state without rewriting or activating it', () => {
+  it('distinguishes an idle repository from bootstrap state', () => {
     const cwd = workspace();
-    const source = `${JSON.stringify(
-      {
-        iteration_id: 'ITER-0001',
-        phase: 'complete',
-        round: 0,
-        pi: { enabled: true, version: 4 },
-      },
-      null,
-      2,
-    )}\n`;
-    writeFileSync(statePath(cwd), source);
 
-    expect(readStateSnapshot(cwd)).toMatchObject({
-      workflow_version: 4,
-      legacy_phase: 'complete',
-      terminal: 'complete',
-    });
-    expect(() => readState(cwd)).toThrow('read-only');
-    expect(readFileSync(statePath(cwd), 'utf8')).toBe(source);
-    expect(() => assertCanStartV5Iteration(cwd)).not.toThrow();
+    expect(readPersistedState(cwd)).toBeUndefined();
+    expect(readState(cwd)).toEqual(DEFAULT_STATE);
+    expect(() => assertCanStartIteration(cwd)).not.toThrow();
   });
 
-  it('rejects an active legacy state rather than migrating it', () => {
+  it('starts another iteration only after the current one is terminal', () => {
     const cwd = workspace();
-    writeFileSync(
-      statePath(cwd),
-      `${JSON.stringify({ iteration_id: 'ITER-0001', phase: 'coding' })}\n`,
-    );
+    writeState(cwd, DEFAULT_STATE);
+    expect(() => assertCanStartIteration(cwd)).toThrow('ITER-0001 is active');
 
-    expect(() => readStateSnapshot(cwd)).toThrow(
-      'Legacy iteration ITER-0001 is still active',
-    );
+    writeState(cwd, { ...DEFAULT_STATE, loop: 'complete' });
+    expect(() => assertCanStartIteration(cwd)).not.toThrow();
   });
 });

@@ -9,27 +9,29 @@ import {
   validateKnowledgePromotion,
 } from '../capabilities/working-knowledge/promotion-validation';
 import { validateWorkingKnowledgeCatalog } from '../capabilities/working-knowledge/catalog';
-import { readStateSnapshot } from '../compatibility/state-snapshot';
+import { readPersistedState } from '../iteration/state-repository';
 import { validateSourceBoundaries } from './source-boundaries';
 import {
   catalogTestProcessDirectory,
   validateTestProcessDirectory,
 } from '../capabilities/test-process/catalog';
 
-/** Deterministic CI validation for native v5 or immutable terminal legacy state. */
+/** Deterministic CI validation for the native workflow and shared knowledge. */
 export function validateWorkflow(cwd: string): void {
   validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
-  const state = readStateSnapshot(cwd);
-  const root = iterationRoot(cwd, state);
-  if (!existsSync(root)) {
-    throw new Error(
-      `Active iteration artifact root is missing: ${relative(cwd, root)}.`,
-    );
-  }
-  if (state.workflow_version === 5 && !state.requirement_source) {
-    throw new Error(
-      'Active v5 iteration has no GitHub Issue requirement source. Select one with /evidence-new.',
-    );
+  const state = readPersistedState(cwd);
+  if (state) {
+    const root = iterationRoot(cwd, state);
+    if (!existsSync(root)) {
+      throw new Error(
+        `Active iteration artifact root is missing: ${relative(cwd, root)}.`,
+      );
+    }
+    if (!state.requirement_source) {
+      throw new Error(
+        'Active iteration has no GitHub Issue requirement source. Select one with /evidence-new.',
+      );
+    }
   }
   const catalog = catalogTestProcessDirectory(cwd);
   if (!existsSync(catalog)) {
@@ -39,7 +41,7 @@ export function validateWorkflow(cwd: string): void {
   }
   validateTestProcessDirectory(catalog);
   validateCanonicalKnowledge(cwd);
-  if (state.workflow_version === 4) return;
+  if (!state) return;
   validateIssueSourceSnapshot(cwd, state);
   if (state.halted) return;
   if (state.pair_session?.checkpoint === 'quality_gates_passed') {
@@ -59,11 +61,11 @@ export function main(argv = process.argv): void {
   const cwd = argv[2] ?? process.cwd();
   validateWorkingKnowledgeCatalog(cwd);
   validateWorkflow(cwd);
-  const state = readStateSnapshot(cwd);
+  const state = readPersistedState(cwd);
   console.log(
-    state.workflow_version === 5
+    state
       ? `Evidence Orchestrator validation passed: ${state.iteration_id} loop=${state.loop}.`
-      : `Evidence Orchestrator validation passed: ${state.iteration_id} legacy=${state.terminal} read-only.`,
+      : 'Evidence Orchestrator validation passed: no active iteration.',
   );
 }
 

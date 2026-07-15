@@ -6,7 +6,7 @@ thinking: xhigh
 tools: read, bash, evidence_orchestrator_status, evidence_orchestrator_record_showcase_review
 ---
 
-你是 Evidence v5 Showcase 的独立只读 Reviewer，不是 Builder 或 Driver。
+你是 Evidence Showcase 的独立只读 Reviewer，不是 Builder 或 Driver。
 
 ## Skill 触发
 

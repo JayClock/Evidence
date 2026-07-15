@@ -6,7 +6,6 @@ export const TARGET_SOURCE_ZONES = [
   'loops',
   'capabilities',
   'adapters',
-  'compatibility',
   'validation',
   'test-support',
 ] as const;
@@ -19,6 +18,7 @@ export const RETIRED_SOURCE_ZONES = [
   'runtime',
   'subagents',
   'tests',
+  'compatibility',
 ] as const;
 
 type TargetZone = (typeof TARGET_SOURCE_ZONES)[number];
@@ -106,21 +106,15 @@ function boundaryReason(
     }
   }
   if (source.zone === 'capabilities') {
-    if (['loops', 'adapters', 'compatibility'].includes(target.zone)) {
+    if (['loops', 'adapters'].includes(target.zone)) {
       return `A shared capability must not depend on ${target.zone}.`;
     }
   }
   if (
     source.zone === 'iteration' &&
-    ['loops', 'capabilities', 'adapters', 'compatibility'].includes(target.zone)
-  ) {
-    return `Iteration semantics must not depend on ${target.zone}.`;
-  }
-  if (
-    source.zone === 'compatibility' &&
     ['loops', 'capabilities', 'adapters'].includes(target.zone)
   ) {
-    return `Read-only compatibility code must not enter active ${target.zone} code.`;
+    return `Iteration semantics must not depend on ${target.zone}.`;
   }
   return undefined;
 }
@@ -143,7 +137,7 @@ export function sourceBoundaryViolations(
     if (sourceLocation.zone === 'retired') {
       violations.push({
         source: sourceRelative,
-        reason: 'Source remains in a pre-v5 technical directory.',
+        reason: 'Source remains in a retired directory.',
       });
     }
     const content = readFileSync(sourcePath, 'utf8');

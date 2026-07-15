@@ -10,13 +10,12 @@ import {
 afterEach(cleanupWorkspaces);
 
 describe('semantic source boundaries', () => {
-  it('defines loop slices, shared capabilities, adapters, and isolated compatibility', () => {
+  it('defines active source zones and retired directories', () => {
     expect(TARGET_SOURCE_ZONES).toEqual([
       'iteration',
       'loops',
       'capabilities',
       'adapters',
-      'compatibility',
       'validation',
       'test-support',
     ]);
@@ -28,6 +27,7 @@ describe('semantic source boundaries', () => {
       'runtime',
       'subagents',
       'tests',
+      'compatibility',
     ]);
   });
 
@@ -77,15 +77,18 @@ describe('semantic source boundaries', () => {
     expect(sourceBoundaryViolations(root)).toEqual([]);
   });
 
-  it('rejects any retired technical directory that reappears', () => {
-    const root = workspace();
-    write(root, 'runtime/commands.ts', 'export const old = true;\n');
+  it.each(['runtime', 'compatibility'])(
+    'rejects the retired %s directory when it reappears',
+    (directory) => {
+      const root = workspace();
+      write(root, `${directory}/entry.ts`, 'export const old = true;\n');
 
-    expect(sourceBoundaryViolations(root)).toEqual([
-      {
-        source: 'runtime/commands.ts',
-        reason: 'Source remains in a pre-v5 technical directory.',
-      },
-    ]);
-  });
+      expect(sourceBoundaryViolations(root)).toEqual([
+        {
+          source: `${directory}/entry.ts`,
+          reason: 'Source remains in a retired directory.',
+        },
+      ]);
+    },
+  );
 });

@@ -1,6 +1,6 @@
 ---
 name: evidence-modeling-router
-description: Select the modeling subject and method for one confirmed Evidence Scenario, deciding whether the canonical model must change. Use during v5 Understand modeling Profile or after model/method feedback. Do not use as a universal DDD checklist or to edit .evidence directly.
+description: Select the modeling subject and method for one confirmed Evidence Scenario, deciding whether the canonical model must change. Use during Understand modeling Profile or after model/method feedback. Do not use as a universal DDD checklist or to edit .evidence directly.
 ---
 
 # Evidence Modeling Router

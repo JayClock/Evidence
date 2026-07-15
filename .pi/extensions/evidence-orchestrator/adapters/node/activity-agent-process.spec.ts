@@ -16,7 +16,7 @@ import {
 afterEach(cleanupWorkspaces);
 
 describe('activity subagents', () => {
-  it('loads every bounded v5 role directly without a phase-agent map', () => {
+  it('loads every bounded role directly without a phase-agent map', () => {
     const agents = [
       'requirements-analyst',
       'domain-modeler',

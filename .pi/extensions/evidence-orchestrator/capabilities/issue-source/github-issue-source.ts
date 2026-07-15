@@ -8,7 +8,7 @@ import {
 } from '../../iteration/artifact-layout';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
-  assertCanStartV5Iteration,
+  assertCanStartIteration,
   readState,
   writeState,
 } from '../../iteration/state-repository';
@@ -285,14 +285,12 @@ export function startIterationFromIssue(
   input: StartFromIssueInput,
   runner: GitHubCliRunner,
 ): WorkflowState {
-  assertCanStartV5Iteration(cwd);
+  assertCanStartIteration(cwd);
   const snapshot = fetchGitHubIssue(cwd, input, runner);
   const state = writeState(cwd, {
     ...DEFAULT_STATE,
     iteration_id: nextIterationId(cwd),
-    workflow_version: 5,
     loop: 'kickoff',
-    pi: { enabled: true, version: 5 },
   });
   return persistSnapshot(cwd, state, snapshot);
 }
@@ -303,15 +301,13 @@ export async function startIterationFromIssueAsync(
   runner: GitHubCliAsyncRunner,
   signal?: AbortSignal,
 ): Promise<WorkflowState> {
-  assertCanStartV5Iteration(cwd);
+  assertCanStartIteration(cwd);
   const snapshot = await fetchGitHubIssueAsync(cwd, input, runner, signal);
   signal?.throwIfAborted();
   const state = writeState(cwd, {
     ...DEFAULT_STATE,
     iteration_id: nextIterationId(cwd),
-    workflow_version: 5,
     loop: 'kickoff',
-    pi: { enabled: true, version: 5 },
   });
   return persistSnapshot(cwd, state, snapshot);
 }

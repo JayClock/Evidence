@@ -98,7 +98,7 @@ describe('commands', () => {
     });
   });
 
-  it('previews the current activity without legacy selector options', async () => {
+  it('previews the current activity without phase selector options', async () => {
     const cwd = workspace();
     for (const path of [
       'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
