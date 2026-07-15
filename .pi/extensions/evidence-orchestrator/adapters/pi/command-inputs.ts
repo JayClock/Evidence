@@ -102,7 +102,19 @@ export async function promptKickoffDecision(
   };
   const action = selected ? actions[selected.replaceAll(' ', '')] : undefined;
   if (!action) return undefined;
-  const reason = (await ctx.ui.input(`请说明 ${selected} 的业务理由`))?.trim();
+  const defaultReasons: Record<KickoffDecisionAction, string> = {
+    confirmed: `候选“${candidate.title}”准确表达了本轮需要解决的业务问题、受益角色和预期价值。`,
+    revise: `候选“${candidate.title}”尚未准确表达本轮业务问题、受益角色或预期价值，需要修改。`,
+    split: `候选“${candidate.title}”包含多个可独立验证的业务结果，需要先拆分。`,
+    deferred: `候选“${candidate.title}”当前不具备继续推进所需的业务条件，本轮延期。`,
+    stopped: `候选“${candidate.title}”不再属于本轮需要推进的业务问题，本轮停止。`,
+  };
+  const reason = (
+    await ctx.ui.editor(
+      `请确认或修改“${selected}”的业务理由`,
+      defaultReasons[action],
+    )
+  )?.trim();
   return reason ? { action, reason } : undefined;
 }
 
