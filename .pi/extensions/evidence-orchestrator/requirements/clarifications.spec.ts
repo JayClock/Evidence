@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { readState, writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { readState, writeState } from '../iteration/state-repository';
 import {
   answerClarification,
   askClarification,

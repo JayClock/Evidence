@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { readState, writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { readState, writeState } from '../iteration/state-repository';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 import type { PreparedActivityRun } from './activity-dispatch';
 import { executePreparedActivityRun } from './activity-execution';

@@ -1,5 +1,5 @@
-import { artifactRelativePath } from '../workflow/iteration-paths';
-import { readState } from '../workflow/state-store';
+import { artifactRelativePath } from '../iteration/artifact-layout';
+import { readState } from '../iteration/state-repository';
 import {
   buildPairDriverTask,
   pairDeterministicAction,

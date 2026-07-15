@@ -6,13 +6,13 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { ensureProjectDirs } from '../evidence/artifact-index';
-import { artifactPath, iterationRoot } from '../workflow/iteration-paths';
-import { readState, writeState } from '../workflow/state-store';
+import { artifactPath, iterationRoot } from '../iteration/artifact-layout';
+import { readState, writeState } from '../iteration/state-repository';
 import type {
   ClarificationRecord,
   ClarificationTarget,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 
 export interface AskClarificationInput {
   story_id: string;

@@ -7,10 +7,10 @@ import {
 import { pairDriverMode, pairNextInstruction } from '../testing/pairing';
 import { showcaseNextInstruction } from '../testing/showcase';
 import { executionEvidencePaths } from '../testing/execution-manifest';
-import { iterationRoot } from '../workflow/iteration-paths';
-import { allowedLoopActions } from '../workflow/loop-catalog';
-import { readStateSnapshot } from '../workflow/state-store';
-import type { WorkflowState } from '../workflow/types';
+import { iterationRoot } from '../iteration/artifact-layout';
+import { allowedLoopActions } from '../iteration/transition-graph';
+import { readStateSnapshot } from '../iteration/state-repository';
+import type { WorkflowState } from '../iteration/state';
 import { loadActivityAgent } from '../subagents/activity-runner';
 
 function agentName(state: WorkflowState): string | undefined {

@@ -5,7 +5,7 @@ import {
   workspace,
   writeIterationArtifact,
 } from '../tests/support';
-import { DEFAULT_STATE } from '../workflow/default-state';
+import { DEFAULT_STATE } from '../iteration/default-state';
 import { validateStoryCards } from './story-cards';
 
 afterEach(cleanupWorkspaces);

@@ -14,13 +14,13 @@ import {
 import {
   artifactRelativePath,
   iterationRoot,
-} from '../workflow/iteration-paths';
-import { readState } from '../workflow/state-store';
+} from '../iteration/artifact-layout';
+import { readState } from '../iteration/state-repository';
 import type {
   PairDeterministicAction,
   WorkflowLoop,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import { buildActivityTask } from '../subagents/activity-task';
 
 export interface ActivityRunRequest {

@@ -3,17 +3,17 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ensureProjectDirs } from '../evidence/artifact-index';
-import { iterationRoot, nextIterationId } from '../workflow/iteration-paths';
-import { DEFAULT_STATE } from '../workflow/default-state';
+import { iterationRoot, nextIterationId } from '../iteration/artifact-layout';
+import { DEFAULT_STATE } from '../iteration/default-state';
 import {
   assertCanStartV5Iteration,
   readState,
   writeState,
-} from '../workflow/state-store';
+} from '../iteration/state-repository';
 import type {
   GitHubIssueRequirementSource,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 
 export type GitHubCliRunner = (args: string[], cwd: string) => string;
 export type GitHubCliAsyncRunner = (

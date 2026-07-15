@@ -15,8 +15,8 @@ import {
   completeShowcaseReviewer,
   executeShowcaseQ2,
 } from '../testing/showcase';
-import { readState, writeState } from '../workflow/state-store';
-import type { PairDriverMode, WorkflowLoop } from '../workflow/types';
+import { readState, writeState } from '../iteration/state-repository';
+import type { PairDriverMode, WorkflowLoop } from '../iteration/state';
 import { STATUS_KEY, statusLabel } from './identity';
 import type { PreparedActivityRun } from './activity-dispatch';
 

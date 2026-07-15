@@ -8,8 +8,8 @@ import {
   syncIssueSource,
   validateIssueSourceSnapshot,
 } from './github-issue';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { writeState } from '../iteration/state-repository';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 
 afterEach(cleanupWorkspaces);

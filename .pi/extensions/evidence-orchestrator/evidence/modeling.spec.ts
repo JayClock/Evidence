@@ -9,9 +9,9 @@ import {
   write,
   writeIterationArtifact,
 } from '../tests/support';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { writeState } from '../workflow/state-store';
-import type { ModelingMethod, ModelingSubject } from '../workflow/types';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { writeState } from '../iteration/state-repository';
+import type { ModelingMethod, ModelingSubject } from '../iteration/state';
 import {
   applyModelChangeProposal,
   confirmModelingProfile,

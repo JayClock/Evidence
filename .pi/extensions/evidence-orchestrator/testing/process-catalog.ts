@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { findFiles } from '../evidence/artifact-index';
-import type { TestDouble, TestProcessRuntime } from '../workflow/types';
+import type { TestDouble, TestProcessRuntime } from '../iteration/state';
 
 export interface TestBoundaryDouble {
   boundary: string;

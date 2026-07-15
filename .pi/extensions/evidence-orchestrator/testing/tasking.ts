@@ -6,9 +6,9 @@ import { createCodingGitBaseline } from './code-baseline';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../workflow/iteration-paths';
-import { transitionLoopState } from '../workflow/loop-catalog';
-import { readState, writeState } from '../workflow/state-store';
+} from '../iteration/artifact-layout';
+import { transitionLoopState } from '../iteration/transition-graph';
+import { readState, writeState } from '../iteration/state-repository';
 import type {
   DeskCheckAction,
   DeskCheckDecision,
@@ -18,7 +18,7 @@ import type {
   TestProcessRuntime,
   TestProcessSelection,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import {
   catalogTestProcessDirectory,
   matchingTestProcesses,

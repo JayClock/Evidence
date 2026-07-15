@@ -2,7 +2,7 @@ import { watchFile, unwatchFile } from 'node:fs';
 import type { Stats } from 'node:fs';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs } from './evidence/artifact-index';
-import { iterationRoot } from './workflow/iteration-paths';
+import { iterationRoot } from './iteration/artifact-layout';
 import { registerCommands } from './runtime/commands';
 import type { ActivityExecutionDetails } from './runtime/activity-execution';
 import { renderActivitySubagentResult } from './runtime/activity-subagent-renderer';
@@ -12,7 +12,7 @@ import {
   statusLabel,
 } from './runtime/identity';
 import { registerTools } from './runtime/tools';
-import { readStateSnapshot, statePath } from './workflow/state-store';
+import { readStateSnapshot, statePath } from './iteration/state-repository';
 
 const STATE_WATCH_INTERVAL_MS = 250;
 

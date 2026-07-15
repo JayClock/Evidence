@@ -1,14 +1,14 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { artifactRelativePath } from '../workflow/iteration-paths';
-import { transitionLoopState } from '../workflow/loop-catalog';
-import { readState, writeState } from '../workflow/state-store';
+import { artifactRelativePath } from '../iteration/artifact-layout';
+import { transitionLoopState } from '../iteration/transition-graph';
+import { readState, writeState } from '../iteration/state-repository';
 import type {
   FeedbackTarget,
   ModelChallengeOutcome,
   ModelChallengeRecord,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import {
   prepareModelProjection,
   projectCandidateModel,

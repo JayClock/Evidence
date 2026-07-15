@@ -24,7 +24,7 @@ import {
   startIterationFromIssueAsync,
   syncIssueSourceAsync,
 } from '../requirements/github-issue';
-import { readState } from '../workflow/state-store';
+import { readState } from '../iteration/state-repository';
 import type {
   DeskCheckAction,
   KickoffDecisionAction,
@@ -37,7 +37,7 @@ import type {
   ShowcaseRiskQuadrant,
   FeedbackTarget,
   UnderstandingDecisionAction,
-} from '../workflow/types';
+} from '../iteration/state';
 import {
   ACTIVITY_RESULT_MESSAGE_TYPE,
   STATUS_KEY,

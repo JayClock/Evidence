@@ -3,15 +3,15 @@ import { dirname } from 'node:path';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../workflow/iteration-paths';
-import { readState, writeState } from '../workflow/state-store';
+} from '../iteration/artifact-layout';
+import { readState, writeState } from '../iteration/state-repository';
 import type {
   ConfirmedScenario,
   ScenarioDraft,
   UnderstandingDecision,
   UnderstandingDecisionAction,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import { waivePendingClarification } from './clarifications';
 
 const UNDERSTANDING_ACTIONS = new Set<UnderstandingDecisionAction>([

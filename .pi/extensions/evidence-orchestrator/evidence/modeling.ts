@@ -2,8 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { artifactRelativePath } from '../workflow/iteration-paths';
-import { readState, writeState } from '../workflow/state-store';
+import { artifactRelativePath } from '../iteration/artifact-layout';
+import { readState, writeState } from '../iteration/state-repository';
 import type {
   ConfirmedModelingProfile,
   ModelChangeProposal,
@@ -12,7 +12,7 @@ import type {
   ModelingSubject,
   ModelOperation,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import { findFiles } from './artifact-index';
 import { validateEightXModel } from './eight-x';
 

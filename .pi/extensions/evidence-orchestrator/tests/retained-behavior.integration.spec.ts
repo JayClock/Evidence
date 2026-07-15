@@ -4,7 +4,7 @@ import {
   readState,
   readStateSnapshot,
   statePath,
-} from '../workflow/state-store';
+} from '../iteration/state-repository';
 import { statusMarkdown } from '../runtime/status';
 import { cleanupWorkspaces, workspace, write } from './support';
 

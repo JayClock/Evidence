@@ -16,12 +16,12 @@ import {
   isCompletedIteration,
   prepareActivityRun,
 } from '../runtime/activity-dispatch';
-import { DEFAULT_STATE } from '../workflow/default-state';
+import { DEFAULT_STATE } from '../iteration/default-state';
 import {
   readState,
   transitionWorkflowLoop,
   writeState,
-} from '../workflow/state-store';
+} from '../iteration/state-repository';
 import {
   generateExecutionEvidence,
   validateExecutionEvidence,

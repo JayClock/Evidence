@@ -21,7 +21,7 @@ import {
   renderActivitySubagentCall,
   renderActivitySubagentResult,
 } from './activity-subagent-renderer';
-import { readState, readStateSnapshot } from '../workflow/state-store';
+import { readState, readStateSnapshot } from '../iteration/state-repository';
 import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
 import { proposeTaskingDraft } from '../testing/tasking';

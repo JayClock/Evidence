@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { writeState } from '../iteration/state-repository';
 import { proposeKickoffCandidate } from '../requirements/kickoff';
 import { proposeScenarioDrafts } from '../requirements/scenarios';
 import {
@@ -9,7 +9,7 @@ import {
   ActivityRunBlockedError,
 } from './activity-dispatch';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
-import type { WorkflowState } from '../workflow/types';
+import type { WorkflowState } from '../iteration/state';
 
 function issueState(): WorkflowState {
   return {

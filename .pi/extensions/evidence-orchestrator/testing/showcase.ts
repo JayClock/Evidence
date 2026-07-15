@@ -10,16 +10,16 @@ import { dirname, join } from 'node:path';
 import {
   FEEDBACK_LOOP_BY_TARGET,
   transitionLoopState,
-} from '../workflow/loop-catalog';
+} from '../iteration/transition-graph';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../workflow/iteration-paths';
+} from '../iteration/artifact-layout';
 import {
   readState,
   selectedTestProcesses,
   writeState,
-} from '../workflow/state-store';
+} from '../iteration/state-repository';
 import type {
   ActiveWorkItem,
   FeedbackTarget,
@@ -34,7 +34,7 @@ import type {
   ShowcaseRiskDisposition,
   ShowcaseRiskQuadrant,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import {
   executeTestStep,
   type TestExecutionRecord,

@@ -8,9 +8,9 @@ import {
   statePath,
   transitionWorkflowLoop,
   writeState,
-} from './state-store';
+} from './state-repository';
 import { cleanupWorkspaces, workspace } from '../tests/support';
-import type { WorkflowState } from './types';
+import type { WorkflowState } from './state';
 
 afterEach(cleanupWorkspaces);
 

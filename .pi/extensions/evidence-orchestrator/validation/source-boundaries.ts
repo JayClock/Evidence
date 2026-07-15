@@ -102,11 +102,8 @@ function boundaryReason(
       return `A shared capability must not depend on ${target.zone}.`;
     }
   }
-  if (
-    source.zone === 'iteration' &&
-    ['adapters', 'compatibility'].includes(target.zone)
-  ) {
-    return `Iteration semantics must not depend on ${target.zone}.`;
+  if (source.zone === 'iteration' && target.zone === 'adapters') {
+    return 'Iteration semantics must not depend on adapters.';
   }
   if (
     source.zone === 'compatibility' &&

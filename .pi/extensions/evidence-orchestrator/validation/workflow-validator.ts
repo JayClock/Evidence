@@ -3,13 +3,13 @@ import { join, relative } from 'node:path';
 import { validateExecutionEvidence } from '../testing/execution-manifest';
 import { validateShowcaseEvidence } from '../testing/showcase';
 import { validateIssueSourceSnapshot } from '../requirements/github-issue';
-import { iterationRoot } from '../workflow/iteration-paths';
+import { iterationRoot } from '../iteration/artifact-layout';
 import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
 } from '../evidence/knowledge';
 import { validateWorkingKnowledgeCatalog } from '../evidence/working-knowledge';
-import { readStateSnapshot } from '../workflow/state-store';
+import { readStateSnapshot } from '../iteration/state-repository';
 import { validateSourceBoundaries } from './source-boundaries';
 import {
   catalogTestProcessDirectory,

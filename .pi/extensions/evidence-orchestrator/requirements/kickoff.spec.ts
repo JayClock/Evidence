@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { readState, writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { readState, writeState } from '../iteration/state-repository';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 import { decideKickoff, proposeKickoffCandidate } from './kickoff';
 

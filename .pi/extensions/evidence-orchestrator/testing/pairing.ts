@@ -10,12 +10,12 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { transitionLoopState } from '../workflow/loop-catalog';
+import { transitionLoopState } from '../iteration/transition-graph';
 import {
   readState,
   selectedTestProcesses,
   writeState,
-} from '../workflow/state-store';
+} from '../iteration/state-repository';
 import type {
   PairDeterministicAction,
   PairDriverMode,
@@ -24,7 +24,7 @@ import type {
   RedFailureKind,
   TestProcessSelection,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import {
   executeTestStep,
   type TestExecutionRecord,

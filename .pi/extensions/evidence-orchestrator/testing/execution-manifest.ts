@@ -2,8 +2,11 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { artifactRelativePath } from '../workflow/iteration-paths';
-import { readState, selectedTestProcesses } from '../workflow/state-store';
+import { artifactRelativePath } from '../iteration/artifact-layout';
+import {
+  readState,
+  selectedTestProcesses,
+} from '../iteration/state-repository';
 import type {
   ActiveWorkItem,
   PairDriverRecord,
@@ -11,7 +14,7 @@ import type {
   TaskingTestItem,
   TestProcessSelection,
   WorkflowState,
-} from '../workflow/types';
+} from '../iteration/state';
 import {
   assertLockedMaterializedPlan,
   readExecutionRecords,

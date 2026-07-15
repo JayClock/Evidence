@@ -5,8 +5,11 @@ import { join } from 'node:path';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../workflow/iteration-paths';
-import { readState, selectedTestProcesses } from '../workflow/state-store';
+} from '../iteration/artifact-layout';
+import {
+  readState,
+  selectedTestProcesses,
+} from '../iteration/state-repository';
 import {
   materializeFocusedCommands,
   materializedProcessSha256,

@@ -1,4 +1,4 @@
-import type { ConfirmedModelingProfile } from '../workflow/types';
+import type { ConfirmedModelingProfile } from '../iteration/state';
 
 export interface EightXModelSource {
   path: string;

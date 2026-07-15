@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/default-state';
+import { DEFAULT_STATE } from '../iteration/default-state';
 import { EXTENSION_ID, STATUS_KEY, statusLabel } from './identity';
 
 describe('orchestrator identity', () => {

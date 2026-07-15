@@ -9,8 +9,8 @@ import {
   write,
   writeIterationArtifact,
 } from '../tests/support';
-import { DEFAULT_STATE } from '../workflow/default-state';
-import { writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../iteration/default-state';
+import { writeState } from '../iteration/state-repository';
 import { recordModelChallenge } from './model-challenge';
 import {
   confirmModelingProfile,

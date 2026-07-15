@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { artifactRelativePath } from '../workflow/iteration-paths';
-import { readState, writeState } from '../workflow/state-store';
-import type { ModelProjectionRecord, WorkflowState } from '../workflow/types';
+import { artifactRelativePath } from '../iteration/artifact-layout';
+import { readState, writeState } from '../iteration/state-repository';
+import type { ModelProjectionRecord, WorkflowState } from '../iteration/state';
 import { findFiles } from './artifact-index';
 import { eightXValidationIssues } from './eight-x';
 import { candidateModelSources, type CandidateModelSource } from './modeling';

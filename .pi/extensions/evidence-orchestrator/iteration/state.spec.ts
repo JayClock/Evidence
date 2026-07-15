@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TestProcessSelection, WorkflowState } from './types';
+import type { TestProcessSelection, WorkflowState } from './state';
 
 describe('types', () => {
   it('expresses a selected process inside a native Pair work item', () => {

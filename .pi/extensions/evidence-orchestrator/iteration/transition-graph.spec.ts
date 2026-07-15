@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from './default-state';
-import {
-  allowedLoopActions,
-  FEEDBACK_LOOP_BY_TARGET,
-  transitionLoopState,
-} from './loop-catalog';
-import type { WorkflowLoop, WorkflowState } from './types';
+import { allowedLoopActions, transitionLoopState } from './transition-graph';
+import { FEEDBACK_LOOP_BY_TARGET } from './feedback-routing';
+import type { WorkflowLoop, WorkflowState } from './state';
 
 function v5State(loop: WorkflowLoop): WorkflowState {
   return {

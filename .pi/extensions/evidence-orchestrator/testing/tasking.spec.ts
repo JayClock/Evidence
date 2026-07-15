@@ -1,7 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { transitionWorkflowLoop, writeState } from '../workflow/state-store';
-import { DEFAULT_STATE } from '../workflow/default-state';
+import {
+  transitionWorkflowLoop,
+  writeState,
+} from '../iteration/state-repository';
+import { DEFAULT_STATE } from '../iteration/default-state';
 import {
   cleanupWorkspaces,
   initializeGitRepository,

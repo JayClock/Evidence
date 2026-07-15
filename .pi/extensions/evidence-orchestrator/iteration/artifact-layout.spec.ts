@@ -3,7 +3,7 @@ import {
   artifactRelativePath,
   assertIterationId,
   nextIterationId,
-} from './iteration-paths';
+} from './artifact-layout';
 import { DEFAULT_STATE } from './default-state';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 

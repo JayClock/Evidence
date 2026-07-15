@@ -39,7 +39,7 @@ import {
   decideKnowledgeResponse,
   proposeKnowledgeResponse,
 } from '../evidence/respond';
-import { readState } from '../workflow/state-store';
+import { readState } from '../iteration/state-repository';
 import {
   cleanupWorkspaces,
   initializeGitRepository,

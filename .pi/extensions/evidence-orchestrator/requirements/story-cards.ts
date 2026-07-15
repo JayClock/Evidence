@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import type { WorkflowState } from '../workflow/types';
-import { artifactPath } from '../workflow/iteration-paths';
+import type { WorkflowState } from '../iteration/state';
+import { artifactPath } from '../iteration/artifact-layout';
 
 const STORY_FILE = /^US-\d{3,}\.md$/;
 const FORBIDDEN_SECTION = /^(?:故事元数据|优先级依据|非目标|待澄清问题)$/;
