@@ -192,9 +192,18 @@ function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
         /^US-\d{3,}-SC-\d{3,}\.md$/.test(name),
       )
     : [];
-  if (existing.length > 0) {
+  const recordedScenarioIds = new Set(
+    (state.understanding_decisions ?? [])
+      .filter((decision) => decision.action === 'confirmed')
+      .map((decision) => decision.scenario_id),
+  );
+  const unrecorded = existing.filter((name) => {
+    const scenarioId = name.match(/(SC-\d{3,})\.md$/)?.[1];
+    return !scenarioId || !recordedScenarioIds.has(scenarioId);
+  });
+  if (unrecorded.length > 0) {
     throw new Error(
-      `An Understand loop confirms one Scenario, but found: ${existing.join(', ')}.`,
+      `Confirmed Scenario artifacts lack matching human decisions: ${unrecorded.join(', ')}.`,
     );
   }
 }
@@ -282,7 +291,11 @@ export function decideUnderstanding(
     );
   }
   ensureNoConfirmedScenario(cwd, state);
-  const scenarioId = 'SC-001';
+  const priorScenarioNumbers = (state.understanding_decisions ?? [])
+    .filter((decision) => decision.action === 'confirmed')
+    .map((decision) => Number(decision.scenario_id?.replace('SC-', '')))
+    .filter(Number.isFinite);
+  const scenarioId = `SC-${String(Math.max(0, ...priorScenarioNumbers) + 1).padStart(3, '0')}`;
   const artifactPathValue = artifactRelativePath(
     state,
     `artifacts/01-requirements/examples/${activeStoryId}-${scenarioId}.md`,

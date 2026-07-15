@@ -117,6 +117,62 @@ describe('concrete Scenario understanding', () => {
     expect(markdown).toContain('"confirmed_by": "human"');
   });
 
+  it('preserves an earlier confirmed Scenario when a revised one is confirmed', () => {
+    const cwd = workspace();
+    prepareUnderstand(cwd);
+    proposeScenarioDrafts(cwd, 'US-001', candidates());
+    const first = decideUnderstanding(
+      cwd,
+      {
+        action: 'confirmed',
+        draftId: 'DRAFT-001',
+        reason: '这是首个已确认场景。',
+      },
+      '2026-01-01T00:02:00.000Z',
+    );
+    const firstArtifact = first.confirmed_scenario?.artifact_path;
+    expect(firstArtifact).toBeDefined();
+    if (!firstArtifact) throw new Error('First Scenario artifact is missing.');
+    const firstPath = join(cwd, firstArtifact);
+    const firstMarkdown = readFileSync(firstPath, 'utf8');
+
+    writeState(cwd, {
+      ...first,
+      understand_stage: 'tqa',
+      modeling_stage: undefined,
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:03:00.000Z',
+      },
+      confirmed_scenario: undefined,
+      scenario_drafts: undefined,
+    });
+    proposeScenarioDrafts(cwd, 'US-001', candidates());
+    const revised = decideUnderstanding(
+      cwd,
+      {
+        action: 'confirmed',
+        draftId: 'DRAFT-002',
+        reason: '业务澄清后确认修订场景。',
+      },
+      '2026-01-01T00:04:00.000Z',
+    );
+
+    expect(revised.confirmed_scenario?.scenario_id).toBe('SC-002');
+    expect(
+      revised.understanding_decisions?.map(({ scenario_id }) => scenario_id),
+    ).toEqual(['SC-001', 'SC-002']);
+    expect(readFileSync(firstPath, 'utf8')).toBe(firstMarkdown);
+    expect(
+      existsSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-002.md',
+        ),
+      ),
+    ).toBe(true);
+  });
+
   it('returns to TQA when the human rejects the drafts', () => {
     const cwd = workspace();
     prepareUnderstand(cwd);
