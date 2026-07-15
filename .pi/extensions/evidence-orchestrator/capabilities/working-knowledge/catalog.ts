@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { basename, dirname, extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve } from 'node:path';
 
 export const WORKING_KNOWLEDGE_CATALOG =
   'engineering/evidence-orchestrator/working-knowledge-catalog.json';
@@ -300,16 +300,4 @@ export function validateWorkingKnowledgeCatalog(
     );
   }
   return catalog;
-}
-
-export function workingKnowledgeInstruction(cwd: string, id: string): string {
-  const catalog = validateWorkingKnowledgeCatalog(cwd);
-  const entry = catalog.entries.find((candidate) => candidate.id === id);
-  if (!entry?.skill_path)
-    throw new Error(`${id} is not an active Skill entry.`);
-  return `Load and follow ${entry.skill_path}; keep method detail there rather than duplicating it in the activity task.`;
-}
-
-export function promptCommand(path: string): string {
-  return `/${basename(path, '.md')}`;
 }

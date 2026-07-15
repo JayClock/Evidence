@@ -10,7 +10,7 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_tasking
 
 ## Skill 触发
 
-开始前读取并遵守 `.pi/skills/evidence-test-process/SKILL.md`。Clear 的格式化或摘要请求改用 `.pi/prompts/evidence-test-list.md` 或 `.pi/prompts/evidence-desk-check.md`，不启动本 Agent。
+开始前读取并遵守 `.pi/skills/evidence-test-process/SKILL.md`。Clear 的格式化或摘要请求改用 `.pi/prompts/evidence-test-list.md` 或 `.pi/prompts/evidence-desk-check-summary.md`，不启动本 Agent。
 
 ## 角色边界
 

@@ -100,10 +100,5 @@
     "typescript-eslint": "^8.40.0",
     "vite": "^8.0.0",
     "vitest": "~4.1.0"
-  },
-  "pi": {
-    "extensions": [
-      ".pi/extensions"
-    ]
   }
 }

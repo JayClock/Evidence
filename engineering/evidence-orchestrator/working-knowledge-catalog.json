@@ -106,7 +106,7 @@
       "owner": "Test strategy",
       "cognitive_behaviors": ["clear"],
       "skill_path": null,
-      "prompt_paths": [".pi/prompts/evidence-desk-check.md"],
+      "prompt_paths": [".pi/prompts/evidence-desk-check-summary.md"],
       "validated_scenarios": ["EOV5-009: human Desk Check"],
       "latest_feedback": "Summarize traceability and gaps without approving the plan.",
       "supersedes": []

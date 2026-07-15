@@ -7,12 +7,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  promptCommand,
   validateWorkingKnowledgeCatalog,
-  workingKnowledgeInstruction,
   WORKING_KNOWLEDGE_CATALOG,
 } from './catalog';
 
@@ -81,16 +79,28 @@ describe('Working Knowledge catalog', () => {
           (entry) => entry.skill_path === null && entry.prompt_paths.length > 0,
         ),
     ).toBe(true);
+
+    const commandSource = readFileSync(
+      join(
+        process.cwd(),
+        '.pi/extensions/evidence-orchestrator/adapters/pi/commands.ts',
+      ),
+      'utf8',
+    );
+    const extensionCommands = new Set(
+      [...commandSource.matchAll(/registerCommand\('([^']+)'/g)].map(
+        (match) => match[1],
+      ),
+    );
+    const promptCommands = catalog.entries.flatMap((entry) =>
+      entry.prompt_paths.map((path) => basename(path, '.md')),
+    );
+    expect(
+      promptCommands.filter((command) => extensionCommands.has(command)),
+    ).toEqual([]);
   });
 
-  it('provides progressive-disclosure instructions instead of copied method text', () => {
-    expect(workingKnowledgeInstruction(process.cwd(), 'WK-STORY-TQA')).toBe(
-      'Load and follow .pi/skills/evidence-story-tqa/SKILL.md; keep method detail there rather than duplicating it in the activity task.',
-    );
-    expect(promptCommand('.pi/prompts/evidence-desk-check.md')).toBe(
-      '/evidence-desk-check',
-    );
-
+  it('keeps each activity agent bounded by Skill triggers and stop conditions', () => {
     for (const agent of [
       'requirements-analyst',
       'domain-modeler',
