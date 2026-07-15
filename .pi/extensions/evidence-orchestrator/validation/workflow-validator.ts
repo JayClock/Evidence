@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { validateExecutionEvidence } from '../testing/execution-manifest';
 import { validateShowcaseEvidence } from '../testing/showcase';
-import { validateIssueSourceSnapshot } from '../requirements/github-issue';
+import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
 import { iterationRoot } from '../iteration/artifact-layout';
 import {
   validateCanonicalKnowledge,

@@ -1,25 +1,17 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import {
-  artifactPath,
-  artifactRelativePath,
-} from '../iteration/artifact-layout';
-import { transitionLoopState } from '../iteration/transition-graph';
-import { readState, writeState } from '../iteration/state-repository';
+import { artifactPath } from '../../iteration/artifact-layout';
+import { writeState } from '../../iteration/state-repository';
+import { transitionLoopState } from '../../iteration/transition-graph';
 import type {
-  CognitiveMode,
   KickoffCandidate,
   KickoffDecision,
   KickoffDecisionAction,
   WorkflowState,
-} from '../iteration/state';
-import { validateStoryCards } from './story-cards';
+} from '../../iteration/state';
+import { requireKickoffState, kickoffText } from './kickoff-state';
+import { validateStoryCards } from './story-card';
 
-const COGNITIVE_MODES = new Set<CognitiveMode>([
-  'clear',
-  'complicated',
-  'complex',
-]);
 const KICKOFF_ACTIONS = new Set<KickoffDecisionAction>([
   'confirmed',
   'revise',
@@ -27,96 +19,6 @@ const KICKOFF_ACTIONS = new Set<KickoffDecisionAction>([
   'deferred',
   'stopped',
 ]);
-
-export interface KickoffCandidateInput {
-  title: string;
-  problem: string;
-  role: string;
-  goal: string;
-  value: string;
-  cognitiveMode: CognitiveMode;
-  sourceRefs: string[];
-}
-
-function requiredText(value: string, name: string, singleLine = false): string {
-  const normalized = value.trim();
-  if (!normalized) throw new Error(`Kickoff ${name} must not be empty.`);
-  if (singleLine && /[\r\n]/.test(normalized)) {
-    throw new Error(`Kickoff ${name} must be a single line.`);
-  }
-  return normalized;
-}
-
-function requireKickoffState(cwd: string): WorkflowState {
-  const state = readState(cwd);
-  if (state.loop !== 'kickoff') {
-    throw new Error(
-      `Kickoff is only available in the kickoff loop; current loop is ${state.loop}.`,
-    );
-  }
-  if (state.halted) {
-    throw new Error(`Iteration is halted: ${state.halted.reason}`);
-  }
-  return state;
-}
-
-function nextCandidatePath(cwd: string, state: WorkflowState): string {
-  const directory = artifactPath(
-    cwd,
-    state,
-    'artifacts/01-requirements/kickoff-candidates',
-  );
-  const count = existsSync(directory)
-    ? readdirSync(directory).filter((name) => /^CAND-\d{3}\.json$/.test(name))
-        .length
-    : 0;
-  return artifactRelativePath(
-    state,
-    `artifacts/01-requirements/kickoff-candidates/CAND-${String(count + 1).padStart(3, '0')}.json`,
-  );
-}
-
-/** Persist one AI-authored candidate. It has no Story id and no authority. */
-export function proposeKickoffCandidate(
-  cwd: string,
-  input: KickoffCandidateInput,
-  now = new Date().toISOString(),
-): WorkflowState {
-  const state = requireKickoffState(cwd);
-  if (state.kickoff_candidate) {
-    throw new Error(
-      `Kickoff candidate ${state.kickoff_candidate.artifact_path} is awaiting a human decision.`,
-    );
-  }
-  if (!COGNITIVE_MODES.has(input.cognitiveMode)) {
-    throw new Error(`Unsupported cognitive mode: ${input.cognitiveMode}.`);
-  }
-  const sourceRefs = input.sourceRefs.map((value) =>
-    requiredText(value, 'source reference', true),
-  );
-  if (
-    sourceRefs.length === 0 ||
-    new Set(sourceRefs).size !== sourceRefs.length
-  ) {
-    throw new Error('Kickoff sourceRefs must be a non-empty unique list.');
-  }
-  const candidate: KickoffCandidate = {
-    version: 1,
-    title: requiredText(input.title, 'title', true),
-    problem: requiredText(input.problem, 'problem'),
-    role: requiredText(input.role, 'role', true),
-    goal: requiredText(input.goal, 'goal', true),
-    value: requiredText(input.value, 'value', true),
-    cognitive_mode: input.cognitiveMode,
-    source_refs: sourceRefs,
-    proposed_at: now,
-    artifact_path: nextCandidatePath(cwd, state),
-  };
-  const absolute = `${cwd}/${candidate.artifact_path}`;
-  mkdirSync(dirname(absolute), { recursive: true });
-  writeFileSync(absolute, `${JSON.stringify(candidate, null, 2)}\n`);
-  return writeState(cwd, { ...state, kickoff_candidate: candidate });
-}
 
 function problemStatement(candidate: KickoffCandidate): string {
   return `# ${candidate.title}
@@ -192,7 +94,7 @@ export function decideKickoff(
   }
   const decision: KickoffDecision = {
     action,
-    reason: requiredText(reason, 'decision reason'),
+    reason: kickoffText(reason, 'decision reason'),
     decided_by: 'human',
     decided_at: now,
   };

@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { readState, writeState } from '../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../tests/support';
-import { decideKickoff, proposeKickoffCandidate } from './kickoff';
+import { DEFAULT_STATE } from '../../iteration/default-state';
+import { readState, writeState } from '../../iteration/state-repository';
+import { cleanupWorkspaces, workspace } from '../../tests/support';
+import { proposeKickoffCandidate } from './story-candidate';
+import { decideKickoff } from './story-decision';
 
 function prepareKickoff(cwd: string): void {
   writeState(cwd, {

@@ -1,11 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { startIterationFromIssue } from '../requirements/github-issue';
-import {
-  decideKickoff,
-  proposeKickoffCandidate,
-} from '../requirements/kickoff';
+import { startIterationFromIssue } from '../capabilities/issue-source/github-issue-source';
+import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
+import { decideKickoff } from '../loops/kickoff/story-decision';
 import {
   answerClarification,
   askClarification,

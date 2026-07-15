@@ -7,10 +7,10 @@ import {
   startIterationFromIssueAsync,
   syncIssueSource,
   validateIssueSourceSnapshot,
-} from './github-issue';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { writeState } from '../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../tests/support';
+} from './github-issue-source';
+import { DEFAULT_STATE } from '../../iteration/default-state';
+import { writeState } from '../../iteration/state-repository';
+import { cleanupWorkspaces, workspace } from '../../tests/support';
 
 afterEach(cleanupWorkspaces);
 

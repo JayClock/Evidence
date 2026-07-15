@@ -4,9 +4,9 @@ import {
   LEAN_STORY_CARD,
   workspace,
   writeIterationArtifact,
-} from '../tests/support';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { validateStoryCards } from './story-cards';
+} from '../../tests/support';
+import { DEFAULT_STATE } from '../../iteration/default-state';
+import { validateStoryCards } from './story-card';
 
 afterEach(cleanupWorkspaces);
 

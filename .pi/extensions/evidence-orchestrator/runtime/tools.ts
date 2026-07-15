@@ -10,12 +10,12 @@ import {
   answerClarification,
   askClarification,
 } from '../requirements/clarifications';
-import { proposeKickoffCandidate } from '../requirements/kickoff';
+import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
 import { proposeScenarioDrafts } from '../requirements/scenarios';
 import {
   startIterationFromIssueAsync,
   syncIssueSourceAsync,
-} from '../requirements/github-issue';
+} from '../capabilities/issue-source/github-issue-source';
 import {
   isActivitySubagentFailureDetails,
   renderActivitySubagentCall,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from '../iteration/default-state';
 import { writeState } from '../iteration/state-repository';
-import { proposeKickoffCandidate } from '../requirements/kickoff';
+import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
 import { proposeScenarioDrafts } from '../requirements/scenarios';
 import {
   isCompletedIteration,

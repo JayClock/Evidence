@@ -2,18 +2,21 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ensureProjectDirs } from '../evidence/artifact-index';
-import { iterationRoot, nextIterationId } from '../iteration/artifact-layout';
-import { DEFAULT_STATE } from '../iteration/default-state';
+import { ensureProjectDirs } from '../../evidence/artifact-index';
+import {
+  iterationRoot,
+  nextIterationId,
+} from '../../iteration/artifact-layout';
+import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
   assertCanStartV5Iteration,
   readState,
   writeState,
-} from '../iteration/state-repository';
+} from '../../iteration/state-repository';
 import type {
   GitHubIssueRequirementSource,
   WorkflowState,
-} from '../iteration/state';
+} from '../../iteration/state';
 
 export type GitHubCliRunner = (args: string[], cwd: string) => string;
 export type GitHubCliAsyncRunner = (

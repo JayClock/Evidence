@@ -3,7 +3,7 @@ import type {
   ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
 import { confirmModelingProfile } from '../evidence/modeling';
-import { decideKickoff } from '../requirements/kickoff';
+import { decideKickoff } from '../loops/kickoff/story-decision';
 import { decideKnowledgeResponse } from '../evidence/respond';
 import { decideUnderstanding } from '../requirements/scenarios';
 import { decideTasking } from '../testing/tasking';
@@ -23,7 +23,7 @@ import {
   checkIssueSourceDriftAsync,
   startIterationFromIssueAsync,
   syncIssueSourceAsync,
-} from '../requirements/github-issue';
+} from '../capabilities/issue-source/github-issue-source';
 import { readState } from '../iteration/state-repository';
 import type {
   DeskCheckAction,

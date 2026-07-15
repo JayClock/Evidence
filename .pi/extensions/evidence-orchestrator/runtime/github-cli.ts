@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import type { GitHubCliAsyncRunner } from '../requirements/github-issue';
+import type { GitHubCliAsyncRunner } from '../capabilities/issue-source/github-issue-source';
 
 const GITHUB_CLI_TIMEOUT_MS = 10_000;
 
