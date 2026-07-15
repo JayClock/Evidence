@@ -1,23 +1,23 @@
 ---
 name: evidence-modeling-router
-description: Select the modeling subject and method for one confirmed Evidence Scenario, deciding whether the canonical model must change. Use during Understand modeling Profile or after model/method feedback. Do not use as a universal DDD checklist or to edit .evidence directly.
+description: Select the modeling subject and method for one confirmed Evidence Story Scenario Set, deciding whether the canonical model must change. Use during Understand modeling Profile or after model/method feedback. Do not use as a universal DDD checklist or to edit .evidence directly.
 ---
 
 # Evidence Modeling Router
 
 ## When to use
 
-Use after a human confirms one Scenario and before model expansion. Reuse it when Showcase routes `model` or `modeling_method` feedback to Understand.
+Use after a human confirms one Story Scenario Set and before model expansion. Reuse it when Showcase routes `model` or `modeling_method` feedback to Understand.
 
 ## Inputs
 
-- Confirmed Scenario and business data.
+- Complete confirmed Scenario Set and business data.
 - Existing `.evidence` entities, associations, and model metadata.
 - Current cognitive behavior and prior model feedback.
 
 ## Routing sequence
 
-1. Try to explain the Scenario with the existing model first.
+1. Try to explain every Scenario and their cross-Scenario consistency with the existing model first.
 2. Classify the subject:
    - `business`: commitments, roles, KPI/SLA, evidence, or operational variation;
    - `domain`: the problem-domain capability itself;

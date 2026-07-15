@@ -479,7 +479,7 @@ export function executeShowcaseQ2(
   return {
     state: next,
     records,
-    output: `Iteration Showcase Q2 observed for ${showcaseItems(state).length} completed acceptance slice(s).
+    output: `Iteration Showcase Q2 observed for ${showcaseItems(state).length} completed Story plan(s).
 
 ${showcaseItems(state)
   .map(

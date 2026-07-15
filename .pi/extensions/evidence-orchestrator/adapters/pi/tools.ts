@@ -366,7 +366,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Classify the confirmed Scenario before modifying or expanding a model',
     promptGuidelines: [
-      'Use only in Understand after a human confirms one Scenario.',
+      'Use only in Understand after a human confirms the complete Story Scenario Set.',
       'Distinguish business systems, domain systems, and tools before selecting a method.',
       'After calling this tool, stop. Only a human can confirm or override the Profile.',
     ],

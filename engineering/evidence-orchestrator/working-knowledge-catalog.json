@@ -4,7 +4,7 @@
   "entries": [
     {
       "id": "WK-STORY-TQA",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "owner": "Product discovery",
       "cognitive_behaviors": ["complicated", "complex"],
       "skill_path": ".pi/skills/evidence-story-tqa/SKILL.md",
@@ -12,7 +12,7 @@
       "validated_scenarios": [
         "EOV5-004: one-Story TQA and Scenario confirmation"
       ],
-      "latest_feedback": "Keep one high-value business-facing question and one human-confirmed Scenario; product-confirmed interactions may inform acceptance, while Card corrections return to Kickoff instead of mixing Conversation into the lean Story.",
+      "latest_feedback": "Keep one high-value business-facing question at a time, then confirm the complete bounded Scenario Set before Modeling; Card corrections still return to Kickoff.",
       "supersedes": []
     },
     {
@@ -28,7 +28,7 @@
     },
     {
       "id": "WK-MODEL-EXPANSION",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "owner": "Domain modeling",
       "cognitive_behaviors": ["complicated", "complex"],
       "skill_path": ".pi/skills/evidence-model-expansion/SKILL.md",
@@ -37,7 +37,7 @@
         "REG-001-current-workspace-model",
         "EOV5-006: independent model challenge"
       ],
-      "latest_feedback": "Builder proposes minimal structured operations; Challenger remains projection-only and a human confirms the model and ubiquitous language before Tasking.",
+      "latest_feedback": "Builder expands every confirmed Scenario and proposes one minimal operation set; Challenger checks cross-Scenario consistency and regressions before one human model decision.",
       "supersedes": []
     },
     {
@@ -55,7 +55,7 @@
     },
     {
       "id": "WK-TEST-PROCESS",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "owner": "Test strategy",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-test-process/SKILL.md",
@@ -64,12 +64,12 @@
         "EOV5-009: immutable Desk-Checked Tasking",
         "Tasking spec: model proposal applied on the Desk-Checked Pair baseline"
       ],
-      "latest_feedback": "Keep functional context independent from runtime and technical boundaries; every TEST has confirmed model refs and exactly one ordered TASK owner.",
+      "latest_feedback": "Task the complete Story once: every Then has Q2 coverage, shared Q1 support is deduplicated, and every TEST has Scenario/model refs plus one ordered TASK owner.",
       "supersedes": []
     },
     {
       "id": "WK-PAIRING",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "owner": "Delivery",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-pairing/SKILL.md",
@@ -79,7 +79,7 @@
         "EOV5-011: generated execution evidence",
         "Pair spec: separate TASK/TEST cycles on one process step"
       ],
-      "latest_feedback": "One short-lived Driver and one active TASK/TEST at a time; process steps supply boundaries rather than replacing tasks.",
+      "latest_feedback": "One short-lived Driver and one active TASK/TEST at a time across the Story plan; process steps supply boundaries, and Showcase follows only after all Story tests and gates pass.",
       "supersedes": []
     },
     {

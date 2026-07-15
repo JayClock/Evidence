@@ -329,7 +329,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         if (decision.action === 'approve') {
           ctx.ui.notify(
-            `Human approved ${state.approved_test_plan_path}; Pair is ready for acceptance slice ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+            `Human approved ${state.approved_test_plan_path}; Pair is ready for Story ${state.active_work_item?.story_id} / [${state.active_work_item?.scenario_ids.join(', ')}].`,
             'info',
           );
         } else if (decision.action === 'scenario_gap') {

@@ -455,7 +455,7 @@ export interface ActiveWorkItem {
   test_plan: TestPlan;
 }
 
-/** One completed acceptance slice retained inside a larger delivery iteration. */
+/** The completed Story retained for iteration Showcase and Respond. */
 export interface CompletedWorkItem {
   version: 1;
   story_id: string;

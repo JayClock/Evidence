@@ -82,7 +82,7 @@ function appendCompleted(
   return [...prior, item];
 }
 
-/** Human decision at the boundary between a completed acceptance slice and iteration Showcase. */
+/** Human decision at the boundary between a completed Story and its iteration Showcase. */
 export function decideDeliveryIncrement(
   cwd: string,
   action: DeliveryIncrementAction,
