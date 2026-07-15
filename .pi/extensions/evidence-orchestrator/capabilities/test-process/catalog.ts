@@ -4,26 +4,25 @@ import { join, relative } from 'node:path';
 import { findFiles } from '../../iteration/artifact-inventory';
 import type { TestDouble, TestProcessRuntime } from '../../iteration/state';
 
-export interface TestBoundaryDouble {
+interface TestBoundaryDouble {
   boundary: string;
   test_double: TestDouble;
 }
 
-export interface FocusedCommandDefinition {
+interface FocusedCommandDefinition {
   template: string;
   allowed_variables: string[];
 }
 
-export interface TestProcessStep {
+interface TestProcessStep {
   id: string;
   quadrant: 'Q1' | 'Q2';
   functional_contexts: string[];
   purpose: string;
   real_boundaries: string[];
   replaced_boundaries: TestBoundaryDouble[];
-  test_list_template: string;
   nearest_test: { rule: string; roots: string[] };
-  focused_command?: FocusedCommandDefinition;
+  focused_command: FocusedCommandDefinition;
   red: { expected_failure: string };
   green: { done_when: string };
   refactor: { done_when: string };
@@ -32,7 +31,7 @@ export interface TestProcessStep {
 export interface TestProcessDefinition {
   version: 2;
   id: string;
-  owner?: string;
+  owner: string;
   runtime: TestProcessRuntime;
   functional_contexts: string[];
   technical_boundaries: string[];
@@ -41,7 +40,7 @@ export interface TestProcessDefinition {
   quality_gates: string[];
 }
 
-export interface MaterializedFocusedCommand {
+interface MaterializedFocusedCommand {
   step_id: string;
   command: string;
 }
@@ -71,6 +70,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function record(value: unknown, name: string): Record<string, unknown> {
   if (!isRecord(value)) throw new Error(`${name} must be a JSON object.`);
   return value;
+}
+
+function strictRecord(
+  value: unknown,
+  name: string,
+  allowedFields: readonly string[],
+): Record<string, unknown> {
+  const result = record(value, name);
+  const unsupported = Object.keys(result).filter(
+    (field) => !allowedFields.includes(field),
+  );
+  if (unsupported.length > 0) {
+    throw new Error(
+      `${name} contains unsupported fields: ${unsupported.join(', ')}.`,
+    );
+  }
+  return result;
 }
 
 function string(value: unknown, name: string): string {
@@ -152,7 +168,7 @@ function focusedCommand(
   value: unknown,
   name: string,
 ): FocusedCommandDefinition {
-  const source = record(value, name);
+  const source = strictRecord(value, name, ['template', 'allowed_variables']);
   const template = string(source.template, `${name}.template`);
   const allowedVariables = strings(
     source.allowed_variables,
@@ -183,7 +199,11 @@ function readV2(
   source: Record<string, unknown>,
 ): TestProcessDefinition {
   const processRuntime = runtime(source.runtime, `${path}.runtime`);
-  const appliesTo = record(source.applies_to, `${path}.applies_to`);
+  const appliesTo = strictRecord(source.applies_to, `${path}.applies_to`, [
+    'capabilities',
+    'technical_boundaries',
+    'when',
+  ]);
   const capabilities = strings(
     appliesTo.capabilities,
     `${path}.applies_to.capabilities`,
@@ -197,7 +217,19 @@ function readV2(
   }
   const steps = source.steps.map((value, index) => {
     const name = `${path}.steps[${index}]`;
-    const step = record(value, name);
+    const step = strictRecord(value, name, [
+      'id',
+      'purpose',
+      'quadrant',
+      'functional_contexts',
+      'real_boundaries',
+      'replaced_boundaries',
+      'nearest_test',
+      'focused_command',
+      'red',
+      'green',
+      'refactor',
+    ]);
     const contexts = strings(
       step.functional_contexts,
       `${name}.functional_contexts`,
@@ -216,9 +248,10 @@ function readV2(
     }
     const replacedBoundaries = step.replaced_boundaries.map(
       (entry, boundaryIndex) => {
-        const boundary = record(
+        const boundary = strictRecord(
           entry,
           `${name}.replaced_boundaries[${boundaryIndex}]`,
+          ['boundary', 'test_double'],
         );
         return {
           boundary: string(
@@ -247,11 +280,16 @@ function readV2(
     ) {
       throw new Error(`${name} references an undeclared technical boundary.`);
     }
-    const nearest = record(step.nearest_test, `${name}.nearest_test`);
+    const nearest = strictRecord(step.nearest_test, `${name}.nearest_test`, [
+      'rule',
+      'roots',
+    ]);
     const purpose = string(step.purpose, `${name}.purpose`);
-    const red = record(step.red, `${name}.red`);
-    const green = record(step.green, `${name}.green`);
-    const refactor = record(step.refactor, `${name}.refactor`);
+    const red = strictRecord(step.red, `${name}.red`, ['expected_failure']);
+    const green = strictRecord(step.green, `${name}.green`, ['done_when']);
+    const refactor = strictRecord(step.refactor, `${name}.refactor`, [
+      'done_when',
+    ]);
     return {
       id: string(step.id, `${name}.id`),
       quadrant: quadrant(step.quadrant, `${name}.quadrant`),
@@ -259,10 +297,6 @@ function readV2(
       purpose,
       real_boundaries: realBoundaries,
       replaced_boundaries: replacedBoundaries,
-      test_list_template: string(
-        step.test_list_template,
-        `${name}.test_list_template`,
-      ),
       nearest_test: {
         rule: string(nearest.rule, `${name}.nearest_test.rule`),
         roots: strings(nearest.roots, `${name}.nearest_test.roots`),
@@ -304,7 +338,15 @@ export function catalogTestProcessDirectory(cwd: string): string {
 }
 
 export function readTestProcess(path: string): TestProcessDefinition {
-  const source = record(readJson(path), path);
+  const source = strictRecord(readJson(path), path, [
+    'version',
+    'id',
+    'owner',
+    'runtime',
+    'applies_to',
+    'steps',
+    'quality_gates',
+  ]);
   const id = string(source.id, `${path}.id`);
   if (!PROCESS_ID.test(id)) {
     throw new Error(`${path}.id must use lowercase kebab-case.`);
@@ -340,7 +382,7 @@ export function materializeFocusedCommands(
 ): MaterializedFocusedCommand[] {
   const usedVariables = new Set(
     definition.steps.flatMap(
-      ({ focused_command }) => focused_command?.allowed_variables ?? [],
+      ({ focused_command }) => focused_command.allowed_variables,
     ),
   );
   for (const [name, value] of Object.entries(variables)) {
@@ -355,11 +397,6 @@ export function materializeFocusedCommands(
   }
   return definition.steps.map((step) => {
     const focused = step.focused_command;
-    if (!focused) {
-      throw new Error(
-        `Test process ${definition.id} step ${step.id} has no focused command.`,
-      );
-    }
     let command = focused.template;
     for (const name of focused.allowed_variables) {
       const value = variables[name];
@@ -395,48 +432,56 @@ export function validateTestProcessDirectory(
   }
   const vocabularyPath = join(directory, '..', 'runtime-contexts.json');
   if (existsSync(vocabularyPath)) {
-    const vocabulary = record(readJson(vocabularyPath), vocabularyPath);
-    if (vocabulary.version === 2) {
-      if (!Array.isArray(vocabulary.functional_contexts)) {
+    const vocabulary = strictRecord(readJson(vocabularyPath), vocabularyPath, [
+      'version',
+      'purpose',
+      'functional_contexts',
+      'technical_boundaries',
+    ]);
+    if (vocabulary.version !== 2) {
+      throw new Error(`${vocabularyPath}.version must be 2.`);
+    }
+    if (!Array.isArray(vocabulary.functional_contexts)) {
+      throw new Error(
+        `${vocabularyPath}.functional_contexts must be an array.`,
+      );
+    }
+    const capabilities = vocabulary.functional_contexts.map((entry, index) =>
+      string(
+        strictRecord(entry, `${vocabularyPath}.functional_contexts[${index}]`, [
+          'id',
+          'description',
+        ]).id,
+        `${vocabularyPath}.functional_contexts[${index}].id`,
+      ),
+    );
+    const boundaries = strictRecord(
+      vocabulary.technical_boundaries,
+      `${vocabularyPath}.technical_boundaries`,
+      [...RUNTIMES],
+    );
+    for (const definition of definitions) {
+      if (
+        !definition.functional_contexts.every((context) =>
+          capabilities.includes(context),
+        )
+      ) {
         throw new Error(
-          `${vocabularyPath}.functional_contexts must be an array.`,
+          `${definition.id} references a functional context outside ${vocabularyPath}.`,
         );
       }
-      const capabilities = vocabulary.functional_contexts.map((entry, index) =>
-        string(
-          record(entry, `${vocabularyPath}.functional_contexts[${index}]`).id,
-          `${vocabularyPath}.functional_contexts[${index}].id`,
-        ),
+      const runtimeBoundaries = strings(
+        boundaries[definition.runtime],
+        `${vocabularyPath}.technical_boundaries.${definition.runtime}`,
       );
-      const boundaries = record(
-        vocabulary.technical_boundaries,
-        `${vocabularyPath}.technical_boundaries`,
-      );
-      for (const definition of definitions.filter(
-        ({ version }) => version === 2,
-      )) {
-        if (
-          !definition.functional_contexts.every((context) =>
-            capabilities.includes(context),
-          )
-        ) {
-          throw new Error(
-            `${definition.id} references a functional context outside ${vocabularyPath}.`,
-          );
-        }
-        const runtimeBoundaries = strings(
-          boundaries[definition.runtime],
-          `${vocabularyPath}.technical_boundaries.${definition.runtime}`,
+      if (
+        !definition.technical_boundaries.every((boundary) =>
+          runtimeBoundaries.includes(boundary),
+        )
+      ) {
+        throw new Error(
+          `${definition.id} references a technical boundary outside ${vocabularyPath}.`,
         );
-        if (
-          !definition.technical_boundaries.every((boundary) =>
-            runtimeBoundaries.includes(boundary),
-          )
-        ) {
-          throw new Error(
-            `${definition.id} references a technical boundary outside ${vocabularyPath}.`,
-          );
-        }
       }
     }
   }
@@ -459,7 +504,7 @@ export function matchingTestProcesses(
   );
 }
 
-export function matchingTestProcessesInDirectories(
+function matchingTestProcessesInDirectories(
   cwd: string,
   directories: string[],
   requestedRuntime: TestProcessRuntime,

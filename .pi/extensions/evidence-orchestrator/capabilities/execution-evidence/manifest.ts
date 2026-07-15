@@ -200,8 +200,8 @@ function approvedPlanData(
       approved.materialized_plan_path !== selection.materialized_plan_path ||
       JSON.stringify(approved.functional_contexts) !==
         JSON.stringify(selection.functional_contexts) ||
-      JSON.stringify(approved.technical_boundaries ?? []) !==
-        JSON.stringify(selection.technical_boundaries ?? []) ||
+      JSON.stringify(approved.technical_boundaries) !==
+        JSON.stringify(selection.technical_boundaries) ||
       JSON.stringify(approved.selected_step_ids) !==
         JSON.stringify(selection.selected_step_ids)
     ) {
@@ -215,9 +215,7 @@ function approvedPlanData(
   }
   const selectedStepKeys = new Set(
     selections.flatMap((selection) =>
-      (selection.selected_step_ids ?? []).map(
-        (stepId) => `${selection.id}/${stepId}`,
-      ),
+      selection.selected_step_ids.map((stepId) => `${selection.id}/${stepId}`),
     ),
   );
   const testIds = new Set(tests.map(({ id }) => id));
@@ -292,8 +290,7 @@ function selectedSteps(
   selection: TestProcessSelection,
 ): ReturnType<typeof readTestProcess>['steps'] {
   const definition = readTestProcess(join(cwd, selection.path));
-  const ids =
-    selection.selected_step_ids ?? definition.steps.map(({ id }) => id);
+  const ids = selection.selected_step_ids;
   const steps = definition.steps.filter(({ id }) => ids.includes(id));
   if (steps.length !== ids.length) {
     throw new Error(
@@ -532,7 +529,7 @@ function processManifest(
     id: selection.id,
     runtime: selection.runtime,
     functional_contexts: [...selection.functional_contexts],
-    technical_boundaries: [...(selection.technical_boundaries ?? [])],
+    technical_boundaries: [...selection.technical_boundaries],
     definition_sha256: selection.definition_sha256,
     test_plan_sha256: selection.materialized_sha256,
     steps,
@@ -550,7 +547,7 @@ function showcaseManifest(
     return selectedSteps(cwd, selection)
       .filter(({ quadrant }) => quadrant === 'Q2')
       .map((step) => {
-        const command = selection.focused_commands?.find(
+        const command = selection.focused_commands.find(
           ({ step_id }) => step_id === step.id,
         )?.command;
         if (!command) {
@@ -623,7 +620,7 @@ function buildManifest(
   workItem: ActiveWorkItem,
 ): ExecutionManifest {
   const processes = selectedTestProcesses(workItem);
-  if (processes.length === 0 || workItem.test_plan?.version !== 2) {
+  if (processes.length === 0 || workItem.test_plan.version !== 2) {
     throw new Error('Execution manifest requires an approved v2 test plan.');
   }
   if (!state.approved_test_plan_path) {

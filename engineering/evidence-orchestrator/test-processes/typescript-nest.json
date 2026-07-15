@@ -26,7 +26,6 @@
       ],
       "real_boundaries": ["nest-domain"],
       "replaced_boundaries": [],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Use the test adjacent to the owning Nest domain module.",
         "roots": ["libs/server-nest/domain/src"]
@@ -54,7 +53,6 @@
       "replaced_boundaries": [
         { "boundary": "prisma-store", "test_double": "fake" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Extend the nearest repository contract or in-memory adapter test.",
         "roots": ["libs/server-nest/persistent/src"]
@@ -87,7 +85,6 @@
       "replaced_boundaries": [
         { "boundary": "prisma-store", "test_double": "fake" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Extend the acceptance test nearest the owning controller module.",
         "roots": ["apps/server-nest/src", "libs/server-nest/api/src"]

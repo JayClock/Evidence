@@ -32,7 +32,6 @@ const validProcessV2 = {
       functional_contexts: ['workspace'],
       real_boundaries: ['rust-domain'],
       replaced_boundaries: [],
-      test_list_template: 'evidence-test-list-v1',
       nearest_test: {
         rule: 'Use the owning domain test.',
         roots: ['libs/server/domain/src'],
@@ -52,7 +51,6 @@ const validProcessV2 = {
       functional_contexts: ['workspace'],
       real_boundaries: ['axum-api', 'rust-domain'],
       replaced_boundaries: [{ boundary: 'seaorm-store', test_double: 'fake' }],
-      test_list_template: 'evidence-test-list-v1',
       nearest_test: {
         rule: 'Use the owning API test.',
         roots: ['libs/server/api/src'],
@@ -84,6 +82,66 @@ describe('test-processes', () => {
     expect(() => readTestProcess(`${cwd}/process.json`)).toThrow(
       'version must be 2',
     );
+  });
+
+  it('rejects retired step metadata instead of silently accepting it', () => {
+    const cwd = workspace();
+    const process = structuredClone(validProcessV2);
+    Object.assign(process.steps[0], {
+      test_list_template: 'evidence-test-list-v1',
+    });
+    write(cwd, 'process.json', JSON.stringify(process));
+
+    expect(() => readTestProcess(`${cwd}/process.json`)).toThrow(
+      'contains unsupported fields: test_list_template',
+    );
+  });
+
+  it('rejects retired runtime aliases in the active vocabulary', () => {
+    const cwd = workspace();
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/runtime-contexts.json',
+      JSON.stringify({
+        version: 2,
+        functional_contexts: [{ id: 'workspace' }],
+        technical_boundaries: {
+          rust: ['rust-domain', 'seaorm-store', 'axum-api'],
+        },
+        legacy_v1_runtime_contexts: { rust: ['rust-api'] },
+      }),
+    );
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/test-processes/process.json',
+      JSON.stringify(validProcessV2),
+    );
+
+    expect(() =>
+      validateTestProcessDirectory(
+        `${cwd}/engineering/evidence-orchestrator/test-processes`,
+      ),
+    ).toThrow('contains unsupported fields: legacy_v1_runtime_contexts');
+  });
+
+  it('rejects a pre-v2 runtime vocabulary instead of silently skipping validation', () => {
+    const cwd = workspace();
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/runtime-contexts.json',
+      JSON.stringify({ version: 1 }),
+    );
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/test-processes/process.json',
+      JSON.stringify(validProcessV2),
+    );
+
+    expect(() =>
+      validateTestProcessDirectory(
+        `${cwd}/engineering/evidence-orchestrator/test-processes`,
+      ),
+    ).toThrow('runtime-contexts.json.version must be 2');
   });
 
   it('parses v2 ordered boundaries, doubles, focused feedback, and completion rules', () => {

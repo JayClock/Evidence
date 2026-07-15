@@ -26,7 +26,6 @@
       ],
       "real_boundaries": ["rust-domain"],
       "replaced_boundaries": [],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Place the test in the owning domain module before changing adapters.",
         "roots": ["libs/server/domain/src/domain"]
@@ -54,7 +53,6 @@
       "replaced_boundaries": [
         { "boundary": "seaorm-store", "test_double": "fake" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Extend the shared persistence contract and invoke it from FakeUsers tests.",
         "roots": ["libs/server/persistent/src/persistent/test_support.rs"]
@@ -87,7 +85,6 @@
       "replaced_boundaries": [
         { "boundary": "seaorm-store", "test_double": "fake" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Extend the API test nearest the owning Axum resource module.",
         "roots": ["libs/server/api/src/api"]

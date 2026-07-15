@@ -26,7 +26,6 @@
       ],
       "real_boundaries": ["tauri-shell"],
       "replaced_boundaries": [{ "boundary": "webview", "test_double": "stub" }],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Place the Rust test next to the owning Tauri command or shell module.",
         "roots": ["apps/desktop/src-tauri/src"]
@@ -57,7 +56,6 @@
       ],
       "real_boundaries": ["tauri-shell", "webview"],
       "replaced_boundaries": [],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Extend the nearest desktop integration test for the selected Scenario.",
         "roots": ["apps/desktop/src-tauri"]

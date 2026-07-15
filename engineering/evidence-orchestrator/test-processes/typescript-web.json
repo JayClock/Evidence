@@ -33,7 +33,6 @@
       "replaced_boundaries": [
         { "boundary": "rest-client", "test_double": "stub" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Colocate the test with the changed feature component or hook.",
         "roots": ["libs/web", "apps/web/src"]
@@ -66,7 +65,6 @@
       "replaced_boundaries": [
         { "boundary": "http-server", "test_double": "mock" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Use the test adjacent to the API resource module.",
         "roots": ["libs/web"]
@@ -99,7 +97,6 @@
       "replaced_boundaries": [
         { "boundary": "http-server", "test_double": "stub" }
       ],
-      "test_list_template": "evidence-test-list-v1",
       "nearest_test": {
         "rule": "Extend the nearest rendered-route acceptance test for the selected Scenario.",
         "roots": ["apps/web/src", "libs/web"]
