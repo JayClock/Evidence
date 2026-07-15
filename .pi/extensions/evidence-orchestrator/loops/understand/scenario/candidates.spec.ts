@@ -1,15 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { readState, writeState } from '../iteration/state-repository';
+import { DEFAULT_STATE } from '../../../iteration/default-state';
+import { readState, writeState } from '../../../iteration/state-repository';
 import {
   cleanupWorkspaces,
   workspace,
   writeIterationArtifact,
-} from '../tests/support';
-import { askClarification } from './clarifications';
-import { decideUnderstanding, proposeScenarioDrafts } from './scenarios';
+} from '../../../tests/support';
+import { askClarification } from '../tqa/conversation';
+import { decideUnderstanding, proposeScenarioDrafts } from './candidates';
 
 function prepareUnderstand(cwd: string): void {
   writeIterationArtifact(

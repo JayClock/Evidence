@@ -2,10 +2,10 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
-import { confirmModelingProfile } from '../evidence/modeling';
+import { confirmModelingProfile } from '../loops/understand/modeling/profile';
 import { decideKickoff } from '../loops/kickoff/story-decision';
 import { decideKnowledgeResponse } from '../evidence/respond';
-import { decideUnderstanding } from '../requirements/scenarios';
+import { decideUnderstanding } from '../loops/understand/scenario/candidates';
 import { decideTasking } from '../testing/tasking';
 import {
   decideShowcase,

@@ -2,46 +2,25 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { artifactRelativePath } from '../iteration/artifact-layout';
-import { readState, writeState } from '../iteration/state-repository';
+import { artifactRelativePath } from '../../../iteration/artifact-layout';
+import { readState, writeState } from '../../../iteration/state-repository';
 import type {
   ConfirmedModelingProfile,
   ModelChangeProposal,
-  ModelingMethod,
-  ModelingProfileProposal,
-  ModelingSubject,
   ModelOperation,
   WorkflowState,
-} from '../iteration/state';
-import { findFiles } from './artifact-index';
-import { validateEightXModel } from './eight-x';
+} from '../../../iteration/state';
+import { findFiles } from '../../../evidence/artifact-index';
+import { validateEightXModel } from './eight-x-validation';
+import {
+  modelingStrings as strings,
+  modelingText as requiredText,
+  requireModelingState,
+} from './modeling-state';
 
-const SUBJECTS = new Set<ModelingSubject>(['business', 'domain', 'tool']);
-const METHODS = new Set<ModelingMethod>([
-  'none',
-  'object',
-  'event',
-  'four_color',
-  'eight_x_flow',
-  'algorithmic',
-]);
 const MODEL_PATH =
   /^\.evidence\/(entities|associations)\/([a-z0-9][a-z0-9_-]*)\.yaml$/;
 const MODEL_ID = /^[a-z0-9][a-z0-9_-]*$/;
-
-export interface ModelingProfileInput {
-  subject: ModelingSubject;
-  method: ModelingMethod;
-  modelChangeRequired: boolean | 'unknown';
-  reason: string;
-}
-
-export interface ConfirmModelingProfileInput {
-  reason: string;
-  subject?: ModelingSubject;
-  method?: ModelingMethod;
-  modelChangeRequired?: boolean;
-}
 
 export interface ModelExpansionInput {
   reason: string;
@@ -57,137 +36,6 @@ export interface ModelExpansionInput {
   invariants: string[];
   timeline: string[];
   operations: ModelOperation[];
-}
-
-function requiredText(value: string, name: string): string {
-  const normalized = value.trim();
-  if (!normalized) throw new Error(`${name} must not be empty.`);
-  return normalized;
-}
-
-function strings(value: string[], name: string, allowEmpty = true): string[] {
-  if (!Array.isArray(value) || (!allowEmpty && value.length === 0)) {
-    throw new Error(
-      `${name} must be ${allowEmpty ? 'an' : 'a non-empty'} array.`,
-    );
-  }
-  const normalized = value.map((entry, index) =>
-    requiredText(entry, `${name}[${index}]`),
-  );
-  if (new Set(normalized).size !== normalized.length) {
-    throw new Error(`${name} must not contain duplicates.`);
-  }
-  return normalized;
-}
-
-function requireModelingState(cwd: string): WorkflowState {
-  const state = readState(cwd);
-  if (
-    state.loop !== 'understand' ||
-    state.understand_stage !== 'modeling' ||
-    !state.confirmed_scenario
-  ) {
-    throw new Error(
-      'Modeling is only available for a human-confirmed Scenario in the v5 Understand modeling stage.',
-    );
-  }
-  if (state.halted)
-    throw new Error(`Iteration is halted: ${state.halted.reason}`);
-  return state;
-}
-
-function validateProfile(
-  subject: ModelingSubject,
-  method: ModelingMethod,
-  modelChangeRequired: boolean | 'unknown',
-): void {
-  if (!SUBJECTS.has(subject))
-    throw new Error(`Unsupported modeling subject: ${subject}.`);
-  if (!METHODS.has(method))
-    throw new Error(`Unsupported modeling method: ${method}.`);
-  if (![true, false, 'unknown'].includes(modelChangeRequired)) {
-    throw new Error(
-      `Unsupported model-change requirement: ${String(modelChangeRequired)}.`,
-    );
-  }
-  if (method === 'eight_x_flow' && subject !== 'business') {
-    throw new Error('eight_x_flow is only valid for a business system.');
-  }
-  if (method === 'none' && subject !== 'tool') {
-    throw new Error(
-      'method=none is only valid for a tool or glue-code subject.',
-    );
-  }
-}
-
-export function proposeModelingProfile(
-  cwd: string,
-  input: ModelingProfileInput,
-  now = new Date().toISOString(),
-): WorkflowState {
-  const state = requireModelingState(cwd);
-  if (state.modeling_stage !== 'profile') {
-    throw new Error(
-      `A modeling Profile cannot be proposed in ${state.modeling_stage ?? 'unset'}.`,
-    );
-  }
-  validateProfile(input.subject, input.method, input.modelChangeRequired);
-  const proposal: ModelingProfileProposal = {
-    version: 1,
-    subject: input.subject,
-    method: input.method,
-    model_change_required: input.modelChangeRequired,
-    reason: requiredText(input.reason, 'Modeling Profile reason'),
-    proposed_at: now,
-  };
-  return writeState(cwd, {
-    ...state,
-    modeling_stage: 'profile_review',
-    modeling_profile_proposal: proposal,
-  });
-}
-
-export function confirmModelingProfile(
-  cwd: string,
-  input: ConfirmModelingProfileInput,
-  now = new Date().toISOString(),
-): WorkflowState {
-  const state = requireModelingState(cwd);
-  if (state.modeling_stage !== 'profile_review') {
-    throw new Error('No modeling Profile is awaiting a human decision.');
-  }
-  const proposal = state.modeling_profile_proposal;
-  if (!proposal)
-    throw new Error('The AI modeling Profile proposal is missing.');
-  const subject = input.subject ?? proposal.subject;
-  const method = input.method ?? proposal.method;
-  const modelChangeRequired =
-    input.modelChangeRequired ??
-    (proposal.model_change_required === 'unknown'
-      ? undefined
-      : proposal.model_change_required);
-  if (modelChangeRequired === undefined) {
-    throw new Error(
-      'The proposed model-change requirement is unknown; the human must explicitly set true or false.',
-    );
-  }
-  validateProfile(subject, method, modelChangeRequired);
-  const profile: ConfirmedModelingProfile = {
-    version: 1,
-    subject,
-    method,
-    model_change_required: modelChangeRequired,
-    reason: requiredText(input.reason, 'Modeling Profile confirmation reason'),
-    confirmed_by: 'human',
-    confirmed_at: now,
-    proposal,
-  };
-  return writeState(cwd, {
-    ...state,
-    modeling_stage: 'expansion',
-    modeling_profile_proposal: undefined,
-    modeling_profile: profile,
-  });
 }
 
 function git(cwd: string, args: string[]): string {

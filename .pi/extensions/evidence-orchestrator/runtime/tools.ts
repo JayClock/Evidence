@@ -1,17 +1,15 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { collectArtifacts, collectCodeFiles } from '../evidence/artifact-index';
 import { proposeKnowledgeResponse } from '../evidence/respond';
-import { recordModelChallenge } from '../evidence/model-challenge';
-import {
-  proposeModelingProfile,
-  recordModelAnalysis,
-} from '../evidence/modeling';
+import { recordModelChallenge } from '../loops/understand/modeling/challenge';
+import { recordModelAnalysis } from '../loops/understand/modeling/candidate-model';
+import { proposeModelingProfile } from '../loops/understand/modeling/profile';
 import {
   answerClarification,
   askClarification,
-} from '../requirements/clarifications';
+} from '../loops/understand/tqa/conversation';
 import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
-import { proposeScenarioDrafts } from '../requirements/scenarios';
+import { proposeScenarioDrafts } from '../loops/understand/scenario/candidates';
 import {
   startIterationFromIssueAsync,
   syncIssueSourceAsync,

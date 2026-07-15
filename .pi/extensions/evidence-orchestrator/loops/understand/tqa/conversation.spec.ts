@@ -1,13 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { readState, writeState } from '../iteration/state-repository';
+import { DEFAULT_STATE } from '../../../iteration/default-state';
+import { readState, writeState } from '../../../iteration/state-repository';
 import {
   answerClarification,
   askClarification,
   waivePendingClarification,
-} from './clarifications';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+} from './conversation';
+import { cleanupWorkspaces, workspace, write } from '../../../tests/support';
 
 afterEach(cleanupWorkspaces);
 

@@ -1,5 +1,5 @@
 import { ensureProjectDirs, missingPaths } from '../evidence/artifact-index';
-import { prepareModelProjection } from '../evidence/model-projection';
+import { prepareModelProjection } from '../loops/understand/modeling/projection';
 import {
   pairDeterministicAction,
   pairDriverMode,

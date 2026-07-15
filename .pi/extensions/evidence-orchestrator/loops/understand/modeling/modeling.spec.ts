@@ -8,16 +8,15 @@ import {
   workspace,
   write,
   writeIterationArtifact,
-} from '../tests/support';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { writeState } from '../iteration/state-repository';
-import type { ModelingMethod, ModelingSubject } from '../iteration/state';
+} from '../../../tests/support';
+import { DEFAULT_STATE } from '../../../iteration/default-state';
+import { writeState } from '../../../iteration/state-repository';
+import type { ModelingMethod, ModelingSubject } from '../../../iteration/state';
 import {
   applyModelChangeProposal,
-  confirmModelingProfile,
-  proposeModelingProfile,
   recordModelAnalysis,
-} from './modeling';
+} from './candidate-model';
+import { confirmModelingProfile, proposeModelingProfile } from './profile';
 
 function commit(cwd: string, message: string): void {
   execFileSync('git', ['add', '.'], { cwd });

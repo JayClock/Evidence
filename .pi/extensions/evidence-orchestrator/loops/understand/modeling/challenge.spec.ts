@@ -8,21 +8,17 @@ import {
   workspace,
   write,
   writeIterationArtifact,
-} from '../tests/support';
-import { DEFAULT_STATE } from '../iteration/default-state';
-import { writeState } from '../iteration/state-repository';
-import { recordModelChallenge } from './model-challenge';
-import {
-  confirmModelingProfile,
-  modelContentSha256,
-  proposeModelingProfile,
-  recordModelAnalysis,
-} from './modeling';
+} from '../../../tests/support';
+import { DEFAULT_STATE } from '../../../iteration/default-state';
+import { writeState } from '../../../iteration/state-repository';
+import { recordModelChallenge } from './challenge';
+import { modelContentSha256, recordModelAnalysis } from './candidate-model';
+import { confirmModelingProfile, proposeModelingProfile } from './profile';
 import {
   prepareModelProjection,
   projectCandidateModel,
   validateModelRegressions,
-} from './model-projection';
+} from './projection';
 
 function commit(cwd: string): void {
   execFileSync('git', ['add', '.'], { cwd });

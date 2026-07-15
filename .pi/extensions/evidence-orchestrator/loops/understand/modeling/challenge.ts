@@ -1,19 +1,19 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { artifactRelativePath } from '../iteration/artifact-layout';
-import { transitionLoopState } from '../iteration/transition-graph';
-import { readState, writeState } from '../iteration/state-repository';
+import { artifactRelativePath } from '../../../iteration/artifact-layout';
+import { transitionLoopState } from '../../../iteration/transition-graph';
+import { readState, writeState } from '../../../iteration/state-repository';
 import type {
   FeedbackTarget,
   ModelChallengeOutcome,
   ModelChallengeRecord,
   WorkflowState,
-} from '../iteration/state';
+} from '../../../iteration/state';
 import {
   prepareModelProjection,
   projectCandidateModel,
   validateModelRegressions,
-} from './model-projection';
+} from './projection';
 
 export interface ModelChallengeInput {
   outcome: ModelChallengeOutcome;

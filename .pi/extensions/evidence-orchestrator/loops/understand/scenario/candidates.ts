@@ -3,16 +3,16 @@ import { dirname } from 'node:path';
 import {
   artifactPath,
   artifactRelativePath,
-} from '../iteration/artifact-layout';
-import { readState, writeState } from '../iteration/state-repository';
+} from '../../../iteration/artifact-layout';
+import { readState, writeState } from '../../../iteration/state-repository';
 import type {
   ConfirmedScenario,
   ScenarioDraft,
   UnderstandingDecision,
   UnderstandingDecisionAction,
   WorkflowState,
-} from '../iteration/state';
-import { waivePendingClarification } from './clarifications';
+} from '../../../iteration/state';
+import { waivePendingClarification } from '../tqa/conversation';
 
 const UNDERSTANDING_ACTIONS = new Set<UnderstandingDecisionAction>([
   'confirmed',

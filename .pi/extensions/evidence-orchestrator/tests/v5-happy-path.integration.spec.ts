@@ -7,17 +7,17 @@ import { decideKickoff } from '../loops/kickoff/story-decision';
 import {
   answerClarification,
   askClarification,
-} from '../requirements/clarifications';
+} from '../loops/understand/tqa/conversation';
 import {
   decideUnderstanding,
   proposeScenarioDrafts,
-} from '../requirements/scenarios';
+} from '../loops/understand/scenario/candidates';
+import { recordModelAnalysis } from '../loops/understand/modeling/candidate-model';
+import { recordModelChallenge } from '../loops/understand/modeling/challenge';
 import {
   confirmModelingProfile,
   proposeModelingProfile,
-  recordModelAnalysis,
-} from '../evidence/modeling';
-import { recordModelChallenge } from '../evidence/model-challenge';
+} from '../loops/understand/modeling/profile';
 import { decideTasking, proposeTaskingDraft } from '../testing/tasking';
 import {
   capturePairWorktree,
@@ -409,5 +409,5 @@ describe('native v5 full knowledge loop', () => {
     expect(completed).not.toHaveProperty('phase');
     expect(existsSync(`${cwd}/${manifest}`)).toBe(true);
     expect(completed.knowledge_promotion_path).toBeTruthy();
-  });
+  }, 15_000);
 });

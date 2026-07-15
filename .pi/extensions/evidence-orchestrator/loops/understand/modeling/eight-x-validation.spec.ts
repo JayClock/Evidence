@@ -5,7 +5,7 @@ import {
   eightXValidationIssues,
   validateEightXModel,
   type EightXModelSource,
-} from './eight-x';
+} from './eight-x-validation';
 
 function entity(id: string, content: string): EightXModelSource {
   return {

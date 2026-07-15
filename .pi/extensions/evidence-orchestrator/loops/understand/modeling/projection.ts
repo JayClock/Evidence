@@ -1,12 +1,18 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { artifactRelativePath } from '../iteration/artifact-layout';
-import { readState, writeState } from '../iteration/state-repository';
-import type { ModelProjectionRecord, WorkflowState } from '../iteration/state';
-import { findFiles } from './artifact-index';
-import { eightXValidationIssues } from './eight-x';
-import { candidateModelSources, type CandidateModelSource } from './modeling';
+import { artifactRelativePath } from '../../../iteration/artifact-layout';
+import { readState, writeState } from '../../../iteration/state-repository';
+import type {
+  ModelProjectionRecord,
+  WorkflowState,
+} from '../../../iteration/state';
+import { findFiles } from '../../../evidence/artifact-index';
+import { eightXValidationIssues } from './eight-x-validation';
+import {
+  candidateModelSources,
+  type CandidateModelSource,
+} from './candidate-model';
 
 export interface ModelRegressionScenario {
   version: 1;
