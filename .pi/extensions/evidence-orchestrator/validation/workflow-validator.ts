@@ -10,6 +10,7 @@ import {
 } from '../evidence/knowledge';
 import { validateWorkingKnowledgeCatalog } from '../evidence/working-knowledge';
 import { readStateSnapshot } from '../workflow/state-store';
+import { validateSourceBoundaries } from './source-boundaries';
 import {
   catalogTestProcessDirectory,
   validateTestProcessDirectory,
@@ -17,6 +18,7 @@ import {
 
 /** Deterministic CI validation for native v5 or immutable terminal legacy state. */
 export function validateWorkflow(cwd: string): void {
+  validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
   const state = readStateSnapshot(cwd);
   const root = iterationRoot(cwd, state);
   if (!existsSync(root)) {

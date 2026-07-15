@@ -1,0 +1,77 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import { cleanupWorkspaces, workspace, write } from '../tests/support';
+import {
+  MIGRATION_SOURCE_ZONES,
+  TARGET_SOURCE_ZONES,
+  sourceBoundaryViolations,
+  validateSourceBoundaries,
+} from './source-boundaries';
+
+afterEach(cleanupWorkspaces);
+
+describe('semantic source boundaries', () => {
+  it('defines loop slices, shared capabilities, adapters, and isolated compatibility', () => {
+    expect(TARGET_SOURCE_ZONES).toEqual([
+      'iteration',
+      'loops',
+      'capabilities',
+      'adapters',
+      'compatibility',
+      'validation',
+      'test-support',
+    ]);
+    expect(MIGRATION_SOURCE_ZONES).toEqual([
+      'workflow',
+      'requirements',
+      'evidence',
+      'testing',
+      'runtime',
+      'subagents',
+      'tests',
+    ]);
+  });
+
+  it('accepts the repository while explicitly tracking migration source directories', () => {
+    expect(() =>
+      validateSourceBoundaries(
+        `${process.cwd()}/.pi/extensions/evidence-orchestrator`,
+      ),
+    ).not.toThrow();
+  });
+
+  it('rejects cross-loop private imports and adapter dependencies from loop code', () => {
+    const root = workspace();
+    write(root, 'loops/understand/state.ts', 'export const state = true;\n');
+    write(root, 'adapters/pi/client.ts', 'export const client = true;\n');
+    write(
+      root,
+      'loops/kickoff/candidate.ts',
+      "import '../understand/state';\nimport '../../adapters/pi/client';\n",
+    );
+
+    expect(sourceBoundaryViolations(root)).toEqual([
+      expect.objectContaining({
+        source: 'loops/kickoff/candidate.ts',
+        target: 'loops/understand/state.ts',
+      }),
+      expect.objectContaining({
+        source: 'loops/kickoff/candidate.ts',
+        target: 'adapters/pi/client.ts',
+      }),
+    ]);
+  });
+
+  it('can close the migration gate once every old technical directory is empty', () => {
+    const root = workspace();
+    write(root, 'runtime/commands.ts', 'export const old = true;\n');
+
+    expect(
+      sourceBoundaryViolations(root, { allowMigrationSources: false }),
+    ).toEqual([
+      {
+        source: 'runtime/commands.ts',
+        reason: 'Source remains in a pre-v5 technical directory.',
+      },
+    ]);
+  });
+});
