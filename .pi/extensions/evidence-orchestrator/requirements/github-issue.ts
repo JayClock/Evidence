@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ensureProjectDirs } from '../evidence/artifact-index';
 import { iterationRoot, nextIterationId } from '../workflow/iteration-paths';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import {
   assertCanStartV5Iteration,
   readState,
@@ -300,7 +300,7 @@ export function startIterationFromIssue(
     iteration_id: nextIterationId(cwd),
     workflow_version: 5,
     loop: 'kickoff',
-    pi: { enabled: true, version: 5, execution_evidence_version: 1 },
+    pi: { enabled: true, version: 5 },
   });
   return persistSnapshot(cwd, state, snapshot);
 }
@@ -319,7 +319,7 @@ export async function startIterationFromIssueAsync(
     iteration_id: nextIterationId(cwd),
     workflow_version: 5,
     loop: 'kickoff',
-    pi: { enabled: true, version: 5, execution_evidence_version: 1 },
+    pi: { enabled: true, version: 5 },
   });
   return persistSnapshot(cwd, state, snapshot);
 }
@@ -382,9 +382,9 @@ export function syncIssueSource(
   runner: GitHubCliRunner = defaultRunner,
 ): WorkflowState {
   const state = readState(cwd);
-  if (state.phase !== 'frame') {
+  if (state.loop !== 'kickoff') {
     throw new Error(
-      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to frame.`,
+      `Cannot refresh the Issue snapshot in ${state.loop}. Start a new iteration or return to Kickoff.`,
     );
   }
   const source = requireIssueSource(state);
@@ -402,9 +402,9 @@ export async function syncIssueSourceAsync(
   signal?: AbortSignal,
 ): Promise<WorkflowState> {
   const state = readState(cwd);
-  if (state.phase !== 'frame') {
+  if (state.loop !== 'kickoff') {
     throw new Error(
-      `Cannot refresh the Issue snapshot in phase ${state.phase}. Start a new iteration or return to frame.`,
+      `Cannot refresh the Issue snapshot in ${state.loop}. Start a new iteration or return to Kickoff.`,
     );
   }
   const source = requireIssueSource(state);

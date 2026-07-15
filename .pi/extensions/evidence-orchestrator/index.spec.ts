@@ -27,6 +27,6 @@ describe('index', () => {
     );
     expect(commands).toContain('evidence-run');
     expect(tools).toContain('evidence_orchestrator_status');
-    expect(messageRenderers).toContain('evidence-orchestrator-phase-result');
+    expect(messageRenderers).toContain('evidence-orchestrator-activity-result');
   });
 });

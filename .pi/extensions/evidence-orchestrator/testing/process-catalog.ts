@@ -17,11 +17,7 @@ export interface FocusedCommandDefinition {
 export interface TestProcessStep {
   id: string;
   quadrant: 'Q1' | 'Q2';
-  /** Legacy compatibility projection of the first capability. */
-  functional_context: string;
   functional_contexts: string[];
-  /** Legacy compatibility projection of the first replaced boundary. */
-  test_double: TestDouble;
   purpose: string;
   real_boundaries: string[];
   replaced_boundaries: TestBoundaryDouble[];
@@ -31,24 +27,16 @@ export interface TestProcessStep {
   red: { expected_failure: string };
   green: { done_when: string };
   refactor: { done_when: string };
-  /** Legacy task text retained for old evidence readers. */
-  task: string;
 }
 
-/** Normalized in-memory definition for both source schema versions. */
 export interface TestProcessDefinition {
-  version: 1 | 2;
+  version: 2;
   id: string;
   owner?: string;
   runtime: TestProcessRuntime;
   functional_contexts: string[];
   technical_boundaries: string[];
-  applies_when?: string;
-  /** Legacy compatibility projection. */
-  applies_to: {
-    runtime: TestProcessRuntime;
-    functional_contexts: string[];
-  };
+  applies_when: string;
   steps: TestProcessStep[];
   quality_gates: string[];
 }
@@ -160,71 +148,6 @@ function testDouble(value: unknown, name: string): TestDouble {
   return result;
 }
 
-function readV1(
-  path: string,
-  source: Record<string, unknown>,
-): TestProcessDefinition {
-  const appliesTo = record(source.applies_to, `${path}.applies_to`);
-  const processRuntime = runtime(
-    appliesTo.runtime,
-    `${path}.applies_to.runtime`,
-  );
-  const contexts = strings(
-    appliesTo.functional_contexts,
-    `${path}.applies_to.functional_contexts`,
-  );
-  if (!Array.isArray(source.steps) || source.steps.length === 0) {
-    throw new Error(`${path}.steps must be a non-empty array.`);
-  }
-  const steps = source.steps.map((value, index) => {
-    const step = record(value, `${path}.steps[${index}]`);
-    const context = string(
-      step.functional_context,
-      `${path}.steps[${index}].functional_context`,
-    );
-    if (!contexts.includes(context)) {
-      throw new Error(
-        `${path}.steps[${index}].functional_context must be declared by applies_to.`,
-      );
-    }
-    const double = testDouble(
-      step.test_double,
-      `${path}.steps[${index}].test_double`,
-    );
-    const task = string(step.task, `${path}.steps[${index}].task`);
-    return {
-      id: string(step.id, `${path}.steps[${index}].id`),
-      quadrant: quadrant(step.quadrant, `${path}.steps[${index}].quadrant`),
-      functional_context: context,
-      functional_contexts: [context],
-      test_double: double,
-      purpose: task,
-      real_boundaries: [],
-      replaced_boundaries:
-        double === 'real'
-          ? []
-          : [{ boundary: 'legacy-unspecified', test_double: double }],
-      test_list_template: 'legacy-v1-task',
-      nearest_test: { rule: 'legacy-unspecified', roots: [] },
-      red: { expected_failure: 'legacy expected behavior failure' },
-      green: { done_when: 'legacy focused behavior passes' },
-      refactor: { done_when: 'legacy tests remain green' },
-      task,
-    } satisfies TestProcessStep;
-  });
-  validateQuadrants(path, steps);
-  return {
-    version: 1,
-    id: string(source.id, `${path}.id`),
-    runtime: processRuntime,
-    functional_contexts: contexts,
-    technical_boundaries: [],
-    applies_to: { runtime: processRuntime, functional_contexts: contexts },
-    steps,
-    quality_gates: strings(source.quality_gates, `${path}.quality_gates`),
-  };
-}
-
 function focusedCommand(
   value: unknown,
   name: string,
@@ -326,18 +249,13 @@ function readV2(
     }
     const nearest = record(step.nearest_test, `${name}.nearest_test`);
     const purpose = string(step.purpose, `${name}.purpose`);
-    const primaryContext = contexts[0];
-    if (!primaryContext) throw new Error(`${name} requires one capability.`);
-    const firstDouble = replacedBoundaries[0]?.test_double ?? 'real';
     const red = record(step.red, `${name}.red`);
     const green = record(step.green, `${name}.green`);
     const refactor = record(step.refactor, `${name}.refactor`);
     return {
       id: string(step.id, `${name}.id`),
       quadrant: quadrant(step.quadrant, `${name}.quadrant`),
-      functional_context: primaryContext,
       functional_contexts: contexts,
-      test_double: firstDouble,
       purpose,
       real_boundaries: realBoundaries,
       replaced_boundaries: replacedBoundaries,
@@ -365,7 +283,6 @@ function readV2(
       refactor: {
         done_when: string(refactor.done_when, `${name}.refactor.done_when`),
       },
-      task: purpose,
     } satisfies TestProcessStep;
   });
   validateQuadrants(path, steps);
@@ -377,10 +294,6 @@ function readV2(
     functional_contexts: capabilities,
     technical_boundaries: technicalBoundaries,
     applies_when: string(appliesTo.when, `${path}.applies_to.when`),
-    applies_to: {
-      runtime: processRuntime,
-      functional_contexts: capabilities,
-    },
     steps,
     quality_gates: strings(source.quality_gates, `${path}.quality_gates`),
   };
@@ -396,9 +309,10 @@ export function readTestProcess(path: string): TestProcessDefinition {
   if (!PROCESS_ID.test(id)) {
     throw new Error(`${path}.id must use lowercase kebab-case.`);
   }
-  if (source.version === 1) return readV1(path, source);
-  if (source.version === 2) return readV2(path, source);
-  throw new Error(`${path}.version must be 1 or 2.`);
+  if (source.version !== 2) {
+    throw new Error(`${path}.version must be 2 for active v5 Tasking.`);
+  }
+  return readV2(path, source);
 }
 
 export function testProcessDefinitionSha256(path: string): string {
@@ -424,11 +338,6 @@ export function materializeFocusedCommands(
   definition: TestProcessDefinition,
   variables: Record<string, string>,
 ): MaterializedFocusedCommand[] {
-  if (definition.version !== 2) {
-    throw new Error(
-      `Test process ${definition.id} v1 has no materializable focused commands.`,
-    );
-  }
   const usedVariables = new Set(
     definition.steps.flatMap(
       ({ focused_command }) => focused_command?.allowed_variables ?? [],

@@ -35,7 +35,7 @@ export interface TestExecutionRequest {
 }
 
 export interface TestExecutionRecord {
-  version: 1 | 2;
+  version: 2;
   process_id: string;
   stage: TestExecutionStage;
   step_id?: string;
@@ -97,29 +97,22 @@ export function readExecutionRecords(path: string): TestExecutionRecord[] {
     throw new Error(`Execution log is not valid append-only JSONL: ${path}.`);
   }
   let previous = '0'.repeat(64);
-  let sawV2 = false;
   for (const [index, record] of records.entries()) {
+    if (record.version !== 2) {
+      throw new Error(`Execution record ${index + 1} must use version 2.`);
+    }
     if (record.sequence !== index + 1) {
       throw new Error(`Execution log sequence drifted at record ${index + 1}.`);
     }
-    if (record.version === 2) {
-      sawV2 = true;
-      if (
-        record.previous_record_sha256 !== previous ||
-        record.record_sha256 !== unsignedRecordSha256(record)
-      ) {
-        throw new Error(
-          `Execution log hash chain failed at record ${index + 1}.`,
-        );
-      }
-      previous = record.record_sha256;
-    } else if (record.version !== 1) {
-      throw new Error(`Unsupported execution record version at ${index + 1}.`);
-    } else if (sawV2) {
+    if (
+      record.previous_record_sha256 !== previous ||
+      record.record_sha256 !== unsignedRecordSha256(record)
+    ) {
       throw new Error(
-        'Legacy execution records cannot follow v2 hash-chain records.',
+        `Execution log hash chain failed at record ${index + 1}.`,
       );
     }
+    previous = record.record_sha256;
   }
   return records;
 }
@@ -323,11 +316,9 @@ export function executeTestStep(
 ): TestExecutionRecord {
   const state = readState(cwd);
   const showcaseExecution =
-    request.stage === 'showcase' &&
-    state.workflow_version === 5 &&
-    state.loop === 'showcase';
+    request.stage === 'showcase' && state.loop === 'showcase';
   if (
-    (!showcaseExecution && state.phase !== 'coding') ||
+    (!showcaseExecution && state.loop !== 'pair') ||
     !state.active_work_item
   ) {
     throw new Error(
@@ -360,68 +351,57 @@ export function executeTestStep(
   mkdirSync(root, { recursive: true });
   const logPath = `${root}/${state.active_work_item.scenario_id}.execution.jsonl`;
   const priorRecords = readExecutionRecords(logPath);
-  if (selection.process_version === 2) {
-    assertLockedMaterializedPlan(cwd, selection, process);
-    const actualHash = testProcessDefinitionSha256(definitionPath);
-    if (
-      !selection.definition_sha256 ||
-      selection.definition_sha256 !== actualHash
-    ) {
-      throw new Error(
-        `Selected test process definition drifted: ${request.processId}.`,
-      );
-    }
-    const allMaterialized = materializeFocusedCommands(
-      process,
-      selection.command_variables ?? {},
-    );
-    const rematerialized = selection.selected_step_ids
-      ? allMaterialized.filter(({ step_id }) =>
-          selection.selected_step_ids?.includes(step_id),
-        )
-      : allMaterialized;
-    const materializedSha256 = materializedProcessSha256(
-      request.processId,
-      actualHash,
-      selection.command_variables ?? {},
-      rematerialized,
-    );
-    if (
-      selection.materialized_sha256 !== materializedSha256 ||
-      JSON.stringify(selection.focused_commands) !==
-        JSON.stringify(rematerialized)
-    ) {
-      throw new Error(
-        `Selected focused commands drifted after materialization: ${request.processId}.`,
-      );
-    }
-    if (request.stage === 'quality_gate') {
-      if (!process.quality_gates.includes(request.command)) {
-        throw new Error(
-          `Command is not a final quality gate of ${request.processId}: ${request.command}`,
-        );
-      }
-    } else if (
-      !selection.focused_commands?.some(
-        ({ step_id, command }) =>
-          step_id === request.stepId && command === request.command,
-      )
-    ) {
-      throw new Error(
-        `Command is not the locked focused command for ${request.processId}/${request.stepId ?? 'missing-step'}: ${request.command}`,
-      );
-    }
-    assertV2ExecutionOrder(
-      request,
-      process,
-      priorRecords,
-      selection.selected_step_ids,
-    );
-  } else if (!process.quality_gates.includes(request.command)) {
+  assertLockedMaterializedPlan(cwd, selection, process);
+  const actualHash = testProcessDefinitionSha256(definitionPath);
+  if (selection.definition_sha256 !== actualHash) {
     throw new Error(
-      `Command is not declared by selected test process ${request.processId}: ${request.command}`,
+      `Selected test process definition drifted: ${request.processId}.`,
     );
   }
+  const allMaterialized = materializeFocusedCommands(
+    process,
+    selection.command_variables,
+  );
+  const rematerialized = allMaterialized.filter(({ step_id }) =>
+    selection.selected_step_ids.includes(step_id),
+  );
+  const materializedSha256 = materializedProcessSha256(
+    request.processId,
+    actualHash,
+    selection.command_variables,
+    rematerialized,
+  );
+  if (
+    selection.materialized_sha256 !== materializedSha256 ||
+    JSON.stringify(selection.focused_commands) !==
+      JSON.stringify(rematerialized)
+  ) {
+    throw new Error(
+      `Selected focused commands drifted after materialization: ${request.processId}.`,
+    );
+  }
+  if (request.stage === 'quality_gate') {
+    if (!process.quality_gates.includes(request.command)) {
+      throw new Error(
+        `Command is not a final quality gate of ${request.processId}: ${request.command}`,
+      );
+    }
+  } else if (
+    !selection.focused_commands.some(
+      ({ step_id, command }) =>
+        step_id === request.stepId && command === request.command,
+    )
+  ) {
+    throw new Error(
+      `Command is not the locked focused command for ${request.processId}/${request.stepId ?? 'missing-step'}: ${request.command}`,
+    );
+  }
+  assertV2ExecutionOrder(
+    request,
+    process,
+    priorRecords,
+    selection.selected_step_ids,
+  );
 
   const approvedPlanSha256 =
     state.approved_test_plan_path &&

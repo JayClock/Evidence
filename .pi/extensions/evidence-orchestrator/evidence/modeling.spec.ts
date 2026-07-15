@@ -9,7 +9,7 @@ import {
   write,
   writeIterationArtifact,
 } from '../tests/support';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import { writeState } from '../workflow/state-store';
 import type { ModelingMethod, ModelingSubject } from '../workflow/types';
 import {
@@ -59,7 +59,6 @@ function prepareModeling(cwd: string): void {
     ...DEFAULT_STATE,
     workflow_version: 5,
     loop: 'understand',
-    phase: 'domain_model',
     understand_stage: 'modeling',
     modeling_stage: 'profile',
     confirmed_scenario: {

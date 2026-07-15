@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  renderPhaseSubagentCall,
-  renderPhaseSubagentResult,
-  type PhaseSubagentToolDetails,
-} from './phase-subagent-renderer';
+  renderActivitySubagentCall,
+  renderActivitySubagentResult,
+  type ActivitySubagentToolDetails,
+} from './activity-subagent-renderer';
 
 const theme = {
   fg(_color: string, text: string): string {
@@ -15,10 +15,10 @@ const theme = {
 };
 
 function details(
-  overrides: Partial<PhaseSubagentToolDetails> = {},
-): PhaseSubagentToolDetails {
+  overrides: Partial<ActivitySubagentToolDetails> = {},
+): ActivitySubagentToolDetails {
   return {
-    phase: 'coding',
+    activity: 'pair',
     task: 'Implement US-001 / SC-001 using observed TDD.',
     status: 'running',
     agent: 'coder',
@@ -48,9 +48,9 @@ function details(
   };
 }
 
-describe('phase subagent renderer', () => {
+describe('activity subagent renderer', () => {
   it('shows child tool calls and latest text while the child is running', () => {
-    const component = renderPhaseSubagentResult(
+    const component = renderActivitySubagentResult(
       { content: [{ type: 'text', text: '(running...)' }], details: details() },
       { expanded: false, isPartial: true },
       theme,
@@ -58,17 +58,17 @@ describe('phase subagent renderer', () => {
 
     const output = component.render(120).join('\n');
 
-    expect(output).toContain('⏳ coding · coder');
+    expect(output).toContain('⏳ pair · coder');
     expect(output).toContain('$ pnpm orchestrator:test');
     expect(output).toContain('The Green step now passes.');
   });
 
   it('renders a pending TQA question as the visible dialogue turn', () => {
-    const component = renderPhaseSubagentResult(
+    const component = renderActivitySubagentResult(
       {
         content: [{ type: 'text', text: 'TQA Q-001 · US-001' }],
         details: details({
-          phase: 'clarify',
+          activity: 'understand',
           task: 'Clarify US-001.',
           status: 'completed',
           agent: 'requirements-analyst',
@@ -103,7 +103,7 @@ describe('phase subagent renderer', () => {
   });
 
   it('marks a completed child with a non-zero exit code as failed', () => {
-    const component = renderPhaseSubagentResult(
+    const component = renderActivitySubagentResult(
       {
         content: [{ type: 'text', text: 'child failed' }],
         details: details({ status: 'failed', exitCode: 1 }),
@@ -112,11 +112,11 @@ describe('phase subagent renderer', () => {
       theme,
     );
 
-    expect(component.render(120).join('\n')).toContain('✗ coding · coder');
+    expect(component.render(120).join('\n')).toContain('✗ pair · coder');
   });
 
   it('expands the delegated task, final output, and stderr without adding them to tool content', () => {
-    const component = renderPhaseSubagentResult(
+    const component = renderActivitySubagentResult(
       {
         content: [{ type: 'text', text: 'The Green step now passes.' }],
         details: details({
@@ -137,15 +137,15 @@ describe('phase subagent renderer', () => {
     expect(output).toContain('warning from child');
   });
 
-  it('renders a concise phase-subagent tool call header', () => {
-    const output = renderPhaseSubagentCall(
+  it('renders a concise activity-subagent tool call header', () => {
+    const output = renderActivitySubagentCall(
       { instructions: 'Prioritize the selected acceptance scenario.' },
       theme,
     )
       .render(120)
       .join('\n');
 
-    expect(output).toContain('Evidence phase subagent');
+    expect(output).toContain('Evidence activity subagent');
     expect(output).toContain('Prioritize the selected acceptance scenario.');
   });
 });

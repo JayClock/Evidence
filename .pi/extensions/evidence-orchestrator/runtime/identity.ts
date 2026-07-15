@@ -1,16 +1,18 @@
-import type { WorkflowState } from '../workflow/types';
+import type { WorkflowSnapshot } from '../workflow/types';
 
 export const EXTENSION_ID = 'evidence-orchestrator';
 export const STATUS_KEY = EXTENSION_ID;
 export const STATUS_PREFIX = 'orchestrator';
-export const PHASE_RESULT_MESSAGE_TYPE = 'evidence-orchestrator-phase-result';
+export const ACTIVITY_RESULT_MESSAGE_TYPE =
+  'evidence-orchestrator-activity-result';
 
 export function statusLabel(
-  state: WorkflowState | undefined,
+  state: WorkflowSnapshot | undefined,
   activity?: 'subagent' | 'state-error',
 ): string {
   if (activity === 'state-error') return `${STATUS_PREFIX}:state-error`;
   if (!state) throw new Error('Workflow state is required for this status.');
-  if (activity) return `${STATUS_PREFIX}:${state.phase}:${activity}`;
-  return `${STATUS_PREFIX}:${state.phase}${state.pending_gate ? ':gate' : ''}`;
+  const current =
+    state.workflow_version === 5 ? state.loop : `legacy-${state.terminal}`;
+  return `${STATUS_PREFIX}:${current}${activity ? `:${activity}` : ''}`;
 }

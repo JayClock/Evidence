@@ -2,18 +2,29 @@ import { describe, expect, it } from 'vitest';
 import type { TestProcessSelection, WorkflowState } from './types';
 
 describe('types', () => {
-  it('expresses a selected process as immutable coding-work-item state', () => {
+  it('expresses a selected process inside a native Pair work item', () => {
     const selection: TestProcessSelection = {
       id: 'web-shell',
-      path: 'artifacts/iterations/ITER-0001/03-architecture/test-processes/web-shell.json',
+      path: 'artifacts/iterations/ITER-0001/03-architecture/selected-test-processes/web-shell.json',
       runtime: 'typescript',
-      functional_contexts: ['web-shell'],
+      functional_contexts: ['workspace'],
+      technical_boundaries: ['react-feature'],
+      process_version: 2,
     };
-    const state: Pick<WorkflowState, 'iteration_id' | 'phase'> = {
+    const state: Pick<
+      WorkflowState,
+      'iteration_id' | 'workflow_version' | 'loop'
+    > = {
       iteration_id: 'ITER-0001',
-      phase: 'coding',
+      workflow_version: 5,
+      loop: 'pair',
     };
-    expect(selection.runtime).toBe('typescript');
-    expect(state.phase).toBe('coding');
+
+    expect(selection.process_version).toBe(2);
+    expect(state).toEqual({
+      iteration_id: 'ITER-0001',
+      workflow_version: 5,
+      loop: 'pair',
+    });
   });
 });

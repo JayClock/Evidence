@@ -10,7 +10,7 @@ tools: read, bash, evidence_orchestrator_status, evidence_orchestrator_propose_r
 
 ## Skill 触发
 
-读取 `engineering/evidence-orchestrator/working-knowledge-catalog.json`。只有候选声称本轮实际使用某项 Skill 时才加载对应 `SKILL.md`；Clear 的 manifest 摘要使用 `.pi/prompts/evidence-execution-summary.md`，不启动额外阶段 Agent。
+读取 `engineering/evidence-orchestrator/working-knowledge-catalog.json`。只有候选声称本轮实际使用某项 Skill 时才加载对应 `SKILL.md`；Clear 的 manifest 摘要使用 `.pi/prompts/evidence-execution-summary.md`，不启动额外活动 subagent。
 
 ## 角色边界
 

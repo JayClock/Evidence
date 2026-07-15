@@ -21,7 +21,9 @@ import {
   writeState,
 } from '../workflow/state-store';
 import type {
+  ActiveWorkItem,
   FeedbackTarget,
+  PairSession,
   ShowcaseDecisionAction,
   ShowcaseDecisionRecord,
   ShowcaseEvaluationActivity,
@@ -65,6 +67,8 @@ const ACTIVITIES = new Set<ShowcaseEvaluationActivity>([
 interface ShowcaseState extends WorkflowState {
   workflow_version: 5;
   loop: 'showcase';
+  active_work_item: ActiveWorkItem;
+  pair_session: PairSession;
 }
 
 export interface ShowcaseActionResult {
@@ -649,7 +653,6 @@ function routeRevision(
     const currentKey = `${session.process_id}/${session.step_id}`;
     return {
       ...cleared,
-      phase: 'coding',
       pair_session: {
         ...session,
         checkpoint:
@@ -686,7 +689,6 @@ function routeRevision(
     const modeling = target === 'model' || target === 'modeling_method';
     return {
       ...cleared,
-      phase: modeling ? 'domain_model' : 'clarify',
       understand_stage: modeling ? 'modeling' : 'tqa',
       ...(modeling
         ? {
@@ -724,7 +726,6 @@ function routeRevision(
   }
   return {
     ...cleared,
-    phase: 'frame',
     kickoff_candidate: undefined,
     understand_stage: undefined,
     scenario_drafts: undefined,
@@ -796,7 +797,7 @@ export function decideShowcase(
       showcase_stage: 'rejected',
       showcase_decisions: decisions,
       halted: {
-        phase: 'review',
+        loop: 'showcase',
         reason: normalizedReason,
         recorded_at: now,
       },
@@ -828,7 +829,7 @@ export function decideShowcase(
 
 export function validateShowcaseEvidence(cwd: string): void {
   const state = readState(cwd);
-  if (state.workflow_version !== 5 || !state.showcase_stage) return;
+  if (!state.showcase_stage) return;
   const manifest = validateExecutionEvidence(cwd);
   if (
     (state.showcase_q2_observations?.length ?? 0) > 0 &&

@@ -4,7 +4,6 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { Message } from '@earendil-works/pi-ai';
-import type { Phase } from '../workflow/types';
 
 export type ThinkingLevel =
   | 'off'
@@ -15,7 +14,7 @@ export type ThinkingLevel =
   | 'xhigh'
   | 'max';
 
-export interface PhaseAgent {
+export interface ActivityAgent {
   name: string;
   description: string;
   model: string;
@@ -25,7 +24,7 @@ export interface PhaseAgent {
   filePath: string;
 }
 
-export interface PhaseAgentResult {
+export interface ActivityAgentResult {
   agent: string;
   model: string;
   thinking: ThinkingLevel;
@@ -36,22 +35,9 @@ export interface PhaseAgentResult {
 }
 
 /** A live child-process snapshot. An exit code of -1 means it is still running. */
-export interface PhaseAgentProgress extends PhaseAgentResult {
+export interface ActivityAgentProgress extends ActivityAgentResult {
   exitCode: -1;
 }
-
-const PHASE_AGENTS: Record<Exclude<Phase, 'complete'>, string> = {
-  frame: 'requirements-analyst',
-  clarify: 'requirements-analyst',
-  specify: 'requirements-analyst',
-  validate: 'requirements-analyst',
-  domain_model: 'domain-modeler',
-  architecture: 'architect',
-  planning: 'planner',
-  coding: 'coder',
-  review: 'reviewer',
-  learn: 'learner',
-};
 
 const THINKING_LEVELS = new Set<ThinkingLevel>([
   'off',
@@ -80,7 +66,7 @@ function parseAgentFile(content: string): {
   return { frontmatter, body: match[2] };
 }
 
-export function finalPhaseAgentOutput(messages: readonly Message[]): string {
+export function finalActivityAgentOutput(messages: readonly Message[]): string {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (message.role !== 'assistant') continue;
@@ -98,7 +84,7 @@ export function finalPhaseAgentOutput(messages: readonly Message[]): string {
  * Assistant messages carry child tool calls; tool-result messages make progress
  * updates visible before the child reaches its final response.
  */
-export function appendPhaseSubagentEvent(
+export function appendActivitySubagentEvent(
   messages: Message[],
   event: { type?: string; message?: Message },
 ): boolean {
@@ -112,37 +98,37 @@ export function appendPhaseSubagentEvent(
   return false;
 }
 
-export function phaseAgentProgress(
-  agent: Pick<PhaseAgent, 'name' | 'model' | 'thinking'>,
+export function activityAgentProgress(
+  agent: Pick<ActivityAgent, 'name' | 'model' | 'thinking'>,
   messages: readonly Message[],
   stderr = '',
-): PhaseAgentProgress {
+): ActivityAgentProgress {
   return {
     agent: agent.name,
     model: agent.model,
     thinking: agent.thinking,
-    output: finalPhaseAgentOutput(messages) || '(running...)',
+    output: finalActivityAgentOutput(messages) || '(running...)',
     messages: [...messages],
     exitCode: -1,
     stderr,
   };
 }
 
-export function phaseAgentResult(
-  agent: Pick<PhaseAgent, 'name' | 'model' | 'thinking'>,
+export function activityAgentResult(
+  agent: Pick<ActivityAgent, 'name' | 'model' | 'thinking'>,
   messages: Message[],
   exitCode: number,
   stderr = '',
   spawnError = '',
-): PhaseAgentResult {
-  const output = finalPhaseAgentOutput(messages);
+): ActivityAgentResult {
+  const output = finalActivityAgentOutput(messages);
   const diagnostics = [output, stderr.trim(), spawnError]
     .filter(Boolean)
     .join('\n\n');
   const resultOutput =
     exitCode === 0
       ? output || '(no output)'
-      : `Phase subagent ${agent.name} failed with exit ${exitCode}:\n${diagnostics || 'no output'}`;
+      : `Activity subagent ${agent.name} failed with exit ${exitCode}:\n${diagnostics || 'no output'}`;
 
   return {
     agent: agent.name,
@@ -155,29 +141,24 @@ export function phaseAgentResult(
   };
 }
 
-export function phaseAgentName(
-  phase: Exclude<Phase, 'complete'>,
-  override?: string,
-): string {
-  const name = override ?? PHASE_AGENTS[phase];
+export function activityAgentName(name: string): string {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) {
-    throw new Error(`Invalid phase subagent name: ${name}.`);
+    throw new Error(`Invalid activity subagent name: ${name}.`);
   }
   return name;
 }
 
-export function loadPhaseAgent(
+export function loadActivityAgent(
   cwd: string,
-  phase: Exclude<Phase, 'complete'>,
-  override?: string,
-): PhaseAgent {
-  const name = phaseAgentName(phase, override);
+  agentName: string,
+): ActivityAgent {
+  const name = activityAgentName(agentName);
   const filePath = join(cwd, '.pi', 'agents', `${name}.md`);
   let content: string;
   try {
     content = readFileSync(filePath, 'utf8');
   } catch {
-    throw new Error(`Required phase subagent does not exist: ${filePath}`);
+    throw new Error(`Required activity subagent does not exist: ${filePath}`);
   }
   const { frontmatter, body } = parseAgentFile(content);
   const thinking = frontmatter.thinking as ThinkingLevel;
@@ -188,7 +169,7 @@ export function loadPhaseAgent(
     !THINKING_LEVELS.has(thinking) ||
     !body.trim()
   ) {
-    throw new Error(`Invalid phase subagent definition: ${filePath}`);
+    throw new Error(`Invalid activity subagent definition: ${filePath}`);
   }
   const tools = frontmatter.tools
     ?.split(',')
@@ -206,11 +187,11 @@ export function loadPhaseAgent(
 }
 
 /**
- * Re-invoke the current Pi executable when possible, so a phase child uses the
+ * Re-invoke the current Pi executable when possible, so an activity child uses the
  * same installed Pi version as its parent. This mirrors Pi's official
  * subagent extension and falls back to the `pi` command for generic runtimes.
  */
-function phaseSubagentInvocation(args: string[]): {
+function activitySubagentInvocation(args: string[]): {
   command: string;
   args: string[];
 } {
@@ -227,15 +208,14 @@ function phaseSubagentInvocation(args: string[]): {
   return { command: 'pi', args };
 }
 
-export async function runPhaseSubagent(options: {
+export async function runActivitySubagent(options: {
   cwd: string;
-  phase: Exclude<Phase, 'complete'>;
-  agentName?: string;
+  agentName: string;
   task: string;
   signal?: AbortSignal;
-  onUpdate?: (progress: PhaseAgentProgress) => void;
-}): Promise<PhaseAgentResult> {
-  const agent = loadPhaseAgent(options.cwd, options.phase, options.agentName);
+  onUpdate?: (progress: ActivityAgentProgress) => void;
+}): Promise<ActivityAgentResult> {
+  const agent = loadActivityAgent(options.cwd, options.agentName);
   const tempDirectory = await mkdtemp(join(tmpdir(), 'evidence-subagent-'));
   const promptPath = join(tempDirectory, `${agent.name}.md`);
   await writeFile(promptPath, agent.systemPrompt, {
@@ -265,12 +245,12 @@ export async function runPhaseSubagent(options: {
   let spawnError = '';
 
   const emitProgress = () => {
-    options.onUpdate?.(phaseAgentProgress(agent, messages, stderr));
+    options.onUpdate?.(activityAgentProgress(agent, messages, stderr));
   };
 
   try {
     const exitCode = await new Promise<number>((resolve) => {
-      const invocation = phaseSubagentInvocation(args);
+      const invocation = activitySubagentInvocation(args);
       const child = spawn(invocation.command, invocation.args, {
         cwd: options.cwd,
         shell: false,
@@ -297,7 +277,7 @@ export async function runPhaseSubagent(options: {
         } catch {
           return;
         }
-        if (appendPhaseSubagentEvent(messages, event)) emitProgress();
+        if (appendActivitySubagentEvent(messages, event)) emitProgress();
       };
 
       const abortChild = () => {
@@ -334,8 +314,9 @@ export async function runPhaseSubagent(options: {
         options.signal?.addEventListener('abort', abortChild, { once: true });
     });
 
-    if (aborted) throw new Error(`Phase subagent ${agent.name} was aborted.`);
-    return phaseAgentResult(agent, messages, exitCode, stderr, spawnError);
+    if (aborted)
+      throw new Error(`Activity subagent ${agent.name} was aborted.`);
+    return activityAgentResult(agent, messages, exitCode, stderr, spawnError);
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
   }

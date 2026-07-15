@@ -24,15 +24,15 @@
 - Extension 只承担确定性状态、执行、路径保护和审计；不得隐藏业务或交付方法。
 - Agent 只定义隔离角色、可用工具、停止条件与何时加载 Skill，不复制方法步骤。
 - `Complicated` / `Complex` 工作通过 `.pi/skills/*/SKILL.md` 渐进加载；Skill 必须说明输入、方法、项目示例、反馈出口和停止条件，并提供 reviewable `evals/evals.json`。
-- `Clear` 的结构检查、格式化和摘要使用 Pi 直接发现的 `.pi/prompts/*.md`，不启动重量级阶段 Agent。Prompt 不做状态变更或人工决定。
+- `Clear` 的结构检查、格式化和摘要使用 Pi 直接发现的 `.pi/prompts/*.md`，不启动重量级活动 subagent。Prompt 不做状态变更或人工决定。
 - `engineering/evidence-orchestrator/working-knowledge-catalog.json` 是活动 Skill/Prompt 的目录，记录 ID、语义版本、负责人、认知行为、路径、已验证场景、最新反馈和 supersedes。`pnpm orchestrator:validate` 会拒绝未编目或不可发现的条目。
-- phase task 只传本轮 Scenario、输入路径、单一任务和停止边界；方法更新只修改 catalog 指向的 Skill/Prompt，避免 Agent、task 与文档三份漂移。
+- activity task 只传本轮 Story/Scenario、输入路径、单一任务和停止边界；方法更新只修改 catalog 指向的 Skill/Prompt，避免 Agent、task 与文档三份漂移。
 
 ## 知识提升生命周期
 
-1. Frame 及后续阶段将候选知识变化记录为迭代增量。
-2. 场景验证候选知识是否能够解释并支持真实行为。
-3. Review 评估产品价值、架构适配性和质量。
+1. Kickoff 与 Understand 将一个 Story/Scenario 的候选知识变化记录为迭代增量。
+2. Understand 的模型挑战与 Pair 的测试实现验证候选知识能否解释并支持真实行为。
+3. Showcase 重新观测 Q2、显式处理 Q3/Q4 风险，并区分产品/领域与技术质量反馈。
 4. Respond 只对本轮实际使用并由 Scenario、Showcase 与执行事实验证的候选提出 `promoted`、`deferred` 或 `rejected`；测试工序、Skill、Prompt/CoT 也属于可审查的 Working Knowledge。
 5. 人类逐轮确认 Respond 候选。`promotions: []` 合法，但必须说明为何没有可复用知识；`promoted` 必须给出 canonical target 和验证证据，`deferred/rejected` 只保留理由而不改变权威来源。
 6. 被提升的条目更新其权威目标，同时保留原始增量、Showcase 决定和人工确认作为审计证据。未应用或未与实现共同验证的模型补丁不得提升。
@@ -44,7 +44,7 @@
 - 增量只记录候选的新增、修正或删除，以及其依据、影响和待验证事项。仍由基线承载的知识不应额外写成“无变化”条目。
 - `problem-statement.md` 可以保留解释 Issue 所需的最小基线上下文、共享范围与非目标；除故事卡表达 Card 所需的角色、目标和价值外，其他 requirements 工件应引用它，而不是复制这些内容。
 - 用户故事遵循 3C：`stories/US-xxx.md` 是简短的 Card，只包含带 ID 的标题、角色、可协商目标、价值和问题上下文链接；`clarifications/` 保存 Conversation；`examples/US-xxx-SC-xxx.md` 保存沟通确认后的 Confirmation，并由这些示例定义具体功能范围。
-- Frame 为候选 P0/P1 分配稳定的 `US-xxx` ID 并生成独立故事卡；卡片不得包含元数据表、优先级依据、非目标、预生成的待澄清问题列表或验收示例。`story-map-delta.md` 直接引用这些 ID 并承载候选优先级，不保留等待 Clarify 再映射的临时候选 ID。
+- Kickoff 每轮只提出一张未授权 Story 候选；人类确认后才分配稳定的 `US-xxx` 并生成独立 Card。Card 不得包含优先级队列、预生成问题列表或验收示例；Understand 只澄清这一张 Story，不支持批量选择或切换。
 - 非目标不是反向需求：不得为了证明未要求或不存在的功能而创建验收示例、实现任务或测试代码。只有已确认范围内的拒绝、失败和边界行为才进入 Confirmation 与后续测试。
 - `journey-slice.md` 标识受影响的基线旅程步骤，再记录本轮改变的路径、结果和边界情形。`story-map-delta.md` 只列出受影响活动和候选故事，绝不复制完整活动主干。
 - 候选事实在 Respond 经人工确认前始终属于迭代增量；不得将其表述为既定产品事实，也不得过早复制到统一知识中。

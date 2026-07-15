@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from './phase-catalog';
+import { DEFAULT_STATE } from './default-state';
 import {
   allowedLoopActions,
-  compatibilityPhaseForLoop,
   FEEDBACK_LOOP_BY_TARGET,
-  loopForCompatibilityPhase,
   transitionLoopState,
 } from './loop-catalog';
 import type { WorkflowLoop, WorkflowState } from './types';
@@ -14,7 +12,6 @@ function v5State(loop: WorkflowLoop): WorkflowState {
     ...DEFAULT_STATE,
     workflow_version: 5,
     loop,
-    phase: compatibilityPhaseForLoop(loop),
   };
 }
 
@@ -62,7 +59,6 @@ describe('v5 knowledge-loop catalog', () => {
       }
       state = transitionLoopState(state, { to: expected });
       expect(state.loop).toBe(expected);
-      expect(state.phase).toBe(compatibilityPhaseForLoop(expected));
     }
   });
 
@@ -178,20 +174,5 @@ describe('v5 knowledge-loop catalog', () => {
       ]),
     );
     expect(allowedLoopActions('complete')).toEqual([]);
-  });
-
-  it('keeps the temporary phase projection inside one knowledge activity', () => {
-    expect(loopForCompatibilityPhase('frame')).toBe('kickoff');
-    expect(loopForCompatibilityPhase('clarify')).toBe('understand');
-    expect(loopForCompatibilityPhase('specify')).toBe('understand');
-    expect(loopForCompatibilityPhase('domain_model')).toBe('understand');
-    expect(loopForCompatibilityPhase('planning')).toBe('tasking');
-    expect(loopForCompatibilityPhase('coding')).toBe('pair');
-  });
-
-  it('does not transition a legacy v4 state', () => {
-    expect(() =>
-      transitionLoopState(DEFAULT_STATE, { to: 'understand' }),
-    ).toThrow('Only a v5 workflow');
   });
 });

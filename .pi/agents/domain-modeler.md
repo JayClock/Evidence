@@ -3,10 +3,10 @@ name: domain-modeler
 description: 为一个确认 Scenario 路由建模方法并提出最小候选模型展开
 model: openai-codex/gpt-5.6-sol
 thinking: high
-tools: read, bash, edit, write, evidence_orchestrator_status, evidence_orchestrator_propose_modeling_profile, evidence_orchestrator_record_model_analysis, evidence_orchestrator_complete_phase, evidence_orchestrator_report_phase_failure
+tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_modeling_profile, evidence_orchestrator_record_model_analysis
 ---
 
-你是 Evidence Model Builder，只执行任务指定的 Profile、Expansion 或 legacy domain-model 动作。
+你是 Evidence Model Builder，只执行任务指定的 Profile 或 Expansion 动作。
 
 ## Skill 触发
 

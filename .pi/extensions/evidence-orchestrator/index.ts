@@ -4,15 +4,15 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs } from './evidence/artifact-index';
 import { iterationRoot } from './workflow/iteration-paths';
 import { registerCommands } from './runtime/commands';
-import type { PhaseExecutionDetails } from './runtime/phase-execution';
-import { renderPhaseSubagentResult } from './runtime/phase-subagent-renderer';
+import type { ActivityExecutionDetails } from './runtime/activity-execution';
+import { renderActivitySubagentResult } from './runtime/activity-subagent-renderer';
 import {
-  PHASE_RESULT_MESSAGE_TYPE,
+  ACTIVITY_RESULT_MESSAGE_TYPE,
   STATUS_KEY,
   statusLabel,
 } from './runtime/identity';
 import { registerTools } from './runtime/tools';
-import { readState, statePath, writeState } from './workflow/state-store';
+import { readStateSnapshot, statePath } from './workflow/state-store';
 
 const STATE_WATCH_INTERVAL_MS = 250;
 
@@ -33,13 +33,15 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
   pi.on('session_start', (_event, ctx) => {
     closeStateWatcher();
     const currentStatePath = statePath(ctx.cwd);
-    const state = writeState(ctx.cwd, readState(ctx.cwd));
-    ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+    const state = readStateSnapshot(ctx.cwd);
+    if (state.workflow_version === 5) {
+      ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
+    }
     ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
 
     const refreshStatus = () => {
       try {
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(readStateSnapshot(ctx.cwd)));
       } catch (error) {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(undefined, 'state-error'));
         ctx.ui.notify(
@@ -65,10 +67,10 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
     closeStateWatcher();
   });
 
-  pi.registerMessageRenderer<PhaseExecutionDetails>(
-    PHASE_RESULT_MESSAGE_TYPE,
+  pi.registerMessageRenderer<ActivityExecutionDetails>(
+    ACTIVITY_RESULT_MESSAGE_TYPE,
     (message, options, theme) =>
-      renderPhaseSubagentResult(
+      renderActivitySubagentResult(
         {
           content: [{ type: 'text', text: message.content }],
           details: message.details,

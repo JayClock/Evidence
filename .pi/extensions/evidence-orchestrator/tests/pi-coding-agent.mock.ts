@@ -6,8 +6,10 @@ export class BorderedLoader {
     _tui: unknown,
     _theme: unknown,
     readonly message: string,
-    _options?: { cancellable?: boolean },
-  ) {}
+    options?: { cancellable?: boolean },
+  ) {
+    void options;
+  }
 
   get signal(): AbortSignal {
     return this.controller.signal;

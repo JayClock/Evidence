@@ -74,7 +74,6 @@ function routeFeedback(
   const requiresChange = state.modeling_profile?.model_change_required === true;
   return {
     ...routed,
-    phase: 'domain_model',
     understand_stage: 'modeling',
     modeling_stage:
       record.outcome === 'model_gap' && requiresChange
@@ -99,7 +98,6 @@ export function recordModelChallenge(
 ): WorkflowState {
   let state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'understand' ||
     state.modeling_stage !== 'candidate_ready'
   ) {
@@ -162,7 +160,6 @@ export function recordModelChallenge(
     if (!storyId) throw new Error('Scenario-gap routing requires a Story id.');
     return writeState(cwd, {
       ...routed,
-      phase: 'clarify',
       understand_stage: 'tqa',
       active_clarification_story: {
         story_id: storyId,

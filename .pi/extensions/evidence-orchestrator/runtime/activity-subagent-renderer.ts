@@ -1,7 +1,7 @@
 import { Container, Spacer, Text } from '@earendil-works/pi-tui';
-import type { PhaseExecutionDetails } from './phase-execution';
+import type { ActivityExecutionDetails } from './activity-execution';
 
-export type PhaseSubagentToolDetails = PhaseExecutionDetails;
+export type ActivitySubagentToolDetails = ActivityExecutionDetails;
 
 type RecordValue = Record<string, unknown>;
 
@@ -56,11 +56,13 @@ function resultText(result: unknown): string {
     .join('\n');
 }
 
-function phaseDetails(result: unknown): PhaseSubagentToolDetails | undefined {
+function activityDetails(
+  result: unknown,
+): ActivitySubagentToolDetails | undefined {
   if (!isRecord(result) || !isRecord(result.details)) return undefined;
   const details = result.details;
   if (
-    typeof details.phase !== 'string' ||
+    typeof details.activity !== 'string' ||
     typeof details.agent !== 'string' ||
     typeof details.model !== 'string' ||
     typeof details.thinking !== 'string' ||
@@ -73,12 +75,12 @@ function phaseDetails(result: unknown): PhaseSubagentToolDetails | undefined {
   }
 
   return {
-    phase: details.phase as PhaseExecutionDetails['phase'],
+    activity: details.activity as ActivityExecutionDetails['activity'],
     agent: details.agent,
     model: details.model,
-    thinking: details.thinking as PhaseExecutionDetails['thinking'],
+    thinking: details.thinking as ActivityExecutionDetails['thinking'],
     output: details.output,
-    messages: details.messages as PhaseExecutionDetails['messages'],
+    messages: details.messages as ActivityExecutionDetails['messages'],
     exitCode: details.exitCode,
     stderr: details.stderr,
     task: asText(details.task) ?? '',
@@ -91,7 +93,7 @@ function phaseDetails(result: unknown): PhaseSubagentToolDetails | undefined {
   };
 }
 
-export function isPhaseSubagentFailureDetails(details: unknown): boolean {
+export function isActivitySubagentFailureDetails(details: unknown): boolean {
   const record = isRecord(details) ? details : undefined;
   return typeof record?.exitCode === 'number' && record.exitCode !== 0;
 }
@@ -179,9 +181,12 @@ function renderItems(
   return lines.join('\n');
 }
 
-export function renderPhaseSubagentCall(args: unknown, theme: ThemeLike): Text {
+export function renderActivitySubagentCall(
+  args: unknown,
+  theme: ThemeLike,
+): Text {
   const instructions = isRecord(args) ? asText(args.instructions) : undefined;
-  let text = theme.fg('toolTitle', theme.bold('Evidence phase subagent'));
+  let text = theme.fg('toolTitle', theme.bold('Evidence activity subagent'));
   if (instructions?.trim()) {
     text += theme.fg('dim', ` · ${preview(instructions, 72)}`);
   }
@@ -193,12 +198,12 @@ export function renderPhaseSubagentCall(args: unknown, theme: ThemeLike): Text {
  * model receives only the child’s final response in `content`, avoiding a
  * transcript-sized context injection while preserving full TUI observability.
  */
-export function renderPhaseSubagentResult(
+export function renderActivitySubagentResult(
   result: unknown,
   options: ResultOptions,
   theme: ThemeLike,
 ): Container | Text {
-  const details = phaseDetails(result);
+  const details = activityDetails(result);
   if (!details) {
     return new Text(
       theme.fg('toolOutput', resultText(result) || '(no output)'),
@@ -219,7 +224,7 @@ export function renderPhaseSubagentResult(
       ? theme.fg('error', '✗')
       : theme.fg('success', '✓');
   const header =
-    `${icon} ${theme.fg('toolTitle', theme.bold(details.phase))}` +
+    `${icon} ${theme.fg('toolTitle', theme.bold(details.activity))}` +
     theme.fg('accent', ` · ${details.agent}`) +
     theme.fg('dim', ` · ${details.model} · thinking=${details.thinking}`);
   const activityItems = options.expanded

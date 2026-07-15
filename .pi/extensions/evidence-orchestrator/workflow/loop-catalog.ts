@@ -1,7 +1,6 @@
 import type {
   FeedbackDecider,
   FeedbackTarget,
-  Phase,
   WorkflowFeedback,
   WorkflowLoop,
   WorkflowState,
@@ -43,49 +42,8 @@ export const FEEDBACK_LOOP_BY_TARGET: Record<FeedbackTarget, WorkflowLoop> = {
   showcase_setup: 'showcase',
 };
 
-const COMPATIBILITY_PHASE_BY_LOOP: Record<WorkflowLoop, Phase> = {
-  kickoff: 'frame',
-  understand: 'clarify',
-  tasking: 'architecture',
-  pair: 'coding',
-  showcase: 'review',
-  respond: 'learn',
-  complete: 'complete',
-};
-
-/** Keep v5 readable by v4 phase code during the incremental migration. */
-export function compatibilityPhaseForLoop(loop: WorkflowLoop): Phase {
-  return COMPATIBILITY_PHASE_BY_LOOP[loop];
-}
-
-/** Project a legacy phase into its containing v5 knowledge activity. */
-export function loopForCompatibilityPhase(phase: Phase): WorkflowLoop {
-  switch (phase) {
-    case 'frame':
-      return 'kickoff';
-    case 'clarify':
-    case 'specify':
-    case 'validate':
-    case 'domain_model':
-      return 'understand';
-    case 'architecture':
-    case 'planning':
-      return 'tasking';
-    case 'coding':
-      return 'pair';
-    case 'review':
-      return 'showcase';
-    case 'learn':
-      return 'respond';
-    case 'complete':
-      return 'complete';
-  }
-}
-
-export function isV5Workflow(
-  state: WorkflowState,
-): state is WorkflowState & { workflow_version: 5; loop: WorkflowLoop } {
-  return state.workflow_version === 5 && state.loop !== undefined;
+export function isV5Workflow(state: WorkflowState): boolean {
+  return state.workflow_version === 5;
 }
 
 export interface LoopFeedbackInput {
@@ -123,11 +81,6 @@ export function transitionLoopState(
   request: LoopTransitionRequest,
   now = new Date().toISOString(),
 ): WorkflowState {
-  if (!isV5Workflow(state)) {
-    throw new Error(
-      'Only a v5 workflow can use knowledge-loop transitions. Complete or halt the active v4 iteration first.',
-    );
-  }
   const from = state.loop;
   const feedback = request.feedback;
   let recordedFeedback: WorkflowFeedback | undefined;
@@ -208,8 +161,6 @@ export function transitionLoopState(
     ...(request.to === 'respond' && from !== 'respond'
       ? { respond_stage: 'drafting' as const }
       : {}),
-    phase: compatibilityPhaseForLoop(request.to),
-    round: 0,
     ...(recordedFeedback
       ? {
           feedback_history: [

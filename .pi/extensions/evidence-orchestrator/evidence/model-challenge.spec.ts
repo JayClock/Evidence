@@ -9,7 +9,7 @@ import {
   write,
   writeIterationArtifact,
 } from '../tests/support';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import { writeState } from '../workflow/state-store';
 import { recordModelChallenge } from './model-challenge';
 import {
@@ -97,7 +97,6 @@ function prepareCandidate(
     ...DEFAULT_STATE,
     workflow_version: 5,
     loop: 'understand',
-    phase: 'domain_model',
     understand_stage: 'modeling',
     modeling_stage: 'profile',
     confirmed_scenario: {
@@ -199,7 +198,6 @@ describe('independent model challenge', () => {
 
     expect(state).toMatchObject({
       loop: 'tasking',
-      phase: 'architecture',
       modeling_stage: 'challenged',
       tasking_stage: 'drafting',
     });
@@ -265,7 +263,6 @@ describe('independent model challenge', () => {
 
     expect(state).toMatchObject({
       loop: 'understand',
-      phase: 'clarify',
       understand_stage: 'tqa',
       active_clarification_story: { story_id: 'US-001' },
     });

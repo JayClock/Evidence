@@ -83,10 +83,8 @@ function strings(value: string[], name: string, allowEmpty = true): string[] {
 function requireModelingState(cwd: string): WorkflowState {
   const state = readState(cwd);
   if (
-    state.workflow_version !== 5 ||
     state.loop !== 'understand' ||
     state.understand_stage !== 'modeling' ||
-    state.phase !== 'domain_model' ||
     !state.confirmed_scenario
   ) {
     throw new Error(

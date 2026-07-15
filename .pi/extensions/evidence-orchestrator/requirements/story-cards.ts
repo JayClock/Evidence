@@ -46,7 +46,7 @@ function validateStoryCard(storyId: string, markdown: string): void {
   }
 }
 
-/** Enforce Card/Conversation/Confirmation separation for Frame outputs. */
+/** Enforce Card/Conversation/Confirmation separation for a confirmed Kickoff Story. */
 export function validateStoryCards(cwd: string, state: WorkflowState): void {
   const directory = artifactPath(
     cwd,
@@ -60,7 +60,7 @@ export function validateStoryCards(cwd: string, state: WorkflowState): void {
     : [];
 
   if (entries.length === 0) {
-    throw new Error('No US-xxx story cards were found for Frame validation.');
+    throw new Error('No US-xxx Story Card was found for Kickoff validation.');
   }
 
   for (const entry of entries) {

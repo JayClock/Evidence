@@ -16,4 +16,4 @@
 
 ## 技术选择变更
 
-Feature 不得直接在 iteration 中重写技术栈。需要新增或替换技术时，在 `architecture-decisions.md` 说明动机、替代方案、影响和回滚方式，经 Gate 接受后再更新本文件及真实配置。
+Feature 不得直接在 iteration 中重写技术栈。需要新增或替换技术时，在 `architecture-decisions.md` 说明动机、替代方案、影响和回滚方式，经人类在 Showcase 与 Respond 明确接受后再更新本文件及真实配置。

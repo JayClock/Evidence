@@ -1,21 +1,16 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  selectWorkItem,
-  transitionWorkflowLoop,
-  writeState,
-} from '../workflow/state-store';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
-import { completePhase } from '../workflow/gates';
+import { transitionWorkflowLoop, writeState } from '../workflow/state-store';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
   workspace,
   write,
 } from '../tests/support';
-import { preparePhaseRun } from '../runtime/phase-dispatch';
+import { prepareActivityRun } from '../runtime/activity-dispatch';
 import { statusMarkdown } from '../runtime/status';
-import { buildPhaseTask } from '../subagents/phase-task';
+import { buildActivityTask } from '../subagents/activity-task';
 import { executeTestStep } from './execution-recorder';
 import { decideTasking, proposeTaskingDraft } from './tasking';
 
@@ -97,7 +92,6 @@ function prepare(cwd: string): void {
       issue_updated_at: '2026-01-01T00:00:00.000Z',
       fetched_at: '2026-01-01T00:00:00.000Z',
     },
-    phase: 'architecture',
     understand_stage: 'modeling',
     confirmed_scenario: {
       version: 1,
@@ -201,13 +195,10 @@ describe('v5 Tasking and Desk Check', () => {
     const cwd = workspace();
     prepare(cwd);
 
-    expect(() => completePhase(cwd, 'architecture')).toThrow(
-      '/evidence-desk-check',
-    );
     const draft = proposeTaskingDraft(cwd, draftInput());
 
     expect(draft.tasking_stage).toBe('desk_check');
-    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-desk-check');
+    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-desk-check');
     expect(statusMarkdown(cwd)).toContain('human:/evidence-desk-check');
     expect(
       readFileSync(`${cwd}/${draft.tasking_candidate?.test_list_path}`, 'utf8'),
@@ -215,12 +206,6 @@ describe('v5 Tasking and Desk Check', () => {
     expect(() => transitionWorkflowLoop(cwd, { to: 'pair' })).toThrow(
       'human-approved Desk Check',
     );
-    expect(
-      existsSync(
-        `${cwd}/artifacts/iterations/ITER-0001/04-planning/sprint-plan.md`,
-      ),
-    ).toBe(false);
-
     write(
       cwd,
       'artifacts/iterations/ITER-0001/04-planning/test-list.md',
@@ -242,7 +227,6 @@ describe('v5 Tasking and Desk Check', () => {
 
     expect(approved).toMatchObject({
       loop: 'pair',
-      phase: 'coding',
       tasking_stage: 'approved',
       active_work_item: {
         story_id: 'US-001',
@@ -273,11 +257,8 @@ describe('v5 Tasking and Desk Check', () => {
         `${cwd}/artifacts/iterations/ITER-0001/04-planning/test-plan.json`,
       ),
     ).toBe(true);
-    expect(buildPhaseTask(cwd)).toContain(
+    expect(buildActivityTask(cwd)).toContain(
       '一个且仅一个 Test Driver checkpoint',
-    );
-    expect(buildPhaseTask(cwd)).not.toContain(
-      'evidence_orchestrator_select_test_process',
     );
     expect(
       existsSync(
@@ -293,10 +274,6 @@ describe('v5 Tasking and Desk Check', () => {
         command: 'node focused.js workspace_alpha',
       }).expected_failure,
     ).toBe(true);
-    expect(selectWorkItem(cwd, 'US-001', 'SC-001')).toEqual(approved);
-    expect(() => selectWorkItem(cwd, 'US-002', 'SC-002')).toThrow(
-      'human-approved v5 work item is immutable',
-    );
   });
 
   it('versions immutable approved plans after feedback returns to Tasking', () => {
@@ -307,7 +284,6 @@ describe('v5 Tasking and Desk Check', () => {
     writeState(cwd, {
       ...first,
       loop: 'tasking',
-      phase: 'architecture',
       tasking_stage: 'drafting',
       tasking_candidate: undefined,
       approved_test_plan_path: undefined,
@@ -365,7 +341,6 @@ describe('v5 Tasking and Desk Check', () => {
 
     expect(state).toMatchObject({
       loop: 'understand',
-      phase: 'clarify',
       understand_stage: 'tqa',
       active_clarification_story: { story_id: 'US-001' },
     });
@@ -394,7 +369,6 @@ describe('v5 Tasking and Desk Check', () => {
 
       expect(state).toMatchObject({
         loop: 'tasking',
-        phase: 'architecture',
         tasking_stage: 'knowledge_gap',
         tasking_gap: { kind: action },
       });

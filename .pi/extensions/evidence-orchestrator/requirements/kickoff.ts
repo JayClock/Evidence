@@ -49,9 +49,9 @@ function requiredText(value: string, name: string, singleLine = false): string {
 
 function requireKickoffState(cwd: string): WorkflowState {
   const state = readState(cwd);
-  if (state.workflow_version !== 5 || state.loop !== 'kickoff') {
+  if (state.loop !== 'kickoff') {
     throw new Error(
-      `Kickoff is only available in a v5 kickoff loop; current workflow is v${state.workflow_version ?? 4}/${state.loop ?? state.phase}.`,
+      `Kickoff is only available in the kickoff loop; current loop is ${state.loop}.`,
     );
   }
   if (state.halted) {
@@ -211,7 +211,7 @@ export function decideKickoff(
       ...state,
       kickoff_decisions: decisions,
       halted: {
-        phase: 'frame',
+        loop: 'kickoff',
         reason: `${action}: ${decision.reason}`,
         recorded_at: now,
       },

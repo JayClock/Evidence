@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import { EXTENSION_ID, STATUS_KEY, statusLabel } from './identity';
 
 describe('orchestrator identity', () => {
   it('uses one identifier for extension UI state', () => {
     expect(EXTENSION_ID).toBe('evidence-orchestrator');
     expect(STATUS_KEY).toBe(EXTENSION_ID);
-    expect(statusLabel(DEFAULT_STATE)).toBe('orchestrator:frame');
+    expect(statusLabel(DEFAULT_STATE)).toBe('orchestrator:kickoff');
     expect(statusLabel(DEFAULT_STATE, 'subagent')).toBe(
-      'orchestrator:frame:subagent',
+      'orchestrator:kickoff:subagent',
     );
   });
 });

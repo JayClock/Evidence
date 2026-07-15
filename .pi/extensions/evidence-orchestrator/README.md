@@ -1,96 +1,169 @@
 # Evidence Orchestrator 扩展维护指南
 
-该目录只保存当前仓库开发 Evidence 所用的确定性工作流状态、执行、保护与审计代码。它是[内部研发工具](../../../engineering/evidence-orchestrator/product-boundary.md)，不是 Evidence 产品 runtime 或 bounded context；使用 Evidence 自身模型和代码属于 dogfooding。`.pi/agents/` 只定义隔离角色、工具边界、停止条件和 Skill 触发；Complicated/Complex 方法知识位于 `.pi/skills/`，Clear 固定任务位于 Pi 可直接发现的 `.pi/prompts/`。所有活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
+该目录保存当前仓库开发 Evidence 所用的确定性状态、执行、保护与审计代码。它是[内部研发工具](../../../engineering/evidence-orchestrator/product-boundary.md)，不是 Evidence 产品 runtime、bounded context 或用户能力；以 Evidence 的 Issue、模型、测试和代码验证工作流属于 dogfooding。
+
+扩展只负责控制机制：
+
+- Extension：状态、命令物化、路径保护、执行与审计；
+- Agent：隔离角色、工具权限、Skill 触发和停止条件；
+- Skill：Complicated / Complex 方法知识；
+- Prompt：Clear、只读或固定格式任务；
+- 人类 Navigator：Story、Scenario、Profile、Desk Check、Red、Showcase 与 Respond 决定。
+
+活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
+
+## v5 知识循环
+
+```mermaid
+flowchart LR
+  I[GitHub Issue frozen snapshot] --> K[Kickoff]
+  K --> U[Understand]
+  U --> T[Tasking]
+  T --> P[Pair]
+  P --> S[Showcase]
+  S --> R[Respond]
+  R --> C[Complete]
+
+  S -. product or domain gap .-> U
+  S -. architecture or process gap .-> T
+  S -. test or implementation gap .-> P
+  U -. problem gap .-> K
+```
+
+每轮只处理一张人工确认的 `US-xxx` 和一个人工确认的 `SC-xxx`：
+
+1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后才分配 `US-xxx`。
+2. **Understand**：针对该 Story 一次提出一个非技术 TQA 问题；人类直接回答。AI 提出 Scenario 候选，人类确认一个。随后由人类确认建模 Profile，Builder 展开模型，独立只读 Challenger 检查 Scenario 与回归集。
+3. **Tasking**：根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成自然语言 test/task list；人类 Desk Check 后锁定计划。
+4. **Pair**：Navigator 每次只推进一个 checkpoint。短生命周期 Test Driver 与 Production Driver 受路径保护；锁定命令产生 Red、Green、Refactor 与最终 quality-gate 观测。
+5. **Showcase**：重新执行已选 Q2，显式记录 Q3/Q4 风险，由独立只读 Reviewer 评审；只有人类 `accept` 才能进入 Respond。`revise` 按知识缺口回到 Kickoff、Understand、Tasking 或 Pair，`reject` 终止本轮。
+6. **Respond**：只提升本轮实际使用且被 Scenario、执行事实与 Showcase 共同验证的知识；空 promotion 合法但必须有理由。人类确认后输出一个 next Probe 并完成本轮。
+
+状态以 `loop` 和各 loop 的局部 stage/checkpoint 表示，不维护并行的线性流水线、批量 Story 队列、独立审批队列或重试轮次。
 
 ## 目录结构
 
 ```text
 evidence-orchestrator/
-├── index.ts                 # Pi 扩展组合根与状态栏生命周期
-├── runtime/                 # 面向 Pi 的命令、工具和状态输出
-├── subagents/               # 阶段任务构建与独立 pi 子进程执行
-├── workflow/                # 阶段目录、状态机、迭代路径和 Gate
-├── requirements/            # GitHub Issue 输入与 TQA 澄清
-├── evidence/                # 工件索引、模型/代码证据和知识验证
-├── testing/                 # 测试工序目录与执行证据记录
-├── validation/              # CI 工作流验证入口
-├── tests/                   # 跨模块集成测试与测试辅助代码
-└── vitest.config.ts         # 工作流测试发现配置
+├── index.ts                  # Pi 扩展组合根与状态栏生命周期
+├── runtime/                  # 命令、模型工具、状态与活动执行 UI
+├── subagents/                # 活动任务构建与隔离 pi 子进程
+├── workflow/                 # v5 loop 状态、转换和 iteration 路径
+├── requirements/             # Issue、Kickoff、单 Story TQA、Scenario
+├── evidence/                 # 模型、挑战、Respond 与知识验证
+├── testing/                  # 工序、Pair、执行 manifest 与 Showcase
+├── validation/               # CI 确定性验证入口
+├── tests/                    # 跨模块集成测试
+└── vitest.config.ts
 ```
-
-## 模块职责
 
 ### `runtime/`
 
-- `identity.ts`：集中声明扩展 ID、状态栏 key、状态前缀和消息类型。
-- `commands.ts`：注册 `/evidence-*` 命令并执行交互式前置检查；命令通过共享阶段执行器直接启动隔离 subagent，不再构造合成用户消息触发额外模型轮次。`/evidence-new` 成功创建迭代后立即执行一次前台 Frame。
-- `github-cli.ts`：将 Pi 的异步、可取消进程执行适配为 GitHub Issue runner。
-- `loading.ts`：为外部操作提供可取消的 `BorderedLoader`；非 TUI 模式退化为临时状态栏。
-- `phase-progress.ts`：为命令直接启动的阶段提供可取消前台面板，以主题 `toolPendingBg` 渲染 subagent 工具调用和最新输出；非 TUI 模式退化为状态栏与 widget。
-- `phase-execution.ts`：统一命令与模型工具的阶段执行、状态栏生命周期、运行元数据和进度事件。
-- `story-picker.ts`：像 Issue 选择器一样，从未完成的 `US-xxx.md` 中显示标题并由人手动选择。
-- `tools.ts`：注册 `evidence_orchestrator_*` 模型工具。
-- `status.ts`：生成当前工作流状态报告。
+- `identity.ts`：扩展 ID、状态 key、状态前缀和消息类型。
+- `commands.ts`：注册 `/evidence-*` 人工命令及交互式前置检查。
+- `tools.ts`：注册供隔离 Agent 调用的 `evidence_orchestrator_*` 工具。
+- `activity-dispatch.ts`：根据当前 loop/stage 解析一次活动、确定 Agent 或确定性动作。
+- `activity-execution.ts`：统一命令和模型工具的活动执行、运行元数据与 Driver/Reviewer 保护。
+- `activity-progress.ts`：可取消的前台活动进度；非 TUI 模式使用 status/widget。
+- `activity-subagent-renderer.ts`：在 `details` 保留子进程事件，在 `content` 只返回最终回答。
+- `status.ts`：显示 v5 状态；对终态旧版本仅显示不可变历史投影。
 
 ### `subagents/`
 
-- `phase-runner.ts`：读取 `.pi/agents/*.md` 并启动隔离的 pi 子进程；通过 `--mode json` 收集 `message_end` 和 `tool_result_end`，把子 agent 的完整活动快照流式交给调用方。
-- `phase-task.ts`：只注入活动迭代的上下文、单次任务与停止边界；方法步骤通过对应 Skill 渐进加载，不复制到 task。
-
-`runtime/phase-subagent-renderer.ts` 采用 Pi 官方 subagent 示例的双通道模式：
-
-- 工具 `content` 只返回子 agent 的最终回答，因此父 agent 获得可执行的紧凑上下文；
-- 工具 `details` 保留子 agent 消息、工具调用、模型和 stderr，TUI 在执行中显示最近活动，使用 `Ctrl+O` 可展开完整委派任务与输出；非零退出码保留诊断并标记为工具错误；
-- 子进程优先复用运行父 agent 的 Pi 可执行文件，避免 PATH 指向不同 Pi 版本。
+- `activity-runner.ts`：读取 `.pi/agents/*.md`，以 `--mode json` 启动隔离 Pi 子进程并转发 `message_end` / `tool_result_end`。
+- `activity-task.ts`：只注入当前 Story/Scenario、必要路径、单次任务与停止边界；不复制 Skill 方法正文。
 
 ### `workflow/`
 
-- `types.ts`：工作流共享类型。
-- `phase-catalog.ts`：阶段顺序、输入输出及阶段要求。
-- `state-store.ts`：`evidence-state.json` 的读写与工作项选择。
-- `iteration-paths.ts`：迭代 ID 和工件路径解析。
-- `gates.ts`：Gate 决策、阶段完成检查和 PDCA 失败处理。
+- `types.ts`：v5 loop、局部状态、人工决定、反馈与证据类型；另含终态旧版本只读投影类型。
+- `default-state.ts`：新 v5 iteration 的唯一默认状态。
+- `loop-catalog.ts`：合法 loop 转换与核心守卫。
+- `state-store.ts`：严格读取/写入 v5 状态；拒绝已删除字段；终态旧版本只能经 `readStateSnapshot()` 查看，不能恢复、转换或写回。
+- `iteration-paths.ts`：iteration ID 与隔离工件路径解析。
 
 ### `requirements/`
 
-- `github-issue.ts`：GitHub Issue 快照、投影、漂移检查与同步；异步入口在持久化前检查取消信号。
-- `clarifications.ts`：故事卡发现与选择、单故事 TQA、AI 结论建议、人工确认和澄清历史。
-
-GitHub Issue 列表、创建、快照、同步和漂移检查均显示具体的 Loading 文案。用户取消时不写入新状态，也不触发后续 Frame；模型工具入口则通过 `onUpdate` 流式报告相同操作。
-
-用户故事工件遵循 3C 分工：`stories/US-xxx.md` 只保存简短 Card（角色、可协商目标和价值），`clarifications/` 保存 Conversation，`examples/US-xxx-SC-xxx.md` 保存沟通确认后的 Confirmation。共享范围和非目标留在 `problem-statement.md`，候选优先级留在 `story-map-delta.md`；非目标不会生成反向验收场景或测试。
-
-Clarify 是阶段内的故事级子流程：
-
-1. Frame 根据问题、旅程切片和故事地图增量生成候选 `US-xxx.md` 故事卡；Clarify 不再承担常规故事生成。
-2. 进入 Clarify 后，人类通过 `/evidence-story` 或 `evidence_orchestrator_select_story` 打开前台选择器，查看故事标题并手动选择一张卡；也可显式执行 `/evidence-story US-xxx`。人类可随时切换到任一未完成 Story；切换会暂停当前 Story 的待答问题或待确认建议，并恢复目标 Story 先前暂停的状态。选择成功后会在同一次命令或工具调用中直接执行前台 clarify，无须再次执行 `/evidence-run`。
-3. 子 agent 的问题显示在当前对话中。领域专家直接回复，父 agent 在内部调用 `evidence_orchestrator_answer_question`；答案落盘后会立即重新运行当前故事的 clarify，继续提出下一问或形成结论建议。
-4. AI 通过 `evidence_orchestrator_propose_story_outcome` 只能提出 `clarified`、`needs_split` 或 `deferred` 建议。建议写入状态后 Story 仍保持活动；当前 Story 不能继续运行或完成 clarify，但人类可以切换到其他 Story，建议会被暂停并在切回时恢复。
-5. 领域专家执行 `/evidence-story-complete` 打开选择器；无论是否已有 AI 建议或待答问题，都可直接选择最终结论。也可显式执行 `/evidence-story-complete <outcome> <理由>`；若存在待答问题，它会以 `waived_by=human` 和理由保留在审计历史，而不会被伪造为已回答。已有 AI 建议时还可执行 `/evidence-story-complete confirm` 或 `/evidence-story-complete continue <原因>`。
-6. 只有人工决定会写入最终结论、记录 `decided_by=human` 与确认时间并释放 Story。仍有未完成故事时重新等待人类选择；最后一张故事完成人工确认后，下一次 `/evidence-run` 会确定性结束 Clarify，并在同一次命令中直接执行 Specify，不再启动只负责阶段收尾的 Clarify 子 agent。Specify 会一次处理所有最终结论为 `clarified` 的 Story，并要求每张 Story 至少有一个验收示例；`needs_split` 与 `deferred` Story 在重新澄清前不进入该批次。
-
-已进入 Clarify 且缺少故事卡的旧迭代保留一次兼容路径：子 agent 可依据既有 Frame 工件补建故事卡，随后立即停止等待人工选择。
+- `github-issue.ts`：冻结 Issue 快照、只读 Markdown 投影、漂移检查与 Kickoff 内显式同步。
+- `kickoff.ts`：记录一个未授权候选并执行人工决定；只有确认才创建 `US-xxx` Card。
+- `clarifications.ts`：活动 Story 的单问题 TQA 与回答历史，不支持 Story picker 或暂停切换。
+- `scenarios.ts`：Scenario 候选与人工确认/继续/拆分/延期。
+- `story-cards.ts`：单 Story Card 的文件格式与解析。
 
 ### `evidence/`
 
-- `artifact-index.ts`：工件目录和真实代码文件扫描。
-- `model-validation.ts`：领域模型展开与迭代模型证据验证。
-- `model-and-code.ts`：v4 只读兼容导出；v5 不再从此处读取手写编码证据。
-- `knowledge.ts`：统一知识、场景上下文和知识提升验证。
-- `respond.ts`：生成可选、可验证的知识响应与 next Probe，并等待人工确认迭代边界。
-- `working-knowledge.ts`：验证 Skill/Prompt 可发现性、认知模式、版本、负责人、已验证场景、反馈、替代关系与 reviewable eval。
+- `modeling.ts`：建模方法候选、人工 Profile 和候选模型操作。
+- `model-projection.ts`：从候选模型确定性生成 Mermaid、glossary 和挑战上下文。
+- `model-challenge.ts`：只读 Challenger 结论与语义反馈路由。
+- `model-validation.ts`：Scenario/模型证据校验。
+- `respond.ts`：知识提升候选、人工决定和 next Probe。
+- `knowledge.ts`：统一产品、模型、架构和工序知识验证。
+- `working-knowledge.ts`：验证 Skill/Prompt 的发现性、版本、负责人、认知行为、验证场景、反馈、替代关系和 eval。
 
 ### `testing/`
 
-- `process-catalog.ts`：测试工序 Schema、目录读取和唯一匹配。
-- `execution-recorder.ts`：执行锁定命令并写入 hash-chained append-only 观测日志。
-- `execution-manifest.ts`：从观测日志、批准计划与 Git 变化确定性生成/验证 manifest 和人读摘要。
-- `showcase.ts`：重跑已选 Q2、记录 Q3/Q4 风险、保护只读 Reviewer，并将人工反馈按知识缺口路由。
-- `legacy-execution-evidence.ts`：仅验证不可变 v4 iteration 的手写编码证据。
+- `process-catalog.ts`：test-process Schema v2、目录读取与唯一匹配。
+- `tasking.ts`：生成 test/task list、物化白名单命令、锁定计划并处理 Desk Check。
+- `pairing.ts`：Navigator checkpoint、Driver 路径保护、Red 分类与 quality gates。
+- `execution-recorder.ts`：执行锁定命令并追加 hash-chained `execution.jsonl`。
+- `execution-manifest.ts`：从执行日志、批准计划和 Git 变化生成/重放 `manifest.json` 与 `summary.md`。
+- `showcase.ts`：Q2 重跑、Q3/Q4 风险、只读 Reviewer 保护、人工决定和反馈路由。
+- `worktree-snapshot.ts`：Driver/Reviewer 前后的确定性工作树比较与恢复。
 
-### `validation/`
+## 人工命令
 
-- `workflow-validator.ts`：`pnpm orchestrator:validate` 的确定性 CI 入口；同时验证 Working Knowledge catalog，阻止未编目的 Skill/Prompt。
+```text
+/evidence-new
+/evidence-status
+/evidence-run [--dry-run]
+/evidence-issue-status
+/evidence-issue-sync
+/evidence-kickoff confirm|revise|split|defer <reason>
+/evidence-scenario confirm <DRAFT-xxx> <reason>
+/evidence-scenario continue|split|defer <reason>
+/evidence-modeling-profile confirm|revise <reason>
+/evidence-desk-check approve|revise|scenario-gap|architecture-gap|process-gap <reason>
+/evidence-pair accept-red|back-test|back-implementation|back-tasking|retry-quality <reason>
+/evidence-showcase accept|revise|reject <reason>
+/evidence-respond approve|revise <reason>
+```
+
+`/evidence-run` 只推进当前 loop 的一个活动或确定性 checkpoint。遇到人工决定时必须停止；它不会代替 Navigator 连续运行整个 iteration。
+
+## Agent 工具
+
+活动工具只有以下类别：
+
+- iteration：`start_from_issue`、`sync_issue`、`status`、`run_activity`；
+- Kickoff / Understand：`propose_kickoff`、`ask_question`、`answer_question`、`propose_scenarios`、`propose_modeling_profile`、`record_model_analysis`、`record_model_challenge`；
+- Tasking / Showcase / Respond：`propose_tasking`、`record_showcase_review`、`propose_response`。
+
+完整名称都以 `evidence_orchestrator_` 开头。工具只能提出候选或记录可观测事实，不能执行人工决定。
+
+## 执行证据
+
+对于活动工作项 `US-xxx / SC-xxx`：
+
+```text
+artifacts/05-code/US-xxx/SC-xxx.execution.jsonl
+artifacts/05-code/US-xxx/SC-xxx.manifest.json
+artifacts/05-code/US-xxx/SC-xxx.summary.md
+artifacts/06-review/US-xxx/SC-xxx.review-NNN.json
+artifacts/06-review/showcase-risks.jsonl
+artifacts/06-review/showcase-decisions.jsonl
+artifacts/07-learning/knowledge-promotion.json
+artifacts/07-learning/next-iteration.md
+```
+
+`execution.jsonl` 是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。
+
+## 旧 iteration 边界
+
+`artifacts/iterations/ITER-0000` 与 `ITER-0001` 等历史目录保持原字节不变。终态旧版本 `evidence-state.json` 仅可通过状态命令读取：
+
+- 不迁移或重写旧状态；
+- 不把旧手写执行 JSON 当作 v5 执行事实；
+- 不恢复仍处于活动状态的旧 iteration；
+- 新工作必须由人类以 `/evidence-new` 创建独立 v5 iteration。
 
 ## 依赖方向
 
@@ -104,20 +177,21 @@ validation
   → workflow/requirements/evidence/testing
 ```
 
-底层模块不得反向依赖 `runtime/`。`.pi/agents/` 不得导入此目录代码，只能通过已注册的 `evidence_orchestrator_*` 工具交互。
+底层模块不得反向依赖 `runtime/`。`.pi/agents/` 不导入扩展代码，只通过注册工具交互。
 
-## 命名规则
+## 维护规则
 
-- 文件名表达业务职责，不使用含义宽泛的 `utils.ts`、`helpers.ts`。
-- 单元测试与源文件同目录，使用 `<source>.spec.ts`。
-- 跨模块测试放入 `tests/`，使用 `*.integration.spec.ts`。
-- 新增工作流状态字段先修改 `workflow/types.ts`，再修改 `workflow/state-store.ts`。
-- 新增阶段规则统一修改 `workflow/phase-catalog.ts`，不要分散到命令或工具中。
+- 新状态字段先修改 `workflow/types.ts`，再修改 `workflow/state-store.ts` 与相邻规格测试。
+- 新转换或守卫放在 `workflow/loop-catalog.ts`，不要散落到命令或 Agent。
+- Agent 不复制方法正文；方法变化更新 catalog 指向的 Skill/Prompt 及 eval。
+- 测试命令必须来自人工批准且哈希锁定的 test-process 计划。
+- 变更必须覆盖 full-loop happy path、主要反馈路由和旧版本只读边界。
 
 ## 验证
 
 ```sh
 pnpm orchestrator:test
 pnpm orchestrator:validate
+pnpm exec eslint '.pi/extensions/evidence-orchestrator/**/*.ts' --no-warn-ignored
 pnpm exec prettier --check '.pi/extensions/evidence-orchestrator/**/*.{ts,md}'
 ```

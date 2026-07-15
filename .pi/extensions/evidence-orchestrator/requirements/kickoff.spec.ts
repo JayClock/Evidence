@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import { readState, writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 import { decideKickoff, proposeKickoffCandidate } from './kickoff';
@@ -76,7 +76,6 @@ describe('v5 Kickoff', () => {
     expect(state).toMatchObject({
       workflow_version: 5,
       loop: 'understand',
-      phase: 'clarify',
       active_clarification_story: { story_id: 'US-001' },
     });
     expect(state.kickoff_decisions).toEqual([
@@ -110,7 +109,6 @@ describe('v5 Kickoff', () => {
     writeState(cwd, {
       ...first,
       loop: 'kickoff',
-      phase: 'frame',
       kickoff_candidate: undefined,
       understand_stage: undefined,
       active_clarification_story: undefined,

@@ -53,9 +53,9 @@ function requiredTexts(values: string[], name: string): string[] {
 
 function requireUnderstandState(cwd: string): WorkflowState {
   const state = readState(cwd);
-  if (state.workflow_version !== 5 || state.loop !== 'understand') {
+  if (state.loop !== 'understand') {
     throw new Error(
-      `Scenario understanding is only available in a v5 Understand loop; current workflow is v${state.workflow_version ?? 4}/${state.loop ?? state.phase}.`,
+      `Scenario understanding is only available in the Understand loop; current loop is ${state.loop}.`,
     );
   }
   if (state.halted) {
@@ -80,7 +80,7 @@ export function proposeScenarioDrafts(
   now = new Date().toISOString(),
 ): WorkflowState {
   const state = requireUnderstandState(cwd);
-  if (state.understand_stage !== 'tqa' || state.phase !== 'clarify') {
+  if (state.understand_stage !== 'tqa') {
     throw new Error(
       `Scenario drafts can only be proposed after TQA; current Understand stage is ${state.understand_stage ?? 'unset'}.`,
     );
@@ -236,7 +236,7 @@ export function decideUnderstanding(
         decision,
       ],
       halted: {
-        phase: 'clarify',
+        loop: 'understand',
         reason: `${input.action}: ${reason}`,
         recorded_at: now,
       },
@@ -315,7 +315,6 @@ export function decideUnderstanding(
   };
   return writeState(cwd, {
     ...state,
-    phase: 'domain_model',
     understand_stage: 'modeling',
     modeling_stage: 'profile',
     active_clarification_story: undefined,

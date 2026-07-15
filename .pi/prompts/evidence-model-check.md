@@ -10,4 +10,4 @@ Read `$1` and `${2:-.evidence/model.json}`. Report only:
 3. lifecycle, invariant, or timeline contradictions;
 4. whether this is a Scenario gap, model gap, or method gap.
 
-This is a Clear, read-only check. Do not edit `.evidence`, create a candidate, call workflow tools, or start a phase agent.
+This is a Clear, read-only check. Do not edit `.evidence`, create a candidate, call workflow tools, or start an activity subagent.

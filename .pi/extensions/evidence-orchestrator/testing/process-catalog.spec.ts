@@ -10,29 +10,6 @@ import { cleanupWorkspaces, workspace, write } from '../tests/support';
 
 afterEach(cleanupWorkspaces);
 
-const validProcessV1 = {
-  version: 1,
-  id: 'rust-api-v1',
-  applies_to: { runtime: 'rust', functional_contexts: ['domain', 'api'] },
-  steps: [
-    {
-      id: 'domain',
-      quadrant: 'Q1',
-      functional_context: 'domain',
-      test_double: 'real',
-      task: 'Test domain behavior.',
-    },
-    {
-      id: 'api',
-      quadrant: 'Q2',
-      functional_context: 'api',
-      test_double: 'stub',
-      task: 'Test acceptance behavior.',
-    },
-  ],
-  quality_gates: ['cargo test -p evidence-server'],
-};
-
 const validProcessV2 = {
   version: 2,
   id: 'rust-workspace-v2',
@@ -92,16 +69,17 @@ const validProcessV2 = {
 };
 
 describe('test-processes', () => {
-  it('continues to read a legacy v1 process during migration', () => {
+  it('rejects a pre-v2 process from the active catalog', () => {
     const cwd = workspace();
-    const path = `${cwd}/process.json`;
-    write(cwd, 'process.json', JSON.stringify(validProcessV1));
+    write(
+      cwd,
+      'process.json',
+      JSON.stringify({ version: 1, id: 'old-process' }),
+    );
 
-    expect(readTestProcess(path)).toMatchObject({
-      id: 'rust-api-v1',
-      version: 1,
-      runtime: 'rust',
-    });
+    expect(() => readTestProcess(`${cwd}/process.json`)).toThrow(
+      'version must be 2',
+    );
   });
 
   it('parses v2 ordered boundaries, doubles, focused feedback, and completion rules', () => {
@@ -146,8 +124,8 @@ describe('test-processes', () => {
       cwd,
       'process.json',
       JSON.stringify({
-        ...validProcessV1,
-        steps: [validProcessV1.steps[0]],
+        ...validProcessV2,
+        steps: [validProcessV2.steps[0]],
       }),
     );
 

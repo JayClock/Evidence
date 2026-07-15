@@ -3,33 +3,33 @@ import {
   type ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
 import { Box, type Component } from '@earendil-works/pi-tui';
-import type { PhaseExecutionDetails } from './phase-execution';
-import { renderPhaseSubagentResult } from './phase-subagent-renderer';
+import type { ActivityExecutionDetails } from './activity-execution';
+import { renderActivitySubagentResult } from './activity-subagent-renderer';
 
-const PHASE_PROGRESS_KEY = 'evidence-phase-progress';
+const ACTIVITY_PROGRESS_KEY = 'evidence-activity-progress';
 
-type PhaseProgressContext = Pick<ExtensionCommandContext, 'mode' | 'ui'>;
-type PhaseTheme = Parameters<typeof renderPhaseSubagentResult>[2] & {
+type ActivityProgressContext = Pick<ExtensionCommandContext, 'mode' | 'ui'>;
+type ActivityTheme = Parameters<typeof renderActivitySubagentResult>[2] & {
   bg(color: string, text: string): string;
 };
 
-type PhaseLoadingResult =
-  | { status: 'success'; value: PhaseExecutionDetails }
+type ActivityLoadingResult =
+  | { status: 'success'; value: ActivityExecutionDetails }
   | { status: 'cancelled' }
   | { status: 'error'; error: unknown };
 
-class LivePhaseProgress implements Component {
-  private details: PhaseExecutionDetails | undefined;
+class LiveActivityProgress implements Component {
+  private details: ActivityExecutionDetails | undefined;
 
-  constructor(private readonly theme: PhaseTheme) {}
+  constructor(private readonly theme: ActivityTheme) {}
 
-  setDetails(details: PhaseExecutionDetails): void {
+  setDetails(details: ActivityExecutionDetails): void {
     this.details = details;
   }
 
   render(width: number): string[] {
     if (!this.details) return [];
-    const content = renderPhaseSubagentResult(
+    const content = renderActivitySubagentResult(
       {
         content: [{ type: 'text', text: this.details.output }],
         details: this.details,
@@ -49,49 +49,49 @@ class LivePhaseProgress implements Component {
   }
 }
 
-function progressLines(details: PhaseExecutionDetails): string[] {
+function progressLines(details: ActivityExecutionDetails): string[] {
   const latest = details.output.trim().split('\n').filter(Boolean).slice(-3);
   return [
-    `Evidence ${details.phase} · ${details.agent} · ${details.model}`,
+    `Evidence ${details.activity} · ${details.agent} · ${details.model}`,
     ...(latest.length > 0 ? latest : ['(running...)']),
   ];
 }
 
 /**
- * Keep a command-started phase cancellable while rendering the same finalized
- * child events that tool-started phases expose through partial tool results.
+ * Keep a command-started activity cancellable while rendering the same child
+ * events that tool-started activities expose through partial tool results.
  */
-export async function runWithPhaseProgress(
-  ctx: PhaseProgressContext,
+export async function runWithActivityProgress(
+  ctx: ActivityProgressContext,
   message: string,
   operation: (
     signal: AbortSignal,
-    onUpdate: (details: PhaseExecutionDetails) => void,
-  ) => Promise<PhaseExecutionDetails>,
-): Promise<PhaseExecutionDetails | undefined> {
+    onUpdate: (details: ActivityExecutionDetails) => void,
+  ) => Promise<ActivityExecutionDetails>,
+): Promise<ActivityExecutionDetails | undefined> {
   if (ctx.mode !== 'tui') {
     const controller = new AbortController();
-    ctx.ui.setStatus(PHASE_PROGRESS_KEY, message);
-    ctx.ui.setWidget(PHASE_PROGRESS_KEY, [message]);
+    ctx.ui.setStatus(ACTIVITY_PROGRESS_KEY, message);
+    ctx.ui.setWidget(ACTIVITY_PROGRESS_KEY, [message]);
     try {
       return await operation(controller.signal, (details) => {
-        ctx.ui.setWidget(PHASE_PROGRESS_KEY, progressLines(details));
+        ctx.ui.setWidget(ACTIVITY_PROGRESS_KEY, progressLines(details));
       });
     } finally {
-      ctx.ui.setWidget(PHASE_PROGRESS_KEY, undefined);
-      ctx.ui.setStatus(PHASE_PROGRESS_KEY, undefined);
+      ctx.ui.setWidget(ACTIVITY_PROGRESS_KEY, undefined);
+      ctx.ui.setStatus(ACTIVITY_PROGRESS_KEY, undefined);
     }
   }
 
-  const result = await ctx.ui.custom<PhaseLoadingResult>(
+  const result = await ctx.ui.custom<ActivityLoadingResult>(
     (tui, theme, _keybindings, done) => {
       const loader = new BorderedLoader(tui, theme, message, {
         cancellable: true,
       });
-      const progress = new LivePhaseProgress(theme);
+      const progress = new LiveActivityProgress(theme);
       let settled = false;
 
-      const finish = (value: PhaseLoadingResult) => {
+      const finish = (value: ActivityLoadingResult) => {
         if (settled) return;
         settled = true;
         done(value);

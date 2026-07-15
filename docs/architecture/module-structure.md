@@ -46,8 +46,9 @@ libs/
 ## 内部 Orchestrator 与知识结构
 
 ```text
-.pi/extensions/evidence-orchestrator/  deterministic orchestration runtime
-.pi/agents/                             isolated phase agents
+.pi/extensions/evidence-orchestrator/  deterministic loop controls and evidence
+.pi/agents/                             isolated activity roles
+.pi/skills/ and .pi/prompts/            internal Working Knowledge
 .evidence/                              canonical domain model
 docs/product/                           canonical product knowledge
 docs/architecture/                      canonical technical solution

@@ -4,221 +4,148 @@ import {
   collectCodeFiles,
   findFiles,
 } from '../evidence/artifact-index';
-import {
-  allClarificationStoryOutcomeProposals,
-  allPendingClarifications,
-} from '../requirements/clarifications';
-import { isGateAnswered } from '../workflow/gates';
 import { pairDriverMode, pairNextInstruction } from '../testing/pairing';
 import { showcaseNextInstruction } from '../testing/showcase';
 import { executionEvidencePaths } from '../testing/execution-manifest';
 import { iterationRoot } from '../workflow/iteration-paths';
-import { allowedLoopActions, isV5Workflow } from '../workflow/loop-catalog';
-import { readState } from '../workflow/state-store';
-import { loadPhaseAgent } from '../subagents/phase-runner';
+import { allowedLoopActions } from '../workflow/loop-catalog';
+import { readStateSnapshot } from '../workflow/state-store';
+import type { WorkflowState } from '../workflow/types';
+import { loadActivityAgent } from '../subagents/activity-runner';
 
-function requirementsSubstage(phase: string): string {
-  return ['frame', 'clarify', 'specify', 'validate'].includes(phase)
-    ? phase
-    : 'n/a';
+function agentName(state: WorkflowState): string | undefined {
+  if (state.loop === 'kickoff') return 'requirements-analyst';
+  if (state.loop === 'understand') {
+    if (state.understand_stage === 'tqa') return 'requirements-analyst';
+    return state.modeling_stage === 'candidate_ready'
+      ? 'model-challenger'
+      : 'domain-modeler';
+  }
+  if (state.loop === 'tasking') return 'architect';
+  if (state.loop === 'pair') {
+    const mode = pairDriverMode(state);
+    return mode === 'test'
+      ? 'test-driver'
+      : mode
+        ? 'production-driver'
+        : undefined;
+  }
+  if (state.loop === 'showcase') return 'showcase-reviewer';
+  if (state.loop === 'respond') return 'respond-learner';
+  return undefined;
+}
+
+function nextActions(cwd: string, state: WorkflowState): string {
+  if (state.halted) return 'none — iteration halted';
+  if (state.loop === 'pair') return pairNextInstruction(state);
+  if (state.loop === 'showcase') return showcaseNextInstruction(cwd);
+  if (state.loop === 'respond' && state.respond_stage === 'decision') {
+    return 'human:/evidence-respond approve|revise <reason>';
+  }
+  if (state.loop === 'tasking' && state.tasking_stage === 'desk_check') {
+    return 'human:/evidence-desk-check';
+  }
+  return allowedLoopActions(state.loop).join(', ') || 'none';
+}
+
+function list(title: string, values: string[]): string[] {
+  return [
+    `## ${title} (${values.length})`,
+    values.length ? values.map((value) => `- ${value}`).join('\n') : '- none',
+  ];
 }
 
 export function statusMarkdown(cwd: string): string {
-  const state = readState(cwd);
-  const root = iterationRoot(cwd, state);
+  const snapshot = readStateSnapshot(cwd);
+  const root = iterationRoot(cwd, snapshot);
   const artifacts = collectArtifacts(cwd, root);
   const codeFiles = collectCodeFiles(cwd);
-  let phaseAgent = 'none';
-  if (state.phase !== 'complete') {
-    const pairMode = pairDriverMode(state);
-    if (state.workflow_version === 5 && state.loop === 'pair' && !pairMode) {
-      phaseAgent = 'pair-controller · deterministic / human Navigator';
-    } else {
-      try {
-        const agent = loadPhaseAgent(
-          cwd,
-          state.phase,
-          state.workflow_version === 5 && state.loop === 'showcase'
-            ? 'showcase-reviewer'
-            : state.workflow_version === 5 && state.loop === 'respond'
-              ? 'respond-learner'
-              : state.modeling_stage === 'candidate_ready'
-                ? 'model-challenger'
-                : pairMode === 'test'
-                  ? 'test-driver'
-                  : pairMode
-                    ? 'production-driver'
-                    : undefined,
-        );
-        phaseAgent = `${agent.name} · ${agent.model} (thinking=${agent.thinking})`;
-      } catch {
-        phaseAgent = 'missing';
-      }
+  if (snapshot.workflow_version === 4) {
+    const legacyArtifacts = findFiles(root, () => true).map((path) =>
+      relative(cwd, path),
+    );
+    return [
+      '# Evidence Orchestrator Status',
+      '',
+      '| Field | Value |',
+      '|:---|:---|',
+      `| Iteration | ${snapshot.iteration_id} |`,
+      '| Schema | v4 legacy · immutable/read-only |',
+      `| Legacy Phase | ${snapshot.legacy_phase} |`,
+      `| Terminal | ${snapshot.terminal} |`,
+      `| Halted Reason | ${snapshot.halted_reason ?? 'none'} |`,
+      '| Allowed Actions | /evidence-new only |',
+      `| Last Run | ${snapshot.pi?.last_run_at ?? 'unknown'} |`,
+      '',
+      'Historical files and hand-authored execution evidence are displayed as immutable artifacts; active v5 validators never consume them as execution facts.',
+      '',
+      ...list('Legacy Artifacts', legacyArtifacts),
+      '',
+      ...list('Current Code Files', codeFiles),
+    ].join('\n');
+  }
+  const state = snapshot;
+  const requestedAgent = agentName(state);
+  let agent = 'deterministic controller / human Navigator';
+  if (requestedAgent) {
+    try {
+      const loaded = loadActivityAgent(cwd, requestedAgent);
+      agent = `${loaded.name} · ${loaded.model} (thinking=${loaded.thinking})`;
+    } catch {
+      agent = `missing: ${requestedAgent}`;
     }
   }
-  const gates = findFiles(join(root, 'gates'), (p) => p.endsWith('.md')).map(
-    (p) => relative(cwd, p),
-  );
-  const activeWorkItem = state.active_work_item
-    ? `${state.active_work_item.story_id} / ${state.active_work_item.scenario_id}`
-    : 'none';
-  const executionEvidence = executionEvidencePaths(cwd);
-  const kickoffCandidate = state.kickoff_candidate
-    ? `${state.kickoff_candidate.title} · ${state.kickoff_candidate.cognitive_mode} · ${state.kickoff_candidate.artifact_path}`
-    : 'none';
-  const kickoffDecisions = state.kickoff_decisions?.length
-    ? state.kickoff_decisions
-        .map(
-          ({ action, story_id }) =>
-            `${action}${story_id ? ` (${story_id})` : ''}`,
-        )
-        .join(', ')
-    : 'none';
-  const activeClarificationStory =
-    state.active_clarification_story?.story_id ?? 'none';
-  const scenarioDrafts = state.scenario_drafts?.length
-    ? state.scenario_drafts
-        .map(({ draft_id, title }) => `${draft_id} · ${title}`)
-        .join(', ')
-    : 'none';
-  const confirmedScenario = state.confirmed_scenario
-    ? `${state.confirmed_scenario.story_id} / ${state.confirmed_scenario.scenario_id}`
-    : 'none';
-  const modelingProfile = state.modeling_profile
-    ? `${state.modeling_profile.subject}/${state.modeling_profile.method} · change=${state.modeling_profile.model_change_required}`
-    : state.modeling_profile_proposal
-      ? `proposed ${state.modeling_profile_proposal.subject}/${state.modeling_profile_proposal.method} · change=${state.modeling_profile_proposal.model_change_required}`
-      : 'none';
-  const latestModelChallenge = state.model_challenges?.at(-1)
-    ? `${state.model_challenges.at(-1)?.outcome} · ${state.model_challenges.at(-1)?.artifact_path}`
-    : 'none';
-  const pendingStoryDecisions = allClarificationStoryOutcomeProposals(state);
-  const pendingStoryDecision = pendingStoryDecisions.length
-    ? pendingStoryDecisions
-        .map(({ story_id, outcome }) => `${story_id} · ${outcome}`)
-        .join(', ')
-    : 'none';
-  const clarificationOutcomes = state.clarification_story_outcomes?.length
-    ? state.clarification_story_outcomes
-        .map(
-          ({ story_id, outcome, decided_by }) =>
-            `${story_id}=${outcome}${decided_by ? ` (${decided_by})` : ''}`,
-        )
-        .join(', ')
-    : 'none';
-  const pendingClarifications = allPendingClarifications(state);
-  const pendingClarification = pendingClarifications.length
-    ? pendingClarifications
-        .map(({ question_id, story_id }) => `${question_id} · ${story_id}`)
-        .join(', ')
-    : 'none';
-  const showcaseRisks = state.showcase_risk_decisions?.length
-    ? state.showcase_risk_decisions
-        .map(
-          ({ quadrant, disposition, activities }) =>
-            `${quadrant}=${disposition}${activities.length ? ` (${activities.join(', ')})` : ''}`,
-        )
-        .join('; ')
-    : 'none';
-  const latestShowcaseReview = state.showcase_reviews?.at(-1);
-  const latestShowcaseDecision = state.showcase_decisions?.at(-1);
-  const requirementSource = state.requirement_source
-    ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}`
-    : state.phase === 'complete'
-      ? 'archived bootstrap iteration'
-      : 'missing — execution blocked';
-  const v5 = isV5Workflow(state);
-  const workflowVersion = state.workflow_version ?? 4;
-  const workflowCompatibility = v5
-    ? 'native v5'
-    : state.phase === 'complete' || state.halted
-      ? 'legacy v4 · read-only'
-      : 'legacy v4 active — complete or halt before starting v5; in-place migration is disabled';
-  const allowedActions = v5
-    ? state.halted
-      ? 'none — iteration halted'
-      : state.loop === 'tasking' && state.tasking_stage !== 'approved'
-        ? [
-            ...allowedLoopActions(state.loop).filter(
-              (action) => action !== 'advance:pair',
-            ),
-            ...(state.tasking_stage === 'desk_check'
-              ? ['human:/evidence-desk-check']
-              : []),
-          ].join(', ') || 'none'
-        : state.loop === 'pair'
-          ? pairNextInstruction(state)
-          : state.loop === 'showcase'
-            ? showcaseNextInstruction(cwd)
-            : state.loop === 'respond'
-              ? state.respond_stage === 'decision'
-                ? 'human:/evidence-respond approve|revise <reason>'
-                : '/evidence-run proposes one knowledge response'
-              : allowedLoopActions(state.loop).join(', ') || 'none'
-    : 'legacy phase controls only';
+  const execution = executionEvidencePaths(cwd);
+  const reviews = state.showcase_reviews?.at(-1);
+  const decision = state.showcase_decisions?.at(-1);
+  const historicalGates = findFiles(join(root, 'gates'), (path) =>
+    path.endsWith('.md'),
+  ).map((path) => relative(cwd, path));
   return [
-    `# Evidence Orchestrator Status`,
-    ``,
-    `| Field | Value |`,
-    `|:---|:---|`,
+    '# Evidence Orchestrator Status',
+    '',
+    '| Field | Value |',
+    '|:---|:---|',
     `| Iteration | ${state.iteration_id} |`,
-    `| Workflow Version | v${workflowVersion} |`,
-    `| Loop | ${v5 ? state.loop : 'n/a (legacy phase)'} |`,
-    `| Allowed Actions | ${allowedActions} |`,
-    `| Workflow Compatibility | ${workflowCompatibility} |`,
-    `| Phase | ${state.phase} |`,
-    `| Requirement Source | ${requirementSource} |`,
-    `| Requirements Substage | ${requirementsSubstage(state.phase)} |`,
-    `| Kickoff Candidate | ${kickoffCandidate} |`,
-    `| Kickoff Decisions | ${kickoffDecisions} |`,
-    `| Active Work Item | ${activeWorkItem} |`,
-    `| Active Clarification Story | ${activeClarificationStory} |`,
+    '| Schema | v5 native |',
+    `| Loop | ${state.loop} |`,
+    `| Allowed Actions | ${nextActions(cwd, state)} |`,
+    `| Requirement Source | ${state.requirement_source ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}` : 'missing'} |`,
+    `| Kickoff Candidate | ${state.kickoff_candidate?.artifact_path ?? 'none'} |`,
+    `| Story | ${state.active_clarification_story?.story_id ?? state.confirmed_scenario?.story_id ?? 'none'} |`,
     `| Understand Stage | ${state.understand_stage ?? 'none'} |`,
-    `| Scenario Drafts | ${scenarioDrafts} |`,
-    `| Confirmed Scenario | ${confirmedScenario} |`,
+    `| Pending TQA | ${state.pending_clarification ? `${state.pending_clarification.question_id} · ${state.pending_clarification.question}` : 'none'} |`,
+    `| Confirmed Scenario | ${state.confirmed_scenario ? `${state.confirmed_scenario.story_id} / ${state.confirmed_scenario.scenario_id}` : 'none'} |`,
     `| Modeling Stage | ${state.modeling_stage ?? 'none'} |`,
-    `| Modeling Profile | ${modelingProfile} |`,
+    `| Modeling Profile | ${state.modeling_profile ? `${state.modeling_profile.subject}/${state.modeling_profile.method}` : 'none'} |`,
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,
-    `| Model Change Proposal | ${state.model_change_proposal?.artifact_path ?? 'none'} |`,
-    `| Latest Model Challenge | ${latestModelChallenge} |`,
     `| Tasking Stage | ${state.tasking_stage ?? 'none'} |`,
-    `| Tasking Draft | ${state.tasking_candidate ? `${state.tasking_candidate.draft_id} · ${state.tasking_candidate.test_list_path}` : 'none'} |`,
-    `| Tasking Gap | ${state.tasking_gap ? `${state.tasking_gap.kind} · ${state.tasking_gap.reason}` : 'none'} |`,
+    `| Tasking Draft | ${state.tasking_candidate?.draft_id ?? 'none'} |`,
     `| Approved Test Plan | ${state.approved_test_plan_path ?? 'none'} |`,
-    `| Approved Plan Hash | ${state.approved_test_plan_sha256 ?? 'none'} |`,
     `| Pair Checkpoint | ${state.pair_session?.checkpoint ?? 'none'} |`,
     `| Pair Step | ${state.pair_session ? `${state.pair_session.process_id}/${state.pair_session.step_id}` : 'none'} |`,
-    `| Pair Next | ${state.pair_session ? pairNextInstruction(state) : 'none'} |`,
-    `| Execution Log | ${executionEvidence.log ?? 'none'} |`,
-    `| Execution Manifest / v4 JSON | ${executionEvidence.manifest ?? 'none'} |`,
-    `| Execution Summary / v4 Markdown | ${executionEvidence.summary ?? 'none'} |`,
+    `| Execution Log | ${execution.log ?? 'none'} |`,
+    `| Execution Manifest | ${execution.manifest ?? 'none'} |`,
+    `| Execution Summary | ${execution.summary ?? 'none'} |`,
     `| Showcase Stage | ${state.showcase_stage ?? 'none'} |`,
-    `| Showcase Q2 | ${state.showcase_q2_observations?.map(({ process_id, step_id, exit_code }) => `${process_id}/${step_id}=exit${exit_code}`).join(', ') || 'none'} |`,
-    `| Showcase Q3/Q4 | ${showcaseRisks} |`,
-    `| Showcase Review | ${latestShowcaseReview ? `${latestShowcaseReview.recommendation} · ${latestShowcaseReview.artifact_path}` : 'none'} |`,
-    `| Showcase Decision | ${latestShowcaseDecision ? `${latestShowcaseDecision.action}${latestShowcaseDecision.feedback_target ? ` → ${latestShowcaseDecision.feedback_target}` : ''}` : 'none'} |`,
+    `| Showcase Review | ${reviews ? `${reviews.recommendation} · ${reviews.artifact_path}` : 'none'} |`,
+    `| Showcase Decision | ${decision?.action ?? 'none'} |`,
     `| Respond Stage | ${state.respond_stage ?? 'none'} |`,
-    `| Respond Candidate | ${state.respond_candidate?.artifact_path ?? 'none'} |`,
     `| Knowledge Promotion | ${state.knowledge_promotion_path ?? 'none'} |`,
     `| Next Probe | ${state.next_probe?.question ?? state.respond_candidate?.next_probe.question ?? 'none'} |`,
-    `| Pending Story Decision | ${pendingStoryDecision} |`,
-    `| Clarification Outcomes | ${clarificationOutcomes} |`,
-    `| Pending Clarification | ${pendingClarification} |`,
-    `| Phase Subagent | ${phaseAgent} |`,
-    `| Round | ${state.round} |`,
-    `| Pending Gate | ${state.pending_gate ?? 'none'} |`,
-    `| Pending Gate Answered | ${state.pending_gate ? (isGateAnswered(cwd, state.pending_gate) ? 'yes' : 'no') : 'n/a'} |`,
-    `| Failures | ${state.failures} / ${state.max_rounds} |`,
-    `| Halted | ${state.halted ? state.halted.reason : 'no'} |`,
+    `| Activity Agent | ${agent} |`,
+    `| Halted | ${state.halted?.reason ?? 'no'} |`,
     `| Last Run | ${state.pi?.last_run_at ?? 'never'} |`,
-    ``,
-    `## Artifacts (${artifacts.length})`,
-    artifacts.length ? artifacts.map((a) => `- ${a}`).join('\n') : `- none`,
-    ``,
-    `## Code Files (${codeFiles.length})`,
-    codeFiles.length ? codeFiles.map((a) => `- ${a}`).join('\n') : `- none`,
-    ``,
-    `## Gates (${gates.length})`,
-    gates.length ? gates.map((g) => `- ${g}`).join('\n') : `- none`,
+    '',
+    ...list('Artifacts', artifacts),
+    '',
+    ...list('Code Files', codeFiles),
+    ...(historicalGates.length
+      ? [
+          '',
+          '## Historical v4 Gate Files (read-only)',
+          historicalGates.map((path) => `- ${path}`).join('\n'),
+        ]
+      : []),
   ].join('\n');
 }

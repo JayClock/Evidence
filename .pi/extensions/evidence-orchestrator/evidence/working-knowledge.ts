@@ -307,7 +307,7 @@ export function workingKnowledgeInstruction(cwd: string, id: string): string {
   const entry = catalog.entries.find((candidate) => candidate.id === id);
   if (!entry?.skill_path)
     throw new Error(`${id} is not an active Skill entry.`);
-  return `Load and follow ${entry.skill_path}; keep method detail there rather than duplicating it in the phase task.`;
+  return `Load and follow ${entry.skill_path}; keep method detail there rather than duplicating it in the activity task.`;
 }
 
 export function promptCommand(path: string): string {

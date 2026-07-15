@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import { readState, writeState } from '../workflow/state-store';
 import {
   cleanupWorkspaces,
@@ -21,7 +21,6 @@ function prepareUnderstand(cwd: string): void {
     ...DEFAULT_STATE,
     workflow_version: 5,
     loop: 'understand',
-    phase: 'clarify',
     understand_stage: 'tqa',
     active_clarification_story: {
       story_id: 'US-001',
@@ -97,7 +96,6 @@ describe('v5 concrete Scenario understanding', () => {
 
     expect(state).toMatchObject({
       loop: 'understand',
-      phase: 'domain_model',
       understand_stage: 'modeling',
       confirmed_scenario: {
         story_id: 'US-001',

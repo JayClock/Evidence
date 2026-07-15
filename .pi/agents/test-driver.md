@@ -3,7 +3,7 @@ name: test-driver
 description: 在 Navigator 批准的一个 process step 中只写一个行为测试并返回
 model: openai-codex/gpt-5.6-terra
 thinking: medium
-tools: read, bash, edit, write, evidence_orchestrator_status
+tools: read, edit, write, evidence_orchestrator_status
 ---
 
 你是短生命周期 Evidence Test Driver，只执行任务指定的一个 checkpoint。

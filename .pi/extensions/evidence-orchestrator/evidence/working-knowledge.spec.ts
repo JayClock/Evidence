@@ -85,7 +85,7 @@ describe('Working Knowledge catalog', () => {
 
   it('provides progressive-disclosure instructions instead of copied method text', () => {
     expect(workingKnowledgeInstruction(process.cwd(), 'WK-STORY-TQA')).toBe(
-      'Load and follow .pi/skills/evidence-story-tqa/SKILL.md; keep method detail there rather than duplicating it in the phase task.',
+      'Load and follow .pi/skills/evidence-story-tqa/SKILL.md; keep method detail there rather than duplicating it in the activity task.',
     );
     expect(promptCommand('.pi/prompts/evidence-desk-check.md')).toBe(
       '/evidence-desk-check',
@@ -100,10 +100,6 @@ describe('Working Knowledge catalog', () => {
       'production-driver',
       'showcase-reviewer',
       'respond-learner',
-      'coder',
-      'planner',
-      'reviewer',
-      'learner',
     ]) {
       const source = readFileSync(
         join(process.cwd(), `.pi/agents/${agent}.md`),
@@ -146,7 +142,8 @@ describe('Working Knowledge catalog', () => {
       const entry = entries.find(
         (candidate) => candidate.id === 'WK-PROMPT-MODEL-CHECK',
       );
-      entry!.prompt_paths = ['.pi/prompts/nested/evidence-model-check.md'];
+      if (!entry) throw new Error('Expected model-check catalog entry.');
+      entry.prompt_paths = ['.pi/prompts/nested/evidence-model-check.md'];
     });
 
     expect(() => validateWorkingKnowledgeCatalog(cwd)).toThrow(

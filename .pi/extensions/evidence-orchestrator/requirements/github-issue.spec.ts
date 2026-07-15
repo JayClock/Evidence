@@ -8,7 +8,7 @@ import {
   syncIssueSource,
   validateIssueSourceSnapshot,
 } from './github-issue';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import { writeState } from '../workflow/state-store';
 import { cleanupWorkspaces, workspace } from '../tests/support';
 
@@ -42,7 +42,6 @@ describe('issue-source', () => {
     expect(state).toMatchObject({
       workflow_version: 5,
       loop: 'kickoff',
-      phase: 'frame',
       requirement_source: {
         type: 'github_issue',
         repository: 'owner/evidence',
@@ -81,14 +80,14 @@ describe('issue-source', () => {
     );
   });
 
-  it('refuses to migrate or replace an active v4 iteration in place', () => {
+  it('refuses to replace any active iteration in place', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
 
     expect(() =>
       startIterationFromIssue(cwd, { issueNumber: 42 }, runner()),
     ).toThrow(
-      'Complete or halt it first; active workflow state is never migrated in place',
+      'Complete, reject, split, or defer it first; state is never migrated in place',
     );
   });
 
@@ -127,7 +126,7 @@ describe('issue-source', () => {
     expect(drift.snapshot_hash).not.toBe(drift.remote_hash);
   });
 
-  it('only refreshes the active snapshot while still in frame', () => {
+  it('only refreshes the active snapshot while still in Kickoff', () => {
     const cwd = workspace();
     const initial = startIterationFromIssue(cwd, { issueNumber: 42 }, runner());
     const refreshed = syncIssueSource(
@@ -138,9 +137,13 @@ describe('issue-source', () => {
       initial.requirement_source?.content_hash,
     );
 
-    writeState(cwd, { ...refreshed, phase: 'clarify' });
+    writeState(cwd, {
+      ...refreshed,
+      loop: 'understand',
+      understand_stage: 'tqa',
+    });
     expect(() => syncIssueSource(cwd, runner('Another change.'))).toThrow(
-      'Cannot refresh the Issue snapshot in phase clarify',
+      'Cannot refresh the Issue snapshot in understand',
     );
   });
 });

@@ -423,11 +423,8 @@ function processManifest(
   const definition = readTestProcess(join(cwd, selection.path));
   assertLockedMaterializedPlan(cwd, selection, definition);
   if (
-    definition.version !== 2 ||
-    !selection.definition_sha256 ||
     testProcessDefinitionSha256(join(cwd, selection.path)) !==
-      selection.definition_sha256 ||
-    !selection.materialized_sha256
+    selection.definition_sha256
   ) {
     throw new Error(`Manifest process definition drifted: ${selection.id}.`);
   }
@@ -912,26 +909,6 @@ export function executionEvidencePaths(cwd: string): {
   const state = readState(cwd);
   const workItem = state.active_work_item;
   if (!workItem) return {};
-  if (state.workflow_version === 4) {
-    const legacyRoot = artifactRelativePath(
-      state,
-      `artifacts/05-code/${workItem.story_id}`,
-    );
-    const legacy = {
-      log: `${legacyRoot}/${workItem.scenario_id}.execution.jsonl`,
-      manifest: `${legacyRoot}/${workItem.scenario_id}.json`,
-      summary: `${legacyRoot}/${workItem.scenario_id}.md`,
-    };
-    return {
-      ...(existsSync(join(cwd, legacy.log)) ? { log: legacy.log } : {}),
-      ...(existsSync(join(cwd, legacy.manifest))
-        ? { manifest: legacy.manifest }
-        : {}),
-      ...(existsSync(join(cwd, legacy.summary))
-        ? { summary: legacy.summary }
-        : {}),
-    };
-  }
   return {
     log: executionPath(state, workItem),
     manifest: manifestPath(state, workItem),

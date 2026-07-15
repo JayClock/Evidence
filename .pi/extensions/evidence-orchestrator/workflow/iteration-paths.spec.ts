@@ -4,7 +4,7 @@ import {
   assertIterationId,
   nextIterationId,
 } from './iteration-paths';
-import { DEFAULT_STATE } from './phase-catalog';
+import { DEFAULT_STATE } from './default-state';
 import { cleanupWorkspaces, workspace, write } from '../tests/support';
 
 afterEach(cleanupWorkspaces);

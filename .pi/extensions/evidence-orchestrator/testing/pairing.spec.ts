@@ -14,9 +14,9 @@ import {
 } from '../tests/support';
 import {
   isCompletedIteration,
-  preparePhaseRun,
-} from '../runtime/phase-dispatch';
-import { DEFAULT_STATE } from '../workflow/phase-catalog';
+  prepareActivityRun,
+} from '../runtime/activity-dispatch';
+import { DEFAULT_STATE } from '../workflow/default-state';
 import {
   readState,
   transitionWorkflowLoop,
@@ -229,7 +229,6 @@ function preparePair(cwd: string): void {
     ...DEFAULT_STATE,
     workflow_version: 5,
     loop: 'pair',
-    phase: 'coding',
     requirement_source: {
       type: 'github_issue',
       repository: 'owner/repo',
@@ -295,7 +294,6 @@ function preparePair(cwd: string): void {
       story_id: 'US-001',
       scenario_id: 'SC-001',
       git_baseline: baseline,
-      test_process: selection,
       test_plan: { version: 2, processes: [selection] },
     },
     tasking_candidate: {
@@ -428,7 +426,6 @@ function addWebQ1Step(cwd: string): void {
       .digest('hex'),
     active_work_item: {
       ...workItem,
-      test_process: selection,
       test_plan: {
         ...workItem.test_plan,
         processes: selections,
@@ -697,7 +694,7 @@ describe('Navigator-driven Pair', () => {
     const cwd = workspace();
     preparePair(cwd);
 
-    const driver = preparePhaseRun(cwd);
+    const driver = prepareActivityRun(cwd);
     if (isCompletedIteration(driver)) throw new Error('Unexpected complete.');
     expect(driver.agentName).toBe('test-driver');
     expect(driver.task).toContain('.pi/skills/evidence-pairing/SKILL.md');
@@ -706,14 +703,14 @@ describe('Navigator-driven Pair', () => {
     const snapshot = capturePairWorktree(cwd);
     writeFocusedTest(cwd);
     completePairDriver(cwd, 'test', snapshot, 'Added Q2.');
-    const redAction = preparePhaseRun(cwd);
+    const redAction = prepareActivityRun(cwd);
     if (isCompletedIteration(redAction))
       throw new Error('Unexpected complete.');
     expect(redAction).toMatchObject({ pairAction: 'run_red' });
     expect(redAction.agentName).toBeUndefined();
 
     executePairAction(cwd, 'run_red');
-    expect(() => preparePhaseRun(cwd)).toThrow(
+    expect(() => prepareActivityRun(cwd)).toThrow(
       'Pair is paused at red_observed',
     );
   });
@@ -1021,10 +1018,9 @@ describe('Navigator-driven Pair', () => {
     preparePair(cwd);
     completePairSuccessfully(cwd);
 
-    const prepared = preparePhaseRun(cwd);
+    const prepared = prepareActivityRun(cwd);
     if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');
     expect(prepared).toMatchObject({
-      phase: 'review',
       showcaseAction: 'run_q2',
       state: { loop: 'showcase', showcase_stage: 'setup' },
     });
@@ -1038,7 +1034,7 @@ describe('Navigator-driven Pair', () => {
       invocation: 'showcase-controller',
       exit_code: 0,
     });
-    expect(() => preparePhaseRun(cwd)).toThrow('Q3 and Q4 risk decisions');
+    expect(() => prepareActivityRun(cwd)).toThrow('Q3 and Q4 risk decisions');
 
     recordShowcaseRisk(
       cwd,
@@ -1054,7 +1050,7 @@ describe('Navigator-driven Pair', () => {
       ['performance', 'security'],
       'Production rollout still needs non-functional evaluation.',
     );
-    const reviewerPreparation = preparePhaseRun(cwd);
+    const reviewerPreparation = prepareActivityRun(cwd);
     if (isCompletedIteration(reviewerPreparation)) {
       throw new Error('Unexpected complete.');
     }
@@ -1082,7 +1078,6 @@ describe('Navigator-driven Pair', () => {
     expect(review.reviewed_by).toBe('showcase-reviewer');
     expect(accepted).toMatchObject({
       loop: 'respond',
-      phase: 'learn',
       showcase_stage: 'accepted',
     });
     expect(accepted.showcase_decisions?.at(-1)).toMatchObject({
@@ -1106,12 +1101,11 @@ describe('Navigator-driven Pair', () => {
     expect(validateExecutionEvidence(cwd).showcase.status).toBe('passed');
     expect(() => validateShowcaseEvidence(cwd)).not.toThrow();
 
-    const respondPreparation = preparePhaseRun(cwd);
+    const respondPreparation = prepareActivityRun(cwd);
     if (isCompletedIteration(respondPreparation)) {
       throw new Error('Unexpected complete.');
     }
     expect(respondPreparation).toMatchObject({
-      phase: 'learn',
       agentName: 'respond-learner',
       state: { loop: 'respond', respond_stage: 'drafting' },
     });
@@ -1133,7 +1127,7 @@ describe('Navigator-driven Pair', () => {
       },
     });
     expect(response.promotions).toEqual([]);
-    expect(() => preparePhaseRun(cwd)).toThrow('/evidence-respond');
+    expect(() => prepareActivityRun(cwd)).toThrow('/evidence-respond');
     const completed = decideKnowledgeResponse(
       cwd,
       'approve',
@@ -1141,7 +1135,6 @@ describe('Navigator-driven Pair', () => {
     );
     expect(completed).toMatchObject({
       loop: 'complete',
-      phase: 'complete',
       respond_stage: 'complete',
       knowledge_promotion_path:
         'artifacts/iterations/ITER-0001/07-learning/knowledge-promotion.json',
@@ -1169,7 +1162,6 @@ describe('Navigator-driven Pair', () => {
     );
     expect(pair).toMatchObject({
       loop: 'pair',
-      phase: 'coding',
       pair_session: { checkpoint: 'red_observed', quality_gate_index: 0 },
     });
     expect(pair.feedback_history?.at(-1)).toMatchObject({
@@ -1201,7 +1193,6 @@ describe('Navigator-driven Pair', () => {
     );
     expect(understand).toMatchObject({
       loop: 'understand',
-      phase: 'clarify',
       understand_stage: 'tqa',
       active_clarification_story: { story_id: 'US-001' },
     });
@@ -1335,7 +1326,11 @@ describe('Navigator-driven Pair', () => {
     expect(rejected).toMatchObject({
       loop: 'showcase',
       showcase_stage: 'rejected',
-      halted: { phase: 'review' },
+      halted: {
+        loop: 'showcase',
+        reason: 'The demonstrated behavior must not be released.',
+        recorded_at: expect.any(String),
+      },
     });
     expect(rejected.showcase_q2_observations).toHaveLength(1);
     expect(rejected.showcase_reviews).toHaveLength(1);
@@ -1365,7 +1360,6 @@ describe('Navigator-driven Pair', () => {
     );
     expect(backTasking).toMatchObject({
       loop: 'tasking',
-      phase: 'architecture',
       tasking_stage: 'drafting',
     });
     expect(backTasking.pair_session).toBeUndefined();

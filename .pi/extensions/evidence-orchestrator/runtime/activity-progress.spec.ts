@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PhaseExecutionDetails } from './phase-execution';
-import { runWithPhaseProgress } from './phase-progress';
+import type { ActivityExecutionDetails } from './activity-execution';
+import { runWithActivityProgress } from './activity-progress';
 
 const theme = {
   fg(_color: string, text: string): string {
@@ -15,10 +15,10 @@ const theme = {
 };
 
 function details(
-  overrides: Partial<PhaseExecutionDetails> = {},
-): PhaseExecutionDetails {
+  overrides: Partial<ActivityExecutionDetails> = {},
+): ActivityExecutionDetails {
   return {
-    phase: 'frame',
+    activity: 'kickoff',
     task: 'Frame the frozen requirement.',
     status: 'running',
     agent: 'requirements-analyst',
@@ -44,7 +44,7 @@ function details(
   };
 }
 
-describe('foreground phase progress', () => {
+describe('foreground activity progress', () => {
   it('renders finalized child events while a TUI command is still running', async () => {
     let component: { render(width: number): string[] } | undefined;
     let renderedDuringRun = '';
@@ -70,7 +70,7 @@ describe('foreground phase progress', () => {
         }),
     );
 
-    const result = await runWithPhaseProgress(
+    const result = await runWithActivityProgress(
       {
         mode: 'tui',
         ui: {
@@ -79,7 +79,7 @@ describe('foreground phase progress', () => {
           setWidget: vi.fn(),
         },
       } as never,
-      'Running Evidence frame phase…',
+      'Running Evidence kickoff activity…',
       async (_signal, onUpdate) => {
         await new Promise<void>((resolve) => queueMicrotask(resolve));
         onUpdate(details());
@@ -92,13 +92,13 @@ describe('foreground phase progress', () => {
     );
 
     expect(requestRender).toHaveBeenCalled();
-    expect(renderedDuringRun).toContain('⏳ frame · requirements-analyst');
+    expect(renderedDuringRun).toContain('⏳ kickoff · requirements-analyst');
     expect(renderedDuringRun).toContain(
       'read artifacts/iterations/ITER-0001/issue.json',
     );
     expect(renderedDuringRun).toContain('[toolPendingBg]');
-    expect(renderedDuringRun.indexOf('⏳ frame')).toBeLessThan(
-      renderedDuringRun.indexOf('Running Evidence frame phase…'),
+    expect(renderedDuringRun.indexOf('⏳ kickoff')).toBeLessThan(
+      renderedDuringRun.indexOf('Running Evidence kickoff activity…'),
     );
     expect(result).toEqual(
       expect.objectContaining({
@@ -131,7 +131,7 @@ describe('foreground phase progress', () => {
     );
 
     await expect(
-      runWithPhaseProgress(
+      runWithActivityProgress(
         {
           mode: 'tui',
           ui: {
@@ -140,7 +140,7 @@ describe('foreground phase progress', () => {
             setWidget: vi.fn(),
           },
         } as never,
-        'Running Evidence frame phase…',
+        'Running Evidence kickoff activity…',
         (signal) => {
           operationSignal = signal;
           return new Promise((_resolve, reject) => {
@@ -160,12 +160,12 @@ describe('foreground phase progress', () => {
     const setWidget = vi.fn();
 
     await expect(
-      runWithPhaseProgress(
+      runWithActivityProgress(
         {
           mode: 'rpc',
           ui: { setStatus, setWidget },
         } as never,
-        'Running Evidence frame phase…',
+        'Running Evidence kickoff activity…',
         async (_signal, onUpdate) => {
           onUpdate(details({ output: 'Inspecting the frozen Issue.' }));
           return details({
@@ -179,22 +179,22 @@ describe('foreground phase progress', () => {
 
     expect(setStatus).toHaveBeenNthCalledWith(
       1,
-      'evidence-phase-progress',
-      'Running Evidence frame phase…',
+      'evidence-activity-progress',
+      'Running Evidence kickoff activity…',
     );
     expect(setStatus).toHaveBeenLastCalledWith(
-      'evidence-phase-progress',
+      'evidence-activity-progress',
       undefined,
     );
     expect(setWidget).toHaveBeenCalledWith(
-      'evidence-phase-progress',
+      'evidence-activity-progress',
       expect.arrayContaining([
-        'Evidence frame · requirements-analyst · openai-codex/gpt-test',
+        'Evidence kickoff · requirements-analyst · openai-codex/gpt-test',
         'Inspecting the frozen Issue.',
       ]),
     );
     expect(setWidget).toHaveBeenLastCalledWith(
-      'evidence-phase-progress',
+      'evidence-activity-progress',
       undefined,
     );
   });

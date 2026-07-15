@@ -2,7 +2,6 @@ import {
   appendFileSync,
   existsSync,
   readFileSync,
-  readdirSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
@@ -11,8 +10,6 @@ import { artifactPath, iterationRoot } from '../workflow/iteration-paths';
 import { readState, writeState } from '../workflow/state-store';
 import type {
   ClarificationRecord,
-  ClarificationStoryOutcome,
-  ClarificationStoryOutcomeProposal,
   ClarificationTarget,
   WorkflowState,
 } from '../workflow/types';
@@ -30,35 +27,10 @@ interface ClarificationHistoryDocument {
   clarifications: ClarificationRecord[];
 }
 
-interface ClarificationStoryStatusDocument {
-  version: 3;
-  iteration_id: string;
-  active_story_id: string | null;
-  stories: Array<{
-    story_id: string;
-    status:
-      | 'unselected'
-      | 'active'
-      | 'awaiting_domain_expert'
-      | 'awaiting_human_decision'
-      | ClarificationStoryOutcome;
-    summary?: string;
-    question_id?: string;
-    proposal?: ClarificationStoryOutcomeProposal;
-    decided_by?: 'human';
-    confirmed_at?: string;
-  }>;
-}
-
 const VALID_TARGETS = new Set<ClarificationTarget>([
   'business_context',
   'story',
   'history',
-]);
-const VALID_STORY_OUTCOMES = new Set<ClarificationStoryOutcome>([
-  'clarified',
-  'needs_split',
-  'deferred',
 ]);
 
 function normalizeStoryId(storyId: string): string {
@@ -75,15 +47,15 @@ function requireNonEmpty(value: string, name: string): string {
   return normalized;
 }
 
-function assertClarificationPhase(state: WorkflowState): void {
+function requireUnderstandTqa(state: WorkflowState): void {
   if (state.halted) {
     throw new Error(
       `Cannot clarify: iteration is halted (${state.halted.reason}).`,
     );
   }
-  if (state.phase !== 'clarify') {
+  if (state.loop !== 'understand' || state.understand_stage !== 'tqa') {
     throw new Error(
-      `Cannot manage clarification: current phase is ${state.phase}; expected clarify.`,
+      `TQA is only available in Understand/tqa; current activity is ${state.loop}/${state.understand_stage ?? 'unset'}.`,
     );
   }
 }
@@ -93,18 +65,6 @@ function storyPath(cwd: string, state: WorkflowState, storyId: string): string {
     cwd,
     state,
     `artifacts/01-requirements/stories/${storyId}.md`,
-  );
-}
-
-function storyDirectory(cwd: string, state: WorkflowState): string {
-  return artifactPath(cwd, state, 'artifacts/01-requirements/stories');
-}
-
-function storyStatusJsonPath(cwd: string, state: WorkflowState): string {
-  return artifactPath(
-    cwd,
-    state,
-    'artifacts/01-requirements/clarifications/story-status.json',
   );
 }
 
@@ -142,126 +102,6 @@ function requireArtifact(path: string, description: string): void {
   }
 }
 
-export function clarificationStoryIds(
-  cwd: string,
-  state = readState(cwd),
-): string[] {
-  const directory = storyDirectory(cwd, state);
-  if (!existsSync(directory)) return [];
-  return readdirSync(directory, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && /^US-\d{3,}\.md$/.test(entry.name))
-    .map((entry) => entry.name.replace(/\.md$/, ''))
-    .filter((storyId) => {
-      const path = storyPath(cwd, state, storyId);
-      return statSync(path).size > 0;
-    })
-    .sort();
-}
-
-export function unresolvedClarificationStoryIds(
-  cwd: string,
-  state = readState(cwd),
-): string[] {
-  const completed = new Set(
-    (state.clarification_story_outcomes ?? []).map(({ story_id }) => story_id),
-  );
-  return clarificationStoryIds(cwd, state).filter(
-    (storyId) => !completed.has(storyId),
-  );
-}
-
-export function allPendingClarifications(
-  state: WorkflowState,
-): ClarificationRecord[] {
-  return [
-    ...(state.pending_clarification ? [state.pending_clarification] : []),
-    ...(state.paused_clarifications ?? []),
-  ];
-}
-
-export function allClarificationStoryOutcomeProposals(
-  state: WorkflowState,
-): ClarificationStoryOutcomeProposal[] {
-  return [
-    ...(state.proposed_clarification_story_outcome
-      ? [state.proposed_clarification_story_outcome]
-      : []),
-    ...(state.paused_clarification_story_outcome_proposals ?? []),
-  ];
-}
-
-function persistStoryStatus(cwd: string, state: WorkflowState): void {
-  ensureProjectDirs(cwd, iterationRoot(cwd, state));
-  const outcomes = new Map(
-    (state.clarification_story_outcomes ?? []).map((outcome) => [
-      outcome.story_id,
-      outcome,
-    ]),
-  );
-  const proposals = new Map(
-    allClarificationStoryOutcomeProposals(state).map((proposal) => [
-      proposal.story_id,
-      proposal,
-    ]),
-  );
-  const pausedClarifications = new Map(
-    (state.paused_clarifications ?? []).map((clarification) => [
-      clarification.story_id,
-      clarification,
-    ]),
-  );
-  const document: ClarificationStoryStatusDocument = {
-    version: 3,
-    iteration_id: state.iteration_id,
-    active_story_id: state.active_clarification_story?.story_id ?? null,
-    stories: clarificationStoryIds(cwd, state).map((storyId) => {
-      const outcome = outcomes.get(storyId);
-      if (outcome) {
-        return {
-          story_id: storyId,
-          status: outcome.outcome,
-          summary: outcome.summary,
-          ...(outcome.decided_by
-            ? {
-                decided_by: outcome.decided_by,
-                confirmed_at: outcome.confirmed_at,
-                proposal: outcome.proposal,
-              }
-            : {}),
-        };
-      }
-      const proposal = proposals.get(storyId);
-      if (proposal) {
-        return {
-          story_id: storyId,
-          status: 'awaiting_human_decision',
-          summary: proposal.summary,
-          proposal,
-        };
-      }
-      const pausedClarification = pausedClarifications.get(storyId);
-      if (pausedClarification) {
-        return {
-          story_id: storyId,
-          status: 'awaiting_domain_expert',
-          question_id: pausedClarification.question_id,
-        };
-      }
-      return {
-        story_id: storyId,
-        status:
-          state.active_clarification_story?.story_id === storyId
-            ? 'active'
-            : 'unselected',
-      };
-    }),
-  };
-  writeFileSync(
-    storyStatusJsonPath(cwd, state),
-    `${JSON.stringify(document, null, 2)}\n`,
-  );
-}
-
 function answerDestination(
   cwd: string,
   state: WorkflowState,
@@ -284,7 +124,7 @@ function answerDestination(
 function nextQuestionId(state: WorkflowState): string {
   const records = [
     ...(state.clarification_history ?? []),
-    ...allPendingClarifications(state),
+    ...(state.pending_clarification ? [state.pending_clarification] : []),
   ];
   const highest = records.reduce((max, record) => {
     const matched = /^Q-(\d+)$/.exec(record.question_id);
@@ -297,14 +137,14 @@ function recordsForStory(
   state: WorkflowState,
   storyId: string,
 ): ClarificationRecord[] {
-  const records = (state.clarification_history ?? []).filter(
-    (record) => record.story_id === storyId,
-  );
-  const pending = allPendingClarifications(state).find(
-    (record) => record.story_id === storyId,
-  );
-  if (pending) records.push(pending);
-  return records;
+  return [
+    ...(state.clarification_history ?? []).filter(
+      (record) => record.story_id === storyId,
+    ),
+    ...(state.pending_clarification?.story_id === storyId
+      ? [state.pending_clarification]
+      : []),
+  ];
 }
 
 function markdownForRecord(record: ClarificationRecord): string {
@@ -321,29 +161,27 @@ function markdownForRecord(record: ClarificationRecord): string {
   return `## ${record.question_id}\n\n- 状态：${status}\n- 目标：${record.target}\n- 提问时间：${record.asked_at}\n- 问题：${record.question}\n${resolution}`;
 }
 
-function markdownForHistory(state: WorkflowState, storyId: string): string {
-  const records = recordsForStory(state, storyId);
-  const exchanges = records.length
-    ? records.map(markdownForRecord).join('\n\n')
-    : '尚无澄清记录。';
-  return `# TQA 澄清记录 — ${storyId}\n\n${exchanges}\n`;
-}
-
 function persistHistory(
   cwd: string,
   state: WorkflowState,
   storyId: string,
 ): void {
-  const jsonPath = historyJsonPath(cwd, state, storyId);
-  const markdownPath = historyMarkdownPath(cwd, state, storyId);
+  ensureProjectDirs(cwd, iterationRoot(cwd, state));
+  const records = recordsForStory(state, storyId);
   const document: ClarificationHistoryDocument = {
     version: 2,
     iteration_id: state.iteration_id,
     story_id: storyId,
-    clarifications: recordsForStory(state, storyId),
+    clarifications: records,
   };
-  writeFileSync(jsonPath, `${JSON.stringify(document, null, 2)}\n`);
-  writeFileSync(markdownPath, markdownForHistory(state, storyId));
+  writeFileSync(
+    historyJsonPath(cwd, state, storyId),
+    `${JSON.stringify(document, null, 2)}\n`,
+  );
+  writeFileSync(
+    historyMarkdownPath(cwd, state, storyId),
+    `# TQA 澄清记录 — ${storyId}\n\n${records.length ? records.map(markdownForRecord).join('\n\n') : '尚无澄清记录。'}\n`,
+  );
 }
 
 function appendAnswerToDestination(
@@ -360,274 +198,17 @@ function appendAnswerToDestination(
   );
 }
 
-export function selectClarificationStory(
-  cwd: string,
-  storyId: string,
-): WorkflowState {
-  const state = readState(cwd);
-  assertClarificationPhase(state);
-  const normalizedStoryId = normalizeStoryId(storyId);
-  if (state.active_clarification_story?.story_id === normalizedStoryId) {
-    requireArtifact(
-      storyPath(cwd, state, normalizedStoryId),
-      'Clarification story artifact',
-    );
-    return state;
-  }
-  if (state.workflow_version === 5) {
-    throw new Error(
-      `A v5 Understand loop has one human-confirmed Story and cannot switch to ${normalizedStoryId}. Finish, split, defer, or stop the current Story first.`,
-    );
-  }
-  requireArtifact(
-    storyPath(cwd, state, normalizedStoryId),
-    'Clarification story artifact',
-  );
-  if (
-    state.clarification_story_outcomes?.some(
-      ({ story_id }) => story_id === normalizedStoryId,
-    )
-  ) {
-    throw new Error(
-      `Cannot select ${normalizedStoryId}: its clarification already has an outcome.`,
-    );
-  }
-
-  const pendingClarifications = allPendingClarifications(state);
-  const pending_clarification = pendingClarifications.find(
-    ({ story_id }) => story_id === normalizedStoryId,
-  );
-  const paused_clarifications = pendingClarifications.filter(
-    ({ story_id }) => story_id !== normalizedStoryId,
-  );
-  const proposals = allClarificationStoryOutcomeProposals(state);
-  const proposed_clarification_story_outcome = proposals.find(
-    ({ story_id }) => story_id === normalizedStoryId,
-  );
-  const paused_clarification_story_outcome_proposals = proposals.filter(
-    ({ story_id }) => story_id !== normalizedStoryId,
-  );
-  const next = writeState(cwd, {
-    ...state,
-    active_clarification_story: {
-      story_id: normalizedStoryId,
-      selected_at: new Date().toISOString(),
-    },
-    pending_clarification,
-    paused_clarifications:
-      paused_clarifications.length > 0 ? paused_clarifications : undefined,
-    proposed_clarification_story_outcome,
-    paused_clarification_story_outcome_proposals:
-      paused_clarification_story_outcome_proposals.length > 0
-        ? paused_clarification_story_outcome_proposals
-        : undefined,
-  });
-  persistStoryStatus(cwd, next);
-  return next;
-}
-
-export function proposeClarificationStoryOutcome(
-  cwd: string,
-  storyId: string,
-  outcome: ClarificationStoryOutcome,
-  summary: string,
-): WorkflowState {
-  const state = readState(cwd);
-  assertClarificationPhase(state);
-  if (state.workflow_version === 5) {
-    throw new Error(
-      'v5 does not use AI story-outcome proposals. Propose concrete Given/When/Then Scenario drafts instead.',
-    );
-  }
-  if (state.pending_clarification) {
-    throw new Error(
-      `Cannot propose a story outcome: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
-    );
-  }
-  if (state.proposed_clarification_story_outcome) {
-    throw new Error(
-      `Cannot propose another story outcome: ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision.`,
-    );
-  }
-  const normalizedStoryId = normalizeStoryId(storyId);
-  const activeStoryId = state.active_clarification_story?.story_id;
-  if (!activeStoryId) {
-    throw new Error(
-      'Cannot propose a story outcome: select a clarification story first.',
-    );
-  }
-  if (activeStoryId !== normalizedStoryId) {
-    throw new Error(
-      `Cannot propose an outcome for ${normalizedStoryId}: selected story is ${activeStoryId}.`,
-    );
-  }
-  if (!VALID_STORY_OUTCOMES.has(outcome)) {
-    throw new Error(`Unsupported clarification story outcome: ${outcome}.`);
-  }
-  requireArtifact(
-    storyPath(cwd, state, normalizedStoryId),
-    'Clarification story artifact',
-  );
-  const proposed_clarification_story_outcome: ClarificationStoryOutcomeProposal =
-    {
-      story_id: normalizedStoryId,
-      outcome,
-      summary: requireNonEmpty(summary, 'Clarification story outcome summary'),
-      proposed_at: new Date().toISOString(),
-    };
-  const next = writeState(cwd, {
-    ...state,
-    proposed_clarification_story_outcome,
-  });
-  persistStoryStatus(cwd, next);
-  return next;
-}
-
-/** Reject the AI proposal while keeping the human-selected story active. */
-export function continueClarificationStory(cwd: string): WorkflowState {
-  const state = readState(cwd);
-  assertClarificationPhase(state);
-  const proposal = state.proposed_clarification_story_outcome;
-  if (!proposal) {
-    throw new Error(
-      'Cannot continue clarification: there is no story outcome proposal to reject.',
-    );
-  }
-  if (state.active_clarification_story?.story_id !== proposal.story_id) {
-    throw new Error(
-      'Cannot continue clarification: the proposal does not belong to the active story.',
-    );
-  }
-  const next = writeState(cwd, {
-    ...state,
-    proposed_clarification_story_outcome: undefined,
-  });
-  persistStoryStatus(cwd, next);
-  return next;
-}
-
-/** Commit a direct or proposal-backed disposition from the human-only channel. */
-export function confirmClarificationStoryOutcome(
-  cwd: string,
-  outcome: ClarificationStoryOutcome,
-  summary: string,
-): WorkflowState {
-  const state = readState(cwd);
-  assertClarificationPhase(state);
-  if (state.workflow_version === 5) {
-    throw new Error(
-      'v5 Story understanding is completed by a human-confirmed Scenario, not a story-outcome proposal.',
-    );
-  }
-  const activeStoryId = state.active_clarification_story?.story_id;
-  if (!activeStoryId) {
-    throw new Error(
-      'Cannot confirm a story outcome: select a clarification story first.',
-    );
-  }
-  const proposal = state.proposed_clarification_story_outcome;
-  if (proposal && proposal.story_id !== activeStoryId) {
-    throw new Error(
-      'Cannot confirm a story outcome: the proposal does not belong to the active story.',
-    );
-  }
-  if (!VALID_STORY_OUTCOMES.has(outcome)) {
-    throw new Error(`Unsupported clarification story outcome: ${outcome}.`);
-  }
-  const normalizedSummary = requireNonEmpty(
-    summary,
-    'Clarification story summary',
-  );
-  const confirmedAt = new Date().toISOString();
-  const waivedClarification = state.pending_clarification
-    ? {
-        ...state.pending_clarification,
-        waived_by: 'human' as const,
-        waived_reason: normalizedSummary,
-        waived_at: confirmedAt,
-      }
-    : undefined;
-  const next = writeState(cwd, {
-    ...state,
-    active_clarification_story: undefined,
-    pending_clarification: undefined,
-    proposed_clarification_story_outcome: undefined,
-    ...(waivedClarification
-      ? {
-          clarification_history: [
-            ...(state.clarification_history ?? []),
-            waivedClarification,
-          ],
-        }
-      : {}),
-    clarification_story_outcomes: [
-      ...(state.clarification_story_outcomes ?? []),
-      {
-        story_id: activeStoryId,
-        outcome,
-        summary: normalizedSummary,
-        completed_at: confirmedAt,
-        decided_by: 'human',
-        confirmed_at: confirmedAt,
-        ...(proposal ? { proposal } : {}),
-      },
-    ],
-  });
-  persistStoryStatus(cwd, next);
-  if (waivedClarification) persistHistory(cwd, next, activeStoryId);
-  return next;
-}
-
-export function validateClarificationStoriesComplete(
-  cwd: string,
-  state = readState(cwd),
-): void {
-  const storyIds = clarificationStoryIds(cwd, state);
-  if (storyIds.length === 0) {
-    throw new Error(
-      'Cannot complete clarify: no US-xxx story cards exist. Generate the candidate story cards first.',
-    );
-  }
-  const pendingClarification = allPendingClarifications(state)[0];
-  if (pendingClarification) {
-    throw new Error(
-      `Cannot complete clarify: pending clarification ${pendingClarification.question_id} for ${pendingClarification.story_id} must be answered first.`,
-    );
-  }
-  const proposal = allClarificationStoryOutcomeProposals(state)[0];
-  if (proposal) {
-    throw new Error(
-      `Cannot complete clarify: ${proposal.story_id} is awaiting a human decision on the proposed ${proposal.outcome} outcome.`,
-    );
-  }
-  if (state.active_clarification_story) {
-    throw new Error(
-      `Cannot complete clarify: clarification story ${state.active_clarification_story.story_id} is still active.`,
-    );
-  }
-  const unresolved = unresolvedClarificationStoryIds(cwd, state);
-  if (unresolved.length > 0) {
-    throw new Error(
-      `Cannot complete clarify: stories without a clarification outcome: ${unresolved.join(', ')}.`,
-    );
-  }
-}
-
-/** Ask exactly one business clarification question and persist its pending state. */
+/** Ask exactly one business question for the iteration's single Story. */
 export function askClarification(
   cwd: string,
   input: AskClarificationInput,
+  now = new Date().toISOString(),
 ): WorkflowState {
   const state = readState(cwd);
-  assertClarificationPhase(state);
+  requireUnderstandTqa(state);
   if (state.pending_clarification) {
     throw new Error(
-      `Cannot ask another question: pending clarification ${state.pending_clarification.question_id} must be answered first.`,
-    );
-  }
-  if (state.proposed_clarification_story_outcome) {
-    throw new Error(
-      `Cannot ask another question: proposed outcome for ${state.proposed_clarification_story_outcome.story_id} is awaiting a human decision.`,
+      `Cannot ask another question: ${state.pending_clarification.question_id} awaits an answer.`,
     );
   }
   if (state.scenario_drafts?.length) {
@@ -637,17 +218,11 @@ export function askClarification(
   }
   const storyId = normalizeStoryId(input.story_id);
   const activeStoryId = state.active_clarification_story?.story_id;
-  if (!activeStoryId) {
+  if (!activeStoryId || activeStoryId !== storyId) {
     throw new Error(
-      'Cannot ask a clarification question: select a clarification story first.',
+      `TQA must belong to the single active Story ${activeStoryId ?? 'none'}, not ${storyId}.`,
     );
   }
-  if (activeStoryId !== storyId) {
-    throw new Error(
-      `Cannot ask for ${storyId}: selected story is ${activeStoryId}.`,
-    );
-  }
-  const question = requireNonEmpty(input.question, 'Clarification question');
   if (!VALID_TARGETS.has(input.target)) {
     throw new Error(`Unsupported clarification target: ${input.target}.`);
   }
@@ -665,43 +240,34 @@ export function askClarification(
       : input.target === 'story'
         ? storyPath(cwd, state, storyId)
         : undefined;
-  if (
-    destination &&
-    !(
-      state.workflow_version === 5 &&
-      input.target === 'business_context' &&
-      !existsSync(destination)
-    )
-  ) {
+  if (destination && input.target !== 'business_context') {
     requireArtifact(destination, 'Clarification destination artifact');
   }
-
-  ensureProjectDirs(cwd, iterationRoot(cwd, state));
-  const pending_clarification: ClarificationRecord = {
+  const pending: ClarificationRecord = {
     question_id: nextQuestionId(state),
     story_id: storyId,
-    question,
+    question: requireNonEmpty(input.question, 'Clarification question'),
     target: input.target,
-    asked_at: new Date().toISOString(),
+    asked_at: now,
   };
-  const next = writeState(cwd, { ...state, pending_clarification });
+  const next = writeState(cwd, { ...state, pending_clarification: pending });
   persistHistory(cwd, next, storyId);
   return next;
 }
 
-/** Record the explicit domain-expert answer and route it to its declared knowledge target. */
+/** Record only the domain expert's explicit answer. */
 export function answerClarification(
   cwd: string,
   answer: string,
+  now = new Date().toISOString(),
 ): WorkflowState {
   const state = readState(cwd);
-  assertClarificationPhase(state);
+  requireUnderstandTqa(state);
   const pending = state.pending_clarification;
   if (!pending) throw new Error('There is no pending clarification to answer.');
   const destination = answerDestination(cwd, state, pending);
   if (
     destination &&
-    state.workflow_version === 5 &&
     pending.target === 'business_context' &&
     !existsSync(destination)
   ) {
@@ -712,11 +278,10 @@ export function answerClarification(
   }
   if (destination)
     requireArtifact(destination, 'Clarification destination artifact');
-
   const answered: ClarificationRecord = {
     ...pending,
     answer: requireNonEmpty(answer, 'Clarification answer'),
-    answered_at: new Date().toISOString(),
+    answered_at: now,
   };
   const next = writeState(cwd, {
     ...state,
@@ -728,14 +293,14 @@ export function answerClarification(
   return next;
 }
 
-/** Preserve a pending TQA as explicitly waived by a human split/defer decision. */
+/** Preserve an open question when a human splits or defers the single Story. */
 export function waivePendingClarification(
   cwd: string,
   reason: string,
   now = new Date().toISOString(),
 ): WorkflowState {
   const state = readState(cwd);
-  assertClarificationPhase(state);
+  requireUnderstandTqa(state);
   const pending = state.pending_clarification;
   if (!pending) return state;
   const waived: ClarificationRecord = {

@@ -21,7 +21,6 @@ export function ensureProjectDirs(
 ): void {
   for (const dir of [
     '.',
-    'gates',
     '00-user-input',
     '01-requirements',
     '01-requirements/stories',
@@ -33,7 +32,7 @@ export function ensureProjectDirs(
     '03-architecture/selected-test-processes',
     '04-planning',
     '05-code',
-    '06-reviews',
+    '06-review',
     '07-learning',
     'feedback',
   ])
@@ -65,9 +64,9 @@ export function collectArtifacts(
   cwd: string,
   artifactRoot = join(cwd, 'artifacts'),
 ): string[] {
-  return findFiles(artifactRoot, (p) => p.endsWith('.md'))
-    .filter((p) => !relative(artifactRoot, p).startsWith('gates/'))
-    .map((p) => relative(cwd, p));
+  return findFiles(artifactRoot, (p) => p.endsWith('.md')).map((p) =>
+    relative(cwd, p),
+  );
 }
 
 export function collectCodeFiles(cwd: string): string[] {

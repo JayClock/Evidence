@@ -27,6 +27,17 @@
     "prepare": "husky"
   },
   "private": true,
+  "nx": {
+    "targets": {
+      "lint": {
+        "command": "eslint '.pi/extensions/evidence-orchestrator/**/*.ts' --no-warn-ignored"
+      },
+      "test": {
+        "command": "pnpm orchestrator:test",
+        "dependsOn": []
+      }
+    }
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",

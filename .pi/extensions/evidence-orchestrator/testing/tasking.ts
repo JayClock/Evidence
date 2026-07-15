@@ -183,15 +183,8 @@ function resolveRuntimes(
       return routeKnowledgeGap(cwd, state, 'process_gap', reason, now);
     }
     const candidate = candidates[0];
-    if (!candidate || candidate.definition.version !== 2) {
-      return routeKnowledgeGap(
-        cwd,
-        state,
-        'process_gap',
-        `Tasking cannot use a legacy process for ${input.id}.`,
-        now,
-      );
-    }
+    if (!candidate)
+      throw new Error(`Matched process disappeared for ${input.id}.`);
     const selectedSteps = candidate.definition.steps.filter((step) =>
       step.functional_contexts.some((context) =>
         functionalContexts.includes(context),
@@ -803,12 +796,8 @@ export function decideTasking(
         story_id: state.tasking_candidate.story_id,
         scenario_id: state.tasking_candidate.scenario_id,
         git_baseline: baseline,
-        test_process: processes[0],
         test_plan: {
           version: 2 as const,
-          ...(state.pi?.execution_evidence_version === 1
-            ? { execution_evidence_version: 1 as const }
-            : {}),
           processes,
         },
       },

@@ -1,53 +1,33 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createCodingGitBaseline } from '../testing/code-baseline';
-import { assertScenarioProcessSelection } from '../evidence/knowledge';
-import {
-  artifactPath,
-  artifactRelativePath,
-  assertIterationId,
-} from './iteration-paths';
-import { DEFAULT_STATE, PHASE_ORDER } from './phase-catalog';
+import { DEFAULT_STATE } from './default-state';
 import {
   FEEDBACK_LOOP_BY_TARGET,
   LOOP_ORDER,
-  loopForCompatibilityPhase,
   transitionLoopState,
   type LoopTransitionRequest,
 } from './loop-catalog';
-import {
-  catalogTestProcessDirectory,
-  matchingTestProcessesInDirectories,
-  materializeFocusedCommands,
-  materializedProcessSha256,
-  testProcessDefinitionSha256,
-} from '../testing/process-catalog';
+import { assertIterationId } from './iteration-paths';
 import type {
   ActiveWorkItem,
   ClarificationRecord,
-  ClarificationStoryOutcomeProposal,
-  Phase,
-  TestProcessRuntime,
+  LegacyIterationState,
   TestProcessSelection,
+  WorkflowSnapshot,
   WorkflowState,
 } from './types';
 
-const CONFIGURABLE_PHASES = new Set(
-  PHASE_ORDER.filter((phase) => phase !== 'complete'),
-);
+const DELETED_V4_FIELDS = [
+  'phase',
+  'round',
+  'pending_gate',
+  'failures',
+  'max_rounds',
+  'gate_config',
+  'last_failure',
+] as const;
 const STORY_ID_PATTERN = /^US-\d{3,}$/;
-const CLARIFICATION_TARGETS = new Set(['business_context', 'story', 'history']);
-const CLARIFICATION_STORY_OUTCOMES = new Set([
-  'clarified',
-  'needs_split',
-  'deferred',
-]);
+const SCENARIO_ID_PATTERN = /^SC-\d{3,}$/;
 const COGNITIVE_MODES = new Set(['clear', 'complicated', 'complex']);
 const KICKOFF_DECISIONS = new Set([
   'confirmed',
@@ -70,35 +50,11 @@ const MODELING_STAGES = new Set([
   'candidate_ready',
   'challenged',
 ]);
-const MODELING_SUBJECTS = new Set(['business', 'domain', 'tool']);
-const MODELING_METHODS = new Set([
-  'none',
-  'object',
-  'event',
-  'four_color',
-  'eight_x_flow',
-  'algorithmic',
-]);
-const MODEL_OPERATION_ACTIONS = new Set(['add', 'update', 'remove']);
-const MODEL_ELEMENT_KINDS = new Set(['entity', 'association']);
-const MODEL_CHALLENGE_OUTCOMES = new Set([
-  'pass',
-  'scenario_gap',
-  'model_gap',
-  'method_gap',
-]);
 const TASKING_STAGES = new Set([
   'drafting',
   'desk_check',
   'knowledge_gap',
   'approved',
-]);
-const DESK_CHECK_ACTIONS = new Set([
-  'approve',
-  'revise',
-  'architecture_gap',
-  'process_gap',
-  'scenario_gap',
 ]);
 const PAIR_CHECKPOINTS = new Set([
   'plan_confirmed',
@@ -117,1083 +73,414 @@ const SHOWCASE_STAGES = new Set([
   'accepted',
   'rejected',
 ]);
-const SHOWCASE_RISK_DISPOSITIONS = new Set(['not_required', 'required']);
-const SHOWCASE_ACTIVITIES = new Set([
-  'exploratory',
-  'usability',
-  'accessibility',
-  'performance',
-  'security',
-  'reliability',
-  'operability',
-  'compatibility',
-  'other',
-]);
-const SHOWCASE_DECISIONS = new Set(['accept', 'revise', 'reject']);
 const RESPOND_STAGES = new Set(['drafting', 'decision', 'complete']);
-const KNOWLEDGE_KINDS = new Set([
-  'product',
-  'model',
-  'architecture',
-  'contract',
-  'test_process',
-  'skill',
-  'prompt',
-  'other',
-]);
-const KNOWLEDGE_DECISIONS = new Set(['promoted', 'deferred', 'rejected']);
-const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 
-function isNonEmptyString(value: unknown): value is string {
+function record(value: unknown, subject: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${subject} must be an object.`);
+  }
+  return value as Record<string, unknown>;
+}
+
+function text(value: unknown): value is string {
   return typeof value === 'string' && Boolean(value.trim());
 }
 
-function isNonEmptyStringArray(value: unknown): value is string[] {
+function textArray(value: unknown, allowEmpty = false): value is string[] {
   return (
     Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((entry) => isNonEmptyString(entry))
+    (allowEmpty || value.length > 0) &&
+    value.every((item) => text(item))
   );
 }
 
-function isValidClarificationOutcomeProposal(
-  proposal: ClarificationStoryOutcomeProposal,
-): boolean {
+function validPending(record: ClarificationRecord): boolean {
   return (
-    STORY_ID_PATTERN.test(proposal.story_id) &&
-    CLARIFICATION_STORY_OUTCOMES.has(proposal.outcome) &&
-    typeof proposal.summary === 'string' &&
-    Boolean(proposal.summary.trim()) &&
-    typeof proposal.proposed_at === 'string' &&
-    Boolean(proposal.proposed_at)
+    text(record.question_id) &&
+    STORY_ID_PATTERN.test(record.story_id) &&
+    text(record.question) &&
+    ['business_context', 'story', 'history'].includes(record.target) &&
+    text(record.asked_at) &&
+    record.answer === undefined &&
+    record.answered_at === undefined &&
+    record.waived_by === undefined
   );
 }
 
-function isValidClarificationBase(clarification: ClarificationRecord): boolean {
-  return (
-    typeof clarification.question_id === 'string' &&
-    Boolean(clarification.question_id.trim()) &&
-    STORY_ID_PATTERN.test(clarification.story_id) &&
-    typeof clarification.question === 'string' &&
-    Boolean(clarification.question.trim()) &&
-    CLARIFICATION_TARGETS.has(clarification.target) &&
-    typeof clarification.asked_at === 'string' &&
-    Boolean(clarification.asked_at)
-  );
-}
-
-function isValidPendingClarification(
-  clarification: ClarificationRecord,
-): boolean {
-  return (
-    isValidClarificationBase(clarification) &&
-    clarification.answer === undefined &&
-    clarification.answered_at === undefined &&
-    clarification.waived_by === undefined &&
-    clarification.waived_reason === undefined &&
-    clarification.waived_at === undefined
-  );
-}
-
-function isValidClarificationHistoryRecord(
-  clarification: ClarificationRecord,
-): boolean {
-  if (!isValidClarificationBase(clarification)) return false;
-  const answered =
-    typeof clarification.answer === 'string' &&
-    Boolean(clarification.answer.trim()) &&
-    typeof clarification.answered_at === 'string' &&
-    Boolean(clarification.answered_at) &&
-    clarification.waived_by === undefined &&
-    clarification.waived_reason === undefined &&
-    clarification.waived_at === undefined;
+function validHistory(record: ClarificationRecord): boolean {
+  if (
+    !text(record.question_id) ||
+    !STORY_ID_PATTERN.test(record.story_id) ||
+    !text(record.question) ||
+    !['business_context', 'story', 'history'].includes(record.target) ||
+    !text(record.asked_at)
+  ) {
+    return false;
+  }
+  const answered = text(record.answer) && text(record.answered_at);
   const waived =
-    clarification.answer === undefined &&
-    clarification.answered_at === undefined &&
-    clarification.waived_by === 'human' &&
-    typeof clarification.waived_reason === 'string' &&
-    Boolean(clarification.waived_reason.trim()) &&
-    typeof clarification.waived_at === 'string' &&
-    Boolean(clarification.waived_at);
-  return answered || waived;
+    record.waived_by === 'human' &&
+    text(record.waived_reason) &&
+    text(record.waived_at);
+  return answered !== waived;
+}
+
+function jsonClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 export function statePath(cwd: string): string {
   return join(cwd, 'evidence-state.json');
 }
 
-function readJsonFile<T>(path: string): T | undefined {
-  if (!existsSync(path)) return undefined;
-  return JSON.parse(readFileSync(path, 'utf8')) as T;
+function readRawState(cwd: string): Record<string, unknown> | undefined {
+  const path = statePath(cwd);
+  return existsSync(path)
+    ? record(
+        JSON.parse(readFileSync(path, 'utf8')) as unknown,
+        'Workflow state',
+      )
+    : undefined;
 }
 
-export function normalizeState(state: WorkflowState): WorkflowState {
-  const phase = state.phase as string;
-  if (!PHASE_ORDER.includes(phase as Phase)) {
-    throw new Error(`Unsupported Evidence Orchestrator phase: ${phase}.`);
-  }
-  for (const gatePhase of Object.keys(state.gate_config ?? {})) {
-    if (!CONFIGURABLE_PHASES.has(gatePhase as Phase)) {
-      throw new Error(
-        `Unsupported Evidence Orchestrator gate configuration: ${gatePhase}.`,
-      );
-    }
-  }
-  const iterationId = state.iteration_id ?? DEFAULT_STATE.iteration_id;
+function legacySnapshot(raw: Record<string, unknown>): LegacyIterationState {
+  const iterationId = text(raw.iteration_id) ? raw.iteration_id : 'ITER-0000';
   assertIterationId(iterationId);
-  const workflowVersion = state.workflow_version ?? 4;
-  if (workflowVersion !== 4 && workflowVersion !== 5) {
-    throw new Error(
-      `Unsupported Evidence Orchestrator workflow version: ${workflowVersion}.`,
-    );
-  }
-  if (workflowVersion === 4 && state.loop !== undefined) {
-    throw new Error('A legacy v4 workflow must not declare a v5 loop.');
-  }
-  if (workflowVersion === 5 && state.loop === undefined) {
-    throw new Error('A v5 workflow must declare its current knowledge loop.');
-  }
-  if (
-    state.loop !== undefined &&
-    !LOOP_ORDER.includes(state.loop as (typeof LOOP_ORDER)[number])
-  ) {
-    throw new Error(`Unsupported Evidence Orchestrator loop: ${state.loop}.`);
-  }
-  const loop =
-    workflowVersion === 5
-      ? // The phase remains a compatibility projection until EOV5-016. Legacy
-        // phase writers therefore determine the containing loop during migration.
-        loopForCompatibilityPhase(phase as Phase)
+  const phase = text(raw.phase) ? raw.phase : 'unknown';
+  const halt =
+    raw.halted && typeof raw.halted === 'object'
+      ? record(raw.halted, 'Legacy halt')
       : undefined;
-  const feedbackHistory = state.feedback_history ?? [];
-  if (workflowVersion === 4 && feedbackHistory.length > 0) {
-    throw new Error('A legacy v4 workflow must not declare v5 feedback.');
-  }
-  if (
-    feedbackHistory.some((feedback) => {
-      const expected = FEEDBACK_LOOP_BY_TARGET[feedback.target];
-      return (
-        !expected ||
-        feedback.to_loop !== expected ||
-        !LOOP_ORDER.includes(feedback.from_loop) ||
-        !LOOP_ORDER.includes(feedback.to_loop) ||
-        typeof feedback.reason !== 'string' ||
-        !feedback.reason.trim() ||
-        !['human', 'system'].includes(feedback.decided_by) ||
-        typeof feedback.recorded_at !== 'string' ||
-        !feedback.recorded_at
-      );
-    })
-  ) {
-    throw new Error('The v5 workflow feedback history is invalid.');
-  }
-  const kickoffCandidate = state.kickoff_candidate;
-  const kickoffDecisions = state.kickoff_decisions ?? [];
-  if (
-    workflowVersion === 4 &&
-    (kickoffCandidate !== undefined || kickoffDecisions.length > 0)
-  ) {
-    throw new Error('A legacy v4 workflow must not declare v5 Kickoff data.');
-  }
-  if (
-    kickoffCandidate &&
-    (kickoffCandidate.version !== 1 ||
-      !isNonEmptyString(kickoffCandidate.title) ||
-      !isNonEmptyString(kickoffCandidate.problem) ||
-      !isNonEmptyString(kickoffCandidate.role) ||
-      !isNonEmptyString(kickoffCandidate.goal) ||
-      !isNonEmptyString(kickoffCandidate.value) ||
-      !COGNITIVE_MODES.has(kickoffCandidate.cognitive_mode) ||
-      !Array.isArray(kickoffCandidate.source_refs) ||
-      kickoffCandidate.source_refs.length === 0 ||
-      kickoffCandidate.source_refs.some(
-        (reference) => !isNonEmptyString(reference),
-      ) ||
-      !isNonEmptyString(kickoffCandidate.proposed_at) ||
-      !isNonEmptyString(kickoffCandidate.artifact_path))
-  ) {
-    throw new Error('The v5 Kickoff candidate is invalid.');
-  }
-  if (
-    kickoffDecisions.some(
-      (decision) =>
-        !KICKOFF_DECISIONS.has(decision.action) ||
-        !isNonEmptyString(decision.reason) ||
-        decision.decided_by !== 'human' ||
-        !isNonEmptyString(decision.decided_at) ||
-        (decision.story_id !== undefined &&
-          !STORY_ID_PATTERN.test(decision.story_id)),
-    )
-  ) {
-    throw new Error('The v5 Kickoff decision history is invalid.');
-  }
-  const understandStage = state.understand_stage;
-  const scenarioDrafts = state.scenario_drafts ?? [];
-  const confirmedScenario = state.confirmed_scenario;
-  const understandingDecisions = state.understanding_decisions ?? [];
-  if (
-    workflowVersion === 4 &&
-    (understandStage !== undefined ||
-      scenarioDrafts.length > 0 ||
-      confirmedScenario !== undefined ||
-      understandingDecisions.length > 0)
-  ) {
+  if (phase !== 'complete' && !halt) {
     throw new Error(
-      'A legacy v4 workflow must not declare v5 Understand data.',
-    );
-  }
-  if (
-    understandStage !== undefined &&
-    !UNDERSTAND_STAGES.has(understandStage)
-  ) {
-    throw new Error(`Unsupported v5 Understand stage: ${understandStage}.`);
-  }
-  if (
-    workflowVersion === 5 &&
-    ((state.paused_clarifications?.length ?? 0) > 0 ||
-      (state.paused_clarification_story_outcome_proposals?.length ?? 0) > 0)
-  ) {
-    throw new Error(
-      'A v5 Understand loop cannot pause questions or decisions for another Story.',
-    );
-  }
-  if (
-    scenarioDrafts.some(
-      (draft) =>
-        draft.version !== 1 ||
-        !/^DRAFT-\d{3,}$/.test(draft.draft_id) ||
-        !STORY_ID_PATTERN.test(draft.story_id) ||
-        !isNonEmptyString(draft.title) ||
-        !isNonEmptyStringArray(draft.given) ||
-        !isNonEmptyString(draft.when) ||
-        !isNonEmptyStringArray(draft.then) ||
-        !isNonEmptyStringArray(draft.business_data) ||
-        !isNonEmptyString(draft.proposed_at) ||
-        !isNonEmptyString(draft.artifact_path),
-    ) ||
-    new Set(scenarioDrafts.map(({ draft_id }) => draft_id)).size !==
-      scenarioDrafts.length
-  ) {
-    throw new Error('The v5 Scenario drafts are invalid.');
-  }
-  if (understandStage === 'scenario_review' && scenarioDrafts.length === 0) {
-    throw new Error('Scenario review requires at least one Scenario draft.');
-  }
-  if (understandStage === 'tqa' && scenarioDrafts.length > 0) {
-    throw new Error('TQA cannot retain Scenario drafts awaiting review.');
-  }
-  if (
-    confirmedScenario &&
-    (confirmedScenario.version !== 1 ||
-      !STORY_ID_PATTERN.test(confirmedScenario.story_id) ||
-      !/^SC-\d{3,}$/.test(confirmedScenario.scenario_id) ||
-      !/^DRAFT-\d{3,}$/.test(confirmedScenario.source_draft_id) ||
-      !isNonEmptyString(confirmedScenario.title) ||
-      !isNonEmptyStringArray(confirmedScenario.given) ||
-      !isNonEmptyString(confirmedScenario.when) ||
-      !isNonEmptyStringArray(confirmedScenario.then) ||
-      !isNonEmptyStringArray(confirmedScenario.business_data) ||
-      !isNonEmptyString(confirmedScenario.artifact_path) ||
-      confirmedScenario.confirmed_by !== 'human' ||
-      !isNonEmptyString(confirmedScenario.confirmation_reason) ||
-      !isNonEmptyString(confirmedScenario.confirmed_at))
-  ) {
-    throw new Error('The v5 confirmed Scenario is invalid.');
-  }
-  if (confirmedScenario && understandStage !== 'modeling') {
-    throw new Error('A confirmed Scenario must enter the modeling stage.');
-  }
-  if (
-    understandingDecisions.some(
-      (decision) =>
-        !UNDERSTANDING_DECISIONS.has(decision.action) ||
-        !isNonEmptyString(decision.reason) ||
-        decision.decided_by !== 'human' ||
-        !isNonEmptyString(decision.decided_at) ||
-        (decision.draft_id !== undefined &&
-          !/^DRAFT-\d{3,}$/.test(decision.draft_id)) ||
-        (decision.scenario_id !== undefined &&
-          !/^SC-\d{3,}$/.test(decision.scenario_id)),
-    )
-  ) {
-    throw new Error('The v5 Understand decision history is invalid.');
-  }
-  const modelingStage = state.modeling_stage;
-  const profileProposal = state.modeling_profile_proposal;
-  const modelingProfile = state.modeling_profile;
-  const modelExpansionPath = state.model_expansion_path;
-  const modelGitBaseline = state.model_git_baseline;
-  const modelChangeProposal = state.model_change_proposal;
-  const modelChangeApplication = state.model_change_application;
-  const modelProjection = state.model_projection;
-  const modelChallenges = state.model_challenges ?? [];
-  if (
-    workflowVersion === 4 &&
-    (modelingStage !== undefined ||
-      profileProposal !== undefined ||
-      modelingProfile !== undefined ||
-      modelExpansionPath !== undefined ||
-      modelGitBaseline !== undefined ||
-      modelChangeProposal !== undefined ||
-      modelChangeApplication !== undefined ||
-      modelProjection !== undefined ||
-      modelChallenges.length > 0)
-  ) {
-    throw new Error('A legacy v4 workflow must not declare v5 modeling data.');
-  }
-  if (modelingStage !== undefined && !MODELING_STAGES.has(modelingStage)) {
-    throw new Error(`Unsupported v5 modeling stage: ${modelingStage}.`);
-  }
-  if (
-    profileProposal &&
-    (profileProposal.version !== 1 ||
-      !MODELING_SUBJECTS.has(profileProposal.subject) ||
-      !MODELING_METHODS.has(profileProposal.method) ||
-      ![true, false, 'unknown'].includes(
-        profileProposal.model_change_required,
-      ) ||
-      !isNonEmptyString(profileProposal.reason) ||
-      !isNonEmptyString(profileProposal.proposed_at))
-  ) {
-    throw new Error('The v5 modeling Profile proposal is invalid.');
-  }
-  if (
-    modelingProfile &&
-    (modelingProfile.version !== 1 ||
-      !MODELING_SUBJECTS.has(modelingProfile.subject) ||
-      !MODELING_METHODS.has(modelingProfile.method) ||
-      typeof modelingProfile.model_change_required !== 'boolean' ||
-      !isNonEmptyString(modelingProfile.reason) ||
-      modelingProfile.confirmed_by !== 'human' ||
-      !isNonEmptyString(modelingProfile.confirmed_at))
-  ) {
-    throw new Error('The v5 confirmed modeling Profile is invalid.');
-  }
-  if (modelingStage === 'profile_review' && !profileProposal) {
-    throw new Error('Modeling Profile review requires an AI proposal.');
-  }
-  if (
-    ['expansion', 'candidate_ready', 'challenged'].includes(
-      modelingStage ?? '',
-    ) &&
-    !modelingProfile
-  ) {
-    throw new Error(
-      `${modelingStage} requires a human-confirmed modeling Profile.`,
-    );
-  }
-  if (
-    modelChangeProposal &&
-    (modelChangeProposal.version !== 1 ||
-      !STORY_ID_PATTERN.test(modelChangeProposal.story_id) ||
-      !/^SC-\d{3,}$/.test(modelChangeProposal.scenario_id) ||
-      !isNonEmptyString(modelChangeProposal.git_baseline) ||
-      !isNonEmptyString(modelChangeProposal.reason) ||
-      !Array.isArray(modelChangeProposal.operations) ||
-      modelChangeProposal.operations.length === 0 ||
-      modelChangeProposal.operations.some(
-        (operation) =>
-          !MODEL_OPERATION_ACTIONS.has(operation.action) ||
-          !MODEL_ELEMENT_KINDS.has(operation.kind) ||
-          !isNonEmptyString(operation.id) ||
-          !isNonEmptyString(operation.path),
-      ) ||
-      !isNonEmptyString(modelChangeProposal.artifact_path) ||
-      !isNonEmptyString(modelChangeProposal.proposed_at))
-  ) {
-    throw new Error('The v5 model-change proposal is invalid.');
-  }
-  if (
-    ['candidate_ready', 'challenged'].includes(modelingStage ?? '') &&
-    (!isNonEmptyString(modelExpansionPath) ||
-      !isNonEmptyString(modelGitBaseline))
-  ) {
-    throw new Error(
-      'A model candidate requires its expansion path and Git baseline.',
-    );
-  }
-  if (
-    modelChangeProposal &&
-    (modelingProfile?.model_change_required !== true ||
-      modelChangeProposal.git_baseline !== modelGitBaseline)
-  ) {
-    throw new Error(
-      'The model-change proposal must match the confirmed Profile and Git baseline.',
-    );
-  }
-  if (
-    ['candidate_ready', 'challenged'].includes(modelingStage ?? '') &&
-    modelingProfile?.model_change_required === true &&
-    !modelChangeProposal
-  ) {
-    throw new Error('The confirmed Profile requires a model-change proposal.');
-  }
-  if (
-    modelChangeApplication &&
-    (!modelChangeProposal ||
-      !isNonEmptyString(modelChangeApplication.git_baseline) ||
-      modelChangeApplication.git_baseline !==
-        modelChangeProposal.git_baseline ||
-      !isNonEmptyStringArray(modelChangeApplication.changed_paths) ||
-      !isNonEmptyString(modelChangeApplication.applied_at))
-  ) {
-    throw new Error('The v5 model-change application is invalid.');
-  }
-  if (
-    modelProjection &&
-    (modelProjection.version !== 1 ||
-      !isNonEmptyString(modelProjection.model_sha256) ||
-      !isNonEmptyString(modelProjection.mermaid_path) ||
-      !isNonEmptyString(modelProjection.glossary_path) ||
-      !isNonEmptyString(modelProjection.context_path) ||
-      !isNonEmptyStringArray(modelProjection.regression_ids) ||
-      !Array.isArray(modelProjection.regression_failures) ||
-      modelProjection.regression_failures.some(
-        (failure) => !isNonEmptyString(failure),
-      ) ||
-      !Array.isArray(modelProjection.method_failures) ||
-      modelProjection.method_failures.some(
-        (failure) => !isNonEmptyString(failure),
-      ) ||
-      !isNonEmptyString(modelProjection.generated_at))
-  ) {
-    throw new Error('The v5 model projection record is invalid.');
-  }
-  if (
-    modelChallenges.some(
-      (challenge) =>
-        challenge.version !== 1 ||
-        !MODEL_CHALLENGE_OUTCOMES.has(challenge.requested_outcome) ||
-        !MODEL_CHALLENGE_OUTCOMES.has(challenge.outcome) ||
-        !isNonEmptyString(challenge.summary) ||
-        !isNonEmptyStringArray(challenge.checked_regression_ids) ||
-        !isNonEmptyString(challenge.projection_sha256) ||
-        !isNonEmptyString(challenge.artifact_path) ||
-        challenge.challenged_by !== 'model-challenger' ||
-        !isNonEmptyString(challenge.challenged_at),
-    )
-  ) {
-    throw new Error('The v5 model challenge history is invalid.');
-  }
-  const taskingStage =
-    state.tasking_stage ??
-    (workflowVersion === 5 && loop === 'tasking' ? 'drafting' : undefined);
-  const taskingCandidate = state.tasking_candidate;
-  const taskingGap = state.tasking_gap;
-  const deskCheckDecisions = state.desk_check_decisions ?? [];
-  const approvedTestPlanPath = state.approved_test_plan_path;
-  const approvedTestPlanSha256 = state.approved_test_plan_sha256;
-  const pairSession = state.pair_session;
-  if (
-    workflowVersion === 4 &&
-    (taskingStage !== undefined ||
-      taskingCandidate !== undefined ||
-      taskingGap !== undefined ||
-      deskCheckDecisions.length > 0 ||
-      approvedTestPlanPath !== undefined ||
-      approvedTestPlanSha256 !== undefined ||
-      pairSession !== undefined)
-  ) {
-    throw new Error('A legacy v4 workflow must not declare v5 Tasking data.');
-  }
-  if (taskingStage !== undefined && !TASKING_STAGES.has(taskingStage)) {
-    throw new Error(`Unsupported v5 Tasking stage: ${taskingStage}.`);
-  }
-  if (
-    taskingCandidate &&
-    (taskingCandidate.version !== 1 ||
-      !/^DRAFT-\d{3,}$/.test(taskingCandidate.draft_id) ||
-      !STORY_ID_PATTERN.test(taskingCandidate.story_id) ||
-      !/^SC-\d{3,}$/.test(taskingCandidate.scenario_id) ||
-      !Array.isArray(taskingCandidate.tests) ||
-      taskingCandidate.tests.length === 0 ||
-      !Array.isArray(taskingCandidate.tasks) ||
-      taskingCandidate.tasks.length === 0 ||
-      !Array.isArray(taskingCandidate.processes) ||
-      taskingCandidate.processes.length === 0 ||
-      !isNonEmptyString(taskingCandidate.test_list_path) ||
-      !isNonEmptyString(taskingCandidate.task_list_path) ||
-      !isNonEmptyString(taskingCandidate.candidate_path) ||
-      !isNonEmptyString(taskingCandidate.test_list_sha256) ||
-      !isNonEmptyString(taskingCandidate.task_list_sha256) ||
-      !isNonEmptyString(taskingCandidate.candidate_sha256) ||
-      !isNonEmptyString(taskingCandidate.proposed_at))
-  ) {
-    throw new Error('The v5 Tasking candidate is invalid.');
-  }
-  if (taskingStage === 'desk_check' && !taskingCandidate) {
-    throw new Error('Tasking Desk Check requires a candidate plan.');
-  }
-  if (
-    taskingGap &&
-    (!['architecture_gap', 'process_gap'].includes(taskingGap.kind) ||
-      !isNonEmptyString(taskingGap.reason) ||
-      !isNonEmptyString(taskingGap.recorded_at))
-  ) {
-    throw new Error('The v5 Tasking knowledge gap is invalid.');
-  }
-  if (
-    deskCheckDecisions.some(
-      (decision) =>
-        !DESK_CHECK_ACTIONS.has(decision.action) ||
-        !isNonEmptyString(decision.reason) ||
-        decision.decided_by !== 'human' ||
-        !isNonEmptyString(decision.artifact_path) ||
-        !isNonEmptyString(decision.decided_at),
-    )
-  ) {
-    throw new Error('The v5 Desk Check history is invalid.');
-  }
-  if (
-    taskingStage === 'approved' &&
-    (!isNonEmptyString(approvedTestPlanPath) ||
-      !isNonEmptyString(approvedTestPlanSha256) ||
-      !state.active_work_item ||
-      state.active_work_item.test_plan?.version !== 2)
-  ) {
-    throw new Error(
-      'Approved Tasking requires an immutable v2 test plan and active work item.',
-    );
-  }
-  if (
-    pairSession &&
-    (pairSession.version !== 1 ||
-      !STORY_ID_PATTERN.test(pairSession.story_id) ||
-      !/^SC-\d{3,}$/.test(pairSession.scenario_id) ||
-      !isNonEmptyString(pairSession.git_baseline) ||
-      !PAIR_CHECKPOINTS.has(pairSession.checkpoint) ||
-      !isNonEmptyString(pairSession.process_id) ||
-      !isNonEmptyString(pairSession.step_id) ||
-      !Array.isArray(pairSession.completed_step_ids) ||
-      !Array.isArray(pairSession.test_paths) ||
-      !Array.isArray(pairSession.production_paths) ||
-      !isNonEmptyString(pairSession.expected_red) ||
-      !Array.isArray(pairSession.accepted_reds) ||
-      !Number.isInteger(pairSession.quality_gate_index) ||
-      pairSession.quality_gate_index < 0 ||
-      !Array.isArray(pairSession.feedback) ||
-      !Array.isArray(pairSession.driver_history))
-  ) {
-    throw new Error('The v5 Pair session is invalid.');
-  }
-  if (
-    pairSession &&
-    (!state.active_work_item ||
-      pairSession.story_id !== state.active_work_item.story_id ||
-      pairSession.scenario_id !== state.active_work_item.scenario_id ||
-      pairSession.git_baseline !== state.active_work_item.git_baseline)
-  ) {
-    throw new Error(
-      'The Pair session must retain its approved work item baseline.',
-    );
-  }
-  if (taskingStage === 'approved' && loop === 'pair' && !pairSession) {
-    throw new Error('An approved v5 Pair loop requires a Pair session.');
-  }
-  const showcaseStage = state.showcase_stage;
-  const showcaseQ2 = state.showcase_q2_observations ?? [];
-  const showcaseRisks = state.showcase_risk_decisions ?? [];
-  const showcaseReviews = state.showcase_reviews ?? [];
-  const showcaseDecisions = state.showcase_decisions ?? [];
-  const showcaseFailures = state.showcase_review_failures ?? [];
-  if (
-    workflowVersion === 4 &&
-    (showcaseStage !== undefined ||
-      showcaseQ2.length > 0 ||
-      showcaseRisks.length > 0 ||
-      showcaseReviews.length > 0 ||
-      showcaseDecisions.length > 0 ||
-      showcaseFailures.length > 0)
-  ) {
-    throw new Error('A legacy v4 workflow must not declare v5 Showcase data.');
-  }
-  if (showcaseStage !== undefined && !SHOWCASE_STAGES.has(showcaseStage)) {
-    throw new Error(`Unsupported v5 Showcase stage: ${showcaseStage}.`);
-  }
-  if (loop === 'showcase' && !showcaseStage) {
-    throw new Error('The v5 Showcase loop requires a Showcase stage.');
-  }
-  if (
-    showcaseQ2.some(
-      (observation) =>
-        !isNonEmptyString(observation.process_id) ||
-        !isNonEmptyString(observation.step_id) ||
-        !isNonEmptyStringArray(observation.test_ids) ||
-        !isNonEmptyString(observation.command) ||
-        !Number.isInteger(observation.sequence) ||
-        observation.sequence < 1 ||
-        !Number.isInteger(observation.exit_code) ||
-        typeof observation.stdout_summary !== 'string' ||
-        typeof observation.stderr_summary !== 'string' ||
-        !isNonEmptyString(observation.observed_at),
-    )
-  ) {
-    throw new Error('The v5 Showcase Q2 observations are invalid.');
-  }
-  if (
-    showcaseRisks.length > 2 ||
-    new Set(showcaseRisks.map(({ quadrant }) => quadrant)).size !==
-      showcaseRisks.length ||
-    showcaseRisks.some(
-      (decision) =>
-        !['Q3', 'Q4'].includes(decision.quadrant) ||
-        !SHOWCASE_RISK_DISPOSITIONS.has(decision.disposition) ||
-        !Array.isArray(decision.activities) ||
-        decision.activities.some(
-          (activity) => !SHOWCASE_ACTIVITIES.has(activity),
-        ) ||
-        (decision.disposition === 'required'
-          ? decision.activities.length === 0
-          : decision.activities.length !== 0) ||
-        !isNonEmptyString(decision.reason) ||
-        decision.decided_by !== 'human' ||
-        !isNonEmptyString(decision.decided_at),
-    )
-  ) {
-    throw new Error('The v5 Showcase risk decisions are invalid.');
-  }
-  if (
-    showcaseReviews.some(
-      (review) =>
-        review.version !== 1 ||
-        !STORY_ID_PATTERN.test(review.story_id) ||
-        !/^SC-\d{3,}$/.test(review.scenario_id) ||
-        !isNonEmptyString(review.git_baseline) ||
-        !isNonEmptyString(review.execution_manifest_path) ||
-        !SHA256_PATTERN.test(review.execution_manifest_sha256) ||
-        !isNonEmptyStringArray(review.observed_facts) ||
-        !Array.isArray(review.product_domain_feedback) ||
-        review.product_domain_feedback.some(
-          (item) => !isNonEmptyString(item),
-        ) ||
-        !Array.isArray(review.technical_quality_feedback) ||
-        review.technical_quality_feedback.some(
-          (item) => !isNonEmptyString(item),
-        ) ||
-        !Array.isArray(review.unresolved_assumptions) ||
-        review.unresolved_assumptions.some((item) => !isNonEmptyString(item)) ||
-        !['accept', 'revise'].includes(review.recommendation) ||
-        !isNonEmptyString(review.artifact_path) ||
-        !isNonEmptyString(review.summary_path) ||
-        !SHA256_PATTERN.test(review.artifact_sha256) ||
-        review.reviewed_by !== 'showcase-reviewer' ||
-        !isNonEmptyString(review.reviewed_at),
-    )
-  ) {
-    throw new Error('The v5 Showcase reviews are invalid.');
-  }
-  if (
-    showcaseDecisions.some(
-      (decision) =>
-        !SHOWCASE_DECISIONS.has(decision.action) ||
-        !isNonEmptyString(decision.reason) ||
-        decision.from_loop !== 'showcase' ||
-        (decision.feedback_target !== undefined &&
-          !FEEDBACK_LOOP_BY_TARGET[decision.feedback_target]) ||
-        (decision.action === 'revise'
-          ? !decision.feedback_target ||
-            decision.to_loop !==
-              FEEDBACK_LOOP_BY_TARGET[decision.feedback_target]
-          : decision.feedback_target !== undefined) ||
-        (decision.action === 'accept' && decision.to_loop !== 'respond') ||
-        (decision.action === 'reject' && decision.to_loop !== undefined) ||
-        (decision.review_artifact_sha256 !== undefined &&
-          !SHA256_PATTERN.test(decision.review_artifact_sha256)) ||
-        decision.decided_by !== 'human' ||
-        !isNonEmptyString(decision.artifact_path) ||
-        !isNonEmptyString(decision.decided_at),
-    )
-  ) {
-    throw new Error('The v5 Showcase decisions are invalid.');
-  }
-  if (
-    showcaseFailures.some(
-      (failure) =>
-        !isNonEmptyString(failure.reason) ||
-        !Array.isArray(failure.restored_paths) ||
-        failure.restored_paths.some((path) => !isNonEmptyString(path)) ||
-        !isNonEmptyString(failure.recorded_at),
-    )
-  ) {
-    throw new Error('The v5 Showcase Reviewer failures are invalid.');
-  }
-  const respondStage = state.respond_stage;
-  const respondCandidate = state.respond_candidate;
-  const respondDecisions = state.respond_decisions ?? [];
-  const knowledgePromotionPath = state.knowledge_promotion_path;
-  const nextProbe = state.next_probe;
-  if (
-    workflowVersion === 4 &&
-    (respondStage !== undefined ||
-      respondCandidate !== undefined ||
-      respondDecisions.length > 0 ||
-      knowledgePromotionPath !== undefined ||
-      nextProbe !== undefined)
-  ) {
-    throw new Error('A legacy v4 workflow must not declare v5 Respond data.');
-  }
-  if (respondStage !== undefined && !RESPOND_STAGES.has(respondStage)) {
-    throw new Error(`Unsupported v5 Respond stage: ${respondStage}.`);
-  }
-  if (loop === 'respond' && !respondStage) {
-    throw new Error('The v5 Respond loop requires a Respond stage.');
-  }
-  if (
-    respondCandidate &&
-    (respondCandidate.version !== 1 ||
-      !Array.isArray(respondCandidate.promotions) ||
-      (respondCandidate.promotions.length === 0
-        ? !isNonEmptyString(respondCandidate.no_promotion_reason)
-        : respondCandidate.no_promotion_reason !== undefined) ||
-      respondCandidate.promotions.some(
-        (promotion) =>
-          !isNonEmptyString(promotion.source) ||
-          !KNOWLEDGE_KINDS.has(promotion.kind) ||
-          !KNOWLEDGE_DECISIONS.has(promotion.decision) ||
-          !isNonEmptyString(promotion.reason) ||
-          !isNonEmptyStringArray(promotion.validation_evidence) ||
-          (promotion.decision === 'promoted' &&
-            !isNonEmptyString(promotion.canonical_target)),
-      ) ||
-      !isNonEmptyStringArray(respondCandidate.observed_outcomes) ||
-      !Array.isArray(respondCandidate.residual_risks) ||
-      respondCandidate.residual_risks.some((risk) => !isNonEmptyString(risk)) ||
-      !isNonEmptyString(respondCandidate.next_probe.question) ||
-      !isNonEmptyString(respondCandidate.next_probe.why_now) ||
-      !isNonEmptyStringArray(respondCandidate.next_probe.evidence_refs) ||
-      !isNonEmptyString(respondCandidate.next_probe.first_action) ||
-      !isNonEmptyString(respondCandidate.consistency.story_id) ||
-      !isNonEmptyString(respondCandidate.consistency.scenario_id) ||
-      !isNonEmptyString(respondCandidate.consistency.git_baseline) ||
-      !isNonEmptyString(respondCandidate.consistency.execution_manifest) ||
-      !Array.isArray(respondCandidate.consistency.model_paths) ||
-      !isNonEmptyStringArray(respondCandidate.consistency.code_paths) ||
-      respondCandidate.consistency.consistent !== true ||
-      !isNonEmptyString(respondCandidate.artifact_path) ||
-      !isNonEmptyString(respondCandidate.proposed_at))
-  ) {
-    throw new Error('The v5 Respond candidate is invalid.');
-  }
-  if (respondStage === 'decision' && !respondCandidate) {
-    throw new Error('Respond decision stage requires a candidate.');
-  }
-  if (
-    respondDecisions.some(
-      (decision) =>
-        !['approve', 'revise'].includes(decision.action) ||
-        !isNonEmptyString(decision.reason) ||
-        decision.decided_by !== 'human' ||
-        !isNonEmptyString(decision.artifact_path) ||
-        !isNonEmptyString(decision.decided_at),
-    )
-  ) {
-    throw new Error('The v5 Respond decision history is invalid.');
-  }
-  if (
-    nextProbe &&
-    (!isNonEmptyString(nextProbe.question) ||
-      !isNonEmptyString(nextProbe.why_now) ||
-      !isNonEmptyStringArray(nextProbe.evidence_refs) ||
-      !isNonEmptyString(nextProbe.first_action))
-  ) {
-    throw new Error('The v5 next Probe is invalid.');
-  }
-  if (
-    respondStage === 'complete' &&
-    (!isNonEmptyString(knowledgePromotionPath) || !nextProbe)
-  ) {
-    throw new Error(
-      'Completed Respond requires final knowledge promotion and next Probe.',
-    );
-  }
-  if (state.active_clarification_story && phase !== 'clarify') {
-    throw new Error(
-      'An active clarification story is only valid while the workflow is in clarify.',
-    );
-  }
-  if (
-    state.active_clarification_story &&
-    (!STORY_ID_PATTERN.test(state.active_clarification_story.story_id) ||
-      typeof state.active_clarification_story.selected_at !== 'string' ||
-      !state.active_clarification_story.selected_at)
-  ) {
-    throw new Error('The active clarification story is invalid.');
-  }
-  const activeStoryId = state.active_clarification_story?.story_id;
-  const proposedOutcome = state.proposed_clarification_story_outcome;
-  const pausedProposals =
-    state.paused_clarification_story_outcome_proposals ?? [];
-  const allProposals = [
-    ...(proposedOutcome ? [proposedOutcome] : []),
-    ...pausedProposals,
-  ];
-  if (workflowVersion === 5 && allProposals.length > 0) {
-    throw new Error(
-      'A v5 Understand loop uses concrete Scenario drafts, not story-outcome proposals.',
-    );
-  }
-  if (allProposals.length > 0 && phase !== 'clarify') {
-    throw new Error(
-      'A proposed clarification story outcome is only valid while the workflow is in clarify.',
-    );
-  }
-  if (
-    allProposals.some(
-      (proposal) => !isValidClarificationOutcomeProposal(proposal),
-    ) ||
-    new Set(allProposals.map(({ story_id }) => story_id)).size !==
-      allProposals.length
-  ) {
-    throw new Error('The proposed clarification story outcomes are invalid.');
-  }
-  if (proposedOutcome && proposedOutcome.story_id !== activeStoryId) {
-    throw new Error(
-      'A proposed clarification story outcome must belong to the active clarification story.',
-    );
-  }
-  if (pausedProposals.some(({ story_id }) => story_id === activeStoryId)) {
-    throw new Error(
-      'A paused clarification story outcome proposal must not belong to the active clarification story.',
-    );
-  }
-
-  const clarificationOutcomes = state.clarification_story_outcomes ?? [];
-  if (workflowVersion === 5 && clarificationOutcomes.length > 0) {
-    throw new Error(
-      'A v5 Understand loop is finalized by one human-confirmed Scenario, not batch story outcomes.',
-    );
-  }
-  if (
-    new Set(clarificationOutcomes.map(({ story_id }) => story_id)).size !==
-      clarificationOutcomes.length ||
-    clarificationOutcomes.some((record) => {
-      const {
-        story_id,
-        outcome,
-        summary,
-        completed_at,
-        decided_by,
-        confirmed_at,
-        proposal,
-      } = record;
-      const invalidBase =
-        !STORY_ID_PATTERN.test(story_id) ||
-        !CLARIFICATION_STORY_OUTCOMES.has(outcome) ||
-        typeof summary !== 'string' ||
-        !summary.trim() ||
-        typeof completed_at !== 'string' ||
-        !completed_at;
-      if (invalidBase) return true;
-      if (decided_by === undefined) {
-        return confirmed_at !== undefined || proposal !== undefined;
-      }
-      return (
-        decided_by !== 'human' ||
-        typeof confirmed_at !== 'string' ||
-        !confirmed_at ||
-        (proposal !== undefined &&
-          (proposal.story_id !== story_id ||
-            !isValidClarificationOutcomeProposal(proposal)))
-      );
-    })
-  ) {
-    throw new Error('Clarification story outcomes are invalid.');
-  }
-  const completedStoryIds = new Set(
-    clarificationOutcomes.map(({ story_id }) => story_id),
-  );
-  if (activeStoryId && completedStoryIds.has(activeStoryId)) {
-    throw new Error(
-      'The active clarification story cannot already have an outcome.',
-    );
-  }
-  if (allProposals.some(({ story_id }) => completedStoryIds.has(story_id))) {
-    throw new Error(
-      'A story with a clarification outcome cannot retain a proposed outcome.',
-    );
-  }
-
-  const pendingClarification = state.pending_clarification;
-  const pausedClarifications = state.paused_clarifications ?? [];
-  const allPendingClarifications = [
-    ...(pendingClarification ? [pendingClarification] : []),
-    ...pausedClarifications,
-  ];
-  if (allPendingClarifications.length > 0 && phase !== 'clarify') {
-    throw new Error(
-      'A pending clarification is only valid while the workflow is in clarify.',
-    );
-  }
-  if (
-    allPendingClarifications.some(
-      (clarification) => !isValidPendingClarification(clarification),
-    ) ||
-    new Set(allPendingClarifications.map(({ question_id }) => question_id))
-      .size !== allPendingClarifications.length ||
-    new Set(allPendingClarifications.map(({ story_id }) => story_id)).size !==
-      allPendingClarifications.length
-  ) {
-    throw new Error('Pending clarifications are invalid.');
-  }
-  if (pendingClarification && pendingClarification.story_id !== activeStoryId) {
-    throw new Error(
-      'A pending clarification must belong to the active clarification story.',
-    );
-  }
-  if (pausedClarifications.some(({ story_id }) => story_id === activeStoryId)) {
-    throw new Error(
-      'A paused clarification must not belong to the active clarification story.',
-    );
-  }
-  const proposedStoryIds = new Set(
-    allProposals.map(({ story_id }) => story_id),
-  );
-  if (
-    allPendingClarifications.some(({ story_id }) =>
-      proposedStoryIds.has(story_id),
-    )
-  ) {
-    throw new Error(
-      'A clarification question and a proposed story outcome cannot both be pending for one story.',
-    );
-  }
-  if (
-    allPendingClarifications.some(({ story_id }) =>
-      completedStoryIds.has(story_id),
-    )
-  ) {
-    throw new Error(
-      'A story with a clarification outcome cannot retain a pending clarification.',
-    );
-  }
-  if (
-    state.clarification_history?.some(
-      (record) => !isValidClarificationHistoryRecord(record),
-    )
-  ) {
-    throw new Error(
-      'Clarification history may only contain answered or human-waived exchanges.',
+      `Legacy iteration ${iterationId} is still active at ${phase}. It is read-only and must be explicitly terminated before a v5 iteration starts.`,
     );
   }
   return {
     iteration_id: iterationId,
-    ...(state.workflow_version !== undefined
-      ? { workflow_version: workflowVersion }
-      : {}),
-    ...(loop ? { loop } : {}),
-    ...(kickoffCandidate ? { kickoff_candidate: kickoffCandidate } : {}),
-    ...(kickoffDecisions.length > 0
-      ? { kickoff_decisions: kickoffDecisions }
-      : {}),
-    ...(understandStage ? { understand_stage: understandStage } : {}),
-    ...(scenarioDrafts.length > 0 ? { scenario_drafts: scenarioDrafts } : {}),
-    ...(confirmedScenario ? { confirmed_scenario: confirmedScenario } : {}),
-    ...(understandingDecisions.length > 0
-      ? { understanding_decisions: understandingDecisions }
-      : {}),
-    ...(modelingStage ? { modeling_stage: modelingStage } : {}),
-    ...(profileProposal ? { modeling_profile_proposal: profileProposal } : {}),
-    ...(modelingProfile ? { modeling_profile: modelingProfile } : {}),
-    ...(modelExpansionPath ? { model_expansion_path: modelExpansionPath } : {}),
-    ...(modelGitBaseline ? { model_git_baseline: modelGitBaseline } : {}),
-    ...(modelChangeProposal
-      ? { model_change_proposal: modelChangeProposal }
-      : {}),
-    ...(modelChangeApplication
-      ? { model_change_application: modelChangeApplication }
-      : {}),
-    ...(modelProjection ? { model_projection: modelProjection } : {}),
-    ...(modelChallenges.length > 0
-      ? { model_challenges: modelChallenges }
-      : {}),
-    ...(taskingStage ? { tasking_stage: taskingStage } : {}),
-    ...(taskingCandidate ? { tasking_candidate: taskingCandidate } : {}),
-    ...(taskingGap ? { tasking_gap: taskingGap } : {}),
-    ...(deskCheckDecisions.length > 0
-      ? { desk_check_decisions: deskCheckDecisions }
-      : {}),
-    ...(approvedTestPlanPath
-      ? { approved_test_plan_path: approvedTestPlanPath }
-      : {}),
-    ...(approvedTestPlanSha256
-      ? { approved_test_plan_sha256: approvedTestPlanSha256 }
-      : {}),
-    ...(pairSession ? { pair_session: pairSession } : {}),
-    ...(showcaseStage ? { showcase_stage: showcaseStage } : {}),
-    ...(showcaseQ2.length > 0 ? { showcase_q2_observations: showcaseQ2 } : {}),
-    ...(showcaseRisks.length > 0
-      ? { showcase_risk_decisions: showcaseRisks }
-      : {}),
-    ...(showcaseReviews.length > 0
-      ? { showcase_reviews: showcaseReviews }
-      : {}),
-    ...(showcaseDecisions.length > 0
-      ? { showcase_decisions: showcaseDecisions }
-      : {}),
-    ...(showcaseFailures.length > 0
-      ? { showcase_review_failures: showcaseFailures }
-      : {}),
-    ...(respondStage ? { respond_stage: respondStage } : {}),
-    ...(respondCandidate ? { respond_candidate: respondCandidate } : {}),
-    ...(respondDecisions.length > 0
-      ? { respond_decisions: respondDecisions }
-      : {}),
-    ...(knowledgePromotionPath
-      ? { knowledge_promotion_path: knowledgePromotionPath }
-      : {}),
-    ...(nextProbe ? { next_probe: nextProbe } : {}),
-    phase: phase as Phase,
-    ...(feedbackHistory.length > 0
-      ? { feedback_history: feedbackHistory }
-      : {}),
-    round: state.round ?? DEFAULT_STATE.round,
-    pending_gate: state.pending_gate ?? DEFAULT_STATE.pending_gate,
-    failures: state.failures ?? DEFAULT_STATE.failures,
-    max_rounds: state.max_rounds ?? DEFAULT_STATE.max_rounds,
-    artifacts: state.artifacts ?? DEFAULT_STATE.artifacts,
-    gate_config: { ...DEFAULT_STATE.gate_config, ...(state.gate_config ?? {}) },
-    ...(state.requirement_source
-      ? { requirement_source: state.requirement_source }
-      : {}),
-    ...(state.active_work_item
-      ? { active_work_item: state.active_work_item }
-      : {}),
-    ...(state.active_clarification_story
-      ? { active_clarification_story: state.active_clarification_story }
-      : {}),
-    ...(state.proposed_clarification_story_outcome
+    workflow_version: 4,
+    legacy_phase: phase,
+    terminal: phase === 'complete' ? 'complete' : 'halted',
+    ...(halt && text(halt.reason) ? { halted_reason: halt.reason } : {}),
+    ...(raw.requirement_source
       ? {
-          proposed_clarification_story_outcome:
-            state.proposed_clarification_story_outcome,
+          requirement_source:
+            raw.requirement_source as LegacyIterationState['requirement_source'],
         }
       : {}),
-    ...(pausedProposals.length > 0
+    ...(raw.active_work_item
       ? {
-          paused_clarification_story_outcome_proposals: pausedProposals,
+          active_work_item:
+            raw.active_work_item as LegacyIterationState['active_work_item'],
         }
       : {}),
-    ...(state.clarification_story_outcomes
-      ? { clarification_story_outcomes: state.clarification_story_outcomes }
+    ...(raw.pi && typeof raw.pi === 'object'
+      ? { pi: raw.pi as LegacyIterationState['pi'] }
       : {}),
-    ...(state.pending_clarification
-      ? { pending_clarification: state.pending_clarification }
-      : {}),
-    ...(pausedClarifications.length > 0
-      ? { paused_clarifications: pausedClarifications }
-      : {}),
-    ...(state.clarification_history
-      ? { clarification_history: state.clarification_history }
-      : {}),
-    ...(state.last_failure ? { last_failure: state.last_failure } : {}),
-    ...(state.halted ? { halted: state.halted } : {}),
-    pi: { enabled: true, version: 4, ...(state.pi ?? {}) },
   };
 }
 
+/** Read either an active v5 state or an immutable terminal pre-v5 snapshot. */
+export function readStateSnapshot(cwd: string): WorkflowSnapshot {
+  const raw = readRawState(cwd);
+  if (!raw) return normalizeState(DEFAULT_STATE);
+  return raw.workflow_version === 5
+    ? normalizeState(raw as unknown as WorkflowState)
+    : legacySnapshot(raw);
+}
+
+/** Active workflow access. Immutable pre-v5 iterations are status-only. */
 export function readState(cwd: string): WorkflowState {
-  return normalizeState(
-    readJsonFile<WorkflowState>(statePath(cwd)) ?? DEFAULT_STATE,
-  );
+  const snapshot = readStateSnapshot(cwd);
+  if (snapshot.workflow_version !== 5) {
+    throw new Error(
+      `Legacy iteration ${snapshot.iteration_id} is read-only. Start a new Issue-backed v5 iteration before running workflow actions.`,
+    );
+  }
+  return snapshot;
+}
+
+export function normalizeState(input: WorkflowState): WorkflowState {
+  const state = jsonClone(input) as WorkflowState & Record<string, unknown>;
+  assertIterationId(state.iteration_id);
+  if (state.workflow_version !== 5) {
+    throw new Error(
+      'Active Evidence Orchestrator state must use workflow_version=5.',
+    );
+  }
+  if (!LOOP_ORDER.includes(state.loop)) {
+    throw new Error(
+      `Unsupported Evidence Orchestrator loop: ${String(state.loop)}.`,
+    );
+  }
+  for (const field of Object.keys(state)) {
+    if (
+      DELETED_V4_FIELDS.includes(field as (typeof DELETED_V4_FIELDS)[number]) ||
+      field.startsWith('paused_') ||
+      field.includes('clarification_story_outcome')
+    ) {
+      throw new Error(`Deleted v4 state field is not supported: ${field}.`);
+    }
+  }
+  if (
+    (state.feedback_history ?? []).some((feedback) => {
+      const expected = FEEDBACK_LOOP_BY_TARGET[feedback.target];
+      return (
+        expected !== feedback.to_loop ||
+        !LOOP_ORDER.includes(feedback.from_loop) ||
+        !text(feedback.reason) ||
+        !['human', 'system'].includes(feedback.decided_by) ||
+        !text(feedback.recorded_at)
+      );
+    })
+  ) {
+    throw new Error('The workflow feedback history is invalid.');
+  }
+  if (
+    state.kickoff_candidate &&
+    (state.kickoff_candidate.version !== 1 ||
+      !text(state.kickoff_candidate.title) ||
+      !text(state.kickoff_candidate.problem) ||
+      !text(state.kickoff_candidate.role) ||
+      !text(state.kickoff_candidate.goal) ||
+      !text(state.kickoff_candidate.value) ||
+      !COGNITIVE_MODES.has(state.kickoff_candidate.cognitive_mode) ||
+      !textArray(state.kickoff_candidate.source_refs) ||
+      !text(state.kickoff_candidate.proposed_at) ||
+      !text(state.kickoff_candidate.artifact_path))
+  ) {
+    throw new Error('The Kickoff candidate is invalid.');
+  }
+  if (
+    (state.kickoff_decisions ?? []).some(
+      (decision) =>
+        !KICKOFF_DECISIONS.has(decision.action) ||
+        decision.decided_by !== 'human' ||
+        !text(decision.reason) ||
+        !text(decision.decided_at) ||
+        (decision.story_id !== undefined &&
+          !STORY_ID_PATTERN.test(decision.story_id)),
+    )
+  ) {
+    throw new Error('The Kickoff decision history is invalid.');
+  }
+  if (
+    state.understand_stage !== undefined &&
+    !UNDERSTAND_STAGES.has(state.understand_stage)
+  ) {
+    throw new Error(`Unsupported Understand stage: ${state.understand_stage}.`);
+  }
+  if (
+    (state.scenario_drafts ?? []).some(
+      (draft) =>
+        draft.version !== 1 ||
+        !/^DRAFT-\d{3,}$/.test(draft.draft_id) ||
+        !STORY_ID_PATTERN.test(draft.story_id) ||
+        !text(draft.title) ||
+        !textArray(draft.given) ||
+        !text(draft.when) ||
+        !textArray(draft.then) ||
+        !textArray(draft.business_data) ||
+        !text(draft.proposed_at) ||
+        !text(draft.artifact_path),
+    )
+  ) {
+    throw new Error('The Scenario drafts are invalid.');
+  }
+  if (
+    state.understand_stage === 'scenario_review' &&
+    !state.scenario_drafts?.length
+  ) {
+    throw new Error('Scenario review requires at least one Scenario draft.');
+  }
+  if (
+    (state.understanding_decisions ?? []).some(
+      (decision) =>
+        !UNDERSTANDING_DECISIONS.has(decision.action) ||
+        decision.decided_by !== 'human' ||
+        !text(decision.reason) ||
+        !text(decision.decided_at),
+    )
+  ) {
+    throw new Error('The Understand decision history is invalid.');
+  }
+  if (
+    state.confirmed_scenario &&
+    (state.confirmed_scenario.version !== 1 ||
+      !STORY_ID_PATTERN.test(state.confirmed_scenario.story_id) ||
+      !SCENARIO_ID_PATTERN.test(state.confirmed_scenario.scenario_id) ||
+      !textArray(state.confirmed_scenario.given) ||
+      !text(state.confirmed_scenario.when) ||
+      !textArray(state.confirmed_scenario.then) ||
+      !textArray(state.confirmed_scenario.business_data) ||
+      state.confirmed_scenario.confirmed_by !== 'human' ||
+      !text(state.confirmed_scenario.confirmation_reason) ||
+      !text(state.confirmed_scenario.confirmed_at))
+  ) {
+    throw new Error('The confirmed Scenario is invalid.');
+  }
+  if (
+    state.modeling_stage !== undefined &&
+    !MODELING_STAGES.has(state.modeling_stage)
+  ) {
+    throw new Error(`Unsupported modeling stage: ${state.modeling_stage}.`);
+  }
+  if (
+    state.modeling_stage === 'profile_review' &&
+    !state.modeling_profile_proposal
+  ) {
+    throw new Error('Modeling Profile review requires an AI proposal.');
+  }
+  if (
+    ['expansion', 'candidate_ready', 'challenged'].includes(
+      state.modeling_stage ?? '',
+    ) &&
+    !state.modeling_profile
+  ) {
+    throw new Error(`${state.modeling_stage} requires a confirmed Profile.`);
+  }
+  if (
+    ['candidate_ready', 'challenged'].includes(state.modeling_stage ?? '') &&
+    (!text(state.model_expansion_path) || !text(state.model_git_baseline))
+  ) {
+    throw new Error('A model candidate requires expansion and Git baseline.');
+  }
+  if (
+    state.tasking_stage !== undefined &&
+    !TASKING_STAGES.has(state.tasking_stage)
+  ) {
+    throw new Error(`Unsupported Tasking stage: ${state.tasking_stage}.`);
+  }
+  if (state.tasking_stage === 'desk_check' && !state.tasking_candidate) {
+    throw new Error('Tasking Desk Check requires a candidate plan.');
+  }
+  if (
+    state.tasking_stage === 'approved' &&
+    (!text(state.approved_test_plan_path) ||
+      !text(state.approved_test_plan_sha256) ||
+      state.active_work_item?.test_plan.version !== 2)
+  ) {
+    throw new Error(
+      'Approved Tasking requires an immutable v2 test plan and work item.',
+    );
+  }
+  if (
+    state.active_work_item &&
+    (!STORY_ID_PATTERN.test(state.active_work_item.story_id) ||
+      !SCENARIO_ID_PATTERN.test(state.active_work_item.scenario_id) ||
+      !text(state.active_work_item.git_baseline) ||
+      state.active_work_item.test_plan.version !== 2 ||
+      state.active_work_item.test_plan.processes.length === 0 ||
+      state.active_work_item.test_plan.processes.some(
+        (process) =>
+          process.process_version !== 2 ||
+          !text(process.id) ||
+          !text(process.path) ||
+          !textArray(process.functional_contexts) ||
+          !textArray(process.technical_boundaries) ||
+          !text(process.definition_sha256) ||
+          !textArray(process.selected_step_ids) ||
+          !process.command_variables ||
+          !Array.isArray(process.focused_commands) ||
+          process.focused_commands.length === 0 ||
+          !text(process.materialized_sha256) ||
+          !text(process.materialized_plan_path),
+      ))
+  ) {
+    throw new Error('The active work item is invalid.');
+  }
+  if (
+    state.pair_session &&
+    (state.pair_session.version !== 1 ||
+      !PAIR_CHECKPOINTS.has(state.pair_session.checkpoint) ||
+      !text(state.pair_session.process_id) ||
+      !text(state.pair_session.step_id) ||
+      !text(state.pair_session.git_baseline) ||
+      !Array.isArray(state.pair_session.completed_step_ids) ||
+      !Array.isArray(state.pair_session.test_paths) ||
+      !Array.isArray(state.pair_session.production_paths) ||
+      !Array.isArray(state.pair_session.accepted_reds) ||
+      !Array.isArray(state.pair_session.feedback) ||
+      !Array.isArray(state.pair_session.driver_history))
+  ) {
+    throw new Error('The Pair session is invalid.');
+  }
+  if (
+    state.pair_session &&
+    (!state.active_work_item ||
+      state.pair_session.story_id !== state.active_work_item.story_id ||
+      state.pair_session.scenario_id !== state.active_work_item.scenario_id ||
+      state.pair_session.git_baseline !== state.active_work_item.git_baseline)
+  ) {
+    throw new Error('The Pair session must retain its work item baseline.');
+  }
+  if (state.loop === 'pair' && !state.pair_session) {
+    throw new Error('The Pair loop requires an approved Pair session.');
+  }
+  if (
+    state.showcase_stage !== undefined &&
+    !SHOWCASE_STAGES.has(state.showcase_stage)
+  ) {
+    throw new Error(`Unsupported Showcase stage: ${state.showcase_stage}.`);
+  }
+  if (state.loop === 'showcase' && !state.showcase_stage) {
+    throw new Error('The Showcase loop requires a Showcase stage.');
+  }
+  if (
+    state.respond_stage !== undefined &&
+    !RESPOND_STAGES.has(state.respond_stage)
+  ) {
+    throw new Error(`Unsupported Respond stage: ${state.respond_stage}.`);
+  }
+  if (state.loop === 'respond' && !state.respond_stage) {
+    throw new Error('The Respond loop requires a Respond stage.');
+  }
+  if (state.respond_stage === 'decision' && !state.respond_candidate) {
+    throw new Error('Respond decision requires a candidate.');
+  }
+  if (
+    state.respond_stage === 'complete' &&
+    (!text(state.knowledge_promotion_path) || !state.next_probe)
+  ) {
+    throw new Error(
+      'Completed Respond requires promotion evidence and next Probe.',
+    );
+  }
+  if (
+    state.active_clarification_story &&
+    (state.loop !== 'understand' ||
+      !STORY_ID_PATTERN.test(state.active_clarification_story.story_id) ||
+      !text(state.active_clarification_story.selected_at))
+  ) {
+    throw new Error('The single active clarification Story is invalid.');
+  }
+  if (
+    state.pending_clarification &&
+    (state.loop !== 'understand' ||
+      state.understand_stage !== 'tqa' ||
+      !validPending(state.pending_clarification) ||
+      state.pending_clarification.story_id !==
+        state.active_clarification_story?.story_id)
+  ) {
+    throw new Error('The pending clarification is invalid.');
+  }
+  if (
+    (state.clarification_history ?? []).some(
+      (clarification) => !validHistory(clarification),
+    )
+  ) {
+    throw new Error('Clarification history is invalid.');
+  }
+  if (
+    state.halted &&
+    (String(state.halted.loop) === 'complete' ||
+      !LOOP_ORDER.includes(state.halted.loop) ||
+      !text(state.halted.reason) ||
+      !text(state.halted.recorded_at))
+  ) {
+    throw new Error('The workflow halt record is invalid.');
+  }
+  return state;
 }
 
 export function writeState(cwd: string, state: WorkflowState): WorkflowState {
@@ -1211,278 +498,24 @@ export function transitionWorkflowLoop(
 
 export function assertCanStartV5Iteration(cwd: string): void {
   if (!existsSync(statePath(cwd))) return;
-  const current = readState(cwd);
-  const complete =
-    current.workflow_version === 5
-      ? current.loop === 'complete'
-      : current.phase === 'complete';
-  if (!complete && !current.halted) {
-    const version = current.workflow_version ?? 4;
+  const current = readStateSnapshot(cwd);
+  const terminal =
+    current.workflow_version === 4
+      ? current.terminal
+      : current.loop === 'complete'
+        ? 'complete'
+        : current.halted
+          ? 'halted'
+          : undefined;
+  if (!terminal) {
     throw new Error(
-      `Cannot start a v5 iteration while ${current.iteration_id} is active on workflow v${version}. Complete or halt it first; active workflow state is never migrated in place.`,
+      `Cannot start a v5 iteration while ${current.iteration_id} is active. Complete, reject, split, or defer it first; state is never migrated in place.`,
     );
   }
 }
 
-/**
- * Legacy local-state initialization is intentionally disabled. Requirements must
- * be frozen from an Issue by startIterationFromIssue before any active phase runs.
- */
-export function newIterationState(cwd: string): never {
-  void cwd;
-  throw new Error(
-    'Local iteration initialization is disabled. Select a GitHub Issue with /evidence-new.',
-  );
-}
-
-export function selectWorkItem(
-  cwd: string,
-  storyId: string,
-  scenarioId: string,
-): WorkflowState {
-  const state = readState(cwd);
-  const normalizedStoryId = storyId.toUpperCase();
-  const normalizedScenarioId = scenarioId.toUpperCase();
-  if (
-    state.workflow_version === 5 &&
-    state.loop === 'pair' &&
-    state.tasking_stage === 'approved'
-  ) {
-    if (
-      state.active_work_item?.story_id === normalizedStoryId &&
-      state.active_work_item.scenario_id === normalizedScenarioId
-    ) {
-      return state;
-    }
-    throw new Error(
-      'The human-approved v5 work item is immutable during Pair.',
-    );
-  }
-  if (state.phase !== 'coding') {
-    throw new Error(
-      `Cannot select a work item: current phase is ${state.phase}.`,
-    );
-  }
-  if (!/^US-\d{3,}$/i.test(storyId)) {
-    throw new Error(`Invalid story id: ${storyId}. Expected US-xxx.`);
-  }
-  if (!/^SC-\d{3,}$/i.test(scenarioId)) {
-    throw new Error(`Invalid scenario id: ${scenarioId}. Expected SC-xxx.`);
-  }
-  const active_work_item: ActiveWorkItem = {
-    story_id: normalizedStoryId,
-    scenario_id: normalizedScenarioId,
-    git_baseline: createCodingGitBaseline(cwd),
-  };
-  return writeState(cwd, { ...state, active_work_item });
-}
-
-/** Return the ordered selected processes, supporting legacy single-process evidence. */
 export function selectedTestProcesses(
   workItem: ActiveWorkItem,
 ): TestProcessSelection[] {
-  return (
-    workItem.test_plan?.processes ??
-    (workItem.test_process ? [workItem.test_process] : [])
-  );
-}
-
-function snapshotCatalogProcess(
-  cwd: string,
-  state: WorkflowState,
-  path: string,
-): string {
-  const catalog = catalogTestProcessDirectory(cwd);
-  const source = join(cwd, path);
-  if (!source.startsWith(`${catalog}/`)) return path;
-  const targetDirectory = artifactPath(
-    cwd,
-    state,
-    'artifacts/03-architecture/selected-test-processes',
-  );
-  const target = `${targetDirectory}/${path.split('/').at(-1)}`;
-  mkdirSync(targetDirectory, { recursive: true });
-  if (!existsSync(target)) copyFileSync(source, target);
-  return artifactRelativePath(
-    state,
-    `artifacts/03-architecture/selected-test-processes/${path.split('/').at(-1)}`,
-  );
-}
-
-function lockMaterializedTestPlan(
-  cwd: string,
-  state: WorkflowState,
-  selection: TestProcessSelection,
-  qualityGates: string[],
-): string {
-  if (!state.active_work_item) {
-    throw new Error(
-      'A work item is required to lock a materialized test plan.',
-    );
-  }
-  const relativePath = `artifacts/04-planning/test-plans/${state.active_work_item.story_id}-${state.active_work_item.scenario_id}-${selection.id}.json`;
-  const path = artifactPath(cwd, state, relativePath);
-  const document = {
-    version: 2,
-    story_id: state.active_work_item.story_id,
-    scenario_id: state.active_work_item.scenario_id,
-    process_id: selection.id,
-    process_path: selection.path,
-    definition_sha256: selection.definition_sha256,
-    runtime: selection.runtime,
-    functional_contexts: selection.functional_contexts,
-    technical_boundaries: selection.technical_boundaries,
-    selected_step_ids: selection.selected_step_ids,
-    command_variables: selection.command_variables,
-    focused_commands: selection.focused_commands,
-    quality_gates: qualityGates,
-    materialized_sha256: selection.materialized_sha256,
-  };
-  const content = `${JSON.stringify(document, null, 2)}\n`;
-  mkdirSync(join(path, '..'), { recursive: true });
-  if (existsSync(path) && readFileSync(path, 'utf8') !== content) {
-    throw new Error(
-      `Materialized test plan is immutable and already differs: ${relativePath}.`,
-    );
-  }
-  if (!existsSync(path)) writeFileSync(path, content);
-  return artifactRelativePath(state, relativePath);
-}
-
-/** Bind one uniquely matching reusable process; repeat for each runtime in a vertical scenario. */
-export function selectTestProcess(
-  cwd: string,
-  runtime: TestProcessRuntime,
-  functionalContexts: string[],
-  technicalBoundaries: string[] = [],
-  commandVariables: Record<string, string> = {},
-): WorkflowState {
-  const state = readState(cwd);
-  if (state.phase !== 'coding') {
-    throw new Error(
-      `Cannot select a test process: current phase is ${state.phase}.`,
-    );
-  }
-  if (!state.active_work_item) {
-    throw new Error(
-      'Cannot select a test process: select one US-xxx / SC-xxx work item first.',
-    );
-  }
-  const candidates = matchingTestProcessesInDirectories(
-    cwd,
-    [
-      artifactPath(
-        cwd,
-        state,
-        'artifacts/03-architecture/selected-test-processes',
-      ),
-      // Backward-compatible search for immutable pre-migration iterations.
-      artifactPath(cwd, state, 'artifacts/03-architecture/test-processes'),
-      catalogTestProcessDirectory(cwd),
-    ],
-    runtime,
-    functionalContexts,
-    technicalBoundaries,
-  );
-  if (candidates.length === 0) {
-    throw new Error(
-      `No test process matches runtime=${runtime} and contexts=${functionalContexts.join(', ')}.`,
-    );
-  }
-  if (candidates.length > 1) {
-    throw new Error(
-      `Test process selection is ambiguous for runtime=${runtime} and contexts=${functionalContexts.join(', ')}: ${candidates.map((candidate) => candidate.definition.id).join(', ')}.`,
-    );
-  }
-  const candidate = candidates[0];
-  if (!candidate) {
-    throw new Error('A uniquely matching test process was not found.');
-  }
-  if (state.workflow_version === 5 && candidate.definition.version !== 2) {
-    throw new Error(
-      `A v5 iteration cannot select legacy test process ${candidate.definition.id} v${candidate.definition.version}.`,
-    );
-  }
-  const selected = selectedTestProcesses(state.active_work_item);
-  if (
-    state.active_work_item.test_plan &&
-    state.active_work_item.test_plan.version !== candidate.definition.version
-  ) {
-    throw new Error('One test plan cannot mix v1 and v2 process definitions.');
-  }
-  if (selected.some(({ id }) => id === candidate.definition.id)) {
-    throw new Error(
-      `Test process ${candidate.definition.id} is already selected for this work item.`,
-    );
-  }
-  if (state.pi?.execution_evidence_version === 1) {
-    assertScenarioProcessSelection(
-      artifactPath(
-        cwd,
-        state,
-        'artifacts/03-architecture/scenario-context-map.json',
-      ),
-      state.active_work_item.story_id,
-      state.active_work_item.scenario_id,
-      runtime,
-      functionalContexts,
-      candidate.definition.id,
-      technicalBoundaries,
-    );
-  }
-  const selectedPath = snapshotCatalogProcess(cwd, state, candidate.path);
-  let v2Selection: Partial<TestProcessSelection> = {};
-  if (candidate.definition.version === 2) {
-    const focusedCommands = materializeFocusedCommands(
-      candidate.definition,
-      commandVariables,
-    );
-    const definitionSha256 = testProcessDefinitionSha256(
-      join(cwd, selectedPath),
-    );
-    v2Selection = {
-      technical_boundaries: [...technicalBoundaries],
-      process_version: 2,
-      definition_sha256: definitionSha256,
-      command_variables: { ...commandVariables },
-      focused_commands: focusedCommands,
-      materialized_sha256: materializedProcessSha256(
-        candidate.definition.id,
-        definitionSha256,
-        commandVariables,
-        focusedCommands,
-      ),
-    };
-  }
-  let selection: TestProcessSelection = {
-    id: candidate.definition.id,
-    path: selectedPath,
-    runtime,
-    functional_contexts: [...functionalContexts],
-    ...v2Selection,
-  };
-  if (candidate.definition.version === 2) {
-    selection = {
-      ...selection,
-      materialized_plan_path: lockMaterializedTestPlan(
-        cwd,
-        state,
-        selection,
-        candidate.definition.quality_gates,
-      ),
-    };
-  }
-  const active_work_item: ActiveWorkItem = {
-    ...state.active_work_item,
-    // Keep the singleton projection until all consumers have migrated.
-    ...(selected.length === 0 ? { test_process: selection } : {}),
-    test_plan: {
-      version: candidate.definition.version,
-      ...(state.pi?.execution_evidence_version === 1
-        ? { execution_evidence_version: 1 as const }
-        : {}),
-      processes: [...selected, selection],
-    },
-  };
-  return writeState(cwd, { ...state, active_work_item });
+  return workItem.test_plan.processes;
 }
