@@ -1,35 +1,36 @@
 ---
 name: evidence-model-expansion
-description: Expand one confirmed Scenario through the existing or candidate Evidence model, producing Given/When/Then model references, invariants, timeline, and minimal structured operations. Use after a human-confirmed modeling Profile and for independent model challenge. Do not directly edit .evidence or self-approve a candidate.
+description: Expand every Scenario in one confirmed Story Scenario Set through the existing or candidate Evidence model, producing per-Scenario Given/When/Then references, invariants, timelines, and one minimal structured proposal. Use after a human-confirmed modeling Profile and for independent model challenge. Do not directly edit .evidence or self-approve a candidate.
 ---
 
 # Evidence Model Expansion
 
 ## When to use
 
-Use for model Builder expansion and read-only Challenger review. Load the method-specific Skill only when the confirmed Profile requires it.
+Use for model Builder expansion of one confirmed Scenario Set and read-only Challenger review of the combined Story model. Load the method-specific Skill only when the confirmed Profile requires it.
 
 ## Inputs
 
-- Confirmed Scenario and Profile.
+- Confirmed Story Scenario Set and Profile.
 - Canonical `.evidence` model.
 - Historical regression/holdout Scenarios for Challenger only.
 - Generated Mermaid, glossary, and context projections when challenging.
 
 ## Builder sequence
 
-1. Map each Given fact to stable entity/association IDs.
-2. Express the When as one business command/event, not a framework call.
+1. For every confirmed Scenario, map each Given fact to stable entity/association IDs.
+2. Express each When as one business command/event, not a framework call.
 3. Explain every Then as created/changed/removed model facts.
-4. Record exact business data, invariants, and a temporal sequence.
-5. If the existing model fails, identify concept absence, relationship error, lifecycle error, or method-specific invariant failure.
-6. Propose the minimum structured add/update/remove operations; update/remove must cite the current SHA-256.
-7. Call `evidence_orchestrator_record_model_analysis` and stop. Never write `.evidence` directly.
+4. Record per-Scenario exact business data, invariants, and temporal sequence.
+5. Check concept, relationship, lifecycle, invariant, and timeline consistency across the complete set.
+6. If the existing model fails, identify concept absence, relationship error, lifecycle error, or method-specific invariant failure.
+7. Propose one minimum structured add/update/remove operation set for the Story; update/remove must cite the current SHA-256.
+8. Call `evidence_orchestrator_record_model_analysis` once and stop. Never write `.evidence` directly.
 
 ## Challenger sequence
 
-1. Use only generated projections plus current and regression Scenarios.
-2. Check concept coverage, relationship direction/meaning, lifecycle, timeline, invariants, and method fit.
+1. Use only generated projections plus the complete current Scenario Set and regression Scenarios.
+2. Check per-Scenario coverage, cross-Scenario consistency, relationship direction/meaning, lifecycle, timeline, invariants, and method fit.
 3. Return exactly one of `pass`, `scenario_gap`, `model_gap`, or `method_gap` through `evidence_orchestrator_record_model_challenge`.
 4. Never repair the candidate in the challenge session. A pass only prepares human review; it does not approve the model or advance Tasking.
 

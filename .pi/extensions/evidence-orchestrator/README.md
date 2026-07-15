@@ -30,22 +30,22 @@ flowchart LR
   U -. problem gap .-> K
 ```
 
-一轮是一个**交付迭代**，可以包含多张人工确认的 `US-xxx`，每张 Story 可以包含多个独立确认和实现的 `SC-xxx`。三个反馈粒度保持嵌套而不再压平：
+一轮是一个以**单一人工确认 User Story** 为边界的交付迭代。冻结 GitHub Issue 是需求权威来源，但若其中包含多张 Story，其余 Story 必须进入后续迭代。三个反馈粒度保持嵌套：
 
-- **Iteration**：GitHub Issue 快照与增量范围，起于迭代规划，止于一次集成 Showcase / Respond；
-- **Story / Scenario**：Kickoff、Understand、建模、Tasking 与 Desk Check；同一 Story 可连续补充多个 Scenario，也可转向迭代中的下一张 Story；
+- **Iteration / Story**：一轮恰好交付一张 `US-xxx`，起于 Kickoff，止于该 Story 的 Showcase / Respond；
+- **Scenario Set**：TQA 后一次确认该 Story 范围内完整的 `SC-xxx` 验收集合，联合建模、Tasking 和验收；
 - **TASK / TEST**：Pair 中单 checkpoint 的 Red、Green、Refactor。
 
 具体流程：
 
-1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后分配下一个 `US-xxx`。完成一个验收切片后可回到 Kickoff 规划同一迭代的下一张 Story。
-2. **Understand**：当前 WIP 始终只有一张 Story。一次提出一个面向业务的 TQA 问题；人类直接回答。AI 提出 Scenario 候选后由人类确认一个，再完成 Profile、模型展开、独立挑战和人工模型确认。一个 Scenario 完成 Pair 后可以回到当前 Story 的 TQA，继续确认下一项验收条件。
-3. **Tasking**：针对当前确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成 Q2/Q1 test/task list；每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定计划。
-4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint。每个 TEST 分别产生 Red、Green、Refactor，全部完成后运行最终 quality gates。切片完成后人类必须选择 `continue-story`、`next-story` 或 `showcase`；前两者要求先创建人类所有的 Git checkpoint，使下一切片获得独立 baseline。
-5. **Showcase**：只在关闭迭代范围后执行一次。重新执行本迭代所有已完成切片的 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个增量。只有人类 `accept` 才能进入 Respond。
-6. **Respond**：总结整个交付增量，只提升被 Scenario、执行事实与集成 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
+1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后分配本迭代唯一的 `US-xxx`。
+2. **Understand**：一次提出一个面向业务的 TQA 问题；人类直接回答。AI 列出完整 Scenario Set 后由人类整体确认，再以全部 Scenario 完成 Profile、逐场景模型展开、跨场景一致性挑战和一次人工模型确认。
+3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
+4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint。每个 TEST 分别产生 Red、Green、Refactor；全部 Scenario 对应的 TASK/TEST 完成后运行一次最终 quality gates，然后进入 Showcase。
+5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
+6. **Respond**：总结整个 Story 增量，只提升被 Scenario Set、执行事实与 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
 
-状态以 `completed_work_items` 保存已完成的 `US/SC` 验收切片，同时只允许一个 active Story、Scenario 和 Pair checkpoint。它不维护并行 Story WIP、独立审批队列或自动重试轮次。
+状态只允许一个 active Story、一个人工确认的 Scenario Set 和一个 Pair checkpoint。它不维护并行 Story WIP、独立 Scenario 交付切片、独立审批队列或自动重试轮次。
 
 ## 目录结构
 
@@ -110,7 +110,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 /evidence-issue-sync
 /evidence-run [--dry-run] [当前活动补充指令]
 /evidence-kickoff confirm [reason] | revise|split|defer|stop <reason>
-/evidence-scenario confirm <DRAFT-xxx> [reason] | continue|split|defer <reason>
+/evidence-scenario confirm <DRAFT-xxx,...> [reason] | continue|split|defer <reason>
 /evidence-modeling-profile confirm [reason] | set <subject> <method> <true|false> <reason>
 /evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>
 /evidence-desk-check approve|revise|architecture_gap|process_gap|scenario_gap <reason>
@@ -123,7 +123,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 
 - `/evidence-run` 只运行当前状态允许的一个 activity、Driver 或确定性 command checkpoint，不接受人工决定；`--dry-run` 只预览任务。
 - 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
-- `/evidence-pair` 在 Red、质量门禁失败或交付边界处记录 Navigator 决定。quality gates 全部通过后使用 `continue-story <reason>`、`next-story <reason>` 或 `showcase <reason>`。
+- `/evidence-pair` 在 Red 或质量门禁失败时记录 Navigator 决定。Story 的全部 quality gates 通过后使用 `showcase <reason>` 进入验收。
 - `/evidence-showcase` 记录产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。
 
 每条命令都会验证持久化状态；调用不属于当前阶段的命令会被对应守卫拒绝。单次命令不会连续运行整个 iteration。Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
@@ -140,13 +140,13 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 
 ## 执行证据
 
-对于活动工作项 `US-xxx / SC-xxx`：
+对于活动 Story `US-xxx`（manifest 内保留逐 Scenario 追踪）：
 
 ```text
-artifacts/05-code/US-xxx/SC-xxx.execution.jsonl
-artifacts/05-code/US-xxx/SC-xxx.manifest.json
-artifacts/05-code/US-xxx/SC-xxx.summary.md
-artifacts/06-review/US-xxx/SC-xxx.review-NNN.json
+artifacts/05-code/US-xxx/execution.jsonl
+artifacts/05-code/US-xxx/manifest.json
+artifacts/05-code/US-xxx/summary.md
+artifacts/06-review/US-xxx/review-NNN.json
 artifacts/06-review/showcase-risks.jsonl
 artifacts/06-review/showcase-product-observations.jsonl
 artifacts/06-review/showcase-evaluations.jsonl

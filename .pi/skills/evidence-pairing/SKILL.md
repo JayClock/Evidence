@@ -1,6 +1,6 @@
 ---
 name: evidence-pairing
-description: Execute Navigator-controlled Evidence Pairing with short-lived Test and Production Drivers, observed Red/Green/Refactor checkpoints, path protection, and final quality gates. Use only after human Desk Check approves one Scenario plan. Do not batch checkpoints, self-accept Red, or let a Driver run commands.
+description: Execute Navigator-controlled Evidence Pairing with short-lived Test and Production Drivers, observed Red/Green/Refactor checkpoints, path protection, and final quality gates. Use only after human Desk Check approves one Story Scenario Set plan. Do not batch checkpoints, self-accept Red, or let a Driver run commands.
 ---
 
 # Evidence Pairing
@@ -11,7 +11,7 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 
 ## Inputs
 
-- One `US-xxx / SC-xxx`, clean Git baseline, confirmed Scenario, model expansion.
+- One `US-xxx` with its confirmed Scenario Set, clean Git baseline, and combined model expansion.
 - Human-approved test/task list and immutable v2 process plans.
 - Current ordered `TASK-xxx / TEST-xxx`, its model references, owning process step, and expected Red behavior.
 
@@ -25,7 +25,7 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 6. Controller records Green.
 7. Production Driver performs a bounded Refactor or explicit no-op.
 8. Controller records Refactor and the model → TASK/TEST → changed-path trace.
-9. Repeat for the next ordered TEST, including another TEST on the same process step. After every approved TASK/TEST completes, run each final quality gate once per revision cycle.
+9. Repeat for the next ordered TEST across the complete Scenario Set, including another TEST on the same process step. After every approved Story TASK/TEST completes, run each final quality gate once per revision cycle.
 10. Generate execution evidence from observations; do not hand-copy commands, exits, paths, task ids, or model refs.
 
 ## Project examples
@@ -38,8 +38,8 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 - Compile/dependency/config/network/fixture failure is not Red → return to Test Driver or Tasking.
 - Green failure → implementation feedback, not Refactor.
 - Quality-gate failure → human chooses retry, implementation, test, or Tasking.
-- Every gate passes → stop; the human chooses `continue-story`, `next-story`, or `showcase` for the delivery iteration.
-- Before `continue-story` or `next-story`, the human creates the Git checkpoint that becomes the next acceptance slice baseline. Drivers never commit.
+- Every gate passes → stop; the human chooses `showcase` for the completed Story iteration.
+- The human owns the Story Git checkpoint. Drivers never commit.
 - Never commit, modify plans/state/logs, or advance a second checkpoint in one Driver turn.
 
 ## References

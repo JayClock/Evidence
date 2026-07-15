@@ -1,6 +1,6 @@
 ---
 name: evidence-test-process
-description: Turn one confirmed Evidence Scenario into a reviewable Q2/Q1 test list, uniquely selected v2 test processes, boundaries, doubles, and ordered implementation tasks. Use in Tasking, Desk Check preparation, or process-gap feedback. Do not guess among process matches, mix Rust and Nest, or write code.
+description: Turn one confirmed Evidence Story Scenario Set into one reviewable, deduplicated Q2/Q1 test list, uniquely selected v2 test processes, boundaries, doubles, and ordered implementation tasks. Use in Tasking, Desk Check preparation, or process-gap feedback. Do not guess among process matches, mix Rust and Nest, or write code.
 ---
 
 # Evidence Test Process
@@ -11,23 +11,23 @@ Use only after the independent model challenge passes **and a human confirms the
 
 ## Inputs
 
-- Confirmed Scenario, exact Then outcomes, and business data.
+- Confirmed Scenario Set, every exact Then outcome, and business data.
 - Human-confirmed model expansion and generated context projection, including stable entity and association ids.
 - Stable context map, test strategy, test doubles, runtime vocabulary, API contract, and v2 process catalog.
 
 ## Tasking sequence
 
-1. List Q2 acceptance intent directly from each confirmed Then outcome and preserve business data verbatim.
-2. Add Q1 tests that localize likely Q2 failures; non-goals never become reverse tests.
-3. Give every `TEST-xxx` explicit `modelRefs` drawn only from the confirmed expansion. Across the test list, cover every expansion reference; method `none` is the only valid empty trace.
+1. List Q2 acceptance intent directly from every confirmed Scenario/Then outcome and preserve business data verbatim; every Scenario and Then must be covered.
+2. Add Q1 tests that localize likely Q2 failures and deduplicate support shared by multiple Scenarios; non-goals never become reverse tests.
+3. Give every `TEST-xxx` explicit Scenario refs and `modelRefs` drawn only from the confirmed Story expansion. Across the test list, cover every expansion reference; method `none` is the only valid empty trace.
 4. Separate dimensions:
    - functional context = stable business capability;
    - runtime = Rust, TypeScript, or Tauri;
    - technical boundary = API, ORM, UI, shell, etc.
-5. Select Rust **or** Nest for one server capability, never both.
+5. Select Rust **or** Nest for one server capability across the Story, never both.
 6. Match v2 processes by all capabilities and boundaries. Zero or multiple matches are knowledge gaps; do not choose heuristically.
 7. Cover selected process steps in declared order, including real boundaries, replaced boundaries, doubles, focused-command variables, and final gates.
-8. Build dependency-ordered tasks. Every `TEST-xxx` belongs to exactly one task; task/test order must preserve process-step order. Task model refs are the deterministic union of their tests.
+8. Build one dependency-ordered Story task list. Every `TEST-xxx` belongs to exactly one task; task/test order must preserve process-step order. Task Scenario/model refs are the deterministic union of their tests.
 9. Call `evidence_orchestrator_propose_tasking` and stop for human Desk Check.
 
 ## Project examples

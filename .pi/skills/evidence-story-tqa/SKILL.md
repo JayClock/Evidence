@@ -1,13 +1,13 @@
 ---
 name: evidence-story-tqa
-description: Clarify exactly one Evidence user Story through TQA and propose concrete Given/When/Then Scenario candidates. Use in the Understand loop when a Story has business uncertainty, may need revision, or needs a human-confirmable Scenario. Product-confirmed channels and external interactions may be clarified, but do not use this skill for internal architecture, implementation choices, batch backlog grooming, or answering the domain question yourself.
+description: Clarify exactly one Evidence user Story through TQA and propose its complete concrete Given/When/Then Scenario Set. Use in the Understand loop when a Story has business uncertainty, may need revision, or needs a human-confirmable acceptance boundary. Product-confirmed channels and external interactions may be clarified, but do not use this skill for internal architecture, implementation choices, batch backlog grooming, or answering the domain question yourself.
 ---
 
 # Evidence Story TQA
 
 ## When to use
 
-Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration may contain multiple Stories and a Story may accumulate multiple confirmed Scenarios, but this activity must not switch Stories, infer a domain-expert answer, choose internal implementation technology, or manufacture tests.
+Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration contains exactly one Story and confirms that Story's Scenario Set before Modeling; this activity must not switch Stories, infer a domain-expert answer, choose internal implementation technology, or manufacture tests.
 
 ## Inputs
 
@@ -25,8 +25,8 @@ Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration 
    - `story` when the current role, negotiable goal, or value is wrong;
    - `history` for a local detail that need not revise stable context or the Card.
 4. If that uncertainty remains, ask one business-facing question with `evidence_orchestrator_ask_question`, then stop. A confirmed channel, external interface, or user interaction may be clarified when needed for an observable Scenario; do not ask the domain expert to choose frameworks, databases, runtimes, internal components, or tests.
-5. If knowledge is sufficient, propose one to five small Scenario candidates with concrete Given, one When, observable Then outcomes, and exact business data. Product-visible interaction may appear only when already confirmed; internal implementation steps never appear.
-6. Call `evidence_orchestrator_propose_scenarios`, then stop for `/evidence-scenario`.
+5. If knowledge is sufficient, propose the bounded, non-duplicated Scenario Set needed to confirm the Story: normal, alternative, boundary, and business-rejection examples where applicable. Each Scenario has concrete Given, one When, observable Then outcomes, and exact business data. Product-visible interaction may appear only when already confirmed; internal implementation steps never appear.
+6. Call `evidence_orchestrator_propose_scenarios`, then stop for human confirmation of the complete set through `/evidence-scenario`.
 
 ## Project examples
 
@@ -45,7 +45,7 @@ Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration 
 - More business uncertainty → ask exactly one question and stop.
 - The answer corrects the Card → target `story`; after the explicit answer, the orchestrator returns to Kickoff for a replacement candidate and human confirmation rather than appending Conversation to the Card.
 - Multiple independent goals → ask the human to split; do not pick one silently.
-- Concrete candidates ready → propose them and stop. After one Scenario is implemented, the Navigator may return to this same Story to clarify and confirm another acceptance Scenario.
+- Concrete Scenario Set ready → propose it and stop. Modeling, Tasking, and Pair do not begin until the human confirms the in-scope set; omitted drafts require an explicit reason.
 - Human revise feedback → revisit only the named business/Scenario gap.
 - Never confirm a Scenario, assign a new Story, write requirements validation, or advance workflow state directly.
 
