@@ -26,7 +26,7 @@ export interface ModelingProfileInput {
 }
 
 export interface ConfirmModelingProfileInput {
-  reason: string;
+  reason?: string;
   subject?: ModelingSubject;
   method?: ModelingMethod;
   modelChangeRequired?: boolean;
@@ -116,7 +116,9 @@ export function confirmModelingProfile(
     subject,
     method,
     model_change_required: modelChangeRequired,
-    reason: modelingText(input.reason, 'Modeling Profile confirmation reason'),
+    reason: input.reason
+      ? modelingText(input.reason, 'Modeling Profile confirmation reason')
+      : proposal.reason,
     confirmed_by: 'human',
     confirmed_at: now,
     proposal,

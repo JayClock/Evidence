@@ -194,7 +194,7 @@ export async function promptScenarioDecision(
 }
 
 interface ModelingProfileDecision {
-  reason: string;
+  reason?: string;
   subject?: ModelingSubject;
   method?: ModelingMethod;
   modelChangeRequired?: boolean;
@@ -217,8 +217,7 @@ export function parseModelingProfileDecision(
   if (!rawAction) return undefined;
   if (rawAction === 'confirm') {
     const reason = rest.join(' ').trim();
-    if (!reason) throw new Error('Profile confirmation requires a reason.');
-    return { reason };
+    return reason ? { reason } : {};
   }
   if (rawAction !== 'set') {
     throw new Error(
@@ -873,10 +872,7 @@ export async function promptModelingProfileDecision(
     [...(canConfirm ? ['确认 AI 建议'] : []), '覆盖 AI 建议'],
   );
   if (!choice) return undefined;
-  if (choice === '确认 AI 建议') {
-    const reason = (await ctx.ui.input('请说明确认该建模方法的理由'))?.trim();
-    return reason ? { reason } : undefined;
-  }
+  if (choice === '确认 AI 建议') return {};
   const subject = (await ctx.ui.select('选择建模对象', MODELING_SUBJECTS)) as
     | ModelingSubject
     | undefined;

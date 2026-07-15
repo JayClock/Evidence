@@ -15,6 +15,7 @@ import {
   registerCommands,
 } from './commands';
 import {
+  parseModelingProfileDecision,
   promptKickoffDecision,
   promptScenarioDecision,
 } from './command-inputs';
@@ -114,6 +115,10 @@ describe('commands', () => {
   });
 
   it('parses model, Showcase, and Respond human decisions', () => {
+    expect(parseModelingProfileDecision('confirm')).toEqual({});
+    expect(
+      parseModelingProfileDecision('confirm 领域对象方法符合当前场景。'),
+    ).toEqual({ reason: '领域对象方法符合当前场景。' });
     expect(
       parseModelDecision(
         'confirm The projection and ubiquitous language match the conversation.',

@@ -176,6 +176,27 @@ describe('modeling method routing', () => {
     },
   );
 
+  it('allows confirming the AI modeling Profile without an additional reason', () => {
+    const cwd = workspace();
+    prepareModeling(cwd);
+    proposeModelingProfile(cwd, {
+      subject: 'domain',
+      method: 'object',
+      modelChangeRequired: true,
+      reason: 'Workspace name and description are stable domain attributes.',
+    });
+
+    const confirmed = confirmModelingProfile(cwd, {});
+
+    expect(confirmed.modeling_profile).toMatchObject({
+      subject: 'domain',
+      method: 'object',
+      model_change_required: true,
+      reason: 'Workspace name and description are stable domain attributes.',
+      confirmed_by: 'human',
+    });
+  });
+
   it('requires a human decision when the AI cannot determine model change need', () => {
     const cwd = workspace();
     prepareModeling(cwd);
