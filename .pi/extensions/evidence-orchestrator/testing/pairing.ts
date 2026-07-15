@@ -30,7 +30,7 @@ import {
   type TestExecutionRecord,
 } from './execution-recorder';
 import { generateExecutionEvidence } from './execution-manifest';
-import { readTestProcess } from './process-catalog';
+import { readTestProcess } from '../capabilities/test-process/catalog';
 
 interface PairStep {
   process: TestProcessSelection;

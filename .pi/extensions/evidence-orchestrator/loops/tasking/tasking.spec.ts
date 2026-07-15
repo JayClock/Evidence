@@ -3,19 +3,20 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   transitionWorkflowLoop,
   writeState,
-} from '../iteration/state-repository';
-import { DEFAULT_STATE } from '../iteration/default-state';
+} from '../../iteration/state-repository';
+import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
   workspace,
   write,
-} from '../tests/support';
-import { prepareActivityRun } from '../runtime/activity-dispatch';
-import { statusMarkdown } from '../runtime/status';
-import { buildActivityTask } from '../subagents/activity-task';
-import { executeTestStep } from './execution-recorder';
-import { decideTasking, proposeTaskingDraft } from './tasking';
+} from '../../tests/support';
+import { prepareActivityRun } from '../../runtime/activity-dispatch';
+import { statusMarkdown } from '../../runtime/status';
+import { buildActivityTask } from '../../subagents/activity-task';
+import { executeTestStep } from '../../testing/execution-recorder';
+import { decideTasking } from './desk-check';
+import { proposeTaskingDraft } from './tasking-draft';
 
 afterEach(cleanupWorkspaces);
 

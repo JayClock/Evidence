@@ -6,7 +6,7 @@ import { confirmModelingProfile } from '../loops/understand/modeling/profile';
 import { decideKickoff } from '../loops/kickoff/story-decision';
 import { decideKnowledgeResponse } from '../evidence/respond';
 import { decideUnderstanding } from '../loops/understand/scenario/candidates';
-import { decideTasking } from '../testing/tasking';
+import { decideTasking } from '../loops/tasking/desk-check';
 import {
   decideShowcase,
   missingShowcaseRisks,

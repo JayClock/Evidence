@@ -14,7 +14,7 @@ import { validateSourceBoundaries } from './source-boundaries';
 import {
   catalogTestProcessDirectory,
   validateTestProcessDirectory,
-} from '../testing/process-catalog';
+} from '../capabilities/test-process/catalog';
 
 /** Deterministic CI validation for native v5 or immutable terminal legacy state. */
 export function validateWorkflow(cwd: string): void {

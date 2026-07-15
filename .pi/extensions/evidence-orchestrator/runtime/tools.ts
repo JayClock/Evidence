@@ -22,7 +22,7 @@ import {
 import { readState, readStateSnapshot } from '../iteration/state-repository';
 import { createGitHubCliRunner } from './github-cli';
 import { statusMarkdown } from './status';
-import { proposeTaskingDraft } from '../testing/tasking';
+import { proposeTaskingDraft } from '../loops/tasking/tasking-draft';
 import { recordShowcaseReview } from '../testing/showcase';
 import { isCompletedIteration, prepareActivityRun } from './activity-dispatch';
 import { executePreparedActivityRun } from './activity-execution';

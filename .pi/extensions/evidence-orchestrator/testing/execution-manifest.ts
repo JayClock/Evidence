@@ -23,7 +23,7 @@ import {
 import {
   readTestProcess,
   testProcessDefinitionSha256,
-} from './process-catalog';
+} from '../capabilities/test-process/catalog';
 
 export interface ExecutionManifest {
   version: 1;

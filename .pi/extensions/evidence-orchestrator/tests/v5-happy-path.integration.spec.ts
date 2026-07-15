@@ -18,7 +18,8 @@ import {
   confirmModelingProfile,
   proposeModelingProfile,
 } from '../loops/understand/modeling/profile';
-import { decideTasking, proposeTaskingDraft } from '../testing/tasking';
+import { decideTasking } from '../loops/tasking/desk-check';
+import { proposeTaskingDraft } from '../loops/tasking/tasking-draft';
 import {
   capturePairWorktree,
   completePairDriver,

@@ -5,8 +5,8 @@ import {
   materializeFocusedCommands,
   readTestProcess,
   validateTestProcessDirectory,
-} from './process-catalog';
-import { cleanupWorkspaces, workspace, write } from '../tests/support';
+} from './catalog';
+import { cleanupWorkspaces, workspace, write } from '../../tests/support';
 
 afterEach(cleanupWorkspaces);
 

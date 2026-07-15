@@ -42,7 +42,7 @@ import {
   materializedProcessSha256,
   readTestProcess,
   testProcessDefinitionSha256,
-} from './process-catalog';
+} from '../capabilities/test-process/catalog';
 import {
   capturePairWorktree,
   completePairDriver,

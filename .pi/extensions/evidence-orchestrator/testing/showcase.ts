@@ -44,7 +44,7 @@ import {
   generateExecutionEvidence,
   validateExecutionEvidence,
 } from './execution-manifest';
-import { readTestProcess } from './process-catalog';
+import { readTestProcess } from '../capabilities/test-process/catalog';
 import {
   captureWorktreeSnapshot,
   restoreWorktreeSnapshot,

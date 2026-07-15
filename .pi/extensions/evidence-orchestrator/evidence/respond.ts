@@ -26,7 +26,7 @@ import {
   executionEvidencePaths,
   validateExecutionEvidence,
 } from '../testing/execution-manifest';
-import { testProcessDefinitionSha256 } from '../testing/process-catalog';
+import { testProcessDefinitionSha256 } from '../capabilities/test-process/catalog';
 import { validateShowcaseEvidence } from '../testing/showcase';
 import { validateKnowledgePromotion } from './knowledge';
 
