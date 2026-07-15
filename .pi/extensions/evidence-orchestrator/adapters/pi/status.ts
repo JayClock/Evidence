@@ -43,13 +43,13 @@ function nextActions(cwd: string, state: WorkflowState): string {
   if (state.loop === 'pair') return pairNextInstruction(state);
   if (state.loop === 'showcase') return showcaseNextInstruction(cwd);
   if (state.loop === 'respond' && state.respond_stage === 'decision') {
-    return 'human:/evidence-next approve|revise <reason>';
+    return 'human:/evidence-respond approve|revise <reason>';
   }
   if (state.loop === 'understand' && state.modeling_stage === 'model_review') {
-    return 'human:/evidence-next confirm|revise|scenario-gap|method-gap <reason>';
+    return 'human:/evidence-model confirm|revise|scenario-gap|method-gap <reason>';
   }
   if (state.loop === 'tasking' && state.tasking_stage === 'desk_check') {
-    return 'human:/evidence-next';
+    return 'human:/evidence-desk-check';
   }
   return allowedLoopActions(state.loop).join(', ') || 'none';
 }

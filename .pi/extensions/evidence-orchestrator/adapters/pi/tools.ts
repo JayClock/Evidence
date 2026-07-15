@@ -273,7 +273,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-next to confirm, revise, split, defer, or stop.`,
+            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-kickoff to confirm, revise, split, defer, or stop.`,
           },
         ],
         details: { state },
@@ -349,7 +349,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-next.`,
+            text: `Recorded ${state.scenario_drafts?.length ?? 0} Scenario draft(s) for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
           },
         ],
         details: { state },
@@ -392,7 +392,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-next.`,
+            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-modeling-profile.`,
           },
         ],
         details: { state },
@@ -471,7 +471,7 @@ export function registerTools(pi: ExtensionAPI): void {
             type: 'text',
             text:
               challenge?.outcome === 'pass'
-                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-next before Tasking.`
+                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-model before Tasking.`
                 : `Recorded model challenge ${challenge?.outcome}. Workflow loop=${state.loop}; next modeling stage=${state.modeling_stage ?? 'none'}.`,
           },
         ],
@@ -493,7 +493,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Use exact confirmed Scenario outcomes, business data, and model ids; non-goals never become tests.',
       'Give every TEST exactly one ordered TASK owner and preserve selected process-step order.',
       'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
-      'After calling this tool, stop. Only /evidence-next can approve or route the draft.',
+      'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
     ],
     parameters: taskingDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -531,7 +531,7 @@ export function registerTools(pi: ExtensionAPI): void {
             type: 'text',
             text:
               state.tasking_stage === 'desk_check'
-                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-next.`
+                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-desk-check.`
                 : `Tasking stopped at ${state.tasking_gap?.kind}: ${state.tasking_gap?.reason}`,
           },
         ],
@@ -566,7 +566,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-next decision is required.`,
+            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-showcase decision is required.`,
           },
         ],
         details: { review, state: readState(ctx.cwd) },
@@ -586,7 +586,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Use only in Respond after a human accepts Showcase.',
       'Promoted items must cite Scenario, Showcase decision, execution evidence, and an actually changed canonical target.',
       'Empty promotions are valid only with a concrete no-promotion reason.',
-      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-next.',
+      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-respond.',
     ],
     parameters: respondProposalParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -623,7 +623,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-next approval or revision.`,
+            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-respond approval or revision.`,
           },
         ],
         details: { candidate, state: readState(ctx.cwd) },

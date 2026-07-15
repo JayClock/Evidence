@@ -59,7 +59,7 @@ function issueState() {
 afterEach(cleanupWorkspaces);
 
 describe('commands', () => {
-  it('registers only native loop and human-decision commands', () => {
+  it('registers explicit activity and stage-owned human-decision commands', () => {
     const commands: string[] = [];
     registerCommands({
       registerCommand(name: string) {
@@ -70,9 +70,17 @@ describe('commands', () => {
     expect(commands).toEqual([
       'evidence-status',
       'evidence-new',
+      'evidence-kickoff',
+      'evidence-scenario',
+      'evidence-modeling-profile',
+      'evidence-model',
+      'evidence-desk-check',
+      'evidence-pair',
+      'evidence-showcase',
+      'evidence-respond',
       'evidence-issue-sync',
       'evidence-issue-status',
-      'evidence-next',
+      'evidence-run',
     ]);
   });
 
@@ -331,7 +339,7 @@ describe('commands', () => {
       | undefined;
     registerCommands({
       registerCommand(name: string, options: { handler: typeof run }) {
-        if (name === 'evidence-next') run = options.handler;
+        if (name === 'evidence-run') run = options.handler;
       },
     } as never);
     const ctx = context(cwd);

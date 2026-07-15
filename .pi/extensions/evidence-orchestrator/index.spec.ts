@@ -25,8 +25,10 @@ describe('index', () => {
     expect(events).toEqual(
       expect.arrayContaining(['session_start', 'session_shutdown']),
     );
-    expect(commands).toContain('evidence-next');
-    expect(commands).not.toContain('evidence-run');
+    expect(commands).toContain('evidence-run');
+    expect(commands).toContain('evidence-kickoff');
+    expect(commands).toContain('evidence-showcase');
+    expect(commands).not.toContain('evidence-next');
     expect(tools).toContain('evidence_orchestrator_status');
     expect(messageRenderers).toContain('evidence-orchestrator-activity-result');
   });

@@ -106,14 +106,27 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 ```text
 /evidence-new
 /evidence-status
-/evidence-next [当前阶段参数]
 /evidence-issue-status
 /evidence-issue-sync
+/evidence-run [--dry-run] [当前活动补充指令]
+/evidence-kickoff [confirm|revise|split|defer|stop] <reason>
+/evidence-scenario confirm <DRAFT-xxx> <reason> | continue|split|defer <reason>
+/evidence-modeling-profile confirm <reason> | set <subject> <method> <true|false> <reason>
+/evidence-model confirm|revise|scenario-gap|method-gap <reason>
+/evidence-desk-check approve|revise|architecture_gap|process_gap|scenario_gap <reason>
+/evidence-pair [当前 Pair 人工决定参数]
+/evidence-showcase [observe|risk|evaluate|accept|revise|reject 参数]
+/evidence-respond approve|revise <reason>
 ```
 
-`/evidence-next` 根据持久化状态路由到当前阶段唯一可用的活动或人工决定。没有待决事项时，它只推进一个 activity/checkpoint；存在 Kickoff、Scenario、Profile、模型、Desk Check、Red、交付边界、Showcase 或 Respond 决定时，相同命令只接受该决定的参数。Pair quality gates 全部通过后使用 `continue-story <reason>`、`next-story <reason>` 或 `showcase <reason>`。省略参数会打开当前决定的交互选择器。它不会连续运行整个 iteration。
+命令按阶段显式暴露：
 
-Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
+- `/evidence-run` 只运行当前状态允许的一个 activity、Driver 或确定性 command checkpoint，不接受人工决定；`--dry-run` 只预览任务。
+- 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
+- `/evidence-pair` 在 Red、质量门禁失败或交付边界处记录 Navigator 决定。quality gates 全部通过后使用 `continue-story <reason>`、`next-story <reason>` 或 `showcase <reason>`。
+- `/evidence-showcase` 记录产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。
+
+每条命令都会验证持久化状态；调用不属于当前阶段的命令会被对应守卫拒绝。单次命令不会连续运行整个 iteration。Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
 
 ## Agent 工具
 

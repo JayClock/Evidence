@@ -63,7 +63,7 @@ export function parseKickoffDecision(
   const action = KICKOFF_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-next [confirm | revise | split | defer | stop] <business reason>.',
+      'Usage: /evidence-kickoff [confirm | revise | split | defer | stop] <business reason>.',
     );
   }
   const reason = reasonParts.join(' ').trim();
@@ -134,7 +134,7 @@ export function parseScenarioDecision(
   const action = SCENARIO_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-next confirm <DRAFT-xxx> <reason> | continue <reason> | split <reason> | defer <reason>.',
+      'Usage: /evidence-scenario confirm <DRAFT-xxx> <reason> | continue <reason> | split <reason> | defer <reason>.',
     );
   }
   const draftId =
@@ -223,7 +223,7 @@ export function parseModelingProfileDecision(
   }
   if (rawAction !== 'set') {
     throw new Error(
-      'Usage: /evidence-next confirm <reason> | set <business|domain|tool> <method> <true|false> <reason>.',
+      'Usage: /evidence-modeling-profile confirm <reason> | set <business|domain|tool> <method> <true|false> <reason>.',
     );
   }
   const [rawSubject, rawMethod, rawRequired, ...reasonParts] = rest;
@@ -268,7 +268,7 @@ export function parseModelDecision(
   const action = MODEL_DECISIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-next <confirm|revise|scenario-gap|method-gap> <business reason>.',
+      'Usage: /evidence-model <confirm|revise|scenario-gap|method-gap> <business reason>.',
     );
   }
   const reason = reasonParts.join(' ').trim();
@@ -326,7 +326,7 @@ export function parseDeskCheckDecision(
   const action = DESK_CHECK_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-next <approve|revise|architecture_gap|process_gap|scenario_gap> <reason>.',
+      'Usage: /evidence-desk-check <approve|revise|architecture_gap|process_gap|scenario_gap> <reason>.',
     );
   }
   const reason = reasonParts.join(' ').trim();
@@ -425,7 +425,7 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
     ].includes(navigation)
   ) {
     throw new Error(
-      'Usage: /evidence-next accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason> | continue-story|next-story|showcase <reason>.',
+      'Usage: /evidence-pair accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason> | continue-story|next-story|showcase <reason>.',
     );
   }
   const reason = rest.join(' ').trim();
@@ -582,7 +582,7 @@ export function parseShowcaseDecision(
       extra.length > 0
     ) {
       throw new Error(
-        'Usage: /evidence-next observe <evidence-ref> <observation> :: <value-feedback>.',
+        'Usage: /evidence-showcase observe <evidence-ref> <observation> :: <value-feedback>.',
       );
     }
     return {
@@ -610,7 +610,7 @@ export function parseShowcaseDecision(
       !finding
     ) {
       throw new Error(
-        'Usage: /evidence-next evaluate <q3|q4>/<activity> <passed|concern> <evidence-ref> <finding>.',
+        'Usage: /evidence-showcase evaluate <q3|q4>/<activity> <passed|concern> <evidence-ref> <finding>.',
       );
     }
     return {
@@ -633,7 +633,7 @@ export function parseShowcaseDecision(
       !['not_required', 'required'].includes(rawDisposition ?? '')
     ) {
       throw new Error(
-        'Usage: /evidence-next risk <q3|q4> <not-required|required> [activity,activity] <reason>.',
+        'Usage: /evidence-showcase risk <q3|q4> <not-required|required> [activity,activity] <reason>.',
       );
     }
     const disposition = rawDisposition as ShowcaseRiskDisposition;
@@ -667,7 +667,7 @@ export function parseShowcaseDecision(
   }
   if (!['accept', 'revise', 'reject'].includes(action)) {
     throw new Error(
-      'Usage: /evidence-next observe ... | risk ... | evaluate ... | accept <reason> | revise <target> <reason> | reject <reason>.',
+      'Usage: /evidence-showcase observe ... | risk ... | evaluate ... | accept <reason> | revise <target> <reason> | reject <reason>.',
     );
   }
   const decisionAction = action as ShowcaseDecisionAction;
@@ -854,7 +854,7 @@ export function parseRespondDecision(
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase() as RespondDecisionInput['action'];
   if (!['approve', 'revise'].includes(action)) {
-    throw new Error('Usage: /evidence-next <approve|revise> <reason>.');
+    throw new Error('Usage: /evidence-respond <approve|revise> <reason>.');
   }
   const reason = reasonParts.join(' ').trim();
   if (!reason) throw new Error(`Respond ${action} requires a reason.`);

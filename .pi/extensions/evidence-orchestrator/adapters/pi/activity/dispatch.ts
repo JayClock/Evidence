@@ -299,13 +299,13 @@ export function prepareActivityRun(
   if (current.loop === 'respond' && current.respond_stage === 'decision') {
     throw new ActivityRunBlockedError(
       'respond_decision',
-      `Respond candidate ${current.respond_candidate?.artifact_path ?? 'missing'} awaits /evidence-next approve|revise <reason>.`,
+      `Respond candidate ${current.respond_candidate?.artifact_path ?? 'missing'} awaits /evidence-respond approve|revise <reason>.`,
     );
   }
   if (current.loop === 'kickoff' && current.kickoff_candidate) {
     throw new ActivityRunBlockedError(
       'kickoff_decision',
-      `Kickoff candidate ${current.kickoff_candidate.artifact_path} awaits /evidence-next.`,
+      `Kickoff candidate ${current.kickoff_candidate.artifact_path} awaits /evidence-kickoff.`,
     );
   }
   if (
@@ -314,7 +314,7 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'scenario_decision',
-      'Scenario drafts await a human /evidence-next decision.',
+      'Scenario drafts await a human /evidence-scenario decision.',
     );
   }
   if (
@@ -323,7 +323,7 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'modeling_profile',
-      'The modeling Profile awaits /evidence-next.',
+      'The modeling Profile awaits /evidence-modeling-profile.',
     );
   }
   if (
@@ -338,13 +338,13 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'model_decision',
-      'The challenged model and ubiquitous language await human /evidence-next confirm|revise|scenario-gap|method-gap <reason>.',
+      'The challenged model and ubiquitous language await human /evidence-model confirm|revise|scenario-gap|method-gap <reason>.',
     );
   }
   if (current.loop === 'tasking' && current.tasking_stage === 'desk_check') {
     throw new ActivityRunBlockedError(
       'desk_check',
-      'The Tasking candidate awaits human /evidence-next.',
+      'The Tasking candidate awaits human /evidence-desk-check.',
     );
   }
   if (

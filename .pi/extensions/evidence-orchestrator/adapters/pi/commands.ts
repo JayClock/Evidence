@@ -108,9 +108,8 @@ export function activeStageCommand(
 
 export function registerCommands(pi: ExtensionAPI): void {
   type CommandOptions = Parameters<ExtensionAPI['registerCommand']>[1];
-  const stageCommands = new Map<string, CommandOptions>();
   const registerStageCommand = (name: string, options: CommandOptions) => {
-    stageCommands.set(name, options);
+    pi.registerCommand(name, options);
   };
 
   pi.registerCommand('evidence-status', {
@@ -152,7 +151,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         }
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}. The Issue is frozen; run /evidence-next to prepare one Kickoff candidate, then /evidence-next for the human decision.`,
+          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}. The Issue is frozen; run /evidence-run to prepare one Kickoff candidate, then /evidence-kickoff for the human decision.`,
           'info',
         );
       } catch (error) {
@@ -188,7 +187,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
         } else if (decision.action === 'revise') {
           ctx.ui.notify(
-            'Human requested a revised Kickoff candidate. Run /evidence-next with the feedback before continuing.',
+            'Human requested a revised Kickoff candidate. Run /evidence-run with the feedback before continuing.',
             'info',
           );
         } else {
@@ -267,7 +266,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         const state = confirmModelingProfile(ctx.cwd, decision);
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
-          `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-next to expand the Scenario through this model.`,
+          `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
           'info',
         );
       } catch (error) {
@@ -340,7 +339,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
         } else {
           ctx.ui.notify(
-            `Desk Check recorded ${decision.action}; run /evidence-next to revise Tasking knowledge and regenerate the plan.`,
+            `Desk Check recorded ${decision.action}; run /evidence-run to revise Tasking knowledge and regenerate the plan.`,
             'info',
           );
         }
@@ -469,7 +468,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.notify(
           decision.action === 'approve'
             ? `Human approved the knowledge response. ${state.iteration_id} is complete; update the GitHub Issue explicitly before starting the next snapshot.`
-            : 'Human requested a revised knowledge response; run /evidence-next to resume Respond.',
+            : 'Human requested a revised knowledge response; run /evidence-run to resume Respond.',
           'info',
         );
       } catch (error) {
@@ -562,7 +561,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           pi,
           ctx,
           preparation,
-          `/evidence-next ${args}`.trim(),
+          `/evidence-run ${args}`.trim(),
         );
       } catch (error) {
         ctx.ui.notify(
@@ -570,27 +569,6 @@ export function registerCommands(pi: ExtensionAPI): void {
           error instanceof ActivityRunBlockedError ? 'info' : 'error',
         );
       }
-    },
-  });
-
-  pi.registerCommand('evidence-next', {
-    description:
-      'Run the only activity or human decision available in the current Evidence stage',
-    handler: async (args, ctx) => {
-      const commandName = activeStageCommand(ctx.cwd);
-      if (!commandName) {
-        ctx.ui.notify(statusMarkdown(ctx.cwd), 'info');
-        return;
-      }
-      const command = stageCommands.get(commandName);
-      if (!command) {
-        ctx.ui.notify(
-          `Evidence action ${commandName} is unavailable.`,
-          'error',
-        );
-        return;
-      }
-      await command.handler(args, ctx);
     },
   });
 }

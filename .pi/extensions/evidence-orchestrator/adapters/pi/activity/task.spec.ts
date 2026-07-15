@@ -140,7 +140,7 @@ describe('activity tasks', () => {
 
     expect(task).toContain('.pi/skills/evidence-test-process/SKILL.md');
     expect(task).toContain('evidence_orchestrator_propose_tasking');
-    expect(task).toContain('/evidence-next');
+    expect(task).toContain('/evidence-desk-check');
     expect(task).not.toContain('Sprint backlog');
   });
 });
