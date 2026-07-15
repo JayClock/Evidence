@@ -201,7 +201,7 @@ function appendAnswerToDestination(
   );
 }
 
-/** Ask exactly one business question for the iteration's single Story. */
+/** Ask exactly one business question for the iteration's active WIP Story. */
 export function askClarification(
   cwd: string,
   input: AskClarificationInput,
@@ -302,7 +302,7 @@ export function answerClarification(
   return persisted;
 }
 
-/** Preserve an open question when a human splits or defers the single Story. */
+/** Preserve an open question when a human splits or defers the active Story. */
 export function waivePendingClarification(
   cwd: string,
   reason: string,

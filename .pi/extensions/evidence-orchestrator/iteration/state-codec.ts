@@ -45,6 +45,7 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   feedback_history: true,
   requirement_source: true,
   active_work_item: true,
+  completed_work_items: true,
   active_clarification_story: true,
   pending_clarification: true,
   clarification_history: true,
@@ -461,6 +462,28 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       ))
   ) {
     throw new Error('The Pair session TASK/TEST traceability is invalid.');
+  }
+  if (
+    (state.completed_work_items ?? []).some(
+      (item) =>
+        item.version !== 1 ||
+        !STORY_ID_PATTERN.test(item.story_id) ||
+        !SCENARIO_ID_PATTERN.test(item.scenario_id) ||
+        item.scenario.story_id !== item.story_id ||
+        item.scenario.scenario_id !== item.scenario_id ||
+        item.work_item.story_id !== item.story_id ||
+        item.work_item.scenario_id !== item.scenario_id ||
+        item.pair.checkpoint !== 'quality_gates_passed' ||
+        !text(item.approved_test_plan_path) ||
+        !text(item.approved_test_plan_sha256) ||
+        !text(item.model_expansion_path) ||
+        !text(item.model_decision_path) ||
+        !text(item.execution_manifest_path) ||
+        !text(item.execution_manifest_sha256) ||
+        !text(item.completed_at),
+    )
+  ) {
+    throw new Error('The completed delivery work items are invalid.');
   }
   if (
     state.pair_session &&

@@ -1,6 +1,7 @@
 import type { ExtensionCommandContext } from '@earendil-works/pi-coding-agent';
 import { readState } from '../../iteration/state-repository';
 import type {
+  DeliveryIncrementAction,
   DeskCheckAction,
   KickoffDecisionAction,
   ModelingMethod,
@@ -18,6 +19,7 @@ import type {
 import {
   concerningShowcaseEvaluations,
   missingShowcaseEvaluations,
+  missingShowcaseProductObservations,
   missingShowcaseRisks,
   showcaseActivitiesForQuadrant,
 } from '../../loops/showcase/showcase-session';
@@ -369,7 +371,8 @@ export async function promptDeskCheckDecision(
 
 type PairDecisionInput =
   | { kind: 'red'; failureKind: RedFailureKind; reason: string }
-  | { kind: 'navigate'; action: PairNavigationAction; reason: string };
+  | { kind: 'navigate'; action: PairNavigationAction; reason: string }
+  | { kind: 'delivery'; action: DeliveryIncrementAction; reason: string };
 
 const RED_FAILURE_KINDS: RedFailureKind[] = [
   'behavior',
@@ -385,6 +388,15 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
   const [rawAction, ...rest] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase().replaceAll('-', '_');
+  if (['continue_story', 'next_story', 'showcase'].includes(action)) {
+    const reason = rest.join(' ').trim();
+    if (!reason) throw new Error(`${rawAction} requires a delivery reason.`);
+    return {
+      kind: 'delivery',
+      action: action as DeliveryIncrementAction,
+      reason,
+    };
+  }
   if (action === 'accept_red') {
     const reason = rest.join(' ').trim();
     if (!reason) throw new Error('accept-red requires a behavior reason.');
@@ -413,7 +425,7 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
     ].includes(navigation)
   ) {
     throw new Error(
-      'Usage: /evidence-next accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>.',
+      'Usage: /evidence-next accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason> | continue-story|next-story|showcase <reason>.',
     );
   }
   const reason = rest.join(' ').trim();
@@ -459,6 +471,25 @@ export async function promptPairDecision(
     return failureKind && reason
       ? { kind: 'red', failureKind, reason }
       : undefined;
+  }
+  if (session.checkpoint === 'quality_gates_passed') {
+    const choice = await ctx.ui.select(
+      '当前验收切片已完成，决定交付迭代下一步',
+      [
+        '继续当前 Story 的另一个 Scenario',
+        '规划迭代中的下一个 Story',
+        '关闭迭代范围并进入 Showcase',
+      ],
+    );
+    if (!choice) return undefined;
+    const actions: Record<string, DeliveryIncrementAction> = {
+      继续当前Story的另一个Scenario: 'continue_story',
+      规划迭代中的下一个Story: 'next_story',
+      关闭迭代范围并进入Showcase: 'showcase',
+    };
+    const action = actions[choice.replaceAll(' ', '')];
+    const reason = (await ctx.ui.input(`请说明“${choice}”的交付理由`))?.trim();
+    return action && reason ? { kind: 'delivery', action, reason } : undefined;
   }
   const options = [
     '返回当前 Test Driver',
@@ -679,7 +710,7 @@ export async function promptShowcaseDecision(
       'Run and pass the selected Showcase Q2 observation before human product decisions.',
     );
   }
-  if (!(state.showcase_product_observations?.length ?? 0)) {
+  if (missingShowcaseProductObservations(state).length > 0) {
     const evidenceRef = (
       await ctx.ui.input('输入实际产品演示的证据引用（路径或 URL）')
     )?.trim();

@@ -10,8 +10,8 @@ import {
 } from '../../../loops/pair/pair-session';
 import {
   concerningShowcaseEvaluations,
-  enterShowcase,
   missingShowcaseEvaluations,
+  missingShowcaseProductObservations,
   missingShowcaseRisks,
   prepareShowcaseReview,
   showcaseNextInstruction,
@@ -97,19 +97,31 @@ function agentFor(state: WorkflowState): string | undefined {
 function requiredInputs(state: WorkflowState): string[] {
   if (state.loop === 'kickoff') {
     const feedback = state.feedback_history?.at(-1);
+    const revisionStoryId = [...(state.kickoff_decisions ?? [])]
+      .reverse()
+      .find(({ story_id }) => story_id)?.story_id;
     const storyRevisionInputs =
-      feedback?.target === 'story' && feedback.to_loop === 'kickoff'
+      feedback?.target === 'story' &&
+      feedback.to_loop === 'kickoff' &&
+      revisionStoryId
         ? [
-            'artifacts/01-requirements/stories/US-001.md',
-            'artifacts/01-requirements/clarifications/US-001.json',
+            `artifacts/01-requirements/stories/${revisionStoryId}.md`,
+            `artifacts/01-requirements/clarifications/${revisionStoryId}.json`,
           ]
         : [];
+    const completedScopeInputs = (state.completed_work_items ?? []).flatMap(
+      ({ story_id, scenario }) => [
+        `artifacts/01-requirements/stories/${story_id}.md`,
+        scenario.artifact_path,
+      ],
+    );
     return [
       'artifacts/00-user-input/requirements.md',
       'docs/product/personas.md',
       'docs/product/business-context.md',
       'docs/product/user-journeys.md',
       'docs/product/story-map.md',
+      ...completedScopeInputs,
       ...storyRevisionInputs,
     ];
   }
@@ -236,12 +248,6 @@ export function prepareActivityRun(
       'The active iteration has no frozen GitHub Issue. Start one with /evidence-new.',
     );
   }
-  if (
-    current.loop === 'pair' &&
-    current.pair_session?.checkpoint === 'quality_gates_passed'
-  ) {
-    current = enterShowcase(cwd);
-  }
   let showcaseAction: PreparedActivityRun['showcaseAction'];
   if (current.loop === 'showcase') {
     const q2 = current.showcase_q2_observations ?? [];
@@ -252,10 +258,12 @@ export function prepareActivityRun(
         `A selected Showcase Q2 failed. ${showcaseNextInstruction(cwd)}.`,
       );
     } else {
-      if (!(current.showcase_product_observations?.length ?? 0)) {
+      const missingProductObservations =
+        missingShowcaseProductObservations(current);
+      if (missingProductObservations.length > 0) {
         throw new ActivityRunBlockedError(
           'showcase_observation',
-          `Showcase requires a human product/value observation. ${showcaseNextInstruction(cwd)}.`,
+          `Showcase requires human product/value observations for ${missingProductObservations.join(', ')}. ${showcaseNextInstruction(cwd)}.`,
         );
       }
       const missing = missingShowcaseRisks(current);

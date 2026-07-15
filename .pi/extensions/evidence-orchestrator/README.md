@@ -30,16 +30,22 @@ flowchart LR
   U -. problem gap .-> K
 ```
 
-每轮只处理一张人工确认的 `US-xxx` 和一个人工确认的 `SC-xxx`：
+一轮是一个**交付迭代**，可以包含多张人工确认的 `US-xxx`，每张 Story 可以包含多个独立确认和实现的 `SC-xxx`。三个反馈粒度保持嵌套而不再压平：
 
-1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后才分配 `US-xxx`。
-2. **Understand**：针对该 Story 一次提出一个面向业务的 TQA 问题；人类直接回答。已确认的产品渠道、外部接口和用户交互可以成为 Conversation 或 Scenario 事实，但框架、数据库、运行时、内部组件和测试选择留给 Tasking。若回答修正角色、可协商目标或价值，则返回 Kickoff 生成同一张 Story 的替代候选并再次由人类确认，不向精简 Card 追加问答章节。AI 提出 Scenario 候选后由人类确认一个。随后由人类确认建模 Profile，Builder 展开模型，独立只读 Challenger 检查 Scenario 与回归集；即使检查通过，也必须由人类确认模型投影、统一语言及候选变更后才能进入 Tasking。
-3. **Tasking**：根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成带模型引用的自然语言 test/task list；每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定计划，并在同一 Git baseline 应用已确认模型候选。
-4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint，process step 只提供边界与锁定命令。短生命周期 Test Driver 与 Production Driver 受路径保护；每个 TEST 分别产生 Red、Green、Refactor，全部完成后运行最终 quality gates。
-5. **Showcase**：重新执行已选 Q2，要求人类记录实际产品行为和价值观察；标记 required 的 Q3/Q4 活动必须执行并留下证据，未解决 concern 阻止评审与接受。独立只读 Reviewer 只辅助核查，只有人类 `accept` 才能进入 Respond。`revise` 按知识缺口回到 Kickoff、Understand、Tasking 或 Pair，`reject` 终止本轮。
-6. **Respond**：只提升本轮实际使用且被 Scenario、执行事实与 Showcase 共同验证的知识；空 promotion 合法但必须有理由。人类确认后输出一个 next Probe 并完成本轮。
+- **Iteration**：GitHub Issue 快照与增量范围，起于迭代规划，止于一次集成 Showcase / Respond；
+- **Story / Scenario**：Kickoff、Understand、建模、Tasking 与 Desk Check；同一 Story 可连续补充多个 Scenario，也可转向迭代中的下一张 Story；
+- **TASK / TEST**：Pair 中单 checkpoint 的 Red、Green、Refactor。
 
-状态以 `loop` 和各 loop 的局部 stage/checkpoint 表示，不维护并行的线性流水线、批量 Story 队列、独立审批队列或重试轮次。
+具体流程：
+
+1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后分配下一个 `US-xxx`。完成一个验收切片后可回到 Kickoff 规划同一迭代的下一张 Story。
+2. **Understand**：当前 WIP 始终只有一张 Story。一次提出一个面向业务的 TQA 问题；人类直接回答。AI 提出 Scenario 候选后由人类确认一个，再完成 Profile、模型展开、独立挑战和人工模型确认。一个 Scenario 完成 Pair 后可以回到当前 Story 的 TQA，继续确认下一项验收条件。
+3. **Tasking**：针对当前确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成 Q2/Q1 test/task list；每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定计划。
+4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint。每个 TEST 分别产生 Red、Green、Refactor，全部完成后运行最终 quality gates。切片完成后人类必须选择 `continue-story`、`next-story` 或 `showcase`；前两者要求先创建人类所有的 Git checkpoint，使下一切片获得独立 baseline。
+5. **Showcase**：只在关闭迭代范围后执行一次。重新执行本迭代所有已完成切片的 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个增量。只有人类 `accept` 才能进入 Respond。
+6. **Respond**：总结整个交付增量，只提升被 Scenario、执行事实与集成 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
+
+状态以 `completed_work_items` 保存已完成的 `US/SC` 验收切片，同时只允许一个 active Story、Scenario 和 Pair checkpoint。它不维护并行 Story WIP、独立审批队列或自动重试轮次。
 
 ## 目录结构
 
@@ -105,7 +111,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 /evidence-issue-sync
 ```
 
-`/evidence-next` 根据持久化状态路由到当前阶段唯一可用的活动或人工决定。没有待决事项时，它只推进一个 activity/checkpoint；存在 Kickoff、Scenario、Profile、模型、Desk Check、Red、Showcase 或 Respond 决定时，相同命令只接受该决定的参数。省略参数会打开当前决定的交互选择器。它不会连续运行整个 iteration。
+`/evidence-next` 根据持久化状态路由到当前阶段唯一可用的活动或人工决定。没有待决事项时，它只推进一个 activity/checkpoint；存在 Kickoff、Scenario、Profile、模型、Desk Check、Red、交付边界、Showcase 或 Respond 决定时，相同命令只接受该决定的参数。Pair quality gates 全部通过后使用 `continue-story <reason>`、`next-story <reason>` 或 `showcase <reason>`。省略参数会打开当前决定的交互选择器。它不会连续运行整个 iteration。
 
 Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
 

@@ -19,9 +19,20 @@ export function buildActivityTask(cwd: string, extra = ''): string {
       'artifacts/00-user-input/requirements.md',
     );
     const feedback = state.feedback_history?.at(-1);
+    const revisionStoryId = [...(state.kickoff_decisions ?? [])]
+      .reverse()
+      .find(({ story_id }) => story_id)?.story_id;
+    const completedScopeContext = (state.completed_work_items ?? [])
+      .map(
+        ({ story_id, scenario_id, scenario }) =>
+          `- 已完成 ${story_id}/${scenario_id}：${scenario.artifact_path}`,
+      )
+      .join('\n');
     const storyRevisionContext =
-      feedback?.target === 'story' && feedback.to_loop === 'kickoff'
-        ? `- ${artifactRelativePath(state, 'artifacts/01-requirements/stories/US-001.md')}\n- ${artifactRelativePath(state, 'artifacts/01-requirements/clarifications/US-001.json')}\n- Story 修订反馈：${feedback.reason}`
+      feedback?.target === 'story' &&
+      feedback.to_loop === 'kickoff' &&
+      revisionStoryId
+        ? `- ${artifactRelativePath(state, `artifacts/01-requirements/stories/${revisionStoryId}.md`)}\n- ${artifactRelativePath(state, `artifacts/01-requirements/clarifications/${revisionStoryId}.json`)}\n- Story 修订反馈：${feedback.reason}`
         : '';
     return `执行 Evidence Orchestrator Kickoff 候选准备。
 
@@ -31,9 +42,10 @@ export function buildActivityTask(cwd: string, extra = ''): string {
 - docs/product/business-context.md
 - docs/product/user-journeys.md
 - docs/product/story-map.md
+${completedScopeContext}
 ${storyRevisionContext}
 
-任务：从冻结 Issue 提出一个问题、一个角色、一个可协商目标、一个价值和当前认知行为。若上下文包含 Story 修订反馈，基于领域专家的明确回答修订同一张 Story，不创建第二张 Story。只调用 evidence_orchestrator_propose_kickoff 一次后停止；不分配 US-xxx、不批量建卡、不写权威产品知识。
+任务：从冻结 Issue 和当前迭代进展提出一个问题、一个角色、一个可协商目标、一个价值和当前认知行为。若上下文包含 Story 修订反馈，修订同一张 Story；否则提出迭代中的下一张候选 Story。只调用 evidence_orchestrator_propose_kickoff 一次后停止；不分配 US-xxx、不批量建卡、不写权威产品知识。
 
 额外用户指令：
 ${extra || '（无）'}
@@ -155,10 +167,10 @@ ${extra || '（无）'}
         'Showcase Reviewer requires passed Q2, explicit Q3/Q4 decisions, and reviewing stage.',
       );
     }
-    const base = `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}`;
-    return `执行 Evidence Orchestrator 独立只读 Showcase Review：${workItem.story_id} / ${workItem.scenario_id}。
+    const completed = state.completed_work_items ?? [];
+    return `执行 Evidence Orchestrator 独立只读 Iteration Showcase Review：${state.iteration_id}（${completed.length} 个验收切片）。
 
-上下文：${state.confirmed_scenario?.artifact_path}、${state.model_expansion_path}、${state.approved_test_plan_path}、${artifactRelativePath(state, `${base}.manifest.json`)}、${artifactRelativePath(state, `${base}.summary.md`)}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}、人工产品观察=${JSON.stringify(state.showcase_product_observations)}、评价证据=${JSON.stringify(state.showcase_evaluation_observations)}。
+上下文：已完成切片=${JSON.stringify(completed.map(({ story_id, scenario_id, scenario, execution_manifest_path }) => ({ story_id, scenario_id, scenario: scenario.artifact_path, execution_manifest_path })))}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}、人工产品观察=${JSON.stringify(state.showcase_product_observations)}、评价证据=${JSON.stringify(state.showcase_evaluation_observations)}。
 任务：区分 observed facts、product/domain feedback、technical quality feedback 与 unresolved assumptions；只调用 evidence_orchestrator_record_showcase_review 一次后停止。不得修改任何文件或替人决定。
 
 额外用户指令：
@@ -176,7 +188,7 @@ ${extra || '（无）'}
     ) {
       throw new Error('Respond requires an accepted Showcase.');
     }
-    return `执行 Evidence Orchestrator Respond：${workItem.story_id} / ${workItem.scenario_id}。
+    return `执行 Evidence Orchestrator Iteration Respond：${state.iteration_id}（${state.completed_work_items?.length ?? 1} 个验收切片）。
 
 只读上下文：确认 Scenario、模型展开、execution manifest、${review.artifact_path}、${state.showcase_product_observations?.at(-1)?.artifact_path ?? 'missing-product-observation'}、${state.showcase_evaluation_observations?.at(-1)?.artifact_path ?? 'no-required-evaluation'}、Showcase 人工决定、docs/knowledge-governance.md、Working Knowledge catalog。
 任务：只对实际使用且验证的知识提出 promotions（允许带理由的空列表）和一个 next Probe；只调用 evidence_orchestrator_propose_response 一次后停止，等待人类 /evidence-next。

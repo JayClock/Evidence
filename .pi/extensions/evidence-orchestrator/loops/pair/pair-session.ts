@@ -887,7 +887,7 @@ export function executePairAction(
     state: next,
     record,
     output: complete
-      ? 'All final quality gates passed. Deterministic execution manifest and summary were generated; Pair is ready for Showcase.'
+      ? 'All final quality gates passed. This acceptance slice is complete; the human Navigator must choose another Scenario in this Story, another Story in the iteration, or iteration Showcase.'
       : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; /evidence-next executes only the next one.`,
   };
 }
@@ -1059,6 +1059,6 @@ export function pairNextInstruction(state: WorkflowState): string {
     case 'quality_gate_failed':
       return '/evidence-next retry-quality|back-implementation|back-test|back-tasking <reason>';
     case 'quality_gates_passed':
-      return 'Pair is ready for Showcase';
+      return '/evidence-next continue-story|next-story|showcase <reason> chooses the delivery-iteration boundary';
   }
 }

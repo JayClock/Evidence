@@ -38,7 +38,8 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 - Compile/dependency/config/network/fixture failure is not Red → return to Test Driver or Tasking.
 - Green failure → implementation feedback, not Refactor.
 - Quality-gate failure → human chooses retry, implementation, test, or Tasking.
-- Every gate passes → stop; `/evidence-run` enters Showcase.
+- Every gate passes → stop; the human chooses `continue-story`, `next-story`, or `showcase` for the delivery iteration.
+- Before `continue-story` or `next-story`, the human creates the Git checkpoint that becomes the next acceptance slice baseline. Drivers never commit.
 - Never commit, modify plans/state/logs, or advance a second checkpoint in one Driver turn.
 
 ## References

@@ -7,7 +7,7 @@ description: Clarify exactly one Evidence user Story through TQA and propose con
 
 ## When to use
 
-Use only for the one human-selected Story in `Understand/TQA`. Do not switch Stories, infer a domain-expert answer, choose internal implementation technology, or manufacture tests.
+Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration may contain multiple Stories and a Story may accumulate multiple confirmed Scenarios, but this activity must not switch Stories, infer a domain-expert answer, choose internal implementation technology, or manufacture tests.
 
 ## Inputs
 
@@ -45,7 +45,7 @@ Use only for the one human-selected Story in `Understand/TQA`. Do not switch Sto
 - More business uncertainty → ask exactly one question and stop.
 - The answer corrects the Card → target `story`; after the explicit answer, the orchestrator returns to Kickoff for a replacement candidate and human confirmation rather than appending Conversation to the Card.
 - Multiple independent goals → ask the human to split; do not pick one silently.
-- Concrete candidates ready → propose them and stop.
+- Concrete candidates ready → propose them and stop. After one Scenario is implemented, the Navigator may return to this same Story to clarify and confirm another acceptance Scenario.
 - Human revise feedback → revisit only the named business/Scenario gap.
 - Never confirm a Scenario, assign a new Story, write requirements validation, or advance workflow state directly.
 

@@ -23,6 +23,7 @@ import {
   generateExecutionEvidence,
   validateExecutionEvidence,
 } from '../../capabilities/execution-evidence/manifest';
+import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
 import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,
@@ -1178,6 +1179,55 @@ describe('Navigator-driven Pair', () => {
     );
   });
 
+  it('continues the same Story with another Scenario after a human Git checkpoint', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    completePairSuccessfully(cwd);
+
+    expect(() =>
+      decideDeliveryIncrement(
+        cwd,
+        'continue_story',
+        'Another acceptance condition remains in this Story.',
+      ),
+    ).toThrow('human-owned Git checkpoint');
+
+    execFileSync('git', ['add', '.'], { cwd });
+    execFileSync(
+      'git',
+      [
+        '-c',
+        'user.name=Evidence Orchestrator Test',
+        '-c',
+        'user.email=workflow@example.test',
+        'commit',
+        '--quiet',
+        '-m',
+        'complete first acceptance slice',
+      ],
+      { cwd },
+    );
+    const continued = decideDeliveryIncrement(
+      cwd,
+      'continue_story',
+      'Another acceptance condition remains in this Story.',
+    );
+
+    expect(continued).toMatchObject({
+      loop: 'understand',
+      understand_stage: 'tqa',
+      active_clarification_story: { story_id: 'US-001' },
+    });
+    expect(continued.completed_work_items).toHaveLength(1);
+    expect(continued.completed_work_items?.[0]).toMatchObject({
+      story_id: 'US-001',
+      scenario_id: 'SC-001',
+      pair: { checkpoint: 'quality_gates_passed' },
+    });
+    expect(continued.confirmed_scenario).toBeUndefined();
+    expect(continued.pair_session).toBeUndefined();
+  });
+
   it('blocks Showcase acceptance before selected Q2 is observed', () => {
     const cwd = workspace();
     preparePair(cwd);
@@ -1197,6 +1247,7 @@ describe('Navigator-driven Pair', () => {
     const cwd = workspace();
     preparePair(cwd);
     completePairSuccessfully(cwd);
+    enterShowcase(cwd);
 
     const prepared = prepareActivityRun(cwd);
     if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');
@@ -1205,9 +1256,9 @@ describe('Navigator-driven Pair', () => {
       state: { loop: 'showcase', showcase_stage: 'setup' },
     });
     const observed = executeShowcaseQ2(cwd, '2026-01-02T00:00:00.000Z');
-    expect(observed.output).toContain('Given: No visible workspace exists');
-    expect(observed.output).toContain('When: The owner creates Alpha');
-    expect(observed.output).toContain('Then: Workspace is visible');
+    expect(observed.output).toContain('Given No visible workspace exists');
+    expect(observed.output).toContain('When The owner creates Alpha');
+    expect(observed.output).toContain('Then Workspace is visible');
     expect(observed.records).toHaveLength(1);
     expect(observed.records[0]).toMatchObject({
       stage: 'showcase',

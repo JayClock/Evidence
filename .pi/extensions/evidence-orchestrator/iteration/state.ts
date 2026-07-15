@@ -87,6 +87,10 @@ export type PairDeterministicAction =
   | 'run_green'
   | 'run_refactor'
   | 'run_quality_gate';
+export type DeliveryIncrementAction =
+  | 'continue_story'
+  | 'next_story'
+  | 'showcase';
 export type ShowcaseStage =
   | 'setup'
   | 'reviewing'
@@ -300,6 +304,8 @@ export interface PairSession {
 }
 
 export interface ShowcaseQ2Observation {
+  story_id: string;
+  scenario_id: string;
   process_id: string;
   step_id: string;
   test_ids: string[];
@@ -442,6 +448,24 @@ export interface ActiveWorkItem {
   git_baseline: string;
   /** Immutable ordered v2 test plan; supports one or more runtime-specific processes. */
   test_plan: TestPlan;
+}
+
+/** One completed acceptance slice retained inside a larger delivery iteration. */
+export interface CompletedWorkItem {
+  version: 1;
+  story_id: string;
+  scenario_id: string;
+  scenario: ConfirmedScenario;
+  work_item: ActiveWorkItem;
+  tasking: TaskingCandidate;
+  pair: PairSession;
+  approved_test_plan_path: string;
+  approved_test_plan_sha256: string;
+  model_expansion_path: string;
+  model_decision_path: string;
+  execution_manifest_path: string;
+  execution_manifest_sha256: string;
+  completed_at: string;
 }
 
 export interface ClarificationRecord {
@@ -675,9 +699,11 @@ export interface WorkflowState {
   /** Upstream requirement authority; local files are immutable iteration snapshots. */
   requirement_source?: GitHubIssueRequirementSource;
   active_work_item?: ActiveWorkItem;
-  /** Story currently in focus; selecting another story pauses this one's open work. */
+  /** Acceptance slices completed in this delivery iteration; Showcase covers all of them. */
+  completed_work_items?: CompletedWorkItem[];
+  /** Story currently in focus; only one Story is active although the iteration may contain many. */
   active_clarification_story?: ActiveClarificationStory;
-  /** TQA question awaiting the domain expert's answer for the single Story. */
+  /** TQA question awaiting the domain expert's answer for the active WIP Story. */
   pending_clarification?: ClarificationRecord;
   /** Immutable, answered or human-waived TQA exchanges for the iteration. */
   clarification_history?: ClarificationRecord[];

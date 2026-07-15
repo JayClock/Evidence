@@ -95,6 +95,51 @@ describe('Kickoff', () => {
     ).toContain('**从而**让协作者依据同一业务模型开展讨论');
   });
 
+  it('assigns the next Story id inside the same delivery iteration', () => {
+    const cwd = workspace();
+    prepareKickoff(cwd);
+    proposeKickoffCandidate(cwd, candidate());
+    const first = decideKickoff(
+      cwd,
+      'confirmed',
+      '第一张 Story 属于本轮交付范围。',
+    );
+    writeState(cwd, {
+      ...first,
+      loop: 'kickoff',
+      kickoff_candidate: undefined,
+      understand_stage: undefined,
+      active_clarification_story: undefined,
+    });
+    proposeKickoffCandidate(
+      cwd,
+      candidate({
+        title: '识别过期模型',
+        goal: '识别已被替代的工作区模型',
+      }),
+    );
+
+    const second = decideKickoff(
+      cwd,
+      'confirmed',
+      '第二张 Story 与第一张共同形成可展示增量。',
+    );
+
+    expect(second.active_clarification_story?.story_id).toBe('US-002');
+    expect(second.kickoff_decisions?.map(({ story_id }) => story_id)).toEqual([
+      'US-001',
+      'US-002',
+    ]);
+    expect(
+      existsSync(
+        join(
+          cwd,
+          'artifacts/iterations/ITER-0001/01-requirements/stories/US-002.md',
+        ),
+      ),
+    ).toBe(true);
+  });
+
   it('revisits the same Story after Showcase problem feedback', () => {
     const cwd = workspace();
     prepareKickoff(cwd);

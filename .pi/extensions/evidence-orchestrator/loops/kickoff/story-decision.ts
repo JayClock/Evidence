@@ -58,23 +58,28 @@ function revisesConfirmedStory(state: WorkflowState): boolean {
   );
 }
 
-function ensureNoStoryCard(cwd: string, state: WorkflowState): void {
+function nextStoryId(cwd: string, state: WorkflowState): string {
   const directory = artifactPath(
     cwd,
     state,
     'artifacts/01-requirements/stories',
   );
-  const existing = existsSync(directory)
-    ? readdirSync(directory).filter((name) => /^US-\d{3,}\.md$/.test(name))
+  const numbers = existsSync(directory)
+    ? readdirSync(directory)
+        .map((name) => name.match(/^US-(\d{3,})\.md$/)?.[1])
+        .filter((value): value is string => Boolean(value))
+        .map(Number)
     : [];
-  if (
-    existing.length > 0 &&
-    !(revisesConfirmedStory(state) && existing.join(',') === 'US-001.md')
-  ) {
-    throw new Error(
-      `A Kickoff can confirm exactly one Story, but found: ${existing.join(', ')}.`,
-    );
-  }
+  const revisedStoryId = revisesConfirmedStory(state)
+    ? [...(state.kickoff_decisions ?? [])]
+        .reverse()
+        .find(({ action, story_id }) => action === 'confirmed' && story_id)
+        ?.story_id
+    : undefined;
+  return (
+    revisedStoryId ??
+    `US-${String(Math.max(0, ...numbers) + 1).padStart(3, '0')}`
+  );
 }
 
 /** Apply a human-only Kickoff decision. */
@@ -120,8 +125,7 @@ export function decideKickoff(
     });
   }
 
-  ensureNoStoryCard(cwd, state);
-  const storyId = 'US-001';
+  const storyId = nextStoryId(cwd, state);
   const problemPath = artifactPath(
     cwd,
     state,
@@ -134,7 +138,8 @@ export function decideKickoff(
   );
   mkdirSync(dirname(problemPath), { recursive: true });
   mkdirSync(dirname(storyPath), { recursive: true });
-  writeFileSync(problemPath, problemStatement(candidate));
+  if (!existsSync(problemPath))
+    writeFileSync(problemPath, problemStatement(candidate));
   writeFileSync(storyPath, storyCard(candidate, storyId));
 
   const transitioned = transitionLoopState(state, { to: 'understand' }, now);

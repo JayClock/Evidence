@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   appendFileSync,
   existsSync,
@@ -22,6 +23,7 @@ import {
 } from '../../iteration/state-repository';
 import type {
   ActiveWorkItem,
+  CompletedWorkItem,
   FeedbackTarget,
   PairSession,
   ShowcaseDecisionAction,
@@ -39,6 +41,7 @@ import type {
   WorkflowState,
 } from '../../iteration/state';
 import {
+  assertLockedMaterializedPlan,
   executeTestStep,
   type TestExecutionRecord,
 } from '../../capabilities/execution-evidence/observation-log';
@@ -48,6 +51,7 @@ import {
   validateExecutionEvidence,
 } from '../../capabilities/execution-evidence/manifest';
 import { readTestProcess } from '../../capabilities/test-process/catalog';
+import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
 import {
   captureWorktreeSnapshot,
   restoreWorktreeSnapshot,
@@ -241,54 +245,87 @@ export function concerningShowcaseEvaluations(state: WorkflowState): string[] {
   );
 }
 
+function showcaseItems(state: WorkflowState): CompletedWorkItem[] {
+  const items = state.completed_work_items ?? [];
+  if (items.length === 0) {
+    throw new Error(
+      'Showcase requires at least one completed delivery work item.',
+    );
+  }
+  return items;
+}
+
+export function missingShowcaseProductObservations(
+  state: WorkflowState,
+): string[] {
+  const observations = state.showcase_product_observations ?? [];
+  return showcaseItems(state)
+    .filter(
+      ({ scenario }) =>
+        !observations.some(
+          (observation) =>
+            observation.story_id === scenario.story_id &&
+            observation.scenario_id === scenario.scenario_id,
+        ),
+    )
+    .map(({ story_id, scenario_id }) => `${story_id}/${scenario_id}`);
+}
+
 function hasProductObservation(state: WorkflowState): boolean {
-  const scenario = state.confirmed_scenario;
-  const observation = state.showcase_product_observations?.at(-1);
-  return Boolean(
-    scenario &&
-      observation &&
-      observation.story_id === scenario.story_id &&
-      observation.scenario_id === scenario.scenario_id &&
-      JSON.stringify(observation.given) === JSON.stringify(scenario.given) &&
-      observation.when === scenario.when &&
-      JSON.stringify(observation.observed_outcomes) ===
-        JSON.stringify(scenario.then) &&
-      JSON.stringify(observation.business_data) ===
-        JSON.stringify(scenario.business_data),
+  const observations = state.showcase_product_observations ?? [];
+  return showcaseItems(state).every(({ scenario }) =>
+    observations.some(
+      (observation) =>
+        observation.story_id === scenario.story_id &&
+        observation.scenario_id === scenario.scenario_id &&
+        JSON.stringify(observation.given) === JSON.stringify(scenario.given) &&
+        observation.when === scenario.when &&
+        JSON.stringify(observation.observed_outcomes) ===
+          JSON.stringify(scenario.then) &&
+        JSON.stringify(observation.business_data) ===
+          JSON.stringify(scenario.business_data),
+    ),
   );
 }
 
 function approvedQ2Steps(cwd: string, state: WorkflowState) {
-  const workItem = state.active_work_item;
-  const candidate = state.tasking_candidate;
-  if (!workItem || !candidate) {
-    throw new Error('Showcase requires the approved Tasking traceability.');
-  }
-  return selectedTestProcesses(workItem).flatMap((process) => {
-    const definition = readTestProcess(join(cwd, process.path));
-    const selected = process.selected_step_ids ?? [];
-    return definition.steps
-      .filter(({ id, quadrant }) => selected.includes(id) && quadrant === 'Q2')
-      .map((step) => {
-        const command = process.focused_commands?.find(
-          ({ step_id }) => step_id === step.id,
-        )?.command;
-        const testIds = candidate.tests
-          .filter(
-            ({ quadrant, process_id, step_id }) =>
-              quadrant === 'Q2' &&
-              process_id === process.id &&
-              step_id === step.id,
-          )
-          .map(({ id }) => id);
-        if (!command || testIds.length === 0) {
-          throw new Error(
-            `Approved Showcase Q2 traceability drifted: ${process.id}/${step.id}.`,
-          );
-        }
-        return { processId: process.id, stepId: step.id, command, testIds };
-      });
-  });
+  return showcaseItems(state).flatMap((item) =>
+    selectedTestProcesses(item.work_item).flatMap((process) => {
+      const definition = readTestProcess(join(cwd, process.path));
+      assertLockedMaterializedPlan(cwd, process, definition);
+      const selected = process.selected_step_ids ?? [];
+      return definition.steps
+        .filter(
+          ({ id, quadrant }) => selected.includes(id) && quadrant === 'Q2',
+        )
+        .map((step) => {
+          const command = process.focused_commands?.find(
+            ({ step_id }) => step_id === step.id,
+          )?.command;
+          const testIds = item.tasking.tests
+            .filter(
+              ({ quadrant, process_id, step_id }) =>
+                quadrant === 'Q2' &&
+                process_id === process.id &&
+                step_id === step.id,
+            )
+            .map(({ id }) => id);
+          if (!command || testIds.length === 0) {
+            throw new Error(
+              `Approved Showcase Q2 traceability drifted: ${item.story_id}/${item.scenario_id}/${process.id}/${step.id}.`,
+            );
+          }
+          return {
+            storyId: item.story_id,
+            scenarioId: item.scenario_id,
+            processId: process.id,
+            stepId: step.id,
+            command,
+            testIds,
+          };
+        });
+    }),
+  );
 }
 
 function latestQ2Passed(cwd: string, state: WorkflowState): boolean {
@@ -296,11 +333,14 @@ function latestQ2Passed(cwd: string, state: WorkflowState): boolean {
   const observations = state.showcase_q2_observations ?? [];
   return (
     expected.length > 0 &&
-    expected.every(({ processId, stepId }) => {
+    expected.every(({ storyId, scenarioId, processId, stepId }) => {
       const latest = observations
         .filter(
-          ({ process_id, step_id }) =>
-            process_id === processId && step_id === stepId,
+          ({ story_id, scenario_id, process_id, step_id }) =>
+            story_id === storyId &&
+            scenario_id === scenarioId &&
+            process_id === processId &&
+            step_id === stepId,
         )
         .at(-1);
       return latest?.exit_code === 0;
@@ -312,25 +352,12 @@ export function enterShowcase(
   cwd: string,
   now = new Date().toISOString(),
 ): WorkflowState {
-  const state = readState(cwd);
-  if (
-    state.loop !== 'pair' ||
-    state.pair_session?.checkpoint !== 'quality_gates_passed'
-  ) {
-    throw new Error(
-      'Showcase can start only after Pair final quality gates pass.',
-    );
-  }
-  validateExecutionEvidence(cwd);
-  const transitioned = transitionLoopState(state, { to: 'showcase' }, now);
-  return writeState(cwd, {
-    ...transitioned,
-    showcase_stage: 'setup',
-    showcase_q2_observations: undefined,
-    showcase_risk_decisions: undefined,
-    showcase_product_observations: undefined,
-    showcase_evaluation_observations: undefined,
-  });
+  return decideDeliveryIncrement(
+    cwd,
+    'showcase',
+    'The planned delivery increment is ready for integrated value review.',
+    now,
+  );
 }
 
 export function executeShowcaseQ2(
@@ -345,22 +372,58 @@ export function executeShowcaseQ2(
   if (steps.length === 0) {
     throw new Error('Showcase has no approved Q2 command to execute.');
   }
-  const records = steps.map((step) =>
-    executeTestStep(cwd, {
-      processId: step.processId,
-      stepId: step.stepId,
-      stage: 'showcase',
+  const current = state.active_work_item;
+  const records = steps.map((step, index) => {
+    if (
+      current?.story_id === step.storyId &&
+      current.scenario_id === step.scenarioId
+    ) {
+      return executeTestStep(cwd, {
+        processId: step.processId,
+        stepId: step.stepId,
+        stage: 'showcase',
+        command: step.command,
+        invocation: 'showcase-controller',
+      });
+    }
+    const startedAt = new Date().toISOString();
+    const result = spawnSync(step.command, {
+      cwd,
+      shell: true,
+      encoding: 'utf8',
+      timeout: 10 * 60 * 1000,
+    });
+    const stdout = result.stdout ?? '';
+    const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;
+    return {
+      version: 2 as const,
+      process_id: step.processId,
+      step_id: step.stepId,
+      stage: 'showcase' as const,
       command: step.command,
-      invocation: 'showcase-controller',
-    }),
-  );
-  const observations: ShowcaseQ2Observation[] = records.map((record) => {
-    const step = steps.find(
-      ({ processId, stepId }) =>
-        processId === record.process_id && stepId === record.step_id,
-    );
+      sequence: index + 1,
+      exit_code: result.status ?? (result.error ? 1 : 0),
+      expected_failure: false,
+      started_at: startedAt,
+      completed_at: new Date().toISOString(),
+      stdout_sha256: digest(stdout),
+      stderr_sha256: digest(stderr),
+      stdout_summary: stdout.trim().replace(/\s+/g, ' ').slice(0, 512),
+      stderr_summary: stderr.trim().replace(/\s+/g, ' ').slice(0, 512),
+      git_head: execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+        cwd,
+        encoding: 'utf8',
+      }).trim(),
+      worktree_sha256: digest('iteration-showcase'),
+      invocation: 'showcase-controller' as const,
+    } satisfies TestExecutionRecord;
+  });
+  const observations: ShowcaseQ2Observation[] = records.map((record, index) => {
+    const step = steps[index];
     if (!step) throw new Error('Showcase Q2 observation lost its test intent.');
     return {
+      story_id: step.storyId,
+      scenario_id: step.scenarioId,
       process_id: record.process_id,
       step_id: record.step_id ?? '',
       test_ids: step.testIds,
@@ -372,18 +435,31 @@ export function executeShowcaseQ2(
       observed_at: record.completed_at || now,
     };
   });
-  const next = writeState(cwd, {
+  let next = writeState(cwd, {
     ...state,
     showcase_q2_observations: [
       ...(state.showcase_q2_observations ?? []),
       ...observations,
     ],
   });
-  generateExecutionEvidence(cwd);
-  const scenario = state.confirmed_scenario;
+  const generated = generateExecutionEvidence(cwd);
+  next = writeState(cwd, {
+    ...next,
+    completed_work_items: (next.completed_work_items ?? []).map((item) =>
+      item.story_id === generated.manifest.story_id &&
+      item.scenario_id === generated.manifest.scenario_id
+        ? {
+            ...item,
+            execution_manifest_sha256: digest(generated.manifestContent),
+          }
+        : item,
+    ),
+  });
   const result = observations
     .map(
       ({
+        story_id,
+        scenario_id,
         process_id,
         step_id,
         test_ids,
@@ -391,16 +467,20 @@ export function executeShowcaseQ2(
         stdout_summary,
         stderr_summary,
       }) =>
-        `${process_id}/${step_id} · ${test_ids.join(', ')} · exit=${exit_code}${stdout_summary || stderr_summary ? ` · ${stdout_summary || stderr_summary}` : ''}`,
+        `${story_id}/${scenario_id} · ${process_id}/${step_id} · ${test_ids.join(', ')} · exit=${exit_code}${stdout_summary || stderr_summary ? ` · ${stdout_summary || stderr_summary}` : ''}`,
     )
     .join('\n');
   return {
     state: next,
     records,
-    output: `Showcase Q2 observed for ${scenario?.story_id ?? 'unknown'} / ${scenario?.scenario_id ?? 'unknown'}.
-Given: ${scenario?.given.join('；') ?? 'missing'}
-When: ${scenario?.when ?? 'missing'}
-Then: ${scenario?.then.join('；') ?? 'missing'}
+    output: `Iteration Showcase Q2 observed for ${showcaseItems(state).length} completed acceptance slice(s).
+
+${showcaseItems(state)
+  .map(
+    ({ scenario }) =>
+      `${scenario.story_id}/${scenario.scenario_id}: Given ${scenario.given.join('；')} · When ${scenario.when} · Then ${scenario.then.join('；')}`,
+  )
+  .join('\n')}
 
 ${result}
 
@@ -477,8 +557,19 @@ export function recordShowcaseProductObservation(
       'A human product observation requires passed Showcase Q2 during setup.',
     );
   }
-  const scenario = state.confirmed_scenario;
-  if (!scenario) throw new Error('Showcase has no confirmed Scenario.');
+  const observed = new Set(
+    (state.showcase_product_observations ?? []).map(
+      ({ story_id, scenario_id }) => `${story_id}/${scenario_id}`,
+    ),
+  );
+  const scenario = showcaseItems(state).find(
+    ({ story_id, scenario_id }) => !observed.has(`${story_id}/${scenario_id}`),
+  )?.scenario;
+  if (!scenario) {
+    throw new Error(
+      'Every completed Scenario already has a product observation.',
+    );
+  }
   const path = productObservationPath(state);
   const observation: ShowcaseProductObservation = {
     version: 1,
@@ -566,6 +657,17 @@ export function recordShowcaseEvaluation(
 }
 
 function validateSharedTraceability(cwd: string, state: ShowcaseState) {
+  for (const item of showcaseItems(state)) {
+    const absolute = join(cwd, item.execution_manifest_path);
+    if (
+      !existsSync(absolute) ||
+      digest(readFileSync(absolute)) !== item.execution_manifest_sha256
+    ) {
+      throw new Error(
+        `Completed work item manifest is missing or changed: ${item.story_id}/${item.scenario_id}.`,
+      );
+    }
+  }
   const workItem = state.active_work_item;
   const scenario = state.confirmed_scenario;
   const pair = state.pair_session;

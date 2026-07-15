@@ -25,6 +25,7 @@ import {
   startIterationFromIssueAsync,
   syncIssueSourceAsync,
 } from '../../capabilities/issue-source/github-issue-source';
+import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
 import { STATUS_KEY, statusLabel } from './identity';
 import {
   isCompletedIteration,
@@ -234,7 +235,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
         } else {
           ctx.ui.notify(
-            `Human chose ${decision.action}; the single-Story iteration is halted.`,
+            `Human chose ${decision.action}; the active Story is halted and the delivery-iteration evidence is preserved.`,
             'info',
           );
         }
@@ -329,7 +330,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         if (decision.action === 'approve') {
           ctx.ui.notify(
-            `Human approved ${state.approved_test_plan_path}; Pair is ready for ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
+            `Human approved ${state.approved_test_plan_path}; Pair is ready for acceptance slice ${state.active_work_item?.story_id} / ${state.active_work_item?.scenario_id}.`,
             'info',
           );
         } else if (decision.action === 'scenario_gap') {
@@ -367,7 +368,13 @@ export function registerCommands(pi: ExtensionAPI): void {
         const state =
           decision.kind === 'red'
             ? reviewPairRed(ctx.cwd, decision.failureKind, decision.reason)
-            : navigatePair(ctx.cwd, decision.action, decision.reason);
+            : decision.kind === 'delivery'
+              ? decideDeliveryIncrement(
+                  ctx.cwd,
+                  decision.action,
+                  decision.reason,
+                )
+              : navigatePair(ctx.cwd, decision.action, decision.reason);
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
           `Pair decision recorded. ${pairNextInstruction(state)}.`,
