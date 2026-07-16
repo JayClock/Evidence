@@ -142,7 +142,11 @@ Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension
 
 ```mermaid
 flowchart LR
-  I[GitHub Issue frozen snapshot] --> K[Kickoff]
+  G[GitHub Issue] --> I[Inbox]
+  M[Manual text] --> I
+  F[Local Markdown] --> I
+  I --> C[Story candidates]
+  C --> K[Frozen Intake / Kickoff]
   K --> U[Understand]
   U --> T[Tasking]
   T --> P[Pair]
@@ -156,9 +160,9 @@ flowchart LR
   U -. problem gap .-> K
 ```
 
-一次 iteration 只处理一个人工确认的 Story 和一个人工确认的 Scenario：
+Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 Story 候选；GitHub Issue 只是其中一种来源。一次 iteration 只处理一个人工确认的 Story 及其完整 Scenario Set：
 
-- **Kickoff**：从冻结 Issue 提出一个 Story 候选，由人类确认、修订、拆分或延期；
+- **Inbox / Kickoff**：从 GitHub、手工文本或本地 Markdown 收集来源并提取候选；人类选择一张候选冻结 Intake，再确认、修订、拆分或延期；
 - **Understand**：单 Story TQA、人工 Scenario 确认、人工建模 Profile、Builder 展开与只读 Challenger；
 - **Tasking**：唯一匹配 test-process v2，生成 test/task list，并等待人工 Desk Check；
 - **Pair**：Navigator 每次推进一个 Red/Green/Refactor 或最终 quality-gate checkpoint，Test/Production Driver 受路径保护；
@@ -169,29 +173,34 @@ flowchart LR
 
 ### 知识与证据位置
 
-| 内容              | 权威来源                                            | Iteration 中的记录                                |
-| :---------------- | :-------------------------------------------------- | :------------------------------------------------ |
-| 需求请求          | GitHub Issue / Projects                             | 冻结 `issue.json` 与只读 `requirements.md`        |
-| 产品知识          | `docs/product/`                                     | 当前 Story 的问题与 Scenario 增量                 |
-| 领域模型          | `.evidence/`                                        | 模型候选、投影、挑战与 Scenario 展开              |
-| 架构              | `docs/architecture/`                                | Scenario 相关上下文与决定                         |
-| API 契约          | `contracts/api.yaml`                                | 契约增量                                          |
-| 测试工序          | `engineering/evidence-orchestrator/test-processes/` | 人工批准且哈希锁定的计划                          |
-| Working Knowledge | `.pi/skills/`、`.pi/prompts/` 与 catalog            | 实际使用版本和验证反馈                            |
-| 执行与反馈        | `artifacts/iterations/ITER-xxxx/`                   | append-only 观测、manifest、人工决定与 next Probe |
+| 内容              | 权威来源                                            | Iteration 中的记录                                        |
+| :---------------- | :-------------------------------------------------- | :-------------------------------------------------------- |
+| 需求输入          | `artifacts/inbox/` 中的来源 revision 与 Story 候选  | 冻结 `intake.json`、source snapshots 与 `requirements.md` |
+| 产品知识          | `docs/product/`                                     | 当前 Story 的问题与 Scenario 增量                         |
+| 领域模型          | `.evidence/`                                        | 模型候选、投影、挑战与 Scenario 展开                      |
+| 架构              | `docs/architecture/`                                | Scenario 相关上下文与决定                                 |
+| API 契约          | `contracts/api.yaml`                                | 契约增量                                                  |
+| 测试工序          | `engineering/evidence-orchestrator/test-processes/` | 人工批准且哈希锁定的计划                                  |
+| Working Knowledge | `.pi/skills/`、`.pi/prompts/` 与 catalog            | 实际使用版本和验证反馈                                    |
+| 执行与反馈        | `artifacts/iterations/ITER-xxxx/`                   | append-only 观测、manifest、人工决定与 next Probe         |
 
 执行日志是命令事实的唯一原始来源；manifest 和 summary 由工具确定性生成。已归档 iteration 保持不可变，不参与当前执行或验证。
 
 ### 在 Pi 中使用
 
-前置条件：在仓库根目录启动 Pi，且 `gh auth status` 能访问当前 GitHub 仓库。
+前置条件：在仓库根目录启动 Pi。只有使用 GitHub Source Adapter 时才需要 `gh auth status` 能访问目标仓库。
 
 ```text
-/evidence-new
+/evidence-inbox list
+/evidence-inbox add github [owner/repository#123]
+/evidence-inbox add text
+/evidence-inbox add file <project-markdown-path>
+/evidence-inbox sync INBOX-xxxx
+/evidence-inbox extract INBOX-xxxx[,INBOX-yyyy]
+/evidence-inbox defer|reject CAND-xxxx <reason>
+/evidence-new [CAND-xxxx]
 /evidence-status
 /evidence-run [--dry-run]
-/evidence-issue-status
-/evidence-issue-sync
 /evidence-kickoff confirm|revise|split|defer <reason>
 /evidence-scenario confirm <DRAFT-xxx> <reason>
 /evidence-scenario continue|split|defer <reason>
@@ -202,7 +211,7 @@ flowchart LR
 /evidence-respond approve|revise <reason>
 ```
 
-Issue 只在 Kickoff 内显式同步；进入 Understand 后需求变化必须由人类在 iteration 边界创建新快照。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
+来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；`/evidence-new` 冻结的 Intake 不再原地同步。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
 
 维护细节见 [`.pi/extensions/evidence-orchestrator/README.md`](./.pi/extensions/evidence-orchestrator/README.md)。
 
