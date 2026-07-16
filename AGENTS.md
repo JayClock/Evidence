@@ -179,7 +179,8 @@ API 遵循 HAL 风格约定：
 | `.pi/extensions/evidence-orchestrator/`   | 内部六循环编排器；按 iteration/loops/capabilities/adapters 分层 |
 | `.pi/agents/`                             | 隔离上下文的活动专业角色                                        |
 | `engineering/evidence-orchestrator/`      | 运行时上下文、可复用测试工序与统一 DoD                          |
-| `artifacts/iterations/`                   | 不可变的单轮输入、增量、决策与执行证据                          |
+| `artifacts/inbox/`                        | 跨迭代来源 revision、Story 候选与人工 disposition               |
+| `artifacts/iterations/`                   | 不可变的单轮 Intake、增量、决策与执行证据                       |
 | `apps/desktop/`                           | Tauri 2 桌面壳                                                  |
 | `apps/desktop/src-tauri/`                 | Tauri Rust crate、配置与 capabilities                           |
 | `Cargo.toml`                              | Rust workspace（成员：`apps/server`、`apps/desktop/src-tauri`） |
