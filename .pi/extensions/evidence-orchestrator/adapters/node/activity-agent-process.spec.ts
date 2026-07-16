@@ -18,6 +18,7 @@ afterEach(cleanupWorkspaces);
 describe('activity subagents', () => {
   it('loads every bounded role directly without a phase-agent map', () => {
     const agents = [
+      'inbox-analyst',
       'requirements-analyst',
       'domain-modeler',
       'model-challenger',

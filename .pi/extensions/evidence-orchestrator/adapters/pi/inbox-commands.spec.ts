@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readInboxState } from '../../capabilities/inbox/repository';
+import {
+  captureInboxSource,
+  readInboxState,
+} from '../../capabilities/inbox/repository';
+import {
+  listInboxStoryCandidates,
+  proposeInboxStoryCandidates,
+} from '../../capabilities/inbox/story-candidate';
 import {
   cleanupWorkspaces,
   workspace,
@@ -7,16 +14,24 @@ import {
 } from '../../test-support/support';
 import { registerInboxCommands } from './inbox-commands';
 
-function registeredCommand() {
+function registeredCommand(
+  runAgent?: Parameters<typeof registerInboxCommands>[1],
+) {
   let handler:
     | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
     | undefined;
-  registerInboxCommands({
-    registerCommand(name: string, options: { handler: typeof handler }): void {
-      expect(name).toBe('evidence-inbox');
-      handler = options.handler;
-    },
-  } as never);
+  registerInboxCommands(
+    {
+      registerCommand(
+        name: string,
+        options: { handler: typeof handler },
+      ): void {
+        expect(name).toBe('evidence-inbox');
+        handler = options.handler;
+      },
+    } as never,
+    runAgent,
+  );
   if (!handler) throw new Error('Inbox command was not registered.');
   return handler;
 }
@@ -26,6 +41,7 @@ function context(cwd: string) {
     cwd,
     mode: 'rpc',
     hasUI: true,
+    waitForIdle: vi.fn(),
     ui: {
       notify: vi.fn(),
       select: vi.fn(),
@@ -70,6 +86,59 @@ describe('/evidence-inbox', () => {
       source_kind: 'local_markdown',
       external_key: 'workspace:notes/interview.md',
     });
+  });
+
+  it('extracts cited Story candidates with an isolated Inbox analyst', async () => {
+    const cwd = workspace();
+    const captured = captureInboxSource(cwd, {
+      source_kind: 'manual_text',
+      external_key: 'manual:interview',
+      title: 'Domain interview',
+      body: 'The owner needs an audit trail.',
+    });
+    const runAgent = vi.fn(async (options: { task: string }) => {
+      expect(options.task).toContain(captured.revision.artifact_path);
+      expect(options.task).toContain(captured.revision.content_sha256);
+      proposeInboxStoryCandidates(
+        cwd,
+        ['INBOX-0001'],
+        [
+          {
+            title: 'Retain deletion evidence',
+            problem: 'Deletion is not auditable.',
+            role: 'workspace owner',
+            goal: 'retain deletion evidence',
+            value: 'support an audit',
+            cognitiveMode: 'complex',
+            citations: [
+              {
+                inboxId: 'INBOX-0001',
+                revisionSha256: captured.revision.content_sha256,
+                locator: 'whole source',
+              },
+            ],
+          },
+        ],
+      );
+      return {
+        agent: 'inbox-analyst',
+        model: 'test/model',
+        thinking: 'high' as const,
+        output: 'Recorded CAND-0001.',
+        messages: [],
+        exitCode: 0,
+        stderr: '',
+      };
+    });
+    const ctx = context(cwd);
+
+    await registeredCommand(runAgent as never)('extract INBOX-0001', ctx);
+
+    expect(runAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ agentName: 'inbox-analyst', cwd }),
+    );
+    expect(listInboxStoryCandidates(cwd)).toHaveLength(1);
+    expect(ctx.waitForIdle).toHaveBeenCalledOnce();
   });
 
   it('lists an empty Inbox without requiring an active iteration', async () => {

@@ -4,8 +4,14 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import {
   captureInboxSource,
+  latestInboxRevision,
   readInboxState,
 } from '../../capabilities/inbox/repository';
+import {
+  inboxCandidateReadiness,
+  listInboxStoryCandidates,
+} from '../../capabilities/inbox/story-candidate';
+import { runActivitySubagent } from '../node/activity-agent-process';
 import { createGitHubIssueInboxSource } from '../github/inbox-source';
 import {
   localMarkdownInboxSource,
@@ -20,10 +26,12 @@ const SOURCE_OPTIONS = ['GitHub Issue', '手工文本', '本地 Markdown'] as co
 type SourceKind = 'github' | 'text' | 'file';
 
 interface ParsedInboxCommand {
-  action: 'list' | 'add';
+  action: 'list' | 'add' | 'extract';
   sourceKind?: SourceKind;
   rest: string;
 }
+
+export type InboxAgentRunner = typeof runActivitySubagent;
 
 function parseCommand(args: string): ParsedInboxCommand {
   const tokens = args.trim() ? args.trim().split(/\s+/) : [];
@@ -31,8 +39,16 @@ function parseCommand(args: string): ParsedInboxCommand {
   if (action === 'list' || action === 'status') {
     return { action: 'list', rest: '' };
   }
+  if (action === 'extract') {
+    return {
+      action: 'extract',
+      rest: [sourceKind, ...rest].filter(Boolean).join(' '),
+    };
+  }
   if (action !== 'add') {
-    throw new Error('Usage: /evidence-inbox [list | add github|text|file].');
+    throw new Error(
+      'Usage: /evidence-inbox [list | add github|text|file | extract INBOX-xxxx,...].',
+    );
   }
   if (sourceKind && !['github', 'text', 'file'].includes(sourceKind)) {
     throw new Error(`Unsupported Inbox source: ${sourceKind}.`);
@@ -46,9 +62,14 @@ function parseCommand(args: string): ParsedInboxCommand {
 
 function inboxStatus(cwd: string): string {
   const state = readInboxState(cwd);
+  const candidates = listInboxStoryCandidates(cwd);
   const items = state.items.map(
     (item) =>
       `- ${item.inbox_id} · ${item.source_kind} · ${item.title} · ${item.revision_paths.length} revision(s) · ${item.status}`,
+  );
+  const stories = candidates.map(
+    (candidate) =>
+      `- ${candidate.candidate_id} · ${candidate.title} · ${inboxCandidateReadiness(cwd, candidate)}`,
   );
   return [
     '# Evidence Inbox',
@@ -56,6 +77,10 @@ function inboxStatus(cwd: string): string {
     `Items: ${state.items.length}`,
     '',
     items.length ? items.join('\n') : '- empty',
+    '',
+    `Story Candidates: ${candidates.length}`,
+    '',
+    stories.length ? stories.join('\n') : '- none',
   ].join('\n');
 }
 
@@ -137,6 +162,84 @@ async function addManualSource(
   ctx.ui.notify(`${result.item.inbox_id} captured from manual text.`, 'info');
 }
 
+function parseExtractionSourceIds(value: string): string[] {
+  const ids = value
+    .split(/[\s,]+/)
+    .map((entry) => entry.trim().toUpperCase())
+    .filter(Boolean);
+  if (
+    ids.length === 0 ||
+    ids.length > 5 ||
+    new Set(ids).size !== ids.length ||
+    ids.some((id) => !/^INBOX-\d{4,}$/.test(id))
+  ) {
+    throw new Error(
+      'Story extraction requires one to five unique INBOX-xxxx ids.',
+    );
+  }
+  return ids;
+}
+
+async function extractionSourceIds(
+  ctx: ExtensionCommandContext,
+  suppliedIds: string,
+): Promise<string[] | undefined> {
+  if (suppliedIds) return parseExtractionSourceIds(suppliedIds);
+  if (!ctx.hasUI) {
+    throw new Error('Specify the INBOX-xxxx sources to extract.');
+  }
+  const active = readInboxState(ctx.cwd).items.filter(
+    ({ status }) => status === 'active',
+  );
+  if (active.length === 0) throw new Error('The Evidence Inbox is empty.');
+  const selected = await ctx.ui.select(
+    'Select one Inbox source to extract',
+    active.map(({ inbox_id, title }) => `${inbox_id} · ${title}`),
+  );
+  return selected ? [selected.split(' · ')[0]] : undefined;
+}
+
+export function buildInboxExtractionTask(
+  cwd: string,
+  sourceIds: string[],
+): string {
+  const selected = sourceIds.map((sourceId) =>
+    latestInboxRevision(cwd, sourceId),
+  );
+  return `执行一次 Evidence Inbox Story 提取。\n\n精确来源修订：\n${selected
+    .map(
+      (revision) =>
+        `- ${revision.inbox_id} | ${revision.content_sha256} | ${revision.artifact_path}`,
+    )
+    .join(
+      '\n',
+    )}\n\n稳定产品上下文：\n- docs/product/personas.md\n- docs/product/business-context.md\n- docs/product/user-journeys.md\n- docs/product/story-map.md\n\n任务：读取全部精确来源修订，提出一至五张最小 Story 候选。每张候选引用精确 Inbox id、revision SHA-256 和 locator；候选集合必须引用全部选定来源。只调用 evidence_orchestrator_propose_inbox_stories 一次后停止；不得分配 US-xxx、确认候选或启动迭代。`;
+}
+
+async function extractStories(
+  ctx: ExtensionCommandContext,
+  suppliedIds: string,
+  runAgent: InboxAgentRunner,
+): Promise<void> {
+  const sourceIds = await extractionSourceIds(ctx, suppliedIds);
+  if (!sourceIds) return;
+  await ctx.waitForIdle();
+  const result = await runWithLoader(
+    ctx,
+    `正在从 ${sourceIds.join(', ')} 提取 Story 候选…`,
+    (signal) =>
+      runAgent({
+        cwd: ctx.cwd,
+        agentName: 'inbox-analyst',
+        task: buildInboxExtractionTask(ctx.cwd, sourceIds),
+        signal,
+      }),
+  );
+  if (!result) return;
+  if (result.exitCode !== 0) throw new Error(result.output);
+  ctx.ui.notify(result.output, 'info');
+}
+
 async function addMarkdownSource(
   ctx: ExtensionCommandContext,
   suppliedPath: string,
@@ -155,7 +258,10 @@ async function addMarkdownSource(
   );
 }
 
-export function registerInboxCommands(pi: ExtensionAPI): void {
+export function registerInboxCommands(
+  pi: ExtensionAPI,
+  runAgent: InboxAgentRunner = runActivitySubagent,
+): void {
   pi.registerCommand('evidence-inbox', {
     description: 'Collect and list provider-neutral Evidence Inbox sources',
     handler: async (args, ctx) => {
@@ -163,6 +269,10 @@ export function registerInboxCommands(pi: ExtensionAPI): void {
         const command = parseCommand(args);
         if (command.action === 'list') {
           ctx.ui.notify(inboxStatus(ctx.cwd), 'info');
+          return;
+        }
+        if (command.action === 'extract') {
+          await extractStories(ctx, command.rest, runAgent);
           return;
         }
         const sourceKind = command.sourceKind ?? (await selectSourceKind(ctx));

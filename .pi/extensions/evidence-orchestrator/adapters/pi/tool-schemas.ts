@@ -44,6 +44,37 @@ export const issueSourceParam = Type.Object({
   ),
 });
 
+export const inboxStoryCandidatesParam = Type.Object({
+  sourceIds: Type.Array(
+    Type.String({ description: 'Exact selected INBOX-xxxx source id.' }),
+  ),
+  candidates: Type.Array(
+    Type.Object({
+      title: Type.String({ description: 'Short candidate Story title.' }),
+      problem: Type.String({
+        description: 'One user or business problem without an implementation.',
+      }),
+      role: Type.String({ description: 'The user or business role.' }),
+      goal: Type.String({ description: 'One negotiable outcome.' }),
+      value: Type.String({ description: 'The user or business value.' }),
+      cognitiveMode: Type.String({
+        enum: ['clear', 'complicated', 'complex'],
+      }),
+      citations: Type.Array(
+        Type.Object({
+          inboxId: Type.String({ description: 'Exact INBOX-xxxx id.' }),
+          revisionSha256: Type.String({
+            description: 'Exact selected source revision sha256.',
+          }),
+          locator: Type.String({
+            description: 'Heading, paragraph, or whole-source locator.',
+          }),
+        }),
+      ),
+    }),
+  ),
+});
+
 export const activityRunParam = Type.Object({
   instructions: Type.Optional(
     Type.String({

@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { WorkflowState } from '../../iteration/state';
+import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import {
   collectArtifacts,
   collectCodeFiles,
@@ -41,6 +42,7 @@ import {
   clarificationAnswerParam,
   clarificationQuestionParam,
   issueSourceParam,
+  inboxStoryCandidatesParam,
   kickoffCandidateParam,
   modelAnalysisParam,
   modelChallengeParam,
@@ -52,6 +54,7 @@ import {
 } from './tool-schemas';
 
 export const ORCHESTRATOR_TOOL_NAMES = [
+  'evidence_orchestrator_propose_inbox_stories',
   'evidence_orchestrator_start_from_issue',
   'evidence_orchestrator_sync_issue',
   'evidence_orchestrator_status',
@@ -69,12 +72,13 @@ export const ORCHESTRATOR_TOOL_NAMES = [
 ] as const;
 
 export function toolsForState(state: WorkflowState | undefined): string[] {
+  const inbox = 'evidence_orchestrator_propose_inbox_stories';
   const status = 'evidence_orchestrator_status';
   const start = 'evidence_orchestrator_start_from_issue';
-  if (!state) return [start, status];
-  if (state.halted || state.loop === 'complete') return [start, status];
+  if (!state) return [inbox, start, status];
+  if (state.halted || state.loop === 'complete') return [inbox, start, status];
 
-  const common = [start, status, 'evidence_orchestrator_run_activity'];
+  const common = [inbox, start, status, 'evidence_orchestrator_run_activity'];
   if (state.loop === 'kickoff') {
     return [
       ...common,
@@ -133,6 +137,51 @@ export function registerTools(pi: ExtensionAPI): void {
       return { isError: true };
     }
     return undefined;
+  });
+
+  pi.registerTool({
+    name: 'evidence_orchestrator_propose_inbox_stories',
+    label: 'Propose Evidence Inbox Stories',
+    description:
+      'Persist one to five cited Story candidates from selected Inbox source revisions',
+    promptSnippet:
+      'Propose source-cited Story candidates during an explicit Inbox extraction',
+    promptGuidelines: [
+      'Use evidence_orchestrator_propose_inbox_stories only for an explicit /evidence-inbox extract activity.',
+      'Cite every selected Inbox source by its exact revision hash; do not assign US-xxx or start an iteration.',
+      'After calling evidence_orchestrator_propose_inbox_stories once, stop. The candidates have no human authority.',
+    ],
+    parameters: inboxStoryCandidatesParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const candidates = proposeInboxStoryCandidates(
+        ctx.cwd,
+        params.sourceIds,
+        params.candidates.map((candidate) => ({
+          title: candidate.title,
+          problem: candidate.problem,
+          role: candidate.role,
+          goal: candidate.goal,
+          value: candidate.value,
+          cognitiveMode: candidate.cognitiveMode as
+            | 'clear'
+            | 'complicated'
+            | 'complex',
+          citations: candidate.citations,
+        })),
+      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Recorded Inbox Story candidates: ${candidates
+              .map(({ candidate_id }) => candidate_id)
+              .join(', ')}. Stop now; a human must select a candidate.`,
+          },
+        ],
+        details: { candidates },
+        terminate: true,
+      };
+    },
   });
 
   pi.registerTool({
