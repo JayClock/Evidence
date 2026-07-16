@@ -4,6 +4,7 @@ import { validateExecutionEvidence } from '../capabilities/execution-evidence/ma
 import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
 import { validateStoryCards } from '../loops/kickoff/story-card';
 import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
+import { validateInboxRepository } from '../capabilities/inbox/repository';
 import { iterationRoot } from '../iteration/artifact-layout';
 import {
   validateCanonicalKnowledge,
@@ -20,6 +21,7 @@ import {
 /** Deterministic CI validation for the native workflow and shared knowledge. */
 export function validateWorkflow(cwd: string): void {
   validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
+  validateInboxRepository(cwd);
   const state = readPersistedState(cwd);
   if (state) {
     const root = iterationRoot(cwd, state);
