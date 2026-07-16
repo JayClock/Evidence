@@ -27,7 +27,7 @@ const SOURCE_OPTIONS = ['GitHub Issue', '手工文本', '本地 Markdown'] as co
 type SourceKind = 'github' | 'text' | 'file';
 
 interface ParsedInboxCommand {
-  action: 'list' | 'add' | 'extract' | 'defer' | 'reject';
+  action: 'list' | 'add' | 'sync' | 'extract' | 'defer' | 'reject';
   sourceKind?: SourceKind;
   rest: string;
 }
@@ -40,15 +40,15 @@ function parseCommand(args: string): ParsedInboxCommand {
   if (action === 'list' || action === 'status') {
     return { action: 'list', rest: '' };
   }
-  if (['extract', 'defer', 'reject'].includes(action)) {
+  if (['sync', 'extract', 'defer', 'reject'].includes(action)) {
     return {
-      action: action as 'extract' | 'defer' | 'reject',
+      action: action as 'sync' | 'extract' | 'defer' | 'reject',
       rest: [sourceKind, ...rest].filter(Boolean).join(' '),
     };
   }
   if (action !== 'add') {
     throw new Error(
-      'Usage: /evidence-inbox [list | add github|text|file | extract INBOX-xxxx,... | defer|reject CAND-xxxx <reason>].',
+      'Usage: /evidence-inbox [list | add github|text|file | sync INBOX-xxxx | extract INBOX-xxxx,... | defer|reject CAND-xxxx <reason>].',
     );
   }
   if (sourceKind && !['github', 'text', 'file'].includes(sourceKind)) {
@@ -161,6 +161,73 @@ async function addManualSource(
   );
   const result = captureInboxSource(ctx.cwd, captured);
   ctx.ui.notify(`${result.item.inbox_id} captured from manual text.`, 'info');
+}
+
+function requireInboxId(value: string): string {
+  const inboxId = value.trim().toUpperCase();
+  if (!/^INBOX-\d{4,}$/.test(inboxId)) {
+    throw new Error('Inbox source must be INBOX-xxxx.');
+  }
+  return inboxId;
+}
+
+async function syncInboxSource(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  suppliedId: string,
+): Promise<void> {
+  const inboxId = requireInboxId(suppliedId);
+  const item = readInboxState(ctx.cwd).items.find(
+    ({ inbox_id }) => inbox_id === inboxId,
+  );
+  if (!item) throw new Error(`Inbox item does not exist: ${inboxId}.`);
+  const revision = latestInboxRevision(ctx.cwd, inboxId);
+  const captured = await runWithLoader(
+    ctx,
+    `正在同步 ${inboxId}…`,
+    async (signal) => {
+      if (item.source_kind === 'github_issue') {
+        const repository = revision.provider_metadata.repository;
+        const issueNumber = revision.provider_metadata.issue_number;
+        if (
+          typeof repository !== 'string' ||
+          typeof issueNumber !== 'number' ||
+          !Number.isSafeInteger(issueNumber)
+        ) {
+          throw new Error(`GitHub Inbox metadata is invalid: ${inboxId}.`);
+        }
+        return createGitHubIssueInboxSource(createGitHubCliRunner(pi)).capture(
+          { repository, issueNumber },
+          ctx.cwd,
+          signal,
+        );
+      }
+      if (item.source_kind === 'local_markdown') {
+        const path = revision.provider_metadata.path;
+        if (typeof path !== 'string') {
+          throw new Error(`Local Markdown metadata is invalid: ${inboxId}.`);
+        }
+        return localMarkdownInboxSource.capture({ path }, ctx.cwd, signal);
+      }
+      throw new Error(
+        `Inbox source ${inboxId} (${item.source_kind}) cannot be synchronized.`,
+      );
+    },
+  );
+  if (!captured) return;
+  if (
+    captured.source_kind !== item.source_kind ||
+    captured.external_key !== item.external_key
+  ) {
+    throw new Error(`Synchronized source identity changed for ${inboxId}.`);
+  }
+  const result = captureInboxSource(ctx.cwd, captured);
+  ctx.ui.notify(
+    result.revision_created
+      ? `${inboxId} appended a new source revision.`
+      : `${inboxId} is unchanged.`,
+    'info',
+  );
 }
 
 function parseExtractionSourceIds(value: string): string[] {
@@ -286,6 +353,10 @@ export function registerInboxCommands(
         const command = parseCommand(args);
         if (command.action === 'list') {
           ctx.ui.notify(inboxStatus(ctx.cwd), 'info');
+          return;
+        }
+        if (command.action === 'sync') {
+          await syncInboxSource(pi, ctx, command.rest);
           return;
         }
         if (command.action === 'extract') {

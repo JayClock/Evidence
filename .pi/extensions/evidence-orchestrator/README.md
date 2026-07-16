@@ -110,7 +110,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 ## 人工命令
 
 ```text
-/evidence-inbox [list | add github|text|file | extract INBOX-xxxx,...]
+/evidence-inbox [list | add github|text|file | sync INBOX-xxxx | extract INBOX-xxxx,... | defer|reject CAND-xxxx <reason>]
 /evidence-new [CAND-xxxx]
 /evidence-status
 /evidence-run [--dry-run] [当前活动补充指令]

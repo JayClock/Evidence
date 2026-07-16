@@ -89,6 +89,38 @@ describe('/evidence-inbox', () => {
     });
   });
 
+  it('synchronizes a refreshable source as a new revision', async () => {
+    const cwd = workspace();
+    write(cwd, 'notes/interview.md', '# Interview\n\nFirst note.\n');
+    const ctx = context(cwd);
+    const command = registeredCommand();
+    await command('add file notes/interview.md', ctx);
+    write(cwd, 'notes/interview.md', '# Interview\n\nChanged note.\n');
+
+    await command('sync INBOX-0001', ctx);
+
+    expect(readInboxState(cwd).items[0].revision_paths).toHaveLength(2);
+    expect(ctx.ui.notify).toHaveBeenLastCalledWith(
+      'INBOX-0001 appended a new source revision.',
+      'info',
+    );
+  });
+
+  it('does not synchronize immutable manual text', async () => {
+    const cwd = workspace();
+    const ctx = context(cwd);
+    ctx.ui.editor.mockResolvedValue('One immutable interview note.');
+    const command = registeredCommand();
+    await command('add text Interview', ctx);
+
+    await command('sync INBOX-0001', ctx);
+
+    expect(ctx.ui.notify).toHaveBeenLastCalledWith(
+      expect.stringContaining('cannot be synchronized'),
+      'error',
+    );
+  });
+
   it('extracts cited Story candidates with an isolated Inbox analyst', async () => {
     const cwd = workspace();
     const captured = captureInboxSource(cwd, {
