@@ -78,7 +78,7 @@ export function statusMarkdown(cwd: string): string {
       '',
       nextStepGuidance(cwd, undefined),
       '',
-      'No active iteration state is persisted. Start one from an explicit GitHub Issue.',
+      'No active iteration state is persisted. Collect Inbox sources, extract candidates, and select one with /evidence-new.',
       '',
       ...list('Code Files', codeFiles),
     ].join('\n');
@@ -107,7 +107,7 @@ export function statusMarkdown(cwd: string): string {
     `| Iteration | ${state.iteration_id} |`,
     `| Loop | ${state.loop} |`,
     `| Allowed Actions | ${nextActions(cwd, state)} |`,
-    `| Requirement Source | ${state.requirement_source ? `${state.requirement_source.repository}#${state.requirement_source.issue_number}` : 'missing'} |`,
+    `| Iteration Intake | ${state.intake_snapshot?.candidate_id ?? 'missing'} |`,
     `| Kickoff Candidate | ${state.kickoff_candidate?.artifact_path ?? 'none'} |`,
     `| Story | ${state.active_clarification_story?.story_id ?? scenarios[0]?.story_id ?? 'none'} |`,
     `| Understand Stage | ${state.understand_stage ?? 'none'} |`,

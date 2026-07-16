@@ -1,12 +1,12 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import type { GitHubCliAsyncRunner } from '../../capabilities/issue-source/github-issue-source';
+import type { GitHubInboxRunner } from './inbox-source';
 
 const GITHUB_CLI_TIMEOUT_MS = 10_000;
 
 /** Adapt Pi's cancellable process execution to the requirement-layer GitHub runner. */
 export function createGitHubCliRunner(
   pi: Pick<ExtensionAPI, 'exec'>,
-): GitHubCliAsyncRunner {
+): GitHubInboxRunner {
   return async (args, cwd, signal) => {
     const result = await pi.exec('gh', args, {
       cwd,

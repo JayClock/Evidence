@@ -129,18 +129,6 @@ export type RedFailureKind =
   | 'fixture'
   | 'other';
 
-export interface GitHubIssueRequirementSource {
-  type: 'github_issue';
-  repository: string;
-  issue_number: number;
-  url: string;
-  snapshot_path: string;
-  projection_path: string;
-  content_hash: string;
-  issue_updated_at: string;
-  fetched_at: string;
-}
-
 export interface IterationIntakeSourceRevision {
   inbox_id: string;
   revision_sha256: string;
@@ -718,8 +706,6 @@ export interface WorkflowState {
   knowledge_promotion_path?: string;
   next_probe?: NextProbe;
   feedback_history?: WorkflowFeedback[];
-  /** Legacy GitHub-backed input retained until Inbox migration completes. */
-  requirement_source?: GitHubIssueRequirementSource;
   /** Provider-neutral candidate and source revisions frozen for this iteration. */
   intake_snapshot?: IterationIntakeSnapshot;
   active_work_item?: ActiveWorkItem;

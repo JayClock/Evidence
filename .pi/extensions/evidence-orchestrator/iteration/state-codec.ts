@@ -43,7 +43,6 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   knowledge_promotion_path: true,
   next_probe: true,
   feedback_history: true,
-  requirement_source: true,
   intake_snapshot: true,
   active_work_item: true,
   completed_work_items: true,
@@ -199,11 +198,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       throw new Error(`Unsupported workflow state field: ${field}.`);
     }
   }
-  if (
-    !validIntakeSnapshot(state.intake_snapshot) ||
-    (state.intake_snapshot !== undefined &&
-      state.requirement_source !== undefined)
-  ) {
+  if (!validIntakeSnapshot(state.intake_snapshot)) {
     throw new Error('The provider-neutral iteration Intake is invalid.');
   }
   if (

@@ -248,7 +248,7 @@ export function prepareActivityRun(
       task: buildActivityTask(cwd, request.instructions),
     };
   }
-  if (!current.requirement_source && !current.intake_snapshot) {
+  if (!current.intake_snapshot) {
     throw new Error(
       'The active iteration has no frozen requirement input. Start one with /evidence-new.',
     );
