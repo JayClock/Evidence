@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
+  testIntakeSnapshot,
   workspace,
   write,
 } from '../../test-support/support';
@@ -237,18 +238,7 @@ function preparePair(cwd: string): void {
   const preparedState = writeState(cwd, {
     ...DEFAULT_STATE,
     loop: 'pair',
-    requirement_source: {
-      type: 'github_issue',
-      repository: 'owner/repo',
-      issue_number: 10,
-      url: 'https://example.test/issues/10',
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
-      projection_path:
-        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-      content_hash: 'sha256:test',
-      issue_updated_at: '2026-01-01T00:00:00.000Z',
-      fetched_at: '2026-01-01T00:00:00.000Z',
-    },
+    intake_snapshot: testIntakeSnapshot(),
     understand_stage: 'modeling',
     confirmed_scenarios: [
       {

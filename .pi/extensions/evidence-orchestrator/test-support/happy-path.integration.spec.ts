@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { startIterationFromIssueAsync } from '../capabilities/issue-source/github-issue-source';
-import { proposeKickoffCandidate } from '../loops/kickoff/story-candidate';
+import { startIterationFromCandidate } from '../capabilities/inbox/iteration-intake';
+import { captureInboxSource } from '../capabilities/inbox/repository';
+import { proposeInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
 import { decideKickoff } from '../loops/kickoff/story-decision';
 import {
   answerClarification,
@@ -47,22 +48,6 @@ import {
   workspace,
   write,
 } from './support';
-
-async function issueRunner(args: string[]): Promise<string> {
-  if (args[0] === 'repo')
-    return JSON.stringify({ nameWithOwner: 'owner/repo' });
-  return JSON.stringify({
-    number: 15,
-    url: 'https://example.test/owner/repo/issues/15',
-    title: 'Show the confirmed model version',
-    body: 'A modeling lead needs to see which model version is current.',
-    state: 'OPEN',
-    author: { login: 'product-owner' },
-    labels: [],
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
-  });
-}
 
 function prepareProject(cwd: string): void {
   initializeGitRepository(cwd);
@@ -201,20 +186,37 @@ function prepareProject(cwd: string): void {
 afterEach(cleanupWorkspaces);
 
 describe('native full knowledge loop', () => {
-  it('runs Issue snapshot through human-approved Respond using native loop controls', async () => {
+  it('runs a frozen Inbox Intake through human-approved Respond', async () => {
     const cwd = workspace();
     prepareProject(cwd);
-    await startIterationFromIssueAsync(cwd, { issueNumber: 15 }, issueRunner);
-
-    proposeKickoffCandidate(cwd, {
-      title: 'Show the confirmed model version',
-      problem: 'The modeling lead cannot tell which version is current.',
-      role: 'modeling lead',
-      goal: 'see the confirmed model version',
-      value: 'review the intended model',
-      cognitiveMode: 'complex',
-      sourceRefs: ['GitHub Issue #15'],
+    const source = captureInboxSource(cwd, {
+      source_kind: 'manual_text',
+      external_key: 'manual:model-version-interview',
+      title: 'Confirmed model version interview',
+      body: 'A modeling lead needs to see which model version is current.',
     });
+    proposeInboxStoryCandidates(
+      cwd,
+      ['INBOX-0001'],
+      [
+        {
+          title: 'Show the confirmed model version',
+          problem: 'The modeling lead cannot tell which version is current.',
+          role: 'modeling lead',
+          goal: 'see the confirmed model version',
+          value: 'review the intended model',
+          cognitiveMode: 'complex',
+          citations: [
+            {
+              inboxId: 'INBOX-0001',
+              revisionSha256: source.revision.content_sha256,
+              locator: 'whole source',
+            },
+          ],
+        },
+      ],
+    );
+    startIterationFromCandidate(cwd, 'CAND-0001');
     decideKickoff(cwd, 'confirmed', 'This is one valuable Story.');
 
     askClarification(cwd, {

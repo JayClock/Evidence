@@ -8,6 +8,7 @@ import { DEFAULT_STATE } from '../../iteration/default-state';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
+  testIntakeSnapshot,
   workspace,
   write,
 } from '../../test-support/support';
@@ -131,18 +132,7 @@ function prepare(cwd: string): void {
   writeState(cwd, {
     ...DEFAULT_STATE,
     loop: 'tasking',
-    requirement_source: {
-      type: 'github_issue',
-      repository: 'owner/repo',
-      issue_number: 9,
-      url: 'https://example.test/issues/9',
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
-      projection_path:
-        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-      content_hash: 'sha256:test',
-      issue_updated_at: '2026-01-01T00:00:00.000Z',
-      fetched_at: '2026-01-01T00:00:00.000Z',
-    },
+    intake_snapshot: testIntakeSnapshot(),
     understand_stage: 'modeling',
     confirmed_scenarios: [
       {

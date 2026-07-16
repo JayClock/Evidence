@@ -10,6 +10,7 @@ import {
 } from './dispatch';
 import {
   cleanupWorkspaces,
+  testIntakeSnapshot,
   workspace,
   write,
 } from '../../../test-support/support';
@@ -18,18 +19,7 @@ import type { WorkflowState } from '../../../iteration/state';
 function issueState(): WorkflowState {
   return {
     ...DEFAULT_STATE,
-    requirement_source: {
-      type: 'github_issue',
-      repository: 'owner/repo',
-      issue_number: 7,
-      url: 'https://example.test/issues/7',
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
-      projection_path:
-        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-      content_hash: 'hash',
-      issue_updated_at: '2026-01-01T00:00:00.000Z',
-      fetched_at: '2026-01-01T00:00:00.000Z',
-    },
+    intake_snapshot: testIntakeSnapshot(),
   };
 }
 

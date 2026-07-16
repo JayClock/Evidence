@@ -9,6 +9,7 @@ import {
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import {
   cleanupWorkspaces,
+  testIntakeSnapshot,
   workspace,
   write,
 } from '../../test-support/support';
@@ -49,18 +50,7 @@ function context(cwd: string) {
 function issueState() {
   return {
     ...DEFAULT_STATE,
-    requirement_source: {
-      type: 'github_issue' as const,
-      repository: 'owner/repo',
-      issue_number: 42,
-      url: 'https://example.test/issues/42',
-      snapshot_path: 'artifacts/iterations/ITER-0001/00-user-input/issue.json',
-      projection_path:
-        'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
-      content_hash: 'hash',
-      issue_updated_at: '2026-01-01T00:00:00.000Z',
-      fetched_at: '2026-01-01T00:00:00.000Z',
-    },
+    intake_snapshot: testIntakeSnapshot(),
   };
 }
 
