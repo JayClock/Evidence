@@ -2,6 +2,7 @@ import { artifactRelativePath } from '../../../iteration/artifact-layout';
 import { readState } from '../../../iteration/state-repository';
 import {
   buildPairDriverTask,
+  buildPairRedReviewTask,
   pairDeterministicAction,
   pairDriverMode,
   pairNextInstruction,
@@ -182,13 +183,21 @@ ${extra || '（无）'}
     ) {
       throw new Error('Pair requires an approved Tasking plan.');
     }
+    if (
+      state.pair_session.checkpoint === 'red_observed' &&
+      state.pair_session.red_observation?.accepted !== true
+    ) {
+      return buildPairRedReviewTask(cwd, state);
+    }
     const mode = pairDriverMode(state);
     if (mode) return buildPairDriverTask(cwd, state, mode);
     const action = pairDeterministicAction(cwd, state);
     if (action) {
       return `执行 Evidence Orchestrator Pair 的一个确定性 checkpoint：${action}。加载 .pi/skills/evidence-pairing/SKILL.md；只运行锁定命令并记录真实结果后停止。`;
     }
-    return `Evidence Orchestrator Pair 暂停于 ${state.pair_session.checkpoint}。下一选择：${pairNextInstruction(state)}。不得自动继续。`;
+    return state.pair_session.checkpoint === 'quality_gates_passed'
+      ? `Evidence Orchestrator Pair 已完成自动编码与质量门禁。等待人类 Story 级编码批准：${pairNextInstruction(state)}。`
+      : `Evidence Orchestrator Pair 自动化正在处理 ${state.pair_session.checkpoint}：${pairNextInstruction(state)}。`;
   }
   if (state.loop === 'showcase') {
     const workItem = state.active_work_item;

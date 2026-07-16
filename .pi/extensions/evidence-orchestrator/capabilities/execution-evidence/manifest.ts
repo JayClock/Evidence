@@ -438,6 +438,30 @@ function recordFor(
   return record;
 }
 
+function processStepRefactorFor(
+  records: TestExecutionRecord[],
+  processId: string,
+  stepId: string,
+  after: number,
+): TestExecutionRecord {
+  const record = records
+    .filter(
+      (candidate) =>
+        candidate.process_id === processId &&
+        candidate.step_id === stepId &&
+        candidate.stage === 'refactor' &&
+        candidate.exit_code === 0 &&
+        candidate.sequence > after,
+    )
+    .at(-1);
+  if (!record) {
+    throw new Error(
+      `Execution log is incomplete: ${processId}/${stepId} has no successful process-step refactor after Green.`,
+    );
+  }
+  return record;
+}
+
 function acceptedRed(
   accepted: PairObservation[],
   records: TestExecutionRecord[],
@@ -457,11 +481,12 @@ function acceptedRed(
     !review ||
     review.accepted !== true ||
     review.failure_kind !== 'behavior' ||
+    !['human', 'red-reviewer'].includes(review.reviewed_by ?? '') ||
     !review.review_reason?.trim() ||
     review.exit_code === 0
   ) {
     throw new Error(
-      `Red for ${taskId}/${testId} at ${processId}/${stepId} lacks Navigator acceptance as an expected behavior failure.`,
+      `Red for ${taskId}/${testId} at ${processId}/${stepId} lacks a recorded expected-behavior classification.`,
     );
   }
   const raw = records.find(({ sequence }) => sequence === review.sequence);
@@ -479,7 +504,7 @@ function acceptedRed(
     !raw.expected_failure
   ) {
     throw new Error(
-      `Navigator Red acceptance does not match execution record ${review.sequence}.`,
+      `Recorded Red classification does not match execution record ${review.sequence}.`,
     );
   }
   return review;
@@ -547,14 +572,11 @@ function processManifest(
         'green',
         { after: red.sequence, exitCode: 0 },
       );
-      const refactor = recordFor(
+      const refactor = processStepRefactorFor(
         records,
         selection.id,
         step.id,
-        task.id,
-        test.id,
-        'refactor',
-        { after: green.sequence, exitCode: 0 },
+        green.sequence,
       );
       const runs = driverHistory.filter(
         ({ task_id, test_id }) => task_id === task.id && test_id === test.id,
@@ -989,7 +1011,7 @@ function renderSummary(manifest: ExecutionManifest): string {
       process.steps.flatMap((step) =>
         step.work_units.map(
           ({ task, test, changed_paths, red, green, refactor }) =>
-            `| ${task.id} | ${test.id} | ${test.model_refs.entities.join(', ') || 'none'} / ${test.model_refs.associations.join(', ') || 'none'} | ${process.id} | ${step.id} | ${step.quadrant} | ${[...changed_paths.tests, ...changed_paths.production].join('<br>')} | ${red.sequence} | ${green.sequence} | ${refactor.sequence} |`,
+            `| ${task.id} | ${test.id} | ${test.model_refs.entities.join(', ') || 'none'} / ${test.model_refs.associations.join(', ') || 'none'} | ${process.id} | ${step.id} | ${step.quadrant} | ${[...changed_paths.tests, ...changed_paths.production].join('<br>')} | ${red.sequence} | ${red.reviewed_by ?? 'legacy-human'} | ${green.sequence} | ${refactor.sequence} |`,
         ),
       ),
     )
@@ -1016,7 +1038,7 @@ function renderSummary(manifest: ExecutionManifest): string {
 
 ## Result
 
-- Red: accepted expected behavior failure
+- Red: independently classified expected behavior failure
 - Green: passed
 - Refactor: passed
 - Quality gates: passed
@@ -1027,8 +1049,8 @@ function renderSummary(manifest: ExecutionManifest): string {
 
 ## SC → model → TASK/TEST → process → code trace
 
-| Task | Test | Model refs (entities / associations) | Process | Step | Quadrant | Git-observed code | Red record | Green record | Refactor record |
-| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: |
+| Task | Test | Model refs (entities / associations) | Process | Step | Quadrant | Git-observed code | Red record | Red reviewer | Green record | Refactor record |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: |
 ${processRows}
 
 Functional contexts: ${manifest.traceability.functional_contexts.join(', ')}

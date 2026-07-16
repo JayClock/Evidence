@@ -587,6 +587,10 @@ export function normalizeState(input: WorkflowState): WorkflowState {
             item.scenarios.map(({ scenario_id }) => scenario_id),
           ) ||
         item.pair.checkpoint !== 'quality_gates_passed' ||
+        item.pair.coding_decision?.action !== 'approve' ||
+        item.pair.coding_decision.decided_by !== 'human' ||
+        !text(item.pair.coding_decision.reason) ||
+        !text(item.pair.coding_decision.artifact_path) ||
         !text(item.approved_test_plan_path) ||
         !text(item.approved_test_plan_sha256) ||
         !text(item.model_expansion_path) ||
@@ -597,6 +601,30 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     )
   ) {
     throw new Error('The completed delivery work items are invalid.');
+  }
+  if (
+    state.pair_session?.automation_exception &&
+    (state.pair_session.automation_exception.kind !== 'automation_exhausted' ||
+      !text(state.pair_session.automation_exception.reason) ||
+      !PAIR_CHECKPOINTS.has(
+        state.pair_session.automation_exception.checkpoint,
+      ) ||
+      !text(state.pair_session.automation_exception.recorded_at))
+  ) {
+    throw new Error('The Pair automation exception is invalid.');
+  }
+  if (
+    state.pair_session?.coding_decision &&
+    (state.pair_session.coding_decision.version !== 1 ||
+      state.pair_session.coding_decision.action !== 'approve' ||
+      state.pair_session.coding_decision.decided_by !== 'human' ||
+      !text(state.pair_session.coding_decision.reason) ||
+      !text(state.pair_session.coding_decision.execution_manifest_path) ||
+      !text(state.pair_session.coding_decision.execution_manifest_sha256) ||
+      !text(state.pair_session.coding_decision.artifact_path) ||
+      !text(state.pair_session.coding_decision.decided_at))
+  ) {
+    throw new Error('The Story coding decision is invalid.');
   }
   if (
     state.pair_session &&

@@ -8,7 +8,7 @@
 - Agent：隔离角色、工具权限、Skill 触发和停止条件；
 - Skill：Complicated / Complex 方法知识；
 - Prompt：Clear、只读或固定格式任务；
-- 人类 Navigator：Story、Scenario、Profile、模型/统一语言、Desk Check、Red、实际产品观察、Q3/Q4 评价、Showcase 与 Respond 决定。
+- 人类权威：Story、Scenario、Profile、模型/统一语言、Desk Check、完整 Story 编码批准、实际产品观察、Q3/Q4 评价、Showcase 与 Respond 决定；Pair 内部 Red 由独立 AI Reviewer 分类。
 
 活动 Working Knowledge 由 `engineering/evidence-orchestrator/working-knowledge-catalog.json` 编目。
 
@@ -40,18 +40,18 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 
 - **Iteration / Story**：一轮恰好交付一张 `US-xxx`，起于 Kickoff，止于该 Story 的 Showcase / Respond；
 - **Scenario Set**：TQA 后一次确认该 Story 范围内完整的 `SC-xxx` 验收集合，联合建模、Tasking 和验收；
-- **TASK / TEST**：Pair 中单 checkpoint 的 Red、Green、Refactor。
+- **TASK / TEST**：Pair 中逐 TEST 的 Red/Green；Refactor 按 process step 汇总一次。
 
 具体流程：
 
 1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
 2. **Understand**：每张活动 Story 使用一条持久 TQA 会话，一次提出一个面向业务的问题；人类直接回答后，下一次 requirements-analyst checkpoint 恢复同一 Pi session。AI 列出完整 Scenario Set 后由人类整体确认，再确认建模 Profile：`none/false` 确定性记录无模型影响并直接进入 Tasking；其他方法逐场景联合展开，`model_change_required=false` 保持空 operations，只有 `true` 提出模型候选，之后均经独立挑战和人工模型确认。其他活动角色仍使用隔离的临时会话。
 3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
-4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint。每个 TEST 分别产生 Red、Green、Refactor；全部 Scenario 对应的 TASK/TEST 完成后运行一次最终 quality gates，然后进入 Showcase。
+4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。伪 Red、Green/Refactor/gate 失败在有限预算内自动修复，超限作为异常停止；全绿后由人类一次批准完整 Story 编码才进入 Showcase。
 5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
 6. **Respond**：总结整个 Story 增量，只提升被 Scenario Set、执行事实与 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
 
-状态只允许一个 active Story、一个人工确认的 Scenario Set 和一个 Pair checkpoint。它不维护并行 Story WIP、独立 Scenario 交付切片、独立审批队列或自动重试轮次。
+状态只允许一个 active Story、一个人工确认的 Scenario Set 和一个 Pair checkpoint。它不维护并行 Story WIP、独立 Scenario 交付切片或独立审批队列；Pair 自动化仅在一次运行内执行有限重试，超限保留失败状态供异常路由。
 
 ## 目录结构
 
@@ -65,7 +65,7 @@ evidence-orchestrator/
 │   ├── kickoff/                     # 单 Story 候选与人工 Kickoff 决定
 │   ├── understand/{tqa,scenario,modeling}/
 │   ├── tasking/                     # test/task draft 与 Desk Check
-│   ├── pair/                        # Navigator checkpoint 与 Driver session
+│   ├── pair/                        # 自动 Pair checkpoint、Driver 与 Red Reviewer session
 │   ├── showcase/                    # Q2/Q3/Q4、Reviewer 与人工决定
 │   └── respond/                     # knowledge response、人工确认与 next Probe
 ├── capabilities/
@@ -103,7 +103,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 
 - `pi/host.ts` 是生命周期组合根；根 `index.ts` 保持薄。
 - `pi/commands.ts` 与 `pi/tools.ts` 只注册外部入口；参数解析、Schema 和 activity host 分文件维护。
-- `pi/activity/` 负责任务构建、单 checkpoint 调度、执行、进度和渲染。
+- `pi/activity/` 负责任务构建、调度、执行、进度和渲染；非 Pair 活动保持单 checkpoint，Pair 在一次运行中循环短生命周期 checkpoint 直到全绿或异常。
 - `github/inbox-source.ts` 与 `github/pi-cli.ts` 把 GitHub Issue 适配为 provider-neutral Inbox capture。
 - `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`；普通 checkpoint 使用临时 session，活动 Story 的 TQA checkpoint 以稳定 session id 恢复同一多轮会话。
 
@@ -119,7 +119,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 /evidence-modeling-profile confirm [reason] | set <subject> <method> <true|false> <reason>
 /evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>
 /evidence-desk-check approve [reason] | revise|architecture_gap|process_gap|scenario_gap <reason>
-/evidence-pair [当前 Pair 人工决定参数]
+/evidence-pair approve <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>
 /evidence-showcase [observe|risk|evaluate|accept|revise|reject 参数]
 /evidence-respond approve|revise <reason>
 ```
@@ -128,9 +128,9 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 
 - 无参数运行 `/evidence-inbox` 时，空 Inbox 会先让人选择来源；来源 revision 保存成功后自动打开 extract 来源选取界面，取消选取则只保留来源。已有来源时显示 Inbox 状态，显式 `list` 始终只读。
 - 无参数运行 `/evidence-new` 会复用 extract 来源选取界面，提取完成后再复用 Candidate 选择器并冻结 Intake；`/evidence-new CAND-xxxx` 直接从 ready Candidate 启动。
-- `/evidence-run` 只运行当前状态允许的一个 activity、Driver 或确定性 command checkpoint，不接受人工决定；`--dry-run` 只预览任务。
+- `/evidence-run` 对非 Pair loop 只运行当前状态允许的一个 activity checkpoint；在 Pair 中自动串行执行完整编码 Story 的短生命周期 Driver、Reviewer 与确定性命令，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
 - 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
-- `/evidence-pair` 在 Red 或质量门禁失败时记录 Navigator 决定。Story 的全部 quality gates 通过后使用 `showcase <reason>` 进入验收。
+- `/evidence-pair approve <reason>` 在全部 quality gates 通过后写入 `coding-decision.json`，作为完整 Story 编码的人类权威并进入 Showcase；其他参数仅用于自动化异常的显式回退。
 - `/evidence-showcase` 记录产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。
 
 每条命令都会验证持久化状态；调用不属于当前阶段的命令会被对应守卫拒绝。单次命令不会连续运行整个 iteration。Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。

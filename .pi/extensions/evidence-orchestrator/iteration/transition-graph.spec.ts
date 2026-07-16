@@ -48,6 +48,17 @@ describe('knowledge-loop catalog', () => {
             quality_gate_index: 1,
             feedback: [],
             driver_history: [],
+            coding_decision: {
+              version: 1,
+              story_id: 'US-001',
+              action: 'approve',
+              reason: 'The complete coding evidence is accepted.',
+              execution_manifest_path: 'manifest.json',
+              execution_manifest_sha256: 'a'.repeat(64),
+              artifact_path: 'coding-decision.json',
+              decided_by: 'human',
+              decided_at: '2026-01-01T00:00:00.000Z',
+            },
           },
         };
       }

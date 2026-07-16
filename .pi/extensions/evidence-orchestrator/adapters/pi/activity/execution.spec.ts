@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
+import type { WorkflowState } from '../../../iteration/state';
 import { readState, writeState } from '../../../iteration/state-repository';
+import * as stateRepository from '../../../iteration/state-repository';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
@@ -18,7 +20,15 @@ const pairing = vi.hoisted(() => ({
   completePairDriver: vi.fn(),
   failPairDriver: vi.fn(),
   executePairAction: vi.fn(),
-  pairNextInstruction: vi.fn(() => '/evidence-run advances one checkpoint'),
+  pairDeterministicAction: vi.fn(() => undefined),
+  buildPairRedReviewTask: vi.fn(() => 'Classify one Red.'),
+  parsePairRedReview: vi.fn(() => ({
+    failureKind: 'behavior',
+    reason: 'The planned assertion reports missing behavior.',
+  })),
+  reviewPairRed: vi.fn(),
+  navigatePair: vi.fn(),
+  pairNextInstruction: vi.fn(() => '/evidence-run continues automation'),
 }));
 const showcase = vi.hoisted(() => ({
   executeShowcaseQ2: vi.fn(),
@@ -32,6 +42,9 @@ vi.mock('../../node/activity-agent-process', () => ({
 }));
 vi.mock('../../../loops/pair/pair-session', () => pairing);
 vi.mock('../../../loops/showcase/showcase-session', () => showcase);
+vi.mock('./task', () => ({
+  buildActivityTask: vi.fn(() => 'Continue automated Pair coding.'),
+}));
 
 function preparation(): PreparedActivityRun {
   return {
@@ -45,7 +58,9 @@ function preparation(): PreparedActivityRun {
 afterEach(() => {
   cleanupWorkspaces();
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   pairing.pairDriverMode.mockReturnValue(undefined);
+  pairing.pairDeterministicAction.mockReturnValue(undefined);
 });
 
 describe('activity execution', () => {
@@ -175,6 +190,207 @@ describe('activity execution', () => {
 
     expect(runner.runActivitySubagent).not.toHaveBeenCalled();
     expect(result.output).toContain('waiting for Navigator');
+  });
+
+  it('automates all Pair checkpoints and stops once for human Story approval', async () => {
+    const cwd = workspace();
+    let current = {
+      ...DEFAULT_STATE,
+      loop: 'pair' as const,
+      tasking_stage: 'approved' as const,
+      approved_test_plan_path: 'plan.json',
+      active_work_item: { story_id: 'US-001' },
+      pair_session: {
+        version: 2 as const,
+        story_id: 'US-001',
+        scenario_ids: ['SC-001'],
+        git_baseline: 'baseline',
+        checkpoint: 'plan_confirmed' as const,
+        task_id: 'TASK-001',
+        test_id: 'TEST-001',
+        process_id: 'process',
+        step_id: 'step',
+        completed_task_ids: [] as string[],
+        completed_test_ids: [] as string[],
+        completed_step_ids: [] as string[],
+        test_paths: [] as string[],
+        production_paths: [] as string[],
+        expected_red: 'The behavior is absent.',
+        accepted_reds: [],
+        quality_gate_index: 0,
+        feedback: [],
+        driver_history: [],
+      },
+    } as unknown as WorkflowState;
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next as typeof current;
+      return current;
+    });
+    pairing.pairDriverMode.mockImplementation((state) => {
+      const session = state.pair_session;
+      if (session?.checkpoint === 'plan_confirmed') return 'test';
+      if (
+        session?.checkpoint === 'red_observed' &&
+        session.red_observation?.accepted
+      ) {
+        return 'implementation';
+      }
+      if (session?.checkpoint === 'green_observed') return 'refactor';
+      return undefined;
+    });
+    pairing.pairDeterministicAction.mockImplementation((_cwd, state) => {
+      const session = state.pair_session;
+      if (session?.checkpoint === 'test_written') return 'run_red';
+      if (session?.checkpoint === 'implementation_written') return 'run_green';
+      if (session?.checkpoint === 'refactored') {
+        return session.completed_test_ids.length
+          ? 'run_quality_gate'
+          : 'run_refactor';
+      }
+      return undefined;
+    });
+    pairing.completePairDriver.mockImplementation(
+      (_cwd, mode, _snapshot, output) => {
+        const checkpoints = {
+          test: 'test_written',
+          implementation: 'implementation_written',
+          refactor: 'refactored',
+        } as const;
+        current = {
+          ...current,
+          pair_session: {
+            ...current.pair_session,
+            checkpoint: checkpoints[mode as keyof typeof checkpoints],
+          },
+        };
+        return {
+          state: current,
+          blocked: false,
+          changedPaths: [],
+          diff: '',
+          output,
+        };
+      },
+    );
+    pairing.executePairAction.mockImplementation((_cwd, action) => {
+      if (action === 'run_red') {
+        current = {
+          ...current,
+          pair_session: {
+            ...current.pair_session,
+            checkpoint: 'red_observed',
+            red_observation: {
+              process_id: 'process',
+              step_id: 'step',
+              task_id: 'TASK-001',
+              test_id: 'TEST-001',
+              stage: 'red',
+              command: 'test',
+              sequence: 1,
+              exit_code: 1,
+              expected_failure: true,
+            },
+          },
+        };
+      } else if (action === 'run_green') {
+        current = {
+          ...current,
+          pair_session: {
+            ...current.pair_session,
+            checkpoint: 'green_observed',
+          },
+        };
+      } else if (action === 'run_refactor') {
+        current = {
+          ...current,
+          pair_session: {
+            ...current.pair_session,
+            checkpoint: 'refactored',
+            completed_task_ids: ['TASK-001'],
+            completed_test_ids: ['TEST-001'],
+            completed_step_ids: ['process/step'],
+          },
+        };
+      } else {
+        current = {
+          ...current,
+          pair_session: {
+            ...current.pair_session,
+            checkpoint: 'quality_gates_passed',
+          },
+        };
+      }
+      return { state: current, output: String(action) };
+    });
+    pairing.reviewPairRed.mockImplementation(
+      (_cwd, kind, reason, _now, reviewedBy) => {
+        current = {
+          ...current,
+          pair_session: {
+            ...current.pair_session,
+            red_observation: {
+              ...current.pair_session.red_observation,
+              accepted: true,
+              failure_kind: kind,
+              review_reason: reason,
+              reviewed_by: reviewedBy,
+            },
+          },
+        };
+        return current;
+      },
+    );
+    runner.runActivitySubagent.mockImplementation(async ({ agentName }) => ({
+      agent: agentName,
+      model: 'openai/test',
+      thinking: 'medium',
+      output:
+        agentName === 'red-reviewer'
+          ? '{"failureKind":"behavior","reason":"missing behavior"}'
+          : `${agentName} completed.`,
+      messages: [],
+      exitCode: 0,
+      stderr: '',
+    }));
+
+    const result = await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        agentName: 'test-driver',
+        task: 'Start automated Pair.',
+      },
+      { invocation: '/evidence-run' },
+    );
+
+    expect(result).toMatchObject({
+      agent: 'pair-automation',
+      status: 'completed',
+      exitCode: 0,
+    });
+    expect(result.output).toContain('/evidence-pair approve <reason>');
+    expect(
+      runner.runActivitySubagent.mock.calls.map(
+        ([options]) => options.agentName,
+      ),
+    ).toEqual([
+      'test-driver',
+      'red-reviewer',
+      'production-driver',
+      'production-driver',
+    ]);
+    expect(
+      pairing.executePairAction.mock.calls.map(([, action]) => action),
+    ).toEqual(['run_red', 'run_green', 'run_refactor', 'run_quality_gate']);
+    expect(pairing.reviewPairRed).toHaveBeenCalledWith(
+      cwd,
+      'behavior',
+      expect.any(String),
+      expect.any(String),
+      'red-reviewer',
+    );
   });
 
   it('executes Showcase Q2 without starting Reviewer', async () => {

@@ -53,6 +53,7 @@ import {
   navigatePair,
   pairDeterministicAction,
   pairDriverMode,
+  parsePairRedReview,
   reviewPairRed,
 } from './pair-session';
 
@@ -871,8 +872,8 @@ function prepareShowcaseForReview(cwd: string): void {
   prepareShowcaseReview(cwd);
 }
 
-describe('Navigator-driven Pair', () => {
-  it('dispatches at most one Driver or deterministic checkpoint per run', () => {
+describe('AI-driven Pair with Story-level human approval', () => {
+  it('prepares Red classification for automated continuation without human navigation', () => {
     const cwd = workspace();
     preparePair(cwd);
 
@@ -892,9 +893,45 @@ describe('Navigator-driven Pair', () => {
     expect(redAction.agentName).toBeUndefined();
 
     executePairAction(cwd, 'run_red');
-    expect(() => prepareActivityRun(cwd)).toThrow(
-      'Pair is paused at red_observed',
+    const review = prepareActivityRun(cwd);
+    if (isCompletedIteration(review)) throw new Error('Unexpected complete.');
+    expect(review.activity).toBe('pair');
+    expect(review.agentName).toBe('red-reviewer');
+    expect(review.pairAction).toBeUndefined();
+    expect(review.task).toContain('failureKind');
+  });
+
+  it('parses and records an independent AI Red classification', () => {
+    expect(
+      parsePairRedReview(
+        '{"failureKind":"behavior","reason":"The focused assertion reports that workspace Alpha is absent."}',
+      ),
+    ).toEqual({
+      failureKind: 'behavior',
+      reason: 'The focused assertion reports that workspace Alpha is absent.',
+    });
+    expect(() => parsePairRedReview('behavior')).toThrow(
+      'valid classification JSON',
     );
+
+    const cwd = workspace();
+    preparePair(cwd);
+    const snapshot = capturePairWorktree(cwd);
+    writeFocusedTest(cwd);
+    completePairDriver(cwd, 'test', snapshot, 'Added Q2.');
+    executePairAction(cwd, 'run_red');
+    const reviewed = reviewPairRed(
+      cwd,
+      'behavior',
+      'The assertion reached the planned missing behavior.',
+      '2026-01-01T00:00:00.000Z',
+      'red-reviewer',
+    );
+    expect(reviewed.pair_session?.red_observation).toMatchObject({
+      accepted: true,
+      failure_kind: 'behavior',
+      reviewed_by: 'red-reviewer',
+    });
   });
 
   it('restores changes and records feedback when a Driver process fails', () => {
@@ -1041,12 +1078,12 @@ describe('Navigator-driven Pair', () => {
     );
     const passed = executePairAction(cwd, 'run_quality_gate');
     expect(passed.state.pair_session?.checkpoint).toBe('quality_gates_passed');
-    expect(transitionLoopState(readState(cwd), { to: 'showcase' }).loop).toBe(
-      'showcase',
-    );
+    expect(() =>
+      transitionLoopState(readState(cwd), { to: 'showcase' }),
+    ).toThrow('human approves the complete Story coding evidence');
   });
 
-  it('drives and records each ordered TASK/TEST unit even when tests share one process step', () => {
+  it('drives each TASK/TEST Red/Green but refactors once when tests share a process step', () => {
     const cwd = workspace();
     preparePair(cwd);
     addSecondQ2Test(cwd);
@@ -1074,10 +1111,7 @@ describe('Navigator-driven Pair', () => {
         snapshot,
         `Implemented ${reason}.`,
       );
-      executePairAction(cwd, 'run_green');
-      snapshot = capturePairWorktree(cwd);
-      completePairDriver(cwd, 'refactor', snapshot, 'No-op refactor.');
-      executePairAction(cwd, 'run_refactor');
+      return executePairAction(cwd, 'run_green');
     };
 
     driveCurrentUnit(
@@ -1086,9 +1120,10 @@ describe('Navigator-driven Pair', () => {
       'workspace visibility',
     );
     expect(readState(cwd).pair_session).toMatchObject({
+      checkpoint: 'plan_confirmed',
       task_id: 'TASK-002',
       test_id: 'TEST-002',
-      completed_task_ids: ['TASK-001'],
+      completed_task_ids: [],
       completed_test_ids: ['TEST-001'],
     });
     driveCurrentUnit(
@@ -1096,9 +1131,20 @@ describe('Navigator-driven Pair', () => {
       'export const q2b = true;',
       'owner visibility',
     );
+    expect(readState(cwd).pair_session?.checkpoint).toBe('green_observed');
+    const snapshot = capturePairWorktree(cwd);
+    completePairDriver(cwd, 'refactor', snapshot, 'One step-level no-op.');
+    executePairAction(cwd, 'run_refactor');
     executePairAction(cwd, 'run_quality_gate');
 
     const manifest = validateExecutionEvidence(cwd);
+    expect(
+      new Set(
+        manifest.processes[0]?.steps[0]?.work_units.map(
+          ({ refactor }) => refactor.sequence,
+        ),
+      ).size,
+    ).toBe(1);
     expect(manifest.traceability.tasks.map(({ id }) => id)).toEqual([
       'TASK-001',
       'TASK-002',
@@ -1247,7 +1293,7 @@ describe('Navigator-driven Pair', () => {
     );
   });
 
-  it('closes the complete Story directly into Showcase', () => {
+  it('records one human coding decision before entering Showcase', () => {
     const cwd = workspace();
     preparePair(cwd);
     completePairSuccessfully(cwd);
@@ -1274,7 +1320,24 @@ describe('Navigator-driven Pair', () => {
     expect(showcased.completed_work_items?.[0]).toMatchObject({
       story_id: 'US-001',
       scenarios: [{ scenario_id: 'SC-001' }],
-      pair: { checkpoint: 'quality_gates_passed' },
+      pair: {
+        checkpoint: 'quality_gates_passed',
+        coding_decision: {
+          action: 'approve',
+          reason: 'The complete Story Scenario Set passed Pairing.',
+          decided_by: 'human',
+        },
+      },
+    });
+    const decisionPath =
+      showcased.pair_session?.coding_decision?.artifact_path ?? '';
+    expect(decisionPath).toContain('coding-decision.json');
+    expect(
+      JSON.parse(readFileSync(`${cwd}/${decisionPath}`, 'utf8')),
+    ).toMatchObject({
+      story_id: 'US-001',
+      action: 'approve',
+      execution_manifest_sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
   });
 
@@ -1665,7 +1728,7 @@ describe('Navigator-driven Pair', () => {
     expect(rejected.showcase_decisions?.at(-1)?.action).toBe('reject');
   });
 
-  it('lets Navigator return to test or Tasking without changing the Git baseline', () => {
+  it('lets a human route an automation exception without changing the Git baseline', () => {
     const testCwd = workspace();
     preparePair(testCwd);
     const baseline = readState(testCwd).pair_session?.git_baseline;

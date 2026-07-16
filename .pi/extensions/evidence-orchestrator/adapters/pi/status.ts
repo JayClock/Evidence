@@ -32,6 +32,12 @@ function agentName(state: WorkflowState): string | undefined {
   }
   if (state.loop === 'tasking') return 'architect';
   if (state.loop === 'pair') {
+    if (
+      state.pair_session?.checkpoint === 'red_observed' &&
+      state.pair_session.red_observation?.accepted !== true
+    ) {
+      return 'red-reviewer';
+    }
     const mode = pairDriverMode(state);
     return mode === 'test'
       ? 'test-driver'
@@ -130,9 +136,11 @@ export function statusMarkdown(cwd: string): string {
     `| Pair Checkpoint | ${state.pair_session?.checkpoint ?? 'none'} |`,
     `| Pair Unit | ${state.pair_session ? `${state.pair_session.task_id}/${state.pair_session.test_id}` : 'none'} |`,
     `| Pair Step | ${state.pair_session ? `${state.pair_session.process_id}/${state.pair_session.step_id}` : 'none'} |`,
+    `| Pair Automation Exception | ${state.pair_session?.automation_exception?.reason ?? 'none'} |`,
     `| Execution Log | ${execution.log ?? 'none'} |`,
     `| Execution Manifest | ${execution.manifest ?? 'none'} |`,
     `| Execution Summary | ${execution.summary ?? 'none'} |`,
+    `| Human Coding Decision | ${state.pair_session?.coding_decision ? `approve · ${state.pair_session.coding_decision.artifact_path}` : 'none'} |`,
     `| Showcase Stage | ${state.showcase_stage ?? 'none'} |`,
     `| Human Product Observations | ${state.showcase_product_observations?.length ?? 0} |`,
     `| Q3/Q4 Evaluation Observations | ${state.showcase_evaluation_observations?.length ?? 0} |`,

@@ -1,7 +1,11 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { generateExecutionEvidence } from '../execution-evidence/manifest';
+import {
+  artifactPath,
+  artifactRelativePath,
+} from '../../iteration/artifact-layout';
 import { transitionLoopState } from '../../iteration/transition-graph';
 import { readState, writeState } from '../../iteration/state-repository';
 import type {
@@ -84,7 +88,7 @@ function appendCompleted(
   return [...prior, item];
 }
 
-/** Human decision at the boundary between a completed Story and its iteration Showcase. */
+/** Record the one human coding approval at the completed Story boundary, then enter Showcase. */
 export function decideDeliveryIncrement(
   cwd: string,
   action: DeliveryIncrementAction,
@@ -94,7 +98,8 @@ export function decideDeliveryIncrement(
   const state = readState(cwd);
   if (
     state.loop !== 'pair' ||
-    state.pair_session?.checkpoint !== 'quality_gates_passed'
+    state.pair_session?.checkpoint !== 'quality_gates_passed' ||
+    state.pair_session.automation_exception
   ) {
     throw new Error(
       'A delivery increment decision is available only after all Pair quality gates pass.',
@@ -104,11 +109,46 @@ export function decideDeliveryIncrement(
     throw new Error(`Unsupported Story completion decision: ${action}.`);
   }
   if (!reason.trim())
-    throw new Error('A Story completion decision requires a reason.');
+    throw new Error('A human Story coding approval requires a reason.');
 
-  const item = completedItem(cwd, state, now);
-  const completed = appendCompleted(state, item);
-  const transitioned = transitionLoopState(state, { to: 'showcase' }, now);
+  const workItem = state.active_work_item;
+  if (!workItem)
+    throw new Error('Story coding approval has no active work item.');
+  const generated = generateExecutionEvidence(cwd, workItem);
+  const manifestContent = readFileSync(join(cwd, generated.manifestPath));
+  const decisionPath = artifactRelativePath(
+    state,
+    `artifacts/05-code/${workItem.story_id}/coding-decision.json`,
+  );
+  const decision = {
+    version: 1 as const,
+    story_id: workItem.story_id,
+    action: 'approve' as const,
+    reason: reason.trim(),
+    execution_manifest_path: generated.manifestPath,
+    execution_manifest_sha256: digest(manifestContent),
+    artifact_path: decisionPath,
+    decided_by: 'human' as const,
+    decided_at: now,
+  };
+  const absoluteDecisionPath = artifactPath(
+    cwd,
+    state,
+    `artifacts/05-code/${workItem.story_id}/coding-decision.json`,
+  );
+  mkdirSync(dirname(absoluteDecisionPath), { recursive: true });
+  writeFileSync(absoluteDecisionPath, `${JSON.stringify(decision, null, 2)}\n`);
+  const approvedState = writeState(cwd, {
+    ...state,
+    pair_session: { ...state.pair_session, coding_decision: decision },
+  });
+  const item = completedItem(cwd, approvedState, now);
+  const completed = appendCompleted(approvedState, item);
+  const transitioned = transitionLoopState(
+    approvedState,
+    { to: 'showcase' },
+    now,
+  );
   return writeState(cwd, {
     ...transitioned,
     completed_work_items: completed,

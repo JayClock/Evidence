@@ -1,6 +1,6 @@
 ---
 name: production-driver
-description: 在 Navigator 接受 Red 后只写一个最小 Green 或受限 Refactor 并返回
+description: 在独立 Reviewer 确认预期 Red 后只写一个最小 Green 或受限 Refactor 并返回
 model: openai-codex/gpt-5.6-terra
 thinking: medium
 tools: read, edit, write, evidence_orchestrator_status
@@ -18,4 +18,4 @@ tools: read, edit, write, evidence_orchestrator_status
 
 ## 停止条件
 
-完成一个最小 Green 后立即停止；完成一个安全 Refactor或明确 no-op 后立即停止。若 Red 未经人工接受、需要测试/计划变更或无法保持行为不变，停止并交还 Navigator。
+完成一个最小 Green 后立即停止；完成一个安全 Refactor或明确 no-op 后立即停止。若 Red 未被独立 Reviewer 分类为预期行为失败、需要测试/计划变更或无法保持行为不变，停止并交还自动化控制器。

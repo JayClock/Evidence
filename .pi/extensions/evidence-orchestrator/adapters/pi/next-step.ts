@@ -55,7 +55,9 @@ export function nextStepGuidance(
       : '下一步：运行 /evidence-run，生成或修订可审核的测试与实施计划。';
   }
   if (state.loop === 'pair') {
-    return `下一步：${pairNextInstruction(state)}。每次只推进一个受观察的 Pair checkpoint。`;
+    return state.pair_session?.checkpoint === 'quality_gates_passed'
+      ? `下一步：${pairNextInstruction(state)}。`
+      : `下一步：${pairNextInstruction(state)}；控制器会串行记录短生命周期 checkpoint，直到 Story 全绿或异常。`;
   }
   if (state.loop === 'showcase') {
     return `下一步：${showcaseNextInstruction(cwd)}。按提示补齐产品观察、风险或验收决策。`;

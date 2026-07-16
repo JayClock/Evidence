@@ -1,13 +1,13 @@
 ---
 name: evidence-pairing
-description: Execute Navigator-controlled Evidence Pairing with short-lived Test and Production Drivers, observed Red/Green/Refactor checkpoints, path protection, and final quality gates. Use only after human Desk Check approves one Story Scenario Set plan. Do not batch checkpoints, self-accept Red, or let a Driver run commands.
+description: Execute controller-automated Evidence Pairing with short-lived Test, Production, and independent Red Reviewer agents; per-TEST Red/Green, one Refactor per process step, protected paths, bounded repair, recorded quality gates, and one human Story-level coding approval. Use only after human Desk Check approves one Story Scenario Set plan. Drivers never run commands or grant final approval.
 ---
 
 # Evidence Pairing
 
 ## When to use
 
-Use for the approved Pair loop. The human is Navigator; Drivers are short-lived and return after one bounded edit.
+Use for the approved Pair loop. One `/evidence-run` lets the controller advance the complete coding Story until all gates pass or automation reaches an exception. Agents remain short-lived and perform one bounded role at a time; the human reviews authority once at the completed Story boundary.
 
 ## Inputs
 
@@ -15,35 +15,31 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 - Human-approved test/task list and immutable v2 process plans.
 - Current ordered `TASK-xxx / TEST-xxx`, its model references, owning process step, and expected Red behavior.
 
-## Checkpoint loop
+## Automated checkpoint loop
 
-1. Navigator activates exactly one approved `TASK-xxx / TEST-xxx`; the process step supplies boundaries and the locked command, but does not replace the task.
+1. Controller activates exactly one approved `TASK-xxx / TEST-xxx`; the process step supplies boundaries and the locked command.
 2. **Test Driver** writes only that TEST's nearest focused behavior test and returns without running it.
-3. Controller runs the exact locked command and records Red against the active TASK/TEST identity.
-4. Human classifies Red. Only an expected behavior failure may be accepted.
-5. **Production Driver** writes the minimum implementation without changing confirmed tests.
-6. Controller records Green.
-7. Production Driver performs a bounded Refactor or explicit no-op.
-8. Controller records Refactor and the model → TASK/TEST → changed-path trace; for `method=none`, record the direct Scenario → TASK/TEST → changed-path trace with empty model refs.
-9. Repeat for the next ordered TEST across the complete Scenario Set, including another TEST on the same process step. After every approved Story TASK/TEST completes, run each final quality gate once per revision cycle.
-10. Generate execution evidence from observations; do not hand-copy commands, exits, paths, task ids, or model refs.
+3. Controller runs the exact locked command and records the actual result against the active TASK/TEST.
+4. For a failing Red, an independent **Red Reviewer** classifies the direct cause from the intent and actual output. Only an assertion-level absence of the planned behavior is `behavior`; compile, dependency, configuration, network, fixture, and other failures are pseudo-Red.
+5. A behavior Red automatically advances to **Production Driver**, which writes the minimum implementation without changing confirmed tests. A pseudo-Red returns to Test Driver within the bounded retry budget.
+6. Controller records Green. A failed Green returns to Production Driver within the bounded retry budget.
+7. If another ordered TEST remains in the same process step, repeat steps 1–6 without an intermediate Refactor.
+8. After every TEST in the current process step is Green, Production Driver performs one bounded step-level Refactor or explicit no-op; the controller verifies it with the locked focused command.
+9. Repeat for every process step, then run each final quality gate. A failed Refactor or gate receives bounded automated repair; exhausted retries stop as an exception rather than becoming approval.
+10. Generate append-only execution evidence and the model → TASK/TEST → changed-path trace; for `method=none`, record Scenario → TASK/TEST → changed-path with empty model refs.
+11. Stop after all gates pass. The human reviews the complete Story evidence once and records `/evidence-pair approve <reason>` before Showcase.
 
-## Project examples
+## Authority and safety
 
-- Test Driver touches `apps/web/tests/workspace.test.ts`; a production edit is restored and blocks the checkpoint.
-- Rust Test Driver may change only the `#[cfg(test)]` region; Production Driver may change only the production region in the same file.
-
-## Feedback and exit conditions
-
-- Compile/dependency/config/network/fixture failure is not Red → return to Test Driver or Tasking.
-- Green failure → implementation feedback, not Refactor.
-- Quality-gate failure → human chooses retry, implementation, test, or Tasking.
-- Every gate passes → stop; the human chooses `showcase` for the completed Story iteration.
-- The human owns the Story Git checkpoint. Drivers never commit.
-- Never commit, modify plans/state/logs, or advance a second checkpoint in one Driver turn.
+- Agents edit; only the controller runs locked commands and records exits, output hashes, Git/worktree hashes, identities, and paths.
+- A Red Reviewer classifies evidence but does not grant human product authority.
+- Drivers never modify plans, state, execution evidence, frozen tests outside their role, or Git HEAD. Boundary violations are restored and retried only within the budget.
+- Automation never broadens Scenario scope, changes an approved plan, mixes Rust/Nest, weakens tests, or treats a pseudo-Red as behavior.
+- Retry exhaustion, missing evidence, scope/architecture/process gaps, or an unrepairable quality gate stop for explicit exception routing.
+- All gates passing is necessary but not sufficient: only the final human coding decision authorizes transition to Showcase.
 
 ## References
 
 - Approved iteration `artifacts/04-planning/test-plan.json` (or versioned equivalent).
 - `engineering/evidence-orchestrator/definition-of-done.md`
-- Generated execution manifest and summary under `artifacts/05-code/`.
+- Generated execution manifest, summary, and human coding decision under `artifacts/05-code/`.

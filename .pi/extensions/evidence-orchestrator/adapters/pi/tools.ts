@@ -272,11 +272,11 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_run_activity',
     label: 'Run Evidence Orchestrator Activity',
     description:
-      'Execute exactly one checkpoint of the current knowledge-loop activity',
+      'Execute one current-loop activity; Pair automatically runs the complete recorded coding Story until approval-ready or exceptional',
     promptSnippet:
       'Run the current Evidence Orchestrator activity in its bounded subagent or deterministic controller',
     promptGuidelines: [
-      'Use evidence_orchestrator_run_activity to execute one current-loop checkpoint; do not perform delegated work in the parent agent.',
+      'Use evidence_orchestrator_run_activity for the current loop; in Pair it owns the complete bounded Driver/Reviewer/controller cycle, so do not perform delegated coding in the parent agent.',
     ],
     parameters: activityRunParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {

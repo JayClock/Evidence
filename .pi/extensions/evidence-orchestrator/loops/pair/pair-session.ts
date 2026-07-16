@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { artifactPath } from '../../iteration/artifact-layout';
 import { transitionLoopState } from '../../iteration/transition-graph';
 import {
   readState,
@@ -29,6 +30,7 @@ import type {
 } from '../../iteration/state';
 import {
   executeTestStep,
+  readExecutionRecords,
   type TestExecutionRecord,
 } from '../../capabilities/execution-evidence/observation-log';
 import { generateExecutionEvidence } from '../../capabilities/execution-evidence/manifest';
@@ -75,6 +77,21 @@ export interface PairActionResult {
   output: string;
   record?: TestExecutionRecord;
 }
+
+export interface PairRedReviewResult {
+  failureKind: RedFailureKind;
+  reason: string;
+}
+
+const RED_FAILURE_KINDS = new Set<RedFailureKind>([
+  'behavior',
+  'compile',
+  'dependency',
+  'configuration',
+  'network',
+  'fixture',
+  'other',
+]);
 
 function digest(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
@@ -226,11 +243,86 @@ function nextIncompleteWorkUnit(
   return pairWorkUnits(cwd, state).find(({ test }) => !completed.has(test.id));
 }
 
+function sameProcessStep(left: PairWorkUnit, right: PairWorkUnit): boolean {
+  return left.process.id === right.process.id && left.stepId === right.stepId;
+}
+
 function expectedRed(unit: PairWorkUnit): string {
   if (!unit.test.intent.trim()) {
     throw new Error(`No approved test intent for ${unitKey(unit)}.`);
   }
   return unit.test.intent;
+}
+
+export function buildPairRedReviewTask(
+  cwd: string,
+  state: WorkflowState,
+): string {
+  const session = state.pair_session;
+  const workItem = state.active_work_item;
+  const red = session?.red_observation;
+  if (
+    state.loop !== 'pair' ||
+    !session ||
+    session.checkpoint !== 'red_observed' ||
+    !red ||
+    red.accepted === true ||
+    !workItem
+  ) {
+    throw new Error('AI Red review requires one unclassified Pair Red.');
+  }
+  const logPath = artifactPath(
+    cwd,
+    state,
+    `artifacts/05-code/${workItem.story_id}/execution.jsonl`,
+  );
+  const record = readExecutionRecords(logPath).find(
+    ({ sequence }) => sequence === red.sequence,
+  );
+  if (!record || record.stage !== 'red') {
+    throw new Error(`Red execution record ${red.sequence} is missing.`);
+  }
+  return `独立分类一个 Evidence Pair Red，不执行命令也不修改任何文件。
+
+当前工作项：${session.story_id} / ${session.task_id}/${session.test_id}
+工序：${session.process_id}/${session.step_id}
+测试意图：${session.expected_red}
+命令：${record.command}
+退出码：${record.exit_code}
+stdout：${record.stdout_summary ?? '(empty)'}
+stderr：${record.stderr_summary ?? '(empty)'}
+
+只判断失败的直接原因：
+- behavior：测试到达业务断言，且仅因计划中的行为尚未实现而失败；
+- compile、dependency、configuration、network、fixture、other：任何伪 Red。
+
+最终响应必须只有一行 JSON，不得使用 Markdown：{"failureKind":"behavior|compile|dependency|configuration|network|fixture|other","reason":"基于实际输出的具体判断依据"}`;
+}
+
+export function parsePairRedReview(output: string): PairRedReviewResult {
+  const candidates = [
+    output.trim(),
+    ...(output.match(/\{[^{}]*\}/g) ?? []).reverse(),
+  ];
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as {
+        failureKind?: unknown;
+        reason?: unknown;
+      };
+      const failureKind = parsed.failureKind as RedFailureKind;
+      const reason =
+        typeof parsed.reason === 'string' ? parsed.reason.trim() : '';
+      if (RED_FAILURE_KINDS.has(failureKind) && reason) {
+        return { failureKind, reason };
+      }
+    } catch {
+      // Try the next JSON object from the reviewer response.
+    }
+  }
+  throw new Error(
+    'AI Red Reviewer did not return one valid classification JSON object.',
+  );
 }
 
 export function pairDriverMode(
@@ -306,15 +398,19 @@ ${common}
 
 ${common}
 
-已由 Navigator 接受的 Red：${session.red_observation?.review_reason ?? session.expected_red}。
+已由独立 Red Reviewer 分类的预期行为失败：${session.red_observation?.review_reason ?? session.expected_red}。
+${session.last_observation && session.last_observation.stage !== 'red' && session.last_observation.exit_code !== 0 ? `当前自动修复反馈：${session.last_observation.stage} exit=${session.last_observation.exit_code} · ${session.last_observation.command}\nstdout=${session.last_observation.stdout_summary ?? '(empty)'}\nstderr=${session.last_observation.stderr_summary ?? '(empty)'}` : ''}
 
 读取已确认测试与 Red，只写最小生产实现；不得修改、删除、跳过或削弱任何测试，不得修改计划、状态或执行证据，不得运行聚焦命令，不得提交 Git。完成最小实现后立即停止。所有测试路径会被冻结并由确定性保护器校验。`;
   }
-  return `执行一个且仅一个 Production Driver Refactor checkpoint。
+  const stepTestIds = pairWorkUnits(cwd, state)
+    .filter((candidate) => sameProcessStep(candidate, unit))
+    .map(({ test }) => test.id);
+  return `执行一个且仅一个 process-step Refactor checkpoint。
 
 ${common}
 
-Green 已观测通过。只重构生产实现以改善命名、职责或重复；不得改变行为，不得修改任何测试，不得修改计划、状态或执行证据，不得运行命令，不得提交 Git。若没有有价值的安全重构，明确说明 no-op 并立即停止。`;
+当前步骤已 Green 的 TEST：${stepTestIds.join(', ')}。只对整个 ${stepKey(unit)} 步骤的生产实现做一次有界重构，以改善命名、职责或重复；不得改变行为，不得修改任何测试，不得修改计划、状态或执行证据，不得运行命令，不得提交 Git。若没有有价值的安全重构，明确说明 no-op 并立即停止。`;
 }
 
 function readSnapshotFile(cwd: string, path: string): SnapshotFile | undefined {
@@ -689,6 +785,8 @@ function observation(record: TestExecutionRecord): PairObservation {
     sequence: record.sequence,
     exit_code: record.exit_code,
     expected_failure: record.expected_failure,
+    ...(record.stdout_summary ? { stdout_summary: record.stdout_summary } : {}),
+    ...(record.stderr_summary ? { stderr_summary: record.stderr_summary } : {}),
   };
 }
 
@@ -732,7 +830,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `Observed Red for ${unitKey(unit)} at ${stepKey(unit)}: exit=${record.exit_code}.\nExpected behavior: ${state.pair_session.expected_red}\nNavigator must run /evidence-pair accept-red <reason> only for a behavior failure, or reject-red <kind> <reason>.`,
+      output: `Observed Red for ${unitKey(unit)} at ${stepKey(unit)}: exit=${record.exit_code}.\nExpected behavior: ${state.pair_session.expected_red}\nThe independent AI Red Reviewer will classify this observation before automation continues.`,
     };
   }
   if (action === 'run_green') {
@@ -747,17 +845,59 @@ export function executePairAction(
     });
     const green = observation(record);
     const passed = record.exit_code === 0;
+    if (!passed) {
+      const next = saveSession(cwd, state, {
+        ...state.pair_session,
+        checkpoint: 'red_observed',
+        last_observation: green,
+      });
+      return {
+        state: next,
+        record,
+        output: `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run to retry the Production Driver, or /evidence-pair back-test|back-tasking <reason>.`,
+      };
+    }
+    const completedTestIds = [
+      ...new Set([...state.pair_session.completed_test_ids, unit.test.id]),
+    ];
+    const withGreen = {
+      ...state,
+      pair_session: {
+        ...state.pair_session,
+        completed_test_ids: completedTestIds,
+        last_observation: green,
+      },
+    };
+    const nextUnit = nextIncompleteWorkUnit(cwd, withGreen);
+    if (nextUnit && sameProcessStep(unit, nextUnit)) {
+      const next = writeState(cwd, {
+        ...withGreen,
+        pair_session: {
+          ...withGreen.pair_session,
+          checkpoint: 'plan_confirmed',
+          task_id: nextUnit.task.id,
+          test_id: nextUnit.test.id,
+          process_id: nextUnit.process.id,
+          step_id: nextUnit.stepId,
+          expected_red: expectedRed(nextUnit),
+          red_observation: undefined,
+        },
+      });
+      return {
+        state: next,
+        record,
+        output: `Observed Green for ${unitKey(unit)}. Refactor is deferred until all TESTs in ${stepKey(unit)} are Green. Paused before ${unitKey(nextUnit)}; run /evidence-run to start its Test Driver checkpoint.`,
+      };
+    }
     const next = saveSession(cwd, state, {
       ...state.pair_session,
-      checkpoint: passed ? 'green_observed' : 'red_observed',
+      checkpoint: 'green_observed',
       last_observation: green,
     });
     return {
       state: next,
       record,
-      output: passed
-        ? `Observed Green for ${unitKey(unit)}. Next: /evidence-run for one bounded Refactor Driver checkpoint.`
-        : `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run to retry the Production Driver, or /evidence-pair back-test|back-tasking <reason>.`,
+      output: `Observed Green for ${unitKey(unit)}. All TESTs in ${stepKey(unit)} are Green; next /evidence-run starts one bounded process-step Refactor Driver checkpoint.`,
     };
   }
   if (action === 'run_refactor') {
@@ -780,7 +920,7 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Refactor verification failed for ${unitKey(unit)} with exit=${record.exit_code}. Return to the bounded Refactor Driver; quality gates have not started.`,
+        output: `Refactor verification failed for ${stepKey(unit)} with exit=${record.exit_code}. Return to the bounded process-step Refactor Driver; quality gates have not started.`,
       };
     }
     const completedTestIds = [
@@ -790,9 +930,14 @@ export function executePairAction(
     const completedTaskIds = [
       ...new Set([
         ...state.pair_session.completed_task_ids,
-        ...(unit.task.test_ids.every((id) => completedTestIds.includes(id))
-          ? [unit.task.id]
-          : []),
+        ...allUnits
+          .map(({ task }) => task)
+          .filter(
+            (task, index, tasks) =>
+              tasks.findIndex(({ id }) => id === task.id) === index &&
+              task.test_ids.every((id) => completedTestIds.includes(id)),
+          )
+          .map(({ id }) => id),
       ]),
     ];
     const stepCompleted = allUnits
@@ -833,7 +978,7 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Refactor verified for ${unitKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-run to start one Test Driver checkpoint.`,
+        output: `Refactor verified once for ${stepKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-run to start one Test Driver checkpoint.`,
       };
     }
     const next = writeState(cwd, {
@@ -846,7 +991,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `All approved TASK/TEST units are Refactor-green. Next /evidence-run executes exactly one final quality gate.`,
+      output: `All approved TASK/TEST units are Green and every process step is Refactor-green. Next /evidence-run executes exactly one final quality gate.`,
     };
   }
 
@@ -887,8 +1032,8 @@ export function executePairAction(
     state: next,
     record,
     output: complete
-      ? 'All final quality gates passed for the complete Story Scenario Set; the human Navigator must enter iteration Showcase.'
-      : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; /evidence-run executes only the next one.`,
+      ? 'All final quality gates passed for the complete Story Scenario Set. Automated coding evidence is ready for one human Story-level approval.'
+      : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; Pair automation will execute the next one.`,
   };
 }
 
@@ -897,6 +1042,7 @@ export function reviewPairRed(
   kind: RedFailureKind,
   reason: string,
   now = new Date().toISOString(),
+  reviewedBy: 'human' | 'red-reviewer' = 'human',
 ): WorkflowState {
   const state = pairState(cwd);
   const red = state.pair_session.red_observation;
@@ -913,6 +1059,7 @@ export function reviewPairRed(
       accepted: true,
       failure_kind: kind,
       review_reason: normalized,
+      reviewed_by: reviewedBy,
       reviewed_at: now,
     };
     return saveSession(cwd, state, {
@@ -934,6 +1081,7 @@ export function reviewPairRed(
       accepted: false,
       failure_kind: kind,
       review_reason: normalized,
+      reviewed_by: reviewedBy,
       reviewed_at: now,
     },
     feedback: [
@@ -941,7 +1089,7 @@ export function reviewPairRed(
       {
         action: 'reject_red',
         reason: `${kind}: ${normalized}`,
-        decided_by: 'human',
+        decided_by: reviewedBy === 'human' ? 'human' : 'system',
         recorded_at: now,
       },
     ],
@@ -1029,6 +1177,10 @@ export function navigatePair(
       : state.pair_session.completed_step_ids.filter(
           (step) => step !== currentKey,
         ),
+    quality_gate_index: keepCompletion
+      ? state.pair_session.quality_gate_index
+      : 0,
+    automation_exception: undefined,
     ...(action === 'back_test' ? { red_observation: undefined } : {}),
     feedback: [
       ...state.pair_session.feedback,
@@ -1045,20 +1197,23 @@ export function navigatePair(
 export function pairNextInstruction(state: WorkflowState): string {
   const session = state.pair_session;
   if (!session) return 'return to Tasking';
+  if (session.automation_exception) {
+    return '/evidence-pair back-test|back-implementation|back-tasking|retry-quality <reason> routes the recorded automation exception';
+  }
   switch (session.checkpoint) {
     case 'plan_confirmed':
     case 'test_written':
     case 'implementation_written':
     case 'green_observed':
     case 'refactored':
-      return '/evidence-run advances one checkpoint';
+      return '/evidence-run continues automated Pair coding';
     case 'red_observed':
       return session.red_observation?.accepted
-        ? '/evidence-run starts one Production Driver checkpoint'
-        : '/evidence-pair accept-red <reason> or reject-red <kind> <reason>';
+        ? '/evidence-run continues with the Production Driver'
+        : '/evidence-run invokes the independent AI Red Reviewer';
     case 'quality_gate_failed':
-      return '/evidence-pair retry-quality|back-implementation|back-test|back-tasking <reason>';
+      return '/evidence-run attempts bounded automated repair; explicit back-* routing remains available after an exception';
     case 'quality_gates_passed':
-      return '/evidence-pair showcase <reason> completes the Story delivery boundary';
+      return '/evidence-pair approve <reason> records the one human Story coding decision and enters Showcase';
   }
 }

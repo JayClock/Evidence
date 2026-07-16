@@ -24,6 +24,7 @@ import {
   parseDeskCheckDecision,
   parseKickoffDecision,
   parseModelingProfileDecision,
+  parsePairDecision,
   parseScenarioDecision,
   promptDeskCheckDecision,
   promptKickoffDecision,
@@ -274,6 +275,16 @@ describe('commands', () => {
       action: 'approve',
       reason: 'Optional approval note.',
     });
+    expect(
+      parsePairDecision('approve Complete Story coding evidence.'),
+    ).toEqual({
+      kind: 'delivery',
+      action: 'showcase',
+      reason: 'Complete Story coding evidence.',
+    });
+    expect(() =>
+      parsePairDecision('accept-red Human should not classify routine Red.'),
+    ).toThrow('Usage: /evidence-pair approve');
     expect(() => parseDeskCheckDecision('revise')).toThrow('requires a reason');
     expect(() => parseKickoffDecision('revise')).toThrow(
       'requires a business reason',

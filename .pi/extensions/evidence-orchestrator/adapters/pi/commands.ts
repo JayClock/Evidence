@@ -18,7 +18,6 @@ import {
 import {
   navigatePair,
   pairNextInstruction,
-  reviewPairRed,
 } from '../../loops/pair/pair-session';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
@@ -89,8 +88,8 @@ export function activeStageCommand(
       : 'evidence-run';
   }
   if (state.loop === 'pair') {
-    return state.pair_session?.checkpoint === 'red_observed' ||
-      state.pair_session?.checkpoint === 'quality_gate_failed'
+    return state.pair_session?.checkpoint === 'quality_gates_passed' ||
+      state.pair_session?.automation_exception
       ? 'evidence-pair'
       : 'evidence-run';
   }
@@ -353,7 +352,7 @@ export function registerCommands(
 
   registerStageCommand('evidence-pair', {
     description:
-      'Human Navigator decision for Red acceptance or a return to test, implementation, Tasking, or quality-gate retry',
+      'One human Story-level coding approval after automated Pair, or explicit exception routing',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
@@ -364,18 +363,14 @@ export function registerCommands(
           return;
         }
         const state =
-          decision.kind === 'red'
-            ? reviewPairRed(ctx.cwd, decision.failureKind, decision.reason)
-            : decision.kind === 'delivery'
-              ? decideDeliveryIncrement(
-                  ctx.cwd,
-                  decision.action,
-                  decision.reason,
-                )
-              : navigatePair(ctx.cwd, decision.action, decision.reason);
+          decision.kind === 'delivery'
+            ? decideDeliveryIncrement(ctx.cwd, decision.action, decision.reason)
+            : navigatePair(ctx.cwd, decision.action, decision.reason);
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
-          `Pair decision recorded. ${pairNextInstruction(state)}.`,
+          decision.kind === 'delivery'
+            ? `Human Story coding approval recorded at ${state.pair_session?.coding_decision?.artifact_path ?? 'missing'}. Entered Showcase.`
+            : `Pair exception decision recorded. ${pairNextInstruction(state)}.`,
           'info',
         );
       } catch (error) {
@@ -481,7 +476,7 @@ export function registerCommands(
 
   registerStageCommand('evidence-run', {
     description:
-      'Run the current activity; Pair advances at most one Driver or command checkpoint per invocation',
+      'Run the current activity; Pair automatically completes recorded coding checkpoints until Story approval or exception',
     handler: async (args, ctx) => {
       const parsed = parseArgs(args);
       try {

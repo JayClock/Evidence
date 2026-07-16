@@ -69,17 +69,18 @@
     },
     {
       "id": "WK-PAIRING",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "owner": "Delivery",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-pairing/SKILL.md",
       "prompt_paths": [],
       "validated_scenarios": [
-        "EOV5-010: Navigator-controlled Red/Green/Refactor",
+        "EOV5-010: controller-automated Red/Green with independent AI Red review",
         "EOV5-011: generated execution evidence",
-        "Pair spec: separate TASK/TEST cycles on one process step"
+        "Pair spec: separate TASK/TEST Red/Green cycles and one Refactor per process step",
+        "Pair spec: one human coding approval after all Story quality gates pass"
       ],
-      "latest_feedback": "One short-lived Driver and one active TASK/TEST at a time; method=none preserves direct Scenario-to-code traceability without inventing model refs.",
+      "latest_feedback": "Keep one active TASK/TEST and short-lived bounded agents, but let one Pair run automatically record the complete coding Story; reserve human authority for the final Story coding decision and exceptional scope routing.",
       "supersedes": []
     },
     {

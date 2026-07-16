@@ -89,6 +89,12 @@ function agentFor(state: WorkflowState): string | undefined {
   }
   if (state.loop === 'tasking') return 'architect';
   if (state.loop === 'pair') {
+    if (
+      state.pair_session?.checkpoint === 'red_observed' &&
+      state.pair_session.red_observation?.accepted !== true
+    ) {
+      return 'red-reviewer';
+    }
     const mode = pairDriverMode(state);
     return mode === 'test'
       ? 'test-driver'
@@ -378,15 +384,14 @@ export function prepareActivityRun(
   }
   if (
     current.loop === 'pair' &&
-    current.pair_session &&
-    ((current.pair_session.checkpoint === 'red_observed' &&
-      current.pair_session.red_observation?.accepted !== true) ||
-      current.pair_session.checkpoint === 'quality_gate_failed' ||
-      current.pair_session.checkpoint === 'quality_gates_passed')
+    (current.pair_session?.checkpoint === 'quality_gates_passed' ||
+      current.pair_session?.automation_exception)
   ) {
     throw new ActivityRunBlockedError(
       'pair_navigation',
-      `Pair is paused at ${current.pair_session.checkpoint}. ${pairNextInstruction(current)}.`,
+      current.pair_session?.automation_exception
+        ? `Automated Pair coding stopped with an exception: ${current.pair_session.automation_exception.reason}. ${pairNextInstruction(current)}.`
+        : `Automated Pair coding is complete. ${pairNextInstruction(current)}.`,
     );
   }
   if (current.pending_clarification) {

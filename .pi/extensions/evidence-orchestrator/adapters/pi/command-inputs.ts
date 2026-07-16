@@ -1,4 +1,5 @@
 import type { ExtensionCommandContext } from '@earendil-works/pi-coding-agent';
+import { executionEvidencePaths } from '../../capabilities/execution-evidence/manifest';
 import { readState } from '../../iteration/state-repository';
 import type {
   DeliveryIncrementAction,
@@ -7,7 +8,6 @@ import type {
   ModelingMethod,
   ModelingSubject,
   ModelDecisionAction,
-  RedFailureKind,
   ShowcaseDecisionAction,
   ShowcaseEvaluationActivity,
   ShowcaseEvaluationOutcome,
@@ -413,50 +413,21 @@ export async function promptDeskCheckDecision(
 }
 
 type PairDecisionInput =
-  | { kind: 'red'; failureKind: RedFailureKind; reason: string }
   | { kind: 'navigate'; action: PairNavigationAction; reason: string }
   | { kind: 'delivery'; action: DeliveryIncrementAction; reason: string };
-
-const RED_FAILURE_KINDS: RedFailureKind[] = [
-  'behavior',
-  'compile',
-  'dependency',
-  'configuration',
-  'network',
-  'fixture',
-  'other',
-];
 
 export function parsePairDecision(args: string): PairDecisionInput | undefined {
   const [rawAction, ...rest] = args.trim().split(/\s+/);
   if (!rawAction) return undefined;
   const action = rawAction.toLowerCase().replaceAll('-', '_');
-  if (action === 'showcase') {
+  if (action === 'approve' || action === 'showcase') {
     const reason = rest.join(' ').trim();
     if (!reason) throw new Error(`${rawAction} requires a delivery reason.`);
     return {
       kind: 'delivery',
-      action: action as DeliveryIncrementAction,
+      action: 'showcase' as DeliveryIncrementAction,
       reason,
     };
-  }
-  if (action === 'accept_red') {
-    const reason = rest.join(' ').trim();
-    if (!reason) throw new Error('accept-red requires a behavior reason.');
-    return { kind: 'red', failureKind: 'behavior', reason };
-  }
-  if (action === 'reject_red') {
-    const failureKind = rest.shift() as RedFailureKind | undefined;
-    const reason = rest.join(' ').trim();
-    if (!failureKind || !RED_FAILURE_KINDS.includes(failureKind) || !reason) {
-      throw new Error(
-        'reject-red requires <compile|dependency|configuration|network|fixture|other> <reason>.',
-      );
-    }
-    if (failureKind === 'behavior') {
-      throw new Error('Use accept-red for a legitimate behavior failure.');
-    }
-    return { kind: 'red', failureKind, reason };
   }
   const navigation = action as PairNavigationAction;
   if (
@@ -468,7 +439,7 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
     ].includes(navigation)
   ) {
     throw new Error(
-      'Usage: /evidence-pair accept-red <reason> | reject-red <kind> <reason> | back-test|back-implementation|back-tasking|retry-quality <reason> | showcase <reason>.',
+      'Usage: /evidence-pair approve <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>.',
     );
   }
   const reason = rest.join(' ').trim();
@@ -479,50 +450,22 @@ export function parsePairDecision(args: string): PairDecisionInput | undefined {
 export async function promptPairDecision(
   ctx: ExtensionCommandContext,
 ): Promise<PairDecisionInput | undefined> {
-  const session = readState(ctx.cwd).pair_session;
+  const state = readState(ctx.cwd);
+  const session = state.pair_session;
   if (!session) throw new Error('No Pair session is active.');
   if (!ctx.hasUI) {
     throw new Error(
       'Pair navigation requires interactive mode or explicit command arguments.',
     );
   }
-  if (
-    session.checkpoint === 'red_observed' &&
-    session.red_observation?.accepted !== true
-  ) {
-    const choice = await ctx.ui.select('判断实际 Red 的失败性质', [
-      '接受：预期业务行为尚未实现',
-      '拒绝：编译失败',
-      '拒绝：依赖失败',
-      '拒绝：配置失败',
-      '拒绝：网络失败',
-      '拒绝：Fixture 损坏',
-      '拒绝：其他非行为失败',
-    ]);
-    if (!choice) return undefined;
-    const kinds: Record<string, RedFailureKind> = {
-      '接受：预期业务行为尚未实现': 'behavior',
-      '拒绝：编译失败': 'compile',
-      '拒绝：依赖失败': 'dependency',
-      '拒绝：配置失败': 'configuration',
-      '拒绝：网络失败': 'network',
-      '拒绝：Fixture 损坏': 'fixture',
-      '拒绝：其他非行为失败': 'other',
-    };
-    const failureKind = kinds[choice];
-    const reason = (await ctx.ui.input('请说明判断依据'))?.trim();
-    return failureKind && reason
-      ? { kind: 'red', failureKind, reason }
-      : undefined;
-  }
   if (session.checkpoint === 'quality_gates_passed') {
-    const choice = await ctx.ui.select('Story 验收集合已完成', [
-      '进入 Showcase',
-    ]);
+    const evidence = executionEvidencePaths(ctx.cwd);
+    const choice = await ctx.ui.select(
+      `AI 编码与全部质量门禁已完成 · 请审查 ${evidence.summary ?? evidence.manifest ?? 'missing execution evidence'}`,
+      ['批准 Story 编码并进入 Showcase'],
+    );
     if (!choice) return undefined;
-    const reason = (
-      await ctx.ui.input('请说明进入 Showcase 的交付理由')
-    )?.trim();
+    const reason = (await ctx.ui.input('请说明 Story 级编码批准理由'))?.trim();
     return reason
       ? { kind: 'delivery', action: 'showcase', reason }
       : undefined;

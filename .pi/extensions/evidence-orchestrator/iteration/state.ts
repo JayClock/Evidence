@@ -254,9 +254,12 @@ export interface PairObservation {
   sequence: number;
   exit_code: number;
   expected_failure: boolean;
+  stdout_summary?: string;
+  stderr_summary?: string;
   accepted?: boolean;
   failure_kind?: RedFailureKind;
   review_reason?: string;
+  reviewed_by?: 'human' | 'red-reviewer';
   reviewed_at?: string;
 }
 
@@ -286,6 +289,25 @@ export interface PairDriverRecord {
   completed_at: string;
 }
 
+export interface PairAutomationException {
+  kind: 'automation_exhausted';
+  reason: string;
+  checkpoint: PairCheckpoint;
+  recorded_at: string;
+}
+
+export interface PairCodingDecision {
+  version: 1;
+  story_id: string;
+  action: 'approve';
+  reason: string;
+  execution_manifest_path: string;
+  execution_manifest_sha256: string;
+  artifact_path: string;
+  decided_by: 'human';
+  decided_at: string;
+}
+
 export interface PairSession {
   version: 2;
   story_id: string;
@@ -308,6 +330,10 @@ export interface PairSession {
   quality_gate_index: number;
   feedback: PairFeedbackRecord[];
   driver_history: PairDriverRecord[];
+  /** Persisted only when bounded AI execution cannot continue without exception routing. */
+  automation_exception?: PairAutomationException;
+  /** Story-level human authority recorded only after all automated coding gates pass. */
+  coding_decision?: PairCodingDecision;
 }
 
 export interface ShowcaseQ2Observation {

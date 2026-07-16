@@ -106,10 +106,12 @@ export function transitionLoopState(
   if (
     from === 'pair' &&
     request.to === 'showcase' &&
-    state.pair_session?.checkpoint !== 'quality_gates_passed'
+    (state.pair_session?.checkpoint !== 'quality_gates_passed' ||
+      state.pair_session.automation_exception ||
+      state.pair_session.coding_decision?.action !== 'approve')
   ) {
     throw new Error(
-      'Pair cannot enter Showcase before every final quality gate passes.',
+      'Pair cannot enter Showcase before every final quality gate passes and the human approves the complete Story coding evidence.',
     );
   }
   if (
