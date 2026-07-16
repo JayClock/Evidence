@@ -16,7 +16,7 @@ import { prepareActivityRun } from '../../adapters/pi/activity/dispatch';
 import { statusMarkdown } from '../../adapters/pi/status';
 import { buildActivityTask } from '../../adapters/pi/activity/task';
 import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
-import { completeNoModelImpact } from '../understand/modeling/no-model-impact';
+import { completeNoModelImpact } from '../../capabilities/modeling-evidence/no-model-impact';
 import { decideTasking } from './desk-check';
 import { proposeTaskingDraft, type TaskingDraftInput } from './tasking-draft';
 

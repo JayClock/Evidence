@@ -21,6 +21,7 @@ import {
   readExecutionRecords,
   type TestExecutionRecord,
 } from './observation-log';
+import { verifyNoModelImpactEvidence } from '../modeling-evidence/no-model-impact';
 import {
   readTestProcess,
   testProcessDefinitionSha256,
@@ -898,24 +899,30 @@ function buildManifest(
       `Model expansion evidence is missing: ${state.model_expansion_path}.`,
     );
   }
-  const modelDecision = state.model_decisions?.at(-1);
   const modelExpansionSha256 = state.model_expansion_path
     ? digest(readFileSync(join(cwd, state.model_expansion_path)))
     : undefined;
-  if (
-    !modelDecision ||
-    modelDecision.action !== 'confirm' ||
-    !existsSync(join(cwd, modelDecision.artifact_path)) ||
-    JSON.stringify(
-      JSON.parse(
-        readFileSync(join(cwd, modelDecision.artifact_path), 'utf8'),
-      ) as unknown,
-    ) !== JSON.stringify(modelDecision) ||
-    modelDecision.model_expansion_sha256 !== modelExpansionSha256
-  ) {
-    throw new Error(
-      'Execution manifest requires the unchanged human-confirmed model expansion.',
-    );
+  let modelingDecisionPath: string;
+  if (state.modeling_profile?.method === 'none') {
+    modelingDecisionPath = verifyNoModelImpactEvidence(cwd, state);
+  } else {
+    const modelDecision = state.model_decisions?.at(-1);
+    if (
+      !modelDecision ||
+      modelDecision.action !== 'confirm' ||
+      !existsSync(join(cwd, modelDecision.artifact_path)) ||
+      JSON.stringify(
+        JSON.parse(
+          readFileSync(join(cwd, modelDecision.artifact_path), 'utf8'),
+        ) as unknown,
+      ) !== JSON.stringify(modelDecision) ||
+      modelDecision.model_expansion_sha256 !== modelExpansionSha256
+    ) {
+      throw new Error(
+        'Execution manifest requires the unchanged human-confirmed model expansion.',
+      );
+    }
+    modelingDecisionPath = modelDecision.artifact_path;
   }
   return {
     version: 2,
@@ -946,7 +953,7 @@ function buildManifest(
         ? {
             model_expansion: state.model_expansion_path,
             model_expansion_sha256: modelExpansionSha256,
-            model_decision: modelDecision.artifact_path,
+            model_decision: modelingDecisionPath,
           }
         : {}),
       functional_contexts: [

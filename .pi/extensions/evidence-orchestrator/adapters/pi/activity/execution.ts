@@ -3,7 +3,7 @@ import type {
   ActivityAgentResult,
 } from '../../node/activity-agent-process';
 import { runActivitySubagent } from '../../node/activity-agent-process';
-import { completeNoModelImpact } from '../../../loops/understand/modeling/no-model-impact';
+import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 import {
   capturePairWorktree,
   completePairDriver,

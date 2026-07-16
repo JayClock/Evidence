@@ -7,7 +7,7 @@ import type {
   WorkflowState,
 } from '../../../iteration/state';
 import { modelingText, requireModelingState } from './modeling-state';
-import { completeNoModelImpact } from './no-model-impact';
+import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 
 const SUBJECTS = new Set<ModelingSubject>(['business', 'domain', 'tool']);
 const METHODS = new Set<ModelingMethod>([
