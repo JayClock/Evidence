@@ -11,7 +11,7 @@ import {
 export function buildActivityTask(cwd: string, extra = ''): string {
   const state = readState(cwd);
   if (state.loop === 'complete') {
-    return 'Evidence Orchestrator 本轮已完成。读取 07-learning/next-iteration.md；由人类更新 GitHub Issue 后用 /evidence-new 创建新的冻结快照，不扩写已完成的 iteration。';
+    return 'Evidence Orchestrator 本轮已完成。读取 07-learning/next-iteration.md；由人类把 Next Probe 收集进 Inbox、提取候选后用 /evidence-new 创建新迭代，不扩写已完成的 iteration。';
   }
   if (state.loop === 'kickoff') {
     const requirements = artifactRelativePath(
@@ -45,7 +45,7 @@ export function buildActivityTask(cwd: string, extra = ''): string {
 ${completedScopeContext}
 ${storyRevisionContext}
 
-任务：从冻结 Issue 和当前迭代进展提出一个问题、一个角色、一个可协商目标、一个价值和当前认知行为。若上下文包含 Story 修订反馈，修订同一张 Story；否则提出迭代中的下一张候选 Story。只调用 evidence_orchestrator_propose_kickoff 一次后停止；不分配 US-xxx、不批量建卡、不写权威产品知识。
+任务：从冻结 Inbox Intake、稳定产品上下文和明确的 Story 修订反馈，提出一张替代 Kickoff 候选，保留一个问题、一个角色、一个可协商目标、一个价值和当前认知行为。只调用 evidence_orchestrator_propose_kickoff 一次后停止；不分配 US-xxx、不扩展 Inbox backlog、不写权威产品知识。
 
 额外用户指令：
 ${extra || '（无）'}

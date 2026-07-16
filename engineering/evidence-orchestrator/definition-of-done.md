@@ -43,4 +43,4 @@
 - Probe/Sense/Respond 反馈进入 iteration summary；模型和代码使用同一 Git baseline，路径不一致时不得完成。
 - 只提升被本 Story Scenario Set 实际使用、经执行与 Showcase 验证并由人类确认的产品、模型、架构、工序或 Skill/Prompt 知识；本轮无可复用知识时允许空 promotions，但必须说明原因。
 - deferred/rejected 候选保留理由且不污染权威来源；未应用或未验证的模型补丁不得提升。
-- 下一轮输出一个明确待学习问题及第一步 Probe。更新 GitHub Issue 和创建新快照由人类在迭代边界后明确执行，旧 iteration 保持不可变。
+- 下一轮输出一个明确待学习问题及第一步 Probe。将 Probe 收集进 Inbox、提取 Story 候选和创建新 Intake 由人类在迭代边界后明确执行，旧 iteration 保持不可变。

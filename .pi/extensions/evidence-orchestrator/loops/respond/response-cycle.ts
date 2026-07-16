@@ -414,7 +414,7 @@ function renderSummary(candidate: RespondCandidate): string {
 }
 
 function renderProbe(probe: NextProbe): string {
-  return `# Next Probe\n\n## Learning question\n${probe.question}\n\n## Why now\n${probe.why_now}\n\n## Evidence\n${probe.evidence_refs.map((path) => `- ${path}`).join('\n')}\n\n## First action\n${probe.first_action}\n\n> Updating the GitHub Issue and creating a new snapshot remain explicit human actions.\n`;
+  return `# Next Probe\n\n## Learning question\n${probe.question}\n\n## Why now\n${probe.why_now}\n\n## Evidence\n${probe.evidence_refs.map((path) => `- ${path}`).join('\n')}\n\n## First action\n${probe.first_action}\n\n> Capturing this Probe in the Inbox and selecting a new Story candidate remain explicit human actions.\n`;
 }
 
 export function decideKnowledgeResponse(

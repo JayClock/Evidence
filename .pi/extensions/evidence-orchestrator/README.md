@@ -1,6 +1,6 @@
 # Evidence Orchestrator 扩展维护指南
 
-该目录保存当前仓库开发 Evidence 所用的确定性状态、执行、保护与审计代码。它是[内部研发工具](../../../engineering/evidence-orchestrator/product-boundary.md)，不是 Evidence 产品 runtime、bounded context 或用户能力；以 Evidence 的 Issue、模型、测试和代码验证工作流属于 dogfooding。
+该目录保存当前仓库开发 Evidence 所用的确定性状态、执行、保护与审计代码。它是[内部研发工具](../../../engineering/evidence-orchestrator/product-boundary.md)，不是 Evidence 产品 runtime、bounded context 或用户能力；以 Evidence 的 Inbox 来源、模型、测试和代码验证工作流属于 dogfooding。
 
 扩展只负责控制机制：
 
@@ -16,7 +16,11 @@
 
 ```mermaid
 flowchart LR
-  I[GitHub Issue frozen snapshot] --> K[Kickoff]
+  G[GitHub Issue] --> I[Inbox]
+  M[Manual text] --> I
+  F[Local Markdown] --> I
+  I --> C[Story candidates]
+  C --> K[Frozen Intake / Kickoff]
   K --> U[Understand]
   U --> T[Tasking]
   T --> P[Pair]
@@ -30,7 +34,9 @@ flowchart LR
   U -. problem gap .-> K
 ```
 
-一轮是一个以**单一人工确认 User Story** 为边界的交付迭代。冻结 GitHub Issue 是需求权威来源，但若其中包含多张 Story，其余 Story 必须进入后续迭代。三个反馈粒度保持嵌套：
+Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经确认的 Story 候选。GitHub Issue 只是一个 Source Adapter；AI 候选没有权威性。人类以 `/evidence-new [CAND-xxxx]` 选择一张 ready 候选后，系统冻结自包含 Intake；只有 Kickoff 人工确认后生成的 `US-xxx` Story Card 才是本轮交付权威。
+
+一轮是一个以**单一人工确认 User Story** 为边界的交付迭代。三个反馈粒度保持嵌套：
 
 - **Iteration / Story**：一轮恰好交付一张 `US-xxx`，起于 Kickoff，止于该 Story 的 Showcase / Respond；
 - **Scenario Set**：TQA 后一次确认该 Story 范围内完整的 `SC-xxx` 验收集合，联合建模、Tasking 和验收；
@@ -38,7 +44,7 @@ flowchart LR
 
 具体流程：
 
-1. **Kickoff**：AI 从冻结 Issue 提出一个候选 Story；人类确认、修订、拆分或延期。确认后分配本迭代唯一的 `US-xxx`。
+1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
 2. **Understand**：一次提出一个面向业务的 TQA 问题；人类直接回答。AI 列出完整 Scenario Set 后由人类整体确认，再以全部 Scenario 完成 Profile、逐场景模型展开、跨场景一致性挑战和一次人工模型确认。
 3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
 4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint。每个 TEST 分别产生 Red、Green、Refactor；全部 Scenario 对应的 TASK/TEST 完成后运行一次最终 quality gates，然后进入 Showcase。
@@ -63,7 +69,7 @@ evidence-orchestrator/
 │   ├── showcase/                    # Q2/Q3/Q4、Reviewer 与人工决定
 │   └── respond/                     # knowledge response、人工确认与 next Probe
 ├── capabilities/
-│   ├── issue-source/                # 冻结与验证 requirement source
+│   ├── inbox/                       # 来源 revision、Story 候选与冻结 Intake
 │   ├── test-process/                # v2 catalog、匹配与命令物化
 │   ├── execution-evidence/          # hash-chained observation 与 manifest
 │   ├── worktree-protection/         # Git baseline、snapshot 与恢复
@@ -91,23 +97,22 @@ evidence-orchestrator/
 
 ### `capabilities/`
 
-Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Test Process、Execution Evidence、Worktree Protection 与 Working Knowledge 都以 iteration 类型为边界，不依赖 Pi UI 或某个 Loop 的私有实现。
+Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Process、Execution Evidence、Worktree Protection 与 Working Knowledge 不依赖 Pi UI 或某个 Loop 的私有实现。Inbox 的 source revision 与 candidate 跨 iteration 存续，而冻结 Intake 进入单一 iteration 边界。
 
 ### `adapters/`
 
 - `pi/host.ts` 是生命周期组合根；根 `index.ts` 保持薄。
 - `pi/commands.ts` 与 `pi/tools.ts` 只注册外部入口；参数解析、Schema 和 activity host 分文件维护。
 - `pi/activity/` 负责任务构建、单 checkpoint 调度、执行、进度和渲染。
-- `github/pi-cli.ts` 把 Pi 的可取消进程执行适配为 Issue Source port。
+- `github/inbox-source.ts` 与 `github/pi-cli.ts` 把 GitHub Issue 适配为 provider-neutral Inbox capture。
 - `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`。
 
 ## 人工命令
 
 ```text
-/evidence-new
+/evidence-inbox [list | add github|text|file | extract INBOX-xxxx,...]
+/evidence-new [CAND-xxxx]
 /evidence-status
-/evidence-issue-status
-/evidence-issue-sync
 /evidence-run [--dry-run] [当前活动补充指令]
 /evidence-kickoff confirm [reason] | revise|split|defer|stop <reason>
 /evidence-scenario confirm <DRAFT-xxx,...> [reason] | continue|split|defer <reason>
@@ -132,7 +137,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Issue Source、Tes
 
 活动工具只有以下类别：
 
-- iteration：`start_from_issue`、`sync_issue`、`status`、`run_activity`；
+- Inbox / iteration：`propose_inbox_stories`、`start_from_candidate`、`status`、`run_activity`；
 - Kickoff / Understand：`propose_kickoff`、`ask_question`、`answer_question`、`propose_scenarios`、`propose_modeling_profile`、`record_model_analysis`、`record_model_challenge`；
 - Tasking / Showcase / Respond：`propose_tasking`、`record_showcase_review`、`propose_response`。
 
@@ -159,7 +164,7 @@ artifacts/07-learning/next-iteration.md
 
 ## 状态边界
 
-持久化状态不携带工作流版本标记。没有活动 iteration 时不写入占位状态；新工作必须由人类以 `/evidence-new` 从明确的 GitHub Issue 创建。`artifacts/iterations/` 中已归档的目录仍是不可变研发证据，但运行时不会把其中的手写 JSON 解释为当前执行事实。
+持久化 workflow 状态不携带工作流版本标记。没有活动 iteration 时不写入占位 workflow 状态；Inbox 独立持久化于 `artifacts/inbox/`。新工作必须由人类以 `/evidence-new [CAND-xxxx]` 从 ready Story 候选创建。`artifacts/iterations/` 中已归档的目录仍是不可变研发证据，运行时不会把其中的手写 JSON 解释为当前执行事实。
 
 ## 依赖方向
 

@@ -9,13 +9,13 @@ export function nextStepGuidance(
   state: WorkflowState | undefined,
 ): string {
   if (!state) {
-    return '下一步：运行 /evidence-new，从明确的 GitHub Issue 创建新迭代。';
+    return '下一步：用 /evidence-inbox 收集来源并提取 Story 候选，再运行 /evidence-new [CAND-xxxx]。';
   }
   if (state.halted) {
     return `本轮已停止：${state.halted.reason}。运行 /evidence-status 查看保留的决策与证据。`;
   }
   if (state.loop === 'complete') {
-    return '本轮已完成：更新 GitHub Issue 后，运行 /evidence-new 创建下一轮冻结快照。';
+    return '本轮已完成：把 Next Probe 收集进 Inbox、提取候选，再用 /evidence-new 创建下一轮。';
   }
   if (state.loop === 'kickoff') {
     return state.kickoff_candidate

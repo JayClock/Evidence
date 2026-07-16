@@ -232,9 +232,9 @@ export function registerTools(pi: ExtensionAPI): void {
     description:
       'Persist one problem, actor, value, and Story candidate for a human Kickoff decision',
     promptSnippet:
-      'Propose one Issue-backed Story candidate without assigning a Story id',
+      'Propose one Intake-backed replacement candidate without assigning a Story id',
     promptGuidelines: [
-      'Use only in the kickoff loop after reading the Issue and stable product context.',
+      'Use only in the kickoff loop after reading the frozen Inbox Intake, stable product context, and explicit revision feedback.',
       'Propose exactly one problem and one role-value Story candidate; do not generate a backlog or assign US-xxx.',
       'After calling this tool, stop. Only a human can confirm, revise, split, defer, or stop the Kickoff.',
     ],
