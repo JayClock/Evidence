@@ -38,18 +38,6 @@ export const candidateSourceParam = Type.Object({
   }),
 });
 
-export const issueSourceParam = Type.Object({
-  issueNumber: Type.String({
-    description: 'GitHub Issue number, for example 123.',
-  }),
-  repository: Type.Optional(
-    Type.String({
-      description:
-        'Optional owner/repository. Defaults to the current GitHub repository.',
-    }),
-  ),
-});
-
 export const inboxStoryCandidatesParam = Type.Object({
   sourceIds: Type.Array(
     Type.String({ description: 'Exact selected INBOX-xxxx source id.' }),

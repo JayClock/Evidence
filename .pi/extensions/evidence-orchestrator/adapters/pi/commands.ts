@@ -20,10 +20,6 @@ import {
   pairNextInstruction,
   reviewPairRed,
 } from '../../loops/pair/pair-session';
-import {
-  checkIssueSourceDriftAsync,
-  syncIssueSourceAsync,
-} from '../../capabilities/issue-source/github-issue-source';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
 import { STATUS_KEY, statusLabel } from './identity';
@@ -32,12 +28,10 @@ import {
   ActivityRunBlockedError,
   prepareActivityRun,
 } from './activity/dispatch';
-import { createGitHubCliRunner } from '../github/pi-cli';
 import {
   requireCandidateId,
   selectReadyInboxCandidate,
 } from './candidate-picker';
-import { runWithLoader } from './loading';
 import { statusMarkdown } from './status';
 import {
   parseDeskCheckDecision,
@@ -454,71 +448,9 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
           decision.action === 'approve'
-            ? `Human approved the knowledge response. ${state.iteration_id} is complete; update the GitHub Issue explicitly before starting the next snapshot.`
+            ? `Human approved the knowledge response. ${state.iteration_id} is complete; capture the next Probe in the Inbox before starting another iteration.`
             : 'Human requested a revised knowledge response; run /evidence-run to resume Respond.',
           'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-issue-sync', {
-    description:
-      'Refresh the active GitHub Issue snapshot while still in Kickoff',
-    handler: async (_args, ctx) => {
-      try {
-        const state = await runWithLoader(
-          ctx,
-          '正在刷新 GitHub Issue 快照…',
-          (signal) =>
-            syncIssueSourceAsync(ctx.cwd, createGitHubCliRunner(pi), signal),
-        );
-        if (!state) {
-          ctx.ui.notify('Issue refresh cancelled.', 'info');
-          return;
-        }
-        ctx.ui.notify(
-          `Issue snapshot refreshed: ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
-          'info',
-        );
-      } catch (error) {
-        ctx.ui.notify(
-          error instanceof Error ? error.message : String(error),
-          'error',
-        );
-      }
-    },
-  });
-
-  pi.registerCommand('evidence-issue-status', {
-    description:
-      'Check whether the live GitHub Issue differs from its snapshot',
-    handler: async (_args, ctx) => {
-      try {
-        const drift = await runWithLoader(
-          ctx,
-          '正在检查 GitHub Issue 是否变化…',
-          (signal) =>
-            checkIssueSourceDriftAsync(
-              ctx.cwd,
-              createGitHubCliRunner(pi),
-              signal,
-            ),
-        );
-        if (!drift) {
-          ctx.ui.notify('Issue drift check cancelled.', 'info');
-          return;
-        }
-        ctx.ui.notify(
-          drift.changed
-            ? `Issue changed after snapshot: ${drift.snapshot_hash} → ${drift.remote_hash}. Refresh in Kickoff or start a new iteration.`
-            : `Issue snapshot is current: ${drift.snapshot_hash}.`,
-          drift.changed ? 'warning' : 'info',
         );
       } catch (error) {
         ctx.ui.notify(

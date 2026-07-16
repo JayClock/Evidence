@@ -17,7 +17,6 @@ import {
 } from '../../loops/understand/tqa/conversation';
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import { proposeScenarioDrafts } from '../../loops/understand/scenario/candidates';
-import { syncIssueSourceAsync } from '../../capabilities/issue-source/github-issue-source';
 import {
   isActivitySubagentFailureDetails,
   renderActivitySubagentCall,
@@ -27,7 +26,6 @@ import {
   readPersistedState,
   readState,
 } from '../../iteration/state-repository';
-import { createGitHubCliRunner } from '../github/pi-cli';
 import { statusMarkdown } from './status';
 import { proposeTaskingDraft } from '../../loops/tasking/tasking-draft';
 import { recordShowcaseReview } from '../../loops/showcase/showcase-session';
@@ -54,7 +52,6 @@ import {
 export const ORCHESTRATOR_TOOL_NAMES = [
   'evidence_orchestrator_propose_inbox_stories',
   'evidence_orchestrator_start_from_candidate',
-  'evidence_orchestrator_sync_issue',
   'evidence_orchestrator_status',
   'evidence_orchestrator_propose_kickoff',
   'evidence_orchestrator_run_activity',
@@ -78,11 +75,7 @@ export function toolsForState(state: WorkflowState | undefined): string[] {
 
   const common = [inbox, start, status, 'evidence_orchestrator_run_activity'];
   if (state.loop === 'kickoff') {
-    return [
-      ...common,
-      ...(state.requirement_source ? ['evidence_orchestrator_sync_issue'] : []),
-      'evidence_orchestrator_propose_kickoff',
-    ];
+    return [...common, 'evidence_orchestrator_propose_kickoff'];
   }
   if (state.loop === 'understand') {
     if (state.understand_stage === 'tqa') {
@@ -201,45 +194,6 @@ export function registerTools(pi: ExtensionAPI): void {
           {
             type: 'text',
             text: `Started ${state.iteration_id} from ${state.intake_snapshot?.candidate_id}. The frozen candidate awaits a human /evidence-kickoff decision.`,
-          },
-        ],
-        details: { state },
-      };
-    },
-  });
-
-  pi.registerTool({
-    name: 'evidence_orchestrator_sync_issue',
-    label: 'Sync Evidence Orchestrator Issue',
-    description:
-      'Explicitly refresh the active GitHub Issue snapshot while still in Kickoff',
-    promptSnippet:
-      'Refresh the frozen requirement snapshot from its GitHub Issue',
-    promptGuidelines: [
-      'Use only when the user explicitly requests a refresh and the workflow is still in frame.',
-      'After frame, preserve the current snapshot and start a new iteration for changed requirements.',
-    ],
-    parameters: Type.Object({}),
-    async execute(_toolCallId, _params, signal, onUpdate, ctx) {
-      onUpdate?.({
-        content: [
-          {
-            type: 'text',
-            text: 'Refreshing the GitHub Issue snapshot…',
-          },
-        ],
-        details: { status: 'loading' },
-      });
-      const state = await syncIssueSourceAsync(
-        ctx.cwd,
-        createGitHubCliRunner(pi),
-        signal,
-      );
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Refreshed ${state.requirement_source?.repository}#${state.requirement_source?.issue_number} for ${state.iteration_id}.`,
           },
         ],
         details: { state },

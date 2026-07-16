@@ -86,8 +86,6 @@ describe('commands', () => {
       'evidence-pair',
       'evidence-showcase',
       'evidence-respond',
-      'evidence-issue-sync',
-      'evidence-issue-status',
       'evidence-run',
     ]);
   });

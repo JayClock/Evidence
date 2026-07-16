@@ -24,7 +24,6 @@ describe('tools', () => {
     expect(names).toEqual([
       'evidence_orchestrator_propose_inbox_stories',
       'evidence_orchestrator_start_from_candidate',
-      'evidence_orchestrator_sync_issue',
       'evidence_orchestrator_status',
       'evidence_orchestrator_propose_kickoff',
       'evidence_orchestrator_run_activity',
