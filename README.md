@@ -163,7 +163,7 @@ flowchart LR
 Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 Story 候选；GitHub Issue 只是其中一种来源。一次 iteration 只处理一个人工确认的 Story 及其完整 Scenario Set：
 
 - **Inbox / Kickoff**：从 GitHub、手工文本或本地 Markdown 收集来源并提取候选；人类选择一张候选冻结 Intake，再确认、修订、拆分或延期；
-- **Understand**：单 Story TQA、人工 Scenario 确认、人工建模 Profile、Builder 展开与只读 Challenger；
+- **Understand**：单 Story TQA、人工 Scenario 与建模 Profile 确认；`none/false` 记录无模型影响后直接进入 Tasking，其他 Profile 才运行 Builder 与只读 Challenger，且只有 `model_change_required=true` 可产生模型候选；
 - **Tasking**：唯一匹配 test-process v2，生成 test/task list，并等待人工 Desk Check；
 - **Pair**：Navigator 每次推进一个 Red/Green/Refactor 或最终 quality-gate checkpoint，Test/Production Driver 受路径保护；
 - **Showcase**：重跑 Q2，显式决定 Q3/Q4，由独立只读 Reviewer 检查，最后由人类接受、修订或拒绝；

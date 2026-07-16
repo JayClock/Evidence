@@ -5,8 +5,8 @@
 ## 所有增量
 
 - 用户价值由一张 `US-xxx` 及其人工确认的完整 `SC-xxx` Given/When/Then Scenario Set 定义。
-- 全部场景已逐一通过 `.evidence` 模型展开和联合独立挑战，并由人类一次确认模型投影、跨场景一致性、概念、关系、统一语言、不变量、时间线及候选变更。
-- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；每个 Then 有 Q2，公共 Q1 已去重，Scenario → model refs → TASK/TEST → code paths 可复核。
+- 每个 Story 都有人工确认的建模处置：`none/false` 具有确定性的无模型影响证据；其他方法下，全部场景已逐一通过 `.evidence` 模型展开和联合独立挑战，并由人类确认模型投影、跨场景一致性、概念、关系、统一语言、不变量、时间线及候选变更。
+- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；每个 Then 有 Q2，公共 Q1 已去重；非 `none` 的 Scenario → model refs → TASK/TEST → code paths 可复核，`none` 则以空 model refs 保留 Scenario → TASK/TEST → code paths 追踪。
 - 稳定知识写入统一知识源；iteration 仅保存输入、delta、决策和执行证据。
 - 所有改动遵守 `AGENTS.md` 的模块和 runtime 边界。
 
@@ -39,7 +39,7 @@
 
 ## Showcase 与 Respond
 
-- 独立 Showcase Reviewer 对照验收示例、模型展开、统一架构、测试策略、工序和本 DoD；问题由人类按知识缺口路由。
+- 独立 Showcase Reviewer 对照验收示例、确认的建模证据（模型展开或无模型影响决定）、统一架构、测试策略、工序和本 DoD；问题由人类按知识缺口路由。
 - Probe/Sense/Respond 反馈进入 iteration summary；模型和代码使用同一 Git baseline，路径不一致时不得完成。
 - 只提升被本 Story Scenario Set 实际使用、经执行与 Showcase 验证并由人类确认的产品、模型、架构、工序或 Skill/Prompt 知识；本轮无可复用知识时允许空 promotions，但必须说明原因。
 - deferred/rejected 候选保留理由且不污染权威来源；未应用或未验证的模型补丁不得提升。
