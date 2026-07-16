@@ -212,7 +212,7 @@ Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 S
 /evidence-respond approve|revise <reason>
 ```
 
-无参数运行 `/evidence-inbox` 时，空 Inbox 会先打开来源选择器；已有来源时显示当前状态。来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；`/evidence-new` 冻结的 Intake 不再原地同步。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
+无参数运行 `/evidence-inbox` 时，空 Inbox 会先打开来源选择器；来源 revision 保存成功后自动进入 extract 来源选取界面，取消选取则只保留来源；已有来源时显示当前状态。来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；`/evidence-new` 冻结的 Intake 不再原地同步。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
 
 维护细节见 [`.pi/extensions/evidence-orchestrator/README.md`](./.pi/extensions/evidence-orchestrator/README.md)。
 

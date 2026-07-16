@@ -120,7 +120,7 @@ async function addGitHubSource(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
   reference: string,
-): Promise<void> {
+): Promise<boolean> {
   const runner = createGitHubCliRunner(pi);
   const locator = reference
     ? parseGitHubReference(reference)
@@ -130,38 +130,40 @@ async function addGitHubSource(
             runWithLoader(ctx, message, (signal) => operation(signal)),
           )) ?? 0,
       };
-  if (!locator.issueNumber) return;
+  if (!locator.issueNumber) return false;
   const captured = await runWithLoader(
     ctx,
     `正在收集 GitHub Issue #${locator.issueNumber}…`,
     (signal) =>
       createGitHubIssueInboxSource(runner).capture(locator, ctx.cwd, signal),
   );
-  if (!captured) return;
+  if (!captured) return false;
   const result = captureInboxSource(ctx.cwd, captured);
   ctx.ui.notify(
     `${result.item.inbox_id} captured from ${result.item.external_key}${result.revision_created ? '' : ' (unchanged)'}.`,
     'info',
   );
+  return result.revision_created;
 }
 
 async function addManualSource(
   ctx: ExtensionCommandContext,
   suppliedTitle: string,
-): Promise<void> {
+): Promise<boolean> {
   if (!ctx.hasUI) throw new Error('Manual Inbox capture requires UI input.');
   const title =
     suppliedTitle ||
     (await ctx.ui.input('Inbox source title', 'Describe the source briefly'));
-  if (title === undefined) return;
+  if (title === undefined) return false;
   const body = await ctx.ui.editor('Inbox source content', '');
-  if (body === undefined) return;
+  if (body === undefined) return false;
   const captured = await manualTextInboxSource.capture(
     { title, body },
     ctx.cwd,
   );
   const result = captureInboxSource(ctx.cwd, captured);
   ctx.ui.notify(`${result.item.inbox_id} captured from manual text.`, 'info');
+  return result.revision_created;
 }
 
 function requireInboxId(value: string): string {
@@ -176,7 +178,7 @@ async function syncInboxSource(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
   suppliedId: string,
-): Promise<void> {
+): Promise<boolean> {
   const inboxId = requireInboxId(suppliedId);
   const item = readInboxState(ctx.cwd).items.find(
     ({ inbox_id }) => inbox_id === inboxId,
@@ -215,7 +217,7 @@ async function syncInboxSource(
       );
     },
   );
-  if (!captured) return;
+  if (!captured) return false;
   if (
     captured.source_kind !== item.source_kind ||
     captured.external_key !== item.external_key
@@ -229,6 +231,7 @@ async function syncInboxSource(
       : `${inboxId} is unchanged.`,
     'info',
   );
+  return result.revision_created;
 }
 
 function parseExtractionSourceIds(value: string): string[] {
@@ -328,19 +331,20 @@ function decideCandidate(
 async function addMarkdownSource(
   ctx: ExtensionCommandContext,
   suppliedPath: string,
-): Promise<void> {
+): Promise<boolean> {
   const path =
     suppliedPath ||
     (ctx.hasUI
       ? await ctx.ui.input('Project Markdown path', 'notes/interview.md')
       : undefined);
-  if (path === undefined) return;
+  if (path === undefined) return false;
   const captured = await localMarkdownInboxSource.capture({ path }, ctx.cwd);
   const result = captureInboxSource(ctx.cwd, captured);
   ctx.ui.notify(
     `${result.item.inbox_id} captured from ${result.item.external_key}.`,
     'info',
   );
+  return result.revision_created;
 }
 
 async function addSource(
@@ -348,14 +352,18 @@ async function addSource(
   ctx: ExtensionCommandContext,
   sourceKind: SourceKind,
   rest = '',
+): Promise<boolean> {
+  if (sourceKind === 'github') return addGitHubSource(pi, ctx, rest);
+  if (sourceKind === 'text') return addManualSource(ctx, rest);
+  return addMarkdownSource(ctx, rest);
+}
+
+async function offerExtractionAfterCapture(
+  ctx: ExtensionCommandContext,
+  captured: boolean,
+  runAgent: InboxAgentRunner,
 ): Promise<void> {
-  if (sourceKind === 'github') {
-    await addGitHubSource(pi, ctx, rest);
-  } else if (sourceKind === 'text') {
-    await addManualSource(ctx, rest);
-  } else {
-    await addMarkdownSource(ctx, rest);
-  }
+  if (captured && ctx.hasUI) await extractStories(ctx, '', runAgent);
 }
 
 export function registerInboxCommands(
@@ -373,7 +381,13 @@ export function registerInboxCommands(
             return;
           }
           const sourceKind = await selectSourceKind(ctx);
-          if (sourceKind) await addSource(pi, ctx, sourceKind);
+          if (sourceKind) {
+            await offerExtractionAfterCapture(
+              ctx,
+              await addSource(pi, ctx, sourceKind),
+              runAgent,
+            );
+          }
           return;
         }
         if (command.action === 'list') {
@@ -381,7 +395,11 @@ export function registerInboxCommands(
           return;
         }
         if (command.action === 'sync') {
-          await syncInboxSource(pi, ctx, command.rest);
+          await offerExtractionAfterCapture(
+            ctx,
+            await syncInboxSource(pi, ctx, command.rest),
+            runAgent,
+          );
           return;
         }
         if (command.action === 'extract') {
@@ -396,7 +414,13 @@ export function registerInboxCommands(
           return;
         }
         const sourceKind = command.sourceKind ?? (await selectSourceKind(ctx));
-        if (sourceKind) await addSource(pi, ctx, sourceKind, command.rest);
+        if (sourceKind) {
+          await offerExtractionAfterCapture(
+            ctx,
+            await addSource(pi, ctx, sourceKind, command.rest),
+            runAgent,
+          );
+        }
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),

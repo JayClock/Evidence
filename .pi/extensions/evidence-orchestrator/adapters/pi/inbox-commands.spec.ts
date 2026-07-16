@@ -220,17 +220,24 @@ describe('/evidence-inbox', () => {
   it('asks the human to choose a source when the Inbox is empty', async () => {
     const cwd = workspace();
     const ctx = context(cwd);
-    ctx.ui.select.mockResolvedValue('手工文本');
+    ctx.ui.select
+      .mockResolvedValueOnce('手工文本')
+      .mockResolvedValueOnce(undefined);
     ctx.ui.input.mockResolvedValue('Domain interview');
     ctx.ui.editor.mockResolvedValue('The owner needs an audit trail.');
 
     await registeredCommand()('', ctx);
 
-    expect(ctx.ui.select).toHaveBeenCalledWith('Add an Inbox source', [
+    expect(ctx.ui.select).toHaveBeenNthCalledWith(1, 'Add an Inbox source', [
       'GitHub Issue',
       '手工文本',
       '本地 Markdown',
     ]);
+    expect(ctx.ui.select).toHaveBeenNthCalledWith(
+      2,
+      'Select one Inbox source to extract',
+      ['INBOX-0001 · Domain interview'],
+    );
     expect(readInboxState(cwd).items[0]).toMatchObject({
       source_kind: 'manual_text',
       title: 'Domain interview',
