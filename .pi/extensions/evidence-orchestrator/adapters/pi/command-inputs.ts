@@ -934,12 +934,12 @@ export async function promptModelingProfileDecision(
   const choice = await ctx.ui.select(
     `建模建议：${proposal.subject}/${proposal.method} · change=${proposal.model_change_required}`,
     [
-      ...(canConfirm ? ['确认 AI 建议'] : []),
-      '重新选择建模对象、方法与模型变化',
+      '逐项审核建模对象、方法与模型变化',
+      ...(canConfirm ? ['明确接受 AI 建议'] : []),
     ],
   );
   if (!choice) return undefined;
-  if (choice === '确认 AI 建议') return {};
+  if (choice === '明确接受 AI 建议') return {};
   const subject = (await ctx.ui.select('选择建模对象', MODELING_SUBJECTS)) as
     | ModelingSubject
     | undefined;

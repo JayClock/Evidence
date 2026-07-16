@@ -336,7 +336,7 @@ describe('commands', () => {
     });
     const ctx = context(cwd);
     ctx.ui.select
-      .mockResolvedValueOnce('重新选择建模对象、方法与模型变化')
+      .mockResolvedValueOnce('逐项审核建模对象、方法与模型变化')
       .mockResolvedValueOnce('tool')
       .mockResolvedValueOnce('none');
     ctx.ui.input.mockResolvedValue('The human confirms no model impact.');
@@ -347,6 +347,11 @@ describe('commands', () => {
       modelChangeRequired: false,
       reason: 'The human confirms no model impact.',
     });
+    expect(ctx.ui.select).toHaveBeenNthCalledWith(
+      1,
+      '建模建议：tool/none · change=false',
+      ['逐项审核建模对象、方法与模型变化', '明确接受 AI 建议'],
+    );
     expect(ctx.ui.select).toHaveBeenCalledTimes(3);
     expect(ctx.ui.select).not.toHaveBeenCalledWith(
       '权威模型是否需要变化',
