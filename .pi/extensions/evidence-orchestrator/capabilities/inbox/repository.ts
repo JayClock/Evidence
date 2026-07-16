@@ -365,6 +365,26 @@ export function captureInboxSource(
   };
 }
 
+export function inboxRevisionByHash(
+  cwd: string,
+  inboxId: string,
+  contentSha256: string,
+): InboxSourceRevision {
+  const item = readInboxState(cwd).items.find(
+    ({ inbox_id }) => inbox_id === inboxId,
+  );
+  if (!item) throw new Error(`Inbox item does not exist: ${inboxId}.`);
+  const path = item.revision_paths.find((revisionPath) =>
+    revisionPath.endsWith(`/${contentSha256.replace(/^sha256:/, '')}.json`),
+  );
+  if (!path) {
+    throw new Error(
+      `Inbox revision does not exist: ${inboxId}/${contentSha256}.`,
+    );
+  }
+  return readRevision(cwd, path);
+}
+
 export function latestInboxRevision(
   cwd: string,
   inboxId: string,

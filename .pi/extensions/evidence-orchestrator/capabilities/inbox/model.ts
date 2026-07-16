@@ -54,6 +54,31 @@ export interface InboxState {
   items: InboxItem[];
 }
 
+export type InboxCandidateReadiness = 'ready' | 'stale';
+export type InboxCognitiveMode = 'clear' | 'complicated' | 'complex';
+
+export interface InboxStoryCitation {
+  inbox_id: string;
+  revision_sha256: string;
+  locator: string;
+}
+
+export interface InboxStoryCandidate {
+  version: 1;
+  candidate_id: string;
+  title: string;
+  problem: string;
+  role: string;
+  goal: string;
+  value: string;
+  cognitive_mode: InboxCognitiveMode;
+  citations: InboxStoryCitation[];
+  proposed_by: 'inbox-analyst';
+  proposed_at: string;
+  artifact_path: string;
+  content_sha256: string;
+}
+
 export interface CapturedInboxItem {
   state: InboxState;
   item: InboxItem;

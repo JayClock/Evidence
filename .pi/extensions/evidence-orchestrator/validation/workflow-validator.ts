@@ -5,6 +5,7 @@ import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
 import { validateStoryCards } from '../loops/kickoff/story-card';
 import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
 import { validateInboxRepository } from '../capabilities/inbox/repository';
+import { validateInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
 import { iterationRoot } from '../iteration/artifact-layout';
 import {
   validateCanonicalKnowledge,
@@ -22,6 +23,7 @@ import {
 export function validateWorkflow(cwd: string): void {
   validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
   validateInboxRepository(cwd);
+  validateInboxStoryCandidates(cwd);
   const state = readPersistedState(cwd);
   if (state) {
     const root = iterationRoot(cwd, state);
