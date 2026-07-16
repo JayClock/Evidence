@@ -72,9 +72,7 @@ ${extra || '（无）'}
 `;
   }
   if (state.loop === 'understand' && state.understand_stage === 'modeling') {
-    const scenarios =
-      state.confirmed_scenarios ??
-      (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+    const scenarios = state.confirmed_scenarios ?? [];
     const scenario = scenarios[0];
     if (!scenario)
       throw new Error('Modeling requires a confirmed Scenario Set.');
@@ -127,9 +125,7 @@ ${extra || '（无）'}
     );
   }
   if (state.loop === 'tasking') {
-    const scenarios =
-      state.confirmed_scenarios ??
-      (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+    const scenarios = state.confirmed_scenarios ?? [];
     const scenario = scenarios[0];
     if (!scenario || !state.model_expansion_path) {
       throw new Error('Tasking requires a Scenario Set and model expansion.');
@@ -181,9 +177,9 @@ ${extra || '（无）'}
       );
     }
     const completed = state.completed_work_items ?? [];
-    return `执行 Evidence Orchestrator 独立只读 Iteration Showcase Review：${state.iteration_id}（${completed.length} 个验收切片）。
+    return `执行 Evidence Orchestrator 独立只读 Iteration Showcase Review：${state.iteration_id}（${completed.length} 张 Story）。
 
-上下文：已完成切片=${JSON.stringify(completed.map(({ story_id, scenario_id, scenario, execution_manifest_path }) => ({ story_id, scenario_id, scenario: scenario.artifact_path, execution_manifest_path })))}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}、人工产品观察=${JSON.stringify(state.showcase_product_observations)}、评价证据=${JSON.stringify(state.showcase_evaluation_observations)}。
+上下文：已完成 Story=${JSON.stringify(completed.map(({ story_id, scenarios, execution_manifest_path }) => ({ story_id, scenarios: scenarios.map(({ artifact_path }) => artifact_path), execution_manifest_path })))}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}、人工产品观察=${JSON.stringify(state.showcase_product_observations)}、评价证据=${JSON.stringify(state.showcase_evaluation_observations)}。
 任务：区分 observed facts、product/domain feedback、technical quality feedback 与 unresolved assumptions；只调用 evidence_orchestrator_record_showcase_review 一次后停止。不得修改任何文件或替人决定。
 
 额外用户指令：

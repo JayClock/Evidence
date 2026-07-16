@@ -137,8 +137,9 @@ function requiredInputs(state: WorkflowState): string[] {
   }
   if (state.loop === 'understand') {
     return [
-      state.confirmed_scenario?.artifact_path ??
-        'artifacts/01-requirements/examples/missing.md',
+      ...(state.confirmed_scenarios?.map(
+        ({ artifact_path }) => artifact_path,
+      ) ?? ['artifacts/01-requirements/examples/missing.md']),
       '.evidence/model.json',
       '.evidence/entities/',
       '.evidence/associations/',
@@ -153,8 +154,9 @@ function requiredInputs(state: WorkflowState): string[] {
   }
   if (state.loop === 'tasking') {
     return [
-      state.confirmed_scenario?.artifact_path ??
-        'artifacts/01-requirements/examples/missing.md',
+      ...(state.confirmed_scenarios?.map(
+        ({ artifact_path }) => artifact_path,
+      ) ?? ['artifacts/01-requirements/examples/missing.md']),
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
       state.model_decisions?.at(-1)?.artifact_path ??
@@ -172,8 +174,9 @@ function requiredInputs(state: WorkflowState): string[] {
   }
   if (state.loop === 'pair') {
     return [
-      state.confirmed_scenario?.artifact_path ??
-        'artifacts/01-requirements/examples/missing.md',
+      ...(state.confirmed_scenarios?.map(
+        ({ artifact_path }) => artifact_path,
+      ) ?? ['artifacts/01-requirements/examples/missing.md']),
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
       state.model_decisions?.at(-1)?.artifact_path ??
@@ -190,23 +193,25 @@ function requiredInputs(state: WorkflowState): string[] {
   }
   if (state.loop === 'showcase') {
     return [
-      state.confirmed_scenario?.artifact_path ??
-        'artifacts/01-requirements/examples/missing.md',
+      ...(state.confirmed_scenarios?.map(
+        ({ artifact_path }) => artifact_path,
+      ) ?? ['artifacts/01-requirements/examples/missing.md']),
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
       state.approved_test_plan_path ?? 'artifacts/04-planning/test-plan.json',
       state.active_work_item
-        ? `artifacts/05-code/${state.active_work_item.story_id}/${state.active_work_item.scenario_id}.manifest.json`
+        ? `artifacts/05-code/${state.active_work_item.story_id}/manifest.json`
         : 'artifacts/05-code/missing/manifest.json',
       'engineering/evidence-orchestrator/definition-of-done.md',
     ];
   }
   if (state.loop === 'respond') {
     return [
-      state.confirmed_scenario?.artifact_path ??
-        'artifacts/01-requirements/examples/missing.md',
+      ...(state.confirmed_scenarios?.map(
+        ({ artifact_path }) => artifact_path,
+      ) ?? ['artifacts/01-requirements/examples/missing.md']),
       state.active_work_item
-        ? `artifacts/05-code/${state.active_work_item.story_id}/${state.active_work_item.scenario_id}.manifest.json`
+        ? `artifacts/05-code/${state.active_work_item.story_id}/manifest.json`
         : 'artifacts/05-code/missing/manifest.json',
       state.showcase_reviews?.at(-1)?.artifact_path ??
         'artifacts/06-review/missing-review.json',

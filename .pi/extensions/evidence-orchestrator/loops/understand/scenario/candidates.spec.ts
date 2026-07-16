@@ -96,12 +96,14 @@ describe('concrete Scenario understanding', () => {
     expect(state).toMatchObject({
       loop: 'understand',
       understand_stage: 'modeling',
-      confirmed_scenario: {
-        story_id: 'US-001',
-        scenario_id: 'SC-001',
-        source_draft_id: 'DRAFT-001',
-        confirmed_by: 'human',
-      },
+      confirmed_scenarios: expect.arrayContaining([
+        expect.objectContaining({
+          story_id: 'US-001',
+          scenario_id: 'SC-001',
+          source_draft_id: 'DRAFT-001',
+          confirmed_by: 'human',
+        }),
+      ]),
     });
     expect(state.confirmed_scenarios).toHaveLength(2);
     expect(
@@ -129,12 +131,12 @@ describe('concrete Scenario understanding', () => {
       cwd,
       {
         action: 'confirmed',
-        draftId: 'DRAFT-001',
+        draftIds: ['DRAFT-001'],
         reason: '这是首个已确认场景。',
       },
       '2026-01-01T00:02:00.000Z',
     );
-    const firstArtifact = first.confirmed_scenario?.artifact_path;
+    const firstArtifact = first.confirmed_scenarios?.[0]?.artifact_path;
     expect(firstArtifact).toBeDefined();
     if (!firstArtifact) throw new Error('First Scenario artifact is missing.');
     const firstPath = join(cwd, firstArtifact);
@@ -149,7 +151,6 @@ describe('concrete Scenario understanding', () => {
         selected_at: '2026-01-01T00:03:00.000Z',
       },
       confirmed_scenarios: undefined,
-      confirmed_scenario: undefined,
       scenario_drafts: undefined,
     });
     proposeScenarioDrafts(cwd, 'US-001', candidates());
@@ -157,15 +158,17 @@ describe('concrete Scenario understanding', () => {
       cwd,
       {
         action: 'confirmed',
-        draftId: 'DRAFT-002',
+        draftIds: ['DRAFT-002'],
         reason: '业务澄清后确认修订场景。',
       },
       '2026-01-01T00:04:00.000Z',
     );
 
-    expect(revised.confirmed_scenario?.scenario_id).toBe('SC-002');
+    expect(revised.confirmed_scenarios?.[0]?.scenario_id).toBe('SC-002');
     expect(
-      revised.understanding_decisions?.map(({ scenario_id }) => scenario_id),
+      revised.understanding_decisions?.flatMap(
+        ({ scenario_ids }) => scenario_ids ?? [],
+      ),
     ).toEqual(['SC-001', 'SC-002']);
     expect(readFileSync(firstPath, 'utf8')).toBe(firstMarkdown);
     expect(
@@ -237,7 +240,7 @@ describe('concrete Scenario understanding', () => {
     expect(() =>
       decideUnderstanding(cwd, {
         action: 'confirmed',
-        draftId: 'DRAFT-999',
+        draftIds: ['DRAFT-999'],
         reason: '选择最小场景。',
       }),
     ).toThrow('Unknown Scenario draft DRAFT-999');

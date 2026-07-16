@@ -64,7 +64,7 @@ describe('canonical working knowledge', () => {
         promotions: [],
         consistency: {
           story_id: 'US-001',
-          scenario_id: 'SC-001',
+          scenario_ids: ['SC-001'],
           git_baseline: 'baseline',
           execution_manifest: 'manifest.json',
           model_paths: [],
@@ -86,7 +86,7 @@ describe('canonical working knowledge', () => {
         promotions: [],
         consistency: {
           story_id: 'US-001',
-          scenario_id: 'SC-001',
+          scenario_ids: ['SC-001'],
           git_baseline: 'baseline',
           execution_manifest: 'manifest.json',
           model_paths: [],
@@ -138,7 +138,7 @@ describe('canonical working knowledge', () => {
         ],
         consistency: {
           story_id: 'US-001',
-          scenario_id: 'SC-001',
+          scenario_ids: ['SC-001'],
           git_baseline: 'baseline',
           execution_manifest: 'manifest.json',
           model_paths: [],

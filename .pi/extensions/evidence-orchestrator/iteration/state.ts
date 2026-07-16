@@ -208,8 +208,6 @@ export interface TaskingCandidate {
   draft_id: string;
   story_id: string;
   scenario_ids: string[];
-  /** @deprecated Temporary first-Scenario projection during migration. */
-  scenario_id: string;
   tests: TaskingTestItem[];
   tasks: TaskingImplementationTask[];
   processes: TestProcessSelection[];
@@ -284,8 +282,6 @@ export interface PairSession {
   version: 2;
   story_id: string;
   scenario_ids: string[];
-  /** @deprecated First-Scenario projection for legacy evidence paths. */
-  scenario_id: string;
   git_baseline: string;
   checkpoint: PairCheckpoint;
   task_id: string;
@@ -308,7 +304,7 @@ export interface PairSession {
 
 export interface ShowcaseQ2Observation {
   story_id: string;
-  scenario_id: string;
+  scenario_ids: string[];
   process_id: string;
   step_id: string;
   test_ids: string[];
@@ -364,7 +360,7 @@ export interface ShowcaseEvaluationObservation {
 export interface ShowcaseReviewRecord {
   version: 2;
   story_id: string;
-  scenario_id: string;
+  scenario_ids: string[];
   git_baseline: string;
   execution_manifest_path: string;
   execution_manifest_sha256: string;
@@ -425,7 +421,7 @@ export interface RespondCandidate {
   next_probe: NextProbe;
   consistency: {
     story_id: string;
-    scenario_id: string;
+    scenario_ids: string[];
     git_baseline: string;
     execution_manifest: string;
     model_paths: string[];
@@ -447,9 +443,7 @@ export interface RespondDecisionRecord {
 export interface ActiveWorkItem {
   story_id: string;
   scenario_ids: string[];
-  /** @deprecated First-Scenario projection for legacy evidence paths. */
-  scenario_id: string;
-  /** Immutable Git HEAD captured before this scenario's Red step. */
+  /** Immutable Git HEAD captured before this Story's Red step. */
   git_baseline: string;
   /** Immutable ordered v2 test plan; supports one or more runtime-specific processes. */
   test_plan: TestPlan;
@@ -459,11 +453,8 @@ export interface ActiveWorkItem {
 export interface CompletedWorkItem {
   version: 1;
   story_id: string;
-  scenario_id: string;
   /** Complete Story acceptance boundary. */
   scenarios: ConfirmedScenario[];
-  /** @deprecated First-Scenario projection for legacy evidence readers. */
-  scenario: ConfirmedScenario;
   work_item: ActiveWorkItem;
   tasking: TaskingCandidate;
   pair: PairSession;
@@ -556,8 +547,6 @@ export interface UnderstandingDecision {
   reason?: string;
   decided_by: 'human';
   decided_at: string;
-  draft_id?: string;
-  scenario_id?: string;
   /** Complete human-selected draft set for one Story acceptance boundary. */
   draft_ids?: string[];
   /** Scenario ids allocated atomically for the confirmed set. */
@@ -596,7 +585,7 @@ export interface ModelOperation {
 export interface ModelChangeProposal {
   version: 1;
   story_id: string;
-  scenario_id: string;
+  scenario_ids: string[];
   git_baseline: string;
   reason: string;
   operations: ModelOperation[];
@@ -677,8 +666,6 @@ export interface WorkflowState {
   scenario_drafts?: ScenarioDraft[];
   /** Complete acceptance boundary confirmed before Modeling. */
   confirmed_scenarios?: ConfirmedScenario[];
-  /** @deprecated Temporary single-Scenario projection during Story-level migration. */
-  confirmed_scenario?: ConfirmedScenario;
   understanding_decisions?: UnderstandingDecision[];
   modeling_stage?: ModelingStage;
   modeling_profile_proposal?: ModelingProfileProposal;

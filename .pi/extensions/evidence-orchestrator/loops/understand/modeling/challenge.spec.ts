@@ -100,22 +100,24 @@ function prepareCandidate(
     loop: 'understand',
     understand_stage: 'modeling',
     modeling_stage: 'profile',
-    confirmed_scenario: {
-      version: 1,
-      story_id: 'US-001',
-      scenario_id: 'SC-001',
-      source_draft_id: 'DRAFT-001',
-      title: '打开当前模型',
-      given: ['工作区存在当前模型'],
-      when: '负责人打开当前模型',
-      then: ['呈现当前模型'],
-      business_data: ['工作区标识'],
-      artifact_path:
-        'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
-      confirmed_by: 'human',
-      confirmation_reason: '最小场景。',
-      confirmed_at: '2026-01-01T00:00:00.000Z',
-    },
+    confirmed_scenarios: [
+      {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: '打开当前模型',
+        given: ['工作区存在当前模型'],
+        when: '负责人打开当前模型',
+        then: ['呈现当前模型'],
+        business_data: ['工作区标识'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: '最小场景。',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    ],
   });
   proposeModelingProfile(cwd, {
     subject: 'domain',
@@ -143,17 +145,22 @@ function prepareCandidate(
     reason: options.removeAssociation
       ? 'Candidate removes a relationship not used by the current Scenario.'
       : 'The current model explains the Scenario.',
-    modelRefs: { entities: ['z-workspace', 'a-model'], associations: [] },
-    given: { entities: ['Workspace'], relationships: [] },
-    when: 'OpenCurrentModel',
-    then: {
-      createdEntities: [],
-      changedEntities: ['Workspace'],
-      createdRelationships: [],
-      removedRelationships: [],
-    },
-    invariants: ['Only a confirmed model is current.'],
-    timeline: ['Model confirmed', 'Model opened'],
+    scenarios: [
+      {
+        scenarioId: 'SC-001',
+        modelRefs: { entities: ['z-workspace', 'a-model'], associations: [] },
+        given: { entities: ['Workspace'], relationships: [] },
+        when: 'OpenCurrentModel',
+        then: {
+          createdEntities: [],
+          changedEntities: ['Workspace'],
+          createdRelationships: [],
+          removedRelationships: [],
+        },
+        invariants: ['Only a confirmed model is current.'],
+        timeline: ['Model confirmed', 'Model opened'],
+      },
+    ],
     operations,
   });
 }
@@ -306,7 +313,7 @@ describe('independent model challenge', () => {
       understand_stage: 'tqa',
       active_clarification_story: { story_id: 'US-001' },
     });
-    expect(state.confirmed_scenario).toBeUndefined();
+    expect(state.confirmed_scenarios).toBeUndefined();
     expect(state.feedback_history?.at(-1)?.target).toBe('scenario');
   });
 });

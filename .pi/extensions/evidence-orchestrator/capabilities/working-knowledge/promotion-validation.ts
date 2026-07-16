@@ -126,7 +126,8 @@ export function validateKnowledgePromotion(
   const consistency = record(document.consistency, `${path}.consistency`);
   if (
     typeof consistency.story_id !== 'string' ||
-    typeof consistency.scenario_id !== 'string' ||
+    !Array.isArray(consistency.scenario_ids) ||
+    !consistency.scenario_ids.every((id) => typeof id === 'string') ||
     typeof consistency.git_baseline !== 'string' ||
     typeof consistency.execution_manifest !== 'string' ||
     !existsSync(join(cwd, consistency.execution_manifest)) ||
@@ -140,7 +141,8 @@ export function validateKnowledgePromotion(
     const manifest = validateExecutionEvidence(cwd, state.active_work_item);
     if (
       consistency.story_id !== state.active_work_item.story_id ||
-      consistency.scenario_id !== state.active_work_item.scenario_id ||
+      JSON.stringify(consistency.scenario_ids) !==
+        JSON.stringify(state.active_work_item.scenario_ids) ||
       consistency.git_baseline !== state.active_work_item.git_baseline ||
       JSON.stringify([...consistency.model_paths].sort()) !==
         JSON.stringify([...manifest.changed_paths.model].sort()) ||

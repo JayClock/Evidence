@@ -224,7 +224,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         if (decision.action === 'confirmed') {
           ctx.ui.notify(
-            `Human confirmed ${state.confirmed_scenario?.story_id} / ${state.confirmed_scenario?.scenario_id}; model validation is next.`,
+            `Human confirmed ${state.confirmed_scenarios?.[0]?.story_id} / [${state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id).join(', ')}]; model validation is next.`,
             'info',
           );
         } else if (decision.action === 'continue') {
@@ -297,7 +297,7 @@ export function registerCommands(pi: ExtensionAPI): void {
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
           decision.action === 'confirm'
-            ? `Human confirmed the model and ubiquitous language; Tasking is ready for ${state.confirmed_scenario?.story_id} / ${state.confirmed_scenario?.scenario_id}.`
+            ? `Human confirmed the model and ubiquitous language; Tasking is ready for ${state.confirmed_scenarios?.[0]?.story_id} / [${state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id).join(', ')}].`
             : `Human recorded ${decision.action}; workflow returned to ${state.understand_stage}/${state.modeling_stage ?? 'tqa'}.`,
           'info',
         );

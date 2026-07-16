@@ -98,9 +98,7 @@ export function statusMarkdown(cwd: string): string {
   const execution = executionEvidencePaths(cwd);
   const reviews = state.showcase_reviews?.at(-1);
   const decision = state.showcase_decisions?.at(-1);
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenarios = state.confirmed_scenarios ?? [];
   return [
     '# Evidence Orchestrator Status',
     '',

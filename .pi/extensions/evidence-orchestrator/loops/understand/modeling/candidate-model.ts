@@ -46,14 +46,7 @@ export interface ScenarioModelExpansionInput {
 export interface ModelExpansionInput {
   reason: string;
   /** Complete per-Scenario expansions for a Story-level analysis. */
-  scenarios?: ScenarioModelExpansionInput[];
-  /** @deprecated Single-Scenario compatibility input. */
-  modelRefs?: { entities: string[]; associations: string[] };
-  given?: { entities: string[]; relationships: string[] };
-  when?: string;
-  then?: ScenarioModelExpansionInput['then'];
-  invariants?: string[];
-  timeline?: string[];
+  scenarios: ScenarioModelExpansionInput[];
   operations: ModelOperation[];
 }
 
@@ -318,27 +311,11 @@ export function recordModelAnalysis(
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([path, content]) => ({ path, content })),
   );
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenarios = state.confirmed_scenarios ?? [];
   if (scenarios.length === 0) {
     throw new Error('The confirmed Scenario Set is missing.');
   }
-  const scenarioInputs =
-    input.scenarios ??
-    (input.modelRefs && input.given && input.when && input.then
-      ? [
-          {
-            scenarioId: scenarios[0]?.scenario_id ?? '',
-            modelRefs: input.modelRefs,
-            given: input.given,
-            when: input.when,
-            then: input.then,
-            invariants: input.invariants ?? [],
-            timeline: input.timeline ?? [],
-          },
-        ]
-      : []);
+  const scenarioInputs = input.scenarios;
   const confirmedIds = scenarios.map(({ scenario_id }) => scenario_id);
   if (
     scenarioInputs.length !== scenarios.length ||
@@ -455,7 +432,7 @@ export function recordModelAnalysis(
     proposal = {
       version: 1,
       story_id: scenario.story_id,
-      scenario_id: scenario.scenario_id,
+      scenario_ids: confirmedIds,
       git_baseline: baseline,
       reason: expansion.analysis_reason,
       operations: input.operations,

@@ -322,9 +322,7 @@ export function projectCandidateModel(
   cwd: string,
   state = readState(cwd),
 ): CandidateModelProjection {
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenarios = state.confirmed_scenarios ?? [];
   if (scenarios.length === 0 || !state.model_expansion_path) {
     throw new Error(
       'A confirmed Scenario Set and model expansion are required.',

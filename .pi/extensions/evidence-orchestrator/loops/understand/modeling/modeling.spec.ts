@@ -78,22 +78,24 @@ function prepareModeling(cwd: string): void {
     loop: 'understand',
     understand_stage: 'modeling',
     modeling_stage: 'profile',
-    confirmed_scenario: {
-      version: 1,
-      story_id: 'US-001',
-      scenario_id: 'SC-001',
-      source_draft_id: 'DRAFT-001',
-      title: '确认当前模型',
-      given: ['工作区存在模型 v3'],
-      when: '负责人打开模型',
-      then: ['显示 v3'],
-      business_data: ['版本：v3'],
-      artifact_path:
-        'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
-      confirmed_by: 'human',
-      confirmation_reason: '最小业务价值。',
-      confirmed_at: '2026-01-01T00:00:00.000Z',
-    },
+    confirmed_scenarios: [
+      {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: '确认当前模型',
+        given: ['工作区存在模型 v3'],
+        when: '负责人打开模型',
+        then: ['显示 v3'],
+        business_data: ['版本：v3'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: '最小业务价值。',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    ],
   });
 }
 
@@ -121,22 +123,27 @@ function expansion(
     reason: operations.length
       ? 'The canonical model lacks the required concept.'
       : 'The canonical model already explains the Scenario.',
-    modelRefs: {
-      entities: operations.length
-        ? ['workspace', 'model-version']
-        : ['workspace'],
-      associations: [],
-    },
-    given: { entities: ['Workspace'], relationships: [] },
-    when: 'OpenCurrentModel',
-    then: {
-      createdEntities: [],
-      changedEntities: ['Workspace'],
-      createdRelationships: [],
-      removedRelationships: [],
-    },
-    invariants: ['Only a confirmed version is current.'],
-    timeline: ['Model confirmed', 'Model opened'],
+    scenarios: [
+      {
+        scenarioId: 'SC-001',
+        modelRefs: {
+          entities: operations.length
+            ? ['workspace', 'model-version']
+            : ['workspace'],
+          associations: [],
+        },
+        given: { entities: ['Workspace'], relationships: [] },
+        when: 'OpenCurrentModel',
+        then: {
+          createdEntities: [],
+          changedEntities: ['Workspace'],
+          createdRelationships: [],
+          removedRelationships: [],
+        },
+        invariants: ['Only a confirmed version is current.'],
+        timeline: ['Model confirmed', 'Model opened'],
+      },
+    ],
     operations,
   };
 }
@@ -251,7 +258,7 @@ describe('modeling method routing', () => {
     const cwd = workspace();
     prepareModeling(cwd);
     const current = readState(cwd);
-    const first = current.confirmed_scenario;
+    const first = current.confirmed_scenarios?.[0];
     if (!first) throw new Error('Fixture Scenario is missing.');
     writeState(cwd, {
       ...current,
@@ -271,15 +278,16 @@ describe('modeling method routing', () => {
       ],
     });
     confirmProfile(cwd, 'domain', 'object', false);
-    const base = expansion();
+    const base = expansion().scenarios[0];
+    if (!base) throw new Error('Fixture expansion is missing.');
 
     const state = recordModelAnalysis(cwd, {
       reason: 'Both acceptance examples are explained consistently.',
       scenarios: [
-        { scenarioId: 'SC-001', ...base },
+        base,
         {
-          scenarioId: 'SC-002',
           ...base,
+          scenarioId: 'SC-002',
           when: 'OpenModelWithoutConfirmedVersion',
           then: {
             ...base.then,

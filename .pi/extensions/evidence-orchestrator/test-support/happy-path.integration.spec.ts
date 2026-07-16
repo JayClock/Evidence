@@ -234,7 +234,7 @@ describe('native full knowledge loop', () => {
     ]);
     decideUnderstanding(cwd, {
       action: 'confirmed',
-      draftId: 'DRAFT-001',
+      draftIds: ['DRAFT-001'],
       reason: 'This is the smallest observable value.',
     });
 
@@ -249,20 +249,28 @@ describe('native full knowledge loop', () => {
     });
     recordModelAnalysis(cwd, {
       reason: 'Workspace identity explains the current model view.',
-      modelRefs: {
-        entities: ['workspace'],
-        associations: ['workspace-self'],
-      },
-      given: { entities: ['workspace'], relationships: ['workspace-self'] },
-      when: 'Open workspace Alpha',
-      then: {
-        createdEntities: [],
-        changedEntities: [],
-        createdRelationships: [],
-        removedRelationships: [],
-      },
-      invariants: ['The confirmed version is stable while opening'],
-      timeline: ['v3 confirmed', 'workspace opened', 'v3 shown'],
+      scenarios: [
+        {
+          scenarioId: 'SC-001',
+          modelRefs: {
+            entities: ['workspace'],
+            associations: ['workspace-self'],
+          },
+          given: {
+            entities: ['workspace'],
+            relationships: ['workspace-self'],
+          },
+          when: 'Open workspace Alpha',
+          then: {
+            createdEntities: [],
+            changedEntities: [],
+            createdRelationships: [],
+            removedRelationships: [],
+          },
+          invariants: ['The confirmed version is stable while opening'],
+          timeline: ['v3 confirmed', 'workspace opened', 'v3 shown'],
+        },
+      ],
       operations: [],
     });
     recordModelChallenge(cwd, {
@@ -293,6 +301,7 @@ describe('native full knowledge loop', () => {
           runtimePlanId: 'RUNTIME-001',
           stepId: 'component-q1',
           supportedBy: [],
+          scenarioIds: ['SC-001'],
           businessData: ['workspace=Alpha', 'version=v3'],
           modelRefs: {
             entities: ['workspace'],
@@ -306,6 +315,7 @@ describe('native full knowledge loop', () => {
           runtimePlanId: 'RUNTIME-001',
           stepId: 'acceptance-q2',
           supportedBy: ['TEST-001'],
+          scenarioIds: ['SC-001'],
           scenarioOutcome: 'Model v3 is shown as current',
           businessData: ['workspace=Alpha', 'version=v3'],
           modelRefs: {
@@ -398,8 +408,9 @@ describe('native full knowledge loop', () => {
     decideShowcase(cwd, 'accept', 'The Scenario value is demonstrated.');
 
     const state = readState(cwd);
-    if (!state.confirmed_scenario) throw new Error('Scenario is missing.');
-    const manifest = `artifacts/iterations/ITER-0001/05-code/US-001/SC-001.manifest.json`;
+    const scenario = state.confirmed_scenarios?.[0];
+    if (!scenario) throw new Error('Scenario Set is missing.');
+    const manifest = `artifacts/iterations/ITER-0001/05-code/US-001/manifest.json`;
     proposeKnowledgeResponse(cwd, {
       promotions: [],
       noPromotionReason:
@@ -409,7 +420,7 @@ describe('native full knowledge loop', () => {
       nextProbe: {
         question: 'How should collaborators recognize a superseded version?',
         why_now: 'The current-version behavior is now proven.',
-        evidence_refs: [state.confirmed_scenario.artifact_path, manifest],
+        evidence_refs: [scenario.artifact_path, manifest],
         first_action:
           'Ask the modeling lead for one superseded-version example.',
       },

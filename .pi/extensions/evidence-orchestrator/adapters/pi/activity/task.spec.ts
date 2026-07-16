@@ -63,7 +63,7 @@ describe('activity tasks', () => {
       loop: 'understand',
       understand_stage: 'modeling',
       modeling_stage: 'profile',
-      confirmed_scenario: scenario,
+      confirmed_scenarios: [scenario],
     });
     expect(buildActivityTask(cwd)).toContain(
       '.pi/skills/evidence-modeling-router/SKILL.md',
@@ -93,7 +93,7 @@ describe('activity tasks', () => {
       ...DEFAULT_STATE,
       loop: 'tasking',
       understand_stage: 'modeling',
-      confirmed_scenario: scenario,
+      confirmed_scenarios: [scenario],
       modeling_stage: 'model_confirmed',
       modeling_profile: {
         version: 1,

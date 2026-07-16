@@ -164,9 +164,7 @@ export function decideModel(
   );
 
   if (action === 'scenario_gap') {
-    const storyId =
-      state.confirmed_scenarios?.[0]?.story_id ??
-      state.confirmed_scenario?.story_id;
+    const storyId = state.confirmed_scenarios?.[0]?.story_id;
     if (!storyId) throw new Error('Scenario Set feedback requires a Story id.');
     return writeState(cwd, {
       ...routed,
@@ -174,7 +172,6 @@ export function decideModel(
       active_clarification_story: { story_id: storyId, selected_at: now },
       scenario_drafts: undefined,
       confirmed_scenarios: undefined,
-      confirmed_scenario: undefined,
       modeling_stage: undefined,
       modeling_profile: undefined,
       modeling_profile_proposal: undefined,

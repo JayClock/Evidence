@@ -318,12 +318,12 @@ function approvedQ2Steps(cwd: string, state: WorkflowState) {
             .map(({ id }) => id);
           if (!command || testIds.length === 0) {
             throw new Error(
-              `Approved Showcase Q2 traceability drifted: ${item.story_id}/${item.scenario_id}/${process.id}/${step.id}.`,
+              `Approved Showcase Q2 traceability drifted: ${item.story_id}/[${item.scenarios.map(({ scenario_id }) => scenario_id).join(',')}]/${process.id}/${step.id}.`,
             );
           }
           return {
             storyId: item.story_id,
-            scenarioId: item.scenario_id,
+            scenarioIds: item.scenarios.map(({ scenario_id }) => scenario_id),
             processId: process.id,
             stepId: step.id,
             command,
@@ -339,12 +339,12 @@ function latestQ2Passed(cwd: string, state: WorkflowState): boolean {
   const observations = state.showcase_q2_observations ?? [];
   return (
     expected.length > 0 &&
-    expected.every(({ storyId, scenarioId, processId, stepId }) => {
+    expected.every(({ storyId, scenarioIds, processId, stepId }) => {
       const latest = observations
         .filter(
-          ({ story_id, scenario_id, process_id, step_id }) =>
+          ({ story_id, scenario_ids, process_id, step_id }) =>
             story_id === storyId &&
-            scenario_id === scenarioId &&
+            JSON.stringify(scenario_ids) === JSON.stringify(scenarioIds) &&
             process_id === processId &&
             step_id === stepId,
         )
@@ -382,7 +382,7 @@ export function executeShowcaseQ2(
   const records = steps.map((step, index) => {
     if (
       current?.story_id === step.storyId &&
-      current.scenario_id === step.scenarioId
+      JSON.stringify(current.scenario_ids) === JSON.stringify(step.scenarioIds)
     ) {
       return executeTestStep(cwd, {
         processId: step.processId,
@@ -429,7 +429,7 @@ export function executeShowcaseQ2(
     if (!step) throw new Error('Showcase Q2 observation lost its test intent.');
     return {
       story_id: step.storyId,
-      scenario_id: step.scenarioId,
+      scenario_ids: step.scenarioIds,
       process_id: record.process_id,
       step_id: record.step_id ?? '',
       test_ids: step.testIds,
@@ -453,7 +453,8 @@ export function executeShowcaseQ2(
     ...next,
     completed_work_items: (next.completed_work_items ?? []).map((item) =>
       item.story_id === generated.manifest.story_id &&
-      item.scenario_id === generated.manifest.scenario_id
+      JSON.stringify(item.work_item.scenario_ids) ===
+        JSON.stringify(generated.manifest.scenario_ids)
         ? {
             ...item,
             execution_manifest_sha256: digest(generated.manifestContent),
@@ -465,7 +466,7 @@ export function executeShowcaseQ2(
     .map(
       ({
         story_id,
-        scenario_id,
+        scenario_ids,
         process_id,
         step_id,
         test_ids,
@@ -473,7 +474,7 @@ export function executeShowcaseQ2(
         stdout_summary,
         stderr_summary,
       }) =>
-        `${story_id}/${scenario_id} · ${process_id}/${step_id} · ${test_ids.join(', ')} · exit=${exit_code}${stdout_summary || stderr_summary ? ` · ${stdout_summary || stderr_summary}` : ''}`,
+        `${story_id}/[${scenario_ids.join(',')}] · ${process_id}/${step_id} · ${test_ids.join(', ')} · exit=${exit_code}${stdout_summary || stderr_summary ? ` · ${stdout_summary || stderr_summary}` : ''}`,
     )
     .join('\n');
   return {
@@ -481,9 +482,9 @@ export function executeShowcaseQ2(
     records,
     output: `Iteration Showcase Q2 observed for ${showcaseItems(state).length} completed Story plan(s).
 
-${showcaseItems(state)
+${showcaseScenarios(state)
   .map(
-    ({ scenario }) =>
+    (scenario) =>
       `${scenario.story_id}/${scenario.scenario_id}: Given ${scenario.given.join('；')} · When ${scenario.when} · Then ${scenario.then.join('；')}`,
   )
   .join('\n')}
@@ -670,21 +671,23 @@ function validateSharedTraceability(cwd: string, state: ShowcaseState) {
       digest(readFileSync(absolute)) !== item.execution_manifest_sha256
     ) {
       throw new Error(
-        `Completed work item manifest is missing or changed: ${item.story_id}/${item.scenario_id}.`,
+        `Completed Story manifest is missing or changed: ${item.story_id}.`,
       );
     }
   }
   const workItem = state.active_work_item;
-  const scenario = state.confirmed_scenario;
+  const scenarios = state.confirmed_scenarios ?? [];
   const pair = state.pair_session;
   if (
     !workItem ||
-    !scenario ||
+    scenarios.length === 0 ||
     !pair ||
-    scenario.story_id !== workItem.story_id ||
-    scenario.scenario_id !== workItem.scenario_id ||
+    scenarios.some(({ story_id }) => story_id !== workItem.story_id) ||
+    JSON.stringify(scenarios.map(({ scenario_id }) => scenario_id)) !==
+      JSON.stringify(workItem.scenario_ids) ||
     pair.story_id !== workItem.story_id ||
-    pair.scenario_id !== workItem.scenario_id ||
+    JSON.stringify(pair.scenario_ids) !==
+      JSON.stringify(workItem.scenario_ids) ||
     pair.git_baseline !== workItem.git_baseline
   ) {
     throw new Error(
@@ -695,7 +698,8 @@ function validateSharedTraceability(cwd: string, state: ShowcaseState) {
     state.model_git_baseline !== workItem.git_baseline ||
     (state.model_change_proposal &&
       (state.model_change_proposal.story_id !== workItem.story_id ||
-        state.model_change_proposal.scenario_id !== workItem.scenario_id ||
+        JSON.stringify(state.model_change_proposal.scenario_ids) !==
+          JSON.stringify(workItem.scenario_ids) ||
         state.model_change_proposal.git_baseline !== workItem.git_baseline))
   ) {
     throw new Error(
@@ -705,7 +709,8 @@ function validateSharedTraceability(cwd: string, state: ShowcaseState) {
   const manifest = validateExecutionEvidence(cwd, workItem);
   if (
     manifest.story_id !== workItem.story_id ||
-    manifest.scenario_id !== workItem.scenario_id ||
+    JSON.stringify(manifest.scenario_ids) !==
+      JSON.stringify(workItem.scenario_ids) ||
     manifest.source.git_baseline !== workItem.git_baseline
   ) {
     throw new Error(
@@ -804,7 +809,7 @@ export function recordShowcaseReview(
   if (!evidence.manifest) throw new Error('Showcase manifest is missing.');
   const manifestContent = readFileSync(join(cwd, evidence.manifest));
   const round = (state.showcase_reviews?.length ?? 0) + 1;
-  const base = `artifacts/06-review/${workItem.story_id}/${workItem.scenario_id}.review-${String(round).padStart(3, '0')}`;
+  const base = `artifacts/06-review/${workItem.story_id}/review-${String(round).padStart(3, '0')}`;
   const artifactPathValue = artifactRelativePath(state, `${base}.json`);
   const summaryPathValue = artifactRelativePath(state, `${base}.md`);
   const productObservationIds = (state.showcase_product_observations ?? []).map(
@@ -816,7 +821,7 @@ export function recordShowcaseReview(
   const document = {
     version: 2 as const,
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
+    scenario_ids: workItem.scenario_ids,
     git_baseline: workItem.git_baseline,
     execution_manifest_path: evidence.manifest,
     execution_manifest_sha256: digest(manifestContent),
@@ -831,7 +836,7 @@ export function recordShowcaseReview(
     reviewed_at: now,
   };
   const content = `${JSON.stringify(document, null, 2)}\n`;
-  const summary = `# Showcase Review — ${workItem.story_id} / ${workItem.scenario_id}
+  const summary = `# Showcase Review — ${workItem.story_id} / [${workItem.scenario_ids.join(', ')}]
 
 ## Human product observations
 ${(state.showcase_product_observations ?? []).map(({ observation_id, given, when, observed_outcomes, business_data, observation, value_feedback }) => `- ${observation_id}: Given ${given.join('；')} · When ${when} · Then ${observed_outcomes.join('；')} · data=${business_data.join('；')} · observed=${observation} · value=${value_feedback}`).join('\n')}
@@ -1044,11 +1049,11 @@ function routeRevision(
             modeling_profile: undefined,
           }
         : {
-            confirmed_scenario: undefined,
+            confirmed_scenarios: undefined,
             scenario_drafts: undefined,
             active_clarification_story: {
               story_id:
-                state.confirmed_scenario?.story_id ??
+                state.confirmed_scenarios?.[0]?.story_id ??
                 state.pair_session.story_id,
               selected_at: now,
             },
@@ -1076,7 +1081,7 @@ function routeRevision(
     kickoff_candidate: undefined,
     understand_stage: undefined,
     scenario_drafts: undefined,
-    confirmed_scenario: undefined,
+    confirmed_scenarios: undefined,
     active_clarification_story: undefined,
     modeling_stage: undefined,
     modeling_profile_proposal: undefined,

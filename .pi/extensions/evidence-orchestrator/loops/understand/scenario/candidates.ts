@@ -177,8 +177,8 @@ ${scenario.business_data.map((item) => `- ${item}`).join('\n')}
 }
 
 function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
-  if (state.confirmed_scenarios?.length || state.confirmed_scenario) {
-    const current = state.confirmed_scenarios?.[0] ?? state.confirmed_scenario;
+  if (state.confirmed_scenarios?.length) {
+    const current = state.confirmed_scenarios[0];
     throw new Error(
       `${current?.story_id}/${current?.scenario_id} is already confirmed.`,
     );
@@ -196,7 +196,7 @@ function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
   const recordedScenarioIds = new Set(
     (state.understanding_decisions ?? [])
       .filter((decision) => decision.action === 'confirmed')
-      .map((decision) => decision.scenario_id),
+      .flatMap((decision) => decision.scenario_ids ?? []),
   );
   const unrecorded = existing.filter((name) => {
     const scenarioId = name.match(/(SC-\d{3,})\.md$/)?.[1];
@@ -212,8 +212,6 @@ function ensureNoConfirmedScenario(cwd: string, state: WorkflowState): void {
 export interface UnderstandingDecisionInput {
   action: UnderstandingDecisionAction;
   reason?: string;
-  /** @deprecated Use draftIds for the complete Story acceptance set. */
-  draftId?: string;
   draftIds?: string[];
 }
 
@@ -288,8 +286,7 @@ export function decideUnderstanding(
     });
   }
 
-  const requestedDraftIds =
-    input.draftIds ?? (input.draftId ? [input.draftId] : []);
+  const requestedDraftIds = input.draftIds ?? [];
   if (requestedDraftIds.length === 0) {
     throw new Error('Scenario confirmation requires at least one draft id.');
   }
@@ -313,11 +310,7 @@ export function decideUnderstanding(
   ensureNoConfirmedScenario(cwd, state);
   const priorScenarioNumbers = (state.understanding_decisions ?? [])
     .filter((decision) => decision.action === 'confirmed')
-    .flatMap(
-      (decision) =>
-        decision.scenario_ids ??
-        (decision.scenario_id ? [decision.scenario_id] : []),
-    )
+    .flatMap((decision) => decision.scenario_ids ?? [])
     .map((scenarioId) => Number(scenarioId.replace('SC-', '')))
     .filter(Number.isFinite);
   const firstNumber = Math.max(0, ...priorScenarioNumbers) + 1;
@@ -356,9 +349,6 @@ export function decideUnderstanding(
     decided_at: now,
     draft_ids: draftIds,
     scenario_ids: scenarioIds,
-    // Keep the first ids readable by archived single-Scenario consumers during migration.
-    draft_id: draftIds[0],
-    scenario_id: scenarioIds[0],
   };
   return writeState(cwd, {
     ...state,
@@ -366,7 +356,6 @@ export function decideUnderstanding(
     modeling_stage: 'profile',
     active_clarification_story: undefined,
     confirmed_scenarios: confirmed,
-    confirmed_scenario: confirmed[0],
     understanding_decisions: [
       ...(state.understanding_decisions ?? []),
       decision,

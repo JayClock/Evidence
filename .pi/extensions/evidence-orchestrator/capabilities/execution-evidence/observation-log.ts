@@ -380,7 +380,7 @@ export function executeTestStep(
     `artifacts/05-code/${state.active_work_item.story_id}`,
   );
   mkdirSync(root, { recursive: true });
-  const logPath = `${root}/${state.active_work_item.scenario_id}.execution.jsonl`;
+  const logPath = `${root}/execution.jsonl`;
   const priorRecords = readExecutionRecords(logPath);
   assertLockedMaterializedPlan(cwd, selection, process);
   const actualHash = testProcessDefinitionSha256(definitionPath);

@@ -155,8 +155,8 @@ export function recordModelChallenge(
 
   const routed = routeFeedback(state, record, now);
   if (outcome === 'scenario_gap') {
-    const storyId = state.confirmed_scenario?.story_id;
-    if (!storyId) throw new Error('Scenario-gap routing requires a Story id.');
+    const storyId = state.confirmed_scenarios?.[0]?.story_id;
+    if (!storyId) throw new Error('Scenario Set routing requires a Story id.');
     return writeState(cwd, {
       ...routed,
       understand_stage: 'tqa',
@@ -165,7 +165,7 @@ export function recordModelChallenge(
         selected_at: now,
       },
       scenario_drafts: undefined,
-      confirmed_scenario: undefined,
+      confirmed_scenarios: undefined,
       modeling_stage: undefined,
       modeling_profile: undefined,
       modeling_profile_proposal: undefined,

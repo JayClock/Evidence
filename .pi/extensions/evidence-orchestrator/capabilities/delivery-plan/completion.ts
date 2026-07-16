@@ -19,16 +19,13 @@ function completedItem(
   state: WorkflowState,
   now: string,
 ): CompletedWorkItem {
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
-  const scenario = scenarios[0];
+  const scenarios = state.confirmed_scenarios ?? [];
   const workItem = state.active_work_item;
   const tasking = state.tasking_candidate;
   const pair = state.pair_session;
   const modelDecision = state.model_decisions?.at(-1);
   if (
-    !scenario ||
+    scenarios.length === 0 ||
     !workItem ||
     !tasking ||
     !pair ||
@@ -50,9 +47,7 @@ function completedItem(
   return {
     version: 1,
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
     scenarios,
-    scenario,
     work_item: workItem,
     tasking,
     pair,
@@ -71,12 +66,7 @@ function appendCompleted(
   item: CompletedWorkItem,
 ): CompletedWorkItem[] {
   const prior = state.completed_work_items ?? [];
-  if (
-    prior.some(
-      ({ story_id, scenario_id }) =>
-        story_id === item.story_id && scenario_id === item.scenario_id,
-    )
-  ) {
+  if (prior.some(({ story_id }) => story_id === item.story_id)) {
     return prior;
   }
   return [...prior, item];

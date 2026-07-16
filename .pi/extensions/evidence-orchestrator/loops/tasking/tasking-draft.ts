@@ -40,7 +40,7 @@ export interface TaskingTestInput {
   runtimePlanId: string;
   stepId: string;
   supportedBy: string[];
-  scenarioIds?: string[];
+  scenarioIds: string[];
   scenarioOutcome?: string;
   businessData: string[];
   modelRefs: { entities: string[]; associations: string[] };
@@ -97,7 +97,7 @@ function unique(values: string[], name: string, allowEmpty = false): string[] {
 function assertTaskingState(state: WorkflowState): void {
   if (
     state.loop !== 'tasking' ||
-    !(state.confirmed_scenarios?.length || state.confirmed_scenario) ||
+    !state.confirmed_scenarios?.length ||
     state.modeling_stage !== 'model_confirmed' ||
     state.model_challenges?.at(-1)?.outcome !== 'pass' ||
     state.model_decisions?.at(-1)?.action !== 'confirm'
@@ -297,9 +297,7 @@ function normalizeTests(
   inputs: TaskingTestInput[],
   runtimes: ResolvedRuntime[],
 ): TaskingTestItem[] {
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenarios = state.confirmed_scenarios ?? [];
   if (scenarios.length === 0)
     throw new Error('Tasking has no confirmed Scenario Set.');
   if (!Array.isArray(inputs) || inputs.length === 0) {
@@ -331,11 +329,8 @@ function normalizeTests(
         `${input.id} must reference an applicable ${input.quadrant} step in its selected process.`,
       );
     }
-    const soleScenario = scenarios.length === 1 ? scenarios[0] : undefined;
-    const scenarioIds =
-      input.scenarioIds ?? (soleScenario ? [soleScenario.scenario_id] : []);
     const normalizedScenarioIds = unique(
-      scenarioIds,
+      input.scenarioIds,
       `${input.id}.scenarioIds`,
     );
     const referencedScenarios = normalizedScenarioIds.map((scenarioId) => {
@@ -608,9 +603,7 @@ function renderTestList(
   tests: TaskingTestItem[],
   runtimes: ResolvedRuntime[],
 ): string {
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenarios = state.confirmed_scenarios ?? [];
   const scenario = scenarios[0];
   if (!scenario) throw new Error('Tasking has no confirmed Scenario Set.');
   const render = (quadrant: 'Q1' | 'Q2') =>
@@ -691,9 +684,7 @@ export function proposeTaskingDraft(
   if (!Array.isArray(resolved)) return resolved;
   const tests = normalizeTests(cwd, state, input.tests, resolved);
   const tasks = normalizeTasks(input.tasks, tests, resolved);
-  const scenarios =
-    state.confirmed_scenarios ??
-    (state.confirmed_scenario ? [state.confirmed_scenario] : []);
+  const scenarios = state.confirmed_scenarios ?? [];
   const scenario = scenarios[0];
   if (!scenario) throw new Error('Tasking has no confirmed Scenario Set.');
   const draftId = nextDraftId(cwd, state);
@@ -716,7 +707,6 @@ export function proposeTaskingDraft(
     draft_id: draftId,
     story_id: scenario.story_id,
     scenario_ids: scenarios.map(({ scenario_id }) => scenario_id),
-    scenario_id: scenario.scenario_id,
     tests,
     tasks,
     processes: resolved.map(({ selection }) => selection),

@@ -144,7 +144,7 @@ function lockApprovedProcesses(
     const plan = {
       version: 2,
       story_id: candidate.story_id,
-      scenario_id: candidate.scenario_id,
+      scenario_ids: candidate.scenario_ids,
       process_id: lockedBase.id,
       process_path: lockedBase.path,
       definition_sha256: lockedBase.definition_sha256,
@@ -158,12 +158,12 @@ function lockApprovedProcesses(
       materialized_sha256: lockedBase.materialized_sha256,
     };
     const planContent = `${JSON.stringify(plan, null, 2)}\n`;
-    const firstPlanRelative = `artifacts/04-planning/test-plans/${candidate.story_id}-${candidate.scenario_id}-${process.id}.json`;
+    const firstPlanRelative = `artifacts/04-planning/test-plans/${candidate.story_id}-${process.id}.json`;
     const firstPlanPath = artifactPath(cwd, state, firstPlanRelative);
     const planRelative =
       existsSync(firstPlanPath) &&
       readFileSync(firstPlanPath, 'utf8') !== planContent
-        ? `artifacts/04-planning/test-plans/${candidate.story_id}-${candidate.scenario_id}-${candidate.draft_id}-${process.id}.json`
+        ? `artifacts/04-planning/test-plans/${candidate.story_id}-${candidate.draft_id}-${process.id}.json`
         : firstPlanRelative;
     const locked: TestProcessSelection = {
       ...lockedBase,
@@ -259,13 +259,13 @@ export function decideTasking(
     const approvedRelative = existsSync(
       artifactPath(cwd, state, firstApprovedRelative),
     )
-      ? `artifacts/04-planning/test-plans/${state.tasking_candidate.story_id}-${state.tasking_candidate.scenario_id}-${state.tasking_candidate.draft_id}.approved.json`
+      ? `artifacts/04-planning/test-plans/${state.tasking_candidate.story_id}-${state.tasking_candidate.draft_id}.approved.json`
       : firstApprovedRelative;
     const approvedPath = artifactRelativePath(state, approvedRelative);
     const approvedPlan = {
       version: 2,
       story_id: state.tasking_candidate.story_id,
-      scenario_id: state.tasking_candidate.scenario_id,
+      scenario_ids: state.tasking_candidate.scenario_ids,
       approved_by: 'human',
       approved_at: now,
       approval_reason: normalizedReason,
@@ -309,7 +309,6 @@ export function decideTasking(
       active_work_item: {
         story_id: state.tasking_candidate.story_id,
         scenario_ids: state.tasking_candidate.scenario_ids,
-        scenario_id: state.tasking_candidate.scenario_id,
         git_baseline: baseline,
         test_plan: {
           version: 2 as const,
@@ -320,7 +319,6 @@ export function decideTasking(
         version: 2 as const,
         story_id: state.tasking_candidate.story_id,
         scenario_ids: state.tasking_candidate.scenario_ids,
-        scenario_id: state.tasking_candidate.scenario_id,
         git_baseline: baseline,
         checkpoint: 'plan_confirmed' as const,
         task_id: firstTask.id,
@@ -397,7 +395,7 @@ export function decideTasking(
     understand_stage: 'tqa',
     active_clarification_story: { story_id: storyId, selected_at: now },
     scenario_drafts: undefined,
-    confirmed_scenario: undefined,
+    confirmed_scenarios: undefined,
     modeling_stage: undefined,
     modeling_profile_proposal: undefined,
     modeling_profile: undefined,

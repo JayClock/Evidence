@@ -31,7 +31,7 @@ export function requireModelingState(cwd: string): WorkflowState {
   if (
     state.loop !== 'understand' ||
     state.understand_stage !== 'modeling' ||
-    !(state.confirmed_scenarios?.length || state.confirmed_scenario)
+    !state.confirmed_scenarios?.length
   ) {
     throw new Error(
       'Modeling is only available for a human-confirmed Scenario Set in the Understand modeling stage.',

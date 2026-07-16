@@ -279,13 +279,13 @@ export function buildPairDriverTask(
   const processStep = definition.steps.find(({ id }) => id === unit.stepId);
   if (!processStep) throw new Error(`Missing process step ${stepKey(unit)}.`);
   const common = `方法：先加载并遵守 .pi/skills/evidence-pairing/SKILL.md。
-当前工作项：${session.story_id} / ${session.scenario_id}
+当前工作项：${session.story_id} / [${session.scenario_ids.join(', ')}]
 当前 TASK：${unit.task.id} · ${unit.task.description}
 当前 TEST：${unit.test.id} · ${unit.test.intent}
 模型追踪：entities=${unit.test.model_refs.entities.join(',') || 'none'}；associations=${unit.test.model_refs.associations.join(',') || 'none'}
 当前步骤：${stepKey(unit)} · ${processStep.purpose}
 Git baseline：${session.git_baseline}
-确认 Scenario：${state.confirmed_scenario?.artifact_path ?? 'missing'}
+确认 Scenario Set：${state.confirmed_scenarios?.map(({ artifact_path }) => artifact_path).join(', ') ?? 'missing'}
 模型展开：${state.model_expansion_path ?? 'missing'}
 人工模型决定：${state.model_decisions?.at(-1)?.artifact_path ?? 'missing'}
 测试列表：${state.tasking_candidate?.test_list_path ?? 'missing'}

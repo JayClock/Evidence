@@ -11,7 +11,6 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   understand_stage: true,
   scenario_drafts: true,
   confirmed_scenarios: true,
-  confirmed_scenario: true,
   understanding_decisions: true,
   modeling_stage: true,
   modeling_profile_proposal: true,
@@ -297,22 +296,6 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     throw new Error('The confirmed Scenario Set is invalid.');
   }
   if (
-    state.confirmed_scenario &&
-    (state.confirmed_scenario.version !== 1 ||
-      !STORY_ID_PATTERN.test(state.confirmed_scenario.story_id) ||
-      !SCENARIO_ID_PATTERN.test(state.confirmed_scenario.scenario_id) ||
-      !textArray(state.confirmed_scenario.given) ||
-      !text(state.confirmed_scenario.when) ||
-      !textArray(state.confirmed_scenario.then) ||
-      !textArray(state.confirmed_scenario.business_data) ||
-      state.confirmed_scenario.confirmed_by !== 'human' ||
-      (state.confirmed_scenario.confirmation_reason !== undefined &&
-        !text(state.confirmed_scenario.confirmation_reason)) ||
-      !text(state.confirmed_scenario.confirmed_at))
-  ) {
-    throw new Error('The confirmed Scenario is invalid.');
-  }
-  if (
     state.modeling_stage !== undefined &&
     !MODELING_STAGES.has(state.modeling_stage)
   ) {
@@ -447,7 +430,6 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !state.active_work_item.scenario_ids.every((id) =>
         SCENARIO_ID_PATTERN.test(id),
       ) ||
-      !SCENARIO_ID_PATTERN.test(state.active_work_item.scenario_id) ||
       !text(state.active_work_item.git_baseline) ||
       state.active_work_item.test_plan.version !== 2 ||
       state.active_work_item.test_plan.processes.length === 0 ||
@@ -521,7 +503,6 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       (item) =>
         item.version !== 1 ||
         !STORY_ID_PATTERN.test(item.story_id) ||
-        !SCENARIO_ID_PATTERN.test(item.scenario_id) ||
         !Array.isArray(item.scenarios) ||
         item.scenarios.length === 0 ||
         item.scenarios.some(
@@ -529,10 +510,11 @@ export function normalizeState(input: WorkflowState): WorkflowState {
             scenario.story_id !== item.story_id ||
             !SCENARIO_ID_PATTERN.test(scenario.scenario_id),
         ) ||
-        item.scenario.story_id !== item.story_id ||
-        item.scenario.scenario_id !== item.scenario_id ||
         item.work_item.story_id !== item.story_id ||
-        item.work_item.scenario_id !== item.scenario_id ||
+        JSON.stringify(item.work_item.scenario_ids) !==
+          JSON.stringify(
+            item.scenarios.map(({ scenario_id }) => scenario_id),
+          ) ||
         item.pair.checkpoint !== 'quality_gates_passed' ||
         !text(item.approved_test_plan_path) ||
         !text(item.approved_test_plan_sha256) ||
@@ -549,7 +531,8 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     state.pair_session &&
     (!state.active_work_item ||
       state.pair_session.story_id !== state.active_work_item.story_id ||
-      state.pair_session.scenario_id !== state.active_work_item.scenario_id ||
+      JSON.stringify(state.pair_session.scenario_ids) !==
+        JSON.stringify(state.active_work_item.scenario_ids) ||
       state.pair_session.git_baseline !== state.active_work_item.git_baseline)
   ) {
     throw new Error('The Pair session must retain its work item baseline.');

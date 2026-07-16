@@ -29,7 +29,7 @@ import {
 export interface ExecutionManifest {
   version: 2;
   story_id: string;
-  scenario_id: string;
+  scenario_ids: string[];
   source: {
     execution_log: string;
     execution_log_sha256: string;
@@ -45,7 +45,7 @@ export interface ExecutionManifest {
     completed_at: string;
   };
   traceability: {
-    scenario: string;
+    scenarios: string[];
     model_expansion?: string;
     model_expansion_sha256?: string;
     model_decision?: string;
@@ -180,7 +180,8 @@ function approvedPlanData(
     !isRecord(parsed) ||
     parsed.version !== 2 ||
     parsed.story_id !== workItem.story_id ||
-    parsed.scenario_id !== workItem.scenario_id ||
+    JSON.stringify(parsed.scenario_ids) !==
+      JSON.stringify(workItem.scenario_ids) ||
     !Array.isArray(parsed.tests) ||
     !Array.isArray(parsed.tasks) ||
     !Array.isArray(parsed.processes)
@@ -363,21 +364,21 @@ function selectedSteps(
 function executionPath(state: WorkflowState, workItem: ActiveWorkItem): string {
   return artifactRelativePath(
     state,
-    `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}.execution.jsonl`,
+    `artifacts/05-code/${workItem.story_id}/execution.jsonl`,
   );
 }
 
 function manifestPath(state: WorkflowState, workItem: ActiveWorkItem): string {
   return artifactRelativePath(
     state,
-    `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}.manifest.json`,
+    `artifacts/05-code/${workItem.story_id}/manifest.json`,
   );
 }
 
 function summaryPath(state: WorkflowState, workItem: ActiveWorkItem): string {
   return artifactRelativePath(
     state,
-    `artifacts/05-code/${workItem.story_id}/${workItem.scenario_id}.summary.md`,
+    `artifacts/05-code/${workItem.story_id}/summary.md`,
   );
 }
 
@@ -880,14 +881,14 @@ function buildManifest(
     throw new Error('Execution log has no stable chain head.');
   }
   const tests = approved.tests;
-  const scenario =
-    state.confirmed_scenario?.artifact_path ??
-    artifactRelativePath(
-      state,
-      `artifacts/01-requirements/examples/${workItem.story_id}-${workItem.scenario_id}.md`,
-    );
-  if (!existsSync(join(cwd, scenario))) {
-    throw new Error(`Confirmed Scenario evidence is missing: ${scenario}.`);
+  const scenarioPaths = (state.confirmed_scenarios ?? []).map(
+    ({ artifact_path }) => artifact_path,
+  );
+  if (
+    scenarioPaths.length !== workItem.scenario_ids.length ||
+    scenarioPaths.some((path) => !existsSync(join(cwd, path)))
+  ) {
+    throw new Error('Complete confirmed Scenario Set evidence is required.');
   }
   if (
     state.model_expansion_path &&
@@ -919,7 +920,7 @@ function buildManifest(
   return {
     version: 2,
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
+    scenario_ids: workItem.scenario_ids,
     source: {
       execution_log: logPath,
       execution_log_sha256: digest(readFileSync(logAbsolute)),
@@ -940,7 +941,7 @@ function buildManifest(
       completed_at: last.completed_at,
     },
     traceability: {
-      scenario,
+      scenarios: scenarioPaths,
       ...(state.model_expansion_path && modelExpansionSha256
         ? {
             model_expansion: state.model_expansion_path,
@@ -1002,7 +1003,7 @@ function renderSummary(manifest: ExecutionManifest): string {
         )
         .join('\n')
     : '- not run';
-  return `# Execution Summary — ${manifest.story_id} / ${manifest.scenario_id}
+  return `# Execution Summary — ${manifest.story_id} / [${manifest.scenario_ids.join(', ')}]
 
 > Deterministically generated from \`${manifest.source.execution_log}\` and the approved test plan. Do not edit by hand.
 

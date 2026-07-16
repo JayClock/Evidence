@@ -175,7 +175,9 @@ function validatePromotions(
   const manifest = validateExecutionEvidence(cwd, workItem);
   const actualChanges = changedPaths(cwd, workItem.git_baseline);
   const required = [
-    state.confirmed_scenario?.artifact_path,
+    ...(state.confirmed_scenarios ?? []).map(
+      ({ artifact_path }) => artifact_path,
+    ),
     state.showcase_decisions?.at(-1)?.artifact_path,
     executionEvidencePaths(cwd).manifest,
   ].filter((value): value is string => Boolean(value));
@@ -277,9 +279,11 @@ function validatePromotions(
 
 function consistency(cwd: string, state: WorkflowState) {
   const workItem = state.active_work_item;
-  const scenario = state.confirmed_scenario;
-  if (!workItem || !scenario) {
-    throw new Error('Respond requires the confirmed Scenario and work item.');
+  const scenarios = state.confirmed_scenarios ?? [];
+  if (!workItem || scenarios.length === 0) {
+    throw new Error(
+      'Respond requires the confirmed Scenario Set and work item.',
+    );
   }
   if (state.model_git_baseline !== workItem.git_baseline) {
     throw new Error(
@@ -290,8 +294,9 @@ function consistency(cwd: string, state: WorkflowState) {
   const manifest = validateExecutionEvidence(cwd, workItem);
   if (
     manifest.source.git_baseline !== workItem.git_baseline ||
-    manifest.story_id !== scenario.story_id ||
-    manifest.scenario_id !== scenario.scenario_id
+    manifest.story_id !== workItem.story_id ||
+    JSON.stringify(manifest.scenario_ids) !==
+      JSON.stringify(workItem.scenario_ids)
   ) {
     throw new Error(
       'Model and code do not share the accepted Scenario Git baseline.',
@@ -312,7 +317,7 @@ function consistency(cwd: string, state: WorkflowState) {
   if (!manifestPath) throw new Error('Respond execution manifest is missing.');
   return {
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
+    scenario_ids: workItem.scenario_ids,
     git_baseline: workItem.git_baseline,
     execution_manifest: manifestPath,
     model_paths: observedModelPaths,
@@ -405,7 +410,7 @@ function persistDecision(
 }
 
 function renderSummary(candidate: RespondCandidate): string {
-  return `# Iteration Summary — ${candidate.consistency.story_id} / ${candidate.consistency.scenario_id}\n\n## Observed outcomes\n${candidate.observed_outcomes.map((item) => `- ${item}`).join('\n')}\n\n## Knowledge response\n${candidate.promotions.length ? candidate.promotions.map((item) => `- ${item.kind} · ${item.decision} · ${item.source} — ${item.reason}`).join('\n') : `- No promotion: ${candidate.no_promotion_reason}`}\n\n## Residual risks\n${candidate.residual_risks.map((item) => `- ${item}`).join('\n') || '- none'}\n`;
+  return `# Iteration Summary — ${candidate.consistency.story_id} / [${candidate.consistency.scenario_ids.join(', ')}]\n\n## Observed outcomes\n${candidate.observed_outcomes.map((item) => `- ${item}`).join('\n')}\n\n## Knowledge response\n${candidate.promotions.length ? candidate.promotions.map((item) => `- ${item.kind} · ${item.decision} · ${item.source} — ${item.reason}`).join('\n') : `- No promotion: ${candidate.no_promotion_reason}`}\n\n## Residual risks\n${candidate.residual_risks.map((item) => `- ${item}`).join('\n') || '- none'}\n`;
 }
 
 function renderProbe(probe: NextProbe): string {

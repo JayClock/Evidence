@@ -136,7 +136,7 @@ function preparePair(cwd: string): void {
     JSON.stringify({
       version: 2,
       story_id: 'US-001',
-      scenario_id: 'SC-001',
+      scenario_ids: ['SC-001'],
       process_id: definition.id,
       process_path: processPath,
       definition_sha256: definitionSha256,
@@ -224,7 +224,7 @@ function preparePair(cwd: string): void {
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: 'US-001',
-    scenario_id: 'SC-001',
+    scenario_ids: ['SC-001'],
     tests: [taskingTest],
     tasks: [taskingTask],
     processes: [{ ...selection, quality_gates: definition.quality_gates }],
@@ -250,22 +250,24 @@ function preparePair(cwd: string): void {
       fetched_at: '2026-01-01T00:00:00.000Z',
     },
     understand_stage: 'modeling',
-    confirmed_scenario: {
-      version: 1,
-      story_id: 'US-001',
-      scenario_id: 'SC-001',
-      source_draft_id: 'DRAFT-001',
-      title: 'Workspace becomes visible',
-      given: ['No visible workspace exists'],
-      when: 'The owner creates Alpha',
-      then: ['Workspace is visible'],
-      business_data: ['name=Alpha'],
-      artifact_path:
-        'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
-      confirmed_by: 'human',
-      confirmation_reason: 'Smallest value.',
-      confirmed_at: '2026-01-01T00:00:00.000Z',
-    },
+    confirmed_scenarios: [
+      {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: 'Workspace becomes visible',
+        given: ['No visible workspace exists'],
+        when: 'The owner creates Alpha',
+        then: ['Workspace is visible'],
+        business_data: ['name=Alpha'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: 'Smallest value.',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    ],
     modeling_stage: 'model_confirmed',
     modeling_profile: {
       version: 1,
@@ -321,7 +323,6 @@ function preparePair(cwd: string): void {
     active_work_item: {
       story_id: 'US-001',
       scenario_ids: ['SC-001'],
-      scenario_id: 'SC-001',
       git_baseline: baseline,
       test_plan: { version: 2, processes: [selection] },
     },
@@ -330,7 +331,6 @@ function preparePair(cwd: string): void {
       draft_id: 'DRAFT-001',
       story_id: 'US-001',
       scenario_ids: ['SC-001'],
-      scenario_id: 'SC-001',
       tests: [taskingTest],
       tasks: [taskingTask],
       processes: [selection],
@@ -347,7 +347,6 @@ function preparePair(cwd: string): void {
       version: 2,
       story_id: 'US-001',
       scenario_ids: ['SC-001'],
-      scenario_id: 'SC-001',
       git_baseline: baseline,
       checkpoint: 'plan_confirmed',
       task_id: taskingTask.id,
@@ -399,7 +398,7 @@ function addSecondQ2Test(cwd: string): void {
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
+    scenario_ids: workItem.scenario_ids,
     tests,
     tasks,
     processes: workItem.test_plan.processes.map((process) => ({
@@ -508,7 +507,7 @@ function addWebQ1Step(cwd: string): void {
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
+    scenario_ids: workItem.scenario_ids,
     tests,
     tasks,
     processes: selections.map((process) => ({
@@ -614,7 +613,7 @@ function addTauriProcess(cwd: string): void {
     JSON.stringify({
       version: 2,
       story_id: 'US-001',
-      scenario_id: 'SC-001',
+      scenario_ids: ['SC-001'],
       process_id: definition.id,
       process_path: processPath,
       definition_sha256: definitionSha256,
@@ -669,7 +668,7 @@ function addTauriProcess(cwd: string): void {
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
-    scenario_id: workItem.scenario_id,
+    scenario_ids: workItem.scenario_ids,
     tests,
     tasks,
     processes: selections.map((process) => ({
@@ -1362,7 +1361,7 @@ describe('Navigator-driven Pair', () => {
       state: { loop: 'respond', respond_stage: 'drafting' },
     });
     const manifestPath =
-      'artifacts/iterations/ITER-0001/05-code/US-001/SC-001.manifest.json';
+      'artifacts/iterations/ITER-0001/05-code/US-001/manifest.json';
     const response = proposeKnowledgeResponse(cwd, {
       promotions: [],
       noPromotionReason:
@@ -1446,7 +1445,7 @@ describe('Navigator-driven Pair', () => {
       understand_stage: 'tqa',
       active_clarification_story: { story_id: 'US-001' },
     });
-    expect(understand.confirmed_scenario).toBeUndefined();
+    expect(understand.confirmed_scenarios).toBeUndefined();
     expect(understand.feedback_history?.at(-1)?.target).toBe('scenario');
   });
 

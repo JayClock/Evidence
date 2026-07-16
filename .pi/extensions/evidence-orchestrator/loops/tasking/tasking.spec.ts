@@ -144,22 +144,24 @@ function prepare(cwd: string): void {
       fetched_at: '2026-01-01T00:00:00.000Z',
     },
     understand_stage: 'modeling',
-    confirmed_scenario: {
-      version: 1,
-      story_id: 'US-001',
-      scenario_id: 'SC-001',
-      source_draft_id: 'DRAFT-001',
-      title: 'Create a workspace',
-      given: ['The owner has no workspace named Alpha'],
-      when: 'The owner creates workspace Alpha',
-      then: ['Workspace Alpha is available to the owner'],
-      business_data: ['name=Alpha', 'owner=desktop-user'],
-      artifact_path:
-        'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
-      confirmed_by: 'human',
-      confirmation_reason: 'This is the smallest valuable outcome.',
-      confirmed_at: '2026-01-01T00:00:00.000Z',
-    },
+    confirmed_scenarios: [
+      {
+        version: 1,
+        story_id: 'US-001',
+        scenario_id: 'SC-001',
+        source_draft_id: 'DRAFT-001',
+        title: 'Create a workspace',
+        given: ['The owner has no workspace named Alpha'],
+        when: 'The owner creates workspace Alpha',
+        then: ['Workspace Alpha is available to the owner'],
+        business_data: ['name=Alpha', 'owner=desktop-user'],
+        artifact_path:
+          'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md',
+        confirmed_by: 'human',
+        confirmation_reason: 'This is the smallest valuable outcome.',
+        confirmed_at: '2026-01-01T00:00:00.000Z',
+      },
+    ],
     modeling_stage: 'model_confirmed',
     modeling_profile: {
       version: 1,
@@ -211,6 +213,7 @@ function draftInput(
         runtimePlanId: 'RUNTIME-001',
         stepId: 'domain-q1',
         supportedBy: [],
+        scenarioIds: ['SC-001'],
         businessData: ['name=Alpha', 'owner=desktop-user'],
         modelRefs: { entities: ['workspace'], associations: [] },
       },
@@ -222,6 +225,7 @@ function draftInput(
         runtimePlanId: 'RUNTIME-001',
         stepId: 'api-q2',
         supportedBy: ['TEST-001'],
+        scenarioIds: ['SC-001'],
         scenarioOutcome: outcome,
         businessData: ['name=Alpha', 'owner=desktop-user'],
         modelRefs: { entities: ['workspace'], associations: [] },
@@ -249,7 +253,7 @@ describe('Tasking and Desk Check', () => {
     const cwd = workspace();
     prepare(cwd);
     const current = readState(cwd);
-    const first = current.confirmed_scenario;
+    const first = current.confirmed_scenarios?.[0];
     if (!first) throw new Error('Fixture Scenario is missing.');
     writeState(cwd, {
       ...current,
@@ -336,7 +340,7 @@ describe('Tasking and Desk Check', () => {
       tasking_stage: 'approved',
       active_work_item: {
         story_id: 'US-001',
-        scenario_id: 'SC-001',
+        scenario_ids: ['SC-001'],
         test_plan: {
           version: 2,
           processes: [
@@ -558,11 +562,11 @@ describe('Tasking and Desk Check', () => {
     );
 
     expect(revised.approved_test_plan_path).toContain(
-      'US-001-SC-001-DRAFT-002.approved.json',
+      'US-001-DRAFT-002.approved.json',
     );
     expect(
       revised.active_work_item?.test_plan?.processes[0]?.materialized_plan_path,
-    ).toContain('US-001-SC-001-DRAFT-002-rust-workspace.json');
+    ).toContain('US-001-DRAFT-002-rust-workspace.json');
     expect(
       existsSync(
         `${cwd}/artifacts/iterations/ITER-0001/04-planning/test-plan.json`,
@@ -586,7 +590,7 @@ describe('Tasking and Desk Check', () => {
       understand_stage: 'tqa',
       active_clarification_story: { story_id: 'US-001' },
     });
-    expect(state.confirmed_scenario).toBeUndefined();
+    expect(state.confirmed_scenarios).toBeUndefined();
     expect(state.feedback_history?.at(-1)).toMatchObject({
       target: 'scenario',
       decided_by: 'human',
