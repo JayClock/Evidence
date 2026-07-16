@@ -47,6 +47,14 @@ describe('activity tasks', () => {
         story_id: 'US-001',
         selected_at: '2026-01-01T00:00:00.000Z',
       },
+      understanding_decisions: [
+        {
+          action: 'continue',
+          reason: 'Cover the concurrent-edit boundary.',
+          decided_by: 'human',
+          decided_at: '2026-01-01T00:01:00.000Z',
+        },
+      ],
     });
 
     const task = buildActivityTask(cwd);
@@ -54,6 +62,7 @@ describe('activity tasks', () => {
     expect(task).toContain('.pi/skills/evidence-story-tqa/SKILL.md');
     expect(task).toContain('evidence_orchestrator_ask_question');
     expect(task).toContain('evidence_orchestrator_propose_scenarios');
+    expect(task).toContain('Cover the concurrent-edit boundary.');
   });
 
   it('routes Profile and Expansion through their Skills', () => {

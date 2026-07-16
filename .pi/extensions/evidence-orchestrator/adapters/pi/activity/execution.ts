@@ -41,6 +41,18 @@ interface ExecutePreparedActivityRunOptions {
   now?: () => string;
 }
 
+function tqaSessionId(preparation: PreparedActivityRun): string | undefined {
+  if (
+    preparation.activity !== 'understand' ||
+    preparation.state.understand_stage !== 'tqa'
+  ) {
+    return undefined;
+  }
+  const storyId = preparation.state.active_clarification_story?.story_id;
+  if (!storyId) return undefined;
+  return `evidence-${preparation.state.iteration_id}-${storyId}-tqa`.toLowerCase();
+}
+
 function progressDetails(
   preparation: PreparedActivityRun,
   progress: ActivityAgentProgress,
@@ -150,10 +162,12 @@ export async function executePreparedActivityRun(
         `Activity ${preparation.activity} has no subagent or deterministic action.`,
       );
     }
+    const sessionId = tqaSessionId(preparation);
     let result = await runActivitySubagent({
       cwd: ctx.cwd,
       agentName: preparation.agentName,
       task: preparation.task,
+      ...(sessionId ? { sessionId } : {}),
       signal: options.signal,
       onUpdate(progress) {
         options.onUpdate?.(progressDetails(preparation, progress));

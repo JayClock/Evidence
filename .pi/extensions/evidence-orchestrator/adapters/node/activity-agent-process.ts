@@ -39,6 +39,13 @@ export interface ActivityAgentProgress extends ActivityAgentResult {
   exitCode: -1;
 }
 
+interface ActivitySubagentArgumentsOptions {
+  agent: Pick<ActivityAgent, 'model' | 'thinking' | 'tools'>;
+  promptPath: string;
+  task: string;
+  sessionId?: string;
+}
+
 const THINKING_LEVELS = new Set<ThinkingLevel>([
   'off',
   'minimal',
@@ -148,6 +155,37 @@ export function activityAgentName(name: string): string {
   return name;
 }
 
+function activitySessionId(sessionId: string): string {
+  const normalized = sessionId.trim();
+  if (!/^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/.test(normalized)) {
+    throw new Error(`Invalid activity session id: ${sessionId}.`);
+  }
+  return normalized;
+}
+
+/** Build one child invocation; a supplied id resumes the same logical Pi session. */
+export function activitySubagentArguments(
+  options: ActivitySubagentArgumentsOptions,
+): string[] {
+  const args = ['--mode', 'json', '-p'];
+  if (options.sessionId) {
+    args.push('--session-id', activitySessionId(options.sessionId));
+  } else {
+    args.push('--no-session');
+  }
+  args.push(
+    '--model',
+    options.agent.model,
+    '--thinking',
+    options.agent.thinking,
+    '--append-system-prompt',
+    options.promptPath,
+  );
+  if (options.agent.tools) args.push('--tools', options.agent.tools.join(','));
+  args.push(`Task:\n${options.task}`);
+  return args;
+}
+
 export function loadActivityAgent(
   cwd: string,
   agentName: string,
@@ -212,6 +250,7 @@ export async function runActivitySubagent(options: {
   cwd: string;
   agentName: string;
   task: string;
+  sessionId?: string;
   signal?: AbortSignal;
   onUpdate?: (progress: ActivityAgentProgress) => void;
 }): Promise<ActivityAgentResult> {
@@ -223,20 +262,12 @@ export async function runActivitySubagent(options: {
     mode: 0o600,
   });
 
-  const args = [
-    '--mode',
-    'json',
-    '-p',
-    '--no-session',
-    '--model',
-    agent.model,
-    '--thinking',
-    agent.thinking,
-    '--append-system-prompt',
+  const args = activitySubagentArguments({
+    agent,
     promptPath,
-  ];
-  if (agent.tools) args.push('--tools', agent.tools.join(','));
-  args.push(`Task:\n${options.task}`);
+    task: options.task,
+    sessionId: options.sessionId,
+  });
 
   const messages: Message[] = [];
   let stderr = '';

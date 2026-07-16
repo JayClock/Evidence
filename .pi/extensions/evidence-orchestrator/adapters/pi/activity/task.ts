@@ -54,6 +54,11 @@ ${extra || '（无）'}
   if (state.loop === 'understand' && state.understand_stage === 'tqa') {
     const storyId = state.active_clarification_story?.story_id;
     if (!storyId) throw new Error('Understand TQA requires one active Story.');
+    const latestScenarioDecision = state.understanding_decisions?.at(-1);
+    const scenarioFeedback =
+      latestScenarioDecision?.action === 'continue'
+        ? `人工要求继续 TQA：${latestScenarioDecision.reason}`
+        : '（无）';
     return `执行 Evidence Orchestrator Understand TQA：${storyId}。
 
 方法：加载并遵守 .pi/skills/evidence-story-tqa/SKILL.md。
@@ -66,6 +71,9 @@ ${extra || '（无）'}
 - docs/product/story-map.md
 
 任务：只处理 ${storyId}。下一步只能调用 evidence_orchestrator_ask_question 或 evidence_orchestrator_propose_scenarios 一次并停止；人类通过 /evidence-scenario 决定确认、继续、拆分或延期。
+
+最新 Scenario 反馈：
+${scenarioFeedback}
 
 额外用户指令：
 ${extra || '（无）'}

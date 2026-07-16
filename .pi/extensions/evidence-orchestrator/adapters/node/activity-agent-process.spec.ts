@@ -11,6 +11,7 @@ import {
   activityAgentName,
   activityAgentProgress,
   activityAgentResult,
+  activitySubagentArguments,
 } from './activity-agent-process';
 
 afterEach(cleanupWorkspaces);
@@ -68,6 +69,32 @@ describe('activity subagents', () => {
     expect(() => loadActivityAgent(cwd, 'architect')).toThrow(
       '.pi/agents/architect.md',
     );
+  });
+
+  it('keeps ordinary checkpoints ephemeral and resumes a named TQA session', () => {
+    const agent = {
+      model: 'openai-codex/gpt-test',
+      thinking: 'high' as const,
+      tools: ['read', 'evidence_orchestrator_ask_question'],
+    };
+    const ephemeral = activitySubagentArguments({
+      agent,
+      promptPath: '/tmp/requirements-analyst.md',
+      task: 'Prepare one candidate.',
+    });
+    expect(ephemeral).toContain('--no-session');
+    expect(ephemeral).not.toContain('--session-id');
+
+    const continued = activitySubagentArguments({
+      agent,
+      promptPath: '/tmp/requirements-analyst.md',
+      task: 'Continue TQA.',
+      sessionId: 'evidence-iter-0001-us-001-tqa',
+    });
+    expect(continued).toEqual(
+      expect.arrayContaining(['--session-id', 'evidence-iter-0001-us-001-tqa']),
+    );
+    expect(continued).not.toContain('--no-session');
   });
 
   it('streams finalized child messages into an immutable running snapshot', () => {

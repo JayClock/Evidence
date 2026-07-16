@@ -3,10 +3,24 @@ import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { listInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { writeState } from '../../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../../test-support/support';
+import {
+  cleanupWorkspaces,
+  testIntakeSnapshot,
+  workspace,
+  write,
+} from '../../test-support/support';
 import { registerTools, syncActiveTools, toolsForState } from './tools';
 
-afterEach(cleanupWorkspaces);
+const runner = vi.hoisted(() => ({ runActivitySubagent: vi.fn() }));
+
+vi.mock('../node/activity-agent-process', () => ({
+  runActivitySubagent: runner.runActivitySubagent,
+}));
+
+afterEach(() => {
+  cleanupWorkspaces();
+  vi.clearAllMocks();
+});
 
 describe('tools', () => {
   it('registers native activity, proposal, TQA, and status tools only', () => {
@@ -148,6 +162,77 @@ describe('tools', () => {
 
     expect(result.terminate).toBe(true);
     expect(listInboxStoryCandidates(cwd)[0]).not.toHaveProperty('story_id');
+  });
+
+  it('continues an answered clarification in the same Story TQA session', async () => {
+    const cwd = workspace();
+    for (const path of [
+      'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+      'artifacts/iterations/ITER-0001/01-requirements/problem-statement.md',
+      'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
+      'docs/product/business-context.md',
+      'docs/product/user-journeys.md',
+      'docs/product/story-map.md',
+    ]) {
+      write(cwd, path);
+    }
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      loop: 'understand',
+      understand_stage: 'tqa',
+      intake_snapshot: testIntakeSnapshot(),
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-001',
+        story_id: 'US-001',
+        question: 'Who confirms the current model?',
+        target: 'history',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+    runner.runActivitySubagent.mockResolvedValue({
+      agent: 'requirements-analyst',
+      model: 'openai/test',
+      thinking: 'high',
+      output: 'Asked the next question.',
+      messages: [],
+      exitCode: 0,
+      stderr: '',
+    });
+    let answer: { execute: (...args: never[]) => Promise<unknown> } | undefined;
+    registerTools({
+      on() {
+        return undefined;
+      },
+      registerTool(tool: {
+        name: string;
+        execute: (...args: never[]) => Promise<unknown>;
+      }) {
+        if (tool.name === 'evidence_orchestrator_answer_question') {
+          answer = tool;
+        }
+      },
+    } as never);
+
+    await answer?.execute(
+      'call' as never,
+      { answer: 'The modeling lead confirms version v3.' } as never,
+      undefined as never,
+      undefined as never,
+      { cwd, ui: { setStatus: vi.fn() } } as never,
+    );
+
+    expect(runner.runActivitySubagent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'evidence-iter-0001-us-001-tqa',
+        task: expect.stringContaining(
+          '回答：The modeling lead confirms version v3.',
+        ),
+      }),
+    );
   });
 
   it('records one unauthorized Kickoff candidate without creating a Story', async () => {

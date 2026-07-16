@@ -45,7 +45,7 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 具体流程：
 
 1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
-2. **Understand**：一次提出一个面向业务的 TQA 问题；人类直接回答。AI 列出完整 Scenario Set 后由人类整体确认，再以全部 Scenario 完成 Profile、逐场景模型展开、跨场景一致性挑战和一次人工模型确认。
+2. **Understand**：每张活动 Story 使用一条持久 TQA 会话，一次提出一个面向业务的问题；人类直接回答后，下一次 requirements-analyst checkpoint 恢复同一 Pi session。AI 列出完整 Scenario Set 后由人类整体确认，再以全部 Scenario 完成 Profile、逐场景模型展开、跨场景一致性挑战和一次人工模型确认。其他活动角色仍使用隔离的临时会话。
 3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
 4. **Pair**：Navigator 每次只推进一个 TASK/TEST checkpoint。每个 TEST 分别产生 Red、Green、Refactor；全部 Scenario 对应的 TASK/TEST 完成后运行一次最终 quality gates，然后进入 Showcase。
 5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
@@ -105,7 +105,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 - `pi/commands.ts` 与 `pi/tools.ts` 只注册外部入口；参数解析、Schema 和 activity host 分文件维护。
 - `pi/activity/` 负责任务构建、单 checkpoint 调度、执行、进度和渲染。
 - `github/inbox-source.ts` 与 `github/pi-cli.ts` 把 GitHub Issue 适配为 provider-neutral Inbox capture。
-- `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`。
+- `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`；普通 checkpoint 使用临时 session，活动 Story 的 TQA checkpoint 以稳定 session id 恢复同一多轮会话。
 
 ## 人工命令
 

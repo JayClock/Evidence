@@ -655,12 +655,22 @@ export function registerTools(pi: ExtensionAPI): void {
     promptGuidelines: [
       'Use only when the user explicitly supplies an answer to the pending clarification question.',
       'Do not infer, fabricate, summarize, or answer on behalf of the user.',
-      'evidence_orchestrator_answer_question automatically runs the next isolated activity after recording the answer: TQA normally continues, while a story-target answer returns to Kickoff for a replacement candidate. When it finishes, stop for the next human answer or decision.',
+      'evidence_orchestrator_answer_question records the answer and resumes the active Story’s persistent TQA session. A story-target answer instead returns to Kickoff for a replacement candidate. When it finishes, stop for the next human answer or decision.',
     ],
     parameters: clarificationAnswerParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
+      const pending = readState(ctx.cwd).pending_clarification;
       const state = answerClarification(ctx.cwd, params.answer);
-      const preparation = prepareActivityRun(ctx.cwd);
+      const continuesTqa =
+        state.loop === 'understand' && state.understand_stage === 'tqa';
+      const preparation = prepareActivityRun(
+        ctx.cwd,
+        continuesTqa && pending
+          ? {
+              instructions: `领域专家对 ${pending.question_id} 的原文回答：\n\n问题：${pending.question}\n\n回答：${params.answer}\n\n在同一 Story TQA 会话中继续，只提出一个下一问题或完整 Scenario Set。`,
+            }
+          : {},
+      );
       if (isCompletedIteration(preparation)) {
         throw new Error(
           'The active Evidence Orchestrator iteration is complete.',

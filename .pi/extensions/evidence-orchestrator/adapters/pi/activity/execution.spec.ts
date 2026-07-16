@@ -89,6 +89,11 @@ describe('activity execution', () => {
 
     expect(result.output).toContain('Q-001 · US-001');
     expect(result.output).toContain('Who confirms the model?');
+    expect(runner.runActivitySubagent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'evidence-iter-0001-us-001-tqa',
+      }),
+    );
   });
 
   it('replaces an empty child response with explicit next-step guidance', async () => {
@@ -137,6 +142,9 @@ describe('activity execution', () => {
     );
     expect(runner.runActivitySubagent.mock.calls[0][0]).not.toHaveProperty(
       'phase',
+    );
+    expect(runner.runActivitySubagent.mock.calls[0][0]).not.toHaveProperty(
+      'sessionId',
     );
   });
 
