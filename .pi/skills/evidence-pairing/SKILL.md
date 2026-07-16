@@ -11,7 +11,7 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 
 ## Inputs
 
-- One `US-xxx` with its confirmed Scenario Set, clean Git baseline, and combined model expansion.
+- One `US-xxx` with its confirmed Scenario Set, clean Git baseline, and confirmed modeling evidence (combined expansion or `no_model_required` decision).
 - Human-approved test/task list and immutable v2 process plans.
 - Current ordered `TASK-xxx / TEST-xxx`, its model references, owning process step, and expected Red behavior.
 
@@ -24,7 +24,7 @@ Use for the approved Pair loop. The human is Navigator; Drivers are short-lived 
 5. **Production Driver** writes the minimum implementation without changing confirmed tests.
 6. Controller records Green.
 7. Production Driver performs a bounded Refactor or explicit no-op.
-8. Controller records Refactor and the model → TASK/TEST → changed-path trace.
+8. Controller records Refactor and the model → TASK/TEST → changed-path trace; for `method=none`, record the direct Scenario → TASK/TEST → changed-path trace with empty model refs.
 9. Repeat for the next ordered TEST across the complete Scenario Set, including another TEST on the same process step. After every approved Story TASK/TEST completes, run each final quality gate once per revision cycle.
 10. Generate execution evidence from observations; do not hand-copy commands, exits, paths, task ids, or model refs.
 

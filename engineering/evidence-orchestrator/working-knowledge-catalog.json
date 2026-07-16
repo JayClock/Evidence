@@ -17,18 +17,18 @@
     },
     {
       "id": "WK-MODELING-ROUTER",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "owner": "Domain modeling",
       "cognitive_behaviors": ["complicated", "complex"],
       "skill_path": ".pi/skills/evidence-modeling-router/SKILL.md",
       "prompt_paths": [],
       "validated_scenarios": ["EOV5-005: human-confirmed modeling Profile"],
-      "latest_feedback": "Try the current model before selecting a subject-specific method.",
+      "latest_feedback": "Route none/false directly as no model impact; non-none false validates the existing model with empty operations, while true proposes one minimal change.",
       "supersedes": []
     },
     {
       "id": "WK-MODEL-EXPANSION",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "owner": "Domain modeling",
       "cognitive_behaviors": ["complicated", "complex"],
       "skill_path": ".pi/skills/evidence-model-expansion/SKILL.md",
@@ -37,7 +37,7 @@
         "REG-001-current-workspace-model",
         "EOV5-006: independent model challenge"
       ],
-      "latest_feedback": "Builder expands every confirmed Scenario and proposes one minimal operation set; Challenger checks cross-Scenario consistency and regressions before one human model decision.",
+      "latest_feedback": "Builder runs only for non-none Profiles and must match the human change decision exactly; none/false bypasses Builder and Challenger deterministically.",
       "supersedes": []
     },
     {
@@ -55,7 +55,7 @@
     },
     {
       "id": "WK-TEST-PROCESS",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "owner": "Test strategy",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-test-process/SKILL.md",
@@ -64,12 +64,12 @@
         "EOV5-009: immutable Desk-Checked Tasking",
         "Tasking spec: model proposal applied on the Desk-Checked Pair baseline"
       ],
-      "latest_feedback": "Task the complete Story once: every Then has Q2 coverage, shared Q1 support is deduplicated, and every TEST has Scenario/model refs plus one ordered TASK owner.",
+      "latest_feedback": "Task the complete Story once from confirmed modeling evidence; non-none tests trace model refs, while none tests keep empty refs and trace directly from Scenarios.",
       "supersedes": []
     },
     {
       "id": "WK-PAIRING",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "owner": "Delivery",
       "cognitive_behaviors": ["complicated"],
       "skill_path": ".pi/skills/evidence-pairing/SKILL.md",
@@ -79,7 +79,7 @@
         "EOV5-011: generated execution evidence",
         "Pair spec: separate TASK/TEST cycles on one process step"
       ],
-      "latest_feedback": "One short-lived Driver and one active TASK/TEST at a time across the Story plan; process steps supply boundaries, and Showcase follows only after all Story tests and gates pass.",
+      "latest_feedback": "One short-lived Driver and one active TASK/TEST at a time; method=none preserves direct Scenario-to-code traceability without inventing model refs.",
       "supersedes": []
     },
     {

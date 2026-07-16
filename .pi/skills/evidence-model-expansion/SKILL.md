@@ -7,7 +7,7 @@ description: Expand every Scenario in one confirmed Story Scenario Set through t
 
 ## When to use
 
-Use for model Builder expansion of one confirmed Scenario Set and read-only Challenger review of the combined Story model. Load the method-specific Skill only when the confirmed Profile requires it.
+Use for model Builder expansion of one confirmed Scenario Set and read-only Challenger review of the combined Story model only when the human-confirmed method is not `none`. A `none/false` Profile follows the deterministic no-model-impact route and must not load this Skill or call model-analysis/challenge tools.
 
 ## Inputs
 
@@ -24,8 +24,11 @@ Use for model Builder expansion of one confirmed Scenario Set and read-only Chal
 4. Record per-Scenario exact business data, invariants, and temporal sequence.
 5. Check concept, relationship, lifecycle, invariant, and timeline consistency across the complete set.
 6. If the existing model fails, identify concept absence, relationship error, lifecycle error, or method-specific invariant failure.
-7. Propose one minimum structured add/update/remove operation set for the Story; update/remove must cite the current SHA-256.
-8. Call `evidence_orchestrator_record_model_analysis` once and stop. Never write `.evidence` directly.
+7. Obey the human change decision exactly:
+   - `modelChangeRequired=false` → explain the complete set with the existing model and submit `operations=[]`;
+   - `modelChangeRequired=true` → propose one minimum non-empty add/update/remove set; update/remove must cite the current SHA-256.
+8. If that constraint cannot explain the Scenario Set, report a model/method gap instead of contradicting the Profile.
+9. Call `evidence_orchestrator_record_model_analysis` once and stop. Never write `.evidence` directly.
 
 ## Challenger sequence
 
@@ -36,7 +39,8 @@ Use for model Builder expansion of one confirmed Scenario Set and read-only Chal
 
 ## Project examples
 
-- Existing `workspace` and membership associations explain “owner sees Alpha” → no operations; expansion still records refs and invariant.
+- Existing `workspace` and membership associations explain “owner sees Alpha” under `object/false` → no operations; expansion still records refs and invariant.
+- `tool/none/false` → no expansion payload at all; the controller records empty model refs and proceeds to Tasking.
 - A confirmation has no request relation → a relationship/lifecycle gap, not permission to redesign unrelated aggregates.
 
 ## Feedback and exit conditions

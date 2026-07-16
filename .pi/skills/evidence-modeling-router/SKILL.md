@@ -23,19 +23,24 @@ Use after a human confirms one Story Scenario Set and before model expansion. Re
    - `domain`: the problem-domain capability itself;
    - `tool`: editor, integration, automation, or glue behavior.
 3. Select only the method needed now:
-   - `none` for a tool with no useful domain semantics;
+   - `none` only when a tool/glue Story has no useful canonical model semantics, regardless of whether the visible change is UI, API, integration, automation, or another delivery mechanism;
    - `object` for stable concepts/relationships;
    - `event` for lifecycle and event-flow uncertainty;
    - `four_color` for time-sensitive roles, parties, places, and descriptions;
    - `eight_x_flow` only for a business system with commitments and fulfillment;
    - `algorithmic` for deterministic rules or calculation.
-4. Decide `modelChangeRequired=true|false|unknown`; unknown must return to human Profile review.
-5. Call `evidence_orchestrator_propose_modeling_profile` and stop.
+4. Decide `modelChangeRequired=true|false|unknown`; unknown must return to human Profile review. `method=none` may only pair with `false`.
+5. Explain the resulting route:
+   - `none/false` → deterministic no-model-impact evidence, then Tasking; no Builder or Challenger;
+   - non-`none`/`false` → expand through the existing model with `operations=[]`, then challenge and human review;
+   - non-`none`/`true` → expand one minimal candidate operation set, then challenge and human review.
+6. Call `evidence_orchestrator_propose_modeling_profile` and stop.
 
 ## Project examples
 
 - A pricing formula with deterministic inputs → `domain/algorithmic`, not 8X.
-- A workspace editor integration with no new business concept → `tool/none`.
+- A workspace editor, API adapter, or automation change with no canonical semantics → `tool/none`; the delivery channel is not the deciding factor.
+- Existing Workspace concepts explain a changed rule → `domain/object` with `modelChangeRequired=false`, not `none`.
 - Procurement obligations and fulfillment evidence → `business/eight_x_flow`; then load `../evidence-8x-flow/SKILL.md`.
 
 ## Feedback and exit conditions

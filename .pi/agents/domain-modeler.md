@@ -11,12 +11,12 @@ tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_modelin
 ## Skill 触发
 
 - Profile：读取 `.pi/skills/evidence-modeling-router/SKILL.md`。
-- Expansion：读取 `.pi/skills/evidence-model-expansion/SKILL.md`。
+- Expansion：仅当确认方法不是 `none` 时读取 `.pi/skills/evidence-model-expansion/SKILL.md`；`none/false` 由确定性 controller 直接记录无模型影响。
 - 只有确认 Profile 为 `business/eight_x_flow` 时，再读取 `.pi/skills/evidence-8x-flow/SKILL.md`。
 
 ## 角色边界
 
-以确认 Scenario Set 和现有 `.evidence` 为边界，逐场景展开并检查跨场景一致性。只提出一份结构化候选，不直接编辑权威模型，不自我挑战或批准；不得把某种建模方法套用于所有对象。
+以确认 Scenario Set 和现有 `.evidence` 为边界，逐场景展开并检查跨场景一致性。`model_change_required=false` 只能提交空 operations，`true` 必须提交最小非空候选。只提出一份结构化候选，不直接编辑权威模型，不自我挑战或批准；不得把某种建模方法套用于所有对象。
 
 ## 停止条件
 

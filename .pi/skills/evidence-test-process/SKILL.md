@@ -7,19 +7,19 @@ description: Turn one confirmed Evidence Story Scenario Set into one reviewable,
 
 ## When to use
 
-Use only after the independent model challenge passes **and a human confirms the model and ubiquitous language**, before Pair. Reuse after architecture, strategy, or process feedback routes to Tasking.
+Use before Pair after either (a) a non-`none` expansion passes independent challenge and human model review, or (b) the human confirms `none/false` and the controller records no-model-impact evidence. Reuse after architecture, strategy, or process feedback routes to Tasking.
 
 ## Inputs
 
 - Confirmed Scenario Set, every exact Then outcome, and business data.
-- Human-confirmed model expansion and generated context projection, including stable entity and association ids.
+- Confirmed modeling evidence: either model expansion plus generated context projection, or a `no_model_required` decision with empty model refs.
 - Stable context map, test strategy, test doubles, runtime vocabulary, API contract, and v2 process catalog.
 
 ## Tasking sequence
 
 1. List Q2 acceptance intent directly from every confirmed Scenario/Then outcome and preserve business data verbatim; every Scenario and Then must be covered.
 2. Add Q1 tests that localize likely Q2 failures and deduplicate support shared by multiple Scenarios; non-goals never become reverse tests.
-3. Give every `TEST-xxx` explicit Scenario refs and `modelRefs` drawn only from the confirmed Story expansion. Across the test list, cover every expansion reference; method `none` is the only valid empty trace.
+3. Give every `TEST-xxx` explicit Scenario refs. For non-`none`, use `modelRefs` drawn only from the confirmed Story expansion and cover every expansion reference across the list. For `none`, every test must use empty model refs and trace directly Scenario → TASK/TEST.
 4. Separate dimensions:
    - functional context = stable business capability;
    - runtime = Rust, TypeScript, or Tauri;
