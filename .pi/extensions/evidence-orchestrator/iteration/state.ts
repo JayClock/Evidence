@@ -141,6 +141,26 @@ export interface GitHubIssueRequirementSource {
   fetched_at: string;
 }
 
+export interface IterationIntakeSourceRevision {
+  inbox_id: string;
+  revision_sha256: string;
+  snapshot_path: string;
+  snapshot_sha256: string;
+}
+
+/** Frozen provider-neutral input selected before the delivery iteration starts. */
+export interface IterationIntakeSnapshot {
+  version: 1;
+  candidate_id: string;
+  candidate_snapshot_path: string;
+  candidate_snapshot_sha256: string;
+  source_revisions: IterationIntakeSourceRevision[];
+  manifest_path: string;
+  projection_path: string;
+  content_sha256: string;
+  frozen_at: string;
+}
+
 export interface MaterializedTestCommand {
   step_id: string;
   command: string;
@@ -698,8 +718,10 @@ export interface WorkflowState {
   knowledge_promotion_path?: string;
   next_probe?: NextProbe;
   feedback_history?: WorkflowFeedback[];
-  /** Upstream requirement authority; local files are immutable iteration snapshots. */
+  /** Legacy GitHub-backed input retained until Inbox migration completes. */
   requirement_source?: GitHubIssueRequirementSource;
+  /** Provider-neutral candidate and source revisions frozen for this iteration. */
+  intake_snapshot?: IterationIntakeSnapshot;
   active_work_item?: ActiveWorkItem;
   /** Acceptance slices completed in this delivery iteration; Showcase covers all of them. */
   completed_work_items?: CompletedWorkItem[];

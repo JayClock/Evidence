@@ -44,6 +44,7 @@ const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   next_probe: true,
   feedback_history: true,
   requirement_source: true,
+  intake_snapshot: true,
   active_work_item: true,
   completed_work_items: true,
   active_clarification_story: true,
@@ -121,6 +122,35 @@ function validModelRefs(value: unknown): boolean {
   return textArray(refs.entities, true) && textArray(refs.associations, true);
 }
 
+function validIntakeSnapshot(value: WorkflowState['intake_snapshot']): boolean {
+  if (!value) return true;
+  return (
+    value.version === 1 &&
+    /^CAND-\d{4,}$/.test(value.candidate_id) &&
+    text(value.candidate_snapshot_path) &&
+    /^sha256:[a-f0-9]{64}$/.test(value.candidate_snapshot_sha256) &&
+    Array.isArray(value.source_revisions) &&
+    value.source_revisions.length > 0 &&
+    value.source_revisions.every(
+      ({ inbox_id, revision_sha256, snapshot_path, snapshot_sha256 }) =>
+        /^INBOX-\d{4,}$/.test(inbox_id) &&
+        /^sha256:[a-f0-9]{64}$/.test(revision_sha256) &&
+        text(snapshot_path) &&
+        /^sha256:[a-f0-9]{64}$/.test(snapshot_sha256),
+    ) &&
+    new Set(
+      value.source_revisions.map(
+        ({ inbox_id, revision_sha256 }) =>
+          `${inbox_id}\u0000${revision_sha256}`,
+      ),
+    ).size === value.source_revisions.length &&
+    text(value.manifest_path) &&
+    text(value.projection_path) &&
+    /^sha256:[a-f0-9]{64}$/.test(value.content_sha256) &&
+    text(value.frozen_at)
+  );
+}
+
 function validPending(record: ClarificationRecord): boolean {
   return (
     text(record.question_id) &&
@@ -168,6 +198,13 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     if (!Object.hasOwn(WORKFLOW_STATE_FIELDS, field)) {
       throw new Error(`Unsupported workflow state field: ${field}.`);
     }
+  }
+  if (
+    !validIntakeSnapshot(state.intake_snapshot) ||
+    (state.intake_snapshot !== undefined &&
+      state.requirement_source !== undefined)
+  ) {
+    throw new Error('The provider-neutral iteration Intake is invalid.');
   }
   if (
     state.pi &&

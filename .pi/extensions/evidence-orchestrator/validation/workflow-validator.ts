@@ -4,6 +4,7 @@ import { validateExecutionEvidence } from '../capabilities/execution-evidence/ma
 import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
 import { validateStoryCards } from '../loops/kickoff/story-card';
 import { validateIssueSourceSnapshot } from '../capabilities/issue-source/github-issue-source';
+import { validateIterationIntakeSnapshot } from '../capabilities/inbox/iteration-intake';
 import { validateInboxRepository } from '../capabilities/inbox/repository';
 import { validateInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
 import { iterationRoot } from '../iteration/artifact-layout';
@@ -32,9 +33,9 @@ export function validateWorkflow(cwd: string): void {
         `Active iteration artifact root is missing: ${relative(cwd, root)}.`,
       );
     }
-    if (!state.requirement_source) {
+    if (!state.requirement_source && !state.intake_snapshot) {
       throw new Error(
-        'Active iteration has no GitHub Issue requirement source. Select one with /evidence-new.',
+        'Active iteration has no frozen requirement input. Select one with /evidence-new.',
       );
     }
   }
@@ -47,7 +48,8 @@ export function validateWorkflow(cwd: string): void {
   validateTestProcessDirectory(catalog);
   validateCanonicalKnowledge(cwd);
   if (!state) return;
-  validateIssueSourceSnapshot(cwd, state);
+  if (state.intake_snapshot) validateIterationIntakeSnapshot(cwd, state);
+  else validateIssueSourceSnapshot(cwd, state);
   if (
     state.kickoff_decisions?.some(
       ({ action, story_id }) => action === 'confirmed' && Boolean(story_id),

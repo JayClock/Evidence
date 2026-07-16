@@ -11,13 +11,11 @@ import { validateWorkflow } from './workflow-validator';
 afterEach(cleanupWorkspaces);
 
 describe('validate', () => {
-  it('rejects an active iteration without an Issue requirement source', () => {
+  it('rejects an active iteration without a frozen requirement input', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
     writeIterationArtifact(cwd, '00-user-input/requirements.md');
-    expect(() => validateWorkflow(cwd)).toThrow(
-      'no GitHub Issue requirement source',
-    );
+    expect(() => validateWorkflow(cwd)).toThrow('no frozen requirement input');
   });
 
   it('rejects a missing active iteration root', () => {

@@ -48,10 +48,12 @@ function writeKickoffInputs(cwd: string): void {
 afterEach(cleanupWorkspaces);
 
 describe('activity dispatch', () => {
-  it('requires an Issue-backed native iteration', () => {
+  it('requires a frozen native iteration input', () => {
     const cwd = workspace();
     writeState(cwd, DEFAULT_STATE);
-    expect(() => prepareActivityRun(cwd)).toThrow('no frozen GitHub Issue');
+    expect(() => prepareActivityRun(cwd)).toThrow(
+      'no frozen requirement input',
+    );
   });
 
   it('prepares Kickoff with an explicit role and no phase mapping', () => {
