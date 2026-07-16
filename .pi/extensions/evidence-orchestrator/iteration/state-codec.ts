@@ -83,6 +83,13 @@ const TASKING_STAGES = new Set([
   'knowledge_gap',
   'approved',
 ]);
+const DESK_CHECK_ACTIONS = new Set([
+  'approve',
+  'revise',
+  'architecture_gap',
+  'process_gap',
+  'scenario_gap',
+]);
 const PAIR_CHECKPOINTS = new Set([
   'plan_confirmed',
   'test_written',
@@ -460,6 +467,22 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       ))
   ) {
     throw new Error('The Tasking candidate traceability is invalid.');
+  }
+  if (
+    (state.desk_check_decisions ?? []).some(
+      (decision) =>
+        !DESK_CHECK_ACTIONS.has(decision.action) ||
+        (decision.action !== 'approve' && !text(decision.reason)) ||
+        (decision.reason !== undefined && !text(decision.reason)) ||
+        (decision.draft_id !== undefined && !text(decision.draft_id)) ||
+        (decision.candidate_sha256 !== undefined &&
+          !text(decision.candidate_sha256)) ||
+        decision.decided_by !== 'human' ||
+        !text(decision.artifact_path) ||
+        !text(decision.decided_at),
+    )
+  ) {
+    throw new Error('The Desk Check decision history is invalid.');
   }
   if (
     state.tasking_stage === 'approved' &&

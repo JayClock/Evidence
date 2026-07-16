@@ -236,7 +236,7 @@ export interface TaskingGap {
 
 export interface DeskCheckDecision {
   action: DeskCheckAction;
-  reason: string;
+  reason?: string;
   draft_id?: string;
   candidate_sha256?: string;
   decided_by: 'human';

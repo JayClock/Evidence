@@ -355,7 +355,7 @@ export async function promptModelDecision(
 
 interface DeskCheckDecisionInput {
   action: DeskCheckAction;
-  reason: string;
+  reason?: string;
 }
 
 export function parseDeskCheckDecision(
@@ -366,12 +366,14 @@ export function parseDeskCheckDecision(
   const action = DESK_CHECK_ACTIONS[rawAction.toLowerCase()];
   if (!action) {
     throw new Error(
-      'Usage: /evidence-desk-check <approve|revise|architecture_gap|process_gap|scenario_gap> <reason>.',
+      'Usage: /evidence-desk-check approve [reason] | <revise|architecture_gap|process_gap|scenario_gap> <reason>.',
     );
   }
   const reason = reasonParts.join(' ').trim();
-  if (!reason) throw new Error(`Desk Check ${rawAction} requires a reason.`);
-  return { action, reason };
+  if (!reason && action !== 'approve') {
+    throw new Error(`Desk Check ${rawAction} requires a reason.`);
+  }
+  return { action, ...(reason ? { reason } : {}) };
 }
 
 export async function promptDeskCheckDecision(
@@ -405,6 +407,7 @@ export async function promptDeskCheckDecision(
   };
   const action = actions[selected.replace(/[ /]/g, '')];
   if (!action) return undefined;
+  if (action === 'approve') return { action };
   const reason = (await ctx.ui.input(`请说明“${selected}”的理由`))?.trim();
   return reason ? { action, reason } : undefined;
 }

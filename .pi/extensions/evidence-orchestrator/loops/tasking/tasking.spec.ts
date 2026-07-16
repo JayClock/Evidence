@@ -331,11 +331,7 @@ describe('Tasking and Desk Check', () => {
       })),
     };
     proposeTaskingDraft(cwd, noModelInput);
-    const approved = decideTasking(
-      cwd,
-      'approve',
-      'The no-model trace and implementation plan are reviewable.',
-    );
+    const approved = decideTasking(cwd, 'approve');
 
     expect(routed).toMatchObject({
       loop: 'tasking',
@@ -347,6 +343,11 @@ describe('Tasking and Desk Check', () => {
       tasking_stage: 'approved',
     });
     expect(approved.model_change_application).toBeUndefined();
+    expect(approved.desk_check_decisions?.at(-1)).not.toHaveProperty('reason');
+    const approvedPlan = JSON.parse(
+      readFileSync(`${cwd}/${approved.approved_test_plan_path}`, 'utf8'),
+    ) as Record<string, unknown>;
+    expect(approvedPlan).not.toHaveProperty('approval_reason');
   });
 
   it('requires human approval, supports edited-list regeneration, and locks the v2 plan', () => {

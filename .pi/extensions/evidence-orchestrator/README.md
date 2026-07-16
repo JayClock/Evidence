@@ -118,7 +118,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 /evidence-scenario confirm <DRAFT-xxx,...> [reason] | continue|split|defer <reason>
 /evidence-modeling-profile confirm [reason] | set <subject> <method> <true|false> <reason>
 /evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>
-/evidence-desk-check approve|revise|architecture_gap|process_gap|scenario_gap <reason>
+/evidence-desk-check approve [reason] | revise|architecture_gap|process_gap|scenario_gap <reason>
 /evidence-pair [当前 Pair 人工决定参数]
 /evidence-showcase [observe|risk|evaluate|accept|revise|reject 参数]
 /evidence-respond approve|revise <reason>

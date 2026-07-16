@@ -21,9 +21,11 @@ import {
   registerCommands,
 } from './commands';
 import {
+  parseDeskCheckDecision,
   parseKickoffDecision,
   parseModelingProfileDecision,
   parseScenarioDecision,
+  promptDeskCheckDecision,
   promptKickoffDecision,
   promptModelDecision,
   promptModelingProfileDecision,
@@ -267,6 +269,12 @@ describe('commands', () => {
       draftIds: ['DRAFT-001', 'DRAFT-002'],
     });
     expect(parseModelDecision('confirm')).toEqual({ action: 'confirm' });
+    expect(parseDeskCheckDecision('approve')).toEqual({ action: 'approve' });
+    expect(parseDeskCheckDecision('approve Optional approval note.')).toEqual({
+      action: 'approve',
+      reason: 'Optional approval note.',
+    });
+    expect(() => parseDeskCheckDecision('revise')).toThrow('requires a reason');
     expect(() => parseKickoffDecision('revise')).toThrow(
       'requires a business reason',
     );
@@ -316,6 +324,59 @@ describe('commands', () => {
       action: 'approve',
       reason: 'Evidence is sufficient.',
     });
+  });
+
+  it('approves Desk Check interactively without asking for a reason', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'tasking',
+      tasking_stage: 'desk_check',
+      tasking_candidate: {
+        version: 2,
+        draft_id: 'DRAFT-001',
+        story_id: 'US-001',
+        scenario_ids: ['SC-001'],
+        tests: [
+          {
+            id: 'TEST-001',
+            quadrant: 'Q2',
+            intent: 'The confirmed outcome is visible.',
+            runtime_plan_id: 'RUNTIME-001',
+            process_id: 'typescript-web',
+            step_id: 'feature-q2',
+            supported_by: [],
+            scenario_ids: ['SC-001'],
+            business_data: ['workspace=alpha'],
+            model_refs: { entities: [], associations: [] },
+          },
+        ],
+        tasks: [
+          {
+            id: 'TASK-001',
+            description: 'Implement the confirmed outcome.',
+            test_ids: ['TEST-001'],
+            depends_on: [],
+            model_refs: { entities: [], associations: [] },
+          },
+        ],
+        processes: [],
+        test_list_path: 'artifacts/04-planning/test-list.md',
+        task_list_path: 'artifacts/04-planning/task-list.md',
+        candidate_path: 'artifacts/04-planning/tasking-candidate.json',
+        test_list_sha256: 'test-list-sha',
+        task_list_sha256: 'task-list-sha',
+        candidate_sha256: 'candidate-sha',
+        proposed_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    const ctx = context(cwd);
+    ctx.ui.select.mockResolvedValue('批准并进入 Pair');
+
+    await expect(promptDeskCheckDecision(ctx as never)).resolves.toEqual({
+      action: 'approve',
+    });
+    expect(ctx.ui.input).not.toHaveBeenCalled();
   });
 
   it('lets the human reselect a Profile and fixes none to no model change', async () => {

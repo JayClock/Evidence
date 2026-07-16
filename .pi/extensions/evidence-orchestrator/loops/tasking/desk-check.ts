@@ -26,12 +26,6 @@ function digest(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
-function required(value: string, name: string): string {
-  const normalized = value.trim();
-  if (!normalized) throw new Error(`${name} must not be empty.`);
-  return normalized;
-}
-
 function immutableWrite(path: string, content: string): void {
   mkdirSync(dirname(path), { recursive: true });
   if (existsSync(path) && readFileSync(path, 'utf8') !== content) {
@@ -182,13 +176,13 @@ function lockApprovedProcesses(
 function decisionRecord(
   state: WorkflowState,
   action: DeskCheckAction,
-  reason: string,
+  reason: string | undefined,
   now: string,
 ): DeskCheckDecision {
   const sequence = (state.desk_check_decisions?.length ?? 0) + 1;
   return {
     action,
-    reason,
+    ...(reason ? { reason } : {}),
     ...(state.tasking_candidate
       ? {
           draft_id: state.tasking_candidate.draft_id,
@@ -215,7 +209,7 @@ function persistDecision(cwd: string, decision: DeskCheckDecision): void {
 export function decideTasking(
   cwd: string,
   action: DeskCheckAction,
-  reason: string,
+  reason?: string,
   now = new Date().toISOString(),
 ): WorkflowState {
   const state = readState(cwd);
@@ -237,7 +231,10 @@ export function decideTasking(
   ) {
     throw new Error(`Unsupported Desk Check action: ${action}.`);
   }
-  const normalizedReason = required(reason, 'Desk Check reason');
+  const normalizedReason = reason?.trim() || undefined;
+  if (action !== 'approve' && !normalizedReason) {
+    throw new Error(`Desk Check ${action} requires a reason.`);
+  }
   const decision = decisionRecord(state, action, normalizedReason, now);
   const decisions = [...(state.desk_check_decisions ?? []), decision];
 
@@ -278,7 +275,7 @@ export function decideTasking(
       scenario_ids: state.tasking_candidate.scenario_ids,
       approved_by: 'human',
       approved_at: now,
-      approval_reason: normalizedReason,
+      ...(normalizedReason ? { approval_reason: normalizedReason } : {}),
       candidate_sha256: state.tasking_candidate.candidate_sha256,
       test_list_path: state.tasking_candidate.test_list_path,
       task_list_path: state.tasking_candidate.task_list_path,
@@ -351,6 +348,9 @@ export function decideTasking(
   }
 
   persistDecision(cwd, decision);
+  if (!normalizedReason) {
+    throw new Error(`Desk Check ${action} requires a reason.`);
+  }
   if (action === 'revise') {
     return writeState(cwd, {
       ...state,

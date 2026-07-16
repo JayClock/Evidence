@@ -82,6 +82,38 @@ describe('workflow state', () => {
     ).toThrow('pending clarification is invalid');
   });
 
+  it('allows approval without a reason but requires feedback reasons', () => {
+    const cwd = workspace();
+    const approved = writeState(cwd, {
+      ...DEFAULT_STATE,
+      desk_check_decisions: [
+        {
+          action: 'approve',
+          decided_by: 'human',
+          artifact_path:
+            'artifacts/iterations/ITER-0001/04-planning/desk-checks/DESK-001.json',
+          decided_at: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    expect(approved.desk_check_decisions?.[0]).not.toHaveProperty('reason');
+    expect(() =>
+      writeState(cwd, {
+        ...approved,
+        desk_check_decisions: [
+          {
+            action: 'revise',
+            decided_by: 'human',
+            artifact_path:
+              'artifacts/iterations/ITER-0001/04-planning/desk-checks/DESK-002.json',
+            decided_at: '2026-01-01T00:01:00.000Z',
+          },
+        ],
+      }),
+    ).toThrow('Desk Check decision history is invalid');
+  });
+
   it('distinguishes an idle repository from bootstrap state', () => {
     const cwd = workspace();
 
