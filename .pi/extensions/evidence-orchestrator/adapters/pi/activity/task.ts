@@ -220,7 +220,7 @@ ${extra || '（无）'}
     }
     return `执行 Evidence Orchestrator Iteration Respond：${state.iteration_id}（${state.completed_work_items?.length ?? 1} 个验收切片）。
 
-只读上下文：确认 Scenario、模型展开、execution manifest、${review.artifact_path}、${state.showcase_product_observations?.at(-1)?.artifact_path ?? 'missing-product-observation'}、${state.showcase_evaluation_observations?.at(-1)?.artifact_path ?? 'no-required-evaluation'}、Showcase 人工决定、docs/knowledge-governance.md、Working Knowledge catalog。
+只读上下文：确认 Scenario、建模证据、execution manifest、${review.artifact_path}、${state.showcase_product_observations?.at(-1)?.artifact_path ?? 'missing-product-observation'}、${state.showcase_evaluation_observations?.at(-1)?.artifact_path ?? 'no-required-evaluation'}、Showcase 人工决定、docs/knowledge-governance.md、Working Knowledge catalog。
 任务：只对实际使用且验证的知识提出 promotions（允许带理由的空列表）和一个 next Probe；只调用 evidence_orchestrator_propose_response 一次后停止，等待人类 /evidence-respond。
 
 额外用户指令：

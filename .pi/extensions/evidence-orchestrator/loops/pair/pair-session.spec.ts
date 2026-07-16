@@ -25,6 +25,7 @@ import {
   validateExecutionEvidence,
 } from '../../capabilities/execution-evidence/manifest';
 import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
+import { completeNoModelImpact } from '../../capabilities/modeling-evidence/no-model-impact';
 import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,
@@ -358,6 +359,78 @@ function preparePair(cwd: string): void {
   const modelDecision = preparedState.model_decisions?.at(-1);
   if (!modelDecision) throw new Error('Missing model decision fixture.');
   write(cwd, modelDecision.artifact_path, JSON.stringify(modelDecision));
+}
+
+function prepareNoModelPair(cwd: string): void {
+  preparePair(cwd);
+  const pairState = readState(cwd);
+  const profile = {
+    version: 1 as const,
+    subject: 'tool' as const,
+    method: 'none' as const,
+    model_change_required: false,
+    reason: 'No canonical model semantics are required.',
+    confirmed_by: 'human' as const,
+    confirmed_at: '2026-01-01T00:01:00.000Z',
+  };
+  const routed = completeNoModelImpact(cwd, {
+    ...pairState,
+    loop: 'understand',
+    understand_stage: 'modeling',
+    modeling_stage: 'expansion',
+    modeling_profile: profile,
+    model_expansion_path: undefined,
+    model_git_baseline: undefined,
+    model_change_proposal: undefined,
+    model_change_application: undefined,
+    model_projection: undefined,
+    model_challenges: undefined,
+    model_decisions: undefined,
+    tasking_stage: undefined,
+    tasking_candidate: undefined,
+    approved_test_plan_path: undefined,
+    approved_test_plan_sha256: undefined,
+    active_work_item: undefined,
+    pair_session: undefined,
+  });
+  const candidate = pairState.tasking_candidate;
+  const approvedPath = pairState.approved_test_plan_path;
+  if (!candidate || !approvedPath) {
+    throw new Error('Pair fixture has no approved plan.');
+  }
+  const tests = candidate.tests.map((test) => ({
+    ...test,
+    model_refs: { entities: [], associations: [] },
+  }));
+  const tasks = candidate.tasks.map((task) => ({
+    ...task,
+    model_refs: { entities: [], associations: [] },
+  }));
+  const approved = JSON.parse(
+    readFileSync(`${cwd}/${approvedPath}`, 'utf8'),
+  ) as {
+    version: number;
+    story_id: string;
+    scenario_ids: string[];
+    processes: unknown[];
+  };
+  const approvedContent = JSON.stringify({ ...approved, tests, tasks });
+  write(cwd, approvedPath, approvedContent);
+  writeState(cwd, {
+    ...pairState,
+    modeling_profile: profile,
+    model_expansion_path: routed.model_expansion_path,
+    model_git_baseline: routed.model_git_baseline,
+    model_change_proposal: undefined,
+    model_change_application: undefined,
+    model_projection: undefined,
+    model_challenges: undefined,
+    model_decisions: undefined,
+    tasking_candidate: { ...candidate, tests, tasks },
+    approved_test_plan_sha256: createHash('sha256')
+      .update(approvedContent)
+      .digest('hex'),
+  });
 }
 
 function addSecondQ2Test(cwd: string): void {
@@ -1202,6 +1275,22 @@ describe('Navigator-driven Pair', () => {
       story_id: 'US-001',
       scenarios: [{ scenario_id: 'SC-001' }],
       pair: { checkpoint: 'quality_gates_passed' },
+    });
+  });
+
+  it('carries no-model-impact evidence through Pair completion', () => {
+    const cwd = workspace();
+    prepareNoModelPair(cwd);
+    completePairSuccessfully(cwd);
+
+    const showcased = decideDeliveryIncrement(
+      cwd,
+      'showcase',
+      'The no-model Story passed Pairing.',
+    );
+
+    expect(showcased.completed_work_items?.[0]).toMatchObject({
+      model_decision_path: expect.stringContaining('US-001-no-model.json'),
     });
   });
 

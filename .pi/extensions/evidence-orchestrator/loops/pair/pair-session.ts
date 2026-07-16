@@ -286,8 +286,8 @@ export function buildPairDriverTask(
 当前步骤：${stepKey(unit)} · ${processStep.purpose}
 Git baseline：${session.git_baseline}
 确认 Scenario Set：${state.confirmed_scenarios?.map(({ artifact_path }) => artifact_path).join(', ') ?? 'missing'}
-模型展开：${state.model_expansion_path ?? 'missing'}
-人工模型决定：${state.model_decisions?.at(-1)?.artifact_path ?? 'missing'}
+建模证据：${state.model_expansion_path ?? 'missing'}
+人工建模决定：${state.modeling_profile?.method === 'none' ? (state.model_expansion_path ?? 'missing') : (state.model_decisions?.at(-1)?.artifact_path ?? 'missing')}
 测试列表：${state.tasking_candidate?.test_list_path ?? 'missing'}
 任务列表：${state.tasking_candidate?.task_list_path ?? 'missing'}
 锁定计划：${state.approved_test_plan_path}

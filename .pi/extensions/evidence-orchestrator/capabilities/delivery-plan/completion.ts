@@ -14,6 +14,19 @@ function digest(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
+export function modelingDecisionEvidencePath(
+  state: WorkflowState,
+): string | undefined {
+  if (
+    state.modeling_profile?.method === 'none' &&
+    state.modeling_profile.model_change_required === false
+  ) {
+    return state.model_expansion_path;
+  }
+  const decision = state.model_decisions?.at(-1);
+  return decision?.action === 'confirm' ? decision.artifact_path : undefined;
+}
+
 function completedItem(
   cwd: string,
   state: WorkflowState,
@@ -23,7 +36,7 @@ function completedItem(
   const workItem = state.active_work_item;
   const tasking = state.tasking_candidate;
   const pair = state.pair_session;
-  const modelDecision = state.model_decisions?.at(-1);
+  const modelingDecisionPath = modelingDecisionEvidencePath(state);
   if (
     scenarios.length === 0 ||
     !workItem ||
@@ -33,8 +46,7 @@ function completedItem(
     !state.approved_test_plan_path ||
     !state.approved_test_plan_sha256 ||
     !state.model_expansion_path ||
-    !modelDecision ||
-    modelDecision.action !== 'confirm'
+    !modelingDecisionPath
   ) {
     throw new Error(
       'A delivery decision requires one fully completed Story Scenario Set.',
@@ -54,7 +66,7 @@ function completedItem(
     approved_test_plan_path: state.approved_test_plan_path,
     approved_test_plan_sha256: state.approved_test_plan_sha256,
     model_expansion_path: state.model_expansion_path,
-    model_decision_path: modelDecision.artifact_path,
+    model_decision_path: modelingDecisionPath,
     execution_manifest_path: executionManifestPath,
     execution_manifest_sha256: digest(readFileSync(absoluteManifest)),
     completed_at: manifest.source.completed_at || now,
