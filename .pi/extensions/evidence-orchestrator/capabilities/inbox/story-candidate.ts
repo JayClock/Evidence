@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -7,8 +8,11 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { ITERATIONS_ROOT } from '../../iteration/artifact-layout';
 import type {
-  InboxCandidateReadiness,
+  InboxCandidateDecision,
+  InboxCandidateDecisionAction,
+  InboxCandidateStatus,
   InboxCognitiveMode,
   InboxStoryCandidate,
   InboxStoryCitation,
@@ -21,6 +25,8 @@ import {
 } from './repository';
 
 export const INBOX_CANDIDATES_ROOT = 'artifacts/inbox/candidates';
+export const INBOX_CANDIDATE_DECISIONS_PATH =
+  'artifacts/inbox/candidate-decisions.jsonl';
 export const INBOX_CANDIDATE_ID_PATTERN = /^CAND-\d{4,}$/;
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const COGNITIVE_MODES = new Set<InboxCognitiveMode>([
@@ -70,12 +76,16 @@ function canonicalJson(value: unknown): string {
   return JSON.stringify(normalize(value));
 }
 
+function valueHash(value: unknown): string {
+  return `sha256:${createHash('sha256')
+    .update(canonicalJson(value))
+    .digest('hex')}`;
+}
+
 function candidateHash(
   candidate: Omit<InboxStoryCandidate, 'content_sha256'>,
 ): string {
-  return `sha256:${createHash('sha256')
-    .update(canonicalJson(candidate))
-    .digest('hex')}`;
+  return valueHash(candidate);
 }
 
 function candidatePath(candidateId: string): string {
@@ -185,10 +195,75 @@ export function listInboxStoryCandidates(cwd: string): InboxStoryCandidate[] {
     .map((name) => parseCandidate(join(root, name)));
 }
 
-export function inboxCandidateReadiness(
+export function listInboxCandidateDecisions(
+  cwd: string,
+): InboxCandidateDecision[] {
+  const path = join(cwd, INBOX_CANDIDATE_DECISIONS_PATH);
+  if (!existsSync(path)) return [];
+  return readFileSync(path, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((line, index) => {
+      let decision: InboxCandidateDecision;
+      try {
+        decision = JSON.parse(line) as InboxCandidateDecision;
+      } catch {
+        throw new Error(
+          `Inbox candidate decision JSON is invalid at line ${index + 1}.`,
+        );
+      }
+      const { content_sha256: persistedHash, ...withoutHash } = decision;
+      if (
+        decision.version !== 1 ||
+        !/^DECISION-\d{4,}$/.test(decision.decision_id) ||
+        !INBOX_CANDIDATE_ID_PATTERN.test(decision.candidate_id) ||
+        !['deferred', 'rejected'].includes(decision.action) ||
+        !decision.reason?.trim() ||
+        decision.decided_by !== 'human' ||
+        !decision.decided_at?.trim() ||
+        !SHA256_PATTERN.test(persistedHash) ||
+        valueHash(withoutHash) !== persistedHash
+      ) {
+        throw new Error(
+          `Inbox candidate decision is invalid at line ${index + 1}.`,
+        );
+      }
+      return decision;
+    });
+}
+
+function selectedCandidateIds(cwd: string): Set<string> {
+  const root = join(cwd, ITERATIONS_ROOT);
+  if (!existsSync(root)) return new Set();
+  return new Set(
+    readdirSync(root)
+      .filter((entry) => /^ITER-\d{4,}$/.test(entry))
+      .flatMap((entry) => {
+        const path = join(root, entry, '00-user-input/intake.json');
+        if (!existsSync(path)) return [];
+        try {
+          const intake = JSON.parse(readFileSync(path, 'utf8')) as {
+            candidate_id?: unknown;
+          };
+          return typeof intake.candidate_id === 'string'
+            ? [intake.candidate_id]
+            : [];
+        } catch {
+          return [];
+        }
+      }),
+  );
+}
+
+export function inboxCandidateStatus(
   cwd: string,
   candidate: InboxStoryCandidate,
-): InboxCandidateReadiness {
+): InboxCandidateStatus {
+  if (selectedCandidateIds(cwd).has(candidate.candidate_id)) return 'selected';
+  const decision = [...listInboxCandidateDecisions(cwd)]
+    .reverse()
+    .find(({ candidate_id }) => candidate_id === candidate.candidate_id);
+  if (decision) return decision.action;
   return candidate.citations.every(({ inbox_id, revision_sha256 }) => {
     try {
       return (
@@ -200,6 +275,51 @@ export function inboxCandidateReadiness(
   })
     ? 'ready'
     : 'stale';
+}
+
+export function recordInboxCandidateDecision(
+  cwd: string,
+  candidateId: string,
+  action: InboxCandidateDecisionAction,
+  reason: string,
+  now = new Date().toISOString(),
+): InboxCandidateDecision {
+  const normalizedId = candidateId.trim().toUpperCase();
+  const candidate = listInboxStoryCandidates(cwd).find(
+    ({ candidate_id }) => candidate_id === normalizedId,
+  );
+  if (!candidate) {
+    throw new Error(`Inbox Story candidate does not exist: ${normalizedId}.`);
+  }
+  const status = inboxCandidateStatus(cwd, candidate);
+  if (['selected', 'deferred', 'rejected'].includes(status)) {
+    throw new Error(
+      `Inbox Story candidate ${normalizedId} is already ${status}.`,
+    );
+  }
+  if (!['deferred', 'rejected'].includes(action)) {
+    throw new Error(`Unsupported Inbox candidate decision: ${action}.`);
+  }
+  const normalizedReason = text(reason, 'decision reason');
+  const withoutHash: Omit<InboxCandidateDecision, 'content_sha256'> = {
+    version: 1,
+    decision_id: `DECISION-${String(
+      listInboxCandidateDecisions(cwd).length + 1,
+    ).padStart(4, '0')}`,
+    candidate_id: normalizedId,
+    action,
+    reason: normalizedReason,
+    decided_by: 'human',
+    decided_at: now,
+  };
+  const decision = {
+    ...withoutHash,
+    content_sha256: valueHash(withoutHash),
+  };
+  const path = join(cwd, INBOX_CANDIDATE_DECISIONS_PATH);
+  mkdirSync(dirname(path), { recursive: true });
+  appendFileSync(path, `${JSON.stringify(decision)}\n`);
+  return decision;
 }
 
 /** Persist one to five AI-authored candidates without assigning a US-xxx id. */
@@ -280,6 +400,7 @@ export function proposeInboxStoryCandidates(
 }
 
 export function validateInboxStoryCandidates(cwd: string): void {
+  listInboxCandidateDecisions(cwd);
   for (const candidate of listInboxStoryCandidates(cwd)) {
     for (const { inbox_id, revision_sha256 } of candidate.citations) {
       inboxRevisionByHash(cwd, inbox_id, revision_sha256);

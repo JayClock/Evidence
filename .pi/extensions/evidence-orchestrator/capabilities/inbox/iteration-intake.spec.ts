@@ -89,6 +89,17 @@ describe('Iteration Inbox Intake', () => {
     expect(() => validateIterationIntakeSnapshot(cwd, state)).not.toThrow();
   });
 
+  it('does not reuse a candidate already frozen by another iteration', () => {
+    const cwd = workspace();
+    candidate(cwd);
+    const started = startIterationFromCandidate(cwd, 'CAND-0001');
+    writeState(cwd, { ...started, loop: 'complete' });
+
+    expect(() => startIterationFromCandidate(cwd, 'CAND-0001')).toThrow(
+      'is selected',
+    );
+  });
+
   it('rejects a stale candidate instead of silently changing its citations', () => {
     const cwd = workspace();
     const selected = candidate(cwd);

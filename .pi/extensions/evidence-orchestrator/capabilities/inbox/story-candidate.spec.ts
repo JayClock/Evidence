@@ -4,9 +4,11 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { cleanupWorkspaces, workspace } from '../../test-support/support';
 import { captureInboxSource } from './repository';
 import {
-  inboxCandidateReadiness,
+  inboxCandidateStatus,
+  listInboxCandidateDecisions,
   listInboxStoryCandidates,
   proposeInboxStoryCandidates,
+  recordInboxCandidateDecision,
   validateInboxStoryCandidates,
 } from './story-candidate';
 
@@ -65,7 +67,7 @@ describe('Inbox Story candidates', () => {
     });
     expect(candidate).not.toHaveProperty('story_id');
     expect(candidate.content_sha256).toMatch(/^sha256:[a-f0-9]{64}$/);
-    expect(inboxCandidateReadiness(cwd, candidate)).toBe('ready');
+    expect(inboxCandidateStatus(cwd, candidate)).toBe('ready');
     expect(listInboxStoryCandidates(cwd)).toEqual([candidate]);
   });
 
@@ -94,7 +96,7 @@ describe('Inbox Story candidates', () => {
 
     source(cwd, 'manual:interview', 'The interview note changed.');
 
-    expect(inboxCandidateReadiness(cwd, candidate)).toBe('stale');
+    expect(inboxCandidateStatus(cwd, candidate)).toBe('stale');
     expect(() => validateInboxStoryCandidates(cwd)).not.toThrow();
   });
 
@@ -118,6 +120,40 @@ describe('Inbox Story candidates', () => {
         [proposal(first.item.inbox_id, first.revision.content_sha256)],
       ),
     ).toThrow('must cite the latest Inbox revision');
+  });
+
+  it('records human defer and reject decisions outside workflow state', () => {
+    const cwd = workspace();
+    const captured = source(cwd);
+    const [candidate] = proposeInboxStoryCandidates(
+      cwd,
+      [captured.item.inbox_id],
+      [proposal(captured.item.inbox_id, captured.revision.content_sha256)],
+    );
+
+    const decision = recordInboxCandidateDecision(
+      cwd,
+      candidate.candidate_id,
+      'deferred',
+      'The domain expert is unavailable.',
+      '2026-07-16T00:00:00Z',
+    );
+
+    expect(decision).toMatchObject({
+      decision_id: 'DECISION-0001',
+      action: 'deferred',
+      decided_by: 'human',
+    });
+    expect(inboxCandidateStatus(cwd, candidate)).toBe('deferred');
+    expect(listInboxCandidateDecisions(cwd)).toEqual([decision]);
+    expect(() =>
+      recordInboxCandidateDecision(
+        cwd,
+        candidate.candidate_id,
+        'rejected',
+        'Changed decision.',
+      ),
+    ).toThrow('already deferred');
   });
 
   it('detects manual candidate mutation during offline validation', () => {

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { cleanupWorkspaces, workspace } from '../../test-support/support';
@@ -67,6 +68,20 @@ describe('Inbox candidate picker', () => {
       title: 'Interview',
       body: 'The interview changed.',
     });
+
+    await expect(
+      selectReadyInboxCandidate({
+        cwd,
+        hasUI: true,
+        ui: { select: vi.fn() },
+      } as never),
+    ).rejects.toThrow('No ready Inbox Story candidate');
+  });
+
+  it('does not offer a candidate already selected by an iteration', async () => {
+    const cwd = workspace();
+    addCandidate(cwd);
+    startIterationFromCandidate(cwd, 'CAND-0001');
 
     await expect(
       selectReadyInboxCandidate({

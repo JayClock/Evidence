@@ -54,7 +54,13 @@ export interface InboxState {
   items: InboxItem[];
 }
 
-export type InboxCandidateReadiness = 'ready' | 'stale';
+export type InboxCandidateStatus =
+  | 'ready'
+  | 'stale'
+  | 'selected'
+  | 'deferred'
+  | 'rejected';
+export type InboxCandidateDecisionAction = 'deferred' | 'rejected';
 export type InboxCognitiveMode = 'clear' | 'complicated' | 'complex';
 
 export interface InboxStoryCitation {
@@ -76,6 +82,17 @@ export interface InboxStoryCandidate {
   proposed_by: 'inbox-analyst';
   proposed_at: string;
   artifact_path: string;
+  content_sha256: string;
+}
+
+export interface InboxCandidateDecision {
+  version: 1;
+  decision_id: string;
+  candidate_id: string;
+  action: InboxCandidateDecisionAction;
+  reason: string;
+  decided_by: 'human';
+  decided_at: string;
   content_sha256: string;
 }
 

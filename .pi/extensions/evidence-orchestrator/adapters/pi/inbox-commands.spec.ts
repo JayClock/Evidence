@@ -4,6 +4,7 @@ import {
   readInboxState,
 } from '../../capabilities/inbox/repository';
 import {
+  inboxCandidateStatus,
   listInboxStoryCandidates,
   proposeInboxStoryCandidates,
 } from '../../capabilities/inbox/story-candidate';
@@ -139,6 +140,49 @@ describe('/evidence-inbox', () => {
     );
     expect(listInboxStoryCandidates(cwd)).toHaveLength(1);
     expect(ctx.waitForIdle).toHaveBeenCalledOnce();
+  });
+
+  it('records a human candidate disposition', async () => {
+    const cwd = workspace();
+    const captured = captureInboxSource(cwd, {
+      source_kind: 'manual_text',
+      external_key: 'manual:interview',
+      title: 'Interview',
+      body: 'The owner needs an audit trail.',
+    });
+    const [candidate] = proposeInboxStoryCandidates(
+      cwd,
+      ['INBOX-0001'],
+      [
+        {
+          title: 'Retain deletion evidence',
+          problem: 'Deletion is not auditable.',
+          role: 'workspace owner',
+          goal: 'retain deletion evidence',
+          value: 'support an audit',
+          cognitiveMode: 'complex',
+          citations: [
+            {
+              inboxId: 'INBOX-0001',
+              revisionSha256: captured.revision.content_sha256,
+              locator: 'whole source',
+            },
+          ],
+        },
+      ],
+    );
+    const ctx = context(cwd);
+
+    await registeredCommand()(
+      'reject CAND-0001 This is outside the product boundary.',
+      ctx,
+    );
+
+    expect(inboxCandidateStatus(cwd, candidate)).toBe('rejected');
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'CAND-0001 rejected: This is outside the product boundary.',
+      'info',
+    );
   });
 
   it('lists an empty Inbox without requiring an active iteration', async () => {

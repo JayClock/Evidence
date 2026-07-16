@@ -1,6 +1,6 @@
 import type { ExtensionCommandContext } from '@earendil-works/pi-coding-agent';
 import {
-  inboxCandidateReadiness,
+  inboxCandidateStatus,
   listInboxStoryCandidates,
 } from '../../capabilities/inbox/story-candidate';
 
@@ -21,7 +21,7 @@ export async function selectReadyInboxCandidate(
     );
   }
   const ready = listInboxStoryCandidates(ctx.cwd).filter(
-    (candidate) => inboxCandidateReadiness(ctx.cwd, candidate) === 'ready',
+    (candidate) => inboxCandidateStatus(ctx.cwd, candidate) === 'ready',
   );
   if (ready.length === 0) {
     throw new Error(

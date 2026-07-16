@@ -8,8 +8,9 @@ import {
   readInboxState,
 } from '../../capabilities/inbox/repository';
 import {
-  inboxCandidateReadiness,
+  inboxCandidateStatus,
   listInboxStoryCandidates,
+  recordInboxCandidateDecision,
 } from '../../capabilities/inbox/story-candidate';
 import { runActivitySubagent } from '../node/activity-agent-process';
 import { createGitHubIssueInboxSource } from '../github/inbox-source';
@@ -26,7 +27,7 @@ const SOURCE_OPTIONS = ['GitHub Issue', '手工文本', '本地 Markdown'] as co
 type SourceKind = 'github' | 'text' | 'file';
 
 interface ParsedInboxCommand {
-  action: 'list' | 'add' | 'extract';
+  action: 'list' | 'add' | 'extract' | 'defer' | 'reject';
   sourceKind?: SourceKind;
   rest: string;
 }
@@ -39,15 +40,15 @@ function parseCommand(args: string): ParsedInboxCommand {
   if (action === 'list' || action === 'status') {
     return { action: 'list', rest: '' };
   }
-  if (action === 'extract') {
+  if (['extract', 'defer', 'reject'].includes(action)) {
     return {
-      action: 'extract',
+      action: action as 'extract' | 'defer' | 'reject',
       rest: [sourceKind, ...rest].filter(Boolean).join(' '),
     };
   }
   if (action !== 'add') {
     throw new Error(
-      'Usage: /evidence-inbox [list | add github|text|file | extract INBOX-xxxx,...].',
+      'Usage: /evidence-inbox [list | add github|text|file | extract INBOX-xxxx,... | defer|reject CAND-xxxx <reason>].',
     );
   }
   if (sourceKind && !['github', 'text', 'file'].includes(sourceKind)) {
@@ -69,7 +70,7 @@ function inboxStatus(cwd: string): string {
   );
   const stories = candidates.map(
     (candidate) =>
-      `- ${candidate.candidate_id} · ${candidate.title} · ${inboxCandidateReadiness(cwd, candidate)}`,
+      `- ${candidate.candidate_id} · ${candidate.title} · ${inboxCandidateStatus(cwd, candidate)}`,
   );
   return [
     '# Evidence Inbox',
@@ -240,6 +241,22 @@ async function extractStories(
   ctx.ui.notify(result.output, 'info');
 }
 
+function decideCandidate(
+  cwd: string,
+  action: 'defer' | 'reject',
+  input: string,
+): string {
+  const [candidateId = '', ...reasonParts] = input.trim().split(/\s+/);
+  const reason = reasonParts.join(' ');
+  const decision = recordInboxCandidateDecision(
+    cwd,
+    candidateId,
+    action === 'defer' ? 'deferred' : 'rejected',
+    reason,
+  );
+  return `${decision.candidate_id} ${decision.action}: ${decision.reason}`;
+}
+
 async function addMarkdownSource(
   ctx: ExtensionCommandContext,
   suppliedPath: string,
@@ -273,6 +290,13 @@ export function registerInboxCommands(
         }
         if (command.action === 'extract') {
           await extractStories(ctx, command.rest, runAgent);
+          return;
+        }
+        if (command.action === 'defer' || command.action === 'reject') {
+          ctx.ui.notify(
+            decideCandidate(ctx.cwd, command.action, command.rest),
+            'info',
+          );
           return;
         }
         const sourceKind = command.sourceKind ?? (await selectSourceKind(ctx));

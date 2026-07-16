@@ -16,7 +16,7 @@ import {
 import type { InboxSourceRevision, InboxStoryCandidate } from './model';
 import { inboxRevisionByHash } from './repository';
 import {
-  inboxCandidateReadiness,
+  inboxCandidateStatus,
   listInboxStoryCandidates,
 } from './story-candidate';
 import type {
@@ -79,9 +79,10 @@ function selectedCandidate(
   if (!candidate) {
     throw new Error(`Inbox Story candidate does not exist: ${candidateId}.`);
   }
-  if (inboxCandidateReadiness(cwd, candidate) !== 'ready') {
+  const status = inboxCandidateStatus(cwd, candidate);
+  if (status !== 'ready') {
     throw new Error(
-      `Inbox Story candidate ${candidateId} is stale; recapture and extract the source before starting an iteration.`,
+      `Inbox Story candidate ${candidateId} is ${status}; select a ready candidate.`,
     );
   }
   return candidate;
