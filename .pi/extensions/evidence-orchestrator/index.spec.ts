@@ -25,6 +25,7 @@ describe('index', () => {
     expect(events).toEqual(
       expect.arrayContaining(['session_start', 'session_shutdown']),
     );
+    expect(commands).toContain('evidence-inbox');
     expect(commands).toContain('evidence-run');
     expect(commands).toContain('evidence-kickoff');
     expect(commands).toContain('evidence-showcase');

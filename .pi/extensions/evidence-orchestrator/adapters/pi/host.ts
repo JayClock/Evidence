@@ -4,6 +4,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs } from '../../iteration/artifact-inventory';
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { registerCommands } from './commands';
+import { registerInboxCommands } from './inbox-commands';
 import type { ActivityExecutionDetails } from './activity/execution';
 import { renderActivitySubagentResult } from './activity/subagent-renderer';
 import {
@@ -92,6 +93,7 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
       ),
   );
 
+  registerInboxCommands(pi);
   registerCommands(pi);
   registerTools(pi);
 }
