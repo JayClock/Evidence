@@ -191,6 +191,7 @@ Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 S
 前置条件：在仓库根目录启动 Pi。只有使用 GitHub Source Adapter 时才需要 `gh auth status` 能访问目标仓库。
 
 ```text
+/evidence-inbox
 /evidence-inbox list
 /evidence-inbox add github [owner/repository#123]
 /evidence-inbox add text
@@ -211,7 +212,7 @@ Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 S
 /evidence-respond approve|revise <reason>
 ```
 
-来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；`/evidence-new` 冻结的 Intake 不再原地同步。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
+无参数运行 `/evidence-inbox` 时，空 Inbox 会先打开来源选择器；已有来源时显示当前状态。来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；`/evidence-new` 冻结的 Intake 不再原地同步。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
 
 维护细节见 [`.pi/extensions/evidence-orchestrator/README.md`](./.pi/extensions/evidence-orchestrator/README.md)。
 
@@ -233,7 +234,7 @@ pnpm exec prettier --check '.pi/extensions/evidence-orchestrator/**/*.{ts,md}'
 - Rust toolchain（`cargo`、`rustc`）
 - 浏览器 / Server 模式：PostgreSQL
 - Desktop 模式：[Tauri 2 系统依赖](https://tauri.app/start/prerequisites/)
-- Orchestrator：Pi 与已认证的 GitHub CLI（`gh`）
+- Orchestrator：Pi；使用 GitHub 来源时另需已认证的 GitHub CLI（`gh`）
 
 ### 安装
 

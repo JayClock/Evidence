@@ -27,7 +27,7 @@ const SOURCE_OPTIONS = ['GitHub Issue', '手工文本', '本地 Markdown'] as co
 type SourceKind = 'github' | 'text' | 'file';
 
 interface ParsedInboxCommand {
-  action: 'list' | 'add' | 'sync' | 'extract' | 'defer' | 'reject';
+  action: 'home' | 'list' | 'add' | 'sync' | 'extract' | 'defer' | 'reject';
   sourceKind?: SourceKind;
   rest: string;
 }
@@ -36,7 +36,8 @@ export type InboxAgentRunner = typeof runActivitySubagent;
 
 function parseCommand(args: string): ParsedInboxCommand {
   const tokens = args.trim() ? args.trim().split(/\s+/) : [];
-  const [action = 'list', sourceKind, ...rest] = tokens;
+  if (tokens.length === 0) return { action: 'home', rest: '' };
+  const [action, sourceKind, ...rest] = tokens;
   if (action === 'list' || action === 'status') {
     return { action: 'list', rest: '' };
   }
@@ -342,6 +343,21 @@ async function addMarkdownSource(
   );
 }
 
+async function addSource(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  sourceKind: SourceKind,
+  rest = '',
+): Promise<void> {
+  if (sourceKind === 'github') {
+    await addGitHubSource(pi, ctx, rest);
+  } else if (sourceKind === 'text') {
+    await addManualSource(ctx, rest);
+  } else {
+    await addMarkdownSource(ctx, rest);
+  }
+}
+
 export function registerInboxCommands(
   pi: ExtensionAPI,
   runAgent: InboxAgentRunner = runActivitySubagent,
@@ -351,6 +367,15 @@ export function registerInboxCommands(
     handler: async (args, ctx) => {
       try {
         const command = parseCommand(args);
+        if (command.action === 'home') {
+          if (readInboxState(ctx.cwd).items.length > 0 || !ctx.hasUI) {
+            ctx.ui.notify(inboxStatus(ctx.cwd), 'info');
+            return;
+          }
+          const sourceKind = await selectSourceKind(ctx);
+          if (sourceKind) await addSource(pi, ctx, sourceKind);
+          return;
+        }
         if (command.action === 'list') {
           ctx.ui.notify(inboxStatus(ctx.cwd), 'info');
           return;
@@ -371,14 +396,7 @@ export function registerInboxCommands(
           return;
         }
         const sourceKind = command.sourceKind ?? (await selectSourceKind(ctx));
-        if (!sourceKind) return;
-        if (sourceKind === 'github') {
-          await addGitHubSource(pi, ctx, command.rest);
-        } else if (sourceKind === 'text') {
-          await addManualSource(ctx, command.rest);
-        } else {
-          await addMarkdownSource(ctx, command.rest);
-        }
+        if (sourceKind) await addSource(pi, ctx, sourceKind, command.rest);
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),

@@ -217,15 +217,36 @@ describe('/evidence-inbox', () => {
     );
   });
 
-  it('lists an empty Inbox without requiring an active iteration', async () => {
+  it('asks the human to choose a source when the Inbox is empty', async () => {
+    const cwd = workspace();
+    const ctx = context(cwd);
+    ctx.ui.select.mockResolvedValue('手工文本');
+    ctx.ui.input.mockResolvedValue('Domain interview');
+    ctx.ui.editor.mockResolvedValue('The owner needs an audit trail.');
+
+    await registeredCommand()('', ctx);
+
+    expect(ctx.ui.select).toHaveBeenCalledWith('Add an Inbox source', [
+      'GitHub Issue',
+      '手工文本',
+      '本地 Markdown',
+    ]);
+    expect(readInboxState(cwd).items[0]).toMatchObject({
+      source_kind: 'manual_text',
+      title: 'Domain interview',
+    });
+  });
+
+  it('still lists an empty Inbox when list is explicit', async () => {
     const cwd = workspace();
     const ctx = context(cwd);
 
-    await registeredCommand()('', ctx);
+    await registeredCommand()('list', ctx);
 
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       expect.stringContaining('Items: 0'),
       'info',
     );
+    expect(ctx.ui.select).not.toHaveBeenCalled();
   });
 });
