@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { captureInboxSource } from '../../capabilities/inbox/repository';
+import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import { writeState } from '../../iteration/state-repository';
+import {
+  readPersistedState,
+  writeState,
+} from '../../iteration/state-repository';
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import {
   cleanupWorkspaces,
@@ -85,6 +90,57 @@ describe('commands', () => {
       'evidence-issue-status',
       'evidence-run',
     ]);
+  });
+
+  it('starts a new iteration from an explicit ready Inbox candidate', async () => {
+    const cwd = workspace();
+    const source = captureInboxSource(cwd, {
+      source_kind: 'manual_text',
+      external_key: 'manual:interview',
+      title: 'Interview',
+      body: 'The owner needs an audit trail.',
+    });
+    proposeInboxStoryCandidates(
+      cwd,
+      ['INBOX-0001'],
+      [
+        {
+          title: 'Retain deletion evidence',
+          problem: 'Deletion is not auditable.',
+          role: 'workspace owner',
+          goal: 'retain deletion evidence',
+          value: 'support an audit',
+          cognitiveMode: 'complex',
+          citations: [
+            {
+              inboxId: 'INBOX-0001',
+              revisionSha256: source.revision.content_sha256,
+              locator: 'whole source',
+            },
+          ],
+        },
+      ],
+    );
+    let start:
+      | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
+      | undefined;
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof start }): void {
+        if (name === 'evidence-new') start = options.handler;
+      },
+    } as never);
+    const ctx = context(cwd);
+
+    await start?.('CAND-0001', ctx);
+
+    expect(readPersistedState(cwd)).toMatchObject({
+      intake_snapshot: { candidate_id: 'CAND-0001' },
+      kickoff_candidate: { title: 'Retain deletion evidence' },
+    });
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('run /evidence-kickoff'),
+      'info',
+    );
   });
 
   it('selects only the command owned by the current stage', () => {

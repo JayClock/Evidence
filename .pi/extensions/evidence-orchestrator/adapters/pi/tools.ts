@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { WorkflowState } from '../../iteration/state';
+import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import {
   collectArtifacts,
@@ -16,10 +17,7 @@ import {
 } from '../../loops/understand/tqa/conversation';
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import { proposeScenarioDrafts } from '../../loops/understand/scenario/candidates';
-import {
-  startIterationFromIssueAsync,
-  syncIssueSourceAsync,
-} from '../../capabilities/issue-source/github-issue-source';
+import { syncIssueSourceAsync } from '../../capabilities/issue-source/github-issue-source';
 import {
   isActivitySubagentFailureDetails,
   renderActivitySubagentCall,
@@ -41,7 +39,7 @@ import {
   activityRunParam,
   clarificationAnswerParam,
   clarificationQuestionParam,
-  issueSourceParam,
+  candidateSourceParam,
   inboxStoryCandidatesParam,
   kickoffCandidateParam,
   modelAnalysisParam,
@@ -55,7 +53,7 @@ import {
 
 export const ORCHESTRATOR_TOOL_NAMES = [
   'evidence_orchestrator_propose_inbox_stories',
-  'evidence_orchestrator_start_from_issue',
+  'evidence_orchestrator_start_from_candidate',
   'evidence_orchestrator_sync_issue',
   'evidence_orchestrator_status',
   'evidence_orchestrator_propose_kickoff',
@@ -74,7 +72,7 @@ export const ORCHESTRATOR_TOOL_NAMES = [
 export function toolsForState(state: WorkflowState | undefined): string[] {
   const inbox = 'evidence_orchestrator_propose_inbox_stories';
   const status = 'evidence_orchestrator_status';
-  const start = 'evidence_orchestrator_start_from_issue';
+  const start = 'evidence_orchestrator_start_from_candidate';
   if (!state) return [inbox, start, status];
   if (state.halted || state.loop === 'complete') return [inbox, start, status];
 
@@ -82,7 +80,7 @@ export function toolsForState(state: WorkflowState | undefined): string[] {
   if (state.loop === 'kickoff') {
     return [
       ...common,
-      'evidence_orchestrator_sync_issue',
+      ...(state.requirement_source ? ['evidence_orchestrator_sync_issue'] : []),
       'evidence_orchestrator_propose_kickoff',
     ];
   }
@@ -185,42 +183,24 @@ export function registerTools(pi: ExtensionAPI): void {
   });
 
   pi.registerTool({
-    name: 'evidence_orchestrator_start_from_issue',
-    label: 'Start Evidence Orchestrator From Issue',
+    name: 'evidence_orchestrator_start_from_candidate',
+    label: 'Start Evidence Orchestrator From Candidate',
     description:
-      'Start a new isolated Evidence iteration from a frozen GitHub Issue snapshot',
+      'Start a new isolated Evidence iteration from one ready Inbox Story candidate',
     promptSnippet:
-      'Use a GitHub Issue as the requirement authority for a new iteration',
+      'Freeze a human-selected Inbox Story candidate as a new iteration Intake',
     promptGuidelines: [
-      'Use only when the user explicitly identifies the GitHub Issue that should seed a new iteration.',
-      'Do not create or infer an Issue number.',
+      'Use evidence_orchestrator_start_from_candidate only when the user explicitly identifies the CAND-xxxx candidate.',
+      'Do not select, infer, confirm, or revise a candidate on behalf of the user.',
     ],
-    parameters: issueSourceParam,
-    async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      const issueNumber = Number(params.issueNumber);
-      onUpdate?.({
-        content: [
-          {
-            type: 'text',
-            text: `Loading GitHub Issue #${issueNumber} and creating an iteration…`,
-          },
-        ],
-        details: { status: 'loading', issueNumber },
-      });
-      const state = await startIterationFromIssueAsync(
-        ctx.cwd,
-        {
-          issueNumber,
-          repository: params.repository,
-        },
-        createGitHubCliRunner(pi),
-        signal,
-      );
+    parameters: candidateSourceParam,
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const state = startIterationFromCandidate(ctx.cwd, params.candidateId);
       return {
         content: [
           {
             type: 'text',
-            text: `Started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}.`,
+            text: `Started ${state.iteration_id} from ${state.intake_snapshot?.candidate_id}. The frozen candidate awaits a human /evidence-kickoff decision.`,
           },
         ],
         details: { state },

@@ -22,9 +22,9 @@ import {
 } from '../../loops/pair/pair-session';
 import {
   checkIssueSourceDriftAsync,
-  startIterationFromIssueAsync,
   syncIssueSourceAsync,
 } from '../../capabilities/issue-source/github-issue-source';
+import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
 import { STATUS_KEY, statusLabel } from './identity';
 import {
@@ -33,7 +33,10 @@ import {
   prepareActivityRun,
 } from './activity/dispatch';
 import { createGitHubCliRunner } from '../github/pi-cli';
-import { selectOrCreateGitHubIssue } from './issue-picker';
+import {
+  requireCandidateId,
+  selectReadyInboxCandidate,
+} from './candidate-picker';
 import { runWithLoader } from './loading';
 import { statusMarkdown } from './status';
 import {
@@ -120,38 +123,22 @@ export function registerCommands(pi: ExtensionAPI): void {
   });
 
   pi.registerCommand('evidence-new', {
-    description: 'Select or create a GitHub Issue and start a new iteration',
-    handler: async (_args, ctx) => {
+    description:
+      'Select a ready Inbox Story candidate and start a new iteration',
+    handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
-        const issueNumber = await selectOrCreateGitHubIssue(
-          pi,
-          ctx,
-          (message, operation) =>
-            runWithLoader(ctx, message, (signal) => operation(signal)),
-        );
-        if (!issueNumber) {
+        const candidateId = args.trim()
+          ? requireCandidateId(args)
+          : await selectReadyInboxCandidate(ctx);
+        if (!candidateId) {
           ctx.ui.notify('New iteration cancelled.', 'info');
           return;
         }
-        const state = await runWithLoader(
-          ctx,
-          `正在冻结 GitHub Issue #${issueNumber} 并创建迭代…`,
-          (signal) =>
-            startIterationFromIssueAsync(
-              ctx.cwd,
-              { issueNumber },
-              createGitHubCliRunner(pi),
-              signal,
-            ),
-        );
-        if (!state) {
-          ctx.ui.notify('New iteration cancelled.', 'info');
-          return;
-        }
+        const state = startIterationFromCandidate(ctx.cwd, candidateId);
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${state.requirement_source?.repository}#${state.requirement_source?.issue_number}. The Issue is frozen; run /evidence-run to prepare one Kickoff candidate, then /evidence-kickoff for the human decision.`,
+          `Evidence Orchestrator started ${state.iteration_id} from ${candidateId}. The Inbox Intake is frozen; run /evidence-kickoff for the human Story decision.`,
           'info',
         );
       } catch (error) {

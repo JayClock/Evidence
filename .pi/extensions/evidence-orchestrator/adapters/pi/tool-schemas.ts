@@ -32,6 +32,12 @@ export const Type = {
   },
 };
 
+export const candidateSourceParam = Type.Object({
+  candidateId: Type.String({
+    description: 'Ready Inbox Story candidate id, for example CAND-0001.',
+  }),
+});
+
 export const issueSourceParam = Type.Object({
   issueNumber: Type.String({
     description: 'GitHub Issue number, for example 123.',

@@ -23,7 +23,7 @@ describe('tools', () => {
     const names = tools.map(({ name }) => name);
     expect(names).toEqual([
       'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_start_from_candidate',
       'evidence_orchestrator_sync_issue',
       'evidence_orchestrator_status',
       'evidence_orchestrator_propose_kickoff',
@@ -43,15 +43,14 @@ describe('tools', () => {
   it('exposes only tools owned by the current loop and stage', () => {
     expect(toolsForState(undefined)).toEqual([
       'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_start_from_candidate',
       'evidence_orchestrator_status',
     ]);
     expect(toolsForState(DEFAULT_STATE)).toEqual([
       'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_start_from_candidate',
       'evidence_orchestrator_status',
       'evidence_orchestrator_run_activity',
-      'evidence_orchestrator_sync_issue',
       'evidence_orchestrator_propose_kickoff',
     ]);
     expect(
@@ -62,7 +61,7 @@ describe('tools', () => {
       }),
     ).toEqual([
       'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_start_from_candidate',
       'evidence_orchestrator_status',
       'evidence_orchestrator_run_activity',
       'evidence_orchestrator_ask_question',
@@ -89,10 +88,9 @@ describe('tools', () => {
       'read',
       'other_extension_tool',
       'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_issue',
+      'evidence_orchestrator_start_from_candidate',
       'evidence_orchestrator_status',
       'evidence_orchestrator_run_activity',
-      'evidence_orchestrator_sync_issue',
       'evidence_orchestrator_propose_kickoff',
     ]);
   });
