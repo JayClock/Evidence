@@ -9,7 +9,7 @@ export function nextStepGuidance(
   state: WorkflowState | undefined,
 ): string {
   if (!state) {
-    return '下一步：用 /evidence-inbox 收集来源并提取 Story 候选，再运行 /evidence-new [CAND-xxxx]。';
+    return '下一步：运行 /evidence-new，选择 Inbox 来源、提取并选择 Story 候选；也可用 /evidence-new CAND-xxxx 直接启动。';
   }
   if (state.halted) {
     return `本轮已停止：${state.halted.reason}。运行 /evidence-status 查看保留的决策与证据。`;

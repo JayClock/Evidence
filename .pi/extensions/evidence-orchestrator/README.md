@@ -127,6 +127,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 命令按阶段显式暴露：
 
 - 无参数运行 `/evidence-inbox` 时，空 Inbox 会先让人选择来源；来源 revision 保存成功后自动打开 extract 来源选取界面，取消选取则只保留来源。已有来源时显示 Inbox 状态，显式 `list` 始终只读。
+- 无参数运行 `/evidence-new` 会复用 extract 来源选取界面，提取完成后再复用 Candidate 选择器并冻结 Intake；`/evidence-new CAND-xxxx` 直接从 ready Candidate 启动。
 - `/evidence-run` 只运行当前状态允许的一个 activity、Driver 或确定性 command checkpoint，不接受人工决定；`--dry-run` 只预览任务。
 - 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
 - `/evidence-pair` 在 Red 或质量门禁失败时记录 Navigator 决定。Story 的全部 quality gates 通过后使用 `showcase <reason>` 进入验收。

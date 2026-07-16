@@ -292,9 +292,9 @@ async function extractStories(
   ctx: ExtensionCommandContext,
   suppliedIds: string,
   runAgent: InboxAgentRunner,
-): Promise<void> {
+): Promise<boolean> {
   const sourceIds = await extractionSourceIds(ctx, suppliedIds);
-  if (!sourceIds) return;
+  if (!sourceIds) return false;
   await ctx.waitForIdle();
   const result = await runWithLoader(
     ctx,
@@ -307,9 +307,10 @@ async function extractStories(
         signal,
       }),
   );
-  if (!result) return;
+  if (!result) return false;
   if (result.exitCode !== 0) throw new Error(result.output);
   ctx.ui.notify(result.output, 'info');
+  return true;
 }
 
 function decideCandidate(
@@ -366,6 +367,22 @@ async function offerExtractionAfterCapture(
   if (captured && ctx.hasUI) await extractStories(ctx, '', runAgent);
 }
 
+/** Reuse the Inbox source and extraction selectors as one interactive flow. */
+export async function runInboxSourceExtractionFlow(
+  pi: ExtensionAPI,
+  ctx: ExtensionCommandContext,
+  runAgent: InboxAgentRunner = runActivitySubagent,
+): Promise<boolean> {
+  const activeSources = readInboxState(ctx.cwd).items.filter(
+    ({ status }) => status === 'active',
+  );
+  if (activeSources.length === 0) {
+    const sourceKind = await selectSourceKind(ctx);
+    if (!sourceKind || !(await addSource(pi, ctx, sourceKind))) return false;
+  }
+  return extractStories(ctx, '', runAgent);
+}
+
 export function registerInboxCommands(
   pi: ExtensionAPI,
   runAgent: InboxAgentRunner = runActivitySubagent,
@@ -380,14 +397,7 @@ export function registerInboxCommands(
             ctx.ui.notify(inboxStatus(ctx.cwd), 'info');
             return;
           }
-          const sourceKind = await selectSourceKind(ctx);
-          if (sourceKind) {
-            await offerExtractionAfterCapture(
-              ctx,
-              await addSource(pi, ctx, sourceKind),
-              runAgent,
-            );
-          }
+          await runInboxSourceExtractionFlow(pi, ctx, runAgent);
           return;
         }
         if (command.action === 'list') {

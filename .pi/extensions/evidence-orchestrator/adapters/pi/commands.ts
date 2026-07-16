@@ -32,6 +32,10 @@ import {
   requireCandidateId,
   selectReadyInboxCandidate,
 } from './candidate-picker';
+import {
+  runInboxSourceExtractionFlow,
+  type InboxAgentRunner,
+} from './inbox-commands';
 import { statusMarkdown } from './status';
 import {
   parseDeskCheckDecision,
@@ -103,7 +107,10 @@ export function activeStageCommand(
   return undefined;
 }
 
-export function registerCommands(pi: ExtensionAPI): void {
+export function registerCommands(
+  pi: ExtensionAPI,
+  runInboxAgent?: InboxAgentRunner,
+): void {
   type CommandOptions = Parameters<ExtensionAPI['registerCommand']>[1];
   const registerStageCommand = (name: string, options: CommandOptions) => {
     pi.registerCommand(name, options);
@@ -118,13 +125,21 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand('evidence-new', {
     description:
-      'Select a ready Inbox Story candidate and start a new iteration',
+      'Extract Story candidates from a selected Inbox source, then start a new iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
-        const candidateId = args.trim()
-          ? requireCandidateId(args)
-          : await selectReadyInboxCandidate(ctx);
+        let candidateId: string | undefined;
+        if (args.trim()) {
+          candidateId = requireCandidateId(args);
+        } else {
+          const extracted = await runInboxSourceExtractionFlow(
+            pi,
+            ctx,
+            runInboxAgent,
+          );
+          if (extracted) candidateId = await selectReadyInboxCandidate(ctx);
+        }
         if (!candidateId) {
           ctx.ui.notify('New iteration cancelled.', 'info');
           return;
