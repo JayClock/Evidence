@@ -179,9 +179,44 @@ describe('modeling method routing', () => {
         model_change_required: required,
         confirmed_by: 'human',
       });
-      expect(confirmed.modeling_stage).toBe('expansion');
+      if (method === 'none') {
+        expect(confirmed).toMatchObject({
+          loop: 'tasking',
+          modeling_stage: 'model_confirmed',
+          tasking_stage: 'drafting',
+        });
+        expect(confirmed.model_expansion_path).toContain(
+          'US-001-no-model.json',
+        );
+        const evidence = JSON.parse(
+          readFileSync(join(cwd, confirmed.model_expansion_path ?? ''), 'utf8'),
+        ) as {
+          disposition: string;
+          model_refs: { entities: string[]; associations: string[] };
+        };
+        expect(evidence).toMatchObject({
+          disposition: 'no_model_required',
+          model_refs: { entities: [], associations: [] },
+        });
+      } else {
+        expect(confirmed.modeling_stage).toBe('expansion');
+      }
     },
   );
+
+  it('rejects a canonical model change when no modeling method is selected', () => {
+    const cwd = workspace();
+    prepareModeling(cwd);
+
+    expect(() =>
+      proposeModelingProfile(cwd, {
+        subject: 'tool',
+        method: 'none',
+        modelChangeRequired: true,
+        reason: 'Contradictory Profile.',
+      }),
+    ).toThrow('method=none cannot require a canonical model change');
+  });
 
   it('allows confirming the AI modeling Profile without an additional reason', () => {
     const cwd = workspace();

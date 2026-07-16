@@ -95,15 +95,21 @@ function unique(values: string[], name: string, allowEmpty = false): string[] {
 }
 
 function assertTaskingState(state: WorkflowState): void {
+  const noModelImpact =
+    state.modeling_profile?.method === 'none' &&
+    state.modeling_profile.model_change_required === false &&
+    !state.model_change_proposal;
+  const reviewedModel =
+    state.model_challenges?.at(-1)?.outcome === 'pass' &&
+    state.model_decisions?.at(-1)?.action === 'confirm';
   if (
     state.loop !== 'tasking' ||
     !state.confirmed_scenarios?.length ||
     state.modeling_stage !== 'model_confirmed' ||
-    state.model_challenges?.at(-1)?.outcome !== 'pass' ||
-    state.model_decisions?.at(-1)?.action !== 'confirm'
+    (!noModelImpact && !reviewedModel)
   ) {
     throw new Error(
-      'Tasking requires one confirmed Story Scenario Set and a human-confirmed challenged model.',
+      'Tasking requires one confirmed Story Scenario Set and confirmed modeling evidence.',
     );
   }
   if (state.tasking_stage === 'desk_check') {

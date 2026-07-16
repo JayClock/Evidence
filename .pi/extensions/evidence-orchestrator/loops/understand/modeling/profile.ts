@@ -7,6 +7,7 @@ import type {
   WorkflowState,
 } from '../../../iteration/state';
 import { modelingText, requireModelingState } from './modeling-state';
+import { completeNoModelImpact } from './no-model-impact';
 
 const SUBJECTS = new Set<ModelingSubject>(['business', 'domain', 'tool']);
 const METHODS = new Set<ModelingMethod>([
@@ -54,6 +55,11 @@ function validateProfile(
   if (method === 'none' && subject !== 'tool') {
     throw new Error(
       'method=none is only valid for a tool or glue-code subject.',
+    );
+  }
+  if (method === 'none' && modelChangeRequired === true) {
+    throw new Error(
+      'method=none cannot require a canonical model change; select a modeling method first.',
     );
   }
 }
@@ -128,10 +134,13 @@ export function confirmModelingProfile(
     confirmed_at: now,
     proposal,
   };
-  return writeState(cwd, {
+  const confirmed = {
     ...state,
-    modeling_stage: 'expansion',
+    modeling_stage: 'expansion' as const,
     modeling_profile_proposal: undefined,
     modeling_profile: profile,
-  });
+  };
+  return method === 'none'
+    ? completeNoModelImpact(cwd, confirmed, now)
+    : writeState(cwd, confirmed);
 }

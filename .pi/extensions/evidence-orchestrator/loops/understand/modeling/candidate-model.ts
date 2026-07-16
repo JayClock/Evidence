@@ -298,6 +298,11 @@ export function recordModelAnalysis(
     );
   }
   const profile = state.modeling_profile;
+  if (profile.method === 'none') {
+    throw new Error(
+      'method=none bypasses canonical model analysis; record the human-confirmed no-model-impact decision instead.',
+    );
+  }
   if (profile.model_change_required !== input.operations.length > 0) {
     throw new Error(
       `Model operations do not match the human-confirmed model_change_required=${profile.model_change_required}.`,

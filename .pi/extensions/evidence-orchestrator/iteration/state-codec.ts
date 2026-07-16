@@ -358,6 +358,21 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   ) {
     throw new Error('A model candidate requires expansion and Git baseline.');
   }
+  const noModelProfile =
+    state.modeling_profile?.method === 'none' &&
+    state.modeling_profile.model_change_required === false;
+  if (
+    state.modeling_profile?.method === 'none' &&
+    state.modeling_profile.model_change_required !== false
+  ) {
+    throw new Error('method=none cannot require a canonical model change.');
+  }
+  if (
+    state.modeling_profile?.method === 'none' &&
+    ['candidate_ready', 'model_review'].includes(state.modeling_stage ?? '')
+  ) {
+    throw new Error('method=none must bypass model expansion and challenge.');
+  }
   if (
     state.modeling_stage === 'model_review' &&
     state.model_challenges?.at(-1)?.outcome !== 'pass'
@@ -366,6 +381,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   }
   if (
     state.modeling_stage === 'model_confirmed' &&
+    !noModelProfile &&
     (state.model_challenges?.at(-1)?.outcome !== 'pass' ||
       state.model_decisions?.at(-1)?.action !== 'confirm')
   ) {

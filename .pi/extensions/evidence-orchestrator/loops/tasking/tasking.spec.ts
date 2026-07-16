@@ -16,6 +16,7 @@ import { prepareActivityRun } from '../../adapters/pi/activity/dispatch';
 import { statusMarkdown } from '../../adapters/pi/status';
 import { buildActivityTask } from '../../adapters/pi/activity/task';
 import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
+import { completeNoModelImpact } from '../understand/modeling/no-model-impact';
 import { decideTasking } from './desk-check';
 import { proposeTaskingDraft, type TaskingDraftInput } from './tasking-draft';
 
@@ -289,6 +290,63 @@ describe('Tasking and Desk Check', () => {
       state.tasking_candidate?.tests.find(({ id }) => id === 'TEST-001')
         ?.scenario_ids,
     ).toEqual(['SC-001', 'SC-002']);
+  });
+
+  it('tasks and approves a human-confirmed no-model-impact Story', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    const prepared = readState(cwd);
+    writeState(cwd, {
+      ...prepared,
+      loop: 'understand',
+      understand_stage: 'modeling',
+      modeling_stage: 'expansion',
+      modeling_profile: {
+        version: 1,
+        subject: 'tool',
+        method: 'none',
+        model_change_required: false,
+        reason:
+          'The Story changes product behavior without canonical semantics.',
+        confirmed_by: 'human',
+        confirmed_at: '2026-01-01T00:01:00.000Z',
+      },
+      model_expansion_path: undefined,
+      model_git_baseline: undefined,
+      model_change_proposal: undefined,
+      model_change_application: undefined,
+      model_projection: undefined,
+      model_challenges: undefined,
+      model_decisions: undefined,
+      tasking_stage: undefined,
+    });
+
+    const routed = completeNoModelImpact(cwd, readState(cwd));
+    const input = draftInput();
+    const noModelInput = {
+      ...input,
+      tests: input.tests.map((test) => ({
+        ...test,
+        modelRefs: { entities: [], associations: [] },
+      })),
+    };
+    proposeTaskingDraft(cwd, noModelInput);
+    const approved = decideTasking(
+      cwd,
+      'approve',
+      'The no-model trace and implementation plan are reviewable.',
+    );
+
+    expect(routed).toMatchObject({
+      loop: 'tasking',
+      modeling_stage: 'model_confirmed',
+      tasking_stage: 'drafting',
+    });
+    expect(approved).toMatchObject({
+      loop: 'pair',
+      tasking_stage: 'approved',
+    });
+    expect(approved.model_change_application).toBeUndefined();
   });
 
   it('requires human approval, supports edited-list regeneration, and locks the v2 plan', () => {

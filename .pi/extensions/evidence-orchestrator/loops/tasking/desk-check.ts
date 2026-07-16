@@ -39,7 +39,64 @@ function immutableWrite(path: string, content: string): void {
   if (!existsSync(path)) writeFileSync(path, content);
 }
 
+function verifyNoModelImpact(cwd: string, state: WorkflowState): void {
+  const profile = state.modeling_profile;
+  const expansionPath = state.model_expansion_path;
+  if (
+    profile?.method !== 'none' ||
+    profile.model_change_required !== false ||
+    state.model_change_proposal ||
+    !expansionPath ||
+    !state.model_git_baseline
+  ) {
+    throw new Error('Tasking has no valid no-model-impact decision.');
+  }
+  let evidence: {
+    version?: unknown;
+    disposition?: unknown;
+    work_item?: { story_id?: unknown; scenario_ids?: unknown };
+    modeling_profile?: unknown;
+    model_refs?: { entities?: unknown; associations?: unknown };
+    git_baseline?: unknown;
+    decided_by?: unknown;
+  };
+  try {
+    evidence = JSON.parse(readFileSync(join(cwd, expansionPath), 'utf8')) as {
+      version?: unknown;
+      disposition?: unknown;
+      work_item?: { story_id?: unknown; scenario_ids?: unknown };
+      modeling_profile?: unknown;
+      model_refs?: { entities?: unknown; associations?: unknown };
+      git_baseline?: unknown;
+      decided_by?: unknown;
+    };
+  } catch {
+    throw new Error('The no-model-impact decision is missing or invalid.');
+  }
+  const scenarios = state.confirmed_scenarios ?? [];
+  if (
+    evidence.version !== 1 ||
+    evidence.disposition !== 'no_model_required' ||
+    evidence.work_item?.story_id !== scenarios[0]?.story_id ||
+    JSON.stringify(evidence.work_item?.scenario_ids) !==
+      JSON.stringify(scenarios.map(({ scenario_id }) => scenario_id)) ||
+    JSON.stringify(evidence.modeling_profile) !== JSON.stringify(profile) ||
+    !Array.isArray(evidence.model_refs?.entities) ||
+    evidence.model_refs.entities.length !== 0 ||
+    !Array.isArray(evidence.model_refs?.associations) ||
+    evidence.model_refs.associations.length !== 0 ||
+    evidence.git_baseline !== state.model_git_baseline ||
+    evidence.decided_by !== 'human'
+  ) {
+    throw new Error('The no-model-impact decision drifted before Desk Check.');
+  }
+}
+
 function verifyModelDecision(cwd: string, state: WorkflowState): void {
+  if (state.modeling_profile?.method === 'none') {
+    verifyNoModelImpact(cwd, state);
+    return;
+  }
   const decision = state.model_decisions?.at(-1);
   if (!decision || decision.action !== 'confirm') {
     throw new Error('Tasking has no human-confirmed model decision.');
@@ -240,14 +297,19 @@ export function decideTasking(
     verifyCandidate(cwd, state.tasking_candidate);
     verifyModelDecision(cwd, state);
     const baseline = createCodingGitBaseline(cwd);
+    const modelingConfirmed =
+      state.modeling_profile?.method === 'none'
+        ? state.modeling_profile.model_change_required === false &&
+          !state.model_change_proposal
+        : state.model_decisions?.at(-1)?.action === 'confirm';
     if (
       state.model_git_baseline !== baseline ||
-      state.model_decisions?.at(-1)?.action !== 'confirm' ||
+      !modelingConfirmed ||
       state.modeling_profile?.model_change_required !==
         Boolean(state.model_change_proposal)
     ) {
       throw new Error(
-        'Desk Check approval requires the human-confirmed model on the same Git baseline.',
+        'Desk Check approval requires confirmed modeling evidence on the same Git baseline.',
       );
     }
     const processes = lockApprovedProcesses(
@@ -404,6 +466,8 @@ export function decideTasking(
     model_change_proposal: undefined,
     model_change_application: undefined,
     model_projection: undefined,
+    model_challenges: undefined,
+    model_decisions: undefined,
     tasking_stage: undefined,
     tasking_candidate: undefined,
     tasking_gap: undefined,
