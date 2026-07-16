@@ -261,8 +261,11 @@ export function registerCommands(
         }
         const state = confirmModelingProfile(ctx.cwd, decision);
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const noModelImpact = state.modeling_profile?.method === 'none';
         ctx.ui.notify(
-          `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
+          noModelImpact
+            ? `Human confirmed modeling Profile ${state.modeling_profile?.subject}/none with model_change_required=false. No canonical model expansion or challenge is required; the workflow advanced to Tasking.`
+            : `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
           'info',
         );
       } catch (error) {

@@ -26,6 +26,7 @@ import {
   parseScenarioDecision,
   promptKickoffDecision,
   promptModelDecision,
+  promptModelingProfileDecision,
   promptScenarioDecision,
 } from './command-inputs';
 
@@ -315,6 +316,42 @@ describe('commands', () => {
       action: 'approve',
       reason: 'Evidence is sufficient.',
     });
+  });
+
+  it('lets the human reselect a Profile and fixes none to no model change', async () => {
+    const cwd = workspace();
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'understand',
+      understand_stage: 'modeling',
+      modeling_stage: 'profile_review',
+      modeling_profile_proposal: {
+        version: 1,
+        subject: 'tool',
+        method: 'none',
+        model_change_required: false,
+        reason: 'The AI sees no canonical semantics.',
+        proposed_at: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    const ctx = context(cwd);
+    ctx.ui.select
+      .mockResolvedValueOnce('重新选择建模对象、方法与模型变化')
+      .mockResolvedValueOnce('tool')
+      .mockResolvedValueOnce('none');
+    ctx.ui.input.mockResolvedValue('The human confirms no model impact.');
+
+    await expect(promptModelingProfileDecision(ctx as never)).resolves.toEqual({
+      subject: 'tool',
+      method: 'none',
+      modelChangeRequired: false,
+      reason: 'The human confirms no model impact.',
+    });
+    expect(ctx.ui.select).toHaveBeenCalledTimes(3);
+    expect(ctx.ui.select).not.toHaveBeenCalledWith(
+      '权威模型是否需要变化',
+      expect.anything(),
+    );
   });
 
   it.each([

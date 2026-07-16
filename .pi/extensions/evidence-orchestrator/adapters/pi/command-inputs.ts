@@ -933,7 +933,10 @@ export async function promptModelingProfileDecision(
   const canConfirm = proposal.model_change_required !== 'unknown';
   const choice = await ctx.ui.select(
     `建模建议：${proposal.subject}/${proposal.method} · change=${proposal.model_change_required}`,
-    [...(canConfirm ? ['确认 AI 建议'] : []), '覆盖 AI 建议'],
+    [
+      ...(canConfirm ? ['确认 AI 建议'] : []),
+      '重新选择建模对象、方法与模型变化',
+    ],
   );
   if (!choice) return undefined;
   if (choice === '确认 AI 建议') return {};
@@ -943,10 +946,10 @@ export async function promptModelingProfileDecision(
   const method = (await ctx.ui.select('选择建模方法', MODELING_METHODS)) as
     | ModelingMethod
     | undefined;
-  const required = await ctx.ui.select('权威模型是否需要变化', [
-    '需要变化',
-    '无需变化',
-  ]);
+  const required =
+    method === 'none'
+      ? '无需变化'
+      : await ctx.ui.select('权威模型是否需要变化', ['需要变化', '无需变化']);
   const reason = (await ctx.ui.input('请说明覆盖建议的理由'))?.trim();
   if (!subject || !method || !required || !reason) return undefined;
   return {

@@ -81,6 +81,22 @@ describe('tools', () => {
       'evidence_orchestrator_answer_question',
       'evidence_orchestrator_propose_scenarios',
     ]);
+    expect(
+      toolsForState({
+        ...DEFAULT_STATE,
+        loop: 'understand',
+        understand_stage: 'modeling',
+        modeling_stage: 'expansion',
+        modeling_profile: {
+          version: 1,
+          subject: 'tool',
+          method: 'none',
+          model_change_required: false,
+          confirmed_by: 'human',
+          confirmed_at: '2026-01-01T00:00:00.000Z',
+        },
+      }),
+    ).not.toContain('evidence_orchestrator_record_model_analysis');
   });
 
   it('preserves tools owned by Pi and other extensions when changing stage', () => {

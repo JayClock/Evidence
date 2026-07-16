@@ -89,7 +89,10 @@ export function toolsForState(state: WorkflowState | undefined): string[] {
     if (state.modeling_stage === 'profile') {
       return [...common, 'evidence_orchestrator_propose_modeling_profile'];
     }
-    if (state.modeling_stage === 'expansion') {
+    if (
+      state.modeling_stage === 'expansion' &&
+      state.modeling_profile?.method !== 'none'
+    ) {
       return [...common, 'evidence_orchestrator_record_model_analysis'];
     }
     if (state.modeling_stage === 'candidate_ready') {
@@ -392,8 +395,9 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Expand the confirmed Scenario Set through one consistent model and record only a candidate change',
     promptGuidelines: [
-      'Use only after the human confirms a modeling Profile.',
-      'Try the existing canonical model first. Expand every confirmed Scenario exactly once; operations must be empty when the model explains the complete set.',
+      'Use only after the human confirms a non-none modeling Profile; method=none follows the deterministic no-model-impact route.',
+      'Try the existing canonical model first. Expand every confirmed Scenario exactly once.',
+      'Match the human change decision exactly: model_change_required=false requires operations=[]; true requires one minimal non-empty operation set.',
       'Never edit .evidence in Understand. Candidate operations are structured add/update/remove records, not shell patches.',
       'After calling this tool, stop for independent model checking.',
     ],

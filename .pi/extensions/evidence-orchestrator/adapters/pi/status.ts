@@ -19,7 +19,13 @@ function agentName(state: WorkflowState): string | undefined {
   if (state.loop === 'kickoff') return 'requirements-analyst';
   if (state.loop === 'understand') {
     if (state.understand_stage === 'tqa') return 'requirements-analyst';
-    if (state.modeling_stage === 'model_review') return undefined;
+    if (
+      state.modeling_stage === 'model_review' ||
+      (state.modeling_stage === 'expansion' &&
+        state.modeling_profile?.method === 'none')
+    ) {
+      return undefined;
+    }
     return state.modeling_stage === 'candidate_ready'
       ? 'model-challenger'
       : 'domain-modeler';
@@ -117,7 +123,7 @@ export function statusMarkdown(cwd: string): string {
     `| Modeling Stage | ${state.modeling_stage ?? 'none'} |`,
     `| Modeling Profile | ${state.modeling_profile ? `${state.modeling_profile.subject}/${state.modeling_profile.method}` : 'none'} |`,
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,
-    `| Model Decision | ${state.model_decisions?.at(-1)?.action ?? 'none'} |`,
+    `| Model Decision | ${state.modeling_profile?.method === 'none' && state.modeling_stage === 'model_confirmed' ? 'no model required · human Profile' : (state.model_decisions?.at(-1)?.action ?? 'none')} |`,
     `| Tasking Stage | ${state.tasking_stage ?? 'none'} |`,
     `| Tasking Draft | ${state.tasking_candidate?.draft_id ?? 'none'} |`,
     `| Approved Test Plan | ${state.approved_test_plan_path ?? 'none'} |`,

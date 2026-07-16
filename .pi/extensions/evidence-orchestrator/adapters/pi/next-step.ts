@@ -38,6 +38,12 @@ export function nextStepGuidance(
     if (state.modeling_stage === 'candidate_ready') {
       return '下一步：运行 /evidence-run，启动独立模型挑战。';
     }
+    if (
+      state.modeling_stage === 'expansion' &&
+      state.modeling_profile?.method === 'none'
+    ) {
+      return '下一步：运行 /evidence-run，确定性记录无模型影响并进入 Tasking；不会启动模型展开或修改 .evidence。';
+    }
     if (state.understand_stage === 'modeling') {
       return '下一步：运行 /evidence-run，将全部确认 Scenario 联合展开到所选模型。';
     }
