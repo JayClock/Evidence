@@ -60,6 +60,7 @@ export interface PreparedActivityRun {
   agentName?: string;
   pairAction?: PairDeterministicAction;
   showcaseAction?: 'run_q2';
+  modelingAction?: 'complete_no_model';
   task: string;
 }
 
@@ -75,7 +76,13 @@ function agentFor(state: WorkflowState): string | undefined {
   if (state.loop === 'kickoff') return 'requirements-analyst';
   if (state.loop === 'understand') {
     if (state.understand_stage === 'tqa') return 'requirements-analyst';
-    if (state.modeling_stage === 'model_review') return undefined;
+    if (
+      state.modeling_stage === 'model_review' ||
+      (state.modeling_stage === 'expansion' &&
+        state.modeling_profile?.method === 'none')
+    ) {
+      return undefined;
+    }
     return state.modeling_stage === 'candidate_ready'
       ? 'model-challenger'
       : 'domain-modeler';
@@ -136,13 +143,20 @@ function requiredInputs(state: WorkflowState): string[] {
     ];
   }
   if (state.loop === 'understand') {
+    const noModelImpact =
+      state.modeling_stage === 'expansion' &&
+      state.modeling_profile?.method === 'none';
     return [
       ...(state.confirmed_scenarios?.map(
         ({ artifact_path }) => artifact_path,
       ) ?? ['artifacts/01-requirements/examples/missing.md']),
-      '.evidence/model.json',
-      '.evidence/entities/',
-      '.evidence/associations/',
+      ...(noModelImpact
+        ? []
+        : [
+            '.evidence/model.json',
+            '.evidence/entities/',
+            '.evidence/associations/',
+          ]),
       ...(state.modeling_stage === 'candidate_ready'
         ? [
             state.model_projection?.mermaid_path ?? 'missing-model.mmd',
@@ -159,7 +173,9 @@ function requiredInputs(state: WorkflowState): string[] {
       ) ?? ['artifacts/01-requirements/examples/missing.md']),
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
-      state.model_decisions?.at(-1)?.artifact_path ??
+      (state.modeling_profile?.method === 'none'
+        ? state.model_expansion_path
+        : state.model_decisions?.at(-1)?.artifact_path) ??
         'artifacts/02-domain-model/model-decisions/missing.json',
       'docs/architecture/context-map.md',
       'docs/architecture/module-structure.md',
@@ -179,7 +195,9 @@ function requiredInputs(state: WorkflowState): string[] {
       ) ?? ['artifacts/01-requirements/examples/missing.md']),
       state.model_expansion_path ??
         'artifacts/02-domain-model/model-expansions/missing.json',
-      state.model_decisions?.at(-1)?.artifact_path ??
+      (state.modeling_profile?.method === 'none'
+        ? state.model_expansion_path
+        : state.model_decisions?.at(-1)?.artifact_path) ??
         'artifacts/02-domain-model/model-decisions/missing.json',
       state.tasking_candidate?.test_list_path ??
         'artifacts/04-planning/test-list.md',
@@ -253,6 +271,12 @@ export function prepareActivityRun(
       'The active iteration has no frozen requirement input. Start one with /evidence-new.',
     );
   }
+  const modelingAction: PreparedActivityRun['modelingAction'] =
+    current.loop === 'understand' &&
+    current.modeling_stage === 'expansion' &&
+    current.modeling_profile?.method === 'none'
+      ? 'complete_no_model'
+      : undefined;
   let showcaseAction: PreparedActivityRun['showcaseAction'];
   if (current.loop === 'showcase') {
     const q2 = current.showcase_q2_observations ?? [];
@@ -395,6 +419,7 @@ export function prepareActivityRun(
     ...(agentFor(current) ? { agentName: agentFor(current) } : {}),
     ...(pairAction ? { pairAction } : {}),
     ...(showcaseAction ? { showcaseAction } : {}),
+    ...(modelingAction ? { modelingAction } : {}),
     task,
   };
 }

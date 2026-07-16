@@ -3,6 +3,7 @@ import type {
   ActivityAgentResult,
 } from '../../node/activity-agent-process';
 import { runActivitySubagent } from '../../node/activity-agent-process';
+import { completeNoModelImpact } from '../../../loops/understand/modeling/no-model-impact';
 import {
   capturePairWorktree,
   completePairDriver,
@@ -149,6 +150,27 @@ export async function executePreparedActivityRun(
           stderr: '',
         },
         action.state,
+      );
+    }
+    if (preparation.modelingAction === 'complete_no_model') {
+      const completed = completeNoModelImpact(
+        ctx.cwd,
+        state,
+        (options.now ?? (() => new Date().toISOString()))(),
+      );
+      return completedDetails(
+        ctx.cwd,
+        preparation,
+        {
+          agent: 'modeling-controller',
+          model: 'deterministic',
+          thinking: 'off',
+          output: `Recorded ${completed.model_expansion_path}; the human-confirmed Profile requires no canonical model expansion or challenge.`,
+          messages: [],
+          exitCode: 0,
+          stderr: '',
+        },
+        completed,
       );
     }
     const mode = pairDriverMode(state);

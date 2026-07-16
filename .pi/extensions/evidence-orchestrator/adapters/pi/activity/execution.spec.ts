@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { readState, writeState } from '../../../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../../../test-support/support';
+import {
+  cleanupWorkspaces,
+  initializeGitRepository,
+  testIntakeSnapshot,
+  workspace,
+  write,
+} from '../../../test-support/support';
 import type { PreparedActivityRun } from './dispatch';
 import { executePreparedActivityRun } from './execution';
 
@@ -193,6 +199,69 @@ describe('activity execution', () => {
 
     expect(runner.runActivitySubagent).not.toHaveBeenCalled();
     expect(result.output).toContain('Q2 passed');
+  });
+
+  it('completes a legacy method=none expansion deterministically', async () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    const scenarioPath =
+      'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md';
+    write(cwd, scenarioPath, '# Scenario');
+    const state = {
+      ...DEFAULT_STATE,
+      intake_snapshot: testIntakeSnapshot(),
+      loop: 'understand' as const,
+      understand_stage: 'modeling' as const,
+      modeling_stage: 'expansion' as const,
+      confirmed_scenarios: [
+        {
+          version: 1 as const,
+          story_id: 'US-001',
+          scenario_id: 'SC-001',
+          source_draft_id: 'DRAFT-001',
+          title: 'Change an interaction',
+          given: ['The editor is open'],
+          when: 'The owner saves the interaction change',
+          then: ['The changed interaction is visible'],
+          business_data: ['workspace=Alpha'],
+          artifact_path: scenarioPath,
+          confirmed_by: 'human' as const,
+          confirmed_at: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      modeling_profile: {
+        version: 1 as const,
+        subject: 'tool' as const,
+        method: 'none' as const,
+        model_change_required: false,
+        confirmed_by: 'human' as const,
+        confirmed_at: '2026-01-01T00:01:00.000Z',
+      },
+    };
+    writeState(cwd, state);
+    const prepared: PreparedActivityRun = {
+      state,
+      activity: 'understand',
+      modelingAction: 'complete_no_model',
+      task: 'Record no model impact.',
+    };
+
+    const result = await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      prepared,
+      {
+        invocation: '/evidence-run',
+        now: () => '2026-01-01T00:02:00.000Z',
+      },
+    );
+
+    expect(runner.runActivitySubagent).not.toHaveBeenCalled();
+    expect(result.output).toContain('no canonical model expansion');
+    expect(readState(cwd)).toMatchObject({
+      loop: 'tasking',
+      modeling_stage: 'model_confirmed',
+      tasking_stage: 'drafting',
+    });
   });
 
   it('records one activity invocation and progress', async () => {

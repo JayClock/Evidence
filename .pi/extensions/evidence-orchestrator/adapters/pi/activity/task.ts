@@ -102,10 +102,19 @@ ${extra || '（无）'}
 `;
     }
     if (state.modeling_stage === 'expansion') {
+      if (state.modeling_profile?.method === 'none') {
+        return `执行 Evidence Orchestrator 无模型影响确认：${scenario.story_id} / [${scenarioIds}]。
+
+人类确认 Profile：${JSON.stringify(state.modeling_profile)}
+上下文：${scenarioPaths}。
+任务：确定性记录全部 Scenario 不需要 canonical model 语义或变更，然后进入 Tasking。不得启动 Model Builder、Model Challenger 或修改 .evidence。
+`;
+      }
       return `执行 Evidence Orchestrator 模型展开：${scenario.story_id} / [${scenarioIds}]。
 
 方法：加载 .pi/skills/evidence-model-expansion/SKILL.md。${state.modeling_profile?.subject === 'business' && state.modeling_profile.method === 'eight_x_flow' ? '本 Profile 另加载 .pi/skills/evidence-8x-flow/SKILL.md。' : '本 Profile 不加载 8X Skill。'}
 人类确认 Profile：${JSON.stringify(state.modeling_profile)}
+变更约束：model_change_required=${state.modeling_profile?.model_change_required}；false 必须提交 operations=[] 并只验证现有模型，true 必须提交一组最小非空候选 operations。
 上下文：${scenarioPaths}、.evidence/model.json、.evidence/entities/、.evidence/associations/。
 任务：逐一展开全部确认 Scenario，检查跨场景一致性，只调用 evidence_orchestrator_record_model_analysis 一次后停止。不得直接 edit/write .evidence、自我挑战或推进下一动作。
 
@@ -139,14 +148,18 @@ ${extra || '（无）'}
       throw new Error('Tasking requires a Scenario Set and model expansion.');
     }
     const gap = state.tasking_gap;
+    const noModelImpact = state.modeling_profile?.method === 'none';
+    const modelingDecisionPath = noModelImpact
+      ? state.model_expansion_path
+      : state.model_decisions?.at(-1)?.artifact_path;
     return `执行 Evidence Orchestrator Tasking：${scenario.story_id} / [${scenarios.map(({ scenario_id }) => scenario_id).join(', ')}]。
 
 方法：加载并遵守 .pi/skills/evidence-test-process/SKILL.md。
 上下文：
 - ${scenarios.map(({ artifact_path }) => artifact_path).join('\n- ')}
 - ${state.model_expansion_path}
-- ${state.model_decisions?.at(-1)?.artifact_path ?? 'missing-model-decision'}
-- ${state.model_projection?.context_path ?? '.evidence/model.json'}
+- ${modelingDecisionPath ?? 'missing-modeling-decision'}
+- ${state.model_projection?.context_path ?? (noModelImpact ? 'no-canonical-model-context' : '.evidence/model.json')}
 - docs/architecture/
 - contracts/api.yaml
 - engineering/evidence-orchestrator/runtime-contexts.json
@@ -154,7 +167,7 @@ ${extra || '（无）'}
 - engineering/evidence-orchestrator/definition-of-done.md
 ${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}` : ''}
 
-任务：为全部确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 引用 Scenario 与确认模型 id 且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
+任务：为全部确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 引用 Scenario${noModelImpact ? '，并保持空 modelRefs' : '与确认模型 id'}且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
 
 额外用户指令：
 ${extra || '（无）'}

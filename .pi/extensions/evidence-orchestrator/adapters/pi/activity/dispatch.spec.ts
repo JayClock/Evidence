@@ -46,6 +46,54 @@ describe('activity dispatch', () => {
     );
   });
 
+  it('routes method=none expansion to a deterministic no-model checkpoint', () => {
+    const cwd = workspace();
+    const scenarioPath =
+      'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md';
+    write(cwd, scenarioPath, '# Scenario');
+    writeState(cwd, {
+      ...issueState(),
+      loop: 'understand',
+      understand_stage: 'modeling',
+      modeling_stage: 'expansion',
+      confirmed_scenarios: [
+        {
+          version: 1,
+          story_id: 'US-001',
+          scenario_id: 'SC-001',
+          source_draft_id: 'DRAFT-001',
+          title: 'Change an interaction',
+          given: ['The editor is open'],
+          when: 'The owner saves the interaction change',
+          then: ['The changed interaction is visible'],
+          business_data: ['workspace=Alpha'],
+          artifact_path: scenarioPath,
+          confirmed_by: 'human',
+          confirmed_at: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      modeling_profile: {
+        version: 1,
+        subject: 'tool',
+        method: 'none',
+        model_change_required: false,
+        confirmed_by: 'human',
+        confirmed_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+
+    const preparation = prepareActivityRun(cwd);
+    if (isCompletedIteration(preparation))
+      throw new Error('Unexpected complete.');
+
+    expect(preparation).toMatchObject({
+      activity: 'understand',
+      modelingAction: 'complete_no_model',
+    });
+    expect(preparation).not.toHaveProperty('agentName');
+    expect(preparation.task).toContain('不得启动 Model Builder');
+  });
+
   it('prepares Kickoff with an explicit role and no phase mapping', () => {
     const cwd = workspace();
     writeKickoffInputs(cwd);

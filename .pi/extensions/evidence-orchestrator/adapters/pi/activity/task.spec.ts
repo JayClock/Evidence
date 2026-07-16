@@ -94,6 +94,24 @@ describe('activity tasks', () => {
     const expansion = buildActivityTask(cwd);
     expect(expansion).toContain('.pi/skills/evidence-model-expansion/SKILL.md');
     expect(expansion).toContain('evidence_orchestrator_record_model_analysis');
+
+    writeState(cwd, {
+      ...readState(cwd),
+      modeling_profile: {
+        version: 1,
+        subject: 'tool',
+        method: 'none',
+        model_change_required: false,
+        confirmed_by: 'human',
+        confirmed_at: '2026-01-01T00:02:00.000Z',
+      },
+    });
+    const noModel = buildActivityTask(cwd);
+    expect(noModel).toContain('无模型影响确认');
+    expect(noModel).not.toContain('evidence-model-expansion/SKILL.md');
+    expect(noModel).not.toContain(
+      'evidence_orchestrator_record_model_analysis',
+    );
   });
 
   it('keeps Tasking contextual and waits for human Desk Check', () => {
