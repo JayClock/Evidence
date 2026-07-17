@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import {
+  createExecutionBudgetEnvelope,
+  readExecutionBudgetPolicy,
+} from '../../capabilities/execution-budget/policy';
 import { verifyNoModelImpactEvidence } from '../../capabilities/modeling-evidence/no-model-impact';
 import { createCodingGitBaseline } from '../../capabilities/worktree-protection/baseline';
 import {
@@ -401,6 +405,17 @@ export function decideTasking(
       state.tasking_candidate,
       loadProjectCatalog,
     );
+    const executionBudget = createExecutionBudgetEnvelope(
+      readExecutionBudgetPolicy(cwd),
+      {
+        testCount: state.tasking_candidate.tests.length,
+        selectedProcessStepCount: processes.reduce(
+          (count, process) => count + process.selected_step_ids.length,
+          0,
+        ),
+        approvedAt: now,
+      },
+    );
     const firstApprovedRelative = 'artifacts/04-planning/test-plan.json';
     const approvedRelative = existsSync(
       artifactPath(cwd, state, firstApprovedRelative),
@@ -421,6 +436,7 @@ export function decideTasking(
       tests: state.tasking_candidate.tests,
       tasks: state.tasking_candidate.tasks,
       processes,
+      execution_budget: executionBudget,
     };
     const approvedPlanContent = `${JSON.stringify(approvedPlan, null, 2)}\n`;
     immutableWrite(
@@ -475,6 +491,7 @@ export function decideTasking(
         production_paths: [],
         expected_red: expectedRed,
         accepted_reds: [],
+        execution_budget: executionBudget,
         quality_gate_index: 0,
         feedback: [],
         driver_history: [],

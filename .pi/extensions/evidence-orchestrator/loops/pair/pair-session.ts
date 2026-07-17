@@ -177,13 +177,18 @@ function pairWorkUnits(cwd: string, state: WorkflowState): PairWorkUnit[] {
   const approved = JSON.parse(approvedContent) as {
     tests?: unknown;
     tasks?: unknown;
+    execution_budget?: unknown;
   };
   if (
     digest(approvedContent) !== state.approved_test_plan_sha256 ||
     JSON.stringify(approved.tests) !== JSON.stringify(candidate.tests) ||
-    JSON.stringify(approved.tasks) !== JSON.stringify(candidate.tasks)
+    JSON.stringify(approved.tasks) !== JSON.stringify(candidate.tasks) ||
+    JSON.stringify(approved.execution_budget) !==
+      JSON.stringify(state.pair_session?.execution_budget)
   ) {
-    throw new Error('Approved TASK/TEST traceability drifted before Pair.');
+    throw new Error(
+      'Approved TASK/TEST traceability or execution budget drifted before Pair.',
+    );
   }
   const steps = new Map(
     pairSteps(cwd, state).map((step) => [

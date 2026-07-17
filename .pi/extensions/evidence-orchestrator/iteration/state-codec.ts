@@ -3,6 +3,7 @@ import { assertIterationId } from './artifact-layout';
 import { LOOP_ORDER } from './transition-graph';
 import type {
   ClarificationRecord,
+  ExecutionBudgetEnvelope,
   TestProcessSelection,
   WorkflowState,
 } from './state';
@@ -130,6 +131,67 @@ function validModelRefs(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const refs = value as { entities?: unknown; associations?: unknown };
   return textArray(refs.entities, true) && textArray(refs.associations, true);
+}
+
+function validExecutionBudgetEnvelope(value: ExecutionBudgetEnvelope): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const expectedFields = [
+    'version',
+    'policy_path',
+    'policy_sha256',
+    'activity_timeout_ms',
+    'command_timeout_ms',
+    'expected_pair_agent_calls',
+    'max_pair_agent_calls',
+    'emergency_max_checkpoints',
+    'max_retries_per_failure_fingerprint',
+    'max_no_progress_checkpoints',
+    'max_duration_ms',
+    'max_input_tokens',
+    'max_output_tokens',
+    'max_reported_cost_usd',
+    'soft_ratio',
+    'approved_at',
+  ].sort();
+  const actualFields = Object.keys(value).sort();
+  const positiveIntegerOrNull = (candidate: unknown): boolean =>
+    candidate === null ||
+    (Number.isSafeInteger(candidate) && (candidate as number) > 0);
+  return (
+    JSON.stringify(actualFields) === JSON.stringify(expectedFields) &&
+    value.version === 1 &&
+    text(value.policy_path) &&
+    !value.policy_path.startsWith('/') &&
+    !value.policy_path.split(/[\\/]/).includes('..') &&
+    /^[a-f0-9]{64}$/.test(value.policy_sha256) &&
+    Number.isSafeInteger(value.activity_timeout_ms) &&
+    value.activity_timeout_ms > 0 &&
+    Number.isSafeInteger(value.command_timeout_ms) &&
+    value.command_timeout_ms > 0 &&
+    Number.isSafeInteger(value.expected_pair_agent_calls) &&
+    value.expected_pair_agent_calls > 0 &&
+    (value.max_pair_agent_calls === null ||
+      (Number.isSafeInteger(value.max_pair_agent_calls) &&
+        value.max_pair_agent_calls >= value.expected_pair_agent_calls)) &&
+    Number.isSafeInteger(value.emergency_max_checkpoints) &&
+    value.emergency_max_checkpoints > 0 &&
+    Number.isSafeInteger(value.max_retries_per_failure_fingerprint) &&
+    value.max_retries_per_failure_fingerprint >= 0 &&
+    positiveIntegerOrNull(value.max_no_progress_checkpoints) &&
+    positiveIntegerOrNull(value.max_duration_ms) &&
+    positiveIntegerOrNull(value.max_input_tokens) &&
+    positiveIntegerOrNull(value.max_output_tokens) &&
+    (value.max_reported_cost_usd === null ||
+      (typeof value.max_reported_cost_usd === 'number' &&
+        Number.isFinite(value.max_reported_cost_usd) &&
+        value.max_reported_cost_usd > 0)) &&
+    typeof value.soft_ratio === 'number' &&
+    Number.isFinite(value.soft_ratio) &&
+    value.soft_ratio > 0 &&
+    value.soft_ratio < 1 &&
+    text(value.approved_at) &&
+    Number.isFinite(Date.parse(value.approved_at))
+  );
 }
 
 function validCommandVariablesByTest(value: unknown): boolean {
@@ -601,6 +663,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !Array.isArray(state.pair_session.test_paths) ||
       !Array.isArray(state.pair_session.production_paths) ||
       !Array.isArray(state.pair_session.accepted_reds) ||
+      !validExecutionBudgetEnvelope(state.pair_session.execution_budget) ||
       !Array.isArray(state.pair_session.feedback) ||
       !Array.isArray(state.pair_session.driver_history))
   ) {

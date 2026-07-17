@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from './default-state';
 import { allowedLoopActions, transitionLoopState } from './transition-graph';
 import { FEEDBACK_LOOP_BY_TARGET } from './feedback-routing';
+import { testExecutionBudgetEnvelope } from '../test-support/support';
 import type { WorkflowLoop, WorkflowState } from './state';
 
 function workflowState(loop: WorkflowLoop): WorkflowState {
@@ -45,6 +46,7 @@ describe('knowledge-loop catalog', () => {
             production_paths: ['src/example.ts'],
             expected_red: 'Behavior is absent.',
             accepted_reds: [],
+            execution_budget: testExecutionBudgetEnvelope(),
             quality_gate_index: 1,
             feedback: [],
             driver_history: [],

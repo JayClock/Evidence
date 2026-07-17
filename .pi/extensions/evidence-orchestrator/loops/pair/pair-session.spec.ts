@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
+  testExecutionBudgetEnvelope,
   testIntakeSnapshot,
   workspace,
   write,
@@ -284,6 +285,7 @@ function preparePair(cwd: string): void {
     depends_on: [] as string[],
     model_refs: { entities: ['workspace'], associations: [] as string[] },
   };
+  const executionBudget = testExecutionBudgetEnvelope();
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: 'US-001',
@@ -291,6 +293,7 @@ function preparePair(cwd: string): void {
     tests: [taskingTest],
     tasks: [taskingTask],
     processes: [selection],
+    execution_budget: executionBudget,
   });
   write(
     cwd,
@@ -412,6 +415,7 @@ function preparePair(cwd: string): void {
       production_paths: [],
       expected_red: 'The owner sees the new workspace.',
       accepted_reds: [],
+      execution_budget: executionBudget,
       quality_gate_index: 0,
       feedback: [],
       driver_history: [],
@@ -585,6 +589,11 @@ function addSecondQ2Test(cwd: string): void {
       materialized_sha256: selection.materialized_sha256,
     }),
   );
+  const executionBudget = {
+    ...(state.pair_session?.execution_budget ?? testExecutionBudgetEnvelope()),
+    expected_pair_agent_calls:
+      3 * tests.length + selection.selected_step_ids.length,
+  };
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
@@ -592,6 +601,7 @@ function addSecondQ2Test(cwd: string): void {
     tests,
     tasks,
     processes: [selection],
+    execution_budget: executionBudget,
   });
   write(cwd, state.approved_test_plan_path, approvedPlanContent);
   write(
@@ -614,6 +624,9 @@ function addSecondQ2Test(cwd: string): void {
       tasks,
       processes: [selection],
     },
+    pair_session: state.pair_session
+      ? { ...state.pair_session, execution_budget: executionBudget }
+      : undefined,
   });
 }
 
@@ -723,6 +736,15 @@ function addWebQ1Step(cwd: string): void {
     })),
   ];
   const selections = [selection, ...workItem.test_plan.processes.slice(1)];
+  const executionBudget = {
+    ...(state.pair_session?.execution_budget ?? testExecutionBudgetEnvelope()),
+    expected_pair_agent_calls:
+      3 * tests.length +
+      selections.reduce(
+        (count, process) => count + process.selected_step_ids.length,
+        0,
+      ),
+  };
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
@@ -730,6 +752,7 @@ function addWebQ1Step(cwd: string): void {
     tests,
     tasks,
     processes: selections,
+    execution_budget: executionBudget,
   });
   write(cwd, state.approved_test_plan_path, approvedPlanContent);
   writeState(cwd, {
@@ -758,6 +781,7 @@ function addWebQ1Step(cwd: string): void {
           process_id: selection.id,
           step_id: 'component-q1',
           expected_red: 'Workspace visibility is exposed by the feature.',
+          execution_budget: executionBudget,
         }
       : undefined,
   });
@@ -898,6 +922,15 @@ function addTauriProcess(cwd: string): void {
     },
   ];
   const selections = [...workItem.test_plan.processes, selection];
+  const executionBudget = {
+    ...(state.pair_session?.execution_budget ?? testExecutionBudgetEnvelope()),
+    expected_pair_agent_calls:
+      3 * tests.length +
+      selections.reduce(
+        (count, process) => count + process.selected_step_ids.length,
+        0,
+      ),
+  };
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
@@ -905,6 +938,7 @@ function addTauriProcess(cwd: string): void {
     tests,
     tasks,
     processes: selections,
+    execution_budget: executionBudget,
   });
   write(cwd, state.approved_test_plan_path, approvedPlanContent);
   writeState(cwd, {
@@ -925,6 +959,9 @@ function addTauriProcess(cwd: string): void {
       tasks,
       processes: [...candidate.processes, selection],
     },
+    pair_session: state.pair_session
+      ? { ...state.pair_session, execution_budget: executionBudget }
+      : undefined,
   });
 }
 

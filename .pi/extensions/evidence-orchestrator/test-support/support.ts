@@ -2,7 +2,29 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { IterationIntakeSnapshot } from '../iteration/state';
+import type {
+  ExecutionBudgetEnvelope,
+  IterationIntakeSnapshot,
+} from '../iteration/state';
+
+export const TEST_EXECUTION_BUDGET_POLICY = {
+  version: 1,
+  activity: { timeout_ms: 900_000 },
+  command: { timeout_ms: 600_000 },
+  pair: {
+    emergency_max_checkpoints: 200,
+    max_retries_per_failure_fingerprint: 2,
+    max_no_progress_checkpoints: null,
+    extra_agent_call_ratio: null,
+  },
+  iteration: {
+    soft_ratio: 0.8,
+    max_duration_ms: null,
+    max_input_tokens: null,
+    max_output_tokens: null,
+    max_reported_cost_usd: null,
+  },
+} as const;
 
 const workspaces: string[] = [];
 
@@ -42,7 +64,40 @@ export function testIntakeSnapshot(): IterationIntakeSnapshot {
 export function workspace(): string {
   const cwd = mkdtempSync(join(tmpdir(), 'evidence-orchestrator-unit-'));
   workspaces.push(cwd);
+  writeTestExecutionBudgetPolicy(cwd);
   return cwd;
+}
+
+export function testExecutionBudgetEnvelope(
+  overrides: Partial<ExecutionBudgetEnvelope> = {},
+): ExecutionBudgetEnvelope {
+  return {
+    version: 1,
+    policy_path: 'engineering/evidence-orchestrator/execution-budget.json',
+    policy_sha256: 'e'.repeat(64),
+    activity_timeout_ms: 900_000,
+    command_timeout_ms: 600_000,
+    expected_pair_agent_calls: 4,
+    max_pair_agent_calls: null,
+    emergency_max_checkpoints: 200,
+    max_retries_per_failure_fingerprint: 2,
+    max_no_progress_checkpoints: null,
+    max_duration_ms: null,
+    max_input_tokens: null,
+    max_output_tokens: null,
+    max_reported_cost_usd: null,
+    soft_ratio: 0.8,
+    approved_at: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export function writeTestExecutionBudgetPolicy(cwd: string): void {
+  write(
+    cwd,
+    'engineering/evidence-orchestrator/execution-budget.json',
+    `${JSON.stringify(TEST_EXECUTION_BUDGET_POLICY, null, 2)}\n`,
+  );
 }
 
 export function write(cwd: string, path: string, content = 'content'): void {
@@ -61,6 +116,7 @@ export function writeIterationArtifact(
 
 export function initializeGitRepository(cwd: string): void {
   write(cwd, '.gitignore', 'node_modules\n');
+  writeTestExecutionBudgetPolicy(cwd);
   execFileSync('git', ['init', '--quiet'], { cwd });
   execFileSync('git', ['add', '.gitignore'], { cwd });
   execFileSync(

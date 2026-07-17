@@ -638,11 +638,31 @@ describe('Tasking and Desk Check', () => {
         },
       },
     });
-    expect(
-      existsSync(
-        `${cwd}/artifacts/iterations/ITER-0001/04-planning/test-plan.json`,
-      ),
-    ).toBe(true);
+    const approvedPlanPath = `${cwd}/artifacts/iterations/ITER-0001/04-planning/test-plan.json`;
+    expect(existsSync(approvedPlanPath)).toBe(true);
+    const approvedPlan = JSON.parse(readFileSync(approvedPlanPath, 'utf8')) as {
+      execution_budget: Record<string, unknown>;
+    };
+    expect(approvedPlan.execution_budget).toEqual(
+      approved.pair_session?.execution_budget,
+    );
+    expect(approved.pair_session?.execution_budget).toMatchObject({
+      expected_pair_agent_calls: 8,
+      max_pair_agent_calls: null,
+      emergency_max_checkpoints: 200,
+      max_retries_per_failure_fingerprint: 2,
+      max_no_progress_checkpoints: null,
+      activity_timeout_ms: 900_000,
+      command_timeout_ms: 600_000,
+      approved_at: '2026-01-01T00:05:00.000Z',
+    });
+    const lockedBudget = approved.pair_session?.execution_budget;
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/execution-budget.json',
+      JSON.stringify({ version: 1, drifted: true }),
+    );
+    expect(readState(cwd).pair_session?.execution_budget).toEqual(lockedBudget);
     expect(buildActivityTask(cwd)).toContain(
       '一个且仅一个 Test Driver checkpoint',
     );

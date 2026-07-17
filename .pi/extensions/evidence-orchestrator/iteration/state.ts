@@ -305,6 +305,25 @@ export interface PairDriverRecord {
   completed_at: string;
 }
 
+export interface ExecutionBudgetEnvelope {
+  version: 1;
+  policy_path: string;
+  policy_sha256: string;
+  activity_timeout_ms: number;
+  command_timeout_ms: number;
+  expected_pair_agent_calls: number;
+  max_pair_agent_calls: number | null;
+  emergency_max_checkpoints: number;
+  max_retries_per_failure_fingerprint: number;
+  max_no_progress_checkpoints: number | null;
+  max_duration_ms: number | null;
+  max_input_tokens: number | null;
+  max_output_tokens: number | null;
+  max_reported_cost_usd: number | null;
+  soft_ratio: number;
+  approved_at: string;
+}
+
 export interface PairAutomationException {
   kind: 'automation_exhausted';
   reason: string;
@@ -341,6 +360,7 @@ export interface PairSession {
   production_paths: string[];
   expected_red: string;
   accepted_reds: PairObservation[];
+  execution_budget: ExecutionBudgetEnvelope;
   red_observation?: PairObservation;
   last_observation?: PairObservation;
   quality_gate_index: number;
