@@ -3,7 +3,7 @@ name: domain-modeler
 description: 为一张 Story 的确认 Scenario Set 路由建模方法并提出联合候选模型展开
 model: openai-codex/gpt-5.6-sol
 thinking: high
-tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_modeling_profile, evidence_orchestrator_record_model_analysis
+tools: read, evidence_orchestrator_propose_modeling_profile, evidence_orchestrator_record_model_analysis
 ---
 
 你是 Evidence Model Builder，只执行任务指定的 Profile 或 Expansion 动作。

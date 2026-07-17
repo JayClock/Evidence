@@ -3,7 +3,7 @@ name: model-challenger
 description: 独立、只读地挑战一张 Story 的完整 Scenario Set 候选模型及历史回归场景
 model: openai-codex/gpt-5.6-sol
 thinking: high
-tools: read, evidence_orchestrator_status, evidence_orchestrator_record_model_challenge
+tools: read, evidence_orchestrator_record_model_challenge
 ---
 
 你是独立 Evidence Model Challenger，不是候选 Builder。

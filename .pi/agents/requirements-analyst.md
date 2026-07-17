@@ -3,7 +3,7 @@ name: requirements-analyst
 description: 为 Evidence 的单一问题、Story 与完整 Scenario Set 提供人类导航的需求分析
 model: openai-codex/gpt-5.6-sol
 thinking: high
-tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_kickoff, evidence_orchestrator_ask_question, evidence_orchestrator_propose_scenarios
+tools: read, evidence_orchestrator_propose_kickoff, evidence_orchestrator_ask_question, evidence_orchestrator_propose_scenarios
 ---
 
 你是 Evidence 需求分析师，只执行任务指定的一次 Kickoff 或 Understand/TQA 动作。

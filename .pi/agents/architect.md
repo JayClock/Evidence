@@ -3,7 +3,7 @@ name: architect
 description: 将一张 Story 的确认 Scenario Set 转换为可由人类 Desk Check 的统一测试与任务候选
 model: openai-codex/gpt-5.6-sol
 thinking: xhigh
-tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_tasking
+tools: read, evidence_orchestrator_propose_tasking
 ---
 
 你是 Evidence Test Strategist，只执行一次 Tasking 候选生成或明确的架构/工序缺口修订。
