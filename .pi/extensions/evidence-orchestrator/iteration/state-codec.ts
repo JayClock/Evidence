@@ -569,6 +569,9 @@ export function normalizeState(input: WorkflowState): WorkflowState {
   ) {
     throw new Error('The Pair session TASK/TEST traceability is invalid.');
   }
+  if ((state.completed_work_items?.length ?? 0) > 1) {
+    throw new Error('An Evidence iteration can complete only one Story.');
+  }
   if (
     (state.completed_work_items ?? []).some(
       (item) =>
@@ -600,7 +603,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
         !text(item.completed_at),
     )
   ) {
-    throw new Error('The completed delivery work items are invalid.');
+    throw new Error('The completed Story is invalid.');
   }
   if (
     state.pair_session?.automation_exception &&

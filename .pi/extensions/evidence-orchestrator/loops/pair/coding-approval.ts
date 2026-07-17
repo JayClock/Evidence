@@ -8,10 +8,11 @@ import {
 } from '../../iteration/artifact-layout';
 import { transitionLoopState } from '../../iteration/transition-graph';
 import { readState, writeState } from '../../iteration/state-repository';
-import type {
-  CompletedWorkItem,
-  DeliveryIncrementAction,
-  WorkflowState,
+import {
+  completedWorkItem,
+  type CompletedWorkItem,
+  type DeliveryIncrementAction,
+  type WorkflowState,
 } from '../../iteration/state';
 
 function digest(value: string | Buffer): string {
@@ -77,17 +78,6 @@ function completedItem(
   };
 }
 
-function appendCompleted(
-  state: WorkflowState,
-  item: CompletedWorkItem,
-): CompletedWorkItem[] {
-  const prior = state.completed_work_items ?? [];
-  if (prior.some(({ story_id }) => story_id === item.story_id)) {
-    return prior;
-  }
-  return [...prior, item];
-}
-
 /** Record the one human coding approval at the completed Story boundary, then enter Showcase. */
 export function decideDeliveryIncrement(
   cwd: string,
@@ -110,6 +100,9 @@ export function decideDeliveryIncrement(
   }
   if (!reason.trim())
     throw new Error('A human Story coding approval requires a reason.');
+  if (completedWorkItem(state)) {
+    throw new Error('This iteration already has a completed Story.');
+  }
 
   const workItem = state.active_work_item;
   if (!workItem)
@@ -143,7 +136,6 @@ export function decideDeliveryIncrement(
     pair_session: { ...state.pair_session, coding_decision: decision },
   });
   const item = completedItem(cwd, approvedState, now);
-  const completed = appendCompleted(approvedState, item);
   const transitioned = transitionLoopState(
     approvedState,
     { to: 'showcase' },
@@ -151,7 +143,7 @@ export function decideDeliveryIncrement(
   );
   return writeState(cwd, {
     ...transitioned,
-    completed_work_items: completed,
+    completed_work_items: [item],
     showcase_stage: 'setup',
     showcase_q2_observations: undefined,
     showcase_risk_decisions: undefined,

@@ -21,9 +21,10 @@ import {
   selectedTestProcesses,
   writeState,
 } from '../../iteration/state-repository';
-import type {
-  ActiveWorkItem,
-  CompletedWorkItem,
+import {
+  requireCompletedWorkItem,
+  type ActiveWorkItem,
+  type CompletedWorkItem,
   FeedbackTarget,
   PairSession,
   ShowcaseDecisionAction,
@@ -38,7 +39,7 @@ import type {
   ShowcaseRiskDecision,
   ShowcaseRiskDisposition,
   ShowcaseRiskQuadrant,
-  WorkflowState,
+  type WorkflowState,
 } from '../../iteration/state';
 import {
   assertLockedMaterializedPlan,
@@ -245,19 +246,11 @@ export function concerningShowcaseEvaluations(state: WorkflowState): string[] {
 }
 
 function showcaseItems(state: WorkflowState): CompletedWorkItem[] {
-  const items = state.completed_work_items ?? [];
-  if (items.length === 0) {
-    throw new Error(
-      'Showcase requires at least one completed delivery work item.',
-    );
-  }
-  return items;
+  return [requireCompletedWorkItem(state)];
 }
 
 function showcaseScenarios(state: WorkflowState) {
-  return showcaseItems(state).flatMap((item) =>
-    item.scenarios?.length ? item.scenarios : [item.scenario],
-  );
+  return requireCompletedWorkItem(state).scenarios;
 }
 
 export function missingShowcaseProductObservations(
@@ -436,18 +429,24 @@ export function executeShowcaseQ2(
     ],
   });
   const generated = generateExecutionEvidence(cwd);
+  const completed = requireCompletedWorkItem(next);
+  if (
+    completed.story_id !== generated.manifest.story_id ||
+    JSON.stringify(completed.work_item.scenario_ids) !==
+      JSON.stringify(generated.manifest.scenario_ids)
+  ) {
+    throw new Error(
+      'Showcase execution no longer matches the completed Story.',
+    );
+  }
   next = writeState(cwd, {
     ...next,
-    completed_work_items: (next.completed_work_items ?? []).map((item) =>
-      item.story_id === generated.manifest.story_id &&
-      JSON.stringify(item.work_item.scenario_ids) ===
-        JSON.stringify(generated.manifest.scenario_ids)
-        ? {
-            ...item,
-            execution_manifest_sha256: digest(generated.manifestContent),
-          }
-        : item,
-    ),
+    completed_work_items: [
+      {
+        ...completed,
+        execution_manifest_sha256: digest(generated.manifestContent),
+      },
+    ],
   });
   const result = observations
     .map(
@@ -980,12 +979,13 @@ function routeRevision(
   if (destination === 'showcase') {
     return { ...cleared, showcase_stage: 'setup' };
   }
+  const reopened = { ...cleared, completed_work_items: undefined };
   if (destination === 'pair') {
     const session = state.pair_session;
     if (!session) throw new Error('Showcase cannot route to a missing Pair.');
     const currentKey = `${session.process_id}/${session.step_id}`;
     return {
-      ...cleared,
+      ...reopened,
       pair_session: {
         ...session,
         checkpoint:
@@ -1010,7 +1010,7 @@ function routeRevision(
   }
   if (destination === 'tasking') {
     return {
-      ...cleared,
+      ...reopened,
       tasking_stage: 'drafting',
       tasking_candidate: undefined,
       tasking_gap: {
@@ -1027,7 +1027,7 @@ function routeRevision(
   if (destination === 'understand') {
     const modeling = target === 'model' || target === 'modeling_method';
     return {
-      ...cleared,
+      ...reopened,
       understand_stage: modeling ? 'modeling' : 'tqa',
       ...(modeling
         ? {
@@ -1064,7 +1064,7 @@ function routeRevision(
     };
   }
   return {
-    ...cleared,
+    ...reopened,
     kickoff_candidate: undefined,
     understand_stage: undefined,
     scenario_drafts: undefined,

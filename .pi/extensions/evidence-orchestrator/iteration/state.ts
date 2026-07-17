@@ -735,9 +735,9 @@ export interface WorkflowState {
   /** Provider-neutral candidate and source revisions frozen for this iteration. */
   intake_snapshot?: IterationIntakeSnapshot;
   active_work_item?: ActiveWorkItem;
-  /** Acceptance slices completed in this delivery iteration; Showcase covers all of them. */
+  /** Compatibility disk shape containing zero or one completed Story. */
   completed_work_items?: CompletedWorkItem[];
-  /** Story currently in focus; only one Story is active although the iteration may contain many. */
+  /** The single Story currently in focus for this iteration. */
   active_clarification_story?: ActiveClarificationStory;
   /** TQA question awaiting the domain expert's answer for the active WIP Story. */
   pending_clarification?: ClarificationRecord;
@@ -749,4 +749,22 @@ export interface WorkflowState {
     last_command?: string;
     last_run_at?: string;
   };
+}
+
+export function completedWorkItem(
+  state: Pick<WorkflowState, 'completed_work_items'>,
+): CompletedWorkItem | undefined {
+  const items = state.completed_work_items ?? [];
+  if (items.length > 1) {
+    throw new Error('An Evidence iteration can complete only one Story.');
+  }
+  return items[0];
+}
+
+export function requireCompletedWorkItem(
+  state: Pick<WorkflowState, 'completed_work_items'>,
+): CompletedWorkItem {
+  const item = completedWorkItem(state);
+  if (!item) throw new Error('The Evidence iteration has no completed Story.');
+  return item;
 }

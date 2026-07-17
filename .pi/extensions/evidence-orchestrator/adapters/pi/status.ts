@@ -12,7 +12,7 @@ import { executionEvidencePaths } from '../../capabilities/execution-evidence/ma
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { allowedLoopActions } from '../../iteration/transition-graph';
 import { readPersistedState } from '../../iteration/state-repository';
-import type { WorkflowState } from '../../iteration/state';
+import { completedWorkItem, type WorkflowState } from '../../iteration/state';
 import { loadActivityAgent } from '../node/activity-agent-process';
 import { nextStepGuidance } from './next-step';
 
@@ -113,6 +113,7 @@ export function statusMarkdown(cwd: string): string {
   const reviews = state.showcase_reviews?.at(-1);
   const decision = state.showcase_decisions?.at(-1);
   const scenarios = state.confirmed_scenarios ?? [];
+  const completed = completedWorkItem(state);
   return [
     '# Evidence Orchestrator Status',
     '',
@@ -127,7 +128,7 @@ export function statusMarkdown(cwd: string): string {
     `| Understand Stage | ${state.understand_stage ?? 'none'} |`,
     `| Pending TQA | ${state.pending_clarification ? `${state.pending_clarification.question_id} · ${state.pending_clarification.question}` : 'none'} |`,
     `| Scenario Set | ${scenarios.map(({ scenario_id }) => scenario_id).join(', ') || 'none'} |`,
-    `| Completed Stories | ${(state.completed_work_items ?? []).map(({ story_id, scenarios: completedScenarios }) => `${story_id}/[${completedScenarios.map(({ scenario_id }) => scenario_id).join(',')}]`).join(', ') || 'none'} |`,
+    `| Completed Story | ${completed ? `${completed.story_id}/[${completed.scenarios.map(({ scenario_id }) => scenario_id).join(',')}]` : 'none'} |`,
     `| Modeling Stage | ${state.modeling_stage ?? 'none'} |`,
     `| Modeling Profile | ${state.modeling_profile ? `${state.modeling_profile.subject}/${state.modeling_profile.method}` : 'none'} |`,
     `| Model Expansion | ${state.model_expansion_path ?? 'none'} |`,

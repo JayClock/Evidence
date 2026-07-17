@@ -1,4 +1,8 @@
 import { artifactRelativePath } from '../../../iteration/artifact-layout';
+import {
+  completedWorkItem,
+  requireCompletedWorkItem,
+} from '../../../iteration/state';
 import { readState } from '../../../iteration/state-repository';
 import {
   buildPairDriverTask,
@@ -23,12 +27,14 @@ export function buildActivityTask(cwd: string, extra = ''): string {
     const revisionStoryId = [...(state.kickoff_decisions ?? [])]
       .reverse()
       .find(({ story_id }) => story_id)?.story_id;
-    const completedScopeContext = (state.completed_work_items ?? [])
-      .map(
-        ({ story_id, scenario_id, scenario }) =>
-          `- 已完成 ${story_id}/${scenario_id}：${scenario.artifact_path}`,
-      )
-      .join('\n');
+    const completed = completedWorkItem(state);
+    const completedScopeContext =
+      completed?.scenarios
+        .map(
+          ({ story_id, scenario_id, artifact_path }) =>
+            `- 已完成 ${story_id}/${scenario_id}：${artifact_path}`,
+        )
+        .join('\n') ?? '';
     const storyRevisionContext =
       feedback?.target === 'story' &&
       feedback.to_loop === 'kickoff' &&
@@ -206,10 +212,10 @@ ${extra || '（无）'}
         'Showcase Reviewer requires passed Q2, explicit Q3/Q4 decisions, and reviewing stage.',
       );
     }
-    const completed = state.completed_work_items ?? [];
-    return `执行 Evidence Orchestrator 独立只读 Iteration Showcase Review：${state.iteration_id}（${completed.length} 张 Story）。
+    const completed = requireCompletedWorkItem(state);
+    return `执行 Evidence Orchestrator 独立只读 Story Showcase Review：${state.iteration_id}（${completed.story_id}）。
 
-上下文：已完成 Story=${JSON.stringify(completed.map(({ story_id, scenarios, execution_manifest_path }) => ({ story_id, scenarios: scenarios.map(({ artifact_path }) => artifact_path), execution_manifest_path })))}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}、人工产品观察=${JSON.stringify(state.showcase_product_observations)}、评价证据=${JSON.stringify(state.showcase_evaluation_observations)}。
+上下文：已完成 Story=${JSON.stringify({ story_id: completed.story_id, scenarios: completed.scenarios.map(({ artifact_path }) => artifact_path), execution_manifest_path: completed.execution_manifest_path })}、Q3/Q4=${JSON.stringify(state.showcase_risk_decisions)}、人工产品观察=${JSON.stringify(state.showcase_product_observations)}、评价证据=${JSON.stringify(state.showcase_evaluation_observations)}。
 任务：区分 observed facts、product/domain feedback、technical quality feedback 与 unresolved assumptions；只调用 evidence_orchestrator_record_showcase_review 一次后停止。不得修改任何文件或替人决定。
 
 额外用户指令：
@@ -227,7 +233,8 @@ ${extra || '（无）'}
     ) {
       throw new Error('Respond requires an accepted Showcase.');
     }
-    return `执行 Evidence Orchestrator Iteration Respond：${state.iteration_id}（${state.completed_work_items?.length ?? 1} 个验收切片）。
+    const completed = requireCompletedWorkItem(state);
+    return `执行 Evidence Orchestrator Story Respond：${state.iteration_id}（${completed.story_id} / [${completed.scenarios.map(({ scenario_id }) => scenario_id).join(', ')}]）。
 
 只读上下文：确认 Scenario、建模证据、execution manifest、${review.artifact_path}、${state.showcase_product_observations?.at(-1)?.artifact_path ?? 'missing-product-observation'}、${state.showcase_evaluation_observations?.at(-1)?.artifact_path ?? 'no-required-evaluation'}、Showcase 人工决定、docs/knowledge-governance.md、Working Knowledge catalog。
 任务：只对实际使用且验证的知识提出 promotions（允许带理由的空列表）和一个 next Probe；只调用 evidence_orchestrator_propose_response 一次后停止，等待人类 /evidence-respond。

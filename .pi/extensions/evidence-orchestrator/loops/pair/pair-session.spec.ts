@@ -1670,11 +1670,19 @@ describe('AI-driven Pair with Story-level human approval', () => {
       to_loop: 'pair',
       decided_by: 'human',
     });
+    expect(pair.completed_work_items).toBeUndefined();
     completePairSuccessfully(technicalCwd);
     expect(readState(technicalCwd).pair_session?.checkpoint).toBe(
       'quality_gates_passed',
     );
     expect(() => validateExecutionEvidence(technicalCwd)).not.toThrow();
+    expect(() =>
+      decideDeliveryIncrement(
+        technicalCwd,
+        'showcase',
+        'The revised Story is ready for another Showcase.',
+      ),
+    ).not.toThrow();
 
     const domainCwd = workspace();
     prepareShowcaseForReview(domainCwd);
@@ -1697,6 +1705,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
       active_clarification_story: { story_id: 'US-001' },
     });
     expect(understand.confirmed_scenarios).toBeUndefined();
+    expect(understand.completed_work_items).toBeUndefined();
     expect(understand.feedback_history?.at(-1)?.target).toBe('scenario');
   });
 

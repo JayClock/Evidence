@@ -21,10 +21,11 @@ import {
   iterationRoot,
 } from '../../../iteration/artifact-layout';
 import { readState } from '../../../iteration/state-repository';
-import type {
-  PairDeterministicAction,
-  WorkflowLoop,
-  WorkflowState,
+import {
+  completedWorkItem,
+  type PairDeterministicAction,
+  type WorkflowLoop,
+  type WorkflowState,
 } from '../../../iteration/state';
 import { buildActivityTask } from './task';
 
@@ -122,12 +123,13 @@ function requiredInputs(state: WorkflowState): string[] {
             `artifacts/01-requirements/clarifications/${revisionStoryId}.json`,
           ]
         : [];
-    const completedScopeInputs = (state.completed_work_items ?? []).flatMap(
-      ({ story_id, scenario }) => [
-        `artifacts/01-requirements/stories/${story_id}.md`,
-        scenario.artifact_path,
-      ],
-    );
+    const completed = completedWorkItem(state);
+    const completedScopeInputs = completed
+      ? [
+          `artifacts/01-requirements/stories/${completed.story_id}.md`,
+          ...completed.scenarios.map(({ artifact_path }) => artifact_path),
+        ]
+      : [];
     return [
       'artifacts/00-user-input/requirements.md',
       'docs/product/personas.md',
