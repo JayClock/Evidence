@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
 
 const CODE_ROOTS = ['apps', 'libs'] as const;
 const IGNORED_DIRECTORIES = new Set([
@@ -64,9 +64,10 @@ export function collectArtifacts(
   cwd: string,
   artifactRoot = join(cwd, 'artifacts'),
 ): string[] {
-  return findFiles(artifactRoot, (p) => p.endsWith('.md')).map((p) =>
-    relative(cwd, p),
-  );
+  return findFiles(
+    artifactRoot,
+    (path) => path.endsWith('.md') || basename(path) === 'activity-trace.jsonl',
+  ).map((path) => relative(cwd, path));
 }
 
 export function collectCodeFiles(cwd: string): string[] {

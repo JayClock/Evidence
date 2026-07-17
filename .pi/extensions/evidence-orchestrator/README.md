@@ -72,6 +72,7 @@ evidence-orchestrator/
 │   ├── inbox/                       # 来源 revision、Story 候选与冻结 Intake
 │   ├── modeling-evidence/           # 跨 Understand、Tasking 与 Pair 的模型证据
 │   ├── test-process/                # v3 catalog、Nx ownership、逐 TEST 命令与门禁物化
+│   ├── activity-observability/      # 非权威 activity trace、usage 与聚合
 │   ├── execution-evidence/          # hash-chained observation 与 manifest
 │   ├── worktree-protection/         # Git baseline、snapshot 与恢复
 │   └── working-knowledge/           # catalog 与 promotion validation
@@ -152,9 +153,10 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 
 ## 执行证据
 
-对于活动 Story `US-xxx`（manifest 内保留逐 Scenario 追踪）：
+每轮先保存独立的非权威运行 trace；对于活动 Story `US-xxx`，命令执行事实仍单独保存（manifest 内保留逐 Scenario 追踪）：
 
 ```text
+artifacts/iterations/ITER-xxxx/activity-trace.jsonl  # Agent/Controller usage、耗时、停止原因与关联；非验收权威
 artifacts/05-code/US-xxx/execution.jsonl
 artifacts/05-code/US-xxx/manifest.json
 artifacts/05-code/US-xxx/summary.md
@@ -168,7 +170,9 @@ artifacts/07-learning/knowledge-promotion.json
 artifacts/07-learning/next-iteration.md
 ```
 
-`execution.jsonl` 是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。Change Explainer HTML 是非确定性的理解材料，不能替代或修改这些执行证据。
+`activity-trace.jsonl` 使用 sequence 与 SHA-256 chain，只保存 task/output/error 哈希和有界 telemetry，不保存原始 Prompt、完整模型输出、stderr 或 child transcript；started 没有对应 finished 时会显式成为 incomplete span。Pair automation 使用父 span，Driver、Red Reviewer 和确定性 Controller checkpoint 使用子 span，命令子 span只引用对应 `execution.jsonl` sequence。
+
+`execution.jsonl` 仍是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。Activity trace 不改变活动通过/失败，也不能替代测试或人工决定。Change Explainer HTML 是非确定性的理解材料，不能替代或修改这些执行证据。
 
 ## 状态边界
 

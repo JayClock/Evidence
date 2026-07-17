@@ -14,12 +14,16 @@ describe('artifacts', () => {
     const cwd = workspace();
     ensureProjectDirs(cwd, `${cwd}/artifacts/iterations/ITER-0001`);
     write(cwd, 'artifacts/iterations/ITER-0001/01-requirements/story.md');
+    write(cwd, 'artifacts/iterations/ITER-0001/activity-trace.jsonl');
     write(cwd, 'apps/web/src/app.tsx');
     write(cwd, 'apps/web/dist/app.js');
 
     expect(
       collectArtifacts(cwd, `${cwd}/artifacts/iterations/ITER-0001`),
-    ).toEqual(['artifacts/iterations/ITER-0001/01-requirements/story.md']);
+    ).toEqual([
+      'artifacts/iterations/ITER-0001/01-requirements/story.md',
+      'artifacts/iterations/ITER-0001/activity-trace.jsonl',
+    ]);
     expect(collectCodeFiles(cwd)).toEqual(['apps/web/src/app.tsx']);
   });
 

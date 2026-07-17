@@ -2,6 +2,11 @@ import {
   collectArtifacts,
   collectCodeFiles,
 } from '../../iteration/artifact-inventory';
+import {
+  iterationActivitySummary,
+  type ActivityAggregate,
+} from '../../capabilities/activity-observability/summary';
+import { activityTraceRelativePath } from '../../capabilities/activity-observability/trace';
 import { readHtmlChangeExplanationRecord } from '../../loops/pair/change-explanation';
 import {
   pairDriverMode,
@@ -74,6 +79,25 @@ function list(title: string, values: string[]): string[] {
   ];
 }
 
+function compactNumber(value: number): string {
+  if (value < 1_000) return String(value);
+  if (value < 10_000) return `${(value / 1_000).toFixed(1)}k`;
+  if (value < 1_000_000) return `${Math.round(value / 1_000)}k`;
+  return `${(value / 1_000_000).toFixed(1)}M`;
+}
+
+function activityAggregateLine(aggregate: ActivityAggregate): string {
+  const reportedActivities =
+    aggregate.activities_finished - aggregate.unreported_cost_activities;
+  const cost = reportedActivities
+    ? `$${aggregate.reported_cost_usd.toFixed(4)} reported`
+    : 'cost:n/a';
+  const unreported = aggregate.unreported_cost_activities
+    ? ` · cost:n/a=${aggregate.unreported_cost_activities}`
+    : '';
+  return `${aggregate.activities_finished}/${aggregate.activities_started} finished · ${aggregate.turns} turns · ↑${compactNumber(aggregate.input_tokens)} ↓${compactNumber(aggregate.output_tokens)} R${compactNumber(aggregate.cache_read_tokens)} W${compactNumber(aggregate.cache_write_tokens)} · ${cost}${unreported} · ${(aggregate.duration_ms / 1_000).toFixed(1)}s`;
+}
+
 export function statusMarkdown(cwd: string): string {
   const state = readPersistedState(cwd);
   const codeFiles = collectCodeFiles(cwd);
@@ -109,6 +133,12 @@ export function statusMarkdown(cwd: string): string {
     }
   }
   const execution = executionEvidencePaths(cwd);
+  const activity = iterationActivitySummary(cwd, state.iteration_id);
+  const activityAgents = Object.entries(activity.by_agent)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([name, aggregate]) => `${name} · ${activityAggregateLine(aggregate)}`,
+    );
   const explanation = readHtmlChangeExplanationRecord(cwd, state);
   const reviews = state.showcase_reviews?.at(-1);
   const decision = state.showcase_decisions?.at(-1);
@@ -140,6 +170,11 @@ export function statusMarkdown(cwd: string): string {
     `| Pair Unit | ${state.pair_session ? `${state.pair_session.task_id}/${state.pair_session.test_id}` : 'none'} |`,
     `| Pair Step | ${state.pair_session ? `${state.pair_session.process_id}/${state.pair_session.step_id}` : 'none'} |`,
     `| Pair Automation Exception | ${state.pair_session?.automation_exception?.reason ?? 'none'} |`,
+    `| Activity Trace | ${activity.activities_started ? activityTraceRelativePath(state.iteration_id) : 'none'} |`,
+    `| Activity Q/T/C | ${activityAggregateLine(activity)} |`,
+    `| Activity Failures | failed=${activity.failed} · aborted=${activity.aborted} · timeout=${activity.timed_out} |`,
+    `| Incomplete Activity Spans | ${activity.incomplete_spans.join(', ') || 'none'} |`,
+    `| Peak Activity Context | ${activity.peak_context_tokens === null ? 'n/a' : compactNumber(activity.peak_context_tokens)} |`,
     `| Execution Log | ${execution.log ?? 'none'} |`,
     `| Execution Manifest | ${execution.manifest ?? 'none'} |`,
     `| Execution Summary | ${execution.summary ?? 'none'} |`,
@@ -160,6 +195,8 @@ export function statusMarkdown(cwd: string): string {
     '## 下一步',
     '',
     nextStepGuidance(cwd, state),
+    '',
+    ...list('Activity by Agent', activityAgents),
     '',
     ...list('Artifacts', artifacts),
     '',
