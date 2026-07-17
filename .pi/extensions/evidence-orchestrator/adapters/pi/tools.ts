@@ -18,10 +18,10 @@ import {
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import { proposeScenarioDrafts } from '../../loops/understand/scenario/candidates';
 import {
-  isActivitySubagentFailureDetails,
-  renderActivitySubagentCall,
-  renderActivitySubagentResult,
-} from './activity/subagent-renderer';
+  isActivityAgentFailureDetails,
+  renderActivityAgentCall,
+  renderActivityAgentResult,
+} from './activity/activity-agent-renderer';
 import {
   readPersistedState,
   readState,
@@ -126,7 +126,7 @@ export function registerTools(pi: ExtensionAPI): void {
     if (
       (event.toolName === 'evidence_orchestrator_run_activity' ||
         event.toolName === 'evidence_orchestrator_answer_question') &&
-      isActivitySubagentFailureDetails(event.details)
+      isActivityAgentFailureDetails(event.details)
     ) {
       return { isError: true };
     }
@@ -305,10 +305,10 @@ export function registerTools(pi: ExtensionAPI): void {
       };
     },
     renderCall(args, theme) {
-      return renderActivitySubagentCall(args, theme);
+      return renderActivityAgentCall(args, theme);
     },
     renderResult(result, options, theme) {
-      return renderActivitySubagentResult(result, options, theme);
+      return renderActivityAgentResult(result, options, theme);
     },
   });
 
@@ -702,7 +702,7 @@ export function registerTools(pi: ExtensionAPI): void {
       };
     },
     renderResult(result, options, theme) {
-      return renderActivitySubagentResult(result, options, theme);
+      return renderActivityAgentResult(result, options, theme);
     },
   });
 }

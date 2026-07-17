@@ -1,7 +1,7 @@
 import { Container, Spacer, Text } from '@earendil-works/pi-tui';
 import type { ActivityExecutionDetails } from './execution';
 
-export type ActivitySubagentToolDetails = ActivityExecutionDetails;
+export type ActivityAgentToolDetails = ActivityExecutionDetails;
 
 type RecordValue = Record<string, unknown>;
 
@@ -58,7 +58,7 @@ function resultText(result: unknown): string {
 
 function activityDetails(
   result: unknown,
-): ActivitySubagentToolDetails | undefined {
+): ActivityAgentToolDetails | undefined {
   if (!isRecord(result) || !isRecord(result.details)) return undefined;
   const details = result.details;
   if (
@@ -93,7 +93,7 @@ function activityDetails(
   };
 }
 
-export function isActivitySubagentFailureDetails(details: unknown): boolean {
+export function isActivityAgentFailureDetails(details: unknown): boolean {
   const record = isRecord(details) ? details : undefined;
   return typeof record?.exitCode === 'number' && record.exitCode !== 0;
 }
@@ -181,12 +181,9 @@ function renderItems(
   return lines.join('\n');
 }
 
-export function renderActivitySubagentCall(
-  args: unknown,
-  theme: ThemeLike,
-): Text {
+export function renderActivityAgentCall(args: unknown, theme: ThemeLike): Text {
   const instructions = isRecord(args) ? asText(args.instructions) : undefined;
-  let text = theme.fg('toolTitle', theme.bold('Evidence activity subagent'));
+  let text = theme.fg('toolTitle', theme.bold('Evidence activity agent'));
   if (instructions?.trim()) {
     text += theme.fg('dim', ` · ${preview(instructions, 72)}`);
   }
@@ -198,7 +195,7 @@ export function renderActivitySubagentCall(
  * model receives only the child’s final response in `content`, avoiding a
  * transcript-sized context injection while preserving full TUI observability.
  */
-export function renderActivitySubagentResult(
+export function renderActivityAgentResult(
   result: unknown,
   options: ResultOptions,
   theme: ThemeLike,

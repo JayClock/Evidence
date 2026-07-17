@@ -6,7 +6,7 @@ import { iterationRoot } from '../../iteration/artifact-layout';
 import { registerCommands } from './commands';
 import { registerInboxCommands } from './inbox-commands';
 import type { ActivityExecutionDetails } from './activity/execution';
-import { renderActivitySubagentResult } from './activity/subagent-renderer';
+import { renderActivityAgentResult } from './activity/activity-agent-renderer';
 import {
   ACTIVITY_RESULT_MESSAGE_TYPE,
   STATUS_KEY,
@@ -83,7 +83,7 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
   pi.registerMessageRenderer<ActivityExecutionDetails>(
     ACTIVITY_RESULT_MESSAGE_TYPE,
     (message, options, theme) =>
-      renderActivitySubagentResult(
+      renderActivityAgentResult(
         {
           content: [{ type: 'text', text: message.content }],
           details: message.details,

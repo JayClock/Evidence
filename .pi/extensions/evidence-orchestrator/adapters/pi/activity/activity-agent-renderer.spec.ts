@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  renderActivitySubagentCall,
-  renderActivitySubagentResult,
-  type ActivitySubagentToolDetails,
-} from './subagent-renderer';
+  renderActivityAgentCall,
+  renderActivityAgentResult,
+  type ActivityAgentToolDetails,
+} from './activity-agent-renderer';
 
 const theme = {
   fg(_color: string, text: string): string {
@@ -15,8 +15,8 @@ const theme = {
 };
 
 function details(
-  overrides: Partial<ActivitySubagentToolDetails> = {},
-): ActivitySubagentToolDetails {
+  overrides: Partial<ActivityAgentToolDetails> = {},
+): ActivityAgentToolDetails {
   return {
     activity: 'pair',
     task: 'Implement US-001 / SC-001 using observed TDD.',
@@ -50,7 +50,7 @@ function details(
 
 describe('activity subagent renderer', () => {
   it('shows child tool calls and latest text while the child is running', () => {
-    const component = renderActivitySubagentResult(
+    const component = renderActivityAgentResult(
       { content: [{ type: 'text', text: '(running...)' }], details: details() },
       { expanded: false, isPartial: true },
       theme,
@@ -64,7 +64,7 @@ describe('activity subagent renderer', () => {
   });
 
   it('renders a pending TQA question as the visible dialogue turn', () => {
-    const component = renderActivitySubagentResult(
+    const component = renderActivityAgentResult(
       {
         content: [{ type: 'text', text: 'TQA Q-001 · US-001' }],
         details: details({
@@ -103,7 +103,7 @@ describe('activity subagent renderer', () => {
   });
 
   it('marks a completed child with a non-zero exit code as failed', () => {
-    const component = renderActivitySubagentResult(
+    const component = renderActivityAgentResult(
       {
         content: [{ type: 'text', text: 'child failed' }],
         details: details({ status: 'failed', exitCode: 1 }),
@@ -116,7 +116,7 @@ describe('activity subagent renderer', () => {
   });
 
   it('expands the delegated task, final output, and stderr without adding them to tool content', () => {
-    const component = renderActivitySubagentResult(
+    const component = renderActivityAgentResult(
       {
         content: [{ type: 'text', text: 'The Green step now passes.' }],
         details: details({
@@ -138,14 +138,14 @@ describe('activity subagent renderer', () => {
   });
 
   it('renders a concise activity-subagent tool call header', () => {
-    const output = renderActivitySubagentCall(
+    const output = renderActivityAgentCall(
       { instructions: 'Prioritize the selected acceptance scenario.' },
       theme,
     )
       .render(120)
       .join('\n');
 
-    expect(output).toContain('Evidence activity subagent');
+    expect(output).toContain('Evidence activity agent');
     expect(output).toContain('Prioritize the selected acceptance scenario.');
   });
 });

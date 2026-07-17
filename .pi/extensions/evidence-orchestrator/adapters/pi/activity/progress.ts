@@ -4,12 +4,12 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { Box, type Component } from '@earendil-works/pi-tui';
 import type { ActivityExecutionDetails } from './execution';
-import { renderActivitySubagentResult } from './subagent-renderer';
+import { renderActivityAgentResult } from './activity-agent-renderer';
 
 const ACTIVITY_PROGRESS_KEY = 'evidence-activity-progress';
 
 type ActivityProgressContext = Pick<ExtensionCommandContext, 'mode' | 'ui'>;
-type ActivityTheme = Parameters<typeof renderActivitySubagentResult>[2] & {
+type ActivityTheme = Parameters<typeof renderActivityAgentResult>[2] & {
   bg(color: string, text: string): string;
 };
 
@@ -29,7 +29,7 @@ class LiveActivityProgress implements Component {
 
   render(width: number): string[] {
     if (!this.details) return [];
-    const content = renderActivitySubagentResult(
+    const content = renderActivityAgentResult(
       {
         content: [{ type: 'text', text: this.details.output }],
         details: this.details,
