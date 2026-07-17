@@ -46,7 +46,7 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 
 1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
 2. **Understand**：每张活动 Story 使用一条持久 TQA 会话，一次提出一个面向业务的问题；人类直接回答后，下一次 requirements-analyst checkpoint 恢复同一 Pi session。AI 列出完整 Scenario Set 后由人类整体确认，再确认建模 Profile：`none/false` 确定性记录无模型影响并直接进入 Tasking；其他方法逐场景联合展开，`model_change_required=false` 保持空 operations，只有 `true` 提出模型候选，之后均经独立挑战和人工模型确认。其他活动角色仍使用隔离的临时会话。
-3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
+3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v3，解析真实 Nx project ownership/targets，并生成逐 TEST 聚焦命令、项目门禁及去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
 4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。伪 Red、Green/Refactor/gate 失败在有限预算内自动修复，超限作为异常停止；全绿后可用 `/evidence-explain-diff` 生成一份仓库外、自包含且非权威的 HTML 理解材料，之后仍由人类一次批准完整 Story 编码才进入 Showcase。
 5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
 6. **Respond**：总结整个 Story 增量，只提升被 Scenario Set、执行事实与 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
@@ -71,7 +71,7 @@ evidence-orchestrator/
 ├── capabilities/
 │   ├── inbox/                       # 来源 revision、Story 候选与冻结 Intake
 │   ├── modeling-evidence/           # 跨 Understand、Tasking 与 Pair 的模型证据
-│   ├── test-process/                # v2 catalog、匹配与命令物化
+│   ├── test-process/                # v3 catalog、Nx ownership、逐 TEST 命令与门禁物化
 │   ├── execution-evidence/          # hash-chained observation 与 manifest
 │   ├── worktree-protection/         # Git baseline、snapshot 与恢复
 │   └── working-knowledge/           # catalog 与 promotion validation
@@ -202,7 +202,7 @@ validation → 各层公开 validator
 - Loop 行为留在所属 `loops/<loop>/`；只有跨 Loop 稳定复用的机制才进入 `capabilities/`。
 - Pi/GitHub/Node 集成留在 `adapters/`；命令和工具不得复制业务守卫。
 - Agent 不复制方法正文；方法变化更新 catalog 指向的 Skill/Prompt 及 eval。
-- 测试命令必须来自人工批准且哈希锁定的 test-process 计划。
+- 测试命令必须来自人工批准且哈希锁定的 v3 test-process 计划；TypeScript 路径必须匹配锁定 Nx owner，最终门禁只读取 Desk Check 已物化命令。
 - 变更必须覆盖 full-loop happy path、主要反馈路由、source boundaries，以及 idle/native 状态边界。
 
 ## 验证

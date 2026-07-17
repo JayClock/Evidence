@@ -6,13 +6,13 @@
 
 - 用户价值由一张 `US-xxx` 及其人工确认的完整 `SC-xxx` Given/When/Then Scenario Set 定义。
 - 每个 Story 都有人工确认的建模处置：`none/false` 具有确定性的无模型影响证据；其他方法下，全部场景已逐一通过 `.evidence` 模型展开和联合独立挑战，并由人类确认模型投影、跨场景一致性、概念、关系、统一语言、不变量、时间线及候选变更。
-- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；每个 Then 有 Q2，公共 Q1 已去重；非 `none` 的 Scenario → model refs → TASK/TEST → code paths 可复核，`none` 则以空 model refs 保留 Scenario → TASK/TEST → code paths 追踪。
+- owning runtime、功能上下文、Q2/Q1、测试替身和工序追踪完整；每个 Then 有 Q2，公共 Q1 已去重；每个 TypeScript TEST 的实际路径、Nx project、独立聚焦命令及 planned-project 门禁可完整追踪；非 `none` 的 Scenario → model refs → TASK/TEST → code paths 可复核，`none` 则以空 model refs 保留 Scenario → TASK/TEST → code paths 追踪。
 - 稳定知识写入统一知识源；iteration 仅保存输入、delta、决策和执行证据。
 - 所有改动遵守 `AGENTS.md` 的模块和 runtime 边界。
 
 ## 编码
 
-- AI 自动执行每个批准 TASK/TEST 的独立 Red/Green：Test Driver 写测试，控制器运行锁定命令，独立 Red Reviewer 分类实际失败，Production Driver 完成最小 Green；同一 process step 的全部 TEST Green 后只执行一次有界 Refactor（或显式 no-op）。
+- AI 自动执行每个批准 TASK/TEST 的独立 Red/Green：Test Driver 写测试，控制器核对实际测试路径 owner 并运行该 TEST 的唯一锁定命令，独立 Red Reviewer 对照 typed `expected_failure_kind=behavior` 合同分类实际失败，Production Driver 完成最小 Green；同一 process step 的全部 TEST Green 后只执行一次有界 Refactor（或显式 no-op）。
 - 每项功能测试和实现都可追踪到已确认的 `US-xxx` Scenario Set；没有对应验收场景的功能不生成生产代码或测试代码，非目标不产生反向测试。
 - 已确认范围内的拒绝、失败和边界行为属于对应验收场景，应按所选测试工序验证。
 - 同时存在真实测试和生产代码改动；Markdown 不替代实现。
@@ -30,7 +30,7 @@
 
 ## 质量门禁
 
-按所选测试工序执行全部 `quality_gates`。最低要求：
+只执行 Desk Check 已物化并哈希锁定的全部 `quality_gate_commands`，不得在 Pair 临时展开 process 字符串。最低要求：
 
 - TypeScript：相关 Nx test、typecheck、lint。
 - Rust：相关 cargo test、clippy `-D warnings`、fmt check。

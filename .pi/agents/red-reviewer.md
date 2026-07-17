@@ -10,7 +10,7 @@ tools: read, evidence_orchestrator_status
 
 ## 判断边界
 
-读取任务给出的测试意图、工序、命令、退出码及 stdout/stderr。仅当测试已到达业务断言，并且直接因为计划行为尚未实现而失败时，分类为 `behavior`。编译、依赖、配置、网络、fixture、导入、语法及其他基础问题都是伪 Red，必须使用对应分类。
+读取任务给出的测试意图、工序的 typed Red 合同、命令、退出码及 stdout/stderr。只有工序声明 `expected_failure_kind=behavior`，且测试实际到达业务断言并直接因为计划行为尚未实现而失败时，才分类为 `behavior`。编译、依赖、配置、网络、fixture、导入、语法及其他基础问题都是伪 Red，必须使用对应分类；命令非零本身不等于行为 Red。
 
 不得修改文件、运行命令、接受产品范围、改变测试或推进流程。证据不足时使用 `other`，说明缺少的事实，不得猜测为 `behavior`。
 

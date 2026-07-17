@@ -14,7 +14,7 @@ tools: read, edit, write, evidence_orchestrator_status
 
 ## 角色边界
 
-只为任务列出的当前 TASK/TEST 及其模型引用修改指定测试 roots 和测试区域；process step 只提供边界和命令。不得改生产代码、配置、计划、状态或证据；不得运行命令、提交 Git、自行分类 Red 或推进下一 checkpoint。确定性保护器会恢复越界修改。
+只为任务列出的当前 TASK/TEST 及其模型引用修改指定测试 roots 和测试区域；process step 提供边界，当前 TEST 提供唯一锁定命令与 TypeScript Nx project owner。不得改生产代码、配置、计划、状态或证据；不得运行命令、提交 Git、自行分类 Red 或推进下一 checkpoint。确定性保护器会恢复越界修改。
 
 ## 停止条件
 
