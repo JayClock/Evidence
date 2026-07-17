@@ -207,6 +207,14 @@ describe('activity trace', () => {
     writeFileSync(span.path, original.replace('"sequence":2', '"sequence":9'));
     expect(() => readActivityTrace(span.path)).toThrow('sequence drifted');
 
+    const reorderedUsage = original.replace(
+      '"usage":{"turns":1,"input_tokens":0',
+      '"usage":{"input_tokens":0,"turns":1',
+    );
+    expect(reorderedUsage).not.toBe(original);
+    writeFileSync(span.path, reorderedUsage);
+    expect(() => readActivityTrace(span.path)).toThrow('hash chain failed');
+
     writeFileSync(span.path, `${original.split('\n')[0]}\n`);
     expect(() => validateActivityTrace(span.path)).toThrow('incomplete spans');
 
@@ -215,7 +223,12 @@ describe('activity trace', () => {
     expect(activityTracePath(cwd, 'ITER-0001')).toBe(span.path);
   });
 
-  it('requires aborted and timeout finishes to preserve distinct stop reasons', () => {
+  it('rejects loose timestamps and preserves distinct abort/timeout reasons', () => {
+    const invalidCwd = workspace();
+    expect(() => start(invalidCwd, { startedAt: '2026' })).toThrow(
+      'RFC 3339 timestamp',
+    );
+
     const cwd = workspace();
     const span = start(cwd);
     expect(() =>

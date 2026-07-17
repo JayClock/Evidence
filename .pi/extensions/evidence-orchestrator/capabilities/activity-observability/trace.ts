@@ -101,6 +101,11 @@ export interface ActivityTraceFinishInput {
 
 const SHA256 = /^[0-9a-f]{64}$/;
 const SPAN_ID = /^ACT-\d{6,}$/;
+const RFC3339 =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+// Trace identity fields must stay single-line and free of JSON control bytes.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
 const ACTIVITIES = new Set<TraceableActivity>([
   'inbox',
   'kickoff',
@@ -195,7 +200,7 @@ function boundedString(
     typeof value !== 'string' ||
     value.length === 0 ||
     value.length > (options.max ?? 512) ||
-    value.includes('\u0000')
+    CONTROL_CHARACTER.test(value)
   ) {
     throw new Error(`${subject} must be a bounded non-empty string.`);
   }
@@ -204,7 +209,11 @@ function boundedString(
 
 function timestamp(value: unknown, subject: string): string {
   const parsed = boundedString(value, subject, { max: 64 });
-  if (!parsed || !Number.isFinite(Date.parse(parsed))) {
+  if (
+    !parsed ||
+    !RFC3339.test(parsed) ||
+    !Number.isFinite(Date.parse(parsed))
+  ) {
     throw new Error(`${subject} must be an RFC 3339 timestamp.`);
   }
   return parsed;
@@ -500,12 +509,9 @@ function validateEventShape(
         );
       }
     }
-    parsed.usage = validateUsage(parsed.usage, 'usage');
-    parsed.tool_call_counts = validateCountMap(
-      parsed.tool_call_counts,
-      'tool_call_counts',
-    );
-    parsed.execution_record_sequences = validateSequences(
+    const usage = validateUsage(parsed.usage, 'usage');
+    validateCountMap(parsed.tool_call_counts, 'tool_call_counts');
+    validateSequences(
       parsed.execution_record_sequences,
       'execution_record_sequences',
     );
@@ -518,7 +524,7 @@ function validateEventShape(
       );
     }
     if (parsed.model === 'deterministic') {
-      const deterministicUsage = parsed.usage;
+      const deterministicUsage = usage;
       if (
         parsed.thinking !== 'off' ||
         parsed.session_mode !== 'deterministic' ||

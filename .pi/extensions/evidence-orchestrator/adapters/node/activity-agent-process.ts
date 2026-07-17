@@ -202,10 +202,18 @@ export function activityAgentTelemetry(
 
     const responseModel = (message as { responseModel?: unknown })
       .responseModel;
-    if (typeof responseModel === 'string' && responseModel) {
-      actualModel = responseModel;
-    } else if (typeof message.model === 'string' && message.model) {
-      actualModel = message.model;
+    const reportedModel =
+      typeof responseModel === 'string' && responseModel
+        ? responseModel
+        : typeof message.model === 'string' && message.model
+          ? message.model
+          : undefined;
+    const provider = (message as { provider?: unknown }).provider;
+    if (reportedModel) {
+      actualModel =
+        typeof provider === 'string' && provider && !reportedModel.includes('/')
+          ? `${provider}/${reportedModel}`
+          : reportedModel;
     }
     if (typeof message.stopReason === 'string' && message.stopReason) {
       stopReason = message.stopReason;

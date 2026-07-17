@@ -104,6 +104,7 @@ describe('activity agents', () => {
     const messages = [
       {
         role: 'assistant',
+        provider: 'fallback-provider',
         model: 'requested-model',
         responseModel: 'fallback-model',
         stopReason: 'toolUse',
@@ -132,6 +133,7 @@ describe('activity agents', () => {
       },
       {
         role: 'assistant',
+        provider: 'fallback-provider',
         model: 'fallback-model',
         stopReason: 'stop',
         usage: {
@@ -147,7 +149,7 @@ describe('activity agents', () => {
     ] as never;
 
     expect(activityAgentTelemetry(messages)).toEqual({
-      actualModel: 'fallback-model',
+      actualModel: 'fallback-provider/fallback-model',
       usage: {
         turns: 2,
         input_tokens: 3_000,
