@@ -6,8 +6,13 @@ import { iterationRoot } from '../../iteration/artifact-layout';
 import { registerCommands } from './commands';
 import { registerInboxCommands } from './inbox-commands';
 import type { ActivityExecutionDetails } from './activity/execution';
-import { renderActivityAgentResult } from './activity/activity-agent-renderer';
 import {
+  renderActivityAgentResult,
+  renderActivityResultEntry,
+  type ActivityResultEntryData,
+} from './activity/activity-agent-renderer';
+import {
+  ACTIVITY_RESULT_ENTRY_TYPE,
   ACTIVITY_RESULT_MESSAGE_TYPE,
   STATUS_KEY,
   statusLabel,
@@ -82,6 +87,39 @@ export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
     closeStateWatcher();
     ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, undefined);
   });
+
+  pi.registerEntryRenderer<ActivityResultEntryData>(
+    ACTIVITY_RESULT_ENTRY_TYPE,
+    (entry, options, theme) =>
+      renderActivityResultEntry(
+        entry.data ?? {
+          version: 1,
+          activity: 'pair',
+          status: 'failed',
+          agent: 'unknown',
+          requested_model: 'unknown',
+          actual_model: 'unknown',
+          thinking: 'off',
+          output_summary: 'Activity result entry is missing data.',
+          usage: {
+            turns: 0,
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_read_tokens: 0,
+            cache_write_tokens: 0,
+            cost_usd: null,
+            context_tokens_at_end: null,
+          },
+          duration_ms: 0,
+          exit_code: 1,
+          completed_at: new Date(0).toISOString(),
+          child_event_count: 0,
+          references: [],
+        },
+        { expanded: options.expanded },
+        theme,
+      ),
+  );
 
   pi.registerMessageRenderer<ActivityExecutionDetails>(
     ACTIVITY_RESULT_MESSAGE_TYPE,
