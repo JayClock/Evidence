@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { startActivityTrace } from '../capabilities/activity-observability/trace';
 import { DEFAULT_STATE } from '../iteration/default-state';
 import { writeState } from '../iteration/state-repository';
 import {
@@ -23,6 +24,25 @@ describe('validate', () => {
     writeState(cwd, DEFAULT_STATE);
     expect(() => validateWorkflow(cwd)).toThrow(
       'Active iteration artifact root is missing',
+    );
+  });
+
+  it('rejects an incomplete activity trace before accepting workflow evidence', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+    startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      activity: 'kickoff',
+      agent: 'requirements-analyst',
+      requestedModel: 'provider/model',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      task: 'Prepare one candidate.',
+      toolNames: ['read'],
+    });
+
+    expect(() => validateWorkflow(cwd)).toThrow(
+      'Activity trace has incomplete spans: ACT-000001',
     );
   });
 });

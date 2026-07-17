@@ -1,5 +1,9 @@
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import {
+  activityTracePath,
+  validateActivityTrace,
+} from '../capabilities/activity-observability/trace';
 import { validateExecutionEvidence } from '../capabilities/execution-evidence/manifest';
 import { readHtmlChangeExplanationRecord } from '../loops/pair/change-explanation';
 import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
@@ -35,6 +39,8 @@ export function validateWorkflow(cwd: string): void {
         `Active iteration artifact root is missing: ${relative(cwd, root)}.`,
       );
     }
+    const trace = activityTracePath(cwd, state.iteration_id);
+    if (existsSync(trace)) validateActivityTrace(trace, state.iteration_id);
     if (!state.intake_snapshot) {
       throw new Error(
         'Active iteration has no frozen requirement input. Select one with /evidence-new.',
