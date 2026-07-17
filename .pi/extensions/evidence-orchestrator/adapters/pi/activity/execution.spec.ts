@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  activityTracePath,
+  readActivityTrace,
+} from '../../../capabilities/activity-observability/trace';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import type {
   PairDeterministicAction,
@@ -58,6 +62,12 @@ const showcase = vi.hoisted(() => ({
 
 vi.mock('../../node/activity-agent-process', () => ({
   runActivityAgent: runner.runActivityAgent,
+  loadActivityAgent: (_cwd: string, name: string) => ({
+    name,
+    model: 'openai/test',
+    thinking: 'medium',
+    tools: ['read'],
+  }),
 }));
 vi.mock('../../../loops/pair/pair-session', () => pairing);
 vi.mock('../../../loops/showcase/showcase-session', () => showcase);
@@ -199,6 +209,7 @@ describe('activity execution', () => {
     pairing.executePairAction.mockReturnValue({
       state: prepared.state,
       output: 'Observed Red; waiting for Navigator.',
+      record: { sequence: 7 },
     });
 
     const result = await executePreparedActivityRun(
@@ -209,6 +220,13 @@ describe('activity execution', () => {
 
     expect(runner.runActivityAgent).not.toHaveBeenCalled();
     expect(result.output).toContain('waiting for Navigator');
+    expect(
+      readActivityTrace(activityTracePath(cwd, 'ITER-0001')).at(-1),
+    ).toMatchObject({
+      agent: 'pair-controller',
+      model: 'deterministic',
+      execution_record_sequences: [7],
+    });
   });
 
   it('automates all Pair checkpoints and stops once for human Story approval', async () => {
@@ -548,5 +566,24 @@ describe('activity execution', () => {
       last_command: '/evidence-run',
       last_run_at: '2026-01-01T00:00:00.000Z',
     });
+    const trace = readActivityTrace(
+      activityTracePath(cwd, 'ITER-0001'),
+      'ITER-0001',
+    );
+    expect(trace).toHaveLength(2);
+    expect(trace[0]).toMatchObject({
+      event: 'activity_started',
+      activity: 'kickoff',
+      agent: 'requirements-analyst',
+      requested_model: 'openai/test',
+    });
+    expect(trace[1]).toMatchObject({
+      event: 'activity_finished',
+      status: 'completed',
+      actual_model: 'openai/test',
+    });
+    expect(JSON.stringify(trace)).not.toContain(
+      'Prepare one Kickoff candidate.',
+    );
   });
 });

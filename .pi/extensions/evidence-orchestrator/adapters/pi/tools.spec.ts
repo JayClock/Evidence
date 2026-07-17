@@ -15,6 +15,12 @@ const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
 
 vi.mock('../node/activity-agent-process', () => ({
   runActivityAgent: runner.runActivityAgent,
+  loadActivityAgent: (_cwd: string, name: string) => ({
+    name,
+    model: 'openai/test',
+    thinking: 'medium',
+    tools: ['read'],
+  }),
 }));
 
 afterEach(() => {

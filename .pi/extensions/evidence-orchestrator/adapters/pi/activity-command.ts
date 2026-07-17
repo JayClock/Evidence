@@ -17,8 +17,11 @@ import {
 import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
 import {
   isActivityAgentFailure,
+  loadActivityAgent,
   runActivityAgent,
+  type ActivityAgentResult,
 } from '../node/activity-agent-process';
+import { readState } from '../../iteration/state-repository';
 import { ACTIVITY_RESULT_MESSAGE_TYPE } from './identity';
 import type { PreparedActivityRun } from './activity/dispatch';
 import {
@@ -26,6 +29,7 @@ import {
   type ActivityExecutionDetails,
 } from './activity/execution';
 import { runWithActivityProgress } from './activity/progress';
+import { withActivityTrace } from './activity/trace';
 
 export async function runPreparedActivityFromCommand(
   pi: ExtensionAPI,
@@ -73,6 +77,8 @@ export async function runHtmlChangeExplanationFromCommand(
   const snapshot = captureWorktreeSnapshot(ctx.cwd);
   const bundle = createHtmlChangeAnalysisBundle(ctx.cwd, request);
   const task = changeExplanationTaskWithBundle(request, bundle);
+  const traceState = readState(ctx.cwd);
+  const traceAgent = loadActivityAgent(ctx.cwd, 'change-explainer');
   let recorded = false;
   let details: ActivityExecutionDetails | undefined;
   try {
@@ -80,79 +86,102 @@ export async function runHtmlChangeExplanationFromCommand(
       ctx,
       `Explaining ${request.story_id} as self-contained HTML…`,
       async (signal, onUpdate) => {
-        try {
-          const result = await runActivityAgent({
-            cwd: ctx.cwd,
-            agentName: 'change-explainer',
-            task,
-            policy: createActivityToolPolicy({
-              cwd: ctx.cwd,
-              role: 'change-explainer',
-              extraReadRoots: [bundle.directory],
-            }),
-            signal,
-            onUpdate(progress) {
-              onUpdate({
-                ...progress,
-                activity: 'pair',
-                task,
-                status: 'running',
-              });
-            },
-          });
-          if (isActivityAgentFailure(result)) {
-            throw new Error(result.output);
-          }
-          const delta = worktreeDelta(ctx.cwd, snapshot);
-          if (
-            delta.headChanged ||
-            delta.indexChanged ||
-            delta.paths.length > 0
-          ) {
-            restoreWorktreeSnapshot(ctx.cwd, snapshot);
-            throw new Error(
-              `Change Explainer crossed its read-only repository boundary: ${delta.paths.join(', ') || 'Git metadata changed'}. Restored the Pair worktree.`,
-            );
-          }
-          const record = recordHtmlChangeExplanation(
-            ctx.cwd,
-            request,
-            result.output,
-          );
-          recorded = true;
-          const toolCallMessages = result.messages.flatMap((message) =>
-            message.role === 'assistant'
-              ? [
-                  {
-                    ...message,
-                    content: message.content.filter(
-                      (part) => part.type === 'toolCall',
-                    ),
-                  },
-                ]
-              : [],
-          );
-          return {
-            ...result,
-            messages: toolCallMessages,
+        let agentResult: ActivityAgentResult | undefined;
+        return withActivityTrace(
+          ctx.cwd,
+          {
+            state: traceState,
             activity: 'pair',
             task,
-            status: 'completed',
-            output: `HTML change explanation generated for ${record.story_id}.\n\nFile: ${record.output_path}\nMetadata: ${record.artifact_path}\nHTML SHA256: ${record.html_sha256}\n\nThis is an optional, non-authoritative review aid. Human Story-level coding approval is still required.`,
-          };
-        } finally {
-          if (!recorded) {
-            const delta = worktreeDelta(ctx.cwd, snapshot);
-            if (
-              delta.headChanged ||
-              delta.indexChanged ||
-              delta.paths.length > 0
-            ) {
-              restoreWorktreeSnapshot(ctx.cwd, snapshot);
+            agent: traceAgent.name,
+            requestedModel: traceAgent.model,
+            thinking: traceAgent.thinking,
+            sessionMode: 'ephemeral',
+            toolNames: [...(traceAgent.tools ?? [])],
+          },
+          async () => {
+            try {
+              const result = await runActivityAgent({
+                cwd: ctx.cwd,
+                agentName: 'change-explainer',
+                task,
+                policy: createActivityToolPolicy({
+                  cwd: ctx.cwd,
+                  role: 'change-explainer',
+                  extraReadRoots: [bundle.directory],
+                }),
+                signal,
+                onUpdate(progress) {
+                  onUpdate({
+                    ...progress,
+                    activity: 'pair',
+                    task,
+                    status: 'running',
+                  });
+                },
+              });
+              agentResult = result;
+              if (isActivityAgentFailure(result)) {
+                throw new Error(result.output);
+              }
+              const delta = worktreeDelta(ctx.cwd, snapshot);
+              if (
+                delta.headChanged ||
+                delta.indexChanged ||
+                delta.paths.length > 0
+              ) {
+                restoreWorktreeSnapshot(ctx.cwd, snapshot);
+                throw new Error(
+                  `Change Explainer crossed its read-only repository boundary: ${delta.paths.join(', ') || 'Git metadata changed'}. Restored the Pair worktree.`,
+                );
+              }
+              const record = recordHtmlChangeExplanation(
+                ctx.cwd,
+                request,
+                result.output,
+              );
+              recorded = true;
+              const toolCallMessages = result.messages.flatMap((message) =>
+                message.role === 'assistant'
+                  ? [
+                      {
+                        ...message,
+                        content: message.content.filter(
+                          (part) => part.type === 'toolCall',
+                        ),
+                      },
+                    ]
+                  : [],
+              );
+              return {
+                ...result,
+                messages: toolCallMessages,
+                activity: 'pair' as const,
+                task,
+                status: 'completed' as const,
+                output: `HTML change explanation generated for ${record.story_id}.\n\nFile: ${record.output_path}\nMetadata: ${record.artifact_path}\nHTML SHA256: ${record.html_sha256}\n\nThis is an optional, non-authoritative review aid. Human Story-level coding approval is still required.`,
+              };
+            } finally {
+              if (!recorded) {
+                const delta = worktreeDelta(ctx.cwd, snapshot);
+                if (
+                  delta.headChanged ||
+                  delta.indexChanged ||
+                  delta.paths.length > 0
+                ) {
+                  restoreWorktreeSnapshot(ctx.cwd, snapshot);
+                }
+                rmSync(request.output_path, { force: true });
+              }
             }
-            rmSync(request.output_path, { force: true });
-          }
-        }
+          },
+          {
+            signal,
+            partialResult: () => agentResult,
+            resultForTrace: (value) => agentResult ?? value,
+            resultingState: () => readState(ctx.cwd),
+          },
+        );
       },
     );
   } finally {

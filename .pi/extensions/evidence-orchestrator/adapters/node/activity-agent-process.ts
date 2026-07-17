@@ -62,6 +62,13 @@ export interface ActivityAgentProgress extends ActivityAgentResult {
   exitCode: -1;
 }
 
+export class ActivityAgentAbortedError extends Error {
+  constructor(readonly result: ActivityAgentResult) {
+    super(result.errorMessage ?? `Activity agent ${result.agent} was aborted.`);
+    this.name = 'ActivityAgentAbortedError';
+  }
+}
+
 export function isActivityAgentFailure(
   result: Pick<ActivityAgentResult, 'exitCode' | 'stopReason'>,
 ): boolean {
@@ -536,9 +543,8 @@ export async function runActivityAgent(options: {
         options.signal?.addEventListener('abort', abortChild, { once: true });
     });
 
-    if (aborted) throw new Error(`Activity agent ${agent.name} was aborted.`);
     const completedMs = Date.now();
-    return activityAgentResult(
+    const result = activityAgentResult(
       agent,
       messages,
       exitCode,
@@ -551,6 +557,16 @@ export async function runActivityAgent(options: {
       },
       sessionMode,
     );
+    if (aborted) {
+      const errorMessage = `Activity agent ${agent.name} was aborted.`;
+      throw new ActivityAgentAbortedError({
+        ...result,
+        stopReason: 'aborted',
+        errorMessage,
+        output: `${errorMessage}\n\n${result.output}`,
+      });
+    }
+    return result;
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
   }
