@@ -130,6 +130,109 @@ describe('tools', () => {
     ]);
   });
 
+  it('returns only the bounded status projection and never a code-file inventory', async () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+    write(cwd, 'artifacts/iterations/ITER-0001/01-requirements/story.md');
+    write(cwd, 'apps/web/src/hidden-from-status.ts');
+    let status: { execute: (...args: never[]) => Promise<unknown> } | undefined;
+    registerTools({
+      on() {
+        return undefined;
+      },
+      registerTool(tool: {
+        name: string;
+        execute: (...args: never[]) => Promise<unknown>;
+      }) {
+        if (tool.name === 'evidence_orchestrator_status') status = tool;
+      },
+    } as never);
+
+    const result = (await status?.execute(
+      'call' as never,
+      { view: 'summary' } as never,
+      undefined as never,
+      undefined as never,
+      { cwd } as never,
+    )) as { content: Array<{ text: string }>; details: unknown };
+
+    expect(
+      Buffer.byteLength(result.content[0].text, 'utf8'),
+    ).toBeLessThanOrEqual(4 * 1024);
+    expect(result.content[0].text).not.toContain('hidden-from-status');
+    expect(result.details).toEqual(
+      expect.objectContaining({
+        view: 'summary',
+        projection: expect.objectContaining({ loop: 'kickoff' }),
+      }),
+    );
+    expect(JSON.stringify(result.details)).not.toContain('codeFiles');
+    expect(JSON.stringify(result.details)).not.toContain('"state"');
+  });
+
+  it('bounds activity tool content while retaining full child events in details', async () => {
+    const cwd = workspace();
+    for (const path of [
+      'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+      'docs/product/personas.md',
+      'docs/product/business-context.md',
+      'docs/product/user-journeys.md',
+      'docs/product/story-map.md',
+    ]) {
+      write(cwd, path, 'input');
+    }
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      intake_snapshot: testIntakeSnapshot(),
+    });
+    runner.runActivityAgent.mockResolvedValue({
+      agent: 'requirements-analyst',
+      model: 'openai/test',
+      thinking: 'high',
+      output: `Candidate recorded.\n${'detail '.repeat(1_000)}`,
+      messages: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'full child event' }],
+        },
+      ],
+      exitCode: 0,
+      stderr: '',
+    });
+    let run: { execute: (...args: never[]) => Promise<unknown> } | undefined;
+    registerTools({
+      on() {
+        return undefined;
+      },
+      registerTool(tool: {
+        name: string;
+        execute: (...args: never[]) => Promise<unknown>;
+      }) {
+        if (tool.name === 'evidence_orchestrator_run_activity') run = tool;
+      },
+    } as never);
+
+    const result = (await run?.execute(
+      'call' as never,
+      {} as never,
+      undefined as never,
+      undefined as never,
+      { cwd, ui: { setStatus: vi.fn() } } as never,
+    )) as {
+      content: Array<{ text: string }>;
+      details: { output: string; messages: unknown[] };
+    };
+
+    expect(
+      Buffer.byteLength(result.content[0].text, 'utf8'),
+    ).toBeLessThanOrEqual(2 * 1024);
+    expect(result.content[0].text).toContain('activity-trace.jsonl');
+    expect(result.details.output.length).toBeGreaterThan(
+      result.content[0].text.length,
+    );
+    expect(result.details.messages).toHaveLength(1);
+  });
+
   it('records source-cited Inbox candidates without assigning a Story id', async () => {
     const cwd = workspace();
     const source = captureInboxSource(cwd, {

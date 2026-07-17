@@ -4,6 +4,7 @@ import {
   clarificationQuestionParam,
   inboxStoryCandidatesParam,
   modelingProfileParam,
+  statusParam,
   taskingDraftParam,
 } from './tool-schemas';
 
@@ -67,6 +68,22 @@ describe('Pi tool schemas', () => {
         reason: 'Unsupported subject.',
       }),
     ).toBe(false);
+  });
+
+  it('bounds the status tool to summary or paginated active artifacts', () => {
+    expect(Check(statusParam, {})).toBe(true);
+    expect(
+      Check(statusParam, {
+        view: 'artifacts',
+        cursor: 'opaque-cursor',
+        limit: 50,
+      }),
+    ).toBe(true);
+    expect(Check(statusParam, { view: 'files' })).toBe(false);
+    expect(Check(statusParam, { view: 'artifacts', limit: 51 })).toBe(false);
+    expect(Check(statusParam, { view: 'summary', unexpected: true })).toBe(
+      false,
+    );
   });
 
   it('binds focused filters and optional Nx ownership at TEST scope', () => {
@@ -135,6 +152,13 @@ describe('Pi tool schemas', () => {
         storyId: 'US-001',
         question: 'Who confirms the result?',
         target: 'implementation',
+      }),
+    ).toBe(false);
+    expect(
+      Check(clarificationQuestionParam, {
+        storyId: 'US-001',
+        question: 'x'.repeat(1537),
+        target: 'history',
       }),
     ).toBe(false);
   });

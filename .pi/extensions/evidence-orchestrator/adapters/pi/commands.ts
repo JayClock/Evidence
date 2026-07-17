@@ -35,7 +35,7 @@ import {
   runInboxSourceExtractionFlow,
   type InboxAgentRunner,
 } from './inbox-commands';
-import { statusMarkdown } from './status';
+import { statusCommandMarkdown } from './status';
 import {
   parseDeskCheckDecision,
   parseKickoffDecision,
@@ -126,9 +126,17 @@ export function registerCommands(
 
   pi.registerCommand(EVIDENCE_COMMANDS.status, {
     description:
-      'Show Evidence Orchestrator loop, decisions, evidence, and code status',
-    handler: async (_args, ctx) =>
-      ctx.ui.notify(statusMarkdown(ctx.cwd), 'info'),
+      'Show a bounded Evidence summary, or a paginated artifact/code-file detail view',
+    handler: async (args, ctx) => {
+      try {
+        ctx.ui.notify(statusCommandMarkdown(ctx.cwd, args), 'info');
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
   });
 
   pi.registerCommand(EVIDENCE_COMMANDS.newIteration, {

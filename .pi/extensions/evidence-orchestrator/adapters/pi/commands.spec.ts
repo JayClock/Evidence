@@ -85,6 +85,32 @@ describe('commands', () => {
     ]);
   });
 
+  it('keeps default status compact and scans code files only for the explicit files view', async () => {
+    const cwd = workspace();
+    write(cwd, 'apps/web/src/explicit-detail.ts');
+    let status:
+      | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
+      | undefined;
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof status }): void {
+        if (name === 'evidence-status') status = options.handler;
+      },
+    } as never);
+    const ctx = context(cwd);
+
+    await status?.('', ctx);
+    expect(ctx.ui.notify).toHaveBeenLastCalledWith(
+      expect.not.stringContaining('explicit-detail.ts'),
+      'info',
+    );
+
+    await status?.('files', ctx);
+    expect(ctx.ui.notify).toHaveBeenLastCalledWith(
+      expect.stringContaining('apps/web/src/explicit-detail.ts'),
+      'info',
+    );
+  });
+
   it('starts a new iteration from an explicit ready Inbox candidate', async () => {
     const cwd = workspace();
     const source = captureInboxSource(cwd, {

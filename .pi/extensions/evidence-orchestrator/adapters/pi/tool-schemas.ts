@@ -1,4 +1,5 @@
 import { StringEnum } from '@earendil-works/pi-ai';
+import { MAX_CLARIFICATION_QUESTION_BYTES } from '../../loops/understand/tqa/conversation';
 import {
   type Static,
   type TObjectOptions,
@@ -54,7 +55,26 @@ export const inboxStoryCandidatesParam = Type.Object({
   ),
 });
 
-export const statusParam = Type.Object({});
+export const statusParam = Type.Object({
+  view: Type.Optional(
+    StringEnum(['summary', 'artifacts'] as const, {
+      description:
+        'Bounded status view. Summary is the default; artifacts is active-iteration-only and paginated.',
+    }),
+  ),
+  cursor: Type.Optional(
+    Type.String({
+      description: 'Opaque cursor returned by an artifacts page.',
+    }),
+  ),
+  limit: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      maximum: 50,
+      description: 'Artifact page size from 1 through 50.',
+    }),
+  ),
+});
 
 export const activityRunParam = Type.Object({
   instructions: Type.Optional(
@@ -334,6 +354,7 @@ export const clarificationQuestionParam = Type.Object({
       'The US-xxx story whose business uncertainty is being clarified.',
   }),
   question: Type.String({
+    maxLength: MAX_CLARIFICATION_QUESTION_BYTES,
     description:
       'One high-value business-facing question for the domain expert. It may clarify a product-confirmed channel or external interaction, but must not ask for an internal implementation choice. Ask only one question, then stop.',
   }),

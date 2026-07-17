@@ -1,12 +1,8 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { WorkflowState } from '../../iteration/state';
+import { activityTraceRelativePath } from '../../capabilities/activity-observability/trace';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
-import {
-  collectArtifacts,
-  collectCodeFiles,
-} from '../../iteration/artifact-inventory';
-import { iterationRoot } from '../../iteration/artifact-layout';
 import { proposeKnowledgeResponse } from '../../loops/respond/response-cycle';
 import { recordModelChallenge } from '../../loops/understand/modeling/challenge';
 import { recordModelAnalysis } from '../../loops/understand/modeling/candidate-model';
@@ -18,15 +14,13 @@ import {
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import { proposeScenarioDrafts } from '../../loops/understand/scenario/candidates';
 import {
+  boundedModelVisibleActivityText,
   isActivityAgentFailureDetails,
   renderActivityAgentCall,
   renderActivityAgentResult,
 } from './activity/activity-agent-renderer';
-import {
-  readPersistedState,
-  readState,
-} from '../../iteration/state-repository';
-import { statusMarkdown } from './status';
+import { readState } from '../../iteration/state-repository';
+import { statusToolResult } from './status';
 import { proposeTaskingDraft } from '../../loops/tasking/tasking-draft';
 import { recordShowcaseReview } from '../../loops/showcase/showcase-session';
 import { isCompletedIteration, prepareActivityRun } from './activity/dispatch';
@@ -205,23 +199,17 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_status',
     label: 'Evidence Orchestrator Status',
     description:
-      'Read Evidence Orchestrator loop state, decisions, artifacts, and code files',
+      'Read a bounded Evidence Orchestrator summary or one active-iteration artifact page',
     promptSnippet: 'Inspect the current Evidence Orchestrator pipeline status',
     promptGuidelines: [
       'Use evidence_orchestrator_status when the user asks what the Evidence Orchestrator pipeline is doing or what remains.',
     ],
     parameters: statusParam,
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
-      const state = readPersistedState(ctx.cwd);
+    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const result = statusToolResult(ctx.cwd, params);
       return {
-        content: [{ type: 'text', text: statusMarkdown(ctx.cwd) }],
-        details: {
-          state,
-          artifacts: state
-            ? collectArtifacts(ctx.cwd, iterationRoot(ctx.cwd, state))
-            : [],
-          codeFiles: collectCodeFiles(ctx.cwd),
-        },
+        content: [{ type: 'text', text: result.content }],
+        details: result.details,
       };
     },
   });
@@ -292,9 +280,23 @@ export function registerTools(pi: ExtensionAPI): void {
           });
         },
       });
+      const resultingState = readState(ctx.cwd);
       return {
-        // This is the only child payload added to the parent model context.
-        content: [{ type: 'text', text: details.output }],
+        // Full child events remain in details/TUI; model-visible text is bounded.
+        content: [
+          {
+            type: 'text',
+            text: boundedModelVisibleActivityText(
+              details.output,
+              [activityTraceRelativePath(resultingState.iteration_id)],
+              {
+                preserveWholeText: Boolean(
+                  resultingState.pending_clarification,
+                ),
+              },
+            ),
+          },
+        ],
         details,
       };
     },
@@ -668,11 +670,20 @@ export function registerTools(pi: ExtensionAPI): void {
           });
         },
       });
+      const resultingState = readState(ctx.cwd);
       return {
         content: [
           {
             type: 'text',
-            text: `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).\n\n${details.output}`,
+            text: boundedModelVisibleActivityText(
+              `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).\n\n${details.output}`,
+              [activityTraceRelativePath(resultingState.iteration_id)],
+              {
+                preserveWholeText: Boolean(
+                  resultingState.pending_clarification,
+                ),
+              },
+            ),
           },
         ],
         details,
