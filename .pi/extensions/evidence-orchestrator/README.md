@@ -116,7 +116,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 ```text
 /evidence-inbox [list | add github|text|file | sync INBOX-xxxx | extract INBOX-xxxx,... | defer|reject CAND-xxxx <reason>]
 /evidence-new [CAND-xxxx]
-/evidence-status
+/evidence-status [artifacts|files [cursor]]
 /evidence-run [--dry-run] [当前活动补充指令]
 /evidence-kickoff confirm [reason] | revise|split|defer|stop <reason>
 /evidence-scenario confirm <DRAFT-xxx,...> [reason] | continue|split|defer <reason>
@@ -133,7 +133,9 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 
 - 无参数运行 `/evidence-inbox` 时，空 Inbox 会先让人选择来源；来源 revision 保存成功后自动打开 extract 来源选取界面，取消选取则只保留来源。已有来源时显示 Inbox 状态，显式 `list` 始终只读。
 - 无参数运行 `/evidence-new` 会复用 extract 来源选取界面，提取完成后再复用 Candidate 选择器并冻结 Intake；`/evidence-new CAND-xxxx` 直接从 ready Candidate 启动。
+- `/evidence-status` 默认只显示小于 4 KiB 的 summary projection，不扫描或列出 `apps/`、`libs/`。`artifacts` 只分页显示 active iteration 工件，`files` 只在人工显式请求时扫描代码；两者每页最多 50 项，cursor 在 inventory 或 active iteration 漂移时失效。模型 status tool 只有 `summary|artifacts`，不提供 `files`。
 - `/evidence-run` 对非 Pair loop 只运行当前状态允许的一个 activity checkpoint；在 Pair 中自动串行执行完整编码 Story 的短生命周期 Driver、Reviewer 与确定性命令，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
+- 每次 Agent dispatch 的 task 以最大 16 KiB 的确定性 Context Capsule 开头，只包含当前 Identity、Decision、人工 Authority、精确输入路径、工作单元、工具/路径边界与停止条件；长工件由 Agent 按路径读取。TQA Capsule 始终给出精确 clarification-history 路径，持久 session 不是事实源。
 - 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
 - `/evidence-pair approve <reason>` 在全部 quality gates 通过后写入 `coding-decision.json`，作为完整 Story 编码的人类权威并进入 Showcase；其他参数仅用于自动化异常的显式回退。
 - `/evidence-explain-diff` 仅在 `quality_gates_passed` 后启动短生命周期 Change Explainer：只读分析稳定 diff、Scenario、模型、计划和 manifest，并把完整 HTML 返回控制器；控制器恢复任何仓库越界写入、验证结构后向系统临时目录（可用 `EVIDENCE_EXPLANATION_DIR` 指定其他仓库外目录）写入一份日期前缀的自包含 HTML，并在 iteration 内记录路径与哈希。该材料可选且不构成测试事实、审查结论或批准。
@@ -149,7 +151,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 - Kickoff / Understand：`propose_kickoff`、`ask_question`、`answer_question`、`propose_scenarios`、`propose_modeling_profile`、`record_model_analysis`、`record_model_challenge`；
 - Tasking / Showcase / Respond：`propose_tasking`、`record_showcase_review`、`propose_response`。
 
-完整名称都以 `evidence_orchestrator_` 开头。工具只能提出候选或记录可观测事实，不能执行人工决定。
+完整名称都以 `evidence_orchestrator_` 开头。工具只能提出候选或记录可观测事实，不能执行人工决定。宽泛 `status` 只保留给父 Navigator；短生命周期 Activity Agent 不拥有它，事实不足时必须补充 Capsule 或窄 checkpoint 输入。child invocation 关闭无关 prompt-template 自动发现，但继续加载项目 `AGENTS.md` 安全与架构 Context。
 
 ## 执行证据
 
@@ -171,6 +173,8 @@ artifacts/07-learning/next-iteration.md
 ```
 
 `activity-trace.jsonl` 使用 sequence 与 SHA-256 chain，只保存 task/output/error 哈希和有界 telemetry，不保存原始 Prompt、完整模型输出、stderr 或 child transcript；started 没有对应 finished 时会显式成为 incomplete span。Pair automation 使用父 span，Driver、Red Reviewer 和确定性 Controller checkpoint 使用子 span，命令子 span只引用对应 `execution.jsonl` sequence。
+
+普通 command activity 成功、Pair 全绿与 HTML explanation 完成后使用 Pi custom entry：它们可在 TUI 折叠/展开并持久化，但不参与父 LLM Context。只有待回答 TQA 问题和需要人工异常路由的失败使用最大 2 KiB custom message；activity tool 的模型可见 content 同样最大 2 KiB，完整 child events 只保留在本地 tool details/TUI。
 
 `execution.jsonl` 仍是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。Activity trace 不改变活动通过/失败，也不能替代测试或人工决定。Change Explainer HTML 是非确定性的理解材料，不能替代或修改这些执行证据。
 

@@ -79,6 +79,55 @@ The controlled fixed-prefix cache-read ratio is 80% (`cacheRead / input`) for bo
 
 A real persistent-session provider run was not available at this iteration boundary. Real measurements still required before P0-04 policy activation are the same non-Pair, TQA, 3-TEST Pair, and per-agent metrics above from a human-recognized Story.
 
+## Post-P0-03 context-surface comparison
+
+- Captured: 2026-07-17
+- Code baseline: `bb454c2` (Capsule starts at `6ec564d`; bounded status at `2f47066`)
+- Method: the same idle `statusMarkdown(process.cwd())` measurement plus deterministic publication contracts
+
+### Parent status surface
+
+| Metric                                  | Before P0-03 | After P0-03 | Change |
+| :-------------------------------------- | -----------: | ----------: | -----: |
+| UTF-8 bytes visible to the parent model |       17,110 |         306 | -98.2% |
+| Lines                                   |          323 |          11 |   -312 |
+| `apps/` / `libs/` code-file rows        |          308 |           0 |   -308 |
+
+The default path no longer calls the code-file inventory. Active status returns the same bounded summary projection plus artifact counts; artifact and human-only code-file details require explicit cursor pagination and return at most 50 items per page.
+
+### Parent activity-result surface
+
+| Invocation/result                           | Before P0-03                             | After P0-03 model-visible surface                        |
+| :------------------------------------------ | :--------------------------------------- | :------------------------------------------------------- |
+| Successful command activity                 | Full `details.output` custom message     | 0 bytes; bounded custom entry is TUI/session only        |
+| Pair all-green command summary              | Full success custom message              | 0 bytes; bounded custom entry plus status next action    |
+| HTML change explanation completion          | Full success custom message              | 0 bytes; bounded custom entry with output/metadata refs  |
+| Pending TQA question                        | Unbounded success custom message         | Complete question, hard maximum 2 KiB                    |
+| Human-routed activity failure               | Unbounded success/failure custom message | Reason, next action, and reference, hard maximum 2 KiB   |
+| `run_activity` / continued-TQA tool content | Full child final output                  | Hard maximum 2 KiB; full child events remain TUI details |
+
+Custom-entry data is bounded to 8 KiB and contains only activity summary, usage, child-event count, and disk references; it does not duplicate delegated tasks, stderr, or child messages.
+
+### Child activity context
+
+- Every Inbox, loop, Pair reviewer/driver, and Change Explainer dispatch starts with a deterministic Context Capsule capped at 16 KiB; overflow fails closed.
+- Capsules carry current IDs, one requested outcome, human authority/hashes, exact input paths, TASK/TEST/process/step where applicable, enforced tools/write roots, output schema, and stop condition.
+- TQA names its exact clarification-history artifact; persistent session history remains a cache rather than an authority source.
+- Ten non-Inbox activity roles no longer receive `evidence_orchestrator_status`.
+- Child prompt-template auto-discovery is disabled; project `AGENTS.md` context remains enabled.
+
+### Usage/cache/context trace comparison
+
+The pre-P0-03 controlled non-Pair, persistent-TQA, and 3-TEST Pair arithmetic above remains the only available trace fixture. This implementation boundary had no human-recognized provider Story run, so post-change provider input/cache/context values are deliberately not fabricated:
+
+| Trace shape       | Pre-P0-03 fixture                              | Post-P0-03 provider observation  |
+| :---------------- | :--------------------------------------------- | :------------------------------- |
+| Non-Pair activity | 1,000 input / 800 cache read / 1,120 context   | Not yet measured on a real Story |
+| Persistent TQA-2  | 1,500 input / 1,200 cache read / 1,760 context | Not yet measured on a real Story |
+| 3-TEST Pair       | 11,000 input / 8,800 cache read / 1,100 output | Not yet measured on a real Story |
+
+Correctness is gated by byte limits, bounded publication contracts, Capsule tests, full-loop integration, Pair automation, TQA persistence, source boundaries, and idle recovery—not by a single stochastic model run. The next human-recognized non-Pair, TQA, and 3-TEST Pair traces must be appended here before P0-04 activates token/cost policy.
+
 ## Decision for P0-03 / P0-04
 
-P0-03 may use the 17,110-byte idle status measurement as its pre-reduction baseline. P0-04 must remain shadow-only for token/cost limits until a human recognizes at least one real Story run; the controlled values above must not be copied into an execution budget.
+P0-03 demonstrates a deterministic 98.2% reduction in the idle parent status surface and removes ordinary successful command results from parent model context. P0-04 must remain shadow-only for token/cost limits until a human recognizes at least one real Story run; the controlled values above must not be copied into an execution budget.
