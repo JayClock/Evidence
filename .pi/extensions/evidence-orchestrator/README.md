@@ -65,11 +65,12 @@ evidence-orchestrator/
 │   ├── kickoff/                     # 单 Story 候选与人工 Kickoff 决定
 │   ├── understand/{tqa,scenario,modeling}/
 │   ├── tasking/                     # test/task draft 与 Desk Check
-│   ├── pair/                        # 自动 Pair checkpoint、Driver 与 Red Reviewer session
+│   ├── pair/                        # 自动 Pair checkpoint、编码批准、Driver 与 Red Reviewer session
 │   ├── showcase/                    # Q2/Q3/Q4、Reviewer 与人工决定
 │   └── respond/                     # knowledge response、人工确认与 next Probe
 ├── capabilities/
 │   ├── inbox/                       # 来源 revision、Story 候选与冻结 Intake
+│   ├── modeling-evidence/           # 跨 Understand、Tasking 与 Pair 的模型证据
 │   ├── test-process/                # v2 catalog、匹配与命令物化
 │   ├── execution-evidence/          # hash-chained observation 与 manifest
 │   ├── worktree-protection/         # Git baseline、snapshot 与恢复
@@ -77,7 +78,8 @@ evidence-orchestrator/
 ├── adapters/
 │   ├── pi/                          # 薄 host、命令、工具、状态与 activity host
 │   ├── github/                      # GitHub CLI/Pi process adapter
-│   └── node/                        # 隔离 activity 子进程
+│   ├── local/                       # 文本与本地 Markdown Inbox source adapter
+│   └── node/                        # 隔离 activity agent 子进程
 ├── validation/                      # source boundary 与确定性验证入口
 ├── test-support/                    # 跨模块集成测试、fixtures 与 mocks
 └── vitest.config.ts
@@ -97,15 +99,16 @@ evidence-orchestrator/
 
 ### `capabilities/`
 
-Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Process、Execution Evidence、Worktree Protection 与 Working Knowledge 不依赖 Pi UI 或某个 Loop 的私有实现。Inbox 的 source revision 与 candidate 跨 iteration 存续，而冻结 Intake 进入单一 iteration 边界。
+Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling Evidence、Test Process、Execution Evidence、Worktree Protection 与 Working Knowledge 不依赖 Pi UI 或某个 Loop 的私有实现。Inbox 的 source revision 与 candidate 跨 iteration 存续，而冻结 Intake 进入单一 iteration 边界。完整 Story 编码批准属于 Pair Loop，只能由 Pi 人工命令采集；Showcase 不提供隐式批准入口。
 
 ### `adapters/`
 
 - `pi/host.ts` 是生命周期组合根；根 `index.ts` 保持薄。
 - `pi/commands.ts` 与 `pi/tools.ts` 只注册外部入口；参数解析、Schema 和 activity host 分文件维护。
-- `pi/activity/` 负责任务构建、调度、执行、进度和渲染；非 Pair 活动保持单 checkpoint，Pair 在一次运行中循环短生命周期 checkpoint 直到全绿或异常。
+- `pi/activity/` 负责任务构建、调度、执行、进度和 activity agent 渲染；非 Pair 活动保持单 checkpoint，Pair 在一次运行中循环短生命周期 checkpoint 直到全绿或异常。
 - `github/inbox-source.ts` 与 `github/pi-cli.ts` 把 GitHub Issue 适配为 provider-neutral Inbox capture。
-- `node/activity-agent-process.ts` 负责隔离 Pi 子进程，不向 Loop 暴露 `spawn`；普通 checkpoint 使用临时 session，活动 Story 的 TQA checkpoint 以稳定 session id 恢复同一多轮会话。
+- `local/inbox-sources.ts` 把人工文本与仓库内 Markdown 适配为同一种 Inbox source revision。
+- `node/activity-agent-process.ts` 负责隔离 Pi activity agent 子进程，不向 Loop 暴露 `spawn`；普通 checkpoint 使用临时 session，活动 Story 的 TQA checkpoint 以稳定 session id 恢复同一多轮会话。
 
 ## 人工命令
 
