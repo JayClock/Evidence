@@ -2,7 +2,7 @@ import type {
   ActivityAgentProgress,
   ActivityAgentResult,
 } from '../../node/activity-agent-process';
-import { runActivitySubagent } from '../../node/activity-agent-process';
+import { runActivityAgent } from '../../node/activity-agent-process';
 import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 import {
   buildPairRedReviewTask,
@@ -191,7 +191,7 @@ async function executeOnePreparedActivityRun(
       );
     }
     const sessionId = tqaSessionId(preparation);
-    let result = await runActivitySubagent({
+    let result = await runActivityAgent({
       cwd: ctx.cwd,
       agentName: preparation.agentName,
       task: preparation.task,
@@ -362,7 +362,7 @@ async function executeAutomatedPairRun(
         task: buildPairRedReviewTask(ctx.cwd, state),
       };
       ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'subagent'));
-      const result = await runActivitySubagent({
+      const result = await runActivityAgent({
         cwd: ctx.cwd,
         agentName: 'red-reviewer',
         task: reviewPreparation.task,

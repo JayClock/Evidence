@@ -72,7 +72,7 @@ export const inboxStoryCandidatesParam = Type.Object({
 export const activityRunParam = Type.Object({
   instructions: Type.Optional(
     Type.String({
-      description: 'Extra instructions for the current activity subagent.',
+      description: 'Extra instructions for the current activity agent.',
     }),
   ),
 });

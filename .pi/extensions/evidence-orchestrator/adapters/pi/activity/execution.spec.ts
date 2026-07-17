@@ -13,7 +13,7 @@ import {
 import type { PreparedActivityRun } from './dispatch';
 import { executePreparedActivityRun } from './execution';
 
-const runner = vi.hoisted(() => ({ runActivitySubagent: vi.fn() }));
+const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
 const pairing = vi.hoisted(() => ({
   pairDriverMode: vi.fn(() => undefined),
   capturePairWorktree: vi.fn(() => ({ snapshot: true })),
@@ -38,7 +38,7 @@ const showcase = vi.hoisted(() => ({
 }));
 
 vi.mock('../../node/activity-agent-process', () => ({
-  runActivitySubagent: runner.runActivitySubagent,
+  runActivityAgent: runner.runActivityAgent,
 }));
 vi.mock('../../../loops/pair/pair-session', () => pairing);
 vi.mock('../../../loops/showcase/showcase-session', () => showcase);
@@ -80,7 +80,7 @@ describe('activity execution', () => {
       agentName: 'requirements-analyst',
       task: 'Clarify US-001.',
     };
-    runner.runActivitySubagent.mockImplementation(async () => {
+    runner.runActivityAgent.mockImplementation(async () => {
       writeState(cwd, {
         ...readState(cwd),
         pending_clarification: {
@@ -110,7 +110,7 @@ describe('activity execution', () => {
 
     expect(result.output).toContain('Q-001 · US-001');
     expect(result.output).toContain('Who confirms the model?');
-    expect(runner.runActivitySubagent).toHaveBeenCalledWith(
+    expect(runner.runActivityAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'evidence-iter-0001-us-001-tqa',
       }),
@@ -119,7 +119,7 @@ describe('activity execution', () => {
 
   it('replaces an empty child response with explicit next-step guidance', async () => {
     const cwd = workspace();
-    runner.runActivitySubagent.mockResolvedValue({
+    runner.runActivityAgent.mockResolvedValue({
       agent: 'requirements-analyst',
       model: 'openai/test',
       thinking: 'high',
@@ -142,7 +142,7 @@ describe('activity execution', () => {
 
   it('passes the explicit bounded role to the child runner', async () => {
     const cwd = workspace();
-    runner.runActivitySubagent.mockResolvedValue({
+    runner.runActivityAgent.mockResolvedValue({
       agent: 'requirements-analyst',
       model: 'openai/test',
       thinking: 'high',
@@ -158,13 +158,13 @@ describe('activity execution', () => {
       { invocation: '/evidence-run' },
     );
 
-    expect(runner.runActivitySubagent).toHaveBeenCalledWith(
+    expect(runner.runActivityAgent).toHaveBeenCalledWith(
       expect.objectContaining({ agentName: 'requirements-analyst' }),
     );
-    expect(runner.runActivitySubagent.mock.calls[0][0]).not.toHaveProperty(
+    expect(runner.runActivityAgent.mock.calls[0][0]).not.toHaveProperty(
       'phase',
     );
-    expect(runner.runActivitySubagent.mock.calls[0][0]).not.toHaveProperty(
+    expect(runner.runActivityAgent.mock.calls[0][0]).not.toHaveProperty(
       'sessionId',
     );
   });
@@ -188,7 +188,7 @@ describe('activity execution', () => {
       { invocation: '/evidence-run' },
     );
 
-    expect(runner.runActivitySubagent).not.toHaveBeenCalled();
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
     expect(result.output).toContain('waiting for Navigator');
   });
 
@@ -341,7 +341,7 @@ describe('activity execution', () => {
         return current;
       },
     );
-    runner.runActivitySubagent.mockImplementation(async ({ agentName }) => ({
+    runner.runActivityAgent.mockImplementation(async ({ agentName }) => ({
       agent: agentName,
       model: 'openai/test',
       thinking: 'medium',
@@ -372,9 +372,7 @@ describe('activity execution', () => {
     });
     expect(result.output).toContain('/evidence-pair approve <reason>');
     expect(
-      runner.runActivitySubagent.mock.calls.map(
-        ([options]) => options.agentName,
-      ),
+      runner.runActivityAgent.mock.calls.map(([options]) => options.agentName),
     ).toEqual([
       'test-driver',
       'red-reviewer',
@@ -413,7 +411,7 @@ describe('activity execution', () => {
       { invocation: '/evidence-run' },
     );
 
-    expect(runner.runActivitySubagent).not.toHaveBeenCalled();
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
     expect(result.output).toContain('Q2 passed');
   });
 
@@ -471,7 +469,7 @@ describe('activity execution', () => {
       },
     );
 
-    expect(runner.runActivitySubagent).not.toHaveBeenCalled();
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
     expect(result.output).toContain('no canonical model expansion');
     expect(readState(cwd)).toMatchObject({
       loop: 'tasking',
@@ -483,7 +481,7 @@ describe('activity execution', () => {
   it('records one activity invocation and progress', async () => {
     const cwd = workspace();
     const onUpdate = vi.fn();
-    runner.runActivitySubagent.mockImplementation(async (options) => {
+    runner.runActivityAgent.mockImplementation(async (options) => {
       options.onUpdate?.({
         agent: 'requirements-analyst',
         model: 'openai/test',

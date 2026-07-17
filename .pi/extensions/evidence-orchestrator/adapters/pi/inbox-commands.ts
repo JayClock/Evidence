@@ -12,7 +12,7 @@ import {
   listInboxStoryCandidates,
   recordInboxCandidateDecision,
 } from '../../capabilities/inbox/story-candidate';
-import { runActivitySubagent } from '../node/activity-agent-process';
+import { runActivityAgent } from '../node/activity-agent-process';
 import { createGitHubIssueInboxSource } from '../github/inbox-source';
 import {
   localMarkdownInboxSource,
@@ -32,7 +32,7 @@ interface ParsedInboxCommand {
   rest: string;
 }
 
-export type InboxAgentRunner = typeof runActivitySubagent;
+export type InboxAgentRunner = typeof runActivityAgent;
 
 function parseCommand(args: string): ParsedInboxCommand {
   const tokens = args.trim() ? args.trim().split(/\s+/) : [];
@@ -371,7 +371,7 @@ async function offerExtractionAfterCapture(
 export async function runInboxSourceExtractionFlow(
   pi: ExtensionAPI,
   ctx: ExtensionCommandContext,
-  runAgent: InboxAgentRunner = runActivitySubagent,
+  runAgent: InboxAgentRunner = runActivityAgent,
 ): Promise<boolean> {
   const activeSources = readInboxState(ctx.cwd).items.filter(
     ({ status }) => status === 'active',
@@ -385,7 +385,7 @@ export async function runInboxSourceExtractionFlow(
 
 export function registerInboxCommands(
   pi: ExtensionAPI,
-  runAgent: InboxAgentRunner = runActivitySubagent,
+  runAgent: InboxAgentRunner = runActivityAgent,
 ): void {
   pi.registerCommand('evidence-inbox', {
     description: 'Collect and list provider-neutral Evidence Inbox sources',

@@ -39,7 +39,7 @@ export interface ActivityAgentProgress extends ActivityAgentResult {
   exitCode: -1;
 }
 
-interface ActivitySubagentArgumentsOptions {
+interface ActivityAgentArgumentsOptions {
   agent: Pick<ActivityAgent, 'model' | 'thinking' | 'tools'>;
   promptPath: string;
   task: string;
@@ -91,7 +91,7 @@ export function finalActivityAgentOutput(messages: readonly Message[]): string {
  * Assistant messages carry child tool calls; tool-result messages make progress
  * updates visible before the child reaches its final response.
  */
-export function appendActivitySubagentEvent(
+export function appendActivityAgentEvent(
   messages: Message[],
   event: { type?: string; message?: Message },
 ): boolean {
@@ -135,7 +135,7 @@ export function activityAgentResult(
   const resultOutput =
     exitCode === 0
       ? output || '(no output)'
-      : `Activity subagent ${agent.name} failed with exit ${exitCode}:\n${diagnostics || 'no output'}`;
+      : `Activity agent ${agent.name} failed with exit ${exitCode}:\n${diagnostics || 'no output'}`;
 
   return {
     agent: agent.name,
@@ -150,7 +150,7 @@ export function activityAgentResult(
 
 export function activityAgentName(name: string): string {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) {
-    throw new Error(`Invalid activity subagent name: ${name}.`);
+    throw new Error(`Invalid activity agent name: ${name}.`);
   }
   return name;
 }
@@ -164,8 +164,8 @@ function activitySessionId(sessionId: string): string {
 }
 
 /** Build one child invocation; a supplied id resumes the same logical Pi session. */
-export function activitySubagentArguments(
-  options: ActivitySubagentArgumentsOptions,
+export function activityAgentArguments(
+  options: ActivityAgentArgumentsOptions,
 ): string[] {
   const args = ['--mode', 'json', '-p'];
   if (options.sessionId) {
@@ -196,7 +196,7 @@ export function loadActivityAgent(
   try {
     content = readFileSync(filePath, 'utf8');
   } catch {
-    throw new Error(`Required activity subagent does not exist: ${filePath}`);
+    throw new Error(`Required activity agent does not exist: ${filePath}`);
   }
   const { frontmatter, body } = parseAgentFile(content);
   const thinking = frontmatter.thinking as ThinkingLevel;
@@ -207,7 +207,7 @@ export function loadActivityAgent(
     !THINKING_LEVELS.has(thinking) ||
     !body.trim()
   ) {
-    throw new Error(`Invalid activity subagent definition: ${filePath}`);
+    throw new Error(`Invalid activity agent definition: ${filePath}`);
   }
   const tools = frontmatter.tools
     ?.split(',')
@@ -229,7 +229,7 @@ export function loadActivityAgent(
  * same installed Pi version as its parent. This mirrors Pi's official
  * subagent extension and falls back to the `pi` command for generic runtimes.
  */
-function activitySubagentInvocation(args: string[]): {
+function activityAgentInvocation(args: string[]): {
   command: string;
   args: string[];
 } {
@@ -246,7 +246,7 @@ function activitySubagentInvocation(args: string[]): {
   return { command: 'pi', args };
 }
 
-export async function runActivitySubagent(options: {
+export async function runActivityAgent(options: {
   cwd: string;
   agentName: string;
   task: string;
@@ -255,14 +255,16 @@ export async function runActivitySubagent(options: {
   onUpdate?: (progress: ActivityAgentProgress) => void;
 }): Promise<ActivityAgentResult> {
   const agent = loadActivityAgent(options.cwd, options.agentName);
-  const tempDirectory = await mkdtemp(join(tmpdir(), 'evidence-subagent-'));
+  const tempDirectory = await mkdtemp(
+    join(tmpdir(), 'evidence-activity-agent-'),
+  );
   const promptPath = join(tempDirectory, `${agent.name}.md`);
   await writeFile(promptPath, agent.systemPrompt, {
     encoding: 'utf8',
     mode: 0o600,
   });
 
-  const args = activitySubagentArguments({
+  const args = activityAgentArguments({
     agent,
     promptPath,
     task: options.task,
@@ -281,7 +283,7 @@ export async function runActivitySubagent(options: {
 
   try {
     const exitCode = await new Promise<number>((resolve) => {
-      const invocation = activitySubagentInvocation(args);
+      const invocation = activityAgentInvocation(args);
       const child = spawn(invocation.command, invocation.args, {
         cwd: options.cwd,
         shell: false,
@@ -308,7 +310,7 @@ export async function runActivitySubagent(options: {
         } catch {
           return;
         }
-        if (appendActivitySubagentEvent(messages, event)) emitProgress();
+        if (appendActivityAgentEvent(messages, event)) emitProgress();
       };
 
       const abortChild = () => {
@@ -345,8 +347,7 @@ export async function runActivitySubagent(options: {
         options.signal?.addEventListener('abort', abortChild, { once: true });
     });
 
-    if (aborted)
-      throw new Error(`Activity subagent ${agent.name} was aborted.`);
+    if (aborted) throw new Error(`Activity agent ${agent.name} was aborted.`);
     return activityAgentResult(agent, messages, exitCode, stderr, spawnError);
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });

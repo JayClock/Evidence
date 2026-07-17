@@ -48,7 +48,7 @@ function details(
   };
 }
 
-describe('activity subagent renderer', () => {
+describe('activity agent renderer', () => {
   it('shows child tool calls and latest text while the child is running', () => {
     const component = renderActivityAgentResult(
       { content: [{ type: 'text', text: '(running...)' }], details: details() },

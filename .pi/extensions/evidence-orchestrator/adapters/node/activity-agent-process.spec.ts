@@ -6,17 +6,17 @@ import {
   write,
 } from '../../test-support/support';
 import {
-  appendActivitySubagentEvent,
+  appendActivityAgentEvent,
   loadActivityAgent,
   activityAgentName,
   activityAgentProgress,
   activityAgentResult,
-  activitySubagentArguments,
+  activityAgentArguments,
 } from './activity-agent-process';
 
 afterEach(cleanupWorkspaces);
 
-describe('activity subagents', () => {
+describe('activity agents', () => {
   it('loads every bounded role directly without a phase-agent map', () => {
     const agents = [
       'inbox-analyst',
@@ -79,7 +79,7 @@ describe('activity subagents', () => {
       thinking: 'high' as const,
       tools: ['read', 'evidence_orchestrator_ask_question'],
     };
-    const ephemeral = activitySubagentArguments({
+    const ephemeral = activityAgentArguments({
       agent,
       promptPath: '/tmp/requirements-analyst.md',
       task: 'Prepare one candidate.',
@@ -87,7 +87,7 @@ describe('activity subagents', () => {
     expect(ephemeral).toContain('--no-session');
     expect(ephemeral).not.toContain('--session-id');
 
-    const continued = activitySubagentArguments({
+    const continued = activityAgentArguments({
       agent,
       promptPath: '/tmp/requirements-analyst.md',
       task: 'Continue TQA.',
@@ -100,8 +100,8 @@ describe('activity subagents', () => {
   });
 
   it('streams finalized child messages into an immutable running snapshot', () => {
-    const messages = [] as Parameters<typeof appendActivitySubagentEvent>[0];
-    appendActivitySubagentEvent(messages, {
+    const messages = [] as Parameters<typeof appendActivityAgentEvent>[0];
+    appendActivityAgentEvent(messages, {
       type: 'message_end',
       message: {
         role: 'assistant',

@@ -11,10 +11,10 @@ import {
 } from '../../test-support/support';
 import { registerTools, syncActiveTools, toolsForState } from './tools';
 
-const runner = vi.hoisted(() => ({ runActivitySubagent: vi.fn() }));
+const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
 
 vi.mock('../node/activity-agent-process', () => ({
-  runActivitySubagent: runner.runActivitySubagent,
+  runActivityAgent: runner.runActivityAgent,
 }));
 
 afterEach(() => {
@@ -209,7 +209,7 @@ describe('tools', () => {
         asked_at: '2026-01-01T00:01:00.000Z',
       },
     });
-    runner.runActivitySubagent.mockResolvedValue({
+    runner.runActivityAgent.mockResolvedValue({
       agent: 'requirements-analyst',
       model: 'openai/test',
       thinking: 'high',
@@ -241,7 +241,7 @@ describe('tools', () => {
       { cwd, ui: { setStatus: vi.fn() } } as never,
     );
 
-    expect(runner.runActivitySubagent).toHaveBeenCalledWith(
+    expect(runner.runActivityAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'evidence-iter-0001-us-001-tqa',
         task: expect.stringContaining(

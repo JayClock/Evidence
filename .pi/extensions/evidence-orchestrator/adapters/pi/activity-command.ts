@@ -12,7 +12,7 @@ import {
   prepareHtmlChangeExplanation,
   recordHtmlChangeExplanation,
 } from '../../loops/pair/change-explanation';
-import { runActivitySubagent } from '../node/activity-agent-process';
+import { runActivityAgent } from '../node/activity-agent-process';
 import { ACTIVITY_RESULT_MESSAGE_TYPE } from './identity';
 import type { PreparedActivityRun } from './activity/dispatch';
 import {
@@ -71,7 +71,7 @@ export async function runHtmlChangeExplanationFromCommand(
     `Explaining ${request.story_id} as self-contained HTML…`,
     async (signal, onUpdate) => {
       try {
-        const result = await runActivitySubagent({
+        const result = await runActivityAgent({
           cwd: ctx.cwd,
           agentName: 'change-explainer',
           task: request.task,
