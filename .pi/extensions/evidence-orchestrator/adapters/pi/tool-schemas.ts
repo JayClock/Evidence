@@ -1,34 +1,21 @@
-type JsonSchema = Record<string, unknown> & { __optional?: boolean };
+import { StringEnum } from '@earendil-works/pi-ai';
+import {
+  type Static,
+  type TObjectOptions,
+  type TProperties,
+  Type as TypeBox,
+} from 'typebox';
 
 export const Type = {
-  String(options: Record<string, unknown> = {}): JsonSchema {
-    return { type: 'string', ...options };
-  },
-  Optional(schema: JsonSchema): JsonSchema {
-    return { ...schema, __optional: true };
-  },
-  Array(items: JsonSchema): JsonSchema {
-    const { __optional, ...rest } = items;
-    return {
-      type: 'array',
-      items: rest,
-      ...(__optional ? { __optional } : {}),
-    };
-  },
-  Object(properties: Record<string, JsonSchema>): JsonSchema {
-    const cleaned: Record<string, Record<string, unknown>> = {};
-    const required: string[] = [];
-    for (const [key, schema] of Object.entries(properties)) {
-      const { __optional, ...rest } = schema;
-      cleaned[key] = rest;
-      if (!__optional) required.push(key);
-    }
-    return {
-      type: 'object',
-      properties: cleaned,
-      required,
+  ...TypeBox,
+  Object<const Properties extends TProperties>(
+    properties: Properties,
+    options: TObjectOptions = {},
+  ) {
+    return TypeBox.Object(properties, {
       additionalProperties: false,
-    };
+      ...options,
+    });
   },
 };
 
@@ -51,9 +38,7 @@ export const inboxStoryCandidatesParam = Type.Object({
       role: Type.String({ description: 'The user or business role.' }),
       goal: Type.String({ description: 'One negotiable outcome.' }),
       value: Type.String({ description: 'The user or business value.' }),
-      cognitiveMode: Type.String({
-        enum: ['clear', 'complicated', 'complex'],
-      }),
+      cognitiveMode: StringEnum(['clear', 'complicated', 'complex'] as const),
       citations: Type.Array(
         Type.Object({
           inboxId: Type.String({ description: 'Exact INBOX-xxxx id.' }),
@@ -68,6 +53,8 @@ export const inboxStoryCandidatesParam = Type.Object({
     }),
   ),
 });
+
+export const statusParam = Type.Object({});
 
 export const activityRunParam = Type.Object({
   instructions: Type.Optional(
@@ -90,9 +77,8 @@ export const kickoffCandidateParam = Type.Object({
       'The negotiable outcome the role wants, without an inferred internal implementation choice.',
   }),
   value: Type.String({ description: 'The business or user value produced.' }),
-  cognitiveMode: Type.String({
+  cognitiveMode: StringEnum(['clear', 'complicated', 'complex'] as const, {
     description: 'Current team cognitive behavior, not a permanent label.',
-    enum: ['clear', 'complicated', 'complex'],
   }),
   sourceRefs: Type.Array(
     Type.String({
@@ -125,33 +111,33 @@ export const scenarioDraftParam = Type.Object({
 });
 
 export const modelingProfileParam = Type.Object({
-  subject: Type.String({
+  subject: StringEnum(['business', 'domain', 'tool'] as const, {
     description: 'Modeling subject: business, domain, or tool.',
-    enum: ['business', 'domain', 'tool'],
   }),
-  method: Type.String({
-    description:
-      'Modeling method: none, object, event, four_color, eight_x_flow, or algorithmic.',
-    enum: [
+  method: StringEnum(
+    [
       'none',
       'object',
       'event',
       'four_color',
       'eight_x_flow',
       'algorithmic',
-    ],
-  }),
-  modelChangeRequired: Type.String({
+    ] as const,
+    {
+      description:
+        'Modeling method: none, object, event, four_color, eight_x_flow, or algorithmic.',
+    },
+  ),
+  modelChangeRequired: StringEnum(['true', 'false', 'unknown'] as const, {
     description:
       'Whether the canonical model needs change: true, false, unknown.',
-    enum: ['true', 'false', 'unknown'],
   }),
   reason: Type.String({ description: 'Business modeling rationale.' }),
 });
 
 export const modelOperationParam = Type.Object({
-  action: Type.String({ enum: ['add', 'update', 'remove'] }),
-  kind: Type.String({ enum: ['entity', 'association'] }),
+  action: StringEnum(['add', 'update', 'remove'] as const),
+  kind: StringEnum(['entity', 'association'] as const),
   id: Type.String({ description: 'Stable lowercase model id.' }),
   path: Type.String({ description: 'Exact canonical .evidence YAML path.' }),
   content: Type.Optional(
@@ -195,10 +181,10 @@ export const modelAnalysisParam = Type.Object({
 });
 
 export const modelChallengeParam = Type.Object({
-  outcome: Type.String({
-    description: 'Challenge outcome.',
-    enum: ['pass', 'scenario_gap', 'model_gap', 'method_gap'],
-  }),
+  outcome: StringEnum(
+    ['pass', 'scenario_gap', 'model_gap', 'method_gap'] as const,
+    { description: 'Challenge outcome.' },
+  ),
   summary: Type.String({
     description: 'Concrete business reason for the challenge outcome.',
   }),
@@ -208,7 +194,7 @@ export const taskingDraftParam = Type.Object({
   runtimes: Type.Array(
     Type.Object({
       id: Type.String({ description: 'Unique RUNTIME-xxx plan id.' }),
-      runtime: Type.String({ enum: ['rust', 'typescript', 'tauri'] }),
+      runtime: StringEnum(['rust', 'typescript', 'tauri'] as const),
       functionalContexts: Type.Array(
         Type.String({ description: 'Stable business capability.' }),
       ),
@@ -223,7 +209,7 @@ export const taskingDraftParam = Type.Object({
   tests: Type.Array(
     Type.Object({
       id: Type.String({ description: 'Unique TEST-xxx id.' }),
-      quadrant: Type.String({ enum: ['Q1', 'Q2'] }),
+      quadrant: StringEnum(['Q1', 'Q2'] as const),
       intent: Type.String({ description: 'Reviewable behavior intent.' }),
       runtimePlanId: Type.String({ description: 'Owning RUNTIME-xxx id.' }),
       stepId: Type.String({ description: 'Exact ordered v2 process step id.' }),
@@ -269,21 +255,17 @@ export const respondProposalParam = Type.Object({
   promotions: Type.Array(
     Type.Object({
       source: Type.String({ description: 'Iteration evidence source path.' }),
-      kind: Type.String({
-        enum: [
-          'product',
-          'model',
-          'architecture',
-          'contract',
-          'test_process',
-          'skill',
-          'prompt',
-          'other',
-        ],
-      }),
-      decision: Type.String({
-        enum: ['promoted', 'deferred', 'rejected'],
-      }),
+      kind: StringEnum([
+        'product',
+        'model',
+        'architecture',
+        'contract',
+        'test_process',
+        'skill',
+        'prompt',
+        'other',
+      ] as const),
+      decision: StringEnum(['promoted', 'deferred', 'rejected'] as const),
       reason: Type.String({ description: 'Evidence-based decision reason.' }),
       validationEvidence: Type.Array(
         Type.String({ description: 'Existing validation evidence path.' }),
@@ -327,9 +309,8 @@ export const showcaseReviewParam = Type.Object({
   unresolvedAssumptions: Type.Array(
     Type.String({ description: 'Unverified assumption, if any.' }),
   ),
-  recommendation: Type.String({
+  recommendation: StringEnum(['accept', 'revise'] as const, {
     description: 'Reviewer recommendation; only a human decides.',
-    enum: ['accept', 'revise'],
   }),
 });
 
@@ -342,7 +323,7 @@ export const clarificationQuestionParam = Type.Object({
     description:
       'One high-value business-facing question for the domain expert. It may clarify a product-confirmed channel or external interaction, but must not ask for an internal implementation choice. Ask only one question, then stop.',
   }),
-  target: Type.String({
+  target: StringEnum(['business_context', 'story', 'history'] as const, {
     description:
       'Where an answer belongs: business_context, story, or history. Use story only when the role, negotiable goal, or value needs revision.',
   }),
@@ -354,3 +335,23 @@ export const clarificationAnswerParam = Type.Object({
       'The domain expert’s explicit answer to the sole pending clarification question.',
   }),
 });
+
+export type CandidateSourceInput = Static<typeof candidateSourceParam>;
+export type InboxStoryCandidatesInput = Static<
+  typeof inboxStoryCandidatesParam
+>;
+export type StatusInput = Static<typeof statusParam>;
+export type ActivityRunInput = Static<typeof activityRunParam>;
+export type KickoffCandidateInput = Static<typeof kickoffCandidateParam>;
+export type ScenarioDraftInput = Static<typeof scenarioDraftParam>;
+export type ModelingProfileInput = Static<typeof modelingProfileParam>;
+export type ModelOperationInput = Static<typeof modelOperationParam>;
+export type ModelAnalysisInput = Static<typeof modelAnalysisParam>;
+export type ModelChallengeInput = Static<typeof modelChallengeParam>;
+export type TaskingDraftInput = Static<typeof taskingDraftParam>;
+export type RespondProposalInput = Static<typeof respondProposalParam>;
+export type ShowcaseReviewInput = Static<typeof showcaseReviewParam>;
+export type ClarificationQuestionInput = Static<
+  typeof clarificationQuestionParam
+>;
+export type ClarificationAnswerInput = Static<typeof clarificationAnswerParam>;

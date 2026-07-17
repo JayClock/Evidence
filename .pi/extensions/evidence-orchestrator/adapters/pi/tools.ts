@@ -33,7 +33,6 @@ import { isCompletedIteration, prepareActivityRun } from './activity/dispatch';
 import { executePreparedActivityRun } from './activity/execution';
 
 import {
-  Type,
   activityRunParam,
   clarificationAnswerParam,
   clarificationQuestionParam,
@@ -46,6 +45,7 @@ import {
   respondProposalParam,
   scenarioDraftParam,
   showcaseReviewParam,
+  statusParam,
   taskingDraftParam,
 } from './tool-schemas';
 
@@ -156,10 +156,7 @@ export function registerTools(pi: ExtensionAPI): void {
           role: candidate.role,
           goal: candidate.goal,
           value: candidate.value,
-          cognitiveMode: candidate.cognitiveMode as
-            | 'clear'
-            | 'complicated'
-            | 'complex',
+          cognitiveMode: candidate.cognitiveMode,
           citations: candidate.citations,
         })),
       );
@@ -213,7 +210,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptGuidelines: [
       'Use evidence_orchestrator_status when the user asks what the Evidence Orchestrator pipeline is doing or what remains.',
     ],
-    parameters: Type.Object({}),
+    parameters: statusParam,
     async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
       const state = readPersistedState(ctx.cwd);
       return {
@@ -249,10 +246,7 @@ export function registerTools(pi: ExtensionAPI): void {
         role: params.role,
         goal: params.goal,
         value: params.value,
-        cognitiveMode: params.cognitiveMode as
-          | 'clear'
-          | 'complicated'
-          | 'complex',
+        cognitiveMode: params.cognitiveMode,
         sourceRefs: params.sourceRefs,
       });
       return {
@@ -363,14 +357,8 @@ export function registerTools(pi: ExtensionAPI): void {
           ? 'unknown'
           : params.modelChangeRequired === 'true';
       const state = proposeModelingProfile(ctx.cwd, {
-        subject: params.subject as 'business' | 'domain' | 'tool',
-        method: params.method as
-          | 'none'
-          | 'object'
-          | 'event'
-          | 'four_color'
-          | 'eight_x_flow'
-          | 'algorithmic',
+        subject: params.subject,
+        method: params.method,
         modelChangeRequired: requirement,
         reason: params.reason,
       });
@@ -439,11 +427,7 @@ export function registerTools(pi: ExtensionAPI): void {
     parameters: modelChallengeParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       const state = recordModelChallenge(ctx.cwd, {
-        outcome: params.outcome as
-          | 'pass'
-          | 'scenario_gap'
-          | 'model_gap'
-          | 'method_gap',
+        outcome: params.outcome,
         summary: params.summary,
       });
       const challenge = state.model_challenges?.at(-1);
@@ -482,14 +466,14 @@ export function registerTools(pi: ExtensionAPI): void {
       const state = proposeTaskingDraft(ctx.cwd, {
         runtimes: params.runtimes.map((runtime) => ({
           id: runtime.id,
-          runtime: runtime.runtime as 'rust' | 'typescript' | 'tauri',
+          runtime: runtime.runtime,
           functionalContexts: runtime.functionalContexts,
           technicalBoundaries: runtime.technicalBoundaries,
           testFilter: runtime.testFilter,
         })),
         tests: params.tests.map((test) => ({
           id: test.id,
-          quadrant: test.quadrant as 'Q1' | 'Q2',
+          quadrant: test.quadrant,
           intent: test.intent,
           runtimePlanId: test.runtimePlanId,
           stepId: test.stepId,
@@ -543,7 +527,7 @@ export function registerTools(pi: ExtensionAPI): void {
         productDomainFeedback: params.productDomainFeedback,
         technicalQualityFeedback: params.technicalQualityFeedback,
         unresolvedAssumptions: params.unresolvedAssumptions,
-        recommendation: params.recommendation as 'accept' | 'revise',
+        recommendation: params.recommendation,
       });
       return {
         content: [
@@ -576,16 +560,8 @@ export function registerTools(pi: ExtensionAPI): void {
       const candidate = proposeKnowledgeResponse(ctx.cwd, {
         promotions: params.promotions.map((promotion) => ({
           source: promotion.source,
-          kind: promotion.kind as
-            | 'product'
-            | 'model'
-            | 'architecture'
-            | 'contract'
-            | 'test_process'
-            | 'skill'
-            | 'prompt'
-            | 'other',
-          decision: promotion.decision as 'promoted' | 'deferred' | 'rejected',
+          kind: promotion.kind,
+          decision: promotion.decision,
           reason: promotion.reason,
           validation_evidence: promotion.validationEvidence,
           ...(promotion.canonicalTarget
@@ -631,7 +607,7 @@ export function registerTools(pi: ExtensionAPI): void {
       const state = askClarification(ctx.cwd, {
         story_id: params.storyId,
         question: params.question,
-        target: params.target as 'business_context' | 'story' | 'history',
+        target: params.target,
       });
       const pending = state.pending_clarification;
       if (!pending) {
