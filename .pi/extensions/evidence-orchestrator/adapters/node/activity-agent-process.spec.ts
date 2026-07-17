@@ -49,7 +49,7 @@ describe('activity agents', () => {
     ]) {
       const agent = loadActivityAgent(process.cwd(), name);
       expect(agent.tools).not.toEqual(
-        expect.arrayContaining(['write', 'edit']),
+        expect.arrayContaining(['write', 'edit', 'bash']),
       );
     }
   });
