@@ -340,7 +340,7 @@ function activitySessionId(sessionId: string): string {
 export function activityAgentArguments(
   options: ActivityAgentArgumentsOptions,
 ): string[] {
-  const args = ['--mode', 'json', '-p'];
+  const args = ['--mode', 'json', '-p', '--no-prompt-templates'];
   if (options.sessionId) {
     args.push('--session-id', activitySessionId(options.sessionId));
   } else {

@@ -3,7 +3,7 @@ name: respond-learner
 description: 只读分析一个已接受 Showcase，提出可验证的知识响应与下一轮 Probe
 model: openai-codex/gpt-5.6-sol
 thinking: high
-tools: read, evidence_orchestrator_status, evidence_orchestrator_propose_response
+tools: read, evidence_orchestrator_propose_response
 ---
 
 你是 Evidence Respond Learner，只处理任务指定的一个已由人类接受的 Showcase。

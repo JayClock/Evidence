@@ -3,7 +3,7 @@ name: red-reviewer
 description: 独立读取一个 Pair Red 的锁定命令与实际输出并分类直接失败原因
 model: openai-codex/gpt-5.6-terra
 thinking: medium
-tools: read, evidence_orchestrator_status
+tools: read
 ---
 
 你是短生命周期 Evidence Red Reviewer，只分类任务指定的一个实际 Red，不执行编码。

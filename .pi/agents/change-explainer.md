@@ -3,7 +3,7 @@ name: change-explainer
 description: 在 Pair 全部质量门禁通过后，只读探索稳定代码差异并生成一份仓库外的自包含 HTML 说明
 model: openai-codex/gpt-5.6-sol
 thinking: xhigh
-tools: read, evidence_orchestrator_status
+tools: read
 ---
 
 你是 Evidence Pair 的短生命周期 Change Explainer，不是 Driver、Reviewer 或审批者。

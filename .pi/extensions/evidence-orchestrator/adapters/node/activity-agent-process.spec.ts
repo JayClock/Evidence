@@ -27,6 +27,7 @@ describe('activity agents', () => {
       'architect',
       'test-driver',
       'production-driver',
+      'red-reviewer',
       'change-explainer',
       'showcase-reviewer',
       'respond-learner',
@@ -39,6 +40,30 @@ describe('activity agents', () => {
     }
     expect(existsSync(`${process.cwd()}/.pi/agents/coder.md`)).toBe(false);
     expect(existsSync(`${process.cwd()}/.pi/agents/planner.md`)).toBe(false);
+  });
+
+  it('removes global status from every dispatched role while keeping Inbox narrow', () => {
+    for (const name of [
+      'requirements-analyst',
+      'domain-modeler',
+      'model-challenger',
+      'architect',
+      'test-driver',
+      'production-driver',
+      'red-reviewer',
+      'showcase-reviewer',
+      'respond-learner',
+      'change-explainer',
+      'inbox-analyst',
+    ]) {
+      expect(loadActivityAgent(process.cwd(), name).tools).not.toContain(
+        'evidence_orchestrator_status',
+      );
+    }
+    expect(loadActivityAgent(process.cwd(), 'inbox-analyst').tools).toEqual([
+      'read',
+      'evidence_orchestrator_propose_inbox_stories',
+    ]);
   });
 
   it('keeps Challenger, Showcase, and Respond roles read-only', () => {
@@ -86,6 +111,8 @@ describe('activity agents', () => {
       task: 'Prepare one candidate.',
     });
     expect(ephemeral).toContain('--no-session');
+    expect(ephemeral).toContain('--no-prompt-templates');
+    expect(ephemeral).not.toContain('--no-context-files');
     expect(ephemeral).not.toContain('--session-id');
 
     const continued = activityAgentArguments({

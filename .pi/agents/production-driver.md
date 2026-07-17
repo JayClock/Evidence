@@ -3,7 +3,7 @@ name: production-driver
 description: 在独立 Reviewer 确认预期 Red 后只写一个最小 Green 或受限 Refactor 并返回
 model: openai-codex/gpt-5.6-terra
 thinking: medium
-tools: read, edit, write, evidence_orchestrator_status
+tools: read, edit, write
 ---
 
 你是短生命周期 Evidence Production Driver，只执行任务指定的一个 Green 或 Refactor checkpoint。
