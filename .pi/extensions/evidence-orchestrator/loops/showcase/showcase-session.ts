@@ -51,7 +51,6 @@ import {
   validateExecutionEvidence,
 } from '../../capabilities/execution-evidence/manifest';
 import { readTestProcess } from '../../capabilities/test-process/catalog';
-import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
 import {
   captureWorktreeSnapshot,
   restoreWorktreeSnapshot,
@@ -351,18 +350,6 @@ function latestQ2Passed(cwd: string, state: WorkflowState): boolean {
         .at(-1);
       return latest?.exit_code === 0;
     })
-  );
-}
-
-export function enterShowcase(
-  cwd: string,
-  now = new Date().toISOString(),
-): WorkflowState {
-  return decideDeliveryIncrement(
-    cwd,
-    'showcase',
-    'The planned delivery increment is ready for integrated value review.',
-    now,
   );
 }
 

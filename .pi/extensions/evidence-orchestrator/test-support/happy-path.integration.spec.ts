@@ -30,7 +30,6 @@ import {
 } from '../loops/pair/pair-session';
 import {
   decideShowcase,
-  enterShowcase,
   executeShowcaseQ2,
   prepareShowcaseReview,
   recordShowcaseProductObservation,
@@ -42,6 +41,7 @@ import {
   proposeKnowledgeResponse,
 } from '../loops/respond/response-cycle';
 import { readState } from '../iteration/state-repository';
+import { approveStoryCodingForTest } from './story-fixtures';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
@@ -378,7 +378,7 @@ describe('native full knowledge loop', () => {
     );
     executePairAction(cwd, 'run_quality_gate');
 
-    enterShowcase(cwd);
+    approveStoryCodingForTest(cwd);
     executeShowcaseQ2(cwd);
     recordShowcaseRisk(
       cwd,

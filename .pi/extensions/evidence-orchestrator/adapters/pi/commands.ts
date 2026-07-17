@@ -20,7 +20,7 @@ import {
   pairNextInstruction,
 } from '../../loops/pair/pair-session';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
-import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
+import { decideDeliveryIncrement } from '../../loops/pair/coding-approval';
 import { STATUS_KEY, statusLabel } from './identity';
 import {
   isCompletedIteration,

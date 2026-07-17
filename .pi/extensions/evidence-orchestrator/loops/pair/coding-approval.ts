@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { generateExecutionEvidence } from '../execution-evidence/manifest';
+import { generateExecutionEvidence } from '../../capabilities/execution-evidence/manifest';
 import {
   artifactPath,
   artifactRelativePath,

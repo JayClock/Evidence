@@ -24,13 +24,13 @@ import {
   generateExecutionEvidence,
   validateExecutionEvidence,
 } from '../../capabilities/execution-evidence/manifest';
-import { decideDeliveryIncrement } from '../../capabilities/delivery-plan/completion';
+import { decideDeliveryIncrement } from './coding-approval';
 import { completeNoModelImpact } from '../../capabilities/modeling-evidence/no-model-impact';
+import { approveStoryCodingForTest } from '../../test-support/story-fixtures';
 import {
   captureShowcaseReviewer,
   completeShowcaseReviewer,
   decideShowcase,
-  enterShowcase,
   executeShowcaseQ2,
   prepareShowcaseReview,
   recordShowcaseEvaluation,
@@ -885,7 +885,7 @@ function validChangeExplanationHtml(): string {
 function prepareShowcaseForReview(cwd: string): void {
   preparePair(cwd);
   completePairSuccessfully(cwd);
-  enterShowcase(cwd);
+  approveStoryCodingForTest(cwd);
   executeShowcaseQ2(cwd);
   recordShowcaseRisk(
     cwd,
@@ -1470,7 +1470,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
     const cwd = workspace();
     preparePair(cwd);
     completePairSuccessfully(cwd);
-    enterShowcase(cwd);
+    approveStoryCodingForTest(cwd);
 
     expect(() =>
       decideShowcase(
@@ -1485,7 +1485,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
     const cwd = workspace();
     preparePair(cwd);
     completePairSuccessfully(cwd);
-    enterShowcase(cwd);
+    approveStoryCodingForTest(cwd);
 
     const prepared = prepareActivityRun(cwd);
     if (isCompletedIteration(prepared)) throw new Error('Unexpected complete.');

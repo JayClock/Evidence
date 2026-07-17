@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import { modelingDecisionEvidencePath } from './completion';
+import { modelingDecisionEvidencePath } from './coding-approval';
 
 describe('delivery modeling evidence', () => {
   it('uses the no-model-impact artifact as the completed Story decision', () => {
