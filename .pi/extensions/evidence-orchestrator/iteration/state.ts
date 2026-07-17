@@ -150,7 +150,15 @@ export interface IterationIntakeSnapshot {
 }
 
 export interface MaterializedTestCommand {
+  test_id: string;
   step_id: string;
+  project_id?: string;
+  command: string;
+}
+
+export interface MaterializedQualityGate {
+  project_id?: string;
+  target?: string;
   command: string;
 }
 
@@ -161,21 +169,27 @@ export interface TestProcessSelection {
   functional_contexts: string[];
   /** Runtime and technical boundaries are independent dimensions. */
   technical_boundaries: string[];
-  process_version: 2;
+  process_version: 3;
   /** Hash of the immutable snapshotted process definition. */
   definition_sha256: string;
-  /** Ordered v2 steps applicable to this Scenario's selected capabilities. */
+  /** Ordered v3 steps applicable to this Scenario's selected capabilities. */
   selected_step_ids: string[];
-  /** Whitelist inputs retained so commands can be deterministically re-materialized. */
-  command_variables: Record<string, string>;
-  /** Whitelist-expanded commands locked before Pairing. */
+  /** Planned Nx projects; empty for non-Nx Rust/Tauri processes. */
+  project_ids: string[];
+  /** Hash/path of the canonical resolved Nx catalog, when project_ids is non-empty. */
+  project_catalog_sha256?: string;
+  project_catalog_path?: string;
+  /** Per-TEST whitelist inputs retained for deterministic re-materialization. */
+  command_variables_by_test: Record<string, Record<string, string>>;
+  /** Per-TEST commands and final gates locked before Pairing. */
   focused_commands: MaterializedTestCommand[];
+  quality_gate_commands: MaterializedQualityGate[];
   materialized_sha256: string;
   /** Present only after human Desk Check locks the selected process. */
   materialized_plan_path?: string;
 }
 
-/** Ordered, cross-runtime v2 test processes selected for one vertical Scenario. */
+/** Ordered, cross-runtime v3 test processes selected for one vertical Scenario. */
 export interface TestPlan {
   version: 2;
   processes: TestProcessSelection[];
@@ -193,6 +207,8 @@ export interface TaskingTestItem {
   runtime_plan_id: string;
   process_id: string;
   step_id: string;
+  /** Owning Nx project for TypeScript TESTs. */
+  project_id?: string;
   supported_by: string[];
   /** Confirmed acceptance examples exercised by this test. */
   scenario_ids: string[];
@@ -479,7 +495,7 @@ export interface ActiveWorkItem {
   scenario_ids: string[];
   /** Immutable Git HEAD captured before this Story's Red step. */
   git_baseline: string;
-  /** Immutable ordered v2 test plan; supports one or more runtime-specific processes. */
+  /** Immutable ordered v3 process plan; supports one or more runtime-specific processes. */
   test_plan: TestPlan;
 }
 

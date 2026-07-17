@@ -1,7 +1,11 @@
 import { FEEDBACK_LOOP_BY_TARGET } from './feedback-routing';
 import { assertIterationId } from './artifact-layout';
 import { LOOP_ORDER } from './transition-graph';
-import type { ClarificationRecord, WorkflowState } from './state';
+import type {
+  ClarificationRecord,
+  TestProcessSelection,
+  WorkflowState,
+} from './state';
 
 const WORKFLOW_STATE_FIELDS: Readonly<Record<keyof WorkflowState, true>> = {
   iteration_id: true,
@@ -126,6 +130,68 @@ function validModelRefs(value: unknown): boolean {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const refs = value as { entities?: unknown; associations?: unknown };
   return textArray(refs.entities, true) && textArray(refs.associations, true);
+}
+
+function validCommandVariablesByTest(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(
+    ([testId, variables]) =>
+      /^TEST-\d{3,}$/.test(testId) &&
+      Boolean(variables) &&
+      typeof variables === 'object' &&
+      !Array.isArray(variables) &&
+      Object.values(variables).every((entry) => text(entry)),
+  );
+}
+
+function validProcessSelection(
+  process: TestProcessSelection,
+  locked: boolean,
+): boolean {
+  const projects = process.project_ids;
+  const focused = process.focused_commands;
+  const gates = process.quality_gate_commands;
+  const hasProjects = projects.length > 0;
+  return (
+    process.process_version === 3 &&
+    text(process.id) &&
+    text(process.path) &&
+    textArray(process.functional_contexts) &&
+    textArray(process.technical_boundaries) &&
+    text(process.definition_sha256) &&
+    textArray(process.selected_step_ids) &&
+    textArray(projects, true) &&
+    new Set(projects).size === projects.length &&
+    (hasProjects
+      ? process.runtime === 'typescript' &&
+        text(process.project_catalog_sha256) &&
+        (!locked || text(process.project_catalog_path))
+      : process.project_catalog_sha256 === undefined &&
+        process.project_catalog_path === undefined) &&
+    validCommandVariablesByTest(process.command_variables_by_test) &&
+    Array.isArray(focused) &&
+    focused.length > 0 &&
+    new Set(focused.map(({ test_id }) => test_id)).size === focused.length &&
+    focused.every(
+      ({ test_id, step_id, project_id, command }) =>
+        /^TEST-\d{3,}$/.test(test_id) &&
+        text(step_id) &&
+        text(command) &&
+        Object.hasOwn(process.command_variables_by_test, test_id) &&
+        (project_id === undefined || projects.includes(project_id)),
+    ) &&
+    Array.isArray(gates) &&
+    gates.length > 0 &&
+    gates.every(
+      ({ project_id, target, command }) =>
+        text(command) &&
+        (project_id === undefined
+          ? target === undefined
+          : projects.includes(project_id) && text(target)),
+    ) &&
+    text(process.materialized_sha256) &&
+    (!locked || text(process.materialized_plan_path))
+  );
 }
 
 function validIntakeSnapshot(value: WorkflowState['intake_snapshot']): boolean {
@@ -450,6 +516,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
           !text(test.intent) ||
           !text(test.process_id) ||
           !text(test.step_id) ||
+          (test.project_id !== undefined && !text(test.project_id)) ||
           !textArray(test.scenario_ids) ||
           !test.scenario_ids.every((id) => SCENARIO_ID_PATTERN.test(id)) ||
           !textArray(test.business_data) ||
@@ -464,6 +531,11 @@ export function normalizeState(input: WorkflowState): WorkflowState {
           !textArray(task.test_ids) ||
           !textArray(task.depends_on, true) ||
           !validModelRefs(task.model_refs),
+      ) ||
+      !Array.isArray(state.tasking_candidate.processes) ||
+      state.tasking_candidate.processes.length === 0 ||
+      state.tasking_candidate.processes.some(
+        (process) => !validProcessSelection(process, false),
       ))
   ) {
     throw new Error('The Tasking candidate traceability is invalid.');
@@ -491,7 +563,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       state.active_work_item?.test_plan.version !== 2)
   ) {
     throw new Error(
-      'Approved Tasking requires an immutable v2 test plan and work item.',
+      'Approved Tasking requires an immutable v3 process plan and work item.',
     );
   }
   if (
@@ -505,19 +577,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       state.active_work_item.test_plan.version !== 2 ||
       state.active_work_item.test_plan.processes.length === 0 ||
       state.active_work_item.test_plan.processes.some(
-        (process) =>
-          process.process_version !== 2 ||
-          !text(process.id) ||
-          !text(process.path) ||
-          !textArray(process.functional_contexts) ||
-          !textArray(process.technical_boundaries) ||
-          !text(process.definition_sha256) ||
-          !textArray(process.selected_step_ids) ||
-          !process.command_variables ||
-          !Array.isArray(process.focused_commands) ||
-          process.focused_commands.length === 0 ||
-          !text(process.materialized_sha256) ||
-          !text(process.materialized_plan_path),
+        (process) => !validProcessSelection(process, true),
       ))
   ) {
     throw new Error('The active work item is invalid.');

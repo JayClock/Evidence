@@ -42,6 +42,7 @@ import {
 } from '../loops/respond/response-cycle';
 import { readState } from '../iteration/state-repository';
 import { approveStoryCodingForTest } from './story-fixtures';
+import { createNxProjectCatalog } from '../capabilities/test-process/project-catalog';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
@@ -108,7 +109,7 @@ function prepareProject(cwd: string): void {
     cwd,
     'engineering/evidence-orchestrator/test-processes/web.json',
     JSON.stringify({
-      version: 2,
+      version: 3,
       id: 'web-workspace',
       owner: 'web-platform',
       runtime: 'typescript',
@@ -130,10 +131,13 @@ function prepareProject(cwd: string): void {
             roots: ['apps/web/tests'],
           },
           focused_command: {
-            template: 'node focused.js q1 {{test_filter}}',
-            allowed_variables: ['test_filter'],
+            template: 'node focused.js q1 {{test_filter}} {{project}}',
+            allowed_variables: ['test_filter', 'project'],
           },
-          red: { expected_failure: 'Current-version rule fails.' },
+          red: {
+            expected_failure_kind: 'behavior',
+            expected_failure: 'Current-version rule fails.',
+          },
           green: { done_when: 'Current-version rule passes.' },
           refactor: { done_when: 'Current-version rule remains green.' },
         },
@@ -149,15 +153,24 @@ function prepareProject(cwd: string): void {
             roots: ['apps/web/tests'],
           },
           focused_command: {
-            template: 'node focused.js q2 {{test_filter}}',
-            allowed_variables: ['test_filter'],
+            template: 'node focused.js q2 {{test_filter}} {{project}}',
+            allowed_variables: ['test_filter', 'project'],
           },
-          red: { expected_failure: 'Current-version assertion fails.' },
+          red: {
+            expected_failure_kind: 'behavior',
+            expected_failure: 'Current-version assertion fails.',
+          },
           green: { done_when: 'Current-version assertion passes.' },
           refactor: { done_when: 'Current-version behavior remains green.' },
         },
       ],
-      quality_gates: ['node quality.js'],
+      quality_gates: [
+        {
+          scope: 'process',
+          template: 'node quality.js',
+          allowed_variables: [],
+        },
+      ],
     }),
   );
   write(
@@ -181,6 +194,17 @@ function prepareProject(cwd: string): void {
     ],
     { cwd },
   );
+}
+
+function loadWebProjectCatalog() {
+  return createNxProjectCatalog([
+    {
+      name: '@evidence/web',
+      root: 'apps/web',
+      sourceRoot: 'apps/web/src',
+      targetNames: ['test', 'typecheck', 'lint'],
+    },
+  ]);
 }
 
 afterEach(cleanupWorkspaces);
@@ -285,57 +309,72 @@ describe('native full knowledge loop', () => {
       'The projection and ubiquitous language match the business conversation.',
     );
 
-    proposeTaskingDraft(cwd, {
-      runtimes: [
-        {
-          id: 'RUNTIME-001',
-          runtime: 'typescript',
-          functionalContexts: ['workspace'],
-          technicalBoundaries: ['react-feature'],
-          testFilter: 'current_model',
-        },
-      ],
-      tests: [
-        {
-          id: 'TEST-001',
-          quadrant: 'Q1',
-          intent: 'The confirmed current-version rule is exposed.',
-          runtimePlanId: 'RUNTIME-001',
-          stepId: 'component-q1',
-          supportedBy: [],
-          scenarioIds: ['SC-001'],
-          businessData: ['workspace=Alpha', 'version=v3'],
-          modelRefs: {
-            entities: ['workspace'],
-            associations: ['workspace-self'],
+    proposeTaskingDraft(
+      cwd,
+      {
+        runtimes: [
+          {
+            id: 'RUNTIME-001',
+            runtime: 'typescript',
+            functionalContexts: ['workspace'],
+            technicalBoundaries: ['react-feature'],
+            projectIds: ['@evidence/web'],
           },
-        },
-        {
-          id: 'TEST-002',
-          quadrant: 'Q2',
-          intent: 'Model v3 is shown as current.',
-          runtimePlanId: 'RUNTIME-001',
-          stepId: 'acceptance-q2',
-          supportedBy: ['TEST-001'],
-          scenarioIds: ['SC-001'],
-          scenarioOutcome: 'Model v3 is shown as current',
-          businessData: ['workspace=Alpha', 'version=v3'],
-          modelRefs: {
-            entities: ['workspace'],
-            associations: ['workspace-self'],
+        ],
+        tests: [
+          {
+            id: 'TEST-001',
+            quadrant: 'Q1',
+            intent: 'The confirmed current-version rule is exposed.',
+            runtimePlanId: 'RUNTIME-001',
+            stepId: 'component-q1',
+            projectId: '@evidence/web',
+            testFilter: 'current_model_rule',
+            supportedBy: [],
+            scenarioIds: ['SC-001'],
+            businessData: ['workspace=Alpha', 'version=v3'],
+            modelRefs: {
+              entities: ['workspace'],
+              associations: ['workspace-self'],
+            },
           },
-        },
-      ],
-      tasks: [
-        {
-          id: 'TASK-001',
-          description: 'Implement the confirmed current-version behavior.',
-          testIds: ['TEST-001', 'TEST-002'],
-          dependsOn: [],
-        },
-      ],
-    });
-    decideTasking(cwd, 'approve', 'The Q2 trace and process are correct.');
+          {
+            id: 'TEST-002',
+            quadrant: 'Q2',
+            intent: 'Model v3 is shown as current.',
+            runtimePlanId: 'RUNTIME-001',
+            stepId: 'acceptance-q2',
+            projectId: '@evidence/web',
+            testFilter: 'current_model_route',
+            supportedBy: ['TEST-001'],
+            scenarioIds: ['SC-001'],
+            scenarioOutcome: 'Model v3 is shown as current',
+            businessData: ['workspace=Alpha', 'version=v3'],
+            modelRefs: {
+              entities: ['workspace'],
+              associations: ['workspace-self'],
+            },
+          },
+        ],
+        tasks: [
+          {
+            id: 'TASK-001',
+            description: 'Implement the confirmed current-version behavior.',
+            testIds: ['TEST-001', 'TEST-002'],
+            dependsOn: [],
+          },
+        ],
+      },
+      '2026-01-01T00:04:00.000Z',
+      loadWebProjectCatalog,
+    );
+    decideTasking(
+      cwd,
+      'approve',
+      'The Q2 trace and process are correct.',
+      '2026-01-01T00:05:00.000Z',
+      loadWebProjectCatalog,
+    );
 
     const drivePairStep = (
       testPath: string,

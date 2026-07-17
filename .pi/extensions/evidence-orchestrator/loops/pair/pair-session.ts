@@ -36,16 +36,21 @@ import {
 } from '../../capabilities/execution-evidence/observation-log';
 import { generateExecutionEvidence } from '../../capabilities/execution-evidence/manifest';
 import { readTestProcess } from '../../capabilities/test-process/catalog';
+import {
+  readNxProjectCatalogSnapshot,
+  resolveNxProjectOwner,
+  type NxProjectCatalog,
+} from '../../capabilities/test-process/project-catalog';
 
 interface PairStep {
   process: TestProcessSelection;
   stepId: string;
-  command: string;
 }
 
 interface PairWorkUnit extends PairStep {
   task: TaskingImplementationTask;
   test: TaskingTestItem;
+  command: string;
 }
 
 interface PairQualityGate {
@@ -141,13 +146,10 @@ function pairSteps(cwd: string, state: WorkflowState): PairStep[] {
     const selected =
       process.selected_step_ids ?? definition.steps.map(({ id }) => id);
     return selected.map((stepId) => {
-      const command = process.focused_commands?.find(
-        ({ step_id }) => step_id === stepId,
-      )?.command;
-      if (!definition.steps.some(({ id }) => id === stepId) || !command) {
+      if (!definition.steps.some(({ id }) => id === stepId)) {
         throw new Error(`Approved Pair step drifted: ${process.id}/${stepId}.`);
       }
-      return { process, stepId, command };
+      return { process, stepId };
     });
   });
 }
@@ -156,7 +158,7 @@ function qualityGates(cwd: string, state: WorkflowState): PairQualityGate[] {
   const workItem = state.active_work_item;
   if (!workItem) throw new Error('Pair has no active work item.');
   return selectedTestProcesses(workItem).flatMap((process) =>
-    readTestProcess(join(cwd, process.path)).quality_gates.map((command) => ({
+    process.quality_gate_commands.map(({ command }) => ({
       processId: process.id,
       command,
     })),
@@ -203,7 +205,19 @@ function pairWorkUnits(cwd: string, state: WorkflowState): PairWorkUnit[] {
       if (!step) {
         throw new Error(`${testId} references an unapproved process step.`);
       }
-      return { ...step, task, test };
+      const focused = step.process.focused_commands.find(
+        ({ test_id }) => test_id === test.id,
+      );
+      if (
+        !focused ||
+        focused.step_id !== test.step_id ||
+        focused.project_id !== test.project_id
+      ) {
+        throw new Error(
+          `${testId} has no approved TEST-level focused command.`,
+        );
+      }
+      return { ...step, task, test, command: focused.command };
     }),
   );
   if (units.length !== candidate.tests.length) {
@@ -283,6 +297,14 @@ export function buildPairRedReviewTask(
   if (!record || record.stage !== 'red') {
     throw new Error(`Red execution record ${red.sequence} is missing.`);
   }
+  const unit = currentWorkUnit(cwd, state);
+  const definition = readTestProcess(join(cwd, unit.process.path));
+  const redContract = definition.steps.find(
+    ({ id }) => id === unit.stepId,
+  )?.red;
+  if (!redContract || redContract.expected_failure_kind !== 'behavior') {
+    throw new Error(`Pair Red contract drifted for ${stepKey(unit)}.`);
+  }
   const diagnosticTail = (value: OutputDiagnostic): string =>
     value.tail || value.head || '(empty)';
   const diagnosticHead = (value: OutputDiagnostic): string =>
@@ -294,6 +316,7 @@ export function buildPairRedReviewTask(
 当前工作项：${session.story_id} / ${session.task_id}/${session.test_id}
 工序：${session.process_id}/${session.step_id}
 测试意图：${session.expected_red}
+工序 Red 合同：expected_failure_kind=${redContract.expected_failure_kind}；${redContract.expected_failure}
 命令：${record.command}
 退出码：${record.exit_code}
 stderr tail：${diagnosticTail(record.stderr_diagnostic)}
@@ -546,6 +569,28 @@ function preservesRustRegion(
   return before[region] === after[region];
 }
 
+function lockedProjectCatalog(
+  cwd: string,
+  process: TestProcessSelection,
+): NxProjectCatalog {
+  if (!process.project_catalog_path || !process.project_catalog_sha256) {
+    throw new Error(
+      `TypeScript process has no locked Nx catalog: ${process.id}.`,
+    );
+  }
+  const catalog = readNxProjectCatalogSnapshot(
+    join(cwd, process.project_catalog_path),
+  );
+  if (
+    catalog.project_catalog_sha256 !== process.project_catalog_sha256 ||
+    JSON.stringify(catalog.projects.map(({ name }) => name)) !==
+      JSON.stringify([...process.project_ids].sort())
+  ) {
+    throw new Error(`Locked Nx catalog drifted for ${process.id}.`);
+  }
+  return catalog;
+}
+
 export function pairDriverWriteRoots(
   cwd: string,
   state: WorkflowState,
@@ -560,16 +605,12 @@ export function pairDriverWriteRoots(
     );
   }
   const process = currentWorkUnit(cwd, state).process;
-  const technical = readTestProcess(
-    join(cwd, process.path),
-  ).technical_boundaries;
+  if (process.runtime === 'typescript') {
+    return lockedProjectCatalog(cwd, process).projects.map(({ root }) => root);
+  }
   return process.runtime === 'rust'
     ? ['apps/server', 'libs/server']
-    : process.runtime === 'tauri'
-      ? ['apps/desktop']
-      : technical.some((boundary) => boundary.startsWith('nest-'))
-        ? ['apps/server-nest', 'libs/server-nest']
-        : ['apps/web', 'libs/web'];
+    : ['apps/desktop'];
 }
 
 function allowedDriverPath(
@@ -664,6 +705,101 @@ function blockedDriver(
   };
 }
 
+function isNxProjectConfigurationPath(
+  path: string,
+  catalog: NxProjectCatalog,
+): boolean {
+  return catalog.projects.some(({ root }) => {
+    if (!insideRoot(path, root) || root === '.') return false;
+    const relativePath = path === root ? '' : path.slice(root.length + 1);
+    return (
+      relativePath === 'project.json' ||
+      relativePath === 'package.json' ||
+      /^tsx?config(?:\.[^/]+)?\.json$/.test(relativePath) ||
+      /^(vite|vitest|eslint)\.config\.[^/]+$/.test(relativePath)
+    );
+  });
+}
+
+function nxProjectViolation(
+  cwd: string,
+  state: WorkflowState,
+  mode: PairDriverMode,
+  changedPaths: string[],
+): string | undefined {
+  const unit = currentWorkUnit(cwd, state);
+  if (unit.process.runtime !== 'typescript') return undefined;
+  let catalog: NxProjectCatalog;
+  try {
+    catalog = lockedProjectCatalog(cwd, unit.process);
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  for (const path of changedPaths) {
+    let owner: string;
+    try {
+      owner = resolveNxProjectOwner(catalog, path).name;
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+    if (isNxProjectConfigurationPath(path, catalog)) {
+      return `Nx project configuration changed after Desk Check: ${path}.`;
+    }
+    if (mode === 'test' && owner !== unit.test.project_id) {
+      return `${path} is owned by ${owner}, not current ${unit.test.id} project ${unit.test.project_id ?? 'missing'}.`;
+    }
+    if (mode !== 'test' && !unit.process.project_ids.includes(owner)) {
+      return `${path} is owned by unapproved Nx project ${owner}.`;
+    }
+  }
+  return undefined;
+}
+
+function routeProjectGap(
+  cwd: string,
+  state: WorkflowState & { pair_session: PairSession },
+  snapshot: PairWorktreeSnapshot,
+  mode: PairDriverMode,
+  changedPaths: string[],
+  reason: string,
+  now: string,
+): PairDriverCompletion {
+  restorePaths(cwd, snapshot, changedPaths);
+  const routed = transitionLoopState(
+    state,
+    {
+      to: 'tasking',
+      feedback: {
+        target: 'test_process',
+        reason,
+        decided_by: 'system',
+      },
+    },
+    now,
+  );
+  const next = writeState(cwd, {
+    ...routed,
+    tasking_stage: 'knowledge_gap',
+    tasking_candidate: undefined,
+    tasking_gap: {
+      kind: 'process_gap',
+      reason,
+      recorded_at: now,
+    },
+    approved_test_plan_path: undefined,
+    approved_test_plan_sha256: undefined,
+    active_work_item: undefined,
+    pair_session: undefined,
+  });
+  return {
+    state: next,
+    blocked: true,
+    changedPaths,
+    diff: '(project-owner violation restored)',
+    output: `${mode} Driver project ownership blocked: ${reason}\nRestored paths: ${changedPaths.join(', ') || 'none'}. Returned to Tasking process_gap.`,
+  };
+}
+
 export function failPairDriver(
   cwd: string,
   mode: PairDriverMode,
@@ -704,6 +840,18 @@ export function completePairDriver(
       mode,
       changedPaths,
       'Driver changed Git HEAD; commits are forbidden during Pair.',
+      now,
+    );
+  }
+  const projectViolation = nxProjectViolation(cwd, state, mode, changedPaths);
+  if (projectViolation) {
+    return routeProjectGap(
+      cwd,
+      state,
+      snapshot,
+      mode,
+      changedPaths,
+      projectViolation,
       now,
     );
   }
@@ -1074,6 +1222,15 @@ export function reviewPairRed(
   }
   if (kind === 'behavior' && !red.expected_failure) {
     throw new Error('A passing command cannot be accepted as Red.');
+  }
+  const unit = currentWorkUnit(cwd, state);
+  const expectedFailureKind = readTestProcess(
+    join(cwd, unit.process.path),
+  ).steps.find(({ id }) => id === unit.stepId)?.red.expected_failure_kind;
+  if (kind === 'behavior' && expectedFailureKind !== 'behavior') {
+    throw new Error(
+      `Accepted Red does not satisfy the typed process contract for ${stepKey(unit)}.`,
+    );
   }
   if (kind === 'behavior') {
     const accepted: PairObservation = {

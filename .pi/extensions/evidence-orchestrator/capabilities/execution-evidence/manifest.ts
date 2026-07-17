@@ -91,6 +91,9 @@ export interface ExecutionProcessManifest {
   technical_boundaries: string[];
   definition_sha256: string;
   test_plan_sha256: string;
+  project_ids: string[];
+  project_catalog_sha256?: string;
+  focused_commands: TestProcessSelection['focused_commands'];
   steps: Array<{
     id: string;
     quadrant: 'Q1' | 'Q2';
@@ -118,6 +121,8 @@ export interface ExecutionProcessManifest {
     };
   }>;
   quality_gates: Array<{
+    project_id?: string;
+    target?: string;
     command: string;
     sequence: number;
     exit_code: number;
@@ -200,6 +205,8 @@ function approvedPlanData(
       typeof value.runtime_plan_id === 'string' &&
       typeof value.process_id === 'string' &&
       typeof value.step_id === 'string' &&
+      (value.project_id === undefined ||
+        typeof value.project_id === 'string') &&
       (value.scenario_outcome === undefined ||
         typeof value.scenario_outcome === 'string') &&
       isStringArray(value.supported_by) &&
@@ -260,12 +267,22 @@ function approvedPlanData(
       approved.definition_sha256 !== selection.definition_sha256 ||
       approved.materialized_sha256 !== selection.materialized_sha256 ||
       approved.materialized_plan_path !== selection.materialized_plan_path ||
+      approved.project_catalog_sha256 !== selection.project_catalog_sha256 ||
+      approved.project_catalog_path !== selection.project_catalog_path ||
       JSON.stringify(approved.functional_contexts) !==
         JSON.stringify(selection.functional_contexts) ||
       JSON.stringify(approved.technical_boundaries) !==
         JSON.stringify(selection.technical_boundaries) ||
       JSON.stringify(approved.selected_step_ids) !==
-        JSON.stringify(selection.selected_step_ids)
+        JSON.stringify(selection.selected_step_ids) ||
+      JSON.stringify(approved.project_ids) !==
+        JSON.stringify(selection.project_ids) ||
+      JSON.stringify(approved.command_variables_by_test) !==
+        JSON.stringify(selection.command_variables_by_test) ||
+      JSON.stringify(approved.focused_commands) !==
+        JSON.stringify(selection.focused_commands) ||
+      JSON.stringify(approved.quality_gate_commands) !==
+        JSON.stringify(selection.quality_gate_commands)
     ) {
       throw new Error(
         `Selected process drifted from the approved aggregate test plan: ${selection.id}.`,
@@ -661,23 +678,25 @@ function processManifest(
     ),
   );
   let after = Math.max(lastStepSequence, qualityGateAfter);
-  const quality_gates = definition.quality_gates.map((command) => {
+  const quality_gates = selection.quality_gate_commands.map((expected) => {
     const gate = records.find(
       (record) =>
         record.process_id === selection.id &&
         record.stage === 'quality_gate' &&
-        record.command === command &&
+        record.command === expected.command &&
         record.exit_code === 0 &&
         record.sequence > after,
     );
     if (!gate) {
       throw new Error(
-        `Execution log is incomplete: ${selection.id} quality gate did not pass: ${command}.`,
+        `Execution log is incomplete: ${selection.id} quality gate did not pass: ${expected.command}.`,
       );
     }
     after = gate.sequence;
     return {
-      command,
+      ...(expected.project_id ? { project_id: expected.project_id } : {}),
+      ...(expected.target ? { target: expected.target } : {}),
+      command: expected.command,
       sequence: gate.sequence,
       exit_code: gate.exit_code,
     };
@@ -689,6 +708,11 @@ function processManifest(
     technical_boundaries: [...selection.technical_boundaries],
     definition_sha256: selection.definition_sha256,
     test_plan_sha256: selection.materialized_sha256,
+    project_ids: [...selection.project_ids],
+    ...(selection.project_catalog_sha256
+      ? { project_catalog_sha256: selection.project_catalog_sha256 }
+      : {}),
+    focused_commands: selection.focused_commands,
     steps,
     quality_gates,
   };
@@ -700,43 +724,40 @@ function showcaseManifest(
   tests: TaskingTestItem[],
   records: TestExecutionRecord[],
 ): ExecutionManifest['showcase'] {
-  const expected = selections.flatMap((selection) => {
-    return selectedSteps(cwd, selection)
-      .filter(({ quadrant }) => quadrant === 'Q2')
-      .map((step) => {
-        const command = selection.focused_commands.find(
-          ({ step_id }) => step_id === step.id,
-        )?.command;
-        if (!command) {
-          throw new Error(
-            `Showcase Q2 command drifted: ${selection.id}/${step.id}.`,
-          );
-        }
-        return {
-          processId: selection.id,
-          stepId: step.id,
-          command,
-          testIds: tests
-            .filter(
-              ({ quadrant, process_id, step_id }) =>
-                quadrant === 'Q2' &&
-                process_id === selection.id &&
-                step_id === step.id,
-            )
-            .map(({ id }) => id),
-        };
-      });
-  });
-  if (expected.some(({ testIds }) => testIds.length === 0)) {
-    throw new Error('A selected Showcase Q2 step has no approved Q2 intent.');
+  const expected = tests
+    .filter(({ quadrant }) => quadrant === 'Q2')
+    .map((test) => {
+      const selection = selections.find(({ id }) => id === test.process_id);
+      const step = selection
+        ? selectedSteps(cwd, selection).find(({ id }) => id === test.step_id)
+        : undefined;
+      const command = selection?.focused_commands.find(
+        ({ test_id }) => test_id === test.id,
+      )?.command;
+      if (!selection || !step || step.quadrant !== 'Q2' || !command) {
+        throw new Error(
+          `Showcase Q2 command drifted: ${test.process_id}/${test.step_id}/${test.id}.`,
+        );
+      }
+      return {
+        processId: selection.id,
+        stepId: step.id,
+        testId: test.id,
+        command,
+        testIds: [test.id],
+      };
+    });
+  if (expected.length === 0) {
+    throw new Error('The approved plan has no Showcase Q2 TEST intent.');
   }
   const observations = records
     .filter(({ stage }) => stage === 'showcase')
     .map((record) => {
       const match = expected.find(
-        ({ processId, stepId, command }) =>
+        ({ processId, stepId, testId, command }) =>
           processId === record.process_id &&
           stepId === record.step_id &&
+          testId === record.test_id &&
           command === record.command,
       );
       if (!match) {
@@ -756,11 +777,13 @@ function showcaseManifest(
       };
     });
   if (observations.length === 0) return { q2: [], status: 'not_run' };
-  const latestPassed = expected.every(({ processId, stepId }) => {
+  const latestPassed = expected.every(({ processId, stepId, testId }) => {
     const latest = observations
       .filter(
-        ({ process_id, step_id }) =>
-          process_id === processId && step_id === stepId,
+        ({ process_id, step_id, test_ids }) =>
+          process_id === processId &&
+          step_id === stepId &&
+          test_ids.includes(testId),
       )
       .at(-1);
     return latest?.exit_code === 0;
@@ -778,7 +801,7 @@ function buildManifest(
 ): ExecutionManifest {
   const processes = selectedTestProcesses(workItem);
   if (processes.length === 0 || workItem.test_plan.version !== 2) {
-    throw new Error('Execution manifest requires an approved v2 test plan.');
+    throw new Error('Execution manifest requires an approved v3 process plan.');
   }
   if (!state.approved_test_plan_path) {
     throw new Error('Execution manifest requires an approved Tasking plan.');
@@ -1013,7 +1036,7 @@ function renderSummary(manifest: ExecutionManifest): string {
       process.steps.flatMap((step) =>
         step.work_units.map(
           ({ task, test, changed_paths, red, green, refactor }) =>
-            `| ${task.id} | ${test.id} | ${test.model_refs.entities.join(', ') || 'none'} / ${test.model_refs.associations.join(', ') || 'none'} | ${process.id} | ${step.id} | ${step.quadrant} | ${[...changed_paths.tests, ...changed_paths.production].join('<br>')} | ${red.sequence} | ${red.reviewed_by ?? 'legacy-human'} | ${green.sequence} | ${refactor.sequence} |`,
+            `| ${task.id} | ${test.id} | ${test.project_id ?? 'n/a'} | ${test.model_refs.entities.join(', ') || 'none'} / ${test.model_refs.associations.join(', ') || 'none'} | ${process.id} | ${step.id} | ${step.quadrant} | ${[...changed_paths.tests, ...changed_paths.production].join('<br>')} | ${red.sequence} | ${red.reviewed_by ?? 'legacy-human'} | ${green.sequence} | ${refactor.sequence} |`,
         ),
       ),
     )
@@ -1051,8 +1074,8 @@ function renderSummary(manifest: ExecutionManifest): string {
 
 ## SC → model → TASK/TEST → process → code trace
 
-| Task | Test | Model refs (entities / associations) | Process | Step | Quadrant | Git-observed code | Red record | Red reviewer | Green record | Refactor record |
-| --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: |
+| Task | Test | Nx project | Model refs (entities / associations) | Process | Step | Quadrant | Git-observed code | Red record | Red reviewer | Green record | Refactor record |
+| --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: |
 ${processRows}
 
 Functional contexts: ${manifest.traceability.functional_contexts.join(', ')}

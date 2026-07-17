@@ -372,7 +372,31 @@ describe('commands', () => {
             model_refs: { entities: [], associations: [] },
           },
         ],
-        processes: [],
+        processes: [
+          {
+            id: 'typescript-web',
+            path: 'engineering/evidence-orchestrator/test-processes/web.json',
+            runtime: 'typescript',
+            functional_contexts: ['workspace'],
+            technical_boundaries: ['react-feature'],
+            process_version: 3,
+            definition_sha256: 'a'.repeat(64),
+            selected_step_ids: ['feature-q2'],
+            project_ids: [],
+            command_variables_by_test: {
+              'TEST-001': { test_filter: 'confirmed_outcome' },
+            },
+            focused_commands: [
+              {
+                test_id: 'TEST-001',
+                step_id: 'feature-q2',
+                command: 'node focused.js confirmed_outcome',
+              },
+            ],
+            quality_gate_commands: [{ command: 'node quality.js' }],
+            materialized_sha256: 'b'.repeat(64),
+          },
+        ],
         test_list_path: 'artifacts/04-planning/test-list.md',
         task_list_path: 'artifacts/04-planning/task-list.md',
         candidate_path: 'artifacts/04-planning/tasking-candidate.json',

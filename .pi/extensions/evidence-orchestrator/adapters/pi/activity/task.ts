@@ -174,7 +174,7 @@ ${extra || '（无）'}
 - engineering/evidence-orchestrator/definition-of-done.md
 ${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}` : ''}
 
-任务：为全部确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v2 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 引用 Scenario${noModelImpact ? '，并保持空 modelRefs' : '与确认模型 id'}且只属于一个 TASK，TASK/TEST 顺序不得越过 process step。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
+任务：为全部确认 Scenario 生成一次 Q2/Q1 test-list、唯一 v3 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 引用 Scenario${noModelImpact ? '，并保持空 modelRefs' : '与确认模型 id'}、自己的安全 testFilter，并在模板要求时绑定真实 Nx projectId；每个 TEST 只属于一个 TASK，TASK/TEST 顺序不得越过 process step。runtime 的 projectIds 必须完整列出计划允许修改的 Nx projects。只调用 evidence_orchestrator_propose_tasking 一次后停止，等待人类 /evidence-desk-check；不得写代码或创建 Sprint 工件。
 
 额外用户指令：
 ${extra || '（无）'}

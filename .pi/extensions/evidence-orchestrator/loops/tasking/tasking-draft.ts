@@ -20,17 +20,25 @@ import {
   catalogTestProcessDirectory,
   matchingTestProcesses,
   materializeFocusedCommands,
+  materializeQualityGates,
   materializedProcessSha256,
   testProcessDefinitionSha256,
   type TestProcessDefinition,
 } from '../../capabilities/test-process/catalog';
+import {
+  assertProjectHasTarget,
+  assertTestProject,
+  nxProject,
+  readNxProjectCatalog,
+  type NxProjectCatalog,
+} from '../../capabilities/test-process/project-catalog';
 
 export interface TaskingRuntimeInput {
   id: string;
   runtime: TestProcessRuntime;
   functionalContexts: string[];
   technicalBoundaries: string[];
-  testFilter: string;
+  projectIds?: string[];
 }
 
 export interface TaskingTestInput {
@@ -39,6 +47,8 @@ export interface TaskingTestInput {
   intent: string;
   runtimePlanId: string;
   stepId: string;
+  projectId?: string;
+  testFilter: string;
   supportedBy: string[];
   scenarioIds: string[];
   scenarioOutcome?: string;
@@ -60,10 +70,21 @@ export interface TaskingDraftInput {
 }
 
 interface ResolvedRuntime {
-  input: TaskingRuntimeInput;
+  input: TaskingRuntimeInput & { projectIds: string[] };
+  path: string;
   definition: TestProcessDefinition;
+  definitionSha256: string;
+  selectedStepIds: string[];
+  projectCatalog?: NxProjectCatalog;
+}
+
+interface FinalizedRuntime extends ResolvedRuntime {
   selection: TestProcessSelection;
 }
+
+export type ProjectCatalogLoader = typeof readNxProjectCatalog;
+
+class TestProcessGapError extends Error {}
 
 const RUNTIME_PLAN_ID = /^RUNTIME-\d{3,}$/;
 const TEST_ID = /^TEST-\d{3,}$/;
@@ -151,6 +172,7 @@ function resolveRuntimes(
   state: WorkflowState,
   inputs: TaskingRuntimeInput[],
   now: string,
+  loadProjectCatalog: ProjectCatalogLoader,
 ): ResolvedRuntime[] | WorkflowState {
   if (!Array.isArray(inputs) || inputs.length === 0) {
     throw new Error('Tasking requires at least one owning runtime plan.');
@@ -172,6 +194,11 @@ function resolveRuntimes(
       input.technicalBoundaries,
       `${input.id}.technicalBoundaries`,
     );
+    const projectIds = unique(
+      input.projectIds ?? [],
+      `${input.id}.projectIds`,
+      true,
+    ).sort();
     const candidates = matchingTestProcesses(
       cwd,
       catalogTestProcessDirectory(cwd),
@@ -182,13 +209,14 @@ function resolveRuntimes(
     if (candidates.length !== 1) {
       const reason =
         candidates.length === 0
-          ? `No v2 test process uniquely covers ${input.runtime}/${functionalContexts.join(',')} at ${technicalBoundaries.join(',')}.`
-          : `Multiple v2 test processes cover ${input.runtime}/${functionalContexts.join(',')} at ${technicalBoundaries.join(',')}: ${candidates.map(({ definition }) => definition.id).join(', ')}.`;
+          ? `No v3 test process uniquely covers ${input.runtime}/${functionalContexts.join(',')} at ${technicalBoundaries.join(',')}.`
+          : `Multiple v3 test processes cover ${input.runtime}/${functionalContexts.join(',')} at ${technicalBoundaries.join(',')}: ${candidates.map(({ definition }) => definition.id).join(', ')}.`;
       return routeKnowledgeGap(cwd, state, 'process_gap', reason, now);
     }
     const candidate = candidates[0];
-    if (!candidate)
+    if (!candidate) {
       throw new Error(`Matched process disappeared for ${input.id}.`);
+    }
     const selectedSteps = candidate.definition.steps.filter((step) =>
       step.functional_contexts.some((context) =>
         functionalContexts.includes(context),
@@ -206,45 +234,74 @@ function resolveRuntimes(
         now,
       );
     }
-    const selectedStepIds = selectedSteps.map(({ id }) => id);
-    const commandVariables = {
-      test_filter: required(input.testFilter, `${input.id}.testFilter`),
-    };
-    const focusedCommands = materializeFocusedCommands(
-      candidate.definition,
-      commandVariables,
-    ).filter(({ step_id }) => selectedStepIds.includes(step_id));
+    const requiresProjects =
+      selectedSteps.some(({ focused_command }) =>
+        focused_command.allowed_variables.includes('project'),
+      ) ||
+      candidate.definition.quality_gates.some(
+        ({ scope }) => scope !== 'process',
+      );
+    if (requiresProjects && input.runtime !== 'typescript') {
+      return routeKnowledgeGap(
+        cwd,
+        state,
+        'process_gap',
+        `${candidate.definition.id} uses Nx project gates outside the TypeScript runtime.`,
+        now,
+      );
+    }
+    if (requiresProjects && projectIds.length === 0) {
+      return routeKnowledgeGap(
+        cwd,
+        state,
+        'process_gap',
+        `${input.id} must declare planned Nx projectIds for ${candidate.definition.id}.`,
+        now,
+      );
+    }
+    if (!requiresProjects && projectIds.length > 0) {
+      throw new Error(
+        `${input.id}.projectIds must be omitted for a process without project variables.`,
+      );
+    }
+    let projectCatalog: NxProjectCatalog | undefined;
+    if (requiresProjects) {
+      try {
+        projectCatalog = loadProjectCatalog(cwd, projectIds);
+        for (const projectId of projectIds) {
+          const project = nxProject(projectCatalog, projectId);
+          if (project.root === '.') {
+            throw new Error(
+              `Workspace-root Nx project ${project.name} cannot be planned for product Pairing.`,
+            );
+          }
+        }
+      } catch (error) {
+        return routeKnowledgeGap(
+          cwd,
+          state,
+          'process_gap',
+          error instanceof Error ? error.message : String(error),
+          now,
+        );
+      }
+    }
     const definitionPath = join(cwd, candidate.path);
-    const definitionSha256 = testProcessDefinitionSha256(definitionPath);
     resolved.push({
       input: {
         ...input,
         functionalContexts,
         technicalBoundaries,
-        testFilter: commandVariables.test_filter,
+        projectIds,
       },
+      path: candidate.path,
       definition: candidate.definition,
-      selection: {
-        id: candidate.definition.id,
-        path: candidate.path,
-        runtime: input.runtime,
-        functional_contexts: functionalContexts,
-        technical_boundaries: technicalBoundaries,
-        process_version: 2,
-        definition_sha256: definitionSha256,
-        selected_step_ids: selectedStepIds,
-        command_variables: commandVariables,
-        focused_commands: focusedCommands,
-        materialized_sha256: materializedProcessSha256(
-          candidate.definition.id,
-          definitionSha256,
-          commandVariables,
-          focusedCommands,
-        ),
-      },
+      definitionSha256: testProcessDefinitionSha256(definitionPath),
+      selectedStepIds: selectedSteps.map(({ id }) => id),
+      ...(projectCatalog ? { projectCatalog } : {}),
     });
   }
-  const processIds = resolved.map(({ selection }) => selection.id);
+  const processIds = resolved.map(({ definition }) => definition.id);
   if (new Set(processIds).size !== processIds.length) {
     throw new Error(
       'Combine capabilities and boundaries that resolve to the same process into one runtime plan.',
@@ -335,6 +392,41 @@ function normalizeTests(
         `${input.id} must reference an applicable ${input.quadrant} step in its selected process.`,
       );
     }
+    required(input.testFilter, `${input.id}.testFilter`);
+    const usesProject =
+      step.focused_command.allowed_variables.includes('project');
+    const projectId = input.projectId?.trim() || undefined;
+    if (usesProject && !projectId) {
+      throw new Error(
+        `${input.id}.projectId is required by ${runtime.definition.id}/${step.id}.`,
+      );
+    }
+    if (!usesProject && projectId) {
+      throw new Error(
+        `${input.id}.projectId must be omitted when the focused command has no project variable.`,
+      );
+    }
+    if (projectId) {
+      if (
+        !runtime.input.projectIds.includes(projectId) ||
+        !runtime.projectCatalog
+      ) {
+        throw new Error(
+          `${input.id}.projectId must belong to ${runtime.input.id}.projectIds.`,
+        );
+      }
+      try {
+        assertTestProject(
+          runtime.projectCatalog,
+          projectId,
+          step.nearest_test.roots,
+        );
+      } catch (error) {
+        throw new TestProcessGapError(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
     const normalizedScenarioIds = unique(
       input.scenarioIds,
       `${input.id}.scenarioIds`,
@@ -416,8 +508,9 @@ function normalizeTests(
       quadrant: input.quadrant,
       intent: required(input.intent, `${input.id}.intent`),
       runtime_plan_id: input.runtimePlanId,
-      process_id: runtime.selection.id,
+      process_id: runtime.definition.id,
       step_id: input.stepId,
+      ...(projectId ? { project_id: projectId } : {}),
       supported_by: unique(input.supportedBy, `${input.id}.supportedBy`, true),
       scenario_ids: normalizedScenarioIds,
       ...(outcome ? { scenario_outcome: outcome } : {}),
@@ -487,11 +580,11 @@ function normalizeTests(
         applicable &&
         !tests.some(
           ({ process_id, step_id }) =>
-            process_id === runtime.selection.id && step_id === step.id,
+            process_id === runtime.definition.id && step_id === step.id,
         )
       ) {
         throw new Error(
-          `Selected process step ${runtime.selection.id}/${step.id} has no test-list item.`,
+          `Selected process step ${runtime.definition.id}/${step.id} has no test-list item.`,
         );
       }
     }
@@ -519,10 +612,127 @@ function normalizeTests(
   return tests;
 }
 
+function finalizeRuntimes(
+  runtimes: ResolvedRuntime[],
+  tests: TaskingTestItem[],
+  inputs: TaskingTestInput[],
+): FinalizedRuntime[] {
+  const inputById = new Map(inputs.map((input) => [input.id, input]));
+  return runtimes.map((runtime) => {
+    const runtimeTests = tests.filter(
+      ({ runtime_plan_id }) => runtime_plan_id === runtime.input.id,
+    );
+    const bindings = runtimeTests.map((test) => {
+      const input = inputById.get(test.id);
+      const step = runtime.definition.steps.find(
+        ({ id }) => id === test.step_id,
+      );
+      if (!input || !step) {
+        throw new Error(`${test.id} lost its process command binding.`);
+      }
+      const variables: Record<string, string> = {
+        test_filter: required(input.testFilter, `${test.id}.testFilter`),
+      };
+      if (step.focused_command.allowed_variables.includes('project')) {
+        if (!test.project_id) {
+          throw new Error(`${test.id} lost its Nx project binding.`);
+        }
+        variables.project = test.project_id;
+      }
+      return {
+        test_id: test.id,
+        step_id: test.step_id,
+        variables,
+      };
+    });
+    const commandVariablesByTest = Object.fromEntries(
+      bindings
+        .map(({ test_id, variables }) => [test_id, variables] as const)
+        .sort(([left], [right]) => left.localeCompare(right)),
+    );
+    const focusedCommands = materializeFocusedCommands(
+      runtime.definition,
+      bindings,
+    );
+    const testProjectIds = runtimeTests
+      .flatMap(({ project_id }) => (project_id ? [project_id] : []))
+      .sort();
+    if (
+      runtime.definition.quality_gates.some(({ scope }) => scope !== 'process')
+    ) {
+      if (!runtime.projectCatalog) {
+        throw new TestProcessGapError(
+          `${runtime.definition.id} has project-scoped gates without an Nx catalog.`,
+        );
+      }
+      try {
+        for (const gate of runtime.definition.quality_gates) {
+          if (gate.scope === 'process') continue;
+          const target = gate.required_target;
+          if (!target) {
+            throw new Error(
+              `${runtime.definition.id} quality gate has no target.`,
+            );
+          }
+          const projectIds =
+            gate.scope === 'test_projects'
+              ? [...new Set(testProjectIds)]
+              : runtime.input.projectIds;
+          for (const projectId of projectIds) {
+            assertProjectHasTarget(
+              nxProject(runtime.projectCatalog, projectId),
+              target,
+            );
+          }
+        }
+      } catch (error) {
+        throw new TestProcessGapError(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+    const qualityGateCommands = materializeQualityGates(
+      runtime.definition,
+      runtime.input.projectIds,
+      testProjectIds,
+    );
+    const selection: TestProcessSelection = {
+      id: runtime.definition.id,
+      path: runtime.path,
+      runtime: runtime.input.runtime,
+      functional_contexts: runtime.input.functionalContexts,
+      technical_boundaries: runtime.input.technicalBoundaries,
+      process_version: 3,
+      definition_sha256: runtime.definitionSha256,
+      selected_step_ids: runtime.selectedStepIds,
+      project_ids: runtime.input.projectIds,
+      ...(runtime.projectCatalog
+        ? {
+            project_catalog_sha256:
+              runtime.projectCatalog.project_catalog_sha256,
+          }
+        : {}),
+      command_variables_by_test: commandVariablesByTest,
+      focused_commands: focusedCommands,
+      quality_gate_commands: qualityGateCommands,
+      materialized_sha256: materializedProcessSha256({
+        processId: runtime.definition.id,
+        definitionSha256: runtime.definitionSha256,
+        projectIds: runtime.input.projectIds,
+        projectCatalogSha256: runtime.projectCatalog?.project_catalog_sha256,
+        commandVariablesByTest,
+        focusedCommands,
+        qualityGateCommands,
+      }),
+    };
+    return { ...runtime, selection };
+  });
+}
+
 function normalizeTasks(
   inputs: TaskingTaskInput[],
   tests: TaskingTestItem[],
-  runtimes: ResolvedRuntime[],
+  runtimes: FinalizedRuntime[],
 ): TaskingImplementationTask[] {
   if (!Array.isArray(inputs) || inputs.length === 0) {
     throw new Error('Tasking requires implementation tasks.');
@@ -607,7 +817,7 @@ function normalizeTasks(
 function renderTestList(
   state: WorkflowState,
   tests: TaskingTestItem[],
-  runtimes: ResolvedRuntime[],
+  runtimes: FinalizedRuntime[],
 ): string {
   const scenarios = state.confirmed_scenarios ?? [];
   const scenario = scenarios[0];
@@ -626,7 +836,7 @@ function renderTestList(
           step?.replaced_boundaries
             .map(({ boundary, test_double }) => `${boundary}:${test_double}`)
             .join(', ') || 'none';
-        return `- **${test.id}** · ${test.process_id}/${test.step_id} · ${test.intent}\n  - Scenarios：${test.scenario_ids.join(', ')}\n  - 业务数据：${test.business_data.join('；')}\n  - 模型实体：${test.model_refs.entities.join(', ') || 'none'}\n  - 模型关系：${test.model_refs.associations.join(', ') || 'none'}\n  - 场景结果：${test.scenario_outcome ?? '通过 Q2 追踪'}\n  - 真实边界：${step?.real_boundaries.join(', ') ?? 'unknown'}\n  - 替换边界：${replaced}${quadrant === 'Q2' ? `\n  - Q1 支撑：${test.supported_by.join(', ')}` : ''}`;
+        return `- **${test.id}** · ${test.process_id}/${test.step_id} · ${test.intent}\n  - Nx project：${test.project_id ?? 'not applicable'}\n  - Scenarios：${test.scenario_ids.join(', ')}\n  - 业务数据：${test.business_data.join('；')}\n  - 模型实体：${test.model_refs.entities.join(', ') || 'none'}\n  - 模型关系：${test.model_refs.associations.join(', ') || 'none'}\n  - 场景结果：${test.scenario_outcome ?? '通过 Q2 追踪'}\n  - 真实边界：${step?.real_boundaries.join(', ') ?? 'unknown'}\n  - 替换边界：${replaced}${quadrant === 'Q2' ? `\n  - Q1 支撑：${test.supported_by.join(', ')}` : ''}`;
       })
       .join('\n');
   return `# Test List — ${scenario.story_id}
@@ -650,7 +860,7 @@ ${render('Q1')}
 
 ## Runtime and process trace
 
-${runtimes.map(({ input, selection }) => `- ${input.id}：${input.runtime} · capabilities=${input.functionalContexts.join(',')} · boundaries=${input.technicalBoundaries.join(',')} · process=${selection.id}`).join('\n')}
+${runtimes.map(({ input, selection }) => `- ${input.id}：${input.runtime} · capabilities=${input.functionalContexts.join(',')} · boundaries=${input.technicalBoundaries.join(',')} · projects=${selection.project_ids.join(',') || 'none'} · process=${selection.id}`).join('\n')}
 `;
 }
 
@@ -683,12 +893,29 @@ export function proposeTaskingDraft(
   cwd: string,
   input: TaskingDraftInput,
   now = new Date().toISOString(),
+  loadProjectCatalog: ProjectCatalogLoader = readNxProjectCatalog,
 ): WorkflowState {
   const state = readState(cwd);
   assertTaskingState(state);
-  const resolved = resolveRuntimes(cwd, state, input.runtimes, now);
-  if (!Array.isArray(resolved)) return resolved;
-  const tests = normalizeTests(cwd, state, input.tests, resolved);
+  const matched = resolveRuntimes(
+    cwd,
+    state,
+    input.runtimes,
+    now,
+    loadProjectCatalog,
+  );
+  if (!Array.isArray(matched)) return matched;
+  let tests: TaskingTestItem[];
+  let resolved: FinalizedRuntime[];
+  try {
+    tests = normalizeTests(cwd, state, input.tests, matched);
+    resolved = finalizeRuntimes(matched, tests, input.tests);
+  } catch (error) {
+    if (error instanceof TestProcessGapError) {
+      return routeKnowledgeGap(cwd, state, 'process_gap', error.message, now);
+    }
+    throw error;
+  }
   const tasks = normalizeTasks(input.tasks, tests, resolved);
   const scenarios = state.confirmed_scenarios ?? [];
   const scenario = scenarios[0];

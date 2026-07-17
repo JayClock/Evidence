@@ -18,9 +18,22 @@ import type {
   WorkflowState,
 } from '../../iteration/state';
 import {
+  materializeFocusedCommands,
+  materializeQualityGates,
+  materializedProcessSha256,
   readTestProcess,
   testProcessDefinitionSha256,
 } from '../../capabilities/test-process/catalog';
+import {
+  assertProjectHasTarget,
+  assertTestProject,
+  nxProject,
+  readNxProjectCatalog,
+  serializeNxProjectCatalog,
+  type NxProjectCatalog,
+} from '../../capabilities/test-process/project-catalog';
+
+type ProjectCatalogLoader = typeof readNxProjectCatalog;
 
 function digest(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
@@ -76,7 +89,110 @@ function verifyModelDecision(cwd: string, state: WorkflowState): void {
   }
 }
 
-function verifyCandidate(cwd: string, candidate: TaskingCandidate): void {
+function currentProjectCatalog(
+  cwd: string,
+  process: TestProcessSelection,
+  loadProjectCatalog: ProjectCatalogLoader,
+): NxProjectCatalog | undefined {
+  if (process.project_ids.length === 0) {
+    if (process.project_catalog_sha256) {
+      throw new Error(
+        `Non-Nx process has a project catalog hash: ${process.id}.`,
+      );
+    }
+    return undefined;
+  }
+  const catalog = loadProjectCatalog(cwd, process.project_ids);
+  if (
+    !process.project_catalog_sha256 ||
+    catalog.project_catalog_sha256 !== process.project_catalog_sha256
+  ) {
+    throw new Error(
+      `Nx project catalog drifted before Desk Check: ${process.id}.`,
+    );
+  }
+  return catalog;
+}
+
+function verifyProcessMaterialization(
+  cwd: string,
+  candidate: TaskingCandidate,
+  process: TestProcessSelection,
+  loadProjectCatalog: ProjectCatalogLoader,
+): void {
+  const definition = readTestProcess(join(cwd, process.path));
+  const catalog = currentProjectCatalog(cwd, process, loadProjectCatalog);
+  const tests = candidate.tests.filter(
+    ({ process_id }) => process_id === process.id,
+  );
+  const bindings = tests.map((test) => {
+    const variables = process.command_variables_by_test[test.id];
+    if (!variables) {
+      throw new Error(`${test.id} has no locked focused-command variables.`);
+    }
+    const step = definition.steps.find(({ id }) => id === test.step_id);
+    if (!step) throw new Error(`${test.id} references a missing process step.`);
+    if (test.project_id) {
+      if (!catalog || variables.project !== test.project_id) {
+        throw new Error(`${test.id} Nx project binding drifted.`);
+      }
+      assertTestProject(catalog, test.project_id, step.nearest_test.roots);
+    } else if (variables.project !== undefined) {
+      throw new Error(`${test.id} unexpectedly materialized an Nx project.`);
+    }
+    return { test_id: test.id, step_id: test.step_id, variables };
+  });
+  const focusedCommands = materializeFocusedCommands(definition, bindings);
+  const testProjectIds = tests.flatMap(({ project_id }) =>
+    project_id ? [project_id] : [],
+  );
+  if (catalog) {
+    for (const gate of definition.quality_gates) {
+      if (gate.scope === 'process') continue;
+      const target = gate.required_target;
+      if (!target) throw new Error(`${process.id} quality gate has no target.`);
+      const projectIds =
+        gate.scope === 'test_projects'
+          ? [...new Set(testProjectIds)]
+          : process.project_ids;
+      for (const projectId of projectIds) {
+        assertProjectHasTarget(nxProject(catalog, projectId), target);
+      }
+    }
+  }
+  const qualityGateCommands = materializeQualityGates(
+    definition,
+    process.project_ids,
+    testProjectIds,
+  );
+  const materializedSha256 = materializedProcessSha256({
+    processId: process.id,
+    definitionSha256: process.definition_sha256,
+    projectIds: process.project_ids,
+    projectCatalogSha256: process.project_catalog_sha256,
+    commandVariablesByTest: process.command_variables_by_test,
+    focusedCommands,
+    qualityGateCommands,
+  });
+  if (
+    process.process_version !== 3 ||
+    JSON.stringify(focusedCommands) !==
+      JSON.stringify(process.focused_commands) ||
+    JSON.stringify(qualityGateCommands) !==
+      JSON.stringify(process.quality_gate_commands) ||
+    materializedSha256 !== process.materialized_sha256
+  ) {
+    throw new Error(
+      `Test process materialization drifted before Desk Check: ${process.id}.`,
+    );
+  }
+}
+
+function verifyCandidate(
+  cwd: string,
+  candidate: TaskingCandidate,
+  loadProjectCatalog: ProjectCatalogLoader,
+): void {
   const testList = readFileSync(join(cwd, candidate.test_list_path), 'utf8');
   const taskList = readFileSync(join(cwd, candidate.task_list_path), 'utf8');
   if (
@@ -100,6 +216,7 @@ function verifyCandidate(cwd: string, candidate: TaskingCandidate): void {
   }
   for (const process of candidate.processes) {
     if (
+      process.process_version !== 3 ||
       !process.definition_sha256 ||
       testProcessDefinitionSha256(join(cwd, process.path)) !==
         process.definition_sha256
@@ -108,6 +225,7 @@ function verifyCandidate(cwd: string, candidate: TaskingCandidate): void {
         `Test process definition drifted before Desk Check: ${process.id}.`,
       );
     }
+    verifyProcessMaterialization(cwd, candidate, process, loadProjectCatalog);
   }
 }
 
@@ -115,10 +233,10 @@ function lockApprovedProcesses(
   cwd: string,
   state: WorkflowState,
   candidate: TaskingCandidate,
+  loadProjectCatalog: ProjectCatalogLoader,
 ): TestProcessSelection[] {
   return candidate.processes.map((process) => {
     const source = join(cwd, process.path);
-    const definition = readTestProcess(source);
     const firstDefinitionRelative = `artifacts/03-architecture/selected-test-processes/${process.id}.json`;
     const firstDefinitionPath = artifactPath(
       cwd,
@@ -135,13 +253,25 @@ function lockApprovedProcesses(
       artifactPath(cwd, state, definitionRelative),
       definitionContent,
     );
-    const selectedPath = artifactRelativePath(state, definitionRelative);
+    const catalog = currentProjectCatalog(cwd, process, loadProjectCatalog);
+    let projectCatalogPath: string | undefined;
+    if (catalog) {
+      const catalogRelative = `artifacts/03-architecture/project-catalogs/${process.id}-${catalog.project_catalog_sha256}.json`;
+      immutableWrite(
+        artifactPath(cwd, state, catalogRelative),
+        serializeNxProjectCatalog(catalog),
+      );
+      projectCatalogPath = artifactRelativePath(state, catalogRelative);
+    }
     const lockedBase: TestProcessSelection = {
       ...process,
-      path: selectedPath,
+      path: artifactRelativePath(state, definitionRelative),
+      ...(projectCatalogPath
+        ? { project_catalog_path: projectCatalogPath }
+        : {}),
     };
     const plan = {
-      version: 2,
+      version: 3,
       story_id: candidate.story_id,
       scenario_ids: candidate.scenario_ids,
       process_id: lockedBase.id,
@@ -151,9 +281,16 @@ function lockApprovedProcesses(
       functional_contexts: lockedBase.functional_contexts,
       technical_boundaries: lockedBase.technical_boundaries,
       selected_step_ids: lockedBase.selected_step_ids,
-      command_variables: lockedBase.command_variables,
+      project_ids: lockedBase.project_ids,
+      ...(lockedBase.project_catalog_sha256
+        ? {
+            project_catalog_sha256: lockedBase.project_catalog_sha256,
+            project_catalog_path: lockedBase.project_catalog_path,
+          }
+        : {}),
+      command_variables_by_test: lockedBase.command_variables_by_test,
       focused_commands: lockedBase.focused_commands,
-      quality_gates: definition.quality_gates,
+      quality_gate_commands: lockedBase.quality_gate_commands,
       materialized_sha256: lockedBase.materialized_sha256,
     };
     const planContent = `${JSON.stringify(plan, null, 2)}\n`;
@@ -211,6 +348,7 @@ export function decideTasking(
   action: DeskCheckAction,
   reason?: string,
   now = new Date().toISOString(),
+  loadProjectCatalog: ProjectCatalogLoader = readNxProjectCatalog,
 ): WorkflowState {
   const state = readState(cwd);
   if (
@@ -239,7 +377,7 @@ export function decideTasking(
   const decisions = [...(state.desk_check_decisions ?? []), decision];
 
   if (action === 'approve') {
-    verifyCandidate(cwd, state.tasking_candidate);
+    verifyCandidate(cwd, state.tasking_candidate, loadProjectCatalog);
     verifyModelDecision(cwd, state);
     const baseline = createCodingGitBaseline(cwd);
     const modelingConfirmed =
@@ -261,6 +399,7 @@ export function decideTasking(
       cwd,
       state,
       state.tasking_candidate,
+      loadProjectCatalog,
     );
     const firstApprovedRelative = 'artifacts/04-planning/test-plan.json';
     const approvedRelative = existsSync(
@@ -281,10 +420,7 @@ export function decideTasking(
       task_list_path: state.tasking_candidate.task_list_path,
       tests: state.tasking_candidate.tests,
       tasks: state.tasking_candidate.tasks,
-      processes: processes.map((process) => ({
-        ...process,
-        quality_gates: readTestProcess(join(cwd, process.path)).quality_gates,
-      })),
+      processes,
     };
     const approvedPlanContent = `${JSON.stringify(approvedPlan, null, 2)}\n`;
     immutableWrite(

@@ -17,11 +17,17 @@ describe('types', () => {
       runtime: 'typescript',
       functional_contexts: ['workspace'],
       technical_boundaries: ['react-feature'],
-      process_version: 2,
+      process_version: 3,
       definition_sha256: 'a'.repeat(64),
       selected_step_ids: ['unit'],
-      command_variables: {},
-      focused_commands: [{ step_id: 'unit', command: 'pnpm test' }],
+      project_ids: [],
+      command_variables_by_test: {
+        'TEST-001': { test_filter: 'workspace' },
+      },
+      focused_commands: [
+        { test_id: 'TEST-001', step_id: 'unit', command: 'pnpm test' },
+      ],
+      quality_gate_commands: [{ command: 'pnpm test' }],
       materialized_sha256: 'b'.repeat(64),
     };
     const state: Pick<WorkflowState, 'iteration_id' | 'loop'> = {
@@ -29,7 +35,7 @@ describe('types', () => {
       loop: 'pair',
     };
 
-    expect(selection.process_version).toBe(2);
+    expect(selection.process_version).toBe(3);
     expect(state).toEqual({
       iteration_id: 'ITER-0001',
       loop: 'pair',

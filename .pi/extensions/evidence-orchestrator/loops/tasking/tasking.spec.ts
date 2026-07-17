@@ -17,6 +17,10 @@ import { statusMarkdown } from '../../adapters/pi/status';
 import { buildActivityTask } from '../../adapters/pi/activity/task';
 import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
 import { completeNoModelImpact } from '../../capabilities/modeling-evidence/no-model-impact';
+import {
+  createNxProjectCatalog,
+  type NxWorkspaceProject,
+} from '../../capabilities/test-process/project-catalog';
 import { decideTasking } from './desk-check';
 import { proposeTaskingDraft, type TaskingDraftInput } from './tasking-draft';
 
@@ -24,7 +28,7 @@ afterEach(cleanupWorkspaces);
 
 function processDefinition(id = 'rust-workspace') {
   return {
-    version: 2,
+    version: 3,
     id,
     owner: 'server-platform',
     runtime: 'rust',
@@ -46,7 +50,10 @@ function processDefinition(id = 'rust-workspace') {
           template: 'node focused.js {{test_filter}}',
           allowed_variables: ['test_filter'],
         },
-        red: { expected_failure: 'Business assertion fails.' },
+        red: {
+          expected_failure_kind: 'behavior',
+          expected_failure: 'Business assertion fails.',
+        },
         green: { done_when: 'Business assertion passes.' },
         refactor: { done_when: 'Business assertion stays green.' },
       },
@@ -64,12 +71,21 @@ function processDefinition(id = 'rust-workspace') {
           template: 'node focused.js {{test_filter}}',
           allowed_variables: ['test_filter'],
         },
-        red: { expected_failure: 'Acceptance assertion fails.' },
+        red: {
+          expected_failure_kind: 'behavior',
+          expected_failure: 'Acceptance assertion fails.',
+        },
         green: { done_when: 'Acceptance assertion passes.' },
         refactor: { done_when: 'Acceptance assertion stays green.' },
       },
     ],
-    quality_gates: ['node quality.js'],
+    quality_gates: [
+      {
+        scope: 'process',
+        template: 'node quality.js',
+        allowed_variables: [],
+      },
+    ],
   };
 }
 
@@ -193,7 +209,6 @@ function draftInput(
         runtime: 'rust' as const,
         functionalContexts: ['workspace'],
         technicalBoundaries: ['rust-domain', 'axum-api'],
-        testFilter: 'workspace_alpha',
       },
     ],
     tests: [
@@ -203,6 +218,7 @@ function draftInput(
         intent: 'The owner receives the created workspace in the domain.',
         runtimePlanId: 'RUNTIME-001',
         stepId: 'domain-q1',
+        testFilter: 'workspace_domain_alpha',
         supportedBy: [],
         scenarioIds: ['SC-001'],
         businessData: ['name=Alpha', 'owner=desktop-user'],
@@ -215,6 +231,7 @@ function draftInput(
           'Creating Alpha returns an owner-visible workspace through Axum.',
         runtimePlanId: 'RUNTIME-001',
         stepId: 'api-q2',
+        testFilter: 'workspace_api_alpha',
         supportedBy: ['TEST-001'],
         scenarioIds: ['SC-001'],
         scenarioOutcome: outcome,
@@ -238,6 +255,212 @@ function draftInput(
     ],
   };
 }
+
+function webProcessDefinition() {
+  const step = (id: string, quadrant: 'Q1' | 'Q2', roots: string[]) => ({
+    id,
+    purpose: `Drive ${id}.`,
+    quadrant,
+    functional_contexts: ['workspace'],
+    real_boundaries: ['react-feature'],
+    replaced_boundaries: [],
+    nearest_test: { rule: 'Use the owning project test.', roots },
+    focused_command: {
+      template:
+        'pnpm nx test {{project}} --run --testNamePattern={{test_filter}}',
+      allowed_variables: ['project', 'test_filter'],
+    },
+    red: {
+      expected_failure_kind: 'behavior',
+      expected_failure: 'The selected behavior assertion fails.',
+    },
+    green: { done_when: 'The focused behavior passes.' },
+    refactor: { done_when: 'The focused behavior remains green.' },
+  });
+  return {
+    version: 3,
+    id: 'typescript-web-projects',
+    owner: 'web-platform',
+    runtime: 'typescript',
+    applies_to: {
+      capabilities: ['workspace'],
+      technical_boundaries: ['react-feature'],
+      when: 'The Scenario belongs to Web.',
+    },
+    steps: [
+      step('feature-q1', 'Q1', ['libs/web']),
+      step('route-q2', 'Q2', ['apps/web/src']),
+    ],
+    quality_gates: [
+      {
+        scope: 'test_projects',
+        required_target: 'test',
+        template: 'pnpm nx test {{project}} --run',
+        allowed_variables: ['project'],
+      },
+      {
+        scope: 'planned_projects',
+        required_target: 'typecheck',
+        template: 'pnpm nx typecheck {{project}}',
+        allowed_variables: ['project'],
+      },
+      {
+        scope: 'planned_projects',
+        required_target: 'lint',
+        template: 'pnpm nx lint {{project}}',
+        allowed_variables: ['project'],
+      },
+    ],
+  };
+}
+
+function nestProcessDefinition() {
+  const source = webProcessDefinition();
+  const step = (
+    id: string,
+    quadrant: 'Q1' | 'Q2',
+    roots: string[],
+    boundary: string,
+  ) => ({
+    ...source.steps[0],
+    id,
+    quadrant,
+    purpose: `Drive ${id}.`,
+    real_boundaries: [boundary],
+    nearest_test: { rule: 'Use the owning Nest test.', roots },
+  });
+  return {
+    ...source,
+    id: 'typescript-nest-projects',
+    owner: 'server-platform',
+    applies_to: {
+      capabilities: ['workspace'],
+      technical_boundaries: ['nest-domain', 'prisma-store', 'nest-api'],
+      when: 'The Scenario belongs to Nest.',
+    },
+    steps: [
+      step(
+        'nest-domain-q1',
+        'Q1',
+        ['libs/server-nest/domain/src'],
+        'nest-domain',
+      ),
+      step(
+        'nest-persistent-q1',
+        'Q1',
+        ['libs/server-nest/persistent/src'],
+        'prisma-store',
+      ),
+      step('nest-api-q2', 'Q2', ['apps/server-nest/src'], 'nest-api'),
+    ],
+  };
+}
+
+function projectCatalogLoader(projects: NxWorkspaceProject[]) {
+  const catalog = createNxProjectCatalog(projects);
+  return (_cwd: string, projectIds: string[]) => {
+    const expected = catalog.projects.map(({ name }) => name);
+    if (JSON.stringify([...projectIds].sort()) !== JSON.stringify(expected)) {
+      throw new Error('Fixture project selection drifted.');
+    }
+    return catalog;
+  };
+}
+
+function webProjectDraftInput(): TaskingDraftInput {
+  return {
+    runtimes: [
+      {
+        id: 'RUNTIME-001',
+        runtime: 'typescript',
+        functionalContexts: ['workspace'],
+        technicalBoundaries: ['react-feature'],
+        projectIds: [
+          '@evidence/web-feature-diagrams',
+          'api-client',
+          '@evidence/web',
+        ],
+      },
+    ],
+    tests: [
+      {
+        id: 'TEST-001',
+        quadrant: 'Q1',
+        intent: 'The diagram feature exposes workspace Alpha.',
+        runtimePlanId: 'RUNTIME-001',
+        stepId: 'feature-q1',
+        projectId: '@evidence/web-feature-diagrams',
+        testFilter: 'diagram_workspace_alpha',
+        supportedBy: [],
+        scenarioIds: ['SC-001'],
+        businessData: ['name=Alpha', 'owner=desktop-user'],
+        modelRefs: { entities: ['workspace'], associations: [] },
+      },
+      {
+        id: 'TEST-002',
+        quadrant: 'Q1',
+        intent: 'The API client maps workspace Alpha.',
+        runtimePlanId: 'RUNTIME-001',
+        stepId: 'feature-q1',
+        projectId: 'api-client',
+        testFilter: 'api_workspace_alpha',
+        supportedBy: [],
+        scenarioIds: ['SC-001'],
+        businessData: ['name=Alpha', 'owner=desktop-user'],
+        modelRefs: { entities: ['workspace'], associations: [] },
+      },
+      {
+        id: 'TEST-003',
+        quadrant: 'Q2',
+        intent: 'The Web route shows workspace Alpha.',
+        runtimePlanId: 'RUNTIME-001',
+        stepId: 'route-q2',
+        projectId: '@evidence/web',
+        testFilter: 'route_workspace_alpha',
+        supportedBy: ['TEST-001', 'TEST-002'],
+        scenarioIds: ['SC-001'],
+        scenarioOutcome: 'Workspace Alpha is available to the owner',
+        businessData: ['name=Alpha', 'owner=desktop-user'],
+        modelRefs: { entities: ['workspace'], associations: [] },
+      },
+    ],
+    tasks: [
+      {
+        id: 'TASK-001',
+        description: 'Drive Web library support.',
+        testIds: ['TEST-001', 'TEST-002'],
+        dependsOn: [],
+      },
+      {
+        id: 'TASK-002',
+        description: 'Confirm Web route composition.',
+        testIds: ['TEST-003'],
+        dependsOn: ['TASK-001'],
+      },
+    ],
+  };
+}
+
+const webProjects: NxWorkspaceProject[] = [
+  {
+    name: '@evidence/web-feature-diagrams',
+    root: 'libs/web/web-feature-diagrams',
+    sourceRoot: 'libs/web/web-feature-diagrams/src',
+    targetNames: ['test', 'typecheck', 'lint'],
+  },
+  {
+    name: 'api-client',
+    root: 'libs/web/api-client',
+    sourceRoot: 'libs/web/api-client/src',
+    targetNames: ['test', 'typecheck', 'lint'],
+  },
+  {
+    name: '@evidence/web',
+    root: 'apps/web',
+    sourceRoot: 'apps/web/src',
+    targetNames: ['test', 'typecheck', 'lint'],
+  },
+];
 
 describe('Tasking and Desk Check', () => {
   it('builds one deduplicated plan that covers every Scenario outcome', () => {
@@ -350,7 +573,7 @@ describe('Tasking and Desk Check', () => {
     expect(approvedPlan).not.toHaveProperty('approval_reason');
   });
 
-  it('requires human approval, supports edited-list regeneration, and locks the v2 plan', () => {
+  it('requires human approval, supports edited-list regeneration, and locks the v3 process plan', () => {
     const cwd = workspace();
     prepare(cwd);
 
@@ -396,16 +619,20 @@ describe('Tasking and Desk Check', () => {
             {
               id: 'rust-workspace',
               definition_sha256: expect.any(String),
+              process_version: 3,
               focused_commands: [
                 {
+                  test_id: 'TEST-001',
                   step_id: 'domain-q1',
-                  command: 'node focused.js workspace_alpha',
+                  command: 'node focused.js workspace_domain_alpha',
                 },
                 {
+                  test_id: 'TEST-002',
                   step_id: 'api-q2',
-                  command: 'node focused.js workspace_alpha',
+                  command: 'node focused.js workspace_api_alpha',
                 },
               ],
+              quality_gate_commands: [{ command: 'node quality.js' }],
             },
           ],
         },
@@ -432,7 +659,7 @@ describe('Tasking and Desk Check', () => {
         stepId: 'domain-q1',
         taskId: 'TASK-001',
         testId: 'TEST-001',
-        command: 'node focused.js workspace_alpha',
+        command: 'node focused.js workspace_domain_alpha',
       }).expected_failure,
     ).toBe(true);
   });
@@ -598,10 +825,9 @@ describe('Tasking and Desk Check', () => {
       ],
     });
     const revisedInput = draftInput();
-    revisedInput.runtimes[0] = {
-      ...revisedInput.runtimes[0],
-      testFilter: 'workspace_revised',
-    };
+    const revisedTest = revisedInput.tests[0];
+    if (!revisedTest) throw new Error('Missing revised TEST fixture.');
+    revisedTest.testFilter = 'workspace_revised';
     proposeTaskingDraft(cwd, revisedInput);
 
     const revised = decideTasking(
@@ -674,6 +900,273 @@ describe('Tasking and Desk Check', () => {
     },
   );
 
+  it('locks each Web TEST to its owning Nx project and complete project gates', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/test-processes/web.json',
+      JSON.stringify(webProcessDefinition()),
+    );
+
+    const draft = proposeTaskingDraft(
+      cwd,
+      webProjectDraftInput(),
+      '2026-01-01T00:04:00.000Z',
+      projectCatalogLoader(webProjects),
+    );
+    const process = draft.tasking_candidate?.processes[0];
+
+    expect(process).toMatchObject({
+      process_version: 3,
+      project_ids: [
+        '@evidence/web',
+        '@evidence/web-feature-diagrams',
+        'api-client',
+      ],
+      focused_commands: [
+        {
+          test_id: 'TEST-001',
+          project_id: '@evidence/web-feature-diagrams',
+          command:
+            'pnpm nx test @evidence/web-feature-diagrams --run --testNamePattern=diagram_workspace_alpha',
+        },
+        {
+          test_id: 'TEST-002',
+          project_id: 'api-client',
+          command:
+            'pnpm nx test api-client --run --testNamePattern=api_workspace_alpha',
+        },
+        {
+          test_id: 'TEST-003',
+          project_id: '@evidence/web',
+          command:
+            'pnpm nx test @evidence/web --run --testNamePattern=route_workspace_alpha',
+        },
+      ],
+    });
+    expect(process?.quality_gate_commands).toHaveLength(9);
+    expect(process?.quality_gate_commands).toEqual(
+      expect.arrayContaining([
+        {
+          project_id: 'api-client',
+          target: 'test',
+          command: 'pnpm nx test api-client --run',
+        },
+        {
+          project_id: '@evidence/web-feature-diagrams',
+          target: 'typecheck',
+          command: 'pnpm nx typecheck @evidence/web-feature-diagrams',
+        },
+        {
+          project_id: '@evidence/web',
+          target: 'lint',
+          command: 'pnpm nx lint @evidence/web',
+        },
+      ]),
+    );
+
+    const approved = decideTasking(
+      cwd,
+      'approve',
+      'Every TEST owner and final gate is explicit.',
+      '2026-01-01T00:05:00.000Z',
+      projectCatalogLoader(webProjects),
+    );
+    const locked = approved.active_work_item?.test_plan.processes[0];
+    expect(locked?.project_catalog_path).toContain(
+      '03-architecture/project-catalogs',
+    );
+    expect(existsSync(`${cwd}/${locked?.project_catalog_path}`)).toBe(true);
+  });
+
+  it('binds Nest domain, persistence, and app tests without testing the API library project', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/test-processes/nest.json',
+      JSON.stringify(nestProcessDefinition()),
+    );
+    const projects: NxWorkspaceProject[] = [
+      {
+        name: '@evidence/server-nest-domain',
+        root: 'libs/server-nest/domain',
+        targetNames: ['test', 'typecheck', 'lint'],
+      },
+      {
+        name: '@evidence/server-nest-persistent',
+        root: 'libs/server-nest/persistent',
+        targetNames: ['test', 'typecheck', 'lint'],
+      },
+      {
+        name: '@evidence/server-nest',
+        root: 'apps/server-nest',
+        targetNames: ['test', 'typecheck', 'lint'],
+      },
+      {
+        name: '@evidence/server-nest-api',
+        root: 'libs/server-nest/api',
+        targetNames: ['typecheck', 'lint'],
+      },
+    ];
+    const input: TaskingDraftInput = {
+      runtimes: [
+        {
+          id: 'RUNTIME-001',
+          runtime: 'typescript',
+          functionalContexts: ['workspace'],
+          technicalBoundaries: ['nest-domain', 'prisma-store', 'nest-api'],
+          projectIds: projects.map(({ name }) => name),
+        },
+      ],
+      tests: [
+        {
+          id: 'TEST-001',
+          quadrant: 'Q1',
+          intent: 'The Nest domain creates workspace Alpha.',
+          runtimePlanId: 'RUNTIME-001',
+          stepId: 'nest-domain-q1',
+          projectId: '@evidence/server-nest-domain',
+          testFilter: 'nest_domain_alpha',
+          supportedBy: [],
+          scenarioIds: ['SC-001'],
+          businessData: ['name=Alpha', 'owner=desktop-user'],
+          modelRefs: { entities: ['workspace'], associations: [] },
+        },
+        {
+          id: 'TEST-002',
+          quadrant: 'Q1',
+          intent: 'The Nest store retains workspace Alpha.',
+          runtimePlanId: 'RUNTIME-001',
+          stepId: 'nest-persistent-q1',
+          projectId: '@evidence/server-nest-persistent',
+          testFilter: 'nest_store_alpha',
+          supportedBy: [],
+          scenarioIds: ['SC-001'],
+          businessData: ['name=Alpha', 'owner=desktop-user'],
+          modelRefs: { entities: ['workspace'], associations: [] },
+        },
+        {
+          id: 'TEST-003',
+          quadrant: 'Q2',
+          intent: 'The Nest app returns workspace Alpha.',
+          runtimePlanId: 'RUNTIME-001',
+          stepId: 'nest-api-q2',
+          projectId: '@evidence/server-nest',
+          testFilter: 'nest_api_alpha',
+          supportedBy: ['TEST-001', 'TEST-002'],
+          scenarioIds: ['SC-001'],
+          scenarioOutcome: 'Workspace Alpha is available to the owner',
+          businessData: ['name=Alpha', 'owner=desktop-user'],
+          modelRefs: { entities: ['workspace'], associations: [] },
+        },
+      ],
+      tasks: [
+        {
+          id: 'TASK-001',
+          description: 'Drive the Nest domain.',
+          testIds: ['TEST-001'],
+          dependsOn: [],
+        },
+        {
+          id: 'TASK-002',
+          description: 'Drive Nest persistence.',
+          testIds: ['TEST-002'],
+          dependsOn: ['TASK-001'],
+        },
+        {
+          id: 'TASK-003',
+          description: 'Confirm Nest API composition.',
+          testIds: ['TEST-003'],
+          dependsOn: ['TASK-002'],
+        },
+      ],
+    };
+
+    const draft = proposeTaskingDraft(
+      cwd,
+      input,
+      '2026-01-01T00:04:00.000Z',
+      projectCatalogLoader(projects),
+    );
+    const gates = draft.tasking_candidate?.processes[0]?.quality_gate_commands;
+    expect(gates).toHaveLength(11);
+    expect(gates).toContainEqual({
+      project_id: '@evidence/server-nest',
+      target: 'test',
+      command: 'pnpm nx test @evidence/server-nest --run',
+    });
+    expect(gates).not.toContainEqual(
+      expect.objectContaining({
+        project_id: '@evidence/server-nest-api',
+        target: 'test',
+      }),
+    );
+    expect(gates).toContainEqual({
+      project_id: '@evidence/server-nest-api',
+      target: 'typecheck',
+      command: 'pnpm nx typecheck @evidence/server-nest-api',
+    });
+
+    const invalidCwd = workspace();
+    prepare(invalidCwd);
+    write(
+      invalidCwd,
+      'engineering/evidence-orchestrator/test-processes/nest.json',
+      JSON.stringify(nestProcessDefinition()),
+    );
+    const invalid = structuredClone(input);
+    const q2 = invalid.tests.find(({ quadrant }) => quadrant === 'Q2');
+    if (!q2) throw new Error('Missing Nest Q2 fixture.');
+    q2.projectId = '@evidence/server-nest-api';
+    expect(
+      proposeTaskingDraft(
+        invalidCwd,
+        invalid,
+        '2026-01-01T00:04:00.000Z',
+        projectCatalogLoader(projects),
+      ),
+    ).toMatchObject({
+      tasking_stage: 'knowledge_gap',
+      tasking_gap: {
+        kind: 'process_gap',
+        reason: expect.stringContaining('has no test target'),
+      },
+    });
+  });
+
+  it('rejects Desk Check when the resolved Nx catalog drifts', () => {
+    const cwd = workspace();
+    prepare(cwd);
+    write(
+      cwd,
+      'engineering/evidence-orchestrator/test-processes/web.json',
+      JSON.stringify(webProcessDefinition()),
+    );
+    proposeTaskingDraft(
+      cwd,
+      webProjectDraftInput(),
+      '2026-01-01T00:04:00.000Z',
+      projectCatalogLoader(webProjects),
+    );
+    const drifted = webProjects.map((project) =>
+      project.name === 'api-client'
+        ? { ...project, targetNames: [...project.targetNames, 'build'] }
+        : project,
+    );
+
+    expect(() =>
+      decideTasking(
+        cwd,
+        'approve',
+        'The visible draft is unchanged.',
+        '2026-01-01T00:05:00.000Z',
+        projectCatalogLoader(drifted),
+      ),
+    ).toThrow('Nx project catalog drifted before Desk Check');
+  });
+
   it('routes zero or multiple process matches instead of guessing', () => {
     const zeroCwd = workspace();
     prepare(zeroCwd);
@@ -696,7 +1189,7 @@ describe('Tasking and Desk Check', () => {
       tasking_stage: 'knowledge_gap',
       tasking_gap: {
         kind: 'process_gap',
-        reason: expect.stringContaining('Multiple v2 test processes'),
+        reason: expect.stringContaining('Multiple v3 test processes'),
       },
     });
   });

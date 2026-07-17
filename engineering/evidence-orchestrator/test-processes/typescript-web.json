@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "id": "typescript-web-feature",
   "owner": "web-platform",
   "runtime": "typescript",
@@ -38,10 +38,11 @@
         "roots": ["libs/web", "apps/web/src"]
       },
       "focused_command": {
-        "template": "pnpm nx test @evidence/web --run --testNamePattern={{test_filter}}",
-        "allowed_variables": ["test_filter"]
+        "template": "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["project", "test_filter"]
       },
       "red": {
+        "expected_failure_kind": "behavior",
         "expected_failure": "The selected business expectation fails for an assertion reason, not setup or import failure."
       },
       "green": {
@@ -70,10 +71,11 @@
         "roots": ["libs/web"]
       },
       "focused_command": {
-        "template": "pnpm nx test @evidence/web --run --testNamePattern={{test_filter}}",
-        "allowed_variables": ["test_filter"]
+        "template": "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["project", "test_filter"]
       },
       "red": {
+        "expected_failure_kind": "behavior",
         "expected_failure": "The request, HAL link, or response mapping expectation fails while the transport double remains healthy."
       },
       "green": {
@@ -102,10 +104,11 @@
         "roots": ["apps/web/src", "libs/web"]
       },
       "focused_command": {
-        "template": "pnpm nx test @evidence/web --run --testNamePattern={{test_filter}}",
-        "allowed_variables": ["test_filter"]
+        "template": "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
+        "allowed_variables": ["project", "test_filter"]
       },
       "red": {
+        "expected_failure_kind": "behavior",
         "expected_failure": "The confirmed Scenario outcome fails at the rendered route boundary."
       },
       "green": {
@@ -117,8 +120,23 @@
     }
   ],
   "quality_gates": [
-    "pnpm nx test @evidence/web --run",
-    "pnpm nx typecheck @evidence/web",
-    "pnpm nx lint @evidence/web"
+    {
+      "scope": "test_projects",
+      "required_target": "test",
+      "template": "pnpm nx test {{project}} --run",
+      "allowed_variables": ["project"]
+    },
+    {
+      "scope": "planned_projects",
+      "required_target": "typecheck",
+      "template": "pnpm nx typecheck {{project}}",
+      "allowed_variables": ["project"]
+    },
+    {
+      "scope": "planned_projects",
+      "required_target": "lint",
+      "template": "pnpm nx lint {{project}}",
+      "allowed_variables": ["project"]
+    }
   ]
 }

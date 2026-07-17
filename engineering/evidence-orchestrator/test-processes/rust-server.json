@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "id": "rust-server-feature",
   "owner": "server-platform",
   "runtime": "rust",
@@ -35,7 +35,8 @@
         "allowed_variables": ["test_filter"]
       },
       "red": {
-        "expected_failure": "The new domain expectation fails to compile or assert because the behavior is absent; infrastructure failures are illegal."
+        "expected_failure_kind": "behavior",
+        "expected_failure": "The focused domain test reaches its assertion and fails because the planned behavior is absent; compile and infrastructure failures are pseudo-Red."
       },
       "green": {
         "done_when": "The focused domain behavior passes with framework-free business logic."
@@ -62,6 +63,7 @@
         "allowed_variables": ["test_filter"]
       },
       "red": {
+        "expected_failure_kind": "behavior",
         "expected_failure": "The contract assertion fails against the fake store for the missing persistence behavior."
       },
       "green": {
@@ -94,6 +96,7 @@
         "allowed_variables": ["test_filter"]
       },
       "red": {
+        "expected_failure_kind": "behavior",
         "expected_failure": "The selected status, payload, pagination, or HAL-link expectation fails through Axum."
       },
       "green": {
@@ -105,8 +108,20 @@
     }
   ],
   "quality_gates": [
-    "cargo test -p evidence-server",
-    "cargo clippy -p evidence-server --all-targets -- -D warnings",
-    "cargo fmt -p evidence-server -- --check"
+    {
+      "scope": "process",
+      "template": "cargo test -p evidence-server",
+      "allowed_variables": []
+    },
+    {
+      "scope": "process",
+      "template": "cargo clippy -p evidence-server --all-targets -- -D warnings",
+      "allowed_variables": []
+    },
+    {
+      "scope": "process",
+      "template": "cargo fmt -p evidence-server -- --check",
+      "allowed_variables": []
+    }
   ]
 }

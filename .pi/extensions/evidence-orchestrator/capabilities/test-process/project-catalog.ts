@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute } from 'node:path';
 
 export interface NxWorkspaceProject {
@@ -155,6 +156,26 @@ export function assertNxProjectCatalog(
 export function serializeNxProjectCatalog(catalog: NxProjectCatalog): string {
   assertNxProjectCatalog(catalog);
   return `${JSON.stringify(catalog, null, 2)}\n`;
+}
+
+export function readNxProjectCatalogSnapshot(path: string): NxProjectCatalog {
+  if (!existsSync(path)) {
+    throw new Error(`Nx project catalog snapshot is missing: ${path}.`);
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+  } catch {
+    throw new Error(`Nx project catalog snapshot is not valid JSON: ${path}.`);
+  }
+  if (
+    !isRecord(parsed) ||
+    parsed.version !== 1 ||
+    !Array.isArray(parsed.projects)
+  ) {
+    throw new Error(`Nx project catalog snapshot is invalid: ${path}.`);
+  }
+  return assertNxProjectCatalog(parsed as unknown as NxProjectCatalog);
 }
 
 function parseJsonOutput(output: string, name: string): unknown {

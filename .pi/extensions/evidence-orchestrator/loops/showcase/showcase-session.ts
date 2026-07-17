@@ -294,25 +294,22 @@ function approvedQ2Steps(cwd: string, state: WorkflowState) {
       const definition = readTestProcess(join(cwd, process.path));
       assertLockedMaterializedPlan(cwd, process, definition);
       const selected = process.selected_step_ids ?? [];
-      return definition.steps
+      return item.tasking.tests
         .filter(
-          ({ id, quadrant }) => selected.includes(id) && quadrant === 'Q2',
+          ({ quadrant, process_id }) =>
+            quadrant === 'Q2' && process_id === process.id,
         )
-        .map((step) => {
-          const command = process.focused_commands?.find(
-            ({ step_id }) => step_id === step.id,
+        .map((test) => {
+          const step = definition.steps.find(
+            ({ id, quadrant }) =>
+              id === test.step_id && selected.includes(id) && quadrant === 'Q2',
+          );
+          const command = process.focused_commands.find(
+            ({ test_id }) => test_id === test.id,
           )?.command;
-          const testIds = item.tasking.tests
-            .filter(
-              ({ quadrant, process_id, step_id }) =>
-                quadrant === 'Q2' &&
-                process_id === process.id &&
-                step_id === step.id,
-            )
-            .map(({ id }) => id);
-          if (!command || testIds.length === 0) {
+          if (!command || !step) {
             throw new Error(
-              `Approved Showcase Q2 traceability drifted: ${item.story_id}/[${item.scenarios.map(({ scenario_id }) => scenario_id).join(',')}]/${process.id}/${step.id}.`,
+              `Approved Showcase Q2 traceability drifted: ${item.story_id}/[${item.scenarios.map(({ scenario_id }) => scenario_id).join(',')}]/${process.id}/${test.step_id}/${test.id}.`,
             );
           }
           return {
@@ -320,8 +317,9 @@ function approvedQ2Steps(cwd: string, state: WorkflowState) {
             scenarioIds: item.scenarios.map(({ scenario_id }) => scenario_id),
             processId: process.id,
             stepId: step.id,
+            testId: test.id,
             command,
-            testIds,
+            testIds: [test.id],
           };
         });
     }),
@@ -333,14 +331,15 @@ function latestQ2Passed(cwd: string, state: WorkflowState): boolean {
   const observations = state.showcase_q2_observations ?? [];
   return (
     expected.length > 0 &&
-    expected.every(({ storyId, scenarioIds, processId, stepId }) => {
+    expected.every(({ storyId, scenarioIds, processId, stepId, testId }) => {
       const latest = observations
         .filter(
-          ({ story_id, scenario_ids, process_id, step_id }) =>
+          ({ story_id, scenario_ids, process_id, step_id, test_ids }) =>
             story_id === storyId &&
             JSON.stringify(scenario_ids) === JSON.stringify(scenarioIds) &&
             process_id === processId &&
-            step_id === stepId,
+            step_id === stepId &&
+            test_ids.includes(testId),
         )
         .at(-1);
       return latest?.exit_code === 0;
@@ -369,6 +368,7 @@ export function executeShowcaseQ2(
       return executeTestStep(cwd, {
         processId: step.processId,
         stepId: step.stepId,
+        testId: step.testId,
         stage: 'showcase',
         command: step.command,
         invocation: 'showcase-controller',
@@ -389,6 +389,7 @@ export function executeShowcaseQ2(
       version: 2 as const,
       process_id: step.processId,
       step_id: step.stepId,
+      test_id: step.testId,
       stage: 'showcase' as const,
       command: step.command,
       sequence: index + 1,

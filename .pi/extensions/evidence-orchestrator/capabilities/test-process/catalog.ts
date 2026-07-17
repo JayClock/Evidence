@@ -9,12 +9,21 @@ interface TestBoundaryDouble {
   test_double: TestDouble;
 }
 
-interface FocusedCommandDefinition {
+export interface FocusedCommandDefinition {
   template: string;
   allowed_variables: string[];
 }
 
-interface TestProcessStep {
+export type QualityGateScope = 'test_projects' | 'planned_projects' | 'process';
+
+export interface QualityGateDefinition {
+  scope: QualityGateScope;
+  required_target?: string;
+  template: string;
+  allowed_variables: string[];
+}
+
+export interface TestProcessStep {
   id: string;
   quadrant: 'Q1' | 'Q2';
   functional_contexts: string[];
@@ -23,13 +32,16 @@ interface TestProcessStep {
   replaced_boundaries: TestBoundaryDouble[];
   nearest_test: { rule: string; roots: string[] };
   focused_command: FocusedCommandDefinition;
-  red: { expected_failure: string };
+  red: {
+    expected_failure_kind: 'behavior';
+    expected_failure: string;
+  };
   green: { done_when: string };
   refactor: { done_when: string };
 }
 
 export interface TestProcessDefinition {
-  version: 2;
+  version: 3;
   id: string;
   owner: string;
   runtime: TestProcessRuntime;
@@ -37,12 +49,36 @@ export interface TestProcessDefinition {
   technical_boundaries: string[];
   applies_when: string;
   steps: TestProcessStep[];
-  quality_gates: string[];
+  quality_gates: QualityGateDefinition[];
 }
 
-interface MaterializedFocusedCommand {
+export interface FocusedCommandBinding {
+  test_id: string;
   step_id: string;
+  variables: Record<string, string>;
+}
+
+export interface MaterializedFocusedCommand {
+  test_id: string;
+  step_id: string;
+  project_id?: string;
   command: string;
+}
+
+export interface MaterializedQualityGate {
+  project_id?: string;
+  target?: string;
+  command: string;
+}
+
+export interface MaterializedProcessHashInput {
+  processId: string;
+  definitionSha256: string;
+  projectIds: string[];
+  projectCatalogSha256?: string;
+  commandVariablesByTest: Record<string, Record<string, string>>;
+  focusedCommands: MaterializedFocusedCommand[];
+  qualityGateCommands: MaterializedQualityGate[];
 }
 
 const RUNTIMES = new Set<TestProcessRuntime>(['rust', 'typescript', 'tauri']);
@@ -53,15 +89,17 @@ const TEST_DOUBLES = new Set<TestDouble>([
   'spy',
   'mock',
 ]);
-const COMMAND_VARIABLES = new Set([
-  'test_file',
-  'test_name',
-  'project',
-  'test_filter',
-]);
+const COMMAND_VARIABLES = new Set(['project', 'test_filter']);
 const COMMAND_VARIABLE_VALUE = /^[A-Za-z0-9_@./:-]+$/;
 const PLACEHOLDER = /\{\{([a-z_]+)\}\}/g;
 const PROCESS_ID = /^[a-z0-9][a-z0-9-]*$/;
+const TEST_ID = /^TEST-\d{3,}$/;
+const TARGET_NAME = /^[A-Za-z0-9_-]+$/;
+const QUALITY_GATE_SCOPES = new Set<QualityGateScope>([
+  'test_projects',
+  'planned_projects',
+  'process',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -116,8 +154,9 @@ function strings(
 }
 
 function readJson(path: string): unknown {
-  if (!existsSync(path))
+  if (!existsSync(path)) {
     throw new Error(`Test process file not found: ${path}.`);
+  }
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as unknown;
   } catch {
@@ -164,7 +203,7 @@ function testDouble(value: unknown, name: string): TestDouble {
   return result;
 }
 
-function focusedCommand(
+function commandDefinition(
   value: unknown,
   name: string,
 ): FocusedCommandDefinition {
@@ -194,7 +233,191 @@ function focusedCommand(
   return { template, allowed_variables: allowedVariables };
 }
 
-function readV2(
+function focusedCommand(
+  value: unknown,
+  name: string,
+): FocusedCommandDefinition {
+  const command = commandDefinition(value, name);
+  if (!command.allowed_variables.includes('test_filter')) {
+    throw new Error(`${name} must declare test_filter.`);
+  }
+  return command;
+}
+
+function qualityGateScope(value: unknown, name: string): QualityGateScope {
+  const result = string(value, name) as QualityGateScope;
+  if (!QUALITY_GATE_SCOPES.has(result)) {
+    throw new Error(`${name} is unsupported: ${result}.`);
+  }
+  return result;
+}
+
+function qualityGate(value: unknown, name: string): QualityGateDefinition {
+  const source = strictRecord(value, name, [
+    'scope',
+    'required_target',
+    'template',
+    'allowed_variables',
+  ]);
+  const scope = qualityGateScope(source.scope, `${name}.scope`);
+  const command = commandDefinition(
+    {
+      template: source.template,
+      allowed_variables: source.allowed_variables,
+    },
+    name,
+  );
+  if (scope === 'process') {
+    if (
+      source.required_target !== undefined ||
+      command.allowed_variables.length > 0
+    ) {
+      throw new Error(
+        `${name} process scope must be static and omit required_target.`,
+      );
+    }
+    return { scope, ...command };
+  }
+  const requiredTarget = string(
+    source.required_target,
+    `${name}.required_target`,
+  );
+  if (!TARGET_NAME.test(requiredTarget)) {
+    throw new Error(`${name}.required_target has an unsafe target name.`);
+  }
+  if (
+    command.allowed_variables.length !== 1 ||
+    command.allowed_variables[0] !== 'project'
+  ) {
+    throw new Error(
+      `${name} project scope must declare only the project variable.`,
+    );
+  }
+  return {
+    scope,
+    required_target: requiredTarget,
+    ...command,
+  };
+}
+
+function parseStep(
+  value: unknown,
+  index: number,
+  path: string,
+  capabilities: string[],
+  technicalBoundaries: string[],
+): TestProcessStep {
+  const name = `${path}.steps[${index}]`;
+  const step = strictRecord(value, name, [
+    'id',
+    'purpose',
+    'quadrant',
+    'functional_contexts',
+    'real_boundaries',
+    'replaced_boundaries',
+    'nearest_test',
+    'focused_command',
+    'red',
+    'green',
+    'refactor',
+  ]);
+  const contexts = strings(
+    step.functional_contexts,
+    `${name}.functional_contexts`,
+  );
+  if (!contexts.every((context) => capabilities.includes(context))) {
+    throw new Error(
+      `${name}.functional_contexts must be declared capabilities.`,
+    );
+  }
+  const realBoundaries = strings(
+    step.real_boundaries,
+    `${name}.real_boundaries`,
+  );
+  if (!Array.isArray(step.replaced_boundaries)) {
+    throw new Error(`${name}.replaced_boundaries must be an array.`);
+  }
+  const replacedBoundaries = step.replaced_boundaries.map(
+    (entry, boundaryIndex) => {
+      const boundary = strictRecord(
+        entry,
+        `${name}.replaced_boundaries[${boundaryIndex}]`,
+        ['boundary', 'test_double'],
+      );
+      return {
+        boundary: string(
+          boundary.boundary,
+          `${name}.replaced_boundaries[${boundaryIndex}].boundary`,
+        ),
+        test_double: testDouble(
+          boundary.test_double,
+          `${name}.replaced_boundaries[${boundaryIndex}].test_double`,
+        ),
+      };
+    },
+  );
+  if (replacedBoundaries.some(({ test_double }) => test_double === 'real')) {
+    throw new Error(`${name}.replaced_boundaries must use a test double.`);
+  }
+  const allBoundaries = [
+    ...realBoundaries,
+    ...replacedBoundaries.map(({ boundary }) => boundary),
+  ];
+  if (new Set(allBoundaries).size !== allBoundaries.length) {
+    throw new Error(`${name} must not repeat a real or replaced boundary.`);
+  }
+  if (
+    !allBoundaries.every((boundary) => technicalBoundaries.includes(boundary))
+  ) {
+    throw new Error(`${name} references an undeclared technical boundary.`);
+  }
+  const nearest = strictRecord(step.nearest_test, `${name}.nearest_test`, [
+    'rule',
+    'roots',
+  ]);
+  const red = strictRecord(step.red, `${name}.red`, [
+    'expected_failure_kind',
+    'expected_failure',
+  ]);
+  if (red.expected_failure_kind !== 'behavior') {
+    throw new Error(`${name}.red.expected_failure_kind must be behavior.`);
+  }
+  const green = strictRecord(step.green, `${name}.green`, ['done_when']);
+  const refactor = strictRecord(step.refactor, `${name}.refactor`, [
+    'done_when',
+  ]);
+  return {
+    id: string(step.id, `${name}.id`),
+    quadrant: quadrant(step.quadrant, `${name}.quadrant`),
+    functional_contexts: contexts,
+    purpose: string(step.purpose, `${name}.purpose`),
+    real_boundaries: realBoundaries,
+    replaced_boundaries: replacedBoundaries,
+    nearest_test: {
+      rule: string(nearest.rule, `${name}.nearest_test.rule`),
+      roots: strings(nearest.roots, `${name}.nearest_test.roots`),
+    },
+    focused_command: focusedCommand(
+      step.focused_command,
+      `${name}.focused_command`,
+    ),
+    red: {
+      expected_failure_kind: 'behavior',
+      expected_failure: string(
+        red.expected_failure,
+        `${name}.red.expected_failure`,
+      ),
+    },
+    green: {
+      done_when: string(green.done_when, `${name}.green.done_when`),
+    },
+    refactor: {
+      done_when: string(refactor.done_when, `${name}.refactor.done_when`),
+    },
+  };
+}
+
+function readV3(
   path: string,
   source: Record<string, unknown>,
 ): TestProcessDefinition {
@@ -215,113 +438,27 @@ function readV2(
   if (!Array.isArray(source.steps) || source.steps.length === 0) {
     throw new Error(`${path}.steps must be a non-empty array.`);
   }
-  const steps = source.steps.map((value, index) => {
-    const name = `${path}.steps[${index}]`;
-    const step = strictRecord(value, name, [
-      'id',
-      'purpose',
-      'quadrant',
-      'functional_contexts',
-      'real_boundaries',
-      'replaced_boundaries',
-      'nearest_test',
-      'focused_command',
-      'red',
-      'green',
-      'refactor',
-    ]);
-    const contexts = strings(
-      step.functional_contexts,
-      `${name}.functional_contexts`,
-    );
-    if (!contexts.every((context) => capabilities.includes(context))) {
-      throw new Error(
-        `${name}.functional_contexts must be declared capabilities.`,
-      );
-    }
-    const realBoundaries = strings(
-      step.real_boundaries,
-      `${name}.real_boundaries`,
-    );
-    if (!Array.isArray(step.replaced_boundaries)) {
-      throw new Error(`${name}.replaced_boundaries must be an array.`);
-    }
-    const replacedBoundaries = step.replaced_boundaries.map(
-      (entry, boundaryIndex) => {
-        const boundary = strictRecord(
-          entry,
-          `${name}.replaced_boundaries[${boundaryIndex}]`,
-          ['boundary', 'test_double'],
-        );
-        return {
-          boundary: string(
-            boundary.boundary,
-            `${name}.replaced_boundaries[${boundaryIndex}].boundary`,
-          ),
-          test_double: testDouble(
-            boundary.test_double,
-            `${name}.replaced_boundaries[${boundaryIndex}].test_double`,
-          ),
-        };
-      },
-    );
-    if (replacedBoundaries.some(({ test_double }) => test_double === 'real')) {
-      throw new Error(`${name}.replaced_boundaries must use a test double.`);
-    }
-    const allBoundaries = [
-      ...realBoundaries,
-      ...replacedBoundaries.map(({ boundary }) => boundary),
-    ];
-    if (new Set(allBoundaries).size !== allBoundaries.length) {
-      throw new Error(`${name} must not repeat a real or replaced boundary.`);
-    }
-    if (
-      !allBoundaries.every((boundary) => technicalBoundaries.includes(boundary))
-    ) {
-      throw new Error(`${name} references an undeclared technical boundary.`);
-    }
-    const nearest = strictRecord(step.nearest_test, `${name}.nearest_test`, [
-      'rule',
-      'roots',
-    ]);
-    const purpose = string(step.purpose, `${name}.purpose`);
-    const red = strictRecord(step.red, `${name}.red`, ['expected_failure']);
-    const green = strictRecord(step.green, `${name}.green`, ['done_when']);
-    const refactor = strictRecord(step.refactor, `${name}.refactor`, [
-      'done_when',
-    ]);
-    return {
-      id: string(step.id, `${name}.id`),
-      quadrant: quadrant(step.quadrant, `${name}.quadrant`),
-      functional_contexts: contexts,
-      purpose,
-      real_boundaries: realBoundaries,
-      replaced_boundaries: replacedBoundaries,
-      nearest_test: {
-        rule: string(nearest.rule, `${name}.nearest_test.rule`),
-        roots: strings(nearest.roots, `${name}.nearest_test.roots`),
-      },
-      focused_command: focusedCommand(
-        step.focused_command,
-        `${name}.focused_command`,
-      ),
-      red: {
-        expected_failure: string(
-          red.expected_failure,
-          `${name}.red.expected_failure`,
-        ),
-      },
-      green: {
-        done_when: string(green.done_when, `${name}.green.done_when`),
-      },
-      refactor: {
-        done_when: string(refactor.done_when, `${name}.refactor.done_when`),
-      },
-    } satisfies TestProcessStep;
-  });
+  const steps = source.steps.map((value, index) =>
+    parseStep(value, index, path, capabilities, technicalBoundaries),
+  );
   validateQuadrants(path, steps);
+  if (
+    !Array.isArray(source.quality_gates) ||
+    source.quality_gates.length === 0
+  ) {
+    throw new Error(`${path}.quality_gates must be a non-empty array.`);
+  }
+  const qualityGates = source.quality_gates.map((gate, index) =>
+    qualityGate(gate, `${path}.quality_gates[${index}]`),
+  );
+  if (
+    new Set(qualityGates.map((gate) => JSON.stringify(gate))).size !==
+    qualityGates.length
+  ) {
+    throw new Error(`${path}.quality_gates must be unique.`);
+  }
   return {
-    version: 2,
+    version: 3,
     id: string(source.id, `${path}.id`),
     owner: string(source.owner, `${path}.owner`),
     runtime: processRuntime,
@@ -329,7 +466,7 @@ function readV2(
     technical_boundaries: technicalBoundaries,
     applies_when: string(appliesTo.when, `${path}.applies_to.when`),
     steps,
-    quality_gates: strings(source.quality_gates, `${path}.quality_gates`),
+    quality_gates: qualityGates,
   };
 }
 
@@ -351,69 +488,177 @@ export function readTestProcess(path: string): TestProcessDefinition {
   if (!PROCESS_ID.test(id)) {
     throw new Error(`${path}.id must use lowercase kebab-case.`);
   }
-  if (source.version !== 2) {
-    throw new Error(`${path}.version must be 2 for active Tasking.`);
+  if (source.version !== 3) {
+    throw new Error(`${path}.version must be 3 for active Tasking.`);
   }
-  return readV2(path, source);
+  return readV3(path, source);
 }
 
 export function testProcessDefinitionSha256(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex');
 }
 
+function canonicalVariablesByTest(
+  variables: Record<string, Record<string, string>>,
+): Record<string, Record<string, string>> {
+  return Object.fromEntries(
+    Object.entries(variables)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([testId, values]) => [
+        testId,
+        Object.fromEntries(Object.entries(values).sort()),
+      ]),
+  );
+}
+
 export function materializedProcessSha256(
-  processId: string,
-  definitionSha256: string,
-  variables: Record<string, string>,
-  commands: MaterializedFocusedCommand[],
+  input: MaterializedProcessHashInput,
 ): string {
   const canonical = JSON.stringify({
-    process_id: processId,
-    definition_sha256: definitionSha256,
-    variables: Object.fromEntries(Object.entries(variables).sort()),
-    commands,
+    process_id: input.processId,
+    definition_sha256: input.definitionSha256,
+    project_ids: [...input.projectIds].sort(),
+    ...(input.projectCatalogSha256
+      ? { project_catalog_sha256: input.projectCatalogSha256 }
+      : {}),
+    command_variables_by_test: canonicalVariablesByTest(
+      input.commandVariablesByTest,
+    ),
+    focused_commands: [...input.focusedCommands].sort((left, right) =>
+      left.test_id.localeCompare(right.test_id),
+    ),
+    quality_gate_commands: input.qualityGateCommands,
   });
   return createHash('sha256').update(canonical).digest('hex');
 }
 
-export function materializeFocusedCommands(
-  definition: TestProcessDefinition,
+function validateVariables(
   variables: Record<string, string>,
-): MaterializedFocusedCommand[] {
-  const usedVariables = new Set(
-    definition.steps.flatMap(
-      ({ focused_command }) => focused_command.allowed_variables,
-    ),
-  );
+  allowed: string[],
+  subject: string,
+): void {
+  const names = Object.keys(variables).sort();
+  if (JSON.stringify(names) !== JSON.stringify([...allowed].sort())) {
+    throw new Error(
+      `${subject} variables must exactly match: ${allowed.join(', ')}.`,
+    );
+  }
   for (const [name, value] of Object.entries(variables)) {
-    if (!usedVariables.has(name)) {
-      throw new Error(
-        `Focused command variable is not declared by ${definition.id}: ${name}.`,
-      );
-    }
-    if (!COMMAND_VARIABLE_VALUE.test(value) || value.includes('..')) {
-      throw new Error(`Focused command variable ${name} has an unsafe value.`);
+    if (
+      !COMMAND_VARIABLE_VALUE.test(value) ||
+      value.includes('..') ||
+      value.trim() !== value
+    ) {
+      throw new Error(`${subject} variable ${name} has an unsafe value.`);
     }
   }
-  return definition.steps.map((step) => {
-    const focused = step.focused_command;
-    let command = focused.template;
-    for (const name of focused.allowed_variables) {
-      const value = variables[name];
-      if (!value) {
+}
+
+function materializeCommand(
+  definition: { template: string; allowed_variables: string[] },
+  variables: Record<string, string>,
+  subject: string,
+): string {
+  validateVariables(variables, definition.allowed_variables, subject);
+  let command = definition.template;
+  for (const name of definition.allowed_variables) {
+    command = command.replaceAll(`{{${name}}}`, variables[name] ?? '');
+  }
+  if (command.match(PLACEHOLDER)) {
+    throw new Error(`${subject} contains an unresolved variable.`);
+  }
+  return command;
+}
+
+export function materializeFocusedCommands(
+  definition: TestProcessDefinition,
+  bindings: FocusedCommandBinding[],
+): MaterializedFocusedCommand[] {
+  if (!Array.isArray(bindings) || bindings.length === 0) {
+    throw new Error(
+      `${definition.id} requires at least one TEST command binding.`,
+    );
+  }
+  if (
+    bindings.some(({ test_id }) => !TEST_ID.test(test_id)) ||
+    new Set(bindings.map(({ test_id }) => test_id)).size !== bindings.length
+  ) {
+    throw new Error(
+      `${definition.id} command bindings require unique TEST-xxx ids.`,
+    );
+  }
+  return bindings
+    .map((binding) => {
+      const step = definition.steps.find(({ id }) => id === binding.step_id);
+      if (!step) {
         throw new Error(
-          `Focused command variable ${name} is required by ${definition.id}/${step.id}.`,
+          `${binding.test_id} references an unknown ${definition.id} step: ${binding.step_id}.`,
         );
       }
-      command = command.replaceAll(`{{${name}}}`, value);
-    }
-    if (command.match(PLACEHOLDER)) {
-      throw new Error(
-        `Focused command for ${definition.id}/${step.id} contains an unresolved variable.`,
+      const command = materializeCommand(
+        step.focused_command,
+        binding.variables,
+        `${definition.id}/${binding.step_id}/${binding.test_id}`,
       );
+      const projectId = binding.variables.project;
+      return {
+        test_id: binding.test_id,
+        step_id: binding.step_id,
+        ...(projectId ? { project_id: projectId } : {}),
+        command,
+      };
+    })
+    .sort((left, right) => left.test_id.localeCompare(right.test_id));
+}
+
+export function materializeQualityGates(
+  definition: TestProcessDefinition,
+  projectIds: string[],
+  testProjectIds: string[],
+): MaterializedQualityGate[] {
+  const planned = [...new Set(projectIds)].sort();
+  const testProjects = [...new Set(testProjectIds)].sort();
+  if (testProjects.some((project) => !planned.includes(project))) {
+    throw new Error(`${definition.id} TEST projects must be planned projects.`);
+  }
+  const commands = definition.quality_gates.flatMap((gate) => {
+    if (gate.scope === 'process') {
+      return [
+        {
+          command: materializeCommand(
+            gate,
+            {},
+            `${definition.id} process quality gate`,
+          ),
+        },
+      ];
     }
-    return { step_id: step.id, command };
+    const projects = gate.scope === 'test_projects' ? testProjects : planned;
+    const target = gate.required_target;
+    if (!target) {
+      throw new Error(`${definition.id} project quality gate has no target.`);
+    }
+    return projects.map((projectId) => ({
+      project_id: projectId,
+      target,
+      command: materializeCommand(
+        gate,
+        { project: projectId },
+        `${definition.id}/${target}/${projectId} quality gate`,
+      ),
+    }));
   });
+  if (commands.length === 0) {
+    throw new Error(`${definition.id} materialized no quality gates.`);
+  }
+  if (
+    new Set(commands.map(({ command }) => command)).size !== commands.length
+  ) {
+    throw new Error(
+      `${definition.id} materialized duplicate quality commands.`,
+    );
+  }
+  return commands;
 }
 
 export function validateTestProcessDirectory(
@@ -527,10 +772,7 @@ function matchingTestProcessesInDirectories(
   for (const directory of directories) {
     if (!existsSync(directory)) continue;
     for (const path of findFiles(directory, (file) => file.endsWith('.json'))) {
-      const candidate = {
-        path,
-        definition: readTestProcess(path),
-      };
+      const candidate = { path, definition: readTestProcess(path) };
       if (!byId.has(candidate.definition.id)) {
         byId.set(candidate.definition.id, candidate);
       }

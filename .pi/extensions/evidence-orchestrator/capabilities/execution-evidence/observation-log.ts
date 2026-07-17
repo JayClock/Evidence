@@ -9,10 +9,12 @@ import {
 } from '../../iteration/state-repository';
 import {
   materializeFocusedCommands,
+  materializeQualityGates,
   materializedProcessSha256,
   readTestProcess,
   testProcessDefinitionSha256,
 } from '../test-process/catalog';
+import { readNxProjectCatalogSnapshot } from '../test-process/project-catalog';
 
 export type TestExecutionStage =
   | 'red'
@@ -230,7 +232,7 @@ export function assertLockedMaterializedPlan(
 ): void {
   if (!selection.materialized_plan_path) {
     throw new Error(
-      `Selected v2 process has no immutable test plan: ${selection.id}.`,
+      `Selected v3 process has no immutable test plan: ${selection.id}.`,
     );
   }
   const path = join(cwd, selection.materialized_plan_path);
@@ -263,9 +265,12 @@ export function assertLockedMaterializedPlan(
     functional_contexts: plan.functional_contexts,
     technical_boundaries: plan.technical_boundaries,
     selected_step_ids: plan.selected_step_ids,
-    command_variables: plan.command_variables,
+    project_ids: plan.project_ids,
+    project_catalog_sha256: plan.project_catalog_sha256,
+    project_catalog_path: plan.project_catalog_path,
+    command_variables_by_test: plan.command_variables_by_test,
     focused_commands: plan.focused_commands,
-    quality_gates: plan.quality_gates,
+    quality_gate_commands: plan.quality_gate_commands,
     materialized_sha256: plan.materialized_sha256,
   };
   const expected = {
@@ -276,22 +281,47 @@ export function assertLockedMaterializedPlan(
     functional_contexts: selection.functional_contexts,
     technical_boundaries: selection.technical_boundaries,
     selected_step_ids: selection.selected_step_ids,
-    command_variables: selection.command_variables,
+    project_ids: selection.project_ids,
+    project_catalog_sha256: selection.project_catalog_sha256,
+    project_catalog_path: selection.project_catalog_path,
+    command_variables_by_test: selection.command_variables_by_test,
     focused_commands: selection.focused_commands,
-    quality_gates: process.quality_gates,
+    quality_gate_commands: selection.quality_gate_commands,
     materialized_sha256: selection.materialized_sha256,
   };
-  if (JSON.stringify(locked) !== JSON.stringify(expected)) {
+  if (
+    process.version !== 3 ||
+    plan.version !== 3 ||
+    JSON.stringify(locked) !== JSON.stringify(expected)
+  ) {
     throw new Error(`Materialized test plan drifted: ${selection.id}.`);
+  }
+  if (selection.project_ids.length > 0) {
+    if (!selection.project_catalog_path || !selection.project_catalog_sha256) {
+      throw new Error(
+        `Selected Nx process has no locked catalog: ${selection.id}.`,
+      );
+    }
+    const catalog = readNxProjectCatalogSnapshot(
+      join(cwd, selection.project_catalog_path),
+    );
+    if (
+      catalog.project_catalog_sha256 !== selection.project_catalog_sha256 ||
+      JSON.stringify(catalog.projects.map(({ name }) => name)) !==
+        JSON.stringify([...selection.project_ids].sort())
+    ) {
+      throw new Error(`Locked Nx project catalog drifted: ${selection.id}.`);
+    }
   }
 }
 
-function assertV2ExecutionOrder(
+function assertV3ExecutionOrder(
   request: TestExecutionRequest,
   process: ReturnType<typeof readTestProcess>,
+  selection: ReturnType<typeof selectedTestProcesses>[number],
   records: TestExecutionRecord[],
-  selectedStepIds?: string[],
 ): void {
+  const selectedStepIds = selection.selected_step_ids;
   const steps = selectedStepIds
     ? process.steps.filter(({ id }) => selectedStepIds.includes(id))
     : process.steps;
@@ -302,8 +332,8 @@ function assertV2ExecutionOrder(
     ({ process_id }) => process_id === request.processId,
   );
   if (request.stage === 'showcase') {
-    if (!request.stepId) {
-      throw new Error('A Showcase execution requires one selected Q2 step.');
+    if (!request.stepId || !request.testId) {
+      throw new Error('A Showcase execution requires one selected Q2 TEST.');
     }
     const step = steps.find(({ id }) => id === request.stepId);
     if (!step || step.quadrant !== 'Q2') {
@@ -311,8 +341,8 @@ function assertV2ExecutionOrder(
         `Showcase can execute only a selected Q2 step: ${request.processId}/${request.stepId}.`,
       );
     }
-    const missingGates = process.quality_gates.filter(
-      (command) =>
+    const missingGates = selection.quality_gate_commands.filter(
+      ({ command }) =>
         !processRecords.some(
           ({ stage, command: observed, exit_code }) =>
             stage === 'quality_gate' && observed === command && exit_code === 0,
@@ -320,7 +350,7 @@ function assertV2ExecutionOrder(
     );
     if (missingGates.length > 0) {
       throw new Error(
-        `Showcase requires passed final quality gates: ${missingGates.join(', ')}.`,
+        `Showcase requires passed final quality gates: ${missingGates.map(({ command }) => command).join(', ')}.`,
       );
     }
     return;
@@ -487,50 +517,67 @@ export function executeTestStep(
       `Selected test process definition drifted: ${request.processId}.`,
     );
   }
-  const allMaterialized = materializeFocusedCommands(
+  const rematerialized = materializeFocusedCommands(
     process,
-    selection.command_variables,
+    selection.focused_commands.map(({ test_id, step_id }) => {
+      const variables = selection.command_variables_by_test[test_id];
+      if (!variables) {
+        throw new Error(`${test_id} has no locked command variables.`);
+      }
+      return { test_id, step_id, variables };
+    }),
   );
-  const rematerialized = allMaterialized.filter(({ step_id }) =>
-    selection.selected_step_ids.includes(step_id),
+  const qualityGateCommands = materializeQualityGates(
+    process,
+    selection.project_ids,
+    selection.focused_commands.flatMap(({ project_id }) =>
+      project_id ? [project_id] : [],
+    ),
   );
-  const materializedSha256 = materializedProcessSha256(
-    request.processId,
-    actualHash,
-    selection.command_variables,
-    rematerialized,
-  );
+  const materializedSha256 = materializedProcessSha256({
+    processId: request.processId,
+    definitionSha256: actualHash,
+    projectIds: selection.project_ids,
+    projectCatalogSha256: selection.project_catalog_sha256,
+    commandVariablesByTest: selection.command_variables_by_test,
+    focusedCommands: rematerialized,
+    qualityGateCommands,
+  });
   if (
     selection.materialized_sha256 !== materializedSha256 ||
     JSON.stringify(selection.focused_commands) !==
-      JSON.stringify(rematerialized)
+      JSON.stringify(rematerialized) ||
+    JSON.stringify(selection.quality_gate_commands) !==
+      JSON.stringify(qualityGateCommands)
   ) {
     throw new Error(
-      `Selected focused commands drifted after materialization: ${request.processId}.`,
+      `Selected commands drifted after materialization: ${request.processId}.`,
     );
   }
   if (request.stage === 'quality_gate') {
-    if (!process.quality_gates.includes(request.command)) {
+    if (
+      !selection.quality_gate_commands.some(
+        ({ command }) => command === request.command,
+      )
+    ) {
       throw new Error(
-        `Command is not a final quality gate of ${request.processId}: ${request.command}`,
+        `Command is not a locked final quality gate of ${request.processId}: ${request.command}`,
       );
     }
   } else if (
+    !request.testId ||
     !selection.focused_commands.some(
-      ({ step_id, command }) =>
-        step_id === request.stepId && command === request.command,
+      ({ test_id, step_id, command }) =>
+        test_id === request.testId &&
+        step_id === request.stepId &&
+        command === request.command,
     )
   ) {
     throw new Error(
-      `Command is not the locked focused command for ${request.processId}/${request.stepId ?? 'missing-step'}: ${request.command}`,
+      `Command is not the locked focused command for ${request.processId}/${request.stepId ?? 'missing-step'}/${request.testId ?? 'missing-test'}: ${request.command}`,
     );
   }
-  assertV2ExecutionOrder(
-    request,
-    process,
-    priorRecords,
-    selection.selected_step_ids,
-  );
+  assertV3ExecutionOrder(request, process, selection, priorRecords);
 
   const approvedPlanSha256 =
     state.approved_test_plan_path &&

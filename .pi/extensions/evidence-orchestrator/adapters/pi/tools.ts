@@ -451,7 +451,7 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_propose_tasking',
     label: 'Propose Evidence Tasking Draft',
     description:
-      'Generate one reviewable test list, ordered task list, and deterministic v2 process plan for human Desk Check',
+      'Generate one reviewable test list, ordered task list, and deterministic v3 process plan for human Desk Check',
     promptSnippet:
       'Trace the confirmed Scenario Set and model through Q2, shared Q1, boundaries, process steps, and one implementation task list',
     promptGuidelines: [
@@ -469,7 +469,7 @@ export function registerTools(pi: ExtensionAPI): void {
           runtime: runtime.runtime,
           functionalContexts: runtime.functionalContexts,
           technicalBoundaries: runtime.technicalBoundaries,
-          testFilter: runtime.testFilter,
+          ...(runtime.projectIds ? { projectIds: runtime.projectIds } : {}),
         })),
         tests: params.tests.map((test) => ({
           id: test.id,
@@ -477,6 +477,8 @@ export function registerTools(pi: ExtensionAPI): void {
           intent: test.intent,
           runtimePlanId: test.runtimePlanId,
           stepId: test.stepId,
+          ...(test.projectId ? { projectId: test.projectId } : {}),
+          testFilter: test.testFilter,
           supportedBy: test.supportedBy,
           scenarioIds: test.scenarioIds,
           ...(test.scenarioOutcome

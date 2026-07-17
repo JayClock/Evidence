@@ -4,6 +4,7 @@ import {
   clarificationQuestionParam,
   inboxStoryCandidatesParam,
   modelingProfileParam,
+  taskingDraftParam,
 } from './tool-schemas';
 
 describe('Pi tool schemas', () => {
@@ -65,6 +66,59 @@ describe('Pi tool schemas', () => {
         modelChangeRequired: 'false',
         reason: 'Unsupported subject.',
       }),
+    ).toBe(false);
+  });
+
+  it('binds focused filters and optional Nx ownership at TEST scope', () => {
+    const candidate = {
+      runtimes: [
+        {
+          id: 'RUNTIME-001',
+          runtime: 'typescript',
+          functionalContexts: ['workspace'],
+          technicalBoundaries: ['react-feature'],
+          projectIds: ['@evidence/web'],
+        },
+      ],
+      tests: [
+        {
+          id: 'TEST-001',
+          quadrant: 'Q2',
+          intent: 'The workspace is visible.',
+          runtimePlanId: 'RUNTIME-001',
+          stepId: 'web-q2',
+          projectId: '@evidence/web',
+          testFilter: 'workspace_visible',
+          supportedBy: ['TEST-000'],
+          scenarioIds: ['SC-001'],
+          businessData: ['workspace=alpha'],
+          modelRefs: { entities: ['workspace'], associations: [] },
+        },
+      ],
+      tasks: [
+        {
+          id: 'TASK-001',
+          description: 'Show the workspace.',
+          testIds: ['TEST-001'],
+          dependsOn: [],
+        },
+      ],
+    };
+
+    expect(Check(taskingDraftParam, candidate)).toBe(true);
+    expect(
+      Check(taskingDraftParam, {
+        ...candidate,
+        runtimes: [{ ...candidate.runtimes[0], testFilter: 'runtime-wide' }],
+      }),
+    ).toBe(false);
+    const withoutFilter = Object.fromEntries(
+      Object.entries(candidate.tests[0]).filter(
+        ([key]) => key !== 'testFilter',
+      ),
+    );
+    expect(
+      Check(taskingDraftParam, { ...candidate, tests: [withoutFilter] }),
     ).toBe(false);
   });
 

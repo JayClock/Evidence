@@ -41,10 +41,15 @@ import {
 } from '../showcase/showcase-session';
 import {
   materializeFocusedCommands,
+  materializeQualityGates,
   materializedProcessSha256,
   readTestProcess,
   testProcessDefinitionSha256,
 } from '../../capabilities/test-process/catalog';
+import {
+  createNxProjectCatalog,
+  serializeNxProjectCatalog,
+} from '../../capabilities/test-process/project-catalog';
 import {
   changeExplanationTaskWithBundle,
   createHtmlChangeAnalysisBundle,
@@ -69,7 +74,7 @@ afterEach(cleanupWorkspaces);
 
 function processDefinition() {
   return {
-    version: 2,
+    version: 3,
     id: 'typescript-pair',
     owner: 'web-platform',
     runtime: 'typescript',
@@ -91,10 +96,13 @@ function processDefinition() {
           roots: ['apps/web/tests'],
         },
         focused_command: {
-          template: 'node focused.js {{test_filter}}',
-          allowed_variables: ['test_filter'],
+          template: 'node focused.js {{test_filter}} {{project}}',
+          allowed_variables: ['test_filter', 'project'],
         },
-        red: { expected_failure: 'Behavior assertion fails.' },
+        red: {
+          expected_failure_kind: 'behavior',
+          expected_failure: 'Behavior assertion fails.',
+        },
         green: { done_when: 'Behavior assertion passes.' },
         refactor: { done_when: 'Behavior stays green.' },
       },
@@ -110,15 +118,24 @@ function processDefinition() {
           roots: ['apps/web/tests'],
         },
         focused_command: {
-          template: 'node focused.js {{test_filter}}',
-          allowed_variables: ['test_filter'],
+          template: 'node focused.js {{test_filter}} {{project}}',
+          allowed_variables: ['test_filter', 'project'],
         },
-        red: { expected_failure: 'Scenario assertion fails.' },
+        red: {
+          expected_failure_kind: 'behavior',
+          expected_failure: 'Scenario assertion fails.',
+        },
         green: { done_when: 'Scenario assertion passes.' },
         refactor: { done_when: 'Scenario stays green.' },
       },
     ],
-    quality_gates: ['node quality.js'],
+    quality_gates: [
+      {
+        scope: 'process',
+        template: 'node quality.js',
+        allowed_variables: [],
+      },
+    ],
   };
 }
 
@@ -129,23 +146,50 @@ function preparePair(cwd: string): void {
   write(cwd, processPath, JSON.stringify(processDefinition()));
   const definition = readTestProcess(`${cwd}/${processPath}`);
   const definitionSha256 = testProcessDefinitionSha256(`${cwd}/${processPath}`);
-  const variables = { test_filter: 'pair_behavior' };
-  const commands = materializeFocusedCommands(definition, variables).filter(
-    ({ step_id }) => step_id === 'acceptance-q2',
+  const projectCatalog = createNxProjectCatalog([
+    {
+      name: '@evidence/web',
+      root: 'apps/web',
+      sourceRoot: 'apps/web/src',
+      targetNames: ['test', 'typecheck', 'lint'],
+    },
+  ]);
+  const projectCatalogPath =
+    'artifacts/iterations/ITER-0001/03-architecture/project-catalogs/typescript-pair.json';
+  write(cwd, projectCatalogPath, serializeNxProjectCatalog(projectCatalog));
+  const variables = {
+    project: '@evidence/web',
+    test_filter: 'pair_behavior',
+  };
+  const commandVariablesByTest = { 'TEST-001': variables };
+  const commands = materializeFocusedCommands(definition, [
+    {
+      test_id: 'TEST-001',
+      step_id: 'acceptance-q2',
+      variables,
+    },
+  ]);
+  const qualityGateCommands = materializeQualityGates(
+    definition,
+    ['@evidence/web'],
+    ['@evidence/web'],
   );
-  const materializedSha256 = materializedProcessSha256(
-    definition.id,
+  const materializedSha256 = materializedProcessSha256({
+    processId: definition.id,
     definitionSha256,
-    variables,
-    commands,
-  );
+    projectIds: ['@evidence/web'],
+    projectCatalogSha256: projectCatalog.project_catalog_sha256,
+    commandVariablesByTest,
+    focusedCommands: commands,
+    qualityGateCommands,
+  });
   const planPath =
     'artifacts/iterations/ITER-0001/04-planning/test-plans/US-001-SC-001-typescript-pair.json';
   write(
     cwd,
     planPath,
     JSON.stringify({
-      version: 2,
+      version: 3,
       story_id: 'US-001',
       scenario_ids: ['SC-001'],
       process_id: definition.id,
@@ -155,9 +199,12 @@ function preparePair(cwd: string): void {
       functional_contexts: ['workspace'],
       technical_boundaries: ['react-feature'],
       selected_step_ids: ['acceptance-q2'],
-      command_variables: variables,
+      project_ids: ['@evidence/web'],
+      project_catalog_sha256: projectCatalog.project_catalog_sha256,
+      project_catalog_path: projectCatalogPath,
+      command_variables_by_test: commandVariablesByTest,
       focused_commands: commands,
-      quality_gates: definition.quality_gates,
+      quality_gate_commands: qualityGateCommands,
       materialized_sha256: materializedSha256,
     }),
   );
@@ -204,11 +251,15 @@ function preparePair(cwd: string): void {
     runtime: 'typescript' as const,
     functional_contexts: ['workspace'],
     technical_boundaries: ['react-feature'],
-    process_version: 2 as const,
+    process_version: 3 as const,
     definition_sha256: definitionSha256,
     selected_step_ids: ['acceptance-q2'],
-    command_variables: variables,
+    project_ids: ['@evidence/web'],
+    project_catalog_sha256: projectCatalog.project_catalog_sha256,
+    project_catalog_path: projectCatalogPath,
+    command_variables_by_test: commandVariablesByTest,
     focused_commands: commands,
+    quality_gate_commands: qualityGateCommands,
     materialized_sha256: materializedSha256,
     materialized_plan_path: planPath,
   };
@@ -219,6 +270,7 @@ function preparePair(cwd: string): void {
     runtime_plan_id: 'RUNTIME-001',
     process_id: definition.id,
     step_id: 'acceptance-q2',
+    project_id: '@evidence/web',
     supported_by: [] as string[],
     scenario_ids: ['SC-001'],
     scenario_outcome: 'Workspace is visible',
@@ -238,7 +290,7 @@ function preparePair(cwd: string): void {
     scenario_ids: ['SC-001'],
     tests: [taskingTest],
     tasks: [taskingTask],
-    processes: [{ ...selection, quality_gates: definition.quality_gates }],
+    processes: [selection],
   });
   write(
     cwd,
@@ -446,7 +498,14 @@ function addSecondQ2Test(cwd: string): void {
   const state = readState(cwd);
   const candidate = state.tasking_candidate;
   const workItem = state.active_work_item;
-  if (!candidate || !workItem || !state.approved_test_plan_path) {
+  const current = workItem?.test_plan.processes[0];
+  if (
+    !candidate ||
+    !workItem ||
+    !current ||
+    !current.materialized_plan_path ||
+    !state.approved_test_plan_path
+  ) {
     throw new Error('Pair fixture has no approved plan.');
   }
   const first = candidate.tests[0];
@@ -467,16 +526,72 @@ function addSecondQ2Test(cwd: string): void {
       model_refs: second.model_refs,
     },
   ];
+  const definition = readTestProcess(`${cwd}/${current.path}`);
+  const commandVariablesByTest: Record<string, Record<string, string>> = {
+    ...current.command_variables_by_test,
+    'TEST-002': {
+      project: '@evidence/web',
+      test_filter: 'pair_owner',
+    },
+  };
+  const commands = materializeFocusedCommands(
+    definition,
+    tests.map((test) => ({
+      test_id: test.id,
+      step_id: test.step_id,
+      variables: commandVariablesByTest[test.id] ?? {},
+    })),
+  );
+  const qualityGateCommands = materializeQualityGates(
+    definition,
+    current.project_ids,
+    tests.flatMap(({ project_id }) => (project_id ? [project_id] : [])),
+  );
+  const selection = {
+    ...current,
+    command_variables_by_test: commandVariablesByTest,
+    focused_commands: commands,
+    quality_gate_commands: qualityGateCommands,
+    materialized_sha256: materializedProcessSha256({
+      processId: current.id,
+      definitionSha256: current.definition_sha256,
+      projectIds: current.project_ids,
+      projectCatalogSha256: current.project_catalog_sha256,
+      commandVariablesByTest,
+      focusedCommands: commands,
+      qualityGateCommands,
+    }),
+  };
+  write(
+    cwd,
+    current.materialized_plan_path,
+    JSON.stringify({
+      version: 3,
+      story_id: workItem.story_id,
+      scenario_ids: workItem.scenario_ids,
+      process_id: selection.id,
+      process_path: selection.path,
+      definition_sha256: selection.definition_sha256,
+      runtime: selection.runtime,
+      functional_contexts: selection.functional_contexts,
+      technical_boundaries: selection.technical_boundaries,
+      selected_step_ids: selection.selected_step_ids,
+      project_ids: selection.project_ids,
+      project_catalog_sha256: selection.project_catalog_sha256,
+      project_catalog_path: selection.project_catalog_path,
+      command_variables_by_test: commandVariablesByTest,
+      focused_commands: commands,
+      quality_gate_commands: qualityGateCommands,
+      materialized_sha256: selection.materialized_sha256,
+    }),
+  );
   const approvedPlanContent = JSON.stringify({
     version: 2,
     story_id: workItem.story_id,
     scenario_ids: workItem.scenario_ids,
     tests,
     tasks,
-    processes: workItem.test_plan.processes.map((process) => ({
-      ...process,
-      quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
-    })),
+    processes: [selection],
   });
   write(cwd, state.approved_test_plan_path, approvedPlanContent);
   write(
@@ -489,7 +604,16 @@ function addSecondQ2Test(cwd: string): void {
     approved_test_plan_sha256: createHash('sha256')
       .update(approvedPlanContent)
       .digest('hex'),
-    tasking_candidate: { ...candidate, tests, tasks },
+    active_work_item: {
+      ...workItem,
+      test_plan: { ...workItem.test_plan, processes: [selection] },
+    },
+    tasking_candidate: {
+      ...candidate,
+      tests,
+      tasks,
+      processes: [selection],
+    },
   });
 }
 
@@ -501,37 +625,74 @@ function addWebQ1Step(cwd: string): void {
   if (
     !workItem?.test_plan ||
     !candidate ||
-    !current?.command_variables ||
-    !current.materialized_plan_path ||
+    !current?.materialized_plan_path ||
     !state.approved_test_plan_path
   ) {
     throw new Error('Pair fixture has no Web process.');
   }
   const definition = readTestProcess(`${cwd}/${current.path}`);
+  const tests = [
+    {
+      id: 'TEST-000',
+      quadrant: 'Q1' as const,
+      intent: 'Workspace visibility is exposed by the feature.',
+      runtime_plan_id: 'RUNTIME-001',
+      process_id: current.id,
+      step_id: 'component-q1',
+      project_id: '@evidence/web',
+      supported_by: [] as string[],
+      scenario_ids: ['SC-001'],
+      business_data: ['name=Alpha'],
+      model_refs: { entities: ['workspace'], associations: [] as string[] },
+    },
+    ...candidate.tests.map((test) =>
+      test.quadrant === 'Q2' ? { ...test, supported_by: ['TEST-000'] } : test,
+    ),
+  ];
+  const commandVariablesByTest: Record<string, Record<string, string>> = {
+    ...current.command_variables_by_test,
+    'TEST-000': {
+      project: '@evidence/web',
+      test_filter: 'pair_component',
+    },
+  };
   const commands = materializeFocusedCommands(
     definition,
-    current.command_variables,
+    tests.map((test) => ({
+      test_id: test.id,
+      step_id: test.step_id,
+      variables: commandVariablesByTest[test.id] ?? {},
+    })),
   );
   const selectedStepIds = ['component-q1', 'acceptance-q2'];
-  const materializedSha256 = materializedProcessSha256(
-    current.id,
-    current.definition_sha256 ?? '',
-    current.command_variables,
-    commands,
+  const qualityGateCommands = materializeQualityGates(
+    definition,
+    current.project_ids,
+    tests.flatMap(({ project_id }) => (project_id ? [project_id] : [])),
   );
   const selection = {
     ...current,
     selected_step_ids: selectedStepIds,
+    command_variables_by_test: commandVariablesByTest,
     focused_commands: commands,
-    materialized_sha256: materializedSha256,
+    quality_gate_commands: qualityGateCommands,
+    materialized_sha256: materializedProcessSha256({
+      processId: current.id,
+      definitionSha256: current.definition_sha256,
+      projectIds: current.project_ids,
+      projectCatalogSha256: current.project_catalog_sha256,
+      commandVariablesByTest,
+      focusedCommands: commands,
+      qualityGateCommands,
+    }),
   };
   write(
     cwd,
     current.materialized_plan_path,
     JSON.stringify({
-      version: 2,
+      version: 3,
       story_id: 'US-001',
-      scenario_id: 'SC-001',
+      scenario_ids: ['SC-001'],
       process_id: selection.id,
       process_path: selection.path,
       definition_sha256: selection.definition_sha256,
@@ -539,34 +700,20 @@ function addWebQ1Step(cwd: string): void {
       functional_contexts: selection.functional_contexts,
       technical_boundaries: selection.technical_boundaries,
       selected_step_ids: selectedStepIds,
-      command_variables: selection.command_variables,
+      project_ids: selection.project_ids,
+      project_catalog_sha256: selection.project_catalog_sha256,
+      project_catalog_path: selection.project_catalog_path,
+      command_variables_by_test: commandVariablesByTest,
       focused_commands: commands,
-      quality_gates: definition.quality_gates,
-      materialized_sha256: materializedSha256,
+      quality_gate_commands: qualityGateCommands,
+      materialized_sha256: selection.materialized_sha256,
     }),
   );
-  const tests = [
-    {
-      id: 'TEST-Q1',
-      quadrant: 'Q1' as const,
-      intent: 'Workspace visibility is exposed by the feature.',
-      runtime_plan_id: 'RUNTIME-001',
-      process_id: selection.id,
-      step_id: 'component-q1',
-      supported_by: [] as string[],
-      scenario_ids: ['SC-001'],
-      business_data: ['name=Alpha'],
-      model_refs: { entities: ['workspace'], associations: [] as string[] },
-    },
-    ...candidate.tests.map((test) =>
-      test.quadrant === 'Q2' ? { ...test, supported_by: ['TEST-Q1'] } : test,
-    ),
-  ];
   const tasks = [
     {
       id: 'TASK-Q1',
       description: 'Expose workspace visibility from the feature.',
-      test_ids: ['TEST-Q1'],
+      test_ids: ['TEST-000'],
       depends_on: [] as string[],
       model_refs: { entities: ['workspace'], associations: [] as string[] },
     },
@@ -582,10 +729,7 @@ function addWebQ1Step(cwd: string): void {
     scenario_ids: workItem.scenario_ids,
     tests,
     tasks,
-    processes: selections.map((process) => ({
-      ...process,
-      quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
-    })),
+    processes: selections,
   });
   write(cwd, state.approved_test_plan_path, approvedPlanContent);
   writeState(cwd, {
@@ -610,7 +754,7 @@ function addWebQ1Step(cwd: string): void {
       ? {
           ...state.pair_session,
           task_id: 'TASK-Q1',
-          test_id: 'TEST-Q1',
+          test_id: 'TEST-000',
           process_id: selection.id,
           step_id: 'component-q1',
           expected_red: 'Workspace visibility is exposed by the feature.',
@@ -646,7 +790,13 @@ function addTauriProcess(cwd: string): void {
         allowed_variables: ['test_filter'],
       },
     })),
-    quality_gates: ['node desktop-quality.js'],
+    quality_gates: [
+      {
+        scope: 'process',
+        template: 'node desktop-quality.js',
+        allowed_variables: [],
+      },
+    ],
   };
   const processPath =
     'artifacts/iterations/ITER-0001/03-architecture/selected-test-processes/tauri-pair.json';
@@ -654,15 +804,23 @@ function addTauriProcess(cwd: string): void {
   const definition = readTestProcess(`${cwd}/${processPath}`);
   const definitionSha256 = testProcessDefinitionSha256(`${cwd}/${processPath}`);
   const variables = { test_filter: 'desktop_behavior' };
-  const commands = materializeFocusedCommands(definition, variables).filter(
-    ({ step_id }) => step_id === 'acceptance-q2',
-  );
-  const materializedSha256 = materializedProcessSha256(
-    definition.id,
+  const commandVariablesByTest = { 'TEST-002': variables };
+  const commands = materializeFocusedCommands(definition, [
+    {
+      test_id: 'TEST-002',
+      step_id: 'acceptance-q2',
+      variables,
+    },
+  ]);
+  const qualityGateCommands = materializeQualityGates(definition, [], []);
+  const materializedSha256 = materializedProcessSha256({
+    processId: definition.id,
     definitionSha256,
-    variables,
-    commands,
-  );
+    projectIds: [],
+    commandVariablesByTest,
+    focusedCommands: commands,
+    qualityGateCommands,
+  });
   const planPath =
     'artifacts/iterations/ITER-0001/04-planning/test-plans/US-001-SC-001-tauri-pair.json';
   const selection = {
@@ -671,11 +829,13 @@ function addTauriProcess(cwd: string): void {
     runtime: 'tauri' as const,
     functional_contexts: ['workspace'],
     technical_boundaries: ['tauri-shell'],
-    process_version: 2 as const,
+    process_version: 3 as const,
     definition_sha256: definitionSha256,
     selected_step_ids: ['acceptance-q2'],
-    command_variables: variables,
+    project_ids: [],
+    command_variables_by_test: commandVariablesByTest,
     focused_commands: commands,
+    quality_gate_commands: qualityGateCommands,
     materialized_sha256: materializedSha256,
     materialized_plan_path: planPath,
   };
@@ -683,7 +843,7 @@ function addTauriProcess(cwd: string): void {
     cwd,
     planPath,
     JSON.stringify({
-      version: 2,
+      version: 3,
       story_id: 'US-001',
       scenario_ids: ['SC-001'],
       process_id: definition.id,
@@ -693,9 +853,10 @@ function addTauriProcess(cwd: string): void {
       functional_contexts: ['workspace'],
       technical_boundaries: ['tauri-shell'],
       selected_step_ids: ['acceptance-q2'],
-      command_variables: variables,
+      project_ids: [],
+      command_variables_by_test: commandVariablesByTest,
       focused_commands: commands,
-      quality_gates: definition.quality_gates,
+      quality_gate_commands: qualityGateCommands,
       materialized_sha256: materializedSha256,
     }),
   );
@@ -719,7 +880,7 @@ function addTauriProcess(cwd: string): void {
       runtime_plan_id: 'RUNTIME-002',
       process_id: definition.id,
       step_id: 'acceptance-q2',
-      supported_by: ['TEST-Q1'],
+      supported_by: ['TEST-000'],
       scenario_ids: ['SC-001'],
       scenario_outcome: 'Workspace is visible',
       business_data: ['name=Alpha'],
@@ -743,10 +904,7 @@ function addTauriProcess(cwd: string): void {
     scenario_ids: workItem.scenario_ids,
     tests,
     tasks,
-    processes: selections.map((process) => ({
-      ...process,
-      quality_gates: readTestProcess(`${cwd}/${process.path}`).quality_gates,
-    })),
+    processes: selections,
   });
   write(cwd, state.approved_test_plan_path, approvedPlanContent);
   writeState(cwd, {
@@ -943,6 +1101,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(review.agentName).toBe('red-reviewer');
     expect(review.pairAction).toBeUndefined();
     expect(review.task).toContain('failureKind');
+    expect(review.task).toContain('expected_failure_kind=behavior');
     expect(review.task).toContain('ASSERTION: workspace Alpha is not visible');
     expect(review.task).toContain('stderr tail：');
     expect(review.task).toContain('truncated=true');
@@ -1015,6 +1174,68 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(readState(cwd).pair_session?.checkpoint).toBe('plan_confirmed');
   });
 
+  it('restores a TEST owned by a different Nx project and returns to Tasking', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    const snapshot = capturePairWorktree(cwd);
+    write(
+      cwd,
+      'libs/web/api-client/src/lib/workspace.spec.ts',
+      'expect(workspace).toBeVisible();',
+    );
+
+    const outcome = completePairDriver(
+      cwd,
+      'test',
+      snapshot,
+      'Added a test in the wrong project.',
+    );
+
+    expect(outcome.blocked).toBe(true);
+    expect(
+      existsSync(`${cwd}/libs/web/api-client/src/lib/workspace.spec.ts`),
+    ).toBe(false);
+    expect(outcome.state).toMatchObject({
+      loop: 'tasking',
+      tasking_stage: 'knowledge_gap',
+      tasking_gap: { kind: 'process_gap' },
+    });
+    expect(outcome.state.pair_session).toBeUndefined();
+  });
+
+  it.each([
+    ['libs/web/api-client/src/lib/workspace.ts', 'unapproved project'],
+    ['nx.json', 'workspace root configuration'],
+  ])(
+    'restores Production Driver changes to %s and returns to Tasking for %s',
+    (path) => {
+      const cwd = workspace();
+      preparePair(cwd);
+      let snapshot = capturePairWorktree(cwd);
+      writeFocusedTest(cwd);
+      completePairDriver(cwd, 'test', snapshot, 'Added Q2.');
+      executePairAction(cwd, 'run_red');
+      reviewPairRed(cwd, 'behavior', 'The expected workspace is absent.');
+
+      snapshot = capturePairWorktree(cwd);
+      write(cwd, path, 'export const unapproved = true;');
+      const outcome = completePairDriver(
+        cwd,
+        'implementation',
+        snapshot,
+        'Changed an unapproved project boundary.',
+      );
+
+      expect(outcome.blocked).toBe(true);
+      expect(existsSync(`${cwd}/${path}`)).toBe(false);
+      expect(outcome.state).toMatchObject({
+        loop: 'tasking',
+        tasking_stage: 'knowledge_gap',
+        tasking_gap: { kind: 'process_gap' },
+      });
+    },
+  );
+
   it('rejects a non-behavior Red and pauses after every checkpoint', () => {
     const cwd = workspace();
     preparePair(cwd);
@@ -1031,14 +1252,14 @@ describe('AI-driven Pair with Story-level human approval', () => {
 
     const rejected = reviewPairRed(
       cwd,
-      'configuration',
-      'The fixture cannot load its configuration.',
+      'compile',
+      'The test did not compile and never reached its behavior assertion.',
     );
     expect(rejected.pair_session).toMatchObject({
       checkpoint: 'plan_confirmed',
       red_observation: {
         accepted: false,
-        failure_kind: 'configuration',
+        failure_kind: 'compile',
       },
     });
   });
@@ -1288,6 +1509,14 @@ describe('AI-driven Pair with Story-level human approval', () => {
         ({ task, test }) => `${task.id}/${test.id}`,
       ),
     ).toEqual(['TASK-001/TEST-001', 'TASK-002/TEST-002']);
+    expect(
+      manifest.processes[0]?.steps[0]?.work_units.map(
+        ({ green }) => green.command,
+      ),
+    ).toEqual([
+      'node focused.js pair_behavior @evidence/web',
+      'node focused.js pair_owner @evidence/web',
+    ]);
   });
 
   it('replays byte-stable generated evidence and detects command tampering', () => {

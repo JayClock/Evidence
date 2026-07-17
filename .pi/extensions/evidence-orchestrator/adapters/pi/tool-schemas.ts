@@ -201,9 +201,14 @@ export const taskingDraftParam = Type.Object({
       technicalBoundaries: Type.Array(
         Type.String({ description: 'Independent technical boundary.' }),
       ),
-      testFilter: Type.String({
-        description: 'Whitelist-safe focused test identifier.',
-      }),
+      projectIds: Type.Optional(
+        Type.Array(
+          Type.String({
+            description:
+              'Planned resolved Nx project id; required by project-scoped TypeScript processes.',
+          }),
+        ),
+      ),
     }),
   ),
   tests: Type.Array(
@@ -212,7 +217,16 @@ export const taskingDraftParam = Type.Object({
       quadrant: StringEnum(['Q1', 'Q2'] as const),
       intent: Type.String({ description: 'Reviewable behavior intent.' }),
       runtimePlanId: Type.String({ description: 'Owning RUNTIME-xxx id.' }),
-      stepId: Type.String({ description: 'Exact ordered v2 process step id.' }),
+      stepId: Type.String({ description: 'Exact ordered v3 process step id.' }),
+      projectId: Type.Optional(
+        Type.String({
+          description:
+            'Owning Nx project id; required exactly when the focused template uses project.',
+        }),
+      ),
+      testFilter: Type.String({
+        description: 'Whitelist-safe focused identifier for this TEST only.',
+      }),
       supportedBy: Type.Array(
         Type.String({ description: 'Q1 TEST-xxx supporting a Q2 item.' }),
       ),

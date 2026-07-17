@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "id": "tauri-desktop-shell",
   "owner": "desktop-platform",
   "runtime": "tauri",
@@ -35,7 +35,8 @@
         "allowed_variables": ["test_filter"]
       },
       "red": {
-        "expected_failure": "The native command expectation fails because shell behavior is absent, not because Web assets are unavailable."
+        "expected_failure_kind": "behavior",
+        "expected_failure": "The native command expectation reaches its assertion and fails because shell behavior is absent, not because Web assets cannot compile or load."
       },
       "green": {
         "done_when": "The focused native behavior passes with capabilities kept least-privileged."
@@ -65,7 +66,8 @@
         "allowed_variables": ["test_filter"]
       },
       "red": {
-        "expected_failure": "The selected native-shell acceptance outcome fails at the real boundary."
+        "expected_failure_kind": "behavior",
+        "expected_failure": "The selected native-shell acceptance outcome reaches its assertion and fails at the real boundary."
       },
       "green": {
         "done_when": "The desktop Scenario passes without duplicating shared Web behavior in Rust."
@@ -76,8 +78,20 @@
     }
   ],
   "quality_gates": [
-    "cargo test -p evidence-desktop",
-    "cargo clippy -p evidence-desktop --all-targets -- -D warnings",
-    "cargo fmt -p evidence-desktop -- --check"
+    {
+      "scope": "process",
+      "template": "cargo test -p evidence-desktop",
+      "allowed_variables": []
+    },
+    {
+      "scope": "process",
+      "template": "cargo clippy -p evidence-desktop --all-targets -- -D warnings",
+      "allowed_variables": []
+    },
+    {
+      "scope": "process",
+      "template": "cargo fmt -p evidence-desktop -- --check",
+      "allowed_variables": []
+    }
   ]
 }
