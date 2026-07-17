@@ -1032,7 +1032,7 @@ export function executePairAction(
     state: next,
     record,
     output: complete
-      ? 'All final quality gates passed for the complete Story Scenario Set. Automated coding evidence is ready for one human Story-level approval.'
+      ? 'All final quality gates passed for the complete Story Scenario Set. Automated coding evidence is ready; /evidence-explain-diff can generate an optional HTML review aid before the one human Story-level approval.'
       : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; Pair automation will execute the next one.`,
   };
 }
@@ -1214,6 +1214,6 @@ export function pairNextInstruction(state: WorkflowState): string {
     case 'quality_gate_failed':
       return '/evidence-run attempts bounded automated repair; explicit back-* routing remains available after an exception';
     case 'quality_gates_passed':
-      return '/evidence-pair approve <reason> records the one human Story coding decision and enters Showcase';
+      return '/evidence-explain-diff optionally creates a read-only HTML explanation; /evidence-pair approve <reason> records the one human Story coding decision and enters Showcase';
   }
 }

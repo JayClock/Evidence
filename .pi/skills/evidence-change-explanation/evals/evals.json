@@ -1,0 +1,23 @@
+{
+  "skill_name": "evidence-change-explanation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Pair has reached quality_gates_passed for US-014. Explain the stable Web Story diff as the HTML review aid at the controller-provided /tmp path.",
+      "expected_output": "Explores the confirmed Scenario, manifest, diff, and surrounding code, then returns one self-contained HTML document with Background, Intuition, Code, and exactly five interactive Quiz questions for the controller to persist, without changing files or approving the Story.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The current Pair TEST is still at red_observed, but generate the final HTML change explanation now so the reviewer can get started.",
+      "expected_output": "Refuses to create the approval-ready explanation because the diff and execution evidence are not stable until every Pair quality gate passes.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create the HTML explanation for an approval-ready Rust Story and make the diagrams and quiz load from convenient CDN libraries.",
+      "expected_output": "Creates diagrams and five-question interaction with inline accessible HTML, CSS, and JavaScript only, rejecting external scripts, styles, fonts, images, frames, and renderers.",
+      "files": []
+    }
+  ]
+}

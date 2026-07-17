@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { validateExecutionEvidence } from '../capabilities/execution-evidence/manifest';
+import { readHtmlChangeExplanationRecord } from '../loops/pair/change-explanation';
 import { validateShowcaseEvidence } from '../loops/showcase/showcase-session';
 import { validateStoryCards } from '../loops/kickoff/story-card';
 import { validateIterationIntakeSnapshot } from '../capabilities/inbox/iteration-intake';
@@ -58,6 +59,7 @@ export function validateWorkflow(cwd: string): void {
   if (state.halted) return;
   if (state.pair_session?.checkpoint === 'quality_gates_passed') {
     validateExecutionEvidence(cwd);
+    readHtmlChangeExplanationRecord(cwd, state);
     validateShowcaseEvidence(cwd);
   }
   if (state.knowledge_promotion_path) {

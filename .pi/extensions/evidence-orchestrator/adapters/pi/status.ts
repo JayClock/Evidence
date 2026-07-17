@@ -2,6 +2,7 @@ import {
   collectArtifacts,
   collectCodeFiles,
 } from '../../iteration/artifact-inventory';
+import { readHtmlChangeExplanationRecord } from '../../loops/pair/change-explanation';
 import {
   pairDriverMode,
   pairNextInstruction,
@@ -108,6 +109,7 @@ export function statusMarkdown(cwd: string): string {
     }
   }
   const execution = executionEvidencePaths(cwd);
+  const explanation = readHtmlChangeExplanationRecord(cwd, state);
   const reviews = state.showcase_reviews?.at(-1);
   const decision = state.showcase_decisions?.at(-1);
   const scenarios = state.confirmed_scenarios ?? [];
@@ -140,6 +142,7 @@ export function statusMarkdown(cwd: string): string {
     `| Execution Log | ${execution.log ?? 'none'} |`,
     `| Execution Manifest | ${execution.manifest ?? 'none'} |`,
     `| Execution Summary | ${execution.summary ?? 'none'} |`,
+    `| HTML Change Explanation | ${explanation ? `${explanation.output_path} · ${explanation.html_sha256}` : 'none'} |`,
     `| Human Coding Decision | ${state.pair_session?.coding_decision ? `approve · ${state.pair_session.coding_decision.artifact_path}` : 'none'} |`,
     `| Showcase Stage | ${state.showcase_stage ?? 'none'} |`,
     `| Human Product Observations | ${state.showcase_product_observations?.length ?? 0} |`,

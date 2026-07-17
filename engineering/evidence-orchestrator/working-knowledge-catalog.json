@@ -84,6 +84,19 @@
       "supersedes": []
     },
     {
+      "id": "WK-CHANGE-EXPLANATION",
+      "version": "1.0.0",
+      "owner": "Delivery",
+      "cognitive_behaviors": ["complicated"],
+      "skill_path": ".pi/skills/evidence-change-explanation/SKILL.md",
+      "prompt_paths": [],
+      "validated_scenarios": [
+        "Pair spec: quality-gate-passed HTML explanation remains read-only and non-authoritative"
+      ],
+      "latest_feedback": "Generate one self-contained external HTML only after the stable Pair manifest exists; keep it optional, hash-bound, and separate from deterministic evidence and human approval.",
+      "supersedes": []
+    },
+    {
       "id": "WK-PROMPT-MODEL-CHECK",
       "version": "1.0.0",
       "owner": "Domain modeling",

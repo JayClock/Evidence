@@ -46,6 +46,12 @@ import {
   testProcessDefinitionSha256,
 } from '../../capabilities/test-process/catalog';
 import {
+  prepareHtmlChangeExplanation,
+  readHtmlChangeExplanationRecord,
+  recordHtmlChangeExplanation,
+  validateHtmlChangeExplanation,
+} from './change-explanation';
+import {
   capturePairWorktree,
   completePairDriver,
   executePairAction,
@@ -845,6 +851,37 @@ function completePairSuccessfully(cwd: string): void {
   throw new Error('Pair completion exceeded its checkpoint guard.');
 }
 
+function validChangeExplanationHtml(): string {
+  const questions = Array.from(
+    { length: 5 },
+    (_, index) => `<article data-quiz-question>
+<h3>Question ${index + 1}</h3>
+<button type="button" data-correct="false">Wrong</button>
+<button type="button" data-correct="true">Correct</button>
+<p data-quiz-feedback></p>
+</article>`,
+  ).join('\n');
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>pre { white-space: pre-wrap; } .diagram { display: grid; }</style>
+</head>
+<body>
+<header><h1>Change explanation</h1></header>
+<nav><a href="#background">Background</a><a href="#intuition">Intuition</a><a href="#code">Code</a><a href="#quiz">Quiz</a></nav>
+<main>
+<section id="background"><h2>Background</h2><div class="diagram">System</div></section>
+<section id="intuition"><h2>Intuition</h2><p>Toy data</p></section>
+<section id="code"><h2>Code</h2><pre><code>const visible = true;</code></pre></section>
+<section id="quiz"><h2>Quiz</h2>${questions}</section>
+</main>
+<script>document.querySelectorAll('[data-quiz-question] button').forEach((button) => button.addEventListener('click', () => { button.closest('[data-quiz-question]').querySelector('[data-quiz-feedback]').textContent = button.dataset.correct === 'true' ? 'Correct because the behavior is traced.' : 'Incorrect because the boundary differs.'; }));</script>
+</body>
+</html>`;
+}
+
 function prepareShowcaseForReview(cwd: string): void {
   preparePair(cwd);
   completePairSuccessfully(cwd);
@@ -1081,6 +1118,78 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(() =>
       transitionLoopState(readState(cwd), { to: 'showcase' }),
     ).toThrow('human approves the complete Story coding evidence');
+  });
+
+  it('creates an external self-contained HTML explanation only after Pair gates pass', () => {
+    const cwd = workspace();
+    const outputRoot = workspace();
+    preparePair(cwd);
+
+    expect(() =>
+      prepareHtmlChangeExplanation(cwd, '2026-01-02T03:04:05.006Z', outputRoot),
+    ).toThrow('only after all Pair quality gates pass');
+
+    completePairSuccessfully(cwd);
+    expect(() =>
+      prepareHtmlChangeExplanation(
+        cwd,
+        '2026-01-02T03:04:05.006Z',
+        `${cwd}/explanations`,
+      ),
+    ).toThrow('outside the code repository');
+
+    const request = prepareHtmlChangeExplanation(
+      cwd,
+      '2026-01-02T03:04:05.006Z',
+      outputRoot,
+    );
+    expect(request.output_path).toContain(
+      '2026-01-02-explanation-ITER-0001-US-001-030405006.html',
+    );
+    expect(request.task).toContain(
+      '.pi/skills/evidence-change-explanation/SKILL.md',
+    );
+    expect(request.task).toContain(request.execution_manifest_path);
+
+    const record = recordHtmlChangeExplanation(
+      cwd,
+      request,
+      validChangeExplanationHtml(),
+      '2026-01-02T03:05:00.000Z',
+    );
+
+    expect(record).toMatchObject({
+      story_id: 'US-001',
+      output_path: request.output_path,
+      generated_by: 'change-explainer',
+      code_content_sha256: request.code_content_sha256,
+    });
+    expect(record.html_sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(readFileSync(record.output_path, 'utf8')).toBe(
+      validChangeExplanationHtml(),
+    );
+    expect(
+      JSON.parse(readFileSync(`${cwd}/${record.artifact_path}`, 'utf8')),
+    ).toEqual(record);
+    expect(readHtmlChangeExplanationRecord(cwd)).toEqual(record);
+  });
+
+  it('rejects non-interactive or externally loaded HTML explanations', () => {
+    const valid = validChangeExplanationHtml();
+    expect(() => validateHtmlChangeExplanation(valid)).not.toThrow();
+    expect(() =>
+      validateHtmlChangeExplanation(
+        valid.replace(
+          '</head>',
+          '<script src="https://cdn.example.test/quiz.js"></script></head>',
+        ),
+      ),
+    ).toThrow('self-contained');
+    expect(() =>
+      validateHtmlChangeExplanation(
+        valid.replace('<article data-quiz-question>', '<article>'),
+      ),
+    ).toThrow('exactly five');
   });
 
   it('drives each TASK/TEST Red/Green but refactors once when tests share a process step', () => {

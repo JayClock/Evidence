@@ -55,7 +55,11 @@ import {
   promptShowcaseDecision,
   waitForIdle,
 } from './command-inputs';
-import { parseArgs, runPreparedActivityFromCommand } from './activity-command';
+import {
+  parseArgs,
+  runHtmlChangeExplanationFromCommand,
+  runPreparedActivityFromCommand,
+} from './activity-command';
 
 export {
   parseModelDecision,
@@ -373,6 +377,25 @@ export function registerCommands(
             : `Pair exception decision recorded. ${pairNextInstruction(state)}.`,
           'info',
         );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  registerStageCommand('evidence-explain-diff', {
+    description:
+      'Generate one optional self-contained HTML explanation after Pair quality gates pass',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        if (args.trim()) {
+          throw new Error('Usage: /evidence-explain-diff');
+        }
+        await runHtmlChangeExplanationFromCommand(pi, ctx);
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),

@@ -47,7 +47,7 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
 2. **Understand**：每张活动 Story 使用一条持久 TQA 会话，一次提出一个面向业务的问题；人类直接回答后，下一次 requirements-analyst checkpoint 恢复同一 Pi session。AI 列出完整 Scenario Set 后由人类整体确认，再确认建模 Profile：`none/false` 确定性记录无模型影响并直接进入 Tasking；其他方法逐场景联合展开，`model_change_required=false` 保持空 operations，只有 `true` 提出模型候选，之后均经独立挑战和人工模型确认。其他活动角色仍使用隔离的临时会话。
 3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v2，生成去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
-4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。伪 Red、Green/Refactor/gate 失败在有限预算内自动修复，超限作为异常停止；全绿后由人类一次批准完整 Story 编码才进入 Showcase。
+4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。伪 Red、Green/Refactor/gate 失败在有限预算内自动修复，超限作为异常停止；全绿后可用 `/evidence-explain-diff` 生成一份仓库外、自包含且非权威的 HTML 理解材料，之后仍由人类一次批准完整 Story 编码才进入 Showcase。
 5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
 6. **Respond**：总结整个 Story 增量，只提升被 Scenario Set、执行事实与 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
 
@@ -120,6 +120,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 /evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>
 /evidence-desk-check approve [reason] | revise|architecture_gap|process_gap|scenario_gap <reason>
 /evidence-pair approve <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>
+/evidence-explain-diff
 /evidence-showcase [observe|risk|evaluate|accept|revise|reject 参数]
 /evidence-respond approve|revise <reason>
 ```
@@ -131,6 +132,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 - `/evidence-run` 对非 Pair loop 只运行当前状态允许的一个 activity checkpoint；在 Pair 中自动串行执行完整编码 Story 的短生命周期 Driver、Reviewer 与确定性命令，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
 - 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
 - `/evidence-pair approve <reason>` 在全部 quality gates 通过后写入 `coding-decision.json`，作为完整 Story 编码的人类权威并进入 Showcase；其他参数仅用于自动化异常的显式回退。
+- `/evidence-explain-diff` 仅在 `quality_gates_passed` 后启动短生命周期 Change Explainer：只读分析稳定 diff、Scenario、模型、计划和 manifest，并把完整 HTML 返回控制器；控制器恢复任何仓库越界写入、验证结构后向系统临时目录（可用 `EVIDENCE_EXPLANATION_DIR` 指定其他仓库外目录）写入一份日期前缀的自包含 HTML，并在 iteration 内记录路径与哈希。该材料可选且不构成测试事实、审查结论或批准。
 - `/evidence-showcase` 记录产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。
 
 每条命令都会验证持久化状态；调用不属于当前阶段的命令会被对应守卫拒绝。单次命令不会连续运行整个 iteration。Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
@@ -153,6 +155,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Test Proce
 artifacts/05-code/US-xxx/execution.jsonl
 artifacts/05-code/US-xxx/manifest.json
 artifacts/05-code/US-xxx/summary.md
+artifacts/05-code/US-xxx/change-explanation.json  # 可选；HTML 本体位于仓库外
 artifacts/06-review/US-xxx/review-NNN.json
 artifacts/06-review/showcase-risks.jsonl
 artifacts/06-review/showcase-product-observations.jsonl
@@ -162,7 +165,7 @@ artifacts/07-learning/knowledge-promotion.json
 artifacts/07-learning/next-iteration.md
 ```
 
-`execution.jsonl` 是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。
+`execution.jsonl` 是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。Change Explainer HTML 是非确定性的理解材料，不能替代或修改这些执行证据。
 
 ## 状态边界
 

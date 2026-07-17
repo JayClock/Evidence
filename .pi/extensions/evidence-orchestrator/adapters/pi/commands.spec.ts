@@ -78,6 +78,7 @@ describe('commands', () => {
       'evidence-model',
       'evidence-desk-check',
       'evidence-pair',
+      'evidence-explain-diff',
       'evidence-showcase',
       'evidence-respond',
       'evidence-run',

@@ -66,6 +66,7 @@ describe('Working Knowledge catalog', () => {
         'WK-8X-FLOW',
         'WK-TEST-PROCESS',
         'WK-PAIRING',
+        'WK-CHANGE-EXPLANATION',
         'WK-PROMPT-MODEL-CHECK',
         'WK-PROMPT-TEST-LIST',
         'WK-PROMPT-DESK-CHECK',
@@ -108,6 +109,7 @@ describe('Working Knowledge catalog', () => {
       'architect',
       'test-driver',
       'production-driver',
+      'change-explainer',
       'showcase-reviewer',
       'respond-learner',
     ]) {

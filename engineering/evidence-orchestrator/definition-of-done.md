@@ -17,7 +17,7 @@
 - 已确认范围内的拒绝、失败和边界行为属于对应验收场景，应按所选测试工序验证。
 - 同时存在真实测试和生产代码改动；Markdown 不替代实现。
 - 受控 append-only `execution.jsonl` 是命令、退出码、输出摘要/哈希、计划哈希和 Git 工作树哈希的唯一原始执行事实；Red 分类同时记录 Reviewer 与依据；`manifest.json` 与可选 `summary.md` 只能由工具确定性生成，Agent 不手填命令、退出码或 changed paths。
-- 全部 Pair 质量门禁通过后，人类只在完整 Story 编码边界审查一次 manifest/summary、改动路径、追踪与风险，并以带理由的 `coding-decision.json` 批准后进入 Showcase。Showcase 重新观测已选 Q2，并由人类记录实际产品 Given/When/Then、业务数据和价值反馈；Q3/Q4 均有带理由的显式风险决定，`required` 的每项活动都有执行证据且没有未解决 concern。只有人类 accept 才能进入 Respond。
+- 全部 Pair 质量门禁通过后，人类只在完整 Story 编码边界审查一次 manifest/summary、改动路径、追踪与风险，并以带理由的 `coding-decision.json` 批准后进入 Showcase。批准前可以生成一份哈希绑定、仓库外的自包含 HTML 变更说明作为可选理解材料；它不得替代确定性执行证据、代码审查或人工决定。Showcase 重新观测已选 Q2，并由人类记录实际产品 Given/When/Then、业务数据和价值反馈；Q3/Q4 均有带理由的显式风险决定，`required` 的每项活动都有执行证据且没有未解决 concern。只有人类 accept 才能进入 Respond。
 - Rust 与 Nest server track 不混合实现同一服务端能力。
 - Domain 不依赖 HTTP、ORM、UI 或桌面框架；协议层不承载业务规则。
 

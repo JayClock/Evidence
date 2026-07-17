@@ -26,6 +26,7 @@ describe('activity subagents', () => {
       'architect',
       'test-driver',
       'production-driver',
+      'change-explainer',
       'showcase-reviewer',
       'respond-learner',
     ];
@@ -42,6 +43,7 @@ describe('activity subagents', () => {
   it('keeps Challenger, Showcase, and Respond roles read-only', () => {
     for (const name of [
       'model-challenger',
+      'change-explainer',
       'showcase-reviewer',
       'respond-learner',
     ]) {
