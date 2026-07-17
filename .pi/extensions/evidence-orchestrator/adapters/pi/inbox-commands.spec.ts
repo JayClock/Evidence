@@ -130,6 +130,9 @@ describe('/evidence-inbox', () => {
       body: 'The owner needs an audit trail.',
     });
     const runAgent = vi.fn(async (options: { task: string }) => {
+      expect(options.task).toMatch(/^# Evidence Activity Context Capsule v1/);
+      expect(options.task).toContain('role=inbox-analyst');
+      expect(options.task).toContain('write_roots=none');
       expect(options.task).toContain(captured.revision.artifact_path);
       expect(options.task).toContain(captured.revision.content_sha256);
       proposeInboxStoryCandidates(

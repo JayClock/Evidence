@@ -1077,7 +1077,14 @@ describe('AI-driven Pair with Story-level human approval', () => {
     const driver = prepareActivityRun(cwd);
     if (isCompletedIteration(driver)) throw new Error('Unexpected complete.');
     expect(driver.agentName).toBe('test-driver');
+    expect(driver.task).toMatch(/^# Evidence Activity Context Capsule v1/);
     expect(driver.task).toContain('.pi/skills/evidence-pairing/SKILL.md');
+    expect(driver.task).toContain('task_id=TASK-001');
+    expect(driver.task).toContain('test_id=TEST-001');
+    expect(driver.task).toContain('process_id=typescript-pair');
+    expect(driver.task).toContain('step_id=acceptance-q2');
+    expect(driver.task).toContain('tools=read,edit,write');
+    expect(driver.task).not.toContain('evidence_orchestrator_status');
     expect(driver.pairAction).toBeUndefined();
 
     const snapshot = capturePairWorktree(cwd);
@@ -1815,6 +1822,15 @@ describe('AI-driven Pair with Story-level human approval', () => {
       agentName: 'showcase-reviewer',
       state: { showcase_stage: 'reviewing' },
     });
+    expect(reviewerPreparation.task).toMatch(
+      /^# Evidence Activity Context Capsule v1/,
+    );
+    expect(reviewerPreparation.task).toContain(
+      'tools=read,evidence_orchestrator_record_showcase_review',
+    );
+    expect(reviewerPreparation.task).not.toContain(
+      'evidence_orchestrator_status',
+    );
     expect(reviewerPreparation.task).toContain('observed facts');
     expect(reviewerPreparation.task).toContain('unresolved assumptions');
     const review = recordShowcaseReview(cwd, {
@@ -1864,6 +1880,13 @@ describe('AI-driven Pair with Story-level human approval', () => {
       agentName: 'respond-learner',
       state: { loop: 'respond', respond_stage: 'drafting' },
     });
+    expect(respondPreparation.task).toMatch(
+      /^# Evidence Activity Context Capsule v1/,
+    );
+    expect(respondPreparation.task).toContain(
+      'tools=read,evidence_orchestrator_propose_response',
+    );
+    expect(respondPreparation.task).toContain('showcase-decisions.jsonl');
     const manifestPath =
       'artifacts/iterations/ITER-0001/05-code/US-001/manifest.json';
     const response = proposeKnowledgeResponse(cwd, {

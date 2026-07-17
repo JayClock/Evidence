@@ -5,7 +5,6 @@ import {
 import { prepareModelProjection } from '../../../loops/understand/modeling/projection';
 import {
   pairDeterministicAction,
-  pairDriverMode,
   pairNextInstruction,
 } from '../../../loops/pair/pair-session';
 import {
@@ -22,12 +21,15 @@ import {
 } from '../../../iteration/artifact-layout';
 import { readState } from '../../../iteration/state-repository';
 import {
-  completedWorkItem,
   type PairDeterministicAction,
   type WorkflowLoop,
   type WorkflowState,
 } from '../../../iteration/state';
-import { buildActivityTask } from './task';
+import {
+  activityAgentForState,
+  activityRequiredInputs,
+  buildActivityTask,
+} from './task';
 
 export interface ActivityRunRequest {
   instructions?: string;
@@ -74,186 +76,7 @@ export interface CompletedIteration {
 export type ActivityRunPreparation = PreparedActivityRun | CompletedIteration;
 
 function agentFor(state: WorkflowState): string | undefined {
-  if (state.loop === 'kickoff') return 'requirements-analyst';
-  if (state.loop === 'understand') {
-    if (state.understand_stage === 'tqa') return 'requirements-analyst';
-    if (
-      state.modeling_stage === 'model_review' ||
-      (state.modeling_stage === 'expansion' &&
-        state.modeling_profile?.method === 'none')
-    ) {
-      return undefined;
-    }
-    return state.modeling_stage === 'candidate_ready'
-      ? 'model-challenger'
-      : 'domain-modeler';
-  }
-  if (state.loop === 'tasking') return 'architect';
-  if (state.loop === 'pair') {
-    if (
-      state.pair_session?.checkpoint === 'red_observed' &&
-      state.pair_session.red_observation?.accepted !== true
-    ) {
-      return 'red-reviewer';
-    }
-    const mode = pairDriverMode(state);
-    return mode === 'test'
-      ? 'test-driver'
-      : mode
-        ? 'production-driver'
-        : undefined;
-  }
-  if (state.loop === 'showcase') return 'showcase-reviewer';
-  if (state.loop === 'respond') return 'respond-learner';
-  return undefined;
-}
-
-function requiredInputs(state: WorkflowState): string[] {
-  if (state.loop === 'kickoff') {
-    const feedback = state.feedback_history?.at(-1);
-    const revisionStoryId = [...(state.kickoff_decisions ?? [])]
-      .reverse()
-      .find(({ story_id }) => story_id)?.story_id;
-    const storyRevisionInputs =
-      feedback?.target === 'story' &&
-      feedback.to_loop === 'kickoff' &&
-      revisionStoryId
-        ? [
-            `artifacts/01-requirements/stories/${revisionStoryId}.md`,
-            `artifacts/01-requirements/clarifications/${revisionStoryId}.json`,
-          ]
-        : [];
-    const completed = completedWorkItem(state);
-    const completedScopeInputs = completed
-      ? [
-          `artifacts/01-requirements/stories/${completed.story_id}.md`,
-          ...completed.scenarios.map(({ artifact_path }) => artifact_path),
-        ]
-      : [];
-    return [
-      'artifacts/00-user-input/requirements.md',
-      'docs/product/personas.md',
-      'docs/product/business-context.md',
-      'docs/product/user-journeys.md',
-      'docs/product/story-map.md',
-      ...completedScopeInputs,
-      ...storyRevisionInputs,
-    ];
-  }
-  if (state.loop === 'understand' && state.understand_stage === 'tqa') {
-    return [
-      'artifacts/00-user-input/requirements.md',
-      'artifacts/01-requirements/problem-statement.md',
-      `artifacts/01-requirements/stories/${state.active_clarification_story?.story_id ?? 'missing'}.md`,
-      'docs/product/business-context.md',
-      'docs/product/user-journeys.md',
-      'docs/product/story-map.md',
-    ];
-  }
-  if (state.loop === 'understand') {
-    const noModelImpact =
-      state.modeling_stage === 'expansion' &&
-      state.modeling_profile?.method === 'none';
-    return [
-      ...(state.confirmed_scenarios?.map(
-        ({ artifact_path }) => artifact_path,
-      ) ?? ['artifacts/01-requirements/examples/missing.md']),
-      ...(noModelImpact
-        ? []
-        : [
-            '.evidence/model.json',
-            '.evidence/entities/',
-            '.evidence/associations/',
-          ]),
-      ...(state.modeling_stage === 'candidate_ready'
-        ? [
-            state.model_projection?.mermaid_path ?? 'missing-model.mmd',
-            state.model_projection?.glossary_path ?? 'missing-glossary.md',
-            state.model_projection?.context_path ?? 'missing-context.json',
-          ]
-        : []),
-    ];
-  }
-  if (state.loop === 'tasking') {
-    return [
-      ...(state.confirmed_scenarios?.map(
-        ({ artifact_path }) => artifact_path,
-      ) ?? ['artifacts/01-requirements/examples/missing.md']),
-      state.model_expansion_path ??
-        'artifacts/02-domain-model/model-expansions/missing.json',
-      (state.modeling_profile?.method === 'none'
-        ? state.model_expansion_path
-        : state.model_decisions?.at(-1)?.artifact_path) ??
-        'artifacts/02-domain-model/model-decisions/missing.json',
-      'docs/architecture/context-map.md',
-      'docs/architecture/module-structure.md',
-      'docs/architecture/tech-stack.md',
-      'docs/architecture/test-strategy.md',
-      'docs/architecture/test-doubles.md',
-      'contracts/api.yaml',
-      'engineering/evidence-orchestrator/runtime-contexts.json',
-      'engineering/evidence-orchestrator/test-processes/',
-      'engineering/evidence-orchestrator/definition-of-done.md',
-    ];
-  }
-  if (state.loop === 'pair') {
-    return [
-      ...(state.confirmed_scenarios?.map(
-        ({ artifact_path }) => artifact_path,
-      ) ?? ['artifacts/01-requirements/examples/missing.md']),
-      state.model_expansion_path ??
-        'artifacts/02-domain-model/model-expansions/missing.json',
-      (state.modeling_profile?.method === 'none'
-        ? state.model_expansion_path
-        : state.model_decisions?.at(-1)?.artifact_path) ??
-        'artifacts/02-domain-model/model-decisions/missing.json',
-      state.tasking_candidate?.test_list_path ??
-        'artifacts/04-planning/test-list.md',
-      state.tasking_candidate?.task_list_path ??
-        'artifacts/04-planning/task-list.md',
-      state.approved_test_plan_path ?? 'artifacts/04-planning/test-plan.json',
-      ...(state.active_work_item?.test_plan.processes.map(({ path }) => path) ??
-        []),
-      'engineering/evidence-orchestrator/definition-of-done.md',
-    ];
-  }
-  if (state.loop === 'showcase') {
-    return [
-      ...(state.confirmed_scenarios?.map(
-        ({ artifact_path }) => artifact_path,
-      ) ?? ['artifacts/01-requirements/examples/missing.md']),
-      state.model_expansion_path ??
-        'artifacts/02-domain-model/model-expansions/missing.json',
-      state.approved_test_plan_path ?? 'artifacts/04-planning/test-plan.json',
-      state.active_work_item
-        ? `artifacts/05-code/${state.active_work_item.story_id}/manifest.json`
-        : 'artifacts/05-code/missing/manifest.json',
-      'engineering/evidence-orchestrator/definition-of-done.md',
-    ];
-  }
-  if (state.loop === 'respond') {
-    return [
-      ...(state.confirmed_scenarios?.map(
-        ({ artifact_path }) => artifact_path,
-      ) ?? ['artifacts/01-requirements/examples/missing.md']),
-      state.active_work_item
-        ? `artifacts/05-code/${state.active_work_item.story_id}/manifest.json`
-        : 'artifacts/05-code/missing/manifest.json',
-      state.showcase_reviews?.at(-1)?.artifact_path ??
-        'artifacts/06-review/missing-review.json',
-      state.showcase_product_observations?.at(-1)?.artifact_path ??
-        'artifacts/06-review/missing-product-observation.jsonl',
-      ...(state.showcase_evaluation_observations?.length
-        ? [
-            state.showcase_evaluation_observations.at(-1)?.artifact_path ??
-              'artifacts/06-review/missing-evaluation.jsonl',
-          ]
-        : []),
-      'docs/knowledge-governance.md',
-      'engineering/evidence-orchestrator/definition-of-done.md',
-    ];
-  }
-  return [];
+  return activityAgentForState(state);
 }
 
 /** Resolve one activity without performing agent work. */
@@ -407,7 +230,7 @@ export function prepareActivityRun(
     : buildActivityTask(cwd, request.instructions ?? '');
   const missing = missingPaths(
     cwd,
-    requiredInputs(current).map((path) =>
+    activityRequiredInputs(current).map((path) =>
       path.startsWith(`artifacts/iterations/${current.iteration_id}/`)
         ? path
         : artifactRelativePath(current, path),

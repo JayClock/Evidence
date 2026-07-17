@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import { readState, writeState } from '../../../iteration/state-repository';
-import { buildActivityTask } from './task';
+import { buildActivityTask, MAX_ACTIVITY_CAPSULE_BYTES } from './task';
 import { cleanupWorkspaces, workspace } from '../../../test-support/support';
 
 const scenario = {
@@ -30,6 +30,7 @@ describe('activity tasks', () => {
 
     const task = buildActivityTask(cwd);
 
+    expect(task).toMatch(/^# Evidence Activity Context Capsule v1/);
     expect(task).toContain(
       'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
     );
@@ -60,6 +61,9 @@ describe('activity tasks', () => {
     const task = buildActivityTask(cwd);
 
     expect(task).toContain('.pi/skills/evidence-story-tqa/SKILL.md');
+    expect(task).toContain(
+      'artifacts/iterations/ITER-0001/01-requirements/clarifications/US-001.json (read if present; canonical clarification history)',
+    );
     expect(task).toContain('evidence_orchestrator_ask_question');
     expect(task).toContain('evidence_orchestrator_propose_scenarios');
     expect(task).toContain('Cover the concurrent-edit boundary.');
@@ -169,5 +173,35 @@ describe('activity tasks', () => {
     expect(task).toContain('evidence_orchestrator_propose_tasking');
     expect(task).toContain('/evidence-desk-check');
     expect(task).not.toContain('Sprint backlog');
+  });
+
+  it('includes one requested outcome, enforced boundaries, and no global inventory', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+
+    const task = buildActivityTask(
+      cwd,
+      'Prefer the smallest reviewable value.',
+    );
+
+    expect(task.match(/requested_outcome=/g)).toHaveLength(1);
+    expect(task).toContain(
+      'additional_instruction=Prefer the smallest reviewable value.',
+    );
+    expect(task).toContain('tools=read,evidence_orchestrator_propose_kickoff');
+    expect(task).toContain('write_roots=none');
+    expect(task).toContain('call exactly once');
+    expect(task).not.toContain('evidence_orchestrator_status');
+    expect(task).not.toContain('Code Files');
+    expect(task).not.toContain('Activity by Agent');
+  });
+
+  it('fails closed when the deterministic Capsule exceeds 16 KiB', () => {
+    const cwd = workspace();
+    writeState(cwd, DEFAULT_STATE);
+
+    expect(() => buildActivityTask(cwd, '界'.repeat(6_000))).toThrow(
+      `maximum is ${MAX_ACTIVITY_CAPSULE_BYTES}`,
+    );
   });
 });

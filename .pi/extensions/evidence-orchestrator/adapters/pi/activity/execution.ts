@@ -13,7 +13,6 @@ import {
 } from '../../../capabilities/activity-observability/activity-usage';
 import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 import {
-  buildPairRedReviewTask,
   capturePairWorktree,
   completePairDriver,
   executePairAction,
@@ -617,7 +616,7 @@ async function executeAutomatedPairRun(
         state,
         activity: 'pair',
         agentName: 'red-reviewer',
-        task: buildPairRedReviewTask(ctx.cwd, state),
+        task: buildActivityTask(ctx.cwd),
       };
       ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'agent'));
       let reviewerResult: ActivityAgentResult | undefined;

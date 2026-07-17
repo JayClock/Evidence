@@ -26,6 +26,7 @@ import { createGitHubCliRunner } from '../github/pi-cli';
 import { EVIDENCE_COMMANDS } from './command-names';
 import { selectOrCreateGitHubIssue } from './issue-picker';
 import { runWithLoader } from './loading';
+import { taskWithContextCapsule } from './activity/task';
 
 const SOURCE_OPTIONS = ['GitHub Issue', '手工文本', '本地 Markdown'] as const;
 
@@ -283,14 +284,44 @@ export function buildInboxExtractionTask(
   const selected = sourceIds.map((sourceId) =>
     latestInboxRevision(cwd, sourceId),
   );
-  return `执行一次 Evidence Inbox Story 提取。\n\n精确来源修订：\n${selected
-    .map(
-      (revision) =>
-        `- ${revision.inbox_id} | ${revision.content_sha256} | ${revision.artifact_path}`,
-    )
-    .join(
-      '\n',
-    )}\n\n稳定产品上下文：\n- docs/product/personas.md\n- docs/product/business-context.md\n- docs/product/user-journeys.md\n- docs/product/story-map.md\n\n任务：读取全部精确来源修订，提出一至五张最小 Story 候选。每张候选引用精确 Inbox id、revision SHA-256 和 locator；候选集合必须引用全部选定来源。只调用 evidence_orchestrator_propose_inbox_stories 一次后停止；不得分配 US-xxx、确认候选或启动迭代。`;
+  const productContext = [
+    'docs/product/personas.md',
+    'docs/product/business-context.md',
+    'docs/product/user-journeys.md',
+    'docs/product/story-map.md',
+  ];
+  return taskWithContextCapsule(
+    {
+      identity: [`source_ids=${sourceIds.join(',')}`],
+      decision: [
+        'loop=inbox',
+        'stage=extract',
+        'requested_outcome=record one to five source-cited Story candidates',
+      ],
+      authority: selected.map(
+        (revision) =>
+          `source_revision=${revision.inbox_id} sha256=${revision.content_sha256}`,
+      ),
+      inputs: [
+        ...selected.map(({ artifact_path }) => artifact_path),
+        ...productContext,
+      ],
+      work_unit: sourceIds.map((sourceId) => `source_id=${sourceId}`),
+      boundaries: [
+        'role=inbox-analyst',
+        'tools=read,evidence_orchestrator_propose_inbox_stories',
+        'read_roots=repository root plus exact Inputs; deny secrets and Git internals',
+        'write_mode=none',
+        'write_roots=none',
+        'forbidden=Bash, source inference, US-xxx assignment, candidate confirmation, iteration start',
+      ],
+      output: [
+        'call exactly once: evidence_orchestrator_propose_inbox_stories',
+        'cite every selected source revision and stop',
+      ],
+    },
+    '读取全部精确来源修订，提出一至五张最小 Story 候选。每张候选引用精确 Inbox id、revision SHA-256 和 locator；候选集合必须引用全部选定来源。不得分配 US-xxx、确认候选或启动迭代。',
+  );
 }
 
 async function extractStories(
