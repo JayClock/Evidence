@@ -222,7 +222,7 @@ function finishFromError(
 export async function withActivityTrace<T extends ActivityAgentResult>(
   cwd: string,
   descriptor: ActivityTraceDescriptor,
-  operation: () => Promise<T>,
+  operation: (span: ActivityTraceSpan) => Promise<T>,
   options: ActivityTraceRuntimeOptions<T> = {},
 ): Promise<T> {
   const now = options.now ?? (() => new Date().toISOString());
@@ -230,7 +230,7 @@ export async function withActivityTrace<T extends ActivityAgentResult>(
   let value: T | undefined;
   let activityError: unknown;
   try {
-    value = await operation();
+    value = await operation(span);
   } catch (error) {
     activityError = error;
   }

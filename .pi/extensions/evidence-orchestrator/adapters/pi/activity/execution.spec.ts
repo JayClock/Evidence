@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { zeroActivityUsage } from '../../../capabilities/activity-observability/activity-usage';
 import {
   activityTracePath,
   readActivityTrace,
+  validateActivityTrace,
 } from '../../../capabilities/activity-observability/trace';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import type {
@@ -362,7 +364,19 @@ describe('activity execution', () => {
           },
         };
       }
-      return { state: current, output: String(action) };
+      const sequences = {
+        run_red: 1,
+        run_green: 2,
+        run_refactor: 3,
+        run_quality_gate: 4,
+      } as const;
+      return {
+        state: current,
+        output: String(action),
+        record: {
+          sequence: sequences[action as keyof typeof sequences],
+        },
+      };
     });
     pairing.reviewPairRed.mockImplementation(
       (_cwd, kind, reason, _now, reviewedBy) => {
@@ -387,7 +401,11 @@ describe('activity execution', () => {
     runner.runActivityAgent.mockImplementation(async ({ agentName }) => ({
       agent: agentName,
       model: 'openai/test',
+      requestedModel: 'openai/test',
+      actualModel: 'openai/test',
       thinking: 'medium',
+      sessionMode: 'ephemeral',
+      toolNames: ['read'],
       output:
         agentName === 'red-reviewer'
           ? '{"failureKind":"behavior","reason":"missing behavior"}'
@@ -395,6 +413,20 @@ describe('activity execution', () => {
       messages: [],
       exitCode: 0,
       stderr: '',
+      usage: {
+        turns: 1,
+        input_tokens: 100,
+        output_tokens: 10,
+        cache_read_tokens: 80,
+        cache_write_tokens: 0,
+        cost_usd: 0.01,
+        context_tokens_at_end: 110,
+      },
+      stopReason: 'stop',
+      startedAt: '2026-01-01T00:00:00.000Z',
+      completedAt: '2026-01-01T00:00:01.000Z',
+      durationMs: 1_000,
+      toolCallCounts: { read: 1 },
     }));
 
     const result = await executePreparedActivityRun(
@@ -414,6 +446,15 @@ describe('activity execution', () => {
       exitCode: 0,
     });
     expect(result.output).toContain('/evidence-pair approve <reason>');
+    expect(result.usage).toEqual({
+      turns: 4,
+      input_tokens: 400,
+      output_tokens: 40,
+      cache_read_tokens: 320,
+      cache_write_tokens: 0,
+      cost_usd: 0.04,
+      context_tokens_at_end: 110,
+    });
     expect(
       runner.runActivityAgent.mock.calls.map(([options]) => options.agentName),
     ).toEqual([
@@ -432,6 +473,36 @@ describe('activity execution', () => {
       expect.any(String),
       'red-reviewer',
     );
+
+    const trace = validateActivityTrace(
+      activityTracePath(cwd, 'ITER-0001'),
+      'ITER-0001',
+    );
+    const starts = trace.filter(({ event }) => event === 'activity_started');
+    expect(starts).toHaveLength(9);
+    expect(starts[0]).toMatchObject({
+      span_id: 'ACT-000001',
+      agent: 'pair-automation',
+    });
+    expect(
+      starts
+        .slice(1)
+        .every(({ parent_span_id }) => parent_span_id === 'ACT-000001'),
+    ).toBe(true);
+    expect(starts.map(({ agent }) => agent)).toContain('red-reviewer');
+    expect(
+      trace
+        .filter(
+          ({ event, agent }) =>
+            event === 'activity_finished' && agent === 'pair-controller',
+        )
+        .map(({ execution_record_sequences }) => execution_record_sequences),
+    ).toEqual([[1], [2], [3], [4]]);
+    expect(trace.at(-1)).toMatchObject({
+      span_id: 'ACT-000001',
+      event: 'activity_finished',
+      usage: zeroActivityUsage(),
+    });
   });
 
   it('executes Showcase Q2 without starting Reviewer', async () => {
