@@ -5,6 +5,8 @@ export const STATUS_KEY = EXTENSION_ID;
 export const STATUS_PREFIX = 'orchestrator';
 export const ACTIVITY_RESULT_MESSAGE_TYPE =
   'evidence-orchestrator-activity-result';
+export const ACTIVITY_RESULT_ENTRY_TYPE =
+  'evidence-orchestrator-activity-result-entry';
 
 export function statusLabel(
   state: WorkflowState | undefined,

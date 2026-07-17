@@ -5,6 +5,7 @@ import { readState, writeState } from '../../../iteration/state-repository';
 import {
   answerClarification,
   askClarification,
+  MAX_CLARIFICATION_QUESTION_BYTES,
   waivePendingClarification,
 } from './conversation';
 import {
@@ -103,6 +104,19 @@ describe('single-Story TQA', () => {
     expect(readFileSync(`${cwd}/${storyPath}`, 'utf8')).not.toContain(
       '## TQA 澄清',
     );
+  });
+
+  it('rejects a question that cannot fit intact in the bounded parent dialogue', () => {
+    const cwd = workspace();
+    prepareTqa(cwd);
+
+    expect(() =>
+      askClarification(cwd, {
+        story_id: 'US-001',
+        question: '界'.repeat(MAX_CLARIFICATION_QUESTION_BYTES),
+        target: 'history',
+      }),
+    ).toThrow(`maximum is ${MAX_CLARIFICATION_QUESTION_BYTES}`);
   });
 
   it('waives the sole pending question only through a human split/defer path', () => {

@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  boundedModelVisibleActivityText,
+  createActivityResultEntryData,
+  MAX_ACTIVITY_ENTRY_BYTES,
+  MAX_MODEL_VISIBLE_ACTIVITY_BYTES,
   renderActivityAgentCall,
   renderActivityAgentResult,
+  renderActivityResultEntry,
   type ActivityAgentToolDetails,
 } from './activity-agent-renderer';
 
@@ -180,6 +185,58 @@ describe('activity agent renderer', () => {
     expect(output).toContain('Implement US-001 / SC-001');
     expect(output).toContain('─── Final child output ───');
     expect(output).toContain('warning from child');
+  });
+
+  it('bounds model-visible activity text and retains a disk pointer', () => {
+    const content = boundedModelVisibleActivityText('界'.repeat(2_000), [
+      'artifacts/iterations/ITER-0001/activity-trace.jsonl',
+    ]);
+
+    expect(Buffer.byteLength(content, 'utf8')).toBeLessThanOrEqual(
+      MAX_MODEL_VISIBLE_ACTIVITY_BYTES,
+    );
+    expect(content).toContain('activity-trace.jsonl');
+    expect(content).toContain('full child events remain in local TUI details');
+    expect(() =>
+      boundedModelVisibleActivityText('界'.repeat(2_000), [], {
+        preserveWholeText: true,
+      }),
+    ).toThrow('Persist a shorter question');
+  });
+
+  it('creates and renders a bounded TUI-only entry without task or child transcript copies', () => {
+    const entry = createActivityResultEntryData(
+      details({
+        status: 'completed',
+        exitCode: 0,
+        output: `Completed.\n${'detail '.repeat(2_000)}`,
+      }),
+      ['artifacts/iterations/ITER-0001/activity-trace.jsonl'],
+    );
+
+    expect(
+      Buffer.byteLength(JSON.stringify(entry), 'utf8'),
+    ).toBeLessThanOrEqual(MAX_ACTIVITY_ENTRY_BYTES);
+    expect(entry).not.toHaveProperty('messages');
+    expect(entry).not.toHaveProperty('task');
+    expect(entry).not.toHaveProperty('stderr');
+    expect(entry.output_summary).toContain('summary bounded');
+
+    const collapsed = renderActivityResultEntry(
+      entry,
+      { expanded: false },
+      theme,
+    )
+      .render(120)
+      .join('\n');
+    const expanded = renderActivityResultEntry(entry, { expanded: true }, theme)
+      .render(120)
+      .join('\n');
+
+    expect(collapsed).toContain('✓ pair · coder');
+    expect(expanded).toContain('─── Activity summary ───');
+    expect(expanded).toContain('Child events observed: 2');
+    expect(expanded).toContain('activity-trace.jsonl');
   });
 
   it('renders a concise activity-agent tool call header', () => {

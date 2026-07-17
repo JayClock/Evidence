@@ -31,6 +31,8 @@ interface ClarificationHistoryDocument {
   clarifications: ClarificationRecord[];
 }
 
+export const MAX_CLARIFICATION_QUESTION_BYTES = 1536;
+
 const VALID_TARGETS = new Set<ClarificationTarget>([
   'business_context',
   'story',
@@ -49,6 +51,17 @@ function requireNonEmpty(value: string, name: string): string {
   const normalized = value.trim();
   if (!normalized) throw new Error(`${name} must not be empty.`);
   return normalized;
+}
+
+function requireQuestion(value: string): string {
+  const question = requireNonEmpty(value, 'Clarification question');
+  const bytes = Buffer.byteLength(question, 'utf8');
+  if (bytes > MAX_CLARIFICATION_QUESTION_BYTES) {
+    throw new Error(
+      `Clarification question is ${bytes} UTF-8 bytes; maximum is ${MAX_CLARIFICATION_QUESTION_BYTES}. Ask one smaller business question.`,
+    );
+  }
+  return question;
 }
 
 function requireUnderstandTqa(state: WorkflowState): void {
@@ -236,7 +249,7 @@ export function askClarification(
   const pending: ClarificationRecord = {
     question_id: nextQuestionId(state),
     story_id: storyId,
-    question: requireNonEmpty(input.question, 'Clarification question'),
+    question: requireQuestion(input.question),
     target: input.target,
     asked_at: now,
   };

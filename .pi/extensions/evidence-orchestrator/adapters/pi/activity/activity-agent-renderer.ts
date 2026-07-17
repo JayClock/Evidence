@@ -7,6 +7,28 @@ import type { ActivityExecutionDetails } from './execution';
 
 export type ActivityAgentToolDetails = ActivityExecutionDetails;
 
+export const MAX_MODEL_VISIBLE_ACTIVITY_BYTES = 2 * 1024;
+export const MAX_ACTIVITY_ENTRY_BYTES = 8 * 1024;
+const MAX_ACTIVITY_ENTRY_OUTPUT_BYTES = 4 * 1024;
+
+export interface ActivityResultEntryData {
+  version: 1;
+  activity: ActivityExecutionDetails['activity'];
+  status: ActivityExecutionDetails['status'];
+  agent: string;
+  requested_model: string;
+  actual_model: string;
+  thinking: ActivityExecutionDetails['thinking'];
+  output_summary: string;
+  usage: ActivityUsage;
+  duration_ms: number;
+  exit_code: number;
+  stop_reason?: string;
+  completed_at: string;
+  child_event_count: number;
+  references: string[];
+}
+
 type RecordValue = Record<string, unknown>;
 
 type DisplayItem =
@@ -53,6 +75,82 @@ function parsedUsage(value: unknown): ActivityUsage {
         ? null
         : (asFiniteNumber(value.context_tokens_at_end) ?? null),
   };
+}
+
+function truncateUtf8(value: string, maxBytes: number, suffix = ''): string {
+  if (Buffer.byteLength(value, 'utf8') <= maxBytes) return value;
+  const suffixBytes = Buffer.byteLength(suffix, 'utf8');
+  if (suffixBytes >= maxBytes) {
+    throw new Error(`Bounded text suffix exceeds ${maxBytes} UTF-8 bytes.`);
+  }
+  let output = '';
+  let bytes = 0;
+  for (const character of value) {
+    const characterBytes = Buffer.byteLength(character, 'utf8');
+    if (bytes + characterBytes + suffixBytes > maxBytes) break;
+    output += character;
+    bytes += characterBytes;
+  }
+  return `${output}${suffix}`;
+}
+
+/** Bound command/tool content while leaving full child events in local details. */
+export function boundedModelVisibleActivityText(
+  value: string,
+  references: readonly string[] = [],
+  options: { preserveWholeText?: boolean } = {},
+): string {
+  if (Buffer.byteLength(value, 'utf8') <= MAX_MODEL_VISIBLE_ACTIVITY_BYTES) {
+    return value;
+  }
+  if (options.preserveWholeText) {
+    throw new Error(
+      `Required model-visible activity text exceeds ${MAX_MODEL_VISIBLE_ACTIVITY_BYTES} UTF-8 bytes. Persist a shorter question or split the activity.`,
+    );
+  }
+  const referenceText = references.length
+    ? ` References: ${references.join(', ')}.`
+    : '';
+  const suffix = `\n\n[Model-visible result bounded at ${MAX_MODEL_VISIBLE_ACTIVITY_BYTES} bytes; full child events remain in local TUI details.${referenceText}]`;
+  return truncateUtf8(value, MAX_MODEL_VISIBLE_ACTIVITY_BYTES, suffix);
+}
+
+export function createActivityResultEntryData(
+  details: ActivityExecutionDetails,
+  references: readonly string[] = [],
+): ActivityResultEntryData {
+  const outputSuffix =
+    Buffer.byteLength(details.output, 'utf8') > MAX_ACTIVITY_ENTRY_OUTPUT_BYTES
+      ? '\n\n[Activity output summary bounded; inspect the referenced disk facts.]'
+      : '';
+  const data: ActivityResultEntryData = {
+    version: 1,
+    activity: details.activity,
+    status: details.status,
+    agent: details.agent,
+    requested_model: details.requestedModel,
+    actual_model: details.actualModel,
+    thinking: details.thinking,
+    output_summary: truncateUtf8(
+      details.output,
+      MAX_ACTIVITY_ENTRY_OUTPUT_BYTES,
+      outputSuffix,
+    ),
+    usage: details.usage ?? zeroActivityUsage(null),
+    duration_ms: details.durationMs,
+    exit_code: details.exitCode,
+    ...(details.stopReason ? { stop_reason: details.stopReason } : {}),
+    completed_at: details.completedAt,
+    child_event_count: details.messages.length,
+    references: [...new Set(references)],
+  };
+  const bytes = Buffer.byteLength(JSON.stringify(data), 'utf8');
+  if (bytes > MAX_ACTIVITY_ENTRY_BYTES) {
+    throw new Error(
+      `Evidence activity result entry is ${bytes} UTF-8 bytes; maximum is ${MAX_ACTIVITY_ENTRY_BYTES}. Reduce references or point to one summary artifact.`,
+    );
+  }
+  return data;
 }
 
 function preview(value: string, maxLength = 100): string {
@@ -418,4 +516,74 @@ export function renderActivityAgentResult(
     text += `\n${theme.fg('muted', '(Ctrl+O to expand)')}`;
   }
   return new Text(text, 0, 0);
+}
+
+/** Render a durable command result that never participates in LLM context. */
+export function renderActivityResultEntry(
+  data: ActivityResultEntryData,
+  options: { expanded: boolean },
+  theme: ThemeLike,
+): Container | Text {
+  const usage = parsedUsage(data.usage);
+  const failed =
+    data.status === 'failed' ||
+    data.exit_code !== 0 ||
+    data.stop_reason === 'error' ||
+    data.stop_reason === 'aborted' ||
+    data.stop_reason === 'timeout';
+  const icon = failed ? theme.fg('error', '✗') : theme.fg('success', '✓');
+  const model =
+    data.requested_model === data.actual_model
+      ? data.actual_model
+      : `${data.actual_model} (requested ${data.requested_model})`;
+  const header =
+    `${icon} ${theme.fg('toolTitle', theme.bold(data.activity))}` +
+    theme.fg('accent', ` · ${data.agent}`) +
+    theme.fg(
+      'dim',
+      ` · ${model} · thinking=${data.thinking} · ${formatUsage(usage)} · ${formatDuration(data.duration_ms)}`,
+    );
+
+  if (!options.expanded) {
+    const summary = data.output_summary
+      ? `\n${theme.fg('toolOutput', firstLines(data.output_summary))}`
+      : '';
+    return new Text(`${header}${summary}`, 0, 0);
+  }
+
+  const container = new Container();
+  container.addChild(new Text(header, 0, 0));
+  if (data.output_summary) {
+    container.addChild(new Spacer(1));
+    container.addChild(
+      new Text(theme.fg('muted', '─── Activity summary ───'), 0, 0),
+    );
+    container.addChild(
+      new Text(theme.fg('toolOutput', data.output_summary), 0, 0),
+    );
+  }
+  container.addChild(new Spacer(1));
+  container.addChild(
+    new Text(
+      theme.fg(
+        'dim',
+        `Child events observed: ${data.child_event_count}. Full child events were shown during execution but are not copied into model context.`,
+      ),
+      0,
+      0,
+    ),
+  );
+  if (data.references.length > 0) {
+    container.addChild(
+      new Text(theme.fg('muted', '─── Disk references ───'), 0, 0),
+    );
+    container.addChild(
+      new Text(
+        data.references.map((reference) => `- ${reference}`).join('\n'),
+        0,
+        0,
+      ),
+    );
+  }
+  return container;
 }
