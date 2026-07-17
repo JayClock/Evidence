@@ -14,6 +14,7 @@ import {
 } from '../capabilities/working-knowledge/promotion-validation';
 import { validateWorkingKnowledgeCatalog } from '../capabilities/working-knowledge/catalog';
 import { readPersistedState } from '../iteration/state-repository';
+import { validateEvidenceCommandReferences } from './command-references';
 import { validateSourceBoundaries } from './source-boundaries';
 import {
   catalogTestProcessDirectory,
@@ -22,6 +23,7 @@ import {
 
 /** Deterministic CI validation for the native workflow and shared knowledge. */
 export function validateWorkflow(cwd: string): void {
+  validateEvidenceCommandReferences(cwd);
   validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
   validateInboxRepository(cwd);
   validateInboxStoryCandidates(cwd);

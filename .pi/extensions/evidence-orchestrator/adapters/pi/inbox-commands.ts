@@ -19,6 +19,7 @@ import {
   manualTextInboxSource,
 } from '../local/inbox-sources';
 import { createGitHubCliRunner } from '../github/pi-cli';
+import { EVIDENCE_COMMANDS } from './command-names';
 import { selectOrCreateGitHubIssue } from './issue-picker';
 import { runWithLoader } from './loading';
 
@@ -387,7 +388,7 @@ export function registerInboxCommands(
   pi: ExtensionAPI,
   runAgent: InboxAgentRunner = runActivityAgent,
 ): void {
-  pi.registerCommand('evidence-inbox', {
+  pi.registerCommand(EVIDENCE_COMMANDS.inbox, {
     description: 'Collect and list provider-neutral Evidence Inbox sources',
     handler: async (args, ctx) => {
       try {

@@ -60,6 +60,7 @@ import {
   runHtmlChangeExplanationFromCommand,
   runPreparedActivityFromCommand,
 } from './activity-command';
+import { EVIDENCE_COMMANDS } from './command-names';
 
 export {
   parseModelDecision,
@@ -74,38 +75,42 @@ export function activeStageCommand(
   if (!state || state.halted || state.loop === 'complete') return undefined;
 
   if (state.loop === 'kickoff') {
-    return state.kickoff_candidate ? 'evidence-kickoff' : 'evidence-run';
+    return state.kickoff_candidate
+      ? EVIDENCE_COMMANDS.kickoff
+      : EVIDENCE_COMMANDS.run;
   }
   if (state.loop === 'understand') {
     if (state.understand_stage === 'scenario_review') {
-      return 'evidence-scenario';
+      return EVIDENCE_COMMANDS.scenario;
     }
     if (state.modeling_stage === 'profile_review') {
-      return 'evidence-modeling-profile';
+      return EVIDENCE_COMMANDS.modelingProfile;
     }
-    if (state.modeling_stage === 'model_review') return 'evidence-model';
-    return 'evidence-run';
+    if (state.modeling_stage === 'model_review') {
+      return EVIDENCE_COMMANDS.model;
+    }
+    return EVIDENCE_COMMANDS.run;
   }
   if (state.loop === 'tasking') {
     return state.tasking_stage === 'desk_check'
-      ? 'evidence-desk-check'
-      : 'evidence-run';
+      ? EVIDENCE_COMMANDS.deskCheck
+      : EVIDENCE_COMMANDS.run;
   }
   if (state.loop === 'pair') {
     return state.pair_session?.checkpoint === 'quality_gates_passed' ||
       state.pair_session?.automation_exception
-      ? 'evidence-pair'
-      : 'evidence-run';
+      ? EVIDENCE_COMMANDS.pair
+      : EVIDENCE_COMMANDS.run;
   }
   if (state.loop === 'showcase') {
     return showcaseRequiresHumanAction(cwd)
-      ? 'evidence-showcase'
-      : 'evidence-run';
+      ? EVIDENCE_COMMANDS.showcase
+      : EVIDENCE_COMMANDS.run;
   }
   if (state.loop === 'respond') {
     return state.respond_stage === 'decision'
-      ? 'evidence-respond'
-      : 'evidence-run';
+      ? EVIDENCE_COMMANDS.respond
+      : EVIDENCE_COMMANDS.run;
   }
   return undefined;
 }
@@ -119,14 +124,14 @@ export function registerCommands(
     pi.registerCommand(name, options);
   };
 
-  pi.registerCommand('evidence-status', {
+  pi.registerCommand(EVIDENCE_COMMANDS.status, {
     description:
       'Show Evidence Orchestrator loop, decisions, evidence, and code status',
     handler: async (_args, ctx) =>
       ctx.ui.notify(statusMarkdown(ctx.cwd), 'info'),
   });
 
-  pi.registerCommand('evidence-new', {
+  pi.registerCommand(EVIDENCE_COMMANDS.newIteration, {
     description:
       'Extract Story candidates from a selected Inbox source, then start a new iteration',
     handler: async (args, ctx) => {
@@ -162,7 +167,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-kickoff', {
+  registerStageCommand(EVIDENCE_COMMANDS.kickoff, {
     description:
       'Human-only decision for the pending Kickoff candidate: confirm, revise, split, defer, or stop',
     handler: async (args, ctx) => {
@@ -204,7 +209,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-scenario', {
+  registerStageCommand(EVIDENCE_COMMANDS.scenario, {
     description:
       'Human-only Scenario decision: confirm one draft, continue TQA, split, or defer',
     handler: async (args, ctx) => {
@@ -246,7 +251,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-modeling-profile', {
+  registerStageCommand(EVIDENCE_COMMANDS.modelingProfile, {
     description:
       'Human-only modeling Profile confirmation or override for the confirmed Scenario',
     handler: async (args, ctx) => {
@@ -280,7 +285,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-model', {
+  registerStageCommand(EVIDENCE_COMMANDS.model, {
     description:
       'Human-only decision for the challenged model and ubiquitous language',
     handler: async (args, ctx) => {
@@ -312,7 +317,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-desk-check', {
+  registerStageCommand(EVIDENCE_COMMANDS.deskCheck, {
     description:
       'Human-only Tasking decision: approve, revise, architecture_gap, process_gap, or scenario_gap',
     handler: async (args, ctx) => {
@@ -354,7 +359,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-pair', {
+  registerStageCommand(EVIDENCE_COMMANDS.pair, {
     description:
       'One human Story-level coding approval after automated Pair, or explicit exception routing',
     handler: async (args, ctx) => {
@@ -386,7 +391,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-explain-diff', {
+  registerStageCommand(EVIDENCE_COMMANDS.explainDiff, {
     description:
       'Generate one optional self-contained HTML explanation after Pair quality gates pass',
     handler: async (args, ctx) => {
@@ -405,7 +410,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-showcase', {
+  registerStageCommand(EVIDENCE_COMMANDS.showcase, {
     description:
       'Human-only Showcase risk and accept/revise/reject decisions with semantic feedback routing',
     handler: async (args, ctx) => {
@@ -461,7 +466,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-respond', {
+  registerStageCommand(EVIDENCE_COMMANDS.respond, {
     description:
       'Human-only Respond approval or revision for validated knowledge and the next Probe',
     handler: async (args, ctx) => {
@@ -497,7 +502,7 @@ export function registerCommands(
     },
   });
 
-  registerStageCommand('evidence-run', {
+  registerStageCommand(EVIDENCE_COMMANDS.run, {
     description:
       'Run the current activity; Pair automatically completes recorded coding checkpoints until Story approval or exception',
     handler: async (args, ctx) => {

@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "The first approved TASK/TEST needs a failing Web test; another TEST shares its process step. Explain the next Driver turn.",
-      "expected_output": "Runs one Test Driver edit for only the active TASK/TEST, then returns for controller observation and human Red classification without completing the other TEST.",
+      "expected_output": "Runs one Test Driver edit for only the active TASK/TEST, then returns for controller observation and independent AI Red Reviewer classification without completing the other TEST.",
       "files": []
     },
     {
