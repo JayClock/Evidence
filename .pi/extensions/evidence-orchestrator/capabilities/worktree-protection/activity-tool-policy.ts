@@ -3,7 +3,6 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export const ACTIVITY_CHILD_ENV = 'EVIDENCE_ACTIVITY_CHILD';
 export const ACTIVITY_POLICY_ENV = 'EVIDENCE_ACTIVITY_POLICY_PATH';
-const POLICY_LIFETIME_MS = 15 * 60 * 1000;
 
 export type ActivityWriteMode = 'none' | 'test' | 'production' | 'refactor';
 
@@ -166,8 +165,12 @@ export function createActivityToolPolicy(options: {
   writeMode?: ActivityWriteMode;
   writeRoots?: string[];
   extraReadRoots?: string[];
+  timeoutMs: number;
   now?: number;
 }): ActivityToolPolicy {
+  if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs <= 0) {
+    throw new Error('Activity tool policy requires a positive timeout.');
+  }
   const projectRoot = realpathSync(options.cwd);
   const readRoots = [
     projectRoot,
@@ -183,7 +186,7 @@ export function createActivityToolPolicy(options: {
     writeRoots: [...new Set(options.writeRoots ?? [])],
     bash: 'forbidden',
     expiresAt: new Date(
-      (options.now ?? Date.now()) + POLICY_LIFETIME_MS,
+      (options.now ?? Date.now()) + options.timeoutMs,
     ).toISOString(),
   };
   validatePolicy(policy, options.now ?? Date.now());

@@ -22,7 +22,11 @@ describe('activity tool guard adapter', () => {
     writeFileSync(
       policyPath,
       JSON.stringify(
-        createActivityToolPolicy({ cwd, role: 'showcase-reviewer' }),
+        createActivityToolPolicy({
+          cwd,
+          role: 'showcase-reviewer',
+          timeoutMs: 900_000,
+        }),
       ),
     );
     let handler:

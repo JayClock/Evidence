@@ -42,6 +42,7 @@ import {
   type WorkflowState,
 } from '../../iteration/state';
 import {
+  approvedCommandTimeoutMs,
   assertLockedMaterializedPlan,
   executeTestStep,
   formatOutputDiagnostic,
@@ -379,7 +380,7 @@ export function executeShowcaseQ2(
       cwd,
       shell: true,
       encoding: 'utf8',
-      timeout: 10 * 60 * 1000,
+      timeout: approvedCommandTimeoutMs(state),
     });
     const stdout = result.stdout ?? '';
     const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;

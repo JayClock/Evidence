@@ -11,6 +11,7 @@ import {
   type ActivityUsage,
   zeroActivityUsage,
 } from '../../../capabilities/activity-observability/activity-usage';
+import { readExecutionBudgetPolicy } from '../../../capabilities/execution-budget/policy';
 import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 import {
   capturePairWorktree,
@@ -142,9 +143,13 @@ function activityPolicy(cwd: string, agentName: string, state: WorkflowState) {
     agentName === 'test-driver' || agentName === 'production-driver'
       ? mode
       : undefined;
+  const timeoutMs =
+    state.pair_session?.execution_budget.activity_timeout_ms ??
+    readExecutionBudgetPolicy(cwd).policy.activity.timeout_ms;
   return createActivityToolPolicy({
     cwd,
     role: agentName,
+    timeoutMs,
     ...(driverMode
       ? {
           writeMode:
@@ -412,9 +417,6 @@ async function executeOnePreparedActivityRun(
   }
 }
 
-const MAX_AUTOMATED_RETRIES = 2;
-const MAX_PAIR_AUTOMATION_STEPS = 200;
-
 interface PairAutomationTelemetry {
   startedAt: string;
   usage: ActivityUsage;
@@ -505,10 +507,14 @@ function persistedPairAutomationResult(
   };
 }
 
-function retryAllowed(retries: Map<string, number>, key: string): boolean {
+function retryAllowed(
+  retries: Map<string, number>,
+  key: string,
+  maxRetries: number,
+): boolean {
   const next = (retries.get(key) ?? 0) + 1;
   retries.set(key, next);
-  return next <= MAX_AUTOMATED_RETRIES;
+  return next <= maxRetries;
 }
 
 async function executeTracedPairControllerAction(
@@ -588,7 +594,21 @@ async function executeAutomatedPairRun(
       now(),
     );
 
-  for (let guard = 0; guard < MAX_PAIR_AUTOMATION_STEPS; guard += 1) {
+  const initialSession = readState(ctx.cwd).pair_session;
+  if (!initialSession) {
+    return pairAutomationResult(
+      readState(ctx.cwd),
+      'failed',
+      'Pair automation has no Desk Check budget envelope.',
+      steps,
+    );
+  }
+  const emergencyMaxCheckpoints =
+    initialSession.execution_budget.emergency_max_checkpoints;
+  const maxRetries =
+    initialSession.execution_budget.max_retries_per_failure_fingerprint;
+
+  for (let guard = 0; guard < emergencyMaxCheckpoints; guard += 1) {
     const state = readState(ctx.cwd);
     const session = state.pair_session;
     if (state.loop !== 'pair' || !session) {
@@ -697,6 +717,7 @@ async function executeAutomatedPairRun(
         !retryAllowed(
           retries,
           `red:${session.task_id}/${session.test_id}:${classification.failureKind}`,
+          maxRetries,
         )
       ) {
         return pairAutomationResult(
@@ -712,7 +733,7 @@ async function executeAutomatedPairRun(
     if (session.checkpoint === 'quality_gate_failed') {
       const observation = session.last_observation;
       const key = `quality:${session.quality_gate_index}:${observation?.command ?? 'unknown'}`;
-      if (!retryAllowed(retries, key)) {
+      if (!retryAllowed(retries, key, maxRetries)) {
         return pairAutomationResult(
           state,
           'failed',
@@ -745,7 +766,7 @@ async function executeAutomatedPairRun(
     ) {
       reviewedFailures.add(failedObservation.sequence);
       const key = `${failedObservation.stage}:${session.task_id}/${session.test_id}`;
-      if (!retryAllowed(retries, key)) {
+      if (!retryAllowed(retries, key, maxRetries)) {
         return pairAutomationResult(
           state,
           'failed',
@@ -776,7 +797,7 @@ async function executeAutomatedPairRun(
     if (details.status === 'failed') {
       const current = readState(ctx.cwd).pair_session;
       const key = `driver:${current?.task_id}/${current?.test_id}:${next.agentName ?? next.pairAction}`;
-      if (!retryAllowed(retries, key)) {
+      if (!retryAllowed(retries, key, maxRetries)) {
         return pairAutomationResult(
           readState(ctx.cwd),
           'failed',
@@ -790,7 +811,7 @@ async function executeAutomatedPairRun(
   return pairAutomationResult(
     readState(ctx.cwd),
     'failed',
-    `Pair automation exceeded ${MAX_PAIR_AUTOMATION_STEPS} checkpoints. Recent trace: ${summaries.slice(-10).join(' → ')}`,
+    `Pair automation exceeded the approved emergency limit of ${emergencyMaxCheckpoints} checkpoints. Recent trace: ${summaries.slice(-10).join(' → ')}`,
     steps,
   );
 }

@@ -36,6 +36,7 @@ describe('activity tool policy', () => {
     const policy = createActivityToolPolicy({
       cwd,
       role: 'test-driver',
+      timeoutMs: 900_000,
       writeMode: 'test',
       writeRoots: ['apps/web/src'],
     });
@@ -65,6 +66,7 @@ describe('activity tool policy', () => {
     const policy = createActivityToolPolicy({
       cwd,
       role: 'production-driver',
+      timeoutMs: 900_000,
       writeMode: 'production',
       writeRoots: ['apps/web'],
     });
@@ -98,6 +100,7 @@ describe('activity tool policy', () => {
     const policy = createActivityToolPolicy({
       cwd,
       role: 'production-driver',
+      timeoutMs: 900_000,
       writeMode: 'production',
       writeRoots: ['apps/web'],
     });
@@ -133,6 +136,7 @@ describe('activity tool policy', () => {
     const policy = createActivityToolPolicy({
       cwd,
       role: 'change-explainer',
+      timeoutMs: 900_000,
       extraReadRoots: [bundle],
     });
 
@@ -157,6 +161,7 @@ describe('activity tool policy', () => {
     const policy = createActivityToolPolicy({
       cwd,
       role: 'red-reviewer',
+      timeoutMs: 900_000,
       now: Date.parse('2026-01-01T00:00:00.000Z'),
     });
     const path = join(cwd, 'policy.json');

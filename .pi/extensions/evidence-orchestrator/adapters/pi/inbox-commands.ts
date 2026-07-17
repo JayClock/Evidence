@@ -2,6 +2,7 @@ import type {
   ExtensionAPI,
   ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
+import { readExecutionBudgetPolicy } from '../../capabilities/execution-budget/policy';
 import {
   captureInboxSource,
   latestInboxRevision,
@@ -343,6 +344,8 @@ async function extractStories(
         policy: createActivityToolPolicy({
           cwd: ctx.cwd,
           role: 'inbox-analyst',
+          timeoutMs: readExecutionBudgetPolicy(ctx.cwd).policy.activity
+            .timeout_ms,
         }),
         signal,
       }),

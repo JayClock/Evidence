@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { artifactPath } from '../../iteration/artifact-layout';
+import type { WorkflowState } from '../../iteration/state';
 import {
   readState,
   selectedTestProcesses,
@@ -443,6 +444,19 @@ function assertV3ExecutionOrder(
   }
 }
 
+export function approvedCommandTimeoutMs(state: WorkflowState): number {
+  const timeoutMs =
+    state.pair_session?.execution_budget.command_timeout_ms ??
+    state.completed_work_items?.at(-1)?.pair.execution_budget
+      .command_timeout_ms;
+  if (!Number.isSafeInteger(timeoutMs) || (timeoutMs ?? 0) <= 0) {
+    throw new Error(
+      'Deterministic command execution requires the Desk Check budget envelope.',
+    );
+  }
+  return timeoutMs as number;
+}
+
 /**
  * Execute only a command locked by a selected process definition.
  * The append-only record is the source of truth for later TDD evidence validation.
@@ -595,7 +609,7 @@ export function executeTestStep(
     cwd,
     shell: true,
     encoding: 'utf8',
-    timeout: 10 * 60 * 1000,
+    timeout: approvedCommandTimeoutMs(state),
   });
   const exitCode = result.status ?? (result.error ? 1 : 0);
   const sequence = priorRecords.length + 1;

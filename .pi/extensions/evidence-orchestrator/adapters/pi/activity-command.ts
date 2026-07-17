@@ -158,6 +158,13 @@ export async function runHtmlChangeExplanationFromCommand(
   let details: ActivityExecutionDetails | undefined;
   try {
     const traceState = readState(ctx.cwd);
+    const activityTimeoutMs =
+      traceState.pair_session?.execution_budget.activity_timeout_ms;
+    if (!activityTimeoutMs) {
+      throw new Error(
+        'Change Explainer requires the Desk Check execution budget envelope.',
+      );
+    }
     const exactArtifactPath = (path: string) =>
       path.startsWith(`artifacts/iterations/${traceState.iteration_id}/`)
         ? path
@@ -253,6 +260,7 @@ export async function runHtmlChangeExplanationFromCommand(
                 policy: createActivityToolPolicy({
                   cwd: ctx.cwd,
                   role: 'change-explainer',
+                  timeoutMs: activityTimeoutMs,
                   extraReadRoots: [bundle.directory],
                 }),
                 signal,

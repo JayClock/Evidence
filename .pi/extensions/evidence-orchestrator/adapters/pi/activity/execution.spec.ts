@@ -17,6 +17,7 @@ import * as stateRepository from '../../../iteration/state-repository';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
+  testExecutionBudgetEnvelope,
   testIntakeSnapshot,
   workspace,
   write,
@@ -256,6 +257,7 @@ describe('activity execution', () => {
         production_paths: [] as string[],
         expected_red: 'The behavior is absent.',
         accepted_reds: [],
+        execution_budget: testExecutionBudgetEnvelope(),
         quality_gate_index: 0,
         feedback: [],
         driver_history: [],
