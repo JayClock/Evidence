@@ -925,6 +925,11 @@ describe('AI-driven Pair with Story-level human approval', () => {
     const snapshot = capturePairWorktree(cwd);
     writeFocusedTest(cwd);
     completePairDriver(cwd, 'test', snapshot, 'Added Q2.');
+    write(
+      cwd,
+      'focused.js',
+      `for (let index = 0; index < 800; index += 1) console.error('trace-' + index + '-xxxxxxxxxxxxxxxxxxxx');\nconsole.error('ASSERTION: workspace Alpha is not visible');\nprocess.exit(1);`,
+    );
     const redAction = prepareActivityRun(cwd);
     if (isCompletedIteration(redAction))
       throw new Error('Unexpected complete.');
@@ -938,6 +943,9 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(review.agentName).toBe('red-reviewer');
     expect(review.pairAction).toBeUndefined();
     expect(review.task).toContain('failureKind');
+    expect(review.task).toContain('ASSERTION: workspace Alpha is not visible');
+    expect(review.task).toContain('stderr tail：');
+    expect(review.task).toContain('truncated=true');
   });
 
   it('parses and records an independent AI Red classification', () => {

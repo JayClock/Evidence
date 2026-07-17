@@ -44,6 +44,8 @@ import {
 import {
   assertLockedMaterializedPlan,
   executeTestStep,
+  formatOutputDiagnostic,
+  outputDiagnostic,
   type TestExecutionRecord,
 } from '../../capabilities/execution-evidence/observation-log';
 import {
@@ -381,6 +383,8 @@ export function executeShowcaseQ2(
     });
     const stdout = result.stdout ?? '';
     const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;
+    const stdoutDiagnostic = outputDiagnostic(stdout);
+    const stderrDiagnostic = outputDiagnostic(stderr);
     return {
       version: 2 as const,
       process_id: step.processId,
@@ -392,10 +396,12 @@ export function executeShowcaseQ2(
       expected_failure: false,
       started_at: startedAt,
       completed_at: new Date().toISOString(),
-      stdout_sha256: digest(stdout),
-      stderr_sha256: digest(stderr),
-      stdout_summary: stdout.trim().replace(/\s+/g, ' ').slice(0, 512),
-      stderr_summary: stderr.trim().replace(/\s+/g, ' ').slice(0, 512),
+      stdout_sha256: stdoutDiagnostic.sha256,
+      stderr_sha256: stderrDiagnostic.sha256,
+      stdout_summary: formatOutputDiagnostic(stdoutDiagnostic),
+      stderr_summary: formatOutputDiagnostic(stderrDiagnostic),
+      stdout_diagnostic: stdoutDiagnostic,
+      stderr_diagnostic: stderrDiagnostic,
       git_head: execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
         cwd,
         encoding: 'utf8',

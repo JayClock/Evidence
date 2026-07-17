@@ -396,6 +396,8 @@ function assertV2Record(
     !SHA256.test(record.record_sha256 ?? '') ||
     typeof record.stdout_summary !== 'string' ||
     typeof record.stderr_summary !== 'string' ||
+    record.stdout_diagnostic?.sha256 !== record.stdout_sha256 ||
+    record.stderr_diagnostic?.sha256 !== record.stderr_sha256 ||
     record.git_baseline !== workItem.git_baseline ||
     record.approved_plan_sha256 !== approvedPlanSha256 ||
     !record.invocation ||

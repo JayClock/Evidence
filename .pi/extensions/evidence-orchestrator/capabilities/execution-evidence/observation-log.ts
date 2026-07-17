@@ -36,6 +36,15 @@ export interface TestExecutionRequest {
     | 'test-tool';
 }
 
+export interface OutputDiagnostic {
+  sha256: string;
+  bytes: number;
+  lines: number;
+  head: string;
+  tail: string;
+  truncated: boolean;
+}
+
 export interface TestExecutionRecord {
   version: 2;
   process_id: string;
@@ -53,6 +62,8 @@ export interface TestExecutionRecord {
   stderr_sha256: string;
   stdout_summary?: string;
   stderr_summary?: string;
+  stdout_diagnostic: OutputDiagnostic;
+  stderr_diagnostic: OutputDiagnostic;
   git_head: string;
   git_baseline?: string;
   worktree_sha256: string;
@@ -105,6 +116,14 @@ export function readExecutionRecords(path: string): TestExecutionRecord[] {
     if (record.version !== 2) {
       throw new Error(`Execution record ${index + 1} must use version 2.`);
     }
+    if (
+      !validOutputDiagnostic(record.stdout_diagnostic, record.stdout_sha256) ||
+      !validOutputDiagnostic(record.stderr_diagnostic, record.stderr_sha256)
+    ) {
+      throw new Error(
+        `Execution record ${index + 1} lacks bounded output diagnostics.`,
+      );
+    }
     if (record.sequence !== index + 1) {
       throw new Error(`Execution log sequence drifted at record ${index + 1}.`);
     }
@@ -121,8 +140,87 @@ export function readExecutionRecords(path: string): TestExecutionRecord[] {
   return records;
 }
 
-function outputSummary(value: string): string {
-  return value.trim().replace(/\s+/g, ' ').slice(0, 512);
+const DIAGNOSTIC_HEAD_BYTES = 2 * 1024;
+const DIAGNOSTIC_TAIL_BYTES = 4 * 1024;
+const SUMMARY_BYTES = 2 * 1024;
+// ANSI terminal escapes intentionally begin with the ESC control character.
+// eslint-disable-next-line no-control-regex
+const ANSI_SEQUENCE = new RegExp('\\u001b\\[[0-?]*[ -/]*[@-~]', 'g');
+
+function byteBoundedHead(value: string, maxBytes: number): string {
+  let result = '';
+  let bytes = 0;
+  for (const character of value) {
+    const size = Buffer.byteLength(character, 'utf8');
+    if (bytes + size > maxBytes) break;
+    result += character;
+    bytes += size;
+  }
+  return result;
+}
+
+function byteBoundedTail(value: string, maxBytes: number): string {
+  let result = '';
+  let bytes = 0;
+  const characters = [...value];
+  for (let index = characters.length - 1; index >= 0; index -= 1) {
+    const character = characters[index] ?? '';
+    const size = Buffer.byteLength(character, 'utf8');
+    if (bytes + size > maxBytes) break;
+    result = character + result;
+    bytes += size;
+  }
+  return result;
+}
+
+function sanitizedOutput(value: string): string {
+  return value.replace(ANSI_SEQUENCE, '').replaceAll('\r\n', '\n').trim();
+}
+
+export function outputDiagnostic(value: string): OutputDiagnostic {
+  const sanitized = sanitizedOutput(value);
+  const boundedBytes = DIAGNOSTIC_HEAD_BYTES + DIAGNOSTIC_TAIL_BYTES;
+  const truncated = Buffer.byteLength(sanitized, 'utf8') > boundedBytes;
+  return {
+    sha256: digest(value),
+    bytes: Buffer.byteLength(value, 'utf8'),
+    lines: value.length === 0 ? 0 : value.split(/\r?\n/).length,
+    head: truncated
+      ? byteBoundedHead(sanitized, DIAGNOSTIC_HEAD_BYTES)
+      : sanitized,
+    tail: truncated ? byteBoundedTail(sanitized, DIAGNOSTIC_TAIL_BYTES) : '',
+    truncated,
+  };
+}
+
+export function formatOutputDiagnostic(
+  diagnostic: OutputDiagnostic,
+  maxBytes = SUMMARY_BYTES,
+): string {
+  if (!diagnostic.truncated) return byteBoundedHead(diagnostic.head, maxBytes);
+  const marker = `\n\n[… ${diagnostic.bytes} bytes / ${diagnostic.lines} lines; sha256=${diagnostic.sha256} …]\n\n`;
+  const markerBytes = Buffer.byteLength(marker, 'utf8');
+  const available = Math.max(0, maxBytes - markerBytes);
+  const headBudget = Math.floor(available / 3);
+  const tailBudget = available - headBudget;
+  return `${byteBoundedHead(diagnostic.head, headBudget)}${marker}${byteBoundedTail(diagnostic.tail, tailBudget)}`;
+}
+
+function validOutputDiagnostic(
+  diagnostic: OutputDiagnostic | undefined,
+  expectedSha256: string,
+): boolean {
+  return Boolean(
+    diagnostic &&
+      diagnostic.sha256 === expectedSha256 &&
+      diagnostic.bytes >= 0 &&
+      diagnostic.lines >= 0 &&
+      typeof diagnostic.head === 'string' &&
+      typeof diagnostic.tail === 'string' &&
+      typeof diagnostic.truncated === 'boolean' &&
+      Buffer.byteLength(diagnostic.head, 'utf8') <= DIAGNOSTIC_HEAD_BYTES &&
+      Buffer.byteLength(diagnostic.tail, 'utf8') <= DIAGNOSTIC_TAIL_BYTES,
+  );
 }
 
 export function assertLockedMaterializedPlan(
@@ -456,6 +554,8 @@ export function executeTestStep(
   const sequence = priorRecords.length + 1;
   const stdout = result.stdout ?? '';
   const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;
+  const stdoutDiagnostic = outputDiagnostic(stdout);
+  const stderrDiagnostic = outputDiagnostic(stderr);
   const unsigned: TestExecutionRecord = {
     version: 2,
     process_id: request.processId,
@@ -469,10 +569,12 @@ export function executeTestStep(
     expected_failure: request.stage === 'red' && exitCode !== 0,
     started_at: startedAt,
     completed_at: new Date().toISOString(),
-    stdout_sha256: digest(stdout),
-    stderr_sha256: digest(stderr),
-    stdout_summary: outputSummary(stdout),
-    stderr_summary: outputSummary(stderr),
+    stdout_sha256: stdoutDiagnostic.sha256,
+    stderr_sha256: stderrDiagnostic.sha256,
+    stdout_summary: formatOutputDiagnostic(stdoutDiagnostic),
+    stderr_summary: formatOutputDiagnostic(stderrDiagnostic),
+    stdout_diagnostic: stdoutDiagnostic,
+    stderr_diagnostic: stderrDiagnostic,
     git_head: git(cwd, ['rev-parse', '--verify', 'HEAD']).trim(),
     git_baseline: state.active_work_item.git_baseline,
     worktree_sha256: worktreeDigest(cwd),

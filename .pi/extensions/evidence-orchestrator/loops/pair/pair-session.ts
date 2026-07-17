@@ -31,6 +31,7 @@ import type {
 import {
   executeTestStep,
   readExecutionRecords,
+  type OutputDiagnostic,
   type TestExecutionRecord,
 } from '../../capabilities/execution-evidence/observation-log';
 import { generateExecutionEvidence } from '../../capabilities/execution-evidence/manifest';
@@ -282,6 +283,12 @@ export function buildPairRedReviewTask(
   if (!record || record.stage !== 'red') {
     throw new Error(`Red execution record ${red.sequence} is missing.`);
   }
+  const diagnosticTail = (value: OutputDiagnostic): string =>
+    value.tail || value.head || '(empty)';
+  const diagnosticHead = (value: OutputDiagnostic): string =>
+    value.tail ? value.head || '(empty)' : '(same as tail)';
+  const diagnosticMetadata = (value: OutputDiagnostic): string =>
+    `bytes=${value.bytes} lines=${value.lines} truncated=${value.truncated} sha256=${value.sha256}`;
   return `独立分类一个 Evidence Pair Red，不执行命令也不修改任何文件。
 
 当前工作项：${session.story_id} / ${session.task_id}/${session.test_id}
@@ -289,8 +296,12 @@ export function buildPairRedReviewTask(
 测试意图：${session.expected_red}
 命令：${record.command}
 退出码：${record.exit_code}
-stdout：${record.stdout_summary ?? '(empty)'}
-stderr：${record.stderr_summary ?? '(empty)'}
+stderr tail：${diagnosticTail(record.stderr_diagnostic)}
+stdout tail：${diagnosticTail(record.stdout_diagnostic)}
+stderr head：${diagnosticHead(record.stderr_diagnostic)}
+stdout head：${diagnosticHead(record.stdout_diagnostic)}
+stderr metadata：${diagnosticMetadata(record.stderr_diagnostic)}
+stdout metadata：${diagnosticMetadata(record.stdout_diagnostic)}
 
 只判断失败的直接原因：
 - behavior：测试到达业务断言，且仅因计划中的行为尚未实现而失败；
