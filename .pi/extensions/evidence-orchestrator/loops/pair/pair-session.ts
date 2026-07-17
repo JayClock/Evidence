@@ -535,6 +535,32 @@ function preservesRustRegion(
   return before[region] === after[region];
 }
 
+export function pairDriverWriteRoots(
+  cwd: string,
+  state: WorkflowState,
+  mode: PairDriverMode,
+): string[] {
+  if (mode === 'test') {
+    const step = currentWorkUnit(cwd, state);
+    const definition = readTestProcess(join(cwd, step.process.path));
+    return (
+      definition.steps.find(({ id }) => id === step.stepId)?.nearest_test
+        .roots ?? []
+    );
+  }
+  const process = currentWorkUnit(cwd, state).process;
+  const technical = readTestProcess(
+    join(cwd, process.path),
+  ).technical_boundaries;
+  return process.runtime === 'rust'
+    ? ['apps/server', 'libs/server']
+    : process.runtime === 'tauri'
+      ? ['apps/desktop']
+      : technical.some((boundary) => boundary.startsWith('nest-'))
+        ? ['apps/server-nest', 'libs/server-nest']
+        : ['apps/web', 'libs/web'];
+}
+
 function allowedDriverPath(
   cwd: string,
   state: WorkflowState,
@@ -542,12 +568,9 @@ function allowedDriverPath(
   path: string,
   snapshot: PairWorktreeSnapshot,
 ): boolean {
+  const roots = pairDriverWriteRoots(cwd, state, mode);
   if (mode === 'test') {
-    const step = currentWorkUnit(cwd, state);
-    const definition = readTestProcess(join(cwd, step.process.path));
-    const roots = definition.steps.find(({ id }) => id === step.stepId)
-      ?.nearest_test.roots;
-    const inTestRoot = roots?.some((root) => insideRoot(path, root));
+    const inTestRoot = roots.some((root) => insideRoot(path, root));
     return Boolean(
       inTestRoot &&
         (isTestPath(path) ||
@@ -555,19 +578,7 @@ function allowedDriverPath(
             preservesRustRegion(cwd, snapshot, path, 'production'))),
     );
   }
-  const process = currentWorkUnit(cwd, state).process;
-  const technical = readTestProcess(
-    join(cwd, process.path),
-  ).technical_boundaries;
-  const productionRoots =
-    process.runtime === 'rust'
-      ? ['apps/server', 'libs/server']
-      : process.runtime === 'tauri'
-        ? ['apps/desktop']
-        : technical.some((boundary) => boundary.startsWith('nest-'))
-          ? ['apps/server-nest', 'libs/server-nest']
-          : ['apps/web', 'libs/web'];
-  if (!productionRoots.some((root) => insideRoot(path, root))) return false;
+  if (!roots.some((root) => insideRoot(path, root))) return false;
   if (isTestPath(path)) return false;
   if (!state.pair_session?.test_paths.includes(path)) return true;
   return (
