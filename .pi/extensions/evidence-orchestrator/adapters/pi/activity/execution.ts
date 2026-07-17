@@ -13,6 +13,7 @@ import {
   navigatePair,
   pairDeterministicAction,
   pairDriverMode,
+  pairDriverWriteRoots,
   parsePairRedReview,
   reviewPairRed,
 } from '../../../loops/pair/pair-session';
@@ -22,7 +23,12 @@ import {
   executeShowcaseQ2,
 } from '../../../loops/showcase/showcase-session';
 import { readState, writeState } from '../../../iteration/state-repository';
-import type { PairDriverMode, WorkflowLoop } from '../../../iteration/state';
+import { createActivityToolPolicy } from '../../../capabilities/worktree-protection/activity-tool-policy';
+import type {
+  PairDriverMode,
+  WorkflowLoop,
+  WorkflowState,
+} from '../../../iteration/state';
 import { STATUS_KEY, statusLabel } from '../identity';
 import { nextStepGuidance } from '../next-step';
 import type { PreparedActivityRun } from './dispatch';
@@ -58,6 +64,41 @@ function tqaSessionId(preparation: PreparedActivityRun): string | undefined {
   const storyId = preparation.state.active_clarification_story?.story_id;
   if (!storyId) return undefined;
   return `evidence-${preparation.state.iteration_id}-${storyId}-tqa`.toLowerCase();
+}
+
+function activityPolicy(cwd: string, agentName: string, state: WorkflowState) {
+  const mode = pairDriverMode(state);
+  if (agentName === 'test-driver' && mode !== 'test') {
+    throw new Error('Test Driver requires an active test checkpoint.');
+  }
+  if (
+    agentName === 'production-driver' &&
+    mode !== 'implementation' &&
+    mode !== 'refactor'
+  ) {
+    throw new Error(
+      'Production Driver requires an active Green or Refactor checkpoint.',
+    );
+  }
+  const driverMode =
+    agentName === 'test-driver' || agentName === 'production-driver'
+      ? mode
+      : undefined;
+  return createActivityToolPolicy({
+    cwd,
+    role: agentName,
+    ...(driverMode
+      ? {
+          writeMode:
+            driverMode === 'test'
+              ? 'test'
+              : driverMode === 'refactor'
+                ? 'refactor'
+                : 'production',
+          writeRoots: pairDriverWriteRoots(cwd, state, driverMode),
+        }
+      : {}),
+  });
 }
 
 function progressDetails(
@@ -195,6 +236,7 @@ async function executeOnePreparedActivityRun(
       cwd: ctx.cwd,
       agentName: preparation.agentName,
       task: preparation.task,
+      policy: activityPolicy(ctx.cwd, preparation.agentName, state),
       ...(sessionId ? { sessionId } : {}),
       signal: options.signal,
       onUpdate(progress) {
@@ -366,6 +408,7 @@ async function executeAutomatedPairRun(
         cwd: ctx.cwd,
         agentName: 'red-reviewer',
         task: reviewPreparation.task,
+        policy: activityPolicy(ctx.cwd, 'red-reviewer', state),
         signal: options.signal,
         onUpdate(progress) {
           options.onUpdate?.(progressDetails(reviewPreparation, progress));

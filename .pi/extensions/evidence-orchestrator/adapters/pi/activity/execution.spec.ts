@@ -16,6 +16,7 @@ import { executePreparedActivityRun } from './execution';
 const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
 const pairing = vi.hoisted(() => ({
   pairDriverMode: vi.fn(() => undefined),
+  pairDriverWriteRoots: vi.fn(() => ['apps/web']),
   capturePairWorktree: vi.fn(() => ({ snapshot: true })),
   completePairDriver: vi.fn(),
   failPairDriver: vi.fn(),

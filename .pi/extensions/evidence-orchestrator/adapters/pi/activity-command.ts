@@ -9,9 +9,12 @@ import {
   worktreeDelta,
 } from '../../capabilities/worktree-protection/snapshot';
 import {
+  changeExplanationTaskWithBundle,
+  createHtmlChangeAnalysisBundle,
   prepareHtmlChangeExplanation,
   recordHtmlChangeExplanation,
 } from '../../loops/pair/change-explanation';
+import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
 import { runActivityAgent } from '../node/activity-agent-process';
 import { ACTIVITY_RESULT_MESSAGE_TYPE } from './identity';
 import type { PreparedActivityRun } from './activity/dispatch';
@@ -65,64 +68,38 @@ export async function runHtmlChangeExplanationFromCommand(
 ): Promise<ActivityExecutionDetails | undefined> {
   const request = prepareHtmlChangeExplanation(ctx.cwd);
   const snapshot = captureWorktreeSnapshot(ctx.cwd);
+  const bundle = createHtmlChangeAnalysisBundle(ctx.cwd, request);
+  const task = changeExplanationTaskWithBundle(request, bundle);
   let recorded = false;
-  const details = await runWithActivityProgress(
-    ctx,
-    `Explaining ${request.story_id} as self-contained HTML…`,
-    async (signal, onUpdate) => {
-      try {
-        const result = await runActivityAgent({
-          cwd: ctx.cwd,
-          agentName: 'change-explainer',
-          task: request.task,
-          signal,
-          onUpdate(progress) {
-            onUpdate({
-              ...progress,
-              activity: 'pair',
-              task: request.task,
-              status: 'running',
-            });
-          },
-        });
-        if (result.exitCode !== 0) {
-          throw new Error(result.output);
-        }
-        const delta = worktreeDelta(ctx.cwd, snapshot);
-        if (delta.headChanged || delta.indexChanged || delta.paths.length > 0) {
-          restoreWorktreeSnapshot(ctx.cwd, snapshot);
-          throw new Error(
-            `Change Explainer crossed its read-only repository boundary: ${delta.paths.join(', ') || 'Git metadata changed'}. Restored the Pair worktree.`,
-          );
-        }
-        const record = recordHtmlChangeExplanation(
-          ctx.cwd,
-          request,
-          result.output,
-        );
-        recorded = true;
-        const toolCallMessages = result.messages.flatMap((message) =>
-          message.role === 'assistant'
-            ? [
-                {
-                  ...message,
-                  content: message.content.filter(
-                    (part) => part.type === 'toolCall',
-                  ),
-                },
-              ]
-            : [],
-        );
-        return {
-          ...result,
-          messages: toolCallMessages,
-          activity: 'pair',
-          task: request.task,
-          status: 'completed',
-          output: `HTML change explanation generated for ${record.story_id}.\n\nFile: ${record.output_path}\nMetadata: ${record.artifact_path}\nHTML SHA256: ${record.html_sha256}\n\nThis is an optional, non-authoritative review aid. Human Story-level coding approval is still required.`,
-        };
-      } finally {
-        if (!recorded) {
+  let details: ActivityExecutionDetails | undefined;
+  try {
+    details = await runWithActivityProgress(
+      ctx,
+      `Explaining ${request.story_id} as self-contained HTML…`,
+      async (signal, onUpdate) => {
+        try {
+          const result = await runActivityAgent({
+            cwd: ctx.cwd,
+            agentName: 'change-explainer',
+            task,
+            policy: createActivityToolPolicy({
+              cwd: ctx.cwd,
+              role: 'change-explainer',
+              extraReadRoots: [bundle.directory],
+            }),
+            signal,
+            onUpdate(progress) {
+              onUpdate({
+                ...progress,
+                activity: 'pair',
+                task,
+                status: 'running',
+              });
+            },
+          });
+          if (result.exitCode !== 0) {
+            throw new Error(result.output);
+          }
           const delta = worktreeDelta(ctx.cwd, snapshot);
           if (
             delta.headChanged ||
@@ -130,12 +107,54 @@ export async function runHtmlChangeExplanationFromCommand(
             delta.paths.length > 0
           ) {
             restoreWorktreeSnapshot(ctx.cwd, snapshot);
+            throw new Error(
+              `Change Explainer crossed its read-only repository boundary: ${delta.paths.join(', ') || 'Git metadata changed'}. Restored the Pair worktree.`,
+            );
           }
-          rmSync(request.output_path, { force: true });
+          const record = recordHtmlChangeExplanation(
+            ctx.cwd,
+            request,
+            result.output,
+          );
+          recorded = true;
+          const toolCallMessages = result.messages.flatMap((message) =>
+            message.role === 'assistant'
+              ? [
+                  {
+                    ...message,
+                    content: message.content.filter(
+                      (part) => part.type === 'toolCall',
+                    ),
+                  },
+                ]
+              : [],
+          );
+          return {
+            ...result,
+            messages: toolCallMessages,
+            activity: 'pair',
+            task,
+            status: 'completed',
+            output: `HTML change explanation generated for ${record.story_id}.\n\nFile: ${record.output_path}\nMetadata: ${record.artifact_path}\nHTML SHA256: ${record.html_sha256}\n\nThis is an optional, non-authoritative review aid. Human Story-level coding approval is still required.`,
+          };
+        } finally {
+          if (!recorded) {
+            const delta = worktreeDelta(ctx.cwd, snapshot);
+            if (
+              delta.headChanged ||
+              delta.indexChanged ||
+              delta.paths.length > 0
+            ) {
+              restoreWorktreeSnapshot(ctx.cwd, snapshot);
+            }
+            rmSync(request.output_path, { force: true });
+          }
         }
-      }
-    },
-  );
+      },
+    );
+  } finally {
+    rmSync(bundle.directory, { recursive: true, force: true });
+  }
   if (!details) {
     ctx.ui.notify('HTML change explanation cancelled.', 'info');
     return undefined;

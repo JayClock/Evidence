@@ -12,6 +12,7 @@ import {
   listInboxStoryCandidates,
   recordInboxCandidateDecision,
 } from '../../capabilities/inbox/story-candidate';
+import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
 import { runActivityAgent } from '../node/activity-agent-process';
 import { createGitHubIssueInboxSource } from '../github/inbox-source';
 import {
@@ -305,6 +306,10 @@ async function extractStories(
         cwd: ctx.cwd,
         agentName: 'inbox-analyst',
         task: buildInboxExtractionTask(ctx.cwd, sourceIds),
+        policy: createActivityToolPolicy({
+          cwd: ctx.cwd,
+          role: 'inbox-analyst',
+        }),
         signal,
       }),
   );

@@ -13,6 +13,7 @@ import {
   statusLabel,
 } from './identity';
 import { registerTools, syncActiveTools } from './tools';
+import { registerActivityToolGuard } from './activity/tool-guard';
 import { NEXT_STEP_WIDGET_KEY, nextStepWidget } from './next-step';
 import {
   readPersistedState,
@@ -22,6 +23,8 @@ import {
 const STATE_WATCH_INTERVAL_MS = 250;
 
 export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
+  registerActivityToolGuard(pi);
+
   let watchedStatePath: string | undefined;
   let stateChangeListener:
     | ((current: Stats, previous: Stats) => void)

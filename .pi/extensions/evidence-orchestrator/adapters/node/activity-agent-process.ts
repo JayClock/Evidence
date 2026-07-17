@@ -4,6 +4,11 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { Message } from '@earendil-works/pi-ai';
+import {
+  ACTIVITY_CHILD_ENV,
+  ACTIVITY_POLICY_ENV,
+  type ActivityToolPolicy,
+} from '../../capabilities/worktree-protection/activity-tool-policy';
 
 export type ThinkingLevel =
   | 'off'
@@ -250,6 +255,7 @@ export async function runActivityAgent(options: {
   cwd: string;
   agentName: string;
   task: string;
+  policy: ActivityToolPolicy;
   sessionId?: string;
   signal?: AbortSignal;
   onUpdate?: (progress: ActivityAgentProgress) => void;
@@ -259,10 +265,17 @@ export async function runActivityAgent(options: {
     join(tmpdir(), 'evidence-activity-agent-'),
   );
   const promptPath = join(tempDirectory, `${agent.name}.md`);
-  await writeFile(promptPath, agent.systemPrompt, {
-    encoding: 'utf8',
-    mode: 0o600,
-  });
+  const policyPath = join(tempDirectory, 'tool-policy.json');
+  await Promise.all([
+    writeFile(promptPath, agent.systemPrompt, {
+      encoding: 'utf8',
+      mode: 0o600,
+    }),
+    writeFile(policyPath, `${JSON.stringify(options.policy, null, 2)}\n`, {
+      encoding: 'utf8',
+      mode: 0o600,
+    }),
+  ]);
 
   const args = activityAgentArguments({
     agent,
@@ -286,6 +299,11 @@ export async function runActivityAgent(options: {
       const invocation = activityAgentInvocation(args);
       const child = spawn(invocation.command, invocation.args, {
         cwd: options.cwd,
+        env: {
+          ...process.env,
+          [ACTIVITY_CHILD_ENV]: '1',
+          [ACTIVITY_POLICY_ENV]: policyPath,
+        },
         shell: false,
         stdio: ['ignore', 'pipe', 'pipe'],
       });

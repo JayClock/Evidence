@@ -4,7 +4,7 @@ import {
   proposeKnowledgeResponse,
 } from '../respond/response-cycle';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupWorkspaces,
@@ -46,6 +46,8 @@ import {
   testProcessDefinitionSha256,
 } from '../../capabilities/test-process/catalog';
 import {
+  changeExplanationTaskWithBundle,
+  createHtmlChangeAnalysisBundle,
   prepareHtmlChangeExplanation,
   readHtmlChangeExplanationRecord,
   recordHtmlChangeExplanation,
@@ -1150,6 +1152,20 @@ describe('AI-driven Pair with Story-level human approval', () => {
       '.pi/skills/evidence-change-explanation/SKILL.md',
     );
     expect(request.task).toContain(request.execution_manifest_path);
+    const bundle = createHtmlChangeAnalysisBundle(cwd, request);
+    try {
+      expect(readFileSync(bundle.status_path, 'utf8')).toContain(
+        request.git_baseline,
+      );
+      expect(changeExplanationTaskWithBundle(request, bundle)).toContain(
+        bundle.diff_path,
+      );
+      expect(changeExplanationTaskWithBundle(request, bundle)).toContain(
+        '不得调用 Bash',
+      );
+    } finally {
+      rmSync(bundle.directory, { recursive: true, force: true });
+    }
 
     const record = recordHtmlChangeExplanation(
       cwd,

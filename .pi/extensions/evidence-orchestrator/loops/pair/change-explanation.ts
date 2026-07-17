@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readFileSync,
   realpathSync,
   writeFileSync,
@@ -37,6 +38,12 @@ export interface HtmlChangeExplanationRequest {
   metadata_path: string;
   prepared_at: string;
   task: string;
+}
+
+export interface HtmlChangeAnalysisBundle {
+  directory: string;
+  diff_path: string;
+  status_path: string;
 }
 
 export interface HtmlChangeExplanationRecord {
@@ -213,6 +220,57 @@ export function prepareHtmlChangeExplanation(
     ...requestWithoutTask,
     task: buildTask(state, requestWithoutTask),
   };
+}
+
+export function createHtmlChangeAnalysisBundle(
+  cwd: string,
+  request: HtmlChangeExplanationRequest,
+): HtmlChangeAnalysisBundle {
+  const directory = mkdtempSync(join(tmpdir(), 'evidence-change-analysis-'));
+  const diffPath = join(directory, 'diff.patch');
+  const statusPath = join(directory, 'git-status.json');
+  const diff = execFileSync(
+    'git',
+    ['diff', '--no-ext-diff', request.git_baseline, '--', 'apps', 'libs'],
+    { cwd, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 },
+  );
+  const status = execFileSync(
+    'git',
+    ['status', '--short', '--', 'apps', 'libs'],
+    {
+      cwd,
+      encoding: 'utf8',
+    },
+  );
+  writeFileSync(diffPath, diff, { mode: 0o600 });
+  writeFileSync(
+    statusPath,
+    `${JSON.stringify(
+      {
+        git_baseline: request.git_baseline,
+        git_head: request.git_head,
+        code_content_sha256: request.code_content_sha256,
+        status: status.split('\n').filter(Boolean),
+      },
+      null,
+      2,
+    )}\n`,
+    { mode: 0o600 },
+  );
+  return { directory, diff_path: diffPath, status_path: statusPath };
+}
+
+export function changeExplanationTaskWithBundle(
+  request: HtmlChangeExplanationRequest,
+  bundle: HtmlChangeAnalysisBundle,
+): string {
+  return `${request.task}
+
+控制器生成的只读 Git 分析包：
+- apps/libs diff：${bundle.diff_path}
+- Git status 与 baseline 元数据：${bundle.status_path}
+
+使用 read 读取分析包；不得调用 Bash。`;
 }
 
 function countMatches(value: string, pattern: RegExp): number {
