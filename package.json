@@ -18,6 +18,7 @@
     "prisma:generate": "pnpm --filter @evidence/server-nest exec prisma generate --schema prisma/schema.prisma",
     "ui:shadcn": "pnpm --filter @evidence/ui exec shadcn",
     "ui:ai-elements": "pnpm --filter @evidence/ui exec elements add",
+    "orchestrator:typecheck": "tsc -p tsconfig.orchestrator.json --noEmit",
     "orchestrator:test": "vitest run --config .pi/extensions/evidence-orchestrator/vitest.config.ts",
     "orchestrator:validate": "node -r @swc-node/register .pi/extensions/evidence-orchestrator/validation/workflow-validator.ts",
     "format": "nx format:write",

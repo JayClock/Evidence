@@ -257,7 +257,7 @@ export function candidateModelSources(
 
 function validateModelRefs(
   profile: ConfirmedModelingProfile,
-  refs: ModelExpansionInput['modelRefs'],
+  refs: ScenarioModelExpansionInput['modelRefs'],
   index: ModelIndex,
 ): { entities: string[]; associations: string[] } {
   const entities = strings(

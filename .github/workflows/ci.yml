@@ -47,6 +47,7 @@ jobs:
 
       - run: pnpm exec nx sync:check
       - run: pnpm exec nx format:check --base=$NX_BASE --head=$NX_HEAD
+      - run: pnpm orchestrator:typecheck
       - run: pnpm orchestrator:test
       - run: pnpm orchestrator:validate
 

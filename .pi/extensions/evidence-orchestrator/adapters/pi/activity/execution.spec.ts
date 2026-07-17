@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
-import type { WorkflowState } from '../../../iteration/state';
+import type {
+  PairDeterministicAction,
+  PairDriverMode,
+  RedFailureKind,
+  WorkflowState,
+} from '../../../iteration/state';
 import { readState, writeState } from '../../../iteration/state-repository';
 import * as stateRepository from '../../../iteration/state-repository';
 import {
@@ -15,19 +20,32 @@ import { executePreparedActivityRun } from './execution';
 
 const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
 const pairing = vi.hoisted(() => ({
-  pairDriverMode: vi.fn(() => undefined),
+  pairDriverMode: vi.fn<(state: WorkflowState) => PairDriverMode | undefined>(
+    () => undefined,
+  ),
   pairDriverWriteRoots: vi.fn(() => ['apps/web']),
   capturePairWorktree: vi.fn(() => ({ snapshot: true })),
   completePairDriver: vi.fn(),
   failPairDriver: vi.fn(),
   executePairAction: vi.fn(),
-  pairDeterministicAction: vi.fn(() => undefined),
+  pairDeterministicAction: vi.fn<
+    (cwd: string, state: WorkflowState) => PairDeterministicAction | undefined
+  >(() => undefined),
   buildPairRedReviewTask: vi.fn(() => 'Classify one Red.'),
   parsePairRedReview: vi.fn(() => ({
     failureKind: 'behavior',
     reason: 'The planned assertion reports missing behavior.',
   })),
-  reviewPairRed: vi.fn(),
+  reviewPairRed:
+    vi.fn<
+      (
+        cwd: string,
+        kind: RedFailureKind,
+        reason: string,
+        now?: string,
+        reviewedBy?: 'human' | 'red-reviewer',
+      ) => WorkflowState
+    >(),
   navigatePair: vi.fn(),
   pairNextInstruction: vi.fn(() => '/evidence-run continues automation'),
 }));
@@ -223,6 +241,10 @@ describe('activity execution', () => {
         driver_history: [],
       },
     } as unknown as WorkflowState;
+    const pairSession = () => {
+      if (!current.pair_session) throw new Error('Expected Pair session.');
+      return current.pair_session;
+    };
     vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
     vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
       current = next as typeof current;
@@ -261,7 +283,7 @@ describe('activity execution', () => {
         current = {
           ...current,
           pair_session: {
-            ...current.pair_session,
+            ...pairSession(),
             checkpoint: checkpoints[mode as keyof typeof checkpoints],
           },
         };
@@ -279,7 +301,7 @@ describe('activity execution', () => {
         current = {
           ...current,
           pair_session: {
-            ...current.pair_session,
+            ...pairSession(),
             checkpoint: 'red_observed',
             red_observation: {
               process_id: 'process',
@@ -298,7 +320,7 @@ describe('activity execution', () => {
         current = {
           ...current,
           pair_session: {
-            ...current.pair_session,
+            ...pairSession(),
             checkpoint: 'green_observed',
           },
         };
@@ -306,7 +328,7 @@ describe('activity execution', () => {
         current = {
           ...current,
           pair_session: {
-            ...current.pair_session,
+            ...pairSession(),
             checkpoint: 'refactored',
             completed_task_ids: ['TASK-001'],
             completed_test_ids: ['TEST-001'],
@@ -317,7 +339,7 @@ describe('activity execution', () => {
         current = {
           ...current,
           pair_session: {
-            ...current.pair_session,
+            ...pairSession(),
             checkpoint: 'quality_gates_passed',
           },
         };
@@ -326,16 +348,18 @@ describe('activity execution', () => {
     });
     pairing.reviewPairRed.mockImplementation(
       (_cwd, kind, reason, _now, reviewedBy) => {
+        const redObservation = pairSession().red_observation;
+        if (!redObservation) throw new Error('Expected Red observation.');
         current = {
           ...current,
           pair_session: {
-            ...current.pair_session,
+            ...pairSession(),
             red_observation: {
-              ...current.pair_session.red_observation,
+              ...redObservation,
               accepted: true,
               failure_kind: kind,
               review_reason: reason,
-              reviewed_by: reviewedBy,
+              reviewed_by: reviewedBy ?? 'red-reviewer',
             },
           },
         };

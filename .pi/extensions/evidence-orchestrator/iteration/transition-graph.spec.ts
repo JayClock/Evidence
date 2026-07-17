@@ -31,7 +31,7 @@ describe('knowledge-loop catalog', () => {
           pair_session: {
             version: 2,
             story_id: 'US-001',
-            scenario_id: 'SC-001',
+            scenario_ids: ['SC-001'],
             git_baseline: 'baseline',
             checkpoint: 'quality_gates_passed',
             task_id: 'TASK-001',

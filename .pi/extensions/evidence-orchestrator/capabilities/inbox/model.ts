@@ -3,7 +3,7 @@ export type JsonValue =
   | boolean
   | number
   | string
-  | JsonValue[]
+  | readonly JsonValue[]
   | { [key: string]: JsonValue };
 
 export type InboxItemStatus = 'active' | 'deferred' | 'closed';

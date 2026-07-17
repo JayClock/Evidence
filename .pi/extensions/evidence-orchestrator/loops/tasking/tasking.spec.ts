@@ -495,7 +495,7 @@ describe('Tasking and Desk Check', () => {
     const proposal = {
       version: 1 as const,
       story_id: 'US-001',
-      scenario_id: 'SC-001',
+      scenario_ids: ['SC-001'],
       git_baseline: baseline,
       reason: 'The Scenario needs an explicit model version.',
       operations: [operation],

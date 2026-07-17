@@ -208,6 +208,7 @@ validation → 各层公开 validator
 ## 验证
 
 ```sh
+pnpm orchestrator:typecheck
 pnpm orchestrator:test
 pnpm orchestrator:validate
 pnpm exec eslint '.pi/extensions/evidence-orchestrator/**/*.ts' --no-warn-ignored
