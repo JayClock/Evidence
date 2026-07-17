@@ -23,7 +23,11 @@ function details(
     status: 'running',
     agent: 'coder',
     model: 'openai-codex/gpt-test',
+    requestedModel: 'openai-codex/gpt-test',
+    actualModel: 'openai-codex/gpt-test',
     thinking: 'medium',
+    sessionMode: 'ephemeral',
+    toolNames: ['bash'],
     output: 'The Green step now passes.',
     messages: [
       {
@@ -44,6 +48,20 @@ function details(
     ],
     exitCode: -1,
     stderr: '',
+    usage: {
+      turns: 2,
+      input_tokens: 12_400,
+      output_tokens: 1_200,
+      cache_read_tokens: 8_000,
+      cache_write_tokens: 0,
+      cost_usd: 0.043,
+      context_tokens_at_end: 13_600,
+    },
+    stopReason: 'stop',
+    startedAt: '2026-01-01T00:00:00.000Z',
+    completedAt: '2026-01-01T00:00:18.200Z',
+    durationMs: 18_200,
+    toolCallCounts: { bash: 1 },
     ...overrides,
   };
 }
@@ -59,6 +77,7 @@ describe('activity agent renderer', () => {
     const output = component.render(120).join('\n');
 
     expect(output).toContain('⏳ pair · coder');
+    expect(output).toContain('2 turns ↑12k ↓1.2k R8.0k $0.0430 · 18.2s');
     expect(output).toContain('$ pnpm orchestrator:test');
     expect(output).toContain('The Green step now passes.');
   });
@@ -100,6 +119,32 @@ describe('activity agent renderer', () => {
     expect(output).toContain('谁可以编辑工作区信息？');
     expect(output).toContain('请直接回复此问题。');
     expect(output).not.toContain('evidence_orchestrator_ask_question');
+  });
+
+  it('shows actual model fallback and an explicitly unreported cost', () => {
+    const component = renderActivityAgentResult(
+      {
+        content: [{ type: 'text', text: 'Done' }],
+        details: details({
+          status: 'completed',
+          exitCode: 0,
+          model: 'fallback-model',
+          requestedModel: 'requested-model',
+          actualModel: 'fallback-model',
+          usage: {
+            ...details().usage,
+            cost_usd: null,
+          },
+        }),
+      },
+      { expanded: false, isPartial: false },
+      theme,
+    );
+
+    const output = component.render(160).join('\n');
+    expect(output).toContain('fallback-model (requested requested-model)');
+    expect(output).toContain('cost:n/a');
+    expect(output).not.toContain('$0');
   });
 
   it('marks a completed child with a non-zero exit code as failed', () => {

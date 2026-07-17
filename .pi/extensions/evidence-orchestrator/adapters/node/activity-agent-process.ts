@@ -5,6 +5,10 @@ import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { Message } from '@earendil-works/pi-ai';
 import {
+  type ActivityUsage,
+  zeroActivityUsage,
+} from '../../capabilities/activity-observability/activity-usage';
+import {
   ACTIVITY_CHILD_ENV,
   ACTIVITY_POLICY_ENV,
   type ActivityToolPolicy,
@@ -29,19 +33,44 @@ export interface ActivityAgent {
   filePath: string;
 }
 
+export type ActivitySessionMode = 'ephemeral' | 'persistent' | 'deterministic';
+
 export interface ActivityAgentResult {
   agent: string;
+  /** Actual model reported by the final assistant turn, or the requested model. */
   model: string;
+  requestedModel: string;
+  actualModel: string;
   thinking: ThinkingLevel;
+  sessionMode: ActivitySessionMode;
+  toolNames: string[];
   output: string;
   messages: Message[];
   exitCode: number;
   stderr: string;
+  usage: ActivityUsage;
+  stopReason?: string;
+  errorMessage?: string;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  toolCallCounts: Record<string, number>;
 }
 
 /** A live child-process snapshot. An exit code of -1 means it is still running. */
 export interface ActivityAgentProgress extends ActivityAgentResult {
   exitCode: -1;
+}
+
+export function isActivityAgentFailure(
+  result: Pick<ActivityAgentResult, 'exitCode' | 'stopReason'>,
+): boolean {
+  return (
+    result.exitCode !== 0 ||
+    result.stopReason === 'error' ||
+    result.stopReason === 'aborted' ||
+    result.stopReason === 'timeout'
+  );
 }
 
 interface ActivityAgentArgumentsOptions {
@@ -110,46 +139,170 @@ export function appendActivityAgentEvent(
   return false;
 }
 
+interface ActivityAgentTelemetry {
+  actualModel?: string;
+  usage: ActivityUsage;
+  stopReason?: string;
+  errorMessage?: string;
+  toolCallCounts: Record<string, number>;
+}
+
+interface ActivityAgentTiming {
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+/** Aggregate only finalized assistant turns, following Pi's child-agent semantics. */
+export function activityAgentTelemetry(
+  messages: readonly Message[],
+): ActivityAgentTelemetry {
+  const usage = zeroActivityUsage(null);
+  const toolCallCounts: Record<string, number> = {};
+  let actualModel: string | undefined;
+  let stopReason: string | undefined;
+  let errorMessage: string | undefined;
+  let costReported = true;
+
+  for (const message of messages) {
+    if (message.role !== 'assistant') continue;
+    usage.turns += 1;
+    const reportedUsage = message.usage as
+      | {
+          input?: unknown;
+          output?: unknown;
+          cacheRead?: unknown;
+          cacheWrite?: unknown;
+          totalTokens?: unknown;
+          cost?: { total?: unknown };
+        }
+      | undefined;
+    usage.input_tokens += finiteNumber(reportedUsage?.input) ?? 0;
+    usage.output_tokens += finiteNumber(reportedUsage?.output) ?? 0;
+    usage.cache_read_tokens += finiteNumber(reportedUsage?.cacheRead) ?? 0;
+    usage.cache_write_tokens += finiteNumber(reportedUsage?.cacheWrite) ?? 0;
+    usage.context_tokens_at_end =
+      finiteNumber(reportedUsage?.totalTokens) ?? null;
+    const reportedCost = finiteNumber(reportedUsage?.cost?.total);
+    if (reportedCost === undefined) costReported = false;
+    else usage.cost_usd = (usage.cost_usd ?? 0) + reportedCost;
+
+    const responseModel = (message as { responseModel?: unknown })
+      .responseModel;
+    if (typeof responseModel === 'string' && responseModel) {
+      actualModel = responseModel;
+    } else if (typeof message.model === 'string' && message.model) {
+      actualModel = message.model;
+    }
+    if (typeof message.stopReason === 'string' && message.stopReason) {
+      stopReason = message.stopReason;
+    }
+    if (typeof message.errorMessage === 'string' && message.errorMessage) {
+      errorMessage = message.errorMessage;
+    }
+    for (const part of message.content) {
+      if (part.type !== 'toolCall') continue;
+      toolCallCounts[part.name] = (toolCallCounts[part.name] ?? 0) + 1;
+    }
+  }
+  if (usage.turns === 0 || !costReported) usage.cost_usd = null;
+  return {
+    ...(actualModel ? { actualModel } : {}),
+    usage,
+    ...(stopReason ? { stopReason } : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+    toolCallCounts,
+  };
+}
+
+function activityTiming(timing?: ActivityAgentTiming): ActivityAgentTiming {
+  if (timing) return timing;
+  const timestamp = new Date().toISOString();
+  return { startedAt: timestamp, completedAt: timestamp, durationMs: 0 };
+}
+
 export function activityAgentProgress(
-  agent: Pick<ActivityAgent, 'name' | 'model' | 'thinking'>,
+  agent: Pick<ActivityAgent, 'name' | 'model' | 'thinking' | 'tools'>,
   messages: readonly Message[],
   stderr = '',
+  timing?: ActivityAgentTiming,
+  sessionMode: ActivitySessionMode = 'ephemeral',
 ): ActivityAgentProgress {
+  const telemetry = activityAgentTelemetry(messages);
+  const measured = activityTiming(timing);
+  const actualModel = telemetry.actualModel ?? agent.model;
   return {
     agent: agent.name,
-    model: agent.model,
+    model: actualModel,
+    requestedModel: agent.model,
+    actualModel,
     thinking: agent.thinking,
+    sessionMode,
+    toolNames: [...(agent.tools ?? [])],
     output: finalActivityAgentOutput(messages) || '(running...)',
     messages: [...messages],
     exitCode: -1,
     stderr,
+    usage: telemetry.usage,
+    ...(telemetry.stopReason ? { stopReason: telemetry.stopReason } : {}),
+    ...(telemetry.errorMessage ? { errorMessage: telemetry.errorMessage } : {}),
+    startedAt: measured.startedAt,
+    completedAt: measured.completedAt,
+    durationMs: measured.durationMs,
+    toolCallCounts: telemetry.toolCallCounts,
   };
 }
 
 export function activityAgentResult(
-  agent: Pick<ActivityAgent, 'name' | 'model' | 'thinking'>,
+  agent: Pick<ActivityAgent, 'name' | 'model' | 'thinking' | 'tools'>,
   messages: Message[],
   exitCode: number,
   stderr = '',
   spawnError = '',
+  timing?: ActivityAgentTiming,
+  sessionMode: ActivitySessionMode = 'ephemeral',
 ): ActivityAgentResult {
   const output = finalActivityAgentOutput(messages);
   const diagnostics = [output, stderr.trim(), spawnError]
     .filter(Boolean)
     .join('\n\n');
-  const resultOutput =
-    exitCode === 0
-      ? output || '(no output)'
-      : `Activity agent ${agent.name} failed with exit ${exitCode}:\n${diagnostics || 'no output'}`;
+  const telemetry = activityAgentTelemetry(messages);
+  const failure = isActivityAgentFailure({
+    exitCode,
+    stopReason: telemetry.stopReason,
+  });
+  const resultOutput = failure
+    ? `Activity agent ${agent.name} failed with exit ${exitCode}${telemetry.stopReason ? ` (${telemetry.stopReason})` : ''}:\n${diagnostics || telemetry.errorMessage || 'no output'}`
+    : output || '(no output)';
+  const measured = activityTiming(timing);
+  const actualModel = telemetry.actualModel ?? agent.model;
+  const errorMessage = telemetry.errorMessage ?? (spawnError || undefined);
 
   return {
     agent: agent.name,
-    model: agent.model,
+    model: actualModel,
+    requestedModel: agent.model,
+    actualModel,
     thinking: agent.thinking,
+    sessionMode,
+    toolNames: [...(agent.tools ?? [])],
     output: resultOutput,
     messages,
     exitCode,
     stderr: stderr || spawnError,
+    usage: telemetry.usage,
+    ...(telemetry.stopReason ? { stopReason: telemetry.stopReason } : {}),
+    ...(errorMessage ? { errorMessage } : {}),
+    startedAt: measured.startedAt,
+    completedAt: measured.completedAt,
+    durationMs: measured.durationMs,
+    toolCallCounts: telemetry.toolCallCounts,
   };
 }
 
@@ -285,13 +438,31 @@ export async function runActivityAgent(options: {
   });
 
   const messages: Message[] = [];
+  const startedMs = Date.now();
+  const startedAt = new Date(startedMs).toISOString();
+  const sessionMode: ActivitySessionMode = options.sessionId
+    ? 'persistent'
+    : 'ephemeral';
   let stderr = '';
   let buffer = '';
   let aborted = false;
   let spawnError = '';
 
   const emitProgress = () => {
-    options.onUpdate?.(activityAgentProgress(agent, messages, stderr));
+    const observedMs = Date.now();
+    options.onUpdate?.(
+      activityAgentProgress(
+        agent,
+        messages,
+        stderr,
+        {
+          startedAt,
+          completedAt: new Date(observedMs).toISOString(),
+          durationMs: Math.max(0, observedMs - startedMs),
+        },
+        sessionMode,
+      ),
+    );
   };
 
   try {
@@ -366,7 +537,20 @@ export async function runActivityAgent(options: {
     });
 
     if (aborted) throw new Error(`Activity agent ${agent.name} was aborted.`);
-    return activityAgentResult(agent, messages, exitCode, stderr, spawnError);
+    const completedMs = Date.now();
+    return activityAgentResult(
+      agent,
+      messages,
+      exitCode,
+      stderr,
+      spawnError,
+      {
+        startedAt,
+        completedAt: new Date(completedMs).toISOString(),
+        durationMs: Math.max(0, completedMs - startedMs),
+      },
+      sessionMode,
+    );
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
   }

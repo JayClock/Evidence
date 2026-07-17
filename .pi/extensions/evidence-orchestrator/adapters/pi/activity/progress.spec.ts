@@ -23,7 +23,11 @@ function details(
     status: 'running',
     agent: 'requirements-analyst',
     model: 'openai-codex/gpt-test',
+    requestedModel: 'openai-codex/gpt-test',
+    actualModel: 'openai-codex/gpt-test',
     thinking: 'medium',
+    sessionMode: 'ephemeral',
+    toolNames: ['read'],
     output: '(running...)',
     messages: [
       {
@@ -40,6 +44,19 @@ function details(
     ],
     exitCode: -1,
     stderr: '',
+    usage: {
+      turns: 1,
+      input_tokens: 100,
+      output_tokens: 10,
+      cache_read_tokens: 80,
+      cache_write_tokens: 0,
+      cost_usd: 0.001,
+      context_tokens_at_end: 110,
+    },
+    startedAt: '2026-01-01T00:00:00.000Z',
+    completedAt: '2026-01-01T00:00:01.000Z',
+    durationMs: 1_000,
+    toolCallCounts: { read: 1 },
     ...overrides,
   };
 }

@@ -15,7 +15,10 @@ import {
   recordHtmlChangeExplanation,
 } from '../../loops/pair/change-explanation';
 import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
-import { runActivityAgent } from '../node/activity-agent-process';
+import {
+  isActivityAgentFailure,
+  runActivityAgent,
+} from '../node/activity-agent-process';
 import { ACTIVITY_RESULT_MESSAGE_TYPE } from './identity';
 import type { PreparedActivityRun } from './activity/dispatch';
 import {
@@ -53,7 +56,7 @@ export async function runPreparedActivityFromCommand(
     display: true,
     details,
   });
-  if (details.exitCode !== 0) {
+  if (details.status === 'failed') {
     ctx.ui.notify(
       `Evidence ${details.activity} activity failed with exit ${details.exitCode}.`,
       'error',
@@ -97,7 +100,7 @@ export async function runHtmlChangeExplanationFromCommand(
               });
             },
           });
-          if (result.exitCode !== 0) {
+          if (isActivityAgentFailure(result)) {
             throw new Error(result.output);
           }
           const delta = worktreeDelta(ctx.cwd, snapshot);

@@ -1,4 +1,8 @@
 import { Container, Spacer, Text } from '@earendil-works/pi-tui';
+import {
+  type ActivityUsage,
+  zeroActivityUsage,
+} from '../../../capabilities/activity-observability/activity-usage';
 import type { ActivityExecutionDetails } from './execution';
 
 export type ActivityAgentToolDetails = ActivityExecutionDetails;
@@ -26,6 +30,29 @@ function isRecord(value: unknown): value is RecordValue {
 
 function asText(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
+}
+
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function parsedUsage(value: unknown): ActivityUsage {
+  if (!isRecord(value)) return zeroActivityUsage(null);
+  return {
+    turns: asFiniteNumber(value.turns) ?? 0,
+    input_tokens: asFiniteNumber(value.input_tokens) ?? 0,
+    output_tokens: asFiniteNumber(value.output_tokens) ?? 0,
+    cache_read_tokens: asFiniteNumber(value.cache_read_tokens) ?? 0,
+    cache_write_tokens: asFiniteNumber(value.cache_write_tokens) ?? 0,
+    cost_usd:
+      value.cost_usd === null ? null : (asFiniteNumber(value.cost_usd) ?? null),
+    context_tokens_at_end:
+      value.context_tokens_at_end === null
+        ? null
+        : (asFiniteNumber(value.context_tokens_at_end) ?? null),
+  };
 }
 
 function preview(value: string, maxLength = 100): string {
@@ -74,20 +101,57 @@ function activityDetails(
     return undefined;
   }
 
+  const requestedModel = asText(details.requestedModel) ?? details.model;
+  const actualModel = asText(details.actualModel) ?? details.model;
+  const timestamp = new Date(0).toISOString();
   return {
     activity: details.activity as ActivityExecutionDetails['activity'],
     agent: details.agent,
-    model: details.model,
+    model: actualModel,
+    requestedModel,
+    actualModel,
     thinking: details.thinking as ActivityExecutionDetails['thinking'],
+    sessionMode:
+      details.sessionMode === 'persistent' ||
+      details.sessionMode === 'deterministic'
+        ? details.sessionMode
+        : 'ephemeral',
+    toolNames: Array.isArray(details.toolNames)
+      ? details.toolNames.filter(
+          (name): name is string => typeof name === 'string',
+        )
+      : [],
     output: details.output,
     messages: details.messages as ActivityExecutionDetails['messages'],
     exitCode: details.exitCode,
     stderr: details.stderr,
+    usage: parsedUsage(details.usage),
+    ...(asText(details.stopReason)
+      ? { stopReason: asText(details.stopReason) }
+      : {}),
+    ...(asText(details.errorMessage)
+      ? { errorMessage: asText(details.errorMessage) }
+      : {}),
+    startedAt: asText(details.startedAt) ?? timestamp,
+    completedAt: asText(details.completedAt) ?? timestamp,
+    durationMs: asFiniteNumber(details.durationMs) ?? 0,
+    toolCallCounts: isRecord(details.toolCallCounts)
+      ? Object.fromEntries(
+          Object.entries(details.toolCallCounts).filter(
+            (entry): entry is [string, number] =>
+              asFiniteNumber(entry[1]) !== undefined,
+          ),
+        )
+      : {},
     task: asText(details.task) ?? '',
     status:
       details.status === 'running' || details.exitCode === -1
         ? 'running'
-        : details.status === 'failed' || details.exitCode !== 0
+        : details.status === 'failed' ||
+            details.exitCode !== 0 ||
+            details.stopReason === 'error' ||
+            details.stopReason === 'aborted' ||
+            details.stopReason === 'timeout'
           ? 'failed'
           : 'completed',
   };
@@ -95,7 +159,13 @@ function activityDetails(
 
 export function isActivityAgentFailureDetails(details: unknown): boolean {
   const record = isRecord(details) ? details : undefined;
-  return typeof record?.exitCode === 'number' && record.exitCode !== 0;
+  return Boolean(
+    record &&
+      ((typeof record.exitCode === 'number' && record.exitCode !== 0) ||
+        record.stopReason === 'error' ||
+        record.stopReason === 'aborted' ||
+        record.stopReason === 'timeout'),
+  );
 }
 
 function displayItems(messages: readonly unknown[]): DisplayItem[] {
@@ -114,6 +184,41 @@ function displayItems(messages: readonly unknown[]): DisplayItem[] {
     }
   }
   return items;
+}
+
+function formatTokens(count: number): string {
+  if (count < 1_000) return String(count);
+  if (count < 10_000) return `${(count / 1_000).toFixed(1)}k`;
+  if (count < 1_000_000) return `${Math.round(count / 1_000)}k`;
+  return `${(count / 1_000_000).toFixed(1)}M`;
+}
+
+function formatDuration(durationMs: number): string {
+  if (durationMs < 1_000) return `${Math.round(durationMs)}ms`;
+  return `${(durationMs / 1_000).toFixed(1)}s`;
+}
+
+function formatUsage(usage: ActivityUsage): string {
+  const turns = `${usage.turns} turn${usage.turns === 1 ? '' : 's'}`;
+  const cache = [
+    usage.cache_read_tokens ? `R${formatTokens(usage.cache_read_tokens)}` : '',
+    usage.cache_write_tokens
+      ? `W${formatTokens(usage.cache_write_tokens)}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const cost =
+    usage.cost_usd === null ? 'cost:n/a' : `$${usage.cost_usd.toFixed(4)}`;
+  return [
+    turns,
+    `↑${formatTokens(usage.input_tokens)}`,
+    `↓${formatTokens(usage.output_tokens)}`,
+    cache,
+    cost,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function formatToolCall(name: string, args: unknown): string {
@@ -220,10 +325,17 @@ export function renderActivityAgentResult(
     : failed
       ? theme.fg('error', '✗')
       : theme.fg('success', '✓');
+  const model =
+    details.requestedModel === details.actualModel
+      ? details.actualModel
+      : `${details.actualModel} (requested ${details.requestedModel})`;
   const header =
     `${icon} ${theme.fg('toolTitle', theme.bold(details.activity))}` +
     theme.fg('accent', ` · ${details.agent}`) +
-    theme.fg('dim', ` · ${details.model} · thinking=${details.thinking}`);
+    theme.fg(
+      'dim',
+      ` · ${model} · thinking=${details.thinking} · ${formatUsage(details.usage)} · ${formatDuration(details.durationMs)}`,
+    );
   const activityItems = options.expanded
     ? items.filter((item) => item.type === 'tool')
     : items;

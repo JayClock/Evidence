@@ -13,7 +13,10 @@ import {
   recordInboxCandidateDecision,
 } from '../../capabilities/inbox/story-candidate';
 import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
-import { runActivityAgent } from '../node/activity-agent-process';
+import {
+  isActivityAgentFailure,
+  runActivityAgent,
+} from '../node/activity-agent-process';
 import { createGitHubIssueInboxSource } from '../github/inbox-source';
 import {
   localMarkdownInboxSource,
@@ -314,7 +317,7 @@ async function extractStories(
       }),
   );
   if (!result) return false;
-  if (result.exitCode !== 0) throw new Error(result.output);
+  if (isActivityAgentFailure(result)) throw new Error(result.output);
   ctx.ui.notify(result.output, 'info');
   return true;
 }

@@ -3,6 +3,7 @@ import type {
   ActivityAgentResult,
 } from '../../node/activity-agent-process';
 import { runActivityAgent } from '../../node/activity-agent-process';
+import { zeroActivityUsage } from '../../../capabilities/activity-observability/activity-usage';
 import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 import {
   buildPairRedReviewTask,
@@ -113,13 +114,24 @@ function progressDetails(
   };
 }
 
+function activityFailed(
+  result: Pick<ActivityAgentResult, 'exitCode' | 'stopReason'>,
+): boolean {
+  return (
+    result.exitCode !== 0 ||
+    result.stopReason === 'error' ||
+    result.stopReason === 'aborted' ||
+    result.stopReason === 'timeout'
+  );
+}
+
 function completedOutput(
   cwd: string,
   preparation: PreparedActivityRun,
   result: ActivityAgentResult,
   state: ReturnType<typeof readState>,
 ): string {
-  if (result.exitCode !== 0) return result.output;
+  if (activityFailed(result)) return result.output;
   if (preparation.activity === 'understand') {
     const pending = state.pending_clarification;
     if (pending) {
@@ -133,6 +145,38 @@ function completedOutput(
   return `${output}\n\n${nextStepGuidance(cwd, state)}`;
 }
 
+function deterministicAgentResult(
+  agent: string,
+  output: string,
+  startedAt = new Date().toISOString(),
+  completedAt = startedAt,
+): ActivityAgentResult {
+  const startedMs = Date.parse(startedAt);
+  const completedMs = Date.parse(completedAt);
+  return {
+    agent,
+    model: 'deterministic',
+    requestedModel: 'deterministic',
+    actualModel: 'deterministic',
+    thinking: 'off',
+    sessionMode: 'deterministic',
+    toolNames: [],
+    output,
+    messages: [],
+    exitCode: 0,
+    stderr: '',
+    usage: zeroActivityUsage(),
+    stopReason: 'stop',
+    startedAt,
+    completedAt,
+    durationMs:
+      Number.isFinite(startedMs) && Number.isFinite(completedMs)
+        ? Math.max(0, completedMs - startedMs)
+        : 0,
+    toolCallCounts: {},
+  };
+}
+
 function completedDetails(
   cwd: string,
   preparation: PreparedActivityRun,
@@ -144,7 +188,7 @@ function completedDetails(
     output: completedOutput(cwd, preparation, result, state),
     activity: preparation.activity,
     task: preparation.task,
-    status: result.exitCode === 0 ? 'completed' : 'failed',
+    status: activityFailed(result) ? 'failed' : 'completed',
   };
 }
 
@@ -166,36 +210,32 @@ async function executeOnePreparedActivityRun(
 
   try {
     if (preparation.pairAction) {
+      const startedAt = (options.now ?? (() => new Date().toISOString()))();
       const action = executePairAction(ctx.cwd, preparation.pairAction);
       return completedDetails(
         ctx.cwd,
         preparation,
-        {
-          agent: 'pair-controller',
-          model: 'deterministic',
-          thinking: 'off',
-          output: action.output,
-          messages: [],
-          exitCode: 0,
-          stderr: '',
-        },
+        deterministicAgentResult(
+          'pair-controller',
+          action.output,
+          startedAt,
+          (options.now ?? (() => new Date().toISOString()))(),
+        ),
         action.state,
       );
     }
     if (preparation.showcaseAction === 'run_q2') {
+      const startedAt = (options.now ?? (() => new Date().toISOString()))();
       const action = executeShowcaseQ2(ctx.cwd);
       return completedDetails(
         ctx.cwd,
         preparation,
-        {
-          agent: 'showcase-controller',
-          model: 'deterministic',
-          thinking: 'off',
-          output: action.output,
-          messages: [],
-          exitCode: 0,
-          stderr: '',
-        },
+        deterministicAgentResult(
+          'showcase-controller',
+          action.output,
+          startedAt,
+          (options.now ?? (() => new Date().toISOString()))(),
+        ),
         action.state,
       );
     }
@@ -208,15 +248,10 @@ async function executeOnePreparedActivityRun(
       return completedDetails(
         ctx.cwd,
         preparation,
-        {
-          agent: 'modeling-controller',
-          model: 'deterministic',
-          thinking: 'off',
-          output: `Recorded ${completed.model_expansion_path}; the human-confirmed Profile requires no canonical model expansion or challenge.`,
-          messages: [],
-          exitCode: 0,
-          stderr: '',
-        },
+        deterministicAgentResult(
+          'modeling-controller',
+          `Recorded ${completed.model_expansion_path}; the human-confirmed Profile requires no canonical model expansion or challenge.`,
+        ),
         completed,
       );
     }
@@ -244,22 +279,21 @@ async function executeOnePreparedActivityRun(
       },
     });
     if (mode && snapshot) {
-      const completion =
-        result.exitCode === 0
-          ? completePairDriver(
-              ctx.cwd,
-              mode as PairDriverMode,
-              snapshot,
-              result.output,
-              (options.now ?? (() => new Date().toISOString()))(),
-            )
-          : failPairDriver(
-              ctx.cwd,
-              mode as PairDriverMode,
-              snapshot,
-              `${result.output}\n${result.stderr}`,
-              (options.now ?? (() => new Date().toISOString()))(),
-            );
+      const completion = !activityFailed(result)
+        ? completePairDriver(
+            ctx.cwd,
+            mode as PairDriverMode,
+            snapshot,
+            result.output,
+            (options.now ?? (() => new Date().toISOString()))(),
+          )
+        : failPairDriver(
+            ctx.cwd,
+            mode as PairDriverMode,
+            snapshot,
+            `${result.output}\n${result.stderr}`,
+            (options.now ?? (() => new Date().toISOString()))(),
+          );
       result = {
         ...result,
         exitCode: completion.blocked ? 1 : result.exitCode,
@@ -273,7 +307,7 @@ async function executeOnePreparedActivityRun(
       const completion = completeShowcaseReviewer(
         ctx.cwd,
         showcaseSnapshot,
-        result.exitCode,
+        activityFailed(result) ? result.exitCode || 1 : 0,
         `${result.output}\n${result.stderr}`,
         (options.now ?? (() => new Date().toISOString()))(),
       );
@@ -331,14 +365,26 @@ function persistedPairAutomationResult(
       },
     });
   }
+  const timestamp = new Date().toISOString();
   return {
     agent: 'pair-automation',
     model: 'mixed',
+    requestedModel: 'mixed',
+    actualModel: 'mixed',
     thinking: 'off',
+    sessionMode: 'deterministic',
+    toolNames: [],
     output,
     messages: [],
     exitCode: status === 'completed' ? 0 : 1,
     stderr: status === 'completed' ? '' : output,
+    usage: zeroActivityUsage(),
+    stopReason: status === 'completed' ? 'stop' : 'error',
+    ...(status === 'failed' ? { errorMessage: output } : {}),
+    startedAt: timestamp,
+    completedAt: timestamp,
+    durationMs: 0,
+    toolCallCounts: {},
     activity: 'pair',
     task: `Automated ${steps} recorded Pair checkpoint(s).`,
     status,
@@ -414,7 +460,7 @@ async function executeAutomatedPairRun(
           options.onUpdate?.(progressDetails(reviewPreparation, progress));
         },
       });
-      if (result.exitCode !== 0) {
+      if (activityFailed(result)) {
         return pairAutomationResult(
           state,
           'failed',
@@ -515,7 +561,7 @@ async function executeAutomatedPairRun(
     summaries.push(
       `${next.agentName ?? next.pairAction ?? 'controller'}: ${details.exitCode}`,
     );
-    if (details.exitCode !== 0) {
+    if (details.status === 'failed') {
       const current = readState(ctx.cwd).pair_session;
       const key = `driver:${current?.task_id}/${current?.test_id}:${next.agentName ?? next.pairAction}`;
       if (!retryAllowed(retries, key)) {
