@@ -8,8 +8,8 @@ describe('orchestrator identity', () => {
     expect(STATUS_KEY).toBe(EXTENSION_ID);
     expect(statusLabel(undefined)).toBe('orchestrator:idle');
     expect(statusLabel(DEFAULT_STATE)).toBe('orchestrator:kickoff');
-    expect(statusLabel(DEFAULT_STATE, 'subagent')).toBe(
-      'orchestrator:kickoff:subagent',
+    expect(statusLabel(DEFAULT_STATE, 'agent')).toBe(
+      'orchestrator:kickoff:agent',
     );
   });
 });

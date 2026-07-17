@@ -121,7 +121,7 @@ async function executeOnePreparedActivityRun(
       last_run_at: (options.now ?? (() => new Date().toISOString()))(),
     },
   });
-  ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'subagent'));
+  ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'agent'));
 
   try {
     if (preparation.pairAction) {
@@ -187,7 +187,7 @@ async function executeOnePreparedActivityRun(
         : undefined;
     if (!preparation.agentName) {
       throw new Error(
-        `Activity ${preparation.activity} has no subagent or deterministic action.`,
+        `Activity ${preparation.activity} has no activity agent or deterministic action.`,
       );
     }
     const sessionId = tqaSessionId(preparation);
@@ -361,7 +361,7 @@ async function executeAutomatedPairRun(
         agentName: 'red-reviewer',
         task: buildPairRedReviewTask(ctx.cwd, state),
       };
-      ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'subagent'));
+      ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'agent'));
       const result = await runActivityAgent({
         cwd: ctx.cwd,
         agentName: 'red-reviewer',

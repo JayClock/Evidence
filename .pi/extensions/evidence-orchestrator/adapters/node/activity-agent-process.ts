@@ -87,7 +87,7 @@ export function finalActivityAgentOutput(messages: readonly Message[]): string {
 }
 
 /**
- * Retain the same finalized child events as Pi's official subagent example.
+ * Retain the same finalized child events as Pi's official child-agent example.
  * Assistant messages carry child tool calls; tool-result messages make progress
  * updates visible before the child reaches its final response.
  */
@@ -227,7 +227,7 @@ export function loadActivityAgent(
 /**
  * Re-invoke the current Pi executable when possible, so an activity child uses the
  * same installed Pi version as its parent. This mirrors Pi's official
- * subagent extension and falls back to the `pi` command for generic runtimes.
+ * child-agent extension and falls back to the `pi` command for generic runtimes.
  */
 function activityAgentInvocation(args: string[]): {
   command: string;

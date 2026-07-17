@@ -274,7 +274,7 @@ export function registerTools(pi: ExtensionAPI): void {
     description:
       'Execute one current-loop activity; Pair automatically runs the complete recorded coding Story until approval-ready or exceptional',
     promptSnippet:
-      'Run the current Evidence Orchestrator activity in its bounded subagent or deterministic controller',
+      'Run the current Evidence Orchestrator activity in its bounded activity agent or deterministic controller',
     promptGuidelines: [
       'Use evidence_orchestrator_run_activity for the current loop; in Pair it owns the complete bounded Driver/Reviewer/controller cycle, so do not perform delegated coding in the parent agent.',
     ],
@@ -431,7 +431,7 @@ export function registerTools(pi: ExtensionAPI): void {
     promptSnippet:
       'Conclude the model challenge with pass, scenario_gap, model_gap, or method_gap',
     promptGuidelines: [
-      'Use only from the read-only model-challenger subagent after checking current and regression scenarios.',
+      'Use only from the read-only model-challenger activity agent after checking current and regression scenarios.',
       'Do not repair the model. The tool routes feedback to TQA, Model Builder, or Modeling Profile.',
       'A pass is overridden when deterministic model regression fails.',
       'A pass stops for human model and ubiquitous-language review; it never advances Tasking directly.',

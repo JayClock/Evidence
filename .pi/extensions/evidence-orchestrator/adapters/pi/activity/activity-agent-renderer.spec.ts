@@ -137,7 +137,7 @@ describe('activity agent renderer', () => {
     expect(output).toContain('warning from child');
   });
 
-  it('renders a concise activity-subagent tool call header', () => {
+  it('renders a concise activity-agent tool call header', () => {
     const output = renderActivityAgentCall(
       { instructions: 'Prioritize the selected acceptance scenario.' },
       theme,

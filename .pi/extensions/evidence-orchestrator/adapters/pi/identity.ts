@@ -8,7 +8,7 @@ export const ACTIVITY_RESULT_MESSAGE_TYPE =
 
 export function statusLabel(
   state: WorkflowState | undefined,
-  activity?: 'subagent' | 'state-error',
+  activity?: 'agent' | 'state-error',
 ): string {
   if (activity === 'state-error') return `${STATUS_PREFIX}:state-error`;
   if (!state) return `${STATUS_PREFIX}:idle`;
