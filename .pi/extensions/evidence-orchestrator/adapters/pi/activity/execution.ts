@@ -371,6 +371,7 @@ async function executeOnePreparedActivityRun(
         try {
           result = await runActivityAgent({
             cwd: ctx.cwd,
+            iterationId: state.iteration_id,
             agentName: preparation.agentName,
             task: preparation.task,
             policy: activityPolicy(ctx.cwd, preparation.agentName, state),
@@ -945,6 +946,7 @@ async function executeAutomatedPairRun(
             reviewerSpanId = span.spanId;
             const result = await runActivityAgent({
               cwd: ctx.cwd,
+              iterationId: state.iteration_id,
               agentName: 'red-reviewer',
               task: reviewPreparation.task,
               policy: activityPolicy(ctx.cwd, 'red-reviewer', state),

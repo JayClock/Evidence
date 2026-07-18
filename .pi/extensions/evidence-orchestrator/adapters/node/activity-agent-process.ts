@@ -10,6 +10,7 @@ import {
 } from '../../capabilities/activity-observability/activity-usage';
 import {
   ACTIVITY_CHILD_ENV,
+  ACTIVITY_ITERATION_ENV,
   ACTIVITY_POLICY_ENV,
   type ActivityToolPolicy,
 } from '../../capabilities/worktree-protection/activity-tool-policy';
@@ -423,6 +424,7 @@ function activityAgentInvocation(args: string[]): {
 
 export async function runActivityAgent(options: {
   cwd: string;
+  iterationId?: string;
   agentName: string;
   task: string;
   policy: ActivityToolPolicy;
@@ -497,6 +499,9 @@ export async function runActivityAgent(options: {
           env: {
             ...process.env,
             [ACTIVITY_CHILD_ENV]: '1',
+            ...(options.iterationId
+              ? { [ACTIVITY_ITERATION_ENV]: options.iterationId }
+              : {}),
             [ACTIVITY_POLICY_ENV]: policyPath,
           },
           shell: false,

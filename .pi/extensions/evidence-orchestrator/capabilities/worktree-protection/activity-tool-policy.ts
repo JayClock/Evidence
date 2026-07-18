@@ -3,6 +3,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export const ACTIVITY_CHILD_ENV = 'EVIDENCE_ACTIVITY_CHILD';
 export const ACTIVITY_POLICY_ENV = 'EVIDENCE_ACTIVITY_POLICY_PATH';
+export const ACTIVITY_ITERATION_ENV = 'EVIDENCE_ORCHESTRATOR_ITERATION_ID';
 
 export type ActivityWriteMode = 'none' | 'test' | 'production' | 'refactor';
 

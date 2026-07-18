@@ -276,6 +276,7 @@ describe('activity agents', () => {
     const spawnProcess = vi.fn(() => child) as never;
     const result = await runActivityAgent({
       cwd,
+      iterationId: 'ITER-0001',
       agentName: 'test-driver',
       task: 'Write one test.',
       policy: createActivityToolPolicy({
@@ -287,6 +288,15 @@ describe('activity agents', () => {
       forceKillGraceMs: 5,
     });
 
+    expect(spawnProcess).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Array),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          EVIDENCE_ORCHESTRATOR_ITERATION_ID: 'ITER-0001',
+        }),
+      }),
+    );
     expect(child.kill.mock.calls.map(([signal]) => signal)).toEqual([
       'SIGTERM',
       'SIGKILL',
@@ -308,6 +318,7 @@ describe('activity agents', () => {
     await expect(
       runActivityAgent({
         cwd,
+        iterationId: 'ITER-0001',
         agentName: 'test-driver',
         task: 'Write one test.',
         policy: createActivityToolPolicy({

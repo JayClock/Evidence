@@ -257,6 +257,7 @@ export async function runHtmlChangeExplanationFromCommand(
             try {
               const result = await runActivityAgent({
                 cwd: ctx.cwd,
+                iterationId: traceState.iteration_id,
                 agentName: 'change-explainer',
                 task,
                 policy: createActivityToolPolicy({
