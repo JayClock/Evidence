@@ -47,9 +47,9 @@ libs/
 
 ```text
 .pi/extensions/evidence-orchestrator/
-├── iteration/                          cross-loop aggregate and state
+├── iteration/                          repository Board and worktree-local Story state
 ├── loops/{kickoff,understand,tasking,pair,showcase,respond}/
-├── capabilities/                       shared deterministic mechanisms
+├── capabilities/                       flow/WIP/lease, worktree and shared deterministic mechanisms
 ├── adapters/{pi,github,node}/          external hosts and processes
 ├── validation/                         source and evidence validators
 └── test-support/                       integration tests, fixtures and mocks
@@ -60,9 +60,11 @@ libs/
 docs/product/                           canonical product knowledge
 docs/architecture/                      canonical technical solution
 engineering/evidence-orchestrator/      contexts, processes and DoD
-artifacts/iterations/                    immutable iteration evidence
+.git/evidence-orchestrator/              local Board, locks, leases and events
+.worktrees/evidence/ITER-xxxx/           isolated Story branches and worktree-local State
+artifacts/iterations/                    immutable per-Story iteration evidence
 ```
 
-Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`；Capability 只承载跨 Loop 稳定复用的机制，Loop 之间只通过确认产物、typed outcome 或显式公开契约交接。持久化状态不携带工作流版本标记；`validation/source-boundaries.ts` 阻止反向依赖和已退役目录复生。
+Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`；Capability 只承载跨 Loop 稳定复用的机制，Loop 之间只通过确认产物、typed outcome 或显式公开契约交接。Git common dir 下的 Board 是跨 Story admission/WIP 权威；每个 worktree 的 `.evidence-iteration-state.json` 只承载一张 Story，不复制 Board 或其他 Story。Story mutation 必须通过 Iteration、canonical worktree、环境绑定和 activity lease/State CAS 验证；`validation/source-boundaries.ts` 阻止反向依赖和已退役目录复生。
 
 以上 Orchestrator、Agent、Working Knowledge 与 iteration evidence 都属于当前仓库的内部研发工具链，不是 `apps/*` / `libs/*` 中的 Evidence 产品模块。产品运行时代码不得依赖它们，`.evidence/` 也不得为其建立交付流程概念。Evidence 项目使用自身产品模型进行 dogfooding 只是开发验证方式。

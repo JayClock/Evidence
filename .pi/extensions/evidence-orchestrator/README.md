@@ -34,7 +34,7 @@ flowchart LR
   U -. problem gap .-> K
 ```
 
-Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经确认的 Story 候选。GitHub Issue 只是一个 Source Adapter；AI 候选没有权威性。人类以 `/evidence-new [CAND-xxxx]` 选择一张 ready 候选后，系统冻结自包含 Intake；只有 Kickoff 人工确认后生成的 `US-xxx` Story Card 才是本轮交付权威。
+Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经确认的 Story 候选。GitHub Issue 只是一个 Source Adapter；AI 候选没有权威性。人类以 `/evidence-new CAND-xxxx` 明确认领一张 ready 候选；系统为它分配 `ITER-xxxx`、创建 `evidence/iter-xxxx` 分支和 `.worktrees/evidence/ITER-xxxx` worktree，再冻结自包含 Intake。只有 Kickoff 人工确认后生成的 `US-xxx` Story Card 才是该 Work Item 的交付权威。
 
 一轮是一个以**单一人工确认 User Story** 为边界的交付迭代。三个反馈粒度保持嵌套：
 
@@ -47,11 +47,11 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
 2. **Understand**：每张活动 Story 使用一条持久 TQA 会话，一次提出一个面向业务的问题；人类直接回答后，下一次 requirements-analyst checkpoint 恢复同一 Pi session。AI 列出完整 Scenario Set 后由人类整体确认，再确认建模 Profile：`none/false` 确定性记录无模型影响并直接进入 Tasking；其他方法逐场景联合展开，`model_change_required=false` 保持空 operations，只有 `true` 提出模型候选，之后均经独立挑战和人工模型确认。其他活动角色仍使用隔离的临时会话。
 3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v3，解析真实 Nx project ownership/targets，并生成逐 TEST 聚焦命令、项目门禁及去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
-4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。Desk Check 把人工预算策略 hash、结构性调用量、timeout、retry、checkpoint 与可用 Q/T/C hard limit 锁进计划；Pair 只读该 Envelope。相同 failure fingerprint、无进展、activity/command timeout、soft/hard budget 或观测缺口会生成类型化异常并停止，不能由 Agent 提高额度；全绿后可用 `/evidence-explain-diff` 生成一份仓库外、自包含且非权威的 HTML 理解材料，之后仍由人类一次批准完整 Story 编码才进入 Showcase。
+4. **Pair**：一次 `/evidence-run ITER-xxxx` 由控制器自动推进指定 Story 的完整编码：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。Desk Check 把人工预算策略 hash、结构性调用量、timeout、retry、checkpoint 与可用 Q/T/C hard limit 锁进计划；Pair 只读该 Envelope。相同 failure fingerprint、无进展、activity/command timeout、soft/hard budget 或观测缺口会生成类型化异常并停止，不能由 Agent 提高额度；全绿后可用 `/evidence-explain-diff ITER-xxxx` 生成一份仓库外、自包含且非权威的 HTML 理解材料，之后仍由人类一次批准完整 Story 编码才进入 Showcase。
 5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
 6. **Respond**：总结整个 Story 增量，只提升被 Scenario Set、执行事实与 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
 
-状态只允许一个 active Story、一个人工确认的 Scenario Set 和一个 Pair checkpoint。它不维护并行 Story WIP、独立 Scenario 交付切片或独立审批队列；Pair 自动化仅在一次运行内执行有限重试，超限保留失败状态供异常路由。
+仓库级 Board 允许最多三张 active Story 受限并行流动；每张卡仍只有一个 worktree-local `WorkflowState`、一张人工确认 Story、一个完整 Scenario Set 和一个 Pair checkpoint。Board 管理 `discovery / planning / ready / delivery / review / done` admission，Blocked 仍占 WIP；Delivery 和全局 Pair runner 初始上限均为一。WIP 满时只记录 `pending_lane`，必须由人类显式 Pull，不自动选择下一张 Story。每张 Story 以 activity lease 串行化，Pair 另持有全局 runner lease；过期 lease 只能带理由显式恢复。
 
 ## 目录结构
 
@@ -60,7 +60,7 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 ```text
 evidence-orchestrator/
 ├── index.ts                         # 仅导出 Pi host
-├── iteration/                       # 跨循环聚合、状态、转换、反馈与工件布局
+├── iteration/                       # Board 聚合、单 Story 状态、转换、反馈与工件布局
 ├── loops/
 │   ├── kickoff/                     # 单 Story 候选与人工 Kickoff 决定
 │   ├── understand/{tqa,scenario,modeling}/
@@ -70,6 +70,8 @@ evidence-orchestrator/
 │   └── respond/                     # knowledge response、人工确认与 next Probe
 ├── capabilities/
 │   ├── inbox/                       # 来源 revision、Story 候选与冻结 Intake
+│   ├── flow-control/                # lane/WIP admission、State CAS 与 bounded lease
+│   ├── work-item-worktree/          # Story worktree provision/archive
 │   ├── modeling-evidence/           # 跨 Understand、Tasking 与 Pair 的模型证据
 │   ├── test-process/                # v3 catalog、Nx ownership、逐 TEST 命令与门禁物化
 │   ├── activity-observability/      # 非权威 activity trace、usage 与聚合
@@ -88,8 +90,9 @@ evidence-orchestrator/
 
 ### `iteration/`
 
-- `state.ts` 与 `default-state.ts`：iteration envelope、loop 局部事实和唯一默认状态。
-- `state-codec.ts` 与 `state-repository.ts`：严格编解码和持久化；状态不携带工作流版本标记。
+- `board-state.ts`、`board-codec.ts` 与 `board-repository.ts`：Git common dir 下的仓库级调度权威、严格编解码、原子写入和短锁。
+- `state.ts` 与 `default-state.ts`：一张 worktree-local Story 的 iteration envelope 与 loop 局部事实。
+- `state-codec.ts` 与 `state-repository.ts`：严格编解码和 `.evidence-iteration-state.json` 持久化；状态不携带 Board 或工作流版本标记。
 - `transition-graph.ts`：合法 loop 转换及核心守卫。
 - `feedback-routing.ts`：把语义缺口路由到知识活动，而不是技术阶段。
 - `artifact-layout.ts` 与 `artifact-inventory.ts`：iteration ID、隔离工件路径、目录和只读清单。
@@ -115,35 +118,38 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 
 ```text
 /evidence-inbox [list | add github|text|file | sync INBOX-xxxx | extract INBOX-xxxx,... | defer|reject CAND-xxxx <reason>]
-/evidence-new [CAND-xxxx]
-/evidence-status [artifacts|files [cursor]]
-/evidence-run [--dry-run] [当前活动补充指令]
-/evidence-kickoff confirm [reason] | revise|split|defer|stop <reason>
-/evidence-scenario confirm <DRAFT-xxx,...> [reason] | continue|split|defer <reason>
-/evidence-modeling-profile confirm [reason] | set <subject> <method> <true|false> <reason>
-/evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>
-/evidence-desk-check approve [reason] | revise|architecture_gap|process_gap|scenario_gap <reason>
-/evidence-pair approve <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>
-/evidence-explain-diff
-/evidence-showcase [observe|risk|evaluate|accept|revise|reject 参数]
-/evidence-respond approve|revise <reason>
+/evidence-new CAND-xxxx
+/evidence-flow list | pull ITER-xxxx | recover ITER-xxxx <reason> | archive ITER-xxxx <reason>
+/evidence-status [ITER-xxxx [artifacts [cursor]]]
+/evidence-answer ITER-xxxx Q-xxx <answer>
+/evidence-run ITER-xxxx [--dry-run] [当前活动补充指令]
+/evidence-kickoff ITER-xxxx confirm [reason] | revise|split|defer|stop <reason>
+/evidence-scenario ITER-xxxx confirm <DRAFT-xxx,...> [reason] | continue|split|defer <reason>
+/evidence-modeling-profile ITER-xxxx confirm [reason] | set <subject> <method> <true|false> <reason>
+/evidence-model ITER-xxxx confirm [reason] | revise|scenario-gap|method-gap <reason>
+/evidence-desk-check ITER-xxxx approve [reason] | revise|architecture_gap|process_gap|scenario_gap <reason>
+/evidence-pair ITER-xxxx approve <reason> | back-test|back-implementation|back-tasking|retry-quality <reason>
+/evidence-explain-diff ITER-xxxx
+/evidence-showcase ITER-xxxx [observe|risk|evaluate|accept|revise|reject 参数]
+/evidence-respond ITER-xxxx approve|revise <reason>
 ```
 
 命令按阶段显式暴露：
 
 - 无参数运行 `/evidence-inbox` 时，空 Inbox 会先让人选择来源；来源 revision 保存成功后自动打开 extract 来源选取界面，取消选取则只保留来源。已有来源时显示 Inbox 状态，显式 `list` 始终只读。
-- 无参数运行 `/evidence-new` 会复用 extract 来源选取界面，提取完成后再复用 Candidate 选择器并冻结 Intake；`/evidence-new CAND-xxxx` 直接从 ready Candidate 启动。
-- `/evidence-status` 默认只显示小于 4 KiB 的 summary projection，不扫描或列出 `apps/`、`libs/`；活动 Pair 同时显示 locked expected/soft/hard budget、trace usage、cost `reported|unknown`、checkpoint 与 no-progress 窗口。`artifacts` 只分页显示 active iteration 工件，`files` 只在人工显式请求时扫描代码；两者每页最多 50 项，cursor 在 inventory 或 active iteration 漂移时失效。模型 status tool 只有 `summary|artifacts`，不提供 `files`。
-- `/evidence-run` 对非 Pair loop 只运行当前状态允许的一个 activity checkpoint；在 Pair 中自动串行执行完整编码 Story 的短生命周期 Driver、Reviewer 与确定性命令，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
+- `/evidence-new` 必须携带由人类明确选择的 `CAND-xxxx`；没有 Candidate picker，也不会隐式 Pull 其他 Story。
+- `/evidence-flow` 是无 UI Board 控制面：`list` 只读，`pull` 只接纳指定 pending lane，`recover` 只处理 failed provisioning 或过期 lease，`archive` 只移除干净的 terminal worktree；后三者都要求精确 Iteration，恢复和归档要求理由。
+- `/evidence-status` 无 Iteration 时返回小于 4 KiB 的 Board summary；`/evidence-status ITER-xxxx` 返回一张 Story 的 loop/stage/budget，`artifacts` 最多分页 50 项。cursor 绑定 Board revision、Iteration 和 inventory hash。任何视图都不扫描或列出 `apps/`、`libs/`，也不提供 `files`。
+- `/evidence-run ITER-xxxx` 对非 Pair loop 只运行该 Story 当前允许的一个 activity checkpoint；Ready→Delivery 先做 WIP admission，Pair 中自动串行执行完整编码 Story，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
 - 每次 Agent dispatch 的 task 以最大 16 KiB 的确定性 Context Capsule 开头，只包含当前 Identity、Decision、人工 Authority、精确输入路径、工作单元、工具/路径边界与停止条件；长工件由 Agent 按路径读取。TQA Capsule 始终给出精确 clarification-history 路径，持久 session 不是事实源。
-- 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互审查界面。首个使用统一 Decision Packet 的阶段是无参数 TUI `/evidence-desk-check`：它在一个有界界面中投影 authority scope/exclusions、Scenario、模型、TEST/TASK、process/project、commands/gates、budget、readiness checks 和精确 evidence refs。
+- 其余阶段命令都以 `ITER-xxxx` 为首参数，只记录该 worktree 当前阶段的人工决定或观察；只省略决定参数时可打开交互审查界面。`/evidence-desk-check ITER-xxxx` 在一个有界 Decision Packet 中投影 authority scope/exclusions、Scenario、模型、TEST/TASK、process/project、commands/gates、budget、readiness checks 和精确 evidence refs。
 - Decision Packet 是临时、只读、非权威投影：打开、滚动、取消或理由取消均不落盘；提交前会重算 subject hash，发生候选、模型、process/project、policy、Git 或状态漂移时拒绝记录。真正批准仍由 `decideTasking()` 重跑全部守卫并写入既有 decision/plan/Pair 工件。
-- `/evidence-desk-check <显式参数>` 的 CLI/RPC 语义保持不变，不打开 Packet；不支持 custom TUI 的交互宿主保留既有 select/input 降级路径。Packet 不增加 Agent 或模型调用。
-- `/evidence-pair approve <reason>` 在全部 quality gates 通过后写入 `coding-decision.json`，作为完整 Story 编码的人类权威并进入 Showcase；其他参数仅用于自动化异常的显式回退。
-- `/evidence-explain-diff` 仅在 `quality_gates_passed` 后启动短生命周期 Change Explainer：只读分析稳定 diff、Scenario、模型、计划和 manifest，并把完整 HTML 返回控制器；控制器恢复任何仓库越界写入、验证结构后向系统临时目录（可用 `EVIDENCE_EXPLANATION_DIR` 指定其他仓库外目录）写入一份日期前缀的自包含 HTML，并在 iteration 内记录路径与哈希。该材料可选且不构成测试事实、审查结论或批准。
-- `/evidence-showcase` 记录产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。
+- `/evidence-desk-check ITER-xxxx <显式决定>` 不打开 Packet；不支持 custom TUI 的交互宿主保留既有 select/input 降级路径。Packet 不增加 Agent 或模型调用。
+- `/evidence-pair ITER-xxxx approve <reason>` 在全部 quality gates 通过后写入 `coding-decision.json`，作为完整 Story 编码的人类权威并进入 Showcase；其他参数仅用于自动化异常的显式回退。
+- `/evidence-explain-diff ITER-xxxx` 仅在 `quality_gates_passed` 后启动带 activity lease 的短生命周期 Change Explainer：只读分析稳定 diff、Scenario、模型、计划和 manifest，并把完整 HTML 返回控制器；控制器恢复任何仓库越界写入、验证结构后向系统临时目录（可用 `EVIDENCE_EXPLANATION_DIR` 指定其他仓库外目录）写入一份日期前缀的自包含 HTML，并在 iteration 内记录路径与哈希。该材料可选且不构成测试事实、审查结论或批准。
+- `/evidence-showcase ITER-xxxx` 记录指定 Story 的产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。
 
-每条命令都会验证持久化状态；调用不属于当前阶段的命令会被对应守卫拒绝。单次命令不会连续运行整个 iteration。Agent 工具也按 loop/stage 动态启用；内置工具及其他扩展的工具保持不变。
+每条 Story 命令都会把 Iteration 精确解析到 canonical worktree，并验证 Board lifecycle、pending admission 和 worktree-local State；调用不属于当前阶段的命令会被对应守卫拒绝。Parent Navigator 只保留 Inbox、start、Board/status、run 与 answer 调度工具；Activity child 只保留其环境绑定 Iteration 和 loop/stage 允许的 mutation tool，并验证 Iteration、Board root、lease id 与 State hash CAS。内置工具及其他扩展的工具保持不变。
 
 ## Agent 工具
 
@@ -183,7 +189,7 @@ artifacts/07-learning/next-iteration.md
 
 ## 状态边界
 
-持久化 workflow 状态不携带工作流版本标记。没有活动 iteration 时不写入占位 workflow 状态；Inbox 独立持久化于 `artifacts/inbox/`。新工作必须由人类以 `/evidence-new [CAND-xxxx]` 从 ready Story 候选创建。`artifacts/iterations/` 中已归档的目录仍是不可变研发证据，运行时不会把其中的手写 JSON 解释为当前执行事实。
+仓库级 Board 位于 Git common dir 的 `evidence-orchestrator/board.json`；每个 Story worktree 只保存 `.evidence-iteration-state.json`，且不携带工作流版本或其他 Story。Primary checkout 不保存占位 Story State；Inbox 独立持久化于 `artifacts/inbox/`。新工作必须由人类以 `/evidence-new CAND-xxxx` 从 ready 候选创建。Board/lease 是本地调度事实，不替代 worktree 内的 Intake、人工决定和执行证据；归档 worktree 删除后保留分支和不可变 iteration artifacts。
 
 ## 依赖方向
 

@@ -160,16 +160,16 @@ flowchart LR
   U -. problem gap .-> K
 ```
 
-Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 Story 候选；GitHub Issue 只是其中一种来源。一次 iteration 只处理一个人工确认的 Story 及其完整 Scenario Set：
+Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 Story 候选；GitHub Issue 只是其中一种来源。仓库级 Flow Board 可让最多三张 Story 受限并行，但每个 `ITER-xxxx` worktree 仍只处理一张人工确认 Story 及其完整 Scenario Set：
 
 - **Inbox / Kickoff**：从 GitHub、手工文本或本地 Markdown 收集来源并提取候选；人类选择一张候选冻结 Intake，再确认、修订、拆分或延期；
 - **Understand**：单 Story TQA、人工 Scenario 与建模 Profile 确认；`none/false` 记录无模型影响后直接进入 Tasking，其他 Profile 才运行 Builder 与只读 Challenger，且只有 `model_change_required=true` 可产生模型候选；
-- **Tasking**：唯一匹配 test-process v2，生成 test/task list，并等待人工 Desk Check；
-- **Pair**：Navigator 每次推进一个 Red/Green/Refactor 或最终 quality-gate checkpoint，Test/Production Driver 受路径保护；
+- **Tasking**：唯一匹配 test-process v3，生成 test/task list，并等待人工 Desk Check；
+- **Pair**：控制器在一次运行中推进指定 Story 的 Red/Green、每 process-step 一次 Refactor 和最终 quality gates，Test/Production Driver 受路径保护；
 - **Showcase**：重跑 Q2，显式决定 Q3/Q4，由独立只读 Reviewer 检查，最后由人类接受、修订或拒绝；
 - **Respond**：只提升本轮实际使用并验证的知识，允许有理由的空 promotion，人工确认后输出 next Probe。
 
-反馈按知识缺口回到产生它的 loop，不维护独立审批队列或重试流水线。状态使用 `loop` 及其局部 stage/checkpoint 表示。
+反馈按知识缺口回到产生它的 loop。Board 只管理 `discovery / planning / ready / delivery / review / done` admission、WIP 和 lease；每个 worktree-local State 使用 `loop` 及其局部 stage/checkpoint 表示 Story 权威。Blocked 仍占 WIP，满限时只排队，必须由人类显式 Pull。
 
 ### 知识与证据位置
 
@@ -199,20 +199,24 @@ Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 S
 /evidence-inbox sync INBOX-xxxx
 /evidence-inbox extract INBOX-xxxx[,INBOX-yyyy]
 /evidence-inbox defer|reject CAND-xxxx <reason>
-/evidence-new [CAND-xxxx]
-/evidence-status
-/evidence-run [--dry-run]
-/evidence-kickoff confirm|revise|split|defer <reason>
-/evidence-scenario confirm <DRAFT-xxx> <reason>
-/evidence-scenario continue|split|defer <reason>
-/evidence-modeling-profile confirm|revise <reason>
-/evidence-desk-check approve|revise|scenario-gap|architecture-gap|process-gap <reason>
-/evidence-pair accept-red|back-test|back-implementation|back-tasking|retry-quality <reason>
-/evidence-showcase accept|revise|reject <reason>
-/evidence-respond approve|revise <reason>
+/evidence-new CAND-xxxx
+/evidence-flow list | pull ITER-xxxx | recover ITER-xxxx <reason> | archive ITER-xxxx <reason>
+/evidence-status [ITER-xxxx [artifacts [cursor]]]
+/evidence-answer ITER-xxxx Q-xxx <answer>
+/evidence-run ITER-xxxx [--dry-run]
+/evidence-kickoff ITER-xxxx confirm|revise|split|defer <reason>
+/evidence-scenario ITER-xxxx confirm <DRAFT-xxx> <reason>
+/evidence-scenario ITER-xxxx continue|split|defer <reason>
+/evidence-modeling-profile ITER-xxxx confirm|revise <reason>
+/evidence-model ITER-xxxx confirm|revise|scenario-gap|method-gap <reason>
+/evidence-desk-check ITER-xxxx approve|revise|scenario-gap|architecture-gap|process-gap <reason>
+/evidence-pair ITER-xxxx approve|back-test|back-implementation|back-tasking|retry-quality <reason>
+/evidence-explain-diff ITER-xxxx
+/evidence-showcase ITER-xxxx accept|revise|reject <reason>
+/evidence-respond ITER-xxxx approve|revise <reason>
 ```
 
-无参数运行 `/evidence-inbox` 时，空 Inbox 会先打开来源选择器；来源 revision 保存成功后自动进入 extract 来源选取界面，取消选取则只保留来源；已有来源时显示当前状态。无参数运行 `/evidence-new` 会复用 extract 来源选取界面，提取后再打开 Candidate 选择器并冻结 Intake；传入 `CAND-xxxx` 则直接启动。来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；冻结的 Intake 不再原地同步。`/evidence-run` 每次只推进当前 loop 的一个活动或确定性 checkpoint，并在人工决定前停止。
+无参数运行 `/evidence-inbox` 时，空 Inbox 会先打开来源选择器；来源 revision 保存成功后自动进入 extract 来源选取界面，取消选取则只保留来源；已有来源时显示当前状态。`/evidence-new` 必须携带人类明确选定的 `CAND-xxxx`，然后原子认领 Candidate、分配 Iteration、创建独立 branch/worktree 并冻结 Intake；不再提供 Candidate picker 或隐式 Story 选择。来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；冻结的 Intake 不再原地同步。所有 Story 命令以 `ITER-xxxx` 为首参数；`/evidence-run ITER-xxxx` 只推进该 Story 的活动，Ready→Delivery 受 WIP 与全局 Pair runner lease 约束。
 
 维护细节见 [`.pi/extensions/evidence-orchestrator/README.md`](./.pi/extensions/evidence-orchestrator/README.md)。
 
@@ -339,8 +343,9 @@ pnpm orchestrator:validate
 | `engineering/evidence-orchestrator/`                  | Runtime contexts、测试工序与统一 DoD         |
 | `.pi/extensions/evidence-orchestrator/`               | 内部知识循环、状态保护与执行证据             |
 | `.pi/agents/`                                         | 隔离活动角色配置                             |
-| `evidence-state.json`                                 | 活动 iteration 状态（idle 时无文件）         |
-| `artifacts/iterations/`                               | 单轮输入、delta、决策与执行证据              |
+| `.git/evidence-orchestrator/board.json`               | 仓库级 Story Flow Board（本地调度事实）      |
+| `.worktrees/evidence/ITER-xxxx/`                      | 独立 Story worktree 与 local State           |
+| `artifacts/iterations/`                               | 各 Story 输入、delta、决策与执行证据         |
 | `AGENTS.md`                                           | 架构边界、编码规范、验证与 Git 纪律          |
 
 ## 开发约定

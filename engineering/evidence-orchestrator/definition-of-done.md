@@ -10,6 +10,13 @@
 - 稳定知识写入统一知识源；iteration 仅保存输入、delta、决策和执行证据。
 - 所有改动遵守 `AGENTS.md` 的模块和 runtime 边界。
 
+## Flow 与隔离
+
+- 每张 Story 都有唯一 Candidate claim、`ITER-xxxx`、`evidence/iter-xxxx` branch、canonical worktree 和 `.evidence-iteration-state.json`；State、artifacts、Git diff、TQA session、activity trace、manifest 与人工决定不得跨 Story。
+- Board admission 遵守受版本控制的 Flow Policy；Blocked 仍占 WIP，满限只记录 `pending_lane`，只有人类能显式 Pull、恢复过期 lease 或归档 terminal worktree。Agent 不得提高 WIP、lease 或 Execution Budget。
+- 同一 Story 同时只有一个 activity lease；自动 Pair 另受全局 runner lease 约束。Iteration、Board root、lease id、canonical worktree 或 State hash 任一漂移都 fail closed；过期 lease 不得自动抢占。
+- 一张 Story 的 halt、反馈、异常、后退或归档不得改写其他 Story；后退 admission 可暂时 overflow，但必须保持可见且不自动 Pull 新工作。
+
 ## 编码
 
 - AI 自动执行每个批准 TASK/TEST 的独立 Red/Green：Test Driver 写测试，控制器核对实际测试路径 owner 并运行该 TEST 的唯一锁定命令，独立 Red Reviewer 对照 typed `expected_failure_kind=behavior` 合同分类实际失败，Production Driver 完成最小 Green；同一 process step 的全部 TEST Green 后只执行一次有界 Refactor（或显式 no-op）。Desk Check 同时锁定人工拥有的 Execution Budget Envelope；Agent 不得提高 timeout、retry、call/checkpoint、no-progress 或 Q/T/C 上限。
