@@ -2,7 +2,20 @@ import { realpathSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { listInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
-import { mutateBoard, readBoard } from '../../iteration/board-repository';
+import {
+  acquireActivityLease,
+  releaseActivityLease,
+} from '../../capabilities/flow-control/lease';
+import {
+  ACTIVITY_BOARD_ROOT_ENV,
+  ACTIVITY_ITERATION_ENV,
+  ACTIVITY_LEASE_ID_ENV,
+} from '../../capabilities/worktree-protection/activity-tool-policy';
+import {
+  boardRoot,
+  mutateBoard,
+  readBoard,
+} from '../../iteration/board-repository';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { readState, writeState } from '../../iteration/state-repository';
 import {
@@ -27,6 +40,9 @@ vi.mock('../node/activity-agent-process', () => ({
 }));
 
 afterEach(() => {
+  delete process.env[ACTIVITY_ITERATION_ENV];
+  delete process.env[ACTIVITY_LEASE_ID_ENV];
+  delete process.env[ACTIVITY_BOARD_ROOT_ENV];
   cleanupWorkspaces();
   vi.clearAllMocks();
 });
@@ -410,6 +426,15 @@ describe('tools', () => {
     initializeGitRepository(cwd);
     writeState(cwd, DEFAULT_STATE);
     registerStory(cwd);
+    const lease = acquireActivityLease(
+      cwd,
+      realpathSync(cwd),
+      readState(cwd),
+      'activity',
+    );
+    process.env[ACTIVITY_ITERATION_ENV] = 'ITER-0001';
+    process.env[ACTIVITY_LEASE_ID_ENV] = lease.lease.lease_id;
+    process.env[ACTIVITY_BOARD_ROOT_ENV] = boardRoot(cwd);
     let kickoff:
       | { execute: (...args: never[]) => Promise<unknown> }
       | undefined;
@@ -425,6 +450,28 @@ describe('tools', () => {
           kickoff = tool;
       },
     } as never);
+
+    const candidate = {
+      iterationId: 'ITER-0001',
+      title: 'Confirm current model',
+      problem: 'The current version is unclear.',
+      role: 'modeling lead',
+      goal: 'see the confirmed version',
+      value: 'review the intended model',
+      cognitiveMode: 'complex',
+      sourceRefs: ['Issue #1'],
+    };
+    delete process.env[ACTIVITY_LEASE_ID_ENV];
+    await expect(
+      kickoff?.execute(
+        'call' as never,
+        candidate as never,
+        undefined as never,
+        undefined as never,
+        { cwd } as never,
+      ),
+    ).rejects.toThrow('requires a bound activity lease');
+    process.env[ACTIVITY_LEASE_ID_ENV] = lease.lease.lease_id;
 
     const result = (await kickoff?.execute(
       'call' as never,
@@ -443,6 +490,7 @@ describe('tools', () => {
       { cwd } as never,
     )) as { terminate?: boolean; details?: { state?: unknown } };
 
+    releaseActivityLease(lease);
     expect(result.terminate).toBe(true);
     expect(result.details?.state).toMatchObject({
       loop: 'kickoff',

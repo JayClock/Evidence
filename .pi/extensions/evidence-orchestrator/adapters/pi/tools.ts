@@ -5,6 +5,12 @@ import {
   reconcileBoardItem,
   requestDeliveryAdmission,
 } from '../../capabilities/flow-control/admission';
+import {
+  acquireActivityLease,
+  advanceActivityLeaseState,
+  assertActivityMutationLease,
+  releaseActivityLease,
+} from '../../capabilities/flow-control/lease';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { proposeKnowledgeResponse } from '../../loops/respond/response-cycle';
@@ -122,6 +128,12 @@ export function syncActiveTools(
 
 function targetStory(primaryRoot: string, iterationId: string) {
   return requireWorkItemTarget(primaryRoot, iterationId);
+}
+
+function targetMutationStory(primaryRoot: string, iterationId: string) {
+  const target = targetStory(primaryRoot, iterationId);
+  assertActivityMutationLease(primaryRoot, target.worktreeRoot, target.state);
+  return target;
 }
 
 function reconcileStory(
@@ -245,7 +257,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: kickoffCandidateParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const state = proposeKickoffCandidate(target.worktreeRoot, {
         title: params.title,
         problem: params.problem,
@@ -361,7 +373,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: scenarioDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const state = proposeScenarioDrafts(
         target.worktreeRoot,
         params.storyId,
@@ -395,7 +407,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: modelingProfileParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const requirement =
         params.modelChangeRequired === 'unknown'
           ? 'unknown'
@@ -436,7 +448,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: modelAnalysisParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const state = recordModelAnalysis(target.worktreeRoot, {
         reason: params.reason,
         scenarios: params.scenarios,
@@ -473,7 +485,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: modelChallengeParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const state = recordModelChallenge(target.worktreeRoot, {
         outcome: params.outcome,
         summary: params.summary,
@@ -512,7 +524,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: taskingDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const state = proposeTaskingDraft(target.worktreeRoot, {
         runtimes: params.runtimes.map((runtime) => ({
           id: runtime.id,
@@ -575,7 +587,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: showcaseReviewParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const review = recordShowcaseReview(target.worktreeRoot, {
         observedFacts: params.observedFacts,
         productDomainFeedback: params.productDomainFeedback,
@@ -613,7 +625,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: respondProposalParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const candidate = proposeKnowledgeResponse(target.worktreeRoot, {
         promotions: params.promotions.map((promotion) => ({
           source: promotion.source,
@@ -663,7 +675,7 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: clarificationQuestionParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const target = targetStory(ctx.cwd, params.iterationId);
+      const target = targetMutationStory(ctx.cwd, params.iterationId);
       const state = askClarification(target.worktreeRoot, {
         story_id: params.storyId,
         question: params.question,
@@ -707,56 +719,68 @@ export function registerTools(pi: ExtensionAPI): void {
           `${params.iterationId} has no pending clarification ${params.questionId}.`,
         );
       }
-      const state = answerClarification(target.worktreeRoot, params.answer);
-      const continuesTqa =
-        state.loop === 'understand' && state.understand_stage === 'tqa';
-      const preparation = prepareActivityRun(
+      const leaseHandle = acquireActivityLease(
+        ctx.cwd,
         target.worktreeRoot,
-        continuesTqa && pending
-          ? {
-              instructions: `领域专家对 ${pending.question_id} 的原文回答：\n\n问题：${pending.question}\n\n回答：${params.answer}\n\n在同一 Story TQA 会话中继续，只提出一个下一问题或完整 Scenario Set。`,
-            }
-          : {},
+        target.state,
+        'activity',
       );
-      if (isCompletedIteration(preparation)) {
-        throw new Error(
-          'The active Evidence Orchestrator iteration is complete.',
+      let leaseTransferred = false;
+      try {
+        const state = answerClarification(target.worktreeRoot, params.answer);
+        advanceActivityLeaseState(leaseHandle, state);
+        const continuesTqa =
+          state.loop === 'understand' && state.understand_stage === 'tqa';
+        const preparation = prepareActivityRun(
+          target.worktreeRoot,
+          continuesTqa && pending
+            ? {
+                instructions: `领域专家对 ${pending.question_id} 的原文回答：\n\n问题：${pending.question}\n\n回答：${params.answer}\n\n在同一 Story TQA 会话中继续，只提出一个下一问题或完整 Scenario Set。`,
+              }
+            : {},
         );
-      }
-      const details = await executePreparedActivityRun(
-        { cwd: target.worktreeRoot, ui: ctx.ui },
-        preparation,
-        {
-          invocation: 'evidence_orchestrator_answer_question',
-          signal,
-          onUpdate(progress) {
-            onUpdate?.({
-              content: [{ type: 'text', text: progress.output }],
-              details: progress,
-            });
-          },
-        },
-      );
-      const resultingState = readState(target.worktreeRoot);
-      reconcileStory(ctx.cwd, params.iterationId, resultingState);
-      return {
-        content: [
+        if (isCompletedIteration(preparation)) {
+          throw new Error(`${params.iterationId} is complete.`);
+        }
+        leaseTransferred = true;
+        const details = await executePreparedActivityRun(
+          { cwd: target.worktreeRoot, ui: ctx.ui },
+          preparation,
           {
-            type: 'text',
-            text: boundedModelVisibleActivityText(
-              `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).\n\n${details.output}`,
-              [activityTraceRelativePath(resultingState.iteration_id)],
-              {
-                preserveWholeText: Boolean(
-                  resultingState.pending_clarification,
-                ),
-              },
-            ),
+            invocation: 'evidence_orchestrator_answer_question',
+            leaseHandle,
+            signal,
+            onUpdate(progress) {
+              onUpdate?.({
+                content: [{ type: 'text', text: progress.output }],
+                details: progress,
+              });
+            },
           },
-        ],
-        details,
-        terminate: true,
-      };
+        );
+        const resultingState = readState(target.worktreeRoot);
+        reconcileStory(ctx.cwd, params.iterationId, resultingState);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: boundedModelVisibleActivityText(
+                `Recorded the answer. Clarification history contains ${state.clarification_history?.length ?? 0} answered exchange(s).\n\n${details.output}`,
+                [activityTraceRelativePath(resultingState.iteration_id)],
+                {
+                  preserveWholeText: Boolean(
+                    resultingState.pending_clarification,
+                  ),
+                },
+              ),
+            },
+          ],
+          details,
+          terminate: true,
+        };
+      } finally {
+        if (!leaseTransferred) releaseActivityLease(leaseHandle);
+      }
     },
     renderResult(result, options, theme) {
       return renderActivityAgentResult(result, options, theme);
