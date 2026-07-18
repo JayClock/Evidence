@@ -50,6 +50,7 @@ import {
   outputDiagnostic,
   type TestExecutionRecord,
 } from '../../capabilities/execution-evidence/observation-log';
+import { assertPairExecutionBudgetLocked } from '../../capabilities/execution-budget/policy';
 import {
   executionEvidencePaths,
   generateExecutionEvidence,
@@ -354,6 +355,7 @@ export function executeShowcaseQ2(
   now = new Date().toISOString(),
 ): ShowcaseActionResult {
   const state = showcaseState(cwd);
+  assertPairExecutionBudgetLocked(cwd, state);
   if (state.showcase_stage !== 'setup') {
     throw new Error('Showcase Q2 can run only during Showcase setup.');
   }

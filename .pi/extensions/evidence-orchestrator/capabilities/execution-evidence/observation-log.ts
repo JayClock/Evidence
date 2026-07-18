@@ -12,6 +12,7 @@ import {
   readState,
   selectedTestProcesses,
 } from '../../iteration/state-repository';
+import { assertPairExecutionBudgetLocked } from '../execution-budget/policy';
 import {
   materializeFocusedCommands,
   materializeQualityGates,
@@ -666,6 +667,7 @@ export function executeTestStep(
   ) {
     throw new Error('Approved aggregate test plan drifted before execution.');
   }
+  assertPairExecutionBudgetLocked(cwd, state);
   const startedAt = new Date().toISOString();
   const timeoutMs = approvedCommandTimeoutMs(state);
   const result = spawnSync(request.command, {

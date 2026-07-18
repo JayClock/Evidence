@@ -14,6 +14,7 @@ import {
   prepareHtmlChangeExplanation,
   recordHtmlChangeExplanation,
 } from '../../loops/pair/change-explanation';
+import { assertPairExecutionBudgetLocked } from '../../capabilities/execution-budget/policy';
 import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
 import {
   isActivityAgentFailure,
@@ -158,6 +159,7 @@ export async function runHtmlChangeExplanationFromCommand(
   let details: ActivityExecutionDetails | undefined;
   try {
     const traceState = readState(ctx.cwd);
+    assertPairExecutionBudgetLocked(ctx.cwd, traceState);
     const activityTimeoutMs =
       traceState.pair_session?.execution_budget.activity_timeout_ms;
     if (!activityTimeoutMs) {
