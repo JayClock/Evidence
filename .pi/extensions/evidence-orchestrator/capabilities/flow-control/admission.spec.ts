@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { readBoardEvents } from '../../iteration/board-events';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import type { BoardItem, FlowLane } from '../../iteration/board-state';
@@ -121,6 +122,10 @@ describe('Story flow admission', () => {
       admitted_lane: 'planning',
     });
     expect(readBoard(cwd).items[2]).not.toHaveProperty('pending_lane');
+    expect(readBoardEvents(cwd).map(({ type }) => type)).toEqual([
+      'admission',
+      'pull',
+    ]);
   });
 
   it('admits only one ready Story to Delivery under the initial WIP policy', () => {
@@ -161,6 +166,14 @@ describe('Story flow admission', () => {
         ({ admitted_lane }) => admitted_lane === 'planning',
       ),
     ).toHaveLength(3);
+    expect(readBoardEvents(cwd)).toEqual([
+      expect.objectContaining({
+        type: 'rework_overflow',
+        from_lane: 'review',
+        to_lane: 'planning',
+        policy_sha256: expect.stringMatching(/^sha256:/),
+      }),
+    ]);
   });
 
   it('releases terminal work and enforces total and Discovery WIP', () => {

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { appendBoardEvent } from '../../iteration/board-events';
 import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import type {
   BoardItem,
@@ -91,6 +92,38 @@ function outcome(
   };
 }
 
+function recordAdmission(
+  primaryRoot: string,
+  result: AdmissionOutcome,
+  fromLane: FlowLane | undefined,
+  recordedAt: string,
+  explicitPull = false,
+): void {
+  if (result.kind === 'unchanged') return;
+  appendBoardEvent(primaryRoot, {
+    type: explicitPull
+      ? 'pull'
+      : result.kind === 'rework_overflow'
+        ? 'rework_overflow'
+        : 'admission',
+    iteration_id: result.iteration_id,
+    recorded_at: recordedAt,
+    ...(fromLane ? { from_lane: fromLane } : {}),
+    to_lane: result.pending_lane ?? result.admitted_lane,
+    outcome: result.kind,
+    policy_sha256: result.policy_sha256,
+  });
+}
+
+function admittedLaneBefore(
+  primaryRoot: string,
+  iterationId: string,
+): FlowLane | undefined {
+  return readBoard(primaryRoot).items.find(
+    ({ iteration_id }) => iteration_id === iterationId,
+  )?.admitted_lane;
+}
+
 /** Reconcile one persisted Story state with its repository-level admitted lane. */
 export function reconcileBoardItem(
   primaryRoot: string,
@@ -104,7 +137,8 @@ export function reconcileBoardItem(
     );
   }
   const snapshot = readFlowPolicy(primaryRoot);
-  return mutateBoard(primaryRoot, (draft) => {
+  const fromLane = admittedLaneBefore(primaryRoot, iterationId);
+  const result = mutateBoard(primaryRoot, (draft) => {
     const item = draft.items.find(
       ({ iteration_id }) => iteration_id === iterationId,
     );
@@ -153,6 +187,8 @@ export function reconcileBoardItem(
     item.pending_state_sha256 = workflowStateSha256(state);
     return outcome(item, 'queued', snapshot.sha256);
   }).value;
+  recordAdmission(primaryRoot, result, fromLane, now);
+  return result;
 }
 
 export function requestDeliveryAdmission(
@@ -171,7 +207,8 @@ export function requestDeliveryAdmission(
     );
   }
   const snapshot = readFlowPolicy(primaryRoot);
-  return mutateBoard(primaryRoot, (draft) => {
+  const fromLane = admittedLaneBefore(primaryRoot, iterationId);
+  const result = mutateBoard(primaryRoot, (draft) => {
     const item = draft.items.find(
       ({ iteration_id }) => iteration_id === iterationId,
     );
@@ -199,6 +236,8 @@ export function requestDeliveryAdmission(
     item.pending_state_sha256 = workflowStateSha256(state);
     return outcome(item, 'queued', snapshot.sha256);
   }).value;
+  recordAdmission(primaryRoot, result, fromLane, now);
+  return result;
 }
 
 export function pullPendingLane(
@@ -208,7 +247,8 @@ export function pullPendingLane(
   now = new Date().toISOString(),
 ): AdmissionOutcome {
   const snapshot = readFlowPolicy(primaryRoot);
-  return mutateBoard(primaryRoot, (draft) => {
+  const fromLane = admittedLaneBefore(primaryRoot, iterationId);
+  const result = mutateBoard(primaryRoot, (draft) => {
     const item = draft.items.find(
       ({ iteration_id }) => iteration_id === iterationId,
     );
@@ -233,6 +273,8 @@ export function pullPendingLane(
     clearPending(item);
     return outcome(item, 'admitted', snapshot.sha256);
   }).value;
+  recordAdmission(primaryRoot, result, fromLane, now, true);
+  return result;
 }
 
 export function validateFlowBoard(primaryRoot: string): void {

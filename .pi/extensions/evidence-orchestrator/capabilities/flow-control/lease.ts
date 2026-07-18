@@ -18,6 +18,7 @@ import {
   ACTIVITY_ITERATION_ENV,
   ACTIVITY_LEASE_ID_ENV,
 } from '../worktree-protection/activity-tool-policy';
+import { appendBoardEvent } from '../../iteration/board-events';
 import { boardRoot, readBoard } from '../../iteration/board-repository';
 import { primaryWorktreeRoot } from '../../iteration/git-common-dir';
 import type { WorkflowState } from '../../iteration/state';
@@ -68,10 +69,6 @@ export function activityLeasePath(cwd: string, iterationId: string): string {
 
 function pairSlotPath(cwd: string, slot: number): string {
   return join(leaseDirectory(cwd), `pair-runner-${slot}.json`);
-}
-
-function leaseEventPath(cwd: string): string {
-  return join(boardRoot(cwd), 'events.jsonl');
 }
 
 function fields(value: Record<string, unknown>): void {
@@ -395,34 +392,6 @@ export function assertActivityMutationLease(
   return lease;
 }
 
-function appendRecoveryEvent(
-  cwd: string,
-  lease: ActivityLease,
-  reason: string,
-  recoveredAt: string,
-): void {
-  const path = leaseEventPath(cwd);
-  mkdirSync(boardRoot(cwd), { recursive: true });
-  const descriptor = openSync(path, 'a', 0o600);
-  try {
-    writeFileSync(
-      descriptor,
-      `${JSON.stringify({
-        version: 1,
-        type: 'lease_recovered',
-        iteration_id: lease.iteration_id,
-        lease_id: lease.lease_id,
-        kind: lease.kind,
-        reason,
-        recovered_at: recoveredAt,
-      })}\n`,
-    );
-    fsyncSync(descriptor);
-  } finally {
-    closeSync(descriptor);
-  }
-}
-
 export function recoverExpiredActivityLease(
   cwd: string,
   iterationId: string,
@@ -450,6 +419,12 @@ export function recoverExpiredActivityLease(
     if (readLease(pairPath).lease_id === lease.lease_id) remove(pairPath);
   }
   remove(path);
-  appendRecoveryEvent(primaryRoot, lease, normalizedReason, now.toISOString());
+  appendBoardEvent(primaryRoot, {
+    type: 'lease_recovered',
+    iteration_id: lease.iteration_id,
+    recorded_at: now.toISOString(),
+    reason: normalizedReason,
+    lease_id: lease.lease_id,
+  });
   return lease;
 }

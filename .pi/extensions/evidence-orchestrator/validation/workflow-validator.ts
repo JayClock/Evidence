@@ -12,6 +12,7 @@ import { validateIterationIntakeSnapshot } from '../capabilities/inbox/iteration
 import { validateInboxRepository } from '../capabilities/inbox/repository';
 import { validateInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
 import { iterationRoot } from '../iteration/artifact-layout';
+import { readBoardEvents } from '../iteration/board-events';
 import { boardPath, readBoard } from '../iteration/board-repository';
 import { validateBoardWorktrees } from '../capabilities/work-item-worktree/provisioner';
 import { readFlowPolicy } from '../capabilities/flow-control/policy';
@@ -91,6 +92,7 @@ function validateStoryEvidence({
 function storyValidationTargets(cwd: string): StoryValidationTarget[] {
   if (!existsSync(join(cwd, '.git')) || !existsSync(boardPath(cwd))) return [];
   const board = readBoard(cwd);
+  readBoardEvents(cwd);
   validateBoardWorktrees(cwd);
   return board.items.flatMap((item) => {
     if (!['active', 'terminal'].includes(item.lifecycle)) return [];

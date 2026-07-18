@@ -10,6 +10,7 @@ import {
   removeStoryWorktree,
   worktreeIsClean,
 } from '../../capabilities/work-item-worktree/manager';
+import { appendBoardEvent } from '../../iteration/board-events';
 import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import type { WorkflowState } from '../../iteration/state';
 import { readPersistedState } from '../../iteration/state-repository';
@@ -37,7 +38,11 @@ export function flowListMarkdown(primaryRoot: string): string {
     `- Active: ${active.length}`,
     '',
   ];
-  for (const item of board.items) {
+  const visible = board.items.filter(
+    ({ lifecycle }) => lifecycle !== 'archived',
+  );
+  const selected = visible.slice(-50);
+  for (const item of selected) {
     const state = existsSync(item.worktree_path)
       ? readPersistedState(item.worktree_path)
       : undefined;
@@ -55,7 +60,10 @@ export function flowListMarkdown(primaryRoot: string): string {
       `- ${item.iteration_id} · ${item.admitted_lane} · ${projection.condition} · ${state ? storyId(state) : item.lifecycle}${item.pending_lane ? ` · queued:${item.pending_lane}` : ''}${projection.blocker ? ` · ${projection.blocker}` : ''}`,
     );
   }
-  if (board.items.length === 0) lines.push('- No Story Work Items.');
+  if (selected.length === 0) lines.push('- No active Story Work Items.');
+  if (visible.length > selected.length) {
+    lines.push(`- … ${visible.length - selected.length} older item(s) hidden.`);
+  }
   return lines.join('\n');
 }
 
@@ -115,7 +123,15 @@ function recoverFailedProvisioning(
     delete failed.pending_lane_requested_at;
     delete failed.pending_state_sha256;
   });
-  void reason;
+  appendBoardEvent(primaryRoot, {
+    type: 'provisioning_recovered',
+    iteration_id: iterationId,
+    recorded_at: now,
+    from_lane: item.admitted_lane,
+    to_lane: 'done',
+    outcome: 'archived',
+    reason,
+  });
 }
 
 function recoverWork(
@@ -164,7 +180,15 @@ function archiveCompletedWork(
     item.archived_at = now;
     item.updated_at = now;
   });
-  void reason;
+  appendBoardEvent(primaryRoot, {
+    type: 'archived',
+    iteration_id: iterationId,
+    recorded_at: now,
+    from_lane: 'done',
+    to_lane: 'done',
+    outcome: 'archived',
+    reason,
+  });
 }
 
 export function registerFlowCommands(pi: ExtensionAPI): void {

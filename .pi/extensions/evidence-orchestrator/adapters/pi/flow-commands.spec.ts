@@ -6,6 +6,7 @@ import {
   activityLeasePath,
 } from '../../capabilities/flow-control/lease';
 import { provisionWorkItem } from '../../capabilities/work-item-worktree/provisioner';
+import { readBoardEvents } from '../../iteration/board-events';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import { readState, writeState } from '../../iteration/state-repository';
@@ -118,6 +119,12 @@ describe('Story Flow commands', () => {
       'ITER-0001 worktree archived.',
       'info',
     );
+    expect(readBoardEvents(cwd)).toContainEqual(
+      expect.objectContaining({
+        type: 'archived',
+        reason: 'Evidence was preserved.',
+      }),
+    );
   });
 
   it('recovers only an expired activity lease with an explicit reason', async () => {
@@ -166,5 +173,11 @@ describe('Story Flow commands', () => {
       ctx,
     );
     expect(readBoard(cwd).items[0].lifecycle).toBe('archived');
+    expect(readBoardEvents(cwd)).toContainEqual(
+      expect.objectContaining({
+        type: 'provisioning_recovered',
+        reason: 'Human abandoned failed provisioning.',
+      }),
+    );
   });
 });
