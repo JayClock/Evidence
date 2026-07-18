@@ -13,6 +13,7 @@ import { validateInboxRepository } from '../capabilities/inbox/repository';
 import { validateInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
 import { iterationRoot } from '../iteration/artifact-layout';
 import { boardPath, readBoard } from '../iteration/board-repository';
+import { validateBoardWorktrees } from '../capabilities/work-item-worktree/provisioner';
 import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
@@ -34,6 +35,7 @@ export function validateWorkflow(cwd: string): void {
   validateInboxStoryCandidates(cwd);
   if (existsSync(join(cwd, '.git')) && existsSync(boardPath(cwd))) {
     readBoard(cwd);
+    validateBoardWorktrees(cwd);
   }
   const state = readPersistedState(cwd);
   if (state) {
