@@ -32,6 +32,14 @@ import type {
 
 export type ProjectCatalogLoader = typeof readNxProjectCatalog;
 
+export type DeskCheckReviewStatus = 'pass' | 'warning' | 'blocked';
+
+export interface DeskCheckReviewCheck {
+  id: 'candidate' | 'model' | 'git_baseline' | 'budget_policy';
+  status: DeskCheckReviewStatus;
+  detail: string;
+}
+
 export interface DeskCheckBudgetPreview {
   policy_path: string;
   policy_sha256: string;
@@ -47,6 +55,55 @@ export interface DeskCheckBudgetPreview {
   max_input_tokens: number | null;
   max_output_tokens: number | null;
   max_reported_cost_usd: number | null;
+}
+
+export interface DeskCheckReview {
+  version: 1;
+  iteration_id: string;
+  story_id: string;
+  scenario_ids: string[];
+  draft_id: string;
+  candidate_sha256: string;
+  subject_sha256: string;
+  model: {
+    profile: string;
+    model_change_required: boolean;
+    expansion_path: string;
+    decision_path: string;
+    challenge_path?: string;
+    projection_sha256?: string;
+  };
+  traceability: {
+    scenario_outcome_count: number;
+    q1_count: number;
+    q2_count: number;
+    test_count: number;
+    task_count: number;
+    every_then_has_q2: boolean;
+    every_test_has_one_task: boolean;
+  };
+  processes: Array<{
+    id: string;
+    runtime: string;
+    process_version: 3;
+    selected_step_ids: string[];
+    project_ids: string[];
+    functional_contexts: string[];
+    technical_boundaries: string[];
+    focused_command_count: number;
+    quality_gate_count: number;
+    definition_sha256: string;
+    materialized_sha256: string;
+    project_catalog_sha256?: string;
+    path: string;
+  }>;
+  commands: {
+    focused: string[];
+    quality_gates: string[];
+  };
+  budget_preview?: DeskCheckBudgetPreview;
+  checks: DeskCheckReviewCheck[];
+  evidence_refs: Array<{ label: string; path: string; sha256?: string }>;
 }
 
 export interface DeskCheckApprovalPreflight {
@@ -68,6 +125,25 @@ interface VerifiedProcessMaterialization {
 
 function digest(value: string | Buffer): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+function canonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (typeof value !== 'object' || value === null) return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, canonicalValue(item)]),
+  );
+}
+
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(canonicalValue(value));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function assertReviewState(state: WorkflowState): TaskingCandidate {
@@ -374,6 +450,197 @@ function budgetPreview(
   };
 }
 
+function observedFileSha256(cwd: string, path: string | undefined): string {
+  if (!path) return 'missing:path';
+  try {
+    return digest(readFileSync(join(cwd, path)));
+  } catch (error) {
+    return `unavailable:${errorMessage(error)}`;
+  }
+}
+
+function observedProcessFacts(
+  cwd: string,
+  candidate: TaskingCandidate,
+  loadProjectCatalog: ProjectCatalogLoader,
+) {
+  return [...candidate.processes]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((process) => {
+      let definitionSha256: string;
+      try {
+        definitionSha256 = testProcessDefinitionSha256(join(cwd, process.path));
+      } catch (error) {
+        definitionSha256 = `unavailable:${errorMessage(error)}`;
+      }
+      let projectCatalogSha256: string | null = null;
+      if (process.project_ids.length > 0) {
+        try {
+          projectCatalogSha256 = loadProjectCatalog(
+            cwd,
+            process.project_ids,
+          ).project_catalog_sha256;
+        } catch (error) {
+          projectCatalogSha256 = `unavailable:${errorMessage(error)}`;
+        }
+      }
+      let materializedSha256: string;
+      try {
+        materializedSha256 = verifyProcessMaterialization(
+          cwd,
+          candidate,
+          process,
+          loadProjectCatalog,
+        ).materialized_sha256;
+      } catch (error) {
+        materializedSha256 = `unavailable:${errorMessage(error)}`;
+      }
+      return {
+        id: process.id,
+        expected_definition_sha256: process.definition_sha256,
+        observed_definition_sha256: definitionSha256,
+        expected_materialized_sha256: process.materialized_sha256,
+        observed_materialized_sha256: materializedSha256,
+        expected_project_catalog_sha256: process.project_catalog_sha256 ?? null,
+        observed_project_catalog_sha256: projectCatalogSha256,
+      };
+    });
+}
+
+function subjectSha256(
+  cwd: string,
+  state: WorkflowState,
+  candidate: TaskingCandidate,
+  loadProjectCatalog: ProjectCatalogLoader,
+): string {
+  let budgetPolicySha256: string;
+  try {
+    budgetPolicySha256 = readExecutionBudgetPolicy(cwd).sha256;
+  } catch (error) {
+    budgetPolicySha256 = `unavailable:${errorMessage(error)}`;
+  }
+  let gitHead: string;
+  let codeWorktreeClean = true;
+  try {
+    gitHead = createCodingGitBaseline(cwd);
+  } catch (error) {
+    gitHead = `unavailable:${errorMessage(error)}`;
+    codeWorktreeClean = false;
+  }
+  const decision = state.model_decisions?.at(-1);
+  const challenge = state.model_challenges?.at(-1);
+  const scenarioFacts = (state.confirmed_scenarios ?? [])
+    .map((scenario) => ({
+      scenario_id: scenario.scenario_id,
+      title: scenario.title,
+      given: scenario.given,
+      when: scenario.when,
+      then: scenario.then,
+      business_data: scenario.business_data,
+      artifact_path: scenario.artifact_path,
+      artifact_sha256: observedFileSha256(cwd, scenario.artifact_path),
+    }))
+    .sort((left, right) => left.scenario_id.localeCompare(right.scenario_id));
+  return digest(
+    canonicalJson({
+      iteration_id: state.iteration_id,
+      loop: 'tasking',
+      tasking_stage: 'desk_check',
+      candidate_sha256: candidate.candidate_sha256,
+      candidate_state_sha256: digest(canonicalJson(candidate)),
+      candidate_artifact_sha256: observedFileSha256(
+        cwd,
+        candidate.candidate_path,
+      ),
+      test_list_sha256: observedFileSha256(cwd, candidate.test_list_path),
+      task_list_sha256: observedFileSha256(cwd, candidate.task_list_path),
+      scenario_facts: scenarioFacts,
+      modeling_profile: state.modeling_profile ?? null,
+      model_expansion_sha256: observedFileSha256(
+        cwd,
+        state.model_expansion_path,
+      ),
+      model_decision_state: decision ?? null,
+      model_decision_sha256: observedFileSha256(cwd, decision?.artifact_path),
+      model_challenge_state: challenge ?? null,
+      model_challenge_sha256: observedFileSha256(cwd, challenge?.artifact_path),
+      processes: observedProcessFacts(cwd, candidate, loadProjectCatalog),
+      budget_policy_sha256: budgetPolicySha256,
+      git_head: gitHead,
+      code_worktree_clean: codeWorktreeClean,
+    }),
+  );
+}
+
+function evidenceReferences(
+  cwd: string,
+  state: WorkflowState,
+  candidate: TaskingCandidate,
+  budget?: DeskCheckBudgetPreview,
+): DeskCheckReview['evidence_refs'] {
+  const references: DeskCheckReview['evidence_refs'] = [];
+  const add = (label: string, path: string | undefined, sha256?: string) => {
+    if (!path || references.some((reference) => reference.label === label)) {
+      return;
+    }
+    references.push({
+      label,
+      path,
+      ...(sha256 && /^[a-f0-9]{64}$/.test(sha256) ? { sha256 } : {}),
+    });
+  };
+  add(
+    'Tasking candidate',
+    candidate.candidate_path,
+    observedFileSha256(cwd, candidate.candidate_path),
+  );
+  add('Test list', candidate.test_list_path, candidate.test_list_sha256);
+  add('Task list', candidate.task_list_path, candidate.task_list_sha256);
+  for (const scenario of [...(state.confirmed_scenarios ?? [])].sort((a, b) =>
+    a.scenario_id.localeCompare(b.scenario_id),
+  )) {
+    add(
+      `Scenario ${scenario.scenario_id}`,
+      scenario.artifact_path,
+      observedFileSha256(cwd, scenario.artifact_path),
+    );
+  }
+  add(
+    'Model expansion',
+    state.model_expansion_path,
+    observedFileSha256(cwd, state.model_expansion_path),
+  );
+  const decision = state.model_decisions?.at(-1);
+  const challenge = state.model_challenges?.at(-1);
+  add(
+    'Model decision',
+    decision?.artifact_path,
+    observedFileSha256(cwd, decision?.artifact_path),
+  );
+  add(
+    'Model challenge',
+    challenge?.artifact_path,
+    observedFileSha256(cwd, challenge?.artifact_path),
+  );
+  for (const process of [...candidate.processes].sort((a, b) =>
+    a.id.localeCompare(b.id),
+  )) {
+    add(`Process ${process.id}`, process.path, process.definition_sha256);
+    add(
+      `Project catalog ${process.id}`,
+      process.project_catalog_path,
+      process.project_catalog_sha256,
+    );
+  }
+  add(
+    'Execution budget policy',
+    budget?.policy_path ??
+      'engineering/evidence-orchestrator/execution-budget.json',
+    budget?.policy_sha256,
+  );
+  return references;
+}
+
 /** Run every approval guard and return only values safe for the write phase. */
 export function assertDeskCheckApprovalReady(
   cwd: string,
@@ -396,5 +663,147 @@ export function assertDeskCheckApprovalReady(
     budget_policy: budgetPolicy,
     budget_preview: budgetPreview(budgetPolicy, candidate),
     project_catalogs: Object.freeze(projectCatalogs),
+  };
+}
+
+/** Build a UI-neutral, read-only snapshot of the pending Desk Check authority. */
+export function inspectDeskCheck(
+  cwd: string,
+  options: DeskCheckReviewOptions = {},
+): DeskCheckReview {
+  const state = options.state ?? readState(cwd);
+  const candidate = assertReviewState(state);
+  const loadProjectCatalog = options.loadProjectCatalog ?? readNxProjectCatalog;
+  const candidateTraceability = traceability(candidate, state);
+  const checks: DeskCheckReviewCheck[] = [];
+
+  try {
+    verifyCandidate(cwd, state, candidate, loadProjectCatalog);
+    checks.push({
+      id: 'candidate',
+      status: 'pass',
+      detail: `${candidate.tests.length} TEST(s) map to ${candidate.tasks.length} ordered TASK(s), with every Scenario outcome covered by Q2.`,
+    });
+  } catch (error) {
+    checks.push({
+      id: 'candidate',
+      status: 'blocked',
+      detail: errorMessage(error),
+    });
+  }
+
+  try {
+    verifyModelDecision(cwd, state);
+    checks.push({
+      id: 'model',
+      status: 'pass',
+      detail:
+        state.modeling_profile?.method === 'none'
+          ? 'The deterministic no-model-impact decision is intact.'
+          : 'The human-confirmed model decision and reviewed evidence are intact.',
+    });
+  } catch (error) {
+    checks.push({
+      id: 'model',
+      status: 'blocked',
+      detail: errorMessage(error),
+    });
+  }
+
+  try {
+    const baseline = verifyGitBaseline(cwd, state);
+    checks.push({
+      id: 'git_baseline',
+      status: 'pass',
+      detail: `Coding paths are clean on Git ${baseline.slice(0, 12)}, matching the confirmed modeling baseline.`,
+    });
+  } catch (error) {
+    checks.push({
+      id: 'git_baseline',
+      status: 'blocked',
+      detail: errorMessage(error),
+    });
+  }
+
+  let preview: DeskCheckBudgetPreview | undefined;
+  try {
+    const snapshot = readExecutionBudgetPolicy(cwd);
+    preview = budgetPreview(snapshot, candidate);
+    checks.push({
+      id: 'budget_policy',
+      status: preview.mode === 'shadow' ? 'warning' : 'pass',
+      detail:
+        preview.mode === 'shadow'
+          ? 'Execution budget policy is valid, but one or more hard limits are shadow-only (null).'
+          : 'Execution budget policy is valid and every Pair hard limit is enforced.',
+    });
+  } catch (error) {
+    checks.push({
+      id: 'budget_policy',
+      status: 'blocked',
+      detail: errorMessage(error),
+    });
+  }
+
+  const processes = [...candidate.processes]
+    .sort((left, right) => left.id.localeCompare(right.id))
+    .map((process) => ({
+      id: process.id,
+      runtime: process.runtime,
+      process_version: process.process_version,
+      selected_step_ids: [...process.selected_step_ids],
+      project_ids: [...process.project_ids],
+      functional_contexts: [...process.functional_contexts],
+      technical_boundaries: [...process.technical_boundaries],
+      focused_command_count: process.focused_commands.length,
+      quality_gate_count: process.quality_gate_commands.length,
+      definition_sha256: process.definition_sha256,
+      materialized_sha256: process.materialized_sha256,
+      ...(process.project_catalog_sha256
+        ? { project_catalog_sha256: process.project_catalog_sha256 }
+        : {}),
+      path: process.path,
+    }));
+  const orderedProcesses = [...candidate.processes].sort((left, right) =>
+    left.id.localeCompare(right.id),
+  );
+  const decision = state.model_decisions?.at(-1);
+  const challenge = state.model_challenges?.at(-1);
+
+  return {
+    version: 1,
+    iteration_id: state.iteration_id,
+    story_id: candidate.story_id,
+    scenario_ids: [...candidate.scenario_ids],
+    draft_id: candidate.draft_id,
+    candidate_sha256: candidate.candidate_sha256,
+    subject_sha256: subjectSha256(cwd, state, candidate, loadProjectCatalog),
+    model: {
+      profile: `${state.modeling_profile?.subject ?? 'unknown'}/${state.modeling_profile?.method ?? 'unknown'}`,
+      model_change_required:
+        state.modeling_profile?.model_change_required ?? false,
+      expansion_path: state.model_expansion_path ?? 'missing',
+      decision_path:
+        decision?.artifact_path ?? state.model_expansion_path ?? 'missing',
+      ...(challenge?.artifact_path
+        ? { challenge_path: challenge.artifact_path }
+        : {}),
+      ...(state.model_projection?.model_sha256
+        ? { projection_sha256: state.model_projection.model_sha256 }
+        : {}),
+    },
+    traceability: candidateTraceability,
+    processes,
+    commands: {
+      focused: orderedProcesses.flatMap((process) =>
+        process.focused_commands.map(({ command }) => command),
+      ),
+      quality_gates: orderedProcesses.flatMap((process) =>
+        process.quality_gate_commands.map(({ command }) => command),
+      ),
+    },
+    ...(preview ? { budget_preview: preview } : {}),
+    checks,
+    evidence_refs: evidenceReferences(cwd, state, candidate, preview),
   };
 }

@@ -1,1 +1,5 @@
-export { assertDeskCheckApprovalReady } from './desk-check-review';
+export {
+  assertDeskCheckApprovalReady,
+  inspectDeskCheck,
+  type DeskCheckReview,
+} from './desk-check-review';
