@@ -14,6 +14,7 @@ import {
   MAX_STATUS_PAGE_SIZE,
   MAX_STATUS_SUMMARY_BYTES,
   projectStatusSummary,
+  renderStatusSummary,
   statusCommandMarkdown,
   statusDetailPage,
   statusMarkdown,
@@ -97,6 +98,44 @@ describe('status', () => {
         artifact_counts: { total: 7, '04-planning': 3 },
       }),
     );
+  });
+
+  it('renders locked Pair budget usage, shadow limits, and unknown cost', () => {
+    const projection = projectStatusSummary({
+      state: {
+        ...DEFAULT_STATE,
+        loop: 'tasking',
+        tasking_stage: 'desk_check',
+      },
+      nextAction: '/evidence-desk-check',
+      artifactCounts: { total: 1 },
+      budget: {
+        mode: 'shadow',
+        level: 'soft',
+        expected_pair_agent_calls: 11,
+        pair_agent_calls: 8,
+        max_pair_agent_calls: 10,
+        pair_checkpoints: 20,
+        emergency_max_checkpoints: 200,
+        no_progress_checkpoints: 2,
+        max_no_progress_checkpoints: null,
+        duration_ms: 2_000,
+        max_duration_ms: null,
+        input_tokens: 1_200,
+        max_input_tokens: null,
+        output_tokens: 100,
+        max_output_tokens: null,
+        reported_cost_usd: null,
+        max_reported_cost_usd: null,
+        cost_status: 'unknown',
+      },
+    });
+
+    const status = renderStatusSummary(projection);
+    expect(status).toContain('- Budget: shadow/soft');
+    expect(status).toContain('agents=8/10 (expected 11)');
+    expect(status).toContain('no-progress=2/shadow');
+    expect(status).toContain('cost=unknown');
   });
 
   it('shows compact iteration Q/T/C without treating missing cost as zero', () => {

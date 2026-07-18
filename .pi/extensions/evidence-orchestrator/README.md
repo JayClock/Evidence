@@ -47,7 +47,7 @@ Inbox 位于 iteration 之外，可同时保存多个来源 revision 和未经�
 1. **Inbox / Kickoff**：Inbox Analyst 从一至五个精确来源 revision 提取一至五张候选；人类选择一张并冻结 Intake。Kickoff 人工确认、修订、拆分或延期，确认后分配本迭代唯一的 `US-xxx`。
 2. **Understand**：每张活动 Story 使用一条持久 TQA 会话，一次提出一个面向业务的问题；人类直接回答后，下一次 requirements-analyst checkpoint 恢复同一 Pi session。AI 列出完整 Scenario Set 后由人类整体确认，再确认建模 Profile：`none/false` 确定性记录无模型影响并直接进入 Tasking；其他方法逐场景联合展开，`model_change_required=false` 保持空 operations，只有 `true` 提出模型候选，之后均经独立挑战和人工模型确认。其他活动角色仍使用隔离的临时会话。
 3. **Tasking**：一次消费全部确认 Scenario，根据 runtime、functional context 和技术边界唯一匹配 test-process v3，解析真实 Nx project ownership/targets，并生成逐 TEST 聚焦命令、项目门禁及去重的 Q2/Q1 test/task list；每个 Then 有 Q2 追踪，每个 TEST 只属于一个有序 TASK。人类 Desk Check 后锁定 Story 计划。
-4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。伪 Red、Green/Refactor/gate 失败在有限预算内自动修复，超限作为异常停止；全绿后可用 `/evidence-explain-diff` 生成一份仓库外、自包含且非权威的 HTML 理解材料，之后仍由人类一次批准完整 Story 编码才进入 Showcase。
+4. **Pair**：一次 `/evidence-run` 由控制器自动推进完整编码 Story：短生命周期 Test/Production Driver 逐 TEST 编辑，控制器执行并记录 Red/Green，独立 AI Reviewer 分类 Red；同一 process step 全部 Green 后只进行一次有界 Refactor，随后运行全部 quality gates。Desk Check 把人工预算策略 hash、结构性调用量、timeout、retry、checkpoint 与可用 Q/T/C hard limit 锁进计划；Pair 只读该 Envelope。相同 failure fingerprint、无进展、activity/command timeout、soft/hard budget 或观测缺口会生成类型化异常并停止，不能由 Agent 提高额度；全绿后可用 `/evidence-explain-diff` 生成一份仓库外、自包含且非权威的 HTML 理解材料，之后仍由人类一次批准完整 Story 编码才进入 Showcase。
 5. **Showcase**：重新执行本 Story 的全部 Q2，并要求每个 Scenario 都有实际产品行为和价值观察；Q3/Q4 风险决定和评价活动覆盖整个 Story 增量。只有人类 `accept` 才能进入 Respond。
 6. **Respond**：总结整个 Story 增量，只提升被 Scenario Set、执行事实与 Showcase 共同验证的知识；人类确认后输出一个 next Probe 并完成本轮。
 
@@ -133,7 +133,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 
 - 无参数运行 `/evidence-inbox` 时，空 Inbox 会先让人选择来源；来源 revision 保存成功后自动打开 extract 来源选取界面，取消选取则只保留来源。已有来源时显示 Inbox 状态，显式 `list` 始终只读。
 - 无参数运行 `/evidence-new` 会复用 extract 来源选取界面，提取完成后再复用 Candidate 选择器并冻结 Intake；`/evidence-new CAND-xxxx` 直接从 ready Candidate 启动。
-- `/evidence-status` 默认只显示小于 4 KiB 的 summary projection，不扫描或列出 `apps/`、`libs/`。`artifacts` 只分页显示 active iteration 工件，`files` 只在人工显式请求时扫描代码；两者每页最多 50 项，cursor 在 inventory 或 active iteration 漂移时失效。模型 status tool 只有 `summary|artifacts`，不提供 `files`。
+- `/evidence-status` 默认只显示小于 4 KiB 的 summary projection，不扫描或列出 `apps/`、`libs/`；活动 Pair 同时显示 locked expected/soft/hard budget、trace usage、cost `reported|unknown`、checkpoint 与 no-progress 窗口。`artifacts` 只分页显示 active iteration 工件，`files` 只在人工显式请求时扫描代码；两者每页最多 50 项，cursor 在 inventory 或 active iteration 漂移时失效。模型 status tool 只有 `summary|artifacts`，不提供 `files`。
 - `/evidence-run` 对非 Pair loop 只运行当前状态允许的一个 activity checkpoint；在 Pair 中自动串行执行完整编码 Story 的短生命周期 Driver、Reviewer 与确定性命令，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
 - 每次 Agent dispatch 的 task 以最大 16 KiB 的确定性 Context Capsule 开头，只包含当前 Identity、Decision、人工 Authority、精确输入路径、工作单元、工具/路径边界与停止条件；长工件由 Agent 按路径读取。TQA Capsule 始终给出精确 clarification-history 路径，持久 session 不是事实源。
 - 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
@@ -160,6 +160,7 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 ```text
 artifacts/iterations/ITER-xxxx/activity-trace.jsonl  # Agent/Controller usage、耗时、停止原因与关联；非验收权威
 artifacts/05-code/US-xxx/execution.jsonl
+artifacts/05-code/US-xxx/automation-exceptions/EXC-xxx.json
 artifacts/05-code/US-xxx/manifest.json
 artifacts/05-code/US-xxx/summary.md
 artifacts/05-code/US-xxx/change-explanation.json  # 可选；HTML 本体位于仓库外
@@ -176,7 +177,7 @@ artifacts/07-learning/next-iteration.md
 
 普通 command activity 成功、Pair 全绿与 HTML explanation 完成后使用 Pi custom entry：它们可在 TUI 折叠/展开并持久化，但不参与父 LLM Context。只有待回答 TQA 问题和需要人工异常路由的失败使用最大 2 KiB custom message；activity tool 的模型可见 content 同样最大 2 KiB，完整 child events 只保留在本地 tool details/TUI。
 
-`execution.jsonl` 仍是唯一原始命令事实；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。Activity trace 不改变活动通过/失败，也不能替代测试或人工决定。Change Explainer HTML 是非确定性的理解材料，不能替代或修改这些执行证据。
+`execution.jsonl` 仍是唯一原始命令事实，并区分正常 exit、timeout、spawn error 与 signal termination；manifest 和 summary 必须确定性生成，Agent 不得手填退出码、命令或 changed paths。`automation-exceptions/` 保存停止 kind、policy/envelope hash、trace usage、触发 span/sequence/fingerprint 与允许的人工路由。Activity trace 不改变活动通过/失败，也不能替代测试或人工决定。Change Explainer HTML 是非确定性的理解材料，不能替代或修改这些执行证据。
 
 ## 状态边界
 
@@ -211,6 +212,7 @@ validation → 各层公开 validator
 - Pi/GitHub/Node 集成留在 `adapters/`；命令和工具不得复制业务守卫。
 - Agent 不复制方法正文；方法变化更新 catalog 指向的 Skill/Prompt 及 eval。
 - 测试命令必须来自人工批准且哈希锁定的 v3 test-process 计划；TypeScript 路径必须匹配锁定 Nx owner，最终门禁只读取 Desk Check 已物化命令。
+- `engineering/evidence-orchestrator/execution-budget.json` 由人类与 Git 管理；Agent 只能读取。`null` 是 shadow-only，不是无限额度；提高 active Pair 预算必须返回 Tasking 并重新 Desk Check。
 - 变更必须覆盖 full-loop happy path、主要反馈路由、source boundaries，以及 idle/native 状态边界。
 
 ## 验证

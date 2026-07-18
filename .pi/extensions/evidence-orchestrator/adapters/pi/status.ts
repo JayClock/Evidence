@@ -7,6 +7,14 @@ import {
   iterationActivitySummary,
   type IterationActivitySummary,
 } from '../../capabilities/activity-observability/summary';
+import {
+  evaluateExecutionBudget,
+  executionBudgetUsageFromTrace,
+} from '../../capabilities/execution-budget/evaluator';
+import {
+  assertPairExecutionBudgetLocked,
+  executionBudgetEnvelopeMode,
+} from '../../capabilities/execution-budget/policy';
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { pairNextInstruction } from '../../loops/pair/pair-session';
 import { showcaseNextInstruction } from '../../loops/showcase/showcase-session';
@@ -19,6 +27,27 @@ export const MAX_STATUS_PAGE_SIZE = 50;
 
 export type StatusDetailView = 'artifacts' | 'files';
 export type StatusToolView = 'summary' | 'artifacts';
+
+export interface StatusBudgetSummary {
+  mode: 'shadow' | 'enforced';
+  level: 'ok' | 'soft' | 'hard' | 'observability_gap';
+  expected_pair_agent_calls: number;
+  pair_agent_calls: number;
+  max_pair_agent_calls: number | null;
+  pair_checkpoints: number;
+  emergency_max_checkpoints: number;
+  no_progress_checkpoints: number;
+  max_no_progress_checkpoints: number | null;
+  duration_ms: number;
+  max_duration_ms: number | null;
+  input_tokens: number;
+  max_input_tokens: number | null;
+  output_tokens: number;
+  max_output_tokens: number | null;
+  reported_cost_usd: number | null;
+  max_reported_cost_usd: number | null;
+  cost_status: 'reported' | 'unknown';
+}
 
 export interface StatusSummaryProjection {
   iteration_id?: string;
@@ -39,6 +68,7 @@ export interface StatusSummaryProjection {
     unreported_cost_activities: number;
     elapsed_ms: number;
   };
+  budget_summary?: StatusBudgetSummary;
 }
 
 export interface StatusDetailPage {
@@ -67,6 +97,7 @@ interface StatusProjectionInput {
   nextAction: string;
   artifactCounts: Record<string, number>;
   activity?: IterationActivitySummary;
+  budget?: StatusBudgetSummary;
 }
 
 interface StatusCursor {
@@ -141,6 +172,7 @@ export function projectStatusSummary({
   nextAction,
   artifactCounts,
   activity,
+  budget,
 }: StatusProjectionInput): StatusSummaryProjection {
   if (!state) {
     return {
@@ -182,6 +214,7 @@ export function projectStatusSummary({
       elapsed_ms: activity.duration_ms,
     };
   }
+  if (budget) projection.budget_summary = budget;
   return projection;
 }
 
@@ -251,6 +284,20 @@ function activityLine(
   return `${summary.calls} calls · ↑${compactNumber(summary.input_tokens)} · ↓${compactNumber(summary.output_tokens)} · ${cost}${unreported} · ${formatDuration(summary.elapsed_ms)}`;
 }
 
+function budgetLine(summary: StatusBudgetSummary): string {
+  const limit = (value: number | null, format = compactNumber) =>
+    value === null ? 'shadow' : format(value);
+  const costLimit =
+    summary.max_reported_cost_usd === null
+      ? 'shadow'
+      : `$${summary.max_reported_cost_usd.toFixed(2)}`;
+  const cost =
+    summary.cost_status === 'unknown'
+      ? 'cost=unknown'
+      : `cost=$${(summary.reported_cost_usd ?? 0).toFixed(4)}/${costLimit}`;
+  return `${summary.mode}/${summary.level} · agents=${summary.pair_agent_calls}/${limit(summary.max_pair_agent_calls)} (expected ${summary.expected_pair_agent_calls}) · checkpoints=${summary.pair_checkpoints}/${summary.emergency_max_checkpoints} · no-progress=${summary.no_progress_checkpoints}/${limit(summary.max_no_progress_checkpoints)} · duration=${formatDuration(summary.duration_ms)}/${limit(summary.max_duration_ms, formatDuration)} · tokens=↑${compactNumber(summary.input_tokens)}/${limit(summary.max_input_tokens)} ↓${compactNumber(summary.output_tokens)}/${limit(summary.max_output_tokens)} · ${cost}`;
+}
+
 function countsLine(counts: Record<string, number>): string {
   return Object.entries(counts)
     .map(([name, count]) => `${name}=${count}`)
@@ -282,6 +329,9 @@ export function renderStatusSummary(
   if (projection.activity_summary) {
     lines.push(`- Activity: ${activityLine(projection.activity_summary)}`);
   }
+  if (projection.budget_summary) {
+    lines.push(`- Budget: ${budgetLine(projection.budget_summary)}`);
+  }
   lines.push(`- Next: ${projection.next_action}`);
   const markdown = lines.join('\n');
   assertSummaryBounded(projection, markdown);
@@ -309,17 +359,69 @@ function statusNextAction(
   return nextStepGuidance(cwd, state);
 }
 
+function statusBudgetSummary(
+  cwd: string,
+  state: WorkflowState,
+): StatusBudgetSummary | undefined {
+  const session = state.pair_session;
+  if (!session) return undefined;
+  let usage;
+  let level: StatusBudgetSummary['level'];
+  try {
+    assertPairExecutionBudgetLocked(cwd, state);
+    usage = executionBudgetUsageFromTrace(cwd, state);
+    level = evaluateExecutionBudget(session.execution_budget, usage).level;
+  } catch {
+    usage = session.automation_exception?.current_usage ?? {
+      duration_ms: 0,
+      input_tokens: 0,
+      output_tokens: 0,
+      reported_cost_usd: null,
+      cost_status: 'unknown' as const,
+      pair_agent_calls: 0,
+      pair_checkpoints: 0,
+    };
+    level = 'observability_gap';
+  }
+  const envelope = session.execution_budget;
+  return {
+    mode: executionBudgetEnvelopeMode(envelope),
+    level,
+    expected_pair_agent_calls: envelope.expected_pair_agent_calls,
+    pair_agent_calls: usage.pair_agent_calls,
+    max_pair_agent_calls: envelope.max_pair_agent_calls,
+    pair_checkpoints: usage.pair_checkpoints,
+    emergency_max_checkpoints: envelope.emergency_max_checkpoints,
+    no_progress_checkpoints:
+      session.pair_progress?.no_progress_checkpoints ?? 0,
+    max_no_progress_checkpoints: envelope.max_no_progress_checkpoints,
+    duration_ms: usage.duration_ms,
+    max_duration_ms: envelope.max_duration_ms,
+    input_tokens: usage.input_tokens,
+    max_input_tokens: envelope.max_input_tokens,
+    output_tokens: usage.output_tokens,
+    max_output_tokens: envelope.max_output_tokens,
+    reported_cost_usd: usage.reported_cost_usd,
+    max_reported_cost_usd: envelope.max_reported_cost_usd,
+    cost_status: usage.cost_status,
+  };
+}
+
 export function statusSummaryProjection(cwd: string): StatusSummaryProjection {
   const state = readPersistedState(cwd);
   const artifacts = state
     ? collectArtifacts(cwd, iterationRoot(cwd, state))
     : [];
+  const budget = state ? statusBudgetSummary(cwd, state) : undefined;
   return projectStatusSummary({
     state,
     nextAction: statusNextAction(cwd, state),
     artifactCounts: artifactCounts(artifacts),
     ...(state
-      ? { activity: iterationActivitySummary(cwd, state.iteration_id) }
+      ? {
+          activity: iterationActivitySummary(cwd, state.iteration_id),
+          ...(budget ? { budget } : {}),
+        }
       : {}),
   });
 }

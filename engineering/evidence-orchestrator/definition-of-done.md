@@ -12,12 +12,12 @@
 
 ## 编码
 
-- AI 自动执行每个批准 TASK/TEST 的独立 Red/Green：Test Driver 写测试，控制器核对实际测试路径 owner 并运行该 TEST 的唯一锁定命令，独立 Red Reviewer 对照 typed `expected_failure_kind=behavior` 合同分类实际失败，Production Driver 完成最小 Green；同一 process step 的全部 TEST Green 后只执行一次有界 Refactor（或显式 no-op）。
+- AI 自动执行每个批准 TASK/TEST 的独立 Red/Green：Test Driver 写测试，控制器核对实际测试路径 owner 并运行该 TEST 的唯一锁定命令，独立 Red Reviewer 对照 typed `expected_failure_kind=behavior` 合同分类实际失败，Production Driver 完成最小 Green；同一 process step 的全部 TEST Green 后只执行一次有界 Refactor（或显式 no-op）。Desk Check 同时锁定人工拥有的 Execution Budget Envelope；Agent 不得提高 timeout、retry、call/checkpoint、no-progress 或 Q/T/C 上限。
 - 每项功能测试和实现都可追踪到已确认的 `US-xxx` Scenario Set；没有对应验收场景的功能不生成生产代码或测试代码，非目标不产生反向测试。
 - 已确认范围内的拒绝、失败和边界行为属于对应验收场景，应按所选测试工序验证。
 - 同时存在真实测试和生产代码改动；Markdown 不替代实现。
 - 受控 append-only `execution.jsonl` 是命令、退出码、输出摘要/哈希、计划哈希和 Git 工作树哈希的唯一原始执行事实；Red 分类同时记录 Reviewer 与依据；`manifest.json` 与可选 `summary.md` 只能由工具确定性生成，Agent 不手填命令、退出码或 changed paths。
-- 全部 Pair 质量门禁通过后，人类只在完整 Story 编码边界审查一次 manifest/summary、改动路径、追踪与风险，并以带理由的 `coding-decision.json` 批准后进入 Showcase。批准前可以生成一份哈希绑定、仓库外的自包含 HTML 变更说明作为可选理解材料；它不得替代确定性执行证据、代码审查或人工决定。Showcase 重新观测已选 Q2，并由人类记录实际产品 Given/When/Then、业务数据和价值反馈；Q3/Q4 均有带理由的显式风险决定，`required` 的每项活动都有执行证据且没有未解决 concern。只有人类 accept 才能进入 Respond。
+- 全部 Pair 质量门禁通过后，人类只在完整 Story 编码边界审查一次 manifest/summary、改动路径、追踪与风险，并以带理由的 `coding-decision.json` 批准后进入 Showcase。批准前重新校验 trace budget；soft/hard 超限、cost/trace 观测缺口或未路由的类型化 Automation Exception 都不得进入 Showcase。可以生成一份哈希绑定、仓库外的自包含 HTML 变更说明作为可选理解材料；它不得替代确定性执行证据、代码审查或人工决定。Showcase 重新观测已选 Q2，并由人类记录实际产品 Given/When/Then、业务数据和价值反馈；Q3/Q4 均有带理由的显式风险决定，`required` 的每项活动都有执行证据且没有未解决 concern。只有人类 accept 才能进入 Respond。
 - Rust 与 Nest server track 不混合实现同一服务端能力。
 - Domain 不依赖 HTTP、ORM、UI 或桌面框架；协议层不承载业务规则。
 
@@ -30,7 +30,7 @@
 
 ## 质量门禁
 
-只执行 Desk Check 已物化并哈希锁定的全部 `quality_gate_commands`，不得在 Pair 临时展开 process 字符串。最低要求：
+只执行 Desk Check 已物化并哈希锁定的全部 `quality_gate_commands`，不得在 Pair 临时展开 process 字符串。每条命令必须记录正常 exit、timeout、spawn error 或 signal termination；timeout Red 永远是伪 Red。最低要求：
 
 - TypeScript：相关 Nx test、typecheck、lint。
 - Rust：相关 cargo test、clippy `-D warnings`、fmt check。
