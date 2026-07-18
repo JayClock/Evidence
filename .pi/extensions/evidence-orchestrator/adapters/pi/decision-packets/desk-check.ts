@@ -511,7 +511,7 @@ export async function promptDeskCheckDecision(
   const latest = inspect(ctx.cwd);
   if (latest.subject_sha256 !== review.subject_sha256) {
     throw new Error(
-      'Desk Check inputs changed while the decision packet was open. No human decision was recorded. Reopen /evidence-desk-check and review the new facts.',
+      `Desk Check inputs changed while the decision packet was open. No human decision was recorded. Reopen /evidence-desk-check ${review.iteration_id} and review the new facts.`,
     );
   }
   return {

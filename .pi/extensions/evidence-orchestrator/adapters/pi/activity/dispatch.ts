@@ -100,7 +100,7 @@ export function prepareActivityRun(
   }
   if (!current.intake_snapshot) {
     throw new Error(
-      'The active iteration has no frozen requirement input. Start one with /evidence-new.',
+      `${current.iteration_id} has no frozen requirement input. Start it with /evidence-new CAND-xxxx.`,
     );
   }
   const modelingAction: PreparedActivityRun['modelingAction'] =
@@ -160,13 +160,13 @@ export function prepareActivityRun(
   if (current.loop === 'respond' && current.respond_stage === 'decision') {
     throw new ActivityRunBlockedError(
       'respond_decision',
-      `Respond candidate ${current.respond_candidate?.artifact_path ?? 'missing'} awaits /evidence-respond approve|revise <reason>.`,
+      `Respond candidate ${current.respond_candidate?.artifact_path ?? 'missing'} awaits /evidence-respond ${current.iteration_id} approve|revise <reason>.`,
     );
   }
   if (current.loop === 'kickoff' && current.kickoff_candidate) {
     throw new ActivityRunBlockedError(
       'kickoff_decision',
-      `Kickoff candidate ${current.kickoff_candidate.artifact_path} awaits /evidence-kickoff.`,
+      `Kickoff candidate ${current.kickoff_candidate.artifact_path} awaits /evidence-kickoff ${current.iteration_id}.`,
     );
   }
   if (
@@ -175,7 +175,7 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'scenario_decision',
-      'Scenario drafts await a human /evidence-scenario decision.',
+      `Scenario drafts await /evidence-scenario ${current.iteration_id}.`,
     );
   }
   if (
@@ -184,7 +184,7 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'modeling_profile',
-      'The modeling Profile awaits /evidence-modeling-profile.',
+      `The modeling Profile awaits /evidence-modeling-profile ${current.iteration_id}.`,
     );
   }
   if (
@@ -199,13 +199,13 @@ export function prepareActivityRun(
   ) {
     throw new ActivityRunBlockedError(
       'model_decision',
-      'The challenged model and ubiquitous language await human /evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>.',
+      `The challenged model and ubiquitous language await /evidence-model ${current.iteration_id} confirm [reason] | revise|scenario-gap|method-gap <reason>.`,
     );
   }
   if (current.loop === 'tasking' && current.tasking_stage === 'desk_check') {
     throw new ActivityRunBlockedError(
       'desk_check',
-      'The Tasking candidate awaits human /evidence-desk-check.',
+      `The Tasking candidate awaits /evidence-desk-check ${current.iteration_id}.`,
     );
   }
   if (

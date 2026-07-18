@@ -87,7 +87,7 @@ export const PARENT_ORCHESTRATOR_TOOL_NAMES = [
 ] as const;
 
 /** Mutation tools an activity child may retain for its exact worktree-local stage. */
-export function toolsForState(state: WorkflowState | undefined): string[] {
+export function toolsForChildState(state: WorkflowState | undefined): string[] {
   if (!state || state.halted || state.loop === 'complete') return [];
   if (state.loop === 'kickoff') {
     return ['evidence_orchestrator_propose_kickoff'];
@@ -143,7 +143,7 @@ export function syncActiveTools(pi: ExtensionAPI, cwd: string): void {
       'Activity child State does not match its bound Evidence Iteration.',
     );
   }
-  const allowed = new Set(toolsForState(state));
+  const allowed = new Set(toolsForChildState(state));
   const requested = current.filter(
     (name) => owned.has(name) && allowed.has(name),
   );
@@ -544,7 +544,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Cover every confirmed Scenario/Then with exact business data and model ids; deduplicate shared Q1 support; non-goals never become tests.',
       'Give every TEST exactly one ordered TASK owner and preserve selected process-step order.',
       'Never guess among zero or multiple process matches; the tool routes that gap within Tasking.',
-      'After calling this tool, stop. Only /evidence-desk-check can approve or route the draft.',
+      'After calling this tool, stop. Only /evidence-desk-check ITER-xxxx can approve or route the exact target draft.',
     ],
     parameters: taskingDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
@@ -645,7 +645,7 @@ export function registerTools(pi: ExtensionAPI): void {
       'Use only in Respond after a human accepts Showcase.',
       'Promoted items must cite Scenario, Showcase decision, execution evidence, and an actually changed canonical target.',
       'Empty promotions are valid only with a concrete no-promotion reason.',
-      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-respond.',
+      'Do not edit canonical knowledge or complete the iteration; stop for /evidence-respond ITER-xxxx.',
     ],
     parameters: respondProposalParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {

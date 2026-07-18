@@ -596,7 +596,7 @@ function activityInstructions(cwd: string, state: WorkflowState): string {
     return '从冻结 Intake、稳定产品上下文及 Capsule 中的人工反馈提出一张替代 Kickoff 候选。保留一个问题、一个角色、一个可协商目标、一个价值和当前认知行为；不分配 US-xxx、不扩展 backlog、不写权威产品知识。';
   }
   if (state.loop === 'understand' && state.understand_stage === 'tqa') {
-    return '读取并遵守 evidence-story-tqa Skill。只处理活动 Story；使用 clarification history 工件恢复事实。下一步只能记录一个高价值问题，或在无剩余高价值不确定性时记录完整 Scenario Set。人类通过 /evidence-scenario 决定边界。';
+    return `读取并遵守 evidence-story-tqa Skill。只处理活动 Story；使用 clarification history 工件恢复事实。下一步只能记录一个高价值问题，或在无剩余高价值不确定性时记录完整 Scenario Set。人类通过 /evidence-scenario ${state.iteration_id} 决定边界。`;
   }
   if (state.loop === 'understand' && state.understand_stage === 'modeling') {
     if (state.modeling_stage === 'profile') {
@@ -624,7 +624,7 @@ function activityInstructions(cwd: string, state: WorkflowState): string {
     }
     const noModelImpact = state.modeling_profile?.method === 'none';
     const gap = state.tasking_gap;
-    return `读取并遵守 evidence-test-process Skill。为完整 Scenario Set 生成一次 Q2/Q1 test-list、唯一 v3 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 绑定安全 testFilter${noModelImpact ? ' 并保持空 modelRefs' : '、确认模型 id'}，模板要求时绑定真实 Nx projectId；runtime 完整列出允许修改的 projects。${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}。` : ''}等待人类 /evidence-desk-check；不得写代码。`;
+    return `读取并遵守 evidence-test-process Skill。为完整 Scenario Set 生成一次 Q2/Q1 test-list、唯一 v3 process 计划和依赖有序 task-list。每个 Then 有 Q2 覆盖，共享 Q1 去重；每个 TEST 绑定安全 testFilter${noModelImpact ? ' 并保持空 modelRefs' : '、确认模型 id'}，模板要求时绑定真实 Nx projectId；runtime 完整列出允许修改的 projects。${gap ? `当前知识缺口：${gap.kind} · ${gap.reason}。` : ''}等待人类 /evidence-desk-check ${state.iteration_id}；不得写代码。`;
   }
   if (state.loop === 'pair') {
     if (

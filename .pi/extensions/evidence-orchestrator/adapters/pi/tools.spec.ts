@@ -27,7 +27,7 @@ import {
   workspace,
   write,
 } from '../../test-support/support';
-import { registerTools, syncActiveTools, toolsForState } from './tools';
+import { registerTools, syncActiveTools, toolsForChildState } from './tools';
 
 const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
 
@@ -100,12 +100,12 @@ describe('tools', () => {
   });
 
   it('exposes only mutation tools owned by the activity child stage', () => {
-    expect(toolsForState(undefined)).toEqual([]);
-    expect(toolsForState(DEFAULT_STATE)).toEqual([
+    expect(toolsForChildState(undefined)).toEqual([]);
+    expect(toolsForChildState(DEFAULT_STATE)).toEqual([
       'evidence_orchestrator_propose_kickoff',
     ]);
     expect(
-      toolsForState({
+      toolsForChildState({
         ...DEFAULT_STATE,
         loop: 'understand',
         understand_stage: 'tqa',
@@ -115,7 +115,7 @@ describe('tools', () => {
       'evidence_orchestrator_propose_scenarios',
     ]);
     expect(
-      toolsForState({
+      toolsForChildState({
         ...DEFAULT_STATE,
         loop: 'understand',
         understand_stage: 'modeling',

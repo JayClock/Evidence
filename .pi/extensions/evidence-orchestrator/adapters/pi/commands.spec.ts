@@ -288,7 +288,7 @@ describe('commands', () => {
     });
     expect(() =>
       parsePairDecision('accept-red Human should not classify routine Red.'),
-    ).toThrow('Usage: /evidence-pair approve');
+    ).toThrow('Usage: /evidence-pair ITER-xxxx approve');
     expect(() => parseDeskCheckDecision('revise')).toThrow('requires a reason');
     expect(() => parseKickoffDecision('revise')).toThrow(
       'requires a business reason',
