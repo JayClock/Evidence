@@ -37,7 +37,7 @@ const WRITE_PROTECTED_PATHS = [
   '.pi',
   'artifacts',
   'engineering/evidence-orchestrator',
-  'evidence-state.json',
+  '.evidence-iteration-state.json',
 ] as const;
 
 function text(value: unknown): value is string {

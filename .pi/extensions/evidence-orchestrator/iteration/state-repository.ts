@@ -1,4 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { DEFAULT_STATE } from './default-state';
 import { normalizeState } from './state-codec';
@@ -16,7 +24,7 @@ function record(value: unknown, subject: string): Record<string, unknown> {
 }
 
 export function statePath(cwd: string): string {
-  return join(cwd, 'evidence-state.json');
+  return join(cwd, '.evidence-iteration-state.json');
 }
 
 function readRawState(cwd: string): Record<string, unknown> | undefined {
@@ -42,18 +50,17 @@ export function readState(cwd: string): WorkflowState {
 
 export function writeState(cwd: string, state: WorkflowState): WorkflowState {
   const normalized = normalizeState(state);
-  writeFileSync(statePath(cwd), `${JSON.stringify(normalized, null, 2)}\n`);
-  return normalized;
-}
-
-export function assertCanStartIteration(cwd: string): void {
-  const current = readPersistedState(cwd);
-  if (!current) return;
-  if (current.loop !== 'complete' && !current.halted) {
-    throw new Error(
-      `Cannot start an iteration while ${current.iteration_id} is active. Complete, reject, split, or defer it first; state is never migrated in place.`,
-    );
+  const path = statePath(cwd);
+  const temporary = `${path}.tmp-${process.pid}-${Date.now()}`;
+  const descriptor = openSync(temporary, 'wx', 0o600);
+  try {
+    writeFileSync(descriptor, `${JSON.stringify(normalized, null, 2)}\n`);
+    fsyncSync(descriptor);
+  } finally {
+    closeSync(descriptor);
   }
+  renameSync(temporary, path);
+  return normalized;
 }
 
 export function selectedTestProcesses(

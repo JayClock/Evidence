@@ -8,11 +8,7 @@ import {
   nextIterationId,
 } from '../../iteration/artifact-layout';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import {
-  assertCanStartIteration,
-  readState,
-  writeState,
-} from '../../iteration/state-repository';
+import { readState, writeState } from '../../iteration/state-repository';
 import type { InboxSourceRevision, InboxStoryCandidate } from './model';
 import { inboxRevisionByHash } from './repository';
 import {
@@ -173,7 +169,6 @@ export function startIterationFromCandidate(
   candidateId: string,
   now = new Date().toISOString(),
 ): WorkflowState {
-  assertCanStartIteration(cwd);
   const candidate = selectedCandidate(cwd, candidateId.trim().toUpperCase());
   const revisions = citedRevisions(cwd, candidate);
   const iterationId = nextIterationId(cwd);

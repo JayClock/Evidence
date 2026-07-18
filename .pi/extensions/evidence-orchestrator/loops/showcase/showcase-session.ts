@@ -910,7 +910,11 @@ export function completeShowcaseReviewer(
     latest !== undefined;
   const allowed = new Set(
     reviewRecorded && latest
-      ? ['evidence-state.json', latest.artifact_path, latest.summary_path]
+      ? [
+          '.evidence-iteration-state.json',
+          latest.artifact_path,
+          latest.summary_path,
+        ]
       : [],
   );
   const delta = worktreeDelta(cwd, snapshot.worktree);

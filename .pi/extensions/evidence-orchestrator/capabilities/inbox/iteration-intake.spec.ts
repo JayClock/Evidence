@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_STATE } from '../../iteration/default-state';
 import { writeState } from '../../iteration/state-repository';
 import { cleanupWorkspaces, workspace } from '../../test-support/support';
 import {
@@ -113,7 +112,7 @@ describe('Iteration Inbox Intake', () => {
     expect(() =>
       startIterationFromCandidate(cwd, selected.candidate.candidate_id),
     ).toThrow('is stale');
-    expect(existsSync(join(cwd, 'evidence-state.json'))).toBe(false);
+    expect(existsSync(join(cwd, '.evidence-iteration-state.json'))).toBe(false);
   });
 
   it('detects mutation using only the self-contained iteration snapshot', () => {
@@ -132,16 +131,6 @@ describe('Iteration Inbox Intake', () => {
 
     expect(() => validateIterationIntakeSnapshot(cwd, state)).toThrow(
       'source revision is inconsistent',
-    );
-  });
-
-  it('does not replace an active iteration', () => {
-    const cwd = workspace();
-    candidate(cwd);
-    writeState(cwd, DEFAULT_STATE);
-
-    expect(() => startIterationFromCandidate(cwd, 'CAND-0001')).toThrow(
-      'Cannot start an iteration',
     );
   });
 });

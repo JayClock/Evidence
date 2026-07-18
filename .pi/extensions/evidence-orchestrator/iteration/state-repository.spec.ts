@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_STATE } from './default-state';
 import {
-  assertCanStartIteration,
   readPersistedState,
   readState,
+  statePath,
   writeState,
 } from './state-repository';
 import { cleanupWorkspaces, workspace } from '../test-support/support';
@@ -114,20 +114,21 @@ describe('workflow state', () => {
     ).toThrow('Desk Check decision history is invalid');
   });
 
-  it('distinguishes an idle repository from bootstrap state', () => {
+  it('distinguishes an empty worktree from bootstrap state', () => {
     const cwd = workspace();
 
     expect(readPersistedState(cwd)).toBeUndefined();
     expect(readState(cwd)).toEqual(DEFAULT_STATE);
-    expect(() => assertCanStartIteration(cwd)).not.toThrow();
+    expect(statePath(cwd)).toBe(`${cwd}/.evidence-iteration-state.json`);
   });
 
-  it('starts another iteration only after the current one is terminal', () => {
-    const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    expect(() => assertCanStartIteration(cwd)).toThrow('ITER-0001 is active');
+  it('keeps independent state in separate Story worktrees', () => {
+    const first = workspace();
+    const second = workspace();
+    writeState(first, { ...DEFAULT_STATE, iteration_id: 'ITER-0001' });
+    writeState(second, { ...DEFAULT_STATE, iteration_id: 'ITER-0002' });
 
-    writeState(cwd, { ...DEFAULT_STATE, loop: 'complete' });
-    expect(() => assertCanStartIteration(cwd)).not.toThrow();
+    expect(readPersistedState(first)?.iteration_id).toBe('ITER-0001');
+    expect(readPersistedState(second)?.iteration_id).toBe('ITER-0002');
   });
 });
