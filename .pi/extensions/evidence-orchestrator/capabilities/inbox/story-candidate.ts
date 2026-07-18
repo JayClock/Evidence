@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { ITERATIONS_ROOT } from '../../iteration/artifact-layout';
+import { boardPath, readBoard } from '../../iteration/board-repository';
 import type {
   InboxCandidateDecision,
   InboxCandidateDecisionAction,
@@ -232,34 +232,18 @@ export function listInboxCandidateDecisions(
     });
 }
 
-function selectedCandidateIds(cwd: string): Set<string> {
-  const root = join(cwd, ITERATIONS_ROOT);
-  if (!existsSync(root)) return new Set();
-  return new Set(
-    readdirSync(root)
-      .filter((entry) => /^ITER-\d{4,}$/.test(entry))
-      .flatMap((entry) => {
-        const path = join(root, entry, '00-user-input/intake.json');
-        if (!existsSync(path)) return [];
-        try {
-          const intake = JSON.parse(readFileSync(path, 'utf8')) as {
-            candidate_id?: unknown;
-          };
-          return typeof intake.candidate_id === 'string'
-            ? [intake.candidate_id]
-            : [];
-        } catch {
-          return [];
-        }
-      }),
-  );
+function claimedCandidateIds(cwd: string): Set<string> {
+  if (!existsSync(join(cwd, '.git'))) return new Set();
+  const path = boardPath(cwd);
+  if (!existsSync(path)) return new Set();
+  return new Set(readBoard(cwd).items.map(({ candidate_id }) => candidate_id));
 }
 
 export function inboxCandidateStatus(
   cwd: string,
   candidate: InboxStoryCandidate,
 ): InboxCandidateStatus {
-  if (selectedCandidateIds(cwd).has(candidate.candidate_id)) return 'selected';
+  if (claimedCandidateIds(cwd).has(candidate.candidate_id)) return 'selected';
   const decision = [...listInboxCandidateDecisions(cwd)]
     .reverse()
     .find(({ candidate_id }) => candidate_id === candidate.candidate_id);

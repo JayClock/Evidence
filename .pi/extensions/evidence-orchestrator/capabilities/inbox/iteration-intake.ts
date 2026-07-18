@@ -5,7 +5,6 @@ import { ensureProjectDirs } from '../../iteration/artifact-inventory';
 import {
   iterationRoot,
   iterationRootRelative,
-  nextIterationId,
 } from '../../iteration/artifact-layout';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { readState, writeState } from '../../iteration/state-repository';
@@ -20,6 +19,7 @@ import type {
   KickoffCandidate,
   WorkflowState,
 } from '../../iteration/state';
+import { provisionWorkItem } from '../work-item-worktree/provisioner';
 
 function canonicalJson(value: unknown): string {
   const normalize = (entry: unknown): unknown => {
@@ -163,15 +163,13 @@ function kickoffCandidate(
   };
 }
 
-/** Freeze one ready Inbox candidate and its exact source revisions into a new iteration. */
-export function startIterationFromCandidate(
-  cwd: string,
-  candidateId: string,
-  now = new Date().toISOString(),
+function freezeIterationIntake(
+  worktreeRoot: string,
+  iterationId: string,
+  candidate: InboxStoryCandidate,
+  revisions: InboxSourceRevision[],
+  now: string,
 ): WorkflowState {
-  const candidate = selectedCandidate(cwd, candidateId.trim().toUpperCase());
-  const revisions = citedRevisions(cwd, candidate);
-  const iterationId = nextIterationId(cwd);
   const relativeRoot = iterationRootRelative(iterationId);
   const candidateSnapshotPath = `${relativeRoot}/00-user-input/story-candidate.json`;
   const sourceSnapshots = revisions.map((revision) => {
@@ -199,25 +197,58 @@ export function startIterationFromCandidate(
     content_sha256: sha256(withoutHash),
   };
   const bootstrap = { ...DEFAULT_STATE, iteration_id: iterationId };
-  ensureProjectDirs(cwd, iterationRoot(cwd, bootstrap));
-  writeImmutable(join(cwd, candidateSnapshotPath), candidate);
+  ensureProjectDirs(worktreeRoot, iterationRoot(worktreeRoot, bootstrap));
+  writeImmutable(join(worktreeRoot, candidateSnapshotPath), candidate);
   revisions.forEach((revision, index) =>
-    writeImmutable(join(cwd, sourceSnapshots[index].snapshot_path), revision),
+    writeImmutable(
+      join(worktreeRoot, sourceSnapshots[index].snapshot_path),
+      revision,
+    ),
   );
-  writeImmutable(join(cwd, intake.manifest_path), intake);
+  writeImmutable(join(worktreeRoot, intake.manifest_path), intake);
   writeImmutable(
-    join(cwd, intake.projection_path),
+    join(worktreeRoot, intake.projection_path),
     requirementsProjection(candidate, revisions, intake),
   );
   const kickoffPath = `${relativeRoot}/01-requirements/kickoff-candidates/CAND-001.json`;
   const kickoff = kickoffCandidate(candidate, kickoffPath);
-  writeImmutable(join(cwd, kickoffPath), kickoff);
-  return writeState(cwd, {
+  writeImmutable(join(worktreeRoot, kickoffPath), kickoff);
+  return writeState(worktreeRoot, {
     ...bootstrap,
     loop: 'kickoff',
     intake_snapshot: intake,
     kickoff_candidate: kickoff,
   });
+}
+
+/** Claim one ready Candidate and freeze its exact source revisions in a new worktree. */
+export function startIterationFromCandidate(
+  primaryRoot: string,
+  candidateId: string,
+  now = new Date().toISOString(),
+): WorkflowState {
+  const candidate = selectedCandidate(
+    primaryRoot,
+    candidateId.trim().toUpperCase(),
+  );
+  const revisions = citedRevisions(primaryRoot, candidate);
+  let state: WorkflowState | undefined;
+  provisionWorkItem(
+    primaryRoot,
+    candidate.candidate_id,
+    ({ iterationId, worktreeRoot }) => {
+      state = freezeIterationIntake(
+        worktreeRoot,
+        iterationId,
+        candidate,
+        revisions,
+        now,
+      );
+    },
+    now,
+  );
+  if (!state) throw new Error('Provisioned Story did not persist its Intake.');
+  return state;
 }
 
 /** Validate a frozen Intake without consulting the mutable Inbox or live provider. */

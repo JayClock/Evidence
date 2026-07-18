@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
-import { cleanupWorkspaces, workspace } from '../../test-support/support';
+import {
+  cleanupWorkspaces,
+  initializeGitRepository,
+  workspace,
+} from '../../test-support/support';
 import {
   requireCandidateId,
   selectReadyInboxCandidate,
@@ -139,6 +143,7 @@ describe('Inbox candidate picker', () => {
 
   it('does not offer a candidate already selected by an iteration', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     addCandidate(cwd);
     startIterationFromCandidate(cwd, 'CAND-0001');
 

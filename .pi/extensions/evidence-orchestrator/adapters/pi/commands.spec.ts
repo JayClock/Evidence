@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { DEFAULT_STATE } from '../../iteration/default-state';
+import { readBoard } from '../../iteration/board-repository';
 import {
   readPersistedState,
   writeState,
@@ -13,6 +14,7 @@ import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
 import { prepareDeskCheckFixture } from '../../test-support/desk-check-fixture';
 import {
   cleanupWorkspaces,
+  initializeGitRepository,
   TEST_EXECUTION_BUDGET_POLICY,
   testIntakeSnapshot,
   workspace,
@@ -154,6 +156,7 @@ describe('commands', () => {
 
   it('starts a new iteration from an explicit ready Inbox candidate', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     const source = captureInboxSource(cwd, {
       source_kind: 'manual_text',
       external_key: 'manual:interview',
@@ -193,7 +196,8 @@ describe('commands', () => {
 
     await start?.('CAND-0001', ctx);
 
-    expect(readPersistedState(cwd)).toMatchObject({
+    const worktree = readBoard(cwd).items[0]?.worktree_path ?? '';
+    expect(readPersistedState(worktree)).toMatchObject({
       intake_snapshot: { candidate_id: 'CAND-0001' },
       kickoff_candidate: { title: 'Retain deletion evidence' },
     });
@@ -205,6 +209,7 @@ describe('commands', () => {
 
   it('reuses source extraction and candidate selectors for evidence-new', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     const source = captureInboxSource(cwd, {
       source_kind: 'manual_text',
       external_key: 'manual:interview',
@@ -278,7 +283,8 @@ describe('commands', () => {
         'CAND-0001 · Retain deletion evidence · workspace owner · Problem: Deletion is not auditable.',
       ],
     );
-    expect(readPersistedState(cwd)?.intake_snapshot?.candidate_id).toBe(
+    const worktree = readBoard(cwd).items[0]?.worktree_path ?? '';
+    expect(readPersistedState(worktree)?.intake_snapshot?.candidate_id).toBe(
       'CAND-0001',
     );
   });

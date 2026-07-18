@@ -41,6 +41,7 @@ import {
   proposeKnowledgeResponse,
 } from '../loops/respond/response-cycle';
 import { readState } from '../iteration/state-repository';
+import { readBoard } from '../iteration/board-repository';
 import { approveStoryCodingForTest } from './story-fixtures';
 import { createNxProjectCatalog } from '../capabilities/test-process/project-catalog';
 import {
@@ -211,7 +212,7 @@ afterEach(cleanupWorkspaces);
 
 describe('native full knowledge loop', () => {
   it('runs a frozen Inbox Intake through human-approved Respond', async () => {
-    const cwd = workspace();
+    let cwd = workspace();
     prepareProject(cwd);
     const source = captureInboxSource(cwd, {
       source_kind: 'manual_text',
@@ -241,6 +242,7 @@ describe('native full knowledge loop', () => {
       ],
     );
     startIterationFromCandidate(cwd, 'CAND-0001');
+    cwd = readBoard(cwd).items[0]?.worktree_path ?? '';
     decideKickoff(cwd, 'confirmed', 'This is one valuable Story.');
 
     askClarification(cwd, {

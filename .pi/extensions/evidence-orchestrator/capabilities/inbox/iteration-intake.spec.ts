@@ -1,8 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { writeState } from '../../iteration/state-repository';
-import { cleanupWorkspaces, workspace } from '../../test-support/support';
+import { readBoard } from '../../iteration/board-repository';
+import {
+  cleanupWorkspaces,
+  initializeGitRepository,
+  workspace,
+} from '../../test-support/support';
 import {
   startIterationFromCandidate,
   validateIterationIntakeSnapshot,
@@ -11,6 +15,12 @@ import { captureInboxSource } from './repository';
 import { proposeInboxStoryCandidates } from './story-candidate';
 
 afterEach(cleanupWorkspaces);
+
+function gitWorkspace(): string {
+  const cwd = workspace();
+  initializeGitRepository(cwd);
+  return cwd;
+}
 
 function candidate(cwd: string) {
   const source = captureInboxSource(cwd, {
@@ -45,9 +55,15 @@ function candidate(cwd: string) {
   };
 }
 
+function onlyWorktree(cwd: string): string {
+  const path = readBoard(cwd).items[0]?.worktree_path;
+  if (!path) throw new Error('Expected one provisioned worktree.');
+  return path;
+}
+
 describe('Iteration Inbox Intake', () => {
-  it('freezes one ready candidate and its exact revisions into a new iteration', () => {
-    const cwd = workspace();
+  it('freezes one ready candidate and its exact revisions into a new worktree', () => {
+    const cwd = gitWorkspace();
     const selected = candidate(cwd);
 
     const state = startIterationFromCandidate(
@@ -55,6 +71,7 @@ describe('Iteration Inbox Intake', () => {
       selected.candidate.candidate_id,
       '2026-07-16T00:00:00Z',
     );
+    const worktree = onlyWorktree(cwd);
 
     expect(state).toMatchObject({
       iteration_id: 'ITER-0001',
@@ -81,18 +98,19 @@ describe('Iteration Inbox Intake', () => {
     expect(state).not.toHaveProperty('requirement_source');
     expect(
       readFileSync(
-        join(cwd, state.intake_snapshot?.projection_path ?? ''),
+        join(worktree, state.intake_snapshot?.projection_path ?? ''),
         'utf8',
       ),
     ).toContain('此文件由冻结的 Evidence Inbox Intake 自动生成');
-    expect(() => validateIterationIntakeSnapshot(cwd, state)).not.toThrow();
+    expect(() =>
+      validateIterationIntakeSnapshot(worktree, state),
+    ).not.toThrow();
   });
 
-  it('does not reuse a candidate already frozen by another iteration', () => {
-    const cwd = workspace();
+  it('does not reuse a Candidate claimed by another Board item', () => {
+    const cwd = gitWorkspace();
     candidate(cwd);
-    const started = startIterationFromCandidate(cwd, 'CAND-0001');
-    writeState(cwd, { ...started, loop: 'complete' });
+    startIterationFromCandidate(cwd, 'CAND-0001');
 
     expect(() => startIterationFromCandidate(cwd, 'CAND-0001')).toThrow(
       'is selected',
@@ -100,7 +118,7 @@ describe('Iteration Inbox Intake', () => {
   });
 
   it('rejects a stale candidate instead of silently changing its citations', () => {
-    const cwd = workspace();
+    const cwd = gitWorkspace();
     const selected = candidate(cwd);
     captureInboxSource(cwd, {
       source_kind: 'manual_text',
@@ -113,23 +131,25 @@ describe('Iteration Inbox Intake', () => {
       startIterationFromCandidate(cwd, selected.candidate.candidate_id),
     ).toThrow('is stale');
     expect(existsSync(join(cwd, '.evidence-iteration-state.json'))).toBe(false);
+    expect(readBoard(cwd).items).toEqual([]);
   });
 
   it('detects mutation using only the self-contained iteration snapshot', () => {
-    const cwd = workspace();
+    const cwd = gitWorkspace();
     candidate(cwd);
     const state = startIterationFromCandidate(cwd, 'CAND-0001');
+    const worktree = onlyWorktree(cwd);
     const sourcePath =
       state.intake_snapshot?.source_revisions[0].snapshot_path ?? '';
     const persisted = JSON.parse(
-      readFileSync(join(cwd, sourcePath), 'utf8'),
+      readFileSync(join(worktree, sourcePath), 'utf8'),
     ) as object;
     writeFileSync(
-      join(cwd, sourcePath),
+      join(worktree, sourcePath),
       `${JSON.stringify({ ...persisted, body: 'mutated' }, null, 2)}\n`,
     );
 
-    expect(() => validateIterationIntakeSnapshot(cwd, state)).toThrow(
+    expect(() => validateIterationIntakeSnapshot(worktree, state)).toThrow(
       'source revision is inconsistent',
     );
   });
