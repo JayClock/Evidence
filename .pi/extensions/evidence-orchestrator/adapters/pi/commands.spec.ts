@@ -125,6 +125,7 @@ describe('commands', () => {
       'evidence-showcase',
       'evidence-respond',
       'evidence-run',
+      'evidence-flow',
     ]);
   });
 
@@ -207,86 +208,26 @@ describe('commands', () => {
     );
   });
 
-  it('reuses source extraction and candidate selectors for evidence-new', async () => {
+  it('requires an explicit Candidate id for evidence-new', async () => {
     const cwd = workspace();
     initializeGitRepository(cwd);
-    const source = captureInboxSource(cwd, {
-      source_kind: 'manual_text',
-      external_key: 'manual:interview',
-      title: 'Interview',
-      body: 'The owner needs an audit trail.',
-    });
-    const runAgent = vi.fn(async () => {
-      proposeInboxStoryCandidates(
-        cwd,
-        ['INBOX-0001'],
-        [
-          {
-            title: 'Retain deletion evidence',
-            problem: 'Deletion is not auditable.',
-            role: 'workspace owner',
-            goal: 'retain deletion evidence',
-            value: 'support an audit',
-            cognitiveMode: 'complex',
-            citations: [
-              {
-                inboxId: 'INBOX-0001',
-                revisionSha256: source.revision.content_sha256,
-                locator: 'whole source',
-              },
-            ],
-          },
-        ],
-      );
-      return {
-        agent: 'inbox-analyst',
-        model: 'test/model',
-        thinking: 'high' as const,
-        output: 'Recorded CAND-0001.',
-        messages: [],
-        exitCode: 0,
-        stderr: '',
-      };
-    });
     let start:
       | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
       | undefined;
-    registerCommands(
-      {
-        registerCommand(
-          name: string,
-          options: { handler: typeof start },
-        ): void {
-          if (name === 'evidence-new') start = options.handler;
-        },
-      } as never,
-      runAgent as never,
-    );
+    registerCommands({
+      registerCommand(name: string, options: { handler: typeof start }): void {
+        if (name === 'evidence-new') start = options.handler;
+      },
+    } as never);
     const ctx = context(cwd);
-    ctx.ui.select
-      .mockResolvedValueOnce('INBOX-0001 · Interview')
-      .mockResolvedValueOnce(
-        'CAND-0001 · Retain deletion evidence · workspace owner · Problem: Deletion is not auditable.',
-      );
 
     await start?.('', ctx);
 
-    expect(ctx.ui.select).toHaveBeenNthCalledWith(
-      1,
-      'Select one Inbox source to extract',
-      ['INBOX-0001 · Interview'],
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'Usage: /evidence-new CAND-xxxx',
+      'error',
     );
-    expect(ctx.ui.select).toHaveBeenNthCalledWith(
-      2,
-      'Select an Inbox Story candidate for the new iteration',
-      [
-        'CAND-0001 · Retain deletion evidence · workspace owner · Problem: Deletion is not auditable.',
-      ],
-    );
-    const worktree = readBoard(cwd).items[0]?.worktree_path ?? '';
-    expect(readPersistedState(worktree)?.intake_snapshot?.candidate_id).toBe(
-      'CAND-0001',
-    );
+    expect(readBoard(cwd).items).toEqual([]);
   });
 
   it('selects only the command owned by the current stage', () => {

@@ -1,6 +1,8 @@
 export const EVIDENCE_COMMANDS = {
   status: 'evidence-status',
   newIteration: 'evidence-new',
+  flow: 'evidence-flow',
+  answer: 'evidence-answer',
   inbox: 'evidence-inbox',
   kickoff: 'evidence-kickoff',
   scenario: 'evidence-scenario',

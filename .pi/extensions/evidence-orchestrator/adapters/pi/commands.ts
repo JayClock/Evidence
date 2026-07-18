@@ -27,14 +27,7 @@ import {
   ActivityRunBlockedError,
   prepareActivityRun,
 } from './activity/dispatch';
-import {
-  requireCandidateId,
-  selectReadyInboxCandidate,
-} from './candidate-picker';
-import {
-  runInboxSourceExtractionFlow,
-  type InboxAgentRunner,
-} from './inbox-commands';
+import { requireCandidateId } from './candidate-picker';
 import { statusCommandMarkdown } from './status';
 import {
   parseDeskCheckDecision,
@@ -61,6 +54,7 @@ import {
   runPreparedActivityFromCommand,
 } from './activity-command';
 import { EVIDENCE_COMMANDS } from './command-names';
+import { registerFlowCommands } from './flow-commands';
 
 export {
   parseModelDecision,
@@ -114,10 +108,7 @@ export function activeStageCommand(
   return undefined;
 }
 
-export function registerCommands(
-  pi: ExtensionAPI,
-  runInboxAgent?: InboxAgentRunner,
-): void {
+export function registerCommands(pi: ExtensionAPI): void {
   type CommandOptions = Parameters<ExtensionAPI['registerCommand']>[1];
   const registerStageCommand = (name: string, options: CommandOptions) => {
     pi.registerCommand(name, options);
@@ -144,21 +135,10 @@ export function registerCommands(
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
-        let candidateId: string | undefined;
-        if (args.trim()) {
-          candidateId = requireCandidateId(args);
-        } else {
-          const extracted = await runInboxSourceExtractionFlow(
-            pi,
-            ctx,
-            runInboxAgent,
-          );
-          if (extracted) candidateId = await selectReadyInboxCandidate(ctx);
+        if (!args.trim()) {
+          throw new Error('Usage: /evidence-new CAND-xxxx');
         }
-        if (!candidateId) {
-          ctx.ui.notify('New iteration cancelled.', 'info');
-          return;
-        }
+        const candidateId = requireCandidateId(args);
         const state = startIterationFromCandidate(ctx.cwd, candidateId);
         ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
@@ -538,4 +518,6 @@ export function registerCommands(
       }
     },
   });
+
+  registerFlowCommands(pi);
 }

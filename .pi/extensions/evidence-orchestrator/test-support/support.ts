@@ -140,7 +140,11 @@ export function writeIterationArtifact(
 }
 
 export function initializeGitRepository(cwd: string): void {
-  write(cwd, '.gitignore', 'node_modules\n');
+  write(
+    cwd,
+    '.gitignore',
+    'node_modules\n/.worktrees/evidence/\n/.evidence-iteration-state.json\n',
+  );
   writeTestExecutionBudgetPolicy(cwd);
   writeTestFlowPolicy(cwd);
   execFileSync('git', ['init', '--quiet'], { cwd });
