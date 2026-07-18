@@ -148,9 +148,14 @@ async function executePreparedActivityRun(
   ...args: Parameters<typeof executeWithLease>
 ): ReturnType<typeof executeWithLease> {
   const [ctx, prepared] = args;
-  if (!existsSync(`${ctx.cwd}/.git`)) initializeGitRepository(ctx.cwd);
-  if (!readPersistedState(ctx.cwd)) writeState(ctx.cwd, prepared.state);
-  mutateBoard(ctx.cwd, (draft) => {
+  const worktreeRoot = ctx.cwd;
+  if (!existsSync(`${worktreeRoot}/.git`)) {
+    initializeGitRepository(worktreeRoot);
+  }
+  if (!readPersistedState(worktreeRoot)) {
+    writeState(worktreeRoot, prepared.state);
+  }
+  mutateBoard(worktreeRoot, (draft) => {
     const existing = draft.items.find(
       ({ iteration_id }) => iteration_id === prepared.state.iteration_id,
     );
@@ -596,7 +601,9 @@ describe('activity execution', () => {
       status: 'completed',
       exitCode: 0,
     });
-    expect(result.output).toContain('/evidence-pair approve <reason>');
+    expect(result.output).toContain(
+      '/evidence-pair ITER-0001 approve <reason>',
+    );
     expect(result.usage).toEqual({
       turns: 4,
       input_tokens: 400,

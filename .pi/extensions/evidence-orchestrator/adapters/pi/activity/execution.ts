@@ -933,7 +933,7 @@ async function executeAutomatedPairRun(
       return pairAutomationResult(
         state,
         'completed',
-        `Pair automation completed ${steps} recorded checkpoint(s) for ${session.story_id}. Every TEST has Red/Green evidence, each process step has one Refactor record, and all final quality gates passed.\n\nOptional review aid: /evidence-explain-diff. Human Story-level coding approval: /evidence-pair approve <reason>.`,
+        `Pair automation completed ${steps} recorded checkpoint(s) for ${session.story_id}. Every TEST has Red/Green evidence, each process step has one Refactor record, and all final quality gates passed.\n\nOptional review aid: /evidence-explain-diff ${state.iteration_id}. Human Story-level coding approval: /evidence-pair ${state.iteration_id} approve <reason>.`,
         steps,
       );
     }

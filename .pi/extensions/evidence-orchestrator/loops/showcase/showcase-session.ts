@@ -492,7 +492,7 @@ ${showcaseScenarios(state)
 
 ${result}
 
-${observations.every(({ exit_code }) => exit_code === 0) ? 'All selected Q2 observations passed. A human must now observe the actual product behavior and value.' : 'At least one selected Q2 observation failed. Accept is blocked; route the feedback with /evidence-showcase revise.'}`,
+${observations.every(({ exit_code }) => exit_code === 0) ? 'All selected Q2 observations passed. A human must now observe the actual product behavior and value.' : `At least one selected Q2 observation failed. Accept is blocked; route the feedback with /evidence-showcase ${state.iteration_id} revise.`}`,
   };
 }
 
@@ -1317,31 +1317,32 @@ export function showcaseRequiresHumanAction(cwd: string): boolean {
 
 export function showcaseNextInstruction(cwd: string): string {
   const state = showcaseState(cwd);
+  const iterationId = state.iteration_id;
   if (!latestQ2Passed(cwd, state)) {
     const failed = (state.showcase_q2_observations ?? []).some(
       ({ exit_code }) => exit_code !== 0,
     );
     return failed
-      ? '/evidence-showcase revise <target> <reason>'
-      : '/evidence-run executes the selected Q2 Showcase observation';
+      ? `/evidence-showcase ${iterationId} revise <target> <reason>`
+      : `/evidence-run ${iterationId} executes the selected Q2 Showcase observation`;
   }
   if (!hasProductObservation(state)) {
-    return '/evidence-showcase observe <evidence-ref> <observation> :: <value-feedback>';
+    return `/evidence-showcase ${iterationId} observe <evidence-ref> <observation> :: <value-feedback>`;
   }
   const missing = missingShowcaseRisks(state);
   if (missing.length > 0) {
-    return `/evidence-showcase risk ${missing[0]?.toLowerCase()} <not-required|required> [activities] <reason>`;
+    return `/evidence-showcase ${iterationId} risk ${missing[0]?.toLowerCase()} <not-required|required> [activities] <reason>`;
   }
   const missingEvaluations = missingShowcaseEvaluations(state);
   if (missingEvaluations.length > 0) {
-    return `/evidence-showcase evaluate ${missingEvaluations[0]} <passed|concern> <evidence-ref> <finding>`;
+    return `/evidence-showcase ${iterationId} evaluate ${missingEvaluations[0]} <passed|concern> <evidence-ref> <finding>`;
   }
   const concerns = concerningShowcaseEvaluations(state);
   if (concerns.length > 0) {
-    return `/evidence-showcase evaluate ${concerns[0]} <passed|concern> <evidence-ref> <finding> or revise <target> <reason> — unresolved: ${concerns.join(', ')}`;
+    return `/evidence-showcase ${iterationId} evaluate ${concerns[0]} <passed|concern> <evidence-ref> <finding> or revise <target> <reason> — unresolved: ${concerns.join(', ')}`;
   }
   if (state.showcase_stage === 'decision') {
-    return '/evidence-showcase accept|revise|reject <reason>';
+    return `/evidence-showcase ${iterationId} accept|revise|reject <reason>`;
   }
-  return '/evidence-run starts the independent read-only Showcase Reviewer';
+  return `/evidence-run ${iterationId} starts the independent read-only Showcase Reviewer`;
 }

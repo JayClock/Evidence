@@ -1327,7 +1327,7 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run to retry the Production Driver, or /evidence-pair back-test|back-tasking <reason>.`,
+        output: `Green failed for ${unitKey(unit)} with exit=${record.exit_code}; this is implementation feedback, not Refactor. Next: /evidence-run ${state.iteration_id} to retry the Production Driver, or /evidence-pair ${state.iteration_id} back-test|back-tasking <reason>.`,
       };
     }
     const completedTestIds = [
@@ -1359,7 +1359,7 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Observed Green for ${unitKey(unit)}. Refactor is deferred until all TESTs in ${stepKey(unit)} are Green. Paused before ${unitKey(nextUnit)}; run /evidence-run to start its Test Driver checkpoint.`,
+        output: `Observed Green for ${unitKey(unit)}. Refactor is deferred until all TESTs in ${stepKey(unit)} are Green. Paused before ${unitKey(nextUnit)}; run /evidence-run ${state.iteration_id} to start its Test Driver checkpoint.`,
       };
     }
     const next = saveSession(cwd, state, {
@@ -1370,7 +1370,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `Observed Green for ${unitKey(unit)}. All TESTs in ${stepKey(unit)} are Green; next /evidence-run starts one bounded process-step Refactor Driver checkpoint.`,
+      output: `Observed Green for ${unitKey(unit)}. All TESTs in ${stepKey(unit)} are Green; next /evidence-run ${state.iteration_id} starts one bounded process-step Refactor Driver checkpoint.`,
     };
   }
   if (action === 'run_refactor') {
@@ -1451,7 +1451,7 @@ export function executePairAction(
       return {
         state: next,
         record,
-        output: `Refactor verified once for ${stepKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-run to start one Test Driver checkpoint.`,
+        output: `Refactor verified once for ${stepKey(unit)}. Paused before next unit ${unitKey(nextUnit)} at ${stepKey(nextUnit)}; run /evidence-run ${state.iteration_id} to start one Test Driver checkpoint.`,
       };
     }
     const next = writeState(cwd, {
@@ -1464,7 +1464,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `All approved TASK/TEST units are Green and every process step is Refactor-green. Next /evidence-run executes exactly one final quality gate.`,
+      output: `All approved TASK/TEST units are Green and every process step is Refactor-green. Next /evidence-run ${state.iteration_id} executes exactly one final quality gate.`,
     };
   }
 
@@ -1489,7 +1489,7 @@ export function executePairAction(
     return {
       state: next,
       record,
-      output: `Quality gate failed (exit=${record.exit_code}): ${gate.command}. This is quality-gate feedback, not a Refactor failure. Choose /evidence-pair retry-quality, back-implementation, back-test, or back-tasking with a reason.`,
+      output: `Quality gate failed (exit=${record.exit_code}): ${gate.command}. This is quality-gate feedback, not a Refactor failure. Choose /evidence-pair ${state.iteration_id} retry-quality, back-implementation, back-test, or back-tasking with a reason.`,
     };
   }
   const nextIndex = state.pair_session.quality_gate_index + 1;
@@ -1505,7 +1505,7 @@ export function executePairAction(
     state: next,
     record,
     output: complete
-      ? 'All final quality gates passed for the complete Story Scenario Set. Automated coding evidence is ready; /evidence-explain-diff can generate an optional HTML review aid before the one human Story-level approval.'
+      ? `All final quality gates passed for the complete Story Scenario Set. Automated coding evidence is ready; /evidence-explain-diff ${state.iteration_id} can generate an optional HTML review aid before the one human Story-level approval.`
       : `Quality gate passed. ${gates.length - nextIndex} final gate(s) remain; Pair automation will execute the next one.`,
   };
 }
@@ -1699,7 +1699,7 @@ export function pairNextInstruction(state: WorkflowState): string {
     const routes = session.automation_exception.allowed_routes
       .map((route) => route.replaceAll('_', '-'))
       .join('|');
-    return `/evidence-pair ${routes} <reason> routes ${session.automation_exception.exception_id} (${session.automation_exception.kind})`;
+    return `/evidence-pair ${state.iteration_id} ${routes} <reason> routes ${session.automation_exception.exception_id} (${session.automation_exception.kind})`;
   }
   switch (session.checkpoint) {
     case 'plan_confirmed':
@@ -1707,14 +1707,14 @@ export function pairNextInstruction(state: WorkflowState): string {
     case 'implementation_written':
     case 'green_observed':
     case 'refactored':
-      return '/evidence-run continues automated Pair coding';
+      return `/evidence-run ${state.iteration_id} continues automated Pair coding`;
     case 'red_observed':
       return session.red_observation?.accepted
-        ? '/evidence-run continues with the Production Driver'
-        : '/evidence-run invokes the independent AI Red Reviewer';
+        ? `/evidence-run ${state.iteration_id} continues with the Production Driver`
+        : `/evidence-run ${state.iteration_id} invokes the independent AI Red Reviewer`;
     case 'quality_gate_failed':
-      return '/evidence-run attempts bounded automated repair; explicit back-* routing remains available after an exception';
+      return `/evidence-run ${state.iteration_id} attempts bounded automated repair; explicit back-* routing remains available after an exception`;
     case 'quality_gates_passed':
-      return '/evidence-explain-diff optionally creates a read-only HTML explanation; /evidence-pair approve <reason> records the one human Story coding decision and enters Showcase';
+      return `/evidence-explain-diff ${state.iteration_id} optionally creates a read-only HTML explanation; /evidence-pair ${state.iteration_id} approve <reason> records the one human Story coding decision and enters Showcase`;
   }
 }
