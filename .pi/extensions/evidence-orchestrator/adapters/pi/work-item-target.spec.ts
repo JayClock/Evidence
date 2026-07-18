@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { provisionWorkItem } from '../../capabilities/work-item-worktree/provisioner';
+import { ACTIVITY_ITERATION_ENV } from '../../capabilities/worktree-protection/activity-tool-policy';
 import { workflowStateSha256 } from '../../capabilities/flow-control/admission';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { mutateBoard } from '../../iteration/board-repository';
@@ -14,7 +15,10 @@ import {
   requireWorkItemTarget,
 } from './work-item-target';
 
-afterEach(cleanupWorkspaces);
+afterEach(() => {
+  delete process.env[ACTIVITY_ITERATION_ENV];
+  cleanupWorkspaces();
+});
 
 function provision(cwd: string) {
   return provisionWorkItem(
@@ -49,6 +53,17 @@ describe('exact Story target', () => {
       state: { iteration_id: 'ITER-0001' },
       item: { candidate_id: 'CAND-0001' },
     });
+  });
+
+  it('rejects a target outside the activity process Iteration binding', () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    provision(cwd);
+    process.env[ACTIVITY_ITERATION_ENV] = 'ITER-0002';
+
+    expect(() => requireWorkItemTarget(cwd, 'ITER-0001')).toThrow(
+      'bound to ITER-0002',
+    );
   });
 
   it('blocks queued, terminal, and mismatched Story targets', () => {

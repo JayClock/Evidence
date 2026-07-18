@@ -1,6 +1,10 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { WorkflowState } from '../../iteration/state';
 import { activityTraceRelativePath } from '../../capabilities/activity-observability/trace';
+import {
+  reconcileBoardItem,
+  requestDeliveryAdmission,
+} from '../../capabilities/flow-control/admission';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { proposeKnowledgeResponse } from '../../loops/respond/response-cycle';
@@ -25,6 +29,7 @@ import { proposeTaskingDraft } from '../../loops/tasking/tasking-draft';
 import { recordShowcaseReview } from '../../loops/showcase/showcase-session';
 import { isCompletedIteration, prepareActivityRun } from './activity/dispatch';
 import { executePreparedActivityRun } from './activity/execution';
+import { requireWorkItemTarget } from './work-item-target';
 
 import {
   activityRunParam,
@@ -115,6 +120,18 @@ export function syncActiveTools(
   pi.setActiveTools([...new Set([...preserved, ...toolsForState(state)])]);
 }
 
+function targetStory(primaryRoot: string, iterationId: string) {
+  return requireWorkItemTarget(primaryRoot, iterationId);
+}
+
+function reconcileStory(
+  primaryRoot: string,
+  iterationId: string,
+  state: WorkflowState,
+): void {
+  reconcileBoardItem(primaryRoot, iterationId, state);
+}
+
 export function registerTools(pi: ExtensionAPI): void {
   pi.on('tool_result', (event) => {
     if (
@@ -187,7 +204,7 @@ export function registerTools(pi: ExtensionAPI): void {
         content: [
           {
             type: 'text',
-            text: `Started ${state.iteration_id} from ${state.intake_snapshot?.candidate_id}. The frozen candidate awaits a human /evidence-kickoff decision.`,
+            text: `Started ${state.iteration_id} from ${state.intake_snapshot?.candidate_id}. The frozen candidate awaits a human /evidence-kickoff ${state.iteration_id} decision.`,
           },
         ],
         details: { state },
@@ -228,7 +245,8 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: kickoffCandidateParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = proposeKickoffCandidate(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const state = proposeKickoffCandidate(target.worktreeRoot, {
         title: params.title,
         problem: params.problem,
         role: params.role,
@@ -237,11 +255,12 @@ export function registerTools(pi: ExtensionAPI): void {
         cognitiveMode: params.cognitiveMode,
         sourceRefs: params.sourceRefs,
       });
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
             type: 'text',
-            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-kickoff to confirm, revise, split, defer, or stop.`,
+            text: `Kickoff candidate recorded at ${state.kickoff_candidate?.artifact_path}. Stop now and ask the domain expert to run /evidence-kickoff ${params.iterationId} to confirm, revise, split, defer, or stop.`,
           },
         ],
         details: { state },
@@ -262,25 +281,45 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: activityRunParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      const preparation = prepareActivityRun(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const currentState = readState(target.worktreeRoot);
+      if (
+        currentState.loop === 'pair' &&
+        currentState.pair_session?.checkpoint === 'plan_confirmed'
+      ) {
+        const admission = requestDeliveryAdmission(
+          ctx.cwd,
+          params.iterationId,
+          currentState,
+        );
+        if (admission.kind === 'queued') {
+          throw new Error(
+            `${params.iterationId} is queued for Delivery because the lane is at WIP limit. A human must free capacity and pull it explicitly.`,
+          );
+        }
+      }
+      const preparation = prepareActivityRun(target.worktreeRoot, {
         instructions: params.instructions ?? '',
       });
       if (isCompletedIteration(preparation)) {
-        throw new Error(
-          'The active Evidence Orchestrator iteration is complete.',
-        );
+        throw new Error(`${params.iterationId} is complete.`);
       }
-      const details = await executePreparedActivityRun(ctx, preparation, {
-        invocation: 'evidence_orchestrator_run_activity',
-        signal,
-        onUpdate(progress) {
-          onUpdate?.({
-            content: [{ type: 'text', text: progress.output }],
-            details: progress,
-          });
+      const details = await executePreparedActivityRun(
+        { cwd: target.worktreeRoot, ui: ctx.ui },
+        preparation,
+        {
+          invocation: 'evidence_orchestrator_run_activity',
+          signal,
+          onUpdate(progress) {
+            onUpdate?.({
+              content: [{ type: 'text', text: progress.output }],
+              details: progress,
+            });
+          },
         },
-      });
-      const resultingState = readState(ctx.cwd);
+      );
+      const resultingState = readState(target.worktreeRoot);
+      reconcileStory(ctx.cwd, params.iterationId, resultingState);
       return {
         // Full child events remain in details/TUI; model-visible text is bounded.
         content: [
@@ -322,16 +361,18 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: scenarioDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const target = targetStory(ctx.cwd, params.iterationId);
       const state = proposeScenarioDrafts(
-        ctx.cwd,
+        target.worktreeRoot,
         params.storyId,
         params.candidates,
       );
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
             type: 'text',
-            text: `Recorded a ${state.scenario_drafts?.length ?? 0}-Scenario acceptance set for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario.`,
+            text: `Recorded a ${state.scenario_drafts?.length ?? 0}-Scenario acceptance set for ${params.storyId.toUpperCase()}. Stop now and ask the domain expert to run /evidence-scenario ${params.iterationId}.`,
           },
         ],
         details: { state },
@@ -354,21 +395,23 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: modelingProfileParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      const target = targetStory(ctx.cwd, params.iterationId);
       const requirement =
         params.modelChangeRequired === 'unknown'
           ? 'unknown'
           : params.modelChangeRequired === 'true';
-      const state = proposeModelingProfile(ctx.cwd, {
+      const state = proposeModelingProfile(target.worktreeRoot, {
         subject: params.subject,
         method: params.method,
         modelChangeRequired: requirement,
         reason: params.reason,
       });
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
             type: 'text',
-            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-modeling-profile.`,
+            text: `Proposed ${params.subject}/${params.method} with model_change_required=${params.modelChangeRequired}. Stop and ask the human to run /evidence-modeling-profile ${params.iterationId}.`,
           },
         ],
         details: { state },
@@ -393,11 +436,13 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: modelAnalysisParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = recordModelAnalysis(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const state = recordModelAnalysis(target.worktreeRoot, {
         reason: params.reason,
         scenarios: params.scenarios,
         operations: params.operations,
       });
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
@@ -428,10 +473,12 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: modelChallengeParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = recordModelChallenge(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const state = recordModelChallenge(target.worktreeRoot, {
         outcome: params.outcome,
         summary: params.summary,
       });
+      reconcileStory(ctx.cwd, params.iterationId, state);
       const challenge = state.model_challenges?.at(-1);
       return {
         content: [
@@ -439,7 +486,7 @@ export function registerTools(pi: ExtensionAPI): void {
             type: 'text',
             text:
               challenge?.outcome === 'pass'
-                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-model before Tasking.`
+                ? `Recorded passing model challenge. Stop now; a human must review the projection and run /evidence-model ${params.iterationId} before Tasking.`
                 : `Recorded model challenge ${challenge?.outcome}. Workflow loop=${state.loop}; next modeling stage=${state.modeling_stage ?? 'none'}.`,
           },
         ],
@@ -465,7 +512,8 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: taskingDraftParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = proposeTaskingDraft(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const state = proposeTaskingDraft(target.worktreeRoot, {
         runtimes: params.runtimes.map((runtime) => ({
           id: runtime.id,
           runtime: runtime.runtime,
@@ -496,13 +544,14 @@ export function registerTools(pi: ExtensionAPI): void {
           dependsOn: task.dependsOn,
         })),
       });
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
             type: 'text',
             text:
               state.tasking_stage === 'desk_check'
-                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-desk-check.`
+                ? `Tasking draft ${state.tasking_candidate?.draft_id} awaits human /evidence-desk-check ${params.iterationId}.`
                 : `Tasking stopped at ${state.tasking_gap?.kind}: ${state.tasking_gap?.reason}`,
           },
         ],
@@ -526,21 +575,24 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: showcaseReviewParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const review = recordShowcaseReview(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const review = recordShowcaseReview(target.worktreeRoot, {
         observedFacts: params.observedFacts,
         productDomainFeedback: params.productDomainFeedback,
         technicalQualityFeedback: params.technicalQualityFeedback,
         unresolvedAssumptions: params.unresolvedAssumptions,
         recommendation: params.recommendation,
       });
+      const state = readState(target.worktreeRoot);
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
             type: 'text',
-            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-showcase decision is required.`,
+            text: `Recorded independent Showcase review ${review.artifact_path}. A human /evidence-showcase ${params.iterationId} decision is required.`,
           },
         ],
-        details: { review, state: readState(ctx.cwd) },
+        details: { review, state },
         terminate: true,
       };
     },
@@ -561,7 +613,8 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: respondProposalParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const candidate = proposeKnowledgeResponse(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const candidate = proposeKnowledgeResponse(target.worktreeRoot, {
         promotions: params.promotions.map((promotion) => ({
           source: promotion.source,
           kind: promotion.kind,
@@ -582,14 +635,16 @@ export function registerTools(pi: ExtensionAPI): void {
           first_action: params.nextProbe.firstAction,
         },
       });
+      const state = readState(target.worktreeRoot);
+      reconcileStory(ctx.cwd, params.iterationId, state);
       return {
         content: [
           {
             type: 'text',
-            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-respond approval or revision.`,
+            text: `Respond candidate ${candidate.artifact_path} awaits human /evidence-respond ${params.iterationId} approval or revision.`,
           },
         ],
-        details: { candidate, state: readState(ctx.cwd) },
+        details: { candidate, state },
         terminate: true,
       };
     },
@@ -608,11 +663,13 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: clarificationQuestionParam,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const state = askClarification(ctx.cwd, {
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const state = askClarification(target.worktreeRoot, {
         story_id: params.storyId,
         question: params.question,
         target: params.target,
       });
+      reconcileStory(ctx.cwd, params.iterationId, state);
       const pending = state.pending_clarification;
       if (!pending) {
         throw new Error('Clarification was not persisted.');
@@ -643,12 +700,18 @@ export function registerTools(pi: ExtensionAPI): void {
     ],
     parameters: clarificationAnswerParam,
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
-      const pending = readState(ctx.cwd).pending_clarification;
-      const state = answerClarification(ctx.cwd, params.answer);
+      const target = targetStory(ctx.cwd, params.iterationId);
+      const pending = readState(target.worktreeRoot).pending_clarification;
+      if (!pending || pending.question_id !== params.questionId) {
+        throw new Error(
+          `${params.iterationId} has no pending clarification ${params.questionId}.`,
+        );
+      }
+      const state = answerClarification(target.worktreeRoot, params.answer);
       const continuesTqa =
         state.loop === 'understand' && state.understand_stage === 'tqa';
       const preparation = prepareActivityRun(
-        ctx.cwd,
+        target.worktreeRoot,
         continuesTqa && pending
           ? {
               instructions: `领域专家对 ${pending.question_id} 的原文回答：\n\n问题：${pending.question}\n\n回答：${params.answer}\n\n在同一 Story TQA 会话中继续，只提出一个下一问题或完整 Scenario Set。`,
@@ -660,17 +723,22 @@ export function registerTools(pi: ExtensionAPI): void {
           'The active Evidence Orchestrator iteration is complete.',
         );
       }
-      const details = await executePreparedActivityRun(ctx, preparation, {
-        invocation: 'evidence_orchestrator_answer_question',
-        signal,
-        onUpdate(progress) {
-          onUpdate?.({
-            content: [{ type: 'text', text: progress.output }],
-            details: progress,
-          });
+      const details = await executePreparedActivityRun(
+        { cwd: target.worktreeRoot, ui: ctx.ui },
+        preparation,
+        {
+          invocation: 'evidence_orchestrator_answer_question',
+          signal,
+          onUpdate(progress) {
+            onUpdate?.({
+              content: [{ type: 'text', text: progress.output }],
+              details: progress,
+            });
+          },
         },
-      });
-      const resultingState = readState(ctx.cwd);
+      );
+      const resultingState = readState(target.worktreeRoot);
+      reconcileStory(ctx.cwd, params.iterationId, resultingState);
       return {
         content: [
           {

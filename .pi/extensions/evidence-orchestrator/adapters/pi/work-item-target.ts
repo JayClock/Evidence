@@ -1,4 +1,5 @@
 import { existsSync, realpathSync } from 'node:fs';
+import { ACTIVITY_ITERATION_ENV } from '../../capabilities/worktree-protection/activity-tool-policy';
 import { BOARD_ITERATION_ID_PATTERN } from '../../iteration/board-codec';
 import { readBoard } from '../../iteration/board-repository';
 import type { BoardItem } from '../../iteration/board-state';
@@ -46,6 +47,13 @@ export function requireWorkItemTarget(
   const normalized = iterationId.trim().toUpperCase();
   if (!BOARD_ITERATION_ID_PATTERN.test(normalized)) {
     throw new Error(`Invalid Iteration id: ${iterationId}.`);
+  }
+  const boundIterationId =
+    process.env[ACTIVITY_ITERATION_ENV]?.trim().toUpperCase();
+  if (boundIterationId && boundIterationId !== normalized) {
+    throw new Error(
+      `Activity context is bound to ${boundIterationId}; refusing target ${normalized}.`,
+    );
   }
   const item = readBoard(primaryRoot).items.find(
     ({ iteration_id }) => iteration_id === normalized,

@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { Check } from 'typebox/value';
 import {
+  activityRunParam,
+  clarificationAnswerParam,
   clarificationQuestionParam,
   inboxStoryCandidatesParam,
+  kickoffCandidateParam,
+  modelAnalysisParam,
+  modelChallengeParam,
   modelingProfileParam,
+  respondProposalParam,
+  scenarioDraftParam,
+  showcaseReviewParam,
   statusParam,
   taskingDraftParam,
 } from './tool-schemas';
+
+const iterationTarget = { iterationId: 'ITER-0001' } as const;
 
 describe('Pi tool schemas', () => {
   it('rejects unknown properties at every object boundary', () => {
@@ -46,6 +56,29 @@ describe('Pi tool schemas', () => {
     ).toBe(false);
   });
 
+  it('requires an exact Iteration id on every Story mutation schema', () => {
+    for (const schema of [
+      activityRunParam,
+      kickoffCandidateParam,
+      scenarioDraftParam,
+      modelingProfileParam,
+      modelAnalysisParam,
+      modelChallengeParam,
+      taskingDraftParam,
+      showcaseReviewParam,
+      respondProposalParam,
+      clarificationQuestionParam,
+      clarificationAnswerParam,
+    ]) {
+      expect(schema.required).toContain('iterationId');
+      expect(schema.properties.iterationId).toMatchObject({
+        type: 'string',
+        pattern: '^ITER-\\d{4,}$',
+      });
+    }
+    expect(clarificationAnswerParam.required).toContain('questionId');
+  });
+
   it('uses provider-compatible string enums with inferred literal values', () => {
     expect(modelingProfileParam.properties.subject).toMatchObject({
       type: 'string',
@@ -54,6 +87,7 @@ describe('Pi tool schemas', () => {
     expect(modelingProfileParam.properties.subject).not.toHaveProperty('anyOf');
     expect(
       Check(modelingProfileParam, {
+        ...iterationTarget,
         subject: 'tool',
         method: 'algorithmic',
         modelChangeRequired: 'false',
@@ -62,6 +96,7 @@ describe('Pi tool schemas', () => {
     ).toBe(true);
     expect(
       Check(modelingProfileParam, {
+        ...iterationTarget,
         subject: 'service',
         method: 'algorithmic',
         modelChangeRequired: 'false',
@@ -88,6 +123,7 @@ describe('Pi tool schemas', () => {
 
   it('binds focused filters and optional Nx ownership at TEST scope', () => {
     const candidate = {
+      ...iterationTarget,
       runtimes: [
         {
           id: 'RUNTIME-001',
@@ -142,6 +178,7 @@ describe('Pi tool schemas', () => {
   it('constrains clarification targets instead of accepting arbitrary strings', () => {
     expect(
       Check(clarificationQuestionParam, {
+        ...iterationTarget,
         storyId: 'US-001',
         question: 'Who confirms the result?',
         target: 'history',
@@ -149,6 +186,7 @@ describe('Pi tool schemas', () => {
     ).toBe(true);
     expect(
       Check(clarificationQuestionParam, {
+        ...iterationTarget,
         storyId: 'US-001',
         question: 'Who confirms the result?',
         target: 'implementation',
@@ -156,6 +194,7 @@ describe('Pi tool schemas', () => {
     ).toBe(false);
     expect(
       Check(clarificationQuestionParam, {
+        ...iterationTarget,
         storyId: 'US-001',
         question: 'x'.repeat(1537),
         target: 'history',

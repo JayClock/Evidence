@@ -1,10 +1,13 @@
+import { realpathSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { listInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
+import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import { writeState } from '../../iteration/state-repository';
+import { readState, writeState } from '../../iteration/state-repository';
 import {
   cleanupWorkspaces,
+  initializeGitRepository,
   testIntakeSnapshot,
   workspace,
   write,
@@ -27,6 +30,24 @@ afterEach(() => {
   cleanupWorkspaces();
   vi.clearAllMocks();
 });
+
+function registerStory(cwd: string): void {
+  if (readBoard(cwd).items.length > 0) return;
+  mutateBoard(cwd, (draft) => {
+    draft.next_iteration_number = 2;
+    draft.items.push({
+      iteration_id: 'ITER-0001',
+      candidate_id: 'CAND-0001',
+      lifecycle: 'active',
+      branch_name: 'evidence/iter-0001',
+      worktree_path: realpathSync(cwd),
+      base_sha: 'a'.repeat(40),
+      admitted_lane: 'discovery',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+  });
+}
 
 describe('tools', () => {
   it('registers native activity, proposal, TQA, and status tools only', () => {
@@ -172,6 +193,7 @@ describe('tools', () => {
 
   it('bounds activity tool content while retaining full child events in details', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     for (const path of [
       'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
       'docs/product/personas.md',
@@ -185,6 +207,7 @@ describe('tools', () => {
       ...DEFAULT_STATE,
       intake_snapshot: testIntakeSnapshot(),
     });
+    registerStory(cwd);
     runner.runActivityAgent.mockResolvedValue({
       agent: 'requirements-analyst',
       model: 'openai/test',
@@ -214,7 +237,7 @@ describe('tools', () => {
 
     const result = (await run?.execute(
       'call' as never,
-      {} as never,
+      { iterationId: 'ITER-0001' } as never,
       undefined as never,
       undefined as never,
       { cwd, ui: { setStatus: vi.fn() } } as never,
@@ -291,6 +314,7 @@ describe('tools', () => {
 
   it('continues an answered clarification in the same Story TQA session', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     for (const path of [
       'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
       'artifacts/iterations/ITER-0001/01-requirements/problem-statement.md',
@@ -318,6 +342,7 @@ describe('tools', () => {
         asked_at: '2026-01-01T00:01:00.000Z',
       },
     });
+    registerStory(cwd);
     runner.runActivityAgent.mockResolvedValue({
       agent: 'requirements-analyst',
       model: 'openai/test',
@@ -342,9 +367,29 @@ describe('tools', () => {
       },
     } as never);
 
+    await expect(
+      answer?.execute(
+        'call' as never,
+        {
+          iterationId: 'ITER-0001',
+          questionId: 'Q-999',
+          answer: 'This answer must not be recorded.',
+        } as never,
+        undefined as never,
+        undefined as never,
+        { cwd, ui: { setStatus: vi.fn() } } as never,
+      ),
+    ).rejects.toThrow('no pending clarification Q-999');
+    expect(readState(cwd).pending_clarification?.question_id).toBe('Q-001');
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
+
     await answer?.execute(
       'call' as never,
-      { answer: 'The modeling lead confirms version v3.' } as never,
+      {
+        iterationId: 'ITER-0001',
+        questionId: 'Q-001',
+        answer: 'The modeling lead confirms version v3.',
+      } as never,
       undefined as never,
       undefined as never,
       { cwd, ui: { setStatus: vi.fn() } } as never,
@@ -362,7 +407,9 @@ describe('tools', () => {
 
   it('records one unauthorized Kickoff candidate without creating a Story', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     writeState(cwd, DEFAULT_STATE);
+    registerStory(cwd);
     let kickoff:
       | { execute: (...args: never[]) => Promise<unknown> }
       | undefined;
@@ -382,6 +429,7 @@ describe('tools', () => {
     const result = (await kickoff?.execute(
       'call' as never,
       {
+        iterationId: 'ITER-0001',
         title: 'Confirm current model',
         problem: 'The current version is unclear.',
         role: 'modeling lead',

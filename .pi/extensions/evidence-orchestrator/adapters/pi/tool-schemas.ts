@@ -55,7 +55,15 @@ export const inboxStoryCandidatesParam = Type.Object({
   ),
 });
 
+const iterationTargetProperties = {
+  iterationId: Type.String({
+    pattern: '^ITER-\\d{4,}$',
+    description: 'Exact target Iteration id, for example ITER-0001.',
+  }),
+};
+
 export const statusParam = Type.Object({
+  iterationId: Type.Optional(iterationTargetProperties.iterationId),
   view: Type.Optional(
     StringEnum(['summary', 'artifacts'] as const, {
       description:
@@ -77,6 +85,7 @@ export const statusParam = Type.Object({
 });
 
 export const activityRunParam = Type.Object({
+  ...iterationTargetProperties,
   instructions: Type.Optional(
     Type.String({
       description: 'Extra instructions for the current activity agent.',
@@ -85,6 +94,7 @@ export const activityRunParam = Type.Object({
 });
 
 export const kickoffCandidateParam = Type.Object({
+  ...iterationTargetProperties,
   title: Type.String({ description: 'Short candidate Story title.' }),
   problem: Type.String({
     description: 'One user or business problem, without an implementation.',
@@ -109,6 +119,7 @@ export const kickoffCandidateParam = Type.Object({
 });
 
 export const scenarioDraftParam = Type.Object({
+  ...iterationTargetProperties,
   storyId: Type.String({ description: 'The active Story id.' }),
   candidates: Type.Array(
     Type.Object({
@@ -131,6 +142,7 @@ export const scenarioDraftParam = Type.Object({
 });
 
 export const modelingProfileParam = Type.Object({
+  ...iterationTargetProperties,
   subject: StringEnum(['business', 'domain', 'tool'] as const, {
     description: 'Modeling subject: business, domain, or tool.',
   }),
@@ -190,6 +202,7 @@ const scenarioModelExpansionParam = Type.Object({
 });
 
 export const modelAnalysisParam = Type.Object({
+  ...iterationTargetProperties,
   reason: Type.String({
     description:
       'Why one candidate model consistently explains the complete Scenario Set.',
@@ -201,6 +214,7 @@ export const modelAnalysisParam = Type.Object({
 });
 
 export const modelChallengeParam = Type.Object({
+  ...iterationTargetProperties,
   outcome: StringEnum(
     ['pass', 'scenario_gap', 'model_gap', 'method_gap'] as const,
     { description: 'Challenge outcome.' },
@@ -211,6 +225,7 @@ export const modelChallengeParam = Type.Object({
 });
 
 export const taskingDraftParam = Type.Object({
+  ...iterationTargetProperties,
   runtimes: Type.Array(
     Type.Object({
       id: Type.String({ description: 'Unique RUNTIME-xxx plan id.' }),
@@ -286,6 +301,7 @@ export const taskingDraftParam = Type.Object({
 });
 
 export const respondProposalParam = Type.Object({
+  ...iterationTargetProperties,
   promotions: Type.Array(
     Type.Object({
       source: Type.String({ description: 'Iteration evidence source path.' }),
@@ -331,6 +347,7 @@ export const respondProposalParam = Type.Object({
 });
 
 export const showcaseReviewParam = Type.Object({
+  ...iterationTargetProperties,
   observedFacts: Type.Array(
     Type.String({ description: 'Directly reproducible observed fact.' }),
   ),
@@ -349,6 +366,7 @@ export const showcaseReviewParam = Type.Object({
 });
 
 export const clarificationQuestionParam = Type.Object({
+  ...iterationTargetProperties,
   storyId: Type.String({
     description:
       'The US-xxx story whose business uncertainty is being clarified.',
@@ -365,6 +383,11 @@ export const clarificationQuestionParam = Type.Object({
 });
 
 export const clarificationAnswerParam = Type.Object({
+  ...iterationTargetProperties,
+  questionId: Type.String({
+    pattern: '^Q-\\d{3,}$',
+    description: 'Exact pending clarification question id, for example Q-001.',
+  }),
   answer: Type.String({
     description:
       'The domain expert’s explicit answer to the sole pending clarification question.',
