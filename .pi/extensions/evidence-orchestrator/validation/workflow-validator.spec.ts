@@ -1,36 +1,63 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { startActivityTrace } from '../capabilities/activity-observability/trace';
+import { provisionWorkItem } from '../capabilities/work-item-worktree/provisioner';
 import { DEFAULT_STATE } from '../iteration/default-state';
 import { writeState } from '../iteration/state-repository';
 import {
   cleanupWorkspaces,
+  initializeGitRepository,
   workspace,
-  writeIterationArtifact,
+  write,
 } from '../test-support/support';
 import { validateWorkflow } from './workflow-validator';
 
 afterEach(cleanupWorkspaces);
 
-describe('validate', () => {
-  it('rejects an active iteration without a frozen requirement input', () => {
-    const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    writeIterationArtifact(cwd, '00-user-input/requirements.md');
-    expect(() => validateWorkflow(cwd)).toThrow('no frozen requirement input');
-  });
+function story(cwd: string) {
+  initializeGitRepository(cwd);
+  return provisionWorkItem(
+    cwd,
+    'CAND-0001',
+    ({ iterationId, worktreeRoot }) => {
+      writeState(worktreeRoot, {
+        ...DEFAULT_STATE,
+        iteration_id: iterationId,
+      });
+    },
+  );
+}
 
-  it('rejects a missing active iteration root', () => {
+describe('Board workflow validation', () => {
+  it('rejects one Board Story without a frozen requirement input', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
+    const provisioned = story(cwd);
+    write(
+      provisioned.worktree.path,
+      'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+    );
+
     expect(() => validateWorkflow(cwd)).toThrow(
-      'Active iteration artifact root is missing',
+      'ITER-0001 has no frozen requirement input',
     );
   });
 
-  it('rejects an incomplete activity trace before accepting workflow evidence', () => {
+  it('rejects one Board Story with a missing iteration root', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    startActivityTrace(cwd, {
+    story(cwd);
+
+    expect(() => validateWorkflow(cwd)).toThrow(
+      'ITER-0001 artifact root is missing',
+    );
+  });
+
+  it('rejects an incomplete trace in the exact owning Story worktree', () => {
+    const cwd = workspace();
+    const provisioned = story(cwd);
+    write(
+      provisioned.worktree.path,
+      'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
+    );
+    startActivityTrace(provisioned.worktree.path, {
       iterationId: 'ITER-0001',
       activity: 'kickoff',
       agent: 'requirements-analyst',
