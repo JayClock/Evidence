@@ -131,16 +131,35 @@ function draftInput(options: { nx?: boolean } = {}): TaskingDraftInput {
 
 export function prepareDeskCheckFixture(
   cwd: string,
-  options: { nx?: boolean; loadProjectCatalog?: ProjectCatalogLoader } = {},
+  options: {
+    nx?: boolean;
+    loadProjectCatalog?: ProjectCatalogLoader;
+    initializeGit?: boolean;
+    iterationId?: string;
+  } = {},
 ): void {
-  initializeGitRepository(cwd);
-  const scenarioPath =
-    'artifacts/iterations/ITER-0001/01-requirements/examples/US-001-SC-001.md';
+  if (options.initializeGit !== false) initializeGitRepository(cwd);
+  const iterationId = options.iterationId ?? 'ITER-0001';
+  const scenarioPath = `artifacts/iterations/${iterationId}/01-requirements/examples/US-001-SC-001.md`;
+  const baseIntake = testIntakeSnapshot();
+  const iterationPath = (path: string) =>
+    path.replace('ITER-0001', iterationId);
+  const intakeSnapshot = {
+    ...baseIntake,
+    candidate_snapshot_path: iterationPath(baseIntake.candidate_snapshot_path),
+    source_revisions: baseIntake.source_revisions.map((source) => ({
+      ...source,
+      snapshot_path: iterationPath(source.snapshot_path),
+    })),
+    manifest_path: iterationPath(baseIntake.manifest_path),
+    projection_path: iterationPath(baseIntake.projection_path),
+  };
   write(cwd, scenarioPath, '# Create workspace Alpha\n');
   writeState(cwd, {
     ...DEFAULT_STATE,
+    iteration_id: iterationId,
     loop: 'understand',
-    intake_snapshot: testIntakeSnapshot(),
+    intake_snapshot: intakeSnapshot,
     understand_stage: 'modeling',
     confirmed_scenarios: [
       {

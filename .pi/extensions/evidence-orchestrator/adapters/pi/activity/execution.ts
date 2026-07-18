@@ -101,7 +101,9 @@ interface ExecutePreparedActivityRunOptions {
   onAgentProgress?: (progress: ActivityAgentProgress, spanId: string) => void;
 }
 
-function tqaSessionId(preparation: PreparedActivityRun): string | undefined {
+export function activitySessionId(
+  preparation: PreparedActivityRun,
+): string | undefined {
   if (
     preparation.activity !== 'understand' ||
     preparation.state.understand_stage !== 'tqa'
@@ -152,7 +154,7 @@ function traceDescriptor(
     agent: agent.name,
     requestedModel: agent.model,
     thinking: agent.thinking,
-    sessionMode: tqaSessionId(preparation) ? 'persistent' : 'ephemeral',
+    sessionMode: activitySessionId(preparation) ? 'persistent' : 'ephemeral',
     toolNames: [...(agent.tools ?? [])],
     ...(parentSpanId ? { parentSpanId } : {}),
   };
@@ -376,7 +378,7 @@ async function executeOnePreparedActivityRun(
             `Activity ${preparation.activity} has no activity agent or deterministic action.`,
           );
         }
-        const sessionId = tqaSessionId(preparation);
+        const sessionId = activitySessionId(preparation);
         let result: ActivityAgentResult;
         try {
           result = await runActivityAgent({

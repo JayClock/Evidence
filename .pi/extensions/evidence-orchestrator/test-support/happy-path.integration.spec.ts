@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
+import { reconcileBoardItem } from '../capabilities/flow-control/admission';
 import { startIterationFromCandidate } from '../capabilities/inbox/iteration-intake';
 import { captureInboxSource } from '../capabilities/inbox/repository';
 import { proposeInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
@@ -212,7 +213,8 @@ afterEach(cleanupWorkspaces);
 
 describe('native full knowledge loop', () => {
   it('runs a frozen Inbox Intake through human-approved Respond', async () => {
-    let cwd = workspace();
+    const primaryRoot = workspace();
+    let cwd = primaryRoot;
     prepareProject(cwd);
     const source = captureInboxSource(cwd, {
       source_kind: 'manual_text',
@@ -474,9 +476,14 @@ describe('native full knowledge loop', () => {
       'The no-op promotion and next Probe match the evidence.',
     );
 
+    reconcileBoardItem(primaryRoot, completed.iteration_id, completed);
     expect(completed).toMatchObject({
       loop: 'complete',
       respond_stage: 'complete',
+    });
+    expect(readBoard(primaryRoot).items[0]).toMatchObject({
+      lifecycle: 'terminal',
+      admitted_lane: 'done',
     });
     expect(completed).not.toHaveProperty('phase');
     expect(existsSync(`${cwd}/${manifest}`)).toBe(true);
