@@ -13,7 +13,7 @@ import {
   write,
 } from '../../test-support/support';
 import { prepareActivityRun } from '../../adapters/pi/activity/dispatch';
-import { statusMarkdown } from '../../adapters/pi/status';
+import { storyStatusMarkdown } from '../../adapters/pi/status';
 import { buildActivityTask } from '../../adapters/pi/activity/task';
 import { executeTestStep } from '../../capabilities/execution-evidence/observation-log';
 import { completeNoModelImpact } from '../../capabilities/modeling-evidence/no-model-impact';
@@ -581,7 +581,9 @@ describe('Tasking and Desk Check', () => {
 
     expect(draft.tasking_stage).toBe('desk_check');
     expect(() => prepareActivityRun(cwd)).toThrow('/evidence-desk-check');
-    expect(statusMarkdown(cwd)).toContain('human:/evidence-desk-check');
+    expect(storyStatusMarkdown(cwd)).toContain(
+      'human:/evidence-desk-check ITER-0001',
+    );
     expect(
       readFileSync(`${cwd}/${draft.tasking_candidate?.test_list_path}`, 'utf8'),
     ).toContain('Workspace Alpha is available to the owner');

@@ -12,6 +12,10 @@ import {
   releaseActivityLease,
 } from '../../capabilities/flow-control/lease';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
+import {
+  ACTIVITY_CHILD_ENV,
+  ACTIVITY_ITERATION_ENV,
+} from '../../capabilities/worktree-protection/activity-tool-policy';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { proposeKnowledgeResponse } from '../../loops/respond/response-cycle';
 import { recordModelChallenge } from '../../loops/understand/modeling/challenge';
@@ -29,7 +33,10 @@ import {
   renderActivityAgentCall,
   renderActivityAgentResult,
 } from './activity/activity-agent-renderer';
-import { readState } from '../../iteration/state-repository';
+import {
+  readPersistedState,
+  readState,
+} from '../../iteration/state-repository';
 import { statusToolResult } from './status';
 import { proposeTaskingDraft } from '../../loops/tasking/tasking-draft';
 import { recordShowcaseReview } from '../../loops/showcase/showcase-session';
@@ -71,59 +78,76 @@ export const ORCHESTRATOR_TOOL_NAMES = [
   'evidence_orchestrator_answer_question',
 ] as const;
 
-export function toolsForState(state: WorkflowState | undefined): string[] {
-  const inbox = 'evidence_orchestrator_propose_inbox_stories';
-  const status = 'evidence_orchestrator_status';
-  const start = 'evidence_orchestrator_start_from_candidate';
-  if (!state) return [inbox, start, status];
-  if (state.halted || state.loop === 'complete') return [inbox, start, status];
+export const PARENT_ORCHESTRATOR_TOOL_NAMES = [
+  'evidence_orchestrator_propose_inbox_stories',
+  'evidence_orchestrator_start_from_candidate',
+  'evidence_orchestrator_status',
+  'evidence_orchestrator_run_activity',
+  'evidence_orchestrator_answer_question',
+] as const;
 
-  const common = [inbox, start, status, 'evidence_orchestrator_run_activity'];
+/** Mutation tools an activity child may retain for its exact worktree-local stage. */
+export function toolsForState(state: WorkflowState | undefined): string[] {
+  if (!state || state.halted || state.loop === 'complete') return [];
   if (state.loop === 'kickoff') {
-    return [...common, 'evidence_orchestrator_propose_kickoff'];
+    return ['evidence_orchestrator_propose_kickoff'];
   }
   if (state.loop === 'understand') {
     if (state.understand_stage === 'tqa') {
       return [
-        ...common,
         'evidence_orchestrator_ask_question',
-        'evidence_orchestrator_answer_question',
         'evidence_orchestrator_propose_scenarios',
       ];
     }
     if (state.modeling_stage === 'profile') {
-      return [...common, 'evidence_orchestrator_propose_modeling_profile'];
+      return ['evidence_orchestrator_propose_modeling_profile'];
     }
     if (
       state.modeling_stage === 'expansion' &&
       state.modeling_profile?.method !== 'none'
     ) {
-      return [...common, 'evidence_orchestrator_record_model_analysis'];
+      return ['evidence_orchestrator_record_model_analysis'];
     }
     if (state.modeling_stage === 'candidate_ready') {
-      return [...common, 'evidence_orchestrator_record_model_challenge'];
+      return ['evidence_orchestrator_record_model_challenge'];
     }
-    return common;
+    return [];
   }
   if (state.loop === 'tasking') {
-    return [...common, 'evidence_orchestrator_propose_tasking'];
+    return ['evidence_orchestrator_propose_tasking'];
   }
   if (state.loop === 'showcase') {
-    return [...common, 'evidence_orchestrator_record_showcase_review'];
+    return ['evidence_orchestrator_record_showcase_review'];
   }
   if (state.loop === 'respond') {
-    return [...common, 'evidence_orchestrator_propose_response'];
+    return ['evidence_orchestrator_propose_response'];
   }
-  return common;
+  return [];
 }
 
-export function syncActiveTools(
-  pi: ExtensionAPI,
-  state: WorkflowState | undefined,
-): void {
+export function syncActiveTools(pi: ExtensionAPI, cwd: string): void {
   const owned = new Set<string>(ORCHESTRATOR_TOOL_NAMES);
-  const preserved = pi.getActiveTools().filter((name) => !owned.has(name));
-  pi.setActiveTools([...new Set([...preserved, ...toolsForState(state)])]);
+  const current = pi.getActiveTools();
+  const preserved = current.filter((name) => !owned.has(name));
+  if (process.env[ACTIVITY_CHILD_ENV] !== '1') {
+    pi.setActiveTools([
+      ...new Set([...preserved, ...PARENT_ORCHESTRATOR_TOOL_NAMES]),
+    ]);
+    return;
+  }
+
+  const state = readPersistedState(cwd);
+  const boundIterationId = process.env[ACTIVITY_ITERATION_ENV];
+  if (!state || !boundIterationId || state.iteration_id !== boundIterationId) {
+    throw new Error(
+      'Activity child State does not match its bound Evidence Iteration.',
+    );
+  }
+  const allowed = new Set(toolsForState(state));
+  const requested = current.filter(
+    (name) => owned.has(name) && allowed.has(name),
+  );
+  pi.setActiveTools([...new Set([...preserved, ...requested])]);
 }
 
 function targetStory(primaryRoot: string, iterationId: string) {
@@ -228,7 +252,7 @@ export function registerTools(pi: ExtensionAPI): void {
     name: 'evidence_orchestrator_status',
     label: 'Evidence Orchestrator Status',
     description:
-      'Read a bounded Evidence Orchestrator summary or one active-iteration artifact page',
+      'Read a bounded Story Board summary or one exact Iteration summary/artifact page',
     promptSnippet: 'Inspect the current Evidence Orchestrator pipeline status',
     promptGuidelines: [
       'Use evidence_orchestrator_status when the user asks what the Evidence Orchestrator pipeline is doing or what remains.',

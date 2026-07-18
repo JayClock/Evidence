@@ -1,6 +1,7 @@
 import { realpathSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
+import { provisionWorkItem } from '../../capabilities/work-item-worktree/provisioner';
 import { listInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import {
   acquireActivityLease,
@@ -8,6 +9,7 @@ import {
 } from '../../capabilities/flow-control/lease';
 import {
   ACTIVITY_BOARD_ROOT_ENV,
+  ACTIVITY_CHILD_ENV,
   ACTIVITY_ITERATION_ENV,
   ACTIVITY_LEASE_ID_ENV,
 } from '../../capabilities/worktree-protection/activity-tool-policy';
@@ -40,6 +42,7 @@ vi.mock('../node/activity-agent-process', () => ({
 }));
 
 afterEach(() => {
+  delete process.env[ACTIVITY_CHILD_ENV];
   delete process.env[ACTIVITY_ITERATION_ENV];
   delete process.env[ACTIVITY_LEASE_ID_ENV];
   delete process.env[ACTIVITY_BOARD_ROOT_ENV];
@@ -96,17 +99,9 @@ describe('tools', () => {
     ]);
   });
 
-  it('exposes only tools owned by the current loop and stage', () => {
-    expect(toolsForState(undefined)).toEqual([
-      'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_candidate',
-      'evidence_orchestrator_status',
-    ]);
+  it('exposes only mutation tools owned by the activity child stage', () => {
+    expect(toolsForState(undefined)).toEqual([]);
     expect(toolsForState(DEFAULT_STATE)).toEqual([
-      'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_candidate',
-      'evidence_orchestrator_status',
-      'evidence_orchestrator_run_activity',
       'evidence_orchestrator_propose_kickoff',
     ]);
     expect(
@@ -116,12 +111,7 @@ describe('tools', () => {
         understand_stage: 'tqa',
       }),
     ).toEqual([
-      'evidence_orchestrator_propose_inbox_stories',
-      'evidence_orchestrator_start_from_candidate',
-      'evidence_orchestrator_status',
-      'evidence_orchestrator_run_activity',
       'evidence_orchestrator_ask_question',
-      'evidence_orchestrator_answer_question',
       'evidence_orchestrator_propose_scenarios',
     ]);
     expect(
@@ -153,7 +143,7 @@ describe('tools', () => {
         ],
         setActiveTools,
       } as never,
-      DEFAULT_STATE,
+      '/unused',
     );
 
     expect(setActiveTools).toHaveBeenCalledWith([
@@ -163,15 +153,57 @@ describe('tools', () => {
       'evidence_orchestrator_start_from_candidate',
       'evidence_orchestrator_status',
       'evidence_orchestrator_run_activity',
-      'evidence_orchestrator_propose_kickoff',
+      'evidence_orchestrator_answer_question',
     ]);
   });
 
-  it('returns only the bounded status projection and never a code-file inventory', async () => {
+  it('keeps only the explicitly requested mutation tool in a bound child', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    write(cwd, 'artifacts/iterations/ITER-0001/01-requirements/story.md');
-    write(cwd, 'apps/web/src/hidden-from-status.ts');
+    writeState(cwd, {
+      ...DEFAULT_STATE,
+      loop: 'understand',
+      understand_stage: 'tqa',
+    });
+    process.env[ACTIVITY_CHILD_ENV] = '1';
+    process.env[ACTIVITY_ITERATION_ENV] = 'ITER-0001';
+    const setActiveTools = vi.fn();
+
+    syncActiveTools(
+      {
+        getActiveTools: () => [
+          'read',
+          'evidence_orchestrator_ask_question',
+          'evidence_orchestrator_propose_response',
+        ],
+        setActiveTools,
+      } as never,
+      cwd,
+    );
+
+    expect(setActiveTools).toHaveBeenCalledWith([
+      'read',
+      'evidence_orchestrator_ask_question',
+    ]);
+  });
+
+  it('returns only one exact Story projection and never a code-file inventory', async () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    const story = provisionWorkItem(
+      cwd,
+      'CAND-0001',
+      ({ iterationId, worktreeRoot }) => {
+        writeState(worktreeRoot, {
+          ...DEFAULT_STATE,
+          iteration_id: iterationId,
+        });
+      },
+    );
+    write(
+      story.worktree.path,
+      'artifacts/iterations/ITER-0001/01-requirements/story.md',
+    );
+    write(story.worktree.path, 'apps/web/src/hidden-from-status.ts');
     let status: { execute: (...args: never[]) => Promise<unknown> } | undefined;
     registerTools({
       on() {
@@ -187,7 +219,7 @@ describe('tools', () => {
 
     const result = (await status?.execute(
       'call' as never,
-      { view: 'summary' } as never,
+      { iterationId: 'ITER-0001', view: 'summary' } as never,
       undefined as never,
       undefined as never,
       { cwd } as never,
@@ -200,6 +232,7 @@ describe('tools', () => {
     expect(result.details).toEqual(
       expect.objectContaining({
         view: 'summary',
+        scope: 'story',
         projection: expect.objectContaining({ loop: 'kickoff' }),
       }),
     );

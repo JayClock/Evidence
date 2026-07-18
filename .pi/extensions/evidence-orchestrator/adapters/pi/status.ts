@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
-import {
-  collectArtifacts,
-  collectCodeFiles,
-} from '../../iteration/artifact-inventory';
+import { existsSync, realpathSync } from 'node:fs';
+import { collectArtifacts } from '../../iteration/artifact-inventory';
 import {
   iterationActivitySummary,
   type IterationActivitySummary,
@@ -15,17 +13,23 @@ import {
   assertPairExecutionBudgetLocked,
   executionBudgetEnvelopeMode,
 } from '../../capabilities/execution-budget/policy';
+import { projectFlow } from '../../capabilities/flow-control/projection';
+import { readFlowPolicy } from '../../capabilities/flow-control/policy';
+import { currentBranch } from '../../capabilities/work-item-worktree/manager';
 import { iterationRoot } from '../../iteration/artifact-layout';
+import { readBoard } from '../../iteration/board-repository';
+import type { BoardItem, FlowLane } from '../../iteration/board-state';
 import { pairNextInstruction } from '../../loops/pair/pair-session';
 import { showcaseNextInstruction } from '../../loops/showcase/showcase-session';
 import { readPersistedState } from '../../iteration/state-repository';
 import type { WorkflowLoop, WorkflowState } from '../../iteration/state';
 import { nextStepGuidance } from './next-step';
+import { requireWorkItemTarget } from './work-item-target';
 
 export const MAX_STATUS_SUMMARY_BYTES = 4 * 1024;
 export const MAX_STATUS_PAGE_SIZE = 50;
 
-export type StatusDetailView = 'artifacts' | 'files';
+export type StatusDetailView = 'artifacts';
 export type StatusToolView = 'summary' | 'artifacts';
 
 export interface StatusBudgetSummary {
@@ -73,7 +77,7 @@ export interface StatusSummaryProjection {
 
 export interface StatusDetailPage {
   view: StatusDetailView;
-  iteration_id?: string;
+  iteration_id: string;
   total: number;
   offset: number;
   limit: number;
@@ -81,13 +85,41 @@ export interface StatusDetailPage {
   next_cursor?: string;
 }
 
+export interface BoardStatusItemProjection {
+  iteration_id: string;
+  lane: FlowLane;
+  condition: string;
+  reference: string;
+  lifecycle: BoardItem['lifecycle'];
+  pending_lane?: FlowLane;
+  blocker?: string;
+}
+
+export interface BoardStatusProjection {
+  board_revision: number;
+  active: number;
+  max_active: number;
+  lane_counts: Record<FlowLane, number>;
+  lane_limits: Partial<Record<FlowLane, number>>;
+  items: BoardStatusItemProjection[];
+  hidden_items: number;
+  policy_error?: string;
+}
+
 export type StatusToolDetails =
   | {
       view: 'summary';
+      scope: 'board';
+      projection: BoardStatusProjection;
+    }
+  | {
+      view: 'summary';
+      scope: 'story';
       projection: StatusSummaryProjection;
     }
   | {
       view: 'artifacts';
+      scope: 'story';
       projection: StatusSummaryProjection;
       page: Omit<StatusDetailPage, 'items'> & { count: number };
     };
@@ -103,7 +135,8 @@ interface StatusProjectionInput {
 interface StatusCursor {
   version: 1;
   view: StatusDetailView;
-  scope: string;
+  board_revision: number;
+  iteration_id: string;
   offset: number;
   inventory_sha256: string;
 }
@@ -114,6 +147,7 @@ interface StatusPageOptions {
 }
 
 interface StatusToolInput extends StatusPageOptions {
+  iterationId?: string;
   view?: StatusToolView;
 }
 
@@ -348,13 +382,13 @@ function statusNextAction(
   if (state.loop === 'pair') return pairNextInstruction(state);
   if (state.loop === 'showcase') return showcaseNextInstruction(cwd);
   if (state.loop === 'respond' && state.respond_stage === 'decision') {
-    return 'human:/evidence-respond approve|revise <reason>';
+    return `human:/evidence-respond ${state.iteration_id} approve|revise <reason>`;
   }
   if (state.loop === 'understand' && state.modeling_stage === 'model_review') {
-    return 'human:/evidence-model confirm [reason] | revise|scenario-gap|method-gap <reason>';
+    return `human:/evidence-model ${state.iteration_id} confirm [reason] | revise|scenario-gap|method-gap <reason>`;
   }
   if (state.loop === 'tasking' && state.tasking_stage === 'desk_check') {
-    return 'human:/evidence-desk-check';
+    return `human:/evidence-desk-check ${state.iteration_id}`;
   }
   return nextStepGuidance(cwd, state);
 }
@@ -407,36 +441,243 @@ function statusBudgetSummary(
   };
 }
 
-export function statusSummaryProjection(cwd: string): StatusSummaryProjection {
-  const state = readPersistedState(cwd);
-  const artifacts = state
-    ? collectArtifacts(cwd, iterationRoot(cwd, state))
-    : [];
-  const budget = state ? statusBudgetSummary(cwd, state) : undefined;
+export function storyStatusSummaryProjection(
+  worktreeRoot: string,
+): StatusSummaryProjection {
+  const state = readPersistedState(worktreeRoot);
+  if (!state) {
+    throw new Error(`Story State is missing: ${worktreeRoot}.`);
+  }
+  const artifacts = collectArtifacts(
+    worktreeRoot,
+    iterationRoot(worktreeRoot, state),
+  );
+  const budget = statusBudgetSummary(worktreeRoot, state);
   return projectStatusSummary({
     state,
-    nextAction: statusNextAction(cwd, state),
+    nextAction: statusNextAction(worktreeRoot, state),
     artifactCounts: artifactCounts(artifacts),
-    ...(state
-      ? {
-          activity: iterationActivitySummary(cwd, state.iteration_id),
-          ...(budget ? { budget } : {}),
-        }
-      : {}),
+    activity: iterationActivitySummary(worktreeRoot, state.iteration_id),
+    ...(budget ? { budget } : {}),
   });
 }
 
+export function storyStatusMarkdown(worktreeRoot: string): string {
+  return renderStatusSummary(storyStatusSummaryProjection(worktreeRoot));
+}
+
+const BOARD_STATUS_ITEM_LIMIT = 12;
+const FLOW_LANES: FlowLane[] = [
+  'discovery',
+  'planning',
+  'ready',
+  'delivery',
+  'review',
+  'done',
+];
+
+function boundedText(value: string, maxLength = 160): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length <= maxLength
+    ? normalized
+    : `${normalized.slice(0, maxLength - 1)}…`;
+}
+
+function boardStoryReference(state: WorkflowState): string {
+  const story = storyId(state) ?? 'unconfirmed';
+  if (state.pending_clarification) {
+    return `${story}/${state.pending_clarification.question_id}`;
+  }
+  if (
+    state.loop === 'pair' &&
+    state.pair_session?.checkpoint === 'quality_gates_passed'
+  ) {
+    return `${story}/coding-approval`;
+  }
+  return story;
+}
+
+function unavailableBoardItem(
+  item: BoardItem,
+  blockerText: string,
+): BoardStatusItemProjection {
+  return {
+    iteration_id: item.iteration_id,
+    lane: item.admitted_lane,
+    condition:
+      item.lifecycle === 'terminal' || item.lifecycle === 'archived'
+        ? 'terminal'
+        : 'blocked',
+    reference: item.candidate_id,
+    lifecycle: item.lifecycle,
+    ...(item.pending_lane ? { pending_lane: item.pending_lane } : {}),
+    blocker: boundedText(blockerText),
+  };
+}
+
+function projectBoardItem(item: BoardItem): BoardStatusItemProjection {
+  if (item.lifecycle === 'provisioning') {
+    return {
+      iteration_id: item.iteration_id,
+      lane: item.admitted_lane,
+      condition: 'provisioning',
+      reference: item.candidate_id,
+      lifecycle: item.lifecycle,
+    };
+  }
+  if (item.lifecycle === 'provisioning_failed') {
+    return unavailableBoardItem(item, 'Story worktree provisioning failed.');
+  }
+  if (!existsSync(item.worktree_path)) {
+    return unavailableBoardItem(item, 'Story worktree is missing.');
+  }
+  let canonical: string;
+  try {
+    canonical = realpathSync(item.worktree_path);
+  } catch {
+    return unavailableBoardItem(item, 'Story worktree cannot be resolved.');
+  }
+  if (canonical !== item.worktree_path) {
+    return unavailableBoardItem(item, 'Story worktree path drifted.');
+  }
+  try {
+    const branch = currentBranch(canonical);
+    if (branch !== item.branch_name) {
+      return unavailableBoardItem(
+        item,
+        `Story branch drifted: expected ${item.branch_name}, found ${branch || 'detached HEAD'}.`,
+      );
+    }
+    const state = readPersistedState(canonical);
+    if (!state) return unavailableBoardItem(item, 'Story State is missing.');
+    if (state.iteration_id !== item.iteration_id) {
+      return unavailableBoardItem(
+        item,
+        'Board/State Iteration identity drifted.',
+      );
+    }
+    const flow = projectFlow(state, item);
+    return {
+      iteration_id: item.iteration_id,
+      lane: item.admitted_lane,
+      condition: flow.condition,
+      reference: boardStoryReference(state),
+      lifecycle: item.lifecycle,
+      ...(item.pending_lane ? { pending_lane: item.pending_lane } : {}),
+      ...(flow.blocker ? { blocker: boundedText(flow.blocker) } : {}),
+    };
+  } catch (error) {
+    return unavailableBoardItem(
+      item,
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
+function emptyLaneCounts(): Record<FlowLane, number> {
+  return {
+    discovery: 0,
+    planning: 0,
+    ready: 0,
+    delivery: 0,
+    review: 0,
+    done: 0,
+  };
+}
+
+export function boardStatusProjection(cwd: string): BoardStatusProjection {
+  const board = readBoard(cwd);
+  const activeItems = board.items.filter(({ lifecycle }) =>
+    ['provisioning', 'active'].includes(lifecycle),
+  );
+  const laneCounts = emptyLaneCounts();
+  for (const item of activeItems) laneCounts[item.admitted_lane] += 1;
+
+  let maxActive = 0;
+  let laneLimits: Partial<Record<FlowLane, number>> = {};
+  let policyError: string | undefined;
+  try {
+    const policy = readFlowPolicy(cwd).policy;
+    maxActive = policy.max_active_stories;
+    laneLimits = { ...policy.lanes };
+  } catch (error) {
+    policyError = boundedText(
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+
+  const visible = board.items.filter(
+    ({ lifecycle }) => lifecycle !== 'archived',
+  );
+  const selected = visible.slice(-BOARD_STATUS_ITEM_LIMIT);
+  return {
+    board_revision: board.revision,
+    active: activeItems.length,
+    max_active: maxActive,
+    lane_counts: laneCounts,
+    lane_limits: laneLimits,
+    items: selected.map(projectBoardItem),
+    hidden_items: visible.length - selected.length,
+    ...(policyError ? { policy_error: policyError } : {}),
+  };
+}
+
+function boardWipLine(projection: BoardStatusProjection): string {
+  return FLOW_LANES.filter((lane) => lane !== 'done')
+    .map((lane) => {
+      const limit = projection.lane_limits[lane];
+      return `${lane}=${projection.lane_counts[lane]}/${limit ?? '?'}`;
+    })
+    .join(' · ');
+}
+
+export function renderBoardStatus(projection: BoardStatusProjection): string {
+  const lines = [
+    '# Evidence Story Board',
+    '',
+    `- Board revision: ${projection.board_revision}`,
+    `- Active: ${projection.active}/${projection.max_active || '?'}`,
+    `- WIP: ${boardWipLine(projection)}`,
+  ];
+  if (projection.policy_error) {
+    lines.push(`- Policy blocker: ${projection.policy_error}`);
+  }
+  lines.push('');
+  for (const item of projection.items) {
+    lines.push(
+      `- ${item.iteration_id} · ${item.lane} · ${item.pending_lane ? `queued:${item.pending_lane}` : item.condition} · ${item.reference}${item.blocker ? ` · blocker:${item.blocker}` : ''}`,
+    );
+  }
+  if (projection.items.length === 0)
+    lines.push('- No active Story Work Items.');
+  if (projection.hidden_items > 0) {
+    lines.push(
+      `- … ${projection.hidden_items} older non-archived item(s) hidden.`,
+    );
+  }
+  const markdown = lines.join('\n');
+  if (
+    utf8Bytes(markdown) > MAX_STATUS_SUMMARY_BYTES ||
+    utf8Bytes(JSON.stringify(projection)) > MAX_STATUS_SUMMARY_BYTES
+  ) {
+    throw new Error(
+      `Evidence Board status exceeds ${MAX_STATUS_SUMMARY_BYTES} UTF-8 bytes.`,
+    );
+  }
+  return markdown;
+}
+
 export function statusMarkdown(cwd: string): string {
-  return renderStatusSummary(statusSummaryProjection(cwd));
+  return renderBoardStatus(boardStatusProjection(cwd));
 }
 
 function inventoryHash(
-  view: StatusDetailView,
-  scope: string,
+  boardRevision: number,
+  iterationId: string,
   items: readonly string[],
 ): string {
   return createHash('sha256')
-    .update(JSON.stringify({ view, scope, items }))
+    .update(JSON.stringify({ boardRevision, iterationId, items }))
     .digest('hex');
 }
 
@@ -451,8 +692,11 @@ function decodeCursor(value: string): StatusCursor {
     ) as Partial<StatusCursor>;
     if (
       parsed.version !== 1 ||
-      (parsed.view !== 'artifacts' && parsed.view !== 'files') ||
-      typeof parsed.scope !== 'string' ||
+      parsed.view !== 'artifacts' ||
+      !Number.isSafeInteger(parsed.board_revision) ||
+      (parsed.board_revision ?? -1) < 0 ||
+      typeof parsed.iteration_id !== 'string' ||
+      !/^ITER-\d{4,}$/.test(parsed.iteration_id) ||
       !Number.isSafeInteger(parsed.offset) ||
       (parsed.offset ?? 0) <= 0 ||
       typeof parsed.inventory_sha256 !== 'string' ||
@@ -480,47 +724,42 @@ function pageLimit(value: number | undefined): number {
   return limit;
 }
 
-function inventory(
-  cwd: string,
-  view: StatusDetailView,
-): {
-  iterationId?: string;
-  scope: string;
-  items: string[];
-} {
-  if (view === 'files') {
-    return {
-      scope: 'repository-code:apps,libs',
-      items: collectCodeFiles(cwd),
-    };
-  }
-  const state = readPersistedState(cwd);
-  if (!state) {
+function statusTarget(cwd: string, iterationId: string) {
+  const target = requireWorkItemTarget(cwd, iterationId, {
+    allowPending: true,
+    allowTerminal: true,
+  });
+  const branch = currentBranch(target.worktreeRoot);
+  if (branch !== target.item.branch_name) {
     throw new Error(
-      'Artifact status requires an active Evidence Orchestrator iteration.',
+      `Story branch drifted for ${target.item.iteration_id}: expected ${target.item.branch_name}, found ${branch || 'detached HEAD'}.`,
     );
   }
-  return {
-    iterationId: state.iteration_id,
-    scope: `iteration:${state.iteration_id}`,
-    items: collectArtifacts(cwd, iterationRoot(cwd, state)),
-  };
+  return target;
 }
 
 export function statusDetailPage(
   cwd: string,
-  view: StatusDetailView,
+  iterationId: string,
   options: StatusPageOptions = {},
 ): StatusDetailPage {
   const limit = pageLimit(options.limit);
-  const current = inventory(cwd, view);
-  const hash = inventoryHash(view, current.scope, current.items);
+  const board = readBoard(cwd);
+  const target = statusTarget(cwd, iterationId);
+  const items = collectArtifacts(
+    target.worktreeRoot,
+    iterationRoot(target.worktreeRoot, target.state),
+  );
+  const hash = inventoryHash(board.revision, target.item.iteration_id, items);
   let offset = 0;
   if (options.cursor) {
     const cursor = decodeCursor(options.cursor);
-    if (cursor.view !== view || cursor.scope !== current.scope) {
+    if (cursor.iteration_id !== target.item.iteration_id) {
+      throw new Error('Evidence status cursor belongs to another Iteration.');
+    }
+    if (cursor.board_revision !== board.revision) {
       throw new Error(
-        'Evidence status cursor does not belong to this view or active iteration.',
+        'Evidence Board changed after this cursor was issued; restart from the first page.',
       );
     }
     if (cursor.inventory_sha256 !== hash) {
@@ -528,27 +767,28 @@ export function statusDetailPage(
         'Evidence status inventory changed after this cursor was issued; restart from the first page.',
       );
     }
-    if (cursor.offset >= current.items.length) {
+    if (cursor.offset >= items.length) {
       throw new Error('Evidence status cursor is beyond the inventory.');
     }
     offset = cursor.offset;
   }
 
-  const items = current.items.slice(offset, offset + limit);
-  const nextOffset = offset + items.length;
+  const pageItems = items.slice(offset, offset + limit);
+  const nextOffset = offset + pageItems.length;
   return {
-    view,
-    ...(current.iterationId ? { iteration_id: current.iterationId } : {}),
-    total: current.items.length,
+    view: 'artifacts',
+    iteration_id: target.item.iteration_id,
+    total: items.length,
     offset,
     limit,
-    items,
-    ...(nextOffset < current.items.length
+    items: pageItems,
+    ...(nextOffset < items.length
       ? {
           next_cursor: encodeCursor({
             version: 1,
-            view,
-            scope: current.scope,
+            view: 'artifacts',
+            board_revision: board.revision,
+            iteration_id: target.item.iteration_id,
             offset: nextOffset,
             inventory_sha256: hash,
           }),
@@ -558,13 +798,12 @@ export function statusDetailPage(
 }
 
 export function renderStatusDetailPage(page: StatusDetailPage): string {
-  const title = page.view === 'artifacts' ? 'Artifacts' : 'Code Files';
   const start = page.items.length ? page.offset + 1 : 0;
   const end = page.offset + page.items.length;
   return [
-    `# Evidence Orchestrator ${title}`,
+    '# Evidence Orchestrator Artifacts',
     '',
-    ...(page.iteration_id ? [`- Iteration: ${page.iteration_id}`] : []),
+    `- Iteration: ${page.iteration_id}`,
     `- Showing: ${start}-${end} of ${page.total}`,
     '',
     ...(page.items.length ? page.items.map((item) => `- ${item}`) : ['- none']),
@@ -572,7 +811,7 @@ export function renderStatusDetailPage(page: StatusDetailPage): string {
       ? [
           '',
           `- Next cursor: ${page.next_cursor}`,
-          `- Continue: /evidence-status ${page.view} ${page.next_cursor}`,
+          `- Continue: /evidence-status ${page.iteration_id} artifacts ${page.next_cursor}`,
         ]
       : []),
   ].join('\n');
@@ -581,12 +820,22 @@ export function renderStatusDetailPage(page: StatusDetailPage): string {
 export function statusCommandMarkdown(cwd: string, args = ''): string {
   const parts = args.trim() ? args.trim().split(/\s+/) : [];
   if (parts.length === 0) return statusMarkdown(cwd);
-  const [view, cursor, ...extra] = parts;
-  if ((view !== 'artifacts' && view !== 'files') || extra.length > 0) {
-    throw new Error('Usage: /evidence-status [artifacts|files [cursor]].');
+  const [rawIterationId, view, cursor, ...extra] = parts;
+  const iterationId = rawIterationId.toUpperCase();
+  if (!/^ITER-\d{4,}$/.test(iterationId) || extra.length > 0) {
+    throw new Error(
+      'Usage: /evidence-status [ITER-xxxx [artifacts [cursor]]].',
+    );
+  }
+  const target = statusTarget(cwd, iterationId);
+  if (!view) return storyStatusMarkdown(target.worktreeRoot);
+  if (view !== 'artifacts') {
+    throw new Error(
+      'Usage: /evidence-status [ITER-xxxx [artifacts [cursor]]].',
+    );
   }
   return renderStatusDetailPage(
-    statusDetailPage(cwd, view, { ...(cursor ? { cursor } : {}) }),
+    statusDetailPage(cwd, iterationId, { ...(cursor ? { cursor } : {}) }),
   );
 }
 
@@ -595,25 +844,39 @@ export function statusToolResult(
   input: StatusToolInput = {},
 ): { content: string; details: StatusToolDetails } {
   const view = input.view ?? 'summary';
-  const projection = statusSummaryProjection(cwd);
   if (view === 'summary') {
     if (input.cursor || input.limit !== undefined) {
       throw new Error('Status summary does not accept cursor or limit.');
     }
+    if (!input.iterationId) {
+      const projection = boardStatusProjection(cwd);
+      return {
+        content: renderBoardStatus(projection),
+        details: { view, scope: 'board', projection },
+      };
+    }
+    const target = statusTarget(cwd, input.iterationId);
+    const projection = storyStatusSummaryProjection(target.worktreeRoot);
     return {
       content: renderStatusSummary(projection),
-      details: { view, projection },
+      details: { view, scope: 'story', projection },
     };
   }
-  const page = statusDetailPage(cwd, 'artifacts', input);
+  if (!input.iterationId) {
+    throw new Error('Artifact status requires an exact iterationId.');
+  }
+  const target = statusTarget(cwd, input.iterationId);
+  const projection = storyStatusSummaryProjection(target.worktreeRoot);
+  const page = statusDetailPage(cwd, target.item.iteration_id, input);
   return {
     content: renderStatusDetailPage(page),
     details: {
       view,
+      scope: 'story',
       projection,
       page: {
         view: page.view,
-        ...(page.iteration_id ? { iteration_id: page.iteration_id } : {}),
+        iteration_id: page.iteration_id,
         total: page.total,
         offset: page.offset,
         limit: page.limit,

@@ -1,4 +1,4 @@
-import { watchFile, unwatchFile } from 'node:fs';
+import { existsSync, watchFile, unwatchFile } from 'node:fs';
 import type { Stats } from 'node:fs';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { ensureProjectDirs } from '../../iteration/artifact-inventory';
@@ -15,76 +15,101 @@ import {
   ACTIVITY_RESULT_ENTRY_TYPE,
   ACTIVITY_RESULT_MESSAGE_TYPE,
   STATUS_KEY,
-  statusLabel,
 } from './identity';
 import { registerTools, syncActiveTools } from './tools';
 import { registerActivityToolGuard } from './activity/tool-guard';
-import { NEXT_STEP_WIDGET_KEY, nextStepWidget } from './next-step';
+import { NEXT_STEP_WIDGET_KEY } from './next-step';
+import { boardPath, readBoard } from '../../iteration/board-repository';
 import {
   readPersistedState,
   statePath,
 } from '../../iteration/state-repository';
+import { boardStatusProjection } from './status';
 
 const STATE_WATCH_INTERVAL_MS = 250;
 
 export default function evidenceOrchestratorExtension(pi: ExtensionAPI) {
   registerActivityToolGuard(pi);
 
-  let watchedStatePath: string | undefined;
-  let stateChangeListener:
-    | ((current: Stats, previous: Stats) => void)
-    | undefined;
+  const watchers = new Map<string, (current: Stats, previous: Stats) => void>();
 
-  const closeStateWatcher = () => {
-    if (watchedStatePath && stateChangeListener) {
-      unwatchFile(watchedStatePath, stateChangeListener);
-    }
-    watchedStatePath = undefined;
-    stateChangeListener = undefined;
+  const closeWatchers = () => {
+    for (const [path, listener] of watchers) unwatchFile(path, listener);
+    watchers.clear();
   };
 
   pi.on('session_start', (_event, ctx) => {
-    closeStateWatcher();
-    const currentStatePath = statePath(ctx.cwd);
-    const state = readPersistedState(ctx.cwd);
-    if (state) ensureProjectDirs(ctx.cwd, iterationRoot(ctx.cwd, state));
-    ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-    ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, nextStepWidget(ctx.cwd, state), {
-      placement: 'belowEditor',
-    });
-    syncActiveTools(pi, state);
-
+    closeWatchers();
+    let refreshing = false;
     const refreshStatus = () => {
+      if (refreshing) return;
+      refreshing = true;
       try {
-        const state = readPersistedState(ctx.cwd);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
-        ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, nextStepWidget(ctx.cwd, state), {
-          placement: 'belowEditor',
-        });
-        syncActiveTools(pi, state);
+        const board = readBoard(ctx.cwd);
+        for (const item of board.items) {
+          if (item.lifecycle !== 'active' || !existsSync(item.worktree_path)) {
+            continue;
+          }
+          const state = readPersistedState(item.worktree_path);
+          if (state) {
+            ensureProjectDirs(
+              item.worktree_path,
+              iterationRoot(item.worktree_path, state),
+            );
+          }
+        }
+        const projection = boardStatusProjection(ctx.cwd);
+        ctx.ui.setStatus(
+          STATUS_KEY,
+          `orchestrator:active=${projection.active}/${projection.max_active || '?'}:delivery=${projection.lane_counts.delivery}/${projection.lane_limits.delivery ?? '?'}`,
+        );
+        ctx.ui.setWidget(
+          NEXT_STEP_WIDGET_KEY,
+          [
+            `Evidence · Active ${projection.active}/${projection.max_active || '?'} · run /evidence-status for the Board`,
+          ],
+          { placement: 'belowEditor' },
+        );
+        syncActiveTools(pi, ctx.cwd);
+
+        const desiredPaths = new Set([
+          boardPath(ctx.cwd),
+          ...board.items
+            .filter(({ lifecycle }) => lifecycle === 'active')
+            .map(({ worktree_path }) => statePath(worktree_path)),
+        ]);
+        for (const [path, listener] of watchers) {
+          if (desiredPaths.has(path)) continue;
+          unwatchFile(path, listener);
+          watchers.delete(path);
+        }
+        for (const path of desiredPaths) {
+          if (watchers.has(path)) continue;
+          const listener = (current: Stats, previous: Stats) => {
+            if (current.mtimeMs !== previous.mtimeMs) refreshStatus();
+          };
+          watchers.set(path, listener);
+          watchFile(
+            path,
+            { interval: STATE_WATCH_INTERVAL_MS, persistent: false },
+            listener,
+          );
+        }
       } catch (error) {
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(undefined, 'state-error'));
+        ctx.ui.setStatus(STATUS_KEY, 'orchestrator:board-error');
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),
           'error',
         );
+      } finally {
+        refreshing = false;
       }
     };
-
-    watchedStatePath = currentStatePath;
-    stateChangeListener = (current, previous) => {
-      if (current.mtimeMs === previous.mtimeMs) return;
-      refreshStatus();
-    };
-    watchFile(
-      currentStatePath,
-      { interval: STATE_WATCH_INTERVAL_MS, persistent: false },
-      stateChangeListener,
-    );
+    refreshStatus();
   });
 
   pi.on('session_shutdown', (_event, ctx) => {
-    closeStateWatcher();
+    closeWatchers();
     ctx.ui.setWidget(NEXT_STEP_WIDGET_KEY, undefined);
   });
 

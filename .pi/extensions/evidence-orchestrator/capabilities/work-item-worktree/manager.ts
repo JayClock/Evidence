@@ -73,6 +73,10 @@ export function currentHead(cwd: string): string {
   return git(cwd, ['rev-parse', '--verify', 'HEAD']);
 }
 
+export function currentBranch(cwd: string): string {
+  return git(cwd, ['branch', '--show-current']);
+}
+
 export function createStoryWorktree(
   primaryRoot: string,
   iterationId: string,

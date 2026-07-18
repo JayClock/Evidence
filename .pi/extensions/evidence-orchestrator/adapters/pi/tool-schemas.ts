@@ -67,7 +67,7 @@ export const statusParam = Type.Object({
   view: Type.Optional(
     StringEnum(['summary', 'artifacts'] as const, {
       description:
-        'Bounded status view. Summary is the default; artifacts is active-iteration-only and paginated.',
+        'Bounded status view. Summary defaults to the Board; artifacts requires an exact iterationId.',
     }),
   ),
   cursor: Type.Optional(

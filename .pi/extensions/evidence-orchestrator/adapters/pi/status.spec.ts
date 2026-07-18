@@ -1,12 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { workflowStateSha256 } from '../../capabilities/flow-control/admission';
 import {
   finishActivityTrace,
   startActivityTrace,
 } from '../../capabilities/activity-observability/trace';
+import { provisionWorkItem } from '../../capabilities/work-item-worktree/provisioner';
+import { mutateBoard } from '../../iteration/board-repository';
 import { DEFAULT_STATE } from '../../iteration/default-state';
+import type { WorkflowState } from '../../iteration/state';
 import { writeState } from '../../iteration/state-repository';
 import {
   cleanupWorkspaces,
+  initializeGitRepository,
   workspace,
   write,
 } from '../../test-support/support';
@@ -23,9 +28,24 @@ import {
 
 afterEach(cleanupWorkspaces);
 
-describe('status', () => {
-  it('projects idle status without scanning or listing repository code files', () => {
+function provision(
+  cwd: string,
+  candidateId = 'CAND-0001',
+  state: WorkflowState = DEFAULT_STATE,
+) {
+  return provisionWorkItem(
+    cwd,
+    candidateId,
+    ({ iterationId, worktreeRoot }) => {
+      writeState(worktreeRoot, { ...state, iteration_id: iterationId });
+    },
+  );
+}
+
+describe('multi-Story status', () => {
+  it('projects an idle Board without scanning repository code files', () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     write(cwd, 'apps/web/src/large-context-surface.ts');
     write(cwd, 'libs/web/feature/src/also-hidden.tsx');
 
@@ -34,18 +54,83 @@ describe('status', () => {
     expect(Buffer.byteLength(status, 'utf8')).toBeLessThanOrEqual(
       MAX_STATUS_SUMMARY_BYTES,
     );
-    expect(status).toContain('- Iteration: none');
-    expect(status).toContain('- Loop: idle');
-    expect(status).toContain('运行 /evidence-new');
+    expect(status).toContain('# Evidence Story Board');
+    expect(status).toContain('- Active: 0/3');
+    expect(status).toContain('No active Story Work Items');
     expect(status).not.toContain('apps/web');
     expect(status).not.toContain('libs/web');
-    expect(status).not.toContain('Code Files');
   });
 
-  it('keeps one pending TQA question intact in a bounded active projection', () => {
+  it('keeps three interleaved Board cards bounded with lane and condition', () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
+    const first = provision(cwd, 'CAND-0001', {
+      ...DEFAULT_STATE,
+      loop: 'understand',
+      understand_stage: 'tqa',
+      active_clarification_story: {
+        story_id: 'US-001',
+        selected_at: '2026-01-01T00:00:00.000Z',
+      },
+      pending_clarification: {
+        question_id: 'Q-002',
+        story_id: 'US-001',
+        question: 'Who confirms the model?',
+        target: 'history',
+        asked_at: '2026-01-01T00:01:00.000Z',
+      },
+    });
+    provision(cwd, 'CAND-0002');
+    mutateBoard(cwd, (draft) => {
+      draft.items[0].admitted_lane = 'review';
+      draft.items[1].admitted_lane = 'ready';
+      draft.items[1].pending_lane = 'delivery';
+      draft.items[1].pending_lane_requested_at = '2026-01-01T00:00:00.000Z';
+      draft.items[1].pending_state_sha256 = workflowStateSha256({
+        ...DEFAULT_STATE,
+        iteration_id: 'ITER-0002',
+      });
+    });
+    provision(cwd, 'CAND-0003');
+    void first;
+
+    const status = statusMarkdown(cwd);
+
+    expect(Buffer.byteLength(status, 'utf8')).toBeLessThanOrEqual(
+      MAX_STATUS_SUMMARY_BYTES,
+    );
+    expect(status).toContain('- Active: 3/3');
+    expect(status).toContain(
+      'ITER-0001 · review · waiting_human · US-001/Q-002',
+    );
+    expect(status).toContain('ITER-0002 · ready · queued:delivery');
+    expect(status).toContain('ITER-0003 · discovery');
+  });
+
+  it('shows worktree, branch, and malformed State drift as explicit blockers', () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    const story = provision(cwd);
+    mutateBoard(cwd, (draft) => {
+      draft.items[0].branch_name = 'evidence/iter-9999';
+    });
+
+    expect(statusMarkdown(cwd)).toContain('blocker:Story branch drifted');
+
+    mutateBoard(cwd, (draft) => {
+      draft.items[0].branch_name = story.worktree.branchName;
+    });
+    write(story.worktree.path, '.evidence-iteration-state.json', '{');
+    expect(statusMarkdown(cwd)).toContain(
+      "blocker:Expected property name or '}' in JSON",
+    );
+  });
+
+  it('keeps one exact pending TQA question intact in Story detail', () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
     const question = 'Who confirms the model before another editor opens it?';
-    writeState(cwd, {
+    const story = provision(cwd, 'CAND-0001', {
       ...DEFAULT_STATE,
       loop: 'understand',
       understand_stage: 'tqa',
@@ -62,30 +147,30 @@ describe('status', () => {
       },
     });
     write(
-      cwd,
+      story.worktree.path,
       'artifacts/iterations/ITER-0001/01-requirements/stories/US-001.md',
     );
 
-    const status = statusMarkdown(cwd);
+    const status = statusCommandMarkdown(cwd, 'ITER-0001');
 
     expect(Buffer.byteLength(status, 'utf8')).toBeLessThanOrEqual(
       MAX_STATUS_SUMMARY_BYTES,
     );
     expect(status).toContain('- Loop: understand');
     expect(status).toContain(`Q-001 · ${question}`);
-    expect(status).toContain('直接回答 Q-001');
+    expect(status).toContain('/evidence-answer ITER-0001 Q-001');
     expect(status).toContain('total=1');
     expect(status).not.toContain('## Artifacts');
   });
 
-  it('is a pure projection over already-resolved workflow facts', () => {
+  it('is a pure Story projection over already-resolved workflow facts', () => {
     const projection = projectStatusSummary({
       state: {
         ...DEFAULT_STATE,
         loop: 'tasking',
         tasking_stage: 'desk_check',
       },
-      nextAction: '/evidence-desk-check',
+      nextAction: '/evidence-desk-check ITER-0001',
       artifactCounts: { total: 7, '04-planning': 3 },
     });
 
@@ -94,7 +179,7 @@ describe('status', () => {
         iteration_id: 'ITER-0001',
         loop: 'tasking',
         stage: 'desk_check',
-        next_action: '/evidence-desk-check',
+        next_action: '/evidence-desk-check ITER-0001',
         artifact_counts: { total: 7, '04-planning': 3 },
       }),
     );
@@ -107,7 +192,7 @@ describe('status', () => {
         loop: 'tasking',
         tasking_stage: 'desk_check',
       },
-      nextAction: '/evidence-desk-check',
+      nextAction: '/evidence-desk-check ITER-0001',
       artifactCounts: { total: 1 },
       budget: {
         mode: 'shadow',
@@ -138,9 +223,10 @@ describe('status', () => {
     expect(status).toContain('cost=unknown');
   });
 
-  it('shows compact iteration Q/T/C without treating missing cost as zero', () => {
+  it('shows compact per-Story Q/T/C without treating missing cost as zero', () => {
     const cwd = workspace();
-    writeState(cwd, {
+    initializeGitRepository(cwd);
+    const story = provision(cwd, 'CAND-0001', {
       ...DEFAULT_STATE,
       loop: 'understand',
       understand_stage: 'tqa',
@@ -149,7 +235,7 @@ describe('status', () => {
         selected_at: '2026-01-01T00:00:00.000Z',
       },
     });
-    const span = startActivityTrace(cwd, {
+    const span = startActivityTrace(story.worktree.path, {
       iterationId: 'ITER-0001',
       activity: 'understand',
       checkpoint: 'tqa',
@@ -181,99 +267,112 @@ describe('status', () => {
       toolCallCounts: { read: 1 },
     });
 
-    const status = statusMarkdown(cwd);
+    const status = statusCommandMarkdown(cwd, 'ITER-0001');
     expect(status).toContain(
       '- Activity: 1 calls · ↑1.2k · ↓100 · cost:n/a · cost:n/a=1 · 2.0s',
     );
     expect(status).not.toContain('$0.0000');
-    expect(status).not.toContain('requirements-analyst ·');
   });
 
-  it('paginates human artifact and code-file details at no more than 50 items', () => {
+  it('paginates only one exact Story artifact inventory at no more than 50', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
+    initializeGitRepository(cwd);
+    const story = provision(cwd);
     for (let index = 0; index < 55; index += 1) {
       const suffix = String(index).padStart(2, '0');
       write(
-        cwd,
+        story.worktree.path,
         `artifacts/iterations/ITER-0001/01-requirements/item-${suffix}.md`,
       );
-      write(cwd, `apps/web/src/item-${suffix}.ts`);
+      write(story.worktree.path, `apps/web/src/item-${suffix}.ts`);
     }
 
-    const artifacts = statusDetailPage(cwd, 'artifacts');
-    const files = statusDetailPage(cwd, 'files');
+    const artifacts = statusDetailPage(cwd, 'ITER-0001');
 
     expect(artifacts.items).toHaveLength(MAX_STATUS_PAGE_SIZE);
-    expect(files.items).toHaveLength(MAX_STATUS_PAGE_SIZE);
     expect(artifacts.total).toBe(55);
-    expect(files.total).toBe(55);
     expect(artifacts.next_cursor).toBeTruthy();
-    expect(files.next_cursor).toBeTruthy();
     expect(
-      statusDetailPage(cwd, 'artifacts', {
+      statusDetailPage(cwd, 'ITER-0001', {
         cursor: artifacts.next_cursor,
       }).items,
     ).toHaveLength(5);
-    expect(statusCommandMarkdown(cwd, 'files')).toContain(
-      'apps/web/src/item-00.ts',
+    expect(statusCommandMarkdown(cwd, 'ITER-0001 artifacts')).toContain(
+      'artifacts/iterations/ITER-0001/01-requirements/item-00.md',
     );
     expect(statusMarkdown(cwd)).not.toContain('apps/web/src/item-00.ts');
+    expect(() => statusCommandMarkdown(cwd, 'ITER-0001 files')).toThrow(
+      'Usage: /evidence-status',
+    );
   });
 
-  it('rejects malformed, out-of-range, cross-view, and drifted cursors', () => {
+  it('binds cursors to Board revision, Iteration, and inventory hash', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    for (let index = 0; index < 3; index += 1) {
-      write(
-        cwd,
-        `artifacts/iterations/ITER-0001/01-requirements/item-${index}.md`,
-      );
+    initializeGitRepository(cwd);
+    const firstStory = provision(cwd, 'CAND-0001');
+    const secondStory = provision(cwd, 'CAND-0002');
+    for (const story of [firstStory, secondStory]) {
+      for (let index = 0; index < 3; index += 1) {
+        write(
+          story.worktree.path,
+          `artifacts/iterations/${story.item.iteration_id}/01-requirements/item-${index}.md`,
+        );
+      }
     }
-    const first = statusDetailPage(cwd, 'artifacts', { limit: 1 });
+    const first = statusDetailPage(cwd, 'ITER-0001', { limit: 1 });
     if (!first.next_cursor) throw new Error('Expected a next cursor.');
 
     expect(() =>
-      statusDetailPage(cwd, 'artifacts', { cursor: 'not-a-cursor' }),
+      statusDetailPage(cwd, 'ITER-0001', { cursor: 'not-a-cursor' }),
     ).toThrow('Invalid Evidence status cursor');
     expect(() =>
-      statusDetailPage(cwd, 'files', { cursor: first.next_cursor }),
-    ).toThrow('does not belong');
+      statusDetailPage(cwd, 'ITER-0002', { cursor: first.next_cursor }),
+    ).toThrow('belongs to another Iteration');
 
-    const decoded = JSON.parse(
-      Buffer.from(first.next_cursor, 'base64url').toString('utf8'),
-    ) as { offset: number };
-    decoded.offset = 99;
-    const beyond = Buffer.from(JSON.stringify(decoded), 'utf8').toString(
-      'base64url',
+    mutateBoard(cwd, (draft) => {
+      draft.items[1].updated_at = '2026-01-01T00:02:00.000Z';
+    });
+    expect(() =>
+      statusDetailPage(cwd, 'ITER-0001', { cursor: first.next_cursor }),
+    ).toThrow('Board changed');
+
+    const afterBoardChange = statusDetailPage(cwd, 'ITER-0001', { limit: 1 });
+    if (!afterBoardChange.next_cursor) throw new Error('Expected a cursor.');
+    write(
+      firstStory.worktree.path,
+      'artifacts/iterations/ITER-0001/01-requirements/drifted.md',
     );
     expect(() =>
-      statusDetailPage(cwd, 'artifacts', { cursor: beyond }),
-    ).toThrow('beyond the inventory');
-
-    write(cwd, 'artifacts/iterations/ITER-0001/01-requirements/drifted.md');
-    expect(() =>
-      statusDetailPage(cwd, 'artifacts', { cursor: first.next_cursor }),
+      statusDetailPage(cwd, 'ITER-0001', {
+        cursor: afterBoardChange.next_cursor,
+      }),
     ).toThrow('inventory changed');
   });
 
-  it('keeps model status details on the same bounded projection without state or inventories', () => {
+  it('returns bounded Board or exact Story tool details without raw State', () => {
     const cwd = workspace();
-    writeState(cwd, DEFAULT_STATE);
-    write(cwd, 'artifacts/iterations/ITER-0001/01-requirements/story.md');
-    write(cwd, 'apps/web/src/never-model-visible.ts');
+    initializeGitRepository(cwd);
+    const story = provision(cwd);
+    write(
+      story.worktree.path,
+      'artifacts/iterations/ITER-0001/01-requirements/story.md',
+    );
+    write(story.worktree.path, 'apps/web/src/never-model-visible.ts');
 
-    const summary = statusToolResult(cwd);
+    const board = statusToolResult(cwd);
+    const summary = statusToolResult(cwd, { iterationId: 'ITER-0001' });
     const artifacts = statusToolResult(cwd, {
+      iterationId: 'ITER-0001',
       view: 'artifacts',
       limit: 1,
     });
 
-    expect(Buffer.byteLength(summary.content, 'utf8')).toBeLessThanOrEqual(
-      MAX_STATUS_SUMMARY_BYTES,
+    expect(board.details).toEqual(
+      expect.objectContaining({ view: 'summary', scope: 'board' }),
     );
     expect(summary.details).toEqual({
       view: 'summary',
+      scope: 'story',
       projection: expect.objectContaining({ loop: 'kickoff' }),
     });
     expect(artifacts.content).toContain(
@@ -282,7 +381,7 @@ describe('status', () => {
     expect(artifacts.details).toEqual(
       expect.objectContaining({
         view: 'artifacts',
-        projection: summary.details.projection,
+        scope: 'story',
         page: expect.objectContaining({ total: 1, count: 1 }),
       }),
     );
@@ -290,6 +389,9 @@ describe('status', () => {
     expect(JSON.stringify(artifacts.details)).not.toContain('"items"');
     expect(JSON.stringify(artifacts.details)).not.toContain(
       'never-model-visible',
+    );
+    expect(() => statusToolResult(cwd, { view: 'artifacts' })).toThrow(
+      'requires an exact iterationId',
     );
   });
 });

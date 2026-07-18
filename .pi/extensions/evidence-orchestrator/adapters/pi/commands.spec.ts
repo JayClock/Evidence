@@ -151,9 +151,10 @@ describe('commands', () => {
     ]);
   });
 
-  it('keeps default status compact and scans code files only for the explicit files view', async () => {
+  it('keeps default Board status compact and rejects repository file inventory', async () => {
     const cwd = workspace();
-    write(cwd, 'apps/web/src/explicit-detail.ts');
+    initializeGitRepository(cwd);
+    write(cwd, 'apps/web/src/never-status-visible.ts');
     let status:
       | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
       | undefined;
@@ -166,14 +167,16 @@ describe('commands', () => {
 
     await status?.('', ctx);
     expect(ctx.ui.notify).toHaveBeenLastCalledWith(
-      expect.not.stringContaining('explicit-detail.ts'),
+      expect.not.stringContaining('never-status-visible.ts'),
       'info',
     );
 
     await status?.('files', ctx);
     expect(ctx.ui.notify).toHaveBeenLastCalledWith(
-      expect.stringContaining('apps/web/src/explicit-detail.ts'),
-      'info',
+      expect.stringContaining(
+        'Usage: /evidence-status [ITER-xxxx [artifacts [cursor]]]',
+      ),
+      'error',
     );
   });
 
