@@ -4,6 +4,7 @@ import {
   pullPendingLane,
   reconcileBoardItem,
 } from '../../capabilities/flow-control/admission';
+import { recoverExpiredActivityLease } from '../../capabilities/flow-control/lease';
 import { projectFlow } from '../../capabilities/flow-control/projection';
 import {
   removeStoryWorktree,
@@ -117,6 +118,25 @@ function recoverFailedProvisioning(
   void reason;
 }
 
+function recoverWork(
+  primaryRoot: string,
+  iterationId: string,
+  reason: string,
+): 'provisioning' | 'lease' {
+  const item = readBoard(primaryRoot).items.find(
+    ({ iteration_id }) => iteration_id === iterationId,
+  );
+  if (item?.lifecycle === 'provisioning_failed') {
+    recoverFailedProvisioning(primaryRoot, iterationId, reason);
+    return 'provisioning';
+  }
+  if (item?.lifecycle === 'active') {
+    recoverExpiredActivityLease(primaryRoot, iterationId, reason);
+    return 'lease';
+  }
+  throw new Error(`No recoverable work exists for ${iterationId}.`);
+}
+
 function archiveCompletedWork(
   primaryRoot: string,
   iterationId: string,
@@ -178,8 +198,13 @@ export function registerFlowCommands(pi: ExtensionAPI): void {
         }
         if (action === 'recover') {
           const { iterationId, reason } = parseTargetAndReason(rest, 'recover');
-          recoverFailedProvisioning(ctx.cwd, iterationId, reason);
-          ctx.ui.notify(`${iterationId} failed provisioning archived.`, 'info');
+          const recovered = recoverWork(ctx.cwd, iterationId, reason);
+          ctx.ui.notify(
+            recovered === 'lease'
+              ? `${iterationId} expired activity lease recovered.`
+              : `${iterationId} failed provisioning archived.`,
+            'info',
+          );
           return;
         }
         if (action === 'archive') {

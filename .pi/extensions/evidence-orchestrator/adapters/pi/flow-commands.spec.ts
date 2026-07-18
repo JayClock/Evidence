@@ -1,10 +1,14 @@
 import { existsSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { workflowStateSha256 } from '../../capabilities/flow-control/admission';
+import {
+  acquireActivityLease,
+  activityLeasePath,
+} from '../../capabilities/flow-control/lease';
 import { provisionWorkItem } from '../../capabilities/work-item-worktree/provisioner';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import { mutateBoard, readBoard } from '../../iteration/board-repository';
-import { writeState } from '../../iteration/state-repository';
+import { readState, writeState } from '../../iteration/state-repository';
 import {
   cleanupWorkspaces,
   initializeGitRepository,
@@ -112,6 +116,31 @@ describe('Story Flow commands', () => {
     expect(readBoard(cwd).items[0].lifecycle).toBe('archived');
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       'ITER-0001 worktree archived.',
+      'info',
+    );
+  });
+
+  it('recovers only an expired activity lease with an explicit reason', async () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    const provisioned = provision(cwd);
+    acquireActivityLease(
+      cwd,
+      provisioned.worktree.path,
+      readState(provisioned.worktree.path),
+      'activity',
+      {
+        now: () => new Date('2000-01-01T00:00:00.000Z'),
+        leaseId: () => '00000000-0000-4000-8000-000000000001',
+      },
+    );
+    const { handler, ctx } = flowHandler(cwd);
+
+    await handler('recover ITER-0001 The child process crashed.', ctx);
+
+    expect(existsSync(activityLeasePath(cwd, 'ITER-0001'))).toBe(false);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'ITER-0001 expired activity lease recovered.',
       'info',
     );
   });
