@@ -155,7 +155,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
         }
         const state = answerClarification(target.worktreeRoot, answer);
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         ctx.ui.notify(
           `${parsed.iterationId}/${questionId} answered. Run /evidence-run ${parsed.iterationId} to continue its persistent TQA session.`,
           'info',
@@ -193,7 +193,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           decision.action,
           decision.reason,
         );
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         if (decision.action === 'confirmed') {
           ctx.ui.notify(
             `Human confirmed ${parsed.iterationId}/${state.active_clarification_story?.story_id}; Understand is ready.`,
@@ -238,7 +238,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         }
         const state = decideUnderstanding(target.worktreeRoot, decision);
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         if (decision.action === 'confirmed') {
           ctx.ui.notify(
             `Human confirmed ${parsed.iterationId}/${state.confirmed_scenarios?.[0]?.story_id} / [${state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id).join(', ')}].`,
@@ -283,7 +283,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         }
         const state = confirmModelingProfile(target.worktreeRoot, decision);
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         const noModelImpact = state.modeling_profile?.method === 'none';
         ctx.ui.notify(
           noModelImpact
@@ -323,7 +323,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           decision.action,
           decision.reason,
         );
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         ctx.ui.notify(
           decision.action === 'confirm'
             ? `${parsed.iterationId} model confirmed; Planning admission requested.`
@@ -362,7 +362,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           decision.action,
           decision.reason,
         );
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         if (decision.action === 'approve') {
           ctx.ui.notify(
             `${parsed.iterationId} Desk Check approved; Ready admission requested.`,
@@ -416,7 +416,7 @@ export function registerCommands(pi: ExtensionAPI): void {
                 decision.action,
                 decision.reason,
               );
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         ctx.ui.notify(
           decision.kind === 'delivery'
             ? `${parsed.iterationId} Story coding approval recorded; Review admission requested.`
@@ -494,7 +494,7 @@ export function registerCommands(pi: ExtensionAPI): void {
                     decision.reason,
                     decision.target,
                   );
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         ctx.ui.notify(
           decision.kind === 'risk'
             ? `${parsed.iterationId} recorded ${decision.quadrant}=${decision.disposition}. ${showcaseNextInstruction(target.worktreeRoot)}.`
@@ -538,7 +538,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           decision.action,
           decision.reason,
         );
-        reconcile(ctx.cwd, parsed.iterationId, state);
+        reconcile(target.primaryRoot, parsed.iterationId, state);
         ctx.ui.notify(
           decision.action === 'approve'
             ? `${parsed.iterationId} knowledge response approved; Story flow is complete.`
@@ -568,7 +568,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           target.item.admitted_lane === 'ready'
         ) {
           const admission = requestDeliveryAdmission(
-            ctx.cwd,
+            target.primaryRoot,
             iteration.iterationId,
             target.state,
           );
@@ -596,7 +596,7 @@ export function registerCommands(pi: ExtensionAPI): void {
           `/evidence-run ${iteration.iterationId} ${iteration.rest}`.trim(),
         );
         reconcile(
-          ctx.cwd,
+          target.primaryRoot,
           iteration.iterationId,
           readState(target.worktreeRoot),
         );

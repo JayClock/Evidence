@@ -18,6 +18,7 @@ import { readFlowPolicy } from '../../capabilities/flow-control/policy';
 import { currentBranch } from '../../capabilities/work-item-worktree/manager';
 import { iterationRoot } from '../../iteration/artifact-layout';
 import { readBoard } from '../../iteration/board-repository';
+import { primaryWorktreeRoot } from '../../iteration/git-common-dir';
 import type { BoardItem, FlowLane } from '../../iteration/board-state';
 import { pairNextInstruction } from '../../loops/pair/pair-session';
 import { showcaseNextInstruction } from '../../loops/showcase/showcase-session';
@@ -586,7 +587,8 @@ function emptyLaneCounts(): Record<FlowLane, number> {
 }
 
 export function boardStatusProjection(cwd: string): BoardStatusProjection {
-  const board = readBoard(cwd);
+  const primaryRoot = primaryWorktreeRoot(cwd);
+  const board = readBoard(primaryRoot);
   const activeItems = board.items.filter(({ lifecycle }) =>
     ['provisioning', 'active'].includes(lifecycle),
   );
@@ -597,7 +599,7 @@ export function boardStatusProjection(cwd: string): BoardStatusProjection {
   let laneLimits: Partial<Record<FlowLane, number>> = {};
   let policyError: string | undefined;
   try {
-    const policy = readFlowPolicy(cwd).policy;
+    const policy = readFlowPolicy(primaryRoot).policy;
     maxActive = policy.max_active_stories;
     laneLimits = { ...policy.lanes };
   } catch (error) {
