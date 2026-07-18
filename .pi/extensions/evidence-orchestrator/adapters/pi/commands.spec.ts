@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
 import { DEFAULT_STATE } from '../../iteration/default-state';
-import { readBoard } from '../../iteration/board-repository';
+import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import {
   readPersistedState,
   writeState,
@@ -21,7 +21,6 @@ import {
   write,
 } from '../../test-support/support';
 import {
-  activeStageCommand,
   parseModelDecision,
   parseRespondDecision,
   parseShowcaseDecision,
@@ -81,7 +80,29 @@ function repositorySnapshot(cwd: string): string {
     .join('\n');
 }
 
+function registerBoardItem(
+  cwd: string,
+  admittedLane: 'discovery' | 'planning' = 'planning',
+): void {
+  if (readBoard(cwd).items.length > 0) return;
+  mutateBoard(cwd, (draft) => {
+    draft.next_iteration_number = 2;
+    draft.items.push({
+      iteration_id: 'ITER-0001',
+      candidate_id: 'CAND-0001',
+      lifecycle: 'active',
+      branch_name: 'evidence/iter-0001',
+      worktree_path: realpathSync(cwd),
+      base_sha: 'a'.repeat(40),
+      admitted_lane: admittedLane,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+  });
+}
+
 function deskCheckHandler(cwd: string) {
+  registerBoardItem(cwd);
   let handler:
     | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
     | undefined;
@@ -115,6 +136,7 @@ describe('commands', () => {
     expect(commands).toEqual([
       'evidence-status',
       'evidence-new',
+      'evidence-answer',
       'evidence-kickoff',
       'evidence-scenario',
       'evidence-modeling-profile',
@@ -203,7 +225,7 @@ describe('commands', () => {
       kickoff_candidate: { title: 'Retain deletion evidence' },
     });
     expect(ctx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining('run /evidence-kickoff'),
+      expect.stringContaining('Run /evidence-kickoff ITER-0001'),
       'info',
     );
   });
@@ -228,44 +250,6 @@ describe('commands', () => {
       'error',
     );
     expect(readBoard(cwd).items).toEqual([]);
-  });
-
-  it('selects only the command owned by the current stage', () => {
-    expect(activeStageCommand('/unused', issueState())).toBe('evidence-run');
-    expect(
-      activeStageCommand('/unused', {
-        ...issueState(),
-        kickoff_candidate: {
-          version: 1,
-          title: 'Candidate',
-          problem: 'Problem',
-          role: 'Owner',
-          goal: 'Goal',
-          value: 'Value',
-          cognitive_mode: 'clear',
-          source_refs: ['issue#42'],
-          proposed_at: '2026-01-01T00:00:00.000Z',
-          artifact_path: 'candidate.json',
-        },
-      }),
-    ).toBe('evidence-kickoff');
-    expect(
-      activeStageCommand('/unused', {
-        ...issueState(),
-        loop: 'understand',
-        understand_stage: 'scenario_review',
-      }),
-    ).toBe('evidence-scenario');
-    expect(
-      activeStageCommand('/unused', {
-        ...issueState(),
-        loop: 'tasking',
-        tasking_stage: 'desk_check',
-      }),
-    ).toBe('evidence-desk-check');
-    expect(
-      activeStageCommand('/unused', { ...issueState(), loop: 'complete' }),
-    ).toBeUndefined();
   });
 
   it('parses model, Showcase, and Respond human decisions', () => {
@@ -436,7 +420,7 @@ describe('commands', () => {
     prepareDeskCheckFixture(cwd);
     const { handler, ctx } = deskCheckHandler(cwd);
 
-    await handler('approve', ctx);
+    await handler('ITER-0001 approve', ctx);
 
     expect(ctx.ui.custom).not.toHaveBeenCalled();
     expect(ctx.ui.select).not.toHaveBeenCalled();
@@ -456,7 +440,7 @@ describe('commands', () => {
     const beforeFiles = repositorySnapshot(cwd);
     const beforeState = JSON.stringify(readPersistedState(cwd));
 
-    await handler('', ctx);
+    await handler('ITER-0001', ctx);
 
     expect(ctx.ui.custom).toHaveBeenCalledOnce();
     expect(repositorySnapshot(cwd)).toBe(beforeFiles);
@@ -475,7 +459,7 @@ describe('commands', () => {
     ctx.ui.custom.mockResolvedValue('approve');
     ctx.ui.input.mockResolvedValue('');
 
-    await handler('', ctx);
+    await handler('ITER-0001', ctx);
 
     expect(ctx.ui.custom).toHaveBeenCalledOnce();
     expect(ctx.ui.select).not.toHaveBeenCalled();
@@ -495,7 +479,7 @@ describe('commands', () => {
     ctx.ui.custom.mockResolvedValue('process_gap');
     ctx.ui.editor.mockResolvedValue('The selected process owner is ambiguous.');
 
-    await handler('', ctx);
+    await handler('ITER-0001', ctx);
 
     expect(readPersistedState(cwd)).toMatchObject({
       loop: 'tasking',
@@ -525,7 +509,7 @@ describe('commands', () => {
     });
     ctx.ui.input.mockResolvedValue('');
 
-    await handler('', ctx);
+    await handler('ITER-0001', ctx);
 
     expect(readPersistedState(cwd)).toMatchObject({
       loop: 'tasking',
@@ -812,8 +796,9 @@ describe('commands', () => {
     });
   });
 
-  it('previews the current activity without phase selector options', async () => {
+  it('previews one exact Iteration activity without phase selector options', async () => {
     const cwd = workspace();
+    initializeGitRepository(cwd);
     for (const path of [
       'artifacts/iterations/ITER-0001/00-user-input/requirements.md',
       'docs/product/personas.md',
@@ -824,6 +809,7 @@ describe('commands', () => {
       write(cwd, path, 'input');
     }
     writeState(cwd, issueState());
+    registerBoardItem(cwd, 'discovery');
     let run:
       | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
       | undefined;
@@ -834,7 +820,7 @@ describe('commands', () => {
     } as never);
     const ctx = context(cwd);
 
-    await run?.('--dry-run focus on the smallest value', ctx);
+    await run?.('ITER-0001 --dry-run focus on the smallest value', ctx);
 
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       expect.stringContaining('Kickoff'),

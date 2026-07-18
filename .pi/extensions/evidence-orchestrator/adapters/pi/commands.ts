@@ -1,6 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import type { WorkflowState } from '../../iteration/state';
-import { readPersistedState } from '../../iteration/state-repository';
+import { readState } from '../../iteration/state-repository';
 import { confirmModelingProfile } from '../../loops/understand/modeling/profile';
 import { decideModel } from '../../loops/understand/modeling/model-decision';
 import { decideKickoff } from '../../loops/kickoff/story-decision';
@@ -13,7 +12,6 @@ import {
   recordShowcaseProductObservation,
   recordShowcaseRisk,
   showcaseNextInstruction,
-  showcaseRequiresHumanAction,
 } from '../../loops/showcase/showcase-session';
 import {
   navigatePair,
@@ -21,7 +19,11 @@ import {
 } from '../../loops/pair/pair-session';
 import { startIterationFromCandidate } from '../../capabilities/inbox/iteration-intake';
 import { decideDeliveryIncrement } from '../../loops/pair/coding-approval';
-import { STATUS_KEY, statusLabel } from './identity';
+import {
+  reconcileBoardItem,
+  requestDeliveryAdmission,
+} from '../../capabilities/flow-control/admission';
+import { answerClarification } from '../../loops/understand/tqa/conversation';
 import {
   isCompletedIteration,
   ActivityRunBlockedError,
@@ -55,57 +57,30 @@ import {
 } from './activity-command';
 import { EVIDENCE_COMMANDS } from './command-names';
 import { registerFlowCommands } from './flow-commands';
+import {
+  parseIterationCommand,
+  requireWorkItemTarget,
+} from './work-item-target';
 
 export {
   parseModelDecision,
   parseRespondDecision,
   parseShowcaseDecision,
 } from './command-inputs';
-export function activeStageCommand(
-  cwd: string,
-  state: WorkflowState | undefined = readPersistedState(cwd),
-): string | undefined {
-  if (!state || state.halted || state.loop === 'complete') return undefined;
 
-  if (state.loop === 'kickoff') {
-    return state.kickoff_candidate
-      ? EVIDENCE_COMMANDS.kickoff
-      : EVIDENCE_COMMANDS.run;
-  }
-  if (state.loop === 'understand') {
-    if (state.understand_stage === 'scenario_review') {
-      return EVIDENCE_COMMANDS.scenario;
-    }
-    if (state.modeling_stage === 'profile_review') {
-      return EVIDENCE_COMMANDS.modelingProfile;
-    }
-    if (state.modeling_stage === 'model_review') {
-      return EVIDENCE_COMMANDS.model;
-    }
-    return EVIDENCE_COMMANDS.run;
-  }
-  if (state.loop === 'tasking') {
-    return state.tasking_stage === 'desk_check'
-      ? EVIDENCE_COMMANDS.deskCheck
-      : EVIDENCE_COMMANDS.run;
-  }
-  if (state.loop === 'pair') {
-    return state.pair_session?.checkpoint === 'quality_gates_passed' ||
-      state.pair_session?.automation_exception
-      ? EVIDENCE_COMMANDS.pair
-      : EVIDENCE_COMMANDS.run;
-  }
-  if (state.loop === 'showcase') {
-    return showcaseRequiresHumanAction(cwd)
-      ? EVIDENCE_COMMANDS.showcase
-      : EVIDENCE_COMMANDS.run;
-  }
-  if (state.loop === 'respond') {
-    return state.respond_stage === 'decision'
-      ? EVIDENCE_COMMANDS.respond
-      : EVIDENCE_COMMANDS.run;
-  }
-  return undefined;
+function worktreeContext<T extends { cwd: string }>(
+  context: T,
+  cwd: string,
+): T {
+  return { ...context, cwd };
+}
+
+function reconcile(
+  primaryRoot: string,
+  iterationId: string,
+  state: ReturnType<typeof readState>,
+): void {
+  reconcileBoardItem(primaryRoot, iterationId, state);
 }
 
 export function registerCommands(pi: ExtensionAPI): void {
@@ -116,7 +91,7 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand(EVIDENCE_COMMANDS.status, {
     description:
-      'Show a bounded Evidence summary, or a paginated artifact/code-file detail view',
+      'Show the Story Board or one exact Iteration status and artifact page',
     handler: async (args, ctx) => {
       try {
         ctx.ui.notify(statusCommandMarkdown(ctx.cwd, args), 'info');
@@ -131,18 +106,51 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   pi.registerCommand(EVIDENCE_COMMANDS.newIteration, {
     description:
-      'Extract Story candidates from a selected Inbox source, then start a new iteration',
+      'Claim one exact ready Inbox Candidate and provision its isolated Story worktree',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
-        if (!args.trim()) {
-          throw new Error('Usage: /evidence-new CAND-xxxx');
-        }
+        if (!args.trim()) throw new Error('Usage: /evidence-new CAND-xxxx');
         const candidateId = requireCandidateId(args);
         const state = startIterationFromCandidate(ctx.cwd, candidateId);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
         ctx.ui.notify(
-          `Evidence Orchestrator started ${state.iteration_id} from ${candidateId}. The Inbox Intake is frozen; run /evidence-kickoff for the human Story decision.`,
+          `Evidence Orchestrator started ${state.iteration_id} from ${candidateId}. Run /evidence-kickoff ${state.iteration_id} for the human Story decision.`,
+          'info',
+        );
+      } catch (error) {
+        ctx.ui.notify(
+          error instanceof Error ? error.message : String(error),
+          'error',
+        );
+      }
+    },
+  });
+
+  registerStageCommand(EVIDENCE_COMMANDS.answer, {
+    description:
+      'Record one explicit domain-expert answer for an exact Iteration and pending TQA question',
+    handler: async (args, ctx) => {
+      try {
+        await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const separator = parsed.rest.search(/\s/);
+        const questionId = (
+          separator < 0 ? parsed.rest : parsed.rest.slice(0, separator)
+        ).toUpperCase();
+        const answer = separator < 0 ? '' : parsed.rest.slice(separator).trim();
+        if (!/^Q-\d{3,}$/.test(questionId) || !answer) {
+          throw new Error('Usage: /evidence-answer ITER-xxxx Q-xxx <answer>');
+        }
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        if (target.state.pending_clarification?.question_id !== questionId) {
+          throw new Error(
+            `${parsed.iterationId} does not await ${questionId}.`,
+          );
+        }
+        const state = answerClarification(target.worktreeRoot, answer);
+        reconcile(ctx.cwd, parsed.iterationId, state);
+        ctx.ui.notify(
+          `${parsed.iterationId}/${questionId} answered. Run /evidence-run ${parsed.iterationId} to continue its persistent TQA session.`,
           'info',
         );
       } catch (error) {
@@ -156,12 +164,16 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   registerStageCommand(EVIDENCE_COMMANDS.kickoff, {
     description:
-      'Human-only decision for the pending Kickoff candidate: confirm, revise, split, defer, or stop',
+      'Human-only decision for one exact Iteration Kickoff candidate',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseKickoffDecision(args) ?? (await promptKickoffDecision(ctx));
+          parseKickoffDecision(parsed.rest) ??
+          (await promptKickoffDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Kickoff decision cancelled; the candidate is unchanged.',
@@ -169,21 +181,25 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
           return;
         }
-        const state = decideKickoff(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const state = decideKickoff(
+          target.worktreeRoot,
+          decision.action,
+          decision.reason,
+        );
+        reconcile(ctx.cwd, parsed.iterationId, state);
         if (decision.action === 'confirmed') {
           ctx.ui.notify(
-            `Human confirmed ${state.active_clarification_story?.story_id}; Kickoff is complete and Understand is ready.`,
+            `Human confirmed ${parsed.iterationId}/${state.active_clarification_story?.story_id}; Understand is ready.`,
             'info',
           );
         } else if (decision.action === 'revise') {
           ctx.ui.notify(
-            'Human requested a revised Kickoff candidate. Run /evidence-run with the feedback before continuing.',
+            `Human requested a revised Kickoff candidate for ${parsed.iterationId}.`,
             'info',
           );
         } else {
           ctx.ui.notify(
-            `Human chose ${decision.action}; this iteration is halted with the decision preserved.`,
+            `Human chose ${decision.action}; ${parsed.iterationId} is terminal with evidence preserved.`,
             'info',
           );
         }
@@ -197,13 +213,16 @@ export function registerCommands(pi: ExtensionAPI): void {
   });
 
   registerStageCommand(EVIDENCE_COMMANDS.scenario, {
-    description:
-      'Human-only Scenario decision: confirm one draft, continue TQA, split, or defer',
+    description: 'Human-only Scenario decision for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseScenarioDecision(args) ?? (await promptScenarioDecision(ctx));
+          parseScenarioDecision(parsed.rest) ??
+          (await promptScenarioDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Scenario decision cancelled; Understand is unchanged.',
@@ -211,21 +230,21 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
           return;
         }
-        const state = decideUnderstanding(ctx.cwd, decision);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const state = decideUnderstanding(target.worktreeRoot, decision);
+        reconcile(ctx.cwd, parsed.iterationId, state);
         if (decision.action === 'confirmed') {
           ctx.ui.notify(
-            `Human confirmed ${state.confirmed_scenarios?.[0]?.story_id} / [${state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id).join(', ')}]; model validation is next.`,
+            `Human confirmed ${parsed.iterationId}/${state.confirmed_scenarios?.[0]?.story_id} / [${state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id).join(', ')}].`,
             'info',
           );
         } else if (decision.action === 'continue') {
           ctx.ui.notify(
-            'Human requested more business understanding; TQA is ready to resume.',
+            `${parsed.iterationId} returned to TQA for more business understanding.`,
             'info',
           );
         } else {
           ctx.ui.notify(
-            `Human chose ${decision.action}; the active Story is halted and the delivery-iteration evidence is preserved.`,
+            `Human chose ${decision.action}; ${parsed.iterationId} is terminal.`,
             'info',
           );
         }
@@ -239,14 +258,16 @@ export function registerCommands(pi: ExtensionAPI): void {
   });
 
   registerStageCommand(EVIDENCE_COMMANDS.modelingProfile, {
-    description:
-      'Human-only modeling Profile confirmation or override for the confirmed Scenario',
+    description: 'Human-only modeling Profile decision for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseModelingProfileDecision(args) ??
-          (await promptModelingProfileDecision(ctx));
+          parseModelingProfileDecision(parsed.rest) ??
+          (await promptModelingProfileDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Modeling Profile decision cancelled; the proposal is unchanged.',
@@ -254,13 +275,13 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
           return;
         }
-        const state = confirmModelingProfile(ctx.cwd, decision);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const state = confirmModelingProfile(target.worktreeRoot, decision);
+        reconcile(ctx.cwd, parsed.iterationId, state);
         const noModelImpact = state.modeling_profile?.method === 'none';
         ctx.ui.notify(
           noModelImpact
-            ? `Human confirmed modeling Profile ${state.modeling_profile?.subject}/none with model_change_required=false. No canonical model expansion or challenge is required; the workflow advanced to Tasking.`
-            : `Human confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method} with model_change_required=${state.modeling_profile?.model_change_required}. Run /evidence-run to expand the Scenario through this model.`,
+            ? `${parsed.iterationId} confirmed no model impact and requested Planning admission.`
+            : `${parsed.iterationId} confirmed modeling Profile ${state.modeling_profile?.subject}/${state.modeling_profile?.method}.`,
           'info',
         );
       } catch (error) {
@@ -273,13 +294,16 @@ export function registerCommands(pi: ExtensionAPI): void {
   });
 
   registerStageCommand(EVIDENCE_COMMANDS.model, {
-    description:
-      'Human-only decision for the challenged model and ubiquitous language',
+    description: 'Human-only challenged model decision for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseModelDecision(args) ?? (await promptModelDecision(ctx));
+          parseModelDecision(parsed.rest) ??
+          (await promptModelDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Model decision cancelled; state is unchanged.',
@@ -287,12 +311,16 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
           return;
         }
-        const state = decideModel(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const state = decideModel(
+          target.worktreeRoot,
+          decision.action,
+          decision.reason,
+        );
+        reconcile(ctx.cwd, parsed.iterationId, state);
         ctx.ui.notify(
           decision.action === 'confirm'
-            ? `Human confirmed the model and ubiquitous language; Tasking is ready for ${state.confirmed_scenarios?.[0]?.story_id} / [${state.confirmed_scenarios?.map(({ scenario_id }) => scenario_id).join(', ')}].`
-            : `Human recorded ${decision.action}; workflow returned to ${state.understand_stage}/${state.modeling_stage ?? 'tqa'}.`,
+            ? `${parsed.iterationId} model confirmed; Planning admission requested.`
+            : `${parsed.iterationId} recorded ${decision.action} and routed feedback to ${state.understand_stage}/${state.modeling_stage ?? 'tqa'}.`,
           'info',
         );
       } catch (error) {
@@ -305,13 +333,16 @@ export function registerCommands(pi: ExtensionAPI): void {
   });
 
   registerStageCommand(EVIDENCE_COMMANDS.deskCheck, {
-    description:
-      'Human-only Tasking decision: approve, revise, architecture_gap, process_gap, or scenario_gap',
+    description: 'Human-only Tasking decision for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseDeskCheckDecision(args) ?? (await promptDeskCheckDecision(ctx));
+          parseDeskCheckDecision(parsed.rest) ??
+          (await promptDeskCheckDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Desk Check cancelled; the Tasking draft is unchanged.',
@@ -319,21 +350,25 @@ export function registerCommands(pi: ExtensionAPI): void {
           );
           return;
         }
-        const state = decideTasking(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        const state = decideTasking(
+          target.worktreeRoot,
+          decision.action,
+          decision.reason,
+        );
+        reconcile(ctx.cwd, parsed.iterationId, state);
         if (decision.action === 'approve') {
           ctx.ui.notify(
-            `Human approved ${state.approved_test_plan_path}; Pair is ready for Story ${state.active_work_item?.story_id} / [${state.active_work_item?.scenario_ids.join(', ')}].`,
+            `${parsed.iterationId} Desk Check approved; Ready admission requested.`,
             'info',
           );
         } else if (decision.action === 'scenario_gap') {
           ctx.ui.notify(
-            'Desk Check routed the Scenario gap to Understand TQA.',
+            `${parsed.iterationId} routed its Scenario gap to Understand.`,
             'info',
           );
         } else {
           ctx.ui.notify(
-            `Desk Check recorded ${decision.action}; run /evidence-run to revise Tasking knowledge and regenerate the plan.`,
+            `${parsed.iterationId} recorded ${decision.action}.`,
             'info',
           );
         }
@@ -348,25 +383,37 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   registerStageCommand(EVIDENCE_COMMANDS.pair, {
     description:
-      'One human Story-level coding approval after automated Pair, or explicit exception routing',
+      'Human Story-level coding approval or exception routing for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parsePairDecision(args) ?? (await promptPairDecision(ctx));
+          parsePairDecision(parsed.rest) ??
+          (await promptPairDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify('Pair decision cancelled; state is unchanged.', 'info');
           return;
         }
         const state =
           decision.kind === 'delivery'
-            ? decideDeliveryIncrement(ctx.cwd, decision.action, decision.reason)
-            : navigatePair(ctx.cwd, decision.action, decision.reason);
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+            ? decideDeliveryIncrement(
+                target.worktreeRoot,
+                decision.action,
+                decision.reason,
+              )
+            : navigatePair(
+                target.worktreeRoot,
+                decision.action,
+                decision.reason,
+              );
+        reconcile(ctx.cwd, parsed.iterationId, state);
         ctx.ui.notify(
           decision.kind === 'delivery'
-            ? `Human Story coding approval recorded at ${state.pair_session?.coding_decision?.artifact_path ?? 'missing'}. Entered Showcase.`
-            : `Pair exception decision recorded. ${pairNextInstruction(state)}.`,
+            ? `${parsed.iterationId} Story coding approval recorded; Review admission requested.`
+            : `${parsed.iterationId} Pair exception routed. ${pairNextInstruction(state)}.`,
           'info',
         );
       } catch (error) {
@@ -380,14 +427,19 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   registerStageCommand(EVIDENCE_COMMANDS.explainDiff, {
     description:
-      'Generate one optional self-contained HTML explanation after Pair quality gates pass',
+      'Generate one optional HTML explanation for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
-        if (args.trim()) {
-          throw new Error('Usage: /evidence-explain-diff');
+        const parsed = parseIterationCommand(args);
+        if (parsed.rest) {
+          throw new Error('Usage: /evidence-explain-diff ITER-xxxx');
         }
-        await runHtmlChangeExplanationFromCommand(pi, ctx);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        await runHtmlChangeExplanationFromCommand(
+          pi,
+          worktreeContext(ctx, target.worktreeRoot),
+        );
       } catch (error) {
         ctx.ui.notify(
           error instanceof Error ? error.message : String(error),
@@ -399,12 +451,16 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   registerStageCommand(EVIDENCE_COMMANDS.showcase, {
     description:
-      'Human-only Showcase risk and accept/revise/reject decisions with semantic feedback routing',
+      'Human-only Showcase observation and decision for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseShowcaseDecision(args) ?? (await promptShowcaseDecision(ctx));
+          parseShowcaseDecision(parsed.rest) ??
+          (await promptShowcaseDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Showcase decision cancelled; state is unchanged.',
@@ -415,33 +471,31 @@ export function registerCommands(pi: ExtensionAPI): void {
         const state =
           decision.kind === 'risk'
             ? recordShowcaseRisk(
-                ctx.cwd,
+                target.worktreeRoot,
                 decision.quadrant,
                 decision.disposition,
                 decision.activities,
                 decision.reason,
               )
             : decision.kind === 'observation'
-              ? recordShowcaseProductObservation(ctx.cwd, decision)
+              ? recordShowcaseProductObservation(target.worktreeRoot, decision)
               : decision.kind === 'evaluation'
-                ? recordShowcaseEvaluation(ctx.cwd, decision)
+                ? recordShowcaseEvaluation(target.worktreeRoot, decision)
                 : decideShowcase(
-                    ctx.cwd,
+                    target.worktreeRoot,
                     decision.action,
                     decision.reason,
                     decision.target,
                   );
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        reconcile(ctx.cwd, parsed.iterationId, state);
         ctx.ui.notify(
           decision.kind === 'risk'
-            ? `Recorded ${decision.quadrant}=${decision.disposition}. ${showcaseNextInstruction(ctx.cwd)}.`
+            ? `${parsed.iterationId} recorded ${decision.quadrant}=${decision.disposition}. ${showcaseNextInstruction(target.worktreeRoot)}.`
             : decision.kind === 'observation'
-              ? `Recorded human product/value observation. ${showcaseNextInstruction(ctx.cwd)}.`
+              ? `${parsed.iterationId} recorded product/value observation.`
               : decision.kind === 'evaluation'
-                ? `Recorded ${decision.quadrant}/${decision.activity}=${decision.outcome}. ${showcaseNextInstruction(ctx.cwd)}.`
-                : decision.action === 'reject'
-                  ? 'Human rejected the Showcase; this iteration is halted with facts and feedback preserved.'
-                  : `Human recorded Showcase ${decision.action}; workflow loop=${state.loop}.`,
+                ? `${parsed.iterationId} recorded ${decision.quadrant}/${decision.activity}=${decision.outcome}.`
+                : `${parsed.iterationId} recorded Showcase ${decision.action}; loop=${state.loop}.`,
           'info',
         );
       } catch (error) {
@@ -455,12 +509,16 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   registerStageCommand(EVIDENCE_COMMANDS.respond, {
     description:
-      'Human-only Respond approval or revision for validated knowledge and the next Probe',
+      'Human-only Respond approval or revision for one exact Iteration',
     handler: async (args, ctx) => {
       try {
         await waitForIdle(ctx);
+        const parsed = parseIterationCommand(args);
+        const target = requireWorkItemTarget(ctx.cwd, parsed.iterationId);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
         const decision =
-          parseRespondDecision(args) ?? (await promptRespondDecision(ctx));
+          parseRespondDecision(parsed.rest) ??
+          (await promptRespondDecision(targetCtx));
         if (!decision) {
           ctx.ui.notify(
             'Respond decision cancelled; state is unchanged.',
@@ -469,15 +527,15 @@ export function registerCommands(pi: ExtensionAPI): void {
           return;
         }
         const state = decideKnowledgeResponse(
-          ctx.cwd,
+          target.worktreeRoot,
           decision.action,
           decision.reason,
         );
-        ctx.ui.setStatus(STATUS_KEY, statusLabel(state));
+        reconcile(ctx.cwd, parsed.iterationId, state);
         ctx.ui.notify(
           decision.action === 'approve'
-            ? `Human approved the knowledge response. ${state.iteration_id} is complete; capture the next Probe in the Inbox before starting another iteration.`
-            : 'Human requested a revised knowledge response; run /evidence-run to resume Respond.',
+            ? `${parsed.iterationId} knowledge response approved; Story flow is complete.`
+            : `${parsed.iterationId} knowledge response requires revision.`,
           'info',
         );
       } catch (error) {
@@ -491,24 +549,49 @@ export function registerCommands(pi: ExtensionAPI): void {
 
   registerStageCommand(EVIDENCE_COMMANDS.run, {
     description:
-      'Run the current activity; Pair automatically completes recorded coding checkpoints until Story approval or exception',
+      'Run one exact Iteration activity; Pair remains controller-automated within that Story',
     handler: async (args, ctx) => {
-      const parsed = parseArgs(args);
       try {
         await waitForIdle(ctx);
-        const preparation = prepareActivityRun(ctx.cwd, {
+        const iteration = parseIterationCommand(args);
+        let target = requireWorkItemTarget(ctx.cwd, iteration.iterationId);
+        if (
+          target.state.loop === 'pair' &&
+          target.state.pair_session?.checkpoint === 'plan_confirmed' &&
+          target.item.admitted_lane === 'ready'
+        ) {
+          const admission = requestDeliveryAdmission(
+            ctx.cwd,
+            iteration.iterationId,
+            target.state,
+          );
+          if (admission.kind === 'queued') {
+            throw new ActivityRunBlockedError(
+              'flow_admission',
+              `${iteration.iterationId} is queued for Delivery WIP.`,
+            );
+          }
+          target = requireWorkItemTarget(ctx.cwd, iteration.iterationId);
+        }
+        const parsed = parseArgs(iteration.rest);
+        const targetCtx = worktreeContext(ctx, target.worktreeRoot);
+        const preparation = prepareActivityRun(target.worktreeRoot, {
           instructions: parsed.rest,
         });
         if (parsed.dryRun || isCompletedIteration(preparation)) {
           ctx.ui.notify(preparation.task, 'info');
           return;
         }
-
         await runPreparedActivityFromCommand(
           pi,
-          ctx,
+          targetCtx,
           preparation,
-          `/evidence-run ${args}`.trim(),
+          `/evidence-run ${iteration.iterationId} ${iteration.rest}`.trim(),
+        );
+        reconcile(
+          ctx.cwd,
+          iteration.iterationId,
+          readState(target.worktreeRoot),
         );
       } catch (error) {
         ctx.ui.notify(

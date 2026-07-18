@@ -14,6 +14,7 @@ import {
   assertCanProvision,
   pullPendingLane,
   reconcileBoardItem,
+  requestDeliveryAdmission,
   validateFlowBoard,
 } from './admission';
 import { projectFlow } from './projection';
@@ -120,6 +121,24 @@ describe('Story flow admission', () => {
       admitted_lane: 'planning',
     });
     expect(readBoard(cwd).items[2]).not.toHaveProperty('pending_lane');
+  });
+
+  it('admits only one ready Story to Delivery under the initial WIP policy', () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    seed(cwd, [item(cwd, 1, 'ready'), item(cwd, 2, 'ready')]);
+    const first = pairState('ITER-0001', 'plan_confirmed');
+    const second = pairState('ITER-0002', 'plan_confirmed');
+
+    expect(requestDeliveryAdmission(cwd, 'ITER-0001', first)).toMatchObject({
+      kind: 'admitted',
+      admitted_lane: 'delivery',
+    });
+    expect(requestDeliveryAdmission(cwd, 'ITER-0002', second)).toMatchObject({
+      kind: 'queued',
+      admitted_lane: 'ready',
+      pending_lane: 'delivery',
+    });
   });
 
   it('admits backward rework even when the target lane is full', () => {

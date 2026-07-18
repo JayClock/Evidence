@@ -155,6 +155,52 @@ export function reconcileBoardItem(
   }).value;
 }
 
+export function requestDeliveryAdmission(
+  primaryRoot: string,
+  iterationId: string,
+  state: WorkflowState,
+  now = new Date().toISOString(),
+): AdmissionOutcome {
+  if (
+    state.iteration_id !== iterationId ||
+    state.loop !== 'pair' ||
+    state.pair_session?.checkpoint !== 'plan_confirmed'
+  ) {
+    throw new Error(
+      `Delivery admission requires Pair/plan_confirmed: ${iterationId}.`,
+    );
+  }
+  const snapshot = readFlowPolicy(primaryRoot);
+  return mutateBoard(primaryRoot, (draft) => {
+    const item = draft.items.find(
+      ({ iteration_id }) => iteration_id === iterationId,
+    );
+    if (!item || item.lifecycle !== 'active') {
+      throw new Error(`Active Board item does not exist: ${iterationId}.`);
+    }
+    if (item.pending_lane) {
+      throw new Error(`${iterationId} already awaits ${item.pending_lane}.`);
+    }
+    if (item.admitted_lane === 'delivery') {
+      return outcome(item, 'unchanged', snapshot.sha256);
+    }
+    if (item.admitted_lane !== 'ready') {
+      throw new Error(
+        `${iterationId} must be admitted to ready before Delivery.`,
+      );
+    }
+    item.updated_at = now;
+    if (hasLaneCapacity(draft, snapshot.policy, 'delivery', iterationId)) {
+      item.admitted_lane = 'delivery';
+      return outcome(item, 'admitted', snapshot.sha256);
+    }
+    item.pending_lane = 'delivery';
+    item.pending_lane_requested_at = now;
+    item.pending_state_sha256 = workflowStateSha256(state);
+    return outcome(item, 'queued', snapshot.sha256);
+  }).value;
+}
+
 export function pullPendingLane(
   primaryRoot: string,
   iterationId: string,

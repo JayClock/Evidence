@@ -49,7 +49,8 @@ export class ActivityRunBlockedError extends Error {
       | 'showcase_observation'
       | 'showcase_evaluation'
       | 'showcase_decision'
-      | 'respond_decision',
+      | 'respond_decision'
+      | 'flow_admission',
     message: string,
   ) {
     super(message);
