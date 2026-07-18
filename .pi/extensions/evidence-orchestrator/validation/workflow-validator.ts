@@ -12,6 +12,7 @@ import { validateIterationIntakeSnapshot } from '../capabilities/inbox/iteration
 import { validateInboxRepository } from '../capabilities/inbox/repository';
 import { validateInboxStoryCandidates } from '../capabilities/inbox/story-candidate';
 import { iterationRoot } from '../iteration/artifact-layout';
+import { boardPath, readBoard } from '../iteration/board-repository';
 import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
@@ -31,6 +32,9 @@ export function validateWorkflow(cwd: string): void {
   validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
   validateInboxRepository(cwd);
   validateInboxStoryCandidates(cwd);
+  if (existsSync(join(cwd, '.git')) && existsSync(boardPath(cwd))) {
+    readBoard(cwd);
+  }
   const state = readPersistedState(cwd);
   if (state) {
     const root = iterationRoot(cwd, state);
