@@ -65,6 +65,15 @@ export interface DeskCheckReview {
   draft_id: string;
   candidate_sha256: string;
   subject_sha256: string;
+  acceptance: {
+    scenarios: Array<{
+      scenario_id: string;
+      title: string;
+      then: string[];
+      business_data: string[];
+      artifact_path: string;
+    }>;
+  };
   model: {
     profile: string;
     model_change_required: boolean;
@@ -778,6 +787,19 @@ export function inspectDeskCheck(
     draft_id: candidate.draft_id,
     candidate_sha256: candidate.candidate_sha256,
     subject_sha256: subjectSha256(cwd, state, candidate, loadProjectCatalog),
+    acceptance: {
+      scenarios: [...(state.confirmed_scenarios ?? [])]
+        .sort((left, right) =>
+          left.scenario_id.localeCompare(right.scenario_id),
+        )
+        .map((scenario) => ({
+          scenario_id: scenario.scenario_id,
+          title: scenario.title,
+          then: [...scenario.then],
+          business_data: [...scenario.business_data],
+          artifact_path: scenario.artifact_path,
+        })),
+    },
     model: {
       profile: `${state.modeling_profile?.subject ?? 'unknown'}/${state.modeling_profile?.method ?? 'unknown'}`,
       model_change_required:

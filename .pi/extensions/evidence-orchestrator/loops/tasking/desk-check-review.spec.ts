@@ -250,6 +250,16 @@ describe('Desk Check review', () => {
       story_id: 'US-001',
       scenario_ids: ['SC-001'],
       draft_id: 'DRAFT-001',
+      acceptance: {
+        scenarios: [
+          {
+            scenario_id: 'SC-001',
+            title: 'Create a workspace',
+            then: ['Workspace Alpha is available to the owner'],
+            business_data: ['name=Alpha', 'owner=desktop-user'],
+          },
+        ],
+      },
       model: {
         profile: 'tool/none',
         model_change_required: false,
