@@ -23,8 +23,10 @@ import {
 import type {
   ExecutionBudgetUsage,
   PairAutomationExceptionKind,
-  PairDeterministicAction,
   PairDriverMode,
+  PairFailureFingerprintRecord,
+  PairProgressWindow,
+  PairDeterministicAction,
   PairObservation,
   PairSession,
   RedFailureKind,
@@ -33,6 +35,12 @@ import type {
   TestProcessSelection,
   WorkflowState,
 } from '../../iteration/state';
+import {
+  commandFailureFingerprint,
+  driverFailureFingerprint,
+  pairProgressAdvanced,
+  pairProgressMarker,
+} from '../../capabilities/execution-budget/evaluator';
 import { executionBudgetEnvelopeSha256 } from '../../capabilities/execution-budget/policy';
 import {
   executeTestStep,
@@ -197,6 +205,199 @@ export function recordPairAutomationException(
       automation_exception_history: [...history, exception],
     },
   });
+}
+
+function recordFailureFingerprint(
+  cwd: string,
+  input: {
+    fingerprint: string;
+    failureKind: string;
+    executionSequence?: number;
+    traceSpanId?: string;
+    now?: string;
+  },
+): {
+  state: WorkflowState;
+  record: PairFailureFingerprintRecord;
+  repeated: boolean;
+} {
+  const state = pairState(cwd, false);
+  const now = input.now ?? new Date().toISOString();
+  const records = state.pair_session.failure_fingerprints ?? [];
+  const existing = records.find(
+    ({ fingerprint }) => fingerprint === input.fingerprint,
+  );
+  const alreadyRecorded = Boolean(
+    existing &&
+      ((input.executionSequence !== undefined &&
+        existing.execution_sequences.includes(input.executionSequence)) ||
+        (input.traceSpanId &&
+          existing.trace_span_ids.includes(input.traceSpanId))),
+  );
+  const occurrenceCount =
+    existing?.occurrence_count ?? (alreadyRecorded ? 1 : 0);
+  const nextOccurrenceCount = alreadyRecorded
+    ? occurrenceCount
+    : occurrenceCount + 1;
+  const record: PairFailureFingerprintRecord = {
+    fingerprint: input.fingerprint,
+    failure_kind: input.failureKind,
+    occurrence_count: nextOccurrenceCount,
+    retry_count: Math.max(0, nextOccurrenceCount - 1),
+    execution_sequences: [
+      ...new Set([
+        ...(existing?.execution_sequences ?? []),
+        ...(input.executionSequence !== undefined
+          ? [input.executionSequence]
+          : []),
+      ]),
+    ],
+    trace_span_ids: [
+      ...new Set([
+        ...(existing?.trace_span_ids ?? []),
+        ...(input.traceSpanId ? [input.traceSpanId] : []),
+      ]),
+    ],
+    first_seen_at: existing?.first_seen_at ?? now,
+    last_seen_at: alreadyRecorded ? (existing?.last_seen_at ?? now) : now,
+  };
+  const nextRecords = existing
+    ? records.map((candidate) =>
+        candidate.fingerprint === record.fingerprint ? record : candidate,
+      )
+    : [...records, record];
+  const next = alreadyRecorded
+    ? state
+    : writeState(cwd, {
+        ...state,
+        pair_session: {
+          ...state.pair_session,
+          failure_fingerprints: nextRecords,
+        },
+      });
+  return {
+    state: next,
+    record,
+    repeated:
+      record.retry_count >=
+      state.pair_session.execution_budget.max_retries_per_failure_fingerprint,
+  };
+}
+
+export function recordPairCommandFailure(
+  cwd: string,
+  input: {
+    observation: PairObservation;
+    failureKind: string;
+    traceSpanId?: string;
+    now?: string;
+  },
+) {
+  const state = pairState(cwd, false);
+  const logPath = artifactPath(
+    cwd,
+    state,
+    `artifacts/05-code/${state.pair_session.story_id}/execution.jsonl`,
+  );
+  const record = readExecutionRecords(logPath).find(
+    ({ sequence }) => sequence === input.observation.sequence,
+  );
+  if (!record) {
+    throw new Error(
+      `Cannot fingerprint missing execution record ${input.observation.sequence}.`,
+    );
+  }
+  const changedDiffSha256 =
+    state.pair_session.driver_history
+      .filter(
+        ({ task_id, test_id }) =>
+          task_id === state.pair_session.task_id &&
+          test_id === state.pair_session.test_id,
+      )
+      .at(-1)?.diff_sha256 ?? digest('(no changed diff)');
+  return recordFailureFingerprint(cwd, {
+    fingerprint: commandFailureFingerprint({
+      record,
+      failureKind: input.failureKind,
+      currentTest: state.pair_session.test_id,
+      changedDiffSha256,
+    }),
+    failureKind: input.failureKind,
+    executionSequence: record.sequence,
+    ...(input.traceSpanId ? { traceSpanId: input.traceSpanId } : {}),
+    ...(input.now ? { now: input.now } : {}),
+  });
+}
+
+export function recordPairDriverFailure(
+  cwd: string,
+  input: {
+    mode: PairDriverMode | 'red-reviewer';
+    blockedReason: string;
+    changedPaths: string[];
+    output: string;
+    traceSpanId?: string;
+    now?: string;
+  },
+) {
+  const state = pairState(cwd, false);
+  return recordFailureFingerprint(cwd, {
+    fingerprint: driverFailureFingerprint({
+      mode: input.mode,
+      taskId: state.pair_session.task_id,
+      testId: state.pair_session.test_id,
+      blockedReason: input.blockedReason,
+      changedPaths: input.changedPaths,
+      output: input.output,
+    }),
+    failureKind: `driver:${input.mode}`,
+    ...(input.traceSpanId ? { traceSpanId: input.traceSpanId } : {}),
+    ...(input.now ? { now: input.now } : {}),
+  });
+}
+
+export function recordPairCheckpointProgress(
+  cwd: string,
+  spanId: string,
+  now = new Date().toISOString(),
+): {
+  state: WorkflowState;
+  window: PairProgressWindow;
+  advanced: boolean;
+  limitReached: boolean;
+} {
+  const state = pairState(cwd, false);
+  const previous = state.pair_session.pair_progress;
+  if (previous?.recent_span_ids.includes(spanId)) {
+    return {
+      state,
+      window: previous,
+      advanced: false,
+      limitReached: false,
+    };
+  }
+  const marker = pairProgressMarker(state);
+  const advanced =
+    !previous || pairProgressAdvanced(previous.high_water, marker);
+  const window: PairProgressWindow = {
+    high_water: advanced ? marker : (previous?.high_water ?? marker),
+    no_progress_checkpoints: advanced
+      ? 0
+      : (previous?.no_progress_checkpoints ?? 0) + 1,
+    recent_span_ids: [...(previous?.recent_span_ids ?? []), spanId].slice(-10),
+    updated_at: now,
+  };
+  const next = writeState(cwd, {
+    ...state,
+    pair_session: { ...state.pair_session, pair_progress: window },
+  });
+  const limit = state.pair_session.execution_budget.max_no_progress_checkpoints;
+  return {
+    state: next,
+    window,
+    advanced,
+    limitReached: limit !== null && window.no_progress_checkpoints >= limit,
+  };
 }
 
 function nulPaths(cwd: string, args: string[]): string[] {
@@ -1389,6 +1590,7 @@ export function navigatePair(
   action: PairNavigationAction,
   reason: string,
   now = new Date().toISOString(),
+  decidedBy: 'human' | 'system' = 'human',
 ): WorkflowState {
   const state = pairState(cwd);
   const normalized = reason.trim();
@@ -1470,6 +1672,8 @@ export function navigatePair(
     quality_gate_index: keepCompletion
       ? state.pair_session.quality_gate_index
       : 0,
+    pair_progress:
+      decidedBy === 'human' ? undefined : state.pair_session.pair_progress,
     automation_exception: undefined,
     ...(action === 'back_test' ? { red_observation: undefined } : {}),
     feedback: [
@@ -1477,7 +1681,7 @@ export function navigatePair(
       {
         action,
         reason: normalized,
-        decided_by: 'human',
+        decided_by: decidedBy,
         recorded_at: now,
       },
     ],

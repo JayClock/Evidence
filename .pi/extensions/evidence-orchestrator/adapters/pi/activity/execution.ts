@@ -24,6 +24,9 @@ import {
   pairDriverWriteRoots,
   parsePairRedReview,
   recordPairAutomationException,
+  recordPairCheckpointProgress,
+  recordPairCommandFailure,
+  recordPairDriverFailure,
   reviewPairRed,
 } from '../../../loops/pair/pair-session';
 import {
@@ -55,6 +58,11 @@ export interface ActivityExecutionDetails extends ActivityAgentResult {
   task: string;
   status: 'running' | 'completed' | 'failed';
   traceSpanId?: string;
+  driverFailure?: {
+    mode: PairDriverMode;
+    changedPaths: string[];
+    blockedReason: string;
+  };
 }
 
 interface ActivityExecutionContext {
@@ -277,6 +285,7 @@ async function executeOnePreparedActivityRun(
   let partialResult: ActivityAgentResult | undefined;
   let executionRecordSequences: number[] = [];
   let traceSpanId: string | undefined;
+  let driverFailure: ActivityExecutionDetails['driverFailure'];
 
   try {
     const details = await withActivityTrace(
@@ -375,6 +384,13 @@ async function executeOnePreparedActivityRun(
                 `${result.output}\n${result.stderr}`,
                 now(),
               );
+          if (completion.blocked) {
+            driverFailure = {
+              mode: mode as PairDriverMode,
+              changedPaths: completion.changedPaths,
+              blockedReason: completion.output,
+            };
+          }
           result = {
             ...result,
             exitCode: completion.blocked ? 1 : result.exitCode,
@@ -418,7 +434,11 @@ async function executeOnePreparedActivityRun(
         resultingState: () => readState(ctx.cwd),
       },
     );
-    return { ...details, ...(traceSpanId ? { traceSpanId } : {}) };
+    return {
+      ...details,
+      ...(traceSpanId ? { traceSpanId } : {}),
+      ...(driverFailure ? { driverFailure } : {}),
+    };
   } finally {
     ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
   }
@@ -496,6 +516,8 @@ function persistedPairAutomationResult(
     kind?: PairAutomationExceptionKind;
     triggeringSpanId?: string;
     executionSequence?: number;
+    failureFingerprint?: string;
+    retryCount?: number;
     approvedLimit?: number;
     actualValue?: number;
   } = {},
@@ -510,6 +532,12 @@ function persistedPairAutomationResult(
         : {}),
       ...(exception.executionSequence !== undefined
         ? { executionSequence: exception.executionSequence }
+        : {}),
+      ...(exception.failureFingerprint
+        ? { failureFingerprint: exception.failureFingerprint }
+        : {}),
+      ...(exception.retryCount !== undefined
+        ? { retryCount: exception.retryCount }
         : {}),
       ...(exception.approvedLimit !== undefined
         ? { approvedLimit: exception.approvedLimit }
@@ -550,16 +578,6 @@ function persistedPairAutomationResult(
   };
 }
 
-function retryAllowed(
-  retries: Map<string, number>,
-  key: string,
-  maxRetries: number,
-): boolean {
-  const next = (retries.get(key) ?? 0) + 1;
-  retries.set(key, next);
-  return next <= maxRetries;
-}
-
 async function executeTracedPairControllerAction(
   ctx: ActivityExecutionContext,
   state: WorkflowState,
@@ -568,9 +586,10 @@ async function executeTracedPairControllerAction(
   action: () => void,
   telemetry: PairAutomationTelemetry,
   options: ExecutePreparedActivityRunOptions,
-): Promise<void> {
+): Promise<string> {
   const now = options.now ?? (() => new Date().toISOString());
   let partialResult: ActivityAgentResult | undefined;
+  let traceSpanId: string | undefined;
   await withActivityTrace(
     ctx.cwd,
     {
@@ -584,7 +603,8 @@ async function executeTracedPairControllerAction(
       toolNames: [],
       parentSpanId,
     },
-    async () => {
+    async (span) => {
+      traceSpanId = span.spanId;
       const startedAt = now();
       action();
       partialResult = deterministicAgentResult(
@@ -603,6 +623,10 @@ async function executeTracedPairControllerAction(
       resultingState: () => readState(ctx.cwd),
     },
   );
+  if (!traceSpanId) {
+    throw new Error('Pair controller checkpoint has no trace span.');
+  }
+  return traceSpanId;
 }
 
 async function executeAutomatedPairRun(
@@ -618,8 +642,6 @@ async function executeAutomatedPairRun(
     toolCallCounts: {},
     toolNames: new Set(),
   };
-  const retries = new Map<string, number>();
-  const reviewedFailures = new Set<number>();
   const summaries: string[] = [];
   let steps = 0;
   const pairAutomationResult = (
@@ -639,6 +661,30 @@ async function executeAutomatedPairRun(
       now(),
       exception,
     );
+  const checkpointProgress = (spanId: string | undefined) =>
+    spanId ? recordPairCheckpointProgress(ctx.cwd, spanId, now()) : undefined;
+  const noProgressStop = (
+    progress: ReturnType<typeof recordPairCheckpointProgress> | undefined,
+    spanId: string | undefined,
+  ): ActivityExecutionDetails | undefined => {
+    if (!spanId || !progress?.limitReached) return undefined;
+    const limit =
+      progress.state.pair_session?.execution_budget.max_no_progress_checkpoints;
+    return pairAutomationResult(
+      progress.state,
+      'failed',
+      `Pair automation made no deterministic milestone progress for ${progress.window.no_progress_checkpoints} consecutive checkpoints; approved limit=${limit ?? 'shadow'}.`,
+      steps,
+      {
+        kind: 'no_progress',
+        triggeringSpanId: spanId,
+        ...(limit !== null && limit !== undefined
+          ? { approvedLimit: limit }
+          : {}),
+        actualValue: progress.window.no_progress_checkpoints,
+      },
+    );
+  };
 
   const initialSession = readState(ctx.cwd).pair_session;
   if (!initialSession) {
@@ -651,9 +697,6 @@ async function executeAutomatedPairRun(
   }
   const emergencyMaxCheckpoints =
     initialSession.execution_budget.emergency_max_checkpoints;
-  const maxRetries =
-    initialSession.execution_budget.max_retries_per_failure_fingerprint;
-
   for (let guard = 0; guard < emergencyMaxCheckpoints; guard += 1) {
     const state = readState(ctx.cwd);
     const session = state.pair_session;
@@ -728,35 +771,106 @@ async function executeAutomatedPairRun(
         );
       } catch (error) {
         if (options.signal?.aborted) throw error;
-        if (reviewerResult) steps += 1;
         const message = error instanceof Error ? error.message : String(error);
-        return pairAutomationResult(
-          readState(ctx.cwd),
-          'failed',
-          message,
-          steps,
-          {
-            kind:
-              error instanceof ActivityObservabilityGapError
-                ? 'observability_gap'
-                : 'retry_exhausted',
-            ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
-          },
-        );
+        if (error instanceof ActivityObservabilityGapError) {
+          return pairAutomationResult(
+            readState(ctx.cwd),
+            'failed',
+            message,
+            steps,
+            {
+              kind: 'observability_gap',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+            },
+          );
+        }
+        if (!reviewerResult) {
+          return pairAutomationResult(
+            readState(ctx.cwd),
+            'failed',
+            message,
+            steps,
+          );
+        }
+        steps += 1;
+        const failure = recordPairDriverFailure(ctx.cwd, {
+          mode: 'red-reviewer',
+          blockedReason: message,
+          changedPaths: [],
+          output: reviewerResult.output,
+          ...(reviewerSpanId ? { traceSpanId: reviewerSpanId } : {}),
+          now: now(),
+        });
+        const progress = checkpointProgress(reviewerSpanId);
+        if (failure.repeated) {
+          return pairAutomationResult(
+            failure.state,
+            'failed',
+            `Pair automation repeated the same Red Reviewer failure ${failure.record.occurrence_count} time(s): ${message}`,
+            steps,
+            {
+              kind: 'repeated_failure',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+              failureFingerprint: failure.record.fingerprint,
+              retryCount: failure.record.retry_count,
+              approvedLimit:
+                failure.state.pair_session?.execution_budget
+                  .max_retries_per_failure_fingerprint,
+              actualValue: failure.record.retry_count,
+            },
+          );
+        }
+        const progressStop = noProgressStop(progress, reviewerSpanId);
+        if (progressStop) return progressStop;
+        summaries.push('red-reviewer retry');
+        continue;
       }
       steps += 1;
+      const progress = checkpointProgress(reviewerSpanId);
       if (activityFailed(reviewerResult)) {
         const activityTimeout = reviewerResult.stopReason === 'timeout';
-        return pairAutomationResult(
-          readState(ctx.cwd),
-          'failed',
-          `AI Red Reviewer ${activityTimeout ? 'timed out' : 'failed'} for ${session.task_id}/${session.test_id}: ${reviewerResult.output}`,
-          steps,
-          {
-            kind: activityTimeout ? 'activity_timeout' : 'retry_exhausted',
-            ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
-          },
-        );
+        if (activityTimeout) {
+          return pairAutomationResult(
+            readState(ctx.cwd),
+            'failed',
+            `AI Red Reviewer timed out for ${session.task_id}/${session.test_id}: ${reviewerResult.output}`,
+            steps,
+            {
+              kind: 'activity_timeout',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+            },
+          );
+        }
+        const failure = recordPairDriverFailure(ctx.cwd, {
+          mode: 'red-reviewer',
+          blockedReason: reviewerResult.errorMessage ?? reviewerResult.output,
+          changedPaths: [],
+          output: reviewerResult.output,
+          ...(reviewerSpanId ? { traceSpanId: reviewerSpanId } : {}),
+          now: now(),
+        });
+        if (failure.repeated) {
+          return pairAutomationResult(
+            failure.state,
+            'failed',
+            `Pair automation repeated the same Red Reviewer failure ${failure.record.occurrence_count} time(s).`,
+            steps,
+            {
+              kind: 'repeated_failure',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+              failureFingerprint: failure.record.fingerprint,
+              retryCount: failure.record.retry_count,
+              approvedLimit:
+                failure.state.pair_session?.execution_budget
+                  .max_retries_per_failure_fingerprint,
+              actualValue: failure.record.retry_count,
+            },
+          );
+        }
+        const progressStop = noProgressStop(progress, reviewerSpanId);
+        if (progressStop) return progressStop;
+        summaries.push('red-reviewer retry');
+        continue;
       }
       if (!classification) {
         return pairAutomationResult(
@@ -769,69 +883,85 @@ async function executeAutomatedPairRun(
       summaries.push(
         `${session.task_id}/${session.test_id} Red=${classification.failureKind}`,
       );
-      if (
-        classification.failureKind !== 'behavior' &&
-        !retryAllowed(
-          retries,
-          `red:${session.task_id}/${session.test_id}:${classification.failureKind}`,
-          maxRetries,
-        )
-      ) {
-        return pairAutomationResult(
-          readState(ctx.cwd),
-          'failed',
-          `Pair automation stopped after repeated pseudo-Red classifications for ${session.task_id}/${session.test_id}: ${classification.failureKind} · ${classification.reason}`,
-          steps,
-        );
+      if (classification.failureKind !== 'behavior') {
+        const red = session.red_observation;
+        if (!red) throw new Error('Pseudo-Red lost its execution observation.');
+        const failure = recordPairCommandFailure(ctx.cwd, {
+          observation: red,
+          failureKind: classification.failureKind,
+          ...(reviewerSpanId ? { traceSpanId: reviewerSpanId } : {}),
+          now: now(),
+        });
+        if (failure.repeated) {
+          return pairAutomationResult(
+            failure.state,
+            'failed',
+            `Pair automation repeated the same pseudo-Red ${failure.record.occurrence_count} time(s) for ${session.task_id}/${session.test_id}: ${classification.failureKind} · ${classification.reason}`,
+            steps,
+            {
+              kind: 'repeated_failure',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+              executionSequence: red.sequence,
+              failureFingerprint: failure.record.fingerprint,
+              retryCount: failure.record.retry_count,
+              approvedLimit:
+                failure.state.pair_session?.execution_budget
+                  .max_retries_per_failure_fingerprint,
+              actualValue: failure.record.retry_count,
+            },
+          );
+        }
       }
+      const progressStop = noProgressStop(progress, reviewerSpanId);
+      if (progressStop) return progressStop;
       continue;
     }
 
     if (session.checkpoint === 'quality_gate_failed') {
       const observation = session.last_observation;
-      const key = `quality:${session.quality_gate_index}:${observation?.command ?? 'unknown'}`;
-      if (!retryAllowed(retries, key, maxRetries)) {
-        return pairAutomationResult(
-          state,
-          'failed',
-          `Pair automation exhausted quality-gate repair retries: ${observation?.command ?? 'unknown command'}. Human exception routing is required.`,
-          steps,
-        );
-      }
       const reason = `Automated repair for quality gate exit=${observation?.exit_code ?? 'unknown'}: ${observation?.command ?? 'unknown command'}`;
-      await executeTracedPairControllerAction(
-        ctx,
-        state,
-        parentSpanId,
-        `Navigate Pair back to implementation. ${reason}`,
-        () => {
-          navigatePair(ctx.cwd, 'back_implementation', reason, now());
-        },
-        telemetry,
-        options,
-      );
-      steps += 1;
-      summaries.push(`quality-gate repair ${retries.get(key)}`);
-      continue;
-    }
-
-    const failedObservation = session.last_observation;
-    if (
-      failedObservation &&
-      failedObservation.exit_code !== 0 &&
-      ['green', 'refactor'].includes(failedObservation.stage) &&
-      !reviewedFailures.has(failedObservation.sequence)
-    ) {
-      reviewedFailures.add(failedObservation.sequence);
-      const key = `${failedObservation.stage}:${session.task_id}/${session.test_id}`;
-      if (!retryAllowed(retries, key, maxRetries)) {
-        return pairAutomationResult(
+      let controllerSpanId: string;
+      try {
+        controllerSpanId = await executeTracedPairControllerAction(
+          ctx,
           state,
+          parentSpanId,
+          `Navigate Pair back to implementation. ${reason}`,
+          () => {
+            navigatePair(
+              ctx.cwd,
+              'back_implementation',
+              reason,
+              now(),
+              'system',
+            );
+          },
+          telemetry,
+          options,
+        );
+      } catch (error) {
+        if (options.signal?.aborted) throw error;
+        return pairAutomationResult(
+          readState(ctx.cwd),
           'failed',
-          `Pair automation exhausted ${failedObservation.stage} repair retries for ${session.task_id}/${session.test_id}. Human exception routing is required.`,
+          error instanceof Error ? error.message : String(error),
           steps,
+          {
+            kind:
+              error instanceof ActivityObservabilityGapError
+                ? 'observability_gap'
+                : 'retry_exhausted',
+          },
         );
       }
+      steps += 1;
+      const progressStop = noProgressStop(
+        checkpointProgress(controllerSpanId),
+        controllerSpanId,
+      );
+      if (progressStop) return progressStop;
+      summaries.push('quality-gate repair navigation');
+      continue;
     }
 
     const next = nextPairPreparation(ctx.cwd);
@@ -869,6 +999,7 @@ async function executeAutomatedPairRun(
     );
     const resultingObservation = readState(ctx.cwd).pair_session
       ?.last_observation;
+    const progress = checkpointProgress(details.traceSpanId);
     if (
       next.pairAction &&
       resultingObservation?.termination.kind === 'timeout'
@@ -922,18 +1053,79 @@ async function executeAutomatedPairRun(
         },
       );
     }
-    if (details.status === 'failed') {
-      const current = readState(ctx.cwd).pair_session;
-      const key = `driver:${current?.task_id}/${current?.test_id}:${next.agentName ?? next.pairAction}`;
-      if (!retryAllowed(retries, key, maxRetries)) {
+    if (
+      next.pairAction &&
+      resultingObservation &&
+      resultingObservation.stage !== 'red' &&
+      resultingObservation.exit_code !== 0
+    ) {
+      const failure = recordPairCommandFailure(ctx.cwd, {
+        observation: resultingObservation,
+        failureKind: resultingObservation.stage,
+        ...(details.traceSpanId ? { traceSpanId: details.traceSpanId } : {}),
+        now: now(),
+      });
+      if (failure.repeated) {
         return pairAutomationResult(
-          readState(ctx.cwd),
+          failure.state,
           'failed',
-          `Pair automation exhausted Driver retries at ${key}.\n\n${details.output}`,
+          `Pair automation repeated the same ${resultingObservation.stage} command failure ${failure.record.occurrence_count} time(s) for ${session.task_id}/${session.test_id}.`,
           steps,
+          {
+            kind: 'repeated_failure',
+            ...(details.traceSpanId
+              ? { triggeringSpanId: details.traceSpanId }
+              : {}),
+            executionSequence: resultingObservation.sequence,
+            failureFingerprint: failure.record.fingerprint,
+            retryCount: failure.record.retry_count,
+            approvedLimit:
+              failure.state.pair_session?.execution_budget
+                .max_retries_per_failure_fingerprint,
+            actualValue: failure.record.retry_count,
+          },
         );
       }
     }
+    if (details.status === 'failed') {
+      const mode =
+        details.driverFailure?.mode ??
+        pairDriverMode(next.state) ??
+        'implementation';
+      const failure = recordPairDriverFailure(ctx.cwd, {
+        mode,
+        blockedReason:
+          details.driverFailure?.blockedReason ??
+          details.errorMessage ??
+          details.output,
+        changedPaths: details.driverFailure?.changedPaths ?? [],
+        output: details.output,
+        ...(details.traceSpanId ? { traceSpanId: details.traceSpanId } : {}),
+        now: now(),
+      });
+      if (failure.repeated) {
+        return pairAutomationResult(
+          failure.state,
+          'failed',
+          `Pair automation repeated the same ${mode} Driver failure ${failure.record.occurrence_count} time(s) for ${session.task_id}/${session.test_id}.`,
+          steps,
+          {
+            kind: 'repeated_failure',
+            ...(details.traceSpanId
+              ? { triggeringSpanId: details.traceSpanId }
+              : {}),
+            failureFingerprint: failure.record.fingerprint,
+            retryCount: failure.record.retry_count,
+            approvedLimit:
+              failure.state.pair_session?.execution_budget
+                .max_retries_per_failure_fingerprint,
+            actualValue: failure.record.retry_count,
+          },
+        );
+      }
+    }
+    const progressStop = noProgressStop(progress, details.traceSpanId);
+    if (progressStop) return progressStop;
   }
 
   return pairAutomationResult(

@@ -495,6 +495,19 @@ export function decideTasking(
         quality_gate_index: 0,
         feedback: [],
         driver_history: [],
+        failure_fingerprints: [],
+        pair_progress: {
+          high_water: {
+            completed_test_count: 0,
+            completed_step_count: 0,
+            quality_gate_index: 0,
+            current_work_unit_index: 0,
+            checkpoint_rank: 0,
+          },
+          no_progress_checkpoints: 0,
+          recent_span_ids: [],
+          updated_at: now,
+        },
         automation_exception_history: [],
       },
     };

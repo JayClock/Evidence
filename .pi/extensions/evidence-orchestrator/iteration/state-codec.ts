@@ -4,6 +4,8 @@ import { LOOP_ORDER } from './transition-graph';
 import type {
   ClarificationRecord,
   ExecutionBudgetEnvelope,
+  PairFailureFingerprintRecord,
+  PairProgressWindow,
   TestProcessSelection,
   WorkflowState,
 } from './state';
@@ -208,6 +210,55 @@ function validExecutionBudgetEnvelope(value: ExecutionBudgetEnvelope): boolean {
     value.soft_ratio < 1 &&
     text(value.approved_at) &&
     Number.isFinite(Date.parse(value.approved_at))
+  );
+}
+
+function validPairFailureFingerprint(
+  value: PairFailureFingerprintRecord,
+): boolean {
+  return Boolean(
+    value &&
+      /^[a-f0-9]{64}$/.test(value.fingerprint) &&
+      text(value.failure_kind) &&
+      Number.isSafeInteger(value.occurrence_count) &&
+      value.occurrence_count > 0 &&
+      Number.isSafeInteger(value.retry_count) &&
+      value.retry_count === value.occurrence_count - 1 &&
+      Array.isArray(value.execution_sequences) &&
+      value.execution_sequences.every(
+        (sequence) => Number.isSafeInteger(sequence) && sequence > 0,
+      ) &&
+      new Set(value.execution_sequences).size ===
+        value.execution_sequences.length &&
+      Array.isArray(value.trace_span_ids) &&
+      value.trace_span_ids.every((spanId) => /^ACT-\d{6,}$/.test(spanId)) &&
+      new Set(value.trace_span_ids).size === value.trace_span_ids.length &&
+      text(value.first_seen_at) &&
+      Number.isFinite(Date.parse(value.first_seen_at)) &&
+      text(value.last_seen_at) &&
+      Number.isFinite(Date.parse(value.last_seen_at)),
+  );
+}
+
+function validPairProgressWindow(value: PairProgressWindow): boolean {
+  if (!value) return false;
+  const marker = value.high_water;
+  return (
+    Boolean(marker) &&
+    [
+      marker.completed_test_count,
+      marker.completed_step_count,
+      marker.quality_gate_index,
+      marker.current_work_unit_index,
+      marker.checkpoint_rank,
+      value.no_progress_checkpoints,
+    ].every((candidate) => Number.isSafeInteger(candidate) && candidate >= 0) &&
+    Array.isArray(value.recent_span_ids) &&
+    value.recent_span_ids.length <= 10 &&
+    value.recent_span_ids.every((spanId) => /^ACT-\d{6,}$/.test(spanId)) &&
+    new Set(value.recent_span_ids).size === value.recent_span_ids.length &&
+    text(value.updated_at) &&
+    Number.isFinite(Date.parse(value.updated_at))
   );
 }
 
@@ -730,6 +781,18 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !validExecutionBudgetEnvelope(state.pair_session.execution_budget) ||
       !Array.isArray(state.pair_session.feedback) ||
       !Array.isArray(state.pair_session.driver_history) ||
+      (state.pair_session.failure_fingerprints !== undefined &&
+        (!Array.isArray(state.pair_session.failure_fingerprints) ||
+          state.pair_session.failure_fingerprints.some(
+            (record) => !validPairFailureFingerprint(record),
+          ) ||
+          new Set(
+            state.pair_session.failure_fingerprints.map(
+              ({ fingerprint }) => fingerprint,
+            ),
+          ).size !== state.pair_session.failure_fingerprints.length)) ||
+      (state.pair_session.pair_progress !== undefined &&
+        !validPairProgressWindow(state.pair_session.pair_progress)) ||
       (state.pair_session.automation_exception_history !== undefined &&
         !Array.isArray(state.pair_session.automation_exception_history)))
   ) {

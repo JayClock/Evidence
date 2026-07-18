@@ -124,9 +124,10 @@ function currentUnit(state: WorkflowState): string | undefined {
 }
 
 function blocker(state: WorkflowState): string | undefined {
+  const exception = state.pair_session?.automation_exception;
   return (
     state.halted?.reason ??
-    state.pair_session?.automation_exception?.reason ??
+    (exception ? `${exception.kind}: ${exception.reason}` : undefined) ??
     state.tasking_gap?.reason ??
     (state.pending_clarification
       ? `awaiting domain expert answer to ${state.pending_clarification.question_id}`

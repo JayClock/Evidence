@@ -44,6 +44,22 @@ const pairing = vi.hoisted(() => ({
     reason: 'The planned assertion reports missing behavior.',
   })),
   recordPairAutomationException: vi.fn(),
+  recordPairCheckpointProgress: vi.fn(() => ({
+    state: {},
+    window: { no_progress_checkpoints: 0 },
+    advanced: true,
+    limitReached: false,
+  })),
+  recordPairCommandFailure: vi.fn(() => ({
+    state: {},
+    record: { fingerprint: 'f'.repeat(64), retry_count: 0 },
+    repeated: false,
+  })),
+  recordPairDriverFailure: vi.fn(() => ({
+    state: {},
+    record: { fingerprint: 'f'.repeat(64), retry_count: 0 },
+    repeated: false,
+  })),
   reviewPairRed:
     vi.fn<
       (

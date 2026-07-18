@@ -358,6 +358,32 @@ export interface ExecutionBudgetUsage {
   pair_checkpoints: number;
 }
 
+export interface PairFailureFingerprintRecord {
+  fingerprint: string;
+  failure_kind: string;
+  occurrence_count: number;
+  retry_count: number;
+  execution_sequences: number[];
+  trace_span_ids: string[];
+  first_seen_at: string;
+  last_seen_at: string;
+}
+
+export interface PairProgressMarker {
+  completed_test_count: number;
+  completed_step_count: number;
+  quality_gate_index: number;
+  current_work_unit_index: number;
+  checkpoint_rank: number;
+}
+
+export interface PairProgressWindow {
+  high_water: PairProgressMarker;
+  no_progress_checkpoints: number;
+  recent_span_ids: string[];
+  updated_at: string;
+}
+
 export interface PairAutomationException {
   version: 1;
   exception_id: string;
@@ -413,6 +439,8 @@ export interface PairSession {
   quality_gate_index: number;
   feedback: PairFeedbackRecord[];
   driver_history: PairDriverRecord[];
+  failure_fingerprints?: PairFailureFingerprintRecord[];
+  pair_progress?: PairProgressWindow;
   /** Persisted only when bounded AI execution cannot continue without exception routing. */
   automation_exception?: PairAutomationException;
   automation_exception_history?: PairAutomationException[];

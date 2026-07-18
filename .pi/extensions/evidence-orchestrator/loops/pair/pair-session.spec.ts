@@ -69,6 +69,8 @@ import {
   pairDriverMode,
   parsePairRedReview,
   recordPairAutomationException,
+  recordPairCheckpointProgress,
+  recordPairDriverFailure,
   reviewPairRed,
 } from './pair-session';
 
@@ -2207,6 +2209,137 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(rejected.showcase_q2_observations).toHaveLength(1);
     expect(rejected.showcase_reviews).toHaveLength(1);
     expect(rejected.showcase_decisions?.at(-1)?.action).toBe('reject');
+  });
+
+  it('persists failure fingerprints and stops on the approved retry count', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    updateExecutionBudget(cwd, {
+      max_retries_per_failure_fingerprint: 2,
+    });
+    const first = recordPairDriverFailure(cwd, {
+      mode: 'implementation',
+      blockedReason: 'No production change was left.',
+      changedPaths: [],
+      output: 'Production Driver made no change.',
+      traceSpanId: 'ACT-000001',
+      now: '2026-01-01T00:00:01.000Z',
+    });
+    const duplicateSpan = recordPairDriverFailure(cwd, {
+      mode: 'implementation',
+      blockedReason: 'No production change was left.',
+      changedPaths: [],
+      output: 'Production Driver made no change.',
+      traceSpanId: 'ACT-000001',
+      now: '2026-01-01T00:00:02.000Z',
+    });
+    const second = recordPairDriverFailure(cwd, {
+      mode: 'implementation',
+      blockedReason: 'No production change was left.',
+      changedPaths: [],
+      output: 'Production Driver made no change.',
+      traceSpanId: 'ACT-000002',
+      now: '2026-01-01T00:00:03.000Z',
+    });
+    const third = recordPairDriverFailure(cwd, {
+      mode: 'implementation',
+      blockedReason: 'No production change was left.',
+      changedPaths: [],
+      output: 'Production Driver made no change.',
+      traceSpanId: 'ACT-000003',
+      now: '2026-01-01T00:00:04.000Z',
+    });
+    const different = recordPairDriverFailure(cwd, {
+      mode: 'implementation',
+      blockedReason: 'A different path was blocked.',
+      changedPaths: ['apps/web/src/other.ts'],
+      output: 'Different failure.',
+      traceSpanId: 'ACT-000004',
+      now: '2026-01-01T00:00:05.000Z',
+    });
+
+    expect(first.record).toMatchObject({ occurrence_count: 1, retry_count: 0 });
+    expect(duplicateSpan.record).toMatchObject({
+      occurrence_count: 1,
+      retry_count: 0,
+    });
+    expect(second).toMatchObject({
+      repeated: false,
+      record: { occurrence_count: 2, retry_count: 1 },
+    });
+    expect(third).toMatchObject({
+      repeated: true,
+      record: { occurrence_count: 3, retry_count: 2 },
+    });
+    expect(different.record.fingerprint).not.toBe(third.record.fingerprint);
+    expect(readState(cwd).pair_session?.failure_fingerprints).toHaveLength(2);
+  });
+
+  it('tracks no-progress high water and resets the active window on progress', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    updateExecutionBudget(cwd, { max_no_progress_checkpoints: 2 });
+    const state = readState(cwd);
+    if (!state.pair_session) throw new Error('Missing Pair fixture.');
+    writeState(cwd, {
+      ...state,
+      pair_session: {
+        ...state.pair_session,
+        pair_progress: {
+          high_water: {
+            completed_test_count: 0,
+            completed_step_count: 0,
+            quality_gate_index: 0,
+            current_work_unit_index: 0,
+            checkpoint_rank: 0,
+          },
+          no_progress_checkpoints: 0,
+          recent_span_ids: [],
+          updated_at: '2026-01-01T00:00:00.000Z',
+        },
+      },
+    });
+
+    const first = recordPairCheckpointProgress(
+      cwd,
+      'ACT-000001',
+      '2026-01-01T00:00:01.000Z',
+    );
+    const second = recordPairCheckpointProgress(
+      cwd,
+      'ACT-000002',
+      '2026-01-01T00:00:02.000Z',
+    );
+    const beforeProgress = readState(cwd);
+    if (!beforeProgress.pair_session) throw new Error('Missing Pair session.');
+    writeState(cwd, {
+      ...beforeProgress,
+      pair_session: {
+        ...beforeProgress.pair_session,
+        checkpoint: 'test_written',
+      },
+    });
+    const advanced = recordPairCheckpointProgress(
+      cwd,
+      'ACT-000003',
+      '2026-01-01T00:00:03.000Z',
+    );
+
+    expect(first).toMatchObject({
+      advanced: false,
+      limitReached: false,
+      window: { no_progress_checkpoints: 1 },
+    });
+    expect(second).toMatchObject({
+      advanced: false,
+      limitReached: true,
+      window: { no_progress_checkpoints: 2 },
+    });
+    expect(advanced).toMatchObject({
+      advanced: true,
+      limitReached: false,
+      window: { no_progress_checkpoints: 0 },
+    });
   });
 
   it('persists a typed exception and allows only its explicit human routes', () => {
