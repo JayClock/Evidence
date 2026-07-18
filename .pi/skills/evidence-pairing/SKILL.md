@@ -7,7 +7,7 @@ description: Execute controller-automated Evidence Pairing with short-lived Test
 
 ## When to use
 
-Use for the approved Pair loop. One `/evidence-run` lets the controller advance the complete coding Story until all gates pass or automation reaches an exception. Agents remain short-lived and perform one bounded role at a time; the human reviews authority once at the completed Story boundary.
+Use for the approved Pair loop. One `/evidence-run ITER-xxxx` lets the controller advance that exact worktree's complete coding Story until all gates pass or automation reaches an exception. Agents remain short-lived and perform one bounded role at a time; the human reviews authority once at the completed Story boundary.
 
 ## Inputs
 
@@ -27,11 +27,12 @@ Use for the approved Pair loop. One `/evidence-run` lets the controller advance 
 8. After every TEST in the current process step is Green, Production Driver performs one bounded step-level Refactor or explicit no-op; the controller verifies it with the locked focused command.
 9. Repeat for every process step, then run only the materialized quality-gate commands locked at Desk Check; Pair never expands gates from the process definition. A failed Refactor or gate receives bounded automated repair; exhausted retries stop as an exception rather than becoming approval.
 10. Generate append-only execution evidence and the model → TASK/TEST → changed-path trace; for `method=none`, record Scenario → TASK/TEST → changed-path with empty model refs.
-11. Stop after all gates pass. The human reviews the complete Story evidence once and records `/evidence-pair approve <reason>` before Showcase.
+11. Stop after all gates pass. Release the global Pair runner lease; the human reviews the complete Story evidence once and records `/evidence-pair ITER-xxxx approve <reason>` before Showcase.
 
 ## Authority and safety
 
 - Agents edit; only the controller runs locked commands and records exits, output hashes, Git/worktree hashes, identities, and paths.
+- Pair requires Delivery admission, one per-Story activity lease, and the bounded global Pair runner lease. Iteration, worktree, Board root, lease id, or State CAS drift fails closed.
 - A Red Reviewer classifies evidence but does not grant human product authority.
 - Drivers never modify plans, state, execution evidence, frozen tests outside their role, Git HEAD, workspace configuration, or unapproved Nx projects. Project-owner/configuration violations are restored and returned to Tasking; other role-boundary violations are restored and retried only within the budget.
 - Automation never broadens Scenario scope, changes an approved plan, mixes Rust/Nest, weakens tests, or treats a pseudo-Red as behavior.

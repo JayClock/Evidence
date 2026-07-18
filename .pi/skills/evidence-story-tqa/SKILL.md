@@ -26,7 +26,7 @@ Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration 
    - `history` for a local detail that need not revise stable context or the Card.
 4. If that uncertainty remains, ask one business-facing question with `evidence_orchestrator_ask_question`, then stop. A confirmed channel, external interface, or user interaction may be clarified when needed for an observable Scenario; do not ask the domain expert to choose frameworks, databases, runtimes, internal components, or tests.
 5. If knowledge is sufficient, propose the bounded, non-duplicated Scenario Set needed to confirm the Story: normal, alternative, boundary, and business-rejection examples where applicable. Each Scenario has concrete Given, one When, observable Then outcomes, and exact business data. Product-visible interaction may appear only when already confirmed; internal implementation steps never appear.
-6. Call `evidence_orchestrator_propose_scenarios`, then stop for human confirmation of the complete set through `/evidence-scenario`.
+6. Call `evidence_orchestrator_propose_scenarios`, then stop for human confirmation of the complete set through `/evidence-scenario ITER-xxxx`.
 
 ## Project examples
 

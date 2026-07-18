@@ -41,7 +41,7 @@ Use before Pair after either (a) a non-`none` expansion passes independent chall
 - Scenario misunderstanding → Understand.
 - Architecture gap → remain Tasking and update only stable architecture knowledge required by the Scenario.
 - Process gap → add/fix one reusable v3 process or Nx project/target mapping, regenerate, then Desk Check.
-- Candidate ready → stop; only `/evidence-desk-check` can approve.
+- Candidate ready → stop; only `/evidence-desk-check ITER-xxxx` can approve.
 
 ## References
 

@@ -11,4 +11,4 @@ Read `$1` and summarize, without approving it:
 4. task dependencies, unique TEST ownership, process order, and model references;
 5. concrete Scenario, architecture, or process gaps.
 
-Do not modify the candidate or call `/evidence-desk-check`; the human makes that decision.
+Do not modify the candidate or call `/evidence-desk-check ITER-xxxx`; the human makes that decision.
