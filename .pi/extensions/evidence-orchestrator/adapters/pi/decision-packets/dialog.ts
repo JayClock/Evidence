@@ -12,6 +12,7 @@ import {
 } from '@earendil-works/pi-tui';
 import { validateDecisionPacket, type HumanDecisionPacket } from './contract';
 import {
+  renderDecisionPacketReview,
   renderDecisionPacketViewport,
   type DecisionPacketLineTone,
 } from './renderer';
@@ -85,6 +86,7 @@ export async function showDecisionPacket<TAction extends string>(
   packet: HumanDecisionPacket<TAction>,
 ): Promise<TAction | null> {
   validateDecisionPacket(packet);
+  renderDecisionPacketReview(packet);
   if (ctx.mode !== 'tui') {
     throw new Error('Decision Packet custom UI requires TUI mode.');
   }

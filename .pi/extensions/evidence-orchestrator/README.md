@@ -136,7 +136,9 @@ Capability 只承载两个以上 Loop 复用的稳定机制。Inbox、Modeling E
 - `/evidence-status` 默认只显示小于 4 KiB 的 summary projection，不扫描或列出 `apps/`、`libs/`；活动 Pair 同时显示 locked expected/soft/hard budget、trace usage、cost `reported|unknown`、checkpoint 与 no-progress 窗口。`artifacts` 只分页显示 active iteration 工件，`files` 只在人工显式请求时扫描代码；两者每页最多 50 项，cursor 在 inventory 或 active iteration 漂移时失效。模型 status tool 只有 `summary|artifacts`，不提供 `files`。
 - `/evidence-run` 对非 Pair loop 只运行当前状态允许的一个 activity checkpoint；在 Pair 中自动串行执行完整编码 Story 的短生命周期 Driver、Reviewer 与确定性命令，直到全绿待批或异常停止。它不接受人工决定；`--dry-run` 只预览任务。
 - 每次 Agent dispatch 的 task 以最大 16 KiB 的确定性 Context Capsule 开头，只包含当前 Identity、Decision、人工 Authority、精确输入路径、工作单元、工具/路径边界与停止条件；长工件由 Agent 按路径读取。TQA Capsule 始终给出精确 clarification-history 路径，持久 session 不是事实源。
-- 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互选择器。
+- 其余阶段命令只记录该阶段的人工决定或观察；省略参数时打开交互审查界面。首个使用统一 Decision Packet 的阶段是无参数 TUI `/evidence-desk-check`：它在一个有界界面中投影 authority scope/exclusions、Scenario、模型、TEST/TASK、process/project、commands/gates、budget、readiness checks 和精确 evidence refs。
+- Decision Packet 是临时、只读、非权威投影：打开、滚动、取消或理由取消均不落盘；提交前会重算 subject hash，发生候选、模型、process/project、policy、Git 或状态漂移时拒绝记录。真正批准仍由 `decideTasking()` 重跑全部守卫并写入既有 decision/plan/Pair 工件。
+- `/evidence-desk-check <显式参数>` 的 CLI/RPC 语义保持不变，不打开 Packet；不支持 custom TUI 的交互宿主保留既有 select/input 降级路径。Packet 不增加 Agent 或模型调用。
 - `/evidence-pair approve <reason>` 在全部 quality gates 通过后写入 `coding-decision.json`，作为完整 Story 编码的人类权威并进入 Showcase；其他参数仅用于自动化异常的显式回退。
 - `/evidence-explain-diff` 仅在 `quality_gates_passed` 后启动短生命周期 Change Explainer：只读分析稳定 diff、Scenario、模型、计划和 manifest，并把完整 HTML 返回控制器；控制器恢复任何仓库越界写入、验证结构后向系统临时目录（可用 `EVIDENCE_EXPLANATION_DIR` 指定其他仓库外目录）写入一份日期前缀的自包含 HTML，并在 iteration 内记录路径与哈希。该材料可选且不构成测试事实、审查结论或批准。
 - `/evidence-showcase` 记录产品观察、Q3/Q4 风险与评价，以及最终 accept/revise/reject 决定。

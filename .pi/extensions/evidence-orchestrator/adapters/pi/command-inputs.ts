@@ -24,6 +24,10 @@ import {
   showcaseActivitiesForQuadrant,
 } from '../../loops/showcase/showcase-session';
 import type { PairNavigationAction } from '../../loops/pair/pair-session';
+import type { DeskCheckDecisionInput } from './decision-packets/desk-check';
+
+export { promptDeskCheckDecision } from './decision-packets/desk-check';
+export type { DeskCheckDecisionInput } from './decision-packets/desk-check';
 
 export async function waitForIdle(ctx: ExtensionCommandContext): Promise<void> {
   if (!ctx.isIdle()) await ctx.waitForIdle();
@@ -353,11 +357,6 @@ export async function promptModelDecision(
       : undefined;
 }
 
-interface DeskCheckDecisionInput {
-  action: DeskCheckAction;
-  reason?: string;
-}
-
 export function parseDeskCheckDecision(
   args: string,
 ): DeskCheckDecisionInput | undefined {
@@ -374,42 +373,6 @@ export function parseDeskCheckDecision(
     throw new Error(`Desk Check ${rawAction} requires a reason.`);
   }
   return { action, ...(reason ? { reason } : {}) };
-}
-
-export async function promptDeskCheckDecision(
-  ctx: ExtensionCommandContext,
-): Promise<DeskCheckDecisionInput | undefined> {
-  const candidate = readState(ctx.cwd).tasking_candidate;
-  if (!candidate) throw new Error('No Tasking draft awaits Desk Check.');
-  if (!ctx.hasUI) {
-    throw new Error(
-      'Desk Check requires interactive mode or explicit command arguments.',
-    );
-  }
-  const labels = [
-    '批准并进入 Pair',
-    '修改测试/任务列表',
-    '架构知识缺口',
-    '测试工序缺口',
-    'Scenario 理解缺口',
-  ];
-  const selected = await ctx.ui.select(
-    `${candidate.draft_id} · ${candidate.test_list_path}`,
-    labels,
-  );
-  if (!selected) return undefined;
-  const actions: Record<string, DeskCheckAction> = {
-    批准并进入Pair: 'approve',
-    修改测试任务列表: 'revise',
-    架构知识缺口: 'architecture_gap',
-    测试工序缺口: 'process_gap',
-    Scenario理解缺口: 'scenario_gap',
-  };
-  const action = actions[selected.replace(/[ /]/g, '')];
-  if (!action) return undefined;
-  if (action === 'approve') return { action };
-  const reason = (await ctx.ui.input(`请说明“${selected}”的理由`))?.trim();
-  return reason ? { action, reason } : undefined;
 }
 
 type PairDecisionInput =

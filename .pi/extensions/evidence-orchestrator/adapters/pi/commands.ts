@@ -67,18 +67,6 @@ export {
   parseRespondDecision,
   parseShowcaseDecision,
 } from './command-inputs';
-export {
-  sanitizeDecisionText,
-  validateDecisionPacket,
-  type HumanDecisionPacket,
-} from './decision-packets/contract';
-export { buildDeskCheckDecisionPacket } from './decision-packets/desk-check';
-export { showDecisionPacket } from './decision-packets/dialog';
-export {
-  renderDecisionPacketReview,
-  renderDecisionPacketViewport,
-} from './decision-packets/renderer';
-
 export function activeStageCommand(
   cwd: string,
   state: WorkflowState | undefined = readPersistedState(cwd),

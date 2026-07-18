@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { captureInboxSource } from '../../capabilities/inbox/repository';
 import { proposeInboxStoryCandidates } from '../../capabilities/inbox/story-candidate';
@@ -7,8 +10,10 @@ import {
   writeState,
 } from '../../iteration/state-repository';
 import { proposeKickoffCandidate } from '../../loops/kickoff/story-candidate';
+import { prepareDeskCheckFixture } from '../../test-support/desk-check-fixture';
 import {
   cleanupWorkspaces,
+  TEST_EXECUTION_BUDGET_POLICY,
   testIntakeSnapshot,
   workspace,
   write,
@@ -45,10 +50,46 @@ function context(cwd: string) {
       select: vi.fn(),
       input: vi.fn(),
       editor: vi.fn(),
+      custom: vi.fn(),
       setStatus: vi.fn(),
       setWidget: vi.fn(),
     },
   };
+}
+
+function repositorySnapshot(cwd: string): string {
+  const files: string[] = [];
+  const visit = (directory: string) => {
+    for (const entry of readdirSync(directory)) {
+      if (entry === '.git') continue;
+      const path = join(directory, entry);
+      if (statSync(path).isDirectory()) visit(path);
+      else files.push(path);
+    }
+  };
+  visit(cwd);
+  return files
+    .sort()
+    .map((path) => {
+      const sha256 = createHash('sha256')
+        .update(readFileSync(path))
+        .digest('hex');
+      return `${relative(cwd, path)}:${sha256}`;
+    })
+    .join('\n');
+}
+
+function deskCheckHandler(cwd: string) {
+  let handler:
+    | ((args: string, ctx: ReturnType<typeof context>) => Promise<void>)
+    | undefined;
+  registerCommands({
+    registerCommand(name: string, options: { handler: typeof handler }) {
+      if (name === 'evidence-desk-check') handler = options.handler;
+    },
+  } as never);
+  if (!handler) throw new Error('Desk Check command was not registered.');
+  return { handler, ctx: context(cwd) };
 }
 
 function issueState() {
@@ -364,7 +405,7 @@ describe('commands', () => {
     });
   });
 
-  it('approves Desk Check interactively without asking for a reason', async () => {
+  it('keeps the legacy RPC Desk Check selector when custom TUI is unavailable', async () => {
     const cwd = workspace();
     writeState(cwd, {
       ...issueState(),
@@ -439,6 +480,114 @@ describe('commands', () => {
       action: 'approve',
     });
     expect(ctx.ui.input).not.toHaveBeenCalled();
+  });
+
+  it('keeps explicit Desk Check arguments compatible without opening custom UI', async () => {
+    const cwd = workspace();
+    prepareDeskCheckFixture(cwd);
+    const { handler, ctx } = deskCheckHandler(cwd);
+
+    await handler('approve', ctx);
+
+    expect(ctx.ui.custom).not.toHaveBeenCalled();
+    expect(ctx.ui.select).not.toHaveBeenCalled();
+    expect(readPersistedState(cwd)).toMatchObject({
+      loop: 'pair',
+      tasking_stage: 'approved',
+      desk_check_decisions: [{ action: 'approve', decided_by: 'human' }],
+    });
+  });
+
+  it('opens a read-only Packet for no-argument TUI and cancels with zero writes', async () => {
+    const cwd = workspace();
+    prepareDeskCheckFixture(cwd);
+    const { handler, ctx } = deskCheckHandler(cwd);
+    ctx.mode = 'tui';
+    ctx.ui.custom.mockResolvedValue(null);
+    const beforeFiles = repositorySnapshot(cwd);
+    const beforeState = JSON.stringify(readPersistedState(cwd));
+
+    await handler('', ctx);
+
+    expect(ctx.ui.custom).toHaveBeenCalledOnce();
+    expect(repositorySnapshot(cwd)).toBe(beforeFiles);
+    expect(JSON.stringify(readPersistedState(cwd))).toBe(beforeState);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      'Desk Check cancelled; the Tasking draft is unchanged.',
+      'info',
+    );
+  });
+
+  it('approves the same Tasking authority through the no-argument Packet', async () => {
+    const cwd = workspace();
+    prepareDeskCheckFixture(cwd);
+    const { handler, ctx } = deskCheckHandler(cwd);
+    ctx.mode = 'tui';
+    ctx.ui.custom.mockResolvedValue('approve');
+    ctx.ui.input.mockResolvedValue('');
+
+    await handler('', ctx);
+
+    expect(ctx.ui.custom).toHaveBeenCalledOnce();
+    expect(ctx.ui.select).not.toHaveBeenCalled();
+    expect(readPersistedState(cwd)).toMatchObject({
+      loop: 'pair',
+      tasking_stage: 'approved',
+      approved_test_plan_path: expect.stringContaining('test-plan.json'),
+      pair_session: { checkpoint: 'plan_confirmed' },
+    });
+  });
+
+  it('routes Packet feedback with the existing Desk Check decision function', async () => {
+    const cwd = workspace();
+    prepareDeskCheckFixture(cwd);
+    const { handler, ctx } = deskCheckHandler(cwd);
+    ctx.mode = 'tui';
+    ctx.ui.custom.mockResolvedValue('process_gap');
+    ctx.ui.editor.mockResolvedValue('The selected process owner is ambiguous.');
+
+    await handler('', ctx);
+
+    expect(readPersistedState(cwd)).toMatchObject({
+      loop: 'tasking',
+      tasking_stage: 'knowledge_gap',
+      tasking_gap: {
+        kind: 'process_gap',
+        reason: 'The selected process owner is ambiguous.',
+      },
+    });
+  });
+
+  it('rejects Packet submission after policy drift without recording authority', async () => {
+    const cwd = workspace();
+    prepareDeskCheckFixture(cwd);
+    const { handler, ctx } = deskCheckHandler(cwd);
+    ctx.mode = 'tui';
+    ctx.ui.custom.mockImplementation(async () => {
+      write(
+        cwd,
+        'engineering/evidence-orchestrator/execution-budget.json',
+        `${JSON.stringify({
+          ...TEST_EXECUTION_BUDGET_POLICY,
+          activity: { timeout_ms: 800_000 },
+        })}\n`,
+      );
+      return 'approve';
+    });
+    ctx.ui.input.mockResolvedValue('');
+
+    await handler('', ctx);
+
+    expect(readPersistedState(cwd)).toMatchObject({
+      loop: 'tasking',
+      tasking_stage: 'desk_check',
+      tasking_candidate: { draft_id: 'DRAFT-001' },
+    });
+    expect(readPersistedState(cwd)?.desk_check_decisions).toBeUndefined();
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('No human decision was recorded'),
+      'error',
+    );
   });
 
   it('lets the human reselect a Profile and fixes none to no model change', async () => {
