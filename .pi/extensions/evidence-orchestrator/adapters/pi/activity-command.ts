@@ -4,6 +4,12 @@ import type {
   ExtensionCommandContext,
 } from '@earendil-works/pi-coding-agent';
 import {
+  acquireActivityLease,
+  releaseActivityLease,
+  type ActivityLeaseHandle,
+} from '../../capabilities/flow-control/lease';
+import { boardRoot } from '../../iteration/board-repository';
+import {
   captureWorktreeSnapshot,
   restoreWorktreeSnapshot,
   worktreeDelta,
@@ -157,8 +163,15 @@ export async function runHtmlChangeExplanationFromCommand(
   const bundle = createHtmlChangeAnalysisBundle(ctx.cwd, request);
   let recorded = false;
   let details: ActivityExecutionDetails | undefined;
+  let leaseHandle: ActivityLeaseHandle | undefined;
   try {
     const traceState = readState(ctx.cwd);
+    leaseHandle = acquireActivityLease(
+      ctx.cwd,
+      ctx.cwd,
+      traceState,
+      'activity',
+    );
     assertPairExecutionBudgetLocked(ctx.cwd, traceState);
     const activityTimeoutMs =
       traceState.pair_session?.execution_budget.activity_timeout_ms;
@@ -258,6 +271,8 @@ export async function runHtmlChangeExplanationFromCommand(
               const result = await runActivityAgent({
                 cwd: ctx.cwd,
                 iterationId: traceState.iteration_id,
+                activityLeaseId: leaseHandle?.lease.lease_id,
+                boardRoot: boardRoot(ctx.cwd),
                 agentName: 'change-explainer',
                 task,
                 policy: createActivityToolPolicy({
@@ -341,6 +356,7 @@ export async function runHtmlChangeExplanationFromCommand(
       },
     );
   } finally {
+    if (leaseHandle) releaseActivityLease(leaseHandle);
     rmSync(bundle.directory, { recursive: true, force: true });
   }
   if (!details) {

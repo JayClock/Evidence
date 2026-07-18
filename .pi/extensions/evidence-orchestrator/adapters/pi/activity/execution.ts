@@ -8,6 +8,12 @@ import {
   runActivityAgent,
 } from '../../node/activity-agent-process';
 import {
+  acquireActivityLease,
+  releaseActivityLease,
+  type ActivityLeaseHandle,
+} from '../../../capabilities/flow-control/lease';
+import { boardRoot } from '../../../iteration/board-repository';
+import {
   addActivityUsage,
   type ActivityUsage,
   zeroActivityUsage,
@@ -84,6 +90,10 @@ interface ActivityExecutionContext {
 
 interface ExecutePreparedActivityRunOptions {
   invocation: string;
+  /** Transfers this already-acquired lease to the execution wrapper. */
+  leaseHandle?: ActivityLeaseHandle;
+  /** Internal child-process binding populated by the execution wrapper. */
+  activityLeaseId?: string;
   signal?: AbortSignal;
   onUpdate?: (details: ActivityExecutionDetails) => void;
   now?: () => string;
@@ -372,6 +382,8 @@ async function executeOnePreparedActivityRun(
           result = await runActivityAgent({
             cwd: ctx.cwd,
             iterationId: state.iteration_id,
+            activityLeaseId: options.activityLeaseId,
+            boardRoot: boardRoot(ctx.cwd),
             agentName: preparation.agentName,
             task: preparation.task,
             policy: activityPolicy(ctx.cwd, preparation.agentName, state),
@@ -947,6 +959,8 @@ async function executeAutomatedPairRun(
             const result = await runActivityAgent({
               cwd: ctx.cwd,
               iterationId: state.iteration_id,
+              activityLeaseId: options.activityLeaseId,
+              boardRoot: boardRoot(ctx.cwd),
               agentName: 'red-reviewer',
               task: reviewPreparation.task,
               policy: activityPolicy(ctx.cwd, 'red-reviewer', state),
@@ -1414,52 +1428,69 @@ export async function executePreparedActivityRun(
   preparation: PreparedActivityRun,
   options: ExecutePreparedActivityRunOptions,
 ): Promise<ActivityExecutionDetails> {
-  if (
-    preparation.activity === 'pair' &&
-    preparation.state.loop === 'pair' &&
-    preparation.state.pair_session
-  ) {
-    let partialResult: ActivityExecutionDetails | undefined;
-    try {
-      return await withActivityTrace(
-        ctx.cwd,
-        {
-          state: preparation.state,
-          activity: 'pair',
-          task: preparation.task,
-          agent: 'pair-automation',
-          requestedModel: 'mixed',
-          thinking: 'off',
-          sessionMode: 'deterministic',
-          toolNames: [],
-        },
-        async (span) => {
-          partialResult = await executeAutomatedPairRun(
-            ctx,
-            options,
-            span.spanId,
-          );
-          return partialResult;
-        },
-        {
-          signal: options.signal,
-          now: options.now,
-          partialResult: () => partialResult,
-          resultForTrace: (result) => ({
-            ...result,
-            model: 'mixed',
+  const leaseHandle =
+    options.leaseHandle ??
+    acquireActivityLease(
+      ctx.cwd,
+      ctx.cwd,
+      preparation.state,
+      preparation.activity === 'pair' ? 'pair' : 'activity',
+    );
+  const leasedOptions: ExecutePreparedActivityRunOptions = {
+    ...options,
+    leaseHandle,
+    activityLeaseId: leaseHandle.lease.lease_id,
+  };
+  try {
+    if (
+      preparation.activity === 'pair' &&
+      preparation.state.loop === 'pair' &&
+      preparation.state.pair_session
+    ) {
+      let partialResult: ActivityExecutionDetails | undefined;
+      try {
+        return await withActivityTrace(
+          ctx.cwd,
+          {
+            state: preparation.state,
+            activity: 'pair',
+            task: preparation.task,
+            agent: 'pair-automation',
             requestedModel: 'mixed',
-            actualModel: 'mixed',
+            thinking: 'off',
+            sessionMode: 'deterministic',
             toolNames: [],
-            usage: zeroActivityUsage(),
-            toolCallCounts: {},
-          }),
-          resultingState: () => readState(ctx.cwd),
-        },
-      );
-    } finally {
-      ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
+          },
+          async (span) => {
+            partialResult = await executeAutomatedPairRun(
+              ctx,
+              leasedOptions,
+              span.spanId,
+            );
+            return partialResult;
+          },
+          {
+            signal: options.signal,
+            now: options.now,
+            partialResult: () => partialResult,
+            resultForTrace: (result) => ({
+              ...result,
+              model: 'mixed',
+              requestedModel: 'mixed',
+              actualModel: 'mixed',
+              toolNames: [],
+              usage: zeroActivityUsage(),
+              toolCallCounts: {},
+            }),
+            resultingState: () => readState(ctx.cwd),
+          },
+        );
+      } finally {
+        ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
+      }
     }
+    return await executeOnePreparedActivityRun(ctx, preparation, leasedOptions);
+  } finally {
+    releaseActivityLease(leaseHandle);
   }
-  return executeOnePreparedActivityRun(ctx, preparation, options);
 }

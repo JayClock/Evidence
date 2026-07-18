@@ -1,3 +1,4 @@
+import { existsSync, realpathSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { zeroActivityUsage } from '../../../capabilities/activity-observability/activity-usage';
 import {
@@ -7,6 +8,7 @@ import {
   startActivityTrace,
   validateActivityTrace,
 } from '../../../capabilities/activity-observability/trace';
+import { mutateBoard } from '../../../iteration/board-repository';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
 import type {
   PairDeterministicAction,
@@ -14,7 +16,11 @@ import type {
   RedFailureKind,
   WorkflowState,
 } from '../../../iteration/state';
-import { readState, writeState } from '../../../iteration/state-repository';
+import {
+  readPersistedState,
+  readState,
+  writeState,
+} from '../../../iteration/state-repository';
 import * as stateRepository from '../../../iteration/state-repository';
 import {
   cleanupWorkspaces,
@@ -25,7 +31,7 @@ import {
   write,
 } from '../../../test-support/support';
 import type { PreparedActivityRun } from './dispatch';
-import { executePreparedActivityRun } from './execution';
+import { executePreparedActivityRun as executeWithLease } from './execution';
 
 const budgetLock = vi.hoisted(() => ({
   assertPairExecutionBudgetLocked: vi.fn(),
@@ -136,6 +142,38 @@ function preparation(): PreparedActivityRun {
     agentName: 'requirements-analyst',
     task: 'Prepare one Kickoff candidate.',
   };
+}
+
+async function executePreparedActivityRun(
+  ...args: Parameters<typeof executeWithLease>
+): ReturnType<typeof executeWithLease> {
+  const [ctx, prepared] = args;
+  if (!existsSync(`${ctx.cwd}/.git`)) initializeGitRepository(ctx.cwd);
+  if (!readPersistedState(ctx.cwd)) writeState(ctx.cwd, prepared.state);
+  mutateBoard(ctx.cwd, (draft) => {
+    const existing = draft.items.find(
+      ({ iteration_id }) => iteration_id === prepared.state.iteration_id,
+    );
+    const admittedLane =
+      prepared.activity === 'pair' ? 'delivery' : 'discovery';
+    if (existing) {
+      existing.admitted_lane = admittedLane;
+      return;
+    }
+    draft.next_iteration_number = Math.max(draft.next_iteration_number, 2);
+    draft.items.push({
+      iteration_id: prepared.state.iteration_id,
+      candidate_id: 'CAND-0001',
+      lifecycle: 'active',
+      branch_name: 'evidence/iter-0001',
+      worktree_path: realpathSync(ctx.cwd),
+      base_sha: 'a'.repeat(40),
+      admitted_lane: admittedLane,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+  });
+  return executeWithLease(...args);
 }
 
 function automatedPairState(
@@ -252,6 +290,9 @@ describe('activity execution', () => {
     expect(runner.runActivityAgent).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'evidence-iter-0001-us-001-tqa',
+        iterationId: 'ITER-0001',
+        activityLeaseId: expect.stringMatching(/^lease-/),
+        boardRoot: expect.stringContaining('evidence-orchestrator'),
       }),
     );
   });

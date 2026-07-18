@@ -277,6 +277,8 @@ describe('activity agents', () => {
     const result = await runActivityAgent({
       cwd,
       iterationId: 'ITER-0001',
+      activityLeaseId: 'lease-00000000-0000-4000-8000-000000000001',
+      boardRoot: '/tmp/evidence-board',
       agentName: 'test-driver',
       task: 'Write one test.',
       policy: createActivityToolPolicy({
@@ -293,7 +295,10 @@ describe('activity agents', () => {
       expect.any(Array),
       expect.objectContaining({
         env: expect.objectContaining({
-          EVIDENCE_ORCHESTRATOR_ITERATION_ID: 'ITER-0001',
+          EVIDENCE_ITERATION_ID: 'ITER-0001',
+          EVIDENCE_ACTIVITY_LEASE_ID:
+            'lease-00000000-0000-4000-8000-000000000001',
+          EVIDENCE_BOARD_ROOT: '/tmp/evidence-board',
         }),
       }),
     );
