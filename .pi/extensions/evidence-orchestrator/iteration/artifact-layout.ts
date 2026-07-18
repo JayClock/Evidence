@@ -1,4 +1,3 @@
-import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { WorkflowState } from './state';
 
@@ -25,7 +24,7 @@ export function iterationRoot(cwd: string, state: IterationIdentity): string {
   return join(cwd, iterationRootRelative(state.iteration_id));
 }
 
-/** Resolve a logical artifacts path into the active iteration namespace. */
+/** Resolve a logical artifacts path into this worktree State's iteration namespace. */
 export function artifactPath(
   cwd: string,
   state: IterationIdentity,
@@ -48,16 +47,4 @@ export function artifactRelativePath(
   return `${iterationRootRelative(state.iteration_id)}/${logicalPath.slice(
     `${ARTIFACTS_ROOT}/`.length,
   )}`;
-}
-
-export function nextIterationId(cwd: string): string {
-  const root = join(cwd, ITERATIONS_ROOT);
-  const highest = existsSync(root)
-    ? readdirSync(root)
-        .filter((entry) => ITERATION_ID_PATTERN.test(entry))
-        .map((entry) => Number(entry.slice('ITER-'.length)))
-        .filter(Number.isSafeInteger)
-        .reduce((max, value) => Math.max(max, value), 0)
-    : 0;
-  return `ITER-${String(highest + 1).padStart(4, '0')}`;
 }

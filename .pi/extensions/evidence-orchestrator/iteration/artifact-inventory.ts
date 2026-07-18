@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 
-const CODE_ROOTS = ['apps', 'libs'] as const;
 const IGNORED_DIRECTORIES = new Set([
   '.git',
   '.nx',
@@ -11,9 +10,6 @@ const IGNORED_DIRECTORIES = new Set([
   'out-tsc',
   'target',
 ]);
-const CODE_FILE_PATTERN =
-  /\.(c|cc|cpp|cs|go|h|hpp|java|js|jsx|kt|mjs|mts|py|rs|ts|tsx)$/;
-
 /** Create the directory structure for one isolated iteration artifact root. */
 export function ensureProjectDirs(
   cwd: string,
@@ -67,12 +63,6 @@ export function collectArtifacts(
   return findFiles(
     artifactRoot,
     (path) => path.endsWith('.md') || basename(path) === 'activity-trace.jsonl',
-  ).map((path) => relative(cwd, path));
-}
-
-export function collectCodeFiles(cwd: string): string[] {
-  return CODE_ROOTS.flatMap((dir) =>
-    findFiles(join(cwd, dir), (path) => CODE_FILE_PATTERN.test(path)),
   ).map((path) => relative(cwd, path));
 }
 

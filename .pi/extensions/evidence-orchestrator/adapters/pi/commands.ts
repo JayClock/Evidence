@@ -29,7 +29,6 @@ import {
   ActivityRunBlockedError,
   prepareActivityRun,
 } from './activity/dispatch';
-import { requireCandidateId } from './candidate-picker';
 import { statusCommandMarkdown } from './status';
 import {
   parseDeskCheckDecision,
@@ -67,6 +66,14 @@ export {
   parseRespondDecision,
   parseShowcaseDecision,
 } from './command-inputs';
+
+function requireCandidateId(value: string): string {
+  const candidateId = value.trim().toUpperCase();
+  if (!/^CAND-\d{4,}$/.test(candidateId)) {
+    throw new Error('Iteration candidate must be CAND-xxxx.');
+  }
+  return candidateId;
+}
 
 function worktreeContext<T extends { cwd: string }>(
   context: T,
