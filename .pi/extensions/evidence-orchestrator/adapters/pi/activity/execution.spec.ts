@@ -43,6 +43,7 @@ const pairing = vi.hoisted(() => ({
     failureKind: 'behavior',
     reason: 'The planned assertion reports missing behavior.',
   })),
+  recordPairAutomationException: vi.fn(),
   reviewPairRed:
     vi.fn<
       (
@@ -334,6 +335,7 @@ describe('activity execution', () => {
               command: 'test',
               sequence: 1,
               exit_code: 1,
+              termination: { kind: 'exit', exit_code: 1 },
               expected_failure: true,
             },
           },
@@ -505,6 +507,179 @@ describe('activity execution', () => {
       event: 'activity_finished',
       usage: zeroActivityUsage(),
     });
+  });
+
+  it('stops Pair immediately with a typed activity timeout exception', async () => {
+    const cwd = workspace();
+    let current = {
+      ...DEFAULT_STATE,
+      loop: 'pair' as const,
+      tasking_stage: 'approved' as const,
+      pair_session: {
+        version: 2 as const,
+        story_id: 'US-001',
+        scenario_ids: ['SC-001'],
+        git_baseline: 'baseline',
+        checkpoint: 'plan_confirmed' as const,
+        task_id: 'TASK-001',
+        test_id: 'TEST-001',
+        process_id: 'process',
+        step_id: 'step',
+        completed_task_ids: [] as string[],
+        completed_test_ids: [] as string[],
+        completed_step_ids: [] as string[],
+        test_paths: [] as string[],
+        production_paths: [] as string[],
+        expected_red: 'The behavior is absent.',
+        accepted_reds: [],
+        execution_budget: testExecutionBudgetEnvelope(),
+        quality_gate_index: 0,
+        feedback: [],
+        driver_history: [],
+      },
+    } as unknown as WorkflowState;
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next as typeof current;
+      return current;
+    });
+    pairing.pairDriverMode.mockReturnValue('test');
+    pairing.failPairDriver.mockImplementation(() => ({
+      state: current,
+      blocked: true,
+      changedPaths: ['apps/web/tests/example.test.ts'],
+      diff: '(restored)',
+      output: 'Timed-out Driver changes restored.',
+    }));
+    runner.runActivityAgent.mockResolvedValue({
+      agent: 'test-driver',
+      model: 'openai/test',
+      requestedModel: 'openai/test',
+      actualModel: 'openai/test',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      toolNames: ['read', 'write'],
+      output: 'Activity agent test-driver timed out.',
+      messages: [],
+      exitCode: 1,
+      stderr: '',
+      usage: zeroActivityUsage(null),
+      stopReason: 'timeout',
+      errorMessage: 'Activity agent test-driver timed out.',
+      startedAt: '2026-01-01T00:00:00.000Z',
+      completedAt: '2026-01-01T00:15:00.000Z',
+      durationMs: 900_000,
+      toolCallCounts: {},
+    });
+
+    const result = await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        agentName: 'test-driver',
+        task: 'Start automated Pair.',
+      },
+      { invocation: '/evidence-run' },
+    );
+
+    expect(result).toMatchObject({ status: 'failed', stopReason: 'error' });
+    expect(pairing.failPairDriver).toHaveBeenCalledOnce();
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'activity_timeout',
+        triggeringSpanId: 'ACT-000002',
+      }),
+    );
+  });
+
+  it('stops Pair with a typed command timeout before Red review', async () => {
+    const cwd = workspace();
+    let current = {
+      ...DEFAULT_STATE,
+      loop: 'pair' as const,
+      tasking_stage: 'approved' as const,
+      pair_session: {
+        version: 2 as const,
+        story_id: 'US-001',
+        scenario_ids: ['SC-001'],
+        git_baseline: 'baseline',
+        checkpoint: 'test_written' as const,
+        task_id: 'TASK-001',
+        test_id: 'TEST-001',
+        process_id: 'process',
+        step_id: 'step',
+        completed_task_ids: [] as string[],
+        completed_test_ids: [] as string[],
+        completed_step_ids: [] as string[],
+        test_paths: ['tests/example.test.ts'],
+        production_paths: [] as string[],
+        expected_red: 'The behavior is absent.',
+        accepted_reds: [],
+        execution_budget: testExecutionBudgetEnvelope(),
+        quality_gate_index: 0,
+        feedback: [],
+        driver_history: [],
+      },
+    } as unknown as WorkflowState;
+    const observation = {
+      process_id: 'process',
+      step_id: 'step',
+      task_id: 'TASK-001',
+      test_id: 'TEST-001',
+      stage: 'red' as const,
+      command: 'pnpm test',
+      sequence: 1,
+      exit_code: null,
+      termination: { kind: 'timeout' as const, timeout_ms: 600_000 },
+      expected_failure: false,
+    };
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next as typeof current;
+      return current;
+    });
+    pairing.pairDeterministicAction.mockReturnValue('run_red');
+    pairing.executePairAction.mockImplementation(() => {
+      const session = current.pair_session;
+      if (!session) throw new Error('Expected Pair session.');
+      current = {
+        ...current,
+        pair_session: {
+          ...session,
+          checkpoint: 'red_observed',
+          red_observation: observation,
+          last_observation: observation,
+        },
+      };
+      return {
+        state: current,
+        output: 'Red command timed out.',
+        record: { sequence: 1 },
+      };
+    });
+
+    await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        pairAction: 'run_red',
+        task: 'Run locked Red.',
+      },
+      { invocation: '/evidence-run' },
+    );
+
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'command_timeout',
+        executionSequence: 1,
+        approvedLimit: 600_000,
+      }),
+    );
   });
 
   it('executes Showcase Q2 without starting Reviewer', async () => {

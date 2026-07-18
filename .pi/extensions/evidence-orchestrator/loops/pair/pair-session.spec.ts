@@ -68,6 +68,7 @@ import {
   pairDeterministicAction,
   pairDriverMode,
   parsePairRedReview,
+  recordPairAutomationException,
   reviewPairRed,
 } from './pair-session';
 
@@ -965,6 +966,34 @@ function addTauriProcess(cwd: string): void {
   });
 }
 
+function updateExecutionBudget(
+  cwd: string,
+  overrides: Partial<ReturnType<typeof testExecutionBudgetEnvelope>>,
+): void {
+  const state = readState(cwd);
+  const approvedPath = state.approved_test_plan_path;
+  const session = state.pair_session;
+  if (!approvedPath || !session) {
+    throw new Error('Pair fixture has no budgeted approved plan.');
+  }
+  const executionBudget = { ...session.execution_budget, ...overrides };
+  const approved = JSON.parse(
+    readFileSync(`${cwd}/${approvedPath}`, 'utf8'),
+  ) as Record<string, unknown>;
+  const approvedContent = JSON.stringify({
+    ...approved,
+    execution_budget: executionBudget,
+  });
+  write(cwd, approvedPath, approvedContent);
+  writeState(cwd, {
+    ...state,
+    approved_test_plan_sha256: createHash('sha256')
+      .update(approvedContent)
+      .digest('hex'),
+    pair_session: { ...session, execution_budget: executionBudget },
+  });
+}
+
 function writeFocusedTest(
   cwd: string,
   content = 'expect(workspace).toBeVisible();',
@@ -1149,6 +1178,27 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(review.task).toContain('ASSERTION: workspace Alpha is not visible');
     expect(review.task).toContain('stderr tail：');
     expect(review.task).toContain('truncated=true');
+  });
+
+  it('types a command timeout as pseudo-Red and cannot accept it as behavior', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    updateExecutionBudget(cwd, { command_timeout_ms: 10 });
+    const snapshot = capturePairWorktree(cwd);
+    writeFocusedTest(cwd);
+    completePairDriver(cwd, 'test', snapshot, 'Added timeout test.');
+    write(cwd, 'focused.js', 'setTimeout(() => process.exit(1), 1_000);');
+
+    const result = executePairAction(cwd, 'run_red');
+
+    expect(result.record).toMatchObject({
+      exit_code: null,
+      termination: { kind: 'timeout', timeout_ms: 10 },
+      expected_failure: false,
+    });
+    expect(() =>
+      reviewPairRed(cwd, 'behavior', 'The expected assertion failed.'),
+    ).toThrow('Only a normal non-zero command exit');
   });
 
   it('parses and records an independent AI Red classification', () => {
@@ -2157,6 +2207,58 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(rejected.showcase_q2_observations).toHaveLength(1);
     expect(rejected.showcase_reviews).toHaveLength(1);
     expect(rejected.showcase_decisions?.at(-1)?.action).toBe('reject');
+  });
+
+  it('persists a typed exception and allows only its explicit human routes', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+
+    const stopped = recordPairAutomationException(cwd, {
+      kind: 'activity_timeout',
+      reason: 'Test Driver exceeded its approved 900000ms deadline.',
+      currentUsage: {
+        duration_ms: 900_000,
+        input_tokens: 1_000,
+        output_tokens: 100,
+        reported_cost_usd: null,
+        cost_status: 'unknown',
+        pair_agent_calls: 1,
+        pair_checkpoints: 1,
+      },
+      triggeringSpanId: 'ACT-000001',
+      approvedLimit: 900_000,
+      actualValue: 900_000,
+      now: '2026-01-01T00:10:00.000Z',
+    });
+
+    expect(stopped.pair_session?.automation_exception).toMatchObject({
+      version: 1,
+      exception_id: 'EXC-001',
+      kind: 'activity_timeout',
+      budget_policy_sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      budget_envelope_sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+      allowed_routes: ['back_test', 'back_tasking'],
+      artifact_path: expect.stringContaining(
+        'automation-exceptions/EXC-001.json',
+      ),
+    });
+    expect(
+      existsSync(
+        `${cwd}/${stopped.pair_session?.automation_exception?.artifact_path}`,
+      ),
+    ).toBe(true);
+    expect(() => prepareActivityRun(cwd)).toThrow('activity_timeout');
+    expect(() =>
+      navigatePair(cwd, 'back_implementation', 'Continue anyway.'),
+    ).toThrow('does not allow back_implementation');
+
+    const routed = navigatePair(
+      cwd,
+      'back_test',
+      'Reduce the work unit before retrying.',
+    );
+    expect(routed.pair_session?.automation_exception).toBeUndefined();
+    expect(routed.pair_session?.automation_exception_history).toHaveLength(1);
   });
 
   it('lets a human route an automation exception without changing the Git baseline', () => {

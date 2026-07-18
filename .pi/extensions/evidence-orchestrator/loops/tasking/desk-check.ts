@@ -495,6 +495,7 @@ export function decideTasking(
         quality_gate_index: 0,
         feedback: [],
         driver_history: [],
+        automation_exception_history: [],
       },
     };
     return writeState(cwd, transitionLoopState(approved, { to: 'pair' }, now));

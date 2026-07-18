@@ -260,6 +260,12 @@ export interface DeskCheckDecision {
   decided_at: string;
 }
 
+export type CommandTermination =
+  | { kind: 'exit'; exit_code: number }
+  | { kind: 'timeout'; timeout_ms: number; signal?: string }
+  | { kind: 'spawn_error'; error_code?: string }
+  | { kind: 'signal'; signal: string };
+
 export interface PairObservation {
   process_id: string;
   step_id?: string;
@@ -268,7 +274,8 @@ export interface PairObservation {
   stage: 'red' | 'green' | 'refactor' | 'quality_gate';
   command: string;
   sequence: number;
-  exit_code: number;
+  exit_code: number | null;
+  termination: CommandTermination;
   expected_failure: boolean;
   stdout_summary?: string;
   stderr_summary?: string;
@@ -324,10 +331,50 @@ export interface ExecutionBudgetEnvelope {
   approved_at: string;
 }
 
+export type PairAutomationExceptionKind =
+  | 'retry_exhausted'
+  | 'repeated_failure'
+  | 'no_progress'
+  | 'activity_timeout'
+  | 'command_timeout'
+  | 'budget_soft_limit'
+  | 'budget_hard_limit'
+  | 'emergency_checkpoint_limit'
+  | 'observability_gap';
+
+export type PairExceptionRoute =
+  | 'back_test'
+  | 'back_implementation'
+  | 'back_tasking'
+  | 'retry_quality';
+
+export interface ExecutionBudgetUsage {
+  duration_ms: number;
+  input_tokens: number;
+  output_tokens: number;
+  reported_cost_usd: number | null;
+  cost_status: 'reported' | 'unknown';
+  pair_agent_calls: number;
+  pair_checkpoints: number;
+}
+
 export interface PairAutomationException {
-  kind: 'automation_exhausted';
+  version: 1;
+  exception_id: string;
+  kind: PairAutomationExceptionKind;
   reason: string;
   checkpoint: PairCheckpoint;
+  budget_policy_sha256: string;
+  budget_envelope_sha256: string;
+  current_usage: ExecutionBudgetUsage;
+  triggering_span_id?: string;
+  failure_fingerprint?: string;
+  execution_sequence?: number;
+  retry_count?: number;
+  approved_limit?: number;
+  actual_value?: number;
+  allowed_routes: PairExceptionRoute[];
+  artifact_path: string;
   recorded_at: string;
 }
 
@@ -368,6 +415,7 @@ export interface PairSession {
   driver_history: PairDriverRecord[];
   /** Persisted only when bounded AI execution cannot continue without exception routing. */
   automation_exception?: PairAutomationException;
+  automation_exception_history?: PairAutomationException[];
   /** Story-level human authority recorded only after all automated coding gates pass. */
   coding_decision?: PairCodingDecision;
 }
@@ -380,7 +428,8 @@ export interface ShowcaseQ2Observation {
   test_ids: string[];
   command: string;
   sequence: number;
-  exit_code: number;
+  exit_code: number | null;
+  termination: CommandTermination;
   stdout_summary: string;
   stderr_summary: string;
   observed_at: string;

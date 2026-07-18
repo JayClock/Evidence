@@ -44,6 +44,7 @@ import {
 import {
   approvedCommandTimeoutMs,
   assertLockedMaterializedPlan,
+  classifyCommandTermination,
   executeTestStep,
   formatOutputDiagnostic,
   outputDiagnostic,
@@ -376,12 +377,14 @@ export function executeShowcaseQ2(
       });
     }
     const startedAt = new Date().toISOString();
+    const timeoutMs = approvedCommandTimeoutMs(state);
     const result = spawnSync(step.command, {
       cwd,
       shell: true,
       encoding: 'utf8',
-      timeout: approvedCommandTimeoutMs(state),
+      timeout: timeoutMs,
     });
+    const termination = classifyCommandTermination(result, timeoutMs);
     const stdout = result.stdout ?? '';
     const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;
     const stdoutDiagnostic = outputDiagnostic(stdout);
@@ -394,7 +397,8 @@ export function executeShowcaseQ2(
       stage: 'showcase' as const,
       command: step.command,
       sequence: index + 1,
-      exit_code: result.status ?? (result.error ? 1 : 0),
+      exit_code: termination.kind === 'exit' ? termination.exit_code : null,
+      termination,
       expected_failure: false,
       started_at: startedAt,
       completed_at: new Date().toISOString(),
@@ -424,6 +428,7 @@ export function executeShowcaseQ2(
       command: record.command,
       sequence: record.sequence,
       exit_code: record.exit_code,
+      termination: record.termination,
       stdout_summary: record.stdout_summary ?? '',
       stderr_summary: record.stderr_summary ?? '',
       observed_at: record.completed_at || now,

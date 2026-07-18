@@ -23,6 +23,7 @@ import {
   pairDriverMode,
   pairDriverWriteRoots,
   parsePairRedReview,
+  recordPairAutomationException,
   reviewPairRed,
 } from '../../../loops/pair/pair-session';
 import {
@@ -33,6 +34,8 @@ import {
 import { readState, writeState } from '../../../iteration/state-repository';
 import { createActivityToolPolicy } from '../../../capabilities/worktree-protection/activity-tool-policy';
 import type {
+  ExecutionBudgetUsage,
+  PairAutomationExceptionKind,
   PairDriverMode,
   WorkflowLoop,
   WorkflowState,
@@ -51,6 +54,7 @@ export interface ActivityExecutionDetails extends ActivityAgentResult {
   activity: Exclude<WorkflowLoop, 'complete'>;
   task: string;
   status: 'running' | 'completed' | 'failed';
+  traceSpanId?: string;
 }
 
 interface ActivityExecutionContext {
@@ -272,12 +276,14 @@ async function executeOnePreparedActivityRun(
   ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'agent'));
   let partialResult: ActivityAgentResult | undefined;
   let executionRecordSequences: number[] = [];
+  let traceSpanId: string | undefined;
 
   try {
-    return await withActivityTrace(
+    const details = await withActivityTrace(
       ctx.cwd,
       traceDescriptor(ctx.cwd, preparation, state, options.parentSpanId),
-      async () => {
+      async (span) => {
+        traceSpanId = span.spanId;
         if (preparation.pairAction) {
           const startedAt = now();
           const action = executePairAction(ctx.cwd, preparation.pairAction);
@@ -412,6 +418,7 @@ async function executeOnePreparedActivityRun(
         resultingState: () => readState(ctx.cwd),
       },
     );
+    return { ...details, ...(traceSpanId ? { traceSpanId } : {}) };
   } finally {
     ctx.ui.setStatus(STATUS_KEY, statusLabel(readState(ctx.cwd)));
   }
@@ -420,6 +427,7 @@ async function executeOnePreparedActivityRun(
 interface PairAutomationTelemetry {
   startedAt: string;
   usage: ActivityUsage;
+  agentCalls: number;
   toolCallCounts: Record<string, number>;
   toolNames: Set<string>;
 }
@@ -432,6 +440,7 @@ function addPairAutomationTelemetry(
     telemetry.usage,
     result.usage ?? zeroActivityUsage(null),
   );
+  if (result.sessionMode !== 'deterministic') telemetry.agentCalls += 1;
   for (const [name, count] of Object.entries(result.toolCallCounts ?? {})) {
     telemetry.toolCallCounts[name] =
       (telemetry.toolCallCounts[name] ?? 0) + count;
@@ -454,6 +463,27 @@ function nextPairPreparation(cwd: string): PreparedActivityRun {
   };
 }
 
+function pairAutomationUsage(
+  telemetry: PairAutomationTelemetry,
+  steps: number,
+  completedAt: string,
+): ExecutionBudgetUsage {
+  const startedMs = Date.parse(telemetry.startedAt);
+  const completedMs = Date.parse(completedAt);
+  return {
+    duration_ms:
+      Number.isFinite(startedMs) && Number.isFinite(completedMs)
+        ? Math.max(0, completedMs - startedMs)
+        : 0,
+    input_tokens: telemetry.usage.input_tokens,
+    output_tokens: telemetry.usage.output_tokens,
+    reported_cost_usd: telemetry.usage.cost_usd,
+    cost_status: telemetry.usage.cost_usd === null ? 'unknown' : 'reported',
+    pair_agent_calls: telemetry.agentCalls,
+    pair_checkpoints: steps,
+  };
+}
+
 function persistedPairAutomationResult(
   cwd: string,
   state: ReturnType<typeof readState>,
@@ -462,19 +492,32 @@ function persistedPairAutomationResult(
   steps: number,
   telemetry: PairAutomationTelemetry,
   completedAt: string,
+  exception: {
+    kind?: PairAutomationExceptionKind;
+    triggeringSpanId?: string;
+    executionSequence?: number;
+    approvedLimit?: number;
+    actualValue?: number;
+  } = {},
 ): ActivityExecutionDetails {
   if (status === 'failed' && state.loop === 'pair' && state.pair_session) {
-    writeState(cwd, {
-      ...state,
-      pair_session: {
-        ...state.pair_session,
-        automation_exception: {
-          kind: 'automation_exhausted',
-          reason: output,
-          checkpoint: state.pair_session.checkpoint,
-          recorded_at: completedAt,
-        },
-      },
+    recordPairAutomationException(cwd, {
+      kind: exception.kind ?? 'retry_exhausted',
+      reason: output,
+      currentUsage: pairAutomationUsage(telemetry, steps, completedAt),
+      ...(exception.triggeringSpanId
+        ? { triggeringSpanId: exception.triggeringSpanId }
+        : {}),
+      ...(exception.executionSequence !== undefined
+        ? { executionSequence: exception.executionSequence }
+        : {}),
+      ...(exception.approvedLimit !== undefined
+        ? { approvedLimit: exception.approvedLimit }
+        : {}),
+      ...(exception.actualValue !== undefined
+        ? { actualValue: exception.actualValue }
+        : {}),
+      now: completedAt,
     });
   }
   const startedMs = Date.parse(telemetry.startedAt);
@@ -571,6 +614,7 @@ async function executeAutomatedPairRun(
   const telemetry: PairAutomationTelemetry = {
     startedAt: now(),
     usage: zeroActivityUsage(),
+    agentCalls: 0,
     toolCallCounts: {},
     toolNames: new Set(),
   };
@@ -583,6 +627,7 @@ async function executeAutomatedPairRun(
     status: 'completed' | 'failed',
     output: string,
     completedSteps: number,
+    exception: Parameters<typeof persistedPairAutomationResult>[7] = {},
   ) =>
     persistedPairAutomationResult(
       ctx.cwd,
@@ -592,6 +637,7 @@ async function executeAutomatedPairRun(
       completedSteps,
       telemetry,
       now(),
+      exception,
     );
 
   const initialSession = readState(ctx.cwd).pair_session;
@@ -640,12 +686,14 @@ async function executeAutomatedPairRun(
       };
       ctx.ui.setStatus(STATUS_KEY, statusLabel(state, 'agent'));
       let reviewerResult: ActivityAgentResult | undefined;
+      let reviewerSpanId: string | undefined;
       let classification: ReturnType<typeof parsePairRedReview> | undefined;
       try {
         reviewerResult = await withActivityTrace(
           ctx.cwd,
           traceDescriptor(ctx.cwd, reviewPreparation, state, parentSpanId),
-          async () => {
+          async (span) => {
+            reviewerSpanId = span.spanId;
             const result = await runActivityAgent({
               cwd: ctx.cwd,
               agentName: 'red-reviewer',
@@ -679,25 +727,35 @@ async function executeAutomatedPairRun(
           },
         );
       } catch (error) {
-        if (
-          options.signal?.aborted ||
-          error instanceof ActivityObservabilityGapError
-        ) {
-          throw error;
-        }
+        if (options.signal?.aborted) throw error;
+        if (reviewerResult) steps += 1;
+        const message = error instanceof Error ? error.message : String(error);
         return pairAutomationResult(
           readState(ctx.cwd),
           'failed',
-          error instanceof Error ? error.message : String(error),
+          message,
           steps,
+          {
+            kind:
+              error instanceof ActivityObservabilityGapError
+                ? 'observability_gap'
+                : 'retry_exhausted',
+            ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+          },
         );
       }
+      steps += 1;
       if (activityFailed(reviewerResult)) {
+        const activityTimeout = reviewerResult.stopReason === 'timeout';
         return pairAutomationResult(
-          state,
+          readState(ctx.cwd),
           'failed',
-          `AI Red Reviewer failed for ${session.task_id}/${session.test_id}: ${reviewerResult.output}`,
+          `AI Red Reviewer ${activityTimeout ? 'timed out' : 'failed'} for ${session.task_id}/${session.test_id}: ${reviewerResult.output}`,
           steps,
+          {
+            kind: activityTimeout ? 'activity_timeout' : 'retry_exhausted',
+            ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+          },
         );
       }
       if (!classification) {
@@ -708,7 +766,6 @@ async function executeAutomatedPairRun(
           steps,
         );
       }
-      steps += 1;
       summaries.push(
         `${session.task_id}/${session.test_id} Red=${classification.failureKind}`,
       );
@@ -753,6 +810,7 @@ async function executeAutomatedPairRun(
         telemetry,
         options,
       );
+      steps += 1;
       summaries.push(`quality-gate repair ${retries.get(key)}`);
       continue;
     }
@@ -785,15 +843,85 @@ async function executeAutomatedPairRun(
         steps,
       );
     }
-    const details = await executeOnePreparedActivityRun(ctx, next, {
-      ...options,
-      parentSpanId,
-    });
+    let details: ActivityExecutionDetails;
+    try {
+      details = await executeOnePreparedActivityRun(ctx, next, {
+        ...options,
+        parentSpanId,
+      });
+    } catch (error) {
+      if (options.signal?.aborted) throw error;
+      const observabilityGap = error instanceof ActivityObservabilityGapError;
+      return pairAutomationResult(
+        readState(ctx.cwd),
+        'failed',
+        error instanceof Error ? error.message : String(error),
+        steps,
+        {
+          kind: observabilityGap ? 'observability_gap' : 'retry_exhausted',
+        },
+      );
+    }
     addPairAutomationTelemetry(telemetry, details);
     steps += 1;
     summaries.push(
       `${next.agentName ?? next.pairAction ?? 'controller'}: ${details.exitCode}`,
     );
+    const resultingObservation = readState(ctx.cwd).pair_session
+      ?.last_observation;
+    if (
+      next.pairAction &&
+      resultingObservation?.termination.kind === 'timeout'
+    ) {
+      return pairAutomationResult(
+        readState(ctx.cwd),
+        'failed',
+        `Deterministic ${resultingObservation.stage} command timed out after ${resultingObservation.termination.timeout_ms}ms: ${resultingObservation.command}`,
+        steps,
+        {
+          kind: 'command_timeout',
+          ...(details.traceSpanId
+            ? { triggeringSpanId: details.traceSpanId }
+            : {}),
+          executionSequence: resultingObservation.sequence,
+          approvedLimit: resultingObservation.termination.timeout_ms,
+          actualValue: resultingObservation.termination.timeout_ms,
+        },
+      );
+    }
+    if (
+      next.pairAction &&
+      resultingObservation &&
+      resultingObservation.termination.kind !== 'exit'
+    ) {
+      return pairAutomationResult(
+        readState(ctx.cwd),
+        'failed',
+        `Deterministic ${resultingObservation.stage} command ended by ${resultingObservation.termination.kind}: ${resultingObservation.command}`,
+        steps,
+        {
+          kind: 'retry_exhausted',
+          ...(details.traceSpanId
+            ? { triggeringSpanId: details.traceSpanId }
+            : {}),
+          executionSequence: resultingObservation.sequence,
+        },
+      );
+    }
+    if (details.stopReason === 'timeout') {
+      return pairAutomationResult(
+        readState(ctx.cwd),
+        'failed',
+        `Pair activity timed out for ${next.agentName ?? 'unknown agent'} at ${readState(ctx.cwd).pair_session?.checkpoint ?? 'unknown checkpoint'}: ${details.output}`,
+        steps,
+        {
+          kind: 'activity_timeout',
+          ...(details.traceSpanId
+            ? { triggeringSpanId: details.traceSpanId }
+            : {}),
+        },
+      );
+    }
     if (details.status === 'failed') {
       const current = readState(ctx.cwd).pair_session;
       const key = `driver:${current?.task_id}/${current?.test_id}:${next.agentName ?? next.pairAction}`;
@@ -813,6 +941,11 @@ async function executeAutomatedPairRun(
     'failed',
     `Pair automation exceeded the approved emergency limit of ${emergencyMaxCheckpoints} checkpoints. Recent trace: ${summaries.slice(-10).join(' → ')}`,
     steps,
+    {
+      kind: 'emergency_checkpoint_limit',
+      approvedLimit: emergencyMaxCheckpoints,
+      actualValue: steps,
+    },
   );
 }
 

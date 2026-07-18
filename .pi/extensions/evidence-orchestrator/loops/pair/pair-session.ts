@@ -10,7 +10,10 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { artifactPath } from '../../iteration/artifact-layout';
+import {
+  artifactPath,
+  artifactRelativePath,
+} from '../../iteration/artifact-layout';
 import { transitionLoopState } from '../../iteration/transition-graph';
 import {
   readState,
@@ -18,6 +21,8 @@ import {
   writeState,
 } from '../../iteration/state-repository';
 import type {
+  ExecutionBudgetUsage,
+  PairAutomationExceptionKind,
   PairDeterministicAction,
   PairDriverMode,
   PairObservation,
@@ -28,6 +33,7 @@ import type {
   TestProcessSelection,
   WorkflowState,
 } from '../../iteration/state';
+import { executionBudgetEnvelopeSha256 } from '../../capabilities/execution-budget/policy';
 import {
   executeTestStep,
   readExecutionRecords,
@@ -105,6 +111,92 @@ function digest(value: string | Buffer): string {
 
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+}
+
+function exceptionRoutes(session: PairSession) {
+  return [
+    'back_test' as const,
+    ...(session.red_observation?.accepted
+      ? (['back_implementation'] as const)
+      : []),
+    'back_tasking' as const,
+    ...(session.checkpoint === 'quality_gate_failed'
+      ? (['retry_quality'] as const)
+      : []),
+  ];
+}
+
+export function recordPairAutomationException(
+  cwd: string,
+  input: {
+    kind: PairAutomationExceptionKind;
+    reason: string;
+    currentUsage: ExecutionBudgetUsage;
+    triggeringSpanId?: string;
+    failureFingerprint?: string;
+    executionSequence?: number;
+    retryCount?: number;
+    approvedLimit?: number;
+    actualValue?: number;
+    now?: string;
+  },
+): WorkflowState {
+  const state = pairState(cwd, false);
+  const reason = input.reason.trim();
+  if (!reason) throw new Error('Pair automation exception requires a reason.');
+  const history = state.pair_session.automation_exception_history ?? [];
+  const exceptionId = `EXC-${String(history.length + 1).padStart(3, '0')}`;
+  const artifact = artifactRelativePath(
+    state,
+    `artifacts/05-code/${state.pair_session.story_id}/automation-exceptions/${exceptionId}.json`,
+  );
+  const exception = {
+    version: 1 as const,
+    exception_id: exceptionId,
+    kind: input.kind,
+    reason,
+    checkpoint: state.pair_session.checkpoint,
+    budget_policy_sha256: state.pair_session.execution_budget.policy_sha256,
+    budget_envelope_sha256: executionBudgetEnvelopeSha256(
+      state.pair_session.execution_budget,
+    ),
+    current_usage: input.currentUsage,
+    ...(input.triggeringSpanId
+      ? { triggering_span_id: input.triggeringSpanId }
+      : {}),
+    ...(input.failureFingerprint
+      ? { failure_fingerprint: input.failureFingerprint }
+      : {}),
+    ...(input.executionSequence !== undefined
+      ? { execution_sequence: input.executionSequence }
+      : {}),
+    ...(input.retryCount !== undefined
+      ? { retry_count: input.retryCount }
+      : {}),
+    ...(input.approvedLimit !== undefined
+      ? { approved_limit: input.approvedLimit }
+      : {}),
+    ...(input.actualValue !== undefined
+      ? { actual_value: input.actualValue }
+      : {}),
+    allowed_routes: exceptionRoutes(state.pair_session),
+    artifact_path: artifact,
+    recorded_at: input.now ?? new Date().toISOString(),
+  };
+  const absolute = join(cwd, artifact);
+  mkdirSync(dirname(absolute), { recursive: true });
+  if (existsSync(absolute)) {
+    throw new Error(`Pair automation exception is immutable: ${artifact}.`);
+  }
+  writeFileSync(absolute, `${JSON.stringify(exception, null, 2)}\n`);
+  return writeState(cwd, {
+    ...state,
+    pair_session: {
+      ...state.pair_session,
+      automation_exception: exception,
+      automation_exception_history: [...history, exception],
+    },
+  });
 }
 
 function nulPaths(cwd: string, args: string[]): string[] {
@@ -959,6 +1051,7 @@ function observation(record: TestExecutionRecord): PairObservation {
     command: record.command,
     sequence: record.sequence,
     exit_code: record.exit_code,
+    termination: record.termination,
     expected_failure: record.expected_failure,
     ...(record.stdout_summary ? { stdout_summary: record.stdout_summary } : {}),
     ...(record.stderr_summary ? { stderr_summary: record.stderr_summary } : {}),
@@ -1225,8 +1318,13 @@ export function reviewPairRed(
   if (state.pair_session.checkpoint !== 'red_observed' || !red || !normalized) {
     throw new Error('A Red observation and review reason are required.');
   }
-  if (kind === 'behavior' && !red.expected_failure) {
-    throw new Error('A passing command cannot be accepted as Red.');
+  if (
+    kind === 'behavior' &&
+    (!red.expected_failure || red.termination.kind !== 'exit')
+  ) {
+    throw new Error(
+      'Only a normal non-zero command exit can be accepted as behavior Red.',
+    );
   }
   const unit = currentWorkUnit(cwd, state);
   const expectedFailureKind = readTestProcess(
@@ -1295,6 +1393,14 @@ export function navigatePair(
   const state = pairState(cwd);
   const normalized = reason.trim();
   if (!normalized) throw new Error('Pair navigation requires a reason.');
+  if (
+    state.pair_session.automation_exception &&
+    !state.pair_session.automation_exception.allowed_routes.includes(action)
+  ) {
+    throw new Error(
+      `Pair exception ${state.pair_session.automation_exception.exception_id} does not allow ${action}.`,
+    );
+  }
   if (action === 'back_tasking') {
     const routed = transitionLoopState(
       state,
@@ -1382,7 +1488,10 @@ export function pairNextInstruction(state: WorkflowState): string {
   const session = state.pair_session;
   if (!session) return 'return to Tasking';
   if (session.automation_exception) {
-    return '/evidence-pair back-test|back-implementation|back-tasking|retry-quality <reason> routes the recorded automation exception';
+    const routes = session.automation_exception.allowed_routes
+      .map((route) => route.replaceAll('_', '-'))
+      .join('|');
+    return `/evidence-pair ${routes} <reason> routes ${session.automation_exception.exception_id} (${session.automation_exception.kind})`;
   }
   switch (session.checkpoint) {
     case 'plan_confirmed':

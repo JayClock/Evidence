@@ -9,6 +9,7 @@ import {
 } from '../../iteration/state-repository';
 import type {
   ActiveWorkItem,
+  CommandTermination,
   PairDriverRecord,
   PairObservation,
   TaskingImplementationTask,
@@ -63,7 +64,8 @@ export interface ExecutionManifest {
       test_ids: string[];
       command: string;
       sequence: number;
-      exit_code: number;
+      exit_code: number | null;
+      termination: CommandTermination;
       stdout_summary: string;
       stderr_summary: string;
     }>;
@@ -698,7 +700,7 @@ function processManifest(
       ...(expected.target ? { target: expected.target } : {}),
       command: expected.command,
       sequence: gate.sequence,
-      exit_code: gate.exit_code,
+      exit_code: 0,
     };
   });
   return {
@@ -772,6 +774,7 @@ function showcaseManifest(
         command: record.command,
         sequence: record.sequence,
         exit_code: record.exit_code,
+        termination: record.termination,
         stdout_summary: record.stdout_summary ?? '',
         stderr_summary: record.stderr_summary ?? '',
       };

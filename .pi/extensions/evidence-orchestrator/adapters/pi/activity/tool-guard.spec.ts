@@ -58,6 +58,55 @@ describe('activity tool guard adapter', () => {
     ).toMatchObject({ block: true });
   });
 
+  it('rechecks expiry before every child tool call', () => {
+    const cwd = workspace();
+    const policyPath = join(cwd, 'policy.json');
+    let now = Date.parse('2026-01-01T00:00:00.000Z');
+    writeFileSync(
+      policyPath,
+      JSON.stringify(
+        createActivityToolPolicy({
+          cwd,
+          role: 'showcase-reviewer',
+          timeoutMs: 100,
+          now,
+        }),
+      ),
+    );
+    let handler:
+      | ((event: {
+          toolName: string;
+          input: unknown;
+        }) => { block: true; reason?: string } | undefined)
+      | undefined;
+    registerActivityToolGuard(
+      {
+        on(_name: string, candidate: typeof handler) {
+          handler = candidate;
+        },
+      } as never,
+      {
+        [ACTIVITY_CHILD_ENV]: '1',
+        [ACTIVITY_POLICY_ENV]: policyPath,
+      },
+      () => now,
+    );
+
+    expect(
+      handler?.({ toolName: 'read', input: { path: 'README.md' } }),
+    ).toBeUndefined();
+    now += 101;
+    expect(
+      handler?.({
+        toolName: 'evidence_orchestrator_record_showcase_review',
+        input: {},
+      }),
+    ).toMatchObject({
+      block: true,
+      reason: expect.stringContaining('expired during execution'),
+    });
+  });
+
   it('fails closed when a child policy cannot be loaded', () => {
     let handler:
       | ((event: {

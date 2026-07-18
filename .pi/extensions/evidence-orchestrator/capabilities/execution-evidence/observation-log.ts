@@ -1,9 +1,13 @@
 import { createHash } from 'node:crypto';
-import { execFileSync, spawnSync } from 'node:child_process';
+import {
+  execFileSync,
+  spawnSync,
+  type SpawnSyncReturns,
+} from 'node:child_process';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { artifactPath } from '../../iteration/artifact-layout';
-import type { WorkflowState } from '../../iteration/state';
+import type { CommandTermination, WorkflowState } from '../../iteration/state';
 import {
   readState,
   selectedTestProcesses,
@@ -57,7 +61,8 @@ export interface TestExecutionRecord {
   test_id?: string;
   command: string;
   sequence: number;
-  exit_code: number;
+  exit_code: number | null;
+  termination: CommandTermination;
   expected_failure: boolean;
   started_at: string;
   completed_at: string;
@@ -96,6 +101,62 @@ function worktreeDigest(cwd: string): string {
   );
 }
 
+export function classifyCommandTermination(
+  result: Pick<SpawnSyncReturns<string>, 'status' | 'signal' | 'error'>,
+  timeoutMs: number,
+): CommandTermination {
+  const error = result.error as NodeJS.ErrnoException | undefined;
+  if (
+    error?.code === 'ETIMEDOUT' ||
+    error?.message.toLowerCase().includes('timed out')
+  ) {
+    return {
+      kind: 'timeout',
+      timeout_ms: timeoutMs,
+      ...(result.signal ? { signal: result.signal } : {}),
+    };
+  }
+  if (error) {
+    return {
+      kind: 'spawn_error',
+      ...(error.code ? { error_code: error.code } : {}),
+    };
+  }
+  if (result.signal) return { kind: 'signal', signal: result.signal };
+  if (typeof result.status === 'number') {
+    return { kind: 'exit', exit_code: result.status };
+  }
+  return { kind: 'spawn_error' };
+}
+
+function validCommandTermination(
+  termination: CommandTermination | undefined,
+  exitCode: number | null,
+): boolean {
+  if (!termination) return false;
+  if (termination.kind === 'exit') {
+    return (
+      Number.isSafeInteger(termination.exit_code) &&
+      termination.exit_code === exitCode
+    );
+  }
+  if (exitCode !== null) return false;
+  if (termination.kind === 'timeout') {
+    return (
+      Number.isSafeInteger(termination.timeout_ms) &&
+      termination.timeout_ms > 0 &&
+      (termination.signal === undefined ||
+        typeof termination.signal === 'string')
+    );
+  }
+  if (termination.kind === 'signal') return Boolean(termination.signal);
+  return (
+    termination.kind === 'spawn_error' &&
+    (termination.error_code === undefined ||
+      typeof termination.error_code === 'string')
+  );
+}
+
 function unsignedRecordSha256(record: TestExecutionRecord): string {
   const { record_sha256: ignored, ...unsigned } = record;
   void ignored;
@@ -120,6 +181,7 @@ export function readExecutionRecords(path: string): TestExecutionRecord[] {
       throw new Error(`Execution record ${index + 1} must use version 2.`);
     }
     if (
+      !validCommandTermination(record.termination, record.exit_code) ||
       !validOutputDiagnostic(record.stdout_diagnostic, record.stdout_sha256) ||
       !validOutputDiagnostic(record.stderr_diagnostic, record.stderr_sha256)
     ) {
@@ -605,13 +667,15 @@ export function executeTestStep(
     throw new Error('Approved aggregate test plan drifted before execution.');
   }
   const startedAt = new Date().toISOString();
+  const timeoutMs = approvedCommandTimeoutMs(state);
   const result = spawnSync(request.command, {
     cwd,
     shell: true,
     encoding: 'utf8',
-    timeout: approvedCommandTimeoutMs(state),
+    timeout: timeoutMs,
   });
-  const exitCode = result.status ?? (result.error ? 1 : 0);
+  const termination = classifyCommandTermination(result, timeoutMs);
+  const exitCode = termination.kind === 'exit' ? termination.exit_code : null;
   const sequence = priorRecords.length + 1;
   const stdout = result.stdout ?? '';
   const stderr = `${result.stderr ?? ''}${result.error?.message ?? ''}`;
@@ -627,7 +691,9 @@ export function executeTestStep(
     command: request.command,
     sequence,
     exit_code: exitCode,
-    expected_failure: request.stage === 'red' && exitCode !== 0,
+    termination,
+    expected_failure:
+      request.stage === 'red' && termination.kind === 'exit' && exitCode !== 0,
     started_at: startedAt,
     completed_at: new Date().toISOString(),
     stdout_sha256: stdoutDiagnostic.sha256,

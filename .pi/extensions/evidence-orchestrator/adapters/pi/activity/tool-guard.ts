@@ -9,6 +9,7 @@ import {
 export function registerActivityToolGuard(
   pi: ExtensionAPI,
   environment: NodeJS.ProcessEnv = process.env,
+  now: () => number = Date.now,
 ): void {
   if (environment[ACTIVITY_CHILD_ENV] !== '1') return;
 
@@ -17,7 +18,7 @@ export function registerActivityToolGuard(
   try {
     const path = environment[ACTIVITY_POLICY_ENV];
     if (!path) throw new Error('Evidence activity policy path is missing.');
-    policy = readActivityToolPolicy(path);
+    policy = readActivityToolPolicy(path, now());
   } catch (error) {
     policyError = error instanceof Error ? error.message : String(error);
   }
@@ -29,7 +30,12 @@ export function registerActivityToolGuard(
         reason: `Evidence activity child is fail-closed: ${policyError ?? 'invalid policy'}`,
       };
     }
-    const decision = activityToolDecision(policy, event.toolName, event.input);
+    const decision = activityToolDecision(
+      policy,
+      event.toolName,
+      event.input,
+      now(),
+    );
     return decision.block
       ? { block: true, reason: decision.reason ?? 'Activity tool blocked.' }
       : undefined;

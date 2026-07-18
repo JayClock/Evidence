@@ -1,11 +1,15 @@
+import { EventEmitter } from 'node:events';
 import { existsSync } from 'node:fs';
-import { afterEach, describe, expect, it } from 'vitest';
+import { PassThrough } from 'node:stream';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanupWorkspaces,
   workspace,
   write,
 } from '../../test-support/support';
+import { createActivityToolPolicy } from '../../capabilities/worktree-protection/activity-tool-policy';
 import {
+  ActivityAgentAbortedError,
   appendActivityAgentEvent,
   loadActivityAgent,
   activityAgentName,
@@ -13,9 +17,37 @@ import {
   activityAgentResult,
   activityAgentArguments,
   activityAgentTelemetry,
+  runActivityAgent,
 } from './activity-agent-process';
 
 afterEach(cleanupWorkspaces);
+
+function activityChild(closeOnTerm: boolean) {
+  const child = new EventEmitter() as EventEmitter & {
+    stdout: PassThrough;
+    stderr: PassThrough;
+    exitCode: number | null;
+    kill: ReturnType<typeof vi.fn>;
+  };
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.exitCode = null;
+  child.kill = vi.fn((signal: NodeJS.Signals) => {
+    if (signal === 'SIGKILL' || (signal === 'SIGTERM' && closeOnTerm)) {
+      queueMicrotask(() => child.emit('close', null, signal));
+    }
+    return true;
+  });
+  return child;
+}
+
+function writeActivityAgent(cwd: string): void {
+  write(
+    cwd,
+    '.pi/agents/test-driver.md',
+    `---\nname: test-driver\ndescription: Writes one behavior test\nmodel: openai-codex/gpt-test\nthinking: medium\ntools: read, write\n---\n\nWrite one bounded test and stop.\n`,
+  );
+}
 
 describe('activity agents', () => {
   it('loads every bounded role directly without a phase-agent map', () => {
@@ -235,6 +267,63 @@ describe('activity agents', () => {
       actualModel: 'provider/model',
       output: expect.stringContaining('failed with exit 0 (error)'),
     });
+  });
+
+  it('terminates then kills a child at its approved deadline and returns timeout', async () => {
+    const cwd = workspace();
+    writeActivityAgent(cwd);
+    const child = activityChild(false);
+    const spawnProcess = vi.fn(() => child) as never;
+    const result = await runActivityAgent({
+      cwd,
+      agentName: 'test-driver',
+      task: 'Write one test.',
+      policy: createActivityToolPolicy({
+        cwd,
+        role: 'test-driver',
+        timeoutMs: 10,
+      }),
+      spawnProcess,
+      forceKillGraceMs: 5,
+    });
+
+    expect(child.kill.mock.calls.map(([signal]) => signal)).toEqual([
+      'SIGTERM',
+      'SIGKILL',
+    ]);
+    expect(result).toMatchObject({
+      exitCode: 1,
+      stopReason: 'timeout',
+      errorMessage: expect.stringContaining('timed out'),
+    });
+  });
+
+  it('keeps caller abort distinct from deadline timeout', async () => {
+    const cwd = workspace();
+    writeActivityAgent(cwd);
+    const child = activityChild(true);
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      runActivityAgent({
+        cwd,
+        agentName: 'test-driver',
+        task: 'Write one test.',
+        policy: createActivityToolPolicy({
+          cwd,
+          role: 'test-driver',
+          timeoutMs: 1_000,
+        }),
+        signal: controller.signal,
+        spawnProcess: vi.fn(() => child) as never,
+        forceKillGraceMs: 5,
+      }),
+    ).rejects.toMatchObject({
+      name: ActivityAgentAbortedError.name,
+      result: { stopReason: 'aborted' },
+    });
+    expect(child.kill).toHaveBeenCalledWith('SIGTERM');
   });
 
   it('streams finalized child messages into an immutable running snapshot', () => {

@@ -62,6 +62,8 @@ export interface ActivityAgentProgress extends ActivityAgentResult {
   exitCode: -1;
 }
 
+const ACTIVITY_FORCE_KILL_GRACE_MS = 5_000;
+
 export class ActivityAgentAbortedError extends Error {
   constructor(readonly result: ActivityAgentResult) {
     super(result.errorMessage ?? `Activity agent ${result.agent} was aborted.`);
@@ -427,6 +429,9 @@ export async function runActivityAgent(options: {
   sessionId?: string;
   signal?: AbortSignal;
   onUpdate?: (progress: ActivityAgentProgress) => void;
+  /** Test seams; production uses node:child_process spawn and a 5s grace. */
+  spawnProcess?: typeof spawn;
+  forceKillGraceMs?: number;
 }): Promise<ActivityAgentResult> {
   const agent = loadActivityAgent(options.cwd, options.agentName);
   const tempDirectory = await mkdtemp(
@@ -461,6 +466,7 @@ export async function runActivityAgent(options: {
   let stderr = '';
   let buffer = '';
   let aborted = false;
+  let timedOut = false;
   let spawnError = '';
 
   const emitProgress = () => {
@@ -483,22 +489,29 @@ export async function runActivityAgent(options: {
   try {
     const exitCode = await new Promise<number>((resolve) => {
       const invocation = activityAgentInvocation(args);
-      const child = spawn(invocation.command, invocation.args, {
-        cwd: options.cwd,
-        env: {
-          ...process.env,
-          [ACTIVITY_CHILD_ENV]: '1',
-          [ACTIVITY_POLICY_ENV]: policyPath,
+      const child = (options.spawnProcess ?? spawn)(
+        invocation.command,
+        invocation.args,
+        {
+          cwd: options.cwd,
+          env: {
+            ...process.env,
+            [ACTIVITY_CHILD_ENV]: '1',
+            [ACTIVITY_POLICY_ENV]: policyPath,
+          },
+          shell: false,
+          stdio: ['ignore', 'pipe', 'pipe'],
         },
-        shell: false,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
+      );
       let settled = false;
+      let terminationRequested = false;
+      let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
       let forceKillTimer: ReturnType<typeof setTimeout> | undefined;
 
       const finish = (code: number) => {
         if (settled) return;
         settled = true;
+        if (deadlineTimer) clearTimeout(deadlineTimer);
         if (forceKillTimer) clearTimeout(forceKillTimer);
         if (options.signal) {
           options.signal.removeEventListener('abort', abortChild);
@@ -517,15 +530,19 @@ export async function runActivityAgent(options: {
         if (appendActivityAgentEvent(messages, event)) emitProgress();
       };
 
-      const abortChild = () => {
-        if (aborted) return;
-        aborted = true;
+      const terminateChild = (reason: 'aborted' | 'timeout') => {
+        if (terminationRequested || settled) return;
+        terminationRequested = true;
+        if (reason === 'timeout') timedOut = true;
+        else aborted = true;
         child.kill('SIGTERM');
         forceKillTimer = setTimeout(() => {
           if (child.exitCode === null) child.kill('SIGKILL');
-        }, 5000);
+        }, options.forceKillGraceMs ?? ACTIVITY_FORCE_KILL_GRACE_MS);
         forceKillTimer.unref();
       };
+      const abortChild = () => terminateChild('aborted');
+      const timeoutChild = () => terminateChild('timeout');
 
       child.stdout.on('data', (chunk) => {
         buffer += chunk.toString();
@@ -549,6 +566,16 @@ export async function runActivityAgent(options: {
       if (options.signal?.aborted) abortChild();
       else
         options.signal?.addEventListener('abort', abortChild, { once: true });
+
+      if (!terminationRequested && !settled) {
+        const remainingMs = Date.parse(options.policy.expiresAt) - Date.now();
+        if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+          timeoutChild();
+        } else {
+          deadlineTimer = setTimeout(timeoutChild, remainingMs);
+          deadlineTimer.unref();
+        }
+      }
     });
 
     const completedMs = Date.now();
@@ -565,6 +592,16 @@ export async function runActivityAgent(options: {
       },
       sessionMode,
     );
+    if (timedOut) {
+      const errorMessage = `Activity agent ${agent.name} timed out at ${options.policy.expiresAt}.`;
+      return {
+        ...result,
+        exitCode: result.exitCode === 0 ? 1 : result.exitCode,
+        stopReason: 'timeout',
+        errorMessage,
+        output: `${errorMessage}\n\n${result.output}`,
+      };
+    }
     if (aborted) {
       const errorMessage = `Activity agent ${agent.name} was aborted.`;
       throw new ActivityAgentAbortedError({

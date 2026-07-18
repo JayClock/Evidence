@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { formatOutputDiagnostic, outputDiagnostic } from './observation-log';
+import {
+  classifyCommandTermination,
+  formatOutputDiagnostic,
+  outputDiagnostic,
+} from './observation-log';
 
 describe('execution output diagnostics', () => {
   it('preserves a small multiline failure without ANSI control sequences', () => {
@@ -63,5 +67,42 @@ describe('execution output diagnostics', () => {
       tail: '',
       truncated: false,
     });
+  });
+
+  it('distinguishes exit, timeout, spawn error, and signal termination', () => {
+    expect(
+      classifyCommandTermination(
+        { status: 2, signal: null, error: undefined },
+        600_000,
+      ),
+    ).toEqual({ kind: 'exit', exit_code: 2 });
+    expect(
+      classifyCommandTermination(
+        {
+          status: null,
+          signal: 'SIGTERM',
+          error: Object.assign(new Error('command timed out'), {
+            code: 'ETIMEDOUT',
+          }),
+        },
+        600_000,
+      ),
+    ).toEqual({ kind: 'timeout', timeout_ms: 600_000, signal: 'SIGTERM' });
+    expect(
+      classifyCommandTermination(
+        {
+          status: null,
+          signal: null,
+          error: Object.assign(new Error('spawn failed'), { code: 'ENOENT' }),
+        },
+        600_000,
+      ),
+    ).toEqual({ kind: 'spawn_error', error_code: 'ENOENT' });
+    expect(
+      classifyCommandTermination(
+        { status: null, signal: 'SIGKILL', error: undefined },
+        600_000,
+      ),
+    ).toEqual({ kind: 'signal', signal: 'SIGKILL' });
   });
 });

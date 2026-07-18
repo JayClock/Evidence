@@ -105,6 +105,23 @@ const PAIR_CHECKPOINTS = new Set([
   'quality_gate_failed',
   'quality_gates_passed',
 ]);
+const PAIR_AUTOMATION_EXCEPTION_KINDS = new Set([
+  'retry_exhausted',
+  'repeated_failure',
+  'no_progress',
+  'activity_timeout',
+  'command_timeout',
+  'budget_soft_limit',
+  'budget_hard_limit',
+  'emergency_checkpoint_limit',
+  'observability_gap',
+]);
+const PAIR_EXCEPTION_ROUTES = new Set([
+  'back_test',
+  'back_implementation',
+  'back_tasking',
+  'retry_quality',
+]);
 const SHOWCASE_STAGES = new Set([
   'setup',
   'reviewing',
@@ -191,6 +208,53 @@ function validExecutionBudgetEnvelope(value: ExecutionBudgetEnvelope): boolean {
     value.soft_ratio < 1 &&
     text(value.approved_at) &&
     Number.isFinite(Date.parse(value.approved_at))
+  );
+}
+
+function validPairAutomationException(
+  value: NonNullable<WorkflowState['pair_session']>['automation_exception'],
+): boolean {
+  if (!value) return false;
+  const usage = value.current_usage;
+  const nonNegative = (candidate: unknown): boolean =>
+    typeof candidate === 'number' &&
+    Number.isFinite(candidate) &&
+    candidate >= 0;
+  return (
+    value.version === 1 &&
+    /^EXC-\d{3,}$/.test(value.exception_id) &&
+    PAIR_AUTOMATION_EXCEPTION_KINDS.has(value.kind) &&
+    text(value.reason) &&
+    PAIR_CHECKPOINTS.has(value.checkpoint) &&
+    /^[a-f0-9]{64}$/.test(value.budget_policy_sha256) &&
+    /^[a-f0-9]{64}$/.test(value.budget_envelope_sha256) &&
+    Boolean(usage) &&
+    nonNegative(usage.duration_ms) &&
+    nonNegative(usage.input_tokens) &&
+    nonNegative(usage.output_tokens) &&
+    nonNegative(usage.pair_agent_calls) &&
+    nonNegative(usage.pair_checkpoints) &&
+    (usage.cost_status === 'reported'
+      ? nonNegative(usage.reported_cost_usd)
+      : usage.cost_status === 'unknown' && usage.reported_cost_usd === null) &&
+    (value.triggering_span_id === undefined ||
+      /^ACT-\d{6,}$/.test(value.triggering_span_id)) &&
+    (value.failure_fingerprint === undefined ||
+      /^[a-f0-9]{64}$/.test(value.failure_fingerprint)) &&
+    (value.execution_sequence === undefined ||
+      (Number.isSafeInteger(value.execution_sequence) &&
+        value.execution_sequence > 0)) &&
+    (value.retry_count === undefined ||
+      (Number.isSafeInteger(value.retry_count) && value.retry_count >= 0)) &&
+    (value.approved_limit === undefined || nonNegative(value.approved_limit)) &&
+    (value.actual_value === undefined || nonNegative(value.actual_value)) &&
+    Array.isArray(value.allowed_routes) &&
+    value.allowed_routes.length > 0 &&
+    value.allowed_routes.every((route) => PAIR_EXCEPTION_ROUTES.has(route)) &&
+    new Set(value.allowed_routes).size === value.allowed_routes.length &&
+    text(value.artifact_path) &&
+    text(value.recorded_at) &&
+    Number.isFinite(Date.parse(value.recorded_at))
   );
 }
 
@@ -665,7 +729,9 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !Array.isArray(state.pair_session.accepted_reds) ||
       !validExecutionBudgetEnvelope(state.pair_session.execution_budget) ||
       !Array.isArray(state.pair_session.feedback) ||
-      !Array.isArray(state.pair_session.driver_history))
+      !Array.isArray(state.pair_session.driver_history) ||
+      (state.pair_session.automation_exception_history !== undefined &&
+        !Array.isArray(state.pair_session.automation_exception_history)))
   ) {
     throw new Error('The Pair session is invalid.');
   }
@@ -729,13 +795,17 @@ export function normalizeState(input: WorkflowState): WorkflowState {
     throw new Error('The completed Story is invalid.');
   }
   if (
-    state.pair_session?.automation_exception &&
-    (state.pair_session.automation_exception.kind !== 'automation_exhausted' ||
-      !text(state.pair_session.automation_exception.reason) ||
-      !PAIR_CHECKPOINTS.has(
-        state.pair_session.automation_exception.checkpoint,
+    state.pair_session &&
+    ((state.pair_session.automation_exception !== undefined &&
+      !validPairAutomationException(state.pair_session.automation_exception)) ||
+      (state.pair_session.automation_exception_history ?? []).some(
+        (exception) => !validPairAutomationException(exception),
       ) ||
-      !text(state.pair_session.automation_exception.recorded_at))
+      (state.pair_session.automation_exception &&
+        JSON.stringify(state.pair_session.automation_exception) !==
+          JSON.stringify(
+            state.pair_session.automation_exception_history?.at(-1),
+          )))
   ) {
     throw new Error('The Pair automation exception is invalid.');
   }

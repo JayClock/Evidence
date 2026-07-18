@@ -209,7 +209,15 @@ export function activityToolDecision(
   policy: ActivityToolPolicy,
   toolName: string,
   input: unknown,
+  now = Date.now(),
 ): ActivityToolDecision {
+  const expiresAt = Date.parse(policy.expiresAt);
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
+    return {
+      block: true,
+      reason: 'Evidence activity tool policy expired during execution.',
+    };
+  }
   if (toolName === 'bash') {
     return { block: true, reason: 'Activity agents cannot execute Bash.' };
   }
