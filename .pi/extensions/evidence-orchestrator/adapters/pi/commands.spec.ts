@@ -261,7 +261,7 @@ describe('commands', () => {
     ctx.ui.select
       .mockResolvedValueOnce('INBOX-0001 · Interview')
       .mockResolvedValueOnce(
-        'CAND-0001 · Retain deletion evidence · workspace owner',
+        'CAND-0001 · Retain deletion evidence · workspace owner · Problem: Deletion is not auditable.',
       );
 
     await start?.('', ctx);
@@ -274,7 +274,9 @@ describe('commands', () => {
     expect(ctx.ui.select).toHaveBeenNthCalledWith(
       2,
       'Select an Inbox Story candidate for the new iteration',
-      ['CAND-0001 · Retain deletion evidence · workspace owner'],
+      [
+        'CAND-0001 · Retain deletion evidence · workspace owner · Problem: Deletion is not auditable.',
+      ],
     );
     expect(readPersistedState(cwd)?.intake_snapshot?.candidate_id).toBe(
       'CAND-0001',
