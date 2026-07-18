@@ -67,6 +67,11 @@ export {
   parseRespondDecision,
   parseShowcaseDecision,
 } from './command-inputs';
+export {
+  sanitizeDecisionText,
+  validateDecisionPacket,
+  type HumanDecisionPacket,
+} from './decision-packets/contract';
 
 export function activeStageCommand(
   cwd: string,
