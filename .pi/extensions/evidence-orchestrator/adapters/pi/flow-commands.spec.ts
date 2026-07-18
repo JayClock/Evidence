@@ -69,6 +69,20 @@ describe('Story Flow commands', () => {
     );
   });
 
+  it('rejects Board control from a linked Story worktree', async () => {
+    const cwd = workspace();
+    initializeGitRepository(cwd);
+    const provisioned = provision(cwd);
+    const { handler, ctx } = flowHandler(provisioned.worktree.path);
+
+    await handler('list', ctx);
+
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining('require the primary worktree'),
+      'error',
+    );
+  });
+
   it('explicitly pulls one queued item without selecting another Story', async () => {
     const cwd = workspace();
     initializeGitRepository(cwd);

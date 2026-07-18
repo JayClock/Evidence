@@ -156,7 +156,11 @@ function targetStory(primaryRoot: string, iterationId: string) {
 
 function targetMutationStory(primaryRoot: string, iterationId: string) {
   const target = targetStory(primaryRoot, iterationId);
-  assertActivityMutationLease(primaryRoot, target.worktreeRoot, target.state);
+  assertActivityMutationLease(
+    target.primaryRoot,
+    target.worktreeRoot,
+    target.state,
+  );
   return target;
 }
 
@@ -291,7 +295,7 @@ export function registerTools(pi: ExtensionAPI): void {
         cognitiveMode: params.cognitiveMode,
         sourceRefs: params.sourceRefs,
       });
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -324,7 +328,7 @@ export function registerTools(pi: ExtensionAPI): void {
         currentState.pair_session?.checkpoint === 'plan_confirmed'
       ) {
         const admission = requestDeliveryAdmission(
-          ctx.cwd,
+          target.primaryRoot,
           params.iterationId,
           currentState,
         );
@@ -355,7 +359,7 @@ export function registerTools(pi: ExtensionAPI): void {
         },
       );
       const resultingState = readState(target.worktreeRoot);
-      reconcileStory(ctx.cwd, params.iterationId, resultingState);
+      reconcileStory(target.primaryRoot, params.iterationId, resultingState);
       return {
         // Full child events remain in details/TUI; model-visible text is bounded.
         content: [
@@ -403,7 +407,7 @@ export function registerTools(pi: ExtensionAPI): void {
         params.storyId,
         params.candidates,
       );
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -442,7 +446,7 @@ export function registerTools(pi: ExtensionAPI): void {
         modelChangeRequired: requirement,
         reason: params.reason,
       });
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -478,7 +482,7 @@ export function registerTools(pi: ExtensionAPI): void {
         scenarios: params.scenarios,
         operations: params.operations,
       });
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -514,7 +518,7 @@ export function registerTools(pi: ExtensionAPI): void {
         outcome: params.outcome,
         summary: params.summary,
       });
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       const challenge = state.model_challenges?.at(-1);
       return {
         content: [
@@ -580,7 +584,7 @@ export function registerTools(pi: ExtensionAPI): void {
           dependsOn: task.dependsOn,
         })),
       });
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -620,7 +624,7 @@ export function registerTools(pi: ExtensionAPI): void {
         recommendation: params.recommendation,
       });
       const state = readState(target.worktreeRoot);
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -672,7 +676,7 @@ export function registerTools(pi: ExtensionAPI): void {
         },
       });
       const state = readState(target.worktreeRoot);
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       return {
         content: [
           {
@@ -705,7 +709,7 @@ export function registerTools(pi: ExtensionAPI): void {
         question: params.question,
         target: params.target,
       });
-      reconcileStory(ctx.cwd, params.iterationId, state);
+      reconcileStory(target.primaryRoot, params.iterationId, state);
       const pending = state.pending_clarification;
       if (!pending) {
         throw new Error('Clarification was not persisted.');
@@ -783,7 +787,7 @@ export function registerTools(pi: ExtensionAPI): void {
           },
         );
         const resultingState = readState(target.worktreeRoot);
-        reconcileStory(ctx.cwd, params.iterationId, resultingState);
+        reconcileStory(target.primaryRoot, params.iterationId, resultingState);
         return {
           content: [
             {

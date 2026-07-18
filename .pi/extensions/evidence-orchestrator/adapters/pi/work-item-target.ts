@@ -1,6 +1,7 @@
 import { existsSync, realpathSync } from 'node:fs';
 import { ACTIVITY_ITERATION_ENV } from '../../capabilities/worktree-protection/activity-tool-policy';
 import { BOARD_ITERATION_ID_PATTERN } from '../../iteration/board-codec';
+import { primaryWorktreeRoot } from '../../iteration/git-common-dir';
 import { readBoard } from '../../iteration/board-repository';
 import type { BoardItem } from '../../iteration/board-state';
 import { readPersistedState } from '../../iteration/state-repository';
@@ -55,7 +56,8 @@ export function requireWorkItemTarget(
       `Activity context is bound to ${boundIterationId}; refusing target ${normalized}.`,
     );
   }
-  const item = readBoard(primaryRoot).items.find(
+  const repositoryPrimaryRoot = primaryWorktreeRoot(primaryRoot);
+  const item = readBoard(repositoryPrimaryRoot).items.find(
     ({ iteration_id }) => iteration_id === normalized,
   );
   if (!item) throw new Error(`Board item does not exist: ${normalized}.`);
@@ -93,5 +95,10 @@ export function requireWorkItemTarget(
       `Board/State Iteration mismatch: ${normalized}/${state.iteration_id}.`,
     );
   }
-  return { primaryRoot, item, worktreeRoot, state };
+  return {
+    primaryRoot: repositoryPrimaryRoot,
+    item,
+    worktreeRoot,
+    state,
+  };
 }

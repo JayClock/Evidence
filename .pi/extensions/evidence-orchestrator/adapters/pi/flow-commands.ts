@@ -13,6 +13,7 @@ import {
 import { appendBoardEvent } from '../../iteration/board-events';
 import { mutateBoard, readBoard } from '../../iteration/board-repository';
 import type { WorkflowState } from '../../iteration/state';
+import { assertPrimaryWorktree } from '../../iteration/git-common-dir';
 import { readPersistedState } from '../../iteration/state-repository';
 import { EVIDENCE_COMMANDS } from './command-names';
 import { requireWorkItemTarget } from './work-item-target';
@@ -197,6 +198,7 @@ export function registerFlowCommands(pi: ExtensionAPI): void {
       'List Story Work Items, explicitly Pull queued work, recover failed provisioning, or archive terminal work',
     handler: async (args, ctx) => {
       try {
+        assertPrimaryWorktree(ctx.cwd);
         const normalized = args.trim();
         const [action = 'list', ...parts] = normalized.split(/\s+/);
         const rest = parts.join(' ');

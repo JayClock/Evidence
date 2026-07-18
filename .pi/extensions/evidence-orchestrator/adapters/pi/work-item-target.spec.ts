@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { provisionWorkItem } from '../../capabilities/work-item-worktree/provisioner';
 import { ACTIVITY_ITERATION_ENV } from '../../capabilities/worktree-protection/activity-tool-policy';
@@ -53,6 +54,9 @@ describe('exact Story target', () => {
       state: { iteration_id: 'ITER-0001' },
       item: { candidate_id: 'CAND-0001' },
     });
+    expect(
+      requireWorkItemTarget(provisioned.worktree.path, 'ITER-0001').primaryRoot,
+    ).toBe(realpathSync(cwd));
   });
 
   it('rejects a target outside the activity process Iteration binding', () => {
