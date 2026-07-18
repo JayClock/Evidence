@@ -395,6 +395,7 @@ export interface PairAutomationException {
   current_usage: ExecutionBudgetUsage;
   triggering_span_id?: string;
   failure_fingerprint?: string;
+  recent_failure_fingerprints: string[];
   execution_sequence?: number;
   retry_count?: number;
   approved_limit?: number;

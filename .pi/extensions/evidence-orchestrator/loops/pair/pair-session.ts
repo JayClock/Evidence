@@ -175,6 +175,10 @@ export function recordPairAutomationException(
     ...(input.failureFingerprint
       ? { failure_fingerprint: input.failureFingerprint }
       : {}),
+    recent_failure_fingerprints:
+      state.pair_session.failure_fingerprints
+        ?.slice(-5)
+        .map(({ fingerprint }) => fingerprint) ?? [],
     ...(input.executionSequence !== undefined
       ? { execution_sequence: input.executionSequence }
       : {}),

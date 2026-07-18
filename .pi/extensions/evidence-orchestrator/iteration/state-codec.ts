@@ -292,6 +292,13 @@ function validPairAutomationException(
       /^ACT-\d{6,}$/.test(value.triggering_span_id)) &&
     (value.failure_fingerprint === undefined ||
       /^[a-f0-9]{64}$/.test(value.failure_fingerprint)) &&
+    Array.isArray(value.recent_failure_fingerprints) &&
+    value.recent_failure_fingerprints.length <= 5 &&
+    value.recent_failure_fingerprints.every((fingerprint) =>
+      /^[a-f0-9]{64}$/.test(fingerprint),
+    ) &&
+    new Set(value.recent_failure_fingerprints).size ===
+      value.recent_failure_fingerprints.length &&
     (value.execution_sequence === undefined ||
       (Number.isSafeInteger(value.execution_sequence) &&
         value.execution_sequence > 0)) &&
