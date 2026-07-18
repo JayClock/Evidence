@@ -76,6 +76,95 @@ export function wrapTextWithAnsi(value: string, width: number): string[] {
   return lines;
 }
 
+export interface SelectItem {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+interface SelectListTheme {
+  selectedPrefix: (text: string) => string;
+  selectedText: (text: string) => string;
+  description: (text: string) => string;
+  scrollInfo: (text: string) => string;
+  noMatch: (text: string) => string;
+}
+
+export class SelectList implements Component {
+  private selectedIndex = 0;
+  onSelect?: (item: SelectItem) => void;
+  onCancel?: () => void;
+
+  constructor(
+    private readonly items: SelectItem[],
+    private readonly maxVisible: number,
+    private readonly theme: SelectListTheme,
+  ) {}
+
+  setSelectedIndex(index: number): void {
+    this.selectedIndex = Math.max(0, Math.min(index, this.items.length - 1));
+  }
+
+  getSelectedItem(): SelectItem | null {
+    return this.items[this.selectedIndex] ?? null;
+  }
+
+  handleInput(data: string): void {
+    if (data === 'up') {
+      this.setSelectedIndex(
+        this.selectedIndex === 0
+          ? this.items.length - 1
+          : this.selectedIndex - 1,
+      );
+    } else if (data === 'down') {
+      this.setSelectedIndex(
+        this.selectedIndex === this.items.length - 1
+          ? 0
+          : this.selectedIndex + 1,
+      );
+    } else if (data === 'enter') {
+      const selected = this.getSelectedItem();
+      if (selected) this.onSelect?.(selected);
+    } else if (data === 'escape' || data === 'ctrl+c') {
+      this.onCancel?.();
+    }
+  }
+
+  render(width: number): string[] {
+    if (this.items.length === 0) return [this.theme.noMatch('No actions')];
+    const start = Math.max(
+      0,
+      Math.min(
+        this.selectedIndex - Math.floor(this.maxVisible / 2),
+        this.items.length - this.maxVisible,
+      ),
+    );
+    const end = Math.min(this.items.length, start + this.maxVisible);
+    const lines = this.items.slice(start, end).map((item, relativeIndex) => {
+      const index = start + relativeIndex;
+      const selected = index === this.selectedIndex;
+      const prefix = selected ? this.theme.selectedPrefix('→ ') : '  ';
+      const label = selected ? this.theme.selectedText(item.label) : item.label;
+      const description = item.description
+        ? this.theme.description(` — ${item.description}`)
+        : '';
+      return truncateToWidth(`${prefix}${label}${description}`, width, '');
+    });
+    if (start > 0 || end < this.items.length) {
+      lines.push(
+        this.theme.scrollInfo(
+          `(${this.selectedIndex + 1}/${this.items.length})`,
+        ),
+      );
+    }
+    return lines;
+  }
+
+  invalidate(): void {
+    return undefined;
+  }
+}
+
 export class Text implements Component {
   constructor(
     private text: string,

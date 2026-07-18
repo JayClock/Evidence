@@ -72,6 +72,7 @@ export {
   validateDecisionPacket,
   type HumanDecisionPacket,
 } from './decision-packets/contract';
+export { showDecisionPacket } from './decision-packets/dialog';
 export {
   renderDecisionPacketReview,
   renderDecisionPacketViewport,
