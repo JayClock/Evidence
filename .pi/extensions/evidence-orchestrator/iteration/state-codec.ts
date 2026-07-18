@@ -1028,7 +1028,7 @@ export function normalizeState(input: WorkflowState): WorkflowState {
       !STORY_ID_PATTERN.test(state.active_clarification_story.story_id) ||
       !text(state.active_clarification_story.selected_at))
   ) {
-    throw new Error('The single active clarification Story is invalid.');
+    throw new Error('The worktree-local clarification Story is invalid.');
   }
   if (
     state.pending_clarification &&

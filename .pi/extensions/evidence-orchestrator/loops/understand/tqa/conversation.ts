@@ -236,7 +236,7 @@ export function askClarification(
   const activeStoryId = state.active_clarification_story?.story_id;
   if (!activeStoryId || activeStoryId !== storyId) {
     throw new Error(
-      `TQA must belong to the single active Story ${activeStoryId ?? 'none'}, not ${storyId}.`,
+      `TQA must belong to this worktree's Story ${activeStoryId ?? 'none'}, not ${storyId}.`,
     );
   }
   if (!VALID_TARGETS.has(input.target)) {

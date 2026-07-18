@@ -38,7 +38,7 @@ describe('activity tasks', () => {
     expect(task).toContain('不分配 US-xxx');
   });
 
-  it('loads Story TQA progressively for the single active Story', () => {
+  it('loads Story TQA progressively for one worktree-local Story', () => {
     const cwd = workspace();
     writeState(cwd, {
       ...DEFAULT_STATE,
