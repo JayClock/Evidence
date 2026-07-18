@@ -228,6 +228,23 @@ describe('Desk Check Decision Packet', () => {
     );
   });
 
+  it('rejects a disabled action even if a custom host returns it', async () => {
+    const ctx = context({ input: '' });
+    const blocked = review({
+      checks: review().checks.map((check) =>
+        check.id === 'candidate' ? { ...check, status: 'blocked' } : check,
+      ),
+    });
+
+    await expect(
+      promptDeskCheckDecision(ctx as never, {
+        inspect: vi.fn(() => blocked),
+        show: vi.fn().mockResolvedValue('approve'),
+      }),
+    ).rejects.toThrow('action is not enabled');
+    expect(ctx.ui.input).not.toHaveBeenCalled();
+  });
+
   it('collects an optional approval reason and checks freshness last', async () => {
     const ctx = context({ input: '' });
     const inspect = vi.fn(() => review());

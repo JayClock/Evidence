@@ -495,8 +495,16 @@ export async function promptDeskCheckDecision(
   const inspect = options.inspect ?? inspectDeskCheck;
   const show = options.show ?? showDecisionPacket;
   const review = inspect(ctx.cwd);
-  const action = await show(ctx, buildDeskCheckDecisionPacket(review));
+  const packet = buildDeskCheckDecisionPacket(review);
+  const action = await show(ctx, packet);
   if (!action) return undefined;
+  if (
+    !packet.actions.some(
+      (candidate) => candidate.id === action && candidate.enabled,
+    )
+  ) {
+    throw new Error(`Desk Check Packet action is not enabled: ${action}.`);
+  }
   const collected = await collectReason(ctx, action);
   if (collected.cancelled) return undefined;
 

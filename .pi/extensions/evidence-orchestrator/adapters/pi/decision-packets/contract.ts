@@ -216,7 +216,7 @@ function canonicalValue(value: unknown): unknown {
   return Object.fromEntries(
     Object.entries(value as Record<string, unknown>)
       .filter(([, item]) => item !== undefined)
-      .sort(([left], [right]) => left.localeCompare(right))
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .map(([key, item]) => [key, canonicalValue(item)]),
   );
 }
@@ -240,6 +240,8 @@ export function sanitizeDecisionText(
   if (!Number.isSafeInteger(maxCodePoints) || maxCodePoints < 32) {
     throw new Error('Decision text limit must be an integer of at least 32.');
   }
+  ANSI_OR_OSC_PATTERN.lastIndex = 0;
+  UNSAFE_CONTROL_GLOBAL_PATTERN.lastIndex = 0;
   let sanitized = value
     .replaceAll('\r\n', '\n')
     .replaceAll('\r', '\n')
