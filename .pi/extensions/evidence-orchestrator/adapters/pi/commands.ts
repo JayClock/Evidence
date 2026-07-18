@@ -72,6 +72,10 @@ export {
   validateDecisionPacket,
   type HumanDecisionPacket,
 } from './decision-packets/contract';
+export {
+  renderDecisionPacketReview,
+  renderDecisionPacketViewport,
+} from './decision-packets/renderer';
 
 export function activeStageCommand(
   cwd: string,
