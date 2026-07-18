@@ -3,6 +3,7 @@ import type {
   ActivityAgentResult,
 } from '../../node/activity-agent-process';
 import {
+  ActivityAgentAbortedError,
   loadActivityAgent,
   runActivityAgent,
 } from '../../node/activity-agent-process';
@@ -11,7 +12,16 @@ import {
   type ActivityUsage,
   zeroActivityUsage,
 } from '../../../capabilities/activity-observability/activity-usage';
-import { readExecutionBudgetPolicy } from '../../../capabilities/execution-budget/policy';
+import {
+  ExecutionBudgetObservabilityGapError,
+  evaluateExecutionBudget,
+  executionBudgetUsageFromTrace,
+  type ExecutionBudgetTrigger,
+} from '../../../capabilities/execution-budget/evaluator';
+import {
+  assertPairExecutionBudgetLocked,
+  readExecutionBudgetPolicy,
+} from '../../../capabilities/execution-budget/policy';
 import { completeNoModelImpact } from '../../../capabilities/modeling-evidence/no-model-impact';
 import {
   capturePairWorktree,
@@ -78,6 +88,7 @@ interface ExecutePreparedActivityRunOptions {
   onUpdate?: (details: ActivityExecutionDetails) => void;
   now?: () => string;
   parentSpanId?: string;
+  onAgentProgress?: (progress: ActivityAgentProgress, spanId: string) => void;
 }
 
 function tqaSessionId(preparation: PreparedActivityRun): string | undefined {
@@ -356,17 +367,38 @@ async function executeOnePreparedActivityRun(
           );
         }
         const sessionId = tqaSessionId(preparation);
-        let result = await runActivityAgent({
-          cwd: ctx.cwd,
-          agentName: preparation.agentName,
-          task: preparation.task,
-          policy: activityPolicy(ctx.cwd, preparation.agentName, state),
-          ...(sessionId ? { sessionId } : {}),
-          signal: options.signal,
-          onUpdate(progress) {
-            options.onUpdate?.(progressDetails(preparation, progress));
-          },
-        });
+        let result: ActivityAgentResult;
+        try {
+          result = await runActivityAgent({
+            cwd: ctx.cwd,
+            agentName: preparation.agentName,
+            task: preparation.task,
+            policy: activityPolicy(ctx.cwd, preparation.agentName, state),
+            ...(sessionId ? { sessionId } : {}),
+            signal: options.signal,
+            onUpdate(progress) {
+              options.onUpdate?.(progressDetails(preparation, progress));
+              if (traceSpanId) {
+                options.onAgentProgress?.(progress, traceSpanId);
+              }
+            },
+          });
+        } catch (error) {
+          if (mode && snapshot && error instanceof ActivityAgentAbortedError) {
+            const completion = failPairDriver(
+              ctx.cwd,
+              mode as PairDriverMode,
+              snapshot,
+              `${error.result.output}\n${error.result.stderr}`,
+              now(),
+            );
+            error.result.output = `${error.result.output}\n\n${completion.output}`;
+            error.result.stderr =
+              `${error.result.stderr}\n${completion.output}`.trim();
+            partialResult = error.result;
+          }
+          throw error;
+        }
         partialResult = result;
         if (mode && snapshot) {
           const completion = !activityFailed(result)
@@ -468,6 +500,27 @@ function addPairAutomationTelemetry(
   for (const name of result.toolNames ?? []) telemetry.toolNames.add(name);
 }
 
+function nextPairBudgetProjection(
+  cwd: string,
+  state: WorkflowState,
+): { pairAgentCalls: number; pairCheckpoints: number } {
+  const session = state.pair_session;
+  if (!session || session.checkpoint === 'quality_gates_passed') {
+    return { pairAgentCalls: 0, pairCheckpoints: 0 };
+  }
+  const agentCheckpoint =
+    (session.checkpoint === 'red_observed' &&
+      session.red_observation?.accepted !== true) ||
+    pairDriverMode(state) !== undefined;
+  const deterministicCheckpoint =
+    session.checkpoint === 'quality_gate_failed' ||
+    pairDeterministicAction(cwd, state) !== undefined;
+  return {
+    pairAgentCalls: agentCheckpoint ? 1 : 0,
+    pairCheckpoints: agentCheckpoint || deterministicCheckpoint ? 1 : 0,
+  };
+}
+
 function nextPairPreparation(cwd: string): PreparedActivityRun {
   const state = readState(cwd);
   const mode = pairDriverMode(state);
@@ -504,6 +557,24 @@ function pairAutomationUsage(
   };
 }
 
+function withInFlightActivityUsage(
+  baseline: ExecutionBudgetUsage,
+  progress: ActivityAgentProgress,
+): ExecutionBudgetUsage {
+  const progressCost = progress.usage.cost_usd;
+  const costUnknown =
+    baseline.cost_status === 'unknown' || progressCost === null;
+  return {
+    ...baseline,
+    input_tokens: baseline.input_tokens + progress.usage.input_tokens,
+    output_tokens: baseline.output_tokens + progress.usage.output_tokens,
+    reported_cost_usd: costUnknown
+      ? null
+      : (baseline.reported_cost_usd ?? 0) + progressCost,
+    cost_status: costUnknown ? 'unknown' : 'reported',
+  };
+}
+
 function persistedPairAutomationResult(
   cwd: string,
   state: ReturnType<typeof readState>,
@@ -518,6 +589,7 @@ function persistedPairAutomationResult(
     executionSequence?: number;
     failureFingerprint?: string;
     retryCount?: number;
+    currentUsage?: ExecutionBudgetUsage;
     approvedLimit?: number;
     actualValue?: number;
   } = {},
@@ -526,7 +598,9 @@ function persistedPairAutomationResult(
     recordPairAutomationException(cwd, {
       kind: exception.kind ?? 'retry_exhausted',
       reason: output,
-      currentUsage: pairAutomationUsage(telemetry, steps, completedAt),
+      currentUsage:
+        exception.currentUsage ??
+        pairAutomationUsage(telemetry, steps, completedAt),
       ...(exception.triggeringSpanId
         ? { triggeringSpanId: exception.triggeringSpanId }
         : {}),
@@ -644,14 +718,29 @@ async function executeAutomatedPairRun(
   };
   const summaries: string[] = [];
   let steps = 0;
+  let softBoundaryConsumed = false;
   const pairAutomationResult = (
     state: ReturnType<typeof readState>,
     status: 'completed' | 'failed',
     output: string,
     completedSteps: number,
     exception: Parameters<typeof persistedPairAutomationResult>[7] = {},
-  ) =>
-    persistedPairAutomationResult(
+  ) => {
+    let resolvedException = exception;
+    if (status === 'failed' && !exception.currentUsage) {
+      try {
+        resolvedException = {
+          ...exception,
+          currentUsage: executionBudgetUsageFromTrace(ctx.cwd, state, {
+            now: now(),
+            allowedIncompleteSpanIds: [parentSpanId],
+          }),
+        };
+      } catch {
+        // The typed observability-gap exception falls back to local telemetry.
+      }
+    }
+    return persistedPairAutomationResult(
       ctx.cwd,
       state,
       status,
@@ -659,8 +748,9 @@ async function executeAutomatedPairRun(
       completedSteps,
       telemetry,
       now(),
-      exception,
+      resolvedException,
     );
+  };
   const checkpointProgress = (spanId: string | undefined) =>
     spanId ? recordPairCheckpointProgress(ctx.cwd, spanId, now()) : undefined;
   const noProgressStop = (
@@ -686,13 +776,25 @@ async function executeAutomatedPairRun(
     );
   };
 
-  const initialSession = readState(ctx.cwd).pair_session;
+  const initialState = readState(ctx.cwd);
+  const initialSession = initialState.pair_session;
   if (!initialSession) {
     return pairAutomationResult(
       readState(ctx.cwd),
       'failed',
       'Pair automation has no Desk Check budget envelope.',
       steps,
+    );
+  }
+  try {
+    assertPairExecutionBudgetLocked(ctx.cwd, initialState);
+  } catch (error) {
+    return pairAutomationResult(
+      initialState,
+      'failed',
+      error instanceof Error ? error.message : String(error),
+      steps,
+      { kind: 'observability_gap', triggeringSpanId: parentSpanId },
     );
   }
   const emergencyMaxCheckpoints =
@@ -708,6 +810,110 @@ async function executeAutomatedPairRun(
         steps,
       );
     }
+    const projection = nextPairBudgetProjection(ctx.cwd, state);
+    let usage: ExecutionBudgetUsage;
+    try {
+      usage = executionBudgetUsageFromTrace(ctx.cwd, state, {
+        now: now(),
+        allowedIncompleteSpanIds: [parentSpanId],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return pairAutomationResult(state, 'failed', message, steps, {
+        kind:
+          error instanceof ExecutionBudgetObservabilityGapError
+            ? 'observability_gap'
+            : 'retry_exhausted',
+        triggeringSpanId: parentSpanId,
+      });
+    }
+    const budget = evaluateExecutionBudget(
+      session.execution_budget,
+      usage,
+      projection,
+    );
+    if (budget.level === 'hard') {
+      const trigger = budget.hard[0];
+      if (!trigger) throw new Error('Hard budget has no trigger.');
+      return pairAutomationResult(
+        state,
+        'failed',
+        `Pair hard budget would be exceeded: ${trigger.metric}=${trigger.actual}, approved=${trigger.limit}.`,
+        steps,
+        {
+          kind:
+            trigger.metric === 'pair_checkpoints'
+              ? 'emergency_checkpoint_limit'
+              : 'budget_hard_limit',
+          triggeringSpanId: parentSpanId,
+          currentUsage: usage,
+          approvedLimit: trigger.limit,
+          actualValue: trigger.actual,
+        },
+      );
+    }
+    if (budget.level === 'soft') {
+      const trigger = budget.soft[0];
+      if (!trigger) throw new Error('Soft budget has no trigger.');
+      const canFinishDeterministicBoundary =
+        !softBoundaryConsumed &&
+        projection.pairCheckpoints === 1 &&
+        projection.pairAgentCalls === 0;
+      if (!canFinishDeterministicBoundary) {
+        return pairAutomationResult(
+          state,
+          'failed',
+          `Pair soft budget reached a safe stop: ${trigger.metric}=${trigger.actual}, soft=${trigger.soft_limit}, hard=${trigger.limit}.`,
+          steps,
+          {
+            kind: 'budget_soft_limit',
+            triggeringSpanId: parentSpanId,
+            currentUsage: usage,
+            approvedLimit: trigger.limit,
+            actualValue: trigger.actual,
+          },
+        );
+      }
+      softBoundaryConsumed = true;
+    }
+    const hardBudgetAbort = new AbortController();
+    let liveBudgetTrigger: ExecutionBudgetTrigger | undefined;
+    let liveBudgetUsage: ExecutionBudgetUsage | undefined;
+    let liveBudgetError: unknown;
+    let liveBudgetSpanId: string | undefined;
+    const checkpointSignal = options.signal
+      ? AbortSignal.any([options.signal, hardBudgetAbort.signal])
+      : hardBudgetAbort.signal;
+    const monitorAgentProgress = (
+      progress: ActivityAgentProgress,
+      spanId: string,
+    ) => {
+      if (hardBudgetAbort.signal.aborted) return;
+      liveBudgetSpanId = spanId;
+      try {
+        const traced = executionBudgetUsageFromTrace(ctx.cwd, state, {
+          now: now(),
+          allowedIncompleteSpanIds: [parentSpanId, spanId],
+        });
+        const inFlight = withInFlightActivityUsage(traced, progress);
+        const live = evaluateExecutionBudget(
+          session.execution_budget,
+          inFlight,
+        );
+        if (live.level === 'hard') {
+          liveBudgetTrigger = live.hard[0];
+          liveBudgetUsage = inFlight;
+          hardBudgetAbort.abort(
+            new Error(
+              `Execution hard budget exceeded: ${liveBudgetTrigger?.metric ?? 'unknown'}.`,
+            ),
+          );
+        }
+      } catch (error) {
+        liveBudgetError = error;
+        hardBudgetAbort.abort(error);
+      }
+    };
     if (session.checkpoint === 'quality_gates_passed') {
       return pairAutomationResult(
         state,
@@ -742,11 +948,14 @@ async function executeAutomatedPairRun(
               agentName: 'red-reviewer',
               task: reviewPreparation.task,
               policy: activityPolicy(ctx.cwd, 'red-reviewer', state),
-              signal: options.signal,
+              signal: checkpointSignal,
               onUpdate(progress) {
                 options.onUpdate?.(
                   progressDetails(reviewPreparation, progress),
                 );
+                if (reviewerSpanId) {
+                  monitorAgentProgress(progress, reviewerSpanId);
+                }
               },
             });
             reviewerResult = result;
@@ -771,6 +980,33 @@ async function executeAutomatedPairRun(
         );
       } catch (error) {
         if (options.signal?.aborted) throw error;
+        if (liveBudgetTrigger && liveBudgetUsage) {
+          return pairAutomationResult(
+            readState(ctx.cwd),
+            'failed',
+            `Pair hard budget exceeded during Red Reviewer: ${liveBudgetTrigger.metric}=${liveBudgetTrigger.actual}, approved=${liveBudgetTrigger.limit}.`,
+            steps + 1,
+            {
+              kind: 'budget_hard_limit',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+              currentUsage: liveBudgetUsage,
+              approvedLimit: liveBudgetTrigger.limit,
+              actualValue: liveBudgetTrigger.actual,
+            },
+          );
+        }
+        if (liveBudgetError) {
+          return pairAutomationResult(
+            readState(ctx.cwd),
+            'failed',
+            `Pair budget monitor failed closed: ${liveBudgetError instanceof Error ? liveBudgetError.message : String(liveBudgetError)}`,
+            steps + 1,
+            {
+              kind: 'observability_gap',
+              ...(reviewerSpanId ? { triggeringSpanId: reviewerSpanId } : {}),
+            },
+          );
+        }
         const message = error instanceof Error ? error.message : String(error);
         if (error instanceof ActivityObservabilityGapError) {
           return pairAutomationResult(
@@ -977,10 +1213,39 @@ async function executeAutomatedPairRun(
     try {
       details = await executeOnePreparedActivityRun(ctx, next, {
         ...options,
+        signal: checkpointSignal,
         parentSpanId,
+        onAgentProgress: monitorAgentProgress,
       });
     } catch (error) {
       if (options.signal?.aborted) throw error;
+      if (liveBudgetTrigger && liveBudgetUsage) {
+        return pairAutomationResult(
+          readState(ctx.cwd),
+          'failed',
+          `Pair hard budget exceeded during ${next.agentName ?? 'activity'}: ${liveBudgetTrigger.metric}=${liveBudgetTrigger.actual}, approved=${liveBudgetTrigger.limit}.`,
+          steps + 1,
+          {
+            kind: 'budget_hard_limit',
+            ...(liveBudgetSpanId ? { triggeringSpanId: liveBudgetSpanId } : {}),
+            currentUsage: liveBudgetUsage,
+            approvedLimit: liveBudgetTrigger.limit,
+            actualValue: liveBudgetTrigger.actual,
+          },
+        );
+      }
+      if (liveBudgetError) {
+        return pairAutomationResult(
+          readState(ctx.cwd),
+          'failed',
+          `Pair budget monitor failed closed: ${liveBudgetError instanceof Error ? liveBudgetError.message : String(liveBudgetError)}`,
+          steps + 1,
+          {
+            kind: 'observability_gap',
+            ...(liveBudgetSpanId ? { triggeringSpanId: liveBudgetSpanId } : {}),
+          },
+        );
+      }
       const observabilityGap = error instanceof ActivityObservabilityGapError;
       return pairAutomationResult(
         readState(ctx.cwd),

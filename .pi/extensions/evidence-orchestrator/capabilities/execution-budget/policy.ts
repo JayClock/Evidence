@@ -1,7 +1,10 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
-import type { ExecutionBudgetEnvelope } from '../../iteration/state';
+import type {
+  ExecutionBudgetEnvelope,
+  WorkflowState,
+} from '../../iteration/state';
 
 export type { ExecutionBudgetEnvelope } from '../../iteration/state';
 
@@ -284,6 +287,45 @@ export function executionBudgetEnvelopeSha256(
   envelope: ExecutionBudgetEnvelope,
 ): string {
   return digest(JSON.stringify(envelope));
+}
+
+export function assertPairExecutionBudgetLocked(
+  cwd: string,
+  state: Pick<
+    WorkflowState,
+    'approved_test_plan_path' | 'approved_test_plan_sha256' | 'pair_session'
+  >,
+): ExecutionBudgetEnvelope {
+  const planPath = state.approved_test_plan_path;
+  const approvedSha256 = state.approved_test_plan_sha256;
+  const envelope = state.pair_session?.execution_budget;
+  if (!planPath || !approvedSha256 || !envelope) {
+    throw new Error('Pair execution budget has no approved plan binding.');
+  }
+  const absolute = join(cwd, planPath);
+  if (!existsSync(absolute) || !statSync(absolute).isFile()) {
+    throw new Error(`Approved Pair plan is missing: ${planPath}.`);
+  }
+  const content = readFileSync(absolute);
+  if (digest(content) !== approvedSha256) {
+    throw new Error('Approved Pair plan drifted before budget evaluation.');
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content.toString('utf8')) as unknown;
+  } catch {
+    throw new Error('Approved Pair plan is not valid JSON.');
+  }
+  const approvedEnvelope =
+    typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as { execution_budget?: unknown }).execution_budget
+      : undefined;
+  if (JSON.stringify(approvedEnvelope) !== JSON.stringify(envelope)) {
+    throw new Error(
+      'Active Pair execution budget drifted from the Desk Check plan.',
+    );
+  }
+  return envelope;
 }
 
 export function executionBudgetEnvelopeMode(

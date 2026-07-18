@@ -1,13 +1,27 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { zeroActivityUsage } from '../activity-observability/activity-usage';
+import {
+  finishActivityTrace,
+  startActivityTrace,
+} from '../activity-observability/trace';
 import { DEFAULT_STATE } from '../../iteration/default-state';
 import type { WorkflowState } from '../../iteration/state';
-import { testExecutionBudgetEnvelope } from '../../test-support/support';
 import {
+  cleanupWorkspaces,
+  testExecutionBudgetEnvelope,
+  workspace,
+} from '../../test-support/support';
+import {
+  ExecutionBudgetObservabilityGapError,
   commandFailureFingerprint,
   driverFailureFingerprint,
+  evaluateExecutionBudget,
+  executionBudgetUsageFromTrace,
   pairProgressAdvanced,
   pairProgressMarker,
 } from './evaluator';
+
+afterEach(cleanupWorkspaces);
 
 function pairState(): WorkflowState {
   return {
@@ -144,6 +158,176 @@ describe('execution budget convergence evaluation', () => {
     expect(
       driverFailureFingerprint({ ...input, output: 'different output' }),
     ).not.toBe(driverFailureFingerprint(input));
+  });
+
+  it('derives wall time and Q/T/C from trace without double-counting Pair children', () => {
+    const cwd = workspace();
+    const nonPair = startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      activity: 'understand',
+      agent: 'requirements-analyst',
+      requestedModel: 'provider/model',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      task: 'Clarify one requirement.',
+      toolNames: ['read'],
+      startedAt: '2026-01-01T00:00:00.000Z',
+    });
+    finishActivityTrace(nonPair, {
+      status: 'completed',
+      completedAt: '2026-01-01T00:00:01.000Z',
+      durationMs: 1_000,
+      usage: {
+        ...zeroActivityUsage(null),
+        turns: 1,
+        input_tokens: 100,
+        output_tokens: 10,
+      },
+      toolCallCounts: {},
+    });
+    const parent = startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      activity: 'pair',
+      checkpoint: 'plan_confirmed',
+      storyId: 'US-001',
+      agent: 'pair-automation',
+      requestedModel: 'mixed',
+      thinking: 'off',
+      sessionMode: 'deterministic',
+      task: 'Automate Pair.',
+      toolNames: [],
+      startedAt: '2026-01-01T00:00:02.000Z',
+    });
+    const child = startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      parentSpanId: parent.spanId,
+      activity: 'pair',
+      checkpoint: 'plan_confirmed',
+      storyId: 'US-001',
+      taskId: 'TASK-001',
+      testId: 'TEST-001',
+      agent: 'test-driver',
+      requestedModel: 'provider/model',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      task: 'Write one test.',
+      toolNames: ['read', 'write'],
+      startedAt: '2026-01-01T00:00:02.000Z',
+    });
+    finishActivityTrace(child, {
+      status: 'completed',
+      completedAt: '2026-01-01T00:00:02.500Z',
+      durationMs: 500,
+      usage: {
+        ...zeroActivityUsage(0.25),
+        turns: 1,
+        input_tokens: 200,
+        output_tokens: 20,
+      },
+      toolCallCounts: {},
+    });
+    const controller = startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      parentSpanId: parent.spanId,
+      activity: 'pair',
+      checkpoint: 'test_written',
+      storyId: 'US-001',
+      taskId: 'TASK-001',
+      testId: 'TEST-001',
+      agent: 'pair-controller',
+      requestedModel: 'deterministic',
+      thinking: 'off',
+      sessionMode: 'deterministic',
+      task: 'Run Red.',
+      toolNames: [],
+      startedAt: '2026-01-01T00:00:02.500Z',
+    });
+    finishActivityTrace(controller, {
+      status: 'completed',
+      completedAt: '2026-01-01T00:00:03.000Z',
+      durationMs: 500,
+      usage: zeroActivityUsage(),
+      toolCallCounts: {},
+    });
+
+    const usage = executionBudgetUsageFromTrace(
+      cwd,
+      { iteration_id: 'ITER-0001' },
+      {
+        now: '2026-01-01T00:00:04.000Z',
+        allowedIncompleteSpanIds: [parent.spanId],
+      },
+    );
+
+    expect(usage).toEqual({
+      duration_ms: 3_000,
+      input_tokens: 300,
+      output_tokens: 30,
+      reported_cost_usd: null,
+      cost_status: 'unknown',
+      pair_agent_calls: 1,
+      pair_checkpoints: 2,
+    });
+    expect(() =>
+      executionBudgetUsageFromTrace(
+        cwd,
+        { iteration_id: 'ITER-0001' },
+        { now: '2026-01-01T00:00:04.000Z' },
+      ),
+    ).toThrow(ExecutionBudgetObservabilityGapError);
+  });
+
+  it('reports soft, hard, shadow, and unknown-cost budget states', () => {
+    const envelope = testExecutionBudgetEnvelope({
+      max_pair_agent_calls: 10,
+      max_no_progress_checkpoints: 3,
+      max_duration_ms: 10_000,
+      max_input_tokens: 1_000,
+      max_output_tokens: 500,
+      max_reported_cost_usd: 5,
+    });
+    const usage = {
+      duration_ms: 1_000,
+      input_tokens: 100,
+      output_tokens: 50,
+      reported_cost_usd: null,
+      cost_status: 'unknown' as const,
+      pair_agent_calls: 8,
+      pair_checkpoints: 10,
+    };
+
+    expect(evaluateExecutionBudget(envelope, usage)).toMatchObject({
+      level: 'soft',
+      cost_status: 'unknown',
+      hard: [],
+      soft: expect.arrayContaining([
+        expect.objectContaining({ metric: 'pair_agent_calls', actual: 8 }),
+      ]),
+    });
+    expect(
+      evaluateExecutionBudget(envelope, usage, { pairAgentCalls: 3 }),
+    ).toMatchObject({
+      level: 'hard',
+      hard: [
+        expect.objectContaining({
+          metric: 'pair_agent_calls',
+          actual: 11,
+          limit: 10,
+        }),
+      ],
+    });
+    expect(
+      evaluateExecutionBudget(testExecutionBudgetEnvelope(), usage)
+        .shadow_metrics,
+    ).toEqual(
+      expect.arrayContaining([
+        'duration_ms',
+        'input_tokens',
+        'output_tokens',
+        'reported_cost_usd',
+        'pair_agent_calls',
+      ]),
+    );
   });
 
   it('tracks accepted Red and permits rank reset only when milestones advance', () => {

@@ -1,4 +1,9 @@
 import { createHash } from 'node:crypto';
+import { zeroActivityUsage } from '../../capabilities/activity-observability/activity-usage';
+import {
+  finishActivityTrace,
+  startActivityTrace,
+} from '../../capabilities/activity-observability/trace';
 import {
   decideKnowledgeResponse,
   proposeKnowledgeResponse,
@@ -1749,6 +1754,58 @@ describe('AI-driven Pair with Story-level human approval', () => {
         'apps/desktop/src/feature.rs',
       ]),
     );
+  });
+
+  it('blocks coding approval and Showcase when the trace exceeds a hard budget', () => {
+    const cwd = workspace();
+    preparePair(cwd);
+    completePairSuccessfully(cwd);
+    updateExecutionBudget(cwd, { max_input_tokens: 1 });
+    const span = startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      activity: 'pair',
+      checkpoint: 'quality_gates_passed',
+      storyId: 'US-001',
+      agent: 'test-driver',
+      requestedModel: 'provider/model',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      task: 'Recorded model usage.',
+      toolNames: ['read'],
+      startedAt: '2026-01-01T00:00:00.000Z',
+    });
+    finishActivityTrace(span, {
+      status: 'completed',
+      completedAt: '2026-01-01T00:00:01.000Z',
+      durationMs: 1_000,
+      usage: {
+        ...zeroActivityUsage(0.01),
+        turns: 1,
+        input_tokens: 2,
+        output_tokens: 1,
+      },
+      toolCallCounts: {},
+    });
+
+    expect(() =>
+      decideDeliveryIncrement(
+        cwd,
+        'showcase',
+        'Approve the complete coding increment.',
+      ),
+    ).toThrow('hard execution budget');
+    expect(readState(cwd)).toMatchObject({
+      loop: 'pair',
+      pair_session: {
+        checkpoint: 'quality_gates_passed',
+        automation_exception: {
+          kind: 'budget_hard_limit',
+          approved_limit: 1,
+          actual_value: 2,
+        },
+      },
+    });
+    expect(readState(cwd).completed_work_items).toBeUndefined();
   });
 
   it('records one human coding decision before entering Showcase', () => {

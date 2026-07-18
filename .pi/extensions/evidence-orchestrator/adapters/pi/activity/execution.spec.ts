@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { zeroActivityUsage } from '../../../capabilities/activity-observability/activity-usage';
 import {
   activityTracePath,
+  finishActivityTrace,
   readActivityTrace,
+  startActivityTrace,
   validateActivityTrace,
 } from '../../../capabilities/activity-observability/trace';
 import { DEFAULT_STATE } from '../../../iteration/default-state';
@@ -25,7 +27,21 @@ import {
 import type { PreparedActivityRun } from './dispatch';
 import { executePreparedActivityRun } from './execution';
 
-const runner = vi.hoisted(() => ({ runActivityAgent: vi.fn() }));
+const budgetLock = vi.hoisted(() => ({
+  assertPairExecutionBudgetLocked: vi.fn(),
+}));
+const runner = vi.hoisted(() => {
+  class MockActivityAgentAbortedError extends Error {
+    constructor(readonly result: Record<string, unknown>) {
+      super('Activity aborted.');
+      this.name = 'ActivityAgentAbortedError';
+    }
+  }
+  return {
+    runActivityAgent: vi.fn(),
+    ActivityAgentAbortedError: MockActivityAgentAbortedError,
+  };
+});
 const pairing = vi.hoisted(() => ({
   pairDriverMode: vi.fn<(state: WorkflowState) => PairDriverMode | undefined>(
     () => undefined,
@@ -52,12 +68,20 @@ const pairing = vi.hoisted(() => ({
   })),
   recordPairCommandFailure: vi.fn(() => ({
     state: {},
-    record: { fingerprint: 'f'.repeat(64), retry_count: 0 },
+    record: {
+      fingerprint: 'f'.repeat(64),
+      occurrence_count: 1,
+      retry_count: 0,
+    },
     repeated: false,
   })),
   recordPairDriverFailure: vi.fn(() => ({
     state: {},
-    record: { fingerprint: 'f'.repeat(64), retry_count: 0 },
+    record: {
+      fingerprint: 'f'.repeat(64),
+      occurrence_count: 1,
+      retry_count: 0,
+    },
     repeated: false,
   })),
   reviewPairRed:
@@ -80,7 +104,17 @@ const showcase = vi.hoisted(() => ({
   showcaseNextInstruction: vi.fn(() => '/evidence-run'),
 }));
 
+vi.mock(
+  '../../../capabilities/execution-budget/policy',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('../../../capabilities/execution-budget/policy')
+    >()),
+    assertPairExecutionBudgetLocked: budgetLock.assertPairExecutionBudgetLocked,
+  }),
+);
 vi.mock('../../node/activity-agent-process', () => ({
+  ActivityAgentAbortedError: runner.ActivityAgentAbortedError,
   runActivityAgent: runner.runActivityAgent,
   loadActivityAgent: (_cwd: string, name: string) => ({
     name,
@@ -104,12 +138,68 @@ function preparation(): PreparedActivityRun {
   };
 }
 
+function automatedPairState(
+  budget: Parameters<typeof testExecutionBudgetEnvelope>[0] = {},
+): WorkflowState {
+  return {
+    ...DEFAULT_STATE,
+    loop: 'pair',
+    tasking_stage: 'approved',
+    pair_session: {
+      version: 2,
+      story_id: 'US-001',
+      scenario_ids: ['SC-001'],
+      git_baseline: 'baseline',
+      checkpoint: 'plan_confirmed',
+      task_id: 'TASK-001',
+      test_id: 'TEST-001',
+      process_id: 'process',
+      step_id: 'step',
+      completed_task_ids: [],
+      completed_test_ids: [],
+      completed_step_ids: [],
+      test_paths: [],
+      production_paths: [],
+      expected_red: 'The behavior is absent.',
+      accepted_reds: [],
+      execution_budget: testExecutionBudgetEnvelope(budget),
+      quality_gate_index: 0,
+      feedback: [],
+      driver_history: [],
+    },
+  };
+}
+
 afterEach(() => {
   cleanupWorkspaces();
   vi.clearAllMocks();
   vi.restoreAllMocks();
   pairing.pairDriverMode.mockReturnValue(undefined);
   pairing.pairDeterministicAction.mockReturnValue(undefined);
+  pairing.recordPairCheckpointProgress.mockReturnValue({
+    state: {},
+    window: { no_progress_checkpoints: 0 },
+    advanced: true,
+    limitReached: false,
+  });
+  pairing.recordPairCommandFailure.mockReturnValue({
+    state: {},
+    record: {
+      fingerprint: 'f'.repeat(64),
+      occurrence_count: 1,
+      retry_count: 0,
+    },
+    repeated: false,
+  });
+  pairing.recordPairDriverFailure.mockReturnValue({
+    state: {},
+    record: {
+      fingerprint: 'f'.repeat(64),
+      occurrence_count: 1,
+      retry_count: 0,
+    },
+    repeated: false,
+  });
 });
 
 describe('activity execution', () => {
@@ -525,6 +615,319 @@ describe('activity execution', () => {
     });
   });
 
+  it('stops before a new Agent at the trace-derived soft budget', async () => {
+    const cwd = workspace();
+    let current = automatedPairState({ max_duration_ms: 100 });
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next;
+      return current;
+    });
+    pairing.pairDriverMode.mockReturnValue('test');
+    let currentMs = Date.parse('2026-01-01T00:00:00.000Z');
+    const now = () => {
+      currentMs += 40;
+      return new Date(currentMs).toISOString();
+    };
+
+    const result = await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        agentName: 'test-driver',
+        task: 'Start automated Pair.',
+      },
+      { invocation: '/evidence-run', now },
+    );
+
+    expect(result.status).toBe('failed');
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'budget_soft_limit',
+        currentUsage: expect.objectContaining({ duration_ms: 80 }),
+        approvedLimit: 100,
+        actualValue: 80,
+      }),
+    );
+  });
+
+  it('finishes one deterministic safe boundary after crossing the soft budget', async () => {
+    const cwd = workspace();
+    const prior = startActivityTrace(cwd, {
+      iterationId: 'ITER-0001',
+      activity: 'understand',
+      agent: 'requirements-analyst',
+      requestedModel: 'provider/model',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      task: 'Clarify one requirement.',
+      toolNames: ['read'],
+      startedAt: '2026-01-01T00:00:00.000Z',
+    });
+    finishActivityTrace(prior, {
+      status: 'completed',
+      completedAt: '2026-01-01T00:00:01.000Z',
+      durationMs: 1_000,
+      usage: {
+        ...zeroActivityUsage(0.01),
+        turns: 1,
+        input_tokens: 80,
+        output_tokens: 1,
+      },
+      toolCallCounts: {},
+    });
+    const initial = automatedPairState({ max_input_tokens: 100 });
+    if (!initial.pair_session) throw new Error('Expected Pair session.');
+    let current: WorkflowState = {
+      ...initial,
+      pair_session: { ...initial.pair_session, checkpoint: 'test_written' },
+    };
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next;
+      return current;
+    });
+    pairing.pairDeterministicAction.mockImplementation((_cwd, state) =>
+      state.pair_session?.checkpoint === 'test_written' ? 'run_red' : undefined,
+    );
+    pairing.executePairAction.mockImplementation(() => {
+      const session = current.pair_session;
+      if (!session) throw new Error('Expected Pair session.');
+      const red = {
+        process_id: 'process',
+        step_id: 'step',
+        task_id: 'TASK-001',
+        test_id: 'TEST-001',
+        stage: 'red' as const,
+        command: 'pnpm test',
+        sequence: 1,
+        exit_code: 1,
+        termination: { kind: 'exit' as const, exit_code: 1 },
+        expected_failure: true,
+      };
+      current = {
+        ...current,
+        pair_session: {
+          ...session,
+          checkpoint: 'red_observed',
+          red_observation: red,
+          last_observation: red,
+        },
+      };
+      return {
+        state: current,
+        output: 'Observed Red.',
+        record: { sequence: 1 },
+      };
+    });
+
+    await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        pairAction: 'run_red',
+        task: 'Finish the deterministic Red boundary.',
+      },
+      {
+        invocation: '/evidence-run',
+        now: () => '2026-01-01T00:00:02.000Z',
+      },
+    );
+
+    expect(pairing.executePairAction).toHaveBeenCalledOnce();
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'budget_soft_limit',
+        currentUsage: expect.objectContaining({ input_tokens: 80 }),
+      }),
+    );
+  });
+
+  it('stops immediately when a trace-derived hard budget is exceeded', async () => {
+    const cwd = workspace();
+    let current = automatedPairState({ max_duration_ms: 1 });
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next;
+      return current;
+    });
+    pairing.pairDriverMode.mockReturnValue('test');
+    let currentMs = Date.parse('2026-01-01T00:00:00.000Z');
+    const now = () => {
+      currentMs += 10;
+      return new Date(currentMs).toISOString();
+    };
+
+    await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        agentName: 'test-driver',
+        task: 'Start automated Pair.',
+      },
+      { invocation: '/evidence-run', now },
+    );
+
+    expect(runner.runActivityAgent).not.toHaveBeenCalled();
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'budget_hard_limit',
+        currentUsage: expect.objectContaining({ duration_ms: 20 }),
+        approvedLimit: 1,
+        actualValue: 20,
+      }),
+    );
+  });
+
+  it('aborts an in-flight Driver and restores it when token hard budget is crossed', async () => {
+    const cwd = workspace();
+    let current = automatedPairState({ max_input_tokens: 10 });
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next;
+      return current;
+    });
+    pairing.pairDriverMode.mockReturnValue('test');
+    pairing.failPairDriver.mockImplementation(() => ({
+      state: current,
+      blocked: true,
+      changedPaths: ['apps/web/tests/example.test.ts'],
+      diff: '(restored)',
+      output: 'Hard-budget Driver changes restored.',
+    }));
+    runner.runActivityAgent.mockImplementation(async (options) => {
+      const progress = {
+        agent: 'test-driver',
+        model: 'openai/test',
+        requestedModel: 'openai/test',
+        actualModel: 'openai/test',
+        thinking: 'medium' as const,
+        sessionMode: 'ephemeral' as const,
+        toolNames: ['read', 'write'],
+        output: '(running...)',
+        messages: [],
+        exitCode: -1 as const,
+        stderr: '',
+        usage: {
+          ...zeroActivityUsage(0.01),
+          turns: 1,
+          input_tokens: 11,
+          output_tokens: 1,
+        },
+        startedAt: '2026-01-01T00:00:00.000Z',
+        completedAt: '2026-01-01T00:00:01.000Z',
+        durationMs: 1_000,
+        toolCallCounts: {},
+      };
+      options.onUpdate?.(progress);
+      expect(options.signal?.aborted).toBe(true);
+      throw new runner.ActivityAgentAbortedError({
+        ...progress,
+        exitCode: 1,
+        stopReason: 'aborted',
+        errorMessage: 'Hard budget abort.',
+      });
+    });
+
+    await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        agentName: 'test-driver',
+        task: 'Start automated Pair.',
+      },
+      { invocation: '/evidence-run' },
+    );
+
+    expect(pairing.failPairDriver).toHaveBeenCalledOnce();
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'budget_hard_limit',
+        triggeringSpanId: 'ACT-000002',
+        currentUsage: expect.objectContaining({ input_tokens: 11 }),
+        approvedLimit: 10,
+        actualValue: 11,
+      }),
+    );
+  });
+
+  it('stops when the persisted Driver fingerprint reaches its retry limit', async () => {
+    const cwd = workspace();
+    let current = automatedPairState();
+    vi.spyOn(stateRepository, 'readState').mockImplementation(() => current);
+    vi.spyOn(stateRepository, 'writeState').mockImplementation((_cwd, next) => {
+      current = next;
+      return current;
+    });
+    pairing.pairDriverMode.mockReturnValue('test');
+    pairing.failPairDriver.mockImplementation(() => ({
+      state: current,
+      blocked: true,
+      changedPaths: [],
+      diff: '(restored)',
+      output: 'Driver made no valid change.',
+    }));
+    pairing.recordPairDriverFailure.mockReturnValue({
+      state: current,
+      record: {
+        fingerprint: 'a'.repeat(64),
+        occurrence_count: 3,
+        retry_count: 2,
+      },
+      repeated: true,
+    });
+    runner.runActivityAgent.mockResolvedValue({
+      agent: 'test-driver',
+      model: 'openai/test',
+      requestedModel: 'openai/test',
+      actualModel: 'openai/test',
+      thinking: 'medium',
+      sessionMode: 'ephemeral',
+      toolNames: ['read', 'write'],
+      output: 'Driver failed.',
+      messages: [],
+      exitCode: 1,
+      stderr: 'same failure',
+      usage: zeroActivityUsage(0.01),
+      stopReason: 'error',
+      startedAt: '2026-01-01T00:00:00.000Z',
+      completedAt: '2026-01-01T00:00:01.000Z',
+      durationMs: 1_000,
+      toolCallCounts: {},
+    });
+
+    await executePreparedActivityRun(
+      { cwd, ui: { setStatus: vi.fn() } },
+      {
+        state: current,
+        activity: 'pair',
+        agentName: 'test-driver',
+        task: 'Start automated Pair.',
+      },
+      { invocation: '/evidence-run' },
+    );
+
+    expect(pairing.recordPairAutomationException).toHaveBeenCalledWith(
+      cwd,
+      expect.objectContaining({
+        kind: 'repeated_failure',
+        failureFingerprint: 'a'.repeat(64),
+        retryCount: 2,
+        approvedLimit: 2,
+      }),
+    );
+  });
+
   it('stops Pair immediately with a typed activity timeout exception', async () => {
     const cwd = workspace();
     let current = {
@@ -608,6 +1011,12 @@ describe('activity execution', () => {
         triggeringSpanId: 'ACT-000002',
       }),
     );
+    expect(
+      readActivityTrace(activityTracePath(cwd, 'ITER-0001')).find(
+        ({ span_id, event }) =>
+          span_id === 'ACT-000002' && event === 'activity_finished',
+      ),
+    ).toMatchObject({ status: 'timeout', stop_reason: 'timeout' });
   });
 
   it('stops Pair with a typed command timeout before Red review', async () => {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   cleanupWorkspaces,
@@ -7,6 +8,7 @@ import {
 import {
   EXECUTION_BUDGET_POLICY_PATH,
   assertExecutionBudgetEnvelopeActivated,
+  assertPairExecutionBudgetLocked,
   createExecutionBudgetEnvelope,
   executionBudgetEnvelopeMode,
   parseExecutionBudgetPolicy,
@@ -112,6 +114,45 @@ describe('execution budget policy', () => {
     expect(() => assertExecutionBudgetEnvelopeActivated(envelope)).toThrow(
       'shadow-only',
     );
+  });
+
+  it('rejects an active state envelope that drifts from the approved plan', () => {
+    const cwd = workspace();
+    const envelope = createExecutionBudgetEnvelope(
+      {
+        path: EXECUTION_BUDGET_POLICY_PATH,
+        sha256: 'a'.repeat(64),
+        policy: validPolicy(),
+      },
+      {
+        testCount: 1,
+        selectedProcessStepCount: 1,
+        approvedAt: '2026-01-01T00:00:00.000Z',
+      },
+    );
+    const planPath =
+      'artifacts/iterations/ITER-0001/04-planning/test-plan.json';
+    const content = JSON.stringify({ execution_budget: envelope });
+    write(cwd, planPath, content);
+    const state = {
+      approved_test_plan_path: planPath,
+      approved_test_plan_sha256: createHash('sha256')
+        .update(content)
+        .digest('hex'),
+      pair_session: { execution_budget: envelope },
+    };
+
+    expect(assertPairExecutionBudgetLocked(cwd, state as never)).toEqual(
+      envelope,
+    );
+    expect(() =>
+      assertPairExecutionBudgetLocked(cwd, {
+        ...state,
+        pair_session: {
+          execution_budget: { ...envelope, activity_timeout_ms: 999_999 },
+        },
+      } as never),
+    ).toThrow('drifted from the Desk Check plan');
   });
 
   it('derives an enforced agent-call ceiling only from an approved ratio', () => {
