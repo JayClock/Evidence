@@ -1,0 +1,15 @@
+{
+  "max_active_stories": 3,
+  "lanes": {
+    "discovery": 2,
+    "planning": 2,
+    "ready": 3,
+    "delivery": 1,
+    "review": 2
+  },
+  "resources": {
+    "pair_runner": 1,
+    "activity_per_story": 1
+  },
+  "lease_timeout_ms": 900000
+}

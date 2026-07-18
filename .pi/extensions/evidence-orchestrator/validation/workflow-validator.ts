@@ -14,6 +14,7 @@ import { validateInboxStoryCandidates } from '../capabilities/inbox/story-candid
 import { iterationRoot } from '../iteration/artifact-layout';
 import { boardPath, readBoard } from '../iteration/board-repository';
 import { validateBoardWorktrees } from '../capabilities/work-item-worktree/provisioner';
+import { readFlowPolicy } from '../capabilities/flow-control/policy';
 import {
   validateCanonicalKnowledge,
   validateKnowledgePromotion,
@@ -33,6 +34,7 @@ export function validateWorkflow(cwd: string): void {
   validateSourceBoundaries(join(cwd, '.pi/extensions/evidence-orchestrator'));
   validateInboxRepository(cwd);
   validateInboxStoryCandidates(cwd);
+  readFlowPolicy(cwd);
   if (existsSync(join(cwd, '.git')) && existsSync(boardPath(cwd))) {
     readBoard(cwd);
     validateBoardWorktrees(cwd);

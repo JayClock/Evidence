@@ -8,6 +8,11 @@ import {
 } from '../../iteration/board-repository';
 import type { BoardItem } from '../../iteration/board-state';
 import {
+  assertCanProvision,
+  validateFlowBoard,
+} from '../flow-control/admission';
+import { readFlowPolicy } from '../flow-control/policy';
+import {
   createStoryWorktree,
   currentHead,
   storyBranchName,
@@ -87,7 +92,9 @@ export function provisionWorkItem(
 ): ProvisionedWorkItem {
   const selected = candidateId(selectedCandidateId);
   const baseSha = currentHead(primaryRoot);
+  const flowPolicy = readFlowPolicy(primaryRoot);
   const reservation = mutateBoard(primaryRoot, (draft) => {
+    assertCanProvision(draft, flowPolicy.policy);
     const iterationId = allocateIterationId(draft);
     const item = boardItem(primaryRoot, iterationId, selected, baseSha, now);
     draft.items.push(item);
@@ -128,6 +135,7 @@ function branchName(worktreePath: string): string {
 
 /** Validate active Board pointers without interpreting Story workflow state. */
 export function validateBoardWorktrees(primaryRoot: string): void {
+  validateFlowBoard(primaryRoot);
   for (const item of readBoard(primaryRoot).items) {
     if (item.lifecycle === 'provisioning') {
       throw new Error(

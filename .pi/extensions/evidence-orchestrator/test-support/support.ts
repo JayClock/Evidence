@@ -7,6 +7,22 @@ import type {
   IterationIntakeSnapshot,
 } from '../iteration/state';
 
+export const TEST_FLOW_POLICY = {
+  max_active_stories: 3,
+  lanes: {
+    discovery: 2,
+    planning: 2,
+    ready: 3,
+    delivery: 1,
+    review: 2,
+  },
+  resources: {
+    pair_runner: 1,
+    activity_per_story: 1,
+  },
+  lease_timeout_ms: 900_000,
+} as const;
+
 export const TEST_EXECUTION_BUDGET_POLICY = {
   version: 1,
   activity: { timeout_ms: 900_000 },
@@ -65,6 +81,7 @@ export function workspace(): string {
   const cwd = mkdtempSync(join(tmpdir(), 'evidence-orchestrator-unit-'));
   workspaces.push(cwd);
   writeTestExecutionBudgetPolicy(cwd);
+  writeTestFlowPolicy(cwd);
   return cwd;
 }
 
@@ -92,6 +109,14 @@ export function testExecutionBudgetEnvelope(
   };
 }
 
+export function writeTestFlowPolicy(cwd: string): void {
+  write(
+    cwd,
+    'engineering/evidence-orchestrator/flow-policy.json',
+    `${JSON.stringify(TEST_FLOW_POLICY, null, 2)}\n`,
+  );
+}
+
 export function writeTestExecutionBudgetPolicy(cwd: string): void {
   write(
     cwd,
@@ -117,8 +142,18 @@ export function writeIterationArtifact(
 export function initializeGitRepository(cwd: string): void {
   write(cwd, '.gitignore', 'node_modules\n');
   writeTestExecutionBudgetPolicy(cwd);
+  writeTestFlowPolicy(cwd);
   execFileSync('git', ['init', '--quiet'], { cwd });
-  execFileSync('git', ['add', '.gitignore'], { cwd });
+  execFileSync(
+    'git',
+    [
+      'add',
+      '.gitignore',
+      'engineering/evidence-orchestrator/execution-budget.json',
+      'engineering/evidence-orchestrator/flow-policy.json',
+    ],
+    { cwd },
+  );
   execFileSync(
     'git',
     [
