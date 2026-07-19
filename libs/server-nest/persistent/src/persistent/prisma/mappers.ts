@@ -28,10 +28,10 @@ import type {
 } from '@prisma/client';
 import { PrismaDiagramEdges } from './diagram-edges';
 import { PrismaDiagramNodes } from './diagram-nodes';
+import { FileWorkspaceDiagram } from '../filesystem/workspace-diagram';
 import { evidenceRootFromMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
 import { PrismaUserWorkspaces } from './user-workspaces';
-import { PrismaWorkspaceDiagram } from './workspace-diagrams';
 import { PrismaWorkspaceLogicalEntities } from './workspace-logical-entities';
 import { PrismaWorkspaceLogicalRelationships } from './workspace-logical-relationships';
 import { PrismaWorkspaceMembers } from './workspace-members';
@@ -64,11 +64,7 @@ export function assembleWorkspace(
       updatedAt: toIso(row.updatedAt),
     },
     new PrismaWorkspaceMembers(store, row.id),
-    new PrismaWorkspaceDiagram(
-      store,
-      row.id,
-      evidenceRootFromMetadata(metadata),
-    ),
+    new FileWorkspaceDiagram(row.id, evidenceRootFromMetadata(metadata)),
     new PrismaWorkspaceLogicalEntities(store, row.id),
     new PrismaWorkspaceLogicalRelationships(store, row.id),
   );

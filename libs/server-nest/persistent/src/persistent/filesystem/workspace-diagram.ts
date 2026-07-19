@@ -5,18 +5,16 @@ import {
   Ref,
   WorkspaceDiagram,
 } from '@evidence/server-nest-domain';
-import { PrismaDiagramEdges } from './diagram-edges';
-import { PrismaDiagramNodes } from './diagram-nodes';
-import type { PrismaStore } from './types';
+import { FileDiagramEdges } from './diagram-edges';
+import { FileDiagramNodes } from './diagram-nodes';
 
 const PROJECTED_DIAGRAM_ID = 'model';
 const PROJECTED_DIAGRAM_TITLE = 'Model';
 
-export class PrismaWorkspaceDiagram implements WorkspaceDiagram {
+export class FileWorkspaceDiagram implements WorkspaceDiagram {
   constructor(
-    private readonly store: PrismaStore,
     private readonly workspaceId: string,
-    private readonly evidenceRoot = '.evidence',
+    private readonly evidenceRoot: string,
   ) {}
 
   async get(): Promise<Diagram> {
@@ -30,8 +28,8 @@ export class PrismaWorkspaceDiagram implements WorkspaceDiagram {
         createdAt: timestamp,
         updatedAt: timestamp,
       },
-      new PrismaDiagramNodes(this.store, PROJECTED_DIAGRAM_ID),
-      new PrismaDiagramEdges(this.store, PROJECTED_DIAGRAM_ID),
+      new FileDiagramNodes(PROJECTED_DIAGRAM_ID, this.evidenceRoot),
+      new FileDiagramEdges(PROJECTED_DIAGRAM_ID, this.evidenceRoot),
     );
   }
 }
