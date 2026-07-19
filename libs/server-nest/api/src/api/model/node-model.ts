@@ -34,11 +34,10 @@ export function nodeModel(
 ): NodeModel {
   const nodeId = node.identity();
   const description = node.description();
-  const diagramId = description.diagram.id();
   const links: Record<string, Link> = {
-    self: link(workspaceDiagramNodeHref(workspaceId, diagramId, nodeId)),
-    collection: link(workspaceDiagramNodesHref(workspaceId, diagramId)),
-    diagram: link(workspaceDiagramHref(workspaceId, diagramId)),
+    self: link(workspaceDiagramNodeHref(workspaceId, nodeId)),
+    collection: link(workspaceDiagramNodesHref(workspaceId)),
+    diagram: link(workspaceDiagramHref(workspaceId)),
   };
   if (description.logicalEntity) {
     links['logical-entity'] = link(

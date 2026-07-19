@@ -31,12 +31,11 @@ export interface EdgeModel {
 export function edgeModel(workspaceId: string, edge: DiagramEdge): EdgeModel {
   const edgeId = edge.identity();
   const description = edge.description();
-  const diagramId = description.diagram.id();
   return {
     _links: {
-      self: link(workspaceDiagramEdgeHref(workspaceId, diagramId, edgeId)),
-      collection: link(workspaceDiagramEdgesHref(workspaceId, diagramId)),
-      diagram: link(workspaceDiagramHref(workspaceId, diagramId)),
+      self: link(workspaceDiagramEdgeHref(workspaceId, edgeId)),
+      collection: link(workspaceDiagramEdgesHref(workspaceId)),
+      diagram: link(workspaceDiagramHref(workspaceId)),
     },
     id: edgeId,
     source: description.source,

@@ -102,7 +102,7 @@ class LogicalRelationshipsApiModule {}
         module: WorkspacesApiModule,
         children: [
           {
-            path: 'diagrams',
+            path: 'diagram',
             module: DiagramsApiModule,
           },
           {

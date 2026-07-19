@@ -4,7 +4,7 @@ import {
   Link,
   userHref,
   userWorkspacesHref,
-  workspaceDiagramsHref,
+  workspaceDiagramHref,
   workspaceHref,
   workspaceLogicalEntitiesHref,
   workspaceLogicalRelationshipsHref,
@@ -33,7 +33,7 @@ export function workspaceModel(
       self: link(workspaceHref(userId, workspaceId)),
       user: link(userHref(userId)),
       members: link(workspaceMembersHref(userId, workspaceId)),
-      diagrams: link(workspaceDiagramsHref(workspaceId)),
+      diagram: link(workspaceDiagramHref(workspaceId)),
       'logical-entities': link(workspaceLogicalEntitiesHref(workspaceId)),
       'logical-relationships': link(
         workspaceLogicalRelationshipsHref(workspaceId),

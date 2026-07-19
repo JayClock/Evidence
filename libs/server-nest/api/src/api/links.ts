@@ -45,8 +45,8 @@ export function workspaceMembersHref(
   return `${workspaceHref(userId, workspaceId)}/members`;
 }
 
-export function workspaceDiagramsHref(workspaceId: string): string {
-  return `/api/workspaces/${workspaceId}/diagrams`;
+export function workspaceDiagramHref(workspaceId: string): string {
+  return `/api/workspaces/${workspaceId}/diagram`;
 }
 
 export function workspaceLogicalEntitiesHref(workspaceId: string): string {
@@ -57,48 +57,30 @@ export function workspaceLogicalRelationshipsHref(workspaceId: string): string {
   return `/api/workspaces/${workspaceId}/logical-relationships`;
 }
 
-export function workspaceDiagramHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramsHref(workspaceId)}/${diagramId}`;
-}
-
-export function workspaceDiagramNodesHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramHref(workspaceId, diagramId)}/nodes`;
+export function workspaceDiagramNodesHref(workspaceId: string): string {
+  return `${workspaceDiagramHref(workspaceId)}/nodes`;
 }
 
 export function workspaceDiagramNodeHref(
   workspaceId: string,
-  diagramId: string,
   nodeId: string,
 ): string {
-  return `${workspaceDiagramNodesHref(workspaceId, diagramId)}/${nodeId}`;
+  return `${workspaceDiagramNodesHref(workspaceId)}/${nodeId}`;
 }
 
-export function workspaceDiagramEdgesHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramHref(workspaceId, diagramId)}/edges`;
+export function workspaceDiagramEdgesHref(workspaceId: string): string {
+  return `${workspaceDiagramHref(workspaceId)}/edges`;
 }
 
 export function workspaceDiagramEdgeHref(
   workspaceId: string,
-  diagramId: string,
   edgeId: string,
 ): string {
-  return `${workspaceDiagramEdgesHref(workspaceId, diagramId)}/${edgeId}`;
+  return `${workspaceDiagramEdgesHref(workspaceId)}/${edgeId}`;
 }
 
-export function workspaceDiagramProposeModelHref(
-  workspaceId: string,
-  diagramId: string,
-): string {
-  return `${workspaceDiagramHref(workspaceId, diagramId)}/propose-model`;
+export function workspaceDiagramProposeModelHref(workspaceId: string): string {
+  return `${workspaceDiagramHref(workspaceId)}/propose-model`;
 }
 
 export function workspaceLogicalEntityHref(

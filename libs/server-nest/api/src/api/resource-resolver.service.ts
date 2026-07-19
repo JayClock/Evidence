@@ -59,25 +59,18 @@ export class ResourceResolver {
 
   async requireWorkspaceDiagram(
     workspaceId: string,
-    diagramId: string,
   ): Promise<[Workspace, Diagram]> {
     const workspace = await this.requireWorkspace(workspaceId);
-    const diagram = await workspace.diagrams().findByIdentity(diagramId);
-    if (!diagram) {
-      throw DomainError.notFound(`diagram ${diagramId} not found`);
-    }
+    const diagram = await workspace.diagram().get();
     return [workspace, diagram];
   }
 
   async requireDiagramNode(
     workspaceId: string,
-    diagramId: string,
     nodeId: string,
   ): Promise<[Workspace, Diagram, DiagramNode]> {
-    const [workspace, diagram] = await this.requireWorkspaceDiagram(
-      workspaceId,
-      diagramId,
-    );
+    const [workspace, diagram] =
+      await this.requireWorkspaceDiagram(workspaceId);
     const node = await diagram.nodes().findByIdentity(nodeId);
     if (!node) {
       throw DomainError.notFound(`diagram node ${nodeId} not found`);
@@ -87,13 +80,10 @@ export class ResourceResolver {
 
   async requireDiagramEdge(
     workspaceId: string,
-    diagramId: string,
     edgeId: string,
   ): Promise<[Workspace, Diagram, DiagramEdge]> {
-    const [workspace, diagram] = await this.requireWorkspaceDiagram(
-      workspaceId,
-      diagramId,
-    );
+    const [workspace, diagram] =
+      await this.requireWorkspaceDiagram(workspaceId);
     const edge = await diagram.edges().findByIdentity(edgeId);
     if (!edge) {
       throw DomainError.notFound(`diagram edge ${edgeId} not found`);

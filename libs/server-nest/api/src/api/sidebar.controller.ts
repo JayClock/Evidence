@@ -5,7 +5,7 @@ import {
   userHref,
   userSidebarHref,
   userWorkspacesHref,
-  workspaceDiagramsHref,
+  workspaceDiagramHref,
   workspaceLogicalEntitiesHref,
 } from './links';
 import { ResourceResolver } from './resource-resolver.service';
@@ -62,11 +62,11 @@ export function sidebarResource(
 
   if (workspaceId) {
     items.push({
-      key: 'diagrams',
-      label: 'Diagrams',
+      key: 'diagram',
+      label: 'Diagram',
       type: 'resource',
-      href: workspaceDiagramsHref(workspaceId),
-      path: workspaceDiagramsHref(workspaceId),
+      href: workspaceDiagramHref(workspaceId),
+      path: workspaceDiagramHref(workspaceId),
       icon: 'network',
     });
     items.push({

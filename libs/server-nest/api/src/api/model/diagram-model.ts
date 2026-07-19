@@ -6,7 +6,6 @@ import {
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
   workspaceDiagramProposeModelHref,
-  workspaceDiagramsHref,
 } from '../links';
 
 export interface DiagramModel {
@@ -25,17 +24,14 @@ export function diagramModel(diagram: Diagram): DiagramModel {
   const workspaceId = description.workspace.id();
   return {
     _links: {
-      self: link(workspaceDiagramHref(workspaceId, diagramId)),
+      self: link(workspaceDiagramHref(workspaceId)),
       workspace: link(`/api/workspaces/${workspaceId}`),
-      collection: link(workspaceDiagramsHref(workspaceId)),
-      nodes: link(workspaceDiagramNodesHref(workspaceId, diagramId)),
-      edges: link(workspaceDiagramEdgesHref(workspaceId, diagramId)),
-      'propose-model': link(
-        workspaceDiagramProposeModelHref(workspaceId, diagramId),
-      ),
+      nodes: link(workspaceDiagramNodesHref(workspaceId)),
+      edges: link(workspaceDiagramEdgesHref(workspaceId)),
+      'propose-model': link(workspaceDiagramProposeModelHref(workspaceId)),
     },
     _templates: {
-      'propose-model': proposeModelTemplate(workspaceId, diagramId),
+      'propose-model': proposeModelTemplate(workspaceId),
     },
     id: diagramId,
     title: description.title,
@@ -45,11 +41,11 @@ export function diagramModel(diagram: Diagram): DiagramModel {
   };
 }
 
-function proposeModelTemplate(workspaceId: string, diagramId: string): unknown {
+function proposeModelTemplate(workspaceId: string): unknown {
   return {
     title: 'Propose diagram model',
     method: 'POST',
-    target: workspaceDiagramProposeModelHref(workspaceId, diagramId),
+    target: workspaceDiagramProposeModelHref(workspaceId),
     contentType: 'application/json',
     properties: [
       {
