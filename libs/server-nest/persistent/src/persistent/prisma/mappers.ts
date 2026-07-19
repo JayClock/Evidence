@@ -29,11 +29,11 @@ import type {
 import { PrismaDiagramEdges } from './diagram-edges';
 import { PrismaDiagramNodes } from './diagram-nodes';
 import { FileWorkspaceDiagram } from '../filesystem/workspace-diagram';
+import { FileWorkspaceLogicalEntities } from '../filesystem/workspace-logical-entities';
+import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logical-relationships';
 import { evidenceRootFromMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
 import { PrismaUserWorkspaces } from './user-workspaces';
-import { PrismaWorkspaceLogicalEntities } from './workspace-logical-entities';
-import { PrismaWorkspaceLogicalRelationships } from './workspace-logical-relationships';
 import { PrismaWorkspaceMembers } from './workspace-members';
 
 export function toIso(value: Date): string {
@@ -53,6 +53,7 @@ export function assembleWorkspace(
   row: WorkspaceRow,
 ): Workspace {
   const metadata = stringRecord(row.metadata);
+  const evidenceRoot = evidenceRootFromMetadata(metadata);
   return new Workspace(
     row.id,
     {
@@ -64,9 +65,9 @@ export function assembleWorkspace(
       updatedAt: toIso(row.updatedAt),
     },
     new PrismaWorkspaceMembers(store, row.id),
-    new FileWorkspaceDiagram(row.id, evidenceRootFromMetadata(metadata)),
-    new PrismaWorkspaceLogicalEntities(store, row.id),
-    new PrismaWorkspaceLogicalRelationships(store, row.id),
+    new FileWorkspaceDiagram(row.id, evidenceRoot),
+    new FileWorkspaceLogicalEntities(row.id, evidenceRoot),
+    new FileWorkspaceLogicalRelationships(row.id, evidenceRoot),
   );
 }
 
