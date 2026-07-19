@@ -1,72 +1,28 @@
 {
   "name": "@evidence/desktop",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/desktop/src-tauri/src",
+  "sourceRoot": "apps/desktop/src",
   "projectType": "application",
-  "tags": ["scope:desktop", "type:tauri", "type:rust"],
-  "implicitDependencies": ["@evidence/web", "@evidence/server"],
+  "tags": ["scope:desktop", "type:electron", "type:typescript"],
+  "implicitDependencies": ["@evidence/web", "@evidence/server-nest"],
   "targets": {
-    "dev": {
-      "executor": "nx:run-commands",
-      "options": {
-        "cwd": "apps/desktop",
-        "command": "pnpm tauri dev"
-      }
-    },
     "build": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/target/release/bundle"],
+      "outputs": ["{workspaceRoot}/apps/desktop/dist"],
       "options": {
-        "cwd": "apps/desktop",
-        "command": "pnpm tauri build --bundles app"
+        "command": "pnpm exec esbuild apps/desktop/src/main.ts apps/desktop/src/preload.ts --bundle --platform=node --target=node20 --format=cjs --outdir=apps/desktop/dist --external:electron --sourcemap"
       }
     },
-    "build-frontend": {
-      "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/apps/web/dist"],
-      "options": {
-        "command": "pnpm nx build @evidence/web"
-      }
-    },
-    "rust-build": {
+    "dev": {
+      "continuous": true,
       "executor": "nx:run-commands",
       "options": {
-        "command": "cargo build -p evidence-desktop"
-      }
-    },
-    "test": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "cargo test -p evidence-desktop"
-      }
-    },
-    "lint": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "cargo clippy -p evidence-desktop --all-targets -- -D warnings"
-      }
-    },
-    "format": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "cargo fmt -p evidence-desktop"
-      }
-    },
-    "format-check": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "cargo fmt -p evidence-desktop -- --check"
-      }
-    },
-    "ci": {
-      "executor": "nx:run-commands",
-      "options": {
-        "parallel": false,
+        "parallel": true,
         "commands": [
-          "pnpm nx run @evidence/desktop:format-check",
-          "pnpm nx run @evidence/desktop:lint",
-          "pnpm nx run @evidence/desktop:test",
-          "pnpm nx run @evidence/desktop:rust-build"
+          "pnpm nx build @evidence/desktop --watch",
+          "pnpm nx dev @evidence/web --host 127.0.0.1 --port 4200",
+          "pnpm nx serve @evidence/server-nest",
+          "pnpm --dir apps/desktop exec wait-on dist/main.js http-get://127.0.0.1:4200 http-get://127.0.0.1:3000/health && pnpm --dir apps/desktop exec electron ."
         ]
       }
     }
