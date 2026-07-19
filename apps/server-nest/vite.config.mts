@@ -10,9 +10,13 @@ const packageJson = JSON.parse(
   readFileSync(resolve(projectRoot, 'package.json'), 'utf-8'),
 ) as { dependencies?: Record<string, string> };
 
-const external = [
+const nodeExternal = [
   ...builtinModules,
   ...builtinModules.map((moduleName) => `node:${moduleName}`),
+];
+
+const external = [
+  ...nodeExternal,
   ...Object.entries(packageJson.dependencies ?? {})
     .filter(([, version]) => !version.startsWith('workspace:'))
     .map(([packageName]) => packageName),
@@ -55,24 +59,37 @@ function nestSwc(): Plugin {
   };
 }
 
-export default defineConfig(() => ({
-  root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/apps/server-nest',
-  plugins: [nestSwc()],
-  build: {
-    ssr: './src/main.ts',
-    outDir: './dist',
-    emptyOutDir: true,
-    sourcemap: true,
-    target: 'node20',
-    minify: false,
-    reportCompressedSize: false,
-    rollupOptions: {
-      external,
-      output: {
-        format: 'cjs',
-        entryFileNames: 'main.js',
+export default defineConfig(({ mode }) => {
+  const desktop = mode === 'desktop';
+  return {
+    root: import.meta.dirname,
+    cacheDir: '../../node_modules/.vite/apps/server-nest',
+    plugins: [nestSwc()],
+    ssr: desktop ? { noExternal: true } : undefined,
+    build: {
+      ssr: desktop ? './src/desktop-main.ts' : './src/main.ts',
+      outDir: desktop ? './dist-desktop' : './dist',
+      emptyOutDir: true,
+      sourcemap: true,
+      target: desktop ? 'node22' : 'node20',
+      minify: false,
+      reportCompressedSize: false,
+      rollupOptions: {
+        external: desktop
+          ? [
+              ...nodeExternal,
+              '@nestjs/common',
+              '@nestjs/core',
+              '@nestjs/platform-express',
+              'reflect-metadata',
+              'rxjs',
+            ]
+          : external,
+        output: {
+          format: 'cjs',
+          entryFileNames: 'main.js',
+        },
       },
     },
-  },
-}));
+  };
+});

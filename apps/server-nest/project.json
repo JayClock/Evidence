@@ -23,6 +23,13 @@
         }
       }
     },
+    "build-desktop": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/apps/server-nest/dist-desktop"],
+      "options": {
+        "command": "pnpm --dir apps/server-nest exec vite build --mode desktop"
+      }
+    },
     "prune-lockfile": {
       "dependsOn": ["build"],
       "cache": true,
