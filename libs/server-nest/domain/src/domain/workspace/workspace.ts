@@ -1,5 +1,5 @@
 import { Entity, HasMany, HasOne } from '../core';
-import { Diagram, DiagramDescription, WorkspaceDiagrams } from '../diagram';
+import { Diagram, WorkspaceDiagram } from '../diagram';
 import {
   LogicalEntity,
   LogicalEntityDescription,
@@ -26,7 +26,7 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     private readonly id: string,
     private readonly desc: WorkspaceDescription,
     private readonly workspaceMembers: WorkspaceMembers,
-    private readonly workspaceDiagrams: WorkspaceDiagrams,
+    private readonly workspaceDiagram: WorkspaceDiagram,
     private readonly workspaceLogicalEntities: WorkspaceLogicalEntities,
     private readonly workspaceLogicalRelationships: WorkspaceLogicalRelationships,
   ) {}
@@ -52,27 +52,7 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
   }
 
   diagram(): HasOne<Diagram> {
-    return this.workspaceDiagrams;
-  }
-
-  diagrams(): HasMany<Diagram> {
-    return this.workspaceDiagrams;
-  }
-
-  addDiagram(desc: DiagramDescription): Promise<Diagram> {
-    return this.workspaceDiagrams.add(desc);
-  }
-
-  updateDiagram(diagramId: string, desc: DiagramDescription): Promise<Diagram> {
-    return this.workspaceDiagrams.update(diagramId, desc);
-  }
-
-  deleteDiagram(diagramId: string): Promise<void> {
-    return this.workspaceDiagrams.delete(diagramId);
-  }
-
-  listDiagrams(page: number, pageSize: number): Promise<[Diagram[], number]> {
-    return this.workspaceDiagrams.list(page, pageSize);
+    return this.workspaceDiagram;
   }
 
   logicalEntities(): HasMany<LogicalEntity> {

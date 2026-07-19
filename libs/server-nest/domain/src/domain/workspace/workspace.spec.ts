@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { HasMany, HasOne, Ref, type Entity, type Many } from '../core';
-import type {
-  Diagram,
-  DiagramDescription,
-  WorkspaceDiagrams,
-} from '../diagram';
+import type { Diagram, WorkspaceDiagram } from '../diagram';
 import type {
   LogicalEntity,
   LogicalEntityDescription,
@@ -33,14 +29,6 @@ const memberDescription: MemberDescription = {
   workspace: new Ref('workspace-1'),
   user: new Ref('user-1'),
   role: 'owner',
-  createdAt: timestamp,
-  updatedAt: timestamp,
-};
-
-const diagramDescription: DiagramDescription = {
-  workspace: new Ref('workspace-1'),
-  title: 'Fulfillment',
-  viewport: { x: 0, y: 0, zoom: 1 },
   createdAt: timestamp,
   updatedAt: timestamp,
 };
@@ -85,7 +73,6 @@ function workspaceFixture() {
   const logicalEntity = {} as LogicalEntity;
   const logicalRelationship = {} as LogicalRelationship;
   const manyMembers = many([member]);
-  const manyDiagrams = many([diagram]);
   const manyLogicalEntities = many([logicalEntity]);
   const manyLogicalRelationships = many([logicalRelationship]);
 
@@ -96,15 +83,9 @@ function workspaceFixture() {
     removeMember: vi.fn(async () => undefined),
   } satisfies WorkspaceMembers;
 
-  const diagrams = {
+  const diagramProjection = {
     get: vi.fn(async () => diagram),
-    findAll: vi.fn(() => manyDiagrams),
-    findByIdentity: vi.fn(async () => diagram),
-    add: vi.fn(async () => diagram),
-    update: vi.fn(async () => diagram),
-    delete: vi.fn(async () => undefined),
-    list: vi.fn(async () => [[diagram], 1] as [Diagram[], number]),
-  } satisfies WorkspaceDiagrams;
+  } satisfies WorkspaceDiagram;
 
   const logicalEntities = {
     findAll: vi.fn(() => manyLogicalEntities),
@@ -130,14 +111,14 @@ function workspaceFixture() {
     'workspace-1',
     workspaceDescription,
     members,
-    diagrams,
+    diagramProjection,
     logicalEntities,
     logicalRelationships,
   );
 
   return {
     diagram,
-    diagrams,
+    diagramProjection,
     logicalEntities,
     logicalEntity,
     logicalRelationship,
@@ -165,7 +146,6 @@ describe('Workspace', () => {
 
     const members: HasMany<Member> = workspace.members();
     const diagramProjection: HasOne<Diagram> = workspace.diagram();
-    const diagrams: HasMany<Diagram> = workspace.diagrams();
     const logicalEntities: HasMany<LogicalEntity> = workspace.logicalEntities();
     const logicalRelationships: HasMany<LogicalRelationship> =
       workspace.logicalRelationships();
@@ -174,7 +154,6 @@ describe('Workspace', () => {
       members.findAll().subCollection(0, 10).toArray(),
     ).resolves.toEqual([member]);
     await expect(diagramProjection.get()).resolves.toBe(diagram);
-    await expect(diagrams.findByIdentity('diagram-1')).resolves.toBe(diagram);
     await expect(logicalEntities.findAll().size()).resolves.toBe(1);
     await expect(
       logicalRelationships.findAll().subCollection(0, 10).toArray(),
@@ -192,30 +171,6 @@ describe('Workspace', () => {
 
     expect(members.addMember).toHaveBeenCalledWith(memberDescription);
     expect(members.removeMember).toHaveBeenCalledWith('user-1');
-  });
-
-  it('delegates diagram commands to the workspace diagrams collection', async () => {
-    const { diagram, diagrams, workspace } = workspaceFixture();
-
-    await expect(workspace.addDiagram(diagramDescription)).resolves.toBe(
-      diagram,
-    );
-    await expect(
-      workspace.updateDiagram('diagram-1', diagramDescription),
-    ).resolves.toBe(diagram);
-    await expect(workspace.deleteDiagram('diagram-1')).resolves.toBeUndefined();
-    await expect(workspace.listDiagrams(2, 25)).resolves.toEqual([
-      [diagram],
-      1,
-    ]);
-
-    expect(diagrams.add).toHaveBeenCalledWith(diagramDescription);
-    expect(diagrams.update).toHaveBeenCalledWith(
-      'diagram-1',
-      diagramDescription,
-    );
-    expect(diagrams.delete).toHaveBeenCalledWith('diagram-1');
-    expect(diagrams.list).toHaveBeenCalledWith(2, 25);
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {

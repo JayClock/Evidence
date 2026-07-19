@@ -1,9 +1,4 @@
-import { HasMany, HasOne } from '../core';
-import { Diagram, DiagramDescription } from './diagram';
+import { HasOne } from '../core';
+import { Diagram } from './diagram';
 
-export interface WorkspaceDiagrams extends HasMany<Diagram>, HasOne<Diagram> {
-  add(desc: DiagramDescription): Promise<Diagram>;
-  update(diagramId: string, desc: DiagramDescription): Promise<Diagram>;
-  delete(diagramId: string): Promise<void>;
-  list(page: number, pageSize: number): Promise<[Diagram[], number]>;
-}
+export type WorkspaceDiagram = HasOne<Diagram>;
