@@ -9,6 +9,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { normalizeWorkspaceMetadata } from '../workspace-paths';
+import { migrateLegacySqlite } from './legacy-sqlite-migration';
 
 export const SQLITE_REGISTRY_PATH = Symbol('SQLITE_REGISTRY_PATH');
 
@@ -78,11 +79,27 @@ export class SqliteRegistry implements OnModuleInit, OnModuleDestroy {
     await mkdir(dirname(this.databasePath), { recursive: true });
     const DatabaseSync = databaseConstructor();
     this.connection = new DatabaseSync(this.databasePath);
-    this.connection.exec(
-      'PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;',
-    );
-    this.initializeSchema();
-    await this.seedDefaults();
+    try {
+      this.connection.exec(
+        'PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;',
+      );
+      this.initializeSchema();
+      const defaultWorkspacePath = this.defaultWorkspacePath();
+      const legacyDatabasePath =
+        process.env.EVIDENCE_LEGACY_REGISTRY_PATH?.trim();
+      if (legacyDatabasePath) {
+        await migrateLegacySqlite({
+          sourcePath: legacyDatabasePath,
+          targetPath: this.databasePath,
+          defaultWorkspacePath,
+          target: this.connection,
+        });
+      }
+      await this.seedDefaults(defaultWorkspacePath);
+    } catch (error) {
+      this.close();
+      throw error;
+    }
   }
 
   close(): void {
@@ -136,10 +153,14 @@ export class SqliteRegistry implements OnModuleInit, OnModuleDestroy {
     `);
   }
 
-  private async seedDefaults(): Promise<void> {
-    const defaultRoot =
+  private defaultWorkspacePath(): string {
+    return (
       process.env.EVIDENCE_DEFAULT_WORKSPACE_PATH ??
-      join(dirname(this.databasePath), 'default-workspace');
+      join(dirname(this.databasePath), 'default-workspace')
+    );
+  }
+
+  private async seedDefaults(defaultRoot: string): Promise<void> {
     await mkdir(defaultRoot, { recursive: true });
     const metadata = await normalizeWorkspaceMetadata({}, defaultRoot);
     const timestamp = new Date().toISOString();

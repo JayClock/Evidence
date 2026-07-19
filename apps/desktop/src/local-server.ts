@@ -12,6 +12,7 @@ export interface LocalServerOptions {
   executablePath: string;
   serverEntry: string;
   piEntry: string;
+  legacyRegistryPath: string;
   userDataPath: string;
   rendererOrigin: string;
   packaged: boolean;
@@ -29,12 +30,14 @@ export function buildServerEnvironment(options: {
   rendererOrigin: string;
   packaged: boolean;
   piEntry: string;
+  legacyRegistryPath: string;
 }): NodeJS.ProcessEnv {
   return {
     ...process.env,
     ...(options.packaged ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
     EVIDENCE_STORAGE: 'sqlite',
     EVIDENCE_PI_ENTRY: options.piEntry,
+    EVIDENCE_LEGACY_REGISTRY_PATH: options.legacyRegistryPath,
     EVIDENCE_REGISTRY_PATH: join(
       options.userDataPath,
       'data',
@@ -81,6 +84,7 @@ export class LocalServer {
       rendererOrigin: this.options.rendererOrigin,
       packaged: this.options.packaged,
       piEntry: this.options.piEntry,
+      legacyRegistryPath: this.options.legacyRegistryPath,
     });
     const child = spawn(
       this.options.executablePath,

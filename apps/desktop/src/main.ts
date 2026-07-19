@@ -144,6 +144,13 @@ function createLocalServer(): LocalServer {
         )
       : join(__dirname, '..', '..', 'server-nest', 'dist-desktop', 'main.js'),
     piEntry: embeddedPiEntry(),
+    legacyRegistryPath:
+      process.env.EVIDENCE_LEGACY_REGISTRY_PATH ??
+      join(
+        app.getPath('appData'),
+        'works.earendil.evidence',
+        'evidence.sqlite',
+      ),
     userDataPath:
       process.env.EVIDENCE_USER_DATA_PATH ?? app.getPath('userData'),
     rendererOrigin: rendererOrigin(),
