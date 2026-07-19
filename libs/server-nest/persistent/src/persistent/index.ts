@@ -2,6 +2,7 @@ export { EntityList as DatabaseEntityList } from './database';
 export { EntityList as MemoryEntityList } from './memory';
 export * from './workspace-paths';
 export * from './filesystem/workspace-diagram';
+export * from './filesystem/workspace-logical-entities';
 export * from './prisma/prisma.service';
 export * from './prisma/users';
 export * from './prisma/user-workspaces';
