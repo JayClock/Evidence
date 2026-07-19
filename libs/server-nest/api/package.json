@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@evidence/server-nest-domain": "workspace:*",
-    "@evidence/server-nest-persistent": "workspace:*",
     "@nestjs/common": "^11.1.24",
     "@nestjs/core": "^11.1.24"
   }

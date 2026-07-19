@@ -219,6 +219,12 @@ importers:
       '@evidence/server-nest-api':
         specifier: workspace:*
         version: link:../../libs/server-nest/api
+      '@evidence/server-nest-domain':
+        specifier: workspace:*
+        version: link:../../libs/server-nest/domain
+      '@evidence/server-nest-persistent':
+        specifier: workspace:*
+        version: link:../../libs/server-nest/persistent
       '@nestjs/common':
         specifier: ^11.0.0
         version: 11.1.24(reflect-metadata@0.1.14)(rxjs@7.8.2)
@@ -282,9 +288,6 @@ importers:
       '@evidence/server-nest-domain':
         specifier: workspace:*
         version: link:../domain
-      '@evidence/server-nest-persistent':
-        specifier: workspace:*
-        version: link:../persistent
       '@nestjs/common':
         specifier: ^11.1.24
         version: 11.1.24(reflect-metadata@0.2.2)(rxjs@7.8.2)
