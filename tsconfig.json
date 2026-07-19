@@ -41,6 +41,9 @@
     },
     {
       "path": "./libs/server-nest/api"
+    },
+    {
+      "path": "./libs/server-nest/infrastructure"
     }
   ]
 }
