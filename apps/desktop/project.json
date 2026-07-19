@@ -25,6 +25,47 @@
           "pnpm --dir apps/desktop exec wait-on dist/main.js ../server-nest/dist-desktop/main.js http-get://127.0.0.1:4200 && pnpm --dir apps/desktop exec electron ."
         ]
       }
+    },
+    "stage-package": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "build",
+        {
+          "projects": "@evidence/web",
+          "target": "build"
+        },
+        {
+          "projects": "@evidence/server-nest",
+          "target": "build-desktop"
+        }
+      ],
+      "outputs": ["{workspaceRoot}/apps/desktop/dist/server"],
+      "options": {
+        "command": "node apps/desktop/scripts/stage-package.mjs"
+      }
+    },
+    "package-unpacked": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["stage-package"],
+      "outputs": ["{workspaceRoot}/apps/desktop/dist/packages"],
+      "options": {
+        "command": "pnpm --dir apps/desktop exec electron-builder --config electron-builder.yml --dir"
+      }
+    },
+    "package-smoke": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["package-unpacked"],
+      "options": {
+        "command": "node apps/desktop/scripts/package-smoke.mjs"
+      }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["stage-package"],
+      "outputs": ["{workspaceRoot}/apps/desktop/dist/packages"],
+      "options": {
+        "command": "pnpm --dir apps/desktop exec electron-builder --config electron-builder.yml"
+      }
     }
   }
 }

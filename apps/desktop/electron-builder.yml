@@ -1,0 +1,39 @@
+appId: works.earendil.evidence
+productName: Evidence
+asar: true
+asarUnpack:
+  - dist/server/**/*
+  - node_modules/**/*
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+directories:
+  output: dist/packages
+
+files:
+  - dist/main.js
+  - dist/main.js.map
+  - dist/preload.js
+  - dist/preload.js.map
+  - dist/server/**/*
+  - package.json
+
+extraResources:
+  - from: ../web/dist
+    to: web
+    filter:
+      - '**/*'
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+
+win:
+  target:
+    - nsis
+
+linux:
+  category: Development
+  target:
+    - AppImage

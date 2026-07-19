@@ -19,6 +19,7 @@ import { resolveWebUrl } from './runtime-config';
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;
 const DESKTOP_SESSION_HEADER = 'x-evidence-desktop-token';
+const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
 
 let localServer: LocalServer | null = null;
 let allowQuit = false;
@@ -118,9 +119,16 @@ function createLocalServer(): LocalServer {
       ? process.execPath
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
     serverEntry: app.isPackaged
-      ? join(process.resourcesPath, 'server', 'main.js')
+      ? join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'dist',
+          'server',
+          'main.js',
+        )
       : join(__dirname, '..', '..', 'server-nest', 'dist-desktop', 'main.js'),
-    userDataPath: app.getPath('userData'),
+    userDataPath:
+      process.env.EVIDENCE_USER_DATA_PATH ?? app.getPath('userData'),
     rendererOrigin: rendererOrigin(),
     packaged: app.isPackaged,
   });
@@ -132,6 +140,29 @@ function canOpenExternally(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+async function verifyPackagedRuntime(
+  window: BrowserWindow,
+  connection: LocalServerConnection,
+): Promise<void> {
+  if (!SMOKE_TEST) {
+    return;
+  }
+
+  const response = await fetch(`${connection.apiBaseUrl}/users/desktop-user`, {
+    headers: {
+      [DESKTOP_SESSION_HEADER]: connection.sessionToken,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Packaged API smoke check returned ${response.status}.`);
+  }
+  if (!window.webContents.getURL().startsWith(APP_URL)) {
+    throw new Error('Packaged renderer did not load from evidence://app/.');
+  }
+
+  process.stdout.write('EVIDENCE_DESKTOP_SMOKE_READY\n');
 }
 
 async function createWindow(): Promise<BrowserWindow> {
@@ -179,7 +210,13 @@ void app.whenReady().then(async () => {
     const connection = await localServer.start();
     registerApiAuthentication(connection);
     registerDesktopBridge(connection.apiBaseUrl);
-    await createWindow();
+    const window = await createWindow();
+    await verifyPackagedRuntime(window, connection);
+
+    if (SMOKE_TEST) {
+      app.quit();
+      return;
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -188,7 +225,11 @@ void app.whenReady().then(async () => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    dialog.showErrorBox('Evidence could not start', message);
+    if (SMOKE_TEST) {
+      process.stderr.write(`EVIDENCE_DESKTOP_SMOKE_FAILED: ${message}\n`);
+    } else {
+      dialog.showErrorBox('Evidence could not start', message);
+    }
     app.quit();
   }
 });
