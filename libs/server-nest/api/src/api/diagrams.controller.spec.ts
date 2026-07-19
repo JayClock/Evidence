@@ -4,8 +4,10 @@ import {
   type Diagram,
   type DiagramEdge,
   type DiagramNode,
+  type DomainArchitect,
   type Entity,
   type Many,
+  type ModelingEvent,
   type Workspace,
 } from '@evidence/server-nest-domain';
 import { DiagramsController } from './diagrams.controller';
@@ -26,7 +28,7 @@ function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
   };
 }
 
-function fixture() {
+function fixture(modelingEvents: ModelingEvent[] = [{ type: 'completed' }]) {
   const node = {
     identity: () => 'node-1',
     description: () => ({
@@ -84,6 +86,9 @@ function fixture() {
   } as unknown as Diagram;
   const workspace = {
     identity: () => 'workspace-1',
+    description: () => ({
+      metadata: { evidenceRoot: '/projects/orders/.evidence' },
+    }),
     logicalEntities: () => ({
       findAll: () => many([]),
       findByIdentity: vi.fn(async () => null),
@@ -95,10 +100,27 @@ function fixture() {
     requireDiagramEdge: vi.fn(async () => [workspace, diagram, edge]),
   } as unknown as ResourceResolver;
 
+  const domainArchitect = {
+    proposeModelStream: vi.fn(async function* () {
+      for (const event of modelingEvents) {
+        yield event;
+      }
+    }),
+  } as DomainArchitect;
+
   return {
-    controller: new DiagramsController(resolver),
+    controller: new DiagramsController(resolver, domainArchitect),
     resolver,
+    domainArchitect,
   };
+}
+
+async function readStream(stream: AsyncIterable<unknown>): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 describe('DiagramsController', () => {
@@ -137,11 +159,43 @@ describe('DiagramsController', () => {
   });
 
   it('validates a proposal requirement before loading the diagram', async () => {
-    const { controller, resolver } = fixture();
+    const { controller, resolver, domainArchitect } = fixture();
 
     await expect(
       controller.proposeModel('workspace-1', { requirement: '  ' }),
     ).rejects.toMatchObject({ kind: 'validation' });
     expect(resolver.requireWorkspaceDiagram).not.toHaveBeenCalled();
+    expect(domainArchitect.proposeModelStream).not.toHaveBeenCalled();
+  });
+
+  it('streams architect events from the workspace evidence root', async () => {
+    const { controller, domainArchitect } = fixture([
+      { type: 'reasoning-started' },
+      { type: 'text-chunk', chunk: 'line one\nline two' },
+      {
+        type: 'tool-call-ready',
+        toolCallId: 'call-1',
+        toolName: 'read',
+        input: { path: 'entities' },
+      },
+      { type: 'completed' },
+    ]);
+
+    const response = await controller.proposeModel('workspace-1', {
+      requirement: 'Add an order',
+    });
+
+    await expect(readStream(response.getStream())).resolves.toBe(
+      'event: thinking-start\ndata: \n\n' +
+        'data: line one\ndata: line two\n\n' +
+        'event: tool-call\n' +
+        'data: {"toolCallId":"call-1","toolName":"read","input":{"path":"entities"}}\n\n' +
+        'event: complete\ndata: \n\n',
+    );
+    expect(domainArchitect.proposeModelStream).toHaveBeenCalledWith({
+      requirement: 'Add an order',
+      modelDirectory: '/projects/orders/.evidence',
+      signal: expect.any(AbortSignal),
+    });
   });
 });

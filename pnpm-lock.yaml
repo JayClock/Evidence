@@ -238,6 +238,9 @@ importers:
       '@evidence/server-nest-domain':
         specifier: workspace:*
         version: link:../../libs/server-nest/domain
+      '@evidence/server-nest-infrastructure':
+        specifier: workspace:*
+        version: link:../../libs/server-nest/infrastructure
       '@evidence/server-nest-persistent':
         specifier: workspace:*
         version: link:../../libs/server-nest/persistent

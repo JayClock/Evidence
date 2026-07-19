@@ -5,6 +5,7 @@
   "dependencies": {
     "@evidence/server-nest-api": "workspace:*",
     "@evidence/server-nest-domain": "workspace:*",
+    "@evidence/server-nest-infrastructure": "workspace:*",
     "@evidence/server-nest-persistent": "workspace:*",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",

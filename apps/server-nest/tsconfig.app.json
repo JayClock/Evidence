@@ -18,6 +18,9 @@
       "path": "../../libs/server-nest/persistent/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/server-nest/infrastructure/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/server-nest/domain/tsconfig.lib.json"
     },
     {
