@@ -8,14 +8,20 @@ import {
   ipcMain,
   net,
   protocol,
+  session,
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
 import { isTrustedRendererRequest } from './ipc-security';
-import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
+import { LocalServer, type LocalServerConnection } from './local-server';
+import { resolveWebUrl } from './runtime-config';
 
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;
+const DESKTOP_SESSION_HEADER = 'x-evidence-desktop-token';
+
+let localServer: LocalServer | null = null;
+let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -60,6 +66,10 @@ function expectedRendererUrl(): string {
   return app.isPackaged ? APP_URL : resolveWebUrl();
 }
 
+function rendererOrigin(): string {
+  return app.isPackaged ? 'evidence://app' : new URL(resolveWebUrl()).origin;
+}
+
 function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
   const senderFrame = event.senderFrame;
   const trusted = isTrustedRendererRequest({
@@ -72,10 +82,10 @@ function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
   }
 }
 
-function registerDesktopBridge(): void {
+function registerDesktopBridge(apiBaseUrl: string): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
-    return resolveApiBaseUrl();
+    return apiBaseUrl;
   });
   ipcMain.handle('evidence:choose-directory', async (event) => {
     assertTrustedIpcSender(event);
@@ -84,6 +94,35 @@ function registerDesktopBridge(): void {
       properties: ['openDirectory', 'createDirectory'],
     });
     return selection.canceled ? null : (selection.filePaths[0] ?? null);
+  });
+}
+
+function registerApiAuthentication(connection: LocalServerConnection): void {
+  const apiOrigin = new URL(connection.apiBaseUrl).origin;
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: [`${apiOrigin}/*`] },
+    (details, callback) => {
+      callback({
+        requestHeaders: {
+          ...details.requestHeaders,
+          [DESKTOP_SESSION_HEADER]: connection.sessionToken,
+        },
+      });
+    },
+  );
+}
+
+function createLocalServer(): LocalServer {
+  return new LocalServer({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    serverEntry: app.isPackaged
+      ? join(process.resourcesPath, 'server', 'main.js')
+      : join(__dirname, '..', '..', 'server-nest', 'dist', 'main.js'),
+    userDataPath: app.getPath('userData'),
+    rendererOrigin: rendererOrigin(),
+    packaged: app.isPackaged,
   });
 }
 
@@ -134,15 +173,32 @@ async function createWindow(): Promise<BrowserWindow> {
 }
 
 void app.whenReady().then(async () => {
-  registerWebProtocol();
-  registerDesktopBridge();
-  await createWindow();
+  try {
+    registerWebProtocol();
+    localServer = createLocalServer();
+    const connection = await localServer.start();
+    registerApiAuthentication(connection);
+    registerDesktopBridge(connection.apiBaseUrl);
+    await createWindow();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      void createWindow();
-    }
-  });
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        void createWindow();
+      }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    dialog.showErrorBox('Evidence could not start', message);
+    app.quit();
+  }
+});
+
+app.on('before-quit', (event) => {
+  if (!allowQuit && localServer) {
+    event.preventDefault();
+    allowQuit = true;
+    void localServer.stop().finally(() => app.quit());
+  }
 });
 
 app.on('window-all-closed', () => {

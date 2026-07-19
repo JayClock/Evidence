@@ -21,8 +21,8 @@
         "commands": [
           "pnpm nx build @evidence/desktop --watch",
           "pnpm nx dev @evidence/web --host 127.0.0.1 --port 4200",
-          "pnpm nx serve @evidence/server-nest",
-          "pnpm --dir apps/desktop exec wait-on dist/main.js http-get://127.0.0.1:4200 http-get://127.0.0.1:3000/health && pnpm --dir apps/desktop exec electron ."
+          "pnpm nx build @evidence/server-nest --watch",
+          "pnpm --dir apps/desktop exec wait-on dist/main.js ../server-nest/dist/main.js http-get://127.0.0.1:4200 && pnpm --dir apps/desktop exec electron ."
         ]
       }
     }
