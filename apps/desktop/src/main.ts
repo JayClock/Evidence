@@ -119,7 +119,7 @@ function createLocalServer(): LocalServer {
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
     serverEntry: app.isPackaged
       ? join(process.resourcesPath, 'server', 'main.js')
-      : join(__dirname, '..', '..', 'server-nest', 'dist', 'main.js'),
+      : join(__dirname, '..', '..', 'server-nest', 'dist-desktop', 'main.js'),
     userDataPath: app.getPath('userData'),
     rendererOrigin: rendererOrigin(),
     packaged: app.isPackaged,
