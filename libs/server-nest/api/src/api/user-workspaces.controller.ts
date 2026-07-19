@@ -18,7 +18,8 @@ import { addPageLinks, PageModel, pageModel, PageQuery } from './pagination';
 import { ResourceResolver } from './resource-resolver.service';
 
 interface WorkspaceInput {
-  title: string;
+  title?: string | null;
+  path?: string | null;
   description?: string | null;
   status?: string | null;
   metadata?: Record<string, string> | null;
@@ -121,11 +122,17 @@ export class UserWorkspacesController {
 function workspaceInputToDescription(
   input: WorkspaceInput,
 ): WorkspaceDescription {
+  const metadata = { ...(input.metadata ?? {}) };
+  const path = input.path?.trim();
+  if (path) {
+    metadata.repositoryRoot = path;
+  }
+
   return {
-    title: input.title,
+    title: input.title ?? '',
     description: input.description ?? null,
     status: input.status ?? 'active',
-    metadata: input.metadata ?? {},
+    metadata,
     createdAt: '',
     updatedAt: '',
   };

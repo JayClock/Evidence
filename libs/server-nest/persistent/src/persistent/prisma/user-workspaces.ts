@@ -6,6 +6,10 @@ import {
   WorkspaceDescription,
 } from '@evidence/server-nest-domain';
 import { EntityList } from '../database';
+import {
+  normalizeWorkspaceMetadata,
+  workspaceTitleFromMetadata,
+} from '../workspace-paths';
 import { assembleWorkspace } from './mappers';
 import type { PrismaStore } from './types';
 import { defaultIfBlank, inputJson, now, rejectInvalidPage } from './utils';
@@ -88,7 +92,8 @@ export class PrismaUserWorkspaces
   async create(desc: WorkspaceDescription): Promise<Workspace> {
     const id = randomUUID();
     const timestamp = now();
-    const title = normalizeTitle(desc.title);
+    const metadata = await normalizeWorkspaceMetadata(desc.metadata);
+    const title = normalizeTitle(desc.title, metadata);
     const createWorkspace = async (db: PrismaStore): Promise<Workspace> => {
       const row = await db.workspace.create({
         data: {
@@ -96,7 +101,7 @@ export class PrismaUserWorkspaces
           title,
           description: desc.description,
           status: defaultIfBlank(desc.status, 'active'),
-          metadata: inputJson(desc.metadata),
+          metadata: inputJson(metadata),
           createdAt: timestamp,
           updatedAt: timestamp,
         },
@@ -130,13 +135,18 @@ export class PrismaUserWorkspaces
       throw DomainError.notFound(`workspace ${id} not found`);
     }
 
+    const metadataInput =
+      Object.keys(desc.metadata).length === 0
+        ? current.description().metadata
+        : desc.metadata;
+    const metadata = await normalizeWorkspaceMetadata(metadataInput);
     const row = await this.store.workspace.update({
       where: { id },
       data: {
-        title: normalizeTitle(desc.title),
+        title: normalizeTitle(desc.title, metadata),
         description: desc.description,
         status: defaultIfBlank(desc.status, 'active'),
-        metadata: inputJson(desc.metadata),
+        metadata: inputJson(metadata),
         updatedAt: now(),
       },
     });
@@ -163,10 +173,18 @@ export class PrismaUserWorkspaces
   }
 }
 
-function normalizeTitle(title: string): string {
+function normalizeTitle(
+  title: string,
+  metadata: Record<string, string>,
+): string {
   const normalized = title.trim();
-  if (normalized.length === 0) {
+  if (normalized.length > 0) {
+    return normalized;
+  }
+
+  const fallback = workspaceTitleFromMetadata(metadata);
+  if (!fallback) {
     throw DomainError.validation('workspace title must not be empty');
   }
-  return normalized;
+  return fallback;
 }

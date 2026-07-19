@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
 import { PrismaUserWorkspaces } from './user-workspaces';
 import {
   asStore,
@@ -7,6 +10,16 @@ import {
   workspaceDescription,
   workspaceRow,
 } from './test-support';
+
+const temporaryPaths: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryPaths
+      .splice(0)
+      .map((path) => rm(path, { recursive: true, force: true })),
+  );
+});
 
 describe('PrismaUserWorkspaces', () => {
   it('reads only non-deleted workspaces visible to the scoped user', async () => {
@@ -44,6 +57,7 @@ describe('PrismaUserWorkspaces', () => {
   });
 
   it('creates a workspace and owner member in one transaction', async () => {
+    const repositoryRoot = await temporaryDirectory();
     const store = mockPrismaStore();
     store.workspace.create.mockResolvedValue(
       workspaceRow({ id: 'created-workspace' }),
@@ -52,7 +66,10 @@ describe('PrismaUserWorkspaces', () => {
     const workspaces = new PrismaUserWorkspaces(asStore(store), 'user-1');
 
     const workspace = await workspaces.create(
-      workspaceDescription({ title: '  Created Workspace  ' }),
+      workspaceDescription({
+        title: '  Created Workspace  ',
+        metadata: { path: repositoryRoot },
+      }),
     );
 
     expect(workspace.identity()).toBe('created-workspace');
@@ -63,6 +80,11 @@ describe('PrismaUserWorkspaces', () => {
         id: expect.any(String),
         title: 'Created Workspace',
         status: 'active',
+        metadata: {
+          path: repositoryRoot,
+          repositoryRoot,
+          evidenceRoot: join(repositoryRoot, '.evidence'),
+        },
       }),
     });
     expect(store.workspaceMember.create).toHaveBeenCalledWith({
@@ -71,6 +93,28 @@ describe('PrismaUserWorkspaces', () => {
         userId: 'user-1',
         role: 'owner',
       }),
+    });
+  });
+
+  it('preserves normalized workspace paths when update metadata is omitted', async () => {
+    const repositoryRoot = await temporaryDirectory();
+    const metadata = {
+      repositoryRoot,
+      evidenceRoot: join(repositoryRoot, '.evidence'),
+    };
+    const store = mockPrismaStore();
+    store.workspace.findFirst.mockResolvedValue(workspaceRow({ metadata }));
+    store.workspace.update.mockResolvedValue(workspaceRow({ metadata }));
+    const workspaces = new PrismaUserWorkspaces(asStore(store), 'user-1');
+
+    await workspaces.update(
+      'workspace-1',
+      workspaceDescription({ metadata: {} }),
+    );
+
+    expect(store.workspace.update).toHaveBeenCalledWith({
+      where: { id: 'workspace-1' },
+      data: expect.objectContaining({ metadata }),
     });
   });
 
@@ -91,3 +135,11 @@ describe('PrismaUserWorkspaces', () => {
     });
   });
 });
+
+async function temporaryDirectory(): Promise<string> {
+  const path = await realpath(
+    await mkdtemp(join(tmpdir(), 'evidence-workspace-')),
+  );
+  temporaryPaths.push(path);
+  return path;
+}
