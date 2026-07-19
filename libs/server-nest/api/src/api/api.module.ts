@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { RouterModule } from '@nestjs/core';
+import { APP_INTERCEPTOR, RouterModule } from '@nestjs/core';
 import { USERS } from '@evidence/server-nest-domain';
 import { PrismaService, PrismaUsers } from '@evidence/server-nest-persistent';
 import { DiagramsController } from './diagrams.controller';
@@ -9,6 +9,7 @@ import { ResourceResolver } from './resource-resolver.service';
 import { SidebarController } from './sidebar.controller';
 import { UserWorkspacesController } from './user-workspaces.controller';
 import { UsersController } from './users.controller';
+import { VendorMediaTypeInterceptor } from './vendor-media.interceptor';
 import { WorkspaceMembersController } from './workspace-members.controller';
 
 @Module({
@@ -116,6 +117,12 @@ class LogicalRelationshipsApiModule {}
         ],
       },
     ]),
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: VendorMediaTypeInterceptor,
+    },
   ],
 })
 export class ApiModule {}
