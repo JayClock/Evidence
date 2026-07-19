@@ -11,6 +11,7 @@ const SHUTDOWN_TIMEOUT_MS = 5_000;
 export interface LocalServerOptions {
   executablePath: string;
   serverEntry: string;
+  piEntry: string;
   userDataPath: string;
   rendererOrigin: string;
   packaged: boolean;
@@ -27,11 +28,13 @@ export function buildServerEnvironment(options: {
   userDataPath: string;
   rendererOrigin: string;
   packaged: boolean;
+  piEntry: string;
 }): NodeJS.ProcessEnv {
   return {
     ...process.env,
     ...(options.packaged ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
     EVIDENCE_STORAGE: 'sqlite',
+    EVIDENCE_PI_ENTRY: options.piEntry,
     EVIDENCE_REGISTRY_PATH: join(
       options.userDataPath,
       'data',
@@ -63,6 +66,11 @@ export class LocalServer {
         `The packaged Nest server was not found at ${this.options.serverEntry}.`,
       );
     }
+    if (!existsSync(this.options.piEntry)) {
+      throw new Error(
+        `The embedded Pi CLI was not found at ${this.options.piEntry}.`,
+      );
+    }
 
     const port = await reserveLoopbackPort();
     const sessionToken = randomBytes(32).toString('base64url');
@@ -72,6 +80,7 @@ export class LocalServer {
       userDataPath: this.options.userDataPath,
       rendererOrigin: this.options.rendererOrigin,
       packaged: this.options.packaged,
+      piEntry: this.options.piEntry,
     });
     const child = spawn(
       this.options.executablePath,
