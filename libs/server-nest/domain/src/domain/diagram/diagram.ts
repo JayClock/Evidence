@@ -1,6 +1,6 @@
 import { Entity, HasMany, Ref } from '../core';
-import { DiagramEdge, DiagramEdges, EdgeDescription } from './edge';
-import { DiagramNode, DiagramNodes, NodeDescription } from './node';
+import { DiagramEdge, DiagramEdges } from './edge';
+import { DiagramNode, DiagramNodes } from './node';
 import { Viewport } from './types';
 
 export interface DiagramDescription {
@@ -31,53 +31,7 @@ export class Diagram implements Entity<string, DiagramDescription> {
     return this.diagramNodes;
   }
 
-  addNode(desc: NodeDescription): Promise<DiagramNode> {
-    return this.diagramNodes.add(desc);
-  }
-
-  addNodeWithId(
-    nodeId: string | null,
-    desc: NodeDescription,
-  ): Promise<DiagramNode> {
-    return this.diagramNodes.addWithId(nodeId, desc);
-  }
-
-  addNodes(descriptions: NodeDescription[]): Promise<DiagramNode[]> {
-    return this.diagramNodes.addAll(descriptions);
-  }
-
-  updateNode(nodeId: string, desc: NodeDescription): Promise<DiagramNode> {
-    return this.diagramNodes.update(nodeId, desc);
-  }
-
-  deleteNode(nodeId: string): Promise<void> {
-    return this.diagramNodes.delete(nodeId);
-  }
-
   edges(): HasMany<DiagramEdge> {
     return this.diagramEdges;
-  }
-
-  addEdge(desc: EdgeDescription): Promise<DiagramEdge> {
-    return this.diagramEdges.add(desc);
-  }
-
-  addEdgeWithId(
-    edgeId: string | null,
-    desc: EdgeDescription,
-  ): Promise<DiagramEdge> {
-    return this.diagramEdges.addWithId(edgeId, desc);
-  }
-
-  addEdges(descriptions: EdgeDescription[]): Promise<DiagramEdge[]> {
-    return this.diagramEdges.addAll(descriptions);
-  }
-
-  updateEdge(edgeId: string, desc: EdgeDescription): Promise<DiagramEdge> {
-    return this.diagramEdges.update(edgeId, desc);
-  }
-
-  deleteEdge(edgeId: string): Promise<void> {
-    return this.diagramEdges.delete(edgeId);
   }
 }

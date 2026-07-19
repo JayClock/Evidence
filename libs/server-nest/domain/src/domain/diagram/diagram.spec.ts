@@ -71,21 +71,11 @@ function diagramFixture() {
   const nodes = {
     findAll: vi.fn(() => manyNodes),
     findByIdentity: vi.fn(async () => node),
-    add: vi.fn(async () => node),
-    addWithId: vi.fn(async () => node),
-    addAll: vi.fn(async () => [node]),
-    update: vi.fn(async () => node),
-    delete: vi.fn(async () => undefined),
   } satisfies DiagramNodes;
 
   const edges = {
     findAll: vi.fn(() => manyEdges),
     findByIdentity: vi.fn(async () => edge),
-    add: vi.fn(async () => edge),
-    addWithId: vi.fn(async () => edge),
-    addAll: vi.fn(async () => [edge]),
-    update: vi.fn(async () => edge),
-    delete: vi.fn(async () => undefined),
   } satisfies DiagramEdges;
 
   const diagram = new Diagram('diagram-1', diagramDescription, nodes, edges);
@@ -119,45 +109,5 @@ describe('Diagram', () => {
       nodes.findAll().subCollection(0, 10).toArray(),
     ).resolves.toEqual([node]);
     await expect(edges.findByIdentity('edge-1')).resolves.toBe(edge);
-  });
-
-  it('delegates node commands to the diagram nodes collection', async () => {
-    const { diagram, node, nodes } = diagramFixture();
-
-    await expect(diagram.addNode(nodeDescription)).resolves.toBe(node);
-    await expect(
-      diagram.addNodeWithId('node-1', nodeDescription),
-    ).resolves.toBe(node);
-    await expect(diagram.addNodes([nodeDescription])).resolves.toEqual([node]);
-    await expect(diagram.updateNode('node-1', nodeDescription)).resolves.toBe(
-      node,
-    );
-    await expect(diagram.deleteNode('node-1')).resolves.toBeUndefined();
-
-    expect(nodes.add).toHaveBeenCalledWith(nodeDescription);
-    expect(nodes.addWithId).toHaveBeenCalledWith('node-1', nodeDescription);
-    expect(nodes.addAll).toHaveBeenCalledWith([nodeDescription]);
-    expect(nodes.update).toHaveBeenCalledWith('node-1', nodeDescription);
-    expect(nodes.delete).toHaveBeenCalledWith('node-1');
-  });
-
-  it('delegates edge commands to the diagram edges collection', async () => {
-    const { diagram, edge, edges } = diagramFixture();
-
-    await expect(diagram.addEdge(edgeDescription)).resolves.toBe(edge);
-    await expect(
-      diagram.addEdgeWithId('edge-1', edgeDescription),
-    ).resolves.toBe(edge);
-    await expect(diagram.addEdges([edgeDescription])).resolves.toEqual([edge]);
-    await expect(diagram.updateEdge('edge-1', edgeDescription)).resolves.toBe(
-      edge,
-    );
-    await expect(diagram.deleteEdge('edge-1')).resolves.toBeUndefined();
-
-    expect(edges.add).toHaveBeenCalledWith(edgeDescription);
-    expect(edges.addWithId).toHaveBeenCalledWith('edge-1', edgeDescription);
-    expect(edges.addAll).toHaveBeenCalledWith([edgeDescription]);
-    expect(edges.update).toHaveBeenCalledWith('edge-1', edgeDescription);
-    expect(edges.delete).toHaveBeenCalledWith('edge-1');
   });
 });

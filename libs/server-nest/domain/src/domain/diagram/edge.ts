@@ -36,10 +36,4 @@ export class DiagramEdge implements Entity<string, EdgeDescription> {
   }
 }
 
-export interface DiagramEdges extends HasMany<DiagramEdge> {
-  add(desc: EdgeDescription): Promise<DiagramEdge>;
-  addWithId(edgeId: string | null, desc: EdgeDescription): Promise<DiagramEdge>;
-  addAll(descriptions: EdgeDescription[]): Promise<DiagramEdge[]>;
-  update(edgeId: string, desc: EdgeDescription): Promise<DiagramEdge>;
-  delete(edgeId: string): Promise<void>;
-}
+export type DiagramEdges = HasMany<DiagramEdge>;

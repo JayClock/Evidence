@@ -29,10 +29,4 @@ export class DiagramNode implements Entity<string, NodeDescription> {
   }
 }
 
-export interface DiagramNodes extends HasMany<DiagramNode> {
-  add(desc: NodeDescription): Promise<DiagramNode>;
-  addWithId(nodeId: string | null, desc: NodeDescription): Promise<DiagramNode>;
-  addAll(descriptions: NodeDescription[]): Promise<DiagramNode[]>;
-  update(nodeId: string, desc: NodeDescription): Promise<DiagramNode>;
-  delete(nodeId: string): Promise<void>;
-}
+export type DiagramNodes = HasMany<DiagramNode>;
