@@ -6,5 +6,5 @@ source: workspace
 target: diagram
 relationshipType: contains
 direction: directed
-cardinality: one-to-many
-summary: 工作区提供领域模型的可视化图投影。
+cardinality: one-to-one
+summary: 工作区提供当前 Evidence 模型的单一可视化图投影。
