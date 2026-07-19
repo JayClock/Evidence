@@ -1,15 +1,22 @@
 import { randomUUID } from 'node:crypto';
+import { stat } from 'node:fs/promises';
 import {
   defaultViewport,
   Diagram,
   DiagramDescription,
   DomainError,
+  Ref,
   WorkspaceDiagrams,
 } from '@evidence/server-nest-domain';
 import { EntityList } from '../database';
+import { PrismaDiagramEdges } from './diagram-edges';
+import { PrismaDiagramNodes } from './diagram-nodes';
 import { assembleDiagram } from './mappers';
 import type { PrismaStore } from './types';
 import { inputJson, now, rejectInvalidPage } from './utils';
+
+const PROJECTED_DIAGRAM_ID = 'model';
+const PROJECTED_DIAGRAM_TITLE = 'Model';
 
 export class PrismaWorkspaceDiagrams
   extends EntityList<Diagram>
@@ -18,8 +25,25 @@ export class PrismaWorkspaceDiagrams
   constructor(
     private readonly store: PrismaStore,
     private readonly workspaceId: string,
+    private readonly evidenceRoot = '.evidence',
   ) {
     super();
+  }
+
+  async get(): Promise<Diagram> {
+    const timestamp = await fileTimestamp(this.evidenceRoot);
+    return new Diagram(
+      PROJECTED_DIAGRAM_ID,
+      {
+        workspace: new Ref(this.workspaceId),
+        title: PROJECTED_DIAGRAM_TITLE,
+        viewport: defaultViewport(),
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      new PrismaDiagramNodes(this.store, PROJECTED_DIAGRAM_ID),
+      new PrismaDiagramEdges(this.store, PROJECTED_DIAGRAM_ID),
+    );
   }
 
   protected override async findEntities(
@@ -110,6 +134,14 @@ export class PrismaWorkspaceDiagrams
 
   private visibleWhere() {
     return { workspaceId: this.workspaceId, deletedAt: null };
+  }
+}
+
+async function fileTimestamp(path: string): Promise<string> {
+  try {
+    return (await stat(path)).mtime.toISOString();
+  } catch {
+    return '';
   }
 }
 

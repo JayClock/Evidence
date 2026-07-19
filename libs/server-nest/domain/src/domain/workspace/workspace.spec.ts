@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { HasMany, Ref, type Entity, type Many } from '../core';
+import { HasMany, HasOne, Ref, type Entity, type Many } from '../core';
 import type {
   Diagram,
   DiagramDescription,
@@ -97,6 +97,7 @@ function workspaceFixture() {
   } satisfies WorkspaceMembers;
 
   const diagrams = {
+    get: vi.fn(async () => diagram),
     findAll: vi.fn(() => manyDiagrams),
     findByIdentity: vi.fn(async () => diagram),
     add: vi.fn(async () => diagram),
@@ -163,6 +164,7 @@ describe('Workspace', () => {
       workspaceFixture();
 
     const members: HasMany<Member> = workspace.members();
+    const diagramProjection: HasOne<Diagram> = workspace.diagram();
     const diagrams: HasMany<Diagram> = workspace.diagrams();
     const logicalEntities: HasMany<LogicalEntity> = workspace.logicalEntities();
     const logicalRelationships: HasMany<LogicalRelationship> =
@@ -171,6 +173,7 @@ describe('Workspace', () => {
     await expect(
       members.findAll().subCollection(0, 10).toArray(),
     ).resolves.toEqual([member]);
+    await expect(diagramProjection.get()).resolves.toBe(diagram);
     await expect(diagrams.findByIdentity('diagram-1')).resolves.toBe(diagram);
     await expect(logicalEntities.findAll().size()).resolves.toBe(1);
     await expect(

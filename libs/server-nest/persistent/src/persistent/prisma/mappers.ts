@@ -28,6 +28,7 @@ import type {
 } from '@prisma/client';
 import { PrismaDiagramEdges } from './diagram-edges';
 import { PrismaDiagramNodes } from './diagram-nodes';
+import { evidenceRootFromMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
 import { PrismaUserWorkspaces } from './user-workspaces';
 import { PrismaWorkspaceDiagrams } from './workspace-diagrams';
@@ -51,18 +52,23 @@ export function assembleWorkspace(
   store: PrismaStore,
   row: WorkspaceRow,
 ): Workspace {
+  const metadata = stringRecord(row.metadata);
   return new Workspace(
     row.id,
     {
       title: row.title,
       description: row.description,
       status: row.status,
-      metadata: stringRecord(row.metadata),
+      metadata,
       createdAt: toIso(row.createdAt),
       updatedAt: toIso(row.updatedAt),
     },
     new PrismaWorkspaceMembers(store, row.id),
-    new PrismaWorkspaceDiagrams(store, row.id),
+    new PrismaWorkspaceDiagrams(
+      store,
+      row.id,
+      evidenceRootFromMetadata(metadata),
+    ),
     new PrismaWorkspaceLogicalEntities(store, row.id),
     new PrismaWorkspaceLogicalRelationships(store, row.id),
   );

@@ -8,6 +8,21 @@ import {
 } from './test-support';
 
 describe('PrismaWorkspaceDiagrams', () => {
+  it('projects the current workspace model as one stable diagram', async () => {
+    const store = mockPrismaStore();
+    const diagrams = new PrismaWorkspaceDiagrams(asStore(store), 'workspace-1');
+
+    const diagram = await diagrams.get();
+
+    expect(diagram.identity()).toBe('model');
+    expect(diagram.description()).toMatchObject({
+      workspace: expect.objectContaining({ id: expect.any(Function) }),
+      title: 'Model',
+      viewport: { x: 0, y: 0, zoom: 1 },
+    });
+    expect(diagram.description().workspace.id()).toBe('workspace-1');
+  });
+
   it('reads only non-deleted diagrams from the scoped workspace', async () => {
     const store = mockPrismaStore();
     store.diagram.findMany.mockResolvedValue([diagramRow()]);

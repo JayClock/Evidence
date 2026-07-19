@@ -1,4 +1,4 @@
-import { Entity, HasMany } from '../core';
+import { Entity, HasMany, HasOne } from '../core';
 import { Diagram, DiagramDescription, WorkspaceDiagrams } from '../diagram';
 import {
   LogicalEntity,
@@ -49,6 +49,10 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   removeMember(userId: string): Promise<void> {
     return this.workspaceMembers.removeMember(userId);
+  }
+
+  diagram(): HasOne<Diagram> {
+    return this.workspaceDiagrams;
   }
 
   diagrams(): HasMany<Diagram> {
