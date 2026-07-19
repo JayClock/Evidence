@@ -7,6 +7,11 @@ type TauriCore = {
   invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
 };
 
+type EvidenceDesktopBridge = {
+  getApiBaseUrl(): Promise<string>;
+  chooseDirectory(): Promise<string | null>;
+};
+
 type EvidenceImportMeta = ImportMeta & {
   env?: {
     VITE_API_BASE_URL?: string;
@@ -15,6 +20,7 @@ type EvidenceImportMeta = ImportMeta & {
 
 declare global {
   interface Window {
+    evidenceDesktop?: EvidenceDesktopBridge;
     __TAURI__?: {
       core?: TauriCore;
     };
@@ -37,9 +43,16 @@ function createEvidenceClient(apiRootUrl: string) {
 }
 
 export async function getApiBaseUrl(): Promise<string> {
-  const invoke = window.__TAURI__?.core?.invoke;
-  if (isTauri() && invoke) {
-    return invoke<string>('get_api_base_url');
+  if (typeof window !== 'undefined') {
+    const electronBaseUrl = window.evidenceDesktop?.getApiBaseUrl;
+    if (electronBaseUrl) {
+      return electronBaseUrl();
+    }
+
+    const invoke = window.__TAURI__?.core?.invoke;
+    if (isTauri() && invoke) {
+      return invoke<string>('get_api_base_url');
+    }
   }
 
   return (import.meta as EvidenceImportMeta).env?.VITE_API_BASE_URL ?? '/api';

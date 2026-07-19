@@ -72,6 +72,12 @@ type TauriInvoke = <T>(
   args?: Record<string, unknown>,
 ) => Promise<T>;
 
+type ElectronWindow = Window & {
+  evidenceDesktop?: {
+    chooseDirectory?: () => Promise<string | null>;
+  };
+};
+
 type TauriWindow = Window & {
   __TAURI__?: {
     core?: {
@@ -260,8 +266,20 @@ function CreateWorkspaceDialog({
 
   async function handleChooseProject() {
     setError(null);
-    const invoke = tauriInvoke();
+    const chooseElectronDirectory = electronDirectoryPicker();
+    if (chooseElectronDirectory) {
+      try {
+        const nativeSource = await chooseElectronDirectory();
+        if (nativeSource) {
+          selectProject(nativeSource, false);
+        }
+      } catch (nativeError) {
+        setError(errorMessage(nativeError));
+      }
+      return;
+    }
 
+    const invoke = tauriInvoke();
     if (invoke) {
       try {
         const nativeSource = await pickNativeDirectory(invoke);
@@ -495,6 +513,15 @@ async function pickNativeDirectory(
   }
 
   return selected ?? null;
+}
+
+function electronDirectoryPicker(): (() => Promise<string | null>) | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const electronWindow = window as ElectronWindow;
+  return electronWindow.evidenceDesktop?.chooseDirectory ?? null;
 }
 
 function tauriInvoke(): TauriInvoke | null {
