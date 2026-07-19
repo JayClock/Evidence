@@ -25,6 +25,7 @@ const MAX_STDERR_LENGTH = 8_192;
 
 export interface PiRpcDomainArchitectOptions {
   command?: string;
+  entry?: string;
   args?: readonly string[];
   timeoutMs?: number;
   env?: NodeJS.ProcessEnv;
@@ -50,9 +51,12 @@ export class PiRpcDomainArchitect implements DomainArchitect {
   private readonly env: NodeJS.ProcessEnv;
 
   constructor(options: PiRpcDomainArchitectOptions = {}) {
+    const entry = options.entry ?? process.env['EVIDENCE_PI_ENTRY'];
     this.command =
-      options.command ?? process.env['EVIDENCE_PI_COMMAND'] ?? 'pi';
-    this.args = options.args ?? DEFAULT_ARGS;
+      options.command ??
+      process.env['EVIDENCE_PI_COMMAND'] ??
+      (entry ? process.execPath : 'pi');
+    this.args = options.args ?? (entry ? [entry, ...DEFAULT_ARGS] : DEFAULT_ARGS);
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.env = {
       ...process.env,

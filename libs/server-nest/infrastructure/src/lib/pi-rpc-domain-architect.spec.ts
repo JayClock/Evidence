@@ -65,7 +65,7 @@ describe('PiRpcDomainArchitect', () => {
     `);
     const architect = new PiRpcDomainArchitect({
       command: process.execPath,
-      args: [script],
+      entry: script,
       timeoutMs: 2_000,
     });
 
