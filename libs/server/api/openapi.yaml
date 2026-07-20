@@ -8,7 +8,7 @@ info:
   version: 0.1.0
 servers:
   - url: http://127.0.0.1:3000
-    description: Rust Axum local server
+    description: Evidence NestJS server
 paths:
   /api:
     get:

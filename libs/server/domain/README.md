@@ -1,7 +1,7 @@
-# @evidence/server-nest-domain
+# @evidence/server-domain
 
-This library was generated with [Nx](https://nx.dev).
+Framework-free Evidence domain entities, collections, errors, and ports.
 
 ## Running unit tests
 
-Run `nx test @evidence/server-nest-domain` to execute the unit tests via [Vitest](https://vitest.dev/).
+Run `pnpm nx test @evidence/server-domain --run` to execute the unit tests via [Vitest](https://vitest.dev/).

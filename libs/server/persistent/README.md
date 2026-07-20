@@ -1,7 +1,11 @@
-# @evidence/server-nest-persistent
+# @evidence/server-persistent
 
-This library was generated with [Nx](https://nx.dev).
+Evidence persistence adapters for Prisma/PostgreSQL, the Electron `node:sqlite` registry, and workspace `.evidence` YAML files.
 
 ## Running unit tests
 
-Run `nx test @evidence/server-nest-persistent` to execute the unit tests via [Vitest](https://vitest.dev/).
+```sh
+pnpm nx test @evidence/server-persistent --run
+```
+
+Use temporary databases/directories in tests and keep adapter behavior aligned with the domain ports.
