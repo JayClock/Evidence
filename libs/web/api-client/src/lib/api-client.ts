@@ -3,10 +3,6 @@ import { zodActionSchemaPlugin } from '@hateoas-ts/resource/zod';
 
 import type { RootResource } from './api-types.js';
 
-type TauriCore = {
-  invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
-};
-
 type EvidenceDesktopBridge = {
   getApiBaseUrl(): Promise<string>;
   chooseDirectory(): Promise<string | null>;
@@ -21,17 +17,7 @@ type EvidenceImportMeta = ImportMeta & {
 declare global {
   interface Window {
     evidenceDesktop?: EvidenceDesktopBridge;
-    __TAURI__?: {
-      core?: TauriCore;
-    };
   }
-}
-
-function isTauri(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.__TAURI__?.core?.invoke === 'function'
-  );
 }
 
 function createEvidenceClient(apiRootUrl: string) {
@@ -47,11 +33,6 @@ export async function getApiBaseUrl(): Promise<string> {
     const electronBaseUrl = window.evidenceDesktop?.getApiBaseUrl;
     if (electronBaseUrl) {
       return electronBaseUrl();
-    }
-
-    const invoke = window.__TAURI__?.core?.invoke;
-    if (isTauri() && invoke) {
-      return invoke<string>('get_api_base_url');
     }
   }
 

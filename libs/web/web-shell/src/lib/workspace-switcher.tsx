@@ -67,26 +67,11 @@ type DirectoryInputAttributes = InputHTMLAttributes<HTMLInputElement> & {
   directory?: string;
 };
 
-type TauriInvoke = <T>(
-  command: string,
-  args?: Record<string, unknown>,
-) => Promise<T>;
-
 type ElectronWindow = Window & {
   evidenceDesktop?: {
     chooseDirectory?: () => Promise<string | null>;
   };
 };
-
-type TauriWindow = Window & {
-  __TAURI__?: {
-    core?: {
-      invoke?: TauriInvoke;
-    };
-  };
-};
-
-type DialogSelection = string | string[] | null;
 
 const directoryInputAttributes = {
   webkitdirectory: '',
@@ -270,19 +255,6 @@ function CreateWorkspaceDialog({
     if (chooseElectronDirectory) {
       try {
         const nativeSource = await chooseElectronDirectory();
-        if (nativeSource) {
-          selectProject(nativeSource, false);
-        }
-      } catch (nativeError) {
-        setError(errorMessage(nativeError));
-      }
-      return;
-    }
-
-    const invoke = tauriInvoke();
-    if (invoke) {
-      try {
-        const nativeSource = await pickNativeDirectory(invoke);
         if (nativeSource) {
           selectProject(nativeSource, false);
         }
@@ -497,24 +469,6 @@ function CreateWorkspaceDialog({
   );
 }
 
-async function pickNativeDirectory(
-  invoke: TauriInvoke,
-): Promise<string | null> {
-  const selected = await invoke<DialogSelection>('plugin:dialog|open', {
-    options: {
-      directory: true,
-      multiple: false,
-      title: 'Choose local project',
-    },
-  });
-
-  if (Array.isArray(selected)) {
-    return selected[0] ?? null;
-  }
-
-  return selected ?? null;
-}
-
 function electronDirectoryPicker(): (() => Promise<string | null>) | null {
   if (typeof window === 'undefined') {
     return null;
@@ -522,15 +476,6 @@ function electronDirectoryPicker(): (() => Promise<string | null>) | null {
 
   const electronWindow = window as ElectronWindow;
   return electronWindow.evidenceDesktop?.chooseDirectory ?? null;
-}
-
-function tauriInvoke(): TauriInvoke | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const tauriWindow = window as TauriWindow;
-  return tauriWindow.__TAURI__?.core?.invoke ?? null;
 }
 
 function recentProjectSources(workspaces: State<WorkspaceResource>[]) {
