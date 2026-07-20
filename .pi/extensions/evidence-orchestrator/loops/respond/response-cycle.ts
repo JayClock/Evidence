@@ -49,7 +49,7 @@ const CANONICAL_ROOTS = [
   'docs/product/',
   '.evidence/',
   'docs/architecture/',
-  'contracts/',
+  'libs/server/api/openapi.yaml',
   'engineering/evidence-orchestrator/',
   '.pi/skills/',
   '.pi/prompts/',

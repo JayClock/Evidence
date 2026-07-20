@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Evidence API
-  description: Contract-first API for Evidence runtime implementations.
+  description: Contract-first API for Evidence Web and Desktop clients.
   license:
     name: MIT
     identifier: MIT

@@ -1,20 +1,46 @@
+import { execFile } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
+import { promisify } from 'node:util';
+import { format, resolveConfig } from 'prettier';
 
+const execFileAsync = promisify(execFile);
+const require = createRequire(import.meta.url);
 const source = resolve('libs/server/api/openapi.yaml');
-const target = resolve('contracts/api.yaml');
-const document = await readFile(source, 'utf8');
+const client = resolve('libs/web/api-client/src/lib/openapi-schema.ts');
+const openapiPackage = require.resolve('openapi-typescript/package.json');
+const openapiManifest = JSON.parse(await readFile(openapiPackage, 'utf8'));
+const openapiCli = resolve(
+  dirname(openapiPackage),
+  openapiManifest.bin['openapi-typescript'],
+);
 const mode = process.argv[2];
 
+async function generateClient() {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [openapiCli, source],
+    { maxBuffer: 10 * 1024 * 1024 },
+  );
+  const prettierConfig = (await resolveConfig(client)) ?? {};
+  return format(stdout, { ...prettierConfig, filepath: client });
+}
+
 if (mode === '--write') {
-  await writeFile(target, document, 'utf8');
+  await writeFile(client, await generateClient(), 'utf8');
 } else if (mode === '--check') {
-  const generated = await readFile(target, 'utf8');
-  if (generated !== document) {
+  const [expected, actual] = await Promise.all([
+    generateClient(),
+    readFile(client, 'utf8'),
+  ]);
+  if (actual !== expected) {
     throw new Error(
-      'contracts/api.yaml is stale; run pnpm api:generate to update it.',
+      'The generated Web API schema is stale; run pnpm api:generate.',
     );
   }
+} else if (!mode) {
+  process.stdout.write(await readFile(source, 'utf8'));
 } else {
-  process.stdout.write(document);
+  throw new Error(`Unknown OpenAPI export mode: ${mode}`);
 }

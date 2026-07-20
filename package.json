@@ -13,7 +13,7 @@
     "test": "nx run-many -t test",
     "api:export": "node apps/server/scripts/export-openapi.mjs",
     "api:check": "node apps/server/scripts/export-openapi.mjs --check",
-    "api:generate": "node apps/server/scripts/export-openapi.mjs --write && openapi-typescript contracts/api.yaml -o libs/web/api-client/src/lib/openapi-schema.ts && prettier --write libs/web/api-client/src/lib/openapi-schema.ts",
+    "api:generate": "node apps/server/scripts/export-openapi.mjs --write",
     "api:contracts": "nx run @evidence/api-contracts:contract-local",
     "api:contracts:remote": "nx run @evidence/api-contracts:contract",
     "prisma:generate": "pnpm --filter @evidence/server exec prisma generate --schema prisma/schema.prisma",

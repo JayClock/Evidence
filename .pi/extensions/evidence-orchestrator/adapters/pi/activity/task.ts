@@ -216,7 +216,7 @@ export function activityRequiredInputs(state: WorkflowState): string[] {
       'docs/architecture/tech-stack.md',
       'docs/architecture/test-strategy.md',
       'docs/architecture/test-doubles.md',
-      'contracts/api.yaml',
+      'libs/server/api/openapi.yaml',
       'engineering/evidence-orchestrator/runtime-contexts.json',
       'engineering/evidence-orchestrator/test-processes/',
       'engineering/evidence-orchestrator/definition-of-done.md',
