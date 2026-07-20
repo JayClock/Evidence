@@ -27,9 +27,12 @@
       "http-server",
       "nest-api",
       "nest-domain",
-      "prisma-store"
-    ],
-    "rust": ["axum-api", "rust-domain", "seaorm-store"],
-    "tauri": ["tauri-shell", "webview"]
+      "prisma-store",
+      "sqlite-store",
+      "electron-main",
+      "electron-preload",
+      "nest-child",
+      "webview"
+    ]
   }
 }

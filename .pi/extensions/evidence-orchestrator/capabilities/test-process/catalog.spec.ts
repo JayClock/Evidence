@@ -441,17 +441,17 @@ describe('test-processes', () => {
       join(process.cwd(), 'engineering/evidence-orchestrator/test-processes'),
     );
 
-    expect(definitions).toHaveLength(4);
+    expect(definitions).toHaveLength(3);
     expect(definitions.every(({ version }) => version === 3)).toBe(true);
     expect(new Set(definitions.map(({ runtime }) => runtime))).toEqual(
-      new Set(['rust', 'typescript', 'tauri']),
+      new Set(['typescript']),
     );
-    const rustDomain = definitions
-      .find(({ id }) => id === 'rust-server-feature')
-      ?.steps.find(({ id }) => id === 'rust-domain-q1');
-    expect(rustDomain?.red.expected_failure_kind).toBe('behavior');
-    expect(rustDomain?.red.expected_failure).toContain(
-      'compile and infrastructure failures are pseudo-Red',
+    const electronShell = definitions
+      .find(({ id }) => id === 'typescript-electron-shell')
+      ?.steps.find(({ id }) => id === 'electron-shell-q1');
+    expect(electronShell?.red.expected_failure_kind).toBe('behavior');
+    expect(electronShell?.red.expected_failure).toContain(
+      'lifecycle or security behavior is absent',
     );
     expect(
       matchingTestProcesses(
@@ -460,7 +460,7 @@ describe('test-processes', () => {
         'typescript',
         ['workspace'],
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
       matchingTestProcesses(
         process.cwd(),

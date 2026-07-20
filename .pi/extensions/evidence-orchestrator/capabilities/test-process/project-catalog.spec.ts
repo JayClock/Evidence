@@ -219,7 +219,7 @@ describe('Nx project catalog', () => {
       expect.arrayContaining(['test', 'typecheck', 'lint']),
     );
     expect(byName.get('@evidence/server-nest')?.targetNames).toContain('test');
-    expect(byName.get('@evidence/server-nest-api')?.targetNames).not.toContain(
+    expect(byName.get('@evidence/server-nest-api')?.targetNames).toContain(
       'test',
     );
   }, 30_000);
