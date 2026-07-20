@@ -47,8 +47,12 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     return this.workspaceMembers.addMember(desc);
   }
 
-  removeMember(userId: string): Promise<void> {
-    return this.workspaceMembers.removeMember(userId);
+  updateMember(memberId: string, role: string): Promise<Member> {
+    return this.workspaceMembers.updateMember(memberId, role);
+  }
+
+  removeMember(memberId: string): Promise<void> {
+    return this.workspaceMembers.removeMember(memberId);
   }
 
   diagram(): HasOne<Diagram> {

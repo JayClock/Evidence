@@ -41,6 +41,7 @@ export function mockPrismaStore(): MockPrismaStore {
       'findFirst',
       'count',
       'create',
+      'update',
       'delete',
       'upsert',
     ]),

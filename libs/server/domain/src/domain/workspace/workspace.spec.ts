@@ -80,6 +80,7 @@ function workspaceFixture() {
     findAll: vi.fn(() => manyMembers),
     findByIdentity: vi.fn(async () => member),
     addMember: vi.fn(async () => member),
+    updateMember: vi.fn(async () => member),
     removeMember: vi.fn(async () => undefined),
   } satisfies WorkspaceMembers;
 
@@ -167,10 +168,14 @@ describe('Workspace', () => {
     const { member, members, workspace } = workspaceFixture();
 
     await expect(workspace.addMember(memberDescription)).resolves.toBe(member);
-    await expect(workspace.removeMember('user-1')).resolves.toBeUndefined();
+    await expect(workspace.updateMember('member-1', 'admin')).resolves.toBe(
+      member,
+    );
+    await expect(workspace.removeMember('member-1')).resolves.toBeUndefined();
 
     expect(members.addMember).toHaveBeenCalledWith(memberDescription);
-    expect(members.removeMember).toHaveBeenCalledWith('user-1');
+    expect(members.updateMember).toHaveBeenCalledWith('member-1', 'admin');
+    expect(members.removeMember).toHaveBeenCalledWith('member-1');
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {

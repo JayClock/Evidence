@@ -111,14 +111,69 @@ export class SqliteWorkspaceMembers
     return member;
   }
 
-  async removeMember(userId: string): Promise<void> {
-    const result = this.registry.database
+  async updateMember(memberId: string, role: string): Promise<Member> {
+    const current = this.requireMember(memberId);
+    const normalizedRole = role.trim();
+    if (!normalizedRole) {
+      throw DomainError.validation('workspace member role must not be empty');
+    }
+    this.assertOwnerRemains(current.role, normalizedRole);
+    this.registry.database
       .prepare(
-        'DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?',
+        `UPDATE workspace_members
+            SET role = ?, updated_at = ?
+          WHERE workspace_id = ? AND id = ?`,
       )
-      .run(this.workspaceId, userId);
-    if (Number(result.changes) === 0) {
-      throw DomainError.notFound(`workspace member ${userId} not found`);
+      .run(
+        normalizedRole,
+        new Date().toISOString(),
+        this.workspaceId,
+        memberId,
+      );
+    const updated = await this.findByIdentity(memberId);
+    if (!updated) {
+      throw DomainError.internal(`workspace member ${memberId} was not updated`);
+    }
+    return updated;
+  }
+
+  async removeMember(memberId: string): Promise<void> {
+    const current = this.requireMember(memberId);
+    this.assertOwnerRemains(current.role, null);
+    this.registry.database
+      .prepare(
+        'DELETE FROM workspace_members WHERE workspace_id = ? AND id = ?',
+      )
+      .run(this.workspaceId, memberId);
+  }
+
+  private requireMember(memberId: string): SqliteMemberRow {
+    const row = this.registry.database
+      .prepare(
+        `SELECT ${MEMBER_COLUMNS}
+           FROM workspace_members
+          WHERE workspace_id = ? AND id = ?`,
+      )
+      .get(this.workspaceId, memberId) as SqliteMemberRow | undefined;
+    if (!row) {
+      throw DomainError.notFound(`workspace member ${memberId} not found`);
+    }
+    return row;
+  }
+
+  private assertOwnerRemains(currentRole: string, nextRole: string | null): void {
+    if (currentRole !== 'owner' || nextRole === 'owner') {
+      return;
+    }
+    const row = this.registry.database
+      .prepare(
+        `SELECT COUNT(*) AS total
+           FROM workspace_members
+          WHERE workspace_id = ? AND role = 'owner'`,
+      )
+      .get(this.workspaceId) as { total: number };
+    if (Number(row.total) <= 1) {
+      throw DomainError.conflict('workspace must retain at least one owner');
     }
   }
 

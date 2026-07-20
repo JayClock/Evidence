@@ -77,21 +77,53 @@ describe('PrismaWorkspaceMembers', () => {
     });
   });
 
-  it('removes a member by user id within the scoped workspace', async () => {
+  it('updates a member role within the scoped workspace', async () => {
     const store = mockPrismaStore();
     store.workspaceMember.findFirst.mockResolvedValue(
-      memberRow({ id: 'member-1' }),
+      memberRow({ id: 'member-1', role: 'member' }),
+    );
+    store.workspaceMember.update.mockResolvedValue(
+      memberRow({ id: 'member-1', role: 'admin' }),
+    );
+    const members = new PrismaWorkspaceMembers(asStore(store), 'workspace-1');
+
+    await expect(
+      members.updateMember('member-1', ' admin '),
+    ).resolves.toMatchObject({ identity: expect.any(Function) });
+
+    expect(store.workspaceMember.update).toHaveBeenCalledWith({
+      where: { id: 'member-1' },
+      data: { role: 'admin', updatedAt: expect.any(Date) },
+    });
+  });
+
+  it('removes a member by canonical member id', async () => {
+    const store = mockPrismaStore();
+    store.workspaceMember.findFirst.mockResolvedValue(
+      memberRow({ id: 'member-1', role: 'member' }),
     );
     store.workspaceMember.delete.mockResolvedValue(memberRow());
     const members = new PrismaWorkspaceMembers(asStore(store), 'workspace-1');
 
-    await expect(members.removeMember('user-1')).resolves.toBeUndefined();
+    await expect(members.removeMember('member-1')).resolves.toBeUndefined();
 
     expect(store.workspaceMember.findFirst).toHaveBeenCalledWith({
-      where: { workspaceId: 'workspace-1', userId: 'user-1' },
+      where: { id: 'member-1', workspaceId: 'workspace-1' },
     });
     expect(store.workspaceMember.delete).toHaveBeenCalledWith({
       where: { id: 'member-1' },
     });
+  });
+
+  it('rejects removing the final owner', async () => {
+    const store = mockPrismaStore();
+    store.workspaceMember.findFirst.mockResolvedValue(memberRow());
+    store.workspaceMember.count.mockResolvedValue(1);
+    const members = new PrismaWorkspaceMembers(asStore(store), 'workspace-1');
+
+    await expect(members.removeMember('member-1')).rejects.toMatchObject({
+      kind: 'conflict',
+    });
+    expect(store.workspaceMember.delete).not.toHaveBeenCalled();
   });
 });

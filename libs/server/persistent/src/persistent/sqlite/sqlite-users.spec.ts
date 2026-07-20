@@ -64,6 +64,9 @@ describe('SQLite workspace registry', () => {
         updatedAt: '',
       }),
     ).rejects.toMatchObject({ kind: 'conflict' });
+    await expect(
+      workspace.removeMember(members[0].identity()),
+    ).rejects.toMatchObject({ kind: 'conflict' });
   });
 
   it('retains workspaces after reopening the registry', async () => {

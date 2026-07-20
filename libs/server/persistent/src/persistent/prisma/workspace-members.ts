@@ -92,13 +92,48 @@ export class PrismaWorkspaceMembers
     }
   }
 
-  async removeMember(userId: string): Promise<void> {
+  async updateMember(memberId: string, role: string): Promise<Member> {
+    const row = await this.requireMember(memberId);
+    const normalizedRole = defaultIfBlank(role, '');
+    if (!normalizedRole) {
+      throw DomainError.validation('workspace member role must not be empty');
+    }
+    await this.assertOwnerRemains(row.role, normalizedRole);
+    const updated = await this.store.workspaceMember.update({
+      where: { id: row.id },
+      data: { role: normalizedRole, updatedAt: now() },
+    });
+    return assembleMember(updated);
+  }
+
+  async removeMember(memberId: string): Promise<void> {
+    const row = await this.requireMember(memberId);
+    await this.assertOwnerRemains(row.role, null);
+    await this.store.workspaceMember.delete({ where: { id: row.id } });
+  }
+
+  private async requireMember(memberId: string) {
     const row = await this.store.workspaceMember.findFirst({
-      where: { workspaceId: this.workspaceId, userId },
+      where: { id: memberId, workspaceId: this.workspaceId },
     });
     if (!row) {
-      throw DomainError.notFound(`workspace member ${userId} not found`);
+      throw DomainError.notFound(`workspace member ${memberId} not found`);
     }
-    await this.store.workspaceMember.delete({ where: { id: row.id } });
+    return row;
+  }
+
+  private async assertOwnerRemains(
+    currentRole: string,
+    nextRole: string | null,
+  ): Promise<void> {
+    if (currentRole !== 'owner' || nextRole === 'owner') {
+      return;
+    }
+    const owners = await this.store.workspaceMember.count({
+      where: { workspaceId: this.workspaceId, role: 'owner' },
+    });
+    if (owners <= 1) {
+      throw DomainError.conflict('workspace must retain at least one owner');
+    }
   }
 }

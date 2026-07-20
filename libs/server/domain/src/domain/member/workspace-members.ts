@@ -3,5 +3,6 @@ import { Member, MemberDescription } from './member';
 
 export interface WorkspaceMembers extends HasMany<Member> {
   addMember(desc: MemberDescription): Promise<Member>;
-  removeMember(userId: string): Promise<void>;
+  updateMember(memberId: string, role: string): Promise<Member>;
+  removeMember(memberId: string): Promise<void>;
 }

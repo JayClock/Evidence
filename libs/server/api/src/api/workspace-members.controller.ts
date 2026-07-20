@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -23,6 +24,10 @@ interface RefInput {
 interface AddMemberInput {
   user: RefInput;
   role?: string | null;
+}
+
+interface UpdateMemberInput {
+  role: string;
 }
 
 interface MemberCollectionModel {
@@ -84,17 +89,30 @@ export class WorkspaceMembersController {
     return memberModel(member);
   }
 
+  @Patch(':memberId')
+  async updateWorkspaceMember(
+    @Param('workspaceId') workspaceId: string,
+    @Param('memberId') memberId: string,
+    @Body() input: UpdateMemberInput,
+  ): Promise<MemberModel> {
+    const [workspace] = await this.resolver.requireWorkspaceMember(
+      workspaceId,
+      memberId,
+    );
+    return memberModel(await workspace.updateMember(memberId, input.role));
+  }
+
   @Delete(':memberId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeWorkspaceMember(
     @Param('workspaceId') workspaceId: string,
     @Param('memberId') memberId: string,
   ): Promise<void> {
-    const [workspace, member] = await this.resolver.requireWorkspaceMember(
+    const [workspace] = await this.resolver.requireWorkspaceMember(
       workspaceId,
       memberId,
     );
-    await workspace.removeMember(member.description().user.id());
+    await workspace.removeMember(memberId);
   }
 
   @Post()
