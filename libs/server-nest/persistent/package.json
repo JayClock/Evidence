@@ -15,6 +15,11 @@
       "import": "./src/persistent/sqlite/index.ts",
       "default": "./src/persistent/sqlite/index.ts"
     },
+    "./workspace-paths": {
+      "types": "./src/persistent/workspace-paths.ts",
+      "import": "./src/persistent/workspace-paths.ts",
+      "default": "./src/persistent/workspace-paths.ts"
+    },
     "./package.json": "./package.json"
   },
   "nx": {
