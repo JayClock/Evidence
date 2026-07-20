@@ -149,6 +149,7 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
   );
 
   switch (contentType) {
+    case resourceContentTypes.memberships:
     case resourceContentTypes.workspaces:
       return null;
     case resourceContentTypes.workspace:

@@ -116,8 +116,8 @@ const userState = {
     name: 'Desktop User',
     email: 'desktop@evidence.local',
   },
-  links: links('self', 'workspaces', 'sidebar'),
-  follow: (rel: string) => ({ kind: rel }),
+  links: links('self', 'memberships', 'create-workspace', 'sidebar'),
+  follow: (rel: string) => ({ kind: rel, post: vi.fn() }),
 };
 
 const sidebarState = {
@@ -148,37 +148,26 @@ const sidebarState = {
   links: links('self'),
 };
 
-const workspaceState = {
-  data: {
-    id: 'default-workspace',
-    title: 'Default Workspace',
-    description: 'Seed workspace',
-    status: 'active',
-    metadata: {
-      repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
+const workspace = {
+  _links: {
+    self: { href: '/api/workspaces/default-workspace' },
+    diagram: { href: '/api/workspaces/default-workspace/diagram' },
+    'logical-entities': {
+      href: '/api/workspaces/default-workspace/logical-entities',
     },
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
   },
-  links: {
-    getAll: () => [
-      {
-        rel: 'self',
-        href: '/api/users/desktop-user/workspaces/default-workspace',
-      },
-      {
-        rel: 'diagram',
-        href: '/api/workspaces/default-workspace/diagram',
-      },
-      {
-        rel: 'logical-entities',
-        href: '/api/workspaces/default-workspace/logical-entities',
-      },
-    ],
+  id: 'default-workspace',
+  title: 'Default Workspace',
+  description: 'Seed workspace',
+  status: 'active',
+  metadata: {
+    repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
   },
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
 };
 
-const workspaceCollectionState = {
+const membershipCollectionState = {
   data: {
     page: {
       size: 20,
@@ -187,7 +176,15 @@ const workspaceCollectionState = {
       number: 1,
     },
   },
-  collection: [workspaceState],
+  collection: [
+    {
+      data: {
+        id: 'default-workspace-owner',
+        workspace,
+        role: 'owner',
+      },
+    },
+  ],
   links: links('self'),
 };
 
@@ -201,11 +198,11 @@ const useResourceMock = useResource as unknown as Mock;
 describe('WebShell', () => {
   beforeEach(() => {
     useResourceMock.mockImplementation((resourceLike: { kind: string }) => {
-      if (resourceLike.kind === 'workspaces') {
+      if (resourceLike.kind === 'memberships') {
         return {
           loading: false,
           error: null,
-          resourceState: workspaceCollectionState,
+          resourceState: membershipCollectionState,
           resource: workspaceResource,
         };
       }

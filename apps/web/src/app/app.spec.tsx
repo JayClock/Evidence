@@ -13,6 +13,7 @@ vi.mock('@evidence/api-client', () => ({
   normalizeContentType: (contentType: string | null) =>
     contentType?.split(';')[0]?.trim().toLowerCase() ?? '',
   resourceContentTypes: {
+    memberships: 'application/vnd.evidence.memberships+json',
     workspaces: 'application/vnd.evidence.workspaces+json',
     workspace: 'application/vnd.evidence.workspace+json',
     diagrams: 'application/vnd.evidence.diagrams+json',
@@ -26,7 +27,7 @@ vi.mock('@evidence/api-client', () => ({
 }));
 
 type ResourceMarker = {
-  kind: 'root' | 'health' | 'user' | 'sidebar' | 'workspaces';
+  kind: 'root' | 'health' | 'user' | 'sidebar' | 'memberships';
 };
 
 const links = (...rels: string[]) => ({
@@ -35,7 +36,7 @@ const links = (...rels: string[]) => ({
 
 const rootState = {
   data: {},
-  links: links('self', 'health', 'default-user'),
+  links: links('self', 'health', 'current-user'),
   follow: (rel: string): ResourceMarker => ({
     kind: rel === 'health' ? 'health' : 'user',
   }),
@@ -47,9 +48,10 @@ const userState = {
     name: 'Desktop User',
     email: 'desktop@evidence.local',
   },
-  links: links('self', 'workspaces', 'sidebar'),
-  follow: (rel: string): ResourceMarker => ({
-    kind: rel === 'sidebar' ? 'sidebar' : 'workspaces',
+  links: links('self', 'memberships', 'create-workspace', 'sidebar'),
+  follow: (rel: string): ResourceMarker & { post?: Mock } => ({
+    kind: rel === 'sidebar' ? 'sidebar' : 'memberships',
+    ...(rel === 'create-workspace' ? { post: vi.fn() } : {}),
   }),
 };
 
@@ -84,32 +86,45 @@ const sidebarState = {
   links: links('self', 'user'),
 };
 
-const workspaceState = {
-  data: {
-    id: 'default-workspace',
-    title: 'Default Workspace',
-    description: 'Seed workspace for local desktop usage',
-    status: 'active',
-    metadata: {
-      repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
+const workspace = {
+  _links: {
+    self: { href: '/api/workspaces/default-workspace' },
+    members: { href: '/api/workspaces/default-workspace/members' },
+    diagram: { href: '/api/workspaces/default-workspace/diagram' },
+    'logical-entities': {
+      href: '/api/workspaces/default-workspace/logical-entities',
     },
-    createdAt: '2026-01-01T00:00:00Z',
-    updatedAt: '2026-01-01T00:00:00Z',
   },
-  links: links('self', 'members', 'diagram', 'logical-entities'),
-  contentHeaders: () =>
-    new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
+  id: 'default-workspace',
+  title: 'Default Workspace',
+  description: 'Seed workspace for local desktop usage',
+  status: 'active',
+  metadata: {
+    repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
+  },
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
 };
 
-const workspaceCollectionState = {
+const membershipCollectionState = {
   data: {
     page: {
       totalElements: 1,
     },
   },
-  collection: [workspaceState],
+  collection: [
+    {
+      data: {
+        id: 'default-workspace-owner',
+        workspace,
+        role: 'owner',
+      },
+    },
+  ],
   contentHeaders: () =>
-    new Headers({ 'content-type': 'application/vnd.evidence.workspaces+json' }),
+    new Headers({
+      'content-type': 'application/vnd.evidence.memberships+json',
+    }),
 };
 
 const useResourceMock = useResource as unknown as Mock;
@@ -152,11 +167,12 @@ describe('App', () => {
           return { loading: false, error: null, resourceState: userState };
         case 'sidebar':
           return { loading: false, error: null, resourceState: sidebarState };
-        case 'workspaces':
+        case 'memberships':
           return {
             loading: false,
             error: null,
-            resourceState: workspaceCollectionState,
+            resourceState: membershipCollectionState,
+            resource: { refresh: vi.fn() },
           };
       }
     });

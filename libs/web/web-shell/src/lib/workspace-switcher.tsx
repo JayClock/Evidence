@@ -5,7 +5,11 @@ import {
   type FormEvent,
   type InputHTMLAttributes,
 } from 'react';
-import type { State, WorkspaceResource } from '@evidence/api-client';
+import type {
+  MembershipWorkspace,
+  State,
+  WorkspaceResource,
+} from '@evidence/api-client';
 import {
   Alert,
   AlertDescription,
@@ -82,21 +86,21 @@ export function WorkspaceSwitcher({
   loading,
   error,
   workspaces,
-  activeWorkspaceState,
+  activeWorkspace,
   onSelectWorkspace,
   onCreateWorkspace,
 }: {
   loading: boolean;
   error: Error | null;
-  workspaces: State<WorkspaceResource>[];
-  activeWorkspaceState?: State<WorkspaceResource>;
-  onSelectWorkspace: (workspaceState: State<WorkspaceResource>) => void;
+  workspaces: MembershipWorkspace[];
+  activeWorkspace?: MembershipWorkspace;
+  onSelectWorkspace: (workspace: MembershipWorkspace) => void;
   onCreateWorkspace: (
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;
 }) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const activeWorkspaceId = activeWorkspaceState?.data.id ?? '';
+  const activeWorkspaceId = activeWorkspace?.id ?? '';
 
   if (loading) {
     return (
@@ -108,9 +112,9 @@ export function WorkspaceSwitcher({
     );
   }
 
-  const activeTitle = activeWorkspaceState?.data.title ?? 'No workspace';
-  const activeSource = activeWorkspaceState
-    ? workspaceSourceName(activeWorkspaceState)
+  const activeTitle = activeWorkspace?.title ?? 'No workspace';
+  const activeSource = activeWorkspace
+    ? workspaceSourceName(activeWorkspace)
     : 'Add a local workspace';
 
   return (
@@ -151,25 +155,23 @@ export function WorkspaceSwitcher({
                   <DropdownMenuRadioGroup
                     value={activeWorkspaceId}
                     onValueChange={(workspaceId) => {
-                      const workspaceState = workspaces.find(
-                        (workspace) => workspace.data.id === workspaceId,
+                      const workspace = workspaces.find(
+                        (candidate) => candidate.id === workspaceId,
                       );
-                      if (workspaceState) {
-                        onSelectWorkspace(workspaceState);
+                      if (workspace) {
+                        onSelectWorkspace(workspace);
                       }
                     }}
                   >
-                    {workspaces.map((workspaceState) => (
+                    {workspaces.map((workspace) => (
                       <DropdownMenuRadioItem
-                        key={workspaceState.data.id}
-                        value={workspaceState.data.id}
+                        key={workspace.id}
+                        value={workspace.id}
                       >
                         <span className="flex min-w-0 flex-col gap-0.5">
-                          <span className="truncate">
-                            {workspaceState.data.title}
-                          </span>
+                          <span className="truncate">{workspace.title}</span>
                           <span className="truncate text-xs text-muted-foreground">
-                            {workspaceSourceName(workspaceState)}
+                            {workspaceSourceName(workspace)}
                           </span>
                         </span>
                       </DropdownMenuRadioItem>
@@ -478,24 +480,24 @@ function electronDirectoryPicker(): (() => Promise<string | null>) | null {
   return electronWindow.evidenceDesktop?.chooseDirectory ?? null;
 }
 
-function recentProjectSources(workspaces: State<WorkspaceResource>[]) {
+function recentProjectSources(workspaces: MembershipWorkspace[]) {
   const sources = workspaces
-    .map((workspaceState) => workspaceState.data.metadata.repositoryRoot)
+    .map((workspace) => workspace.metadata.repositoryRoot)
     .filter((source): source is string => Boolean(source));
 
   return [...new Set(sources)].slice(0, 3);
 }
 
-export function workspaceSourceName(workspaceState: State<WorkspaceResource>) {
-  const source = workspaceState.data.metadata.repositoryRoot;
+export function workspaceSourceName(workspace: MembershipWorkspace) {
+  const source = workspace.metadata.repositoryRoot;
   return source ? basename(source) : 'Local project not selected';
 }
 
 export function workspaceHref(
-  workspaceState: State<WorkspaceResource>,
+  workspace: MembershipWorkspace,
   rel: keyof WorkspaceResource['links'] = 'self',
 ) {
-  return workspaceState.links.getAll().find((link) => link.rel === rel)?.href;
+  return workspace._links[rel]?.href;
 }
 
 function basename(source: string) {

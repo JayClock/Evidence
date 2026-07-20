@@ -32,7 +32,7 @@ export function App() {
 
 function UserBootstrap({ rootState }: { rootState: State<RootResource> }) {
   const userResource = useMemo(
-    () => rootState.follow('default-user'),
+    () => rootState.follow('current-user'),
     [rootState],
   );
   const { loading, error, resourceState } =
@@ -42,14 +42,14 @@ function UserBootstrap({ rootState }: { rootState: State<RootResource> }) {
     return (
       <FullPageStatus
         title="Loading user"
-        detail="Following rel=default-user…"
+        detail="Following rel=current-user…"
       />
     );
   }
 
   if (error) {
     return (
-      <FullPageStatus title="Default user unavailable" detail={error.message} />
+      <FullPageStatus title="Current user unavailable" detail={error.message} />
     );
   }
 

@@ -3,11 +3,13 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   useResource,
   type Link as HalLink,
+  type MembershipCollectionResource,
+  type MembershipResource,
+  type MembershipWorkspace,
   type SidebarItem,
   type SidebarResource,
   type State,
   type UserResource,
-  type WorkspaceCollectionResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
 import {
@@ -57,25 +59,31 @@ export function WebShell({
     () => userState.follow('sidebar'),
     [userState],
   );
-  const workspacesResource = useMemo(
-    () => userState.follow('workspaces'),
+  const membershipsResource = useMemo(
+    () => userState.follow('memberships'),
+    [userState],
+  );
+  const createWorkspaceResource = useMemo(
+    () => userState.follow('create-workspace'),
     [userState],
   );
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>();
   const sidebar = useResource<SidebarResource>(sidebarResource);
-  const workspaces =
-    useResource<WorkspaceCollectionResource>(workspacesResource);
-  const workspaceStates: State<WorkspaceResource>[] =
-    workspaces.resourceState?.collection ?? [];
-  const activeWorkspaceState =
-    workspaceStates.find(
-      (workspaceState) => workspaceState.data.id === selectedWorkspaceId,
-    ) ?? workspaceStates[0];
+  const memberships =
+    useResource<MembershipCollectionResource>(membershipsResource);
+  const workspaces: MembershipWorkspace[] =
+    memberships.resourceState?.collection.map(
+      (membershipState: State<MembershipResource>) =>
+        membershipState.data.workspace,
+    ) ?? [];
+  const activeWorkspace =
+    workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ??
+    workspaces[0];
 
   const selectWorkspace = useCallback(
-    (workspaceState: State<WorkspaceResource>) => {
-      setSelectedWorkspaceId(workspaceState.data.id);
-      const href = workspaceHref(workspaceState);
+    (workspace: MembershipWorkspace) => {
+      setSelectedWorkspaceId(workspace.id);
+      const href = workspaceHref(workspace);
       if (href) {
         navigate(href);
       }
@@ -85,18 +93,18 @@ export function WebShell({
 
   const createWorkspace = useCallback(
     async (input: WorkspaceInput) => {
-      const createdWorkspace = (await workspaces.resource.post({
+      const createdWorkspace = (await createWorkspaceResource.post({
         data: input,
       })) as State<WorkspaceResource>;
       setSelectedWorkspaceId(createdWorkspace.data.id);
-      await workspaces.resource.refresh();
-      const href = workspaceHref(createdWorkspace);
+      await memberships.resource.refresh();
+      const href = createdWorkspace.getLink('self')?.href;
       if (href) {
         navigate(href);
       }
       return createdWorkspace;
     },
-    [navigate, workspaces.resource],
+    [createWorkspaceResource, memberships.resource, navigate],
   );
 
   return (
@@ -107,15 +115,15 @@ export function WebShell({
           userState={userState}
           sidebarState={sidebar.resourceState}
           loading={sidebar.loading}
-          workspaceStates={workspaceStates}
-          workspacesLoading={workspaces.loading}
-          workspacesError={workspaces.error}
-          activeWorkspaceState={activeWorkspaceState}
+          workspaces={workspaces}
+          workspacesLoading={memberships.loading}
+          workspacesError={memberships.error}
+          activeWorkspace={activeWorkspace}
           onSelectWorkspace={selectWorkspace}
           onCreateWorkspace={createWorkspace}
         />
         <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
-          <AppHeader activeWorkspaceTitle={activeWorkspaceState?.data.title} />
+          <AppHeader activeWorkspaceTitle={activeWorkspace?.title} />
           <main className="h-full w-full p-6">{children}</main>
         </SidebarInset>
       </SidebarProvider>
@@ -150,21 +158,21 @@ function AppSidebar({
   userState,
   sidebarState,
   loading,
-  workspaceStates,
+  workspaces,
   workspacesLoading,
   workspacesError,
-  activeWorkspaceState,
+  activeWorkspace,
   onSelectWorkspace,
   onCreateWorkspace,
 }: {
   userState: State<UserResource>;
   sidebarState?: State<SidebarResource>;
   loading: boolean;
-  workspaceStates: State<WorkspaceResource>[];
+  workspaces: MembershipWorkspace[];
   workspacesLoading: boolean;
   workspacesError: Error | null;
-  activeWorkspaceState?: State<WorkspaceResource>;
-  onSelectWorkspace: (workspaceState: State<WorkspaceResource>) => void;
+  activeWorkspace?: MembershipWorkspace;
+  onSelectWorkspace: (workspace: MembershipWorkspace) => void;
   onCreateWorkspace: (
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;
@@ -177,8 +185,8 @@ function AppSidebar({
         <WorkspaceSwitcher
           loading={workspacesLoading}
           error={workspacesError}
-          workspaces={workspaceStates}
-          activeWorkspaceState={activeWorkspaceState}
+          workspaces={workspaces}
+          activeWorkspace={activeWorkspace}
           onSelectWorkspace={onSelectWorkspace}
           onCreateWorkspace={onCreateWorkspace}
         />
@@ -204,7 +212,7 @@ function AppSidebar({
                       key={item.key ?? item.label}
                       item={item}
                       pathname={location.pathname}
-                      activeWorkspaceState={activeWorkspaceState}
+                      activeWorkspace={activeWorkspace}
                     />
                   ))}
                 </SidebarMenu>
@@ -241,14 +249,14 @@ function SidebarLoading() {
 function SidebarNavItem({
   item,
   pathname,
-  activeWorkspaceState,
+  activeWorkspace,
 }: {
   item: SidebarItem;
   pathname: string;
-  activeWorkspaceState?: State<WorkspaceResource>;
+  activeWorkspace?: MembershipWorkspace;
 }) {
-  const resourcePath = sidebarItemResourcePath(item, activeWorkspaceState);
-  const target = sidebarItemRoute(item, activeWorkspaceState);
+  const resourcePath = sidebarItemResourcePath(item, activeWorkspace);
+  const target = sidebarItemRoute(item, activeWorkspace);
   const active = item.active ?? isPathActive(pathname, target);
 
   return (
@@ -306,18 +314,18 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
 
 function sidebarItemRoute(
   item: SidebarItem,
-  activeWorkspaceState?: State<WorkspaceResource>,
+  activeWorkspace?: MembershipWorkspace,
 ) {
-  return sidebarItemResourcePath(item, activeWorkspaceState);
+  return sidebarItemResourcePath(item, activeWorkspace);
 }
 
 function sidebarItemResourcePath(
   item: SidebarItem,
-  activeWorkspaceState?: State<WorkspaceResource>,
+  activeWorkspace?: MembershipWorkspace,
 ) {
-  if (activeWorkspaceState && item.key === 'logical-entities') {
+  if (activeWorkspace && item.key === 'logical-entities') {
     return (
-      workspaceHref(activeWorkspaceState, 'logical-entities') ??
+      workspaceHref(activeWorkspace, 'logical-entities') ??
       item.href ??
       item.path ??
       '#'

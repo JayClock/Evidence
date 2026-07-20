@@ -13,6 +13,7 @@ export type RootResource = Entity<
   {
     self: RootResource;
     health: HealthResource;
+    'current-user': UserResource;
     'default-user': UserResource;
   }
 >;
