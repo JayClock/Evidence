@@ -57,10 +57,13 @@ describe('legacy Tauri SQLite migration', () => {
     registry = new SqliteRegistry(targetPath);
     await registry.open();
 
-    const user = await new SqliteUsers(registry).findByIdentity('legacy-user');
-    const workspace = await user
-      ?.workspaces()
-      .findByIdentity('legacy-workspace');
+    const users = new SqliteUsers(registry);
+    const user = await users.findByIdentity('legacy-user');
+    const membership = await users
+      .memberships('legacy-user')
+      .findByWorkspaceIdentity('legacy-workspace');
+    const workspace = membership?.workspace;
+    expect(user?.identity()).toBe('legacy-user');
     expect(workspace?.description()).toMatchObject({
       title: 'Legacy Workspace',
       metadata: {

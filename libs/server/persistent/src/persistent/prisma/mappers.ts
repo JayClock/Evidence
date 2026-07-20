@@ -33,19 +33,18 @@ import { FileWorkspaceLogicalEntities } from '../filesystem/workspace-logical-en
 import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logical-relationships';
 import { evidenceRootFromMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
-import { PrismaUserWorkspaces } from './user-workspaces';
 import { PrismaWorkspaceMembers } from './workspace-members';
 
 export function toIso(value: Date): string {
   return value.toISOString();
 }
 
-export function assembleUser(store: PrismaStore, row: UserRow): User {
+export function assembleUser(row: UserRow): User {
   const description: UserDescription = {
     name: row.name,
     email: row.email,
   };
-  return new User(row.id, description, new PrismaUserWorkspaces(store, row.id));
+  return new User(row.id, description);
 }
 
 export function assembleWorkspace(

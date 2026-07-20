@@ -4,7 +4,6 @@ import { FileWorkspaceLogicalEntities } from '../filesystem/workspace-logical-en
 import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logical-relationships';
 import { evidenceRootFromMetadata } from '../workspace-paths';
 import { SqliteRegistry } from './sqlite-registry';
-import { SqliteUserWorkspaces } from './sqlite-user-workspaces';
 import { SqliteWorkspaceMembers } from './sqlite-workspace-members';
 
 export interface SqliteUserRow {
@@ -32,15 +31,8 @@ export interface SqliteMemberRow {
   updatedAt: string;
 }
 
-export function assembleSqliteUser(
-  registry: SqliteRegistry,
-  row: SqliteUserRow,
-): User {
-  return new User(
-    row.id,
-    { name: row.name, email: row.email },
-    new SqliteUserWorkspaces(registry, row.id),
-  );
+export function assembleSqliteUser(row: SqliteUserRow): User {
+  return new User(row.id, { name: row.name, email: row.email });
 }
 
 export function assembleSqliteWorkspace(

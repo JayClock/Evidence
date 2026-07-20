@@ -8,7 +8,6 @@ export * from './filesystem/workspace-logical-relationships';
 export * from './prisma/prisma.service';
 export * from './prisma/users';
 export * from './prisma/user-memberships';
-export * from './prisma/user-workspaces';
 export * from './prisma/workspaces';
 export * from './prisma/workspace-members';
 export * from './prisma/diagram-nodes';

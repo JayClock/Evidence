@@ -19,6 +19,6 @@ export class PrismaUsers implements Users {
 
   async findByIdentity(userId: string) {
     const row = await this.prisma.user.findUnique({ where: { id: userId } });
-    return row ? assembleUser(this.prisma, row) : null;
+    return row ? assembleUser(row) : null;
   }
 }

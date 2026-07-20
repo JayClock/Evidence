@@ -25,6 +25,6 @@ export class SqliteUsers implements Users {
     const row = this.registry.database
       .prepare('SELECT id, name, email FROM users WHERE id = ?')
       .get(userId) as SqliteUserRow | undefined;
-    return row ? assembleSqliteUser(this.registry, row) : null;
+    return row ? assembleSqliteUser(row) : null;
   }
 }

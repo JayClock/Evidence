@@ -13,7 +13,7 @@ function asPrismaService(store: MockPrismaStore): PrismaService {
 }
 
 describe('PrismaUsers', () => {
-  it('loads a user with a persistent workspace association', async () => {
+  it('loads a user identity', async () => {
     const store = mockPrismaStore();
     store.user.findUnique.mockResolvedValue(userRow());
     const users = new PrismaUsers(asPrismaService(store));
@@ -25,7 +25,6 @@ describe('PrismaUsers', () => {
       name: 'Desktop User',
       email: 'desktop@example.com',
     });
-    expect(user?.workspaces()).toBeDefined();
     expect(store.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'user-1' },
     });
