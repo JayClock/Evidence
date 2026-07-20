@@ -5,9 +5,8 @@
 ```text
 apps/
 ├── web/                    React/Vite composition root
-├── server/                 Rust Axum composition root
-├── server-nest/            Nest composition root
-└── desktop/                Tauri shell
+├── server/                 Nest hosted/Desktop composition roots
+└── desktop/                Electron main/preload and packaging
 
 libs/
 ├── web/
@@ -16,55 +15,74 @@ libs/
 │   ├── web-shell/
 │   └── web-feature-*/
 ├── server/
-│   ├── api/
-│   ├── domain/
-│   ├── persistent/
-│   └── infrastructure/
-├── server-nest/
-│   ├── api/
-│   ├── domain/
-│   └── persistent/
-└── contracts/api-contracts/
+│   ├── api/                controllers, HAL/SSE, OpenAPI source
+│   ├── domain/             framework-free domain and ports
+│   ├── persistent/         Prisma, SQLite, filesystem adapters
+│   └── infrastructure/     Pi RPC adapter
+└── contracts/
+    └── api-contracts/      local/remote black-box contracts
 ```
 
 ## 放置规则
 
 - Web route composition 放在 `apps/web`；可复用 shell、feature、UI 和 API 能力放在 `libs/web/*`。
-- Rust 启动与 wiring 放在 `apps/server`；业务实现分别进入 `libs/server/domain`、`api`、`persistent`、`infrastructure`。
-- Nest 启动与 wiring 放在 `apps/server-nest`；实现进入对应 `libs/server-nest/*`。
-- Desktop 仅拥有 Tauri 壳和桌面特有 adapter；共享 UI 必须留在 Web。
-- API 契约位于 `contracts/api.yaml`；契约测试能力位于 `libs/contracts/api-contracts`。
+- Nest bootstrap、environment parsing 和 adapter wiring 放在 `apps/server`。
+- 业务模型、ports 和不变量放在 `libs/server/domain`；不得导入 Nest、Prisma 或 Electron。
+- Controller、请求/响应模型、HAL links、media type 和 SSE serialization 放在 `libs/server/api`。
+- PostgreSQL/SQLite registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`。
+- Pi RPC 等外部进程 adapter 放在 `libs/server/infrastructure`。
+- Desktop 只拥有 Electron 壳、本地 Nest 生命周期、受限 preload、协议和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
+- OpenAPI source 位于 `libs/server/api/openapi.yaml`；发布副本位于 `contracts/api.yaml`；契约 runner 位于 `libs/contracts/api-contracts`。
+
+## Server composition roots
+
+```text
+apps/server/src/main.ts
+  └─ AppModule
+       └─ Prisma/PostgreSQL registry
+
+apps/server/src/desktop-main.ts
+  └─ DesktopAppModule
+       └─ node:sqlite registry
+
+both
+  ├─ ApiModule
+  ├─ Domain ports
+  ├─ filesystem model projection
+  └─ PiRpcDomainArchitect
+```
+
+Storage selection 不得渗入 controller。Desktop 本地 child 的 host、port、token、registry path、workspace path 和 Pi entry 由 Electron main 通过环境显式传入。
 
 ## 禁止依赖
 
-- Domain → API、ORM、HTTP framework、React 或 Tauri。
-- Web feature → Rust/Nest 内部类型或数据库 schema。
-- Desktop → 第二套 React 业务页面。
-- Rust server track ↔ Nest server track 的实现级混合。
-- Runtime code → `artifacts/iterations`。
+- Domain → API、ORM、HTTP framework、React 或 Electron。
+- Web feature → Server 内部类型或数据库 schema。
+- Desktop → 第二套 React 业务页面或 IPC 业务 API。
+- Hosted-only adapter → Desktop renderer。
+- Runtime code → `artifacts/iterations`、`.pi` 或内部 Orchestrator state。
+- 兼容迁移器 → 恢复已退役的 runtime 组合根。
 
 ## 内部 Orchestrator 与知识结构
 
 ```text
 .pi/extensions/evidence-orchestrator/
-├── iteration/                          repository Board and worktree-local Story state
+├── iteration/                          repository Board and Story state
 ├── loops/{kickoff,understand,tasking,pair,showcase,respond}/
-├── capabilities/                       flow/WIP/lease, worktree and shared deterministic mechanisms
+├── capabilities/                       shared deterministic mechanisms
 ├── adapters/{pi,github,node}/          external hosts and processes
-├── validation/                         source and evidence validators
-└── test-support/                       integration tests, fixtures and mocks
+├── validation/                         source/evidence validators
+└── test-support/                       integration fixtures and mocks
 
 .pi/agents/                             isolated activity roles
 .pi/skills/ and .pi/prompts/            internal Working Knowledge
-.evidence/                              canonical domain model
+.evidence/                              canonical product domain model
 docs/product/                           canonical product knowledge
 docs/architecture/                      canonical technical solution
 engineering/evidence-orchestrator/      contexts, processes and DoD
-.git/evidence-orchestrator/              local Board, locks, leases and events
-.worktrees/evidence/ITER-xxxx/           isolated Story branches and worktree-local State
-artifacts/iterations/                    immutable per-Story iteration evidence
+.git/evidence-orchestrator/              local Board, locks and leases
+.worktrees/evidence/ITER-xxxx/           isolated Story worktrees
+artifacts/iterations/                    immutable per-Story evidence
 ```
 
-Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`；Capability 只承载跨 Loop 稳定复用的机制，Loop 之间只通过确认产物、typed outcome 或显式公开契约交接。Git common dir 下的 Board 是跨 Story admission/WIP 权威；每个 worktree 的 `.evidence-iteration-state.json` 只承载一张 Story，不复制 Board 或其他 Story。Story mutation 必须通过 Iteration、canonical worktree、环境绑定和 activity lease/State CAS 验证；`validation/source-boundaries.ts` 阻止反向依赖和已退役目录复生。
-
-以上 Orchestrator、Agent、Working Knowledge 与 iteration evidence 都属于当前仓库的内部研发工具链，不是 `apps/*` / `libs/*` 中的 Evidence 产品模块。产品运行时代码不得依赖它们，`.evidence/` 也不得为其建立交付流程概念。Evidence 项目使用自身产品模型进行 dogfooding 只是开发验证方式。
+Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`。以上模块都是当前仓库的内部研发工具链，不属于 `apps/*` / `libs/*` 产品 runtime；产品代码不得依赖它们。历史 iteration 即使记录旧 runtime 也保持不可变。
