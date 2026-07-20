@@ -7,7 +7,6 @@ import {
   workspaceLogicalEntitiesHref,
   workspaceLogicalRelationshipsHref,
   workspaceMembersHref,
-  workspacesHref,
 } from '../links';
 
 export interface WorkspaceModel {
@@ -33,7 +32,6 @@ export function workspaceModel(workspace: Workspace): WorkspaceModel {
       'logical-relationships': link(
         workspaceLogicalRelationshipsHref(workspaceId),
       ),
-      collection: link(workspacesHref()),
     },
     id: workspaceId,
     title: description.title,

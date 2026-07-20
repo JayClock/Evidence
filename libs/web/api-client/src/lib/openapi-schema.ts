@@ -587,14 +587,6 @@ export interface components {
       /** Format: double */
       zoom: number;
     };
-    WorkspaceCollectionEmbedded: {
-      workspaces: components['schemas']['WorkspaceResource'][];
-    };
-    WorkspaceCollectionResource: {
-      _embedded: components['schemas']['WorkspaceCollectionEmbedded'];
-      _links: components['schemas']['BTreeMap'];
-      page: components['schemas']['PageModel'];
-    };
     WorkspaceInput: {
       description?: string | null;
       metadata?: {

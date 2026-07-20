@@ -14,7 +14,6 @@ vi.mock('@evidence/api-client', () => ({
     contentType?.split(';')[0]?.trim().toLowerCase() ?? '',
   resourceContentTypes: {
     memberships: 'application/vnd.evidence.memberships+json',
-    workspaces: 'application/vnd.evidence.workspaces+json',
     workspace: 'application/vnd.evidence.workspace+json',
     diagrams: 'application/vnd.evidence.diagrams+json',
     logicalEntities: 'application/vnd.evidence.logical-entities+json',

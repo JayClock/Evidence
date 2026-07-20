@@ -2075,28 +2075,6 @@ components:
         zoom:
           type: number
           format: double
-    WorkspaceCollectionEmbedded:
-      type: object
-      required:
-        - workspaces
-      properties:
-        workspaces:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkspaceResource'
-    WorkspaceCollectionResource:
-      type: object
-      required:
-        - _links
-        - _embedded
-        - page
-      properties:
-        _embedded:
-          $ref: '#/components/schemas/WorkspaceCollectionEmbedded'
-        _links:
-          $ref: '#/components/schemas/BTreeMap'
-        page:
-          $ref: '#/components/schemas/PageModel'
     WorkspaceInput:
       type: object
       properties:

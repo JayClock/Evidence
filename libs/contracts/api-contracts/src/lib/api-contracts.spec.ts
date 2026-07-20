@@ -129,7 +129,6 @@ describeContracts('Evidence API contract vertical slice', () => {
     });
     expect(created.body._links).toMatchObject({
       self: { href: `/api/workspaces/${created.body.id}` },
-      collection: { href: '/api/workspaces' },
       'logical-entities': {
         href: `/api/workspaces/${created.body.id}/logical-entities`,
       },
