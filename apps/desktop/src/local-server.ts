@@ -1,8 +1,9 @@
+import { spawn, type ChildProcess } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
+import { createWriteStream, existsSync, type WriteStream } from 'node:fs';
+import { mkdir } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
-import { spawn, type ChildProcess } from 'node:child_process';
 
 const LOOPBACK_HOST = '127.0.0.1';
 const STARTUP_TIMEOUT_MS = 15_000;
@@ -16,6 +17,7 @@ export interface LocalServerOptions {
   userDataPath: string;
   rendererOrigin: string;
   packaged: boolean;
+  onUnexpectedExit?: (error: Error) => void;
 }
 
 export interface LocalServerConnection {
@@ -57,6 +59,8 @@ export function buildServerEnvironment(options: {
 
 export class LocalServer {
   private child: ChildProcess | null = null;
+  private logStream: WriteStream | null = null;
+  private stopping = false;
 
   constructor(private readonly options: LocalServerOptions) {}
 
@@ -74,6 +78,16 @@ export class LocalServer {
         `The embedded Pi CLI was not found at ${this.options.piEntry}.`,
       );
     }
+
+    this.stopping = false;
+    const logsDirectory = join(this.options.userDataPath, 'logs');
+    await mkdir(logsDirectory, { recursive: true });
+    this.logStream = createWriteStream(join(logsDirectory, 'server.log'), {
+      flags: 'a',
+    });
+    this.logStream.on('error', (error) => {
+      process.stderr.write(`[server-log] ${error.message}\n`);
+    });
 
     const port = await reserveLoopbackPort();
     const sessionToken = randomBytes(32).toString('base64url');
@@ -97,16 +111,35 @@ export class LocalServer {
       },
     );
     this.child = child;
+    let healthy = false;
     child.stdout?.on('data', (chunk: Buffer) => {
+      this.writeLog('stdout', chunk);
       process.stdout.write(`[server] ${chunk.toString()}`);
     });
     child.stderr?.on('data', (chunk: Buffer) => {
+      this.writeLog('stderr', chunk);
       process.stderr.write(`[server] ${chunk.toString()}`);
+    });
+    child.once('exit', (code, signal) => {
+      this.logStream?.end();
+      this.logStream = null;
+      if (this.child !== child) {
+        return;
+      }
+      this.child = null;
+      if (!this.stopping && healthy) {
+        this.options.onUnexpectedExit?.(
+          new Error(
+            `The local Evidence server exited unexpectedly (${signal ?? String(code)}).`,
+          ),
+        );
+      }
     });
 
     const origin = `http://${LOOPBACK_HOST}:${port}`;
     try {
       await waitUntilHealthy(child, origin, sessionToken);
+      healthy = true;
     } catch (error) {
       await this.stop();
       throw error;
@@ -119,9 +152,12 @@ export class LocalServer {
   }
 
   async stop(): Promise<void> {
+    this.stopping = true;
     const child = this.child;
     this.child = null;
     if (!child || child.exitCode !== null) {
+      this.logStream?.end();
+      this.logStream = null;
       return;
     }
 
@@ -136,6 +172,12 @@ export class LocalServer {
         resolve();
       });
     });
+  }
+
+  private writeLog(channel: 'stdout' | 'stderr', chunk: Buffer): void {
+    this.logStream?.write(
+      `${new Date().toISOString()} ${channel} ${chunk.toString()}`,
+    );
   }
 }
 

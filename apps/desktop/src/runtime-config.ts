@@ -18,7 +18,14 @@ function normalizeHttpUrl(value: string, name: string): string {
       `${name} must be an absolute HTTP(S) URL without credentials.`,
     );
   }
+  if (url.protocol === 'http:' && !isLoopbackHostname(url.hostname)) {
+    throw new Error(`${name} must use HTTPS unless it targets loopback.`);
+  }
   return url.toString().replace(/\/$/, '');
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  return ['127.0.0.1', 'localhost', '[::1]'].includes(hostname);
 }
 
 export function resolveApiBaseUrl(

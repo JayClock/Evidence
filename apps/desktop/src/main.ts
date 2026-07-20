@@ -14,12 +14,17 @@ import {
 } from 'electron';
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalServer, type LocalServerConnection } from './local-server';
-import { resolveWebUrl } from './runtime-config';
+import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
 
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;
 const DESKTOP_SESSION_HEADER = 'x-evidence-desktop-token';
 const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
+
+interface RuntimeConnection {
+  apiBaseUrl: string;
+  sessionToken?: string;
+}
 
 let localServer: LocalServer | null = null;
 let allowQuit = false;
@@ -155,7 +160,32 @@ function createLocalServer(): LocalServer {
       process.env.EVIDENCE_USER_DATA_PATH ?? app.getPath('userData'),
     rendererOrigin: rendererOrigin(),
     packaged: app.isPackaged,
+    onUnexpectedExit: (error) => {
+      if (!allowQuit) {
+        dialog.showErrorBox('Evidence server stopped', error.message);
+        app.quit();
+      }
+    },
   });
+}
+
+async function runtimeConnection(): Promise<RuntimeConnection> {
+  if (process.env.EVIDENCE_API_BASE_URL?.trim()) {
+    const apiBaseUrl = resolveApiBaseUrl();
+    const healthUrl = new URL('/health', apiBaseUrl).toString();
+    const response = await fetch(healthUrl, {
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Remote Evidence API health check returned ${response.status}.`,
+      );
+    }
+    return { apiBaseUrl };
+  }
+
+  localServer = createLocalServer();
+  return localServer.start();
 }
 
 function canOpenExternally(value: string): boolean {
@@ -168,16 +198,16 @@ function canOpenExternally(value: string): boolean {
 
 async function verifyPackagedRuntime(
   window: BrowserWindow,
-  connection: LocalServerConnection,
+  connection: RuntimeConnection,
 ): Promise<void> {
   if (!SMOKE_TEST) {
     return;
   }
 
   const response = await fetch(`${connection.apiBaseUrl}/users/desktop-user`, {
-    headers: {
-      [DESKTOP_SESSION_HEADER]: connection.sessionToken,
-    },
+    headers: connection.sessionToken
+      ? { [DESKTOP_SESSION_HEADER]: connection.sessionToken }
+      : undefined,
   });
   if (!response.ok) {
     throw new Error(`Packaged API smoke check returned ${response.status}.`);
@@ -230,9 +260,10 @@ async function createWindow(): Promise<BrowserWindow> {
 void app.whenReady().then(async () => {
   try {
     registerWebProtocol();
-    localServer = createLocalServer();
-    const connection = await localServer.start();
-    registerApiAuthentication(connection);
+    const connection = await runtimeConnection();
+    if (connection.sessionToken) {
+      registerApiAuthentication(connection as LocalServerConnection);
+    }
     registerDesktopBridge(connection.apiBaseUrl);
     const window = await createWindow();
     await verifyPackagedRuntime(window, connection);

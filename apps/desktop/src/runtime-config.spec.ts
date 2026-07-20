@@ -24,4 +24,10 @@ describe('desktop runtime config', () => {
   ])('rejects unsafe endpoint %s', (value) => {
     expect(() => resolveApiBaseUrl(value)).toThrow(/absolute HTTP\(S\) URL/);
   });
+
+  it('requires HTTPS for non-loopback APIs', () => {
+    expect(() => resolveApiBaseUrl('http://api.example.com/api')).toThrow(
+      'must use HTTPS unless it targets loopback',
+    );
+  });
 });
