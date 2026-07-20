@@ -21,7 +21,7 @@ Evidence 是被开发和验证的领域建模产品；Evidence Orchestrator 是�
 - `docs/product/` 中的画像、业务上下文、用户旅程和故事地图；
 - `.evidence/` 中的产品领域实体、关系和回归场景；
 - `docs/architecture/context-map.md` 中的产品上下文及运行时集成；
-- `contracts/` 与 `apps/*`、`libs/*` 中的产品行为。
+- `apps/*`、`libs/*` 与 `libs/server/api/openapi.yaml` 中的产品行为。
 
 ### 内部研发知识
 

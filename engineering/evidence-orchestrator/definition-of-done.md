@@ -30,7 +30,7 @@
 
 ## 契约与持久化
 
-- API 变化同步实现、`contracts/api.yaml`、契约测试和生成客户端。
+- API 变化同步实现、`libs/server/api/openapi.yaml`、契约测试和生成客户端。
 - 新持久化行为同时考虑 fake/memory 与生产 adapter 的契约一致性。
 - 所有查询遵守软删除和工作区边界。
 - migration、Prisma schema 或 SQLite registry schema 是数据模型事实来源；iteration 只记录 delta。

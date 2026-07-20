@@ -74,7 +74,6 @@ Workspace 创建或导入时必须规范化并保存 `repositoryRoot` 与 `evide
 API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。
 
 - Nest 拥有的 OpenAPI 源文件：`libs/server/api/openapi.yaml`。
-- 发布契约副本：`contracts/api.yaml`。
 - 生成的 Web 类型：`libs/web/api-client/src/lib/openapi-schema.ts`。
 - 修改 API 时必须同步实现、OpenAPI、black-box contract tests 和生成客户端。
 
@@ -174,7 +173,6 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 | `libs/server/persistent/`                   | PostgreSQL、SQLite 和 filesystem adapters                |
 | `libs/server/infrastructure/`               | Pi SDK 等外部适配器                                      |
 | `apps/desktop/`                             | Electron main/preload、local server manager 和 packaging |
-| `contracts/api.yaml`                        | 发布的 OpenAPI 契约副本                                  |
 | `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                        |
 | `docs/product/`                             | 统一产品上下文、画像和旅程                               |
 | `.evidence/`                                | Evidence 产品权威领域模型                                |

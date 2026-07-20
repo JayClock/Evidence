@@ -24,7 +24,7 @@
 
 ## Published Language 与适配边界
 
-- `libs/server/api/openapi.yaml` 是 Nest 拥有的 OpenAPI source；`contracts/api.yaml` 是发布副本。
+- `libs/server/api/openapi.yaml` 是 Nest 拥有的唯一 OpenAPI source，并直接生成 Web client 类型。
 - Web 与 Desktop renderer 都通过同一 HAL client 消费 API，不导入 Server 内部类型。
 - Hosted 与 Desktop 共享 Domain/API，只在 composition root 切换 PostgreSQL 与 SQLite registry。
 - `.evidence` YAML 是工作空间逻辑模型的持久化语言；Diagram 是其投影，不是第二份领域模型。

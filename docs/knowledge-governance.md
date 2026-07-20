@@ -12,7 +12,7 @@
 | 产品解决方案 | `docs/product/`                                                      | 问题陈述、旅程切片以及产品 / 故事地图增量 |
 | 领域模型     | `.evidence/`                                                         | 模型快照、增量和场景展开                  |
 | 架构         | `docs/architecture/`                                                 | 架构决策和场景上下文映射                  |
-| API 契约     | `contracts/api.yaml`                                                 | API 契约增量                              |
+| API 契约     | `libs/server/api/openapi.yaml`                                       | API 契约增量                              |
 | 数据模型     | Prisma migrations/schema、SQLite registry schema 与 `.evidence` YAML | 数据模型增量                              |
 | 测试工序     | `engineering/evidence-orchestrator/test-processes/`                  | 已选定的不可变工序快照                    |
 | 方法工作知识 | `.pi/skills/`、`.pi/prompts/` 与 Working Knowledge catalog           | 实际加载版本、使用场景和反馈证据          |

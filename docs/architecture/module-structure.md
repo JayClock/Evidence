@@ -32,7 +32,7 @@ libs/
 - PostgreSQL/SQLite registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`。
 - Pi SDK 等外部 adapter 放在 `libs/server/infrastructure`。
 - Desktop 只拥有 Electron 壳、本地 Nest 生命周期、受限 preload、协议和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
-- OpenAPI source 位于 `libs/server/api/openapi.yaml`；发布副本位于 `contracts/api.yaml`；契约 runner 位于 `libs/contracts/api-contracts`。
+- OpenAPI source 位于 `libs/server/api/openapi.yaml`；生成的 Web 类型位于 `libs/web/api-client`；契约 runner 位于 `libs/contracts/api-contracts`。
 
 ## Server composition roots
 

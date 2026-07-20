@@ -111,7 +111,7 @@ API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embed
 | GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | 逻辑实体 CRUD              |
 | GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | 逻辑关系 CRUD              |
 
-Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api/openapi.yaml)。`pnpm api:generate` 发布 [`contracts/api.yaml`](./contracts/api.yaml) 并重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止漂移。
+Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api/openapi.yaml)。`pnpm api:generate` 直接重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止源码、客户端与运行时漂移。
 
 ### Desktop 安全与打包
 
@@ -305,7 +305,6 @@ pnpm orchestrator:validate
 | `libs/server/persistent/`                   | PostgreSQL、SQLite 与 filesystem adapters               |
 | `libs/server/infrastructure/`               | Pi SDK adapter                                          |
 | `apps/desktop/`                             | Electron main/preload、本地 Server manager 与 packaging |
-| `contracts/api.yaml`                        | 发布的 OpenAPI 契约副本                                 |
 | `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                          |
 | `docs/product/`                             | 跨迭代统一产品知识                                      |
 | `.evidence/`                                | Evidence 平台权威领域模型                               |
