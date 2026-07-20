@@ -11,14 +11,6 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.memberships+json',
     ],
     [
-      '/api/users/desktop-user/workspaces',
-      'application/vnd.evidence.workspaces+json',
-    ],
-    [
-      '/api/users/desktop-user/workspaces/default-workspace',
-      'application/vnd.evidence.workspace+json',
-    ],
-    [
       '/api/workspaces/default-workspace',
       'application/vnd.evidence.workspace+json',
     ],

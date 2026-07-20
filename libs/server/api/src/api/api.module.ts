@@ -6,7 +6,6 @@ import { LogicalRelationshipsController } from './logical-relationships.controll
 import { ResourceResolver } from './resource-resolver.service';
 import { SidebarController } from './sidebar.controller';
 import { UserMembershipsController } from './user-memberships.controller';
-import { UserWorkspacesController } from './user-workspaces.controller';
 import { UsersController } from './users.controller';
 import { VendorMediaTypeInterceptor } from './vendor-media.interceptor';
 import { WorkspaceMembersController } from './workspace-members.controller';
@@ -35,12 +34,6 @@ class SidebarApiModule {}
   controllers: [UserMembershipsController],
 })
 class UserMembershipsApiModule {}
-
-@Module({
-  imports: [ApiResourcesModule],
-  controllers: [UserWorkspacesController],
-})
-class UserWorkspacesApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
@@ -77,7 +70,6 @@ class LogicalRelationshipsApiModule {}
     UsersApiModule,
     SidebarApiModule,
     UserMembershipsApiModule,
-    UserWorkspacesApiModule,
     WorkspaceMembersApiModule,
     WorkspacesApiModule,
     DiagramsApiModule,
@@ -95,10 +87,6 @@ class LogicalRelationshipsApiModule {}
           {
             path: ':userId/memberships',
             module: UserMembershipsApiModule,
-          },
-          {
-            path: ':userId/workspaces',
-            module: UserWorkspacesApiModule,
           },
         ],
       },

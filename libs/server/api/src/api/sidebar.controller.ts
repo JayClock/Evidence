@@ -1,13 +1,5 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import {
-  link,
-  Link,
-  userHref,
-  userSidebarHref,
-  userWorkspacesHref,
-  workspaceDiagramHref,
-  workspaceLogicalEntitiesHref,
-} from './links';
+import { link, Link, userHref, userSidebarHref } from './links';
 import { ResourceResolver } from './resource-resolver.service';
 
 interface SidebarItem {
@@ -39,46 +31,12 @@ export class SidebarController {
   async getUserSidebar(
     @Param('userId') userId: string,
   ): Promise<SidebarResource> {
-    const user = await this.resolver.requireUser(userId);
-    const [workspaces] = await user.listWorkspaces(1, 1, null);
-    return sidebarResource(userId, workspaces[0]?.identity() ?? null);
+    await this.resolver.requireUser(userId);
+    return sidebarResource(userId);
   }
 }
 
-export function sidebarResource(
-  userId: string,
-  workspaceId: string | null,
-): SidebarResource {
-  const items: SidebarItem[] = [
-    {
-      key: 'workspaces',
-      label: 'Workspaces',
-      type: 'resource',
-      href: userWorkspacesHref(userId),
-      path: userWorkspacesHref(userId),
-      icon: 'layout-dashboard',
-    },
-  ];
-
-  if (workspaceId) {
-    items.push({
-      key: 'diagram',
-      label: 'Diagram',
-      type: 'resource',
-      href: workspaceDiagramHref(workspaceId),
-      path: workspaceDiagramHref(workspaceId),
-      icon: 'network',
-    });
-    items.push({
-      key: 'logical-entities',
-      label: 'Logical Entities',
-      type: 'resource',
-      href: workspaceLogicalEntitiesHref(workspaceId),
-      path: workspaceLogicalEntitiesHref(workspaceId),
-      icon: 'database',
-    });
-  }
-
+export function sidebarResource(userId: string): SidebarResource {
   return {
     _links: {
       self: link(userSidebarHref(userId)),
@@ -89,7 +47,16 @@ export function sidebarResource(
         title: 'USER',
         key: 'user',
         defaultOpen: true,
-        items,
+        items: [
+          {
+            key: 'logical-entities',
+            label: 'Logical Entities',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/logical-entities',
+            path: '/api/workspaces/{workspaceId}/logical-entities',
+            icon: 'database',
+          },
+        ],
       },
     ],
   };

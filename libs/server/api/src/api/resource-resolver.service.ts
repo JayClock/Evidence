@@ -63,18 +63,6 @@ export class ResourceResolver {
     await this.users.workspaces().delete(workspaceId);
   }
 
-  async requireUserWorkspace(
-    userId: string,
-    workspaceId: string,
-  ): Promise<Workspace> {
-    const user = await this.requireUser(userId);
-    const workspace = await user.workspaces().findByIdentity(workspaceId);
-    if (!workspace) {
-      throw DomainError.notFound(`workspace ${workspaceId} not found`);
-    }
-    return workspace;
-  }
-
   async requireWorkspaceMember(
     workspaceId: string,
     memberId: string,

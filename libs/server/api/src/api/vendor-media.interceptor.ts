@@ -53,12 +53,6 @@ export function vendorMediaType(
   if (matches(apiSegments, ['users', '*', 'memberships'])) {
     return mediaType('memberships');
   }
-  if (matches(apiSegments, ['users', '*', 'workspaces'])) {
-    return mediaType('workspaces');
-  }
-  if (matches(apiSegments, ['users', '*', 'workspaces', '*'])) {
-    return mediaType('workspace');
-  }
   if (matches(apiSegments, ['workspaces'])) {
     return method.toUpperCase() === 'POST' ? mediaType('workspace') : null;
   }

@@ -5,7 +5,6 @@ import {
   userHref,
   userMembershipsHref,
   userSidebarHref,
-  userWorkspacesHref,
   workspacesHref,
 } from '../links';
 
@@ -23,7 +22,6 @@ export function userModel(user: User): UserModel {
       self: link(userHref(userId)),
       memberships: link(userMembershipsHref(userId)),
       'create-workspace': link(workspacesHref()),
-      workspaces: link(userWorkspacesHref(userId)),
       sidebar: link(userSidebarHref(userId)),
     },
     id: userId,

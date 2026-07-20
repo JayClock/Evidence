@@ -18,24 +18,12 @@ export function userHref(userId: string): string {
   return `/api/users/${userId}`;
 }
 
-export function userWorkspacesHref(userId: string): string {
-  return `/api/users/${userId}/workspaces`;
-}
-
 export function userMembershipsHref(userId: string): string {
   return `/api/users/${userId}/memberships`;
 }
 
 export function userSidebarHref(userId: string): string {
   return `/api/users/${userId}/sidebar`;
-}
-
-export function userWorkspacesPageHref(
-  userId: string,
-  page: number,
-  pageSize: number,
-): string {
-  return `${userWorkspacesHref(userId)}?page=${page}&pageSize=${pageSize}`;
 }
 
 export function userMembershipsPageHref(
