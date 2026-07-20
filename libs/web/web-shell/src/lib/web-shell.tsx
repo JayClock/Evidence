@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   useResource,
@@ -54,6 +54,7 @@ export function WebShell({
   userState: State<UserResource>;
   children: ReactNode;
 }) {
+  const location = useLocation();
   const navigate = useNavigate();
   const sidebarResource = useMemo(
     () => userState.follow('sidebar'),
@@ -67,7 +68,6 @@ export function WebShell({
     () => userState.follow('create-workspace'),
     [userState],
   );
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>();
   const sidebar = useResource<SidebarResource>(sidebarResource);
   const memberships =
     useResource<MembershipCollectionResource>(membershipsResource);
@@ -76,13 +76,13 @@ export function WebShell({
       (membershipState: State<MembershipResource>) =>
         membershipState.data.workspace,
     ) ?? [];
+  const routeWorkspaceId = workspaceIdFromPath(location.pathname);
   const activeWorkspace =
-    workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ??
+    workspaces.find((workspace) => workspace.id === routeWorkspaceId) ??
     workspaces[0];
 
   const selectWorkspace = useCallback(
     (workspace: MembershipWorkspace) => {
-      setSelectedWorkspaceId(workspace.id);
       const href = workspaceHref(workspace);
       if (href) {
         navigate(href);
@@ -96,7 +96,6 @@ export function WebShell({
       const createdWorkspace = (await createWorkspaceResource.post({
         data: input,
       })) as State<WorkspaceResource>;
-      setSelectedWorkspaceId(createdWorkspace.data.id);
       await memberships.resource.refresh();
       const href = createdWorkspace.getLink('self')?.href;
       if (href) {
@@ -360,6 +359,11 @@ function routeCandidates(pathname: string) {
   }
 
   return [pathname];
+}
+
+function workspaceIdFromPath(pathname: string): string | null {
+  const match = pathname.match(/\/(?:api\/)?workspaces\/([^/?#]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 function initials(name: string) {
