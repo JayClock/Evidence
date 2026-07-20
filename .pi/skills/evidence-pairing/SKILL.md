@@ -35,7 +35,7 @@ Use for the approved Pair loop. One `/evidence-run ITER-xxxx` lets the controlle
 - Pair requires Delivery admission, one per-Story activity lease, and the bounded global Pair runner lease. Iteration, worktree, Board root, lease id, or State CAS drift fails closed.
 - A Red Reviewer classifies evidence but does not grant human product authority.
 - Drivers never modify plans, state, execution evidence, frozen tests outside their role, Git HEAD, workspace configuration, or unapproved Nx projects. Project-owner/configuration violations are restored and returned to Tasking; other role-boundary violations are restored and retried only within the budget.
-- Automation never broadens Scenario scope, changes an approved plan, mixes Rust/Nest, weakens tests, or treats a pseudo-Red as behavior.
+- Automation never broadens Scenario scope, changes an approved plan, restores a retired runtime, weakens tests, or treats a pseudo-Red as behavior.
 - Retry exhaustion, missing evidence, scope/architecture/process gaps, or an unrepairable quality gate stop for explicit exception routing.
 - All gates passing is necessary but not sufficient: only the final human coding decision authorizes transition to Showcase.
 

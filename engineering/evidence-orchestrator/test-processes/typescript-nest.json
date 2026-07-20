@@ -11,7 +11,7 @@
       "model-proposal"
     ],
     "technical_boundaries": ["nest-domain", "prisma-store", "nest-api"],
-    "when": "The selected Scenario belongs to the Nest server route and must not use Rust server modules."
+    "when": "The selected Scenario belongs to the canonical Nest server route rather than Web-only or Electron-shell behavior."
   },
   "steps": [
     {
@@ -100,7 +100,7 @@
         "expected_failure": "The selected API status or response expectation fails through Nest composition."
       },
       "green": {
-        "done_when": "The confirmed API Scenario passes without mixing Rust server modules."
+        "done_when": "The confirmed API Scenario passes through the canonical Nest composition."
       },
       "refactor": {
         "done_when": "Controller delegation is clear and the focused Scenario stays green."

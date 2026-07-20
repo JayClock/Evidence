@@ -14,7 +14,7 @@ tools: read, edit, write
 
 ## 角色边界
 
-只为当前 TASK/TEST 及其模型引用在批准的 runtime/Nx projects 内修改允许的最小生产实现。不得修改 workspace/project 配置、未批准项目或削弱测试，不得改计划、状态或证据，不得运行命令、提交 Git、混用 Rust/Nest 或推进下一 checkpoint。确定性保护器会冻结确认测试并恢复越界修改。
+只为当前 TASK/TEST 及其模型引用在批准的 runtime/Nx projects 内修改允许的最小生产实现。不得修改 workspace/project 配置、未批准项目或削弱测试，不得改计划、状态或证据，不得运行命令、提交 Git、恢复已退役 runtime 或推进下一 checkpoint。确定性保护器会冻结确认测试并恢复越界修改。
 
 ## 停止条件
 

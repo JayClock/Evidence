@@ -36,7 +36,7 @@ Use only for the one active WIP Story in `Understand/TQA`. A delivery iteration 
 
 **Bad question:** “Should we store the version in PostgreSQL?” It asks for an internal implementation decision.
 
-**Bad question:** “Should the API use Axum or Nest?” Runtime selection belongs to Tasking.
+**Bad question:** “Should this use PostgreSQL or SQLite?” Runtime adapter selection belongs to architecture and Tasking.
 
 **Good Scenario:** Given model v3 is confirmed; when the modeling lead opens the workspace; then v3 is visibly marked current; data: `version=v3`, `workspace=alpha`.
 

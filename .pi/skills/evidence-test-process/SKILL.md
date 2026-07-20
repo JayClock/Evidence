@@ -1,6 +1,6 @@
 ---
 name: evidence-test-process
-description: Turn one confirmed Evidence Story Scenario Set into one reviewable, deduplicated Q2/Q1 test list, uniquely selected v3 test processes, TEST-level Nx ownership and focus, boundaries, doubles, locked gates, and ordered implementation tasks. Use in Tasking, Desk Check preparation, or process-gap feedback. Do not guess among process matches, mix Rust and Nest, or write code.
+description: Turn one confirmed Evidence Story Scenario Set into one reviewable, deduplicated Q2/Q1 test list, uniquely selected v3 test processes, TEST-level Nx ownership and focus, boundaries, doubles, locked gates, and ordered implementation tasks. Use in Tasking, Desk Check preparation, or process-gap feedback. Do not guess among process matches, restore retired runtimes, or write code.
 ---
 
 # Evidence Test Process
@@ -22,9 +22,9 @@ Use before Pair after either (a) a non-`none` expansion passes independent chall
 3. Give every `TEST-xxx` explicit Scenario refs. For non-`none`, use `modelRefs` drawn only from the confirmed Story expansion and cover every expansion reference across the list. For `none`, every test must use empty model refs and trace directly Scenario → TASK/TEST.
 4. Separate dimensions:
    - functional context = stable business capability;
-   - runtime = Rust, TypeScript, or Tauri;
-   - technical boundary = API, ORM, UI, shell, etc.
-5. Select Rust **or** Nest for one server capability across the Story, never both.
+   - runtime = TypeScript;
+   - technical boundary = Nest API/domain/persistence, React UI, Electron shell, etc.
+5. Select the canonical Nest server boundary, shared Web boundary, or Electron shell boundary required by the Scenario; never restore retired runtime routes.
 6. Match v3 processes by all capabilities and boundaries. Zero or multiple matches are knowledge gaps; do not choose heuristically.
 7. For every TypeScript runtime, list the complete planned Nx `projectIds`. Give every TEST its own safe `testFilter` and, exactly when the focused template uses `{{project}}`, the resolved owning `projectId`. The TEST project must own the nearest-test path, intersect the step roots, and expose a `test` target; never substitute an app project for a library owner.
 8. Cover selected process steps in declared order, including real boundaries, replaced boundaries, doubles, per-TEST focused commands, and all materialized project/process gates. Missing required targets are process gaps.
@@ -34,7 +34,7 @@ Use before Pair after either (a) a non-`none` expansion passes independent chall
 ## Project examples
 
 - Web workspace display: Q2 rendered feature; Q1 component/resource behavior; real React feature; stub HTTP boundary; TypeScript Web process.
-- Server workspace rule: choose Rust domain/Axum **or** Nest domain/controller from architecture ownership, never both.
+- Server workspace rule: use the canonical Nest domain/controller process; add Electron only when the Scenario changes shell or managed-local-runtime behavior.
 
 ## Feedback and exit conditions
 

@@ -10,7 +10,7 @@
     {
       "id": 2,
       "prompt": "Two server processes match because runtime ownership is unresolved. Choose one and draft the task list.",
-      "expected_output": "Refuses to guess, records an architecture/process knowledge gap, and does not mix Rust and Nest.",
+      "expected_output": "Refuses to guess, records an architecture/process knowledge gap, and does not restore or mix a retired runtime route.",
       "files": []
     }
   ]
