@@ -27,6 +27,27 @@ export async function apiRequest<T = JsonObject>(
   return { status: response.status, body, headers: response.headers };
 }
 
+export async function apiTextRequest(
+  path: string,
+  init: RequestInit = {},
+): Promise<{ status: number; body: string; headers: Headers }> {
+  if (!apiBaseUrl) {
+    throw new Error('API_BASE_URL is required to run API contract tests');
+  }
+  const response = await fetch(`${apiBaseUrl}${path}`, {
+    ...init,
+    headers: {
+      ...(init.body ? { 'content-type': 'application/json' } : {}),
+      ...init.headers,
+    },
+  });
+  return {
+    status: response.status,
+    body: await response.text(),
+    headers: response.headers,
+  };
+}
+
 export function expectResourceContentType(
   response: { headers: Headers },
   contentType: string,

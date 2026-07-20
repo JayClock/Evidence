@@ -12,6 +12,19 @@
       "options": {
         "command": "vitest run --config libs/contracts/api-contracts/vitest.config.mts"
       }
+    },
+    "contract-local": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": "@evidence/server-nest",
+          "target": "build-desktop"
+        }
+      ],
+      "options": {
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs"
+      }
     }
   }
 }

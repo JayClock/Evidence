@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { parse } from 'yaml';
+import openapiYaml from '@evidence/server-nest-api/openapi.yaml?raw';
 import {
   apiHref,
   healthHref,
@@ -6,6 +8,8 @@ import {
   Link,
   userHref,
 } from '@evidence/server-nest-api';
+
+const openapiDocument = parse(openapiYaml) as Record<string, unknown>;
 
 export interface RootResource {
   _links: Record<string, Link>;
@@ -38,17 +42,6 @@ export class AppService {
   }
 
   openapi(): Record<string, unknown> {
-    return {
-      openapi: '3.1.0',
-      info: {
-        title: 'Evidence API',
-        version: '0.1.0',
-        description: 'Contract-first API for Evidence runtime implementations.',
-      },
-      servers: [
-        { url: 'http://127.0.0.1:3000', description: 'Nest local server' },
-      ],
-      paths: {},
-    };
+    return openapiDocument;
   }
 }
