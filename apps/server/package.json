@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.80.10",
     "@evidence/server-api": "workspace:*",
     "@evidence/server-domain": "workspace:*",
     "@evidence/server-infrastructure": "workspace:*",

@@ -1,13 +1,13 @@
 import { Global, Module } from '@nestjs/common';
 import { DOMAIN_ARCHITECT } from '@evidence/server-domain';
-import { PiRpcDomainArchitect } from '@evidence/server-infrastructure';
+import { PiSdkDomainArchitect } from '@evidence/server-infrastructure';
 
 @Global()
 @Module({
   providers: [
     {
       provide: DOMAIN_ARCHITECT,
-      useClass: PiRpcDomainArchitect,
+      useClass: PiSdkDomainArchitect,
     },
   ],
   exports: [DOMAIN_ARCHITECT],

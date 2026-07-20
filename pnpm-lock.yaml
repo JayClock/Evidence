@@ -232,6 +232,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@earendil-works/pi-coding-agent':
+        specifier: 0.80.10
+        version: 0.80.10(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.18.0)(zod@4.4.3)
       '@evidence/server-api':
         specifier: workspace:*
         version: link:../../libs/server/api
@@ -321,6 +324,9 @@ importers:
 
   libs/server/infrastructure:
     dependencies:
+      '@earendil-works/pi-coding-agent':
+        specifier: 0.80.10
+        version: 0.80.10(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.18.0)(zod@4.4.3)
       '@evidence/server-domain':
         specifier: workspace:*
         version: link:../domain

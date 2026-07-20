@@ -28,14 +28,12 @@ describe('managed local server', () => {
       userDataPath: '/tmp/evidence-user',
       rendererOrigin: 'evidence://app',
       packaged: true,
-      piEntry: '/tmp/evidence-pi/cli.js',
       legacyRegistryPath: '/tmp/tauri/evidence.sqlite',
     });
 
     expect(environment).toMatchObject({
       ELECTRON_RUN_AS_NODE: '1',
       EVIDENCE_STORAGE: 'sqlite',
-      EVIDENCE_PI_ENTRY: '/tmp/evidence-pi/cli.js',
       EVIDENCE_LEGACY_REGISTRY_PATH: '/tmp/tauri/evidence.sqlite',
       EVIDENCE_REGISTRY_PATH: '/tmp/evidence-user/data/registry.sqlite',
       EVIDENCE_DEFAULT_WORKSPACE_PATH:
@@ -54,7 +52,6 @@ describe('managed local server', () => {
     server = new LocalServer({
       executablePath: process.execPath,
       serverEntry,
-      piEntry: serverEntry,
       legacyRegistryPath: join(testRoot, 'missing-legacy.sqlite'),
       userDataPath: testRoot,
       rendererOrigin: 'http://127.0.0.1:4200',

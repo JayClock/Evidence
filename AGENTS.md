@@ -26,7 +26,7 @@ Electron
             ├─ session-token guard
             ├─ node:sqlite registry
             ├─ workspace/.evidence YAML model
-            └─ embedded Pi CLI
+            └─ embedded Pi SDK
 ```
 
 - Web 与 Desktop 必须共享 REST/HAL 和领域语义；不得通过 Electron IPC 复制业务 API。
@@ -42,7 +42,7 @@ Electron
 | API              | `libs/server/api/src/api/`               | Controller、请求解析、HAL 序列化、vendor media type、SSE 映射                    |
 | Domain           | `libs/server/domain/src/domain/`         | 纯 TypeScript 领域对象、port 与规则；不依赖 Nest、Prisma、HTTP、Electron         |
 | Persistence      | `libs/server/persistent/src/persistent/` | Prisma/PostgreSQL registry、`node:sqlite` registry、`.evidence` 文件模型 adapter |
-| Infrastructure   | `libs/server/infrastructure/src/`        | Pi RPC `DomainArchitect` adapter 等外部进程集成                                  |
+| Infrastructure   | `libs/server/infrastructure/src/`        | Pi SDK `DomainArchitect` adapter 等外部集成                                      |
 
 依赖方向必须保持：composition/API/persistence/infrastructure 可以依赖 domain，domain 不得反向依赖框架或 adapter。Controller 只负责协议转换与委托；业务规则进入 domain 或明确的 domain port 实现。
 
@@ -131,7 +131,7 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 - preload bridge 只暴露 `getApiBaseUrl()` 与 `chooseDirectory()`；新增能力必须有 sender validation 和最小权限测试。
 - 打包 renderer 使用 `evidence://app/`，必须保留 SPA fallback、路径穿越防护和外部导航拦截。
 - 本地 Nest 绑定随机 `127.0.0.1` 端口，使用 32-byte base64url session token、认证 health wait、日志和 SIGTERM/SIGKILL 回收。
-- Pi CLI 必须作为 production dependency 嵌入包中；不得依赖系统 Node、Pi 或 PostgreSQL。
+- Pi SDK 必须作为 production dependency 嵌入包中；不得依赖系统 Node、Pi 或 PostgreSQL。
 - 打包事实来源是 `apps/desktop/electron-builder.yml`。发布边界变化必须运行 unpacked/package smoke。
 
 ## 测试与质量门禁
@@ -172,7 +172,7 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 | `libs/server/api/`                          | Nest controllers、HAL/SSE 和 OpenAPI source              |
 | `libs/server/domain/`                       | 纯领域模型与 ports                                       |
 | `libs/server/persistent/`                   | PostgreSQL、SQLite 和 filesystem adapters                |
-| `libs/server/infrastructure/`               | Pi RPC 等外部适配器                                      |
+| `libs/server/infrastructure/`               | Pi SDK 等外部适配器                                      |
 | `apps/desktop/`                             | Electron main/preload、local server manager 和 packaging |
 | `contracts/api.yaml`                        | 发布的 OpenAPI 契约副本                                  |
 | `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                        |

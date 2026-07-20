@@ -68,11 +68,32 @@ jobs:
           set -euo pipefail
           pnpm nx build @evidence/server
           mkdir -p "$RUNNER_TEMP/evidence-contract-workspaces"
-          EVIDENCE_PI_ENTRY="$GITHUB_WORKSPACE/libs/contracts/api-contracts/fixtures/fake-pi.mjs" \
-            EVIDENCE_HOST=127.0.0.1 PORT=3000 \
+          server_pid=''
+          fake_pi_pid=''
+          cleanup() {
+            if [[ -n "$server_pid" ]]; then kill "$server_pid" 2>/dev/null || true; fi
+            if [[ -n "$fake_pi_pid" ]]; then kill "$fake_pi_pid" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+          export PI_CODING_AGENT_DIR="$RUNNER_TEMP/evidence-pi-agent"
+          export EVIDENCE_FAKE_PI_PORT=32199
+          node libs/contracts/api-contracts/fixtures/fake-pi-provider.mjs \
+            > "$RUNNER_TEMP/evidence-fake-pi.log" 2>&1 &
+          fake_pi_pid=$!
+          for attempt in $(seq 1 100); do
+            if grep --quiet EVIDENCE_FAKE_PI_READY "$RUNNER_TEMP/evidence-fake-pi.log"; then
+              break
+            fi
+            if ! kill -0 "$fake_pi_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/evidence-fake-pi.log"
+              exit 1
+            fi
+            sleep 0.1
+          done
+          grep --quiet EVIDENCE_FAKE_PI_READY "$RUNNER_TEMP/evidence-fake-pi.log"
+          PI_OFFLINE=1 EVIDENCE_HOST=127.0.0.1 PORT=3000 \
             node apps/server/dist/main.js > "$RUNNER_TEMP/evidence-server.log" 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 100); do
             if curl --fail --silent http://127.0.0.1:3000/health >/dev/null; then
               break

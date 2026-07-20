@@ -15,7 +15,7 @@ Hosted Server 默认使用 PostgreSQL；Desktop 通过相同 domain/API 使用 S
 ## 核心原则
 
 1. **领域优先**：业务规则进入 domain；controller 只负责协议转换和委托。
-2. **端口与适配器**：持久化和 Pi RPC 实现 domain ports，数据库或进程协议不反向定义领域语言。
+2. **端口与适配器**：持久化和 Pi SDK 实现 domain ports，数据库或外部 SDK 不反向定义领域语言。
 3. **单一服务端语义**：Nest 是唯一 Server runtime；Hosted 与 Desktop 只在 composition root 切换 adapter。
 4. **单一前端**：Web 与 Desktop 共享 `apps/web` 和 `libs/web/*`，业务 API 不经 Electron IPC 复制。
 5. **契约优先**：Nest 拥有 OpenAPI source，发布副本、Web client 和 black-box contract runner 必须同步。
@@ -42,7 +42,7 @@ graph TD
   Persistence --> PostgreSQL[(PostgreSQL)]
   Persistence --> SQLite[(SQLite registry)]
   Persistence --> EvidenceFiles[workspace/.evidence YAML]
-  Infrastructure --> Pi[Pi RPC]
+  Infrastructure --> Pi[Pi SDK AgentSession]
 ```
 
 禁止反向依赖：

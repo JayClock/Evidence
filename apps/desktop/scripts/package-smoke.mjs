@@ -6,29 +6,34 @@ import { join, resolve } from 'node:path';
 const desktopRoot = resolve(import.meta.dirname, '..');
 const packagesRoot = join(desktopRoot, 'dist', 'packages');
 const packaged = packagedRuntime(packagesRoot);
-const piEntry = join(
+const piSdkEntry = join(
   packaged.resources,
   'app.asar.unpacked',
   'node_modules',
   '@earendil-works',
   'pi-coding-agent',
   'dist',
-  'cli.js',
+  'index.js',
 );
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-package-smoke-'));
 let output = '';
 
 try {
-  await Promise.all([access(packaged.executable), access(piEntry)]);
+  await Promise.all([access(packaged.executable), access(piSdkEntry)]);
+  const sdkCheck = `import('@earendil-works/pi-coding-agent').then((sdk) => {
+    if (typeof sdk.createAgentSession !== 'function') throw new Error('createAgentSession is unavailable');
+    process.stdout.write('PI_SDK_READY\\n');
+  })`;
   const piResult = await run(
     packaged.executable,
-    [piEntry, '--version'],
+    ['-e', sdkCheck],
     { ELECTRON_RUN_AS_NODE: '1' },
     10_000,
+    join(packaged.resources, 'app.asar.unpacked', 'dist', 'server'),
   );
   output += piResult.output;
-  if (piResult.exitCode !== 0 || !/\d+\.\d+\.\d+/.test(piResult.output)) {
-    throw new Error('Embedded Pi CLI did not start successfully.');
+  if (piResult.exitCode !== 0 || !piResult.output.includes('PI_SDK_READY')) {
+    throw new Error('Embedded Pi SDK did not load successfully.');
   }
 
   const result = await run(
@@ -78,9 +83,10 @@ function packagedRuntime(root) {
   };
 }
 
-function run(command, args, environment, timeoutMs) {
+function run(command, args, environment, timeoutMs, cwd) {
   return new Promise((resolvePromise, reject) => {
     const child = spawn(command, args, {
+      cwd,
       env: { ...process.env, ...environment },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

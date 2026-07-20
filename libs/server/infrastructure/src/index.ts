@@ -1,1 +1,1 @@
-export * from './lib/pi-rpc-domain-architect.js';
+export * from './lib/pi-sdk-domain-architect.js';

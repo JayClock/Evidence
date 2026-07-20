@@ -36,10 +36,10 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位；低价值�
 ## Contract gates
 
 - `libs/server/api/openapi.yaml` 与 `contracts/api.yaml` 必须 byte-for-byte 同步。
-- 本地 contract runner 启动 SQLite Nest child 和 fake Pi fixture，黑盒验证 Workspace、Member、Diagram、Relationship、错误、media type 与 SSE。
+- 本地 contract runner 启动 SQLite Nest child 和 fake OpenAI-compatible Pi provider，黑盒验证 Workspace、Member、Diagram、Relationship、错误、media type 与 SSE。
 - PostgreSQL CI 先运行 `prisma migrate deploy`，再运行 migration/contract gates。
 - Web client 由 OpenAPI 生成；类型检查不能替代运行时 contract test。
-- Electron package smoke 验证内嵌 Pi CLI、packaged renderer、本地 Nest readiness 和 SQLite registry。
+- Electron package smoke 验证内嵌 Pi SDK、packaged renderer、本地 Nest readiness 和 SQLite registry。
 
 ## 执行原则
 

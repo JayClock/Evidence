@@ -11,7 +11,7 @@
 | Hosted persistence  | Prisma、PostgreSQL                                          | schema 通过受版本控制的 Prisma migrations 演进            |
 | Desktop persistence | Node `node:sqlite`、filesystem YAML                         | 无外部服务与 native addon 依赖                            |
 | Desktop             | Electron、electron-builder                                  | 安全 main/preload；复用 Web；管理本地 Nest child          |
-| AI adapter          | embedded Pi CLI、LF JSONL RPC、SSE                          | API 只依赖 `DomainArchitect` port；进程必须支持取消和回收 |
+| AI adapter          | embedded Pi SDK `AgentSession`、SSE                         | API 只依赖 `DomainArchitect` port；会话必须支持取消和释放 |
 | Contract            | OpenAPI YAML、openapi-typescript                            | Nest 拥有 source；发布副本和生成类型不可手改              |
 | Test                | Vitest、Testing Library、black-box contracts、package smoke | Q1/Q2 和替身遵循统一测试策略                              |
 | 内部 Workflow       | Pi extension、Skills、GitHub/Markdown/JSON evidence         | 只辅助本仓库研发，不属于产品 runtime                      |
@@ -20,7 +20,7 @@
 
 - Node.js 22+、pnpm 10+。
 - Hosted Server 默认 PostgreSQL；Desktop 只通过 composition root 切换到 SQLite。
-- Electron package 必须包含 Web、Nest child、运行依赖和 Pi CLI，不依赖系统 Node/Pi/PostgreSQL。
+- Electron package 必须包含 Web、Nest child、运行依赖和 Pi SDK，不依赖系统 Node/Pi/PostgreSQL。
 - Browser 与 Electron renderer 共享 REST/HAL；IPC 不复制 domain API。
 - 旧格式读取仅存在于一次性迁移边界，不构成仍受支持的第二 runtime。
 

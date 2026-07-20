@@ -18,7 +18,7 @@ libs/
 │   ├── api/                controllers, HAL/SSE, OpenAPI source
 │   ├── domain/             framework-free domain and ports
 │   ├── persistent/         Prisma, SQLite, filesystem adapters
-│   └── infrastructure/     Pi RPC adapter
+│   └── infrastructure/     Pi SDK adapter
 └── contracts/
     └── api-contracts/      local/remote black-box contracts
 ```
@@ -30,7 +30,7 @@ libs/
 - 业务模型、ports 和不变量放在 `libs/server/domain`；不得导入 Nest、Prisma 或 Electron。
 - Controller、请求/响应模型、HAL links、media type 和 SSE serialization 放在 `libs/server/api`。
 - PostgreSQL/SQLite registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`。
-- Pi RPC 等外部进程 adapter 放在 `libs/server/infrastructure`。
+- Pi SDK 等外部 adapter 放在 `libs/server/infrastructure`。
 - Desktop 只拥有 Electron 壳、本地 Nest 生命周期、受限 preload、协议和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
 - OpenAPI source 位于 `libs/server/api/openapi.yaml`；发布副本位于 `contracts/api.yaml`；契约 runner 位于 `libs/contracts/api-contracts`。
 
@@ -49,10 +49,10 @@ both
   ├─ ApiModule
   ├─ Domain ports
   ├─ filesystem model projection
-  └─ PiRpcDomainArchitect
+  └─ PiSdkDomainArchitect
 ```
 
-Storage selection 不得渗入 controller。Desktop 本地 child 的 host、port、token、registry path、workspace path 和 Pi entry 由 Electron main 通过环境显式传入。
+Storage selection 不得渗入 controller。Desktop 本地 child 的 host、port、token、registry path 和 workspace path 由 Electron main 通过环境显式传入；Pi SDK 在 Nest child 进程内运行。
 
 ## 禁止依赖
 

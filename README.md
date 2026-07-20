@@ -40,7 +40,7 @@ Electron
             ├─ random desktop session token
             ├─ node:sqlite registry
             ├─ workspace/.evidence YAML model
-            └─ embedded Pi CLI
+            └─ embedded Pi SDK
 ```
 
 - `apps/web` 是唯一前端组合根，功能与 API client 位于 `libs/web/*`。
@@ -61,7 +61,7 @@ libs/server/api/                     controllers, HAL, SSE, OpenAPI
 libs/server/domain/                  framework-free entities and ports
        ↑
 libs/server/persistent/              Prisma, node:sqlite, filesystem adapters
-libs/server/infrastructure/          Pi RPC adapter
+libs/server/infrastructure/          Pi SDK adapter
 ```
 
 Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协议转换和委托；runtime adapter wiring 只存在于 `apps/server`。
@@ -119,7 +119,7 @@ Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api
 - preload 只暴露 `getApiBaseUrl()` 和 `chooseDirectory()`，且 main 校验 sender。
 - 本地 Nest 绑定随机 loopback 端口并要求 32-byte base64url session token；renderer 无法读取 token，由 Electron `webRequest` 自动注入。
 - Electron 等待已认证 `/health`，记录 `server.log`，并在退出时执行 SIGTERM/SIGKILL 回收；异常退出会终止 Desktop。
-- Web、Nest child、运行依赖和 Pi CLI 都进入 electron-builder 包；package smoke 会验证内嵌 Pi、renderer、API readiness 和 SQLite registry。
+- Web、Nest child、运行依赖和 Pi SDK 都进入 electron-builder 包；package smoke 会验证内嵌 Pi SDK、renderer、API readiness 和 SQLite registry。
 
 ## 数据迁移
 
@@ -258,8 +258,7 @@ pnpm nx run @evidence/desktop:package
 | `EVIDENCE_CORS_ORIGINS`           | 允许所有             | 逗号分隔 origin；Desktop 限制为 renderer origin  |
 | `EVIDENCE_REGISTRY_PATH`          | adapter 默认         | SQLite registry 文件                             |
 | `EVIDENCE_DEFAULT_WORKSPACE_PATH` | adapter 默认         | Desktop 默认 workspace 根                        |
-| `EVIDENCE_PI_ENTRY`               | 未设置               | 嵌入式 Pi CLI entry；Desktop 自动设置            |
-| `EVIDENCE_PI_COMMAND`             | `pi`                 | 未使用 entry 时的 Pi 命令                        |
+| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                |
 | `VITE_API_BASE_URL`               | `/api`               | Browser API 根；Electron 优先读取 preload bridge |
 | `EVIDENCE_API_BASE_URL`           | 未设置               | Electron 远程 API 模式，非 loopback 必须 HTTPS   |
 
@@ -304,7 +303,7 @@ pnpm orchestrator:validate
 | `libs/server/api/`                          | Nest controllers、HAL/SSE 与 OpenAPI source             |
 | `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                           |
 | `libs/server/persistent/`                   | PostgreSQL、SQLite 与 filesystem adapters               |
-| `libs/server/infrastructure/`               | Pi RPC adapter                                          |
+| `libs/server/infrastructure/`               | Pi SDK adapter                                          |
 | `apps/desktop/`                             | Electron main/preload、本地 Server manager 与 packaging |
 | `contracts/api.yaml`                        | 发布的 OpenAPI 契约副本                                 |
 | `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                          |

@@ -3,12 +3,18 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import {
+  startFakePiProvider,
+  writeFakePiAgentConfig,
+} from '../fixtures/fake-pi-provider.mjs';
 
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-contracts-'));
 const port = await reservePort();
 const origin = `http://127.0.0.1:${port}`;
 const serverEntry = resolve('apps/server/dist-desktop/main.js');
-const piEntry = resolve('libs/contracts/api-contracts/fixtures/fake-pi.mjs');
+const piAgentDir = join(testRoot, 'pi-agent');
+const fakePiProvider = await startFakePiProvider();
+await writeFakePiAgentConfig(piAgentDir, fakePiProvider.baseUrl);
 const server = spawn(process.execPath, [serverEntry], {
   cwd: testRoot,
   env: {
@@ -17,8 +23,9 @@ const server = spawn(process.execPath, [serverEntry], {
     EVIDENCE_REGISTRY_PATH: join(testRoot, 'registry.sqlite'),
     EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
     EVIDENCE_LEGACY_REGISTRY_PATH: join(testRoot, 'missing-legacy.sqlite'),
-    EVIDENCE_PI_ENTRY: piEntry,
     EVIDENCE_HOST: '127.0.0.1',
+    PI_CODING_AGENT_DIR: piAgentDir,
+    PI_OFFLINE: '1',
     PORT: String(port),
   },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -57,6 +64,7 @@ try {
     new Promise((resolveTimeout) => setTimeout(resolveTimeout, 2_000)),
   ]);
   if (server.exitCode === null) server.kill('SIGKILL');
+  await fakePiProvider.close();
   await rm(testRoot, { recursive: true, force: true });
 }
 

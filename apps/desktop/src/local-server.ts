@@ -12,7 +12,6 @@ const SHUTDOWN_TIMEOUT_MS = 5_000;
 export interface LocalServerOptions {
   executablePath: string;
   serverEntry: string;
-  piEntry: string;
   legacyRegistryPath: string;
   userDataPath: string;
   rendererOrigin: string;
@@ -31,14 +30,12 @@ export function buildServerEnvironment(options: {
   userDataPath: string;
   rendererOrigin: string;
   packaged: boolean;
-  piEntry: string;
   legacyRegistryPath: string;
 }): NodeJS.ProcessEnv {
   return {
     ...process.env,
     ...(options.packaged ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
     EVIDENCE_STORAGE: 'sqlite',
-    EVIDENCE_PI_ENTRY: options.piEntry,
     EVIDENCE_LEGACY_REGISTRY_PATH: options.legacyRegistryPath,
     EVIDENCE_REGISTRY_PATH: join(
       options.userDataPath,
@@ -73,12 +70,6 @@ export class LocalServer {
         `The packaged Nest server was not found at ${this.options.serverEntry}.`,
       );
     }
-    if (!existsSync(this.options.piEntry)) {
-      throw new Error(
-        `The embedded Pi CLI was not found at ${this.options.piEntry}.`,
-      );
-    }
-
     this.stopping = false;
     const logsDirectory = join(this.options.userDataPath, 'logs');
     await mkdir(logsDirectory, { recursive: true });
@@ -97,7 +88,6 @@ export class LocalServer {
       userDataPath: this.options.userDataPath,
       rendererOrigin: this.options.rendererOrigin,
       packaged: this.options.packaged,
-      piEntry: this.options.piEntry,
       legacyRegistryPath: this.options.legacyRegistryPath,
     });
     const child = spawn(

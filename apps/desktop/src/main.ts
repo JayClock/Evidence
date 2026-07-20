@@ -45,22 +45,6 @@ function packagedWebRoot(): string {
   return join(process.resourcesPath, 'web');
 }
 
-function embeddedPiEntry(): string {
-  if (process.env.EVIDENCE_PI_ENTRY) {
-    return resolve(process.env.EVIDENCE_PI_ENTRY);
-  }
-  const nodeModules = app.isPackaged
-    ? join(process.resourcesPath, 'app.asar.unpacked', 'node_modules')
-    : join(__dirname, '..', 'node_modules');
-  return join(
-    nodeModules,
-    '@earendil-works',
-    'pi-coding-agent',
-    'dist',
-    'cli.js',
-  );
-}
-
 function resolveWebAsset(requestUrl: string): string {
   const webRoot = resolve(packagedWebRoot());
   const pathname = decodeURIComponent(new URL(requestUrl).pathname);
@@ -148,7 +132,6 @@ function createLocalServer(): LocalServer {
           'main.js',
         )
       : join(__dirname, '..', '..', 'server', 'dist-desktop', 'main.js'),
-    piEntry: embeddedPiEntry(),
     legacyRegistryPath:
       process.env.EVIDENCE_LEGACY_REGISTRY_PATH ??
       join(

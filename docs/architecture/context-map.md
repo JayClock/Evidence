@@ -19,7 +19,7 @@
 | Identity & Workspace | `libs/server/domain`、`persistent`、`api`      | `libs/web/web-shell`、API client | SQLite registry、本地目录选择 |
 | Model Authoring      | filesystem model adapters、domain、controllers | logical-entities feature         | 复用 Web 与本地 Nest          |
 | Diagram Projection   | `WorkspaceDiagram` 与 YAML projection          | diagrams feature                 | 复用 Web 与本地 Nest          |
-| AI Modeling          | `DomainArchitect` port、Pi RPC、SSE controller | diagrams AI UI                   | 嵌入 Pi CLI 并传给 Nest child |
+| AI Modeling          | `DomainArchitect` port、Pi SDK、SSE controller | diagrams AI UI                   | Nest child 内嵌 Pi SDK        |
 | Resource Navigation  | HAL controllers                                | resource-browser、web-shell      | preload 只提供 API base URL   |
 
 ## Published Language 与适配边界

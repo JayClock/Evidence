@@ -457,7 +457,7 @@ describe('createDiagramProposalTransport', () => {
 
   it('surfaces backend SSE errors as error chunks', async () => {
     const fetch = vi.fn(async () =>
-      sseResponse('event: error\ndata: pi rpc request timed out\n\n'),
+      sseResponse('event: error\ndata: pi sdk request timed out\n\n'),
     );
     const transport = createDiagramProposalTransport(diagramState(fetch));
 
@@ -473,7 +473,7 @@ describe('createDiagramProposalTransport', () => {
 
     expect(chunks).toContainEqual({
       type: 'error',
-      errorText: 'pi rpc request timed out',
+      errorText: 'pi sdk request timed out',
     });
   });
 
