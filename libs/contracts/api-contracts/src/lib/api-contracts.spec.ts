@@ -80,6 +80,13 @@ describeContracts('Evidence API contract vertical slice', () => {
     );
     expect(openapi.body.paths).not.toHaveProperty('/api/me/memberships');
 
+    const [legacyWorkspaces, meMemberships] = await Promise.all([
+      apiRequest(`/api/users/${userId}/workspaces`),
+      apiRequest('/api/me/memberships'),
+    ]);
+    expect(legacyWorkspaces.status).toBe(404);
+    expect(meMemberships.status).toBe(404);
+
     const user = await apiRequest(`/api/users/${userId}`);
     expect(user.status).toBe(200);
     expectHalResource(user, mediaTypes.user);
