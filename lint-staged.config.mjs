@@ -13,5 +13,4 @@ export default {
   '*.{js,jsx,ts,tsx,mjs,cjs}': (files) => [
     `eslint --fix ${files.map(quote).join(' ')}`,
   ],
-  '*.{rs,toml}': () => ['cargo fmt --all'],
 };
