@@ -43,48 +43,60 @@ jobs:
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         with:
-          version: 9.8.0
+          version: 10.14.0
           run_install: false
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Linux dependencies for Tauri
+      - name: Install Electron Linux dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential \
-            curl \
-            file \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libwebkit2gtk-4.1-dev \
-            patchelf \
-            wget
+            libasound2 \
+            libgbm1 \
+            libgtk-3-0 \
+            libnss3 \
+            libxss1 \
+            libxtst6 \
+            xvfb
 
       - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma:generate
+      - run: pnpm nx sync:check
+      - run: pnpm nx run @evidence/desktop:test
+      - run: pnpm nx run @evidence/desktop:typecheck
+      - run: pnpm nx run @evidence/desktop:lint
 
-      - name: Build desktop package
-        run: pnpm --dir apps/desktop tauri build
+      - name: Smoke test unpacked desktop package
+        if: runner.os != 'Linux'
+        run: pnpm nx run @evidence/desktop:package-smoke
+
+      - name: Smoke test unpacked Linux desktop package
+        if: runner.os == 'Linux'
+        run: xvfb-run -a pnpm nx run @evidence/desktop:package-smoke
+
+      - name: Build desktop installers
+        run: pnpm nx run @evidence/desktop:package
 
       - name: Upload desktop package artifact
         uses: actions/upload-artifact@v4
         with:
           name: evidence-desktop-${{ runner.os }}
-          path: target/release/bundle/**
+          path: |
+            apps/desktop/dist/packages/*.dmg
+            apps/desktop/dist/packages/*.zip
+            apps/desktop/dist/packages/*.exe
+            apps/desktop/dist/packages/*.AppImage
+            apps/desktop/dist/packages/*.blockmap
+            apps/desktop/dist/packages/latest*.yml
           if-no-files-found: error
 
   publish:
-    name: Publish GitHub Release
+    name: Publish draft GitHub Release
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -93,7 +105,7 @@ jobs:
         with:
           path: release-assets
 
-      - name: Publish release
+      - name: Publish draft release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tagName || github.ref_name }}

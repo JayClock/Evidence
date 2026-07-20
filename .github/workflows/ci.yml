@@ -13,6 +13,23 @@ permissions:
 jobs:
   main:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: evidence
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d evidence"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/evidence
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,34 +39,51 @@ jobs:
       - uses: pnpm/action-setup@v4
         name: Install pnpm
         with:
-          version: 9.8.0
+          version: 10.14.0
           run_install: false
 
-      # Cache node_modules
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust build artifacts
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Linux dependencies for Tauri
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
       - run: pnpm install --frozen-lockfile
       - uses: nrwl/nx-set-shas@v5
 
+      - run: pnpm prisma:generate
+      - run: pnpm --dir apps/server-nest exec prisma migrate deploy
       - run: pnpm exec nx sync:check
       - run: pnpm exec nx format:check --base=$NX_BASE --head=$NX_HEAD
       - run: pnpm orchestrator:typecheck
       - run: pnpm orchestrator:test
       - run: pnpm orchestrator:validate
+      - run: pnpm api:check
 
-      - run: pnpm exec nx affected -t format-check lint test build typecheck
-      - run: pnpm exec nx affected -t lint-sqlite test-sqlite build-sqlite test-postgres
+      - run: pnpm exec nx affected -t lint test build typecheck
+      - run: pnpm api:contracts
+
+      - name: Run contracts against hosted Nest and PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm nx build @evidence/server-nest
+          mkdir -p "$RUNNER_TEMP/evidence-contract-workspaces"
+          EVIDENCE_PI_ENTRY="$GITHUB_WORKSPACE/libs/contracts/api-contracts/fixtures/fake-pi.mjs" \
+            EVIDENCE_HOST=127.0.0.1 PORT=3000 \
+            node apps/server-nest/dist/main.js > "$RUNNER_TEMP/evidence-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 100); do
+            if curl --fail --silent http://127.0.0.1:3000/health >/dev/null; then
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat "$RUNNER_TEMP/evidence-server.log"
+              exit 1
+            fi
+            sleep 0.1
+          done
+          curl --fail --silent http://127.0.0.1:3000/health >/dev/null
+          API_BASE_URL=http://127.0.0.1:3000 \
+            CONTRACT_WORKSPACE_ROOT="$RUNNER_TEMP/evidence-contract-workspaces" \
+            pnpm api:contracts:remote
