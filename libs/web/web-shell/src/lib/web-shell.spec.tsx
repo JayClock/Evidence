@@ -128,13 +128,6 @@ const sidebarState = {
         key: 'user',
         items: [
           {
-            key: 'workspaces',
-            label: 'Workspaces',
-            type: 'resource',
-            href: '/api/users/desktop-user/workspaces',
-            path: '/api/users/desktop-user/workspaces',
-          },
-          {
             key: 'logical-entities',
             label: 'Logical Entities',
             type: 'resource',

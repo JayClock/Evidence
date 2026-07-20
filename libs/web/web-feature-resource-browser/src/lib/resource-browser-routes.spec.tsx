@@ -33,6 +33,7 @@ vi.mock('@evidence/api-client', () => {
     normalizeContentType: (contentType: string | null) =>
       contentType?.split(';')[0]?.trim().toLowerCase() ?? '',
     resourceContentTypes: {
+      memberships: 'application/vnd.evidence.memberships+json',
       workspaces: 'application/vnd.evidence.workspaces+json',
       workspace: 'application/vnd.evidence.workspace+json',
       diagrams: 'application/vnd.evidence.diagrams+json',
@@ -57,7 +58,7 @@ type ResourceMarker =
   | {
       kind:
         | 'health'
-        | 'workspaces'
+        | 'memberships'
         | 'diagram'
         | 'diagram-nodes'
         | 'diagram-edges';
@@ -73,9 +74,9 @@ const links = (...rels: string[]) => ({
 
 const rootState = {
   data: {},
-  links: links('self', 'health', 'default-user'),
+  links: links('self', 'health', 'current-user'),
   follow: (rel: string): ResourceMarker => ({
-    kind: rel === 'health' ? 'health' : 'workspaces',
+    kind: rel === 'health' ? 'health' : 'memberships',
   }),
 };
 
@@ -85,8 +86,8 @@ const userState = {
     name: 'Desktop User',
     email: 'desktop@evidence.local',
   },
-  links: links('self', 'workspaces', 'sidebar'),
-  follow: (): ResourceMarker => ({ kind: 'workspaces' }),
+  links: links('self', 'memberships', 'sidebar'),
+  follow: (): ResourceMarker => ({ kind: 'memberships' }),
 };
 
 const workspaceState = {
@@ -96,14 +97,14 @@ const workspaceState = {
     description: 'Seed workspace for local desktop usage',
   },
   follow: (rel: string): ResourceMarker => ({
-    kind: rel === 'diagram' ? 'diagram' : 'workspaces',
+    kind: rel === 'diagram' ? 'diagram' : 'memberships',
   }),
   links: links('self', 'members', 'diagram', 'logical-entities'),
   contentHeaders: () =>
     new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
 };
 
-const workspaceCollectionState = {
+const membershipCollectionState = {
   data: {
     page: {
       totalElements: 1,
@@ -111,7 +112,9 @@ const workspaceCollectionState = {
   },
   collection: [workspaceState],
   contentHeaders: () =>
-    new Headers({ 'content-type': 'application/vnd.evidence.workspaces+json' }),
+    new Headers({
+      'content-type': 'application/vnd.evidence.memberships+json',
+    }),
 };
 
 const diagramState = {
@@ -170,11 +173,11 @@ function dynamicStateForPath(path: string) {
     return logicalEntityCollectionState;
   }
 
-  if (path === '/api/users/desktop-user/workspaces') {
-    return workspaceCollectionState;
+  if (path === '/api/users/desktop-user/memberships') {
+    return membershipCollectionState;
   }
 
-  if (path === '/api/users/desktop-user/workspaces/default-workspace') {
+  if (path === '/api/workspaces/default-workspace') {
     return workspaceState;
   }
 
@@ -204,11 +207,11 @@ describe('ResourceBrowserRoutes', () => {
             error: null,
             data: { service: 'evidence-server', status: 'ok' },
           };
-        case 'workspaces':
+        case 'memberships':
           return {
             loading: false,
             error: null,
-            resourceState: workspaceCollectionState,
+            resourceState: membershipCollectionState,
           };
         case 'diagram':
           return {
@@ -247,9 +250,9 @@ describe('ResourceBrowserRoutes', () => {
     expect(screen.queryByText('1 total')).toBeNull();
   });
 
-  it('does not render workspace collection resources as a list page', async () => {
+  it('does not render membership collection resources as a list page', async () => {
     await act(async () => {
-      renderRoutes('/users/desktop-user/workspaces');
+      renderRoutes('/users/desktop-user/memberships');
     });
 
     expect(screen.queryByText('Default Workspace')).toBeNull();
@@ -265,7 +268,7 @@ describe('ResourceBrowserRoutes', () => {
 
   it('renders the projected diagram on the workspace home resource', async () => {
     await act(async () => {
-      renderRoutes('/users/desktop-user/workspaces/default-workspace');
+      renderRoutes('/workspaces/default-workspace');
     });
 
     expect(await screen.findByText('Diagram detail')).toBeTruthy();

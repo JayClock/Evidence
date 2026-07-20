@@ -197,7 +197,9 @@ function AppSidebar({
           <SidebarLoading />
         ) : (
           sidebarState.data.sections.map((section) => {
-            const visibleItems = section.items.filter(isVisibleSidebarItem);
+            const visibleItems = section.items.filter((item) =>
+              isVisibleSidebarItem(item, activeWorkspace),
+            );
 
             if (visibleItems.length === 0) {
               return null;
@@ -230,8 +232,11 @@ function AppSidebar({
   );
 }
 
-function isVisibleSidebarItem(item: SidebarItem) {
-  return item.key !== 'workspaces' && item.label !== 'Workspaces';
+function isVisibleSidebarItem(
+  item: SidebarItem,
+  activeWorkspace?: MembershipWorkspace,
+) {
+  return item.key !== 'logical-entities' || Boolean(activeWorkspace);
 }
 
 function SidebarLoading() {

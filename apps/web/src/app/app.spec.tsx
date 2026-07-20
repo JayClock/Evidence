@@ -64,14 +64,6 @@ const sidebarState = {
         defaultOpen: true,
         items: [
           {
-            key: 'workspaces',
-            label: 'Workspaces',
-            type: 'resource',
-            href: '/api/users/desktop-user/workspaces',
-            path: '/api/users/desktop-user/workspaces',
-            icon: 'layout-dashboard',
-          },
-          {
             key: 'logical-entities',
             label: 'Logical Entities',
             type: 'resource',
