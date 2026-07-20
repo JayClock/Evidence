@@ -2,23 +2,24 @@
 
 Evidence 是一个领域建模与证据映射平台，帮助领域专家和业务分析师定义业务概念，把证据、参与者、角色与上下文组织成可演进的逻辑模型，并通过关系图进行理解和评审。
 
-项目提供三个运行时界面：
+产品有三个运行时界面：
 
 - **Web**：React + Vite SPA；
-- **Server**：Rust Axum 主实现，以及独立的 TypeScript / Nest 实现轨道；
-- **Desktop**：Tauri 2 壳，复用同一个 Web 前端并内嵌本地 API。
+- **Server**：NestJS + TypeScript，Hosted 模式默认使用 PostgreSQL；
+- **Desktop**：Electron 壳，复用 Web renderer，并自行管理使用 SQLite 的本地 Nest 子进程。
 
-仓库还包含项目本地的 **Evidence Orchestrator**，仅用于辅助当前仓库开发 Evidence。它是内部研发工具，不是 Evidence 面向用户的产品能力；Evidence 自身作为 dogfooding 示例不改变这一边界。边界决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
+仓库还包含项目本地的 **Evidence Orchestrator**，仅用于辅助当前仓库开发 Evidence。它不是面向用户的产品能力；边界决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
 
-[产品能力](#产品能力) · [产品架构](#产品架构) · [Evidence Orchestrator](#evidence-orchestrator) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
+[产品能力](#产品能力) · [产品架构](#产品架构) · [数据迁移](#数据迁移) · [Evidence Orchestrator](#evidence-orchestrator) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
 
 ## 产品能力
 
 1. **工作空间协作**：用户通过成员关系进入隔离的建模空间。
 2. **逻辑模型编写**：在工作区定义 `LogicalEntity` 与 `LogicalRelationship`。
-3. **图投影**：使用 `Diagram`、`DiagramNode` 和 `DiagramEdge` 展示逻辑模型；图元素不是逻辑实体本身。
-4. **AI 模型辅助**：AI Modeling Agent 可以提出 `ModelingProposal`，但必须由用户确认后才能改变权威模型。
-5. **Web / Desktop 一致体验**：Tauri 复用唯一的 React 前端，不维护第二套产品语义。
+3. **图投影**：`Diagram`、`DiagramNode` 和 `DiagramEdge` 展示逻辑模型；图元素不是第二份逻辑模型。
+4. **AI 模型辅助**：AI Modeling Agent 可以提出流式 `ModelingProposal`，但必须由用户确认后才能改变权威模型。
+5. **Web / Desktop 一致体验**：Electron 复用唯一的 React 前端和 REST/HAL 语义。
+6. **本地优先 Desktop**：默认无需系统 Node、Pi、PostgreSQL 或外部 Server。
 
 ## 产品架构
 
@@ -26,53 +27,57 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 
 ```text
 Browser
-  └─ apps/web + libs/web/*                React + Vite :4200
+  └─ apps/web + libs/web/*                  React + Vite :4200
        └─ REST / HAL
-           ├─ apps/server + libs/server/* Rust Axum :3000
-           │    └─ SeaORM → PostgreSQL
-           └─ apps/server-nest + libs/server-nest/*
-                └─ Prisma → PostgreSQL
+            └─ apps/server + libs/server/*  NestJS :3000
+                 ├─ Prisma registry → PostgreSQL
+                 └─ workspace/.evidence YAML model
 
-Desktop
-  └─ apps/desktop                         Tauri 2 shell
-       ├─ 复用 apps/web / libs/web/*
-       └─ 内嵌 Axum API（随机 localhost 端口）→ SQLite
+Electron
+  └─ apps/desktop                            secure main/preload
+       ├─ packaged apps/web renderer
+       └─ managed Nest child                random 127.0.0.1 port
+            ├─ random desktop session token
+            ├─ node:sqlite registry
+            ├─ workspace/.evidence YAML model
+            └─ embedded Pi CLI
 ```
 
-- `apps/web` 是唯一前端组合根，功能与 API 客户端位于 `libs/web/*`。
-- Desktop 开发时启动 `http://127.0.0.1:4200`，构建时打包 `apps/web/dist`。
-- Desktop 在应用数据目录维护 `evidence.sqlite`，不要求单独启动 PostgreSQL 服务。
-- 浏览器模式默认由 Vite 将 `/api` 与 `/health` 代理到 `127.0.0.1:3000`。
-- Rust 与 Nest 均保留为服务端实现轨道，但单个 Feature 不得混合两套实现。
+- `apps/web` 是唯一前端组合根，功能与 API client 位于 `libs/web/*`。
+- Hosted Server 默认使用 PostgreSQL；Desktop 通过同一 domain/API 切换到 SQLite registry。
+- Web 与 Electron renderer 都消费 REST/HAL；Electron IPC 不复制业务 API。
+- 打包 renderer 使用受保护的 `evidence://app/` 协议。开发 renderer 默认使用 `http://127.0.0.1:4200`。
+- Electron 可通过 `EVIDENCE_API_BASE_URL=https://…/api` 连接远程 API；非 loopback HTTP 会被拒绝。
 
-### Rust 分层
+### Server 分层
 
 ```text
-apps/server/                         composition root
-  ↓
-libs/server/api/                    Axum 路由、请求解析、HAL 序列化
-  ↓
-libs/server/domain/                 纯领域 trait 与聚合
-  ↑
-libs/server/persistent/             SeaORM + PostgreSQL / SQLite adapter
-libs/server/infrastructure/         Pi RPC 等外部适配器
+apps/server/                         Nest composition roots
+  ├─ main.ts                         hosted PostgreSQL entry
+  └─ desktop-main.ts                 local SQLite entry
+       ↓
+libs/server/api/                     controllers, HAL, SSE, OpenAPI
+       ↓
+libs/server/domain/                  framework-free entities and ports
+       ↑
+libs/server/persistent/              Prisma, node:sqlite, filesystem adapters
+libs/server/infrastructure/          Pi RPC adapter
 ```
 
-领域层使用 `Entity`、`HasOne<T>`、`HasMany<T>` 与 `Ref<T>`。API handler 只做协议转换和委托，业务规则位于 domain，持久化层实现领域 trait。
+Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协议转换和委托；runtime adapter wiring 只存在于 `apps/server`。
 
 ### 领域模型
 
-| 聚合 / 概念           | 说明                                                  |
-| :-------------------- | :---------------------------------------------------- |
-| `User`                | 用户身份以及可访问的工作空间                          |
-| `Workspace`           | 成员、逻辑模型、图与本地 `.evidence` 的协作边界       |
-| `Member`              | 用户到工作空间的成员关系与角色                        |
-| `LogicalEntity`       | Evidence、Participant、Role 或 Context 类型的业务概念 |
-| `LogicalRelationship` | 工作区内两个逻辑实体之间的业务关系                    |
-| `Diagram`             | 逻辑模型的可视投影；一个工作区拥有一个当前图          |
-| `DiagramNode`         | 引用逻辑实体的位置与样式投影                          |
-| `DiagramEdge`         | 可表示逻辑关系的连线投影，生命周期独立于逻辑关系      |
-| `ModelingProposal`    | AI Agent 提出的实体 / 关系变更建议，需用户确认        |
+| 聚合 / 概念                   | 说明                                                  |
+| :---------------------------- | :---------------------------------------------------- |
+| `User`                        | 用户身份以及可访问的工作空间                          |
+| `Workspace`                   | 成员、逻辑模型、当前图与本地 `.evidence` 的协作边界   |
+| `Member`                      | 用户到工作空间的成员关系与角色                        |
+| `LogicalEntity`               | Evidence、Participant、Role 或 Context 类型的业务概念 |
+| `LogicalRelationship`         | 同一工作区内两个逻辑实体之间的业务关系                |
+| `Diagram`                     | 工作区逻辑模型的单一当前投影，固定 id 为 `model`      |
+| `DiagramNode` / `DiagramEdge` | 从实体及关联 YAML 投影出的图元素                      |
+| `ModelingProposal`            | AI Agent 提出的实体/关系变更建议，需用户确认          |
 
 逻辑实体类型：
 
@@ -85,120 +90,96 @@ libs/server/infrastructure/         Pi RPC 等外部适配器
 
 核心规则：
 
-- Workspace 是成员、逻辑模型和图的协作边界；
-- LogicalEntity 可以独立于 Diagram 存在；
-- LogicalRelationship 的 source / target 必须引用同一工作区内存在的逻辑实体；
-- DiagramNode 只能引用现有逻辑实体；
-- DiagramEdge 可以表示 LogicalRelationship，但二者生命周期不同；
+- Workspace 创建时规范化并保存 `repositoryRoot` 与 `evidenceRoot`，初始化 `.evidence/entities` 和 `.evidence/associations`。
+- LogicalRelationship 的 source/target 必须引用同一工作区内存在的 LogicalEntity。
+- Diagram 是文件模型的投影，不拥有第二套可变实体/关系集合。
 - AI 提案不能绕过用户确认直接修改权威模型。
 
-### REST API
+### REST API 与契约
 
-API 遵循 HAL 风格：资源使用 `_links` 导航，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。OpenAPI 权威契约位于 `contracts/api.yaml`。
+API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。
 
-| 方法             | 路径                                                                   | 用途                       |
-| :--------------- | :--------------------------------------------------------------------- | :------------------------- |
-| GET              | `/api`、`/health`、`/api/openapi.json`                                 | API 根、健康检查与 OpenAPI |
-| GET              | `/api/users/{userId}`                                                  | 用户资源                   |
-| GET              | `/api/users/{userId}/sidebar`                                          | 用户工作空间导航投影       |
-| GET, POST        | `/api/users/{userId}/workspaces`                                       | 查询 / 创建工作空间        |
-| GET, PUT, DELETE | `/api/users/{userId}/workspaces/{workspaceId}`                         | 工作空间 CRUD              |
-| GET, POST        | `/api/users/{userId}/workspaces/{workspaceId}/members`                 | 查询 / 添加成员            |
-| DELETE           | `/api/users/{userId}/workspaces/{workspaceId}/members/{memberId}`      | 移除成员                   |
-| GET              | `/api/workspaces/{workspaceId}/diagram`                                | 当前工作区图               |
-| GET              | `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`               | 图节点投影                 |
-| GET              | `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`               | 图边投影                   |
-| POST (SSE)       | `/api/workspaces/{workspaceId}/diagram/propose-model`                  | 流式生成 AI 建模提案       |
-| GET, POST        | `/api/workspaces/{workspaceId}/logical-entities`                       | 查询 / 创建逻辑实体        |
-| GET, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities/{entityId}`            | 逻辑实体 CRUD              |
-| GET, POST        | `/api/workspaces/{workspaceId}/logical-relationships`                  | 查询 / 创建逻辑关系        |
-| GET, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships/{relationshipId}` | 逻辑关系 CRUD              |
+| 方法                   | 路径                                                                     | 用途                       |
+| :--------------------- | :----------------------------------------------------------------------- | :------------------------- | ---------- |
+| GET                    | `/api`、`/health`、`/api/openapi.json`                                   | API 根、健康检查与 OpenAPI |
+| GET                    | `/api/users/{userId}`、`/api/users/{userId}/sidebar`                     | 用户与工作区导航           |
+| GET, POST              | `/api/users/{userId}/workspaces`                                         | 查询/创建工作区            |
+| GET, PUT, DELETE       | `/api/users/{userId}/workspaces/{workspaceId}`                           | 工作区 CRUD                |
+| GET, POST, DELETE      | `/api/users/{userId}/workspaces/{workspaceId}/members[/{memberId}]`      | 成员管理                   |
+| GET                    | `/api/workspaces/{workspaceId}/diagram[/nodes                            | /edges]`                   | 当前图投影 |
+| POST (SSE)             | `/api/workspaces/{workspaceId}/diagram/propose-model`                    | 流式建模提案               |
+| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | 逻辑实体 CRUD              |
+| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | 逻辑关系 CRUD              |
 
-默认种子数据为 `desktop-user → default-workspace`，并自动创建 owner 成员关系。
+Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api/openapi.yaml)。`pnpm api:generate` 发布 [`contracts/api.yaml`](./contracts/api.yaml) 并重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止漂移。
 
-### 持久化与契约测试
+### Desktop 安全与打包
 
-相同的领域契约由多种 adapter 复用：
+- `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
+- preload 只暴露 `getApiBaseUrl()` 和 `chooseDirectory()`，且 main 校验 sender。
+- 本地 Nest 绑定随机 loopback 端口并要求 32-byte base64url session token；renderer 无法读取 token，由 Electron `webRequest` 自动注入。
+- Electron 等待已认证 `/health`，记录 `server.log`，并在退出时执行 SIGTERM/SIGKILL 回收；异常退出会终止 Desktop。
+- Web、Nest child、运行依赖和 Pi CLI 都进入 electron-builder 包；package smoke 会验证内嵌 Pi、renderer、API readiness 和 SQLite registry。
 
-- **Fake store**：纯内存，始终运行，用于快速测试；
-- **SQLite**：Desktop 的本地持久化；`sqlite-tests` 使用临时数据库；
-- **PostgreSQL**：浏览器 / Server 生产轨道；`postgres-tests` 使用 `TEST_DATABASE_URL` 或 Testcontainers。
+## 数据迁移
 
-共享契约覆盖默认工作空间、创建者 owner 关系、重复成员冲突、单图语义、逻辑实体 CRUD 和逻辑关系 CRUD。
+### 旧 PostgreSQL → Prisma/YAML
+
+迁移器只读取旧数据库，并要求使用不同的目标数据库。先创建并记录源备份，再对目标执行 Prisma baseline migration：
 
 ```sh
-cargo test -p evidence-server
-cargo test -p evidence-server --no-default-features --features sqlite-tests
-cargo test -p evidence-server --features postgres-tests
+pnpm prisma:generate
+DATABASE_URL="$TARGET_DATABASE_URL" \
+  pnpm --filter @evidence/server exec prisma migrate deploy
+
+SOURCE_DATABASE_URL="$SOURCE_DATABASE_URL" \
+TARGET_DATABASE_URL="$TARGET_DATABASE_URL" \
+SOURCE_BACKUP_ID="backup-2026-07-20" \
+EVIDENCE_MIGRATION_MODEL_ROOT="$PWD/migrated-workspaces" \
+EVIDENCE_MIGRATION_MANIFEST="$PWD/migration-manifest.json" \
+EVIDENCE_MIGRATION_DRY_RUN=1 \
+  pnpm nx run @evidence/server:migrate-postgres
 ```
+
+移除 `EVIDENCE_MIGRATION_DRY_RUN=1` 才写入目标 registry 和 YAML。迁移会校验引用、owner、重复成员和关系端点，记录 counts、源数据 hash、模型 hash、跳过项与工具版本。回滚方式是停止切换并丢弃独立目标数据库/模型目录，再从源备份重建；不要原地覆盖旧数据库。
+
+### 旧 Desktop SQLite → 新 registry/YAML
+
+Electron 首次本地启动时会检测旧应用目录中的 `evidence.sqlite`。迁移器在只读打开源数据库前复制数据库及 WAL/SHM，校验 registry/model invariants，导入新 registry 与 `.evidence` YAML，然后写 `legacy-migration.json` marker。后续启动读取 marker，不重复导入。失败时保留旧数据库和备份并阻止静默启动；回滚可删除新 user-data 后重新使用旧版应用。
 
 ## Evidence Orchestrator
 
-> **内部工具边界**：本节说明当前仓库贡献者如何开发 Evidence，不属于产品能力、产品画像、用户旅程或 `.evidence` 产品领域模型。完整决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
+> **内部工具边界**：本节说明贡献者如何开发 Evidence，不属于产品能力、画像、旅程或 `.evidence` 产品领域模型。
 
-Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension 负责确定性状态、执行、路径保护和审计；`.pi/agents/` 定义隔离角色；`.pi/skills/` 承载 Complicated / Complex 方法；`.pi/prompts/` 承载 Clear 固定任务。人类始终担任 Navigator。源码按 `iteration/`、`loops/`、`capabilities/` 与 `adapters/` 组织，旧的线性技术阶段目录已删除。
-
-### 知识循环
+Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension 负责确定性状态、执行、路径保护和审计；`.pi/agents/` 定义隔离角色；`.pi/skills/` 承载 Complicated/Complex 方法；`.pi/prompts/` 承载 Clear 固定任务。人类始终担任 Navigator。
 
 ```mermaid
 flowchart LR
-  G[GitHub Issue] --> I[Inbox]
-  M[Manual text] --> I
-  F[Local Markdown] --> I
-  I --> C[Story candidates]
+  I[Inbox] --> C[Story candidates]
   C --> K[Frozen Intake / Kickoff]
   K --> U[Understand]
   U --> T[Tasking]
   T --> P[Pair]
   P --> S[Showcase]
   S --> R[Respond]
-  R --> C[Complete]
+  R --> D[Complete]
 
-  S -. product or domain gap .-> U
-  S -. architecture or process gap .-> T
-  S -. test or implementation gap .-> P
+  S -. product/domain gap .-> U
+  S -. architecture/process gap .-> T
+  S -. test/implementation gap .-> P
   U -. problem gap .-> K
 ```
 
-Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 Story 候选；GitHub Issue 只是其中一种来源。仓库级 Flow Board 可让最多三张 Story 受限并行，但每个 `ITER-xxxx` worktree 仍只处理一张人工确认 Story 及其完整 Scenario Set：
+Inbox 保存来源 revision 和未经确认的 Story 候选；每个 `ITER-xxxx` worktree 只处理一张人工确认 Story 及其完整 Scenario Set。稳定产品、模型、架构和工序统一维护，iteration 只保存输入、增量、决策与 append-only 执行证据。历史 iteration 不得重写。
 
-- **Inbox / Kickoff**：从 GitHub、手工文本或本地 Markdown 收集来源并提取候选；人类选择一张候选冻结 Intake，再确认、修订、拆分或延期；
-- **Understand**：单 Story TQA、人工 Scenario 与建模 Profile 确认；`none/false` 记录无模型影响后直接进入 Tasking，其他 Profile 才运行 Builder 与只读 Challenger，且只有 `model_change_required=true` 可产生模型候选；
-- **Tasking**：唯一匹配 test-process v3，生成 test/task list，并等待人工 Desk Check；
-- **Pair**：控制器在一次运行中推进指定 Story 的 Red/Green、每 process-step 一次 Refactor 和最终 quality gates，Test/Production Driver 受路径保护；
-- **Showcase**：重跑 Q2，显式决定 Q3/Q4，由独立只读 Reviewer 检查，最后由人类接受、修订或拒绝；
-- **Respond**：只提升本轮实际使用并验证的知识，允许有理由的空 promotion，人工确认后输出 next Probe。
-
-反馈按知识缺口回到产生它的 loop。Board 只管理 `discovery / planning / ready / delivery / review / done` admission、WIP 和 lease；每个 worktree-local State 使用 `loop` 及其局部 stage/checkpoint 表示 Story 权威。Blocked 仍占 WIP，满限时只排队，必须由人类显式 Pull。
-
-### 知识与证据位置
-
-| 内容              | 权威来源                                            | Iteration 中的记录                                        |
-| :---------------- | :-------------------------------------------------- | :-------------------------------------------------------- |
-| 需求输入          | `artifacts/inbox/` 中的来源 revision 与 Story 候选  | 冻结 `intake.json`、source snapshots 与 `requirements.md` |
-| 产品知识          | `docs/product/`                                     | 当前 Story 的问题与 Scenario 增量                         |
-| 领域模型          | `.evidence/`                                        | 模型候选、投影、挑战与 Scenario 展开                      |
-| 架构              | `docs/architecture/`                                | Scenario 相关上下文与决定                                 |
-| API 契约          | `contracts/api.yaml`                                | 契约增量                                                  |
-| 测试工序          | `engineering/evidence-orchestrator/test-processes/` | 人工批准且哈希锁定的计划                                  |
-| Working Knowledge | `.pi/skills/`、`.pi/prompts/` 与 catalog            | 实际使用版本和验证反馈                                    |
-| 执行与反馈        | `artifacts/iterations/ITER-xxxx/`                   | append-only 观测、manifest、人工决定与 next Probe         |
-
-执行日志是命令事实的唯一原始来源；manifest 和 summary 由工具确定性生成。已归档 iteration 保持不可变，不参与当前执行或验证。
-
-### 在 Pi 中使用
-
-前置条件：在仓库根目录启动 Pi。只有使用 GitHub Source Adapter 时才需要 `gh auth status` 能访问目标仓库。
+常用 Pi 命令：
 
 ```text
 /evidence-inbox
-/evidence-inbox list
 /evidence-inbox add github [owner/repository#123]
 /evidence-inbox add text
 /evidence-inbox add file <project-markdown-path>
-/evidence-inbox sync INBOX-xxxx
 /evidence-inbox extract INBOX-xxxx[,INBOX-yyyy]
-/evidence-inbox defer|reject CAND-xxxx <reason>
 /evidence-new CAND-xxxx
 /evidence-flow list | pull ITER-xxxx | recover ITER-xxxx <reason> | archive ITER-xxxx <reason>
 /evidence-status [ITER-xxxx [artifacts [cursor]]]
@@ -206,7 +187,6 @@ Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 S
 /evidence-run ITER-xxxx [--dry-run]
 /evidence-kickoff ITER-xxxx confirm|revise|split|defer <reason>
 /evidence-scenario ITER-xxxx confirm <DRAFT-xxx> <reason>
-/evidence-scenario ITER-xxxx continue|split|defer <reason>
 /evidence-modeling-profile ITER-xxxx confirm|revise <reason>
 /evidence-model ITER-xxxx confirm|revise|scenario-gap|method-gap <reason>
 /evidence-desk-check ITER-xxxx approve|revise|scenario-gap|architecture-gap|process-gap <reason>
@@ -216,18 +196,7 @@ Inbox 位于 iteration 之外，保存多个来源 revision 和未经确认的 S
 /evidence-respond ITER-xxxx approve|revise <reason>
 ```
 
-无参数运行 `/evidence-inbox` 时，空 Inbox 会先打开来源选择器；来源 revision 保存成功后自动进入 extract 来源选取界面，取消选取则只保留来源；已有来源时显示当前状态。`/evidence-new` 必须携带人类明确选定的 `CAND-xxxx`，然后原子认领 Candidate、分配 Iteration、创建独立 branch/worktree 并冻结 Intake；不再提供 Candidate picker 或隐式 Story 选择。来源更新只能在 Inbox 中显式追加 revision 并重新提取候选；冻结的 Intake 不再原地同步。所有 Story 命令以 `ITER-xxxx` 为首参数；`/evidence-run ITER-xxxx` 只推进该 Story 的活动，Ready→Delivery 受 WIP 与全局 Pair runner lease 约束。
-
 维护细节见 [`.pi/extensions/evidence-orchestrator/README.md`](./.pi/extensions/evidence-orchestrator/README.md)。
-
-### Orchestrator 验证
-
-```sh
-pnpm orchestrator:test
-pnpm orchestrator:validate
-pnpm exec eslint '.pi/extensions/evidence-orchestrator/**/*.ts' --no-warn-ignored
-pnpm exec prettier --check '.pi/extensions/evidence-orchestrator/**/*.{ts,md}'
-```
 
 ## 快速开始
 
@@ -235,127 +204,126 @@ pnpm exec prettier --check '.pi/extensions/evidence-orchestrator/**/*.{ts,md}'
 
 - Node.js 22+
 - pnpm 10+
-- Rust toolchain（`cargo`、`rustc`）
-- 浏览器 / Server 模式：PostgreSQL
-- Desktop 模式：[Tauri 2 系统依赖](https://tauri.app/start/prerequisites/)
-- Orchestrator：Pi；使用 GitHub 来源时另需已认证的 GitHub CLI（`gh`）
+- Hosted 模式：PostgreSQL
+- Desktop 打包：目标平台所需的 electron-builder 工具
+- Orchestrator：Pi；GitHub source adapter 另需已认证的 `gh`
 
 ### 安装
 
 ```sh
-pnpm install
+pnpm install --frozen-lockfile
+pnpm prisma:generate
 ```
 
-### 浏览器模式
-
-分别启动 Rust Server 和 Web：
+### Browser + Hosted Server
 
 ```sh
-# Terminal 1
-DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/evidence pnpm dev:server
+# Terminal 1：首次或 schema 更新后先执行 migration
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence \
+  pnpm --filter @evidence/server exec prisma migrate deploy
+
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence \
+EVIDENCE_STORAGE=postgres \
+  pnpm dev:server
 
 # Terminal 2
 pnpm dev:web
 ```
 
-打开 `http://localhost:4200`。SeaORM 会执行 migration 并注入默认数据。
+打开 `http://127.0.0.1:4200`。Vite 将 `/api` 和 `/health` 代理到 `127.0.0.1:3000`。
 
-### Desktop 模式
+### Desktop
 
 ```sh
 pnpm dev:desktop
 ```
 
-Tauri 会启动同一个 Web 前端，并在进程内启动 Axum API。数据保存在应用数据目录的 SQLite 文件中，无需另行启动 Server 或 PostgreSQL。
+Electron 启动 Web renderer、本地 Nest、SQLite registry 和嵌入式 Pi runtime，无需另行启动 PostgreSQL。
 
-### 仅启动 Rust Server
+打包与 smoke：
 
 ```sh
-DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5432/evidence \
-  cargo run -p evidence-server
-
-curl http://127.0.0.1:3000/health
+pnpm nx run @evidence/desktop:package-smoke
+pnpm nx run @evidence/desktop:package
 ```
 
-环境变量：
+### Server 环境变量
 
-| 变量                 | 默认值           | 说明                                           |
-| :------------------- | :--------------- | :--------------------------------------------- |
-| `DATABASE_URL`       | 必填             | SeaORM 数据库连接字符串                        |
-| `PGSQL_DATABASE_URL` | fallback         | PostgreSQL 兼容变量名                          |
-| `API_ADDR`           | `127.0.0.1:3000` | Rust Server 监听地址                           |
-| `VITE_API_BASE_URL`  | `/api`           | 浏览器模式 API 根；Tauri 中由 command 动态发现 |
+| 变量                              | 默认值               | 说明                                             |
+| :-------------------------------- | :------------------- | :----------------------------------------------- |
+| `DATABASE_URL`                    | Prisma 本地 fallback | Hosted PostgreSQL 连接字符串                     |
+| `EVIDENCE_STORAGE`                | `postgres`           | `postgres` 或 `sqlite`；Hosted 保持 PostgreSQL   |
+| `PORT`                            | `3000`               | Nest 监听端口                                    |
+| `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host；Desktop 固定为 `127.0.0.1`        |
+| `EVIDENCE_CORS_ORIGINS`           | 允许所有             | 逗号分隔 origin；Desktop 限制为 renderer origin  |
+| `EVIDENCE_REGISTRY_PATH`          | adapter 默认         | SQLite registry 文件                             |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | adapter 默认         | Desktop 默认 workspace 根                        |
+| `EVIDENCE_PI_ENTRY`               | 未设置               | 嵌入式 Pi CLI entry；Desktop 自动设置            |
+| `EVIDENCE_PI_COMMAND`             | `pi`                 | 未使用 entry 时的 Pi 命令                        |
+| `VITE_API_BASE_URL`               | `/api`               | Browser API 根；Electron 优先读取 preload bridge |
+| `EVIDENCE_API_BASE_URL`           | 未设置               | Electron 远程 API 模式，非 loopback 必须 HTTPS   |
 
 ## 常用命令
 
 ```sh
-# 查看 Nx 项目
+# Workspace
 pnpm nx show projects
-
-# 全仓质量门禁
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
 
-# Web
-pnpm nx build @evidence/web
-pnpm nx test @evidence/web --run
-pnpm nx typecheck @evidence/web
-pnpm nx lint @evidence/web
-
-# Rust Server
-cargo test -p evidence-server
-cargo clippy -p evidence-server --all-targets -- -D warnings
-cargo fmt -p evidence-server -- --check
+# Server
+pnpm nx test @evidence/server --run
+pnpm nx test @evidence/server-domain --run
+pnpm nx test @evidence/server-api --run
+pnpm nx test @evidence/server-persistent --run
+pnpm nx test @evidence/server-infrastructure --run
 
 # Desktop
-cargo test -p evidence-desktop
-cargo clippy -p evidence-desktop --all-targets -- -D warnings
-cargo fmt -p evidence-desktop -- --check
+pnpm nx test @evidence/desktop --run
+pnpm nx run @evidence/desktop:package-smoke
 
-# API 契约与生成客户端
-pnpm api:export
+# API
+pnpm api:check
 pnpm api:generate
 pnpm api:contracts
 
-# Evidence Orchestrator
+# Internal Orchestrator
 pnpm orchestrator:test
 pnpm orchestrator:validate
 ```
 
 ## 仓库地图
 
-| 路径                                                  | 用途                                         |
-| :---------------------------------------------------- | :------------------------------------------- |
-| `apps/web/`                                           | React + Vite 前端组合根                      |
-| `libs/web/*`                                          | Web shell、feature、UI 与 HATEOAS API client |
-| `apps/server/`                                        | Rust Axum 组合根                             |
-| `libs/server/{api,domain,persistent,infrastructure}/` | Rust 服务端分层实现                          |
-| `apps/server-nest/`                                   | Nest 组合根（独立服务端轨道）                |
-| `libs/server-nest/*`                                  | Nest API、domain 与 Prisma persistence       |
-| `apps/desktop/`                                       | Tauri 2 Desktop 壳与内嵌 API 启动            |
-| `contracts/api.yaml`                                  | OpenAPI 权威契约                             |
-| `libs/contracts/api-contracts/`                       | 可执行 API 契约测试                          |
-| `docs/product/`                                       | 跨迭代统一产品知识                           |
-| `.evidence/`                                          | Evidence 平台权威领域模型                    |
-| `docs/architecture/`                                  | 跨迭代统一架构与测试策略                     |
-| `engineering/evidence-orchestrator/`                  | Runtime contexts、测试工序与统一 DoD         |
-| `.pi/extensions/evidence-orchestrator/`               | 内部知识循环、状态保护与执行证据             |
-| `.pi/agents/`                                         | 隔离活动角色配置                             |
-| `.git/evidence-orchestrator/board.json`               | 仓库级 Story Flow Board（本地调度事实）      |
-| `.worktrees/evidence/ITER-xxxx/`                      | 独立 Story worktree 与 local State           |
-| `artifacts/iterations/`                               | 各 Story 输入、delta、决策与执行证据         |
-| `AGENTS.md`                                           | 架构边界、编码规范、验证与 Git 纪律          |
+| 路径                                        | 用途                                                    |
+| :------------------------------------------ | :------------------------------------------------------ |
+| `apps/web/`                                 | React + Vite 前端组合根                                 |
+| `libs/web/*`                                | Web shell、features、UI 与 HAL API client               |
+| `apps/server/`                              | Nest hosted/Desktop 组合根、Prisma 与迁移入口           |
+| `libs/server/api/`                          | Nest controllers、HAL/SSE 与 OpenAPI source             |
+| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                           |
+| `libs/server/persistent/`                   | PostgreSQL、SQLite 与 filesystem adapters               |
+| `libs/server/infrastructure/`               | Pi RPC adapter                                          |
+| `apps/desktop/`                             | Electron main/preload、本地 Server manager 与 packaging |
+| `contracts/api.yaml`                        | 发布的 OpenAPI 契约副本                                 |
+| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                          |
+| `docs/product/`                             | 跨迭代统一产品知识                                      |
+| `.evidence/`                                | Evidence 平台权威领域模型                               |
+| `docs/architecture/`                        | 跨迭代统一架构与测试策略                                |
+| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD                   |
+| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                        |
+| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                    |
+| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                     |
 
 ## 开发约定
 
-- `apps/web` 是唯一前端源码入口；Desktop 不创建第二套 React 页面；
-- 一个服务端 Feature 只能属于 Rust 或 Nest 轨道；
-- Rust 先定义 domain trait，再实现 persistence adapter；handler 不承载业务规则；
-- API 变化同步实现、`contracts/api.yaml`、契约测试和生成客户端；
-- 新持久化行为同时维护 Fake、SQLite / PostgreSQL adapter 的契约一致性；
-- 提交前运行受影响 runtime 的 test、typecheck / clippy、lint 和 format check。
+- `apps/web` 是唯一前端；Desktop 不创建第二套 React 页面。
+- Nest 是唯一 Server runtime；Electron main/preload 不承载服务端业务规则。
+- API 变化同步 OpenAPI source、发布契约、contract runner 和生成客户端。
+- 新持久化行为同时考虑 memory/fake、PostgreSQL、SQLite 和 filesystem 边界。
+- 新项目使用 Nx generator；workspace 依赖使用 pnpm 和 `workspace:*` 正式链接。
+- 提交前运行受影响项目的 test、typecheck、lint、build 及契约/打包门禁。
 
 仓库使用 Husky、lint-staged 与 commitlint。提交格式：
 
