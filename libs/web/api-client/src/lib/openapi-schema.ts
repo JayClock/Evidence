@@ -68,14 +68,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/{userId}/workspaces': {
+  '/api/users/{userId}/memberships': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get: operations['list_workspaces'];
+    get: operations['list_user_memberships'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
     put?: never;
     post: operations['create_workspace'];
     delete?: never;
@@ -84,7 +100,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/{userId}/workspaces/{workspaceId}': {
+  '/api/workspaces/{workspaceId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -100,7 +116,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/{userId}/workspaces/{workspaceId}/members': {
+  '/api/workspaces/{workspaceId}/members': {
     parameters: {
       query?: never;
       header?: never;
@@ -116,7 +132,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/{userId}/workspaces/{workspaceId}/members/{memberId}': {
+  '/api/workspaces/{workspaceId}/members/{memberId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -126,7 +142,7 @@ export interface paths {
     get: operations['get_workspace_member'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: operations['remove_workspace_member'];
     options?: never;
     head?: never;
     patch?: never;
@@ -431,7 +447,7 @@ export interface components {
     MemberCollectionResource: {
       _embedded: components['schemas']['MemberCollectionEmbedded'];
       _links: components['schemas']['BTreeMap'];
-      total: number;
+      page: components['schemas']['PageModel'];
     };
     MemberResource: {
       _links: components['schemas']['BTreeMap'];
@@ -441,6 +457,23 @@ export interface components {
       updatedAt: string;
       user: components['schemas']['LinkedRefModel'];
       workspace: components['schemas']['LinkedRefModel'];
+    };
+    MembershipCollectionEmbedded: {
+      memberships: components['schemas']['MembershipResource'][];
+    };
+    MembershipCollectionResource: {
+      _embedded: components['schemas']['MembershipCollectionEmbedded'];
+      _links: components['schemas']['BTreeMap'];
+      page: components['schemas']['PageModel'];
+    };
+    MembershipResource: {
+      _links: components['schemas']['BTreeMap'];
+      createdAt: string;
+      id: string;
+      role: string;
+      updatedAt: string;
+      user: components['schemas']['LinkedRefModel'];
+      workspace: components['schemas']['WorkspaceResource'];
     };
     NodeCollectionEmbedded: {
       nodes: components['schemas']['NodeResource'][];
@@ -747,7 +780,7 @@ export interface operations {
       };
     };
   };
-  list_workspaces: {
+  list_user_memberships: {
     parameters: {
       query?: {
         /** @description Page number */
@@ -764,13 +797,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Workspace collection */
+      /** @description User membership collection */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.workspaces+json': components['schemas']['WorkspaceCollectionResource'];
+          'application/vnd.evidence.memberships+json': components['schemas']['MembershipCollectionResource'];
         };
       };
       /** @description Validation error */
@@ -784,15 +817,6 @@ export interface operations {
       };
       /** @description Resource not found */
       404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
         headers: {
           [name: string]: unknown;
         };
@@ -815,10 +839,7 @@ export interface operations {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        /** @description User id */
-        userId: string;
-      };
+      path?: never;
       cookie?: never;
     };
     requestBody: {
@@ -830,10 +851,12 @@ export interface operations {
       /** @description Created workspace */
       201: {
         headers: {
+          /** @description Canonical workspace URI */
+          Location?: string;
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.workspaces+json': components['schemas']['WorkspaceResource'];
+          'application/vnd.evidence.workspace+json': components['schemas']['WorkspaceResource'];
         };
       };
       /** @description Validation error */
@@ -879,7 +902,6 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        userId: string;
         workspaceId: string;
       };
       cookie?: never;
@@ -895,26 +917,8 @@ export interface operations {
           'application/vnd.evidence.workspace+json': components['schemas']['WorkspaceResource'];
         };
       };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
       /** @description Resource not found */
       404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
         headers: {
           [name: string]: unknown;
         };
@@ -938,7 +942,6 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        userId: string;
         workspaceId: string;
       };
       cookie?: never;
@@ -1001,7 +1004,6 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        userId: string;
         workspaceId: string;
       };
       cookie?: never;
@@ -1014,15 +1016,6 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
       };
       /** @description Resource not found */
       404: {
@@ -1055,10 +1048,14 @@ export interface operations {
   };
   list_workspace_members: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        pageSize?: number;
+      };
       header?: never;
       path: {
-        userId: string;
         workspaceId: string;
       };
       cookie?: never;
@@ -1092,15 +1089,6 @@ export interface operations {
           'application/json': components['schemas']['ErrorBody'];
         };
       };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
       /** @description Internal server error */
       500: {
         headers: {
@@ -1117,7 +1105,6 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        userId: string;
         workspaceId: string;
       };
       cookie?: never;
@@ -1134,7 +1121,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.members+json': components['schemas']['MemberResource'];
+          'application/vnd.evidence.member+json': components['schemas']['MemberResource'];
         };
       };
       /** @description Validation error */
@@ -1180,7 +1167,6 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        userId: string;
         workspaceId: string;
         memberId: string;
       };
@@ -1197,14 +1183,44 @@ export interface operations {
           'application/vnd.evidence.member+json': components['schemas']['MemberResource'];
         };
       };
-      /** @description Validation error */
-      400: {
+      /** @description Resource not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
         content: {
           'application/json': components['schemas']['ErrorBody'];
         };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  remove_workspace_member: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        memberId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Removed workspace member */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Resource not found */
       404: {

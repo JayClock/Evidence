@@ -8,10 +8,16 @@ import {
   Param,
   Post,
   Put,
+  Res,
 } from '@nestjs/common';
 import type { WorkspaceDescription } from '@evidence/server-domain';
+import { workspaceHref } from './links';
 import { WorkspaceModel, workspaceModel } from './model';
 import { ResourceResolver } from './resource-resolver.service';
+
+interface PassthroughResponse {
+  setHeader(name: string, value: string): void;
+}
 
 interface WorkspaceInput {
   title?: string | null;
@@ -27,10 +33,14 @@ export class WorkspacesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createWorkspace(@Body() input: WorkspaceInput): Promise<WorkspaceModel> {
+  async createWorkspace(
+    @Body() input: WorkspaceInput,
+    @Res({ passthrough: true }) response: PassthroughResponse,
+  ): Promise<WorkspaceModel> {
     const workspace = await this.resolver.createWorkspace(
       workspaceInputToDescription(input),
     );
+    response.setHeader('Location', workspaceHref(workspace.identity()));
     return workspaceModel(workspace);
   }
 

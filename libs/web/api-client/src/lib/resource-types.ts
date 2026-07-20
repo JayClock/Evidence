@@ -9,6 +9,7 @@ export const resourceContentTypes = {
   workspaces: `${VENDOR_PREFIX}.workspaces+json`,
   member: `${VENDOR_PREFIX}.member+json`,
   members: `${VENDOR_PREFIX}.members+json`,
+  memberships: `${VENDOR_PREFIX}.memberships+json`,
   diagram: `${VENDOR_PREFIX}.diagram+json`,
   diagrams: `${VENDOR_PREFIX}.diagrams+json`,
   node: `${VENDOR_PREFIX}.node+json`,

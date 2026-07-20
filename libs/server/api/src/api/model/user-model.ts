@@ -3,8 +3,10 @@ import {
   link,
   Link,
   userHref,
+  userMembershipsHref,
   userSidebarHref,
   userWorkspacesHref,
+  workspacesHref,
 } from '../links';
 
 export interface UserModel {
@@ -19,6 +21,8 @@ export function userModel(user: User): UserModel {
   return {
     _links: {
       self: link(userHref(userId)),
+      memberships: link(userMembershipsHref(userId)),
+      'create-workspace': link(workspacesHref()),
       workspaces: link(userWorkspacesHref(userId)),
       sidebar: link(userSidebarHref(userId)),
     },

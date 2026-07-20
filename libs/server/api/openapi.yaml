@@ -116,10 +116,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/users/{userId}/workspaces:
+  /api/users/{userId}/memberships:
     get:
       tags: []
-      operationId: list_workspaces
+      operationId: list_user_memberships
       parameters:
         - name: userId
           in: path
@@ -134,7 +134,7 @@ paths:
           schema:
             type: integer
             format: int32
-            minimum: 0
+            minimum: 1
         - name: pageSize
           in: query
           description: Page size
@@ -142,14 +142,15 @@ paths:
           schema:
             type: integer
             format: int32
-            minimum: 0
+            minimum: 1
+            maximum: 100
       responses:
         '200':
-          description: Workspace collection
+          description: User membership collection
           content:
-            application/vnd.evidence.workspaces+json:
+            application/vnd.evidence.memberships+json:
               schema:
-                $ref: '#/components/schemas/WorkspaceCollectionResource'
+                $ref: '#/components/schemas/MembershipCollectionResource'
         '400':
           description: Validation error
           content:
@@ -162,28 +163,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
+  /api/workspaces:
     post:
       tags: []
       operationId: create_workspace
-      parameters:
-        - name: userId
-          in: path
-          description: User id
-          required: true
-          schema:
-            type: string
       requestBody:
         content:
           application/json:
@@ -193,52 +182,11 @@ paths:
       responses:
         '201':
           description: Created workspace
-          content:
-            application/vnd.evidence.workspaces+json:
+          headers:
+            Location:
+              description: Canonical workspace URI
               schema:
-                $ref: '#/components/schemas/WorkspaceResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-  /api/users/{userId}/workspaces/{workspaceId}:
-    get:
-      tags: []
-      operationId: get_workspace
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Workspace resource
+                type: string
           content:
             application/vnd.evidence.workspace+json:
               schema:
@@ -267,15 +215,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-    put:
+  /api/workspaces/{workspaceId}:
+    get:
       tags: []
-      operationId: update_workspace
+      operationId: get_workspace
       parameters:
-        - name: userId
+        - name: workspaceId
           in: path
           required: true
           schema:
             type: string
+      responses:
+        '200':
+          description: Workspace resource
+          content:
+            application/vnd.evidence.workspace+json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResource'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    put:
+      tags: []
+      operationId: update_workspace
+      parameters:
         - name: workspaceId
           in: path
           required: true
@@ -322,11 +294,6 @@ paths:
       tags: []
       operationId: delete_workspace
       parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
         - name: workspaceId
           in: path
           required: true
@@ -335,12 +302,6 @@ paths:
       responses:
         '204':
           description: Workspace soft-deleted
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
         '404':
           description: Resource not found
           content:
@@ -359,21 +320,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/users/{userId}/workspaces/{workspaceId}/members:
+  /api/workspaces/{workspaceId}/members:
     get:
       tags: []
       operationId: list_workspace_members
       parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
         - name: workspaceId
           in: path
           required: true
           schema:
             type: string
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
       responses:
         '200':
           description: Workspace member collection
@@ -393,12 +366,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
         '500':
           description: Internal server error
           content:
@@ -409,11 +376,6 @@ paths:
       tags: []
       operationId: add_workspace_member
       parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
         - name: workspaceId
           in: path
           required: true
@@ -429,7 +391,7 @@ paths:
         '201':
           description: Added workspace member
           content:
-            application/vnd.evidence.members+json:
+            application/vnd.evidence.member+json:
               schema:
                 $ref: '#/components/schemas/MemberResource'
         '400':
@@ -456,16 +418,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/users/{userId}/workspaces/{workspaceId}/members/{memberId}:
+  /api/workspaces/{workspaceId}/members/{memberId}:
     get:
       tags: []
       operationId: get_workspace_member
       parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
         - name: workspaceId
           in: path
           required: true
@@ -483,12 +440,35 @@ paths:
             application/vnd.evidence.member+json:
               schema:
                 $ref: '#/components/schemas/MemberResource'
-        '400':
-          description: Validation error
+        '404':
+          description: Resource not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+    delete:
+      tags: []
+      operationId: remove_workspace_member
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed workspace member
         '404':
           description: Resource not found
           content:
@@ -1659,15 +1639,14 @@ components:
       required:
         - _links
         - _embedded
-        - total
+        - page
       properties:
         _embedded:
           $ref: '#/components/schemas/MemberCollectionEmbedded'
         _links:
           $ref: '#/components/schemas/BTreeMap'
-        total:
-          type: integer
-          minimum: 0
+        page:
+          $ref: '#/components/schemas/PageModel'
     MemberResource:
       type: object
       required:
@@ -1693,6 +1672,53 @@ components:
           $ref: '#/components/schemas/LinkedRefModel'
         workspace:
           $ref: '#/components/schemas/LinkedRefModel'
+    MembershipCollectionEmbedded:
+      type: object
+      required:
+        - memberships
+      properties:
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/MembershipResource'
+    MembershipCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _embedded:
+          $ref: '#/components/schemas/MembershipCollectionEmbedded'
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        page:
+          $ref: '#/components/schemas/PageModel'
+    MembershipResource:
+      type: object
+      required:
+        - _links
+        - id
+        - workspace
+        - user
+        - role
+        - createdAt
+        - updatedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        createdAt:
+          type: string
+        id:
+          type: string
+        role:
+          type: string
+        updatedAt:
+          type: string
+        user:
+          $ref: '#/components/schemas/LinkedRefModel'
+        workspace:
+          $ref: '#/components/schemas/WorkspaceResource'
     NodeCollectionEmbedded:
       type: object
       required:
