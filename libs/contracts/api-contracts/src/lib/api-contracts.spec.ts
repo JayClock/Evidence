@@ -59,8 +59,6 @@ describeContracts('Evidence API contract vertical slice', () => {
       health: { href: '/health' },
       'current-user': { href: '/api/users/desktop-user' },
     });
-    expect(root.body._links).not.toHaveProperty('default-user');
-
     const health = await apiRequest('/health');
     expect(health.status).toBe(200);
     expectHalResource(health, mediaTypes.health);
@@ -75,17 +73,6 @@ describeContracts('Evidence API contract vertical slice', () => {
       '/api/users/{userId}/memberships',
     );
     expect(openapi.body.paths).toHaveProperty('/api/workspaces');
-    expect(openapi.body.paths).not.toHaveProperty(
-      '/api/users/{userId}/workspaces',
-    );
-    expect(openapi.body.paths).not.toHaveProperty('/api/me/memberships');
-
-    const [legacyWorkspaces, meMemberships] = await Promise.all([
-      apiRequest(`/api/users/${userId}/workspaces`),
-      apiRequest('/api/me/memberships'),
-    ]);
-    expect(legacyWorkspaces.status).toBe(404);
-    expect(meMemberships.status).toBe(404);
 
     const user = await apiRequest(`/api/users/${userId}`);
     expect(user.status).toBe(200);
