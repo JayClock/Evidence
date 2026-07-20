@@ -452,6 +452,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
+    patch:
+      tags: []
+      operationId: update_workspace_member
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMemberInput'
+        required: true
+      responses:
+        '200':
+          description: Updated workspace member
+          content:
+            application/vnd.evidence.member+json:
+              schema:
+                $ref: '#/components/schemas/MemberResource'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
     delete:
       tags: []
       operationId: remove_workspace_member
@@ -1288,6 +1339,14 @@ components:
             - 'null'
         user:
           $ref: '#/components/schemas/RefModel'
+    UpdateMemberInput:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          minLength: 1
     BTreeMap:
       type: object
       additionalProperties:

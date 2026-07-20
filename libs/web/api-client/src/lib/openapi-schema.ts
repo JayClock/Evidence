@@ -145,7 +145,7 @@ export interface paths {
     delete: operations['remove_workspace_member'];
     options?: never;
     head?: never;
-    patch?: never;
+    patch: operations['update_workspace_member'];
     trace?: never;
   };
   '/api/workspaces/{workspaceId}/diagram': {
@@ -315,6 +315,9 @@ export interface components {
     AddMemberInput: {
       role?: string | null;
       user: components['schemas']['RefModel'];
+    };
+    UpdateMemberInput: {
+      role: string;
     };
     BTreeMap: {
       [key: string]: {
@@ -1221,6 +1224,69 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  update_workspace_member: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        memberId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateMemberInput'];
+      };
+    };
+    responses: {
+      /** @description Updated workspace member */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.member+json': components['schemas']['MemberResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
       };
       /** @description Resource not found */
       404: {
