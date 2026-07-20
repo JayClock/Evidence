@@ -1,15 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { UserWorkspaces, Users } from '@evidence/server-domain';
+import { UserMemberships, Users, Workspaces } from '@evidence/server-domain';
 import { assembleUser } from './mappers';
 import { PrismaService } from './prisma.service';
-import { PrismaUserWorkspaces } from './user-workspaces';
+import { PrismaUserMemberships } from './user-memberships';
+import { PrismaWorkspaces } from './workspaces';
 
 @Injectable()
 export class PrismaUsers implements Users {
   constructor(private readonly prisma: PrismaService) {}
 
-  workspaces(): UserWorkspaces {
-    return new PrismaUserWorkspaces(this.prisma, null);
+  workspaces(): Workspaces {
+    return new PrismaWorkspaces(this.prisma);
+  }
+
+  memberships(userId: string): UserMemberships {
+    return new PrismaUserMemberships(this.prisma, userId);
   }
 
   async findByIdentity(userId: string) {

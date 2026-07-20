@@ -1,9 +1,11 @@
+import { Workspaces } from '../workspace';
 import { User } from './user';
-import { UserWorkspaces } from './user-workspaces';
+import { UserMemberships } from './user-memberships';
 
 export const USERS = Symbol('USERS');
 
 export interface Users {
-  workspaces(): UserWorkspaces;
+  workspaces(): Workspaces;
+  memberships(userId: string): UserMemberships;
   findByIdentity(userId: string): Promise<User | null>;
 }

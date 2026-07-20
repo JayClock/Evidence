@@ -31,10 +31,11 @@ describe('PrismaUsers', () => {
     });
   });
 
-  it('exposes the unscoped workspace association from the users collection', () => {
+  it('exposes canonical workspaces and user membership projections', () => {
     const store = mockPrismaStore();
     const users = new PrismaUsers(asPrismaService(store));
 
     expect(users.workspaces()).toBeDefined();
+    expect(users.memberships('user-1')).toBeDefined();
   });
 });

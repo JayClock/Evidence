@@ -23,14 +23,14 @@ afterEach(async () => {
 });
 
 describe('SQLite workspace registry', () => {
-  it('seeds the desktop user and its local workspace', async () => {
+  it('seeds the desktop user and its local workspace membership', async () => {
     const user = await users.findByIdentity('desktop-user');
 
     expect(user?.description().email).toBe('desktop@evidence.local');
-    const workspaces = await user?.workspaces().findAll().toArray();
-    expect(workspaces).toHaveLength(1);
-    expect(workspaces?.[0].identity()).toBe('default-workspace');
-    expect(workspaces?.[0].description().metadata.evidenceRoot).toBe(
+    const [memberships] = await users.memberships('desktop-user').list(1, 20);
+    expect(memberships).toHaveLength(1);
+    expect(memberships[0]?.workspace.identity()).toBe('default-workspace');
+    expect(memberships[0]?.workspace.description().metadata.evidenceRoot).toBe(
       join(await realpath(join(testRoot, 'default-workspace')), '.evidence'),
     );
   });
@@ -38,12 +38,7 @@ describe('SQLite workspace registry', () => {
   it('persists a path-backed workspace and owner membership', async () => {
     const projectRoot = join(testRoot, 'customer-project');
     await mkdir(projectRoot, { recursive: true });
-    const user = await users.findByIdentity('desktop-user');
-    if (!user) {
-      throw new Error('seed user missing');
-    }
-
-    const workspace = await user.createWorkspace({
+    const workspace = await users.workspaces().create('desktop-user', {
       title: '',
       description: 'Local model',
       status: '',
@@ -74,11 +69,7 @@ describe('SQLite workspace registry', () => {
   it('retains workspaces after reopening the registry', async () => {
     const projectRoot = join(testRoot, 'retained-project');
     await mkdir(projectRoot, { recursive: true });
-    const user = await users.findByIdentity('desktop-user');
-    if (!user) {
-      throw new Error('seed user missing');
-    }
-    const workspace = await user.createWorkspace({
+    const workspace = await users.workspaces().create('desktop-user', {
       title: 'Retained',
       description: null,
       status: 'active',
@@ -91,10 +82,10 @@ describe('SQLite workspace registry', () => {
     registry = new SqliteRegistry(join(testRoot, 'registry.sqlite'));
     await registry.open();
     users = new SqliteUsers(registry);
-    const reopenedUser = await users.findByIdentity('desktop-user');
+    const reopenedMembership = await users
+      .memberships('desktop-user')
+      .findByWorkspaceIdentity(workspace.identity());
 
-    expect(
-      await reopenedUser?.workspaces().findByIdentity(workspace.identity()),
-    ).not.toBeNull();
+    expect(reopenedMembership).not.toBeNull();
   });
 });
