@@ -22,6 +22,10 @@ export function userWorkspacesHref(userId: string): string {
   return `/api/users/${userId}/workspaces`;
 }
 
+export function userMembershipsHref(userId: string): string {
+  return `/api/users/${userId}/memberships`;
+}
+
 export function userSidebarHref(userId: string): string {
   return `/api/users/${userId}/sidebar`;
 }
@@ -34,15 +38,24 @@ export function userWorkspacesPageHref(
   return `${userWorkspacesHref(userId)}?page=${page}&pageSize=${pageSize}`;
 }
 
-export function workspaceHref(userId: string, workspaceId: string): string {
-  return `/api/users/${userId}/workspaces/${workspaceId}`;
+export function userMembershipsPageHref(
+  userId: string,
+  page: number,
+  pageSize: number,
+): string {
+  return `${userMembershipsHref(userId)}?page=${page}&pageSize=${pageSize}`;
 }
 
-export function workspaceMembersHref(
-  userId: string,
-  workspaceId: string,
-): string {
-  return `${workspaceHref(userId, workspaceId)}/members`;
+export function workspacesHref(): string {
+  return '/api/workspaces';
+}
+
+export function workspaceHref(workspaceId: string): string {
+  return `${workspacesHref()}/${workspaceId}`;
+}
+
+export function workspaceMembersHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/members`;
 }
 
 export function workspaceDiagramHref(workspaceId: string): string {
@@ -98,9 +111,8 @@ export function workspaceLogicalRelationshipHref(
 }
 
 export function workspaceMemberHref(
-  userId: string,
   workspaceId: string,
   memberId: string,
 ): string {
-  return `${workspaceMembersHref(userId, workspaceId)}/${memberId}`;
+  return `${workspaceMembersHref(workspaceId)}/${memberId}`;
 }

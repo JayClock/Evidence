@@ -8,8 +8,10 @@ import type {
   LogicalRelationship,
   Member,
   User,
+  UserMemberships,
   Users,
   Workspace,
+  WorkspaceDescription,
 } from '@evidence/server-domain';
 
 @Injectable()
@@ -24,12 +26,41 @@ export class ResourceResolver {
     return user;
   }
 
+  currentUserId(): string {
+    return 'desktop-user';
+  }
+
+  async requireCurrentUser(): Promise<User> {
+    return this.requireUser(this.currentUserId());
+  }
+
+  async requireUserMemberships(userId: string): Promise<UserMemberships> {
+    await this.requireUser(userId);
+    return this.users.memberships(userId);
+  }
+
+  async createWorkspace(desc: WorkspaceDescription): Promise<Workspace> {
+    const user = await this.requireCurrentUser();
+    return this.users.workspaces().create(user.identity(), desc);
+  }
+
   async requireWorkspace(workspaceId: string): Promise<Workspace> {
     const workspace = await this.users.workspaces().findByIdentity(workspaceId);
     if (!workspace) {
       throw DomainError.notFound(`workspace ${workspaceId} not found`);
     }
     return workspace;
+  }
+
+  async updateWorkspace(
+    workspaceId: string,
+    desc: WorkspaceDescription,
+  ): Promise<Workspace> {
+    return this.users.workspaces().update(workspaceId, desc);
+  }
+
+  async deleteWorkspace(workspaceId: string): Promise<void> {
+    await this.users.workspaces().delete(workspaceId);
   }
 
   async requireUserWorkspace(
@@ -44,12 +75,11 @@ export class ResourceResolver {
     return workspace;
   }
 
-  async requireUserWorkspaceMember(
-    userId: string,
+  async requireWorkspaceMember(
     workspaceId: string,
     memberId: string,
   ): Promise<[Workspace, Member]> {
-    const workspace = await this.requireUserWorkspace(userId, workspaceId);
+    const workspace = await this.requireWorkspace(workspaceId);
     const member = await workspace.members().findByIdentity(memberId);
     if (!member) {
       throw DomainError.notFound(`workspace member ${memberId} not found`);

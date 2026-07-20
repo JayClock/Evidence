@@ -1,4 +1,4 @@
-import { Member } from '@evidence/server-domain';
+import { Member, Workspace } from '@evidence/server-domain';
 import {
   link,
   Link,
@@ -7,6 +7,7 @@ import {
   workspaceMemberHref,
   workspaceMembersHref,
 } from '../links';
+import { WorkspaceModel, workspaceModel } from './workspace-model';
 
 interface RefModel {
   _links: Record<string, Link>;
@@ -23,20 +24,25 @@ export interface MemberModel {
   updatedAt: string;
 }
 
-export function memberModel(userId: string, member: Member): MemberModel {
+export interface MembershipModel {
+  _links: Record<string, Link>;
+  id: string;
+  workspace: WorkspaceModel;
+  user: RefModel;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function memberModel(member: Member): MemberModel {
   const description = member.description();
   const workspaceId = description.workspace.id();
   const memberUserId = description.user.id();
   return {
-    _links: {
-      self: link(workspaceMemberHref(userId, workspaceId, member.identity())),
-      collection: link(workspaceMembersHref(userId, workspaceId)),
-      workspace: link(workspaceHref(userId, workspaceId)),
-      user: link(userHref(memberUserId)),
-    },
+    _links: memberLinks(member),
     id: member.identity(),
     workspace: {
-      _links: { self: link(workspaceHref(userId, workspaceId)) },
+      _links: { self: link(workspaceHref(workspaceId)) },
       id: workspaceId,
     },
     user: {
@@ -46,5 +52,37 @@ export function memberModel(userId: string, member: Member): MemberModel {
     role: description.role,
     createdAt: description.createdAt,
     updatedAt: description.updatedAt,
+  };
+}
+
+export function membershipModel(
+  membership: Member,
+  workspace: Workspace,
+): MembershipModel {
+  const description = membership.description();
+  const memberUserId = description.user.id();
+  return {
+    _links: memberLinks(membership),
+    id: membership.identity(),
+    workspace: workspaceModel(workspace),
+    user: {
+      _links: { self: link(userHref(memberUserId)) },
+      id: memberUserId,
+    },
+    role: description.role,
+    createdAt: description.createdAt,
+    updatedAt: description.updatedAt,
+  };
+}
+
+function memberLinks(member: Member): Record<string, Link> {
+  const description = member.description();
+  const workspaceId = description.workspace.id();
+  const memberUserId = description.user.id();
+  return {
+    self: link(workspaceMemberHref(workspaceId, member.identity())),
+    collection: link(workspaceMembersHref(workspaceId)),
+    workspace: link(workspaceHref(workspaceId)),
+    user: link(userHref(memberUserId)),
   };
 }

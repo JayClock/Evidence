@@ -7,10 +7,13 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { Ref } from '@evidence/server-domain';
 import { link, Link, workspaceHref, workspaceMembersHref } from './links';
 import { MemberModel, memberModel } from './model';
+import { addPageLinks, PageModel, pageModel, PageQuery } from './pagination';
+import { parsePositiveInteger } from './request';
 import { ResourceResolver } from './resource-resolver.service';
 
 interface RefInput {
@@ -25,7 +28,7 @@ interface AddMemberInput {
 interface MemberCollectionModel {
   _links: Record<string, Link>;
   _embedded: { members: MemberModel[] };
-  total: number;
+  page: PageModel;
 }
 
 @Controller()
@@ -34,55 +37,60 @@ export class WorkspaceMembersController {
 
   @Get()
   async listWorkspaceMembers(
-    @Param('userId') userId: string,
     @Param('workspaceId') workspaceId: string,
+    @Query('page') pageInput?: string,
+    @Query('pageSize') pageSizeInput?: string,
   ): Promise<MemberCollectionModel> {
-    const workspace = await this.resolver.requireUserWorkspace(
-      userId,
-      workspaceId,
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
+    const page = parsePositiveInteger(pageInput, 1, 'page');
+    const pageSize = Math.min(
+      parsePositiveInteger(pageSizeInput, 20, 'pageSize'),
+      100,
     );
     const total = await workspace.members().findAll().size();
     const members = await workspace
       .members()
       .findAll()
-      .subCollection(0, total)
+      .subCollection((page - 1) * pageSize, page * pageSize)
       .toArray();
+    const pageQuery: PageQuery = { page, pageSize, totalElements: total };
+    const links: Record<string, Link> = {
+      self: link(workspaceMembersHref(workspaceId)),
+      workspace: link(workspaceHref(workspaceId)),
+    };
+    addPageLinks(
+      links,
+      pageQuery,
+      (targetPage) =>
+        `${workspaceMembersHref(workspaceId)}?page=${targetPage}&pageSize=${pageSize}`,
+    );
 
     return {
-      _links: {
-        self: link(workspaceMembersHref(userId, workspaceId)),
-        workspace: link(workspaceHref(userId, workspaceId)),
-      },
-      _embedded: {
-        members: members.map((member) => memberModel(userId, member)),
-      },
-      total,
+      _links: links,
+      _embedded: { members: members.map(memberModel) },
+      page: pageModel(pageQuery),
     };
   }
 
   @Get(':memberId')
   async getWorkspaceMember(
-    @Param('userId') userId: string,
     @Param('workspaceId') workspaceId: string,
     @Param('memberId') memberId: string,
   ): Promise<MemberModel> {
-    const [, member] = await this.resolver.requireUserWorkspaceMember(
-      userId,
+    const [, member] = await this.resolver.requireWorkspaceMember(
       workspaceId,
       memberId,
     );
-    return memberModel(userId, member);
+    return memberModel(member);
   }
 
   @Delete(':memberId')
   @HttpCode(HttpStatus.NO_CONTENT)
   async removeWorkspaceMember(
-    @Param('userId') userId: string,
     @Param('workspaceId') workspaceId: string,
     @Param('memberId') memberId: string,
   ): Promise<void> {
-    const [workspace, member] = await this.resolver.requireUserWorkspaceMember(
-      userId,
+    const [workspace, member] = await this.resolver.requireWorkspaceMember(
       workspaceId,
       memberId,
     );
@@ -92,14 +100,10 @@ export class WorkspaceMembersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async addWorkspaceMember(
-    @Param('userId') userId: string,
     @Param('workspaceId') workspaceId: string,
     @Body() input: AddMemberInput,
   ): Promise<MemberModel> {
-    const workspace = await this.resolver.requireUserWorkspace(
-      userId,
-      workspaceId,
-    );
+    const workspace = await this.resolver.requireWorkspace(workspaceId);
     const member = await workspace.addMember({
       workspace: new Ref(workspaceId),
       user: new Ref(input.user.id),
@@ -107,6 +111,6 @@ export class WorkspaceMembersController {
       createdAt: '',
       updatedAt: '',
     });
-    return memberModel(userId, member);
+    return memberModel(member);
   }
 }

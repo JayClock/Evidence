@@ -61,9 +61,7 @@ export class UserWorkspacesController {
     return {
       _links: links,
       _embedded: {
-        workspaces: workspaces.map((workspace) =>
-          workspaceModel(userId, workspace),
-        ),
+        workspaces: workspaces.map((workspace) => workspaceModel(workspace)),
       },
       page: pageModel(pageQuery),
     };
@@ -79,7 +77,7 @@ export class UserWorkspacesController {
     const workspace = await user.createWorkspace(
       workspaceInputToDescription(input),
     );
-    return workspaceModel(userId, workspace);
+    return workspaceModel(workspace);
   }
 
   @Get(':workspaceId')
@@ -91,7 +89,7 @@ export class UserWorkspacesController {
       userId,
       workspaceId,
     );
-    return workspaceModel(userId, workspace);
+    return workspaceModel(workspace);
   }
 
   @Put(':workspaceId')
@@ -105,7 +103,7 @@ export class UserWorkspacesController {
       workspaceId,
       workspaceInputToDescription(input),
     );
-    return workspaceModel(userId, workspace);
+    return workspaceModel(workspace);
   }
 
   @Delete(':workspaceId')

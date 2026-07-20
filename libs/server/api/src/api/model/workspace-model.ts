@@ -2,13 +2,12 @@ import { Workspace } from '@evidence/server-domain';
 import {
   link,
   Link,
-  userHref,
-  userWorkspacesHref,
   workspaceDiagramHref,
   workspaceHref,
   workspaceLogicalEntitiesHref,
   workspaceLogicalRelationshipsHref,
   workspaceMembersHref,
+  workspacesHref,
 } from '../links';
 
 export interface WorkspaceModel {
@@ -22,23 +21,19 @@ export interface WorkspaceModel {
   updatedAt: string;
 }
 
-export function workspaceModel(
-  userId: string,
-  workspace: Workspace,
-): WorkspaceModel {
+export function workspaceModel(workspace: Workspace): WorkspaceModel {
   const workspaceId = workspace.identity();
   const description = workspace.description();
   return {
     _links: {
-      self: link(workspaceHref(userId, workspaceId)),
-      user: link(userHref(userId)),
-      members: link(workspaceMembersHref(userId, workspaceId)),
+      self: link(workspaceHref(workspaceId)),
+      members: link(workspaceMembersHref(workspaceId)),
       diagram: link(workspaceDiagramHref(workspaceId)),
       'logical-entities': link(workspaceLogicalEntitiesHref(workspaceId)),
       'logical-relationships': link(
         workspaceLogicalRelationshipsHref(workspaceId),
       ),
-      collection: link(userWorkspacesHref(userId)),
+      collection: link(workspacesHref()),
     },
     id: workspaceId,
     title: description.title,

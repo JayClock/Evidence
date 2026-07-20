@@ -5,10 +5,12 @@ import { LogicalEntitiesController } from './logical-entities.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
 import { ResourceResolver } from './resource-resolver.service';
 import { SidebarController } from './sidebar.controller';
+import { UserMembershipsController } from './user-memberships.controller';
 import { UserWorkspacesController } from './user-workspaces.controller';
 import { UsersController } from './users.controller';
 import { VendorMediaTypeInterceptor } from './vendor-media.interceptor';
 import { WorkspaceMembersController } from './workspace-members.controller';
+import { WorkspacesController } from './workspaces.controller';
 
 @Module({
   providers: [ResourceResolver],
@@ -30,6 +32,12 @@ class SidebarApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
+  controllers: [UserMembershipsController],
+})
+class UserMembershipsApiModule {}
+
+@Module({
+  imports: [ApiResourcesModule],
   controllers: [UserWorkspacesController],
 })
 class UserWorkspacesApiModule {}
@@ -40,7 +48,10 @@ class UserWorkspacesApiModule {}
 })
 class WorkspaceMembersApiModule {}
 
-@Module({})
+@Module({
+  imports: [ApiResourcesModule],
+  controllers: [WorkspacesController],
+})
 class WorkspacesApiModule {}
 
 @Module({
@@ -65,6 +76,7 @@ class LogicalRelationshipsApiModule {}
   imports: [
     UsersApiModule,
     SidebarApiModule,
+    UserMembershipsApiModule,
     UserWorkspacesApiModule,
     WorkspaceMembersApiModule,
     WorkspacesApiModule,
@@ -81,31 +93,33 @@ class LogicalRelationshipsApiModule {}
             module: SidebarApiModule,
           },
           {
+            path: ':userId/memberships',
+            module: UserMembershipsApiModule,
+          },
+          {
             path: ':userId/workspaces',
             module: UserWorkspacesApiModule,
-            children: [
-              {
-                path: ':workspaceId/members',
-                module: WorkspaceMembersApiModule,
-              },
-            ],
           },
         ],
       },
       {
-        path: 'workspaces/:workspaceId',
+        path: 'workspaces',
         module: WorkspacesApiModule,
         children: [
           {
-            path: 'diagram',
+            path: ':workspaceId/members',
+            module: WorkspaceMembersApiModule,
+          },
+          {
+            path: ':workspaceId/diagram',
             module: DiagramsApiModule,
           },
           {
-            path: 'logical-entities',
+            path: ':workspaceId/logical-entities',
             module: LogicalEntitiesApiModule,
           },
           {
-            path: 'logical-relationships',
+            path: ':workspaceId/logical-relationships',
             module: LogicalRelationshipsApiModule,
           },
         ],
