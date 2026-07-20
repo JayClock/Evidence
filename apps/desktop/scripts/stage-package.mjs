@@ -4,12 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const desktopRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repositoryRoot = resolve(desktopRoot, '..', '..');
-const serverSource = join(
-  repositoryRoot,
-  'apps',
-  'server-nest',
-  'dist-desktop',
-);
+const serverSource = join(repositoryRoot, 'apps', 'server', 'dist-desktop');
 const serverDestination = join(desktopRoot, 'dist', 'server');
 
 await rm(serverDestination, { recursive: true, force: true });

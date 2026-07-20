@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-contracts-'));
 const port = await reservePort();
 const origin = `http://127.0.0.1:${port}`;
-const serverEntry = resolve('apps/server-nest/dist-desktop/main.js');
+const serverEntry = resolve('apps/server/dist-desktop/main.js');
 const piEntry = resolve('libs/contracts/api-contracts/fixtures/fake-pi.mjs');
 const server = spawn(process.execPath, [serverEntry], {
   cwd: testRoot,

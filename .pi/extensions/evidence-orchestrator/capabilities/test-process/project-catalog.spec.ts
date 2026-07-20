@@ -93,8 +93,8 @@ describe('Nx project catalog', () => {
   it('rejects missing targets, unrelated nearest-test roots, and root ownership', () => {
     const catalog = createNxProjectCatalog([
       {
-        name: '@evidence/server-nest-api',
-        root: 'libs/server-nest/api',
+        name: '@evidence/server-api',
+        root: 'libs/server/api',
         targetNames: ['lint', 'typecheck'],
       },
       {
@@ -110,8 +110,8 @@ describe('Nx project catalog', () => {
     ]);
 
     expect(() =>
-      assertTestProject(catalog, '@evidence/server-nest-api', [
-        'libs/server-nest/api/src',
+      assertTestProject(catalog, '@evidence/server-api', [
+        'libs/server/api/src',
       ]),
     ).toThrow('has no test target');
     expect(() =>
@@ -190,10 +190,10 @@ describe('Nx project catalog', () => {
       '@evidence/web',
       '@evidence/web-feature-diagrams',
       'api-client',
-      '@evidence/server-nest',
-      '@evidence/server-nest-domain',
-      '@evidence/server-nest-persistent',
-      '@evidence/server-nest-api',
+      '@evidence/server',
+      '@evidence/server-domain',
+      '@evidence/server-persistent',
+      '@evidence/server-api',
     ]);
     const byName = new Map(
       catalog.projects.map((project) => [project.name, project]),
@@ -212,16 +212,14 @@ describe('Nx project catalog', () => {
       root: 'libs/web/api-client',
       targetNames: expect.arrayContaining(['test', 'typecheck', 'lint']),
     });
-    expect(byName.get('@evidence/server-nest-domain')?.targetNames).toEqual(
+    expect(byName.get('@evidence/server-domain')?.targetNames).toEqual(
       expect.arrayContaining(['test', 'typecheck', 'lint']),
     );
-    expect(byName.get('@evidence/server-nest-persistent')?.targetNames).toEqual(
+    expect(byName.get('@evidence/server-persistent')?.targetNames).toEqual(
       expect.arrayContaining(['test', 'typecheck', 'lint']),
     );
-    expect(byName.get('@evidence/server-nest')?.targetNames).toContain('test');
-    expect(byName.get('@evidence/server-nest-api')?.targetNames).toContain(
-      'test',
-    );
+    expect(byName.get('@evidence/server')?.targetNames).toContain('test');
+    expect(byName.get('@evidence/server-api')?.targetNames).toContain('test');
   }, 30_000);
 
   it('rejects unsafe or missing project ids before accepting resolved output', () => {

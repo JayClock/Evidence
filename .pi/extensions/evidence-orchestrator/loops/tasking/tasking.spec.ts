@@ -339,19 +339,14 @@ function nestProcessDefinition() {
       when: 'The Scenario belongs to Nest.',
     },
     steps: [
-      step(
-        'nest-domain-q1',
-        'Q1',
-        ['libs/server-nest/domain/src'],
-        'nest-domain',
-      ),
+      step('nest-domain-q1', 'Q1', ['libs/server/domain/src'], 'nest-domain'),
       step(
         'nest-persistent-q1',
         'Q1',
-        ['libs/server-nest/persistent/src'],
+        ['libs/server/persistent/src'],
         'prisma-store',
       ),
-      step('nest-api-q2', 'Q2', ['apps/server-nest/src'], 'nest-api'),
+      step('nest-api-q2', 'Q2', ['apps/server/src'], 'nest-api'),
     ],
   };
 }
@@ -1012,23 +1007,23 @@ describe('Tasking and Desk Check', () => {
     );
     const projects: NxWorkspaceProject[] = [
       {
-        name: '@evidence/server-nest-domain',
-        root: 'libs/server-nest/domain',
+        name: '@evidence/server-domain',
+        root: 'libs/server/domain',
         targetNames: ['test', 'typecheck', 'lint'],
       },
       {
-        name: '@evidence/server-nest-persistent',
-        root: 'libs/server-nest/persistent',
+        name: '@evidence/server-persistent',
+        root: 'libs/server/persistent',
         targetNames: ['test', 'typecheck', 'lint'],
       },
       {
-        name: '@evidence/server-nest',
-        root: 'apps/server-nest',
+        name: '@evidence/server',
+        root: 'apps/server',
         targetNames: ['test', 'typecheck', 'lint'],
       },
       {
-        name: '@evidence/server-nest-api',
-        root: 'libs/server-nest/api',
+        name: '@evidence/server-api',
+        root: 'libs/server/api',
         targetNames: ['typecheck', 'lint'],
       },
     ];
@@ -1049,7 +1044,7 @@ describe('Tasking and Desk Check', () => {
           intent: 'The Nest domain creates workspace Alpha.',
           runtimePlanId: 'RUNTIME-001',
           stepId: 'nest-domain-q1',
-          projectId: '@evidence/server-nest-domain',
+          projectId: '@evidence/server-domain',
           testFilter: 'nest_domain_alpha',
           supportedBy: [],
           scenarioIds: ['SC-001'],
@@ -1062,7 +1057,7 @@ describe('Tasking and Desk Check', () => {
           intent: 'The Nest store retains workspace Alpha.',
           runtimePlanId: 'RUNTIME-001',
           stepId: 'nest-persistent-q1',
-          projectId: '@evidence/server-nest-persistent',
+          projectId: '@evidence/server-persistent',
           testFilter: 'nest_store_alpha',
           supportedBy: [],
           scenarioIds: ['SC-001'],
@@ -1075,7 +1070,7 @@ describe('Tasking and Desk Check', () => {
           intent: 'The Nest app returns workspace Alpha.',
           runtimePlanId: 'RUNTIME-001',
           stepId: 'nest-api-q2',
-          projectId: '@evidence/server-nest',
+          projectId: '@evidence/server',
           testFilter: 'nest_api_alpha',
           supportedBy: ['TEST-001', 'TEST-002'],
           scenarioIds: ['SC-001'],
@@ -1115,20 +1110,20 @@ describe('Tasking and Desk Check', () => {
     const gates = draft.tasking_candidate?.processes[0]?.quality_gate_commands;
     expect(gates).toHaveLength(11);
     expect(gates).toContainEqual({
-      project_id: '@evidence/server-nest',
+      project_id: '@evidence/server',
       target: 'test',
-      command: 'pnpm nx test @evidence/server-nest --run',
+      command: 'pnpm nx test @evidence/server --run',
     });
     expect(gates).not.toContainEqual(
       expect.objectContaining({
-        project_id: '@evidence/server-nest-api',
+        project_id: '@evidence/server-api',
         target: 'test',
       }),
     );
     expect(gates).toContainEqual({
-      project_id: '@evidence/server-nest-api',
+      project_id: '@evidence/server-api',
       target: 'typecheck',
-      command: 'pnpm nx typecheck @evidence/server-nest-api',
+      command: 'pnpm nx typecheck @evidence/server-api',
     });
 
     const invalidCwd = workspace();
@@ -1141,7 +1136,7 @@ describe('Tasking and Desk Check', () => {
     const invalid = structuredClone(input);
     const q2 = invalid.tests.find(({ quadrant }) => quadrant === 'Q2');
     if (!q2) throw new Error('Missing Nest Q2 fixture.');
-    q2.projectId = '@evidence/server-nest-api';
+    q2.projectId = '@evidence/server-api';
     expect(
       proposeTaskingDraft(
         invalidCwd,

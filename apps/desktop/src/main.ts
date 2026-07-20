@@ -147,7 +147,7 @@ function createLocalServer(): LocalServer {
           'server',
           'main.js',
         )
-      : join(__dirname, '..', '..', 'server-nest', 'dist-desktop', 'main.js'),
+      : join(__dirname, '..', '..', 'server', 'dist-desktop', 'main.js'),
     piEntry: embeddedPiEntry(),
     legacyRegistryPath:
       process.env.EVIDENCE_LEGACY_REGISTRY_PATH ??

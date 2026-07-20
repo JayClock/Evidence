@@ -28,7 +28,7 @@
       "replaced_boundaries": [],
       "nearest_test": {
         "rule": "Use the test adjacent to the owning Nest domain module.",
-        "roots": ["libs/server-nest/domain/src"]
+        "roots": ["libs/server/domain/src"]
       },
       "focused_command": {
         "template": "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
@@ -56,7 +56,7 @@
       ],
       "nearest_test": {
         "rule": "Extend the nearest repository contract or in-memory adapter test.",
-        "roots": ["libs/server-nest/persistent/src"]
+        "roots": ["libs/server/persistent/src"]
       },
       "focused_command": {
         "template": "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
@@ -89,7 +89,7 @@
       ],
       "nearest_test": {
         "rule": "Extend the acceptance test nearest the owning controller module.",
-        "roots": ["apps/server-nest/src", "libs/server-nest/api/src"]
+        "roots": ["apps/server/src", "libs/server/api/src"]
       },
       "focused_command": {
         "template": "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",

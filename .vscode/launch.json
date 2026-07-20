@@ -4,9 +4,9 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Debug server-nest with Nx",
+      "name": "Debug server with Nx",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["exec", "nx", "serve", "server-nest"],
+      "runtimeArgs": ["exec", "nx", "serve", "server"],
       "env": {
         "NODE_OPTIONS": "--inspect=9229"
       },
@@ -15,7 +15,7 @@
       "skipFiles": ["<node_internals>/**"],
       "sourceMaps": true,
       "outFiles": [
-        "${workspaceFolder}/apps/server-nest/dist/**/*.(m|c|)js",
+        "${workspaceFolder}/apps/server/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
       ]
     }

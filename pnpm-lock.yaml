@@ -230,20 +230,20 @@ importers:
         specifier: ^9.0.10
         version: 9.0.10
 
-  apps/server-nest:
+  apps/server:
     dependencies:
-      '@evidence/server-nest-api':
+      '@evidence/server-api':
         specifier: workspace:*
-        version: link:../../libs/server-nest/api
-      '@evidence/server-nest-domain':
+        version: link:../../libs/server/api
+      '@evidence/server-domain':
         specifier: workspace:*
-        version: link:../../libs/server-nest/domain
-      '@evidence/server-nest-infrastructure':
+        version: link:../../libs/server/domain
+      '@evidence/server-infrastructure':
         specifier: workspace:*
-        version: link:../../libs/server-nest/infrastructure
-      '@evidence/server-nest-persistent':
+        version: link:../../libs/server/infrastructure
+      '@evidence/server-persistent':
         specifier: workspace:*
-        version: link:../../libs/server-nest/persistent
+        version: link:../../libs/server/persistent
       '@nestjs/common':
         specifier: ^11.0.0
         version: 11.1.24(reflect-metadata@0.1.14)(rxjs@7.8.2)
@@ -305,9 +305,9 @@ importers:
 
   libs/contracts/api-contracts: {}
 
-  libs/server-nest/api:
+  libs/server/api:
     dependencies:
-      '@evidence/server-nest-domain':
+      '@evidence/server-domain':
         specifier: workspace:*
         version: link:../domain
       '@nestjs/common':
@@ -317,17 +317,17 @@ importers:
         specifier: ^11.1.24
         version: 11.1.24(@nestjs/common@11.1.24(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.24)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
-  libs/server-nest/domain: {}
+  libs/server/domain: {}
 
-  libs/server-nest/infrastructure:
+  libs/server/infrastructure:
     dependencies:
-      '@evidence/server-nest-domain':
+      '@evidence/server-domain':
         specifier: workspace:*
         version: link:../domain
 
-  libs/server-nest/persistent:
+  libs/server/persistent:
     dependencies:
-      '@evidence/server-nest-domain':
+      '@evidence/server-domain':
         specifier: workspace:*
         version: link:../domain
       '@nestjs/common':

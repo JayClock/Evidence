@@ -28,22 +28,22 @@
       "path": "./libs/contracts/api-contracts"
     },
     {
-      "path": "./apps/server-nest"
+      "path": "./apps/server"
     },
     {
       "path": "./apps/desktop"
     },
     {
-      "path": "./libs/server-nest/domain"
+      "path": "./libs/server/domain"
     },
     {
-      "path": "./libs/server-nest/persistent"
+      "path": "./libs/server/persistent"
     },
     {
-      "path": "./libs/server-nest/api"
+      "path": "./libs/server/api"
     },
     {
-      "path": "./libs/server-nest/infrastructure"
+      "path": "./libs/server/infrastructure"
     }
   ]
 }

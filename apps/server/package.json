@@ -1,0 +1,27 @@
+{
+  "name": "@evidence/server",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@evidence/server-api": "workspace:*",
+    "@evidence/server-domain": "workspace:*",
+    "@evidence/server-infrastructure": "workspace:*",
+    "@evidence/server-persistent": "workspace:*",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "dotenv": "^17.4.2",
+    "pg": "^8.21.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0",
+    "tslib": "^2.3.0",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.0.0",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.8.0"
+  }
+}

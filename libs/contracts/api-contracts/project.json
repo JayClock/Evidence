@@ -18,7 +18,7 @@
       "cache": false,
       "dependsOn": [
         {
-          "projects": "@evidence/server-nest",
+          "projects": "@evidence/server",
           "target": "build-desktop"
         }
       ],

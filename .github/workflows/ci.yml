@@ -51,7 +51,7 @@ jobs:
       - uses: nrwl/nx-set-shas@v5
 
       - run: pnpm prisma:generate
-      - run: pnpm --dir apps/server-nest exec prisma migrate deploy
+      - run: pnpm --dir apps/server exec prisma migrate deploy
       - run: pnpm exec nx sync:check
       - run: pnpm exec nx format:check --base=$NX_BASE --head=$NX_HEAD
       - run: pnpm orchestrator:typecheck
@@ -66,11 +66,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm nx build @evidence/server-nest
+          pnpm nx build @evidence/server
           mkdir -p "$RUNNER_TEMP/evidence-contract-workspaces"
           EVIDENCE_PI_ENTRY="$GITHUB_WORKSPACE/libs/contracts/api-contracts/fixtures/fake-pi.mjs" \
             EVIDENCE_HOST=127.0.0.1 PORT=3000 \
-            node apps/server-nest/dist/main.js > "$RUNNER_TEMP/evidence-server.log" 2>&1 &
+            node apps/server/dist/main.js > "$RUNNER_TEMP/evidence-server.log" 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 100); do
