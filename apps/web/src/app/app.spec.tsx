@@ -169,7 +169,7 @@ describe('App', () => {
     });
   });
 
-  it('renders HAL-discovered default user, sidebar, and active workspace', () => {
+  it('renders the HAL-discovered current user and active workspace', () => {
     renderApp();
 
     expect(

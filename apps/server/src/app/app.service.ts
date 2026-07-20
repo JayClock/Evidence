@@ -29,7 +29,6 @@ export class AppService {
         self: link(apiHref()),
         health: link(healthHref()),
         'current-user': link(userHref('desktop-user')),
-        'default-user': link(userHref('desktop-user')),
       },
     };
   }

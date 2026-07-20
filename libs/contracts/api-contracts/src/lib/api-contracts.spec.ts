@@ -59,6 +59,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       health: { href: '/health' },
       'current-user': { href: '/api/users/desktop-user' },
     });
+    expect(root.body._links).not.toHaveProperty('default-user');
 
     const health = await apiRequest('/health');
     expect(health.status).toBe(200);
