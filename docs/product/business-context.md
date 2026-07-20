@@ -12,7 +12,7 @@ Evidence 帮助领域专家和业务分析师定义业务概念，将证据、�
 2. **逻辑模型编写**：在工作区定义 LogicalEntity 与 LogicalRelationship。
 3. **图投影**：Diagram、DiagramNode 和 DiagramEdge 将逻辑模型投影为可视关系图；图元素不是逻辑实体本身。
 4. **模型辅助**：AI Modeling Agent 可以提出 ModelingProposal，但提案经用户确认后才能改变模型。
-5. **一致体验**：Web 是唯一前端产品；Desktop 通过 Tauri 包装同一前端。
+5. **一致体验**：Web 是唯一前端产品；Desktop 通过 Electron 包装同一前端并消费相同 REST/HAL 语义。
 
 ## 核心规则
 

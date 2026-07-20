@@ -23,7 +23,8 @@
 
 ## 旅程 C：跨 Web/Desktop 使用
 
-1. Web 用户通过浏览器访问共享前端。
-2. Desktop 用户通过 Tauri WebView 使用同一前端。
-3. 两者消费一致的 REST/domain 语义。
-4. Desktop 特有能力通过 Tauri command/capability 提供，不复制业务页面。
+1. Web 用户通过浏览器访问共享前端和 Hosted API。
+2. Desktop 用户通过 Electron renderer 使用同一前端。
+3. Electron 默认启动本地 API 与本地存储，也可显式连接远程 API。
+4. 两者消费一致的 REST/HAL 与领域语义。
+5. Desktop 特有能力通过受限 preload bridge 提供，不复制业务页面或业务 API。
