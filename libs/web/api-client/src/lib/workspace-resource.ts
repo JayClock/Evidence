@@ -3,6 +3,7 @@ import type { Entity } from '@hateoas-ts/resource';
 import type { components } from './openapi-schema.js';
 
 import type { DiagramResource } from './diagram-resource.js';
+import type { InboxItemCollectionResource } from './inbox-resource.js';
 import type { LogicalEntityCollectionResource } from './logical-entity-resource.js';
 import type { LogicalRelationshipCollectionResource } from './logical-relationship-resource.js';
 import type { MemberCollectionResource } from './member-resource.js';
@@ -17,6 +18,7 @@ export type WorkspaceResource = Entity<
     self: WorkspaceResource;
     members: MemberCollectionResource;
     diagram: DiagramResource;
+    'inbox-items': InboxItemCollectionResource;
     'logical-entities': LogicalEntityCollectionResource;
     'logical-relationships': LogicalRelationshipCollectionResource;
   }
