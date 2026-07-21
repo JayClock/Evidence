@@ -11,6 +11,7 @@ import type { Mock } from 'vitest';
 
 import {
   InboxItemDetailView,
+  InboxRevisionCollectionView,
   InboxRevisionDetailView,
 } from './inbox-detail-view';
 
@@ -204,7 +205,18 @@ describe('InboxItemDetailView', () => {
   });
 });
 
-describe('InboxRevisionDetailView', () => {
+describe('Inbox revision resource views', () => {
+  it('renders a revision collection independently', () => {
+    render(
+      <MemoryRouter>
+        <InboxRevisionCollectionView resourceState={revisionCollectionState} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByText('#1')).toBeTruthy();
+  });
+
   it('renders a revision resource independently', () => {
     render(<InboxRevisionDetailView resourceState={revisionState} />);
 

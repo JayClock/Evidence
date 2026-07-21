@@ -10,6 +10,9 @@ import {
   type DiagramResource,
   type Entity,
   type InboxItemCollectionResource,
+  type InboxItemResource,
+  type InboxRevisionCollectionResource,
+  type InboxRevisionResource,
   type Link as HalLink,
   type LogicalEntityCollectionResource,
   type LogicalEntityResource,
@@ -33,7 +36,12 @@ import {
   DiagramCollectionView,
   DiagramDetailView,
 } from '@evidence/web-feature-diagrams';
-import { InboxCollectionView } from '@evidence/web-feature-inbox';
+import {
+  InboxCollectionView,
+  InboxItemDetailView,
+  InboxRevisionCollectionView,
+  InboxRevisionDetailView,
+} from '@evidence/web-feature-inbox';
 import {
   LogicalEntityCollectionView,
   LogicalEntityDetailView,
@@ -175,6 +183,26 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <InboxCollectionView
           resourceState={resourceState as State<InboxItemCollectionResource>}
+        />
+      );
+    case resourceContentTypes.inboxItem:
+      return (
+        <InboxItemDetailView
+          resourceState={resourceState as State<InboxItemResource>}
+        />
+      );
+    case resourceContentTypes.inboxRevisions:
+      return (
+        <InboxRevisionCollectionView
+          resourceState={
+            resourceState as State<InboxRevisionCollectionResource>
+          }
+        />
+      );
+    case resourceContentTypes.inboxRevision:
+      return (
+        <InboxRevisionDetailView
+          resourceState={resourceState as State<InboxRevisionResource>}
         />
       );
     case resourceContentTypes.logicalEntities:

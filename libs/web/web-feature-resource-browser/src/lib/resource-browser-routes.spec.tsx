@@ -37,7 +37,10 @@ vi.mock('@evidence/api-client', () => {
       workspace: 'application/vnd.evidence.workspace+json',
       diagrams: 'application/vnd.evidence.diagrams+json',
       diagram: 'application/vnd.evidence.diagram+json',
+      inboxItem: 'application/vnd.evidence.inbox-item+json',
       inboxItems: 'application/vnd.evidence.inbox-items+json',
+      inboxRevision: 'application/vnd.evidence.inbox-revision+json',
+      inboxRevisions: 'application/vnd.evidence.inbox-revisions+json',
       logicalEntity: 'application/vnd.evidence.logical-entity+json',
       logicalEntities: 'application/vnd.evidence.logical-entities+json',
     },
@@ -56,6 +59,9 @@ vi.mock('@evidence/web-feature-diagrams', () => ({
 
 vi.mock('@evidence/web-feature-inbox', () => ({
   InboxCollectionView: () => <div>Inbox collection</div>,
+  InboxItemDetailView: () => <div>Inbox item</div>,
+  InboxRevisionCollectionView: () => <div>Inbox revisions</div>,
+  InboxRevisionDetailView: () => <div>Inbox revision</div>,
 }));
 
 type ResourceMarker =
@@ -157,6 +163,27 @@ const inboxItemCollectionState = {
     }),
 };
 
+const inboxItemState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.inbox-item+json',
+    }),
+};
+
+const inboxRevisionCollectionState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.inbox-revisions+json',
+    }),
+};
+
+const inboxRevisionState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.inbox-revision+json',
+    }),
+};
+
 const logicalEntityCollectionState = {
   data: {
     page: {
@@ -186,7 +213,19 @@ const logicalEntityCollectionState = {
 };
 
 function dynamicStateForPath(path: string) {
-  if (path.includes('/inbox-items')) {
+  if (path.endsWith('/revisions/revision-1')) {
+    return inboxRevisionState;
+  }
+
+  if (path.endsWith('/revisions')) {
+    return inboxRevisionCollectionState;
+  }
+
+  if (path.endsWith('/inbox-items/item-1')) {
+    return inboxItemState;
+  }
+
+  if (path.endsWith('/inbox-items')) {
     return inboxItemCollectionState;
   }
 
@@ -295,12 +334,23 @@ describe('ResourceBrowserRoutes', () => {
     expect(await screen.findByText('Diagram detail')).toBeTruthy();
   });
 
-  it('renders the Inbox feature for Inbox collection resources', async () => {
+  it.each([
+    ['/workspaces/default-workspace/inbox-items', 'Inbox collection'],
+    ['/workspaces/default-workspace/inbox-items/item-1', 'Inbox item'],
+    [
+      '/workspaces/default-workspace/inbox-items/item-1/revisions',
+      'Inbox revisions',
+    ],
+    [
+      '/workspaces/default-workspace/inbox-items/item-1/revisions/revision-1',
+      'Inbox revision',
+    ],
+  ])('renders the Inbox feature for %s', async (path, expected) => {
     await act(async () => {
-      renderRoutes('/workspaces/default-workspace/inbox-items');
+      renderRoutes(path);
     });
 
-    expect(await screen.findByText('Inbox collection')).toBeTruthy();
+    expect(await screen.findByText(expected)).toBeTruthy();
   });
 
   it('renders logical entities as a table for logical entity collection resources', async () => {

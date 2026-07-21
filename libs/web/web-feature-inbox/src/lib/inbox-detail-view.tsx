@@ -226,6 +226,24 @@ export function InboxItemDetailView({
   );
 }
 
+export function InboxRevisionCollectionView({
+  resourceState,
+}: {
+  resourceState: State<InboxRevisionCollectionResource>;
+}) {
+  return (
+    <RelatedResourceCard
+      title="Revision history"
+      description="Every distinct source snapshot captured for this Inbox item."
+      loading={false}
+      error={null}
+      count={resourceState.data.page.totalElements}
+    >
+      <RevisionTimeline resourceState={resourceState} />
+    </RelatedResourceCard>
+  );
+}
+
 export function InboxRevisionDetailView({
   resourceState,
 }: {
@@ -405,7 +423,7 @@ function RevisionTimeline({
   latestRevisionId,
   resourceState,
 }: {
-  latestRevisionId: string;
+  latestRevisionId?: string;
   resourceState: State<InboxRevisionCollectionResource>;
 }) {
   if (resourceState.collection.length === 0) {
