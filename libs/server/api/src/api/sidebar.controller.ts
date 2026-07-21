@@ -49,6 +49,14 @@ export function sidebarResource(userId: string): SidebarResource {
         defaultOpen: true,
         items: [
           {
+            key: 'inbox-items',
+            label: 'Inbox',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/inbox-items',
+            path: '/api/workspaces/{workspaceId}/inbox-items',
+            icon: 'inbox',
+          },
+          {
             key: 'logical-entities',
             label: 'Logical Entities',
             type: 'resource',
