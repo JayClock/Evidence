@@ -3,9 +3,27 @@ import { zodActionSchemaPlugin } from '@hateoas-ts/resource/zod';
 
 import type { RootResource } from './api-types.js';
 
+type DiagramAgentRequest = {
+  id: string;
+  requirement: string;
+  logicalEntitiesHref: string;
+  logicalRelationshipsHref: string;
+};
+
+type DiagramAgentEvent = {
+  id: string;
+  event: string | null;
+  data: string;
+};
+
 type EvidenceDesktopBridge = {
   getApiBaseUrl(): Promise<string>;
   chooseDirectory(): Promise<string | null>;
+  runDiagramAgent(
+    request: DiagramAgentRequest,
+    onEvent: (event: DiagramAgentEvent) => void,
+  ): Promise<void>;
+  cancelDiagramAgent(id: string): Promise<void>;
 };
 
 type EvidenceImportMeta = ImportMeta & {

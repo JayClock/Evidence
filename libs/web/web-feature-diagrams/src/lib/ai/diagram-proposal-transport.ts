@@ -18,6 +18,25 @@ type FetchableResource = {
   fetch?: (init?: RequestInit) => Promise<Response>;
 };
 
+type DesktopAgentEvent = {
+  id: string;
+  event: string | null;
+  data: string;
+};
+
+type DesktopAgentBridge = {
+  runDiagramAgent(
+    request: {
+      id: string;
+      requirement: string;
+      logicalEntitiesHref: string;
+      logicalRelationshipsHref: string;
+    },
+    onEvent: (event: DesktopAgentEvent) => void,
+  ): Promise<void>;
+  cancelDiagramAgent(id: string): Promise<void>;
+};
+
 export function resolveProposeModelUrl(
   resourceState: State<DiagramResource>,
 ): string | null {
@@ -60,6 +79,20 @@ async function sendDiagramProposalRequest(
     throw new Error('Requirement is required.');
   }
 
+  const desktopAgent = (
+    globalThis as typeof globalThis & {
+      evidenceDesktop?: DesktopAgentBridge;
+    }
+  ).evidenceDesktop;
+  if (desktopAgent) {
+    return sendLocalDiagramAgentRequest(
+      desktopAgent,
+      resourceState,
+      requirement,
+      options,
+    );
+  }
+
   const resource = resourceState.follow('propose-model') as FetchableResource;
   const response = await fetchProposal(resource, requirement, options);
 
@@ -74,6 +107,105 @@ async function sendDiagramProposalRequest(
   }
 
   return sseToUiMessageStream(response.body);
+}
+
+function sendLocalDiagramAgentRequest(
+  bridge: DesktopAgentBridge,
+  resourceState: State<DiagramResource>,
+  requirement: string,
+  options: SendMessagesOptions,
+): ReadableStream<UIMessageChunk> {
+  const id = agentRequestId();
+  const logicalEntitiesHref = requiredResourceHref(
+    resourceState,
+    'logical-entities',
+  );
+  const logicalRelationshipsHref = requiredResourceHref(
+    resourceState,
+    'logical-relationships',
+  );
+  const encoder = new TextEncoder();
+  let cancelled = false;
+
+  const eventStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const onAbort = () => {
+        cancelled = true;
+        void bridge.cancelDiagramAgent(id);
+        controller.close();
+      };
+      options.abortSignal?.addEventListener('abort', onAbort, { once: true });
+
+      void bridge
+        .runDiagramAgent(
+          {
+            id,
+            requirement,
+            logicalEntitiesHref,
+            logicalRelationshipsHref,
+          },
+          (event) => {
+            if (cancelled) {
+              return;
+            }
+            controller.enqueue(encoder.encode(serializeAgentEvent(event)));
+            if (event.event === 'complete') {
+              cancelled = true;
+              options.abortSignal?.removeEventListener('abort', onAbort);
+              controller.close();
+            }
+          },
+        )
+        .then(() => {
+          if (!cancelled) {
+            cancelled = true;
+            options.abortSignal?.removeEventListener('abort', onAbort);
+            controller.close();
+          }
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) {
+            cancelled = true;
+            options.abortSignal?.removeEventListener('abort', onAbort);
+            controller.error(error);
+          }
+        });
+    },
+    cancel() {
+      cancelled = true;
+      return bridge.cancelDiagramAgent(id);
+    },
+  });
+
+  return sseToUiMessageStream(eventStream);
+}
+
+function requiredResourceHref(
+  resourceState: State<DiagramResource>,
+  relation: 'logical-entities' | 'logical-relationships',
+): string {
+  const resource = resourceState.follow(relation) as FetchableResource;
+  const href = resource.uri ?? resourceState.getLink(relation)?.href;
+  if (!href) {
+    throw new Error(`Diagram ${relation} link is unavailable.`);
+  }
+  return href;
+}
+
+function agentRequestId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `diagram-agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
+}
+
+function serializeAgentEvent(event: DesktopAgentEvent): string {
+  const eventLine = event.event ? `event: ${event.event}\n` : '';
+  const dataLines = event.data
+    .split(/\r\n|\r|\n/)
+    .map((line) => `data: ${line}`)
+    .join('\n');
+  return `${eventLine}${dataLines}\n\n`;
 }
 
 async function fetchProposal(

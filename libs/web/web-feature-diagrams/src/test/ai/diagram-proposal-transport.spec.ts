@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessage, UIMessageChunk } from 'ai';
 import type { DiagramResource, State } from '@evidence/api-client';
 
@@ -15,6 +15,10 @@ function sseResponse(text: string): Response {
     { status: 200 },
   );
 }
+
+afterEach(() => {
+  delete (globalThis as { evidenceDesktop?: unknown }).evidenceDesktop;
+});
 
 function diagramState(fetch: (init?: RequestInit) => Promise<Response>) {
   return {
@@ -80,6 +84,76 @@ describe('createDiagramProposalTransport', () => {
         body: JSON.stringify({ requirement: 'latest requirement' }),
       }),
     );
+  });
+
+  it('runs the desktop agent locally with remote HAL model links', async () => {
+    const runDiagramAgent = vi.fn(
+      async (
+        request: {
+          id: string;
+          requirement: string;
+          logicalEntitiesHref: string;
+          logicalRelationshipsHref: string;
+        },
+        onEvent: (event: {
+          id: string;
+          event: string | null;
+          data: string;
+        }) => void,
+      ) => {
+        onEvent({ id: request.id, event: null, data: 'Updated remotely.' });
+        onEvent({ id: request.id, event: 'complete', data: '' });
+      },
+    );
+    (globalThis as { evidenceDesktop?: unknown }).evidenceDesktop = {
+      getApiBaseUrl: vi.fn(async () => 'https://api.example.test/api'),
+      chooseDirectory: vi.fn(async () => null),
+      runDiagramAgent,
+      cancelDiagramAgent: vi.fn(async () => undefined),
+    };
+    const fetch = vi.fn(async () => sseResponse(''));
+    const state = {
+      follow: vi.fn((relation: string) => ({
+        uri: `https://api.example.test/api/workspaces/ws/${
+          relation === 'logical-entities'
+            ? 'logical-entities'
+            : 'logical-relationships'
+        }`,
+        fetch,
+      })),
+      getLink: vi.fn(),
+    } as unknown as State<DiagramResource>;
+    const transport = createDiagramProposalTransport(state);
+
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('create a contract')],
+      abortSignal: undefined,
+    });
+
+    await expect(readChunks(stream)).resolves.toEqual([
+      { type: 'text-start', id: 'diagram-model-response' },
+      {
+        type: 'text-delta',
+        id: 'diagram-model-response',
+        delta: 'Updated remotely.',
+      },
+      { type: 'text-end', id: 'diagram-model-response' },
+      { type: 'finish', finishReason: 'stop' },
+    ]);
+    expect(runDiagramAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requirement: 'create a contract',
+        logicalEntitiesHref:
+          'https://api.example.test/api/workspaces/ws/logical-entities',
+        logicalRelationshipsHref:
+          'https://api.example.test/api/workspaces/ws/logical-relationships',
+      }),
+      expect.any(Function),
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('converts backend text SSE events into AI SDK text chunks', async () => {

@@ -86,8 +86,8 @@ export function DiagramAiChat({
         <CardDescription>Diagram AI</CardDescription>
         <CardTitle>AI modeling assistant</CardTitle>
         <CardDescription>
-          Ask for changes to the local .evidence model. The canvas refreshes
-          after the assistant finishes.
+          Ask the agent to analyze and update the active Evidence model. The
+          canvas refreshes after the assistant finishes.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 min-h-0 flex-col gap-3">
@@ -96,7 +96,7 @@ export function DiagramAiChat({
             {messages.length === 0 ? (
               <ConversationEmptyState
                 title="Ask for a fulfillment model"
-                description="Describe the business requirement to stream an AI modeling proposal."
+                description="Describe the business requirement for the modeling agent."
               />
             ) : (
               messages.map((message, index) => (
