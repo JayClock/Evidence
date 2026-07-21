@@ -2,6 +2,8 @@ appId: works.earendil.evidence
 productName: Evidence
 asar: true
 asarUnpack:
+  - dist/agent-runtime.js
+  - dist/agent-runtime.js.map
   - dist/server/**/*
   - node_modules/**/*
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
@@ -14,6 +16,8 @@ files:
   - dist/main.js.map
   - dist/preload.js
   - dist/preload.js.map
+  - dist/agent-runtime.js
+  - dist/agent-runtime.js.map
   - dist/server/**/*
   - package.json
 

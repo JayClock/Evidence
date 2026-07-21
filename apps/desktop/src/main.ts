@@ -12,7 +12,14 @@ import {
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
+import {
+  CANCEL_DIAGRAM_AGENT_CHANNEL,
+  DIAGRAM_AGENT_EVENT_CHANNEL,
+  parseDiagramAgentRequest,
+  RUN_DIAGRAM_AGENT_CHANNEL,
+} from './agent-protocol';
 import { isTrustedRendererRequest } from './ipc-security';
+import { LocalAgent } from './local-agent';
 import { LocalServer, type LocalServerConnection } from './local-server';
 import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
 
@@ -26,6 +33,7 @@ interface RuntimeConnection {
   sessionToken?: string;
 }
 
+let localAgent: LocalAgent | null = null;
 let localServer: LocalServer | null = null;
 let allowQuit = false;
 
@@ -88,7 +96,7 @@ function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
   }
 }
 
-function registerDesktopBridge(apiBaseUrl: string): void {
+function registerDesktopBridge(apiBaseUrl: string, agent: LocalAgent): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
     return apiBaseUrl;
@@ -100,6 +108,22 @@ function registerDesktopBridge(apiBaseUrl: string): void {
       properties: ['openDirectory', 'createDirectory'],
     });
     return selection.canceled ? null : (selection.filePaths[0] ?? null);
+  });
+  ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseDiagramAgentRequest(input);
+    await agent.run({ ...request, apiBaseUrl }, (agentEvent) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(DIAGRAM_AGENT_EVENT_CHANNEL, agentEvent);
+      }
+    });
+  });
+  ipcMain.handle(CANCEL_DIAGRAM_AGENT_CHANNEL, async (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    if (typeof id !== 'string') {
+      throw new Error('Agent request id is required.');
+    }
+    await agent.cancel(id);
   });
 }
 
@@ -116,6 +140,23 @@ function registerApiAuthentication(connection: LocalServerConnection): void {
       });
     },
   );
+}
+
+function createLocalAgent(): LocalAgent {
+  return new LocalAgent({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    runtimeEntry: app.isPackaged
+      ? join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'dist',
+          'agent-runtime.js',
+        )
+      : join(__dirname, 'agent-runtime.js'),
+    packaged: app.isPackaged,
+  });
 }
 
 function createLocalServer(): LocalServer {
@@ -247,7 +288,8 @@ void app.whenReady().then(async () => {
     if (connection.sessionToken) {
       registerApiAuthentication(connection as LocalServerConnection);
     }
-    registerDesktopBridge(connection.apiBaseUrl);
+    localAgent = createLocalAgent();
+    registerDesktopBridge(connection.apiBaseUrl, localAgent);
     const window = await createWindow();
     await verifyPackagedRuntime(window, connection);
 
@@ -273,10 +315,12 @@ void app.whenReady().then(async () => {
 });
 
 app.on('before-quit', (event) => {
-  if (!allowQuit && localServer) {
+  if (!allowQuit && (localAgent || localServer)) {
     event.preventDefault();
     allowQuit = true;
-    void localServer.stop().finally(() => app.quit());
+    void Promise.all([localAgent?.stop(), localServer?.stop()]).finally(() =>
+      app.quit(),
+    );
   }
 });
 
