@@ -25,6 +25,8 @@ export interface MockPrismaStore {
   diagramEdge: Record<string, MockFn>;
   logicalEntity: Record<string, MockFn>;
   logicalRelationship: Record<string, MockFn>;
+  inboxItem: Record<string, MockFn>;
+  inboxRevision: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -80,6 +82,15 @@ export function mockPrismaStore(): MockPrismaStore {
       'create',
       'update',
     ]),
+    inboxItem: delegate([
+      'findMany',
+      'findFirst',
+      'count',
+      'create',
+      'update',
+      'updateMany',
+    ]),
+    inboxRevision: delegate(['findMany', 'findFirst', 'count', 'create']),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 
