@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
 
 describe('desktop runtime config', () => {
-  it('uses loopback defaults', () => {
+  it('requires an explicitly configured remote API', () => {
+    expect(() => resolveApiBaseUrl('')).toThrow(
+      'EVIDENCE_API_BASE_URL is required',
+    );
     expect(resolveApiBaseUrl('http://127.0.0.1:3000/api')).toBe(
       'http://127.0.0.1:3000/api',
     );

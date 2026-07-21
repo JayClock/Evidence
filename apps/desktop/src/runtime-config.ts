@@ -1,4 +1,3 @@
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3000/api';
 const DEFAULT_WEB_URL = 'http://127.0.0.1:4200';
 
 function normalizeHttpUrl(value: string, name: string): string {
@@ -29,8 +28,11 @@ function isLoopbackHostname(hostname: string): boolean {
 }
 
 export function resolveApiBaseUrl(
-  value = process.env.EVIDENCE_API_BASE_URL ?? DEFAULT_API_BASE_URL,
+  value = process.env.EVIDENCE_API_BASE_URL,
 ): string {
+  if (!value?.trim()) {
+    throw new Error('EVIDENCE_API_BASE_URL is required.');
+  }
   return normalizeHttpUrl(value, 'EVIDENCE_API_BASE_URL');
 }
 

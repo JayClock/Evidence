@@ -8,7 +8,6 @@ import {
   ipcMain,
   net,
   protocol,
-  session,
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
@@ -20,21 +19,13 @@ import {
 } from './agent-protocol';
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalAgent } from './local-agent';
-import { LocalServer, type LocalServerConnection } from './local-server';
 import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
 
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;
-const DESKTOP_SESSION_HEADER = 'x-evidence-desktop-token';
 const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
 
-interface RuntimeConnection {
-  apiBaseUrl: string;
-  sessionToken?: string;
-}
-
 let localAgent: LocalAgent | null = null;
-let localServer: LocalServer | null = null;
 let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
@@ -80,10 +71,6 @@ function expectedRendererUrl(): string {
   return app.isPackaged ? APP_URL : resolveWebUrl();
 }
 
-function rendererOrigin(): string {
-  return app.isPackaged ? 'evidence://app' : new URL(resolveWebUrl()).origin;
-}
-
 function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
   const senderFrame = event.senderFrame;
   const trusted = isTrustedRendererRequest({
@@ -127,21 +114,6 @@ function registerDesktopBridge(apiBaseUrl: string, agent: LocalAgent): void {
   });
 }
 
-function registerApiAuthentication(connection: LocalServerConnection): void {
-  const apiOrigin = new URL(connection.apiBaseUrl).origin;
-  session.defaultSession.webRequest.onBeforeSendHeaders(
-    { urls: [`${apiOrigin}/*`] },
-    (details, callback) => {
-      callback({
-        requestHeaders: {
-          ...details.requestHeaders,
-          [DESKTOP_SESSION_HEADER]: connection.sessionToken,
-        },
-      });
-    },
-  );
-}
-
 function createLocalAgent(): LocalAgent {
   return new LocalAgent({
     executablePath: app.isPackaged
@@ -159,57 +131,18 @@ function createLocalAgent(): LocalAgent {
   });
 }
 
-function createLocalServer(): LocalServer {
-  return new LocalServer({
-    executablePath: app.isPackaged
-      ? process.execPath
-      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
-    serverEntry: app.isPackaged
-      ? join(
-          process.resourcesPath,
-          'app.asar.unpacked',
-          'dist',
-          'server',
-          'main.js',
-        )
-      : join(__dirname, '..', '..', 'server', 'dist-desktop', 'main.js'),
-    legacyRegistryPath:
-      process.env.EVIDENCE_LEGACY_REGISTRY_PATH ??
-      join(
-        app.getPath('appData'),
-        'works.earendil.evidence',
-        'evidence.sqlite',
-      ),
-    userDataPath:
-      process.env.EVIDENCE_USER_DATA_PATH ?? app.getPath('userData'),
-    rendererOrigin: rendererOrigin(),
-    packaged: app.isPackaged,
-    onUnexpectedExit: (error) => {
-      if (!allowQuit) {
-        dialog.showErrorBox('Evidence server stopped', error.message);
-        app.quit();
-      }
-    },
+async function connectRemoteApi(): Promise<string> {
+  const apiBaseUrl = resolveApiBaseUrl();
+  const healthUrl = new URL('/health', apiBaseUrl).toString();
+  const response = await fetch(healthUrl, {
+    signal: AbortSignal.timeout(15_000),
   });
-}
-
-async function runtimeConnection(): Promise<RuntimeConnection> {
-  if (process.env.EVIDENCE_API_BASE_URL?.trim()) {
-    const apiBaseUrl = resolveApiBaseUrl();
-    const healthUrl = new URL('/health', apiBaseUrl).toString();
-    const response = await fetch(healthUrl, {
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) {
-      throw new Error(
-        `Remote Evidence API health check returned ${response.status}.`,
-      );
-    }
-    return { apiBaseUrl };
+  if (!response.ok) {
+    throw new Error(
+      `Remote Evidence API health check returned ${response.status}.`,
+    );
   }
-
-  localServer = createLocalServer();
-  return localServer.start();
+  return apiBaseUrl;
 }
 
 function canOpenExternally(value: string): boolean {
@@ -222,17 +155,13 @@ function canOpenExternally(value: string): boolean {
 
 async function verifyPackagedRuntime(
   window: BrowserWindow,
-  connection: RuntimeConnection,
+  apiBaseUrl: string,
 ): Promise<void> {
   if (!SMOKE_TEST) {
     return;
   }
 
-  const response = await fetch(`${connection.apiBaseUrl}/users/desktop-user`, {
-    headers: connection.sessionToken
-      ? { [DESKTOP_SESSION_HEADER]: connection.sessionToken }
-      : undefined,
-  });
+  const response = await fetch(`${apiBaseUrl}/users/desktop-user`);
   if (!response.ok) {
     throw new Error(`Packaged API smoke check returned ${response.status}.`);
   }
@@ -284,14 +213,11 @@ async function createWindow(): Promise<BrowserWindow> {
 void app.whenReady().then(async () => {
   try {
     registerWebProtocol();
-    const connection = await runtimeConnection();
-    if (connection.sessionToken) {
-      registerApiAuthentication(connection as LocalServerConnection);
-    }
+    const apiBaseUrl = await connectRemoteApi();
     localAgent = createLocalAgent();
-    registerDesktopBridge(connection.apiBaseUrl, localAgent);
+    registerDesktopBridge(apiBaseUrl, localAgent);
     const window = await createWindow();
-    await verifyPackagedRuntime(window, connection);
+    await verifyPackagedRuntime(window, apiBaseUrl);
 
     if (SMOKE_TEST) {
       app.quit();
@@ -315,12 +241,10 @@ void app.whenReady().then(async () => {
 });
 
 app.on('before-quit', (event) => {
-  if (!allowQuit && (localAgent || localServer)) {
+  if (!allowQuit && localAgent) {
     event.preventDefault();
     allowQuit = true;
-    void Promise.all([localAgent?.stop(), localServer?.stop()]).finally(() =>
-      app.quit(),
-    );
+    void localAgent.stop().finally(() => app.quit());
   }
 });
 
