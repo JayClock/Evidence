@@ -235,7 +235,7 @@ function isVisibleSidebarItem(
   item: SidebarItem,
   activeWorkspace?: MembershipWorkspace,
 ) {
-  return item.key !== 'logical-entities' || Boolean(activeWorkspace);
+  return !isWorkspaceScopedSidebarItem(item) || Boolean(activeWorkspace);
 }
 
 function SidebarLoading() {
@@ -327,16 +327,22 @@ function sidebarItemResourcePath(
   item: SidebarItem,
   activeWorkspace?: MembershipWorkspace,
 ) {
-  if (activeWorkspace && item.key === 'logical-entities') {
+  const template = item.href ?? item.path ?? '#';
+  if (activeWorkspace && isWorkspaceScopedSidebarItem(item)) {
+    const relation = item.key as keyof WorkspaceResource['links'];
     return (
-      workspaceHref(activeWorkspace, 'logical-entities') ??
-      item.href ??
-      item.path ??
-      '#'
+      workspaceHref(activeWorkspace, relation) ??
+      template.replace('{workspaceId}', encodeURIComponent(activeWorkspace.id))
     );
   }
 
-  return item.href ?? item.path ?? '#';
+  return template;
+}
+
+function isWorkspaceScopedSidebarItem(item: SidebarItem) {
+  return [item.href, item.path].some((value) =>
+    value?.includes('{workspaceId}'),
+  );
 }
 
 function isPathActive(pathname: string, candidate: string) {

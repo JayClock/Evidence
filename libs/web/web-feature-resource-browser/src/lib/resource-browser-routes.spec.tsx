@@ -37,6 +37,7 @@ vi.mock('@evidence/api-client', () => {
       workspace: 'application/vnd.evidence.workspace+json',
       diagrams: 'application/vnd.evidence.diagrams+json',
       diagram: 'application/vnd.evidence.diagram+json',
+      inboxItems: 'application/vnd.evidence.inbox-items+json',
       logicalEntity: 'application/vnd.evidence.logical-entity+json',
       logicalEntities: 'application/vnd.evidence.logical-entities+json',
     },
@@ -51,6 +52,10 @@ vi.mock('@evidence/api-client', () => {
 vi.mock('@evidence/web-feature-diagrams', () => ({
   DiagramCollectionView: () => <div>Diagram collection</div>,
   DiagramDetailView: () => <div>Diagram detail</div>,
+}));
+
+vi.mock('@evidence/web-feature-inbox', () => ({
+  InboxCollectionView: () => <div>Inbox collection</div>,
 }));
 
 type ResourceMarker =
@@ -98,7 +103,7 @@ const workspaceState = {
   follow: (rel: string): ResourceMarker => ({
     kind: rel === 'diagram' ? 'diagram' : 'memberships',
   }),
-  links: links('self', 'members', 'diagram', 'logical-entities'),
+  links: links('self', 'members', 'diagram', 'inbox-items', 'logical-entities'),
   contentHeaders: () =>
     new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
 };
@@ -139,6 +144,19 @@ const diagramEdgeCollectionState = {
   collection: [],
 };
 
+const inboxItemCollectionState = {
+  data: {
+    page: {
+      totalElements: 0,
+    },
+  },
+  collection: [],
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.inbox-items+json',
+    }),
+};
+
 const logicalEntityCollectionState = {
   data: {
     page: {
@@ -168,6 +186,10 @@ const logicalEntityCollectionState = {
 };
 
 function dynamicStateForPath(path: string) {
+  if (path.includes('/inbox-items')) {
+    return inboxItemCollectionState;
+  }
+
   if (path.includes('/logical-entities')) {
     return logicalEntityCollectionState;
   }
@@ -271,6 +293,14 @@ describe('ResourceBrowserRoutes', () => {
     });
 
     expect(await screen.findByText('Diagram detail')).toBeTruthy();
+  });
+
+  it('renders the Inbox feature for Inbox collection resources', async () => {
+    await act(async () => {
+      renderRoutes('/workspaces/default-workspace/inbox-items');
+    });
+
+    expect(await screen.findByText('Inbox collection')).toBeTruthy();
   });
 
   it('renders logical entities as a table for logical entity collection resources', async () => {

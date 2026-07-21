@@ -128,11 +128,18 @@ const sidebarState = {
         key: 'user',
         items: [
           {
+            key: 'inbox-items',
+            label: 'Inbox',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/inbox-items',
+            path: '/api/workspaces/{workspaceId}/inbox-items',
+          },
+          {
             key: 'logical-entities',
             label: 'Logical Entities',
             type: 'resource',
-            href: '/api/workspaces/default-workspace/logical-entities',
-            path: '/api/workspaces/default-workspace/logical-entities',
+            href: '/api/workspaces/{workspaceId}/logical-entities',
+            path: '/api/workspaces/{workspaceId}/logical-entities',
           },
         ],
       },
@@ -145,6 +152,9 @@ const workspace = {
   _links: {
     self: { href: '/api/workspaces/default-workspace' },
     diagram: { href: '/api/workspaces/default-workspace/diagram' },
+    'inbox-items': {
+      href: '/api/workspaces/default-workspace/inbox-items',
+    },
     'logical-entities': {
       href: '/api/workspaces/default-workspace/logical-entities',
     },
@@ -221,6 +231,10 @@ describe('WebShell', () => {
     expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workspaces')).toBeNull();
     expect(screen.queryByText('Diagram')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Inbox' })).toHaveProperty(
+      'pathname',
+      '/api/workspaces/default-workspace/inbox-items',
+    );
     expect(screen.getByText('Logical Entities')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();

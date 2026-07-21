@@ -535,6 +535,9 @@ importers:
       '@evidence/web-feature-diagrams':
         specifier: workspace:*
         version: link:../web-feature-diagrams
+      '@evidence/web-feature-inbox':
+        specifier: workspace:*
+        version: link:../web-feature-inbox
       '@evidence/web-feature-logical-entities':
         specifier: workspace:*
         version: link:../web-feature-logical-entities

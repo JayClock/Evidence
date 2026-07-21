@@ -44,6 +44,9 @@
       "path": "../web-feature-diagrams/tsconfig.lib.json"
     },
     {
+      "path": "../web-feature-inbox/tsconfig.lib.json"
+    },
+    {
       "path": "../web-feature-logical-entities/tsconfig.lib.json"
     },
     {

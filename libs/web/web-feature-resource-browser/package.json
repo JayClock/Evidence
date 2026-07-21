@@ -15,6 +15,7 @@
     "@evidence/api-client": "workspace:*",
     "@evidence/ui": "workspace:*",
     "@evidence/web-feature-diagrams": "workspace:*",
+    "@evidence/web-feature-inbox": "workspace:*",
     "@evidence/web-feature-logical-entities": "workspace:*",
     "react-router-dom": "6.30.3"
   }
