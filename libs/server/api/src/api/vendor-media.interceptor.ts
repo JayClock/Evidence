@@ -84,7 +84,9 @@ export function vendorMediaType(
     return method.toUpperCase() === 'GET' ? mediaType('diagram') : null;
   }
   if (matches(apiSegments, ['workspaces', '*', 'inbox-items'])) {
-    return mediaType('inbox-items');
+    return method.toUpperCase() === 'POST'
+      ? mediaType('inbox-item')
+      : mediaType('inbox-items');
   }
   if (matches(apiSegments, ['workspaces', '*', 'inbox-items', '*'])) {
     return mediaType('inbox-item');
@@ -92,7 +94,9 @@ export function vendorMediaType(
   if (
     matches(apiSegments, ['workspaces', '*', 'inbox-items', '*', 'revisions'])
   ) {
-    return mediaType('inbox-revisions');
+    return method.toUpperCase() === 'POST'
+      ? mediaType('inbox-revision')
+      : mediaType('inbox-revisions');
   }
   if (
     matches(apiSegments, [

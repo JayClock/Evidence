@@ -18,6 +18,10 @@ const mediaTypes = {
   user: 'application/vnd.evidence.user+json',
   workspace: 'application/vnd.evidence.workspace+json',
   memberships: 'application/vnd.evidence.memberships+json',
+  inboxItem: 'application/vnd.evidence.inbox-item+json',
+  inboxItems: 'application/vnd.evidence.inbox-items+json',
+  inboxRevision: 'application/vnd.evidence.inbox-revision+json',
+  inboxRevisions: 'application/vnd.evidence.inbox-revisions+json',
   logicalEntity: 'application/vnd.evidence.logical-entity+json',
   logicalEntities: 'application/vnd.evidence.logical-entities+json',
   logicalRelationship: 'application/vnd.evidence.logical-relationship+json',
@@ -73,6 +77,9 @@ describeContracts('Evidence API contract vertical slice', () => {
       '/api/users/{userId}/memberships',
     );
     expect(openapi.body.paths).toHaveProperty('/api/workspaces');
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/inbox-items',
+    );
 
     const user = await apiRequest(`/api/users/${userId}`);
     expect(user.status).toBe(200);
@@ -127,6 +134,9 @@ describeContracts('Evidence API contract vertical slice', () => {
       'logical-entities': {
         href: `/api/workspaces/${created.body.id}/logical-entities`,
       },
+      'inbox-items': {
+        href: `/api/workspaces/${created.body.id}/inbox-items`,
+      },
     });
 
     const fetched = await apiRequest(`/api/workspaces/${created.body.id}`);
@@ -160,6 +170,122 @@ describeContracts('Evidence API contract vertical slice', () => {
 
     const missing = await apiRequest(`/api/workspaces/${created.body.id}`);
     expect(missing.status).toBe(404);
+  });
+
+  it('captures immutable Inbox revisions inside one workspace', async () => {
+    const workspace = await createContractWorkspace('Inbox Workspace');
+    const workspaceId = workspace.body.id as string;
+    const externalKey = uniqueName('capture');
+    const created = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceKind: 'manual_text',
+          externalKey,
+          title: 'Desktop coding agent',
+          body: 'Run Pi locally.',
+          contentType: 'text/markdown',
+          providerMetadata: { channel: 'contracts' },
+        }),
+      },
+    );
+
+    expect(created.status).toBe(201);
+    expectHalResource(created, mediaTypes.inboxItem);
+    expect(created.body).toMatchObject({
+      sourceKind: 'manual_text',
+      externalKey,
+      status: 'active',
+      revisionCount: 1,
+      version: 1,
+    });
+    expect(created.body.latestRevisionSha256).toMatch(/^sha256:[a-f0-9]{64}$/);
+
+    const listed = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items?status=active&q=coding&page=1&pageSize=20`,
+    );
+    expect(listed.status).toBe(200);
+    expectHalCollection(listed, mediaTypes.inboxItems, 'inboxItems');
+    expect(listed.body._embedded.inboxItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: created.body.id }),
+      ]),
+    );
+
+    const unchanged = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}/revisions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          title: 'Desktop coding agent',
+          body: 'Run Pi locally.',
+          contentType: 'text/markdown',
+          providerMetadata: { channel: 'contracts' },
+          expectedLatestRevisionSha256: created.body.latestRevisionSha256,
+        }),
+      },
+    );
+    expect(unchanged.status).toBe(200);
+    expectHalResource(unchanged, mediaTypes.inboxRevision);
+    expect(unchanged.body.id).toBe(created.body.latestRevisionId);
+
+    const appended = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}/revisions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          title: 'Desktop coding agent',
+          body: 'Run Pi in an isolated worktree.',
+          contentType: 'text/markdown',
+          providerMetadata: { channel: 'contracts' },
+          expectedLatestRevisionSha256: created.body.latestRevisionSha256,
+        }),
+      },
+    );
+    expect(appended.status).toBe(200);
+    expectHalResource(appended, mediaTypes.inboxRevision);
+    expect(appended.body.id).not.toBe(created.body.latestRevisionId);
+
+    const revisions = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}/revisions?page=1&pageSize=20`,
+    );
+    expect(revisions.status).toBe(200);
+    expectHalCollection(revisions, mediaTypes.inboxRevisions, 'inboxRevisions');
+    expect(revisions.body.page.totalElements).toBe(2);
+    expect(
+      revisions.body._embedded.inboxRevisions.map(
+        (revision: { revisionNumber: number }) => revision.revisionNumber,
+      ),
+    ).toEqual([2, 1]);
+
+    const deferred = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'deferred', expectedVersion: 2 }),
+      },
+    );
+    expect(deferred.status).toBe(200);
+    expectHalResource(deferred, mediaTypes.inboxItem);
+    expect(deferred.body).toMatchObject({ status: 'deferred', version: 3 });
+
+    const stale = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'closed', expectedVersion: 2 }),
+      },
+    );
+    expect(stale.status).toBe(409);
+
+    const otherWorkspace = await createContractWorkspace(
+      'Other Inbox Workspace',
+    );
+    const outsideBoundary = await apiRequest(
+      `/api/workspaces/${otherWorkspace.body.id}/inbox-items/${created.body.id}`,
+    );
+    expect(outsideBoundary.status).toBe(404);
   });
 
   it('creates, reads, updates, lists, and deletes logical entities', async () => {

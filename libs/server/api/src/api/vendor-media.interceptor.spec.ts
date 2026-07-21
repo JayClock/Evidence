@@ -58,10 +58,18 @@ describe('vendorMediaType', () => {
     expect(vendorMediaType('GET', path)).toBe(expected);
   });
 
-  it('maps workspace creation to the singular workspace media type', () => {
-    expect(vendorMediaType('POST', '/api/workspaces')).toBe(
-      'application/vnd.evidence.workspace+json',
-    );
+  it.each([
+    ['/api/workspaces', 'application/vnd.evidence.workspace+json'],
+    [
+      '/api/workspaces/default-workspace/inbox-items',
+      'application/vnd.evidence.inbox-item+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/inbox-items/inbox-1/revisions',
+      'application/vnd.evidence.inbox-revision+json',
+    ],
+  ])('maps POST %s to the singular resource media type', (path, expected) => {
+    expect(vendorMediaType('POST', path)).toBe(expected);
   });
 
   it('leaves the modeling proposal POST as an event stream', () => {

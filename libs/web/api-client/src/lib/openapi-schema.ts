@@ -116,6 +116,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/inbox-items': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['list_inbox_items'];
+    put?: never;
+    post: operations['capture_inbox_item'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/inbox-items/{itemId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_inbox_item'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations['change_inbox_item_status'];
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['list_inbox_revisions'];
+    put?: never;
+    post: operations['append_inbox_revision'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions/{revisionId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_inbox_revision'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/members': {
     parameters: {
       query?: never;
@@ -409,6 +473,96 @@ export interface components {
     LinkedRefModel: {
       _links: components['schemas']['BTreeMap'];
       id: string;
+    };
+    InboxItemCollectionEmbedded: {
+      inboxItems: components['schemas']['InboxItemResource'][];
+    };
+    InboxItemCollectionResource: {
+      _embedded: components['schemas']['InboxItemCollectionEmbedded'];
+      _links: components['schemas']['BTreeMap'];
+      page: components['schemas']['PageModel'];
+    };
+    InboxItemResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      sourceKind: string;
+      externalKey: string;
+      title: string;
+      /** @enum {string} */
+      status: 'active' | 'deferred' | 'closed';
+      latestRevisionId: string;
+      latestRevisionSha256: string;
+      /** Format: int32 */
+      revisionCount: number;
+      /** Format: int32 */
+      version: number;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    InboxItemStatusInput: {
+      /** @enum {string} */
+      status: 'active' | 'deferred' | 'closed';
+      /** Format: int32 */
+      expectedVersion: number;
+    };
+    InboxRevisionCollectionEmbedded: {
+      inboxRevisions: components['schemas']['InboxRevisionResource'][];
+    };
+    InboxRevisionCollectionResource: {
+      _embedded: components['schemas']['InboxRevisionCollectionEmbedded'];
+      _links: components['schemas']['BTreeMap'];
+      page: components['schemas']['PageModel'];
+    };
+    InboxRevisionInput: {
+      title: string;
+      body: string;
+      /** @enum {string} */
+      contentType: 'text/plain' | 'text/markdown';
+      /** Format: uri */
+      uri?: string | null;
+      providerMetadata?: {
+        [key: string]: unknown;
+      };
+      /** Format: date-time */
+      sourceUpdatedAt?: string | null;
+      expectedLatestRevisionSha256: string;
+    };
+    InboxRevisionResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      /** Format: int32 */
+      revisionNumber: number;
+      title: string;
+      body: string;
+      /** @enum {string} */
+      contentType: 'text/plain' | 'text/markdown';
+      /** Format: uri */
+      uri?: string | null;
+      providerMetadata: {
+        [key: string]: unknown;
+      };
+      /** Format: date-time */
+      sourceUpdatedAt?: string | null;
+      /** Format: date-time */
+      capturedAt: string;
+      contentSha256: string;
+    };
+    InboxSourceInput: {
+      sourceKind: string;
+      externalKey: string;
+      title: string;
+      body: string;
+      /** @enum {string} */
+      contentType: 'text/plain' | 'text/markdown';
+      /** Format: uri */
+      uri?: string | null;
+      providerMetadata?: {
+        [key: string]: unknown;
+      };
+      /** Format: date-time */
+      sourceUpdatedAt?: string | null;
     };
     LogicalEntityCollectionEmbedded: {
       logicalEntities: components['schemas']['LogicalEntityResource'][];
@@ -1023,6 +1177,385 @@ export interface operations {
       };
       /** @description Conflict */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  list_inbox_items: {
+    parameters: {
+      query?: {
+        page?: number;
+        pageSize?: number;
+        status?: 'active' | 'deferred' | 'closed';
+        sourceKind?: string;
+        q?: string;
+      };
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workspace Inbox item collection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-items+json': components['schemas']['InboxItemCollectionResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  capture_inbox_item: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InboxSourceInput'];
+      };
+    };
+    responses: {
+      /** @description Captured Inbox item and first immutable revision */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-item+json': components['schemas']['InboxItemResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Inbox source already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  get_inbox_item: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        itemId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workspace Inbox item */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-item+json': components['schemas']['InboxItemResource'];
+        };
+      };
+      /** @description Inbox item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  change_inbox_item_status: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        itemId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InboxItemStatusInput'];
+      };
+    };
+    responses: {
+      /** @description Updated Inbox item */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-item+json': components['schemas']['InboxItemResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Inbox item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Inbox item version conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  list_inbox_revisions: {
+    parameters: {
+      query?: {
+        page?: number;
+        pageSize?: number;
+      };
+      header?: never;
+      path: {
+        workspaceId: string;
+        itemId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Inbox source revision collection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-revisions+json': components['schemas']['InboxRevisionCollectionResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Inbox item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  append_inbox_revision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        itemId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['InboxRevisionInput'];
+      };
+    };
+    responses: {
+      /** @description Appended or existing immutable Inbox source revision */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-revision+json': components['schemas']['InboxRevisionResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Inbox item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Latest Inbox revision changed */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  get_inbox_revision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        itemId: string;
+        revisionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Immutable Inbox source revision */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-revision+json': components['schemas']['InboxRevisionResource'];
+        };
+      };
+      /** @description Inbox revision not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
