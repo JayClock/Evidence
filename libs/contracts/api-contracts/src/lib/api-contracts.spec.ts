@@ -298,6 +298,12 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(diagram.body._links).toMatchObject({
       nodes: { href: `/api/workspaces/${workspaceId}/diagram/nodes` },
       edges: { href: `/api/workspaces/${workspaceId}/diagram/edges` },
+      'logical-entities': {
+        href: `/api/workspaces/${workspaceId}/logical-entities`,
+      },
+      'logical-relationships': {
+        href: `/api/workspaces/${workspaceId}/logical-relationships`,
+      },
     });
 
     const nodes = await apiRequest(

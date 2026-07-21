@@ -1,6 +1,7 @@
 export * from './diagram-resource.js';
 export * from './health-resource.js';
 export * from './logical-entity-resource.js';
+export * from './logical-relationship-resource.js';
 export * from './member-resource.js';
 export * from './root-resource.js';
 export * from './resource-types.js';

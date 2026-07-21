@@ -6,6 +6,8 @@ import {
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
   workspaceDiagramProposeModelHref,
+  workspaceLogicalEntitiesHref,
+  workspaceLogicalRelationshipsHref,
 } from '../links';
 
 export interface DiagramModel {
@@ -28,6 +30,10 @@ export function diagramModel(diagram: Diagram): DiagramModel {
       workspace: link(`/api/workspaces/${workspaceId}`),
       nodes: link(workspaceDiagramNodesHref(workspaceId)),
       edges: link(workspaceDiagramEdgesHref(workspaceId)),
+      'logical-entities': link(workspaceLogicalEntitiesHref(workspaceId)),
+      'logical-relationships': link(
+        workspaceLogicalRelationshipsHref(workspaceId),
+      ),
       'propose-model': link(workspaceDiagramProposeModelHref(workspaceId)),
     },
     _templates: {

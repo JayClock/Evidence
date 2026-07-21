@@ -134,6 +134,12 @@ describe('DiagramsController', () => {
       self: { href: '/api/workspaces/workspace-1/diagram' },
       nodes: { href: '/api/workspaces/workspace-1/diagram/nodes' },
       edges: { href: '/api/workspaces/workspace-1/diagram/edges' },
+      'logical-entities': {
+        href: '/api/workspaces/workspace-1/logical-entities',
+      },
+      'logical-relationships': {
+        href: '/api/workspaces/workspace-1/logical-relationships',
+      },
     });
     expect(model._links).not.toHaveProperty('collection');
   });

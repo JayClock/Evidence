@@ -2,6 +2,8 @@ import type { Collection, Entity } from '@hateoas-ts/resource';
 
 import type { components } from './openapi-schema.js';
 
+import type { LogicalEntityCollectionResource } from './logical-entity-resource.js';
+import type { LogicalRelationshipCollectionResource } from './logical-relationship-resource.js';
 import type { WorkspaceResource } from './workspace-resource.js';
 
 type DiagramResourceSchema = components['schemas']['DiagramResource'];
@@ -85,6 +87,8 @@ export type DiagramResource = Entity<
     workspace: WorkspaceResource;
     nodes: DiagramNodeCollectionResource;
     edges: DiagramEdgeCollectionResource;
+    'logical-entities': LogicalEntityCollectionResource;
+    'logical-relationships': LogicalRelationshipCollectionResource;
     'propose-model': DiagramResource;
   }
 >;
