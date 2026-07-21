@@ -497,6 +497,18 @@ importers:
         specifier: 6.30.3
         version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
 
+  libs/web/web-feature-inbox:
+    dependencies:
+      '@evidence/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      '@evidence/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react-router-dom:
+        specifier: 6.30.3
+        version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+
   libs/web/web-feature-logical-entities:
     dependencies:
       '@evidence/api-client':

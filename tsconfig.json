@@ -44,6 +44,9 @@
     },
     {
       "path": "./libs/server/infrastructure"
+    },
+    {
+      "path": "./libs/web/web-feature-inbox"
     }
   ]
 }
