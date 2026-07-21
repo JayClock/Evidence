@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, RouterModule } from '@nestjs/core';
 import { DiagramsController } from './diagrams.controller';
+import { InboxController } from './inbox.controller';
 import { LogicalEntitiesController } from './logical-entities.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
 import { ResourceResolver } from './resource-resolver.service';
@@ -55,6 +56,12 @@ class DiagramsApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
+  controllers: [InboxController],
+})
+class InboxApiModule {}
+
+@Module({
+  imports: [ApiResourcesModule],
   controllers: [LogicalEntitiesController],
 })
 class LogicalEntitiesApiModule {}
@@ -73,6 +80,7 @@ class LogicalRelationshipsApiModule {}
     WorkspaceMembersApiModule,
     WorkspacesApiModule,
     DiagramsApiModule,
+    InboxApiModule,
     LogicalEntitiesApiModule,
     LogicalRelationshipsApiModule,
     RouterModule.register([
@@ -101,6 +109,10 @@ class LogicalRelationshipsApiModule {}
           {
             path: ':workspaceId/diagram',
             module: DiagramsApiModule,
+          },
+          {
+            path: ':workspaceId/inbox-items',
+            module: InboxApiModule,
           },
           {
             path: ':workspaceId/logical-entities',

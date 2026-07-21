@@ -50,6 +50,32 @@ export function workspaceDiagramHref(workspaceId: string): string {
   return `/api/workspaces/${workspaceId}/diagram`;
 }
 
+export function workspaceInboxItemsHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/inbox-items`;
+}
+
+export function workspaceInboxItemHref(
+  workspaceId: string,
+  itemId: string,
+): string {
+  return `${workspaceInboxItemsHref(workspaceId)}/${itemId}`;
+}
+
+export function workspaceInboxRevisionsHref(
+  workspaceId: string,
+  itemId: string,
+): string {
+  return `${workspaceInboxItemHref(workspaceId, itemId)}/revisions`;
+}
+
+export function workspaceInboxRevisionHref(
+  workspaceId: string,
+  itemId: string,
+  revisionId: string,
+): string {
+  return `${workspaceInboxRevisionsHref(workspaceId, itemId)}/${revisionId}`;
+}
+
 export function workspaceLogicalEntitiesHref(workspaceId: string): string {
   return `/api/workspaces/${workspaceId}/logical-entities`;
 }

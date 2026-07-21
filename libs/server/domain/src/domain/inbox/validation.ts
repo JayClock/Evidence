@@ -94,7 +94,13 @@ function normalizeBody(value: string): string {
 }
 
 function normalizeUri(value: string | null | undefined): string | null {
-  if (value === undefined || value === null || value.trim().length === 0) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw DomainError.validation('Inbox URI must be an absolute HTTP(S) URL');
+  }
+  if (value.trim().length === 0) {
     return null;
   }
   let uri: URL;
@@ -113,7 +119,15 @@ function normalizeTimestamp(
   value: string | null | undefined,
   label: string,
 ): string | null {
-  if (value === undefined || value === null || value.trim().length === 0) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== 'string') {
+    throw DomainError.validation(
+      `Inbox ${label} must be an ISO 8601 timestamp`,
+    );
+  }
+  if (value.trim().length === 0) {
     return null;
   }
   const timestamp = new Date(value);
@@ -128,6 +142,13 @@ function normalizeTimestamp(
 function normalizeMetadata(
   value: Record<string, JsonValue> | null | undefined,
 ): Record<string, JsonValue> {
+  if (
+    value !== undefined &&
+    value !== null &&
+    (typeof value !== 'object' || Array.isArray(value))
+  ) {
+    throw DomainError.validation('Inbox provider metadata must be an object');
+  }
   const normalized = jsonObject(value ?? {}, 'provider metadata');
   if (byteLength(JSON.stringify(normalized)) > MAX_METADATA_BYTES) {
     throw DomainError.validation(

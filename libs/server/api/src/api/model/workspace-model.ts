@@ -4,6 +4,7 @@ import {
   Link,
   workspaceDiagramHref,
   workspaceHref,
+  workspaceInboxItemsHref,
   workspaceLogicalEntitiesHref,
   workspaceLogicalRelationshipsHref,
   workspaceMembersHref,
@@ -28,6 +29,7 @@ export function workspaceModel(workspace: Workspace): WorkspaceModel {
       self: link(workspaceHref(workspaceId)),
       members: link(workspaceMembersHref(workspaceId)),
       diagram: link(workspaceDiagramHref(workspaceId)),
+      'inbox-items': link(workspaceInboxItemsHref(workspaceId)),
       'logical-entities': link(workspaceLogicalEntitiesHref(workspaceId)),
       'logical-relationships': link(
         workspaceLogicalRelationshipsHref(workspaceId),

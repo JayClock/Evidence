@@ -4,6 +4,8 @@ import type {
   Diagram,
   DiagramEdge,
   DiagramNode,
+  InboxItem,
+  InboxRevision,
   LogicalEntity,
   LogicalRelationship,
   Member,
@@ -107,6 +109,34 @@ export class ResourceResolver {
       throw DomainError.notFound(`diagram edge ${edgeId} not found`);
     }
     return [workspace, diagram, edge];
+  }
+
+  async requireWorkspaceInboxItem(
+    workspaceId: string,
+    itemId: string,
+  ): Promise<[Workspace, InboxItem]> {
+    const workspace = await this.requireWorkspace(workspaceId);
+    const item = await workspace.inbox().findByIdentity(itemId);
+    if (!item) {
+      throw DomainError.notFound(`Inbox item ${itemId} not found`);
+    }
+    return [workspace, item];
+  }
+
+  async requireWorkspaceInboxRevision(
+    workspaceId: string,
+    itemId: string,
+    revisionId: string,
+  ): Promise<[Workspace, InboxItem, InboxRevision]> {
+    const [workspace, item] = await this.requireWorkspaceInboxItem(
+      workspaceId,
+      itemId,
+    );
+    const revision = await workspace.findInboxRevision(itemId, revisionId);
+    if (!revision) {
+      throw DomainError.notFound(`Inbox revision ${revisionId} not found`);
+    }
+    return [workspace, item, revision];
   }
 
   async requireWorkspaceLogicalEntity(

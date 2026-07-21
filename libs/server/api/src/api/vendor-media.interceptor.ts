@@ -83,6 +83,29 @@ export function vendorMediaType(
   if (matches(apiSegments, ['workspaces', '*', 'diagram', 'propose-model'])) {
     return method.toUpperCase() === 'GET' ? mediaType('diagram') : null;
   }
+  if (matches(apiSegments, ['workspaces', '*', 'inbox-items'])) {
+    return mediaType('inbox-items');
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'inbox-items', '*'])) {
+    return mediaType('inbox-item');
+  }
+  if (
+    matches(apiSegments, ['workspaces', '*', 'inbox-items', '*', 'revisions'])
+  ) {
+    return mediaType('inbox-revisions');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'inbox-items',
+      '*',
+      'revisions',
+      '*',
+    ])
+  ) {
+    return mediaType('inbox-revision');
+  }
   if (matches(apiSegments, ['workspaces', '*', 'logical-entities'])) {
     return mediaType('logical-entities');
   }
