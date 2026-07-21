@@ -34,6 +34,7 @@ import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logic
 import { evidenceRootFromMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
 import { PrismaWorkspaceMembers } from './workspace-members';
+import { PrismaWorkspaceInbox } from './workspace-inbox';
 
 export function toIso(value: Date): string {
   return value.toISOString();
@@ -67,6 +68,7 @@ export function assembleWorkspace(
     new FileWorkspaceDiagram(row.id, evidenceRoot),
     new FileWorkspaceLogicalEntities(row.id, evidenceRoot),
     new FileWorkspaceLogicalRelationships(row.id, evidenceRoot),
+    new PrismaWorkspaceInbox(store, row.id),
   );
 }
 

@@ -28,6 +28,7 @@ model Workspace {
   diagrams             Diagram[]
   logicalEntities      LogicalEntity[]
   logicalRelationships LogicalRelationship[]
+  inboxItems           InboxItem[]
 
   @@index([deletedAt])
   @@map("workspaces")
@@ -49,14 +50,14 @@ model WorkspaceMember {
 }
 
 model Diagram {
-  id          String           @id
-  workspaceId String           @map("workspace_id")
+  id          String        @id
+  workspaceId String        @map("workspace_id")
   title       String
   viewport    Json
-  createdAt   DateTime         @map("created_at")
-  updatedAt   DateTime         @map("updated_at")
-  deletedAt   DateTime?        @map("deleted_at")
-  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @map("created_at")
+  updatedAt   DateTime      @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   nodes       DiagramNode[]
   edges       DiagramEdge[]
 
@@ -136,4 +137,44 @@ model LogicalRelationship {
 
   @@index([workspaceId, deletedAt])
   @@map("logical_relationships")
+}
+
+model InboxItem {
+  id               String          @id
+  workspaceId      String          @map("workspace_id")
+  sourceKind       String          @map("source_kind")
+  externalKey      String          @map("external_key")
+  title            String
+  status           String
+  latestRevisionId String?         @unique @map("latest_revision_id")
+  version          Int             @default(1)
+  createdAt        DateTime        @map("created_at")
+  updatedAt        DateTime        @map("updated_at")
+  workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  revisions        InboxRevision[] @relation("InboxItemRevisions")
+  latestRevision   InboxRevision?  @relation("LatestInboxRevision", fields: [latestRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([workspaceId, sourceKind, externalKey])
+  @@index([workspaceId, status, updatedAt])
+  @@map("inbox_items")
+}
+
+model InboxRevision {
+  id               String     @id
+  inboxItemId      String     @map("inbox_item_id")
+  revisionNumber   Int        @map("revision_number")
+  title            String
+  body             String
+  contentType      String     @map("content_type")
+  uri              String?
+  providerMetadata Json       @default("{}") @map("provider_metadata")
+  sourceUpdatedAt  DateTime?  @map("source_updated_at")
+  capturedAt       DateTime   @map("captured_at")
+  contentSha256    String     @map("content_sha256")
+  item             InboxItem  @relation("InboxItemRevisions", fields: [inboxItemId], references: [id], onDelete: Cascade)
+  latestForItem    InboxItem? @relation("LatestInboxRevision")
+
+  @@unique([inboxItemId, revisionNumber])
+  @@index([inboxItemId, contentSha256])
+  @@map("inbox_revisions")
 }

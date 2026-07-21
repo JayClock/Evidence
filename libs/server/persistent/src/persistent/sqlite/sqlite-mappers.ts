@@ -5,6 +5,7 @@ import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logic
 import { evidenceRootFromMetadata } from '../workspace-paths';
 import { SqliteRegistry } from './sqlite-registry';
 import { SqliteWorkspaceMembers } from './sqlite-workspace-members';
+import { SqliteWorkspaceInbox } from './sqlite-workspace-inbox';
 
 export interface SqliteUserRow {
   id: string;
@@ -55,6 +56,7 @@ export function assembleSqliteWorkspace(
     new FileWorkspaceDiagram(row.id, evidenceRoot),
     new FileWorkspaceLogicalEntities(row.id, evidenceRoot),
     new FileWorkspaceLogicalRelationships(row.id, evidenceRoot),
+    new SqliteWorkspaceInbox(registry, row.id),
   );
 }
 

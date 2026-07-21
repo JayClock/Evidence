@@ -145,11 +145,42 @@ export class SqliteRegistry implements OnModuleInit, OnModuleDestroy {
         updated_at TEXT NOT NULL,
         UNIQUE(workspace_id, user_id)
       );
+      CREATE TABLE IF NOT EXISTS inbox_items (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+        source_kind TEXT NOT NULL,
+        external_key TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        latest_revision_id TEXT REFERENCES inbox_revisions(id) ON DELETE RESTRICT,
+        version INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(workspace_id, source_kind, external_key)
+      );
+      CREATE TABLE IF NOT EXISTS inbox_revisions (
+        id TEXT PRIMARY KEY,
+        inbox_item_id TEXT NOT NULL REFERENCES inbox_items(id) ON DELETE CASCADE,
+        revision_number INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        uri TEXT,
+        provider_metadata TEXT NOT NULL DEFAULT '{}',
+        source_updated_at TEXT,
+        captured_at TEXT NOT NULL,
+        content_sha256 TEXT NOT NULL,
+        UNIQUE(inbox_item_id, revision_number)
+      );
       CREATE INDEX IF NOT EXISTS idx_workspaces_updated
         ON workspaces(deleted_at, updated_at DESC);
       CREATE INDEX IF NOT EXISTS idx_workspace_members_user
         ON workspace_members(user_id, workspace_id);
-      PRAGMA user_version = 1;
+      CREATE INDEX IF NOT EXISTS idx_inbox_items_workspace_status_updated
+        ON inbox_items(workspace_id, status, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_inbox_revisions_item_hash
+        ON inbox_revisions(inbox_item_id, content_sha256);
+      PRAGMA user_version = 2;
     `);
   }
 

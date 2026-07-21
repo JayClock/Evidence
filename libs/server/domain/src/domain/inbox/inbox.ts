@@ -1,5 +1,4 @@
 import { Entity, HasMany, Ref } from '../core';
-import { Workspace } from '../workspace';
 
 export type JsonValue =
   | null
@@ -24,7 +23,7 @@ export interface InboxSourceInput {
 }
 
 export interface InboxItemDescription {
-  workspace: Ref<Workspace>;
+  workspace: Ref<string>;
   sourceKind: string;
   externalKey: string;
   title: string;
@@ -53,7 +52,7 @@ export class InboxItem implements Entity<string, InboxItemDescription> {
 }
 
 export interface InboxRevisionDescription {
-  item: Ref<InboxItem>;
+  item: Ref<string>;
   revisionNumber: number;
   title: string;
   body: string;
