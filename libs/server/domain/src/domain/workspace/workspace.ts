@@ -1,6 +1,15 @@
 import { Entity, HasMany, HasOne } from '../core';
 import { Diagram, WorkspaceDiagram } from '../diagram';
 import {
+  CapturedInboxItem,
+  InboxItem,
+  InboxItemStatus,
+  InboxListQuery,
+  InboxRevision,
+  InboxSourceInput,
+  WorkspaceInbox,
+} from '../inbox';
+import {
   LogicalEntity,
   LogicalEntityDescription,
   WorkspaceLogicalEntities,
@@ -29,6 +38,7 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     private readonly workspaceDiagram: WorkspaceDiagram,
     private readonly workspaceLogicalEntities: WorkspaceLogicalEntities,
     private readonly workspaceLogicalRelationships: WorkspaceLogicalRelationships,
+    private readonly workspaceInbox: WorkspaceInbox,
   ) {}
 
   identity(): string {
@@ -57,6 +67,53 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   diagram(): HasOne<Diagram> {
     return this.workspaceDiagram;
+  }
+
+  inbox(): HasMany<InboxItem> {
+    return this.workspaceInbox;
+  }
+
+  captureInboxSource(source: InboxSourceInput): Promise<CapturedInboxItem> {
+    return this.workspaceInbox.capture(source);
+  }
+
+  appendInboxRevision(
+    itemId: string,
+    source: InboxSourceInput,
+    expectedLatestRevisionSha256?: string,
+  ): Promise<CapturedInboxItem> {
+    return this.workspaceInbox.appendRevision(
+      itemId,
+      source,
+      expectedLatestRevisionSha256,
+    );
+  }
+
+  changeInboxItemStatus(
+    itemId: string,
+    status: InboxItemStatus,
+    expectedVersion: number,
+  ): Promise<InboxItem> {
+    return this.workspaceInbox.changeStatus(itemId, status, expectedVersion);
+  }
+
+  listInboxItems(query: InboxListQuery): Promise<[InboxItem[], number]> {
+    return this.workspaceInbox.list(query);
+  }
+
+  listInboxRevisions(
+    itemId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<[InboxRevision[], number]> {
+    return this.workspaceInbox.listRevisions(itemId, page, pageSize);
+  }
+
+  findInboxRevision(
+    itemId: string,
+    revisionId: string,
+  ): Promise<InboxRevision | null> {
+    return this.workspaceInbox.findRevision(itemId, revisionId);
   }
 
   logicalEntities(): HasMany<LogicalEntity> {

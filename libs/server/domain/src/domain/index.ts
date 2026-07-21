@@ -1,6 +1,7 @@
 export * from './core';
 export * from './diagram';
 export * from './error';
+export * from './inbox';
 export * from './logical-entity';
 export * from './logical-relationship';
 export * from './member';

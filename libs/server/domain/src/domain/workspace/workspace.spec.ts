@@ -2,6 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { HasMany, HasOne, Ref, type Entity, type Many } from '../core';
 import type { Diagram, WorkspaceDiagram } from '../diagram';
 import type {
+  InboxItem,
+  InboxRevision,
+  InboxSourceInput,
+  WorkspaceInbox,
+} from '../inbox';
+import type {
   LogicalEntity,
   LogicalEntityDescription,
   WorkspaceLogicalEntities,
@@ -31,6 +37,14 @@ const memberDescription: MemberDescription = {
   role: 'owner',
   createdAt: timestamp,
   updatedAt: timestamp,
+};
+
+const inboxSource: InboxSourceInput = {
+  sourceKind: 'manual_text',
+  externalKey: 'capture-1',
+  title: 'Local coding agent',
+  body: 'Run Pi in the desktop app.',
+  contentType: 'text/markdown',
 };
 
 const logicalEntityDescription: LogicalEntityDescription = {
@@ -70,9 +84,12 @@ function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
 function workspaceFixture() {
   const member = {} as Member;
   const diagram = {} as Diagram;
+  const inboxItem = {} as InboxItem;
+  const inboxRevision = {} as InboxRevision;
   const logicalEntity = {} as LogicalEntity;
   const logicalRelationship = {} as LogicalRelationship;
   const manyMembers = many([member]);
+  const manyInboxItems = many([inboxItem]);
   const manyLogicalEntities = many([logicalEntity]);
   const manyLogicalRelationships = many([logicalRelationship]);
 
@@ -87,6 +104,27 @@ function workspaceFixture() {
   const diagramProjection = {
     get: vi.fn(async () => diagram),
   } satisfies WorkspaceDiagram;
+
+  const inbox = {
+    findAll: vi.fn(() => manyInboxItems),
+    findByIdentity: vi.fn(async () => inboxItem),
+    list: vi.fn(async () => [[inboxItem], 1] as [InboxItem[], number]),
+    capture: vi.fn(async () => ({
+      item: inboxItem,
+      revision: inboxRevision,
+      revisionCreated: true,
+    })),
+    appendRevision: vi.fn(async () => ({
+      item: inboxItem,
+      revision: inboxRevision,
+      revisionCreated: true,
+    })),
+    changeStatus: vi.fn(async () => inboxItem),
+    listRevisions: vi.fn(
+      async () => [[inboxRevision], 1] as [InboxRevision[], number],
+    ),
+    findRevision: vi.fn(async () => inboxRevision),
+  } satisfies WorkspaceInbox;
 
   const logicalEntities = {
     findAll: vi.fn(() => manyLogicalEntities),
@@ -115,15 +153,20 @@ function workspaceFixture() {
     diagramProjection,
     logicalEntities,
     logicalRelationships,
+    inbox,
   );
 
   return {
     diagram,
     diagramProjection,
+    inbox,
+    inboxItem,
+    inboxRevision,
     logicalEntities,
     logicalEntity,
     logicalRelationship,
     logicalRelationships,
+    manyInboxItems,
     manyLogicalEntities,
     manyLogicalRelationships,
     manyMembers,
@@ -142,11 +185,18 @@ describe('Workspace', () => {
   });
 
   it('exposes child collections as HasMany collections', async () => {
-    const { diagram, logicalEntity, logicalRelationship, member, workspace } =
-      workspaceFixture();
+    const {
+      diagram,
+      inboxItem,
+      logicalEntity,
+      logicalRelationship,
+      member,
+      workspace,
+    } = workspaceFixture();
 
     const members: HasMany<Member> = workspace.members();
     const diagramProjection: HasOne<Diagram> = workspace.diagram();
+    const inbox: HasMany<InboxItem> = workspace.inbox();
     const logicalEntities: HasMany<LogicalEntity> = workspace.logicalEntities();
     const logicalRelationships: HasMany<LogicalRelationship> =
       workspace.logicalRelationships();
@@ -155,6 +205,7 @@ describe('Workspace', () => {
       members.findAll().subCollection(0, 10).toArray(),
     ).resolves.toEqual([member]);
     await expect(diagramProjection.get()).resolves.toBe(diagram);
+    await expect(inbox.findByIdentity('inbox-1')).resolves.toBe(inboxItem);
     await expect(logicalEntities.findAll().size()).resolves.toBe(1);
     await expect(
       logicalRelationships.findAll().subCollection(0, 10).toArray(),
@@ -176,6 +227,43 @@ describe('Workspace', () => {
     expect(members.addMember).toHaveBeenCalledWith(memberDescription);
     expect(members.updateMember).toHaveBeenCalledWith('member-1', 'admin');
     expect(members.removeMember).toHaveBeenCalledWith('member-1');
+  });
+
+  it('delegates Inbox commands to the workspace Inbox association', async () => {
+    const { inbox, inboxItem, inboxRevision, workspace } = workspaceFixture();
+
+    await expect(workspace.captureInboxSource(inboxSource)).resolves.toEqual({
+      item: inboxItem,
+      revision: inboxRevision,
+      revisionCreated: true,
+    });
+    await expect(
+      workspace.appendInboxRevision('inbox-1', inboxSource, 'sha256:before'),
+    ).resolves.toEqual({
+      item: inboxItem,
+      revision: inboxRevision,
+      revisionCreated: true,
+    });
+    await expect(
+      workspace.changeInboxItemStatus('inbox-1', 'deferred', 1),
+    ).resolves.toBe(inboxItem);
+    await expect(
+      workspace.listInboxItems({ page: 1, pageSize: 20 }),
+    ).resolves.toEqual([[inboxItem], 1]);
+    await expect(
+      workspace.listInboxRevisions('inbox-1', 1, 20),
+    ).resolves.toEqual([[inboxRevision], 1]);
+    await expect(
+      workspace.findInboxRevision('inbox-1', 'revision-1'),
+    ).resolves.toBe(inboxRevision);
+
+    expect(inbox.capture).toHaveBeenCalledWith(inboxSource);
+    expect(inbox.appendRevision).toHaveBeenCalledWith(
+      'inbox-1',
+      inboxSource,
+      'sha256:before',
+    );
+    expect(inbox.changeStatus).toHaveBeenCalledWith('inbox-1', 'deferred', 1);
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {
