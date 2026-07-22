@@ -1,6 +1,7 @@
 import { expect } from 'vitest';
 
 export const apiBaseUrl = process.env.API_BASE_URL?.replace(/\/$/, '');
+export const apiAuthorization = process.env.API_AUTHORIZATION?.trim();
 
 // Contract tests intentionally use loose JSON because they validate wire-level payloads.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,6 +19,7 @@ export async function apiRequest<T = JsonObject>(
     ...init,
     headers: {
       accept: 'application/*+json',
+      ...(apiAuthorization ? { authorization: apiAuthorization } : {}),
       ...(init.body ? { 'content-type': 'application/json' } : {}),
       ...init.headers,
     },
@@ -37,6 +39,7 @@ export async function apiTextRequest(
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
+      ...(apiAuthorization ? { authorization: apiAuthorization } : {}),
       ...(init.body ? { 'content-type': 'application/json' } : {}),
       ...init.headers,
     },

@@ -46,6 +46,12 @@ describeContracts('Evidence API contract vertical slice', () => {
   const userId = 'desktop-user';
 
   it('exposes root, health, user, and seeded workspace resources as HAL-style resources', async () => {
+    if (!apiBaseUrl) throw new Error('API_BASE_URL is required');
+    const unauthorized = await fetch(`${apiBaseUrl}/api`);
+    expect(unauthorized.status).toBe(401);
+    const publicHealth = await fetch(`${apiBaseUrl}/health`);
+    expect(publicHealth.status).toBe(200);
+
     const root = await apiRequest('/api');
     expect(root.status).toBe(200);
     expectHalResource(root, mediaTypes.root);
@@ -61,6 +67,10 @@ describeContracts('Evidence API contract vertical slice', () => {
 
     const openapi = await apiRequest('/api/openapi.json');
     expect(openapi.status).toBe(200);
+    expect(openapi.body.security).toEqual([{ evidenceAuthorization: [] }]);
+    expect(openapi.body.components.securitySchemes).toHaveProperty(
+      'evidenceAuthorization',
+    );
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/diagram/propose-model',
     );
