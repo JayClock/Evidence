@@ -14,5 +14,18 @@ describe('sidebarResource', () => {
         }),
       ]),
     );
+    expect(resource.sections[1]).toMatchObject({
+      key: 'delivery',
+      items: [
+        expect.objectContaining({
+          key: 'story-candidates',
+          href: '/api/workspaces/{workspaceId}/story-candidates',
+        }),
+        expect.objectContaining({
+          key: 'stories',
+          href: '/api/workspaces/{workspaceId}/stories',
+        }),
+      ],
+    });
   });
 });

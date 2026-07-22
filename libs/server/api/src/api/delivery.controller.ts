@@ -26,6 +26,7 @@ import {
   workspaceStoriesHref,
   workspaceStoryCandidateHref,
   workspaceStoryCandidatesHref,
+  workspaceStoryHref,
   workspaceStoryRevisionHref,
   workspaceStoryRevisionsHref,
 } from './links';
@@ -372,7 +373,7 @@ function revisionCollection(
     `${workspaceStoryRevisionsHref(workspaceId, storyId)}?page=${String(targetPage)}&pageSize=${String(pageSize)}`;
   const links: Record<string, Link> = {
     self: link(href(page)),
-    story: link(workspaceStoriesHref(workspaceId) + `/${storyId}`),
+    story: link(workspaceStoryHref(workspaceId, storyId)),
   };
   if (page > 1) links.prev = link(href(page - 1));
   if (page < pages) links.next = link(href(page + 1));

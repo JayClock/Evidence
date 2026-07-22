@@ -8,6 +8,8 @@ import {
   workspaceLogicalEntitiesHref,
   workspaceLogicalRelationshipsHref,
   workspaceMembersHref,
+  workspaceStoriesHref,
+  workspaceStoryCandidatesHref,
 } from '../links';
 
 export interface WorkspaceModel {
@@ -30,6 +32,8 @@ export function workspaceModel(workspace: Workspace): WorkspaceModel {
       members: link(workspaceMembersHref(workspaceId)),
       diagram: link(workspaceDiagramHref(workspaceId)),
       'inbox-items': link(workspaceInboxItemsHref(workspaceId)),
+      'story-candidates': link(workspaceStoryCandidatesHref(workspaceId)),
+      stories: link(workspaceStoriesHref(workspaceId)),
       'logical-entities': link(workspaceLogicalEntitiesHref(workspaceId)),
       'logical-relationships': link(
         workspaceLogicalRelationshipsHref(workspaceId),

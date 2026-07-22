@@ -51,6 +51,30 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.inbox-revision+json',
     ],
     [
+      '/api/workspaces/default-workspace/story-candidates',
+      'application/vnd.evidence.story-candidates+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/story-candidates/candidate-1',
+      'application/vnd.evidence.story-candidate+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/stories',
+      'application/vnd.evidence.stories+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/stories/story-1',
+      'application/vnd.evidence.story+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/stories/story-1/revisions',
+      'application/vnd.evidence.story-revisions+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/stories/story-1/revisions/revision-1',
+      'application/vnd.evidence.story-revision+json',
+    ],
+    [
       '/api/workspaces/default-workspace/logical-entities',
       'application/vnd.evidence.logical-entities+json',
     ],
@@ -67,6 +91,18 @@ describe('vendorMediaType', () => {
     [
       '/api/workspaces/default-workspace/inbox-items/inbox-1/revisions',
       'application/vnd.evidence.inbox-revision+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/story-candidates',
+      'application/vnd.evidence.story-candidate+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/story-candidates/candidate-1/confirm',
+      'application/vnd.evidence.story-revision+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/story-candidates/candidate-1/reject',
+      'application/vnd.evidence.story-candidate+json',
     ],
   ])('maps POST %s to the singular resource media type', (path, expected) => {
     expect(vendorMediaType('POST', path)).toBe(expected);

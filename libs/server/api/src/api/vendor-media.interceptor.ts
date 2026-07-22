@@ -110,6 +110,63 @@ export function vendorMediaType(
   ) {
     return mediaType('inbox-revision');
   }
+  if (matches(apiSegments, ['workspaces', '*', 'story-candidates'])) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('story-candidate')
+      : mediaType('story-candidates');
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'story-candidates', '*'])) {
+    return mediaType('story-candidate');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'story-candidates',
+      '*',
+      'confirm',
+    ])
+  ) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('story-revision')
+      : null;
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'story-candidates',
+      '*',
+      'reject',
+    ])
+  ) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('story-candidate')
+      : null;
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
+    return mediaType('stories');
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'stories', '*'])) {
+    return mediaType('story');
+  }
+  if (
+    matches(apiSegments, ['workspaces', '*', 'stories', '*', 'revisions'])
+  ) {
+    return mediaType('story-revisions');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'stories',
+      '*',
+      'revisions',
+      '*',
+    ])
+  ) {
+    return mediaType('story-revision');
+  }
   if (matches(apiSegments, ['workspaces', '*', 'logical-entities'])) {
     return mediaType('logical-entities');
   }

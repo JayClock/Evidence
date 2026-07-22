@@ -7,6 +7,7 @@ import {
   workspaceInboxItemsHref,
   workspaceInboxRevisionHref,
   workspaceInboxRevisionsHref,
+  workspaceStoryCandidatesHref,
 } from '../links';
 
 export interface InboxItemModel {
@@ -34,6 +35,7 @@ export function inboxItemModel(item: InboxItem): InboxItemModel {
       workspace: link(workspaceHref(workspaceId)),
       collection: link(workspaceInboxItemsHref(workspaceId)),
       revisions: link(workspaceInboxRevisionsHref(workspaceId, itemId)),
+      'story-candidates': link(workspaceStoryCandidatesHref(workspaceId)),
       'latest-revision': link(
         workspaceInboxRevisionHref(
           workspaceId,
@@ -85,6 +87,7 @@ export function inboxRevisionModel(
       item: link(workspaceInboxItemHref(workspaceId, itemId)),
       collection: link(workspaceInboxRevisionsHref(workspaceId, itemId)),
       workspace: link(workspaceHref(workspaceId)),
+      'story-candidates': link(workspaceStoryCandidatesHref(workspaceId)),
     },
     id: revisionId,
     revisionNumber: description.revisionNumber,

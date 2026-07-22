@@ -66,6 +66,29 @@ export function sidebarResource(userId: string): SidebarResource {
           },
         ],
       },
+      {
+        title: 'DELIVERY',
+        key: 'delivery',
+        defaultOpen: true,
+        items: [
+          {
+            key: 'story-candidates',
+            label: 'Story Candidates',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/story-candidates',
+            path: '/api/workspaces/{workspaceId}/story-candidates',
+            icon: 'list-checks',
+          },
+          {
+            key: 'stories',
+            label: 'Stories',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/stories',
+            path: '/api/workspaces/{workspaceId}/stories',
+            icon: 'book-open',
+          },
+        ],
+      },
     ],
   };
 }
