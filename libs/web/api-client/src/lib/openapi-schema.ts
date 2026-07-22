@@ -739,7 +739,6 @@ export interface components {
       metadata?: {
         [key: string]: string;
       } | null;
-      path?: string | null;
       status?: string | null;
       title?: string | null;
     };

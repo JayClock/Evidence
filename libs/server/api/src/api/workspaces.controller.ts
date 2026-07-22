@@ -10,7 +10,10 @@ import {
   Put,
   Res,
 } from '@nestjs/common';
-import type { WorkspaceDescription } from '@evidence/server-domain';
+import {
+  DomainError,
+  type WorkspaceDescription,
+} from '@evidence/server-domain';
 import { workspaceHref } from './links';
 import { WorkspaceModel, workspaceModel } from './model';
 import { ResourceResolver } from './resource-resolver.service';
@@ -21,7 +24,6 @@ interface PassthroughResponse {
 
 interface WorkspaceInput {
   title?: string | null;
-  path?: string | null;
   description?: string | null;
   status?: string | null;
   metadata?: Record<string, string> | null;
@@ -75,11 +77,8 @@ export class WorkspacesController {
 function workspaceInputToDescription(
   input: WorkspaceInput,
 ): WorkspaceDescription {
+  rejectLocalPaths(input);
   const metadata = { ...(input.metadata ?? {}) };
-  const path = input.path?.trim();
-  if (path) {
-    metadata.repositoryRoot = path;
-  }
 
   return {
     title: input.title ?? '',
@@ -89,4 +88,18 @@ function workspaceInputToDescription(
     createdAt: '',
     updatedAt: '',
   };
+}
+
+function rejectLocalPaths(input: WorkspaceInput): void {
+  const record = input as WorkspaceInput & Record<string, unknown>;
+  const forbidden = ['path', 'rootPath', 'repositoryRoot', 'evidenceRoot'];
+  const metadata = input.metadata ?? {};
+  if (
+    Object.hasOwn(record, 'path') ||
+    forbidden.some((key) => Object.hasOwn(metadata, key))
+  ) {
+    throw DomainError.validation(
+      'local repository paths must be bound by the Desktop app',
+    );
+  }
 }

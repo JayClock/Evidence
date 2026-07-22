@@ -2658,10 +2658,6 @@ components:
             type: string
           propertyNames:
             type: string
-        path:
-          type:
-            - string
-            - 'null'
         status:
           type:
             - string

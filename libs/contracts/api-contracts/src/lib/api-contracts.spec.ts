@@ -1,5 +1,3 @@
-import { mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import {
   apiBaseUrl,
   apiRequest,
@@ -35,17 +33,10 @@ const mediaTypes = {
 
 async function createContractWorkspace(prefix: string) {
   const title = uniqueName(prefix);
-  const root = process.env.CONTRACT_WORKSPACE_ROOT;
-  let path: string | undefined;
-  if (root) {
-    path = join(root, title.replace(/[^a-zA-Z0-9]+/g, '-'));
-    await mkdir(path, { recursive: true });
-  }
   return apiRequest('/api/workspaces', {
     method: 'POST',
     body: JSON.stringify({
       title,
-      ...(path ? { path } : {}),
       metadata: { source: 'api-contracts' },
     }),
   });
@@ -161,6 +152,24 @@ describeContracts('Evidence API contract vertical slice', () => {
       description: null,
       metadata: { updated: 'true' },
     });
+
+    const rejectedLocalPath = await apiRequest('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Must stay local',
+        path: '/desktop/repository',
+      }),
+    });
+    expect(rejectedLocalPath.status).toBe(400);
+
+    const rejectedMetadataPath = await apiRequest('/api/workspaces', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Must also stay local',
+        metadata: { repositoryRoot: '/desktop/repository' },
+      }),
+    });
+    expect(rejectedMetadataPath.status).toBe(400);
 
     const deleted = await apiRequest(`/api/workspaces/${created.body.id}`, {
       method: 'DELETE',

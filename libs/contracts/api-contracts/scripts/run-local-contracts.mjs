@@ -28,6 +28,7 @@ const server = spawn(process.execPath, [serverEntry], {
     ...process.env,
     DATABASE_URL: databaseUrl,
     EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
+    EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
     EVIDENCE_HOST: '127.0.0.1',
     PI_CODING_AGENT_DIR: piAgentDir,
     PI_OFFLINE: '1',
@@ -51,10 +52,7 @@ try {
       '--config',
       'libs/contracts/api-contracts/vitest.config.mts',
     ],
-    {
-      API_BASE_URL: origin,
-      CONTRACT_WORKSPACE_ROOT: join(testRoot, 'workspaces'),
-    },
+    { API_BASE_URL: origin },
   );
   if (result !== 0) {
     throw new Error(`API contracts exited with status ${String(result)}`);

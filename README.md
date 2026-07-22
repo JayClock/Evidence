@@ -263,7 +263,8 @@ pnpm nx run @evidence/desktop:package
 | `PORT`                            | `3000`               | Nest 监听端口                                                                  |
 | `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host                                                                  |
 | `EVIDENCE_CORS_ORIGINS`           | 允许所有             | Server 允许的逗号分隔 origin                                                   |
-| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 默认 Workspace 根                                                              |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 仅用于内置默认 Workspace 的 Server 模型根                                      |
+| `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models` | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                 |
 | `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                                              |
 | `VITE_API_BASE_URL`               | `/api`               | Browser API 根                                                                 |
 | `EVIDENCE_API_BASE_URL`           | Electron 必填        | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
