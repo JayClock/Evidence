@@ -27,6 +27,11 @@ export interface MockPrismaStore {
   logicalRelationship: Record<string, MockFn>;
   inboxItem: Record<string, MockFn>;
   inboxRevision: Record<string, MockFn>;
+  storyCandidate: Record<string, MockFn>;
+  storyCandidateCitation: Record<string, MockFn>;
+  story: Record<string, MockFn>;
+  storyRevision: Record<string, MockFn>;
+  storyRevisionCitation: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -91,6 +96,17 @@ export function mockPrismaStore(): MockPrismaStore {
       'updateMany',
     ]),
     inboxRevision: delegate(['findMany', 'findFirst', 'count', 'create']),
+    storyCandidate: delegate([
+      'findMany',
+      'findFirst',
+      'count',
+      'create',
+      'updateMany',
+    ]),
+    storyCandidateCitation: delegate(['createMany']),
+    story: delegate(['findMany', 'findFirst', 'count', 'create', 'update']),
+    storyRevision: delegate(['findMany', 'findFirst', 'count', 'create']),
+    storyRevisionCitation: delegate(['createMany']),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 
