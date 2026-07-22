@@ -13,15 +13,15 @@
     "technical_boundaries": [
       "electron-main",
       "electron-preload",
-      "nest-child",
+      "http-server",
       "webview"
     ],
-    "when": "The selected Scenario changes native Electron shell, preload, packaging, or managed local Nest behavior rather than shared Web feature behavior."
+    "when": "The selected Scenario changes native Electron shell, preload, remote API configuration, or packaging rather than shared Web feature behavior."
   },
   "steps": [
     {
       "id": "electron-shell-q1",
-      "purpose": "Drive an Electron main, preload, or child lifecycle rule without launching a live renderer.",
+      "purpose": "Drive an Electron main, preload, or API lifecycle rule without launching a live renderer.",
       "quadrant": "Q1",
       "functional_contexts": [
         "workspace",
@@ -32,7 +32,7 @@
       "real_boundaries": ["electron-main", "electron-preload"],
       "replaced_boundaries": [
         { "boundary": "webview", "test_double": "stub" },
-        { "boundary": "nest-child", "test_double": "fake" }
+        { "boundary": "http-server", "test_double": "stub" }
       ],
       "nearest_test": {
         "rule": "Place the Vitest test next to the owning Electron main, preload, or lifecycle module.",
@@ -55,7 +55,7 @@
     },
     {
       "id": "electron-package-q2",
-      "purpose": "Confirm the desktop Scenario through the packaged renderer and managed Nest runtime.",
+      "purpose": "Confirm the desktop Scenario through the packaged renderer and configured Server API.",
       "quadrant": "Q2",
       "functional_contexts": [
         "workspace",
@@ -63,13 +63,10 @@
         "diagram-projection",
         "model-proposal"
       ],
-      "real_boundaries": [
-        "electron-main",
-        "electron-preload",
-        "nest-child",
-        "webview"
+      "real_boundaries": ["electron-main", "electron-preload", "webview"],
+      "replaced_boundaries": [
+        { "boundary": "http-server", "test_double": "stub" }
       ],
-      "replaced_boundaries": [],
       "nearest_test": {
         "rule": "Extend the packaged Electron smoke or nearest desktop integration test.",
         "roots": ["apps/desktop/scripts", "apps/desktop/src"]
@@ -80,13 +77,13 @@
       },
       "red": {
         "expected_failure_kind": "behavior",
-        "expected_failure": "The packaged desktop outcome fails after Electron launches the bundled renderer and local Nest runtime."
+        "expected_failure": "The packaged desktop outcome fails after Electron launches the bundled renderer and connects to the configured API."
       },
       "green": {
-        "done_when": "The packaged Scenario passes without an external server or PostgreSQL dependency."
+        "done_when": "The packaged Scenario passes with no bundled Server or database and the configured API boundary remains explicit."
       },
       "refactor": {
-        "done_when": "The renderer, shell, and Nest boundaries remain explicit and package smoke stays green."
+        "done_when": "The renderer, shell, and remote API boundaries remain explicit and package smoke stays green."
       }
     }
   ],

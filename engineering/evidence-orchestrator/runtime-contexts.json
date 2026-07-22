@@ -28,10 +28,8 @@
       "nest-api",
       "nest-domain",
       "prisma-store",
-      "sqlite-store",
       "electron-main",
       "electron-preload",
-      "nest-child",
       "webview"
     ]
   }

@@ -6,18 +6,18 @@
 
 ## 权威映射
 
-| 知识         | 权威来源                                                             | 迭代中的表示形式                          |
-| ------------ | -------------------------------------------------------------------- | ----------------------------------------- |
-| 需求请求     | GitHub Issue / Projects                                              | 冻结的 `issue.json` 与只读投影            |
-| 产品解决方案 | `docs/product/`                                                      | 问题陈述、旅程切片以及产品 / 故事地图增量 |
-| 领域模型     | `.evidence/`                                                         | 模型快照、增量和场景展开                  |
-| 架构         | `docs/architecture/`                                                 | 架构决策和场景上下文映射                  |
-| API 契约     | `libs/server/api/openapi.yaml`                                       | API 契约增量                              |
-| 数据模型     | Prisma migrations/schema、SQLite registry schema 与 `.evidence` YAML | 数据模型增量                              |
-| 测试工序     | `engineering/evidence-orchestrator/test-processes/`                  | 已选定的不可变工序快照                    |
-| 方法工作知识 | `.pi/skills/`、`.pi/prompts/` 与 Working Knowledge catalog           | 实际加载版本、使用场景和反馈证据          |
-| 完成定义     | `engineering/evidence-orchestrator/definition-of-done.md`            | Git 版本与场景特有的附加条件              |
-| 执行与反馈   | `artifacts/iterations/`                                              | 不可变的执行证据                          |
+| 知识         | 权威来源                                                   | 迭代中的表示形式                          |
+| ------------ | ---------------------------------------------------------- | ----------------------------------------- |
+| 需求请求     | GitHub Issue / Projects                                    | 冻结的 `issue.json` 与只读投影            |
+| 产品解决方案 | `docs/product/`                                            | 问题陈述、旅程切片以及产品 / 故事地图增量 |
+| 领域模型     | `.evidence/`                                               | 模型快照、增量和场景展开                  |
+| 架构         | `docs/architecture/`                                       | 架构决策和场景上下文映射                  |
+| API 契约     | `libs/server/api/openapi.yaml`                             | API 契约增量                              |
+| 数据模型     | Prisma migrations/schema 与 `.evidence` YAML               | 数据模型增量                              |
+| 测试工序     | `engineering/evidence-orchestrator/test-processes/`        | 已选定的不可变工序快照                    |
+| 方法工作知识 | `.pi/skills/`、`.pi/prompts/` 与 Working Knowledge catalog | 实际加载版本、使用场景和反馈证据          |
+| 完成定义     | `engineering/evidence-orchestrator/definition-of-done.md`  | Git 版本与场景特有的附加条件              |
+| 执行与反馈   | `artifacts/iterations/`                                    | 不可变的执行证据                          |
 
 ## Working Knowledge 分层
 
