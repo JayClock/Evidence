@@ -10,11 +10,6 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./sqlite": {
-      "types": "./src/persistent/sqlite/index.ts",
-      "import": "./src/persistent/sqlite/index.ts",
-      "default": "./src/persistent/sqlite/index.ts"
-    },
     "./workspace-paths": {
       "types": "./src/persistent/workspace-paths.ts",
       "import": "./src/persistent/workspace-paths.ts",

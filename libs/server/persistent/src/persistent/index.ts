@@ -2,7 +2,6 @@ export { EntityList as DatabaseEntityList } from './database';
 export { EntityList as MemoryEntityList } from './memory';
 export * from './workspace-paths';
 export * from './inbox-content';
-export * from './sqlite';
 export * from './filesystem/workspace-diagram';
 export * from './filesystem/workspace-logical-entities';
 export * from './filesystem/workspace-logical-relationships';

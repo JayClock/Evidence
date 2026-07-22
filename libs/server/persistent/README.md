@@ -1,6 +1,6 @@
 # @evidence/server-persistent
 
-Evidence persistence adapters for Prisma/PostgreSQL, the Electron `node:sqlite` registry, and workspace `.evidence` YAML files.
+Evidence persistence adapters for Prisma/PostgreSQL and workspace `.evidence` YAML files.
 
 ## Running unit tests
 
