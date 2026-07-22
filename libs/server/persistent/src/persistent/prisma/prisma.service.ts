@@ -29,7 +29,7 @@ export class PrismaService
 
   private async seedDefaults(): Promise<void> {
     const timestamp = new Date();
-    const userId = 'desktop-user';
+    const userId = process.env.EVIDENCE_USER_ID?.trim() || 'desktop-user';
     const workspaceId = 'default-workspace';
     const modelRoot = await initializeRepositoryModelRoot(
       process.env.EVIDENCE_DEFAULT_WORKSPACE_PATH ?? process.cwd(),
@@ -40,8 +40,9 @@ export class PrismaService
       update: {},
       create: {
         id: userId,
-        name: 'Desktop User',
-        email: 'desktop@evidence.local',
+        name: process.env.EVIDENCE_USER_NAME?.trim() || 'Desktop User',
+        email:
+          process.env.EVIDENCE_USER_EMAIL?.trim() || 'desktop@evidence.local',
       },
     });
 
@@ -69,7 +70,10 @@ export class PrismaService
       },
       update: {},
       create: {
-        id: 'default-workspace-owner',
+        id:
+          userId === 'desktop-user'
+            ? 'default-workspace-owner'
+            : `default-workspace-owner-${userId}`,
         workspaceId,
         userId,
         role: 'owner',

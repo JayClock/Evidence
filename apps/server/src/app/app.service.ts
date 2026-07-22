@@ -8,6 +8,7 @@ import {
   Link,
   userHref,
 } from '@evidence/server-api';
+import { currentUserId } from './api-authorization.guard';
 
 const openapiDocument = parse(openapiYaml) as Record<string, unknown>;
 
@@ -28,7 +29,7 @@ export class AppService {
       _links: {
         self: link(apiHref()),
         health: link(healthHref()),
-        'current-user': link(userHref('desktop-user')),
+        'current-user': link(userHref(currentUserId())),
       },
     };
   }

@@ -1,10 +1,23 @@
 import { Logger, type Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DomainErrorFilter } from '@evidence/server-api';
+import {
+  assertRemoteApiIsSecured,
+  currentUserId,
+} from './app/api-authorization.guard';
+
+const LOCAL_CORS_ORIGINS = [
+  'http://localhost:4200',
+  'http://127.0.0.1:4200',
+  'evidence://app',
+];
 
 function corsOrigins(): string[] | true {
   const configured = process.env.EVIDENCE_CORS_ORIGINS;
   if (!configured) {
+    return LOCAL_CORS_ORIGINS;
+  }
+  if (configured.trim() === '*') {
     return true;
   }
   return configured
@@ -14,6 +27,9 @@ function corsOrigins(): string[] | true {
 }
 
 export async function bootstrap(rootModule: Type<unknown>): Promise<void> {
+  const host = process.env.EVIDENCE_HOST?.trim() || '127.0.0.1';
+  assertRemoteApiIsSecured(host);
+  currentUserId();
   const app = await NestFactory.create(rootModule);
   app.enableCors({ origin: corsOrigins() });
   app.useGlobalFilters(new DomainErrorFilter());
@@ -22,15 +38,9 @@ export async function bootstrap(rootModule: Type<unknown>): Promise<void> {
   app.setGlobalPrefix(globalPrefix, { exclude: ['health'] });
 
   const port = Number(process.env.PORT ?? 3000);
-  const host = process.env.EVIDENCE_HOST;
-  if (host) {
-    await app.listen(port, host);
-  } else {
-    await app.listen(port);
-  }
+  await app.listen(port, host);
 
-  const address = host ?? 'localhost';
   Logger.log(
-    `🚀 Application is running on: http://${address}:${port}/${globalPrefix}`,
+    `🚀 Application is running on: http://${host}:${port}/${globalPrefix}`,
   );
 }

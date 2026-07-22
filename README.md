@@ -260,9 +260,13 @@ pnpm nx run @evidence/desktop:package
 | `DATABASE_URL`                    | Prisma 本地 fallback | Server 运行时 PostgreSQL 连接字符串                                            |
 | `DIRECT_URL`                      | `DATABASE_URL`       | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
 | `EVIDENCE_MIGRATION_DATABASE_URL` | 未设置               | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL                |
-| `PORT`                            | `3000`               | Nest 监听端口                                                                  |
-| `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host                                                                  |
-| `EVIDENCE_CORS_ORIGINS`           | 允许所有             | Server 允许的逗号分隔 origin                                                   |
+| `PORT`                            | `3000`                 | Nest 监听端口                                                                  |
+| `EVIDENCE_HOST`                   | `127.0.0.1`            | Server 监听 host；非 loopback 时必须同时配置 API Authorization                 |
+| `EVIDENCE_API_AUTHORIZATION`      | 未设置                 | 非 loopback Server 必需；请求必须携带完全一致的 `Authorization` header          |
+| `EVIDENCE_CORS_ORIGINS`           | 本地 Web 与 Desktop    | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
+| `EVIDENCE_USER_ID`                | `desktop-user`         | 当前单用户部署 principal；只可访问其 Workspace membership                      |
+| `EVIDENCE_USER_NAME`              | `Desktop User`         | 首次创建部署 principal 时使用的名称                                             |
+| `EVIDENCE_USER_EMAIL`             | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                           |
 | `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 仅用于内置默认 Workspace 的 Server 模型根                                      |
 | `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models` | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                 |
 | `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                                              |

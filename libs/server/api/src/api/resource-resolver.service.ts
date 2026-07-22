@@ -32,7 +32,7 @@ export class ResourceResolver {
   }
 
   currentUserId(): string {
-    return 'desktop-user';
+    return process.env.EVIDENCE_USER_ID?.trim() || 'desktop-user';
   }
 
   async requireCurrentUser(): Promise<User> {
