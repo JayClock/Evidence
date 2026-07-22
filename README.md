@@ -210,6 +210,8 @@ cp apps/server/.env.example apps/server/.env
 
 在 `apps/server/.env` 中设置 Server 运行时使用的 `DATABASE_URL`。如果运行时使用 transaction-mode
 连接池，同时用 `DIRECT_URL` 配置 Prisma migration 的 session/direct 地址。该本地文件已被 Git 忽略。
+迁移包装脚本会显示不含凭证的目标；命令行显式设置的 `DATABASE_URL` 优先于 `.env` 中的
+`DIRECT_URL`，也可用最高优先级的 `EVIDENCE_MIGRATION_DATABASE_URL` 锁定一次迁移目标。
 
 ### Browser + Hosted Server
 
@@ -257,6 +259,7 @@ pnpm nx run @evidence/desktop:package
 | :-------------------------------- | :------------------- | :----------------------------------------------------------------------------- |
 | `DATABASE_URL`                    | Prisma 本地 fallback | Server 运行时 PostgreSQL 连接字符串                                            |
 | `DIRECT_URL`                      | `DATABASE_URL`       | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
+| `EVIDENCE_MIGRATION_DATABASE_URL` | 未设置               | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL                |
 | `PORT`                            | `3000`               | Nest 监听端口                                                                  |
 | `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host                                                                  |
 | `EVIDENCE_CORS_ORIGINS`           | 允许所有             | Server 允许的逗号分隔 origin                                                   |
