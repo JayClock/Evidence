@@ -7,6 +7,14 @@
       "description": "Workspace ownership, membership, and collaboration behavior."
     },
     {
+      "id": "work-intake",
+      "description": "Workspace Inbox source identities, immutable revisions, deduplication, and triage state."
+    },
+    {
+      "id": "delivery",
+      "description": "Product Story revisions, scenarios, coding runs, and human decisions; independent from the internal Orchestrator."
+    },
+    {
       "id": "logical-model",
       "description": "Logical entities, relationships, invariants, and lifecycle behavior."
     },
@@ -30,6 +38,8 @@
       "prisma-store",
       "electron-main",
       "electron-preload",
+      "desktop-binding-store",
+      "git-worktree",
       "webview"
     ]
   }

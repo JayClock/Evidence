@@ -29,7 +29,7 @@ Electron
 - Web 与 Desktop 必须共享 REST/HAL 和领域语义；不得通过 Electron IPC 复制业务 API。
 - Server 只使用 Prisma/PostgreSQL registry；不存在 Desktop 专用数据库或第二个 Server 组合根。
 - Electron 必须设置 `EVIDENCE_API_BASE_URL`，并在启动时健康检查远程 HTTPS API；开发时允许 loopback HTTP。
-- Desktop renderer 只通过受限 preload 取得 API URL、目录选择和本地建模 Agent 能力；业务 command/query 始终走 Server API。
+- Desktop renderer 只通过受限 preload 取得 API URL、目录选择/Workspace binding 和本地 Agent 能力；业务 command/query 始终走 Server API。
 
 ## 服务端分层
 
@@ -64,7 +64,7 @@ Electron
 | `DiagramNode` / `DiagramEdge` | 从 `.evidence` 实体和关联投影出的图元素                 |
 | `ModelingProposal`            | AI 提出的模型变更建议；不能绕过用户确认直接修改权威模型 |
 
-Workspace 创建或导入时必须规范化并保存 `repositoryRoot` 与 `evidenceRoot`，并初始化 `.evidence/entities` 与 `.evidence/associations`。逻辑关系的 source/target 必须属于同一工作空间且均存在。
+Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
 
 ## REST/OpenAPI
 
@@ -122,7 +122,7 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 
 - `apps/desktop/src/main.ts` 是 Desktop composition root；不得打包或启动 Nest 子进程。
 - 保持 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
-- preload bridge 只暴露 API URL、目录选择与本地建模 Agent 的最小能力；新增能力必须有 sender validation 和最小权限测试。
+- preload bridge 只暴露 API URL、目录选择/Workspace binding 与本地 Agent 的最小能力；新增能力必须有 sender validation 和最小权限测试。
 - 打包 renderer 使用 `evidence://app/`，必须保留 SPA fallback、路径穿越防护和外部导航拦截。
 - `EVIDENCE_API_BASE_URL` 必须指向通过健康检查的 API；非 loopback endpoint 必须使用 HTTPS。
 - Pi SDK 必须作为 production dependency 嵌入包中；Desktop 包不得嵌入 Server 或数据库。

@@ -31,7 +31,7 @@ libs/
 - Controller、请求/响应模型、HAL links、media type 和 SSE serialization 放在 `libs/server/api`。
 - PostgreSQL registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`。
 - Pi SDK 等外部 adapter 放在 `libs/server/infrastructure`。
-- Desktop 只拥有 Electron 壳、受限 preload、本地建模 Agent 和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
+- Desktop 只拥有 Electron 壳、受限 preload、本地 workspace binding、Agent 执行和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
 - OpenAPI source 位于 `libs/server/api/openapi.yaml`；生成的 Web 类型位于 `libs/web/api-client`；契约 runner 位于 `libs/contracts/api-contracts`。
 
 ## Server composition roots
@@ -46,7 +46,7 @@ apps/server/src/main.ts
        └─ PiSdkDomainArchitect
 ```
 
-Persistence wiring 不得渗入 controller。Desktop 通过 `EVIDENCE_API_BASE_URL` 连接该 Server，并在独立本地 Agent 进程中使用嵌入式 Pi SDK。
+Persistence wiring 不得渗入 controller。Desktop 通过 `EVIDENCE_API_BASE_URL` 连接该 Server，以 API + Workspace 在 userData 中保存本地路径，并在独立本地 Agent 进程中使用嵌入式 Pi SDK。路径和 Authorization 不通过产品 REST payload 传递。
 
 ## 禁止依赖
 
@@ -55,6 +55,8 @@ Persistence wiring 不得渗入 controller。Desktop 通过 `EVIDENCE_API_BASE_U
 - Desktop → 第二套 React 业务页面或 IPC 业务 API。
 - Hosted-only adapter → Desktop renderer。
 - Runtime code → `artifacts/iterations`、`.pi` 或内部 Orchestrator state。
+- Server Workspace metadata → Desktop repositoryRoot；Server 只持有私有 modelRoot。
+- 未经人工接受的 Desktop coding worktree → merge 或 push。
 - 兼容迁移器 → 恢复已退役的 runtime 组合根。
 
 ## 内部 Orchestrator 与知识结构
