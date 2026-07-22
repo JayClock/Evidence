@@ -25,6 +25,16 @@
 
 1. Web 用户通过浏览器访问共享前端和 Hosted API。
 2. Desktop 用户通过 Electron renderer 使用同一前端。
-3. Electron 连接经过健康检查的 Server API；非 loopback endpoint 使用 HTTPS。
+3. Electron 连接经过健康检查的 Server API；非 loopback endpoint 使用 HTTPS 和配置的 Authorization。
 4. 两者消费一致的 REST/HAL 与权威 PostgreSQL 数据。
-5. Desktop 特有能力通过受限 preload bridge 提供，不复制业务页面或业务 API。
+5. Desktop 用户选择本地 repository 时，路径只写入以 API + Workspace 为键的 Desktop binding store。
+6. Desktop 特有能力通过受限 preload bridge 提供，不复制业务页面或业务 API。
+
+## 旅程 D：整理可追溯来源
+
+1. 交付输入整理者进入自己具有 membership 的 Workspace Inbox。
+2. 用户捕获手工文本，或 provider 以稳定 source kind/external key 同步来源。
+3. 重复请求返回同一 Inbox Item；只有不同内容哈希形成新的不可变 Revision。
+4. 用户浏览来源正文、URI、provider metadata、更新时间和完整 Revision 分页历史。
+5. 用户把条目标记为 active、deferred 或 closed，并通过乐观版本避免覆盖并发决定。
+6. 后续建模或 Delivery 决定引用精确 Revision，而不是可变的外部来源。

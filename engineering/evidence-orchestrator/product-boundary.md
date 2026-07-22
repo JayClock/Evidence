@@ -40,6 +40,10 @@ Orchestrator 可以用 Evidence 自身的 Issue、产品文档、`.evidence` 模
 
 Dogfooding 事实不得自动写入产品能力、用户旅程、故事地图或 `.evidence`。只有领域建模用户可观察到的行为，才可能成为 Evidence 产品候选知识。
 
+## Work Intake / Delivery 澄清
+
+产品新增的 Workspace Inbox 和已确认的 Delivery Knowledge 边界不改变本决定：它们是重新定义并由产品 Runtime 持久化的用户能力，不是把内部 Orchestrator 产品化。产品代码不得导入 `.pi` repository、Iteration 工件或 `US-xxx` 状态；具体边界见 [`docs/architecture/delivery-boundary.md`](../../docs/architecture/delivery-boundary.md)。
+
 ## 后果
 
 - 从 Evidence 主产品文档中移除内部交付画像、旅程和故事地图活动。
