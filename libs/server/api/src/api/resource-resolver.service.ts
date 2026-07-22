@@ -9,6 +9,9 @@ import type {
   LogicalEntity,
   LogicalRelationship,
   Member,
+  Story,
+  StoryCandidate,
+  StoryRevision,
   User,
   UserMemberships,
   Users,
@@ -145,6 +148,48 @@ export class ResourceResolver {
       throw DomainError.notFound(`Inbox revision ${revisionId} not found`);
     }
     return [workspace, item, revision];
+  }
+
+  async requireWorkspaceStoryCandidate(
+    workspaceId: string,
+    candidateId: string,
+  ): Promise<[Workspace, StoryCandidate]> {
+    const workspace = await this.requireWorkspace(workspaceId);
+    const candidate = await workspace
+      .storyCandidates()
+      .findByIdentity(candidateId);
+    if (!candidate) {
+      throw DomainError.notFound(`Story Candidate ${candidateId} not found`);
+    }
+    return [workspace, candidate];
+  }
+
+  async requireWorkspaceStory(
+    workspaceId: string,
+    storyId: string,
+  ): Promise<[Workspace, Story]> {
+    const workspace = await this.requireWorkspace(workspaceId);
+    const story = await workspace.findStory(storyId);
+    if (!story) {
+      throw DomainError.notFound(`Story ${storyId} not found`);
+    }
+    return [workspace, story];
+  }
+
+  async requireWorkspaceStoryRevision(
+    workspaceId: string,
+    storyId: string,
+    revisionId: string,
+  ): Promise<[Workspace, Story, StoryRevision]> {
+    const [workspace, story] = await this.requireWorkspaceStory(
+      workspaceId,
+      storyId,
+    );
+    const revision = await workspace.findStoryRevision(storyId, revisionId);
+    if (!revision) {
+      throw DomainError.notFound(`Story Revision ${revisionId} not found`);
+    }
+    return [workspace, story, revision];
   }
 
   async requireWorkspaceLogicalEntity(
