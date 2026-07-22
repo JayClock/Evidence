@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { HasMany, HasOne, Ref, type Entity, type Many } from '../core';
 import type { Diagram, WorkspaceDiagram } from '../diagram';
 import type {
+  Story,
+  StoryCandidate,
+  StoryCandidateInput,
+  StoryRevision,
+  WorkspaceDelivery,
+} from '../delivery';
+import type {
   InboxItem,
   InboxRevision,
   InboxSourceInput,
@@ -47,6 +54,23 @@ const inboxSource: InboxSourceInput = {
   contentType: 'text/markdown',
 };
 
+const storyCandidateInput: StoryCandidateInput = {
+  title: 'Local coding agent',
+  problem: 'Source code must stay local.',
+  role: 'Workspace maintainer',
+  goal: 'Run coding work locally.',
+  value: 'Credentials remain private.',
+  cognitiveMode: 'complicated',
+  citations: [
+    {
+      inboxItemId: 'inbox-1',
+      inboxRevisionId: 'revision-1',
+      contentSha256: `sha256:${'a'.repeat(64)}`,
+      locator: 'whole-source',
+    },
+  ],
+};
+
 const logicalEntityDescription: LogicalEntityDescription = {
   workspace: new Ref('workspace-1'),
   type: 'EVIDENCE',
@@ -86,10 +110,14 @@ function workspaceFixture() {
   const diagram = {} as Diagram;
   const inboxItem = {} as InboxItem;
   const inboxRevision = {} as InboxRevision;
+  const storyCandidate = {} as StoryCandidate;
+  const story = {} as Story;
+  const storyRevision = {} as StoryRevision;
   const logicalEntity = {} as LogicalEntity;
   const logicalRelationship = {} as LogicalRelationship;
   const manyMembers = many([member]);
   const manyInboxItems = many([inboxItem]);
+  const manyStoryCandidates = many([storyCandidate]);
   const manyLogicalEntities = many([logicalEntity]);
   const manyLogicalRelationships = many([logicalRelationship]);
 
@@ -126,6 +154,28 @@ function workspaceFixture() {
     findRevision: vi.fn(async () => inboxRevision),
   } satisfies WorkspaceInbox;
 
+  const delivery = {
+    findAll: vi.fn(() => manyStoryCandidates),
+    findByIdentity: vi.fn(async () => storyCandidate),
+    listCandidates: vi.fn(
+      async () => [[storyCandidate], 1] as [StoryCandidate[], number],
+    ),
+    proposeCandidate: vi.fn(async () => storyCandidate),
+    confirmCandidate: vi.fn(async () => ({
+      candidate: storyCandidate,
+      story,
+      revision: storyRevision,
+      created: true,
+    })),
+    rejectCandidate: vi.fn(async () => storyCandidate),
+    listStories: vi.fn(async () => [[story], 1] as [Story[], number]),
+    findStory: vi.fn(async () => story),
+    listStoryRevisions: vi.fn(
+      async () => [[storyRevision], 1] as [StoryRevision[], number],
+    ),
+    findStoryRevision: vi.fn(async () => storyRevision),
+  } satisfies WorkspaceDelivery;
+
   const logicalEntities = {
     findAll: vi.fn(() => manyLogicalEntities),
     findByIdentity: vi.fn(async () => logicalEntity),
@@ -154,14 +204,19 @@ function workspaceFixture() {
     logicalEntities,
     logicalRelationships,
     inbox,
+    delivery,
   );
 
   return {
+    delivery,
     diagram,
     diagramProjection,
     inbox,
     inboxItem,
     inboxRevision,
+    story,
+    storyCandidate,
+    storyRevision,
     logicalEntities,
     logicalEntity,
     logicalRelationship,
@@ -264,6 +319,54 @@ describe('Workspace', () => {
       'sha256:before',
     );
     expect(inbox.changeStatus).toHaveBeenCalledWith('inbox-1', 'deferred', 1);
+  });
+
+  it('delegates Delivery decisions to the workspace Delivery association', async () => {
+    const { delivery, story, storyCandidate, storyRevision, workspace } =
+      workspaceFixture();
+
+    await expect(
+      workspace.proposeStoryCandidate(storyCandidateInput, 'user-1'),
+    ).resolves.toBe(storyCandidate);
+    await expect(
+      workspace.confirmStoryCandidate('candidate-1', 1, 'user-1'),
+    ).resolves.toEqual({
+      candidate: storyCandidate,
+      story,
+      revision: storyRevision,
+      created: true,
+    });
+    await expect(
+      workspace.rejectStoryCandidate('candidate-2', 1, 'user-1'),
+    ).resolves.toBe(storyCandidate);
+    await expect(
+      workspace.listStoryCandidates({ page: 1, pageSize: 20 }),
+    ).resolves.toEqual([[storyCandidate], 1]);
+    await expect(workspace.listStories({ page: 1, pageSize: 20 })).resolves.toEqual(
+      [[story], 1],
+    );
+    await expect(workspace.findStory('story-1')).resolves.toBe(story);
+    await expect(workspace.listStoryRevisions('story-1', 1, 20)).resolves.toEqual(
+      [[storyRevision], 1],
+    );
+    await expect(
+      workspace.findStoryRevision('story-1', 'revision-1'),
+    ).resolves.toBe(storyRevision);
+
+    expect(delivery.proposeCandidate).toHaveBeenCalledWith(
+      storyCandidateInput,
+      'user-1',
+    );
+    expect(delivery.confirmCandidate).toHaveBeenCalledWith(
+      'candidate-1',
+      1,
+      'user-1',
+    );
+    expect(delivery.rejectCandidate).toHaveBeenCalledWith(
+      'candidate-2',
+      1,
+      'user-1',
+    );
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {

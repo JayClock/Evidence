@@ -33,6 +33,7 @@ import { FileWorkspaceLogicalEntities } from '../filesystem/workspace-logical-en
 import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logical-relationships';
 import { publicWorkspaceMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
+import { PrismaWorkspaceDelivery } from './workspace-delivery';
 import { PrismaWorkspaceMembers } from './workspace-members';
 import { PrismaWorkspaceInbox } from './workspace-inbox';
 
@@ -69,6 +70,7 @@ export function assembleWorkspace(
     new FileWorkspaceLogicalEntities(row.id, evidenceRoot),
     new FileWorkspaceLogicalRelationships(row.id, evidenceRoot),
     new PrismaWorkspaceInbox(store, row.id),
+    new PrismaWorkspaceDelivery(store, row.id),
   );
 }
 
