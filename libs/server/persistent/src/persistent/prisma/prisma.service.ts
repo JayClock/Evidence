@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
-import { normalizeWorkspaceMetadata } from '../workspace-paths';
+import { initializeRepositoryModelRoot } from '../workspace-paths';
 
 @Injectable()
 export class PrismaService
@@ -31,7 +31,9 @@ export class PrismaService
     const timestamp = new Date();
     const userId = 'desktop-user';
     const workspaceId = 'default-workspace';
-    const workspaceMetadata = await normalizeWorkspaceMetadata({});
+    const modelRoot = await initializeRepositoryModelRoot(
+      process.env.EVIDENCE_DEFAULT_WORKSPACE_PATH ?? process.cwd(),
+    );
 
     await this.user.upsert({
       where: { id: userId },
@@ -51,7 +53,8 @@ export class PrismaService
         title: 'Default Workspace',
         description: 'Seed workspace for local desktop usage',
         status: 'active',
-        metadata: workspaceMetadata,
+        metadata: {},
+        modelRoot,
         createdAt: timestamp,
         updatedAt: timestamp,
       },

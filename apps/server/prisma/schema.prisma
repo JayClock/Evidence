@@ -21,6 +21,7 @@ model Workspace {
   description          String?
   status               String
   metadata             Json                  @default("{}")
+  modelRoot            String                @map("model_root")
   createdAt            DateTime              @map("created_at")
   updatedAt            DateTime              @map("updated_at")
   deletedAt            DateTime?             @map("deleted_at")

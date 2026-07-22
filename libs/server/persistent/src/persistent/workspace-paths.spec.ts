@@ -4,7 +4,9 @@ import { basename, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   evidenceRootFromMetadata,
+  initializeWorkspaceModelRoot,
   normalizeWorkspaceMetadata,
+  publicWorkspaceMetadata,
   workspaceTitleFromMetadata,
 } from './workspace-paths';
 
@@ -48,6 +50,33 @@ describe('workspace paths', () => {
 
     expect(metadata.repositoryRoot).toBe(repositoryRoot);
     expect(metadata.evidenceRoot).toBe(join(repositoryRoot, '.evidence'));
+  });
+
+  it('allocates one private model root per workspace', async () => {
+    const storageRoot = await temporaryDirectory();
+
+    const modelRoot = await initializeWorkspaceModelRoot(
+      'workspace-1',
+      storageRoot,
+    );
+
+    expect(modelRoot).toBe(join(storageRoot, 'workspace-1', '.evidence'));
+    await expect(directory(join(modelRoot, 'entities'))).resolves.toBe(true);
+    await expect(directory(join(modelRoot, 'associations'))).resolves.toBe(
+      true,
+    );
+  });
+
+  it('removes private filesystem keys from public metadata', () => {
+    expect(
+      publicWorkspaceMetadata({
+        purpose: 'modeling',
+        path: '/client/repository',
+        rootPath: '/legacy/repository',
+        repositoryRoot: '/server/repository',
+        evidenceRoot: '/server/repository/.evidence',
+      }),
+    ).toEqual({ purpose: 'modeling' });
   });
 
   it('rejects inaccessible paths and regular files', async () => {

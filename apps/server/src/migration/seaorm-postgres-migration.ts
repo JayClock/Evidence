@@ -10,7 +10,10 @@ import {
 import { dirname, join, resolve } from 'node:path';
 import { Client, type QueryResultRow } from 'pg';
 import { stringify } from 'yaml';
-import { normalizeWorkspaceMetadata } from '@evidence/server-persistent/workspace-paths';
+import {
+  normalizeWorkspaceMetadata,
+  publicWorkspaceMetadata,
+} from '@evidence/server-persistent/workspace-paths';
 
 interface LegacyUser extends QueryResultRow {
   id: string;
@@ -346,15 +349,16 @@ async function writeTargetRows(
     for (const workspace of data.workspaces) {
       await target.query(
         `INSERT INTO workspaces
-          (id, title, description, status, metadata, created_at, updated_at, deleted_at)
-         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)
+          (id, title, description, status, metadata, model_root, created_at, updated_at, deleted_at)
+         VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9)
          ON CONFLICT (id) DO NOTHING`,
         [
           workspace.id,
           workspace.title,
           workspace.description,
           workspace.status,
-          JSON.stringify(workspace.metadataObject),
+          JSON.stringify(publicWorkspaceMetadata(workspace.metadataObject)),
+          requiredMetadata(workspace.metadataObject, 'evidenceRoot'),
           workspace.createdAt,
           workspace.updatedAt,
           workspace.deletedAt,

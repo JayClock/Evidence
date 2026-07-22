@@ -55,13 +55,13 @@ describe('PrismaWorkspaces', () => {
       workspaceRow({ id: 'created-workspace' }),
     );
     store.workspaceMember.create.mockResolvedValue(memberRow());
-    const workspaces = new PrismaWorkspaces(asStore(store));
+    const workspaces = new PrismaWorkspaces(asStore(store), repositoryRoot);
 
     const workspace = await workspaces.create(
       'owner-1',
       workspaceDescription({
         title: '  Created Workspace  ',
-        metadata: { path: repositoryRoot },
+        metadata: { path: '/desktop/repository', purpose: 'modeling' },
       }),
     );
 
@@ -73,6 +73,10 @@ describe('PrismaWorkspaces', () => {
         id: expect.any(String),
         title: 'Created Workspace',
         status: 'active',
+        metadata: { purpose: 'modeling' },
+        modelRoot: expect.stringMatching(
+          new RegExp(`^${repositoryRoot}/.+/\\.evidence$`),
+        ),
       }),
     });
     expect(store.workspaceMember.create).toHaveBeenCalledWith({

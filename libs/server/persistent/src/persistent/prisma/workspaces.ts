@@ -7,8 +7,8 @@ import {
 } from '@evidence/server-domain';
 import { EntityList } from '../database';
 import {
-  normalizeWorkspaceMetadata,
-  workspaceTitleFromMetadata,
+  initializeWorkspaceModelRoot,
+  publicWorkspaceMetadata,
 } from '../workspace-paths';
 import { assembleWorkspace } from './mappers';
 import type { PrismaStore } from './types';
@@ -18,7 +18,11 @@ export class PrismaWorkspaces
   extends EntityList<Workspace>
   implements Workspaces
 {
-  constructor(private readonly store: PrismaStore) {
+  constructor(
+    private readonly store: PrismaStore,
+    private readonly modelStorageRoot = process.env
+      .EVIDENCE_WORKSPACE_STORAGE_ROOT,
+  ) {
     super();
   }
 
@@ -52,8 +56,12 @@ export class PrismaWorkspaces
   ): Promise<Workspace> {
     const id = randomUUID();
     const timestamp = now();
-    const metadata = await normalizeWorkspaceMetadata(desc.metadata);
-    const title = normalizeTitle(desc.title, metadata);
+    const metadata = publicWorkspaceMetadata(desc.metadata);
+    const title = normalizeTitle(desc.title);
+    const modelRoot = await initializeWorkspaceModelRoot(
+      id,
+      this.modelStorageRoot,
+    );
     const createWorkspace = async (db: PrismaStore): Promise<Workspace> => {
       const row = await db.workspace.create({
         data: {
@@ -62,6 +70,7 @@ export class PrismaWorkspaces
           description: desc.description,
           status: defaultIfBlank(desc.status, 'active'),
           metadata: inputJson(metadata),
+          modelRoot,
           createdAt: timestamp,
           updatedAt: timestamp,
         },
@@ -97,11 +106,11 @@ export class PrismaWorkspaces
       Object.keys(desc.metadata).length === 0
         ? current.description().metadata
         : desc.metadata;
-    const metadata = await normalizeWorkspaceMetadata(metadataInput);
+    const metadata = publicWorkspaceMetadata(metadataInput);
     const row = await this.store.workspace.update({
       where: { id },
       data: {
-        title: normalizeTitle(desc.title, metadata),
+        title: normalizeTitle(desc.title),
         description: desc.description,
         status: defaultIfBlank(desc.status, 'active'),
         metadata: inputJson(metadata),
@@ -124,18 +133,10 @@ export class PrismaWorkspaces
   }
 }
 
-function normalizeTitle(
-  title: string,
-  metadata: Record<string, string>,
-): string {
+function normalizeTitle(title: string): string {
   const normalized = title.trim();
-  if (normalized.length > 0) {
-    return normalized;
-  }
-
-  const fallback = workspaceTitleFromMetadata(metadata);
-  if (!fallback) {
+  if (!normalized) {
     throw DomainError.validation('workspace title must not be empty');
   }
-  return fallback;
+  return normalized;
 }

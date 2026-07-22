@@ -31,7 +31,7 @@ import { PrismaDiagramNodes } from './diagram-nodes';
 import { FileWorkspaceDiagram } from '../filesystem/workspace-diagram';
 import { FileWorkspaceLogicalEntities } from '../filesystem/workspace-logical-entities';
 import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logical-relationships';
-import { evidenceRootFromMetadata } from '../workspace-paths';
+import { publicWorkspaceMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
 import { PrismaWorkspaceMembers } from './workspace-members';
 import { PrismaWorkspaceInbox } from './workspace-inbox';
@@ -52,8 +52,8 @@ export function assembleWorkspace(
   store: PrismaStore,
   row: WorkspaceRow,
 ): Workspace {
-  const metadata = stringRecord(row.metadata);
-  const evidenceRoot = evidenceRootFromMetadata(metadata);
+  const metadata = publicWorkspaceMetadata(stringRecord(row.metadata));
+  const evidenceRoot = row.modelRoot;
   return new Workspace(
     row.id,
     {

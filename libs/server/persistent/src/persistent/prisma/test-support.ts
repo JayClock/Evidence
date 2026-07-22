@@ -122,6 +122,7 @@ export function workspaceRow(overrides: Record<string, unknown> = {}) {
     description: 'Seed workspace',
     status: 'active',
     metadata: { source: 'test' },
+    modelRoot: '/tmp/evidence-test/.evidence',
     createdAt: timestamp,
     updatedAt: timestamp,
     deletedAt: null,
