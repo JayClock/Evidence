@@ -516,10 +516,17 @@ export interface components {
       page: components['schemas']['PageModel'];
     };
     InboxSourceUpdateInput: {
-      title: string;
-      body: string;
+      title?: string;
+      body?: string;
       /** @enum {string} */
-      contentType: 'text/plain' | 'text/markdown';
+      contentType?: 'text/plain' | 'text/markdown';
+      /** Format: uri */
+      uri?: string | null;
+      providerMetadata?: {
+        [key: string]: unknown;
+      } | null;
+      /** Format: date-time */
+      sourceUpdatedAt?: string | null;
       expectedLatestRevisionSha256: string;
     };
     InboxRevisionResource: {

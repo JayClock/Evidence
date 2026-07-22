@@ -2051,9 +2051,6 @@ components:
     InboxSourceUpdateInput:
       type: object
       required:
-        - title
-        - body
-        - contentType
         - expectedLatestRevisionSha256
       properties:
         title:
@@ -2069,6 +2066,21 @@ components:
           enum:
             - text/plain
             - text/markdown
+        uri:
+          type:
+            - string
+            - 'null'
+          format: uri
+        providerMetadata:
+          type:
+            - object
+            - 'null'
+          additionalProperties: {}
+        sourceUpdatedAt:
+          type:
+            - string
+            - 'null'
+          format: date-time
         expectedLatestRevisionSha256:
           type: string
           pattern: '^sha256:[a-f0-9]{64}$'

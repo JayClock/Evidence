@@ -221,6 +221,27 @@ describeContracts('Evidence API contract vertical slice', () => {
     });
     expect(created.body.latestRevisionSha256).toMatch(/^sha256:[a-f0-9]{64}$/);
 
+    const replayedCapture = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceKind: 'manual_text',
+          externalKey,
+          title: 'Desktop coding agent',
+          body: 'Run Pi locally.',
+          contentType: 'text/markdown',
+          providerMetadata: { channel: 'contracts' },
+        }),
+      },
+    );
+    expect(replayedCapture.status).toBe(201);
+    expect(replayedCapture.body).toMatchObject({
+      id: created.body.id,
+      revisionCount: 1,
+      version: 1,
+    });
+
     const listed = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-items?status=active&q=coding&page=1&pageSize=20`,
     );
@@ -256,6 +277,9 @@ describeContracts('Evidence API contract vertical slice', () => {
           title: 'Desktop coding agent',
           body: 'Run Pi in an isolated worktree.',
           contentType: 'text/markdown',
+          uri: 'https://example.com/issues/1',
+          providerMetadata: { channel: 'contracts', state: 'open' },
+          sourceUpdatedAt: '2026-07-21T12:00:00.000Z',
           expectedLatestRevisionSha256: created.body.latestRevisionSha256,
         }),
       },
@@ -263,7 +287,38 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(appended.status).toBe(200);
     expectHalResource(appended, mediaTypes.inboxRevision);
     expect(appended.body.id).not.toBe(created.body.latestRevisionId);
-    expect(appended.body.providerMetadata).toEqual({ channel: 'contracts' });
+    expect(appended.body).toMatchObject({
+      uri: 'https://example.com/issues/1',
+      providerMetadata: { channel: 'contracts', state: 'open' },
+      sourceUpdatedAt: '2026-07-21T12:00:00.000Z',
+    });
+
+    const reverted = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}/revisions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          title: 'Desktop coding agent',
+          body: 'Run Pi locally.',
+          contentType: 'text/markdown',
+          uri: null,
+          providerMetadata: { channel: 'contracts' },
+          sourceUpdatedAt: null,
+          expectedLatestRevisionSha256: appended.body.contentSha256,
+        }),
+      },
+    );
+    expect(reverted.status).toBe(200);
+    expect(reverted.body.id).toBe(created.body.latestRevisionId);
+
+    const revertedItem = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}`,
+    );
+    expect(revertedItem.body).toMatchObject({
+      latestRevisionId: created.body.latestRevisionId,
+      revisionCount: 2,
+      version: 3,
+    });
 
     const revisions = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}/revisions?page=1&pageSize=20`,
@@ -281,18 +336,18 @@ describeContracts('Evidence API contract vertical slice', () => {
       `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}`,
       {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'deferred', expectedVersion: 2 }),
+        body: JSON.stringify({ status: 'deferred', expectedVersion: 3 }),
       },
     );
     expect(deferred.status).toBe(200);
     expectHalResource(deferred, mediaTypes.inboxItem);
-    expect(deferred.body).toMatchObject({ status: 'deferred', version: 3 });
+    expect(deferred.body).toMatchObject({ status: 'deferred', version: 4 });
 
     const stale = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}`,
       {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'closed', expectedVersion: 2 }),
+        body: JSON.stringify({ status: 'closed', expectedVersion: 3 }),
       },
     );
     expect(stale.status).toBe(409);

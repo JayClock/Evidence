@@ -174,6 +174,33 @@ describe('InboxController', () => {
     expect(result.id).toBe('revision-1');
   });
 
+  it('updates provider-managed source metadata independently', async () => {
+    const { controller, workspace } = fixture();
+    const expectedHash = `sha256:${'a'.repeat(64)}`;
+
+    await controller.updateInboxSource('workspace-1', 'inbox-1', {
+      uri: 'https://example.com/issues/1',
+      providerMetadata: { state: 'open' },
+      sourceUpdatedAt: '2026-01-02T00:00:00.000Z',
+      expectedLatestRevisionSha256: expectedHash,
+    });
+
+    expect(workspace.appendInboxRevision).toHaveBeenCalledWith(
+      'inbox-1',
+      {
+        sourceKind: 'manual_text',
+        externalKey: 'capture-1',
+        title: 'Desktop coding agent',
+        body: 'Run Pi locally.',
+        contentType: 'text/markdown',
+        uri: 'https://example.com/issues/1',
+        providerMetadata: { state: 'open' },
+        sourceUpdatedAt: '2026-01-02T00:00:00.000Z',
+      },
+      expectedHash,
+    );
+  });
+
   it('records an optimistic status transition', async () => {
     const { controller, workspace } = fixture();
 

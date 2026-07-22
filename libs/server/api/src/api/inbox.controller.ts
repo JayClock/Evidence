@@ -50,6 +50,9 @@ interface InboxSourceUpdateBody {
   title?: unknown;
   body?: unknown;
   contentType?: unknown;
+  uri?: unknown;
+  providerMetadata?: unknown;
+  sourceUpdatedAt?: unknown;
   expectedLatestRevisionSha256?: unknown;
 }
 
@@ -217,12 +220,20 @@ export class InboxController {
     const captured = await workspace.appendInboxRevision(
       itemId,
       sourceInput({
-        ...input,
         sourceKind: itemDescription.sourceKind,
         externalKey: itemDescription.externalKey,
-        uri: latestDescription.uri,
-        providerMetadata: latestDescription.providerMetadata,
-        sourceUpdatedAt: latestDescription.sourceUpdatedAt,
+        title: input.title ?? latestDescription.title,
+        body: input.body ?? latestDescription.body,
+        contentType: input.contentType ?? latestDescription.contentType,
+        uri: input.uri === undefined ? latestDescription.uri : input.uri,
+        providerMetadata:
+          input.providerMetadata === undefined
+            ? latestDescription.providerMetadata
+            : input.providerMetadata,
+        sourceUpdatedAt:
+          input.sourceUpdatedAt === undefined
+            ? latestDescription.sourceUpdatedAt
+            : input.sourceUpdatedAt,
       }),
       requiredString(
         input.expectedLatestRevisionSha256,
