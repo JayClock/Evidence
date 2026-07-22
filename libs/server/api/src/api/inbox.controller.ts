@@ -46,8 +46,10 @@ interface InboxSourceBody {
   sourceUpdatedAt?: unknown;
 }
 
-interface InboxRevisionBody
-  extends Omit<InboxSourceBody, 'sourceKind' | 'externalKey'> {
+interface InboxSourceUpdateBody {
+  title?: unknown;
+  body?: unknown;
+  contentType?: unknown;
   expectedLatestRevisionSha256?: unknown;
 }
 
@@ -192,22 +194,35 @@ export class InboxController {
 
   @Post(':itemId/revisions')
   @HttpCode(HttpStatus.OK)
-  async appendInboxRevision(
+  async updateInboxSource(
     @Param('workspaceId') workspaceId: string,
     @Param('itemId') itemId: string,
-    @Body() input: InboxRevisionBody,
+    @Body() input: InboxSourceUpdateBody,
   ): Promise<InboxRevisionModel> {
     const [workspace, item] = await this.resolver.requireWorkspaceInboxItem(
       workspaceId,
       itemId,
     );
-    const description = item.description();
+    const itemDescription = item.description();
+    const latestRevision = await workspace.findInboxRevision(
+      itemId,
+      itemDescription.latestRevisionId,
+    );
+    if (!latestRevision) {
+      throw DomainError.internal(
+        `Inbox item ${itemId} latest revision was not found`,
+      );
+    }
+    const latestDescription = latestRevision.description();
     const captured = await workspace.appendInboxRevision(
       itemId,
       sourceInput({
         ...input,
-        sourceKind: description.sourceKind,
-        externalKey: description.externalKey,
+        sourceKind: itemDescription.sourceKind,
+        externalKey: itemDescription.externalKey,
+        uri: latestDescription.uri,
+        providerMetadata: latestDescription.providerMetadata,
+        sourceUpdatedAt: latestDescription.sourceUpdatedAt,
       }),
       requiredString(
         input.expectedLatestRevisionSha256,

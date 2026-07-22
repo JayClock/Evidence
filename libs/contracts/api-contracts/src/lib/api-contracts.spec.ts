@@ -221,7 +221,6 @@ describeContracts('Evidence API contract vertical slice', () => {
           title: 'Desktop coding agent',
           body: 'Run Pi locally.',
           contentType: 'text/markdown',
-          providerMetadata: { channel: 'contracts' },
           expectedLatestRevisionSha256: created.body.latestRevisionSha256,
         }),
       },
@@ -238,7 +237,6 @@ describeContracts('Evidence API contract vertical slice', () => {
           title: 'Desktop coding agent',
           body: 'Run Pi in an isolated worktree.',
           contentType: 'text/markdown',
-          providerMetadata: { channel: 'contracts' },
           expectedLatestRevisionSha256: created.body.latestRevisionSha256,
         }),
       },
@@ -246,6 +244,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(appended.status).toBe(200);
     expectHalResource(appended, mediaTypes.inboxRevision);
     expect(appended.body.id).not.toBe(created.body.latestRevisionId);
+    expect(appended.body.providerMetadata).toEqual({ channel: 'contracts' });
 
     const revisions = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-items/${created.body.id}/revisions?page=1&pageSize=20`,

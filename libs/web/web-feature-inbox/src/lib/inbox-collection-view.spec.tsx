@@ -11,7 +11,7 @@ import { InboxCollectionView } from './inbox-collection-view';
 const itemState = {
   data: {
     id: 'item-1',
-    sourceKind: 'manual',
+    sourceKind: 'manual_text',
     externalKey: 'manual:one',
     title: 'Customer interview',
     status: 'active',
@@ -144,12 +144,11 @@ describe('InboxCollectionView', () => {
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     expect(post).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        sourceKind: 'manual',
+        sourceKind: 'manual_text',
         externalKey: expect.stringMatching(/^manual:/),
         title: 'Customer interview',
         body: '# Interview notes',
         contentType: 'text/markdown',
-        providerMetadata: {},
       }),
     });
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));

@@ -35,6 +35,7 @@ import {
   Input,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -69,13 +70,10 @@ export function InboxCollectionView({
         <CaptureInboxDialog
           onCapture={async (input) => {
             const collection = collectionState.follow('self');
-            const created = (await collection.post({
-              data: input,
-            })) as State<InboxItemResource>;
+            await collection.post({ data: input });
             const refreshed =
               (await collection.refresh()) as State<InboxItemCollectionResource>;
             setCollectionState(refreshed);
-            return created;
           }}
         />
       </CardHeader>
@@ -158,7 +156,7 @@ function InboxItemRow({ itemState }: { itemState: State<InboxItemResource> }) {
 function CaptureInboxDialog({
   onCapture,
 }: {
-  onCapture: (input: InboxSourceInput) => Promise<State<InboxItemResource>>;
+  onCapture: (input: InboxSourceInput) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -178,7 +176,7 @@ function CaptureInboxDialog({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
-    if (!normalizedTitle || pending) {
+    if (!normalizedTitle || !body.trim() || pending) {
       return;
     }
 
@@ -186,12 +184,11 @@ function CaptureInboxDialog({
     setError(null);
     try {
       await onCapture({
-        sourceKind: 'manual',
+        sourceKind: 'manual_text',
         externalKey: createManualSourceKey(),
         title: normalizedTitle,
         body,
         contentType,
-        providerMetadata: {},
       });
       reset();
       setOpen(false);
@@ -249,8 +246,10 @@ function CaptureInboxDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="text/markdown">Markdown</SelectItem>
-                  <SelectItem value="text/plain">Plain text</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="text/markdown">Markdown</SelectItem>
+                    <SelectItem value="text/plain">Plain text</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <FieldDescription>
@@ -262,6 +261,7 @@ function CaptureInboxDialog({
               <Textarea
                 id="inbox-body"
                 className="min-h-52 resize-y font-mono text-sm"
+                required
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
               />
@@ -279,7 +279,9 @@ function CaptureInboxDialog({
               </Button>
             </DialogClose>
             <Button
-              disabled={pending || title.trim().length === 0}
+              disabled={
+                pending || title.trim().length === 0 || body.trim().length === 0
+              }
               type="submit"
             >
               {pending ? 'Capturing…' : 'Capture'}

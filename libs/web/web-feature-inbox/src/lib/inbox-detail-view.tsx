@@ -5,8 +5,8 @@ import type {
   InboxItemStatus,
   InboxItemStatusInput,
   InboxRevisionCollectionResource,
-  InboxRevisionInput,
   InboxRevisionResource,
+  InboxSourceUpdateInput,
   State,
 } from '@evidence/api-client';
 import { useResource } from '@evidence/api-client';
@@ -40,6 +40,7 @@ import {
   MessageResponse,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -101,11 +102,9 @@ export function InboxItemDetailView({
     }
   };
 
-  const appendRevision = async (input: InboxRevisionInput) => {
+  const updateSource = async (input: InboxSourceUpdateInput) => {
     setMutationError(null);
-    const created = (await revisionsResource.post({
-      data: input,
-    })) as State<InboxRevisionResource>;
+    await revisionsResource.post({ data: input });
 
     try {
       const [updatedItem] = await Promise.all([
@@ -115,14 +114,12 @@ export function InboxItemDetailView({
       setItemState(updatedItem);
     } catch (caught) {
       setMutationError(
-        `The revision was saved, but the page could not refresh: ${errorMessage(
+        `The source was updated, but the page could not refresh: ${errorMessage(
           caught,
           'refresh failed',
         )}`,
       );
     }
-
-    return created;
   };
 
   return (
@@ -141,17 +138,18 @@ export function InboxItemDetailView({
               {item.revisionCount === 1 ? 'revision' : 'revisions'}
             </CardDescription>
           </div>
-          {!latestRevision.loading && latestRevision.resourceState ? (
-            <AppendRevisionDialog
-              itemState={itemState}
+          {!latestRevision.loading &&
+          latestRevision.resourceState &&
+          isManualSource(item.sourceKind) ? (
+            <EditSourceDialog
+              expectedLatestRevisionSha256={item.latestRevisionSha256}
               latestRevisionState={latestRevision.resourceState}
-              onAppend={appendRevision}
+              onUpdate={updateSource}
             />
           ) : null}
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <DetailItem label="Source key" value={item.externalKey} mono />
+          <div className="grid gap-4 sm:grid-cols-2">
             <DetailItem
               label="Created"
               value={formatDateTime(item.createdAt)}
@@ -160,7 +158,6 @@ export function InboxItemDetailView({
               label="Updated"
               value={formatDateTime(item.updatedAt)}
             />
-            <DetailItem label="Version" value={String(item.version)} />
           </div>
           <Separator />
           <div className="flex flex-col gap-2">
@@ -201,10 +198,7 @@ export function InboxItemDetailView({
         error={latestRevision.error}
       >
         {latestRevision.resourceState ? (
-          <InboxRevisionContent
-            revisionState={latestRevision.resourceState}
-            showTitle={false}
-          />
+          <InboxRevisionContent revisionState={latestRevision.resourceState} />
         ) : null}
       </RelatedResourceCard>
 
@@ -268,29 +262,27 @@ export function InboxRevisionDetailView({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <InboxRevisionContent revisionState={resourceState} showTitle={false} />
+        <InboxRevisionContent revisionState={resourceState} />
       </CardContent>
     </Card>
   );
 }
 
-function AppendRevisionDialog({
-  itemState,
+function EditSourceDialog({
+  expectedLatestRevisionSha256,
   latestRevisionState,
-  onAppend,
+  onUpdate,
 }: {
-  itemState: State<InboxItemResource>;
+  expectedLatestRevisionSha256: string;
   latestRevisionState: State<InboxRevisionResource>;
-  onAppend: (
-    input: InboxRevisionInput,
-  ) => Promise<State<InboxRevisionResource>>;
+  onUpdate: (input: InboxSourceUpdateInput) => Promise<void>;
 }) {
   const latest = latestRevisionState.data;
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(latest.title);
   const [body, setBody] = useState(latest.body);
   const [contentType, setContentType] = useState<
-    InboxRevisionInput['contentType']
+    InboxSourceUpdateInput['contentType']
   >(latest.contentType);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -305,25 +297,22 @@ function AppendRevisionDialog({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
-    if (!normalizedTitle || pending) {
+    if (!normalizedTitle || !body.trim() || pending) {
       return;
     }
 
     setPending(true);
     setError(null);
     try {
-      await onAppend({
+      await onUpdate({
         title: normalizedTitle,
         body,
         contentType,
-        uri: latest.uri,
-        providerMetadata: latest.providerMetadata,
-        sourceUpdatedAt: latest.sourceUpdatedAt,
-        expectedLatestRevisionSha256: itemState.data.latestRevisionSha256,
+        expectedLatestRevisionSha256,
       });
       setOpen(false);
     } catch (caught) {
-      setError(errorMessage(caught, 'The revision could not be saved.'));
+      setError(errorMessage(caught, 'The source could not be updated.'));
     } finally {
       setPending(false);
     }
@@ -342,14 +331,14 @@ function AppendRevisionDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button>Add revision</Button>
+        <Button>Edit source</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Add revision</DialogTitle>
+          <DialogTitle>Edit source</DialogTitle>
           <DialogDescription>
-            Start from the latest source snapshot. Identical content is
-            deduplicated by the server.
+            Saving changed content automatically records an immutable revision.
+            Unchanged content is not duplicated.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(event) => void submit(event)}>
@@ -370,15 +359,17 @@ function AppendRevisionDialog({
               <Select
                 value={contentType}
                 onValueChange={(value) =>
-                  setContentType(value as InboxRevisionInput['contentType'])
+                  setContentType(value as InboxSourceUpdateInput['contentType'])
                 }
               >
                 <SelectTrigger id="revision-content-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="text/markdown">Markdown</SelectItem>
-                  <SelectItem value="text/plain">Plain text</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="text/markdown">Markdown</SelectItem>
+                    <SelectItem value="text/plain">Plain text</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <FieldDescription>
@@ -390,6 +381,7 @@ function AppendRevisionDialog({
               <Textarea
                 id="revision-body"
                 className="min-h-60 resize-y font-mono text-sm"
+                required
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
               />
@@ -407,10 +399,12 @@ function AppendRevisionDialog({
               </Button>
             </DialogClose>
             <Button
-              disabled={pending || title.trim().length === 0}
+              disabled={
+                pending || title.trim().length === 0 || body.trim().length === 0
+              }
               type="submit"
             >
-              {pending ? 'Saving…' : 'Save revision'}
+              {pending ? 'Saving…' : 'Save changes'}
             </Button>
           </DialogFooter>
         </form>
@@ -492,23 +486,13 @@ function RevisionTimeline({
 
 function InboxRevisionContent({
   revisionState,
-  showTitle,
 }: {
   revisionState: State<InboxRevisionResource>;
-  showTitle: boolean;
 }) {
   const revision = revisionState.data;
 
   return (
     <div className="space-y-5">
-      {showTitle ? (
-        <div>
-          <p className="font-medium">{revision.title}</p>
-          <p className="text-sm text-muted-foreground">
-            Revision {revision.revisionNumber}
-          </p>
-        </div>
-      ) : null}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <DetailItem label="Revision" value={`#${revision.revisionNumber}`} />
         <DetailItem
@@ -639,6 +623,10 @@ function StatusBadge({ status }: { status: InboxItemStatus }) {
         ? 'secondary'
         : 'outline';
   return <Badge variant={variant}>{formatLabel(status)}</Badge>;
+}
+
+function isManualSource(sourceKind: string): boolean {
+  return sourceKind === 'manual_text';
 }
 
 function contentTypeLabel(contentType: string) {

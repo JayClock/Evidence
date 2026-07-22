@@ -157,7 +157,7 @@ export interface paths {
     };
     get: operations['list_inbox_revisions'];
     put?: never;
-    post: operations['append_inbox_revision'];
+    post: operations['update_inbox_source'];
     delete?: never;
     options?: never;
     head?: never;
@@ -515,18 +515,11 @@ export interface components {
       _links: components['schemas']['BTreeMap'];
       page: components['schemas']['PageModel'];
     };
-    InboxRevisionInput: {
+    InboxSourceUpdateInput: {
       title: string;
       body: string;
       /** @enum {string} */
       contentType: 'text/plain' | 'text/markdown';
-      /** Format: uri */
-      uri?: string | null;
-      providerMetadata?: {
-        [key: string]: unknown;
-      };
-      /** Format: date-time */
-      sourceUpdatedAt?: string | null;
       expectedLatestRevisionSha256: string;
     };
     InboxRevisionResource: {
@@ -1469,7 +1462,7 @@ export interface operations {
       };
     };
   };
-  append_inbox_revision: {
+  update_inbox_source: {
     parameters: {
       query?: never;
       header?: never;
@@ -1481,11 +1474,11 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['InboxRevisionInput'];
+        'application/json': components['schemas']['InboxSourceUpdateInput'];
       };
     };
     responses: {
-      /** @description Appended or existing immutable Inbox source revision */
+      /** @description Updated source snapshot; unchanged content reuses the latest revision */
       200: {
         headers: {
           [name: string]: unknown;

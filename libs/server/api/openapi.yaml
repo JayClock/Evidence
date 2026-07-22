@@ -574,7 +574,7 @@ paths:
                 $ref: '#/components/schemas/ErrorBody'
     post:
       tags: []
-      operationId: append_inbox_revision
+      operationId: update_inbox_source
       parameters:
         - name: workspaceId
           in: path
@@ -591,10 +591,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InboxRevisionInput'
+              $ref: '#/components/schemas/InboxSourceUpdateInput'
       responses:
         '200':
-          description: Appended or existing immutable Inbox source revision
+          description: Updated source snapshot; unchanged content reuses the latest revision
           content:
             application/vnd.evidence.inbox-revision+json:
               schema:
@@ -2039,7 +2039,7 @@ components:
           $ref: '#/components/schemas/BTreeMap'
         page:
           $ref: '#/components/schemas/PageModel'
-    InboxRevisionInput:
+    InboxSourceUpdateInput:
       type: object
       required:
         - title
@@ -2060,19 +2060,6 @@ components:
           enum:
             - text/plain
             - text/markdown
-        uri:
-          type:
-            - string
-            - 'null'
-          format: uri
-        providerMetadata:
-          type: object
-          additionalProperties: {}
-        sourceUpdatedAt:
-          type:
-            - string
-            - 'null'
-          format: date-time
         expectedLatestRevisionSha256:
           type: string
           pattern: '^sha256:[a-f0-9]{64}$'

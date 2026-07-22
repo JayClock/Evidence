@@ -17,7 +17,8 @@ type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
 };
 
 export type InboxSourceInput = components['schemas']['InboxSourceInput'];
-export type InboxRevisionInput = components['schemas']['InboxRevisionInput'];
+export type InboxSourceUpdateInput =
+  components['schemas']['InboxSourceUpdateInput'];
 export type InboxItemStatusInput =
   components['schemas']['InboxItemStatusInput'];
 export type InboxItemStatus = InboxItemResourceSchema['status'];

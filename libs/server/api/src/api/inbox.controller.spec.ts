@@ -35,7 +35,7 @@ function revision(overrides: Record<string, unknown> = {}): InboxRevision {
     body: 'Run Pi locally.',
     contentType: 'text/markdown',
     uri: null,
-    providerMetadata: {},
+    providerMetadata: { channel: 'product' },
     sourceUpdatedAt: null,
     capturedAt: timestamp,
     contentSha256: `sha256:${'a'.repeat(64)}`,
@@ -57,6 +57,7 @@ function fixture() {
       item({ status: 'deferred', version: 2 }),
     ),
     listInboxRevisions: vi.fn(async () => [[inboxRevision], 1]),
+    findInboxRevision: vi.fn(async () => inboxRevision),
     appendInboxRevision: vi.fn(async () => ({
       item: inboxItem,
       revision: inboxRevision,
@@ -141,11 +142,11 @@ describe('InboxController', () => {
     );
   });
 
-  it('uses the Item source identity when appending an exact revision', async () => {
+  it('updates source content while preserving server-owned source metadata', async () => {
     const { controller, workspace } = fixture();
     const expectedHash = `sha256:${'a'.repeat(64)}`;
 
-    const result = await controller.appendInboxRevision(
+    const result = await controller.updateInboxSource(
       'workspace-1',
       'inbox-1',
       {
@@ -165,7 +166,7 @@ describe('InboxController', () => {
         body: 'Run Pi in a worktree.',
         contentType: 'text/markdown',
         uri: null,
-        providerMetadata: {},
+        providerMetadata: { channel: 'product' },
         sourceUpdatedAt: null,
       },
       expectedHash,

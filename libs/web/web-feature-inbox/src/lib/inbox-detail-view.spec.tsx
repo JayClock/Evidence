@@ -82,7 +82,7 @@ function inboxItemState(
   return {
     data: {
       id: 'item-1',
-      sourceKind: 'manual',
+      sourceKind: 'manual_text',
       externalKey: 'manual:one',
       title: 'Customer interview',
       status: 'active',
@@ -175,18 +175,18 @@ describe('InboxItemDetailView', () => {
     );
   });
 
-  it('appends a revision with the latest content hash and refreshes relations', async () => {
+  it('updates a manual source while revision creation stays implicit', async () => {
     render(
       <MemoryRouter>
         <InboxItemDetailView resourceState={inboxItemState()} />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add revision' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit source' }));
     fireEvent.change(screen.getByLabelText('Content'), {
       target: { value: '# Updated interview insight' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Save revision' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
     await waitFor(() => expect(appendRevision).toHaveBeenCalledTimes(1));
     expect(appendRevision).toHaveBeenCalledWith({
@@ -194,14 +194,23 @@ describe('InboxItemDetailView', () => {
         title: 'Customer interview',
         body: '# Updated interview insight',
         contentType: 'text/markdown',
-        uri: null,
-        providerMetadata: { channel: 'manual' },
-        sourceUpdatedAt: null,
         expectedLatestRevisionSha256: 'a'.repeat(64),
       },
     });
     await waitFor(() => expect(refreshItem).toHaveBeenCalledTimes(1));
     expect(refreshRevisions).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps provider-managed sources read-only', () => {
+    render(
+      <MemoryRouter>
+        <InboxItemDetailView
+          resourceState={inboxItemState({ sourceKind: 'github_issue' })}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Edit source' })).toBeNull();
   });
 });
 
