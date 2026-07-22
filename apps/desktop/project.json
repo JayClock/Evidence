@@ -16,12 +16,45 @@
     "dev": {
       "continuous": true,
       "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@evidence/web",
+          "target": "dev"
+        },
+        {
+          "projects": "@evidence/server",
+          "target": "serve"
+        }
+      ],
       "options": {
         "parallel": true,
+        "env": {
+          "EVIDENCE_API_BASE_URL": "http://127.0.0.1:3000/api",
+          "EVIDENCE_WEB_URL": "http://localhost:4200"
+        },
         "commands": [
           "pnpm nx build @evidence/desktop --watch",
-          "pnpm nx dev @evidence/web --host 127.0.0.1 --port 4200",
-          "pnpm --dir apps/desktop exec wait-on dist/main.js http-get://127.0.0.1:4200 && pnpm --dir apps/desktop exec electron ."
+          "pnpm --dir apps/desktop exec wait-on dist/main.js http-get://localhost:4200 http-get://127.0.0.1:3000/health && pnpm --dir apps/desktop exec electron ."
+        ]
+      }
+    },
+    "dev-remote": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        {
+          "projects": "@evidence/web",
+          "target": "dev"
+        }
+      ],
+      "options": {
+        "parallel": true,
+        "env": {
+          "EVIDENCE_WEB_URL": "http://localhost:4200"
+        },
+        "commands": [
+          "pnpm nx build @evidence/desktop --watch",
+          "pnpm --dir apps/desktop exec wait-on dist/main.js http-get://localhost:4200 && pnpm --dir apps/desktop exec electron ."
         ]
       }
     },

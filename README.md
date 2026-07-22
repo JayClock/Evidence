@@ -205,17 +205,18 @@ Inbox 保存来源 revision 和未经确认的 Story 候选；每个 `ITER-xxxx`
 ```sh
 pnpm install --frozen-lockfile
 pnpm prisma:generate
+cp apps/server/.env.example apps/server/.env
 ```
+
+在 `apps/server/.env` 中设置 Server 运行时使用的 `DATABASE_URL`。如果运行时使用 transaction-mode
+连接池，同时用 `DIRECT_URL` 配置 Prisma migration 的 session/direct 地址。该本地文件已被 Git 忽略。
 
 ### Browser + Hosted Server
 
 ```sh
 # Terminal 1：首次或 schema 更新后先执行 migration
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence \
-  pnpm --filter @evidence/server exec prisma migrate deploy
-
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence \
-  pnpm dev:server
+pnpm prisma:migrate:deploy
+pnpm dev:server
 
 # Terminal 2
 pnpm dev:web
@@ -225,13 +226,23 @@ pnpm dev:web
 
 ### Desktop
 
-先启动上述 Server，再运行：
+本地开发只需运行：
 
 ```sh
-EVIDENCE_API_BASE_URL=http://127.0.0.1:3000/api pnpm dev:desktop
+pnpm dev:desktop
 ```
 
-Electron 启动 Web renderer 与嵌入式 Pi runtime，并连接配置的 API。非 loopback 环境必须使用 HTTPS。
+Nx 会联动启动 Server、Web renderer 与 Electron，并为 Electron 设置本地 API 地址
+`http://127.0.0.1:3000/api`。Server 从 `apps/server/.env` 读取数据库连接；Electron 会等待
+Web 与 Server 健康检查通过后再启动。
+
+连接已运行的远程 Server 时，使用：
+
+```sh
+EVIDENCE_API_BASE_URL=https://api.example.com/api pnpm dev:desktop:remote
+```
+
+远程 endpoint 必须使用 HTTPS；只有 loopback endpoint 允许 HTTP。
 
 打包与 smoke：
 
@@ -242,16 +253,17 @@ pnpm nx run @evidence/desktop:package
 
 ### Server 环境变量
 
-| 变量                              | 默认值               | 说明                                             |
-| :-------------------------------- | :------------------- | :----------------------------------------------- |
-| `DATABASE_URL`                    | Prisma 本地 fallback | PostgreSQL 连接字符串                            |
-| `PORT`                            | `3000`               | Nest 监听端口                                    |
-| `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host                                    |
-| `EVIDENCE_CORS_ORIGINS`           | 允许所有             | Server 允许的逗号分隔 origin                     |
-| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 默认 Workspace 根                                |
-| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                |
-| `VITE_API_BASE_URL`               | `/api`               | Browser API 根                                   |
-| `EVIDENCE_API_BASE_URL`           | 必填                 | Electron API 根；非 loopback endpoint 必须 HTTPS |
+| 变量                              | 默认值               | 说明                                                                           |
+| :-------------------------------- | :------------------- | :----------------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Prisma 本地 fallback | Server 运行时 PostgreSQL 连接字符串                                            |
+| `DIRECT_URL`                      | `DATABASE_URL`       | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
+| `PORT`                            | `3000`               | Nest 监听端口                                                                  |
+| `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host                                                                  |
+| `EVIDENCE_CORS_ORIGINS`           | 允许所有             | Server 允许的逗号分隔 origin                                                   |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 默认 Workspace 根                                                              |
+| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                                              |
+| `VITE_API_BASE_URL`               | `/api`               | Browser API 根                                                                 |
+| `EVIDENCE_API_BASE_URL`           | Electron 必填        | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
 
 ## 常用命令
 
