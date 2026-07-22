@@ -47,6 +47,7 @@ import {
   TableRow,
   Textarea,
 } from '@evidence/ui';
+import { InboxPagination } from './inbox-pagination';
 
 export function InboxCollectionView({
   resourceState,
@@ -54,6 +55,24 @@ export function InboxCollectionView({
   resourceState: State<InboxItemCollectionResource>;
 }) {
   const [collectionState, setCollectionState] = useState(resourceState);
+  const [pagePending, setPagePending] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  const navigatePage = async (relation: 'prev' | 'next') => {
+    if (!collectionState.getLink(relation) || pagePending) {
+      return;
+    }
+    setPagePending(true);
+    setPageError(null);
+    try {
+      const nextState = await collectionState.follow(relation).refresh();
+      setCollectionState(nextState);
+    } catch (caught) {
+      setPageError(errorMessage(caught));
+    } finally {
+      setPagePending(false);
+    }
+  };
 
   return (
     <Card>
@@ -86,6 +105,11 @@ export function InboxCollectionView({
             {collectionState.data.page.totalElements} total
           </Badge>
         </div>
+        {pageError ? (
+          <Alert className="mb-3" variant="destructive">
+            <AlertDescription>{pageError}</AlertDescription>
+          </Alert>
+        ) : null}
         <div className="overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader>
@@ -120,6 +144,16 @@ export function InboxCollectionView({
             </TableBody>
           </Table>
         </div>
+        <InboxPagination
+          label="Inbox pages"
+          page={collectionState.data.page.number}
+          totalPages={collectionState.data.page.totalPages}
+          hasPrevious={Boolean(collectionState.getLink('prev'))}
+          hasNext={Boolean(collectionState.getLink('next'))}
+          pending={pagePending}
+          onPrevious={() => void navigatePage('prev')}
+          onNext={() => void navigatePage('next')}
+        />
       </CardContent>
     </Card>
   );

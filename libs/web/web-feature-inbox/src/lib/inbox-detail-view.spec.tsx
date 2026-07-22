@@ -55,6 +55,7 @@ const revisionCollectionState = {
     },
   },
   collection: [revisionState],
+  getLink: () => undefined,
 } as unknown as State<InboxRevisionCollectionResource>;
 
 const appendRevision = vi.fn();
@@ -224,6 +225,46 @@ describe('Inbox revision resource views', () => {
 
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getByText('#1')).toBeTruthy();
+  });
+
+  it('follows revision history pagination links', async () => {
+    const secondRevision = {
+      ...revisionState,
+      data: {
+        ...revisionState.data,
+        id: 'revision-2',
+        revisionNumber: 2,
+        title: 'Second revision page',
+      },
+    } as State<InboxRevisionResource>;
+    const secondPage = {
+      data: {
+        page: { number: 2, size: 20, totalElements: 21, totalPages: 2 },
+      },
+      collection: [secondRevision],
+      getLink: () => undefined,
+    } as unknown as State<InboxRevisionCollectionResource>;
+    const nextRefresh = vi.fn().mockResolvedValue(secondPage);
+    const firstPage = {
+      data: {
+        page: { number: 1, size: 20, totalElements: 21, totalPages: 2 },
+      },
+      collection: [revisionState],
+      getLink: (rel: string) =>
+        rel === 'next' ? { rel, href: '/api/revisions?page=2' } : undefined,
+      follow: () => ({ refresh: nextRefresh }),
+    } as unknown as State<InboxRevisionCollectionResource>;
+
+    render(
+      <MemoryRouter>
+        <InboxRevisionCollectionView resourceState={firstPage} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    await waitFor(() => expect(nextRefresh).toHaveBeenCalledOnce());
+    expect(await screen.findByText('Second revision page')).toBeTruthy();
+    expect(screen.getByText('Page 2 of 2')).toBeTruthy();
   });
 
   it('renders a revision resource independently', () => {

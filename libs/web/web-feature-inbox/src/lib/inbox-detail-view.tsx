@@ -53,6 +53,7 @@ import {
   TableRow,
   Textarea,
 } from '@evidence/ui';
+import { InboxPagination } from './inbox-pagination';
 
 const inboxStatuses: InboxItemStatus[] = ['active', 'deferred', 'closed'];
 
@@ -210,7 +211,8 @@ export function InboxItemDetailView({
         count={revisions.resourceState?.data.page.totalElements}
       >
         {revisions.resourceState ? (
-          <RevisionTimeline
+          <PaginatedRevisionTimeline
+            key={item.latestRevisionId}
             latestRevisionId={item.latestRevisionId}
             resourceState={revisions.resourceState}
           />
@@ -233,7 +235,7 @@ export function InboxRevisionCollectionView({
       error={null}
       count={resourceState.data.page.totalElements}
     >
-      <RevisionTimeline resourceState={resourceState} />
+      <PaginatedRevisionTimeline resourceState={resourceState} />
     </RelatedResourceCard>
   );
 }
@@ -410,6 +412,59 @@ function EditSourceDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PaginatedRevisionTimeline({
+  latestRevisionId,
+  resourceState,
+}: {
+  latestRevisionId?: string;
+  resourceState: State<InboxRevisionCollectionResource>;
+}) {
+  const [pageState, setPageState] = useState(resourceState);
+  const [pagePending, setPagePending] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  const navigatePage = async (relation: 'prev' | 'next') => {
+    if (!pageState.getLink(relation) || pagePending) {
+      return;
+    }
+    setPagePending(true);
+    setPageError(null);
+    try {
+      setPageState(await pageState.follow(relation).refresh());
+    } catch (caught) {
+      setPageError(
+        errorMessage(caught, 'The revision page could not be loaded.'),
+      );
+    } finally {
+      setPagePending(false);
+    }
+  };
+
+  return (
+    <>
+      {pageError ? (
+        <Alert className="mb-3" variant="destructive">
+          <AlertDescription>{pageError}</AlertDescription>
+        </Alert>
+      ) : null}
+      <RevisionTimeline
+        latestRevisionId={latestRevisionId}
+        resourceState={pageState}
+      />
+      <InboxPagination
+        label="Inbox revision pages"
+        page={pageState.data.page.number}
+        totalPages={pageState.data.page.totalPages}
+        hasPrevious={Boolean(pageState.getLink('prev'))}
+        hasNext={Boolean(pageState.getLink('next'))}
+        pending={pagePending}
+        onPrevious={() => void navigatePage('prev')}
+        onNext={() => void navigatePage('next')}
+      />
+    </>
   );
 }
 
