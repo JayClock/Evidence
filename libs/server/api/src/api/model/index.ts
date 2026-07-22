@@ -1,3 +1,4 @@
+export * from './delivery-model';
 export * from './diagram-model';
 export * from './edge-model';
 export * from './inbox-model';

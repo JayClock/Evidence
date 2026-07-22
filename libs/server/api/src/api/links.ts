@@ -76,6 +76,57 @@ export function workspaceInboxRevisionHref(
   return `${workspaceInboxRevisionsHref(workspaceId, itemId)}/${revisionId}`;
 }
 
+export function workspaceStoryCandidatesHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/story-candidates`;
+}
+
+export function workspaceStoryCandidateHref(
+  workspaceId: string,
+  candidateId: string,
+): string {
+  return `${workspaceStoryCandidatesHref(workspaceId)}/${candidateId}`;
+}
+
+export function workspaceStoryCandidateConfirmHref(
+  workspaceId: string,
+  candidateId: string,
+): string {
+  return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/confirm`;
+}
+
+export function workspaceStoryCandidateRejectHref(
+  workspaceId: string,
+  candidateId: string,
+): string {
+  return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/reject`;
+}
+
+export function workspaceStoriesHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/stories`;
+}
+
+export function workspaceStoryHref(
+  workspaceId: string,
+  storyId: string,
+): string {
+  return `${workspaceStoriesHref(workspaceId)}/${storyId}`;
+}
+
+export function workspaceStoryRevisionsHref(
+  workspaceId: string,
+  storyId: string,
+): string {
+  return `${workspaceStoryHref(workspaceId, storyId)}/revisions`;
+}
+
+export function workspaceStoryRevisionHref(
+  workspaceId: string,
+  storyId: string,
+  revisionId: string,
+): string {
+  return `${workspaceStoryRevisionsHref(workspaceId, storyId)}/${revisionId}`;
+}
+
 export function workspaceLogicalEntitiesHref(workspaceId: string): string {
   return `/api/workspaces/${workspaceId}/logical-entities`;
 }
