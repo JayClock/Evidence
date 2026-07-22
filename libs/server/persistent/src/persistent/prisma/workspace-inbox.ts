@@ -86,6 +86,15 @@ export class PrismaWorkspaceInbox
 
   async capture(sourceInput: InboxSourceInput): Promise<CapturedInboxItem> {
     const { source, contentSha256 } = hashInboxSource(sourceInput);
+    const existing = await findSourceItem(
+      this.store,
+      this.workspaceId,
+      source,
+    );
+    if (existing) {
+      return this.appendRevision(existing.id, source);
+    }
+
     const itemId = randomUUID();
     const revisionId = randomUUID();
     const timestamp = new Date();
@@ -123,9 +132,14 @@ export class PrismaWorkspaceInbox
       });
     } catch (error) {
       if (isUniqueConflict(error)) {
-        throw DomainError.conflict(
-          `Inbox source ${source.sourceKind}/${source.externalKey} already exists`,
+        const concurrent = await findSourceItem(
+          this.store,
+          this.workspaceId,
+          source,
         );
+        if (concurrent) {
+          return this.appendRevision(concurrent.id, source);
+        }
       }
       throw error;
     }
@@ -160,8 +174,24 @@ export class PrismaWorkspaceInbox
           return;
         }
 
-        revisionId = randomUUID();
         const timestamp = new Date();
+        const historicalRevision = await store.inboxRevision.findFirst({
+          where: { inboxItemId: itemId, contentSha256 },
+        });
+        if (historicalRevision) {
+          revisionId = historicalRevision.id;
+          await updateLatestRevision(
+            store,
+            this.workspaceId,
+            current,
+            source,
+            revisionId,
+            timestamp,
+          );
+          return;
+        }
+
+        revisionId = randomUUID();
         await store.inboxRevision.create({
           data: revisionData(
             revisionId,
@@ -172,26 +202,28 @@ export class PrismaWorkspaceInbox
             timestamp,
           ),
         });
-        const updated = await store.inboxItem.updateMany({
-          where: {
-            id: itemId,
-            workspaceId: this.workspaceId,
-            version: current.version,
-          },
-          data: {
-            title: source.title,
-            latestRevisionId: revisionId,
-            version: { increment: 1 },
-            updatedAt: timestamp,
-          },
-        });
-        if (updated.count !== 1) {
-          throw DomainError.conflict(`Inbox item ${itemId} has changed`);
-        }
+        await updateLatestRevision(
+          store,
+          this.workspaceId,
+          current,
+          source,
+          revisionId,
+          timestamp,
+        );
         revisionCreated = true;
       });
     } catch (error) {
       if (isUniqueConflict(error)) {
+        const concurrent = await this.findByIdentity(itemId);
+        if (
+          concurrent?.description().latestRevisionSha256 === contentSha256
+        ) {
+          return this.captureResult(
+            itemId,
+            concurrent.description().latestRevisionId,
+            false,
+          );
+        }
         throw DomainError.conflict(`Inbox item ${itemId} has changed`);
       }
       throw error;
@@ -319,6 +351,21 @@ function listWhere(
   };
 }
 
+async function findSourceItem(
+  store: PrismaStore,
+  workspaceId: string,
+  source: NormalizedInboxSource,
+): Promise<InboxItemRow | null> {
+  return store.inboxItem.findFirst({
+    where: {
+      workspaceId,
+      sourceKind: source.sourceKind,
+      externalKey: source.externalKey,
+    },
+    include: ITEM_INCLUDE,
+  });
+}
+
 async function requireItem(
   store: PrismaStore,
   workspaceId: string,
@@ -354,6 +401,32 @@ function assertSameSource(
     throw DomainError.validation(
       `Inbox revision source must match item ${item.id}`,
     );
+  }
+}
+
+async function updateLatestRevision(
+  store: PrismaStore,
+  workspaceId: string,
+  current: InboxItemRow,
+  source: NormalizedInboxSource,
+  revisionId: string,
+  timestamp: Date,
+): Promise<void> {
+  const updated = await store.inboxItem.updateMany({
+    where: {
+      id: current.id,
+      workspaceId,
+      version: current.version,
+    },
+    data: {
+      title: source.title,
+      latestRevisionId: revisionId,
+      version: { increment: 1 },
+      updatedAt: timestamp,
+    },
+  });
+  if (updated.count !== 1) {
+    throw DomainError.conflict(`Inbox item ${current.id} has changed`);
   }
 }
 

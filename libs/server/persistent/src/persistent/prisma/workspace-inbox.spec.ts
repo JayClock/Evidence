@@ -52,7 +52,9 @@ function itemRow(overrides: Record<string, unknown> = {}) {
 describe('PrismaWorkspaceInbox', () => {
   it('captures the first immutable source revision', async () => {
     const store = mockPrismaStore();
-    store.inboxItem.findFirst.mockResolvedValue(itemRow());
+    store.inboxItem.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(itemRow());
     store.inboxRevision.findFirst.mockResolvedValue(revisionRow());
     const inbox = new PrismaWorkspaceInbox(asStore(store), 'workspace-1');
 
@@ -78,6 +80,20 @@ describe('PrismaWorkspaceInbox', () => {
         contentSha256: hashInboxSource(source).contentSha256,
       }),
     });
+  });
+
+  it('treats a repeated source capture as an idempotent upsert', async () => {
+    const store = mockPrismaStore();
+    store.inboxItem.findFirst.mockResolvedValue(itemRow());
+    store.inboxRevision.findFirst.mockResolvedValue(revisionRow());
+    const inbox = new PrismaWorkspaceInbox(asStore(store), 'workspace-1');
+
+    const result = await inbox.capture(source);
+
+    expect(result.item.identity()).toBe('inbox-1');
+    expect(result.revisionCreated).toBe(false);
+    expect(store.inboxItem.create).not.toHaveBeenCalled();
+    expect(store.inboxRevision.create).not.toHaveBeenCalled();
   });
 
   it('does not append an unchanged latest revision', async () => {
@@ -116,7 +132,9 @@ describe('PrismaWorkspaceInbox', () => {
           _count: { revisions: 2 },
         }),
       );
-    store.inboxRevision.findFirst.mockResolvedValue(nextRevision);
+    store.inboxRevision.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(nextRevision);
     store.inboxItem.updateMany.mockResolvedValue({ count: 1 });
     const inbox = new PrismaWorkspaceInbox(asStore(store), 'workspace-1');
 
@@ -144,6 +162,40 @@ describe('PrismaWorkspaceInbox', () => {
         version: { increment: 1 },
       }),
     });
+  });
+
+  it('reuses a historical snapshot when source content reverts', async () => {
+    const store = mockPrismaStore();
+    const changed = { ...source, body: 'Changed content.' };
+    const changedRevision = revisionRow({
+      id: 'revision-2',
+      revisionNumber: 2,
+      body: changed.body,
+      contentSha256: hashInboxSource(changed).contentSha256,
+    });
+    const current = itemRow({
+      latestRevisionId: changedRevision.id,
+      latestRevision: changedRevision,
+      version: 2,
+      _count: { revisions: 2 },
+    });
+    store.inboxItem.findFirst
+      .mockResolvedValueOnce(current)
+      .mockResolvedValueOnce(itemRow({ _count: { revisions: 2 }, version: 3 }));
+    store.inboxRevision.findFirst.mockResolvedValue(revisionRow());
+    store.inboxItem.updateMany.mockResolvedValue({ count: 1 });
+    const inbox = new PrismaWorkspaceInbox(asStore(store), 'workspace-1');
+
+    const result = await inbox.appendRevision('inbox-1', source);
+
+    expect(result.revision.identity()).toBe('revision-1');
+    expect(result.revisionCreated).toBe(false);
+    expect(store.inboxRevision.create).not.toHaveBeenCalled();
+    expect(store.inboxItem.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ latestRevisionId: 'revision-1' }),
+      }),
+    );
   });
 
   it('keeps list and status changes inside the workspace boundary', async () => {

@@ -176,6 +176,6 @@ model InboxRevision {
   latestForItem    InboxItem? @relation("LatestInboxRevision")
 
   @@unique([inboxItemId, revisionNumber])
-  @@index([inboxItemId, contentSha256])
+  @@unique([inboxItemId, contentSha256])
   @@map("inbox_revisions")
 }
