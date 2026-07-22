@@ -1,5 +1,6 @@
 import { Logger, type Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DomainErrorFilter } from '@evidence/server-api';
 import {
   assertRemoteApiIsSecured,
@@ -30,7 +31,8 @@ export async function bootstrap(rootModule: Type<unknown>): Promise<void> {
   const host = process.env.EVIDENCE_HOST?.trim() || '127.0.0.1';
   assertRemoteApiIsSecured(host);
   currentUserId();
-  const app = await NestFactory.create(rootModule);
+  const app = await NestFactory.create<NestExpressApplication>(rootModule);
+  app.useBodyParser('json', { limit: '320kb' });
   app.enableCors({ origin: corsOrigins() });
   app.useGlobalFilters(new DomainErrorFilter());
 

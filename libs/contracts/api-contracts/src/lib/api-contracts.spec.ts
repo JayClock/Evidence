@@ -361,6 +361,34 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(outsideBoundary.status).toBe(404);
   });
 
+  it('accepts Inbox JSON overhead while enforcing the domain body limit', async () => {
+    const workspace = await createContractWorkspace('Inbox Payload Workspace');
+    const capture = (externalKey: string, body: string) =>
+      apiRequest(`/api/workspaces/${workspace.body.id}/inbox-items`, {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceKind: 'manual_text',
+          externalKey,
+          title: 'Payload boundary',
+          body,
+          contentType: 'text/plain',
+        }),
+      });
+
+    const accepted = await capture(
+      uniqueName('accepted-payload'),
+      'x'.repeat(128 * 1024),
+    );
+    expect(accepted.status).toBe(201);
+
+    const rejected = await capture(
+      uniqueName('rejected-payload'),
+      'x'.repeat(256 * 1024 + 1),
+    );
+    expect(rejected.status).toBe(400);
+    expect(rejected.body.error).toContain('must not exceed 262144 bytes');
+  });
+
   it('creates, reads, updates, lists, and deletes logical entities', async () => {
     const workspace = await createContractWorkspace('Logical Entity Workspace');
     expect(workspace.status).toBe(201);
