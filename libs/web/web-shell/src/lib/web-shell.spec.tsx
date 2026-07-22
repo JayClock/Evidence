@@ -1,5 +1,5 @@
 import { isValidElement, type ComponentProps, type ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   useResource,
@@ -77,8 +77,8 @@ vi.mock('@evidence/ui', () => {
     FieldDescription: Div,
     FieldError: Div,
     FieldGroup: Div,
-    FieldLabel: ({ children }: { children?: ReactNode }) => (
-      <label>{children}</label>
+    FieldLabel: ({ children, ...props }: ComponentProps<'label'>) => (
+      <label {...props}>{children}</label>
     ),
     Input,
     Separator: () => <hr />,
@@ -110,6 +110,8 @@ const links = (...rels: string[]) => ({
   getAll: () => rels.map((rel) => ({ rel, href: `/api/${rel}` })),
 });
 
+const createWorkspacePost = vi.fn();
+
 const userState = {
   data: {
     id: 'desktop-user',
@@ -117,7 +119,10 @@ const userState = {
     email: 'desktop@evidence.local',
   },
   links: links('self', 'memberships', 'create-workspace', 'sidebar'),
-  follow: (rel: string) => ({ kind: rel, post: vi.fn() }),
+  follow: (rel: string) => ({
+    kind: rel,
+    ...(rel === 'create-workspace' ? { post: createWorkspacePost } : {}),
+  }),
 };
 
 const sidebarState = {
@@ -163,9 +168,7 @@ const workspace = {
   title: 'Default Workspace',
   description: 'Seed workspace',
   status: 'active',
-  metadata: {
-    repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
-  },
+  metadata: {},
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };
@@ -192,14 +195,29 @@ const membershipCollectionState = {
 };
 
 const workspaceResource = {
-  post: vi.fn(),
   refresh: vi.fn(),
+};
+
+const createdWorkspaceState = {
+  data: { ...workspace, id: 'created-workspace', title: 'Local Model' },
+  getLink: (rel: string) =>
+    rel === 'self'
+      ? { rel, href: '/api/workspaces/created-workspace' }
+      : undefined,
+  follow: () => ({ delete: vi.fn().mockResolvedValue(undefined) }),
 };
 
 const useResourceMock = useResource as unknown as Mock;
 
 describe('WebShell', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
+    createWorkspacePost.mockResolvedValue(createdWorkspaceState);
+    workspaceResource.refresh.mockResolvedValue(membershipCollectionState);
+    Object.defineProperty(globalThis, 'evidenceDesktop', {
+      configurable: true,
+      value: undefined,
+    });
     useResourceMock.mockImplementation((resourceLike: { kind: string }) => {
       if (resourceLike.kind === 'memberships') {
         return {
@@ -238,5 +256,44 @@ describe('WebShell', () => {
     expect(screen.getByText('Logical Entities')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();
+  });
+
+  it('binds a Desktop repository without sending its path to the Server', async () => {
+    const chooseDirectory = vi.fn().mockResolvedValue('/local/repository');
+    const bindWorkspace = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis, 'evidenceDesktop', {
+      configurable: true,
+      value: { chooseDirectory, bindWorkspace },
+    });
+
+    render(
+      <MemoryRouter>
+        <WebShell userState={userState as unknown as State<UserResource>}>
+          <div>Route content</div>
+        </WebShell>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose folder' }));
+    await waitFor(() => expect(chooseDirectory).toHaveBeenCalledOnce());
+    fireEvent.change(screen.getByLabelText('Workspace name'), {
+      target: { value: 'Local Model' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create and switch' }));
+
+    await waitFor(() => expect(createWorkspacePost).toHaveBeenCalledOnce());
+    expect(createWorkspacePost).toHaveBeenCalledWith({
+      data: {
+        title: 'Local Model',
+        description: null,
+        status: 'active',
+      },
+    });
+    await waitFor(() =>
+      expect(bindWorkspace).toHaveBeenCalledWith(
+        'created-workspace',
+        '/local/repository',
+      ),
+    );
   });
 });

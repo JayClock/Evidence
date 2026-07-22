@@ -20,6 +20,7 @@ import {
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalAgent } from './local-agent';
 import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
+import { WorkspaceBindingStore } from './workspace-binding-store';
 
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;
@@ -83,7 +84,11 @@ function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
   }
 }
 
-function registerDesktopBridge(apiBaseUrl: string, agent: LocalAgent): void {
+function registerDesktopBridge(
+  apiBaseUrl: string,
+  agent: LocalAgent,
+  bindings: WorkspaceBindingStore,
+): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
     return apiBaseUrl;
@@ -96,6 +101,27 @@ function registerDesktopBridge(apiBaseUrl: string, agent: LocalAgent): void {
     });
     return selection.canceled ? null : (selection.filePaths[0] ?? null);
   });
+  ipcMain.handle(
+    'evidence:bind-workspace',
+    async (event, input: unknown): Promise<void> => {
+      assertTrustedIpcSender(event);
+      if (!input || typeof input !== 'object' || Array.isArray(input)) {
+        throw new Error('Workspace binding input is required.');
+      }
+      const candidate = input as Record<string, unknown>;
+      if (
+        typeof candidate.workspaceId !== 'string' ||
+        typeof candidate.repositoryRoot !== 'string'
+      ) {
+        throw new Error('Workspace binding input is invalid.');
+      }
+      await bindings.bind({
+        apiBaseUrl,
+        workspaceId: candidate.workspaceId,
+        repositoryRoot: candidate.repositoryRoot,
+      });
+    },
+  );
   ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     const request = parseDiagramAgentRequest(input);
@@ -215,7 +241,10 @@ void app.whenReady().then(async () => {
     registerWebProtocol();
     const apiBaseUrl = await connectRemoteApi();
     localAgent = createLocalAgent();
-    registerDesktopBridge(apiBaseUrl, localAgent);
+    const bindings = new WorkspaceBindingStore(
+      join(app.getPath('userData'), 'workspace-bindings.json'),
+    );
+    registerDesktopBridge(apiBaseUrl, localAgent, bindings);
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl);
 

@@ -90,9 +90,7 @@ const workspace = {
   title: 'Default Workspace',
   description: 'Seed workspace for local desktop usage',
   status: 'active',
-  metadata: {
-    repositoryRoot: '/Users/zhongjie/Documents/GitHub/Evidence',
-  },
+  metadata: {},
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
 };

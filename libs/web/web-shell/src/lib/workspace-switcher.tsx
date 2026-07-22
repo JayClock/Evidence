@@ -1,10 +1,4 @@
-import {
-  useRef,
-  useState,
-  type ChangeEvent,
-  type FormEvent,
-  type InputHTMLAttributes,
-} from 'react';
+import { useState, type FormEvent } from 'react';
 import type {
   MembershipWorkspace,
   State,
@@ -57,18 +51,12 @@ export type WorkspaceInput = {
   title: string;
   description?: string | null;
   status?: string | null;
-  path: string;
+  localRepositoryRoot?: string;
 };
 
 type SelectedProject = {
   name: string;
   source: string;
-  isBrowserPreview: boolean;
-};
-
-type DirectoryInputAttributes = InputHTMLAttributes<HTMLInputElement> & {
-  webkitdirectory?: string;
-  directory?: string;
 };
 
 type ElectronWindow = Window & {
@@ -76,11 +64,6 @@ type ElectronWindow = Window & {
     chooseDirectory?: () => Promise<string | null>;
   };
 };
-
-const directoryInputAttributes = {
-  webkitdirectory: '',
-  directory: '',
-} as DirectoryInputAttributes;
 
 export function WorkspaceSwitcher({
   loading,
@@ -182,7 +165,7 @@ export function WorkspaceSwitcher({
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem onSelect={() => setCreateDialogOpen(true)}>
-                  <span>+ Add local workspace</span>
+                  <span>+ Create workspace</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -193,7 +176,6 @@ export function WorkspaceSwitcher({
       <CreateWorkspaceDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        recentProjectSources={recentProjectSources(workspaces)}
         onCreateWorkspace={onCreateWorkspace}
       />
 
@@ -205,17 +187,15 @@ export function WorkspaceSwitcher({
 function CreateWorkspaceDialog({
   open,
   onOpenChange,
-  recentProjectSources,
   onCreateWorkspace,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  recentProjectSources: string[];
   onCreateWorkspace: (
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;
 }) {
-  const directoryInputRef = useRef<HTMLInputElement>(null);
+  const chooseDirectory = electronDirectoryPicker();
   const [selectedProject, setSelectedProject] =
     useState<SelectedProject | null>(null);
   const [title, setTitle] = useState('');
@@ -224,7 +204,11 @@ function CreateWorkspaceDialog({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const canSubmit = Boolean(selectedProject && title.trim()) && !submitting;
+  const needsLocalProject = Boolean(chooseDirectory);
+  const canSubmit =
+    Boolean(title.trim()) &&
+    (!needsLocalProject || Boolean(selectedProject)) &&
+    !submitting;
 
   function resetForm() {
     setSelectedProject(null);
@@ -233,60 +217,42 @@ function CreateWorkspaceDialog({
     setError(null);
     setSubmitted(false);
     setSubmitting(false);
-    if (directoryInputRef.current) {
-      directoryInputRef.current.value = '';
-    }
   }
 
-  function selectProject(source: string, isBrowserPreview: boolean) {
+  function selectProject(source: string) {
     const name = basename(source);
-    setSelectedProject({ name, source, isBrowserPreview });
-    setError(
-      isBrowserPreview
-        ? 'Browser preview mode can only read the folder name. The desktop app uses the system picker for the full local source.'
-        : null,
-    );
+    setSelectedProject({ name, source });
+    setError(null);
     if (!title.trim()) {
       setTitle(titleFromProjectName(name));
     }
   }
 
   async function handleChooseProject() {
+    if (!chooseDirectory) {
+      return;
+    }
     setError(null);
-    const chooseElectronDirectory = electronDirectoryPicker();
-    if (chooseElectronDirectory) {
-      try {
-        const nativeSource = await chooseElectronDirectory();
-        if (nativeSource) {
-          selectProject(nativeSource, false);
-        }
-      } catch (nativeError) {
-        setError(errorMessage(nativeError));
+    try {
+      const nativeSource = await chooseDirectory();
+      if (nativeSource) {
+        selectProject(nativeSource);
       }
-      return;
+    } catch (nativeError) {
+      setError(errorMessage(nativeError));
     }
-
-    directoryInputRef.current?.click();
-  }
-
-  function handleBrowserDirectoryChange(event: ChangeEvent<HTMLInputElement>) {
-    const firstFile = event.target.files?.[0];
-    if (!firstFile) {
-      return;
-    }
-
-    const relativeProject = firstFile.webkitRelativePath
-      ? firstFile.webkitRelativePath.split('/')[0]
-      : firstFile.name;
-    selectProject(relativeProject || firstFile.name, true);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
 
-    if (!selectedProject || !title.trim()) {
-      setError('Choose a local project and name the workspace.');
+    if (!title.trim() || (needsLocalProject && !selectedProject)) {
+      setError(
+        needsLocalProject
+          ? 'Choose a local project and name the workspace.'
+          : 'Name the workspace.',
+      );
       return;
     }
 
@@ -298,7 +264,9 @@ function CreateWorkspaceDialog({
         title: title.trim(),
         description: description.trim() || null,
         status: 'active',
-        path: selectedProject.source,
+        ...(selectedProject
+          ? { localRepositoryRoot: selectedProject.source }
+          : {}),
       });
       toast.success(`Created ${createdWorkspace.data.title}`);
       onOpenChange(false);
@@ -322,71 +290,58 @@ function CreateWorkspaceDialog({
     >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Add local workspace</DialogTitle>
+          <DialogTitle>Create workspace</DialogTitle>
           <DialogDescription>
-            Choose a local project folder. Evidence will create a workspace and
-            switch to it immediately.
+            {needsLocalProject
+              ? 'Choose a local repository for Desktop execution. Only the Desktop binding store receives its path.'
+              : 'Create a Server workspace. Local repository binding is available in the Desktop app.'}
           </DialogDescription>
         </DialogHeader>
 
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
           <FieldGroup>
-            <Field data-invalid={submitted && !selectedProject}>
-              <FieldLabel>Local project</FieldLabel>
-              <Input
-                ref={directoryInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                tabIndex={-1}
-                aria-hidden="true"
-                onChange={handleBrowserDirectoryChange}
-                {...directoryInputAttributes}
-              />
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>
-                    {selectedProject?.name ?? 'Choose a project folder'}
-                  </CardTitle>
-                  <CardDescription>
-                    {selectedProject
-                      ? 'Ready to create a workspace from this local project.'
-                      : 'Use the system folder picker in the desktop app.'}
-                  </CardDescription>
-                  <CardAction>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleChooseProject}
-                      disabled={submitting}
-                    >
-                      Choose folder
-                    </Button>
-                  </CardAction>
-                </CardHeader>
-                <CardContent>
-                  {selectedProject ? (
-                    <div className="flex flex-wrap gap-2">
+            {needsLocalProject ? (
+              <Field data-invalid={submitted && !selectedProject}>
+                <FieldLabel>Local project</FieldLabel>
+                <Card size="sm">
+                  <CardHeader>
+                    <CardTitle>
+                      {selectedProject?.name ?? 'Choose a project folder'}
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedProject
+                        ? 'This path stays in the Desktop app.'
+                        : 'Use the system folder picker; the path is never sent to the Server.'}
+                    </CardDescription>
+                    <CardAction>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleChooseProject}
+                        disabled={submitting}
+                      >
+                        Choose folder
+                      </Button>
+                    </CardAction>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedProject ? (
                       <Badge variant="secondary">{selectedProject.name}</Badge>
-                      {selectedProject.isBrowserPreview ? (
-                        <Badge variant="secondary">Preview source</Badge>
-                      ) : (
-                        <Badge variant="secondary">Desktop source</Badge>
-                      )}
-                    </div>
-                  ) : (
-                    <FieldDescription>
-                      The UI does not require typing a local source manually.
-                    </FieldDescription>
-                  )}
-                </CardContent>
-              </Card>
-              <FieldError>
-                {submitted && !selectedProject
-                  ? 'Choose a local project folder.'
-                  : null}
-              </FieldError>
-            </Field>
+                    ) : (
+                      <FieldDescription>
+                        Local execution will use this repository in a later
+                        isolated worktree.
+                      </FieldDescription>
+                    )}
+                  </CardContent>
+                </Card>
+                <FieldError>
+                  {submitted && !selectedProject
+                    ? 'Choose a local project folder.'
+                    : null}
+                </FieldError>
+              </Field>
+            ) : null}
 
             <Field data-invalid={submitted && !title.trim()}>
               <FieldLabel htmlFor="workspace-title">Workspace name</FieldLabel>
@@ -399,7 +354,9 @@ function CreateWorkspaceDialog({
                 disabled={submitting}
               />
               <FieldDescription>
-                The folder name is used as a suggestion. You can rename it.
+                {selectedProject
+                  ? 'The folder name is only a suggestion. You can rename it.'
+                  : 'Use a name shared by Web and Desktop clients.'}
               </FieldDescription>
               <FieldError>
                 {submitted && !title.trim() ? 'Enter a workspace name.' : null}
@@ -419,37 +376,11 @@ function CreateWorkspaceDialog({
               />
             </Field>
 
-            {recentProjectSources.length > 0 ? (
-              <Field>
-                <FieldLabel>Recent local projects</FieldLabel>
-                <div className="flex flex-wrap gap-2">
-                  {recentProjectSources.map((source) => (
-                    <Button
-                      key={source}
-                      type="button"
-                      variant="outline"
-                      onClick={() => selectProject(source, false)}
-                      disabled={submitting}
-                    >
-                      {basename(source)}
-                    </Button>
-                  ))}
-                </div>
-              </Field>
-            ) : null}
           </FieldGroup>
 
           {error ? (
-            <Alert
-              variant={
-                selectedProject?.isBrowserPreview ? 'default' : 'destructive'
-              }
-            >
-              <AlertTitle>
-                {selectedProject?.isBrowserPreview
-                  ? 'Preview mode'
-                  : 'Unable to continue'}
-              </AlertTitle>
+            <Alert variant="destructive">
+              <AlertTitle>Unable to continue</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
@@ -480,17 +411,8 @@ function electronDirectoryPicker(): (() => Promise<string | null>) | null {
   return electronWindow.evidenceDesktop?.chooseDirectory ?? null;
 }
 
-function recentProjectSources(workspaces: MembershipWorkspace[]) {
-  const sources = workspaces
-    .map((workspace) => workspace.metadata.repositoryRoot)
-    .filter((source): source is string => Boolean(source));
-
-  return [...new Set(sources)].slice(0, 3);
-}
-
 export function workspaceSourceName(workspace: MembershipWorkspace) {
-  const source = workspace.metadata.repositoryRoot;
-  return source ? basename(source) : 'Local project not selected';
+  return workspace.description?.trim() || `${workspace.status} workspace`;
 }
 
 export function workspaceHref(

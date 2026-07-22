@@ -12,6 +12,11 @@ const bridge = {
     ipcRenderer.invoke('evidence:get-api-base-url'),
   chooseDirectory: (): Promise<string | null> =>
     ipcRenderer.invoke('evidence:choose-directory'),
+  bindWorkspace: (workspaceId: string, repositoryRoot: string): Promise<void> =>
+    ipcRenderer.invoke('evidence:bind-workspace', {
+      workspaceId,
+      repositoryRoot,
+    }),
   runDiagramAgent: async (
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

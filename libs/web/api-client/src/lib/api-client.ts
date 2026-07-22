@@ -19,6 +19,7 @@ type DiagramAgentEvent = {
 type EvidenceDesktopBridge = {
   getApiBaseUrl(): Promise<string>;
   chooseDirectory(): Promise<string | null>;
+  bindWorkspace(workspaceId: string, repositoryRoot: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,
