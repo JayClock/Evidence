@@ -4,7 +4,7 @@
   "sourceRoot": "apps/desktop/src",
   "projectType": "application",
   "tags": ["scope:desktop", "type:electron", "type:typescript"],
-  "implicitDependencies": ["@evidence/web", "@evidence/server"],
+  "implicitDependencies": ["@evidence/web"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
@@ -21,32 +21,19 @@
         "commands": [
           "pnpm nx build @evidence/desktop --watch",
           "pnpm nx dev @evidence/web --host 127.0.0.1 --port 4200",
-          "pnpm nx build-desktop @evidence/server --watch",
-          "pnpm --dir apps/desktop exec wait-on dist/main.js ../server/dist-desktop/main.js http-get://127.0.0.1:4200 && pnpm --dir apps/desktop exec electron ."
+          "pnpm --dir apps/desktop exec wait-on dist/main.js http-get://127.0.0.1:4200 && pnpm --dir apps/desktop exec electron ."
         ]
       }
     },
-    "stage-package": {
+    "package-unpacked": {
       "executor": "nx:run-commands",
       "dependsOn": [
         "build",
         {
           "projects": "@evidence/web",
           "target": "build"
-        },
-        {
-          "projects": "@evidence/server",
-          "target": "build-desktop"
         }
       ],
-      "outputs": ["{workspaceRoot}/apps/desktop/dist/server"],
-      "options": {
-        "command": "node apps/desktop/scripts/stage-package.mjs"
-      }
-    },
-    "package-unpacked": {
-      "executor": "nx:run-commands",
-      "dependsOn": ["stage-package"],
       "outputs": ["{workspaceRoot}/apps/desktop/dist/packages"],
       "options": {
         "command": "pnpm --dir apps/desktop exec electron-builder --config electron-builder.yml --dir"
@@ -61,7 +48,13 @@
     },
     "package": {
       "executor": "nx:run-commands",
-      "dependsOn": ["stage-package"],
+      "dependsOn": [
+        "build",
+        {
+          "projects": "@evidence/web",
+          "target": "build"
+        }
+      ],
       "outputs": ["{workspaceRoot}/apps/desktop/dist/packages"],
       "options": {
         "command": "pnpm --dir apps/desktop exec electron-builder --config electron-builder.yml"

@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { access, mkdtemp, rm } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -16,6 +17,7 @@ const piSdkEntry = join(
   'index.js',
 );
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-package-smoke-'));
+const fakeApi = await startFakeApi();
 let output = '';
 
 try {
@@ -29,7 +31,7 @@ try {
     ['-e', sdkCheck],
     { ELECTRON_RUN_AS_NODE: '1' },
     10_000,
-    join(packaged.resources, 'app.asar.unpacked', 'dist', 'server'),
+    join(packaged.resources, 'app.asar.unpacked', 'dist'),
   );
   output += piResult.output;
   if (piResult.exitCode !== 0 || !piResult.output.includes('PI_SDK_READY')) {
@@ -40,6 +42,7 @@ try {
     packaged.executable,
     [],
     {
+      EVIDENCE_API_BASE_URL: fakeApi.baseUrl,
       EVIDENCE_DESKTOP_SMOKE_TEST: '1',
       EVIDENCE_USER_DATA_PATH: testRoot,
     },
@@ -52,13 +55,97 @@ try {
   if (!result.output.includes('EVIDENCE_DESKTOP_SMOKE_READY')) {
     throw new Error('Packaged app did not report readiness.');
   }
-  await access(join(testRoot, 'data', 'registry.sqlite'));
   process.stdout.write('Packaged Electron smoke test passed.\n');
 } catch (error) {
   process.stderr.write(output);
   throw error;
 } finally {
+  await fakeApi.close();
   await rm(testRoot, { recursive: true, force: true });
+}
+
+function startFakeApi() {
+  return new Promise((resolveStart, reject) => {
+    const server = createServer((request, response) => {
+      response.setHeader('access-control-allow-origin', '*');
+      response.setHeader('content-type', 'application/hal+json');
+      if (request.method === 'OPTIONS') {
+        response.statusCode = 204;
+        response.end();
+        return;
+      }
+
+      const body = responseBody(request.url ?? '/');
+      if (!body) {
+        response.statusCode = 404;
+        response.end(JSON.stringify({ error: 'Not found' }));
+        return;
+      }
+      response.end(JSON.stringify(body));
+    });
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string') {
+        reject(new Error('Could not reserve a fake API port.'));
+        return;
+      }
+      resolveStart({
+        baseUrl: `http://127.0.0.1:${address.port}/api`,
+        close: () =>
+          new Promise((resolveClose, rejectClose) => {
+            server.close((error) =>
+              error ? rejectClose(error) : resolveClose(),
+            );
+          }),
+      });
+    });
+  });
+}
+
+function responseBody(pathname) {
+  if (pathname === '/health') {
+    return { service: 'evidence-server', status: 'ok' };
+  }
+  if (pathname === '/api') {
+    return {
+      _links: {
+        self: { href: '/api' },
+        health: { href: '/health' },
+        'current-user': { href: '/api/users/desktop-user' },
+      },
+    };
+  }
+  if (pathname === '/api/users/desktop-user') {
+    return {
+      _links: {
+        self: { href: '/api/users/desktop-user' },
+        sidebar: { href: '/api/users/desktop-user/sidebar' },
+        memberships: { href: '/api/users/desktop-user/memberships' },
+        'create-workspace': { href: '/api/workspaces' },
+      },
+      id: 'desktop-user',
+      name: 'Desktop User',
+      email: 'desktop@evidence.local',
+    };
+  }
+  if (pathname === '/api/users/desktop-user/sidebar') {
+    return {
+      _links: {
+        self: { href: '/api/users/desktop-user/sidebar' },
+        user: { href: '/api/users/desktop-user' },
+      },
+      sections: [],
+    };
+  }
+  if (pathname === '/api/users/desktop-user/memberships') {
+    return {
+      _links: { self: { href: pathname } },
+      _embedded: { memberships: [] },
+      page: { number: 1, size: 20, totalElements: 0, totalPages: 0 },
+    };
+  }
+  return null;
 }
 
 function packagedRuntime(root) {
