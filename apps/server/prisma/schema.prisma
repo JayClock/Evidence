@@ -7,10 +7,13 @@ datasource db {
 }
 
 model User {
-  id      String            @id
-  name    String
-  email   String?
-  members WorkspaceMember[]
+  id                      String            @id
+  name                    String
+  email                   String?
+  members                 WorkspaceMember[]
+  proposedStoryCandidates StoryCandidate[]  @relation("StoryCandidateProposer")
+  decidedStoryCandidates  StoryCandidate[]  @relation("StoryCandidateDecider")
+  createdStoryRevisions   StoryRevision[]   @relation("StoryRevisionAuthor")
 
   @@map("users")
 }
@@ -30,6 +33,8 @@ model Workspace {
   logicalEntities      LogicalEntity[]
   logicalRelationships LogicalRelationship[]
   inboxItems           InboxItem[]
+  storyCandidates      StoryCandidate[]
+  stories              Story[]
 
   @@index([deletedAt])
   @@map("workspaces")
@@ -161,21 +166,118 @@ model InboxItem {
 }
 
 model InboxRevision {
-  id               String     @id
-  inboxItemId      String     @map("inbox_item_id")
-  revisionNumber   Int        @map("revision_number")
-  title            String
-  body             String
-  contentType      String     @map("content_type")
-  uri              String?
-  providerMetadata Json       @default("{}") @map("provider_metadata")
-  sourceUpdatedAt  DateTime?  @map("source_updated_at")
-  capturedAt       DateTime   @map("captured_at")
-  contentSha256    String     @map("content_sha256")
-  item             InboxItem  @relation("InboxItemRevisions", fields: [inboxItemId], references: [id], onDelete: Cascade)
-  latestForItem    InboxItem? @relation("LatestInboxRevision")
+  id                      String                   @id
+  inboxItemId             String                   @map("inbox_item_id")
+  revisionNumber          Int                      @map("revision_number")
+  title                   String
+  body                    String
+  contentType             String                   @map("content_type")
+  uri                     String?
+  providerMetadata        Json                     @default("{}") @map("provider_metadata")
+  sourceUpdatedAt         DateTime?                @map("source_updated_at")
+  capturedAt              DateTime                 @map("captured_at")
+  contentSha256           String                   @map("content_sha256")
+  item                    InboxItem                @relation("InboxItemRevisions", fields: [inboxItemId], references: [id], onDelete: Cascade)
+  latestForItem           InboxItem?               @relation("LatestInboxRevision")
+  storyCandidateCitations StoryCandidateCitation[]
+  storyRevisionCitations  StoryRevisionCitation[]
 
   @@unique([inboxItemId, revisionNumber])
   @@unique([inboxItemId, contentSha256])
   @@map("inbox_revisions")
+}
+
+model StoryCandidate {
+  id                String                   @id
+  workspaceId       String                   @map("workspace_id")
+  title             String
+  problem           String
+  role              String
+  goal              String
+  value             String
+  cognitiveMode     String                   @map("cognitive_mode")
+  contentSha256     String                   @map("content_sha256")
+  status            String
+  version           Int                      @default(1)
+  proposedByUserId  String                   @map("proposed_by_user_id")
+  proposedAt        DateTime                 @map("proposed_at")
+  decidedByUserId   String?                  @map("decided_by_user_id")
+  decidedAt         DateTime?                @map("decided_at")
+  workspace         Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  proposedBy        User                     @relation("StoryCandidateProposer", fields: [proposedByUserId], references: [id], onDelete: Restrict)
+  decidedBy         User?                    @relation("StoryCandidateDecider", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  citations         StoryCandidateCitation[]
+  confirmedRevision StoryRevision?           @relation("CandidateConfirmedRevision")
+
+  @@index([workspaceId, status, proposedAt])
+  @@map("story_candidates")
+}
+
+model StoryCandidateCitation {
+  id              String         @id
+  candidateId     String         @map("candidate_id")
+  inboxRevisionId String         @map("inbox_revision_id")
+  position        Int
+  locator         String
+  candidate       StoryCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  inboxRevision   InboxRevision  @relation(fields: [inboxRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([candidateId, position])
+  @@unique([candidateId, inboxRevisionId, locator], map: "story_candidate_citation_revision_locator_key")
+  @@index([inboxRevisionId])
+  @@map("story_candidate_citations")
+}
+
+model Story {
+  id               String          @id
+  workspaceId      String          @map("workspace_id")
+  latestRevisionId String?         @unique @map("latest_revision_id")
+  createdAt        DateTime        @map("created_at")
+  updatedAt        DateTime        @map("updated_at")
+  workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  revisions        StoryRevision[] @relation("StoryRevisions")
+  latestRevision   StoryRevision?  @relation("LatestStoryRevision", fields: [latestRevisionId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, updatedAt])
+  @@map("stories")
+}
+
+model StoryRevision {
+  id                String                  @id
+  storyId           String                  @map("story_id")
+  revisionNumber    Int                     @map("revision_number")
+  title             String
+  problem           String
+  role              String
+  goal              String
+  value             String
+  cognitiveMode     String                  @map("cognitive_mode")
+  contentSha256     String                  @map("content_sha256")
+  sourceCandidateId String?                 @unique @map("source_candidate_id")
+  createdByUserId   String                  @map("created_by_user_id")
+  createdAt         DateTime                @map("created_at")
+  story             Story                   @relation("StoryRevisions", fields: [storyId], references: [id], onDelete: Cascade)
+  latestForStory    Story?                  @relation("LatestStoryRevision")
+  sourceCandidate   StoryCandidate?         @relation("CandidateConfirmedRevision", fields: [sourceCandidateId], references: [id], onDelete: Restrict)
+  createdBy         User                    @relation("StoryRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  citations         StoryRevisionCitation[]
+
+  @@unique([storyId, revisionNumber])
+  @@index([storyId, createdAt])
+  @@map("story_revisions")
+}
+
+model StoryRevisionCitation {
+  id              String        @id
+  storyRevisionId String        @map("story_revision_id")
+  inboxRevisionId String        @map("inbox_revision_id")
+  position        Int
+  locator         String
+  storyRevision   StoryRevision @relation(fields: [storyRevisionId], references: [id], onDelete: Cascade)
+  inboxRevision   InboxRevision @relation(fields: [inboxRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([storyRevisionId, position])
+  @@unique([storyRevisionId, inboxRevisionId, locator], map: "story_revision_citation_revision_locator_key")
+  @@index([inboxRevisionId])
+  @@map("story_revision_citations")
 }
