@@ -25,6 +25,6 @@
 
 1. Web 用户通过浏览器访问共享前端和 Hosted API。
 2. Desktop 用户通过 Electron renderer 使用同一前端。
-3. Electron 默认启动本地 API 与本地存储，也可显式连接远程 API。
-4. 两者消费一致的 REST/HAL 与领域语义。
+3. Electron 连接经过健康检查的 Server API；非 loopback endpoint 使用 HTTPS。
+4. 两者消费一致的 REST/HAL 与权威 PostgreSQL 数据。
 5. Desktop 特有能力通过受限 preload bridge 提供，不复制业务页面或业务 API。

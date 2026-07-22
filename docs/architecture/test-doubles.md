@@ -19,10 +19,10 @@
 
 ## 关键契约
 
-- Nest domain/memory 与 Prisma/PostgreSQL、SQLite registry adapter 共享可观察 repository 语义。
+- Nest domain/memory 与 Prisma/PostgreSQL adapter 共享可观察 repository 语义。
 - `.evidence` adapter 使用真实临时目录验证 YAML、路径安全、端点和投影行为。
 - API controller tests 可以替换 domain ports，但本地 black-box runner 必须经过真实 Nest HTTP stack。
 - Pi adapter 的快速测试使用受控 fake JSONL child；SSE contract 必须验证事件顺序、完成/错误和取消语义。
-- Electron lifecycle tests 可以 fake child/renderer；发布边界必须通过真实 unpacked package smoke。
+- Electron lifecycle tests 可以 fake renderer/API；发布边界必须通过真实 unpacked package smoke。
 - Web API client 可以替换 transport，但 HAL 资源语义和渲染场景应保持真实。
 - 最终 Q2 是否使用真实 PostgreSQL、Pi provider 或平台安装包由场景风险决定，不机械追求端到端覆盖。

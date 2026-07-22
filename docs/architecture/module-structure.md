@@ -5,7 +5,7 @@
 ```text
 apps/
 ├── web/                    React/Vite composition root
-├── server/                 Nest hosted/Desktop composition roots
+├── server/                 Nest/PostgreSQL composition root
 └── desktop/                Electron main/preload and packaging
 
 libs/
@@ -17,7 +17,7 @@ libs/
 ├── server/
 │   ├── api/                controllers, HAL/SSE, OpenAPI source
 │   ├── domain/             framework-free domain and ports
-│   ├── persistent/         Prisma, SQLite, filesystem adapters
+│   ├── persistent/         Prisma and filesystem adapters
 │   └── infrastructure/     Pi SDK adapter
 └── contracts/
     └── api-contracts/      local/remote black-box contracts
@@ -29,9 +29,9 @@ libs/
 - Nest bootstrap、environment parsing 和 adapter wiring 放在 `apps/server`。
 - 业务模型、ports 和不变量放在 `libs/server/domain`；不得导入 Nest、Prisma 或 Electron。
 - Controller、请求/响应模型、HAL links、media type 和 SSE serialization 放在 `libs/server/api`。
-- PostgreSQL/SQLite registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`。
+- PostgreSQL registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`。
 - Pi SDK 等外部 adapter 放在 `libs/server/infrastructure`。
-- Desktop 只拥有 Electron 壳、本地 Nest 生命周期、受限 preload、协议和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
+- Desktop 只拥有 Electron 壳、受限 preload、本地建模 Agent 和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
 - OpenAPI source 位于 `libs/server/api/openapi.yaml`；生成的 Web 类型位于 `libs/web/api-client`；契约 runner 位于 `libs/contracts/api-contracts`。
 
 ## Server composition roots
@@ -39,20 +39,14 @@ libs/
 ```text
 apps/server/src/main.ts
   └─ AppModule
-       └─ Prisma/PostgreSQL registry
-
-apps/server/src/desktop-main.ts
-  └─ DesktopAppModule
-       └─ node:sqlite registry
-
-both
-  ├─ ApiModule
-  ├─ Domain ports
-  ├─ filesystem model projection
-  └─ PiSdkDomainArchitect
+       ├─ Prisma/PostgreSQL registry
+       ├─ ApiModule
+       ├─ Domain ports
+       ├─ filesystem model projection
+       └─ PiSdkDomainArchitect
 ```
 
-Storage selection 不得渗入 controller。Desktop 本地 child 的 host、port、token、registry path 和 workspace path 由 Electron main 通过环境显式传入；Pi SDK 在 Nest child 进程内运行。
+Persistence wiring 不得渗入 controller。Desktop 通过 `EVIDENCE_API_BASE_URL` 连接该 Server，并在独立本地 Agent 进程中使用嵌入式 Pi SDK。
 
 ## 禁止依赖
 

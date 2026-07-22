@@ -24,22 +24,22 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位；低价值�
 
 ## Runtime 策略
 
-| Runtime / 边界    | 主要 Q1                                      | 主要 Q2                                                 |
-| ----------------- | -------------------------------------------- | ------------------------------------------------------- |
-| Web               | component/hook/resource tests                | rendered route/feature scenario                         |
-| Nest Server       | domain、controller、repository/adapter tests | composed module 或 black-box REST/SSE contract          |
-| Electron          | main/preload/lifecycle/security tests        | packaged renderer + managed Nest smoke                  |
-| PostgreSQL        | mapper/repository tests                      | migrated temporary database contracts                   |
-| SQLite/filesystem | temporary registry/directory tests           | Desktop local API scenario                              |
-| Pi integration    | fake JSONL process mapping tests             | authenticated SSE fixture 或有配置的真实 proposal probe |
+| Runtime / 边界 | 主要 Q1                                      | 主要 Q2                                                 |
+| -------------- | -------------------------------------------- | ------------------------------------------------------- |
+| Web            | component/hook/resource tests                | rendered route/feature scenario                         |
+| Nest Server    | domain、controller、repository/adapter tests | composed module 或 black-box REST/SSE contract          |
+| Electron       | main/preload/lifecycle/security tests        | packaged renderer + configured API smoke                |
+| PostgreSQL     | mapper/repository tests                      | migrated temporary database contracts                   |
+| Filesystem     | temporary directory adapter tests            | Workspace model projection scenarios                    |
+| Pi integration | fake JSONL process mapping tests             | authenticated SSE fixture 或有配置的真实 proposal probe |
 
 ## Contract gates
 
 - `libs/server/api/openapi.yaml` 是唯一 OpenAPI source；生成的 Web schema 必须与其同步。
-- 本地 contract runner 启动 SQLite Nest child 和 fake OpenAI-compatible Pi provider，黑盒验证 Workspace、Member、Diagram、Relationship、错误、media type 与 SSE。
+- contract runner 连接已迁移的临时 PostgreSQL，启动唯一 Nest Server 和 fake OpenAI-compatible Pi provider，黑盒验证 Workspace、Member、Inbox、Diagram、Relationship、错误、media type 与 SSE。
 - PostgreSQL CI 先运行 `prisma migrate deploy`，再运行 migration/contract gates。
 - Web client 由 OpenAPI 生成；类型检查不能替代运行时 contract test。
-- Electron package smoke 验证内嵌 Pi SDK、packaged renderer、本地 Nest readiness 和 SQLite registry。
+- Electron package smoke 使用受控 fake API 验证内嵌 Pi SDK、packaged renderer 和远程 API readiness。
 
 ## 执行原则
 

@@ -4,7 +4,7 @@ Evidence 是一个领域建模与证据映射平台，具有三个产品运行�
 
 - **Web**：`apps/web/` 中的 React + Vite SPA，复用 `libs/web/*`。
 - **Server**：`apps/server/` 中的 NestJS 组合根，实现在 `libs/server/{api,domain,persistent,infrastructure}`。
-- **Desktop**：`apps/desktop/` 中的 Electron 壳；复用同一个 Web renderer，并自行管理本地 Nest 子进程。
+- **Desktop**：`apps/desktop/` 中的 Electron 壳；复用同一个 Web renderer，并连接经过健康检查的 Server API。
 
 项目本地的 Evidence Orchestrator 位于 `.pi/` 与 `engineering/evidence-orchestrator/`。它只用于开发本仓库，不属于产品运行时。
 
@@ -22,27 +22,24 @@ Browser
 Electron
   └─ apps/desktop                       main + restricted preload
        ├─ packaged apps/web renderer
-       └─ managed apps/server child     random 127.0.0.1 port
-            ├─ session-token guard
-            ├─ node:sqlite registry
-            ├─ workspace/.evidence YAML model
-            └─ embedded Pi SDK
+       ├─ embedded Pi SDK agent
+       └─ REST/HAL → configured Server API
 ```
 
 - Web 与 Desktop 必须共享 REST/HAL 和领域语义；不得通过 Electron IPC 复制业务 API。
-- Hosted Server 默认使用 PostgreSQL；`EVIDENCE_STORAGE=sqlite` 只用于本地 Desktop 运行时。
-- Electron 默认零外部服务依赖。设置 `EVIDENCE_API_BASE_URL` 时可连接经过健康检查的远程 HTTPS API。
-- Desktop renderer 只通过 preload 取得 API URL和目录选择能力。认证 token 只保留在 Electron main，并由 `webRequest` 注入本地 API 请求。
+- Server 只使用 Prisma/PostgreSQL registry；不存在 Desktop 专用数据库或第二个 Server 组合根。
+- Electron 必须设置 `EVIDENCE_API_BASE_URL`，并在启动时健康检查远程 HTTPS API；开发时允许 loopback HTTP。
+- Desktop renderer 只通过受限 preload 取得 API URL、目录选择和本地建模 Agent 能力；业务 command/query 始终走 Server API。
 
 ## 服务端分层
 
-| 层               | 路径                                     | 职责                                                                             |
-| ---------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
-| Composition root | `apps/server/src/`                       | Nest bootstrap、runtime config、adapter wiring、hosted/Desktop entrypoints       |
-| API              | `libs/server/api/src/api/`               | Controller、请求解析、HAL 序列化、vendor media type、SSE 映射                    |
-| Domain           | `libs/server/domain/src/domain/`         | 纯 TypeScript 领域对象、port 与规则；不依赖 Nest、Prisma、HTTP、Electron         |
-| Persistence      | `libs/server/persistent/src/persistent/` | Prisma/PostgreSQL registry、`node:sqlite` registry、`.evidence` 文件模型 adapter |
-| Infrastructure   | `libs/server/infrastructure/src/`        | Pi SDK `DomainArchitect` adapter 等外部集成                                      |
+| 层               | 路径                                     | 职责                                                                     |
+| ---------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
+| Composition root | `apps/server/src/`                       | Nest bootstrap、runtime config 与 PostgreSQL adapter wiring              |
+| API              | `libs/server/api/src/api/`               | Controller、请求解析、HAL 序列化、vendor media type、SSE 映射            |
+| Domain           | `libs/server/domain/src/domain/`         | 纯 TypeScript 领域对象、port 与规则；不依赖 Nest、Prisma、HTTP、Electron |
+| Persistence      | `libs/server/persistent/src/persistent/` | Prisma/PostgreSQL registry 与 `.evidence` 文件模型 adapter               |
+| Infrastructure   | `libs/server/infrastructure/src/`        | Pi SDK `DomainArchitect` adapter 等外部集成                              |
 
 依赖方向必须保持：composition/API/persistence/infrastructure 可以依赖 domain，domain 不得反向依赖框架或 adapter。Controller 只负责协议转换与委托；业务规则进入 domain 或明确的 domain port 实现。
 
@@ -92,6 +89,8 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 | `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`                 | GET                    | 图节点投影             |
 | `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                 | GET                    | 图边投影               |
 | `/api/workspaces/{workspaceId}/diagram/propose-model`                    | POST（SSE）            | 流式建模提案           |
+| `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                   | GET、POST、PATCH       | Inbox 捕获、查询和状态 |
+| `/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions[/{id}]`    | GET、POST              | 不可变 Revision        |
 | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | GET、POST、PUT、DELETE | 逻辑实体 CRUD          |
 | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | GET、POST、PUT、DELETE | 逻辑关系 CRUD          |
 
@@ -112,25 +111,21 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 新增持久化行为时：
 
 1. 先在 `libs/server/domain` 定义或收窄 port/领域行为。
-2. 在 `libs/server/persistent` 实现 PostgreSQL、SQLite 或 filesystem adapter；不要把 storage 分支放进 controller。
+2. 在 `libs/server/persistent` 实现 PostgreSQL 或 filesystem adapter；不要把 storage 分支放进 controller。
 3. 为 memory/fake 与生产 adapter 维护等价行为测试；数据库差异必须有专门测试。
 4. PostgreSQL schema 通过 `apps/server/prisma/schema.prisma` 和受版本控制的 Prisma migration 演进，生产使用 `prisma migrate deploy`。
-5. SQLite registry schema 在 `SqliteRegistry` 中显式演进；Desktop 启动不得依赖外部 native addon。
-6. `.evidence` YAML 写入应保持路径安全、原子替换和已有文件保护。
+5. `.evidence` YAML 写入应保持路径安全、原子替换和已有文件保护。
 
-旧版数据只能通过受控迁移器导入：
-
-- `apps/server/src/migration/`：从已备份的旧 PostgreSQL 数据库 ETL 到独立目标数据库和模型目录，支持 dry run 与 manifest。
-- `legacy-sqlite-migration.ts`：Desktop 首启读取旧 SQLite，先备份，再校验、导入并写幂等 marker。不得删除或原地改写旧数据库。
+旧版 PostgreSQL 数据只能通过 `apps/server/src/migration/` 中的受控迁移器导入：从已备份的源数据库 ETL 到独立目标数据库和模型目录，支持 dry run 与 manifest。
 
 ## Electron 规范
 
-- `apps/desktop/src/main.ts` 是 Desktop composition root；`local-server.ts` 管理 Nest 子进程。
+- `apps/desktop/src/main.ts` 是 Desktop composition root；不得打包或启动 Nest 子进程。
 - 保持 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
-- preload bridge 只暴露 `getApiBaseUrl()` 与 `chooseDirectory()`；新增能力必须有 sender validation 和最小权限测试。
+- preload bridge 只暴露 API URL、目录选择与本地建模 Agent 的最小能力；新增能力必须有 sender validation 和最小权限测试。
 - 打包 renderer 使用 `evidence://app/`，必须保留 SPA fallback、路径穿越防护和外部导航拦截。
-- 本地 Nest 绑定随机 `127.0.0.1` 端口，使用 32-byte base64url session token、认证 health wait、日志和 SIGTERM/SIGKILL 回收。
-- Pi SDK 必须作为 production dependency 嵌入包中；不得依赖系统 Node、Pi 或 PostgreSQL。
+- `EVIDENCE_API_BASE_URL` 必须指向通过健康检查的 API；非 loopback endpoint 必须使用 HTTPS。
+- Pi SDK 必须作为 production dependency 嵌入包中；Desktop 包不得嵌入 Server 或数据库。
 - 打包事实来源是 `apps/desktop/electron-builder.yml`。发布边界变化必须运行 unpacked/package smoke。
 
 ## 测试与质量门禁
@@ -163,23 +158,23 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                     |
-| ------------------------------------------- | -------------------------------------------------------- |
-| `apps/web/`                                 | React + Vite 前端组合根                                  |
-| `libs/web/*`                                | Web shell、features、UI、HAL API client                  |
-| `apps/server/`                              | NestJS hosted/Desktop 组合根、Prisma 与迁移入口          |
-| `libs/server/api/`                          | Nest controllers、HAL/SSE 和 OpenAPI source              |
-| `libs/server/domain/`                       | 纯领域模型与 ports                                       |
-| `libs/server/persistent/`                   | PostgreSQL、SQLite 和 filesystem adapters                |
-| `libs/server/infrastructure/`               | Pi SDK 等外部适配器                                      |
-| `apps/desktop/`                             | Electron main/preload、local server manager 和 packaging |
-| `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                        |
-| `docs/product/`                             | 统一产品上下文、画像和旅程                               |
-| `.evidence/`                                | Evidence 产品权威领域模型                                |
-| `docs/architecture/`                        | 统一架构和测试策略                                       |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、工序与 DoD                        |
-| `.pi/extensions/evidence-orchestrator/`     | 内部六循环编排器                                         |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源和迭代证据；历史内容不得改写                   |
+| 路径                                        | 用途                                                  |
+| ------------------------------------------- | ----------------------------------------------------- |
+| `apps/web/`                                 | React + Vite 前端组合根                               |
+| `libs/web/*`                                | Web shell、features、UI、HAL API client               |
+| `apps/server/`                              | NestJS/PostgreSQL 组合根、Prisma 与迁移入口           |
+| `libs/server/api/`                          | Nest controllers、HAL/SSE 和 OpenAPI source           |
+| `libs/server/domain/`                       | 纯领域模型与 ports                                    |
+| `libs/server/persistent/`                   | PostgreSQL 和 filesystem adapters                     |
+| `libs/server/infrastructure/`               | Pi SDK 等外部适配器                                   |
+| `apps/desktop/`                             | Electron main/preload、remote API bridge 和 packaging |
+| `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                     |
+| `docs/product/`                             | 统一产品上下文、画像和旅程                            |
+| `.evidence/`                                | Evidence 产品权威领域模型                             |
+| `docs/architecture/`                        | 统一架构和测试策略                                    |
+| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、工序与 DoD                     |
+| `.pi/extensions/evidence-orchestrator/`     | 内部六循环编排器                                      |
+| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源和迭代证据；历史内容不得改写                |
 
 ## Git 纪律
 
@@ -193,10 +188,10 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 
 1. `AGENTS.md`
 2. `apps/server/src/bootstrap.ts`
-3. `apps/server/src/app/{app.module,desktop-app.module}.ts`
+3. `apps/server/src/app/{app.module,persistence.module}.ts`
 4. `libs/server/domain/src/domain/index.ts`
 5. `libs/server/api/src/api/api.module.ts`
-6. `libs/server/persistent/src/persistent/{prisma,sqlite,filesystem}/`
-7. `apps/desktop/src/{main,local-server,runtime-config}.ts`
+6. `libs/server/persistent/src/persistent/{prisma,filesystem}/`
+7. `apps/desktop/src/{main,runtime-config}.ts`
 8. `apps/desktop/electron-builder.yml`
 9. `engineering/evidence-orchestrator/runtime-contexts.json`

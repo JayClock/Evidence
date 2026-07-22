@@ -6,7 +6,7 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 
 - **Web**：React + Vite SPA；
 - **Server**：NestJS + TypeScript，Hosted 模式默认使用 PostgreSQL；
-- **Desktop**：Electron 壳，复用 Web renderer，并自行管理使用 SQLite 的本地 Nest 子进程。
+- **Desktop**：Electron 壳，复用 Web renderer，并连接经过健康检查的 Server API。
 
 仓库还包含项目本地的 **Evidence Orchestrator**，仅用于辅助当前仓库开发 Evidence。它不是面向用户的产品能力；边界决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
 
@@ -19,7 +19,7 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 3. **图投影**：`Diagram`、`DiagramNode` 和 `DiagramEdge` 展示逻辑模型；图元素不是第二份逻辑模型。
 4. **AI 模型辅助**：AI Modeling Agent 可以提出流式 `ModelingProposal`，但必须由用户确认后才能改变权威模型。
 5. **Web / Desktop 一致体验**：Electron 复用唯一的 React 前端和 REST/HAL 语义。
-6. **本地优先 Desktop**：默认无需系统 Node、Pi、PostgreSQL 或外部 Server。
+6. **一致的 Desktop**：打包 Web renderer 与 Pi SDK，并通过配置的 Server API 使用同一产品语义。
 
 ## 产品架构
 
@@ -36,31 +36,27 @@ Browser
 Electron
   └─ apps/desktop                            secure main/preload
        ├─ packaged apps/web renderer
-       └─ managed Nest child                random 127.0.0.1 port
-            ├─ random desktop session token
-            ├─ node:sqlite registry
-            ├─ workspace/.evidence YAML model
-            └─ embedded Pi SDK
+       ├─ embedded Pi SDK agent
+       └─ REST / HAL → configured Server API
 ```
 
 - `apps/web` 是唯一前端组合根，功能与 API client 位于 `libs/web/*`。
-- Hosted Server 默认使用 PostgreSQL；Desktop 通过同一 domain/API 切换到 SQLite registry。
+- Server 只使用 Prisma/PostgreSQL registry；Desktop 不打包第二个 Server 或数据库。
 - Web 与 Electron renderer 都消费 REST/HAL；Electron IPC 不复制业务 API。
 - 打包 renderer 使用受保护的 `evidence://app/` 协议。开发 renderer 默认使用 `http://127.0.0.1:4200`。
-- Electron 可通过 `EVIDENCE_API_BASE_URL=https://…/api` 连接远程 API；非 loopback HTTP 会被拒绝。
+- Electron 必须通过 `EVIDENCE_API_BASE_URL=https://…/api` 连接 API；开发时允许 loopback HTTP。
 
 ### Server 分层
 
 ```text
-apps/server/                         Nest composition roots
-  ├─ main.ts                         hosted PostgreSQL entry
-  └─ desktop-main.ts                 local SQLite entry
+apps/server/                         Nest composition root
+  └─ main.ts                         PostgreSQL entry
        ↓
 libs/server/api/                     controllers, HAL, SSE, OpenAPI
        ↓
 libs/server/domain/                  framework-free entities and ports
        ↑
-libs/server/persistent/              Prisma, node:sqlite, filesystem adapters
+libs/server/persistent/              Prisma and filesystem adapters
 libs/server/infrastructure/          Pi SDK adapter
 ```
 
@@ -116,10 +112,10 @@ Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api
 ### Desktop 安全与打包
 
 - `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
-- preload 只暴露 `getApiBaseUrl()` 和 `chooseDirectory()`，且 main 校验 sender。
-- 本地 Nest 绑定随机 loopback 端口并要求 32-byte base64url session token；renderer 无法读取 token，由 Electron `webRequest` 自动注入。
-- Electron 等待已认证 `/health`，记录 `server.log`，并在退出时执行 SIGTERM/SIGKILL 回收；异常退出会终止 Desktop。
-- Web、Nest child、运行依赖和 Pi SDK 都进入 electron-builder 包；package smoke 会验证内嵌 Pi SDK、renderer、API readiness 和 SQLite registry。
+- preload 只暴露 API URL、目录选择和本地建模 Agent 的受限能力，且 main 校验 sender。
+- Electron 启动前健康检查 `EVIDENCE_API_BASE_URL`；非 loopback endpoint 必须使用 HTTPS。
+- Web renderer、运行依赖和 Pi SDK 进入 electron-builder 包；Server 与数据库不会进入 Desktop 包。
+- package smoke 使用受控 fake API 验证 renderer、远程 API readiness 和内嵌 Pi SDK。
 
 ## 数据迁移
 
@@ -142,10 +138,6 @@ EVIDENCE_MIGRATION_DRY_RUN=1 \
 ```
 
 移除 `EVIDENCE_MIGRATION_DRY_RUN=1` 才写入目标 registry 和 YAML。迁移会校验引用、owner、重复成员和关系端点，记录 counts、源数据 hash、模型 hash、跳过项与工具版本。回滚方式是停止切换并丢弃独立目标数据库/模型目录，再从源备份重建；不要原地覆盖旧数据库。
-
-### 旧 Desktop SQLite → 新 registry/YAML
-
-Electron 首次本地启动时会检测旧应用目录中的 `evidence.sqlite`。迁移器在只读打开源数据库前复制数据库及 WAL/SHM，校验 registry/model invariants，导入新 registry 与 `.evidence` YAML，然后写 `legacy-migration.json` marker。后续启动读取 marker，不重复导入。失败时保留旧数据库和备份并阻止静默启动；回滚可删除新 user-data 后重新使用旧版应用。
 
 ## Evidence Orchestrator
 
@@ -223,7 +215,6 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence \
   pnpm --filter @evidence/server exec prisma migrate deploy
 
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence \
-EVIDENCE_STORAGE=postgres \
   pnpm dev:server
 
 # Terminal 2
@@ -234,11 +225,13 @@ pnpm dev:web
 
 ### Desktop
 
+先启动上述 Server，再运行：
+
 ```sh
-pnpm dev:desktop
+EVIDENCE_API_BASE_URL=http://127.0.0.1:3000/api pnpm dev:desktop
 ```
 
-Electron 启动 Web renderer、本地 Nest、SQLite registry 和嵌入式 Pi runtime，无需另行启动 PostgreSQL。
+Electron 启动 Web renderer 与嵌入式 Pi runtime，并连接配置的 API。非 loopback 环境必须使用 HTTPS。
 
 打包与 smoke：
 
@@ -251,16 +244,14 @@ pnpm nx run @evidence/desktop:package
 
 | 变量                              | 默认值               | 说明                                             |
 | :-------------------------------- | :------------------- | :----------------------------------------------- |
-| `DATABASE_URL`                    | Prisma 本地 fallback | Hosted PostgreSQL 连接字符串                     |
-| `EVIDENCE_STORAGE`                | `postgres`           | `postgres` 或 `sqlite`；Hosted 保持 PostgreSQL   |
+| `DATABASE_URL`                    | Prisma 本地 fallback | PostgreSQL 连接字符串                            |
 | `PORT`                            | `3000`               | Nest 监听端口                                    |
-| `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host；Desktop 固定为 `127.0.0.1`        |
-| `EVIDENCE_CORS_ORIGINS`           | 允许所有             | 逗号分隔 origin；Desktop 限制为 renderer origin  |
-| `EVIDENCE_REGISTRY_PATH`          | adapter 默认         | SQLite registry 文件                             |
-| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | adapter 默认         | Desktop 默认 workspace 根                        |
+| `EVIDENCE_HOST`                   | Nest 默认            | 显式监听 host                                    |
+| `EVIDENCE_CORS_ORIGINS`           | 允许所有             | Server 允许的逗号分隔 origin                     |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 默认 Workspace 根                                |
 | `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                |
-| `VITE_API_BASE_URL`               | `/api`               | Browser API 根；Electron 优先读取 preload bridge |
-| `EVIDENCE_API_BASE_URL`           | 未设置               | Electron 远程 API 模式，非 loopback 必须 HTTPS   |
+| `VITE_API_BASE_URL`               | `/api`               | Browser API 根                                   |
+| `EVIDENCE_API_BASE_URL`           | 必填                 | Electron API 根；非 loopback endpoint 必须 HTTPS |
 
 ## 常用命令
 
@@ -286,7 +277,8 @@ pnpm nx run @evidence/desktop:package-smoke
 # API
 pnpm api:check
 pnpm api:generate
-pnpm api:contracts
+# DATABASE_URL 必须指向已迁移的临时 PostgreSQL
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence pnpm api:contracts
 
 # Internal Orchestrator
 pnpm orchestrator:test
@@ -295,31 +287,31 @@ pnpm orchestrator:validate
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                    |
-| :------------------------------------------ | :------------------------------------------------------ |
-| `apps/web/`                                 | React + Vite 前端组合根                                 |
-| `libs/web/*`                                | Web shell、features、UI 与 HAL API client               |
-| `apps/server/`                              | Nest hosted/Desktop 组合根、Prisma 与迁移入口           |
-| `libs/server/api/`                          | Nest controllers、HAL/SSE 与 OpenAPI source             |
-| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                           |
-| `libs/server/persistent/`                   | PostgreSQL、SQLite 与 filesystem adapters               |
-| `libs/server/infrastructure/`               | Pi SDK adapter                                          |
-| `apps/desktop/`                             | Electron main/preload、本地 Server manager 与 packaging |
-| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                          |
-| `docs/product/`                             | 跨迭代统一产品知识                                      |
-| `.evidence/`                                | Evidence 平台权威领域模型                               |
-| `docs/architecture/`                        | 跨迭代统一架构与测试策略                                |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD                   |
-| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                        |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                    |
-| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                     |
+| 路径                                        | 用途                                                  |
+| :------------------------------------------ | :---------------------------------------------------- |
+| `apps/web/`                                 | React + Vite 前端组合根                               |
+| `libs/web/*`                                | Web shell、features、UI 与 HAL API client             |
+| `apps/server/`                              | Nest/PostgreSQL 组合根、Prisma 与迁移入口             |
+| `libs/server/api/`                          | Nest controllers、HAL/SSE 与 OpenAPI source           |
+| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                         |
+| `libs/server/persistent/`                   | PostgreSQL 与 filesystem adapters                     |
+| `libs/server/infrastructure/`               | Pi SDK adapter                                        |
+| `apps/desktop/`                             | Electron main/preload、remote API bridge 与 packaging |
+| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                        |
+| `docs/product/`                             | 跨迭代统一产品知识                                    |
+| `.evidence/`                                | Evidence 平台权威领域模型                             |
+| `docs/architecture/`                        | 跨迭代统一架构与测试策略                              |
+| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD                 |
+| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                      |
+| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                  |
+| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                   |
 
 ## 开发约定
 
 - `apps/web` 是唯一前端；Desktop 不创建第二套 React 页面。
 - Nest 是唯一 Server runtime；Electron main/preload 不承载服务端业务规则。
 - API 变化同步 OpenAPI source、发布契约、contract runner 和生成客户端。
-- 新持久化行为同时考虑 memory/fake、PostgreSQL、SQLite 和 filesystem 边界。
+- 新持久化行为同时考虑 memory/fake、PostgreSQL 和 filesystem 边界。
 - 新项目使用 Nx generator；workspace 依赖使用 pnpm 和 `workspace:*` 正式链接。
 - 提交前运行受影响项目的 test、typecheck、lint、build 及契约/打包门禁。
 
