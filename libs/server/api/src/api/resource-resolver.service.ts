@@ -21,6 +21,9 @@ export class ResourceResolver {
   constructor(@Inject(USERS) private readonly users: Users) {}
 
   async requireUser(userId: string): Promise<User> {
+    if (userId !== this.currentUserId()) {
+      throw DomainError.notFound(`user ${userId} not found`);
+    }
     const user = await this.users.findByIdentity(userId);
     if (!user) {
       throw DomainError.notFound(`user ${userId} not found`);
@@ -47,21 +50,26 @@ export class ResourceResolver {
   }
 
   async requireWorkspace(workspaceId: string): Promise<Workspace> {
-    const workspace = await this.users.workspaces().findByIdentity(workspaceId);
-    if (!workspace) {
+    await this.requireCurrentUser();
+    const membership = await this.users
+      .memberships(this.currentUserId())
+      .findByWorkspaceIdentity(workspaceId);
+    if (!membership) {
       throw DomainError.notFound(`workspace ${workspaceId} not found`);
     }
-    return workspace;
+    return membership.workspace;
   }
 
   async updateWorkspace(
     workspaceId: string,
     desc: WorkspaceDescription,
   ): Promise<Workspace> {
+    await this.requireWorkspace(workspaceId);
     return this.users.workspaces().update(workspaceId, desc);
   }
 
   async deleteWorkspace(workspaceId: string): Promise<void> {
+    await this.requireWorkspace(workspaceId);
     await this.users.workspaces().delete(workspaceId);
   }
 
