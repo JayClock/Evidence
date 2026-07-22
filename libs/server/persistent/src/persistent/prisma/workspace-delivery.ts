@@ -505,7 +505,9 @@ function assembleStory(row: StoryRow): Story {
   }
   return new Story(row.id, {
     workspace: new Ref(row.workspaceId),
+    title: row.latestRevision.title,
     latestRevision: new Ref(row.latestRevisionId),
+    latestRevisionNumber: row.latestRevision.revisionNumber,
     revisionCount: row._count.revisions,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

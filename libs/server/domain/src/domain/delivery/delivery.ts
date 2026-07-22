@@ -67,7 +67,9 @@ export class StoryCandidate
 
 export interface StoryDescription {
   workspace: Ref<string>;
+  title: string;
   latestRevision: Ref<string>;
+  latestRevisionNumber: number;
   revisionCount: number;
   createdAt: string;
   updatedAt: string;

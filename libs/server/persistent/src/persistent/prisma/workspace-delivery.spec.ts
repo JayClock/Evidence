@@ -194,7 +194,11 @@ describe('PrismaWorkspaceDelivery', () => {
       status: 'confirmed',
       version: 2,
     });
-    expect(result.story.description()).toMatchObject({ revisionCount: 1 });
+    expect(result.story.description()).toMatchObject({
+      title: candidateInput.title,
+      latestRevisionNumber: 1,
+      revisionCount: 1,
+    });
     expect(result.revision.description()).toMatchObject({
       revisionNumber: 1,
       title: candidateInput.title,
