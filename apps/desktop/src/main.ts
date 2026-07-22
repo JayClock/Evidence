@@ -8,6 +8,7 @@ import {
   ipcMain,
   net,
   protocol,
+  session,
   shell,
   type IpcMainInvokeEvent,
 } from 'electron';
@@ -17,9 +18,14 @@ import {
   parseDiagramAgentRequest,
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
+import { authorizedApiRequestHeaders } from './api-request-authorization';
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalAgent } from './local-agent';
-import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
+import {
+  resolveApiAuthorization,
+  resolveApiBaseUrl,
+  resolveWebUrl,
+} from './runtime-config';
 import { WorkspaceBindingStore } from './workspace-binding-store';
 
 const APP_SCHEME = 'evidence';
@@ -140,6 +146,29 @@ function registerDesktopBridge(
   });
 }
 
+function registerRendererApiAuthorization(
+  apiBaseUrl: string,
+  authorization: string | undefined,
+): void {
+  if (!authorization) {
+    return;
+  }
+  const apiOriginPattern = `${new URL(apiBaseUrl).origin}/*`;
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: [apiOriginPattern] },
+    (details, callback) => {
+      callback({
+        requestHeaders: authorizedApiRequestHeaders(
+          details.url,
+          details.requestHeaders,
+          apiBaseUrl,
+          authorization,
+        ),
+      });
+    },
+  );
+}
+
 function createLocalAgent(): LocalAgent {
   return new LocalAgent({
     executablePath: app.isPackaged
@@ -182,12 +211,15 @@ function canOpenExternally(value: string): boolean {
 async function verifyPackagedRuntime(
   window: BrowserWindow,
   apiBaseUrl: string,
+  authorization: string | undefined,
 ): Promise<void> {
   if (!SMOKE_TEST) {
     return;
   }
 
-  const response = await fetch(`${apiBaseUrl}/users/desktop-user`);
+  const response = await fetch(`${apiBaseUrl}/users/desktop-user`, {
+    headers: authorization ? { Authorization: authorization } : {},
+  });
   if (!response.ok) {
     throw new Error(`Packaged API smoke check returned ${response.status}.`);
   }
@@ -240,13 +272,15 @@ void app.whenReady().then(async () => {
   try {
     registerWebProtocol();
     const apiBaseUrl = await connectRemoteApi();
+    const authorization = resolveApiAuthorization();
+    registerRendererApiAuthorization(apiBaseUrl, authorization);
     localAgent = createLocalAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
     );
     registerDesktopBridge(apiBaseUrl, localAgent, bindings);
     const window = await createWindow();
-    await verifyPackagedRuntime(window, apiBaseUrl);
+    await verifyPackagedRuntime(window, apiBaseUrl, authorization);
 
     if (SMOKE_TEST) {
       app.quit();

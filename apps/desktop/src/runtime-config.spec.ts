@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { resolveApiBaseUrl, resolveWebUrl } from './runtime-config';
+import {
+  resolveApiAuthorization,
+  resolveApiBaseUrl,
+  resolveWebUrl,
+} from './runtime-config';
 
 describe('desktop runtime config', () => {
   it('requires an explicitly configured remote API', () => {
@@ -32,5 +36,15 @@ describe('desktop runtime config', () => {
     expect(() => resolveApiBaseUrl('http://api.example.com/api')).toThrow(
       'must use HTTPS unless it targets loopback',
     );
+  });
+
+  it('normalizes an optional API Authorization value', () => {
+    expect(resolveApiAuthorization(' Bearer desktop-token ')).toBe(
+      'Bearer desktop-token',
+    );
+    expect(resolveApiAuthorization('')).toBeUndefined();
+    expect(() =>
+      resolveApiAuthorization('Bearer token\nInjected: true'),
+    ).toThrow('invalid');
   });
 });

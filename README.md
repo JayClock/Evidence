@@ -241,10 +241,14 @@ Web 与 Server 健康检查通过后再启动。
 连接已运行的远程 Server 时，使用：
 
 ```sh
-EVIDENCE_API_BASE_URL=https://api.example.com/api pnpm dev:desktop:remote
+EVIDENCE_API_BASE_URL=https://api.example.com/api \
+EVIDENCE_API_AUTHORIZATION='Bearer ...' \
+pnpm dev:desktop:remote
 ```
 
-远程 endpoint 必须使用 HTTPS；只有 loopback endpoint 允许 HTTP。
+远程 endpoint 必须使用 HTTPS；只有 loopback endpoint 允许 HTTP。Desktop 主进程只向配置的
+API origin/path 注入 `EVIDENCE_API_AUTHORIZATION`，不会通过 preload 把凭据交给 renderer。Browser
+部署可用 `VITE_API_AUTHORIZATION` 配置其自身的短期访问凭据。
 
 打包与 smoke：
 
@@ -270,8 +274,9 @@ pnpm nx run @evidence/desktop:package
 | `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 仅用于内置默认 Workspace 的 Server 模型根                                      |
 | `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models` | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                 |
 | `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                                              |
-| `VITE_API_BASE_URL`               | `/api`               | Browser API 根                                                                 |
-| `EVIDENCE_API_BASE_URL`           | Electron 必填        | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
+| `VITE_API_BASE_URL`               | `/api`                  | Browser API 根                                                                 |
+| `VITE_API_AUTHORIZATION`          | 未设置                  | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供       |
+| `EVIDENCE_API_BASE_URL`           | Electron 必填           | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
 
 ## 常用命令
 

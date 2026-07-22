@@ -30,6 +30,7 @@ type EvidenceDesktopBridge = {
 type EvidenceImportMeta = ImportMeta & {
   env?: {
     VITE_API_BASE_URL?: string;
+    VITE_API_AUTHORIZATION?: string;
   };
 };
 
@@ -39,12 +40,24 @@ declare global {
   }
 }
 
-function createEvidenceClient(apiRootUrl: string) {
-  return createClient({
+function createEvidenceClient(
+  apiRootUrl: string,
+  authorization?: string,
+) {
+  const client = createClient({
     baseURL: apiRootUrl,
     schemaPlugin: zodActionSchemaPlugin,
     sendUserAgent: false,
   });
+  const normalizedAuthorization = authorization?.trim();
+  if (normalizedAuthorization) {
+    client.use((request, next) => {
+      const headers = new Headers(request.headers);
+      headers.set('Authorization', normalizedAuthorization);
+      return next(new Request(request, { headers }));
+    }, apiOrigin(apiRootUrl));
+  }
+  return client;
 }
 
 export async function getApiBaseUrl(): Promise<string> {
@@ -68,6 +81,15 @@ export function getRootResource() {
 
 export async function initializeApiClient(): Promise<void> {
   const apiRootUrl = await getApiBaseUrl();
-  apiClient = createEvidenceClient(apiRootUrl);
+  const authorization = (import.meta as EvidenceImportMeta).env
+    ?.VITE_API_AUTHORIZATION;
+  apiClient = createEvidenceClient(apiRootUrl, authorization);
   rootResource = getRootResource();
+}
+
+function apiOrigin(apiRootUrl: string): string {
+  if (/^https?:\/\//.test(apiRootUrl)) {
+    return new URL(apiRootUrl).origin;
+  }
+  return typeof window === 'undefined' ? '*' : window.location.origin;
 }

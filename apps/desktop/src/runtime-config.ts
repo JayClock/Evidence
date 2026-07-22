@@ -41,3 +41,16 @@ export function resolveWebUrl(
 ): string {
   return normalizeHttpUrl(value, 'EVIDENCE_WEB_URL');
 }
+
+export function resolveApiAuthorization(
+  value = process.env.EVIDENCE_API_AUTHORIZATION,
+): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return undefined;
+  }
+  if (/\r|\n/.test(normalized) || normalized.length > 4_096) {
+    throw new Error('EVIDENCE_API_AUTHORIZATION is invalid.');
+  }
+  return normalized;
+}
