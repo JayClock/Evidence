@@ -6,7 +6,7 @@ import { InfrastructureModule } from './infrastructure.module';
 import { PersistenceModule } from './persistence.module';
 
 @Module({
-  imports: [PersistenceModule.forRoot(), InfrastructureModule, ApiModule],
+  imports: [PersistenceModule, InfrastructureModule, ApiModule],
   controllers: [AppController],
   providers: [AppService],
 })

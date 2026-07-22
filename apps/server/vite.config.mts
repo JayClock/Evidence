@@ -59,37 +59,24 @@ function nestSwc(): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => {
-  const desktop = mode === 'desktop';
-  return {
-    root: import.meta.dirname,
-    cacheDir: '../../node_modules/.vite/apps/server',
-    plugins: [nestSwc()],
-    ssr: desktop ? { noExternal: true } : undefined,
-    build: {
-      ssr: desktop ? './src/desktop-main.ts' : './src/main.ts',
-      outDir: desktop ? './dist-desktop' : './dist',
-      emptyOutDir: true,
-      sourcemap: true,
-      target: desktop ? 'node22' : 'node20',
-      minify: false,
-      reportCompressedSize: false,
-      rollupOptions: {
-        external: desktop
-          ? [
-              ...nodeExternal,
-              '@nestjs/common',
-              '@nestjs/core',
-              '@nestjs/platform-express',
-              'reflect-metadata',
-              'rxjs',
-            ]
-          : external,
-        output: {
-          format: 'cjs',
-          entryFileNames: 'main.js',
-        },
+export default defineConfig(() => ({
+  root: import.meta.dirname,
+  cacheDir: '../../node_modules/.vite/apps/server',
+  plugins: [nestSwc()],
+  build: {
+    ssr: './src/main.ts',
+    outDir: './dist',
+    emptyOutDir: true,
+    sourcemap: true,
+    target: 'node20',
+    minify: false,
+    reportCompressedSize: false,
+    rollupOptions: {
+      external,
+      output: {
+        format: 'cjs',
+        entryFileNames: 'main.js',
       },
     },
-  };
-});
+  },
+}));

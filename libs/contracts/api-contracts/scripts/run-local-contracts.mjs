@@ -8,10 +8,17 @@ import {
   writeFakePiAgentConfig,
 } from '../fixtures/fake-pi-provider.mjs';
 
+const databaseUrl = process.env.DATABASE_URL?.trim();
+if (!databaseUrl) {
+  throw new Error(
+    'DATABASE_URL must point to a migrated disposable PostgreSQL database.',
+  );
+}
+
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-contracts-'));
 const port = await reservePort();
 const origin = `http://127.0.0.1:${port}`;
-const serverEntry = resolve('apps/server/dist-desktop/main.js');
+const serverEntry = resolve('apps/server/dist/main.js');
 const piAgentDir = join(testRoot, 'pi-agent');
 const fakePiProvider = await startFakePiProvider();
 await writeFakePiAgentConfig(piAgentDir, fakePiProvider.baseUrl);
@@ -19,10 +26,8 @@ const server = spawn(process.execPath, [serverEntry], {
   cwd: testRoot,
   env: {
     ...process.env,
-    EVIDENCE_DESKTOP_SESSION_TOKEN: '',
-    EVIDENCE_REGISTRY_PATH: join(testRoot, 'registry.sqlite'),
+    DATABASE_URL: databaseUrl,
     EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
-    EVIDENCE_LEGACY_REGISTRY_PATH: join(testRoot, 'missing-legacy.sqlite'),
     EVIDENCE_HOST: '127.0.0.1',
     PI_CODING_AGENT_DIR: piAgentDir,
     PI_OFFLINE: '1',

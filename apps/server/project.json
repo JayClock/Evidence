@@ -23,13 +23,6 @@
         }
       }
     },
-    "build-desktop": {
-      "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/apps/server/dist-desktop"],
-      "options": {
-        "command": "pnpm --dir apps/server exec vite build --mode desktop"
-      }
-    },
     "build-migration": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/apps/server/dist-migration"],

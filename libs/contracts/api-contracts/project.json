@@ -19,7 +19,7 @@
       "dependsOn": [
         {
           "projects": "@evidence/server",
-          "target": "build-desktop"
+          "target": "build"
         }
       ],
       "options": {
