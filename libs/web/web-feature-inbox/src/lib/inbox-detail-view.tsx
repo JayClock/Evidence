@@ -59,8 +59,10 @@ const inboxStatuses: InboxItemStatus[] = ['active', 'deferred', 'closed'];
 
 export function InboxItemDetailView({
   resourceState,
+  children,
 }: {
   resourceState: State<InboxItemResource>;
+  children?: ReactNode;
 }) {
   const [itemState, setItemState] = useState(resourceState);
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -139,14 +141,22 @@ export function InboxItemDetailView({
               {item.revisionCount === 1 ? 'revision' : 'revisions'}
             </CardDescription>
           </div>
-          {!latestRevision.loading &&
-          latestRevision.resourceState &&
-          isManualSource(item.sourceKind) ? (
-            <EditSourceDialog
-              expectedLatestRevisionSha256={item.latestRevisionSha256}
-              latestRevisionState={latestRevision.resourceState}
-              onUpdate={updateSource}
-            />
+          {children ||
+          (!latestRevision.loading &&
+            latestRevision.resourceState &&
+            isManualSource(item.sourceKind)) ? (
+            <div className="flex flex-wrap gap-2">
+              {!latestRevision.loading &&
+              latestRevision.resourceState &&
+              isManualSource(item.sourceKind) ? (
+                <EditSourceDialog
+                  expectedLatestRevisionSha256={item.latestRevisionSha256}
+                  latestRevisionState={latestRevision.resourceState}
+                  onUpdate={updateSource}
+                />
+              ) : null}
+              {children}
+            </div>
           ) : null}
         </CardHeader>
         <CardContent className="space-y-5">

@@ -41,6 +41,12 @@ vi.mock('@evidence/api-client', () => {
       inboxItems: 'application/vnd.evidence.inbox-items+json',
       inboxRevision: 'application/vnd.evidence.inbox-revision+json',
       inboxRevisions: 'application/vnd.evidence.inbox-revisions+json',
+      storyCandidate: 'application/vnd.evidence.story-candidate+json',
+      storyCandidates: 'application/vnd.evidence.story-candidates+json',
+      story: 'application/vnd.evidence.story+json',
+      stories: 'application/vnd.evidence.stories+json',
+      storyRevision: 'application/vnd.evidence.story-revision+json',
+      storyRevisions: 'application/vnd.evidence.story-revisions+json',
       logicalEntity: 'application/vnd.evidence.logical-entity+json',
       logicalEntities: 'application/vnd.evidence.logical-entities+json',
     },
@@ -51,6 +57,16 @@ vi.mock('@evidence/api-client', () => {
     useResource: vi.fn(),
   };
 });
+
+vi.mock('@evidence/web-feature-delivery', () => ({
+  CreateStoryCandidateDialog: () => <div>Propose Story action</div>,
+  StoryCandidateCollectionView: () => <div>Story Candidate collection</div>,
+  StoryCandidateDetailView: () => <div>Story Candidate detail</div>,
+  StoryCollectionView: () => <div>Story collection</div>,
+  StoryDetailView: () => <div>Story detail</div>,
+  StoryRevisionCollectionView: () => <div>Story revisions</div>,
+  StoryRevisionDetailView: () => <div>Story revision</div>,
+}));
 
 vi.mock('@evidence/web-feature-diagrams', () => ({
   DiagramCollectionView: () => <div>Diagram collection</div>,
@@ -184,6 +200,44 @@ const inboxRevisionState = {
     }),
 };
 
+const storyCandidateCollectionState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.story-candidates+json',
+    }),
+};
+
+const storyCandidateState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.story-candidate+json',
+    }),
+};
+
+const storyCollectionState = {
+  contentHeaders: () =>
+    new Headers({ 'content-type': 'application/vnd.evidence.stories+json' }),
+};
+
+const storyState = {
+  contentHeaders: () =>
+    new Headers({ 'content-type': 'application/vnd.evidence.story+json' }),
+};
+
+const storyRevisionCollectionState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.story-revisions+json',
+    }),
+};
+
+const storyRevisionState = {
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.story-revision+json',
+    }),
+};
+
 const logicalEntityCollectionState = {
   data: {
     page: {
@@ -213,6 +267,30 @@ const logicalEntityCollectionState = {
 };
 
 function dynamicStateForPath(path: string) {
+  if (path.includes('/stories/') && path.includes('/revisions/')) {
+    return storyRevisionState;
+  }
+
+  if (path.includes('/stories/') && path.endsWith('/revisions')) {
+    return storyRevisionCollectionState;
+  }
+
+  if (/\/stories\/[^/]+$/.test(path)) {
+    return storyState;
+  }
+
+  if (path.endsWith('/stories')) {
+    return storyCollectionState;
+  }
+
+  if (/\/story-candidates\/[^/]+$/.test(path)) {
+    return storyCandidateState;
+  }
+
+  if (path.endsWith('/story-candidates')) {
+    return storyCandidateCollectionState;
+  }
+
   if (path.endsWith('/revisions/revision-1')) {
     return inboxRevisionState;
   }
@@ -346,6 +424,33 @@ describe('ResourceBrowserRoutes', () => {
       'Inbox revision',
     ],
   ])('renders the Inbox feature for %s', async (path, expected) => {
+    await act(async () => {
+      renderRoutes(path);
+    });
+
+    expect(await screen.findByText(expected)).toBeTruthy();
+  });
+
+  it.each([
+    [
+      '/workspaces/default-workspace/story-candidates',
+      'Story Candidate collection',
+    ],
+    [
+      '/workspaces/default-workspace/story-candidates/candidate-1',
+      'Story Candidate detail',
+    ],
+    ['/workspaces/default-workspace/stories', 'Story collection'],
+    ['/workspaces/default-workspace/stories/story-1', 'Story detail'],
+    [
+      '/workspaces/default-workspace/stories/story-1/revisions',
+      'Story revisions',
+    ],
+    [
+      '/workspaces/default-workspace/stories/story-1/revisions/story-revision-1',
+      'Story revision',
+    ],
+  ])('renders the Delivery feature for %s', async (path, expected) => {
     await act(async () => {
       renderRoutes(path);
     });

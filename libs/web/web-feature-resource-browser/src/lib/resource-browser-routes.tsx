@@ -18,6 +18,12 @@ import {
   type LogicalEntityResource,
   type RootResource,
   type State,
+  type StoryCandidateCollectionResource,
+  type StoryCandidateResource,
+  type StoryCollectionResource,
+  type StoryResource,
+  type StoryRevisionCollectionResource,
+  type StoryRevisionResource,
   type UserResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
@@ -32,6 +38,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@evidence/ui';
+import {
+  CreateStoryCandidateDialog,
+  StoryCandidateCollectionView,
+  StoryCandidateDetailView,
+  StoryCollectionView,
+  StoryDetailView,
+  StoryRevisionCollectionView,
+  StoryRevisionDetailView,
+} from '@evidence/web-feature-delivery';
 import {
   DiagramCollectionView,
   DiagramDetailView,
@@ -185,12 +200,14 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
           resourceState={resourceState as State<InboxItemCollectionResource>}
         />
       );
-    case resourceContentTypes.inboxItem:
+    case resourceContentTypes.inboxItem: {
+      const inboxItemState = resourceState as State<InboxItemResource>;
       return (
-        <InboxItemDetailView
-          resourceState={resourceState as State<InboxItemResource>}
-        />
+        <InboxItemDetailView resourceState={inboxItemState}>
+          <CreateStoryCandidateDialog inboxItemState={inboxItemState} />
+        </InboxItemDetailView>
       );
+    }
     case resourceContentTypes.inboxRevisions:
       return (
         <InboxRevisionCollectionView
@@ -203,6 +220,46 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <InboxRevisionDetailView
           resourceState={resourceState as State<InboxRevisionResource>}
+        />
+      );
+    case resourceContentTypes.storyCandidates:
+      return (
+        <StoryCandidateCollectionView
+          resourceState={
+            resourceState as State<StoryCandidateCollectionResource>
+          }
+        />
+      );
+    case resourceContentTypes.storyCandidate:
+      return (
+        <StoryCandidateDetailView
+          resourceState={resourceState as State<StoryCandidateResource>}
+        />
+      );
+    case resourceContentTypes.stories:
+      return (
+        <StoryCollectionView
+          resourceState={resourceState as State<StoryCollectionResource>}
+        />
+      );
+    case resourceContentTypes.story:
+      return (
+        <StoryDetailView
+          resourceState={resourceState as State<StoryResource>}
+        />
+      );
+    case resourceContentTypes.storyRevisions:
+      return (
+        <StoryRevisionCollectionView
+          resourceState={
+            resourceState as State<StoryRevisionCollectionResource>
+          }
+        />
+      );
+    case resourceContentTypes.storyRevision:
+      return (
+        <StoryRevisionDetailView
+          resourceState={resourceState as State<StoryRevisionResource>}
         />
       );
     case resourceContentTypes.logicalEntities:

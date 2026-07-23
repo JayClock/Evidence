@@ -134,10 +134,13 @@ describe('InboxItemDetailView', () => {
   it('renders the latest source content and immutable revision history', () => {
     render(
       <MemoryRouter>
-        <InboxItemDetailView resourceState={inboxItemState()} />
+        <InboxItemDetailView resourceState={inboxItemState()}>
+          <button type="button">Propose Story</button>
+        </InboxItemDetailView>
       </MemoryRouter>,
     );
 
+    expect(screen.getByRole('button', { name: 'Propose Story' })).toBeTruthy();
     expect(
       screen.getByRole('heading', { name: 'Customer interview', level: 1 }),
     ).toBeTruthy();
