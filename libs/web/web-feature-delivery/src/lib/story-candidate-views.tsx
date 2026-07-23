@@ -154,8 +154,8 @@ export function CreateStoryCandidateDialog({
         <DialogHeader>
           <DialogTitle>Propose Story Candidate</DialogTitle>
           <DialogDescription>
-            Create a non-authoritative proposal citing Inbox Revision #
-            {item.revisionCount}. A separate confirmation is required before it
+            Create a non-authoritative proposal citing the current immutable
+            Inbox Revision. A separate confirmation is required before it
             becomes Story Revision v1.
           </DialogDescription>
         </DialogHeader>
