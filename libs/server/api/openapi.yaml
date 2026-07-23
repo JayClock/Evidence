@@ -665,6 +665,302 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
+  /api/workspaces/{workspaceId}/story-candidates:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: list_story_candidates
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/StoryCandidateStatus'
+      responses:
+        '200':
+          description: Workspace Story Candidate collection
+          content:
+            application/vnd.evidence.story-candidates+json:
+              schema:
+                $ref: '#/components/schemas/StoryCandidateCollectionResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      operationId: propose_story_candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryCandidateInput'
+      responses:
+        '201':
+          description: Persisted non-authoritative Story Candidate
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/vnd.evidence.story-candidate+json:
+              schema:
+                $ref: '#/components/schemas/StoryCandidateResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/story-candidates/{candidateId}:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: candidateId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: get_story_candidate
+      responses:
+        '200':
+          description: Non-authoritative Story Candidate and decision state
+          content:
+            application/vnd.evidence.story-candidate+json:
+              schema:
+                $ref: '#/components/schemas/StoryCandidateResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: candidateId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: confirm_story_candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryCandidateDecisionInput'
+      responses:
+        '201':
+          description: Immutable Story Revision v1 created by explicit human confirmation
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/vnd.evidence.story-revision+json:
+              schema:
+                $ref: '#/components/schemas/StoryRevisionResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/story-candidates/{candidateId}/reject:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: candidateId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: reject_story_candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryCandidateDecisionInput'
+      responses:
+        '200':
+          description: Story Candidate with recorded rejection decision
+          content:
+            application/vnd.evidence.story-candidate+json:
+              schema:
+                $ref: '#/components/schemas/StoryCandidateResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/stories:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: list_stories
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Human-confirmed Story collection
+          content:
+            application/vnd.evidence.stories+json:
+              schema:
+                $ref: '#/components/schemas/StoryCollectionResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/stories/{storyId}:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: storyId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: get_story
+      responses:
+        '200':
+          description: Human-confirmed Story identity and latest revision
+          content:
+            application/vnd.evidence.story+json:
+              schema:
+                $ref: '#/components/schemas/StoryResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/stories/{storyId}/revisions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: storyId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: list_story_revisions
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Immutable Story Revision collection
+          content:
+            application/vnd.evidence.story-revisions+json:
+              schema:
+                $ref: '#/components/schemas/StoryRevisionCollectionResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/stories/{storyId}/revisions/{revisionId}:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: storyId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: revisionId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: get_story_revision
+      responses:
+        '200':
+          description: One immutable Story Revision
+          content:
+            application/vnd.evidence.story-revision+json:
+              schema:
+                $ref: '#/components/schemas/StoryRevisionResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/workspaces/{workspaceId}/members:
     get:
       tags: []
@@ -1678,6 +1974,31 @@ components:
       in: header
       name: Authorization
       description: Exact authorization value configured by the Evidence Server.
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    ResourceNotFound:
+      description: Resource not found within the authenticated Workspace boundary
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    ResourceConflict:
+      description: Resource version or decision conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
   schemas:
     AddMemberInput:
       type: object
@@ -2564,6 +2885,323 @@ components:
           type: string
         title:
           type: string
+    StoryCognitiveMode:
+      type: string
+      enum: [clear, complicated, complex]
+    StoryCandidateStatus:
+      type: string
+      enum: [pending, confirmed, rejected]
+    StoryCitationInput:
+      type: object
+      required:
+        - inboxItemId
+        - inboxRevisionId
+        - contentSha256
+        - locator
+      properties:
+        inboxItemId:
+          type: string
+          minLength: 1
+        inboxRevisionId:
+          type: string
+          minLength: 1
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        locator:
+          type: string
+          minLength: 1
+          maxLength: 500
+    StoryCitationResource:
+      type: object
+      required:
+        - _links
+        - inboxItemId
+        - inboxRevisionId
+        - inboxRevisionNumber
+        - contentSha256
+        - locator
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        inboxItemId:
+          type: string
+        inboxRevisionId:
+          type: string
+        inboxRevisionNumber:
+          type: integer
+          format: int32
+          minimum: 1
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        locator:
+          type: string
+    StoryCandidateInput:
+      type: object
+      required:
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        problem:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        role:
+          type: string
+          minLength: 1
+          maxLength: 200
+        goal:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        value:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        cognitiveMode:
+          $ref: '#/components/schemas/StoryCognitiveMode'
+        citations:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/StoryCitationInput'
+    StoryCandidateDecisionInput:
+      type: object
+      required:
+        - expectedVersion
+      properties:
+        expectedVersion:
+          type: integer
+          format: int32
+          minimum: 1
+    StoryCandidateResource:
+      type: object
+      required:
+        - _links
+        - id
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+        - contentSha256
+        - status
+        - version
+        - proposedByUserId
+        - proposedAt
+        - decidedByUserId
+        - decidedAt
+        - confirmedStoryId
+        - confirmedRevisionId
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        title:
+          type: string
+        problem:
+          type: string
+        role:
+          type: string
+        goal:
+          type: string
+        value:
+          type: string
+        cognitiveMode:
+          $ref: '#/components/schemas/StoryCognitiveMode'
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryCitationResource'
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        status:
+          $ref: '#/components/schemas/StoryCandidateStatus'
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        proposedByUserId:
+          type: string
+        proposedAt:
+          type: string
+          format: date-time
+        decidedByUserId:
+          type: [string, 'null']
+        decidedAt:
+          type: [string, 'null']
+          format: date-time
+        confirmedStoryId:
+          type: [string, 'null']
+        confirmedRevisionId:
+          type: [string, 'null']
+    StoryCandidateCollectionEmbedded:
+      type: object
+      required:
+        - storyCandidates
+      properties:
+        storyCandidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryCandidateResource'
+    StoryCandidateCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        _embedded:
+          $ref: '#/components/schemas/StoryCandidateCollectionEmbedded'
+        page:
+          $ref: '#/components/schemas/PageModel'
+    StoryResource:
+      type: object
+      required:
+        - _links
+        - id
+        - title
+        - latestRevisionId
+        - latestRevisionNumber
+        - revisionCount
+        - createdAt
+        - updatedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        title:
+          type: string
+        latestRevisionId:
+          type: string
+        latestRevisionNumber:
+          type: integer
+          format: int32
+          minimum: 1
+        revisionCount:
+          type: integer
+          format: int32
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StoryCollectionEmbedded:
+      type: object
+      required:
+        - stories
+      properties:
+        stories:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryResource'
+    StoryCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        _embedded:
+          $ref: '#/components/schemas/StoryCollectionEmbedded'
+        page:
+          $ref: '#/components/schemas/PageModel'
+    StoryRevisionResource:
+      type: object
+      required:
+        - _links
+        - id
+        - revisionNumber
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+        - contentSha256
+        - sourceCandidateId
+        - createdByUserId
+        - createdAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        revisionNumber:
+          type: integer
+          format: int32
+          minimum: 1
+        title:
+          type: string
+        problem:
+          type: string
+        role:
+          type: string
+        goal:
+          type: string
+        value:
+          type: string
+        cognitiveMode:
+          $ref: '#/components/schemas/StoryCognitiveMode'
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryCitationResource'
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        sourceCandidateId:
+          type: [string, 'null']
+        createdByUserId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    StoryRevisionCollectionEmbedded:
+      type: object
+      required:
+        - storyRevisions
+      properties:
+        storyRevisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryRevisionResource'
+    StoryRevisionCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        _embedded:
+          $ref: '#/components/schemas/StoryRevisionCollectionEmbedded'
+        page:
+          $ref: '#/components/schemas/PageModel'
     TemplateProperty:
       type: object
       required:

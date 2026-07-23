@@ -180,6 +180,157 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/story-candidates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['list_story_candidates'];
+    put?: never;
+    post: operations['propose_story_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/story-candidates/{candidateId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_story_candidate'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['confirm_story_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/reject': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['reject_story_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/stories': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['list_stories'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/stories/{storyId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_story'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/stories/{storyId}/revisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['list_story_revisions'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/stories/{storyId}/revisions/{revisionId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+        revisionId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_story_revision'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/members': {
     parameters: {
       query?: never;
@@ -706,6 +857,117 @@ export interface components {
       key: string;
       title: string;
     };
+    /** @enum {string} */
+    StoryCognitiveMode: 'clear' | 'complicated' | 'complex';
+    /** @enum {string} */
+    StoryCandidateStatus: 'pending' | 'confirmed' | 'rejected';
+    StoryCitationInput: {
+      inboxItemId: string;
+      inboxRevisionId: string;
+      contentSha256: string;
+      locator: string;
+    };
+    StoryCitationResource: {
+      _links: components['schemas']['BTreeMap'];
+      inboxItemId: string;
+      inboxRevisionId: string;
+      /** Format: int32 */
+      inboxRevisionNumber: number;
+      contentSha256: string;
+      locator: string;
+    };
+    StoryCandidateInput: {
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      cognitiveMode: components['schemas']['StoryCognitiveMode'];
+      citations: components['schemas']['StoryCitationInput'][];
+    };
+    StoryCandidateDecisionInput: {
+      /** Format: int32 */
+      expectedVersion: number;
+    };
+    StoryCandidateResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      cognitiveMode: components['schemas']['StoryCognitiveMode'];
+      citations: components['schemas']['StoryCitationResource'][];
+      contentSha256: string;
+      status: components['schemas']['StoryCandidateStatus'];
+      /** Format: int32 */
+      version: number;
+      proposedByUserId: string;
+      /** Format: date-time */
+      proposedAt: string;
+      decidedByUserId: string | null;
+      /** Format: date-time */
+      decidedAt: string | null;
+      confirmedStoryId: string | null;
+      confirmedRevisionId: string | null;
+    };
+    StoryCandidateCollectionEmbedded: {
+      storyCandidates: components['schemas']['StoryCandidateResource'][];
+    };
+    StoryCandidateCollectionResource: {
+      _links: components['schemas']['BTreeMap'];
+      _embedded: components['schemas']['StoryCandidateCollectionEmbedded'];
+      page: components['schemas']['PageModel'];
+    };
+    StoryResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      title: string;
+      latestRevisionId: string;
+      /** Format: int32 */
+      latestRevisionNumber: number;
+      /** Format: int32 */
+      revisionCount: number;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    StoryCollectionEmbedded: {
+      stories: components['schemas']['StoryResource'][];
+    };
+    StoryCollectionResource: {
+      _links: components['schemas']['BTreeMap'];
+      _embedded: components['schemas']['StoryCollectionEmbedded'];
+      page: components['schemas']['PageModel'];
+    };
+    StoryRevisionResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      /** Format: int32 */
+      revisionNumber: number;
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      cognitiveMode: components['schemas']['StoryCognitiveMode'];
+      citations: components['schemas']['StoryCitationResource'][];
+      contentSha256: string;
+      sourceCandidateId: string | null;
+      createdByUserId: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    StoryRevisionCollectionEmbedded: {
+      storyRevisions: components['schemas']['StoryRevisionResource'][];
+    };
+    StoryRevisionCollectionResource: {
+      _links: components['schemas']['BTreeMap'];
+      _embedded: components['schemas']['StoryRevisionCollectionEmbedded'];
+      page: components['schemas']['PageModel'];
+    };
     TemplateProperty: {
       /** Format: int32 */
       minLength?: number | null;
@@ -762,7 +1024,44 @@ export interface components {
       updatedAt: string;
     };
   };
-  responses: never;
+  responses: {
+    /** @description Validation error */
+    ValidationError: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorBody'];
+      };
+    };
+    /** @description Resource not found within the authenticated Workspace boundary */
+    ResourceNotFound: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorBody'];
+      };
+    };
+    /** @description Resource version or decision conflict */
+    ResourceConflict: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorBody'];
+      };
+    };
+    /** @description Internal server error */
+    InternalError: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/json': components['schemas']['ErrorBody'];
+      };
+    };
+  };
   parameters: never;
   requestBodies: never;
   headers: never;
@@ -1571,6 +1870,261 @@ export interface operations {
           'application/json': components['schemas']['ErrorBody'];
         };
       };
+    };
+  };
+  list_story_candidates: {
+    parameters: {
+      query?: {
+        page?: number;
+        pageSize?: number;
+        status?: components['schemas']['StoryCandidateStatus'];
+      };
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workspace Story Candidate collection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-candidates+json': components['schemas']['StoryCandidateCollectionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  propose_story_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StoryCandidateInput'];
+      };
+    };
+    responses: {
+      /** @description Persisted non-authoritative Story Candidate */
+      201: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-candidate+json': components['schemas']['StoryCandidateResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_story_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Non-authoritative Story Candidate and decision state */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-candidate+json': components['schemas']['StoryCandidateResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  confirm_story_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StoryCandidateDecisionInput'];
+      };
+    };
+    responses: {
+      /** @description Immutable Story Revision v1 created by explicit human confirmation */
+      201: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  reject_story_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StoryCandidateDecisionInput'];
+      };
+    };
+    responses: {
+      /** @description Story Candidate with recorded rejection decision */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-candidate+json': components['schemas']['StoryCandidateResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  list_stories: {
+    parameters: {
+      query?: {
+        page?: number;
+        pageSize?: number;
+      };
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Human-confirmed Story collection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.stories+json': components['schemas']['StoryCollectionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_story: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Human-confirmed Story identity and latest revision */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story+json': components['schemas']['StoryResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  list_story_revisions: {
+    parameters: {
+      query?: {
+        page?: number;
+        pageSize?: number;
+      };
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Immutable Story Revision collection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-revisions+json': components['schemas']['StoryRevisionCollectionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_story_revision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+        revisionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One immutable Story Revision */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
     };
   };
   list_workspace_members: {
