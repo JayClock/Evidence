@@ -177,6 +177,7 @@ export class StoryCandidatesController {
   }
 
   @Post(':candidateId/reject')
+  @HttpCode(HttpStatus.OK)
   async rejectStoryCandidate(
     @Param('workspaceId') workspaceId: string,
     @Param('candidateId') candidateId: string,
