@@ -47,6 +47,9 @@
     },
     {
       "path": "./libs/web/web-feature-inbox"
+    },
+    {
+      "path": "./libs/web/web-feature-delivery"
     }
   ]
 }
