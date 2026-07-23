@@ -1,3 +1,4 @@
+export * from './delivery-resource.js';
 export * from './diagram-resource.js';
 export * from './health-resource.js';
 export * from './inbox-resource.js';

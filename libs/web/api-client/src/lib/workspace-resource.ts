@@ -2,6 +2,10 @@ import type { Entity } from '@hateoas-ts/resource';
 
 import type { components } from './openapi-schema.js';
 
+import type {
+  StoryCandidateCollectionResource,
+  StoryCollectionResource,
+} from './delivery-resource.js';
 import type { DiagramResource } from './diagram-resource.js';
 import type { InboxItemCollectionResource } from './inbox-resource.js';
 import type { LogicalEntityCollectionResource } from './logical-entity-resource.js';
@@ -19,6 +23,8 @@ export type WorkspaceResource = Entity<
     members: MemberCollectionResource;
     diagram: DiagramResource;
     'inbox-items': InboxItemCollectionResource;
+    'story-candidates': StoryCandidateCollectionResource;
+    stories: StoryCollectionResource;
     'logical-entities': LogicalEntityCollectionResource;
     'logical-relationships': LogicalRelationshipCollectionResource;
   }

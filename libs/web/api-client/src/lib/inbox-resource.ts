@@ -2,6 +2,7 @@ import type { Collection, Entity } from '@hateoas-ts/resource';
 
 import type { components } from './openapi-schema.js';
 
+import type { StoryCandidateCollectionResource } from './delivery-resource.js';
 import type { WorkspaceResource } from './workspace-resource.js';
 
 type InboxItemResourceSchema = components['schemas']['InboxItemResource'];
@@ -44,6 +45,7 @@ export type InboxItemResource = Entity<
     workspace: WorkspaceResource;
     collection: InboxItemCollectionResource;
     revisions: InboxRevisionCollectionResource;
+    'story-candidates': StoryCandidateCollectionResource;
     'latest-revision': InboxRevisionResource;
   }
 >;
@@ -66,6 +68,7 @@ export type InboxRevisionResource = Entity<
     item: InboxItemResource;
     collection: InboxRevisionCollectionResource;
     workspace: WorkspaceResource;
+    'story-candidates': StoryCandidateCollectionResource;
   }
 >;
 
