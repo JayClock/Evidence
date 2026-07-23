@@ -786,6 +786,16 @@ paths:
             application/vnd.evidence.story-revision+json:
               schema:
                 $ref: '#/components/schemas/StoryRevisionResource'
+        '200':
+          description: Existing Story Revision returned for an idempotent confirmation retry
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/vnd.evidence.story-revision+json:
+              schema:
+                $ref: '#/components/schemas/StoryRevisionResource'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':

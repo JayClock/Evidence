@@ -172,7 +172,7 @@ describe('StoryCandidatesController', () => {
 
   it('proposes a source-cited candidate as the authenticated user', async () => {
     const { candidateController, workspace } = fixture();
-    const response = { setHeader: vi.fn() };
+    const response = { setHeader: vi.fn(), status: vi.fn() };
 
     const result = await candidateController.proposeStoryCandidate(
       'workspace-1',
@@ -225,7 +225,7 @@ describe('StoryCandidatesController', () => {
 
   it('confirms a candidate into Story Revision v1 with user authority', async () => {
     const { candidateController, workspace } = fixture();
-    const response = { setHeader: vi.fn() };
+    const response = { setHeader: vi.fn(), status: vi.fn() };
 
     const result = await candidateController.confirmStoryCandidate(
       'workspace-1',
@@ -244,6 +244,7 @@ describe('StoryCandidatesController', () => {
       revisionNumber: 1,
       sourceCandidateId: 'candidate-1',
     });
+    expect(response.status).toHaveBeenCalledWith(201);
     expect(response.setHeader).toHaveBeenCalledWith(
       'Location',
       '/api/workspaces/workspace-1/stories/story-1/revisions/story-revision-1',

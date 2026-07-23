@@ -499,7 +499,7 @@ describeContracts('Evidence API contract vertical slice', () => {
         body: JSON.stringify({ expectedVersion: 1 }),
       },
     );
-    expect(confirmationReplay.status).toBe(201);
+    expect(confirmationReplay.status).toBe(200);
     expect(confirmationReplay.body.id).toBe(confirmed.body.id);
 
     const decidedCandidate = await apiRequest(

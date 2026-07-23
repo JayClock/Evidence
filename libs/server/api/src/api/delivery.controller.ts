@@ -57,6 +57,7 @@ interface CandidateDecisionBody {
 
 interface PassthroughResponse {
   setHeader(name: string, value: string): void;
+  status(code: number): void;
 }
 
 interface PageModel {
@@ -165,6 +166,7 @@ export class StoryCandidatesController {
       requiredPositiveInteger(input.expectedVersion, 'expectedVersion'),
       this.resolver.currentUserId(),
     );
+    response.status(confirmed.created ? HttpStatus.CREATED : HttpStatus.OK);
     response.setHeader(
       'Location',
       workspaceStoryRevisionHref(

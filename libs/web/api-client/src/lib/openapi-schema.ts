@@ -1972,6 +1972,16 @@ export interface operations {
       };
     };
     responses: {
+      /** @description Existing Story Revision returned for an idempotent confirmation retry */
+      200: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
+        };
+      };
       /** @description Immutable Story Revision v1 created by explicit human confirmation */
       201: {
         headers: {
