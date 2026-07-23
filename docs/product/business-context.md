@@ -10,15 +10,18 @@ Evidence 帮助领域专家和业务分析师收集可追溯来源、定义业�
 
 1. **工作空间协作**：用户通过成员关系进入隔离的建模空间。
 2. **来源收集**：用户在 Workspace Inbox 捕获手工或 provider 来源，并查看不可变 Revision 历史。
-3. **逻辑模型编写**：在工作区定义 LogicalEntity 与 LogicalRelationship。
-4. **图投影**：Diagram、DiagramNode 和 DiagramEdge 将逻辑模型投影为可视关系图；图元素不是逻辑实体本身。
-5. **模型辅助**：AI Modeling Agent 可以提出 ModelingProposal，但提案经用户确认后才能改变模型。
-6. **一致体验**：Web 是唯一前端产品；Desktop 通过 Electron 包装同一前端并消费相同 REST/HAL 语义。
+3. **交付确认**：用户审查引用精确 Inbox Revision 的 Story Candidate，明确确认后形成不可变 Story Revision v1，或记录拒绝。
+4. **逻辑模型编写**：在工作区定义 LogicalEntity 与 LogicalRelationship。
+5. **图投影**：Diagram、DiagramNode 和 DiagramEdge 将逻辑模型投影为可视关系图；图元素不是逻辑实体本身。
+6. **模型辅助**：AI Modeling Agent 可以提出 ModelingProposal，但提案经用户确认后才能改变模型。
+7. **一致体验**：Web 是唯一前端产品；Desktop 通过 Electron 包装同一前端并消费相同 REST/HAL 语义。
 
 ## 核心规则
 
 - Workspace 是成员、Inbox、逻辑模型和图的协作边界。
 - 同一 source identity 的重复捕获是幂等的；每个不同 SHA-256 source snapshot 只保留一个不可变 Revision。
+- Story Candidate 是无权威提案；确认和拒绝只能由当前认证用户明确触发。
+- 确认原子创建 Story 与不可变 Revision v1，并复制候选内容哈希和精确 Inbox 引用；确认重试返回同一 Revision。
 - Desktop repository 路径只保存在 Desktop binding store，不进入 Server Workspace metadata。
 - LogicalEntity 可独立于 Diagram 存在；DiagramNode 只能引用逻辑实体。
 - LogicalRelationship 的 source/target 必须引用工作区内存在的逻辑实体。

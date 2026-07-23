@@ -36,7 +36,7 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位；低价值�
 ## Contract gates
 
 - `libs/server/api/openapi.yaml` 是唯一 OpenAPI source；生成的 Web schema 必须与其同步。
-- contract runner 连接已迁移的临时 PostgreSQL，启动唯一 Nest Server 和 fake OpenAI-compatible Pi provider，黑盒验证 Workspace、Member、Inbox、Diagram、Relationship、错误、media type 与 SSE。
+- contract runner 连接已迁移的临时 PostgreSQL，启动唯一 Nest Server 和 fake OpenAI-compatible Pi provider，黑盒验证 Workspace、Member、Inbox、Candidate 确认/拒绝、Story Revision v1、Diagram、Relationship、错误、media type 与 SSE。
 - PostgreSQL CI 先运行 `prisma migrate deploy`，再运行 migration/contract gates。
 - Web client 由 OpenAPI 生成；类型检查不能替代运行时 contract test。
 - Electron package smoke 使用受控 fake API 验证内嵌 Pi SDK、packaged renderer 和远程 API readiness。

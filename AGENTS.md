@@ -63,8 +63,11 @@ Electron
 | `Diagram`                     | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`      |
 | `DiagramNode` / `DiagramEdge` | 从 `.evidence` 实体和关联投影出的图元素                 |
 | `ModelingProposal`            | AI 提出的模型变更建议；不能绕过用户确认直接修改权威模型 |
+| `InboxItem` / `InboxRevision` | 来源身份、处理状态和不可变内容快照                        |
+| `StoryCandidate`              | 引用精确 Inbox Revision 的非权威交付提案                  |
+| `Story` / `StoryRevision`     | 人工确认后的稳定身份与不可变权威修订                      |
 
-Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
+Story Candidate 只能经显式确认原子创建 `Story + StoryRevision v1`，确认重试必须返回同一 Revision；拒绝不得创建 Story。Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
 
 ## REST/OpenAPI
 
@@ -90,7 +93,11 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 | `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                 | GET                    | 图边投影               |
 | `/api/workspaces/{workspaceId}/diagram/propose-model`                    | POST（SSE）            | 流式建模提案           |
 | `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                   | GET、POST、PATCH       | Inbox 捕获、查询和状态 |
-| `/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions[/{id}]`    | GET、POST              | 不可变 Revision        |
+| `/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions[/{id}]`    | GET、POST              | 不可变 Inbox Revision  |
+| `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`         | GET、POST              | Candidate 提议与查询   |
+| `/api/workspaces/{workspaceId}/story-candidates/{id}/{confirm,reject}`   | POST                   | 人工确认或拒绝         |
+| `/api/workspaces/{workspaceId}/stories[/{storyId}]`                      | GET                    | 权威 Story 查询        |
+| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`       | GET                    | 不可变 Story Revision  |
 | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | GET、POST、PUT、DELETE | 逻辑实体 CRUD          |
 | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | GET、POST、PUT、DELETE | 逻辑关系 CRUD          |
 

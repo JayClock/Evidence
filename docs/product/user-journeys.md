@@ -38,3 +38,12 @@
 4. 用户浏览来源正文、URI、provider metadata、更新时间和完整 Revision 分页历史。
 5. 用户把条目标记为 active、deferred 或 closed，并通过乐观版本避免覆盖并发决定。
 6. 后续建模或 Delivery 决定引用精确 Revision，而不是可变的外部来源。
+
+## 旅程 E：确认交付 Story
+
+1. 交付确认者从 Inbox 当前 Revision 提出包含角色、问题、目标、价值和认知模式的 Story Candidate。
+2. Candidate 保存精确 Inbox Item、Revision、SHA-256 和 locator，但保持非权威状态。
+3. 用户在 Story Candidates 页面核对陈述和来源，可明确拒绝并保留决定。
+4. 用户明确确认 pending Candidate 时，Server 原子创建 Story 与不可变 Story Revision v1，并记录确认者。
+5. 确认请求重试返回同一个 Revision；已拒绝 Candidate 不能再确认，已确认 Candidate 不能再拒绝。
+6. 用户可浏览 Story、最新 Revision 和完整 Revision 历史；后续 CodingRun 只能锁定具体 Revision。
