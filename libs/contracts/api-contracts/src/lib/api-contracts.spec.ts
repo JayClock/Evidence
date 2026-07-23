@@ -20,6 +20,12 @@ const mediaTypes = {
   inboxItems: 'application/vnd.evidence.inbox-items+json',
   inboxRevision: 'application/vnd.evidence.inbox-revision+json',
   inboxRevisions: 'application/vnd.evidence.inbox-revisions+json',
+  storyCandidate: 'application/vnd.evidence.story-candidate+json',
+  storyCandidates: 'application/vnd.evidence.story-candidates+json',
+  story: 'application/vnd.evidence.story+json',
+  stories: 'application/vnd.evidence.stories+json',
+  storyRevision: 'application/vnd.evidence.story-revision+json',
+  storyRevisions: 'application/vnd.evidence.story-revisions+json',
   logicalEntity: 'application/vnd.evidence.logical-entity+json',
   logicalEntities: 'application/vnd.evidence.logical-entities+json',
   logicalRelationship: 'application/vnd.evidence.logical-relationship+json',
@@ -80,6 +86,12 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(openapi.body.paths).toHaveProperty('/api/workspaces');
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/inbox-items',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/stories/{storyId}/revisions/{revisionId}',
     );
 
     const user = await apiRequest(`/api/users/${userId}`);
@@ -359,6 +371,216 @@ describeContracts('Evidence API contract vertical slice', () => {
       `/api/workspaces/${otherWorkspace.body.id}/inbox-items/${created.body.id}`,
     );
     expect(outsideBoundary.status).toBe(404);
+  });
+
+  it('confirms a source-cited Candidate as immutable Story Revision v1', async () => {
+    const workspace = await createContractWorkspace('Delivery Workspace');
+    const workspaceId = workspace.body.id as string;
+    const source = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceKind: 'manual_text',
+          externalKey: uniqueName('delivery-source'),
+          title: 'Local coding agent',
+          body: 'Run Pi in an isolated local worktree.',
+          contentType: 'text/markdown',
+        }),
+      },
+    );
+    const candidateInput = {
+      title: 'Local coding agent',
+      problem: 'Hosted services must not receive source code.',
+      role: 'Workspace maintainer',
+      goal: 'Run coding work in an isolated local worktree.',
+      value: 'Source and credentials remain local.',
+      cognitiveMode: 'complicated',
+      citations: [
+        {
+          inboxItemId: source.body.id,
+          inboxRevisionId: source.body.latestRevisionId,
+          contentSha256: source.body.latestRevisionSha256,
+          locator: 'whole-source',
+        },
+      ],
+    };
+
+    const invalidCitation = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ...candidateInput,
+          citations: [
+            {
+              ...candidateInput.citations[0],
+              contentSha256: `sha256:${'0'.repeat(64)}`,
+            },
+          ],
+        }),
+      },
+    );
+    expect(invalidCitation.status).toBe(400);
+
+    const proposed = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates`,
+      { method: 'POST', body: JSON.stringify(candidateInput) },
+    );
+    expect(proposed.status).toBe(201);
+    expectHalResource(proposed, mediaTypes.storyCandidate);
+    expect(proposed.headers.get('location')).toBe(
+      `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}`,
+    );
+    expect(proposed.body).toMatchObject({
+      ...candidateInput,
+      status: 'pending',
+      version: 1,
+      decidedByUserId: null,
+      confirmedStoryId: null,
+      confirmedRevisionId: null,
+    });
+    expect(proposed.body.contentSha256).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(proposed.body.citations[0]).toMatchObject({
+      ...candidateInput.citations[0],
+      inboxRevisionNumber: 1,
+    });
+    expect(proposed.body._links).toMatchObject({
+      confirm: {
+        href: `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/confirm`,
+      },
+      reject: {
+        href: `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/reject`,
+      },
+    });
+
+    const candidates = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates?status=pending&page=1&pageSize=20`,
+    );
+    expect(candidates.status).toBe(200);
+    expectHalCollection(
+      candidates,
+      mediaTypes.storyCandidates,
+      'storyCandidates',
+    );
+    expect(candidates.body._embedded.storyCandidates).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: proposed.body.id }),
+      ]),
+    );
+
+    const confirmed = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/confirm`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion: 1 }),
+      },
+    );
+    expect(confirmed.status).toBe(201);
+    expectHalResource(confirmed, mediaTypes.storyRevision);
+    expect(confirmed.body).toMatchObject({
+      revisionNumber: 1,
+      title: candidateInput.title,
+      problem: candidateInput.problem,
+      role: candidateInput.role,
+      goal: candidateInput.goal,
+      value: candidateInput.value,
+      cognitiveMode: candidateInput.cognitiveMode,
+      sourceCandidateId: proposed.body.id,
+      createdByUserId: userId,
+    });
+    expect(confirmed.body.contentSha256).toBe(proposed.body.contentSha256);
+    expect(confirmed.body.citations).toEqual(proposed.body.citations);
+
+    const confirmationReplay = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/confirm`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion: 1 }),
+      },
+    );
+    expect(confirmationReplay.status).toBe(201);
+    expect(confirmationReplay.body.id).toBe(confirmed.body.id);
+
+    const decidedCandidate = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}`,
+    );
+    expect(decidedCandidate.body).toMatchObject({
+      status: 'confirmed',
+      version: 2,
+      decidedByUserId: userId,
+      confirmedRevisionId: confirmed.body.id,
+    });
+    expect(decidedCandidate.body._links).not.toHaveProperty('confirm');
+    const storyId = decidedCandidate.body.confirmedStoryId as string;
+
+    const story = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}`,
+    );
+    expect(story.status).toBe(200);
+    expectHalResource(story, mediaTypes.story);
+    expect(story.body).toMatchObject({
+      id: storyId,
+      title: candidateInput.title,
+      latestRevisionId: confirmed.body.id,
+      latestRevisionNumber: 1,
+      revisionCount: 1,
+    });
+
+    const stories = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories?page=1&pageSize=20`,
+    );
+    expect(stories.status).toBe(200);
+    expectHalCollection(stories, mediaTypes.stories, 'stories');
+    const revisions = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions?page=1&pageSize=20`,
+    );
+    expect(revisions.status).toBe(200);
+    expectHalCollection(revisions, mediaTypes.storyRevisions, 'storyRevisions');
+    expect(revisions.body._embedded.storyRevisions).toHaveLength(1);
+
+    const rejectConfirmed = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/reject`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion: 2 }),
+      },
+    );
+    expect(rejectConfirmed.status).toBe(409);
+
+    const rejectedCandidate = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          ...candidateInput,
+          title: 'Rejected alternative',
+        }),
+      },
+    );
+    const rejected = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${rejectedCandidate.body.id}/reject`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion: 1 }),
+      },
+    );
+    expect(rejected.status).toBe(200);
+    expectHalResource(rejected, mediaTypes.storyCandidate);
+    expect(rejected.body).toMatchObject({ status: 'rejected', version: 2 });
+    expect(rejected.body.confirmedStoryId).toBeNull();
+
+    const otherWorkspace = await createContractWorkspace(
+      'Other Delivery Workspace',
+    );
+    const hiddenCandidate = await apiRequest(
+      `/api/workspaces/${otherWorkspace.body.id}/story-candidates/${proposed.body.id}`,
+    );
+    const hiddenStory = await apiRequest(
+      `/api/workspaces/${otherWorkspace.body.id}/stories/${storyId}`,
+    );
+    expect(hiddenCandidate.status).toBe(404);
+    expect(hiddenStory.status).toBe(404);
   });
 
   it('accepts Inbox JSON overhead while enforcing the domain body limit', async () => {
