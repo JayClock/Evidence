@@ -51,9 +51,24 @@ describe('CodingWorktreeManager', () => {
     ).toContain(baseCommitSha);
 
     await writeFile(join(worktree.worktreeRoot, 'tracked.txt'), 'changed\n');
+    await writeFile(join(worktree.worktreeRoot, 'new-file.ts'), 'export {};\n');
+    const diff = await manager.inspect(worktree);
+    expect(diff).toMatchObject({
+      sha256: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      changedFileCount: 2,
+    });
+    expect(diff.content).toContain('new-file.ts');
     expect(await readFile(join(repository, 'tracked.txt'), 'utf8')).toBe(
       'original\n',
     );
+
+    const commitSha = await manager.commit(
+      worktree,
+      diff.sha256,
+      'feat(workspace): implement reviewed story',
+    );
+    expect(commitSha).not.toBe(baseCommitSha);
+    expect(await gitHead(repository)).toBe(baseCommitSha);
   });
 
   it('removes rejected work and its temporary branch', async () => {
@@ -78,6 +93,31 @@ describe('CodingWorktreeManager', () => {
         'refs/heads/evidence/run-run-2',
       ]),
     ).rejects.toBeDefined();
+  });
+
+  it('refuses to commit a diff that changed after review', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const manager = new CodingWorktreeManager(join(root, 'managed'));
+    const worktree = await manager.prepare({
+      runId: 'run-stale',
+      repositoryRoot: repository,
+      baseCommitSha: await gitHead(repository),
+    });
+    await writeFile(join(worktree.worktreeRoot, 'tracked.txt'), 'reviewed\n');
+    const reviewed = await manager.inspect(worktree);
+    await writeFile(
+      join(worktree.worktreeRoot, 'tracked.txt'),
+      'changed again\n',
+    );
+
+    await expect(
+      manager.commit(
+        worktree,
+        reviewed.sha256,
+        'feat(workspace): implement reviewed story',
+      ),
+    ).rejects.toThrow('diff changed after review');
   });
 
   it('rejects unsafe identities and unknown base commits', async () => {

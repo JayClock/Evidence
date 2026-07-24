@@ -6,11 +6,22 @@ import { parseDiagramAgentEvent } from './agent-protocol';
 
 const CANCEL_TIMEOUT_MS = 5_000;
 
-export interface LocalAgentOptions {
+interface LocalRuntimeRequest {
+  id: string;
+}
+
+interface LocalRuntimeEvent {
+  id: string;
+  event: string | null;
+  data: string;
+}
+
+export interface LocalAgentOptions<TEvent extends LocalRuntimeEvent> {
   executablePath: string;
   runtimeEntry: string;
   packaged: boolean;
   environment?: NodeJS.ProcessEnv;
+  parseEvent?: (value: unknown) => TEvent | null;
 }
 
 interface ActiveAgent {
@@ -18,14 +29,22 @@ interface ActiveAgent {
   cancelled: boolean;
 }
 
-export class LocalAgent {
+export class LocalAgent<
+  TRequest extends LocalRuntimeRequest = AgentRuntimeRequest,
+  TEvent extends LocalRuntimeEvent = DiagramAgentEvent,
+> {
   private readonly active = new Map<string, ActiveAgent>();
+  private readonly parseEvent: (value: unknown) => TEvent | null;
 
-  constructor(private readonly options: LocalAgentOptions) {}
+  constructor(private readonly options: LocalAgentOptions<TEvent>) {
+    this.parseEvent =
+      options.parseEvent ??
+      (parseDiagramAgentEvent as (value: unknown) => TEvent | null);
+  }
 
   async run(
-    request: AgentRuntimeRequest,
-    onEvent: (event: DiagramAgentEvent) => void,
+    request: TRequest,
+    onEvent: (event: TEvent) => void,
   ): Promise<void> {
     if (this.active.has(request.id)) {
       throw new Error(`Agent request ${request.id} is already running.`);
@@ -54,7 +73,13 @@ export class LocalAgent {
     this.active.set(request.id, active);
 
     try {
-      await monitorAgent(child, request, onEvent, () => active.cancelled);
+      await monitorAgent(
+        child,
+        request,
+        onEvent,
+        () => active.cancelled,
+        this.parseEvent,
+      );
     } finally {
       if (this.active.get(request.id) === active) {
         this.active.delete(request.id);
@@ -76,11 +101,15 @@ export class LocalAgent {
   }
 }
 
-function monitorAgent(
+function monitorAgent<
+  TRequest extends LocalRuntimeRequest,
+  TEvent extends LocalRuntimeEvent,
+>(
   child: ChildProcessWithoutNullStreams,
-  request: AgentRuntimeRequest,
-  onEvent: (event: DiagramAgentEvent) => void,
+  request: TRequest,
+  onEvent: (event: TEvent) => void,
   cancelled: () => boolean,
+  parseEvent: (value: unknown) => TEvent | null,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     let stdoutBuffer = '';
@@ -112,7 +141,7 @@ function monitorAgent(
         void stopChild(child);
         return;
       }
-      const event = parseDiagramAgentEvent(value);
+      const event = parseEvent(value);
       if (!event || event.id !== request.id) {
         finish(new Error('The local Agent runtime emitted an invalid event.'));
         void stopChild(child);
