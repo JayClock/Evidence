@@ -1,8 +1,14 @@
 import { Entity, HasMany, HasOne } from '../core';
 import { Diagram, WorkspaceDiagram } from '../diagram';
 import {
+  CodingRun,
+  CodingRunAcceptanceInput,
+  CodingRunFailureInput,
+  CodingRunListQuery,
+  CodingRunReviewInput,
   ConfirmedStoryCandidate,
   CreatedStoryRevision,
+  StartCodingRunInput,
   Story,
   StoryCandidate,
   StoryCandidateInput,
@@ -10,6 +16,7 @@ import {
   StoryListQuery,
   StoryRevision,
   StoryRevisionInput,
+  WorkspaceCodingRuns,
   WorkspaceDelivery,
 } from '../delivery';
 import {
@@ -52,6 +59,7 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     private readonly workspaceLogicalRelationships: WorkspaceLogicalRelationships,
     private readonly workspaceInbox: WorkspaceInbox,
     private readonly workspaceDelivery: WorkspaceDelivery,
+    private readonly workspaceCodingRuns: WorkspaceCodingRuns,
   ) {}
 
   identity(): string {
@@ -206,6 +214,74 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
       expectedLatestRevisionId,
       input,
       createdByUserId,
+    );
+  }
+
+  codingRuns(): HasMany<CodingRun> {
+    return this.workspaceCodingRuns;
+  }
+
+  listCodingRuns(query: CodingRunListQuery): Promise<[CodingRun[], number]> {
+    return this.workspaceCodingRuns.list(query);
+  }
+
+  startCodingRun(
+    storyId: string,
+    input: StartCodingRunInput,
+    requestedByUserId: string,
+  ): Promise<CodingRun> {
+    return this.workspaceCodingRuns.start(storyId, input, requestedByUserId);
+  }
+
+  submitCodingRunForReview(
+    runId: string,
+    expectedVersion: number,
+    input: CodingRunReviewInput,
+  ): Promise<CodingRun> {
+    return this.workspaceCodingRuns.submitForReview(
+      runId,
+      expectedVersion,
+      input,
+    );
+  }
+
+  failCodingRun(
+    runId: string,
+    expectedVersion: number,
+    input: CodingRunFailureInput,
+  ): Promise<CodingRun> {
+    return this.workspaceCodingRuns.fail(runId, expectedVersion, input);
+  }
+
+  cancelCodingRun(runId: string, expectedVersion: number): Promise<CodingRun> {
+    return this.workspaceCodingRuns.cancel(runId, expectedVersion);
+  }
+
+  acceptCodingRun(
+    runId: string,
+    expectedVersion: number,
+    input: CodingRunAcceptanceInput,
+    decidedByUserId: string,
+  ): Promise<CodingRun> {
+    return this.workspaceCodingRuns.accept(
+      runId,
+      expectedVersion,
+      input,
+      decidedByUserId,
+    );
+  }
+
+  rejectCodingRun(
+    runId: string,
+    expectedVersion: number,
+    reason: string,
+    decidedByUserId: string,
+  ): Promise<CodingRun> {
+    return this.workspaceCodingRuns.reject(
+      runId,
+      expectedVersion,
+      reason,
+      decidedByUserId,
     );
   }
 

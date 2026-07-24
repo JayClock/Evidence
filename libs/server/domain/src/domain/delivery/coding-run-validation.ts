@@ -44,19 +44,22 @@ export function normalizeCodingRunReviewInput(
       `Coding Run changed file count must be between 0 and ${String(MAX_CHANGED_FILES)}`,
     );
   }
-  if (
-    !Array.isArray(input.qualityChecks) ||
-    input.qualityChecks.length > MAX_QUALITY_CHECKS
-  ) {
+  return {
+    diffSha256: sha256(input.diffSha256, 'diff SHA-256'),
+    changedFileCount: input.changedFileCount,
+    qualityChecks: normalizeCodingRunQualityChecks(input.qualityChecks),
+  };
+}
+
+export function normalizeCodingRunQualityChecks(
+  input: CodingRunQualityCheck[],
+): CodingRunQualityCheck[] {
+  if (!Array.isArray(input) || input.length > MAX_QUALITY_CHECKS) {
     throw DomainError.validation(
       `Coding Run must not contain more than ${String(MAX_QUALITY_CHECKS)} quality checks`,
     );
   }
-  return {
-    diffSha256: sha256(input.diffSha256, 'diff SHA-256'),
-    changedFileCount: input.changedFileCount,
-    qualityChecks: input.qualityChecks.map(normalizeQualityCheck),
-  };
+  return input.map(normalizeQualityCheck);
 }
 
 export function normalizeCodingRunFailureInput(

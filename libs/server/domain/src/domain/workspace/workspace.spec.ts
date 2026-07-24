@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { HasMany, HasOne, Ref, type Entity, type Many } from '../core';
 import type { Diagram, WorkspaceDiagram } from '../diagram';
 import type {
+  CodingRun,
   Story,
   StoryCandidate,
   StoryCandidateInput,
   StoryRevision,
   StoryRevisionInput,
+  WorkspaceCodingRuns,
   WorkspaceDelivery,
 } from '../delivery';
 import type {
@@ -126,11 +128,13 @@ function workspaceFixture() {
   const storyCandidate = {} as StoryCandidate;
   const story = {} as Story;
   const storyRevision = {} as StoryRevision;
+  const codingRun = {} as CodingRun;
   const logicalEntity = {} as LogicalEntity;
   const logicalRelationship = {} as LogicalRelationship;
   const manyMembers = many([member]);
   const manyInboxItems = many([inboxItem]);
   const manyStoryCandidates = many([storyCandidate]);
+  const manyCodingRuns = many([codingRun]);
   const manyLogicalEntities = many([logicalEntity]);
   const manyLogicalRelationships = many([logicalRelationship]);
 
@@ -193,6 +197,18 @@ function workspaceFixture() {
     })),
   } satisfies WorkspaceDelivery;
 
+  const codingRuns = {
+    findAll: vi.fn(() => manyCodingRuns),
+    findByIdentity: vi.fn(async () => codingRun),
+    list: vi.fn(async () => [[codingRun], 1] as [CodingRun[], number]),
+    start: vi.fn(async () => codingRun),
+    submitForReview: vi.fn(async () => codingRun),
+    fail: vi.fn(async () => codingRun),
+    cancel: vi.fn(async () => codingRun),
+    accept: vi.fn(async () => codingRun),
+    reject: vi.fn(async () => codingRun),
+  } satisfies WorkspaceCodingRuns;
+
   const logicalEntities = {
     findAll: vi.fn(() => manyLogicalEntities),
     findByIdentity: vi.fn(async () => logicalEntity),
@@ -222,9 +238,12 @@ function workspaceFixture() {
     logicalRelationships,
     inbox,
     delivery,
+    codingRuns,
   );
 
   return {
+    codingRun,
+    codingRuns,
     delivery,
     diagram,
     diagramProjection,

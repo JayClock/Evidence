@@ -33,6 +33,7 @@ export interface MockPrismaStore {
   storyRevision: Record<string, MockFn>;
   storyRevisionCitation: Record<string, MockFn>;
   storyScenario: Record<string, MockFn>;
+  codingRun: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -116,6 +117,13 @@ export function mockPrismaStore(): MockPrismaStore {
     storyRevision: delegate(['findMany', 'findFirst', 'count', 'create']),
     storyRevisionCitation: delegate(['createMany']),
     storyScenario: delegate(['createMany']),
+    codingRun: delegate([
+      'findMany',
+      'findFirst',
+      'count',
+      'create',
+      'updateMany',
+    ]),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 

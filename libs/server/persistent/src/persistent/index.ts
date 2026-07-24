@@ -13,6 +13,7 @@ export * from './prisma/workspaces';
 export * from './prisma/workspace-members';
 export * from './prisma/workspace-inbox';
 export * from './prisma/workspace-delivery';
+export * from './prisma/workspace-coding-runs';
 export * from './prisma/diagram-nodes';
 export * from './prisma/diagram-edges';
 export * from './prisma/workspace-logical-entities';
