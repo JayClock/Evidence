@@ -49,6 +49,7 @@ const revisionState = {
         locator: 'whole-source',
       },
     ],
+    scenarios: [],
     contentSha256: revisionHash,
     sourceCandidateId: 'candidate-1',
     createdByUserId: 'user-1',
@@ -69,7 +70,9 @@ const storyState = {
     title: 'Local coding agent',
     latestRevisionId: 'story-revision-1',
     latestRevisionNumber: 1,
+    latestScenarioCount: 0,
     revisionCount: 1,
+    version: 1,
     createdAt: '2026-07-24T11:00:00.000Z',
     updatedAt: '2026-07-24T11:00:00.000Z',
   },
@@ -80,7 +83,7 @@ const storyState = {
         href: '/api/workspaces/workspace-1/stories/story-1',
       };
     }
-    if (relation === 'revisions') {
+    if (relation === 'revisions' || relation === 'create-revision') {
       return {
         rel: relation,
         href: '/api/workspaces/workspace-1/stories/story-1/revisions',
@@ -95,6 +98,28 @@ const storyState = {
     return { kind: 'latest-revision' };
   },
 } as unknown as State<StoryResource>;
+
+const acceptanceRevisionState = {
+  ...revisionState,
+  data: {
+    ...revisionState.data,
+    id: 'story-revision-2',
+    revisionNumber: 2,
+    sourceCandidateId: null,
+    scenarios: [
+      {
+        id: 'scenario-1',
+        title: 'Create an isolated worktree',
+        given: ['The Workspace is bound to an accessible Git repository.'],
+        when: 'The user starts a Coding Run.',
+        then: [
+          'A dedicated branch and worktree are created.',
+          'The primary working tree remains unchanged.',
+        ],
+      },
+    ],
+  },
+} as unknown as State<StoryRevisionResource>;
 
 const revisionCollectionState = {
   data: {
@@ -153,6 +178,10 @@ describe('Story views', () => {
     ).toBeTruthy();
     expect(screen.getByText('Workspace maintainer')).toBeTruthy();
     expect(screen.getByText(revisionHash)).toBeTruthy();
+    expect(screen.getByText('Needs acceptance scenarios')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Confirm acceptance revision' }),
+    ).toBeTruthy();
     expect(
       screen
         .getByRole('link', { name: 'Revision history' })
@@ -178,13 +207,19 @@ describe('Story views', () => {
 
     rerender(
       <MemoryRouter>
-        <StoryRevisionDetailView resourceState={revisionState} />
+        <StoryRevisionDetailView resourceState={acceptanceRevisionState} />
       </MemoryRouter>,
     );
 
     expect(
       screen.getByRole('heading', { name: 'Local coding agent' }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Create an isolated worktree' }),
+    ).toBeTruthy();
+    expect(screen.getByText('GIVEN')).toBeTruthy();
+    expect(screen.getByText('WHEN')).toBeTruthy();
+    expect(screen.getByText('THEN')).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Open source' }).getAttribute('href'),
     ).toBe(

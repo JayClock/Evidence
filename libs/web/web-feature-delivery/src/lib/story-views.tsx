@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
+import { CreateStoryRevisionDialog } from './story-revision-dialog';
 
 export function StoryCollectionView({
   resourceState,
@@ -173,12 +174,26 @@ export function StoryDetailView({
               {story.revisionCount}{' '}
               {story.revisionCount === 1 ? 'revision' : 'revisions'}
             </CardDescription>
+            <Badge className="w-fit" variant="secondary">
+              {story.latestScenarioCount > 0
+                ? `${String(story.latestScenarioCount)} acceptance ${story.latestScenarioCount === 1 ? 'scenario' : 'scenarios'}`
+                : 'Needs acceptance scenarios'}
+            </Badge>
           </div>
-          {revisionsHref ? (
-            <Button asChild variant="outline">
-              <Link to={revisionsHref}>Revision history</Link>
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {latest.resourceState &&
+            resourceState.getLink('create-revision') ? (
+              <CreateStoryRevisionDialog
+                storyState={resourceState}
+                latestRevisionState={latest.resourceState}
+              />
+            ) : null}
+            {revisionsHref ? (
+              <Button asChild variant="outline">
+                <Link to={revisionsHref}>Revision history</Link>
+              </Button>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -363,6 +378,40 @@ function StoryRevisionContent({
       <Separator />
       <div className="flex flex-col gap-3">
         <div>
+          <p className="text-sm font-medium">Acceptance scenarios</p>
+          <p className="text-sm text-muted-foreground">
+            Ordered Given/When/Then outcomes frozen into this Revision.
+          </p>
+        </div>
+        {revision.scenarios.length === 0 ? (
+          <Alert>
+            <AlertDescription>
+              This Revision predates acceptance Scenario confirmation.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          revision.scenarios.map((scenario, index) => (
+            <Card key={scenario.id} size="sm">
+              <CardHeader>
+                <Badge className="w-fit" variant="outline">
+                  Scenario {index + 1}
+                </Badge>
+                <CardTitle aria-level={3} role="heading">
+                  {scenario.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <ScenarioPhase label="Given" steps={scenario.given} />
+                <ScenarioPhase label="When" steps={[scenario.when]} />
+                <ScenarioPhase label="Then" steps={scenario.then} />
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+      <Separator />
+      <div className="flex flex-col gap-3">
+        <div>
           <p className="text-sm font-medium">Source citations</p>
           <p className="text-sm text-muted-foreground">
             Exact Inbox Revisions frozen into this Story Revision.
@@ -394,6 +443,30 @@ function StoryRevisionContent({
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function ScenarioPhase({
+  label,
+  steps,
+}: {
+  label: 'Given' | 'When' | 'Then';
+  steps: string[];
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-[5rem_1fr]">
+      <Badge className="h-fit w-fit" variant="secondary">
+        {label.toUpperCase()}
+      </Badge>
+      <div className="flex flex-col gap-2">
+        {steps.map((step, index) => (
+          <p className="whitespace-pre-wrap text-sm" key={`${label}-${index}`}>
+            {index > 0 ? 'AND ' : ''}
+            {step}
+          </p>
+        ))}
       </div>
     </div>
   );
