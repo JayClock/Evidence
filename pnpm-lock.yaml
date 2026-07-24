@@ -304,15 +304,6 @@ importers:
 
   libs/server/domain: {}
 
-  libs/server/infrastructure:
-    dependencies:
-      '@earendil-works/pi-coding-agent':
-        specifier: 0.80.10
-        version: 0.80.10(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.18.0)(zod@4.4.3)
-      '@evidence/server-domain':
-        specifier: workspace:*
-        version: link:../domain
-
   libs/server/persistent:
     dependencies:
       '@evidence/server-domain':
