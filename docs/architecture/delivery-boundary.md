@@ -38,14 +38,14 @@ Dogfooding 只允许内部工具读取产品知识来辅助开发，不允许产
 - Work Intake 的 Inbox、Revision、状态、HAL/OpenAPI、Web 页面和 PostgreSQL migration 已落地。
 - Desktop repository binding 已落地，但 coding worktree 与 coding agent 尚未落地。
 - Story Candidate、人工确认/拒绝、Story 与不可变 Story Revision v1 已通过 Domain、PostgreSQL、REST/HAL、Web 和黑盒契约落地。
-- 后续 Story Revision、Scenario 和 CodingRun 尚未落地；当前 v1 只冻结 Story 陈述与精确 Inbox 引用。
-- Server 端 ModelingProposal Pi 路径仍存在，待 Desktop Coding 通过后单独退休。
+- 用户可基于精确 latest Revision 和 optimistic version 确认有序 Given/When/Then Scenario Set，原子创建不可变 Story Revision v2+；旧 v1 可继续保持无 Scenario。
+- CodingRun 尚未落地；Server 端 ModelingProposal Pi 路径仍存在，待 Desktop Coding 通过后单独退休。
 
 ## 后果
 
 - 新 Delivery 行为必须先进入 `libs/server/domain`，再由 Prisma adapter 和 API 暴露。
 - Story Candidate 没有人类权威；确认命令按 optimistic version 原子、幂等地创建 `Story + Story Revision v1`，拒绝不能创建 Story。
-- Story Revision 不可改写，并保存 Candidate 内容哈希、确认者和精确 Inbox Revision 引用。
-- CodingRun 必须锁定精确 Story Revision；Pi 不能自行宣告运行成功。
+- Story Revision 不可改写，并保存内容哈希、确认者、精确 Inbox Revision 引用和有序 Scenario Set；并发确认只能有一个更新 latest Revision。
+- CodingRun 必须锁定至少含一个 Scenario 的精确 Story Revision；Pi 不能自行宣告运行成功。
 - 每次本地 coding run 使用独立 branch/worktree；只有人工接受后才能 commit，不自动 merge/push。
 - Workspace access 先经过当前部署 principal 的 membership；Hosted API 必须配置 Authorization。

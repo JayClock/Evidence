@@ -93,6 +93,11 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/stories/{storyId}/revisions/{revisionId}',
     );
+    expect(
+      openapi.body.paths[
+        '/api/workspaces/{workspaceId}/stories/{storyId}/revisions'
+      ],
+    ).toHaveProperty('post');
 
     const user = await apiRequest(`/api/users/${userId}`);
     expect(user.status).toBe(200);
@@ -486,6 +491,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       goal: candidateInput.goal,
       value: candidateInput.value,
       cognitiveMode: candidateInput.cognitiveMode,
+      scenarios: [],
       sourceCandidateId: proposed.body.id,
       createdByUserId: userId,
     });
@@ -524,7 +530,95 @@ describeContracts('Evidence API contract vertical slice', () => {
       title: candidateInput.title,
       latestRevisionId: confirmed.body.id,
       latestRevisionNumber: 1,
+      latestScenarioCount: 0,
       revisionCount: 1,
+      version: 1,
+      _links: {
+        'create-revision': {
+          href: `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
+        },
+      },
+    });
+
+    const acceptanceInput = {
+      expectedVersion: 1,
+      expectedLatestRevisionId: confirmed.body.id,
+      ...candidateInput,
+      scenarios: [
+        {
+          title: 'Create an isolated coding worktree',
+          given: [
+            'The Workspace is bound to an accessible Git repository.',
+          ],
+          when: 'The user starts a Coding Run.',
+          then: [
+            'A dedicated branch and worktree are created.',
+            'The primary working tree remains unchanged.',
+          ],
+        },
+      ],
+    };
+    const invalidAcceptance = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ ...acceptanceInput, scenarios: [] }),
+      },
+    );
+    expect(invalidAcceptance.status).toBe(400);
+
+    const acceptedRevision = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
+      { method: 'POST', body: JSON.stringify(acceptanceInput) },
+    );
+    expect(acceptedRevision.status).toBe(201);
+    expectHalResource(acceptedRevision, mediaTypes.storyRevision);
+    expect(acceptedRevision.headers.get('location')).toBe(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${acceptedRevision.body.id}`,
+    );
+    expect(acceptedRevision.body).toMatchObject({
+      revisionNumber: 2,
+      sourceCandidateId: null,
+      createdByUserId: userId,
+      scenarios: [
+        expect.objectContaining({
+          id: expect.any(String),
+          ...acceptanceInput.scenarios[0],
+        }),
+      ],
+    });
+    expect(acceptedRevision.body.contentSha256).toMatch(
+      /^sha256:[a-f0-9]{64}$/,
+    );
+    expect(acceptedRevision.body.contentSha256).not.toBe(
+      confirmed.body.contentSha256,
+    );
+
+    const staleRevision = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
+      { method: 'POST', body: JSON.stringify(acceptanceInput) },
+    );
+    expect(staleRevision.status).toBe(409);
+
+    const updatedStory = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}`,
+    );
+    expect(updatedStory.body).toMatchObject({
+      latestRevisionId: acceptedRevision.body.id,
+      latestRevisionNumber: 2,
+      latestScenarioCount: 1,
+      revisionCount: 2,
+      version: 2,
+    });
+
+    const originalRevision = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${confirmed.body.id}`,
+    );
+    expect(originalRevision.status).toBe(200);
+    expect(originalRevision.body).toMatchObject({
+      id: confirmed.body.id,
+      revisionNumber: 1,
+      scenarios: [],
     });
 
     const stories = await apiRequest(
@@ -537,7 +631,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     );
     expect(revisions.status).toBe(200);
     expectHalCollection(revisions, mediaTypes.storyRevisions, 'storyRevisions');
-    expect(revisions.body._embedded.storyRevisions).toHaveLength(1);
+    expect(revisions.body._embedded.storyRevisions).toHaveLength(2);
 
     const rejectConfirmed = await apiRequest(
       `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/reject`,

@@ -97,7 +97,7 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 | `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`         | GET、POST              | Candidate 提议与查询   |
 | `/api/workspaces/{workspaceId}/story-candidates/{id}/{confirm,reject}`   | POST                   | 人工确认或拒绝         |
 | `/api/workspaces/{workspaceId}/stories[/{storyId}]`                      | GET                    | 权威 Story 查询        |
-| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`       | GET                    | 不可变 Story Revision  |
+| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`       | GET、POST（集合）       | 不可变 Story Revision  |
 | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | GET、POST、PUT、DELETE | 逻辑实体 CRUD          |
 | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | GET、POST、PUT、DELETE | 逻辑关系 CRUD          |
 
