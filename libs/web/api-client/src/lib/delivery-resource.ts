@@ -16,6 +16,9 @@ type StoryRevisionResourceSchema =
   components['schemas']['StoryRevisionResource'];
 type StoryRevisionCollectionResourceSchema =
   components['schemas']['StoryRevisionCollectionResource'];
+type CodingRunResourceSchema = components['schemas']['CodingRunResource'];
+type CodingRunCollectionResourceSchema =
+  components['schemas']['CodingRunCollectionResource'];
 
 type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: Exclude<T[P], undefined>;
@@ -29,6 +32,20 @@ export type StoryCandidateStatus =
 export type StoryCognitiveMode = components['schemas']['StoryCognitiveMode'];
 export type StoryRevisionInput = components['schemas']['StoryRevisionInput'];
 export type StoryScenarioInput = components['schemas']['StoryScenarioInput'];
+export type CodingRunStatus = components['schemas']['CodingRunStatus'];
+export type CodingRunQualityCheck =
+  components['schemas']['CodingRunQualityCheck'];
+export type StartCodingRunInput = components['schemas']['StartCodingRunInput'];
+export type CodingRunReviewInput =
+  components['schemas']['CodingRunReviewInput'];
+export type CodingRunFailureInput =
+  components['schemas']['CodingRunFailureInput'];
+export type CodingRunAcceptanceInput =
+  components['schemas']['CodingRunAcceptanceInput'];
+export type CodingRunRejectionInput =
+  components['schemas']['CodingRunRejectionInput'];
+export type CodingRunVersionInput =
+  components['schemas']['CodingRunVersionInput'];
 
 export type StoryCandidateResourceData = RequiredNullable<
   Omit<StoryCandidateResourceSchema, '_links'>,
@@ -49,6 +66,11 @@ export type StoryRevisionResourceData = RequiredNullable<
 >;
 export type StoryRevisionCollectionResourceData = Omit<
   StoryRevisionCollectionResourceSchema,
+  '_links' | '_embedded'
+>;
+export type CodingRunResourceData = Omit<CodingRunResourceSchema, '_links'>;
+export type CodingRunCollectionResourceData = Omit<
+  CodingRunCollectionResourceSchema,
   '_links' | '_embedded'
 >;
 
@@ -88,6 +110,8 @@ export type StoryResource = Entity<
     revisions: StoryRevisionCollectionResource;
     'create-revision': StoryRevisionResource;
     'latest-revision': StoryRevisionResource;
+    'coding-runs': CodingRunCollectionResource;
+    'start-coding-run': CodingRunResource;
   }
 >;
 
@@ -125,3 +149,32 @@ export type StoryRevisionCollectionResource =
         next: StoryRevisionCollectionResource;
       }
     >;
+
+export type CodingRunResource = Entity<
+  CodingRunResourceData,
+  {
+    self: CodingRunResource;
+    workspace: WorkspaceResource;
+    story: StoryResource;
+    'story-revision': StoryRevisionResource;
+    collection: CodingRunCollectionResource;
+    'requested-by': UserResource;
+    'decided-by': UserResource;
+    review: CodingRunResource;
+    fail: CodingRunResource;
+    cancel: CodingRunResource;
+    accept: CodingRunResource;
+    reject: CodingRunResource;
+  }
+>;
+
+export type CodingRunCollectionResource = Collection<CodingRunResource> &
+  Entity<
+    CodingRunCollectionResourceData,
+    {
+      self: CodingRunCollectionResource;
+      story: StoryResource;
+      prev: CodingRunCollectionResource;
+      next: CodingRunCollectionResource;
+    }
+  >;

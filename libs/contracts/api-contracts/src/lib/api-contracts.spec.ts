@@ -26,6 +26,8 @@ const mediaTypes = {
   stories: 'application/vnd.evidence.stories+json',
   storyRevision: 'application/vnd.evidence.story-revision+json',
   storyRevisions: 'application/vnd.evidence.story-revisions+json',
+  codingRun: 'application/vnd.evidence.coding-run+json',
+  codingRuns: 'application/vnd.evidence.coding-runs+json',
   logicalEntity: 'application/vnd.evidence.logical-entity+json',
   logicalEntities: 'application/vnd.evidence.logical-entities+json',
   logicalRelationship: 'application/vnd.evidence.logical-relationship+json',
@@ -98,6 +100,12 @@ describeContracts('Evidence API contract vertical slice', () => {
         '/api/workspaces/{workspaceId}/stories/{storyId}/revisions'
       ],
     ).toHaveProperty('post');
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/coding-runs/{runId}/accept',
+    );
 
     const user = await apiRequest(`/api/users/${userId}`);
     expect(user.status).toBe(200);
@@ -547,9 +555,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       scenarios: [
         {
           title: 'Create an isolated coding worktree',
-          given: [
-            'The Workspace is bound to an accessible Git repository.',
-          ],
+          given: ['The Workspace is bound to an accessible Git repository.'],
           when: 'The user starts a Coding Run.',
           then: [
             'A dedicated branch and worktree are created.',
@@ -610,6 +616,129 @@ describeContracts('Evidence API contract vertical slice', () => {
       revisionCount: 2,
       version: 2,
     });
+
+    const baseCommitSha = 'a'.repeat(40);
+    const startedRun = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          storyRevisionId: acceptedRevision.body.id,
+          baseCommitSha,
+        }),
+      },
+    );
+    expect(startedRun.status).toBe(201);
+    expectHalResource(startedRun, mediaTypes.codingRun);
+    expect(startedRun.headers.get('location')).toBe(
+      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}`,
+    );
+    expect(startedRun.body).toMatchObject({
+      storyId,
+      storyRevisionId: acceptedRevision.body.id,
+      requestedByUserId: userId,
+      status: 'running',
+      version: 1,
+      baseCommitSha,
+      diffSha256: null,
+      commitSha: null,
+    });
+    expect(startedRun.body._links).toMatchObject({
+      review: {
+        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
+      },
+      cancel: {
+        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/cancel`,
+      },
+    });
+
+    const duplicateRun = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          storyRevisionId: acceptedRevision.body.id,
+          baseCommitSha,
+        }),
+      },
+    );
+    expect(duplicateRun.status).toBe(409);
+
+    const listedRuns = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs?status=running&page=1&pageSize=20`,
+    );
+    expect(listedRuns.status).toBe(200);
+    expectHalCollection(listedRuns, mediaTypes.codingRuns, 'codingRuns');
+    expect(listedRuns.body._embedded.codingRuns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: startedRun.body.id }),
+      ]),
+    );
+
+    const diffSha256 = `sha256:${'b'.repeat(64)}`;
+    const reviewInput = {
+      expectedVersion: 1,
+      diffSha256,
+      changedFileCount: 2,
+      qualityChecks: [
+        {
+          name: 'pnpm test',
+          status: 'passed',
+          durationMs: 1200,
+          summary: 'All focused tests passed.',
+        },
+      ],
+    };
+    const reviewRequired = await apiRequest(
+      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
+      { method: 'POST', body: JSON.stringify(reviewInput) },
+    );
+    expect(reviewRequired.status).toBe(200);
+    expectHalResource(reviewRequired, mediaTypes.codingRun);
+    expect(reviewRequired.body).toMatchObject({
+      status: 'review_required',
+      version: 2,
+      diffSha256,
+      changedFileCount: 2,
+      qualityChecks: reviewInput.qualityChecks,
+    });
+    expect(reviewRequired.body._links).toMatchObject({
+      accept: {
+        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/accept`,
+      },
+      reject: {
+        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/reject`,
+      },
+    });
+
+    const reviewReplay = await apiRequest(
+      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
+      { method: 'POST', body: JSON.stringify(reviewInput) },
+    );
+    expect(reviewReplay.status).toBe(200);
+    expect(reviewReplay.body.id).toBe(startedRun.body.id);
+    expect(reviewReplay.body.version).toBe(2);
+
+    const acceptedCommitSha = 'c'.repeat(40);
+    const acceptedRun = await apiRequest(
+      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/accept`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedVersion: 2,
+          diffSha256,
+          commitSha: acceptedCommitSha,
+        }),
+      },
+    );
+    expect(acceptedRun.status).toBe(200);
+    expect(acceptedRun.body).toMatchObject({
+      status: 'accepted',
+      version: 3,
+      commitSha: acceptedCommitSha,
+      decidedByUserId: userId,
+    });
+    expect(acceptedRun.body._links).not.toHaveProperty('accept');
 
     const originalRevision = await apiRequest(
       `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${confirmed.body.id}`,

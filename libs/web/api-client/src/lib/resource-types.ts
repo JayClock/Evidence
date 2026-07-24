@@ -19,6 +19,8 @@ export const resourceContentTypes = {
   stories: `${VENDOR_PREFIX}.stories+json`,
   storyRevision: `${VENDOR_PREFIX}.story-revision+json`,
   storyRevisions: `${VENDOR_PREFIX}.story-revisions+json`,
+  codingRun: `${VENDOR_PREFIX}.coding-run+json`,
+  codingRuns: `${VENDOR_PREFIX}.coding-runs+json`,
   diagram: `${VENDOR_PREFIX}.diagram+json`,
   diagrams: `${VENDOR_PREFIX}.diagrams+json`,
   node: `${VENDOR_PREFIX}.node+json`,
