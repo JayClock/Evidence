@@ -18,6 +18,7 @@ import {
   type StoryCandidateInput,
   type StoryCandidateStatus,
   type StoryRevision,
+  type StoryRevisionInput,
 } from '@evidence/server-domain';
 import {
   link,
@@ -53,6 +54,12 @@ interface StoryCandidateBody {
 
 interface CandidateDecisionBody {
   expectedVersion?: unknown;
+}
+
+interface StoryRevisionBody extends StoryCandidateBody {
+  expectedVersion?: unknown;
+  expectedLatestRevisionId?: unknown;
+  scenarios?: unknown;
 }
 
 interface PassthroughResponse {
@@ -262,6 +269,39 @@ export class StoriesController {
     );
   }
 
+  @Post(':storyId/revisions')
+  @HttpCode(HttpStatus.CREATED)
+  async createStoryRevision(
+    @Param('workspaceId') workspaceId: string,
+    @Param('storyId') storyId: string,
+    @Body() input: StoryRevisionBody,
+    @Res({ passthrough: true }) response: PassthroughResponse,
+  ): Promise<StoryRevisionModel> {
+    const [workspace] = await this.resolver.requireWorkspaceStory(
+      workspaceId,
+      storyId,
+    );
+    const created = await workspace.appendStoryRevision(
+      storyId,
+      requiredPositiveInteger(input.expectedVersion, 'expectedVersion'),
+      requiredString(
+        input.expectedLatestRevisionId,
+        'expectedLatestRevisionId',
+      ),
+      storyRevisionInput(input),
+      this.resolver.currentUserId(),
+    );
+    response.setHeader(
+      'Location',
+      workspaceStoryRevisionHref(
+        workspaceId,
+        storyId,
+        created.revision.identity(),
+      ),
+    );
+    return storyRevisionModel(workspaceId, created.revision);
+  }
+
   @Get(':storyId/revisions/:revisionId')
   async getStoryRevision(
     @Param('workspaceId') workspaceId: string,
@@ -308,6 +348,34 @@ function storyCandidateInput(input: StoryCandidateBody): StoryCandidateInput {
         locator: requiredString(
           citation.locator,
           `citations[${String(index)}].locator`,
+        ),
+      };
+    }),
+  };
+}
+
+function storyRevisionInput(input: StoryRevisionBody): StoryRevisionInput {
+  const story = storyCandidateInput(input);
+  if (!Array.isArray(input.scenarios)) {
+    throw DomainError.validation('scenarios must be an array');
+  }
+  return {
+    ...story,
+    scenarios: input.scenarios.map((entry, index) => {
+      const scenario = requiredObject(entry, `scenarios[${String(index)}]`);
+      return {
+        title: requiredString(
+          scenario.title,
+          `scenarios[${String(index)}].title`,
+        ),
+        given: requiredStringArray(
+          scenario.given,
+          `scenarios[${String(index)}].given`,
+        ),
+        when: requiredString(scenario.when, `scenarios[${String(index)}].when`),
+        then: requiredStringArray(
+          scenario.then,
+          `scenarios[${String(index)}].then`,
         ),
       };
     }),
@@ -433,6 +501,15 @@ function requiredObject(value: unknown, name: string): Record<string, unknown> {
     throw DomainError.validation(`${name} must be an object`);
   }
   return value as Record<string, unknown>;
+}
+
+function requiredStringArray(value: unknown, name: string): string[] {
+  if (!Array.isArray(value)) {
+    throw DomainError.validation(`${name} must be an array`);
+  }
+  return value.map((entry, index) =>
+    requiredString(entry, `${name}[${String(index)}]`),
+  );
 }
 
 function requiredPositiveInteger(value: unknown, name: string): number {

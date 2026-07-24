@@ -127,18 +127,10 @@ export function vendorMediaType(
       'confirm',
     ])
   ) {
-    return method.toUpperCase() === 'POST'
-      ? mediaType('story-revision')
-      : null;
+    return method.toUpperCase() === 'POST' ? mediaType('story-revision') : null;
   }
   if (
-    matches(apiSegments, [
-      'workspaces',
-      '*',
-      'story-candidates',
-      '*',
-      'reject',
-    ])
+    matches(apiSegments, ['workspaces', '*', 'story-candidates', '*', 'reject'])
   ) {
     return method.toUpperCase() === 'POST'
       ? mediaType('story-candidate')
@@ -150,20 +142,13 @@ export function vendorMediaType(
   if (matches(apiSegments, ['workspaces', '*', 'stories', '*'])) {
     return mediaType('story');
   }
-  if (
-    matches(apiSegments, ['workspaces', '*', 'stories', '*', 'revisions'])
-  ) {
-    return mediaType('story-revisions');
+  if (matches(apiSegments, ['workspaces', '*', 'stories', '*', 'revisions'])) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('story-revision')
+      : mediaType('story-revisions');
   }
   if (
-    matches(apiSegments, [
-      'workspaces',
-      '*',
-      'stories',
-      '*',
-      'revisions',
-      '*',
-    ])
+    matches(apiSegments, ['workspaces', '*', 'stories', '*', 'revisions', '*'])
   ) {
     return mediaType('story-revision');
   }

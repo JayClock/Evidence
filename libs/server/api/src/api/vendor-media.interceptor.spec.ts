@@ -104,6 +104,10 @@ describe('vendorMediaType', () => {
       '/api/workspaces/default-workspace/story-candidates/candidate-1/reject',
       'application/vnd.evidence.story-candidate+json',
     ],
+    [
+      '/api/workspaces/default-workspace/stories/story-1/revisions',
+      'application/vnd.evidence.story-revision+json',
+    ],
   ])('maps POST %s to the singular resource media type', (path, expected) => {
     expect(vendorMediaType('POST', path)).toBe(expected);
   });

@@ -117,7 +117,9 @@ export interface StoryModel {
   title: string;
   latestRevisionId: string;
   latestRevisionNumber: number;
+  latestScenarioCount: number;
   revisionCount: number;
+  version: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +134,9 @@ export function storyModel(story: Story): StoryModel {
       workspace: link(workspaceHref(workspaceId)),
       collection: link(workspaceStoriesHref(workspaceId)),
       revisions: link(workspaceStoryRevisionsHref(workspaceId, storyId)),
+      'create-revision': link(
+        workspaceStoryRevisionsHref(workspaceId, storyId),
+      ),
       'latest-revision': link(
         workspaceStoryRevisionHref(
           workspaceId,
@@ -144,10 +149,20 @@ export function storyModel(story: Story): StoryModel {
     title: description.title,
     latestRevisionId: description.latestRevision.id(),
     latestRevisionNumber: description.latestRevisionNumber,
+    latestScenarioCount: description.latestScenarioCount,
     revisionCount: description.revisionCount,
+    version: description.version,
     createdAt: description.createdAt,
     updatedAt: description.updatedAt,
   };
+}
+
+export interface StoryScenarioModel {
+  id: string;
+  title: string;
+  given: string[];
+  when: string;
+  then: string[];
 }
 
 export interface StoryRevisionModel {
@@ -161,6 +176,7 @@ export interface StoryRevisionModel {
   value: string;
   cognitiveMode: string;
   citations: StoryCitationModel[];
+  scenarios: StoryScenarioModel[];
   contentSha256: string;
   sourceCandidateId: string | null;
   createdByUserId: string;
@@ -202,6 +218,7 @@ export function storyRevisionModel(
     citations: description.citations.map((citation) =>
       storyCitationModel(workspaceId, citation),
     ),
+    scenarios: description.scenarios.map((scenario) => ({ ...scenario })),
     contentSha256: description.contentSha256,
     sourceCandidateId: description.sourceCandidate?.id() ?? null,
     createdByUserId: description.createdBy.id(),

@@ -27,6 +27,8 @@ export type StoryCandidateDecisionInput =
 export type StoryCandidateStatus =
   components['schemas']['StoryCandidateStatus'];
 export type StoryCognitiveMode = components['schemas']['StoryCognitiveMode'];
+export type StoryRevisionInput = components['schemas']['StoryRevisionInput'];
+export type StoryScenarioInput = components['schemas']['StoryScenarioInput'];
 
 export type StoryCandidateResourceData = RequiredNullable<
   Omit<StoryCandidateResourceSchema, '_links'>,
@@ -84,6 +86,7 @@ export type StoryResource = Entity<
     workspace: WorkspaceResource;
     collection: StoryCollectionResource;
     revisions: StoryRevisionCollectionResource;
+    'create-revision': StoryRevisionResource;
     'latest-revision': StoryRevisionResource;
   }
 >;

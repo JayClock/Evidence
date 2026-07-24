@@ -304,7 +304,7 @@ export interface paths {
     };
     get: operations['list_story_revisions'];
     put?: never;
-    post?: never;
+    post: operations['create_story_revision'];
     delete?: never;
     options?: never;
     head?: never;
@@ -876,6 +876,19 @@ export interface components {
       contentSha256: string;
       locator: string;
     };
+    StoryScenarioInput: {
+      title: string;
+      given: string[];
+      when: string;
+      then: string[];
+    };
+    StoryScenarioResource: {
+      id: string;
+      title: string;
+      given: string[];
+      when: string;
+      then: string[];
+    };
     StoryCandidateInput: {
       title: string;
       problem: string;
@@ -928,7 +941,11 @@ export interface components {
       /** Format: int32 */
       latestRevisionNumber: number;
       /** Format: int32 */
+      latestScenarioCount: number;
+      /** Format: int32 */
       revisionCount: number;
+      /** Format: int32 */
+      version: number;
       /** Format: date-time */
       createdAt: string;
       /** Format: date-time */
@@ -942,6 +959,19 @@ export interface components {
       _embedded: components['schemas']['StoryCollectionEmbedded'];
       page: components['schemas']['PageModel'];
     };
+    StoryRevisionInput: {
+      /** Format: int32 */
+      expectedVersion: number;
+      expectedLatestRevisionId: string;
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      cognitiveMode: components['schemas']['StoryCognitiveMode'];
+      citations: components['schemas']['StoryCitationInput'][];
+      scenarios: components['schemas']['StoryScenarioInput'][];
+    };
     StoryRevisionResource: {
       _links: components['schemas']['BTreeMap'];
       id: string;
@@ -954,6 +984,7 @@ export interface components {
       value: string;
       cognitiveMode: components['schemas']['StoryCognitiveMode'];
       citations: components['schemas']['StoryCitationResource'][];
+      scenarios: components['schemas']['StoryScenarioResource'][];
       contentSha256: string;
       sourceCandidateId: string | null;
       createdByUserId: string;
@@ -2108,6 +2139,38 @@ export interface operations {
       };
       400: components['responses']['ValidationError'];
       404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  create_story_revision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        storyId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StoryRevisionInput'];
+      };
+    };
+    responses: {
+      /** @description Subsequent immutable Story Revision created by the current user */
+      201: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
       500: components['responses']['InternalError'];
     };
   };
