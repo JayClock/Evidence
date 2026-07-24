@@ -4,6 +4,8 @@ import type {
   StoryCandidateStatus,
   StoryCitationInput,
   StoryCognitiveMode,
+  StoryRevisionInput,
+  StoryScenarioInput,
 } from './delivery';
 
 const MAX_TITLE_LENGTH = 200;
@@ -11,6 +13,8 @@ const MAX_ROLE_LENGTH = 200;
 const MAX_STATEMENT_LENGTH = 2_000;
 const MAX_LOCATOR_LENGTH = 500;
 const MAX_CITATIONS = 20;
+const MAX_SCENARIOS = 50;
+const MAX_SCENARIO_STEPS = 20;
 const CONTENT_SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 
 export function normalizeStoryCandidateInput(
@@ -25,6 +29,16 @@ export function normalizeStoryCandidateInput(
     value: limitedText(input.value, MAX_STATEMENT_LENGTH, 'value'),
     cognitiveMode: parseStoryCognitiveMode(input.cognitiveMode),
     citations,
+  };
+}
+
+export function normalizeStoryRevisionInput(
+  input: StoryRevisionInput,
+): StoryRevisionInput {
+  const story = normalizeStoryCandidateInput(input);
+  return {
+    ...story,
+    scenarios: normalizeScenarios(input.scenarios),
   };
 }
 
@@ -43,12 +57,107 @@ export function parseStoryCandidateStatus(value: string): StoryCandidateStatus {
 }
 
 export function assertStoryCandidateVersion(value: number): number {
+  return assertPositiveVersion(value, 'Story Candidate');
+}
+
+export function assertStoryVersion(value: number): number {
+  return assertPositiveVersion(value, 'Story');
+}
+
+function assertPositiveVersion(value: number, subject: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) {
-    throw DomainError.validation(
-      'Story Candidate expected version must be positive',
-    );
+    throw DomainError.validation(`${subject} expected version must be positive`);
   }
   return value;
+}
+
+function normalizeScenarios(
+  scenarios: StoryScenarioInput[],
+): StoryScenarioInput[] {
+  if (!Array.isArray(scenarios) || scenarios.length === 0) {
+    throw DomainError.validation(
+      'Story Revision must contain at least one Scenario',
+    );
+  }
+  if (scenarios.length > MAX_SCENARIOS) {
+    throw DomainError.validation(
+      `Story Revision must not contain more than ${String(MAX_SCENARIOS)} Scenarios`,
+    );
+  }
+
+  return scenarios.map((scenario, index) => {
+    if (!scenario || typeof scenario !== 'object') {
+      throw DomainError.validation(
+        `Story Scenario ${String(index + 1)} is required`,
+      );
+    }
+    return {
+      title: scenarioSingleLine(
+        scenario.title,
+        MAX_TITLE_LENGTH,
+        `Scenario ${String(index + 1)} title`,
+      ),
+      given: normalizeScenarioSteps(
+        scenario.given,
+        `Scenario ${String(index + 1)} Given`,
+      ),
+      when: scenarioText(
+        scenario.when,
+        MAX_STATEMENT_LENGTH,
+        `Scenario ${String(index + 1)} When`,
+      ),
+      then: normalizeScenarioSteps(
+        scenario.then,
+        `Scenario ${String(index + 1)} Then`,
+      ),
+    };
+  });
+}
+
+function normalizeScenarioSteps(steps: string[], label: string): string[] {
+  if (!Array.isArray(steps) || steps.length === 0) {
+    throw DomainError.validation(`${label} must contain at least one step`);
+  }
+  if (steps.length > MAX_SCENARIO_STEPS) {
+    throw DomainError.validation(
+      `${label} must not contain more than ${String(MAX_SCENARIO_STEPS)} steps`,
+    );
+  }
+  return steps.map((step, index) =>
+    scenarioText(
+      step,
+      MAX_STATEMENT_LENGTH,
+      `${label} step ${String(index + 1)}`,
+    ),
+  );
+}
+
+function scenarioSingleLine(
+  value: string,
+  maximum: number,
+  label: string,
+): string {
+  const normalized = scenarioText(value, maximum, label);
+  if (/[\r\n]/.test(normalized)) {
+    throw DomainError.validation(`${label} must be a single line`);
+  }
+  return normalized;
+}
+
+function scenarioText(value: string, maximum: number, label: string): string {
+  if (typeof value !== 'string') {
+    throw DomainError.validation(`${label} must not be empty`);
+  }
+  const normalized = value.replace(/\r\n?/g, '\n').trim();
+  if (normalized.length === 0) {
+    throw DomainError.validation(`${label} must not be empty`);
+  }
+  if (normalized.length > maximum) {
+    throw DomainError.validation(
+      `${label} must not exceed ${String(maximum)} characters`,
+    );
+  }
+  return normalized;
 }
 
 function normalizeCitations(

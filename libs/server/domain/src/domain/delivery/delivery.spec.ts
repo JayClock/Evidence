@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { DomainError } from '../error';
 import {
   assertStoryCandidateVersion,
+  assertStoryVersion,
   normalizeStoryCandidateInput,
+  normalizeStoryRevisionInput,
   parseStoryCandidateStatus,
   parseStoryCognitiveMode,
 } from './validation';
@@ -23,6 +25,25 @@ function candidateInput() {
         inboxRevisionId: ' revision-1 ',
         contentSha256: hash.toUpperCase(),
         locator: ' whole-source ',
+      },
+    ],
+  };
+}
+
+function revisionInput() {
+  return {
+    ...candidateInput(),
+    scenarios: [
+      {
+        title: ' Isolate the coding worktree ',
+        given: [
+          ' The Workspace is bound to a Git repository.\r\nThe repository is accessible. ',
+        ],
+        when: ' The user starts a Coding Run. ',
+        then: [
+          ' A dedicated branch and worktree are created. ',
+          ' The primary working tree is unchanged. ',
+        ],
       },
     ],
   };
@@ -91,5 +112,73 @@ describe('Story Candidate validation', () => {
     expect(() => parseStoryCognitiveMode('chaotic')).toThrow(DomainError);
     expect(() => parseStoryCandidateStatus('accepted')).toThrow(DomainError);
     expect(() => assertStoryCandidateVersion(0)).toThrow(DomainError);
+  });
+});
+
+describe('Story Revision validation', () => {
+  it('normalizes one complete ordered Scenario Set', () => {
+    expect(normalizeStoryRevisionInput(revisionInput())).toMatchObject({
+      title: 'Local coding agent',
+      scenarios: [
+        {
+          title: 'Isolate the coding worktree',
+          given: [
+            'The Workspace is bound to a Git repository.\nThe repository is accessible.',
+          ],
+          when: 'The user starts a Coding Run.',
+          then: [
+            'A dedicated branch and worktree are created.',
+            'The primary working tree is unchanged.',
+          ],
+        },
+      ],
+    });
+  });
+
+  it.each([
+    { scenarios: [] },
+    {
+      scenarios: [
+        { ...revisionInput().scenarios[0], title: 'line one\nline two' },
+      ],
+    },
+    {
+      scenarios: [{ ...revisionInput().scenarios[0], given: [] }],
+    },
+    {
+      scenarios: [{ ...revisionInput().scenarios[0], when: ' ' }],
+    },
+    {
+      scenarios: [{ ...revisionInput().scenarios[0], then: [] }],
+    },
+  ])('rejects an incomplete Scenario Set', (overrides) => {
+    expect(() =>
+      normalizeStoryRevisionInput({ ...revisionInput(), ...overrides }),
+    ).toThrow(DomainError);
+  });
+
+  it('limits the Scenario and step counts and validates Story versions', () => {
+    expect(() =>
+      normalizeStoryRevisionInput({
+        ...revisionInput(),
+        scenarios: Array.from(
+          { length: 51 },
+          () => revisionInput().scenarios[0],
+        ),
+      }),
+    ).toThrow('more than 50');
+    expect(() =>
+      normalizeStoryRevisionInput({
+        ...revisionInput(),
+        scenarios: [
+          {
+            ...revisionInput().scenarios[0],
+            then: Array.from({ length: 21 }, () => 'One outcome'),
+          },
+        ],
+      }),
+    ).toThrow('more than 20');
+    expect(assertStoryVersion(1)).toBe(1);
+    expect(() => assertStoryVersion(0)).toThrow(DomainError);
   });
 });

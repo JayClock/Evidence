@@ -28,6 +28,21 @@ export interface StoryCandidateInput {
   citations: StoryCitationInput[];
 }
 
+export interface StoryScenarioInput {
+  title: string;
+  given: string[];
+  when: string;
+  then: string[];
+}
+
+export interface StoryScenarioDescription extends StoryScenarioInput {
+  id: string;
+}
+
+export interface StoryRevisionInput extends StoryCandidateInput {
+  scenarios: StoryScenarioInput[];
+}
+
 export interface StoryCandidateDescription {
   workspace: Ref<string>;
   title: string;
