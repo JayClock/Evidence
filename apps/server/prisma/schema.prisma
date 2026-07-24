@@ -14,6 +14,8 @@ model User {
   proposedStoryCandidates StoryCandidate[]  @relation("StoryCandidateProposer")
   decidedStoryCandidates  StoryCandidate[]  @relation("StoryCandidateDecider")
   createdStoryRevisions   StoryRevision[]   @relation("StoryRevisionAuthor")
+  requestedCodingRuns     CodingRun[]       @relation("CodingRunRequester")
+  decidedCodingRuns       CodingRun[]       @relation("CodingRunDecider")
 
   @@map("users")
 }
@@ -35,6 +37,7 @@ model Workspace {
   inboxItems           InboxItem[]
   storyCandidates      StoryCandidate[]
   stories              Story[]
+  codingRuns           CodingRun[]
 
   @@index([deletedAt])
   @@map("workspaces")
@@ -238,6 +241,7 @@ model Story {
   workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   revisions        StoryRevision[] @relation("StoryRevisions")
   latestRevision   StoryRevision?  @relation("LatestStoryRevision", fields: [latestRevisionId], references: [id], onDelete: Restrict)
+  codingRuns       CodingRun[]
 
   @@index([workspaceId, updatedAt])
   @@map("stories")
@@ -263,6 +267,7 @@ model StoryRevision {
   createdBy         User                    @relation("StoryRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict)
   citations         StoryRevisionCitation[]
   scenarios         StoryScenario[]
+  codingRuns        CodingRun[]
 
   @@unique([storyId, revisionNumber])
   @@index([storyId, createdAt])
@@ -281,6 +286,38 @@ model StoryScenario {
 
   @@unique([storyRevisionId, position])
   @@map("story_scenarios")
+}
+
+model CodingRun {
+  id                  String        @id
+  workspaceId         String        @map("workspace_id")
+  storyId             String        @map("story_id")
+  storyRevisionId     String        @map("story_revision_id")
+  requestedByUserId   String        @map("requested_by_user_id")
+  status              String
+  version             Int           @default(1)
+  baseCommitSha       String        @map("base_commit_sha")
+  diffSha256          String?       @map("diff_sha256")
+  changedFileCount    Int?          @map("changed_file_count")
+  qualityChecks       Json          @default("[]") @map("quality_checks")
+  commitSha           String?       @map("commit_sha")
+  failureCode         String?       @map("failure_code")
+  failureSummary      String?       @map("failure_summary")
+  decisionReason      String?       @map("decision_reason")
+  startedAt           DateTime      @map("started_at")
+  executionFinishedAt DateTime?     @map("execution_finished_at")
+  decidedByUserId     String?       @map("decided_by_user_id")
+  decidedAt           DateTime?     @map("decided_at")
+  workspace           Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  story               Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision       StoryRevision @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  requestedBy         User          @relation("CodingRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  decidedBy           User?         @relation("CodingRunDecider", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, status, startedAt])
+  @@index([storyId, startedAt])
+  @@index([storyRevisionId, status])
+  @@map("coding_runs")
 }
 
 model StoryRevisionCitation {
