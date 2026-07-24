@@ -29,6 +29,7 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/evidence
+      EVIDENCE_MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/evidence
 
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +52,7 @@ jobs:
       - uses: nrwl/nx-set-shas@v5
 
       - run: pnpm prisma:generate
-      - run: pnpm --dir apps/server exec prisma migrate deploy
+      - run: pnpm prisma:migrate:deploy
       - run: pnpm exec nx sync:check
       - run: pnpm exec nx format:check --base=$NX_BASE --head=$NX_HEAD
       - run: pnpm orchestrator:typecheck

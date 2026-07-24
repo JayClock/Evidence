@@ -14,6 +14,7 @@ if (!databaseUrl) {
     'DATABASE_URL must point to a migrated disposable PostgreSQL database.',
   );
 }
+assertDisposableDatabase(databaseUrl);
 
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-contracts-'));
 const port = await reservePort();
@@ -71,6 +72,27 @@ try {
   if (server.exitCode === null) server.kill('SIGKILL');
   await fakePiProvider.close();
   await rm(testRoot, { recursive: true, force: true });
+}
+
+function assertDisposableDatabase(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('DATABASE_URL must be a valid PostgreSQL URL.');
+  }
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
+    throw new Error('DATABASE_URL must use PostgreSQL.');
+  }
+  const loopback = new Set(['127.0.0.1', '::1', 'localhost']);
+  if (
+    !loopback.has(url.hostname) &&
+    process.env.EVIDENCE_ALLOW_REMOTE_CONTRACT_DATABASE !== '1'
+  ) {
+    throw new Error(
+      'Local API contracts refuse a remote database. Set EVIDENCE_ALLOW_REMOTE_CONTRACT_DATABASE=1 only for a disposable target.',
+    );
+  }
 }
 
 function reservePort() {

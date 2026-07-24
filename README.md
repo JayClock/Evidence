@@ -125,8 +125,8 @@ Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api
 
 ```sh
 pnpm prisma:generate
-DATABASE_URL="$TARGET_DATABASE_URL" \
-  pnpm --filter @evidence/server exec prisma migrate deploy
+EVIDENCE_MIGRATION_DATABASE_URL="$TARGET_DATABASE_URL" \
+  pnpm prisma:migrate:deploy
 
 SOURCE_DATABASE_URL="$SOURCE_DATABASE_URL" \
 TARGET_DATABASE_URL="$TARGET_DATABASE_URL" \
@@ -210,8 +210,9 @@ cp apps/server/.env.example apps/server/.env
 
 在 `apps/server/.env` 中设置 Server 运行时使用的 `DATABASE_URL`。如果运行时使用 transaction-mode
 连接池，同时用 `DIRECT_URL` 配置 Prisma migration 的 session/direct 地址。该本地文件已被 Git 忽略。
-迁移包装脚本会显示不含凭证的目标；命令行显式设置的 `DATABASE_URL` 优先于 `.env` 中的
-`DIRECT_URL`，也可用最高优先级的 `EVIDENCE_MIGRATION_DATABASE_URL` 锁定一次迁移目标。
+迁移只通过 `pnpm prisma:migrate:deploy` 包装脚本执行；脚本会显示不含凭证的目标。自动化和一次性
+迁移应显式设置 `EVIDENCE_MIGRATION_DATABASE_URL`。命令行显式设置的 `DATABASE_URL` 仍优先于
+`.env` 中的 `DIRECT_URL`，避免临时数据库验证静默连接远程数据库。
 
 ### Browser + Hosted Server
 
@@ -259,24 +260,24 @@ pnpm nx run @evidence/desktop:package
 
 ### Server 环境变量
 
-| 变量                              | 默认值               | 说明                                                                           |
-| :-------------------------------- | :------------------- | :----------------------------------------------------------------------------- |
-| `DATABASE_URL`                    | Prisma 本地 fallback | Server 运行时 PostgreSQL 连接字符串                                            |
-| `DIRECT_URL`                      | `DATABASE_URL`       | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
-| `EVIDENCE_MIGRATION_DATABASE_URL` | 未设置               | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL                |
-| `PORT`                            | `3000`                 | Nest 监听端口                                                                  |
-| `EVIDENCE_HOST`                   | `127.0.0.1`            | Server 监听 host；非 loopback 时必须同时配置 API Authorization                 |
-| `EVIDENCE_API_AUTHORIZATION`      | 未设置                 | 非 loopback Server 必需；请求必须携带完全一致的 `Authorization` header          |
-| `EVIDENCE_CORS_ORIGINS`           | 本地 Web 与 Desktop    | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
-| `EVIDENCE_USER_ID`                | `desktop-user`         | 当前单用户部署 principal；只可访问其 Workspace membership                      |
-| `EVIDENCE_USER_NAME`              | `Desktop User`         | 首次创建部署 principal 时使用的名称                                             |
-| `EVIDENCE_USER_EMAIL`             | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                           |
-| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录             | 仅用于内置默认 Workspace 的 Server 模型根                                      |
-| `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models` | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                 |
-| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`        | Pi SDK 的模型、认证与全局设置目录                                              |
-| `VITE_API_BASE_URL`               | `/api`                  | Browser API 根                                                                 |
-| `VITE_API_AUTHORIZATION`          | 未设置                  | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供       |
-| `EVIDENCE_API_BASE_URL`           | Electron 必填           | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
+| 变量                              | 默认值                   | 说明                                                                           |
+| :-------------------------------- | :----------------------- | :----------------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Prisma 本地 fallback     | Server 运行时 PostgreSQL 连接字符串                                            |
+| `DIRECT_URL`                      | `DATABASE_URL`           | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
+| `EVIDENCE_MIGRATION_DATABASE_URL` | 未设置                   | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL              |
+| `PORT`                            | `3000`                   | Nest 监听端口                                                                  |
+| `EVIDENCE_HOST`                   | `127.0.0.1`              | Server 监听 host；非 loopback 时必须同时配置 API Authorization                 |
+| `EVIDENCE_API_AUTHORIZATION`      | 未设置                   | 非 loopback Server 必需；请求必须携带完全一致的 `Authorization` header         |
+| `EVIDENCE_CORS_ORIGINS`           | 本地 Web 与 Desktop      | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
+| `EVIDENCE_USER_ID`                | `desktop-user`           | 当前单用户部署 principal；只可访问其 Workspace membership                      |
+| `EVIDENCE_USER_NAME`              | `Desktop User`           | 首次创建部署 principal 时使用的名称                                            |
+| `EVIDENCE_USER_EMAIL`             | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                            |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录                 | 仅用于内置默认 Workspace 的 Server 模型根                                      |
+| `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models`   | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                |
+| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`            | Pi SDK 的模型、认证与全局设置目录                                              |
+| `VITE_API_BASE_URL`               | `/api`                   | Browser API 根                                                                 |
+| `VITE_API_AUTHORIZATION`          | 未设置                   | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供        |
+| `EVIDENCE_API_BASE_URL`           | Electron 必填            | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
 
 ## 常用命令
 
@@ -302,8 +303,10 @@ pnpm nx run @evidence/desktop:package-smoke
 # API
 pnpm api:check
 pnpm api:generate
-# DATABASE_URL 必须指向已迁移的临时 PostgreSQL
+# DATABASE_URL 必须指向已迁移的 loopback 临时 PostgreSQL
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence pnpm api:contracts
+# 仅对明确的一次性远程测试库允许覆盖保护：
+# EVIDENCE_ALLOW_REMOTE_CONTRACT_DATABASE=1 DATABASE_URL=... pnpm api:contracts
 
 # Internal Orchestrator
 pnpm orchestrator:test
