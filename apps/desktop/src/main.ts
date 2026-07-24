@@ -19,6 +19,26 @@ import {
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
 import { authorizedApiRequestHeaders } from './api-request-authorization';
+import type {
+  CodingAgentEvent,
+  CodingAgentRuntimeRequest,
+} from './coding-agent-protocol';
+import { parseCodingAgentEvent } from './coding-agent-protocol';
+import { CodingController } from './coding-controller';
+import {
+  ACCEPT_CODING_RUN_CHANNEL,
+  CANCEL_CODING_AGENT_CHANNEL,
+  CODING_AGENT_EVENT_CHANNEL,
+  GET_CODING_REVIEW_CHANNEL,
+  parseCodingRunDecisionRequest,
+  parseCodingRunId,
+  parseCodingRunRejectionRequest,
+  parseStartCodingRequest,
+  REJECT_CODING_RUN_CHANNEL,
+  RUN_CODING_AGENT_CHANNEL,
+} from './coding-ipc-protocol';
+import { CodingRunClient } from './coding-run-client';
+import { CodingWorktreeManager } from './coding-worktree';
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalAgent } from './local-agent';
 import {
@@ -33,6 +53,7 @@ const APP_URL = `${APP_SCHEME}://app/`;
 const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
 
 let localAgent: LocalAgent | null = null;
+let codingController: CodingController | null = null;
 let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
@@ -94,6 +115,7 @@ function registerDesktopBridge(
   apiBaseUrl: string,
   agent: LocalAgent,
   bindings: WorkspaceBindingStore,
+  coding: CodingController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
@@ -144,6 +166,31 @@ function registerDesktopBridge(
     }
     await agent.cancel(id);
   });
+  ipcMain.handle(RUN_CODING_AGENT_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseStartCodingRequest(input);
+    await coding.run(request, (codingEvent) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(CODING_AGENT_EVENT_CHANNEL, codingEvent);
+      }
+    });
+  });
+  ipcMain.handle(CANCEL_CODING_AGENT_CHANNEL, async (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    await coding.cancel(parseCodingRunId(id));
+  });
+  ipcMain.handle(GET_CODING_REVIEW_CHANNEL, (event, runId: unknown) => {
+    assertTrustedIpcSender(event);
+    return coding.getReview(parseCodingRunId(runId));
+  });
+  ipcMain.handle(ACCEPT_CODING_RUN_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    return coding.accept(parseCodingRunDecisionRequest(input));
+  });
+  ipcMain.handle(REJECT_CODING_RUN_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    return coding.reject(parseCodingRunRejectionRequest(input));
+  });
 }
 
 function registerRendererApiAuthorization(
@@ -183,6 +230,27 @@ function createLocalAgent(): LocalAgent {
         )
       : join(__dirname, 'agent-runtime.js'),
     packaged: app.isPackaged,
+  });
+}
+
+function createLocalCodingAgent(): LocalAgent<
+  CodingAgentRuntimeRequest,
+  CodingAgentEvent
+> {
+  return new LocalAgent({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    runtimeEntry: app.isPackaged
+      ? join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'dist',
+          'coding-agent-runtime.js',
+        )
+      : join(__dirname, 'coding-agent-runtime.js'),
+    packaged: app.isPackaged,
+    parseEvent: parseCodingAgentEvent,
   });
 }
 
@@ -275,10 +343,20 @@ void app.whenReady().then(async () => {
     const authorization = resolveApiAuthorization();
     registerRendererApiAuthorization(apiBaseUrl, authorization);
     localAgent = createLocalAgent();
+    const localCodingAgent = createLocalCodingAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
     );
-    registerDesktopBridge(apiBaseUrl, localAgent, bindings);
+    codingController = new CodingController(
+      apiBaseUrl,
+      bindings,
+      new CodingWorktreeManager(
+        join(app.getPath('userData'), 'coding-worktrees'),
+      ),
+      new CodingRunClient({ apiBaseUrl, authorization }),
+      localCodingAgent,
+    );
+    registerDesktopBridge(apiBaseUrl, localAgent, bindings, codingController);
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl, authorization);
 
@@ -304,10 +382,13 @@ void app.whenReady().then(async () => {
 });
 
 app.on('before-quit', (event) => {
-  if (!allowQuit && localAgent) {
+  if (!allowQuit && (localAgent || codingController)) {
     event.preventDefault();
     allowQuit = true;
-    void localAgent.stop().finally(() => app.quit());
+    void Promise.all([
+      localAgent?.stop() ?? Promise.resolve(),
+      codingController?.stop() ?? Promise.resolve(),
+    ]).finally(() => app.quit());
   }
 });
 
