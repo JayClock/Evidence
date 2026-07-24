@@ -127,13 +127,4 @@ describe('vendorMediaType', () => {
   ])('maps POST %s to the singular resource media type', (path, expected) => {
     expect(vendorMediaType('POST', path)).toBe(expected);
   });
-
-  it('leaves the modeling proposal POST as an event stream', () => {
-    expect(
-      vendorMediaType(
-        'POST',
-        '/api/workspaces/default-workspace/diagram/propose-model',
-      ),
-    ).toBeNull();
-  });
 });

@@ -80,9 +80,6 @@ export function vendorMediaType(
   if (matches(apiSegments, ['workspaces', '*', 'diagram', 'edges', '*'])) {
     return mediaType('edge');
   }
-  if (matches(apiSegments, ['workspaces', '*', 'diagram', 'propose-model'])) {
-    return method.toUpperCase() === 'GET' ? mediaType('diagram') : null;
-  }
   if (matches(apiSegments, ['workspaces', '*', 'inbox-items'])) {
     return method.toUpperCase() === 'POST'
       ? mediaType('inbox-item')

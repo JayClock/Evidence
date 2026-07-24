@@ -183,10 +183,6 @@ export function workspaceDiagramEdgeHref(
   return `${workspaceDiagramEdgesHref(workspaceId)}/${edgeId}`;
 }
 
-export function workspaceDiagramProposeModelHref(workspaceId: string): string {
-  return `${workspaceDiagramHref(workspaceId)}/propose-model`;
-}
-
 export function workspaceLogicalEntityHref(
   workspaceId: string,
   entityId: string,

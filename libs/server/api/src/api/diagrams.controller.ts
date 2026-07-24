@@ -1,53 +1,25 @@
-import { Readable } from 'node:stream';
-import { join } from 'node:path';
-import {
-  Body,
-  Controller,
-  Get,
-  Header,
-  HttpCode,
-  HttpStatus,
-  Inject,
-  Param,
-  Post,
-  StreamableFile,
-} from '@nestjs/common';
-import {
-  DiagramNode,
-  DOMAIN_ARCHITECT,
-  DomainError,
-  type DomainArchitect,
-  type ModelingEvent,
-  type Workspace,
-} from '@evidence/server-domain';
+import { Controller, Get, Param } from '@nestjs/common';
+import { DiagramNode, type Workspace } from '@evidence/server-domain';
 import {
   link,
-  Link,
+  type Link,
   workspaceDiagramEdgesHref,
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
 } from './links';
 import {
   diagramModel,
-  DiagramModel,
+  type DiagramModel,
   edgeModel,
-  EdgeModel,
+  type EdgeModel,
   nodeModel,
-  NodeModel,
+  type NodeModel,
 } from './model';
 import { ResourceResolver } from './resource-resolver.service';
 
-interface ProposeModelInput {
-  requirement: string;
-}
-
 @Controller()
 export class DiagramsController {
-  constructor(
-    private readonly resolver: ResourceResolver,
-    @Inject(DOMAIN_ARCHITECT)
-    private readonly domainArchitect: DomainArchitect,
-  ) {}
+  constructor(private readonly resolver: ResourceResolver) {}
 
   @Get()
   async getDiagram(
@@ -124,40 +96,6 @@ export class DiagramsController {
     return edgeModel(workspaceId, edge);
   }
 
-  @Get('propose-model')
-  async getProposeModelDiagram(
-    @Param('workspaceId') workspaceId: string,
-  ): Promise<DiagramModel> {
-    return this.getDiagram(workspaceId);
-  }
-
-  @Post('propose-model')
-  @HttpCode(HttpStatus.OK)
-  @Header('Content-Type', 'text/event-stream')
-  @Header('Cache-Control', 'no-cache, no-transform')
-  async proposeModel(
-    @Param('workspaceId') workspaceId: string,
-    @Body() input: ProposeModelInput,
-  ): Promise<StreamableFile> {
-    if (
-      typeof input.requirement !== 'string' ||
-      input.requirement.trim().length === 0
-    ) {
-      throw DomainError.validation('requirement is required');
-    }
-    const [workspace] =
-      await this.resolver.requireWorkspaceDiagram(workspaceId);
-    const abortController = new AbortController();
-    const events = this.domainArchitect.proposeModelStream({
-      requirement: input.requirement,
-      modelDirectory: workspaceModelDirectory(workspace),
-      signal: abortController.signal,
-    });
-    const stream = Readable.from(modelingSseStream(events));
-    stream.once('close', () => abortController.abort());
-    return new StreamableFile(stream, { type: 'text/event-stream' });
-  }
-
   private async nodeResources(
     workspace: Workspace,
     nodes: DiagramNode[],
@@ -179,104 +117,4 @@ export class DiagramsController {
       : null;
     return nodeModel(workspace.identity(), node, logicalEntity);
   }
-}
-
-export async function* modelingSseStream(
-  events: AsyncIterable<ModelingEvent>,
-): AsyncIterable<string> {
-  let completed = false;
-  try {
-    for await (const event of events) {
-      completed ||= event.type === 'completed';
-      yield serializeModelingEvent(event);
-    }
-    if (!completed) {
-      yield sse('complete', '');
-    }
-  } catch (error) {
-    yield sse('error', errorMessage(error));
-  }
-}
-
-function serializeModelingEvent(event: ModelingEvent): string {
-  switch (event.type) {
-    case 'text-chunk':
-      return sse(null, event.chunk);
-    case 'reasoning-started':
-      return sse('thinking-start', '');
-    case 'reasoning-chunk':
-      return sse('thinking', event.chunk);
-    case 'reasoning-ended':
-      return sse('thinking-end', '');
-    case 'tool-call-started':
-      return sseJson('tool-call-start', {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-      });
-    case 'tool-call-delta':
-      return sseJson('tool-call-delta', {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        chunk: event.chunk,
-      });
-    case 'tool-call-ready':
-      return sseJson('tool-call', {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        input: event.input,
-      });
-    case 'tool-execution-started':
-      return sseJson('tool-execution-start', {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        args: event.args,
-      });
-    case 'tool-execution-updated':
-      return sseJson('tool-execution-update', {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        args: event.args,
-        partialResult: event.partialResult,
-      });
-    case 'tool-execution-ended':
-      return sseJson('tool-execution-end', {
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        result: event.result,
-        isError: event.isError,
-      });
-    case 'message-ended':
-      return sse('message-end', '');
-    case 'agent-ended':
-      return sse('agent-end', '');
-    case 'completed':
-      return sse('complete', '');
-  }
-}
-
-function sseJson(event: string, data: unknown): string {
-  return sse(event, JSON.stringify(data));
-}
-
-function sse(event: string | null, data: string): string {
-  const eventLine = event ? `event: ${event}\n` : '';
-  const dataLines = data
-    .split(/\r\n|\r|\n/)
-    .map((line) => `data: ${line}`)
-    .join('\n');
-  return `${eventLine}${dataLines}\n\n`;
-}
-
-function workspaceModelDirectory(workspace: Workspace): string {
-  const metadata = workspace.description().metadata;
-  const evidenceRoot = metadata['evidenceRoot']?.trim();
-  if (evidenceRoot) {
-    return evidenceRoot;
-  }
-  const repositoryRoot = metadata['repositoryRoot']?.trim();
-  return repositoryRoot ? join(repositoryRoot, '.evidence') : '.evidence';
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

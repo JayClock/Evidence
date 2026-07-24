@@ -18,9 +18,6 @@
       "path": "../../libs/server/persistent/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/server/infrastructure/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/server/domain/tsconfig.lib.json"
     },
     {

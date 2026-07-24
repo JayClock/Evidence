@@ -4,10 +4,8 @@ import {
   type Diagram,
   type DiagramEdge,
   type DiagramNode,
-  type DomainArchitect,
   type Entity,
   type Many,
-  type ModelingEvent,
   type Workspace,
 } from '@evidence/server-domain';
 import { DiagramsController } from './diagrams.controller';
@@ -28,7 +26,7 @@ function many<E extends Entity<string, unknown>>(items: E[]): Many<E> {
   };
 }
 
-function fixture(modelingEvents: ModelingEvent[] = [{ type: 'completed' }]) {
+function fixture() {
   const node = {
     identity: () => 'node-1',
     description: () => ({
@@ -100,27 +98,10 @@ function fixture(modelingEvents: ModelingEvent[] = [{ type: 'completed' }]) {
     requireDiagramEdge: vi.fn(async () => [workspace, diagram, edge]),
   } as unknown as ResourceResolver;
 
-  const domainArchitect = {
-    proposeModelStream: vi.fn(async function* () {
-      for (const event of modelingEvents) {
-        yield event;
-      }
-    }),
-  } as DomainArchitect;
-
   return {
-    controller: new DiagramsController(resolver, domainArchitect),
+    controller: new DiagramsController(resolver),
     resolver,
-    domainArchitect,
   };
-}
-
-async function readStream(stream: AsyncIterable<unknown>): Promise<string> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
-  }
-  return Buffer.concat(chunks).toString('utf8');
 }
 
 describe('DiagramsController', () => {
@@ -162,46 +143,5 @@ describe('DiagramsController', () => {
     expect(edges._embedded.edges[0]?._links.self.href).toBe(
       '/api/workspaces/workspace-1/diagram/edges/edge-1',
     );
-  });
-
-  it('validates a proposal requirement before loading the diagram', async () => {
-    const { controller, resolver, domainArchitect } = fixture();
-
-    await expect(
-      controller.proposeModel('workspace-1', { requirement: '  ' }),
-    ).rejects.toMatchObject({ kind: 'validation' });
-    expect(resolver.requireWorkspaceDiagram).not.toHaveBeenCalled();
-    expect(domainArchitect.proposeModelStream).not.toHaveBeenCalled();
-  });
-
-  it('streams architect events from the workspace evidence root', async () => {
-    const { controller, domainArchitect } = fixture([
-      { type: 'reasoning-started' },
-      { type: 'text-chunk', chunk: 'line one\nline two' },
-      {
-        type: 'tool-call-ready',
-        toolCallId: 'call-1',
-        toolName: 'read',
-        input: { path: 'entities' },
-      },
-      { type: 'completed' },
-    ]);
-
-    const response = await controller.proposeModel('workspace-1', {
-      requirement: 'Add an order',
-    });
-
-    await expect(readStream(response.getStream())).resolves.toBe(
-      'event: thinking-start\ndata: \n\n' +
-        'data: line one\ndata: line two\n\n' +
-        'event: tool-call\n' +
-        'data: {"toolCallId":"call-1","toolName":"read","input":{"path":"entities"}}\n\n' +
-        'event: complete\ndata: \n\n',
-    );
-    expect(domainArchitect.proposeModelStream).toHaveBeenCalledWith({
-      requirement: 'Add an order',
-      modelDirectory: '/projects/orders/.evidence',
-      signal: expect.any(AbortSignal),
-    });
   });
 });

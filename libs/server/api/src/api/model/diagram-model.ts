@@ -5,7 +5,6 @@ import {
   workspaceDiagramEdgesHref,
   workspaceDiagramHref,
   workspaceDiagramNodesHref,
-  workspaceDiagramProposeModelHref,
   workspaceLogicalEntitiesHref,
   workspaceLogicalRelationshipsHref,
 } from '../links';
@@ -34,33 +33,12 @@ export function diagramModel(diagram: Diagram): DiagramModel {
       'logical-relationships': link(
         workspaceLogicalRelationshipsHref(workspaceId),
       ),
-      'propose-model': link(workspaceDiagramProposeModelHref(workspaceId)),
     },
-    _templates: {
-      'propose-model': proposeModelTemplate(workspaceId),
-    },
+    _templates: {},
     id: diagramId,
     title: description.title,
     viewport: description.viewport,
     createdAt: description.createdAt,
     updatedAt: description.updatedAt,
-  };
-}
-
-function proposeModelTemplate(workspaceId: string): unknown {
-  return {
-    title: 'Propose diagram model',
-    method: 'POST',
-    target: workspaceDiagramProposeModelHref(workspaceId),
-    contentType: 'application/json',
-    properties: [
-      {
-        name: 'requirement',
-        prompt: 'Requirement',
-        type: 'textarea',
-        required: true,
-        minLength: 1,
-      },
-    ],
   };
 }
