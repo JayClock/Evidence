@@ -48,7 +48,20 @@ export function parseCodingAgentRuntimeRequest(
   if (!isAbsolute(worktreeRoot)) {
     throw new Error('Coding Agent worktreeRoot must be absolute.');
   }
-  const story = record(input.storyRevision, 'storyRevision');
+  const storyRevision = parseCodingStoryRevisionSnapshot(input.storyRevision);
+
+  return {
+    id: safeId(input.id, 'request id'),
+    runId: safeId(input.runId, 'run id'),
+    worktreeRoot,
+    storyRevision,
+  };
+}
+
+export function parseCodingStoryRevisionSnapshot(
+  value: unknown,
+): CodingStoryRevisionSnapshot {
+  const story = record(value, 'storyRevision');
   const scenarios = requiredArray(story.scenarios, 'storyRevision.scenarios');
   if (scenarios.length === 0 || scenarios.length > MAX_SCENARIOS) {
     throw new Error('Coding Agent Story Revision must contain Scenarios.');
@@ -62,27 +75,22 @@ export function parseCodingAgentRuntimeRequest(
   }
 
   return {
-    id: safeId(input.id, 'request id'),
-    runId: safeId(input.runId, 'run id'),
-    worktreeRoot,
-    storyRevision: {
-      id: safeId(story.id, 'Story Revision id'),
-      revisionNumber: positiveInteger(
-        story.revisionNumber,
-        'storyRevision.revisionNumber',
-      ),
-      title: boundedText(story.title, 'storyRevision.title'),
-      problem: boundedText(story.problem, 'storyRevision.problem'),
-      role: boundedText(story.role, 'storyRevision.role'),
-      goal: boundedText(story.goal, 'storyRevision.goal'),
-      value: boundedText(story.value, 'storyRevision.value'),
-      cognitiveMode: boundedText(
-        story.cognitiveMode,
-        'storyRevision.cognitiveMode',
-      ),
-      contentSha256,
-      scenarios: scenarios.map(parseScenario),
-    },
+    id: safeId(story.id, 'Story Revision id'),
+    revisionNumber: positiveInteger(
+      story.revisionNumber,
+      'storyRevision.revisionNumber',
+    ),
+    title: boundedText(story.title, 'storyRevision.title'),
+    problem: boundedText(story.problem, 'storyRevision.problem'),
+    role: boundedText(story.role, 'storyRevision.role'),
+    goal: boundedText(story.goal, 'storyRevision.goal'),
+    value: boundedText(story.value, 'storyRevision.value'),
+    cognitiveMode: boundedText(
+      story.cognitiveMode,
+      'storyRevision.cognitiveMode',
+    ),
+    contentSha256,
+    scenarios: scenarios.map(parseScenario),
   };
 }
 
