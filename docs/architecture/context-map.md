@@ -2,18 +2,19 @@
 
 ## 产品上下文
 
-| 上游                 | 下游               | 关系与集成                                        |
-| -------------------- | ------------------ | ------------------------------------------------- |
-| Identity & Workspace | Work Intake        | Workspace membership 隔离 Inbox Item 与 Revision  |
-| Identity & Workspace | Model Authoring    | Workspace 提供成员和模型所有权边界                |
-| Identity & Workspace | Diagram Projection | 每个 Workspace 提供一个当前 Diagram 投影          |
-| Work Intake          | Delivery Knowledge | 后续人工决定引用精确不可变 Inbox Revision         |
-| Model Authoring      | Diagram Projection | DiagramNode/Edge 投影 LogicalEntity/Relationship  |
-| AI Modeling          | Model Authoring    | Agent 流式提出 ModelingProposal，用户确认后才应用 |
-| Server Runtime       | Web Runtime        | REST/HAL 与 OpenAPI Published Language            |
-| Desktop Runtime      | Web Runtime        | Electron Wrapper，共享 renderer 与产品语义        |
-| Desktop Runtime      | Server Runtime     | HTTPS + Authorization；loopback HTTP 仅用于开发   |
-| Desktop Runtime      | Local Repository   | API + Workspace 私有 binding；路径不进入 Server   |
+| 上游                 | 下游               | 关系与集成                                       |
+| -------------------- | ------------------ | ------------------------------------------------ |
+| Identity & Workspace | Work Intake        | Workspace membership 隔离 Inbox Item 与 Revision |
+| Identity & Workspace | Model Authoring    | Workspace 提供成员和模型所有权边界               |
+| Identity & Workspace | Diagram Projection | 每个 Workspace 提供一个当前 Diagram 投影         |
+| Work Intake          | Delivery Knowledge | 人工决定引用精确不可变 Inbox Revision            |
+| Model Authoring      | Diagram Projection | DiagramNode/Edge 投影 LogicalEntity/Relationship |
+| Desktop Runtime      | Model Authoring    | 本地 Pi Agent 通过认证 REST command 更新模型     |
+| Delivery Knowledge   | Desktop Runtime    | 精确 Story Revision 驱动隔离的本地 CodingRun     |
+| Server Runtime       | Web Runtime        | REST/HAL 与 OpenAPI Published Language           |
+| Desktop Runtime      | Web Runtime        | Electron Wrapper，共享 renderer 与产品语义       |
+| Desktop Runtime      | Server Runtime     | HTTPS + Authorization；loopback HTTP 仅用于开发  |
+| Desktop Runtime      | Local Repository   | API + Workspace 私有 binding；路径不进入 Server  |
 
 ## 实现映射
 
@@ -21,10 +22,11 @@
 | -------------------- | ----------------------------------------------- | -------------------------------- | ------------------------------------ |
 | Identity & Workspace | `libs/server/domain`、`persistent`、`api`       | `libs/web/web-shell`、API client | 复用 Web 与远程 API                  |
 | Work Intake          | `domain/inbox`、Prisma、Inbox controller        | `web-feature-inbox`              | 复用 Web；本地路径不参与 Inbox       |
-| Delivery Knowledge   | `domain/delivery`、Prisma、Delivery controllers | `web-feature-delivery`           | 复用 Web；尚待 worktree/coding agent |
+| Delivery Knowledge   | `domain/delivery`、Prisma、Delivery controllers | `web-feature-delivery`           | CodingRun controller 与人工审查      |
 | Model Authoring      | filesystem model adapters、domain、controllers  | logical-entities feature         | 复用 Web 与远程 API                  |
 | Diagram Projection   | `WorkspaceDiagram` 与 YAML projection           | diagrams feature                 | 复用 Web 与远程 API                  |
-| AI Modeling          | `DomainArchitect` port、Pi SDK、SSE controller  | diagrams AI UI                   | 本地 Pi Agent + 远程 API             |
+| AI Modeling          | 仅提供模型 command/query REST API               | diagrams AI UI                   | 嵌入式 Pi SDK + 远程模型 API         |
+| Coding Execution     | CodingRun 状态与有限执行事实                    | coding run 审查 UI               | 隔离 worktree、Pi、质量门与本地 diff |
 | Resource Navigation  | HAL controllers                                 | resource-browser、web-shell      | API URL、repository binding、Agent   |
 
 ## Published Language 与适配边界
@@ -35,7 +37,7 @@
 - `.evidence` YAML 是工作空间逻辑模型的持久化语言；Diagram 是其投影，不是第二份领域模型。
 - Electron IPC 仅用于取得 API URL、选择并绑定本地目录和控制本地 Agent；产品业务 command/query 仍走 REST。
 - Server Workspace 使用私有 `modelRoot` 访问自身 `.evidence`，HAL metadata 不发布 Server 或 Desktop 绝对路径。
-- Work Intake 与 Delivery 的 Candidate → Story Revision v1 已实现；Scenario、CodingRun 与后续 Revision 仍不能被内部 Orchestrator 工件冒充。
+- Work Intake 与 Delivery 的 Candidate → Story Revision、Scenario 与 CodingRun 已实现；这些产品记录不能被内部 Orchestrator 工件冒充。
 
 ## 内部研发工具边界
 
@@ -44,7 +46,7 @@ Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具�
 ## 边界规则
 
 - LogicalRelationship 的端点必须属于同一 Workspace。
-- AI 只能提出候选，不能直接改变权威模型。
+- Coding Pi 不能自行宣告运行成功、接受变更或绕过人工审查提交代码。
 - Nest 是唯一 Server runtime；Electron main/preload 不实现 Server domain。
 - Hosted API 必须认证部署 principal，所有 Workspace 访问必须通过其 membership。
 - 同一 Inbox source identity 幂等；同一 Item 内每个 content SHA-256 只有一个 Revision。

@@ -12,14 +12,13 @@
 6. 团队浏览、讨论并修正模型。
 7. 经确认的模型变化被持久化并保留可追踪关系。
 
-## 旅程 B：借助 AI 改进模型
+## 旅程 B：在 Desktop 借助 AI 改进模型
 
-1. 用户在具体工作区和图上下文中描述建模意图。
-2. Agent 读取当前模型与上下文。
-3. Agent 返回可解释的 ModelingProposal。
-4. 用户检查新增、修改、删除及其影响。
-5. 用户接受或拒绝提案。
-6. 只有接受的提案改变权威模型，结果重新投影到图。
+1. 用户在 Desktop 的具体工作区和图上下文中描述建模意图。
+2. 本地 Agent 通过受限工具和认证 REST API 读取当前模型与上下文。
+3. Agent 仅按用户当前请求执行模型 command，并流式解释活动和结果。
+4. 用户检查修改后的实体、关系及其影响，结果重新投影到图。
+5. Browser 没有本地 Agent 时禁用 AI 输入，不回退到 Server Pi endpoint；普通模型 CRUD 仍走同一 Server API。
 
 ## 旅程 C：跨 Web/Desktop 使用
 
@@ -47,3 +46,13 @@
 4. 用户明确确认 pending Candidate 时，Server 原子创建 Story 与不可变 Story Revision v1，并记录确认者。
 5. 确认请求重试返回同一个 Revision；已拒绝 Candidate 不能再确认，已确认 Candidate 不能再拒绝。
 6. 用户可浏览 Story、最新 Revision 和完整 Revision 历史；后续 CodingRun 只能锁定具体 Revision。
+
+## 旅程 F：细化场景并审查本地 CodingRun
+
+1. 用户基于 latest Story Revision 确认至少一个有序 Given/When/Then Scenario，形成新的不可变 Revision。
+2. 用户为该 latest Revision 创建 CodingRun；同一 Revision 同时不能有另一个活动 Run。
+3. Desktop 使用 API + Workspace 对应的本地 Git repository binding 创建独立 branch/worktree，主工作树保持不变。
+4. 本地 Pi Agent 只使用 worktree 内受限文件工具和固定质量门；Controller 计算 diff hash 并把 Run 推进到待审查。
+5. 用户在共享 Web UI 中检查 Server 保存的有限执行事实和 Desktop 提供的本地完整 diff。
+6. 接受时 Desktop 先校验 diff hash，再创建一个本地 Conventional Commit 并通知 Server；不自动 merge/push。
+7. 拒绝、取消或失败会记录决定并清理本地 worktree/branch，不提交代码。

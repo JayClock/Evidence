@@ -3,9 +3,9 @@
 | 替身 | 使用条件                             | Evidence 典型用途                                                    |
 | ---- | ------------------------------------ | -------------------------------------------------------------------- |
 | Real | 真实对象快速、确定且能提高信心       | Domain value/entity、React composition、filesystem temp dir、最终 Q2 |
-| Fake | 需要保持有意义行为但替代昂贵基础设施 | memory repository、fake Pi JSONL process                             |
+| Fake | 需要保持有意义行为但替代昂贵基础设施 | memory repository、fake remote API、Git command runner               |
 | Stub | 下游只需返回固定结果                 | domain port、Electron renderer/child 响应                            |
-| Spy  | 需要验证重要协作是否发生             | 提案流取消、导航或外部 port 调用                                     |
+| Spy  | 需要验证重要协作是否发生             | Agent 取消、CodingRun command、导航或外部 port 调用                  |
 | Mock | 交互协议本身就是行为且断言价值高     | Prisma client、HTTP transport 或严格边界；避免过度 mock              |
 
 ## 选择规则
@@ -22,7 +22,7 @@
 - Nest domain/memory 与 Prisma/PostgreSQL adapter 共享可观察 repository 语义。
 - `.evidence` adapter 使用真实临时目录验证 YAML、路径安全、端点和投影行为。
 - API controller tests 可以替换 domain ports，但本地 black-box runner 必须经过真实 Nest HTTP stack。
-- Pi adapter 的快速测试使用受控 fake JSONL child；SSE contract 必须验证事件顺序、完成/错误和取消语义。
+- Desktop Agent 的快速测试注入受控 Pi session/event source，并在临时 worktree 中验证路径限制、事件顺序、完成/错误和取消语义；Server contract 不启动 Pi。
 - Electron lifecycle tests 可以 fake renderer/API；发布边界必须通过真实 unpacked package smoke。
 - Web API client 可以替换 transport，但 HAL 资源语义和渲染场景应保持真实。
-- 最终 Q2 是否使用真实 PostgreSQL、Pi provider 或平台安装包由场景风险决定，不机械追求端到端覆盖。
+- 最终 Q2 是否使用真实 PostgreSQL、Desktop Pi provider 或平台安装包由场景风险决定，不机械追求端到端覆盖。

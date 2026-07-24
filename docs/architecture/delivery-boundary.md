@@ -36,10 +36,10 @@ Dogfooding 只允许内部工具读取产品知识来辅助开发，不允许产
 ## 当前落地状态
 
 - Work Intake 的 Inbox、Revision、状态、HAL/OpenAPI、Web 页面和 PostgreSQL migration 已落地。
-- Desktop repository binding 已落地，但 coding worktree 与 coding agent 尚未落地。
+- Desktop repository binding、Git 验证、隔离 coding worktree、受限 coding agent、固定质量门和本地 diff 审查已落地。
 - Story Candidate、人工确认/拒绝、Story 与不可变 Story Revision v1 已通过 Domain、PostgreSQL、REST/HAL、Web 和黑盒契约落地。
 - 用户可基于精确 latest Revision 和 optimistic version 确认有序 Given/When/Then Scenario Set，原子创建不可变 Story Revision v2+；旧 v1 可继续保持无 Scenario。
-- CodingRun 尚未落地；Server 端 ModelingProposal Pi 路径仍存在，待 Desktop Coding 通过后单独退休。
+- CodingRun Domain、PostgreSQL、REST/HAL、OpenAPI、Web 审查 UI 与 Desktop controller 已落地；Server 端 Pi runtime 和建模 proposal endpoint 已退休。
 
 ## 后果
 
