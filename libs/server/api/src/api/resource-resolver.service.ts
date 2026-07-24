@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DomainError, USERS } from '@evidence/server-domain';
 import type {
+  CodingRun,
   Diagram,
   DiagramEdge,
   DiagramNode,
@@ -190,6 +191,18 @@ export class ResourceResolver {
       throw DomainError.notFound(`Story Revision ${revisionId} not found`);
     }
     return [workspace, story, revision];
+  }
+
+  async requireWorkspaceCodingRun(
+    workspaceId: string,
+    runId: string,
+  ): Promise<[Workspace, CodingRun]> {
+    const workspace = await this.requireWorkspace(workspaceId);
+    const run = await workspace.codingRuns().findByIdentity(runId);
+    if (!run) {
+      throw DomainError.notFound(`Coding Run ${runId} not found`);
+    }
+    return [workspace, run];
   }
 
   async requireWorkspaceLogicalEntity(

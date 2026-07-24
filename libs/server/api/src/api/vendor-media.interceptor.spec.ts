@@ -75,6 +75,14 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.story-revision+json',
     ],
     [
+      '/api/workspaces/default-workspace/stories/story-1/coding-runs',
+      'application/vnd.evidence.coding-runs+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/coding-runs/run-1',
+      'application/vnd.evidence.coding-run+json',
+    ],
+    [
       '/api/workspaces/default-workspace/logical-entities',
       'application/vnd.evidence.logical-entities+json',
     ],
@@ -107,6 +115,14 @@ describe('vendorMediaType', () => {
     [
       '/api/workspaces/default-workspace/stories/story-1/revisions',
       'application/vnd.evidence.story-revision+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/stories/story-1/coding-runs',
+      'application/vnd.evidence.coding-run+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/coding-runs/run-1/review',
+      'application/vnd.evidence.coding-run+json',
     ],
   ])('maps POST %s to the singular resource media type', (path, expected) => {
     expect(vendorMediaType('POST', path)).toBe(expected);

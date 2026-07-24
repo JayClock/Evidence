@@ -127,6 +127,32 @@ export function workspaceStoryRevisionHref(
   return `${workspaceStoryRevisionsHref(workspaceId, storyId)}/${revisionId}`;
 }
 
+export function workspaceStoryCodingRunsHref(
+  workspaceId: string,
+  storyId: string,
+): string {
+  return `${workspaceStoryHref(workspaceId, storyId)}/coding-runs`;
+}
+
+export function workspaceCodingRunsHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/coding-runs`;
+}
+
+export function workspaceCodingRunHref(
+  workspaceId: string,
+  runId: string,
+): string {
+  return `${workspaceCodingRunsHref(workspaceId)}/${runId}`;
+}
+
+export function workspaceCodingRunCommandHref(
+  workspaceId: string,
+  runId: string,
+  command: 'review' | 'fail' | 'cancel' | 'accept' | 'reject',
+): string {
+  return `${workspaceCodingRunHref(workspaceId, runId)}/${command}`;
+}
+
 export function workspaceLogicalEntitiesHref(workspaceId: string): string {
   return `/api/workspaces/${workspaceId}/logical-entities`;
 }

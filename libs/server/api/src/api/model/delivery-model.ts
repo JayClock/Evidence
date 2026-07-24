@@ -12,6 +12,7 @@ import {
   workspaceInboxItemHref,
   workspaceInboxRevisionHref,
   workspaceStoriesHref,
+  workspaceStoryCodingRunsHref,
   workspaceStoryCandidateConfirmHref,
   workspaceStoryCandidateHref,
   workspaceStoryCandidateRejectHref,
@@ -128,23 +129,28 @@ export function storyModel(story: Story): StoryModel {
   const storyId = story.identity();
   const description = story.description();
   const workspaceId = description.workspace.id();
+  const links: Record<string, Link> = {
+    self: link(workspaceStoryHref(workspaceId, storyId)),
+    workspace: link(workspaceHref(workspaceId)),
+    collection: link(workspaceStoriesHref(workspaceId)),
+    revisions: link(workspaceStoryRevisionsHref(workspaceId, storyId)),
+    'create-revision': link(workspaceStoryRevisionsHref(workspaceId, storyId)),
+    'latest-revision': link(
+      workspaceStoryRevisionHref(
+        workspaceId,
+        storyId,
+        description.latestRevision.id(),
+      ),
+    ),
+    'coding-runs': link(workspaceStoryCodingRunsHref(workspaceId, storyId)),
+  };
+  if (description.latestScenarioCount > 0) {
+    links['start-coding-run'] = link(
+      workspaceStoryCodingRunsHref(workspaceId, storyId),
+    );
+  }
   return {
-    _links: {
-      self: link(workspaceStoryHref(workspaceId, storyId)),
-      workspace: link(workspaceHref(workspaceId)),
-      collection: link(workspaceStoriesHref(workspaceId)),
-      revisions: link(workspaceStoryRevisionsHref(workspaceId, storyId)),
-      'create-revision': link(
-        workspaceStoryRevisionsHref(workspaceId, storyId),
-      ),
-      'latest-revision': link(
-        workspaceStoryRevisionHref(
-          workspaceId,
-          storyId,
-          description.latestRevision.id(),
-        ),
-      ),
-    },
+    _links: links,
     id: storyId,
     title: description.title,
     latestRevisionId: description.latestRevision.id(),
