@@ -21,15 +21,68 @@ afterEach(() => {
 });
 
 function diagramState(fetch: (init?: RequestInit) => Promise<Response>) {
+  (globalThis as { evidenceDesktop?: unknown }).evidenceDesktop = {
+    runDiagramAgent: vi.fn(
+      async (
+        request: {
+          id: string;
+          requirement: string;
+        },
+        onEvent: (event: {
+          id: string;
+          event: string | null;
+          data: string;
+        }) => void,
+      ) => {
+        const response = await fetch({
+          method: 'POST',
+          body: JSON.stringify({ requirement: request.requirement }),
+        });
+        if (!response.ok) {
+          throw new Error((await response.text()) || 'Desktop agent failed.');
+        }
+
+        for (const event of parseAgentEvents(await response.text())) {
+          onEvent({ id: request.id, ...event });
+        }
+      },
+    ),
+    cancelDiagramAgent: vi.fn(async () => undefined),
+  };
+
   return {
-    follow: vi.fn(() => ({
-      uri: 'https://api.example.test/api/workspaces/ws/diagram/propose-model',
-      fetch,
+    follow: vi.fn((relation: string) => ({
+      uri: `https://api.example.test/api/workspaces/ws/${
+        relation === 'logical-entities'
+          ? 'logical-entities'
+          : 'logical-relationships'
+      }`,
     })),
-    getLink: vi.fn(() => ({
-      href: '/api/workspaces/ws/diagram/propose-model',
-    })),
+    getLink: vi.fn(),
   } as unknown as State<DiagramResource>;
+}
+
+function parseAgentEvents(text: string): Array<{
+  event: string | null;
+  data: string;
+}> {
+  return text
+    .replaceAll('\r\n', '\n')
+    .split('\n\n')
+    .filter((block) => block.trim())
+    .map((block) => {
+      let event: string | null = null;
+      const data: string[] = [];
+      for (const line of block.split('\n')) {
+        if (line.startsWith('event:')) {
+          event = line.slice('event:'.length).trim() || null;
+        } else if (line.startsWith('data:')) {
+          const value = line.slice('data:'.length);
+          data.push(value.startsWith(' ') ? value.slice(1) : value);
+        }
+      }
+      return { event, data: data.join('\n') };
+    });
 }
 
 async function readChunks(stream: ReadableStream<UIMessageChunk>) {
@@ -56,6 +109,25 @@ function userMessage(text: string): UIMessage {
 }
 
 describe('createDiagramProposalTransport', () => {
+  it('does not fall back to a Server modeling endpoint outside Desktop', async () => {
+    const state = {
+      follow: vi.fn(),
+      getLink: vi.fn(),
+    } as unknown as State<DiagramResource>;
+    const transport = createDiagramProposalTransport(state);
+
+    await expect(
+      transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'chat-1',
+        messageId: undefined,
+        messages: [userMessage('model this requirement')],
+        abortSignal: undefined,
+      }),
+    ).rejects.toThrow('available in Evidence Desktop only');
+    expect(state.follow).not.toHaveBeenCalled();
+  });
+
   it('sends only the latest user message as the diagram AI requirement', async () => {
     const fetch = vi.fn(async () => sseResponse('data: {}\n\n'));
     const state = diagramState(fetch);
@@ -77,7 +149,8 @@ describe('createDiagramProposalTransport', () => {
       abortSignal: undefined,
     });
 
-    expect(state.follow).toHaveBeenCalledWith('propose-model');
+    expect(state.follow).toHaveBeenCalledWith('logical-entities');
+    expect(state.follow).toHaveBeenCalledWith('logical-relationships');
     expect(fetch).toHaveBeenCalledWith(
       expect.objectContaining({
         method: 'POST',
@@ -156,7 +229,7 @@ describe('createDiagramProposalTransport', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('converts backend text SSE events into AI SDK text chunks', async () => {
+  it('converts desktop text events into AI SDK text chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse(
         [
@@ -191,7 +264,7 @@ describe('createDiagramProposalTransport', () => {
     ]);
   });
 
-  it('converts backend proposal tool SSE events into AI SDK tool chunks', async () => {
+  it('converts desktop proposal tool events into AI SDK tool chunks', async () => {
     const proposal = {
       summary: 'Draft',
       changes: {
@@ -264,7 +337,7 @@ describe('createDiagramProposalTransport', () => {
     ]);
   });
 
-  it('converts backend tool SSE events into AI SDK tool chunks', async () => {
+  it('converts desktop tool events into AI SDK tool chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse(
         [
@@ -529,7 +602,7 @@ describe('createDiagramProposalTransport', () => {
     ]);
   });
 
-  it('surfaces backend SSE errors as error chunks', async () => {
+  it('surfaces desktop agent errors as error chunks', async () => {
     const fetch = vi.fn(async () =>
       sseResponse('event: error\ndata: pi sdk request timed out\n\n'),
     );
@@ -551,20 +624,20 @@ describe('createDiagramProposalTransport', () => {
     });
   });
 
-  it('surfaces request failures before streaming starts', async () => {
+  it('surfaces desktop agent failures through the response stream', async () => {
     const fetch = vi.fn(
       async () => new Response('bad gateway', { status: 502 }),
     );
     const transport = createDiagramProposalTransport(diagramState(fetch));
 
-    await expect(
-      transport.sendMessages({
-        trigger: 'submit-message',
-        chatId: 'chat-1',
-        messageId: undefined,
-        messages: [userMessage('model this requirement')],
-        abortSignal: undefined,
-      }),
-    ).rejects.toThrow('bad gateway');
+    const stream = await transport.sendMessages({
+      trigger: 'submit-message',
+      chatId: 'chat-1',
+      messageId: undefined,
+      messages: [userMessage('model this requirement')],
+      abortSignal: undefined,
+    });
+
+    await expect(readChunks(stream)).rejects.toThrow('bad gateway');
   });
 });

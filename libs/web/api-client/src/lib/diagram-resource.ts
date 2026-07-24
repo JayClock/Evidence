@@ -89,7 +89,6 @@ export type DiagramResource = Entity<
     edges: DiagramEdgeCollectionResource;
     'logical-entities': LogicalEntityCollectionResource;
     'logical-relationships': LogicalRelationshipCollectionResource;
-    'propose-model': DiagramResource;
   }
 >;
 

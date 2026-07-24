@@ -28,7 +28,7 @@ import {
 import { DiagramAssistantMessage } from './diagram-assistant-message';
 import {
   createDiagramProposalTransport,
-  resolveProposeModelUrl,
+  isDesktopDiagramAgentAvailable,
 } from './diagram-proposal-transport';
 
 type DiagramAiChatProps = {
@@ -41,7 +41,7 @@ export function DiagramAiChat({
   resourceState,
 }: DiagramAiChatProps) {
   const [input, setInput] = useState('');
-  const proposeModelUrl = resolveProposeModelUrl(resourceState);
+  const desktopAgentAvailable = isDesktopDiagramAgentAvailable(resourceState);
   const transport = useMemo(
     () => createDiagramProposalTransport(resourceState),
     [resourceState],
@@ -64,7 +64,7 @@ export function DiagramAiChat({
   });
   const isStreaming = status === 'streaming';
   const disabled =
-    !proposeModelUrl || status === 'submitted' || status === 'streaming';
+    !desktopAgentAvailable || status === 'submitted' || status === 'streaming';
 
   const handleSubmit = (message: PromptInputMessage) => {
     const text = message.text.trim();
@@ -86,8 +86,9 @@ export function DiagramAiChat({
         <CardDescription>Diagram AI</CardDescription>
         <CardTitle>AI modeling assistant</CardTitle>
         <CardDescription>
-          Ask the agent to analyze and update the active Evidence model. The
-          canvas refreshes after the assistant finishes.
+          {desktopAgentAvailable
+            ? 'Ask the local agent to analyze and update the active Evidence model. The canvas refreshes after the assistant finishes.'
+            : 'Open this workspace in Evidence Desktop to use the local modeling agent.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-1 min-h-0 flex-col gap-3">

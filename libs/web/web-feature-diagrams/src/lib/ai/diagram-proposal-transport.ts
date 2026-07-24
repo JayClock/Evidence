@@ -13,9 +13,8 @@ type SendMessagesOptions = Parameters<
   ChatTransport<UIMessage>['sendMessages']
 >[0];
 
-type FetchableResource = {
+type LinkedResource = {
   uri?: string;
-  fetch?: (init?: RequestInit) => Promise<Response>;
 };
 
 type DesktopAgentEvent = {
@@ -37,23 +36,20 @@ type DesktopAgentBridge = {
   cancelDiagramAgent(id: string): Promise<void>;
 };
 
-export function resolveProposeModelUrl(
+export function isDesktopDiagramAgentAvailable(
   resourceState: State<DiagramResource>,
-): string | null {
-  try {
-    const resource = resourceState.follow('propose-model') as FetchableResource;
-    return resource.uri ?? safeProposeModelHref(resourceState);
-  } catch {
-    return safeProposeModelHref(resourceState);
+): boolean {
+  if (!desktopAgentBridge()) {
+    return false;
   }
-}
 
-function safeProposeModelHref(
-  resourceState: State<DiagramResource>,
-): string | null {
-  return typeof resourceState.getLink === 'function'
-    ? (resourceState.getLink('propose-model')?.href ?? null)
-    : null;
+  try {
+    requiredResourceHref(resourceState, 'logical-entities');
+    requiredResourceHref(resourceState, 'logical-relationships');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function createDiagramProposalTransport(
@@ -79,34 +75,19 @@ async function sendDiagramProposalRequest(
     throw new Error('Requirement is required.');
   }
 
-  const desktopAgent = (
-    globalThis as typeof globalThis & {
-      evidenceDesktop?: DesktopAgentBridge;
-    }
-  ).evidenceDesktop;
-  if (desktopAgent) {
-    return sendLocalDiagramAgentRequest(
-      desktopAgent,
-      resourceState,
-      requirement,
-      options,
-    );
-  }
-
-  const resource = resourceState.follow('propose-model') as FetchableResource;
-  const response = await fetchProposal(resource, requirement, options);
-
-  if (!response.ok) {
+  const desktopAgent = desktopAgentBridge();
+  if (!desktopAgent) {
     throw new Error(
-      (await response.text()) || 'Failed to propose diagram model.',
+      'The diagram modeling agent is available in Evidence Desktop only.',
     );
   }
 
-  if (!response.body) {
-    throw new Error('Diagram AI response body is empty.');
-  }
-
-  return sseToUiMessageStream(response.body);
+  return sendLocalDiagramAgentRequest(
+    desktopAgent,
+    resourceState,
+    requirement,
+    options,
+  );
 }
 
 function sendLocalDiagramAgentRequest(
@@ -184,7 +165,7 @@ function requiredResourceHref(
   resourceState: State<DiagramResource>,
   relation: 'logical-entities' | 'logical-relationships',
 ): string {
-  const resource = resourceState.follow(relation) as FetchableResource;
+  const resource = resourceState.follow(relation) as LinkedResource;
   const href = resource.uri ?? resourceState.getLink(relation)?.href;
   if (!href) {
     throw new Error(`Diagram ${relation} link is unavailable.`);
@@ -208,30 +189,12 @@ function serializeAgentEvent(event: DesktopAgentEvent): string {
   return `${eventLine}${dataLines}\n\n`;
 }
 
-async function fetchProposal(
-  resource: FetchableResource,
-  requirement: string,
-  options: SendMessagesOptions,
-): Promise<Response> {
-  const init: RequestInit = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    body: JSON.stringify({ requirement }),
-    signal: options.abortSignal,
-  };
-
-  if (typeof resource.fetch === 'function') {
-    return resource.fetch(init);
-  }
-
-  if (!resource.uri) {
-    throw new Error('Diagram AI propose-model link is unavailable.');
-  }
-
-  return fetch(resource.uri, init);
+function desktopAgentBridge(): DesktopAgentBridge | undefined {
+  return (
+    globalThis as typeof globalThis & {
+      evidenceDesktop?: DesktopAgentBridge;
+    }
+  ).evidenceDesktop;
 }
 
 export function messageText(
