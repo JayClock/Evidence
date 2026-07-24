@@ -1,7 +1,6 @@
 import {
   apiBaseUrl,
   apiRequest,
-  apiTextRequest,
   expectHalCollection,
   expectHalResource,
   expectResourceContentType,
@@ -79,7 +78,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(openapi.body.components.securitySchemes).toHaveProperty(
       'evidenceAuthorization',
     );
-    expect(openapi.body.paths).toHaveProperty(
+    expect(openapi.body.paths).not.toHaveProperty(
       '/api/workspaces/{workspaceId}/diagram/propose-model',
     );
     expect(openapi.body.paths).toHaveProperty(
@@ -993,7 +992,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(edges.body._embedded.edges).toEqual(expect.any(Array));
   });
 
-  it('persists relationships, projects them as edges, and streams proposals', async () => {
+  it('persists relationships and projects them as diagram edges', async () => {
     const workspace = await createContractWorkspace('Relationship Workspace');
     const workspaceId = workspace.body.id as string;
     const createEntity = (name: string, type: string, subType: string) =>
@@ -1070,18 +1069,6 @@ describeContracts('Evidence API contract vertical slice', () => {
         }),
       ]),
     );
-
-    const proposal = await apiTextRequest(
-      `/api/workspaces/${workspaceId}/diagram/propose-model`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ requirement: 'Model an auditable order' }),
-      },
-    );
-    expect(proposal.status).toBe(200);
-    expect(proposal.headers.get('content-type')).toContain('text/event-stream');
-    expect(proposal.body).toContain('data: contract proposal');
-    expect(proposal.body).toContain('event: complete');
 
     const deleted = await apiRequest(
       `/api/workspaces/${workspaceId}/logical-relationships/${created.body.id}`,

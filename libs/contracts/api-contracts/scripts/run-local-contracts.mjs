@@ -3,11 +3,6 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import {
-  startFakePiProvider,
-  writeFakePiAgentConfig,
-} from '../fixtures/fake-pi-provider.mjs';
-
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
   throw new Error(
@@ -21,9 +16,6 @@ const port = await reservePort();
 const origin = `http://127.0.0.1:${port}`;
 const authorization = 'Bearer evidence-contract-test';
 const serverEntry = resolve('apps/server/dist/main.js');
-const piAgentDir = join(testRoot, 'pi-agent');
-const fakePiProvider = await startFakePiProvider();
-await writeFakePiAgentConfig(piAgentDir, fakePiProvider.baseUrl);
 const server = spawn(process.execPath, [serverEntry], {
   cwd: testRoot,
   env: {
@@ -33,8 +25,6 @@ const server = spawn(process.execPath, [serverEntry], {
     EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
     EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
     EVIDENCE_HOST: '127.0.0.1',
-    PI_CODING_AGENT_DIR: piAgentDir,
-    PI_OFFLINE: '1',
     PORT: String(port),
   },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -70,7 +60,6 @@ try {
     new Promise((resolveTimeout) => setTimeout(resolveTimeout, 2_000)),
   ]);
   if (server.exitCode === null) server.kill('SIGKILL');
-  await fakePiProvider.close();
   await rm(testRoot, { recursive: true, force: true });
 }
 

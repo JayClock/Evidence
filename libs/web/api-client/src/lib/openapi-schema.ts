@@ -576,22 +576,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/diagram/propose-model': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: operations['get_diagram_for_propose_model'];
-    put?: never;
-    post: operations['propose_diagram_model'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/workspaces/{workspaceId}/logical-entities': {
     parameters: {
       query?: never;
@@ -958,9 +942,6 @@ export interface components {
       x: number;
       /** Format: double */
       y: number;
-    };
-    ProposeModelInput: {
-      requirement: string;
     };
     RefModel: {
       id: string;
@@ -3171,126 +3152,6 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.edge+json': components['schemas']['EdgeResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  get_diagram_for_propose_model: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Diagram resource */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.diagram+json': components['schemas']['DiagramResource'];
-        };
-      };
-      /** @description Validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Resource not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ErrorBody'];
-        };
-      };
-    };
-  };
-  propose_diagram_model: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ProposeModelInput'];
-      };
-    };
-    responses: {
-      /** @description Server-sent modeling proposal stream */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'text/event-stream': string;
         };
       };
       /** @description Validation error */

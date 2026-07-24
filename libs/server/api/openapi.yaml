@@ -1703,93 +1703,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/diagram/propose-model:
-    get:
-      tags: []
-      operationId: get_diagram_for_propose_model
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Diagram resource
-          content:
-            application/vnd.evidence.diagram+json:
-              schema:
-                $ref: '#/components/schemas/DiagramResource'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-    post:
-      tags: []
-      operationId: propose_diagram_model
-      parameters:
-        - name: workspaceId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProposeModelInput'
-        required: true
-      responses:
-        '200':
-          description: Server-sent modeling proposal stream
-          content:
-            text/event-stream:
-              schema:
-                type: string
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '404':
-          description: Resource not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '409':
-          description: Conflict
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorBody'
   /api/workspaces/{workspaceId}/logical-entities:
     get:
       tags: []
@@ -3105,13 +3018,6 @@ components:
         y:
           type: number
           format: double
-    ProposeModelInput:
-      type: object
-      required:
-        - requirement
-      properties:
-        requirement:
-          type: string
     RefModel:
       type: object
       required:
