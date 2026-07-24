@@ -4,6 +4,8 @@ asar: true
 asarUnpack:
   - dist/agent-runtime.js
   - dist/agent-runtime.js.map
+  - dist/coding-agent-runtime.js
+  - dist/coding-agent-runtime.js.map
   - node_modules/**/*
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
@@ -17,6 +19,8 @@ files:
   - dist/preload.js.map
   - dist/agent-runtime.js
   - dist/agent-runtime.js.map
+  - dist/coding-agent-runtime.js
+  - dist/coding-agent-runtime.js.map
   - package.json
 
 extraResources:

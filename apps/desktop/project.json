@@ -10,7 +10,7 @@
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/apps/desktop/dist"],
       "options": {
-        "command": "pnpm exec esbuild apps/desktop/src/main.ts apps/desktop/src/preload.ts apps/desktop/src/agent-runtime.ts --bundle --platform=node --target=node20 --format=cjs --outdir=apps/desktop/dist --external:electron --external:@earendil-works/pi-coding-agent --sourcemap"
+        "command": "pnpm exec esbuild apps/desktop/src/main.ts apps/desktop/src/preload.ts apps/desktop/src/agent-runtime.ts apps/desktop/src/coding-agent-runtime.ts --bundle --platform=node --target=node20 --format=cjs --outdir=apps/desktop/dist --external:electron --external:@earendil-works/pi-coding-agent --sourcemap"
       }
     },
     "dev": {
