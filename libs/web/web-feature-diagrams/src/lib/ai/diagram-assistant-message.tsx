@@ -26,15 +26,6 @@ import {
   type ToolPart,
 } from '@evidence/ui/ai-elements/tool';
 
-const CHANGE_KEYS = [
-  'addEntities',
-  'updateEntities',
-  'deleteEntities',
-  'addRelationships',
-  'updateRelationships',
-  'deleteRelationships',
-] as const;
-
 const TOOL_STATES = [
   'approval-requested',
   'approval-responded',
@@ -45,15 +36,8 @@ const TOOL_STATES = [
   'output-error',
 ] as const satisfies ToolPart['state'][];
 
-type ChangeKey = (typeof CHANGE_KEYS)[number];
 type MessagePart = UIMessage['parts'][number];
 type ToolState = ToolPart['state'];
-
-type ProposalView = {
-  rawText: string;
-  summary: string | null;
-  changes: Record<ChangeKey, unknown[]>;
-};
 
 export function DiagramAssistantMessage({
   isStreaming = false,
@@ -62,34 +46,26 @@ export function DiagramAssistantMessage({
   isStreaming?: boolean;
   message: UIMessage;
 }) {
-  const proposal = proposalFromMessage(message);
-
   return (
     <Message from={message.role}>
       <MessageContent className="w-full">
         {message.parts.map((part, index) =>
           renderPart({
-            hideProposalTool: Boolean(proposal),
             isStreaming,
             key: `${message.id}-${index}`,
             part,
           }),
         )}
-        {proposal
-          ? renderProposalPart(`${message.id}-modeling-proposal`, proposal)
-          : null}
       </MessageContent>
     </Message>
   );
 }
 
 function renderPart({
-  hideProposalTool,
   isStreaming,
   key,
   part,
 }: {
-  hideProposalTool: boolean;
   isStreaming: boolean;
   key: string;
   part: MessagePart;
@@ -108,10 +84,6 @@ function renderPart({
   }
 
   if (isToolPart(part)) {
-    if (hideProposalTool && isModelingProposalToolPart(part)) {
-      return null;
-    }
-
     return renderToolPart(key, part);
   }
 
@@ -122,38 +94,15 @@ function renderPart({
   return null;
 }
 
-function renderProposalPart(key: string, proposal: ProposalView) {
-  return (
-    <div className="space-y-3 rounded-lg border bg-background p-3" key={key}>
-      <div className="text-sm font-medium">Modeling proposal</div>
-      <MessageResponse>{proposalMarkdown(proposal)}</MessageResponse>
-      <CodeBlock code={proposal.rawText} language="json">
-        <CodeBlockHeader>
-          <CodeBlockTitle>
-            <CodeBlockFilename>proposal.json</CodeBlockFilename>
-          </CodeBlockTitle>
-          <CodeBlockActions>
-            <CodeBlockCopyButton />
-          </CodeBlockActions>
-        </CodeBlockHeader>
-      </CodeBlock>
-    </div>
-  );
-}
-
 function renderToolPart(key: string, part: MessagePart) {
   const tool = part as ToolPart;
   const toolRecord = record(part) ?? {};
   const state = toolState(toolRecord.state);
   const type = stringValue(toolRecord.type) ?? 'dynamic-tool';
   const isDynamicTool = type === 'dynamic-tool';
-  const isModelingProposalTool = isModelingProposalToolPart(part);
 
   return (
-    <Tool
-      defaultOpen={isModelingProposalTool || state.startsWith('output-')}
-      key={key}
-    >
+    <Tool defaultOpen={state.startsWith('output-')} key={key}>
       {isDynamicTool ? (
         <ToolHeader
           state={state}
@@ -190,90 +139,6 @@ function renderDataPart(key: string, part: MessagePart) {
   );
 }
 
-function proposalMarkdown(proposal: ProposalView): string {
-  const counts = CHANGE_KEYS.map(
-    (key) => `| ${key} | ${proposal.changes[key].length} |`,
-  ).join('\n');
-  const entities = records(proposal.changes.addEntities)
-    .map(
-      (entity) =>
-        `- **${entityName(entity)}**${entityLabel(entity) ? ` — ${entityLabel(entity)}` : ''} (${entityType(entity)})`,
-    )
-    .join('\n');
-  const relationships = records(proposal.changes.addRelationships)
-    .map(
-      (relationship) =>
-        `- **${relationshipEndpoints(relationship)}**${stringValue(relationship.label) ? `: ${stringValue(relationship.label)}` : ''}`,
-    )
-    .join('\n');
-
-  return [
-    'AI output is advisory and has not been applied.',
-    proposal.summary,
-    '### Change counts',
-    '| Change | Count |',
-    '| --- | ---: |',
-    counts,
-    entities ? `### Proposed entities\n${entities}` : null,
-    relationships ? `### Proposed relationships\n${relationships}` : null,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
-}
-
-function proposalFromMessage(
-  message: Pick<UIMessage, 'parts'>,
-): ProposalView | null {
-  return (
-    message.parts
-      .map(proposalFromToolPart)
-      .find((proposal) => proposal !== null) ?? null
-  );
-}
-
-function proposalFromToolPart(part: MessagePart): ProposalView | null {
-  if (!isModelingProposalToolPart(part)) {
-    return null;
-  }
-
-  const partRecord = record(part);
-  const output = record(partRecord?.output);
-  const outputDetails = record(output?.details);
-  return proposalFromRecord(outputDetails?.proposal);
-}
-
-function proposalFromRecord(proposalValue: unknown): ProposalView | null {
-  const proposal = record(proposalValue);
-  const changes = record(proposal?.changes);
-  if (!proposal || !changes) {
-    return null;
-  }
-
-  return {
-    rawText: JSON.stringify(proposal, null, 2),
-    summary: stringValue(proposal.summary),
-    changes: Object.fromEntries(
-      CHANGE_KEYS.map((key) => [key, arrayValue(changes[key])]),
-    ) as Record<ChangeKey, unknown[]>,
-  };
-}
-
-function isModelingProposalToolPart(part: MessagePart): boolean {
-  return modelingProposalToolName(part) === 'submit_modeling_proposal';
-}
-
-function modelingProposalToolName(part: MessagePart): string | null {
-  if (!isToolPart(part)) {
-    return null;
-  }
-
-  const partRecord = record(part);
-  return (
-    stringValue(partRecord?.toolName) ??
-    (part.type.startsWith('tool-') ? part.type.slice('tool-'.length) : null)
-  );
-}
-
 function isDataPart(part: MessagePart): boolean {
   return part.type.startsWith('data-') && 'data' in part;
 }
@@ -288,43 +153,10 @@ function toolState(value: unknown): ToolState {
     : 'input-available';
 }
 
-function entityName(entity: Record<string, unknown>): string {
-  return stringValue(entity.name) ?? stringValue(entity.id) ?? 'Unnamed entity';
-}
-
-function entityLabel(entity: Record<string, unknown>): string | null {
-  return stringValue(entity.label);
-}
-
-function entityType(entity: Record<string, unknown>): string {
-  const type = stringValue(entity.type) ?? 'unknown';
-  const subType = stringValue(entity.subType) ?? stringValue(entity.sub_type);
-  return subType ? `${type} / ${subType}` : type;
-}
-
-function relationshipEndpoints(relationship: Record<string, unknown>): string {
-  const source =
-    stringValue(record(relationship.source)?.id) ?? 'unknown-source';
-  const target =
-    stringValue(record(relationship.target)?.id) ?? 'unknown-target';
-  return `${source} → ${target}`;
-}
-
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-
-function records(values: unknown[]): Record<string, unknown>[] {
-  return values.flatMap((value) => {
-    const item = record(value);
-    return item ? [item] : [];
-  });
-}
-
-function arrayValue(value: unknown): unknown[] {
-  return Array.isArray(value) ? value : [];
 }
 
 function stringValue(value: unknown): string | null {

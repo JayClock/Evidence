@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import type { UIMessage } from 'ai';
 
@@ -12,18 +12,22 @@ function assistantMessage(text: string): UIMessage {
   };
 }
 
-function assistantProposalToolMessage(proposal: unknown): UIMessage {
+function assistantToolMessage(
+  toolName: string,
+  input: unknown,
+  output: unknown,
+): UIMessage {
   return {
     id: 'assistant-1',
     role: 'assistant',
     parts: [
       {
         type: 'dynamic-tool',
-        toolCallId: 'submit-modeling-proposal-1',
-        toolName: 'submit_modeling_proposal',
+        toolCallId: 'modeling-tool-1',
+        toolName,
         state: 'output-available',
-        input: proposal,
-        output: { details: { proposal } },
+        input,
+        output,
       },
     ],
   } as UIMessage;
@@ -40,53 +44,25 @@ function textContentIncludes(text: string): boolean {
 }
 
 describe('DiagramAssistantMessage', () => {
-  it('renders proposal tool output as a modeling proposal block after streaming', () => {
+  it('renders completed local modeling tools with their input and result', () => {
     render(
       <DiagramAssistantMessage
-        message={assistantProposalToolMessage({
-          summary: 'Structured proposal',
-          changes: {
-            addEntities: [
-              {
-                id: 'entity-1',
-                name: 'SalesContract',
-                label: '销售合同',
-                type: 'EVIDENCE',
-                subType: 'contract',
-              },
-            ],
-            updateEntities: [],
-            deleteEntities: [],
-            addRelationships: [
-              {
-                id: 'relationship-1',
-                source: { id: 'entity-1' },
-                target: { id: 'entity-2' },
-                label: 'creates',
-              },
-            ],
-            updateRelationships: [],
-            deleteRelationships: [],
-          },
-        })}
+        message={assistantToolMessage(
+          'evidence_create_logical_entity',
+          { name: 'SalesContract', type: 'EVIDENCE' },
+          { id: 'entity-1', name: 'SalesContract', type: 'EVIDENCE' },
+        )}
       />,
     );
 
-    expect(screen.getByText('Modeling proposal')).toBeTruthy();
-    expect(screen.getByText('Structured proposal')).toBeTruthy();
+    expect(screen.getByText('evidence_create_logical_entity')).toBeTruthy();
+    expect(screen.getByText('Parameters')).toBeTruthy();
+    expect(screen.getByText('Result')).toBeTruthy();
     expect(textContentIncludes('SalesContract')).toBeTruthy();
-    expect(textContentIncludes('销售合同')).toBeTruthy();
-    expect(textContentIncludes('EVIDENCE / contract')).toBeTruthy();
-    expect(textContentIncludes('entity-1 → entity-2')).toBeTruthy();
-    expect(textContentIncludes('creates')).toBeTruthy();
-    expect(
-      screen.getByText('AI output is advisory and has not been applied.'),
-    ).toBeTruthy();
-    expect(screen.getByText('proposal.json')).toBeTruthy();
-    expect(screen.queryByText('dynamic-tool.json')).toBeNull();
+    expect(textContentIncludes('entity-1')).toBeTruthy();
   });
 
-  it('renders proposal tool calls with standard tool input while streaming', () => {
+  it('renders local modeling tool calls with standard input while streaming', () => {
     render(
       <DiagramAssistantMessage
         isStreaming
@@ -97,10 +73,10 @@ describe('DiagramAssistantMessage', () => {
             parts: [
               {
                 type: 'dynamic-tool',
-                toolCallId: 'submit-modeling-proposal-1',
-                toolName: 'submit_modeling_proposal',
+                toolCallId: 'modeling-tool-1',
+                toolName: 'evidence_create_logical_entity',
                 state: 'input-streaming',
-                input: { summary: 'Streaming proposal' },
+                input: { name: 'Streaming entity' },
               },
             ],
           } as UIMessage
@@ -108,9 +84,13 @@ describe('DiagramAssistantMessage', () => {
       />,
     );
 
-    expect(screen.getByText('submit_modeling_proposal')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /evidence_create_logical_entity/,
+      }),
+    );
     expect(screen.getByText('Parameters')).toBeTruthy();
-    expect(textContentIncludes('Streaming proposal')).toBeTruthy();
+    expect(textContentIncludes('Streaming entity')).toBeTruthy();
   });
 
   it('does not render tool input before streaming parameters are available', () => {
@@ -124,8 +104,8 @@ describe('DiagramAssistantMessage', () => {
             parts: [
               {
                 type: 'dynamic-tool',
-                toolCallId: 'submit-modeling-proposal-1',
-                toolName: 'submit_modeling_proposal',
+                toolCallId: 'modeling-tool-1',
+                toolName: 'evidence_create_logical_entity',
                 state: 'input-streaming',
                 input: undefined,
               },
@@ -135,7 +115,11 @@ describe('DiagramAssistantMessage', () => {
       />,
     );
 
-    expect(screen.getByText('submit_modeling_proposal')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /evidence_create_logical_entity/,
+      }),
+    );
     expect(screen.queryByText('Parameters')).toBeNull();
   });
 
@@ -147,7 +131,6 @@ describe('DiagramAssistantMessage', () => {
     );
 
     expect(screen.getByText('Just plain text.')).toBeTruthy();
-    expect(screen.queryByText(/Modeling proposal/)).toBeNull();
   });
 
   it('renders reasoning parts with the AI Elements reasoning block', () => {
