@@ -1,13 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import {
-  mkdir,
-  readFile,
-  realpath,
-  rename,
-  stat,
-  writeFile,
-} from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname, isAbsolute } from 'node:path';
+import { canonicalGitRepository } from './git-repository';
 
 const STORE_VERSION = 1;
 const WORKSPACE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
@@ -55,7 +49,7 @@ export class WorkspaceBindingStore {
   }): Promise<WorkspaceBinding> {
     const apiBaseUrl = normalizeApiBaseUrl(input.apiBaseUrl);
     const workspaceId = normalizeWorkspaceId(input.workspaceId);
-    const repositoryRoot = await canonicalDirectory(input.repositoryRoot);
+    const repositoryRoot = await canonicalGitRepository(input.repositoryRoot);
     const binding: WorkspaceBinding = {
       apiBaseUrl,
       workspaceId,
@@ -125,23 +119,6 @@ function normalizeWorkspaceId(value: string): string {
   return normalized;
 }
 
-async function canonicalDirectory(value: string): Promise<string> {
-  const normalized = value.trim();
-  if (!normalized) {
-    throw new Error('Workspace repository root is required.');
-  }
-  let canonical: string;
-  try {
-    canonical = await realpath(normalized);
-  } catch {
-    throw new Error('Workspace repository root is not accessible.');
-  }
-  if (!(await stat(canonical)).isDirectory()) {
-    throw new Error('Workspace repository root must be a directory.');
-  }
-  return canonical;
-}
-
 function bindingKey(apiBaseUrl: string, workspaceId: string): string {
   return `${normalizeApiBaseUrl(apiBaseUrl)}\u0000${normalizeWorkspaceId(workspaceId)}`;
 }
@@ -151,11 +128,38 @@ function isBindingDocument(value: unknown): value is BindingDocument {
     return false;
   }
   const candidate = value as Partial<BindingDocument>;
+  if (
+    candidate.version !== STORE_VERSION ||
+    !candidate.bindings ||
+    typeof candidate.bindings !== 'object' ||
+    Array.isArray(candidate.bindings)
+  ) {
+    return false;
+  }
+  return Object.entries(candidate.bindings).every(([key, binding]) => {
+    if (!isWorkspaceBinding(binding)) return false;
+    try {
+      return (
+        binding.apiBaseUrl === normalizeApiBaseUrl(binding.apiBaseUrl) &&
+        binding.workspaceId === normalizeWorkspaceId(binding.workspaceId) &&
+        key === bindingKey(binding.apiBaseUrl, binding.workspaceId)
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+function isWorkspaceBinding(value: unknown): value is WorkspaceBinding {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const binding = value as Partial<WorkspaceBinding>;
   return (
-    candidate.version === STORE_VERSION &&
-    Boolean(candidate.bindings) &&
-    typeof candidate.bindings === 'object' &&
-    !Array.isArray(candidate.bindings)
+    typeof binding.apiBaseUrl === 'string' &&
+    typeof binding.workspaceId === 'string' &&
+    typeof binding.repositoryRoot === 'string' &&
+    isAbsolute(binding.repositoryRoot) &&
+    typeof binding.boundAt === 'string' &&
+    Number.isFinite(Date.parse(binding.boundAt))
   );
 }
 
