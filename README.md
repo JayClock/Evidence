@@ -15,11 +15,12 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 ## 产品能力
 
 1. **工作空间协作**：用户通过成员关系进入隔离的建模空间。
-2. **逻辑模型编写**：在工作区定义 `LogicalEntity` 与 `LogicalRelationship`。
-3. **图投影**：`Diagram`、`DiagramNode` 和 `DiagramEdge` 展示逻辑模型；图元素不是第二份逻辑模型。
-4. **AI 模型辅助**：AI Modeling Agent 可以提出流式 `ModelingProposal`，但必须由用户确认后才能改变权威模型。
-5. **Web / Desktop 一致体验**：Electron 复用唯一的 React 前端和 REST/HAL 语义。
-6. **一致的 Desktop**：打包 Web renderer 与 Pi SDK，并通过配置的 Server API 使用同一产品语义。
+2. **Work Intake**：保存 Inbox Item、不可变来源 Revision、状态和内容 SHA-256。
+3. **Delivery Knowledge**：人工确认 Story Candidate，并以不可变 Story Revision 与有序 Scenario 管理交付边界。
+4. **逻辑模型与图投影**：定义 `LogicalEntity` / `LogicalRelationship`，由单一当前 `Diagram` 展示模型。
+5. **本地 AI 辅助**：Desktop 嵌入 Pi SDK，通过受限工具和 Server REST API 辅助建模与 CodingRun。
+6. **人工代码审查**：每个 CodingRun 使用隔离 Git worktree；接受后才创建本地 commit，不自动 merge/push。
+7. **Web / Desktop 一致体验**：Electron 复用唯一的 React 前端和 REST/HAL 语义。
 
 ## 产品架构
 
@@ -52,12 +53,11 @@ Electron
 apps/server/                         Nest composition root
   └─ main.ts                         PostgreSQL entry
        ↓
-libs/server/api/                     controllers, HAL, SSE, OpenAPI
+libs/server/api/                     controllers, HAL, OpenAPI
        ↓
 libs/server/domain/                  framework-free entities and ports
        ↑
 libs/server/persistent/              Prisma and filesystem adapters
-libs/server/infrastructure/          Pi SDK adapter
 ```
 
 Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协议转换和委托；runtime adapter wiring 只存在于 `apps/server`。
@@ -73,7 +73,10 @@ Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协�
 | `LogicalRelationship`         | 同一工作区内两个逻辑实体之间的业务关系                |
 | `Diagram`                     | 工作区逻辑模型的单一当前投影，固定 id 为 `model`      |
 | `DiagramNode` / `DiagramEdge` | 从实体及关联 YAML 投影出的图元素                      |
-| `ModelingProposal`            | AI Agent 提出的实体/关系变更建议，需用户确认          |
+| `InboxItem` / `InboxRevision` | 来源身份、状态与不可变内容快照                        |
+| `StoryCandidate`              | 引用精确 Inbox Revision 的非权威交付提案              |
+| `Story` / `StoryRevision`     | 人工确认后的稳定身份、不可变内容与有序 Scenario       |
+| `CodingRun`                   | 锁定精确 Story Revision 的本地编码执行与人工决定      |
 
 逻辑实体类型：
 
@@ -86,35 +89,42 @@ Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协�
 
 核心规则：
 
-- Workspace 创建时规范化并保存 `repositoryRoot` 与 `evidenceRoot`，初始化 `.evidence/entities` 和 `.evidence/associations`。
+- Workspace 创建时由 Server 分配私有 `modelRoot` 并初始化 `.evidence/entities` 和 `.evidence/associations`；HAL 不公开绝对路径。
 - LogicalRelationship 的 source/target 必须引用同一工作区内存在的 LogicalEntity。
 - Diagram 是文件模型的投影，不拥有第二套可变实体/关系集合。
-- AI 提案不能绕过用户确认直接修改权威模型。
+- Story Candidate 不具权威；CodingRun 必须锁定 latest 且至少含一个 Scenario 的 Story Revision。
+- Coding Pi 不能自行接受变更、commit、merge 或 push；完整 diff 和本地路径不进入 Server。
 
 ### REST API 与契约
 
 API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。
 
-| 方法                   | 路径                                                                     | 用途                       |
-| :--------------------- | :----------------------------------------------------------------------- | :------------------------- | ---------- |
-| GET                    | `/api`、`/health`、`/api/openapi.json`                                   | API 根、健康检查与 OpenAPI |
-| GET                    | `/api/users/{userId}`、`/api/users/{userId}/sidebar`                     | 用户与工作区导航           |
-| GET, POST              | `/api/users/{userId}/workspaces`                                         | 查询/创建工作区            |
-| GET, PUT, DELETE       | `/api/users/{userId}/workspaces/{workspaceId}`                           | 工作区 CRUD                |
-| GET, POST, DELETE      | `/api/users/{userId}/workspaces/{workspaceId}/members[/{memberId}]`      | 成员管理                   |
-| GET                    | `/api/workspaces/{workspaceId}/diagram[/nodes                            | /edges]`                   | 当前图投影 |
-| POST (SSE)             | `/api/workspaces/{workspaceId}/diagram/propose-model`                    | 流式建模提案               |
-| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | 逻辑实体 CRUD              |
-| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | 逻辑关系 CRUD              |
+| 方法                   | 路径                                                                                   | 用途                       |
+| :--------------------- | :------------------------------------------------------------------------------------- | :------------------------- |
+| GET                    | `/api`、`/health`、`/api/openapi.json`                                                 | API 根、健康检查与 OpenAPI |
+| GET                    | `/api/users/{userId}`、`/api/users/{userId}/sidebar`                                   | 用户与工作区导航           |
+| GET, POST              | `/api/users/{userId}/workspaces`                                                       | 查询/创建工作区            |
+| GET, PUT, DELETE       | `/api/users/{userId}/workspaces/{workspaceId}`                                         | 工作区 CRUD                |
+| GET, POST, DELETE      | `/api/users/{userId}/workspaces/{workspaceId}/members[/{memberId}]`                    | 成员管理                   |
+| GET                    | `/api/workspaces/{workspaceId}/diagram[/nodes][/edges]`                                | 当前图投影                 |
+| GET, POST, PATCH       | `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                                 | Inbox 捕获、查询和状态     |
+| GET, POST              | `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`                       | Story Candidate 提议与查询 |
+| POST                   | `/api/workspaces/{workspaceId}/story-candidates/{candidateId}/{confirm,reject}`        | 人工确认或拒绝 Candidate   |
+| GET, POST              | `/api/workspaces/{workspaceId}/stories[/{storyId}]/revisions[/{revisionId}]`           | Story 与不可变 Revision    |
+| GET, POST              | `/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs`                          | CodingRun 查询与创建       |
+| POST                   | `/api/workspaces/{workspaceId}/coding-runs/{runId}/{review,fail,cancel,accept,reject}` | CodingRun 显式状态命令     |
+| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`                          | 逻辑实体 CRUD              |
+| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]`               | 逻辑关系 CRUD              |
 
 Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api/openapi.yaml)。`pnpm api:generate` 直接重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止源码、客户端与运行时漂移。
 
 ### Desktop 安全与打包
 
 - `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
-- preload 只暴露 API URL、目录选择和本地建模 Agent 的受限能力，且 main 校验 sender。
+- preload 只暴露 API URL、目录选择、Workspace binding、本地建模 Agent 和 CodingRun controller 的受限能力，且 main 校验 sender。
 - Electron 启动前健康检查 `EVIDENCE_API_BASE_URL`；非 loopback endpoint 必须使用 HTTPS。
-- Web renderer、运行依赖和 Pi SDK 进入 electron-builder 包；Server 与数据库不会进入 Desktop 包。
+- 每个 CodingRun 创建独立 branch/worktree；完整 diff 只留本地，人工接受后创建单个 Conventional Commit。
+- Web renderer、运行依赖和 Pi SDK 进入 electron-builder 包；Server 与数据库不会进入 Desktop 包，Server 也不加载 Pi SDK。
 - package smoke 使用受控 fake API 验证 renderer、远程 API readiness 和内嵌 Pi SDK。
 
 ## 数据迁移
@@ -274,7 +284,7 @@ pnpm nx run @evidence/desktop:package
 | `EVIDENCE_USER_EMAIL`             | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                            |
 | `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录                 | 仅用于内置默认 Workspace 的 Server 模型根                                      |
 | `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models`   | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                |
-| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`            | Pi SDK 的模型、认证与全局设置目录                                              |
+| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`            | Desktop Pi SDK 的模型、认证与全局设置目录                                      |
 | `VITE_API_BASE_URL`               | `/api`                   | Browser API 根                                                                 |
 | `VITE_API_AUTHORIZATION`          | 未设置                   | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供        |
 | `EVIDENCE_API_BASE_URL`           | Electron 必填            | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
@@ -294,7 +304,6 @@ pnpm nx test @evidence/server --run
 pnpm nx test @evidence/server-domain --run
 pnpm nx test @evidence/server-api --run
 pnpm nx test @evidence/server-persistent --run
-pnpm nx test @evidence/server-infrastructure --run
 
 # Desktop
 pnpm nx test @evidence/desktop --run
@@ -315,24 +324,23 @@ pnpm orchestrator:validate
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                  |
-| :------------------------------------------ | :---------------------------------------------------- |
-| `apps/web/`                                 | React + Vite 前端组合根                               |
-| `libs/web/*`                                | Web shell、features、UI 与 HAL API client             |
-| `apps/server/`                              | Nest/PostgreSQL 组合根、Prisma 与迁移入口             |
-| `libs/server/api/`                          | Nest controllers、HAL/SSE 与 OpenAPI source           |
-| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                         |
-| `libs/server/persistent/`                   | PostgreSQL 与 filesystem adapters                     |
-| `libs/server/infrastructure/`               | Pi SDK adapter                                        |
-| `apps/desktop/`                             | Electron main/preload、remote API bridge 与 packaging |
-| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                        |
-| `docs/product/`                             | 跨迭代统一产品知识                                    |
-| `.evidence/`                                | Evidence 平台权威领域模型                             |
-| `docs/architecture/`                        | 跨迭代统一架构与测试策略                              |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD                 |
-| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                      |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                  |
-| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                   |
+| 路径                                        | 用途                                                |
+| :------------------------------------------ | :-------------------------------------------------- |
+| `apps/web/`                                 | React + Vite 前端组合根                             |
+| `libs/web/*`                                | Web shell、features、UI 与 HAL API client           |
+| `apps/server/`                              | Nest/PostgreSQL 组合根、Prisma 与迁移入口           |
+| `libs/server/api/`                          | Nest controllers、HAL 与 OpenAPI source             |
+| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                       |
+| `libs/server/persistent/`                   | PostgreSQL 与 filesystem adapters                   |
+| `apps/desktop/`                             | Electron、local agents、CodingRun controller 与打包 |
+| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                      |
+| `docs/product/`                             | 跨迭代统一产品知识                                  |
+| `.evidence/`                                | Evidence 平台权威领域模型                           |
+| `docs/architecture/`                        | 跨迭代统一架构与测试策略                            |
+| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD               |
+| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                    |
+| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                |
+| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                 |
 
 ## 开发约定
 

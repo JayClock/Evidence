@@ -3,7 +3,7 @@
 Evidence 是一个领域建模与证据映射平台，具有三个产品运行时界面：
 
 - **Web**：`apps/web/` 中的 React + Vite SPA，复用 `libs/web/*`。
-- **Server**：`apps/server/` 中的 NestJS 组合根，实现在 `libs/server/{api,domain,persistent,infrastructure}`。
+- **Server**：`apps/server/` 中的 NestJS 组合根，实现在 `libs/server/{api,domain,persistent}`。
 - **Desktop**：`apps/desktop/` 中的 Electron 壳；复用同一个 Web renderer，并连接经过健康检查的 Server API。
 
 项目本地的 Evidence Orchestrator 位于 `.pi/` 与 `engineering/evidence-orchestrator/`。它只用于开发本仓库，不属于产品运行时。
@@ -36,12 +36,11 @@ Electron
 | 层               | 路径                                     | 职责                                                                     |
 | ---------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
 | Composition root | `apps/server/src/`                       | Nest bootstrap、runtime config 与 PostgreSQL adapter wiring              |
-| API              | `libs/server/api/src/api/`               | Controller、请求解析、HAL 序列化、vendor media type、SSE 映射            |
+| API              | `libs/server/api/src/api/`               | Controller、请求解析、HAL 序列化与 vendor media type                     |
 | Domain           | `libs/server/domain/src/domain/`         | 纯 TypeScript 领域对象、port 与规则；不依赖 Nest、Prisma、HTTP、Electron |
 | Persistence      | `libs/server/persistent/src/persistent/` | Prisma/PostgreSQL registry 与 `.evidence` 文件模型 adapter               |
-| Infrastructure   | `libs/server/infrastructure/src/`        | Pi SDK `DomainArchitect` adapter 等外部集成                              |
 
-依赖方向必须保持：composition/API/persistence/infrastructure 可以依赖 domain，domain 不得反向依赖框架或 adapter。Controller 只负责协议转换与委托；业务规则进入 domain 或明确的 domain port 实现。
+依赖方向必须保持：composition/API/persistence 可以依赖 domain，domain 不得反向依赖框架或 adapter。Controller 只负责协议转换与委托；业务规则进入 domain 或明确的 domain port 实现。
 
 ### 核心领域抽象
 
@@ -49,23 +48,22 @@ Electron
 - `HasOne<T>` / `HasMany<T>`：聚合关系的最窄读取接口。
 - `Ref<T>`：跨实体引用。
 - `DomainError`：统一表达 not found、validation、conflict 和 internal 错误。
-- `DomainArchitect`：流式 AI 建模 port；API 不直接依赖 Pi。
 
 ### 领域聚合
 
-| 聚合 / 概念                   | 说明                                                    |
-| ----------------------------- | ------------------------------------------------------- |
-| `User`                        | 用户身份及可访问工作空间                                |
-| `Workspace`                   | 成员、当前图、逻辑模型和 `.evidence` 根的协作边界       |
-| `Member`                      | 用户到工作空间的成员关系与角色                          |
-| `LogicalEntity`               | Evidence、Participant、Role 或 Context 类型的业务概念   |
-| `LogicalRelationship`         | 同一工作空间内两个逻辑实体之间的关系                    |
-| `Diagram`                     | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`      |
-| `DiagramNode` / `DiagramEdge` | 从 `.evidence` 实体和关联投影出的图元素                 |
-| `ModelingProposal`            | AI 提出的模型变更建议；不能绕过用户确认直接修改权威模型 |
-| `InboxItem` / `InboxRevision` | 来源身份、处理状态和不可变内容快照                        |
-| `StoryCandidate`              | 引用精确 Inbox Revision 的非权威交付提案                  |
-| `Story` / `StoryRevision`     | 人工确认后的稳定身份与不可变权威修订                      |
+| 聚合 / 概念                   | 说明                                                  |
+| ----------------------------- | ----------------------------------------------------- |
+| `User`                        | 用户身份及可访问工作空间                              |
+| `Workspace`                   | 成员、当前图、逻辑模型和 `.evidence` 根的协作边界     |
+| `Member`                      | 用户到工作空间的成员关系与角色                        |
+| `LogicalEntity`               | Evidence、Participant、Role 或 Context 类型的业务概念 |
+| `LogicalRelationship`         | 同一工作空间内两个逻辑实体之间的关系                  |
+| `Diagram`                     | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`    |
+| `DiagramNode` / `DiagramEdge` | 从 `.evidence` 实体和关联投影出的图元素               |
+| `InboxItem` / `InboxRevision` | 来源身份、处理状态和不可变内容快照                    |
+| `StoryCandidate`              | 引用精确 Inbox Revision 的非权威交付提案              |
+| `Story` / `StoryRevision`     | 人工确认后的稳定身份与不可变权威修订                  |
+| `CodingRun`                   | 锁定精确 Story Revision 的本地编码执行和人工决定      |
 
 Story Candidate 只能经显式确认原子创建 `Story + StoryRevision v1`，确认重试必须返回同一 Revision；拒绝不得创建 Story。Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
 
@@ -91,13 +89,14 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 | `/api/workspaces/{workspaceId}/diagram`                                  | GET                    | 单一当前图             |
 | `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`                 | GET                    | 图节点投影             |
 | `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                 | GET                    | 图边投影               |
-| `/api/workspaces/{workspaceId}/diagram/propose-model`                    | POST（SSE）            | 流式建模提案           |
 | `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                   | GET、POST、PATCH       | Inbox 捕获、查询和状态 |
 | `/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions[/{id}]`    | GET、POST              | 不可变 Inbox Revision  |
 | `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`         | GET、POST              | Candidate 提议与查询   |
 | `/api/workspaces/{workspaceId}/story-candidates/{id}/{confirm,reject}`   | POST                   | 人工确认或拒绝         |
 | `/api/workspaces/{workspaceId}/stories[/{storyId}]`                      | GET                    | 权威 Story 查询        |
-| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`       | GET、POST（集合）       | 不可变 Story Revision  |
+| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`       | GET、POST（集合）      | 不可变 Story Revision  |
+| `/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs`            | GET、POST              | CodingRun 查询与创建   |
+| `/api/workspaces/{workspaceId}/coding-runs/{id}/{review,...}`            | POST                   | CodingRun 显式状态命令 |
 | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | GET、POST、PUT、DELETE | 逻辑实体 CRUD          |
 | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | GET、POST、PUT、DELETE | 逻辑关系 CRUD          |
 
@@ -132,7 +131,9 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 - preload bridge 只暴露 API URL、目录选择/Workspace binding 与本地 Agent 的最小能力；新增能力必须有 sender validation 和最小权限测试。
 - 打包 renderer 使用 `evidence://app/`，必须保留 SPA fallback、路径穿越防护和外部导航拦截。
 - `EVIDENCE_API_BASE_URL` 必须指向通过健康检查的 API；非 loopback endpoint 必须使用 HTTPS。
-- Pi SDK 必须作为 production dependency 嵌入包中；Desktop 包不得嵌入 Server 或数据库。
+- Pi SDK 必须作为 production dependency 嵌入包中；Desktop 包不得嵌入 Server 或数据库，Server 不加载 Pi SDK。
+- CodingRun 必须使用隔离 branch/worktree 和受限工具；完整路径、源码、diff、stdout、Prompt、Pi 消息及凭据不得上传 Server。
+- 只有人工接受且 diff hash 校验一致后才能创建本地 commit；不得自动 merge 或 push。
 - 打包事实来源是 `apps/desktop/electron-builder.yml`。发布边界变化必须运行 unpacked/package smoke。
 
 ## 测试与质量门禁
@@ -156,7 +157,6 @@ pnpm nx test @evidence/server --run
 pnpm nx test @evidence/server-api --run
 pnpm nx test @evidence/server-domain --run
 pnpm nx test @evidence/server-persistent --run
-pnpm nx test @evidence/server-infrastructure --run
 pnpm nx test @evidence/desktop --run
 pnpm nx run @evidence/desktop:package-smoke
 ```
@@ -170,10 +170,9 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 | `apps/web/`                                 | React + Vite 前端组合根                               |
 | `libs/web/*`                                | Web shell、features、UI、HAL API client               |
 | `apps/server/`                              | NestJS/PostgreSQL 组合根、Prisma 与迁移入口           |
-| `libs/server/api/`                          | Nest controllers、HAL/SSE 和 OpenAPI source           |
+| `libs/server/api/`                          | Nest controllers、HAL 和 OpenAPI source               |
 | `libs/server/domain/`                       | 纯领域模型与 ports                                    |
 | `libs/server/persistent/`                   | PostgreSQL 和 filesystem adapters                     |
-| `libs/server/infrastructure/`               | Pi SDK 等外部适配器                                   |
 | `apps/desktop/`                             | Electron main/preload、remote API bridge 和 packaging |
 | `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                     |
 | `docs/product/`                             | 统一产品上下文、画像和旅程                            |
@@ -199,6 +198,6 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 4. `libs/server/domain/src/domain/index.ts`
 5. `libs/server/api/src/api/api.module.ts`
 6. `libs/server/persistent/src/persistent/{prisma,filesystem}/`
-7. `apps/desktop/src/{main,runtime-config}.ts`
+7. `apps/desktop/src/{main,runtime-config,coding-controller}.ts`
 8. `apps/desktop/electron-builder.yml`
 9. `engineering/evidence-orchestrator/runtime-contexts.json`

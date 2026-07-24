@@ -7,7 +7,7 @@
 Evidence 是一个 Nx/pnpm 管理的模块化 TypeScript monorepo：
 
 - `apps/web`：React/Vite 组合根，功能实现位于 `libs/web/*`。
-- `apps/server`：唯一 NestJS Server 组合根，API、Domain、Persistent、Infrastructure 位于 `libs/server/*`。
+- `apps/server`：唯一 NestJS Server 组合根，API、Domain、Persistent 位于 `libs/server/*`。
 - `apps/desktop`：Electron main/preload 壳，复用 Web renderer，并连接经过健康检查的 Server API。
 
 Server 只使用 PostgreSQL 与工作空间 `.evidence` YAML；Desktop 不包含第二个 Server 或数据库。项目本地 Evidence Orchestrator 只辅助研发，不属于产品运行时或产品依赖图。
@@ -15,8 +15,8 @@ Server 只使用 PostgreSQL 与工作空间 `.evidence` YAML；Desktop 不包含
 ## 核心原则
 
 1. **领域优先**：业务规则进入 domain；controller 只负责协议转换和委托。
-2. **端口与适配器**：持久化和 Pi SDK 实现 domain ports，数据库或外部 SDK 不反向定义领域语言。
-3. **单一服务端运行时**：Nest/PostgreSQL 是唯一 Server runtime；Desktop 只作为 API client。
+2. **端口与适配器**：持久化实现 domain ports，数据库或外部 SDK 不反向定义领域语言。
+3. **单一服务端运行时**：Nest/PostgreSQL 是唯一 Server runtime；Desktop 是 API client 与受限本地执行边界，不包含第二个 Server。
 4. **单一前端**：Web 与 Desktop 共享 `apps/web` 和 `libs/web/*`，业务 API 不经 Electron IPC 复制。
 5. **契约优先**：Nest 拥有 OpenAPI source，发布副本、Web client 和 black-box contract runner 必须同步。
 6. **Desktop 安全**：Electron 只连接经过健康检查的 API；非 loopback endpoint 必须使用 HTTPS，Authorization 只由 main 注入目标 API。
@@ -32,18 +32,16 @@ graph TD
   Desktop[apps/desktop Electron] --> Web
   Desktop --> PublishedAPI
   Desktop --> Bindings[(local workspace bindings)]
-  Desktop -. planned .-> Worktrees[(isolated Git worktrees)]
+  Desktop --> Worktrees[(isolated Git worktrees)]
+  Desktop --> Pi[embedded Pi SDK agents]
 
   ServerRoot[apps/server composition root] --> API[libs/server/api]
   ServerRoot --> Persistence[libs/server/persistent]
-  ServerRoot --> Infrastructure[libs/server/infrastructure]
   API --> Domain[libs/server/domain]
   Persistence --> Domain
-  Infrastructure --> Domain
 
   Persistence --> PostgreSQL[(PostgreSQL)]
   Persistence --> EvidenceFiles[workspace/.evidence YAML]
-  Infrastructure --> Pi[Pi SDK AgentSession]
 ```
 
 禁止反向依赖：
@@ -56,9 +54,9 @@ graph TD
 ## 运行时组合
 
 - `AppModule`：唯一 Server 入口，注入 Prisma/PostgreSQL registry。
-- `ApiModule`、Domain、filesystem model store 和 Pi adapter 只由该 Server 组合根装配。
+- `ApiModule`、Domain 与 filesystem model store 只由该 Server 组合根装配；Server 不加载 Pi SDK。
 - PostgreSQL Workspace row 以私有 `modelRoot` 定位 Server 自有 `.evidence`；公开 metadata 不包含绝对路径，Diagram 为模型的单一投影。
-- Electron 通过 `EVIDENCE_API_BASE_URL` 选择 API endpoint，并在 main process 以 API + Workspace 保存本地 repository binding。
+- Electron 通过 `EVIDENCE_API_BASE_URL` 选择 API endpoint，在 main process 以 API + Workspace 保存本地 repository binding，并为 CodingRun 创建隔离 branch/worktree、运行受限 Pi 工具与固定质量门。
 - `EVIDENCE_API_AUTHORIZATION` 只向配置 API 的请求注入，不通过 preload 暴露；Server 的非 loopback 监听缺少该配置时拒绝启动。
 
 ## 架构变更规则

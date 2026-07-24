@@ -1,6 +1,6 @@
 # @evidence/server-api
 
-Nest controllers, HAL resources, media-type/error handling, modeling SSE serialization, and the Server-owned OpenAPI source.
+Nest controllers, HAL resources, media-type/error handling, and the Server-owned OpenAPI source. Local Pi agents run only in Evidence Desktop.
 
 ## Running unit tests
 
