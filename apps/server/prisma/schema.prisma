@@ -232,6 +232,7 @@ model Story {
   id               String          @id
   workspaceId      String          @map("workspace_id")
   latestRevisionId String?         @unique @map("latest_revision_id")
+  version          Int             @default(1)
   createdAt        DateTime        @map("created_at")
   updatedAt        DateTime        @map("updated_at")
   workspace        Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -261,10 +262,25 @@ model StoryRevision {
   sourceCandidate   StoryCandidate?         @relation("CandidateConfirmedRevision", fields: [sourceCandidateId], references: [id], onDelete: Restrict)
   createdBy         User                    @relation("StoryRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict)
   citations         StoryRevisionCitation[]
+  scenarios         StoryScenario[]
 
   @@unique([storyId, revisionNumber])
   @@index([storyId, createdAt])
   @@map("story_revisions")
+}
+
+model StoryScenario {
+  id              String        @id
+  storyRevisionId String        @map("story_revision_id")
+  position        Int
+  title           String
+  givenSteps      Json          @map("given_steps")
+  whenStep        String        @map("when_step")
+  thenSteps       Json          @map("then_steps")
+  storyRevision   StoryRevision @relation(fields: [storyRevisionId], references: [id], onDelete: Cascade)
+
+  @@unique([storyRevisionId, position])
+  @@map("story_scenarios")
 }
 
 model StoryRevisionCitation {

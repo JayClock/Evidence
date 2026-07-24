@@ -6,6 +6,7 @@ import type {
   StoryCandidate,
   StoryCandidateInput,
   StoryRevision,
+  StoryRevisionInput,
   WorkspaceDelivery,
 } from '../delivery';
 import type {
@@ -67,6 +68,18 @@ const storyCandidateInput: StoryCandidateInput = {
       inboxRevisionId: 'revision-1',
       contentSha256: `sha256:${'a'.repeat(64)}`,
       locator: 'whole-source',
+    },
+  ],
+};
+
+const storyRevisionInput: StoryRevisionInput = {
+  ...storyCandidateInput,
+  scenarios: [
+    {
+      title: 'Run coding in isolation',
+      given: ['The repository is bound to the Workspace.'],
+      when: 'The user starts a Coding Run.',
+      then: ['The primary working tree remains unchanged.'],
     },
   ],
 };
@@ -174,6 +187,10 @@ function workspaceFixture() {
       async () => [[storyRevision], 1] as [StoryRevision[], number],
     ),
     findStoryRevision: vi.fn(async () => storyRevision),
+    appendStoryRevision: vi.fn(async () => ({
+      story,
+      revision: storyRevision,
+    })),
   } satisfies WorkspaceDelivery;
 
   const logicalEntities = {
@@ -342,16 +359,25 @@ describe('Workspace', () => {
     await expect(
       workspace.listStoryCandidates({ page: 1, pageSize: 20 }),
     ).resolves.toEqual([[storyCandidate], 1]);
-    await expect(workspace.listStories({ page: 1, pageSize: 20 })).resolves.toEqual(
-      [[story], 1],
-    );
+    await expect(
+      workspace.listStories({ page: 1, pageSize: 20 }),
+    ).resolves.toEqual([[story], 1]);
     await expect(workspace.findStory('story-1')).resolves.toBe(story);
-    await expect(workspace.listStoryRevisions('story-1', 1, 20)).resolves.toEqual(
-      [[storyRevision], 1],
-    );
+    await expect(
+      workspace.listStoryRevisions('story-1', 1, 20),
+    ).resolves.toEqual([[storyRevision], 1]);
     await expect(
       workspace.findStoryRevision('story-1', 'revision-1'),
     ).resolves.toBe(storyRevision);
+    await expect(
+      workspace.appendStoryRevision(
+        'story-1',
+        1,
+        'revision-1',
+        storyRevisionInput,
+        'user-1',
+      ),
+    ).resolves.toEqual({ story, revision: storyRevision });
 
     expect(delivery.proposeCandidate).toHaveBeenCalledWith(
       storyCandidateInput,
@@ -365,6 +391,13 @@ describe('Workspace', () => {
     expect(delivery.rejectCandidate).toHaveBeenCalledWith(
       'candidate-2',
       1,
+      'user-1',
+    );
+    expect(delivery.appendStoryRevision).toHaveBeenCalledWith(
+      'story-1',
+      1,
+      'revision-1',
+      storyRevisionInput,
       'user-1',
     );
   });

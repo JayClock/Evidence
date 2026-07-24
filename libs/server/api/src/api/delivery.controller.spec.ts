@@ -55,7 +55,9 @@ function story() {
     title: 'Local coding agent',
     latestRevision: new Ref('story-revision-1'),
     latestRevisionNumber: 1,
+    latestScenarioCount: 0,
     revisionCount: 1,
+    version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -72,6 +74,7 @@ function storyRevision() {
     value: 'Credentials remain local.',
     cognitiveMode: 'complicated',
     citations: [citation()],
+    scenarios: [],
     contentSha256: candidateHash,
     sourceCandidate: new Ref('candidate-1'),
     createdBy: new Ref('user-1'),

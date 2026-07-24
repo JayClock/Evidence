@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { StoryCandidateInput } from '@evidence/server-domain';
-import { hashStoryCandidateInput } from '../story-content';
+import type {
+  StoryCandidateInput,
+  StoryRevisionInput,
+} from '@evidence/server-domain';
+import {
+  hashStoryCandidateInput,
+  hashStoryRevisionInput,
+} from '../story-content';
 import { asStore, mockPrismaStore, timestamp } from './test-support';
 import { PrismaWorkspaceDelivery } from './workspace-delivery';
 
@@ -18,6 +24,20 @@ const candidateInput: StoryCandidateInput = {
       inboxRevisionId: 'inbox-revision-1',
       contentSha256: inboxHash,
       locator: 'whole-source',
+    },
+  ],
+};
+const revisionInput: StoryRevisionInput = {
+  ...candidateInput,
+  scenarios: [
+    {
+      title: 'Create an isolated worktree',
+      given: ['The Workspace is bound to an accessible Git repository.'],
+      when: 'The user confirms a Coding Run.',
+      then: [
+        'A dedicated branch and worktree are created.',
+        'The primary working tree is unchanged.',
+      ],
     },
   ],
 };
@@ -94,6 +114,7 @@ function storyRevisionRow(overrides: Record<string, unknown> = {}) {
         inboxRevision: inboxRevisionRow(),
       },
     ],
+    scenarios: [],
     ...overrides,
   };
 }
@@ -103,9 +124,13 @@ function storyRow(overrides: Record<string, unknown> = {}) {
     id: 'story-1',
     workspaceId: 'workspace-1',
     latestRevisionId: 'story-revision-1',
+    version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
-    latestRevision: storyRevisionRow(),
+    latestRevision: {
+      ...storyRevisionRow(),
+      _count: { scenarios: 0 },
+    },
     _count: { revisions: 1 },
     ...overrides,
   };
@@ -298,5 +323,144 @@ describe('PrismaWorkspaceDelivery', () => {
         }),
       }),
     );
+  });
+
+  it('atomically appends an acceptance Scenario Set as the next revision', async () => {
+    const store = mockPrismaStore();
+    const revisionHash = hashStoryRevisionInput(revisionInput).contentSha256;
+    const savedRevision = storyRevisionRow({
+      id: 'story-revision-2',
+      revisionNumber: 2,
+      contentSha256: revisionHash,
+      sourceCandidateId: null,
+      scenarios: [
+        {
+          id: 'scenario-1',
+          storyRevisionId: 'story-revision-2',
+          position: 0,
+          title: revisionInput.scenarios[0]?.title,
+          givenSteps: revisionInput.scenarios[0]?.given,
+          whenStep: revisionInput.scenarios[0]?.when,
+          thenSteps: revisionInput.scenarios[0]?.then,
+        },
+      ],
+    });
+    store.story.findFirst
+      .mockResolvedValueOnce(storyRow())
+      .mockResolvedValueOnce(
+        storyRow({
+          latestRevisionId: 'story-revision-2',
+          version: 2,
+          latestRevision: {
+            ...savedRevision,
+            _count: { scenarios: 1 },
+          },
+          _count: { revisions: 2 },
+        }),
+      );
+    store.inboxRevision.findMany.mockResolvedValue([inboxRevisionRow()]);
+    store.story.updateMany.mockResolvedValue({ count: 1 });
+    store.storyRevision.findFirst.mockResolvedValue(savedRevision);
+    const delivery = new PrismaWorkspaceDelivery(asStore(store), 'workspace-1');
+
+    const result = await delivery.appendStoryRevision(
+      'story-1',
+      1,
+      'story-revision-1',
+      revisionInput,
+      'user-1',
+    );
+
+    expect(result.story.description()).toMatchObject({
+      latestRevision: { value: 'story-revision-2' },
+      latestRevisionNumber: 2,
+      latestScenarioCount: 1,
+      revisionCount: 2,
+      version: 2,
+    });
+    expect(result.revision.description()).toMatchObject({
+      revisionNumber: 2,
+      contentSha256: revisionHash,
+      sourceCandidate: null,
+      scenarios: [
+        expect.objectContaining({
+          id: 'scenario-1',
+          title: 'Create an isolated worktree',
+        }),
+      ],
+    });
+    expect(store.story.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'story-1',
+        workspaceId: 'workspace-1',
+        version: 1,
+        latestRevisionId: 'story-revision-1',
+      },
+      data: { version: { increment: 1 } },
+    });
+    expect(store.storyRevision.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: expect.any(String),
+        storyId: 'story-1',
+        revisionNumber: 2,
+        contentSha256: revisionHash,
+        sourceCandidateId: null,
+        createdByUserId: 'user-1',
+      }),
+    });
+    expect(store.storyScenario.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          storyRevisionId: expect.any(String),
+          position: 0,
+          title: 'Create an isolated worktree',
+          givenSteps: revisionInput.scenarios[0]?.given,
+          whenStep: revisionInput.scenarios[0]?.when,
+          thenSteps: revisionInput.scenarios[0]?.then,
+        }),
+      ],
+    });
+  });
+
+  it('rejects a stale Story revision without leaving a partial write', async () => {
+    const store = mockPrismaStore();
+    store.story.findFirst.mockResolvedValue(
+      storyRow({
+        latestRevisionId: 'story-revision-2',
+        version: 2,
+      }),
+    );
+    const delivery = new PrismaWorkspaceDelivery(asStore(store), 'workspace-1');
+
+    await expect(
+      delivery.appendStoryRevision(
+        'story-1',
+        1,
+        'story-revision-1',
+        revisionInput,
+        'user-1',
+      ),
+    ).rejects.toMatchObject({ kind: 'conflict' });
+    expect(store.storyRevision.create).not.toHaveBeenCalled();
+    expect(store.storyScenario.createMany).not.toHaveBeenCalled();
+  });
+
+  it('hashes normalized Scenario content and order deterministically', () => {
+    const scenario = revisionInput.scenarios[0];
+    expect(scenario).toBeDefined();
+    if (!scenario) return;
+
+    const first = hashStoryRevisionInput(revisionInput).contentSha256;
+    const normalized = hashStoryRevisionInput({
+      ...revisionInput,
+      scenarios: [{ ...scenario, title: ` ${scenario.title} ` }],
+    }).contentSha256;
+    const changedOrder = hashStoryRevisionInput({
+      ...revisionInput,
+      scenarios: [{ ...scenario, then: [...scenario.then].reverse() }],
+    }).contentSha256;
+
+    expect(normalized).toBe(first);
+    expect(changedOrder).not.toBe(first);
   });
 });

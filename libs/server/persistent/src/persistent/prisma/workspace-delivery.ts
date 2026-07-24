@@ -1,23 +1,29 @@
 import { randomUUID } from 'node:crypto';
 import {
   assertStoryCandidateVersion,
+  assertStoryVersion,
   DomainError,
   Ref,
   Story,
   StoryCandidate,
   StoryRevision,
   type ConfirmedStoryCandidate,
+  type CreatedStoryRevision,
   type StoryCandidateInput,
   type StoryCandidateListQuery,
   type StoryCandidateStatus,
   type StoryCitationDescription,
   type StoryCognitiveMode,
   type StoryListQuery,
+  type StoryRevisionInput,
   type WorkspaceDelivery,
 } from '@evidence/server-domain';
 import { Prisma } from '@prisma/client';
 import { EntityList } from '../database';
-import { hashStoryCandidateInput } from '../story-content';
+import {
+  hashStoryCandidateInput,
+  hashStoryRevisionInput,
+} from '../story-content';
 import type { PrismaStore } from './types';
 
 const CANDIDATE_INCLUDE = {
@@ -29,7 +35,9 @@ const CANDIDATE_INCLUDE = {
 } satisfies Prisma.StoryCandidateInclude;
 
 const STORY_INCLUDE = {
-  latestRevision: true,
+  latestRevision: {
+    include: { _count: { select: { scenarios: true } } },
+  },
   _count: { select: { revisions: true } },
 } satisfies Prisma.StoryInclude;
 
@@ -38,6 +46,7 @@ const STORY_REVISION_INCLUDE = {
     include: { inboxRevision: true },
     orderBy: { position: 'asc' },
   },
+  scenarios: { orderBy: { position: 'asc' } },
 } satisfies Prisma.StoryRevisionInclude;
 
 type CandidateRow = Prisma.StoryCandidateGetPayload<{
@@ -49,6 +58,7 @@ type StoryRevisionRow = Prisma.StoryRevisionGetPayload<{
   include: typeof STORY_REVISION_INCLUDE;
 }>;
 type StoryRevisionCitationRow = StoryRevisionRow['citations'][number];
+type StoryScenarioRow = StoryRevisionRow['scenarios'][number];
 type InboxRevisionRow = Prisma.InboxRevisionGetPayload<Record<string, never>>;
 
 export class PrismaWorkspaceDelivery
@@ -368,6 +378,124 @@ export class PrismaWorkspaceDelivery
     return row ? assembleStoryRevision(row) : null;
   }
 
+  async appendStoryRevision(
+    storyId: string,
+    expectedVersion: number,
+    expectedLatestRevisionId: string,
+    input: StoryRevisionInput,
+    createdByUserId: string,
+  ): Promise<CreatedStoryRevision> {
+    assertStoryVersion(expectedVersion);
+    const { revision, contentSha256 } = hashStoryRevisionInput(input);
+    const revisionId = randomUUID();
+    const createdAt = new Date();
+
+    return this.transaction(async (store) => {
+      const current = await requireStory(store, this.workspaceId, storyId);
+      if (!current.latestRevisionId || !current.latestRevision) {
+        throw DomainError.internal(`Story ${storyId} has no latest revision`);
+      }
+      if (
+        current.version !== expectedVersion ||
+        current.latestRevisionId !== expectedLatestRevisionId
+      ) {
+        throw DomainError.conflict(`Story ${storyId} has changed`);
+      }
+
+      const citationRevisions = await requireCitationRevisions(
+        store,
+        this.workspaceId,
+        revision.citations,
+      );
+      const claimed = await store.story.updateMany({
+        where: {
+          id: storyId,
+          workspaceId: this.workspaceId,
+          version: expectedVersion,
+          latestRevisionId: expectedLatestRevisionId,
+        },
+        data: { version: { increment: 1 } },
+      });
+      if (claimed.count !== 1) {
+        throw DomainError.conflict(`Story ${storyId} has changed`);
+      }
+
+      await store.storyRevision.create({
+        data: {
+          id: revisionId,
+          storyId,
+          revisionNumber: current.latestRevision.revisionNumber + 1,
+          title: revision.title,
+          problem: revision.problem,
+          role: revision.role,
+          goal: revision.goal,
+          value: revision.value,
+          cognitiveMode: revision.cognitiveMode,
+          contentSha256,
+          sourceCandidateId: null,
+          createdByUserId,
+          createdAt,
+        },
+      });
+      await store.storyRevisionCitation.createMany({
+        data: revision.citations.map((citation, position) => {
+          const inboxRevision = citationRevisions[position];
+          if (!inboxRevision) {
+            throw DomainError.internal(
+              'Story Revision citation validation lost a revision',
+            );
+          }
+          return {
+            id: randomUUID(),
+            storyRevisionId: revisionId,
+            inboxRevisionId: inboxRevision.id,
+            position,
+            locator: citation.locator,
+          };
+        }),
+      });
+      await store.storyScenario.createMany({
+        data: revision.scenarios.map((scenario, position) => ({
+          id: randomUUID(),
+          storyRevisionId: revisionId,
+          position,
+          title: scenario.title,
+          givenSteps: scenario.given,
+          whenStep: scenario.when,
+          thenSteps: scenario.then,
+        })),
+      });
+      await store.story.update({
+        where: { id: storyId },
+        data: {
+          latestRevisionId: revisionId,
+          updatedAt: createdAt,
+        },
+      });
+
+      const [story, savedRevision] = await Promise.all([
+        requireStory(store, this.workspaceId, storyId),
+        store.storyRevision.findFirst({
+          where: {
+            id: revisionId,
+            storyId,
+            story: { workspaceId: this.workspaceId },
+          },
+          include: STORY_REVISION_INCLUDE,
+        }),
+      ]);
+      if (!savedRevision) {
+        throw DomainError.internal(
+          `Created Story Revision ${revisionId} was not found`,
+        );
+      }
+      return {
+        story: assembleStory(story),
+        revision: assembleStoryRevision(savedRevision),
+      };
+    });
+  }
+
   private async transaction<T>(
     operation: (store: PrismaStore) => Promise<T>,
   ): Promise<T> {
@@ -381,7 +509,7 @@ export class PrismaWorkspaceDelivery
 async function requireCitationRevisions(
   store: PrismaStore,
   workspaceId: string,
-  citations: StoryCandidateInput['citations'],
+  citations: StoryRevisionInput['citations'],
 ): Promise<InboxRevisionRow[]> {
   const revisionIds = [
     ...new Set(citations.map((item) => item.inboxRevisionId)),
@@ -508,7 +636,9 @@ function assembleStory(row: StoryRow): Story {
     title: row.latestRevision.title,
     latestRevision: new Ref(row.latestRevisionId),
     latestRevisionNumber: row.latestRevision.revisionNumber,
+    latestScenarioCount: row.latestRevision._count.scenarios,
     revisionCount: row._count.revisions,
+    version: row.version,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   });
@@ -525,6 +655,7 @@ function assembleStoryRevision(row: StoryRevisionRow): StoryRevision {
     value: row.value,
     cognitiveMode: row.cognitiveMode as StoryCognitiveMode,
     citations: row.citations.map(assembleCitation),
+    scenarios: row.scenarios.map(assembleScenario),
     contentSha256: row.contentSha256,
     sourceCandidate: row.sourceCandidateId
       ? new Ref(row.sourceCandidateId)
@@ -532,6 +663,37 @@ function assembleStoryRevision(row: StoryRevisionRow): StoryRevision {
     createdBy: new Ref(row.createdByUserId),
     createdAt: row.createdAt.toISOString(),
   });
+}
+
+function assembleScenario(row: StoryScenarioRow) {
+  return {
+    id: row.id,
+    title: row.title,
+    given: scenarioSteps(row.givenSteps, row.id, 'Given'),
+    when: row.whenStep,
+    then: scenarioSteps(row.thenSteps, row.id, 'Then'),
+  };
+}
+
+function scenarioSteps(
+  value: Prisma.JsonValue,
+  scenarioId: string,
+  phase: string,
+): string[] {
+  if (!Array.isArray(value)) {
+    throw DomainError.internal(
+      `Story Scenario ${scenarioId} has invalid ${phase} steps`,
+    );
+  }
+  const steps = value.filter(
+    (step): step is string => typeof step === 'string',
+  );
+  if (steps.length !== value.length) {
+    throw DomainError.internal(
+      `Story Scenario ${scenarioId} has invalid ${phase} steps`,
+    );
+  }
+  return steps;
 }
 
 function assembleCitation(

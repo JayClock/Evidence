@@ -2,12 +2,14 @@ import { Entity, HasMany, HasOne } from '../core';
 import { Diagram, WorkspaceDiagram } from '../diagram';
 import {
   ConfirmedStoryCandidate,
+  CreatedStoryRevision,
   Story,
   StoryCandidate,
   StoryCandidateInput,
   StoryCandidateListQuery,
   StoryListQuery,
   StoryRevision,
+  StoryRevisionInput,
   WorkspaceDelivery,
 } from '../delivery';
 import {
@@ -189,6 +191,22 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     revisionId: string,
   ): Promise<StoryRevision | null> {
     return this.workspaceDelivery.findStoryRevision(storyId, revisionId);
+  }
+
+  appendStoryRevision(
+    storyId: string,
+    expectedVersion: number,
+    expectedLatestRevisionId: string,
+    input: StoryRevisionInput,
+    createdByUserId: string,
+  ): Promise<CreatedStoryRevision> {
+    return this.workspaceDelivery.appendStoryRevision(
+      storyId,
+      expectedVersion,
+      expectedLatestRevisionId,
+      input,
+      createdByUserId,
+    );
   }
 
   logicalEntities(): HasMany<LogicalEntity> {

@@ -85,7 +85,9 @@ export interface StoryDescription {
   title: string;
   latestRevision: Ref<string>;
   latestRevisionNumber: number;
+  latestScenarioCount: number;
   revisionCount: number;
+  version: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +117,7 @@ export interface StoryRevisionDescription {
   value: string;
   cognitiveMode: StoryCognitiveMode;
   citations: StoryCitationDescription[];
+  scenarios: StoryScenarioDescription[];
   contentSha256: string;
   sourceCandidate: Ref<string> | null;
   createdBy: Ref<string>;
@@ -154,6 +157,11 @@ export interface ConfirmedStoryCandidate {
   created: boolean;
 }
 
+export interface CreatedStoryRevision {
+  story: Story;
+  revision: StoryRevision;
+}
+
 export interface WorkspaceDelivery extends HasMany<StoryCandidate> {
   listCandidates(
     query: StoryCandidateListQuery,
@@ -183,4 +191,11 @@ export interface WorkspaceDelivery extends HasMany<StoryCandidate> {
     storyId: string,
     revisionId: string,
   ): Promise<StoryRevision | null>;
+  appendStoryRevision(
+    storyId: string,
+    expectedVersion: number,
+    expectedLatestRevisionId: string,
+    input: StoryRevisionInput,
+    createdByUserId: string,
+  ): Promise<CreatedStoryRevision>;
 }
