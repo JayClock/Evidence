@@ -6,6 +6,8 @@ import {
   resourceContentTypes,
   toApiPathname,
   useResource,
+  type CodingRunCollectionResource,
+  type CodingRunResource,
   type DiagramCollectionResource,
   type DiagramResource,
   type Entity,
@@ -39,6 +41,8 @@ import {
   CardTitle,
 } from '@evidence/ui';
 import {
+  CodingRunCollectionView,
+  CodingRunDetailView,
   CreateStoryCandidateDialog,
   StoryCandidateCollectionView,
   StoryCandidateDetailView,
@@ -260,6 +264,18 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <StoryRevisionDetailView
           resourceState={resourceState as State<StoryRevisionResource>}
+        />
+      );
+    case resourceContentTypes.codingRuns:
+      return (
+        <CodingRunCollectionView
+          resourceState={resourceState as State<CodingRunCollectionResource>}
+        />
+      );
+    case resourceContentTypes.codingRun:
+      return (
+        <CodingRunDetailView
+          resourceState={resourceState as State<CodingRunResource>}
         />
       );
     case resourceContentTypes.logicalEntities:

@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
+import { StoryCodingRunsPanel } from './coding-run-views';
 import { CreateStoryRevisionDialog } from './story-revision-dialog';
 
 export function StoryCollectionView({
@@ -197,11 +198,20 @@ export function StoryDetailView({
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2">
-            <DetailItem label="Created" value={formatDateTime(story.createdAt)} />
-            <DetailItem label="Updated" value={formatDateTime(story.updatedAt)} />
+            <DetailItem
+              label="Created"
+              value={formatDateTime(story.createdAt)}
+            />
+            <DetailItem
+              label="Updated"
+              value={formatDateTime(story.updatedAt)}
+            />
           </div>
         </CardContent>
       </Card>
+      {resourceState.getLink('coding-runs') ? (
+        <StoryCodingRunsPanel storyState={resourceState} />
+      ) : null}
       <RelatedCard
         title={`Latest revision · v${String(story.latestRevisionNumber)}`}
         description="The current immutable Story snapshot."
