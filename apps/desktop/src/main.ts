@@ -38,6 +38,7 @@ import {
   RUN_CODING_AGENT_CHANNEL,
 } from './coding-ipc-protocol';
 import { CodingRunClient } from './coding-run-client';
+import { CodingRunStore } from './coding-run-store';
 import { CodingWorktreeManager } from './coding-worktree';
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalAgent } from './local-agent';
@@ -354,8 +355,12 @@ void app.whenReady().then(async () => {
         join(app.getPath('userData'), 'coding-worktrees'),
       ),
       new CodingRunClient({ apiBaseUrl, authorization }),
+      new CodingRunStore(
+        join(app.getPath('userData'), 'local-coding-runs.json'),
+      ),
       localCodingAgent,
     );
+    await codingController.recover();
     registerDesktopBridge(apiBaseUrl, localAgent, bindings, codingController);
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl, authorization);

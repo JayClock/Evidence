@@ -27,6 +27,7 @@ export interface RemoteCodingRunResource {
   version: number;
   baseCommitSha: string;
   diffSha256: string | null;
+  changedFileCount: number | null;
   commitSha: string | null;
   links: Record<string, string>;
   raw: Record<string, unknown>;
@@ -72,6 +73,21 @@ export class CodingRunClient {
       ),
       links: links(resource),
     };
+  }
+
+  async getRun(
+    workspaceId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<RemoteCodingRunResource> {
+    return codingRun(
+      await this.requestJson(
+        this.path(
+          `/workspaces/${encode(workspaceId)}/coding-runs/${encode(runId)}`,
+        ),
+        { signal },
+      ),
+    );
   }
 
   async getStoryRevision(
@@ -264,6 +280,10 @@ function codingRun(value: Record<string, unknown>): RemoteCodingRunResource {
     version: positiveInteger(value.version, 'Coding Run version'),
     baseCommitSha: requiredString(value.baseCommitSha, 'base commit SHA'),
     diffSha256: nullableString(value.diffSha256, 'diff SHA-256'),
+    changedFileCount: nullableNonNegativeInteger(
+      value.changedFileCount,
+      'changed file count',
+    ),
     commitSha: nullableString(value.commitSha, 'commit SHA'),
     links: links(value),
     raw: value,
@@ -333,6 +353,13 @@ function requiredString(value: unknown, label: string): string {
 function nullableString(value: unknown, label: string): string | null {
   if (value === null) return null;
   return requiredString(value, label);
+}
+
+function nullableNonNegativeInteger(
+  value: unknown,
+  label: string,
+): number | null {
+  return value === null ? null : nonNegativeInteger(value, label);
 }
 
 function positiveInteger(value: unknown, label: string): number {

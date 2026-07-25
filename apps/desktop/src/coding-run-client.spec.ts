@@ -43,6 +43,7 @@ function runResource(
     version,
     baseCommitSha,
     diffSha256: status === 'running' ? null : diffSha256,
+    changedFileCount: status === 'running' ? null : 2,
     commitSha: null,
   };
 }
@@ -101,6 +102,25 @@ describe('CodingRunClient', () => {
     expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({
       Authorization: 'Bearer secret',
     });
+  });
+
+  it('loads one persisted run for Desktop recovery', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(response(runResource('review_required', 2)));
+    const client = new CodingRunClient({
+      apiBaseUrl: 'https://api.example.test/api',
+      fetch: fetchMock,
+    });
+
+    await expect(client.getRun('workspace-1', 'run-1')).resolves.toMatchObject({
+      id: 'run-1',
+      status: 'review_required',
+      changedFileCount: 2,
+    });
+    expect(fetchMock.mock.calls[0]?.[0].toString()).toBe(
+      'https://api.example.test/api/workspaces/workspace-1/coding-runs/run-1',
+    );
   });
 
   it('rejects cross-origin HAL links', async () => {

@@ -22,6 +22,11 @@ import {
   type CodingWorktree,
 } from './coding-worktree';
 import { gitHead } from './git-repository';
+import {
+  CodingRunStore,
+  type LocalCodingRunRecord,
+  type LocalCodingRunRecordInput,
+} from './coding-run-store';
 import type { LocalAgent } from './local-agent';
 import type {
   WorkspaceBinding,
@@ -35,6 +40,7 @@ interface ActiveCodingRun {
   cancelled: boolean;
   remoteRun: RemoteCodingRunResource | null;
   worktree: CodingWorktree | null;
+  localRecord: LocalCodingRunRecord | null;
 }
 
 interface ReviewedCodingRun {
@@ -61,6 +67,7 @@ export class CodingController {
     private readonly bindings: Pick<WorkspaceBindingStore, 'find'>,
     private readonly worktrees: CodingWorktreeManager,
     private readonly client: CodingRunClient,
+    private readonly localRuns: CodingRunStore,
     private readonly agent: Pick<
       LocalAgent<CodingAgentRuntimeRequest, CodingAgentEvent>,
       'run' | 'cancel' | 'stop'
@@ -82,6 +89,7 @@ export class CodingController {
       cancelled: false,
       remoteRun: null,
       worktree: null,
+      localRecord: null,
     };
     this.active.set(request.id, active);
 
@@ -117,6 +125,15 @@ export class CodingController {
         { storyRevisionId: request.storyRevisionId, baseCommitSha },
         active.abort.signal,
       );
+      active.localRecord = await this.localRuns.save({
+        apiBaseUrl: this.apiBaseUrl,
+        workspaceId: request.workspaceId,
+        runId: active.remoteRun.id,
+        worktree: null,
+        diffSha256: null,
+        changedFileCount: null,
+        commitSha: null,
+      });
       emitEvent(active, 'run-started', { run: active.remoteRun.raw });
       this.assertNotCancelled(active);
 
@@ -125,6 +142,10 @@ export class CodingController {
         repositoryRoot: binding.repositoryRoot,
         baseCommitSha,
         signal: active.abort.signal,
+      });
+      active.localRecord = await this.localRuns.save({
+        ...recordInput(active.localRecord),
+        worktree: active.worktree,
       });
       this.assertNotCancelled(active);
       const qualityGateScripts = await this.qualityGates.lock(
@@ -180,6 +201,11 @@ export class CodingController {
           'The repository does not expose any supported quality gate.',
         );
       }
+      active.localRecord = await this.localRuns.save({
+        ...recordInput(active.localRecord),
+        diffSha256: diff.sha256,
+        changedFileCount: diff.changedFileCount,
+      });
 
       active.remoteRun = await this.client.submitForReview(
         active.remoteRun,
@@ -227,10 +253,21 @@ export class CodingController {
         .cancel(active.remoteRun)
         .catch(() => active.remoteRun);
     }
-    if (active.worktree) {
-      await this.worktrees
-        .remove(active.worktree, { deleteBranch: true })
-        .catch(() => undefined);
+    if (
+      active.remoteRun &&
+      ['cancelled', 'failed'].includes(active.remoteRun.status)
+    ) {
+      const worktreeRemoved = active.worktree
+        ? await this.worktrees
+            .remove(active.worktree, { deleteBranch: true })
+            .then(() => true)
+            .catch(() => false)
+        : true;
+      if (worktreeRemoved) {
+        await this.localRuns
+          .remove(this.apiBaseUrl, active.remoteRun.id)
+          .catch(() => undefined);
+      }
     }
     emitEvent(active, 'cancelled', {
       run: active.remoteRun?.raw ?? null,
@@ -238,16 +275,20 @@ export class CodingController {
     emitEvent(active, 'complete', '');
   }
 
-  getReview(runId: string): LocalCodingReview | null {
-    const review = this.reviewed.get(runId);
-    return review
-      ? {
-          run: review.remoteRun.raw,
-          diff: review.diff.content,
-          diffSha256: review.diff.sha256,
-          changedFileCount: review.diff.changedFileCount,
-        }
-      : null;
+  async recover(): Promise<void> {
+    for (const record of await this.localRuns.list(this.apiBaseUrl)) {
+      await this.recoverRecord(record).catch(() => undefined);
+    }
+  }
+
+  async getReview(runId: string): Promise<LocalCodingReview | null> {
+    let review = this.reviewed.get(runId);
+    if (!review) {
+      const record = await this.localRuns.find(this.apiBaseUrl, runId);
+      const recovered = record ? await this.recoverRecord(record) : null;
+      if (recovered) review = recovered;
+    }
+    return review ? localReview(review) : null;
   }
 
   async accept(
@@ -255,11 +296,18 @@ export class CodingController {
   ): Promise<Record<string, unknown>> {
     const review = this.requireReview(input);
     if (!review.commitSha) {
-      review.commitSha = await this.worktrees.commit(
+      const commitSha = await this.worktrees.commit(
         review.worktree,
         review.diff.sha256,
         commitMessage(review.remoteRun.storyRevisionId),
       );
+      await this.localRuns.save({
+        ...recordInput(
+          await this.localRuns.find(this.apiBaseUrl, review.remoteRun.id),
+        ),
+        commitSha,
+      });
+      review.commitSha = commitSha;
     }
     review.remoteRun = await this.client.accept(
       review.remoteRun,
@@ -268,6 +316,7 @@ export class CodingController {
     );
     await this.worktrees.remove(review.worktree, { deleteBranch: false });
     this.reviewed.delete(review.remoteRun.id);
+    await this.localRuns.remove(this.apiBaseUrl, review.remoteRun.id);
     return review.remoteRun.raw;
   }
 
@@ -278,12 +327,82 @@ export class CodingController {
     review.remoteRun = await this.client.reject(review.remoteRun, input.reason);
     await this.worktrees.remove(review.worktree, { deleteBranch: true });
     this.reviewed.delete(review.remoteRun.id);
+    await this.localRuns.remove(this.apiBaseUrl, review.remoteRun.id);
     return review.remoteRun.raw;
   }
 
   async stop(): Promise<void> {
     await Promise.all([...this.active.keys()].map((id) => this.cancel(id)));
     await this.agent.stop();
+  }
+
+  private async recoverRecord(
+    record: LocalCodingRunRecord,
+  ): Promise<ReviewedCodingRun | null> {
+    const existing = this.reviewed.get(record.runId);
+    if (existing) return existing;
+
+    const remoteRun = await this.client.getRun(
+      record.workspaceId,
+      record.runId,
+    );
+    if (remoteRun.status === 'running') {
+      const failed = await this.client.fail(
+        remoteRun,
+        'desktop-restarted',
+        'Local Desktop execution ended before review.',
+      );
+      if (failed.status === 'running') {
+        throw new Error('Orphaned Coding Run could not be failed.');
+      }
+      await this.cleanRecord(record, true);
+      return null;
+    }
+    if (remoteRun.status !== 'review_required') {
+      await this.cleanRecord(record, remoteRun.status !== 'accepted');
+      return null;
+    }
+    if (
+      !record.worktree ||
+      !record.diffSha256 ||
+      record.changedFileCount === null ||
+      record.worktree.baseCommitSha !== remoteRun.baseCommitSha ||
+      record.diffSha256 !== remoteRun.diffSha256 ||
+      record.changedFileCount !== remoteRun.changedFileCount
+    ) {
+      throw new Error('Local Coding Run recovery facts do not match Server.');
+    }
+
+    const worktree = await this.worktrees.recover(record.worktree);
+    const diff = await this.worktrees.inspectForReview(
+      worktree,
+      record.commitSha,
+    );
+    if (
+      diff.sha256 !== record.diffSha256 ||
+      diff.changedFileCount !== record.changedFileCount
+    ) {
+      throw new Error('Local Coding Run diff changed before recovery.');
+    }
+    const review: ReviewedCodingRun = {
+      workspaceId: record.workspaceId,
+      remoteRun,
+      worktree,
+      diff,
+      commitSha: record.commitSha,
+    };
+    this.reviewed.set(record.runId, review);
+    return review;
+  }
+
+  private async cleanRecord(
+    record: LocalCodingRunRecord,
+    deleteBranch: boolean,
+  ): Promise<void> {
+    if (record.worktree) {
+      await this.worktrees.remove(record.worktree, { deleteBranch });
+    }
+    await this.localRuns.remove(this.apiBaseUrl, record.runId);
   }
 
   private requireReview(input: CodingRunDecisionRequest): ReviewedCodingRun {
@@ -320,13 +439,49 @@ export class CodingController {
         .fail(active.remoteRun, failure.code, failure.summary)
         .catch(() => active.remoteRun);
     }
-    if (active.worktree) {
-      await this.worktrees
-        .remove(active.worktree, { deleteBranch: true })
-        .catch(() => undefined);
+    if (
+      active.remoteRun &&
+      ['failed', 'cancelled'].includes(active.remoteRun.status)
+    ) {
+      let worktreeRemoved = true;
+      if (active.worktree) {
+        worktreeRemoved = await this.worktrees
+          .remove(active.worktree, { deleteBranch: true })
+          .then(() => true)
+          .catch(() => false);
+      }
+      if (worktreeRemoved && active.remoteRun) {
+        await this.localRuns
+          .remove(this.apiBaseUrl, active.remoteRun.id)
+          .catch(() => undefined);
+      }
     }
     emitEvent(active, 'run-failed', { run: active.remoteRun?.raw ?? null });
   }
+}
+
+function recordInput(
+  record: LocalCodingRunRecord | null,
+): LocalCodingRunRecordInput {
+  if (!record) throw new Error('Local Coding Run recovery record is missing.');
+  return {
+    apiBaseUrl: record.apiBaseUrl,
+    workspaceId: record.workspaceId,
+    runId: record.runId,
+    worktree: record.worktree,
+    diffSha256: record.diffSha256,
+    changedFileCount: record.changedFileCount,
+    commitSha: record.commitSha,
+  };
+}
+
+function localReview(review: ReviewedCodingRun): LocalCodingReview {
+  return {
+    run: review.remoteRun.raw,
+    diff: review.diff.content,
+    diffSha256: review.diff.sha256,
+    changedFileCount: review.diff.changedFileCount,
+  };
 }
 
 class CodingExecutionError extends Error {

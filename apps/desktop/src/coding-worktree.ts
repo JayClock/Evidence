@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, mkdir, rm } from 'node:fs/promises';
+import { access, mkdir, realpath, rm } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { codingCommandEnvironment } from './coding-command-environment';
@@ -125,6 +125,58 @@ export class CodingWorktreeManager {
     };
   }
 
+  async recover(worktree: CodingWorktree): Promise<CodingWorktree> {
+    const { expectedBranch, expectedRoot } = this.assertRecord(worktree);
+    const repositoryRoot = await canonicalGitRepository(
+      worktree.repositoryRoot,
+    );
+    const worktreeRoot = await canonicalGitRepository(expectedRoot);
+    if (worktreeRoot !== (await realpath(expectedRoot))) {
+      throw new Error(
+        'Coding worktree path no longer identifies its Git root.',
+      );
+    }
+    const [repositoryCommonDirectory, worktreeCommonDirectory] =
+      await Promise.all([
+        gitCommonDirectory(repositoryRoot),
+        gitCommonDirectory(worktreeRoot),
+      ]);
+    if (repositoryCommonDirectory !== worktreeCommonDirectory) {
+      throw new Error('Coding worktree belongs to a different Git repository.');
+    }
+    const branch = (
+      await runGit(worktreeRoot, ['branch', '--show-current'])
+    ).trim();
+    if (branch !== expectedBranch) {
+      throw new Error('Coding worktree branch no longer matches its Run.');
+    }
+    await runGit(worktreeRoot, [
+      'merge-base',
+      '--is-ancestor',
+      worktree.baseCommitSha,
+      'HEAD',
+    ]);
+    return worktree;
+  }
+
+  async inspectForReview(
+    worktree: CodingWorktree,
+    commitSha: string | null,
+  ): Promise<CodingDiff> {
+    const recovered = await this.recover(worktree);
+    const currentHead = await gitHead(recovered.worktreeRoot);
+    if (commitSha === null) {
+      return currentHead === recovered.baseCommitSha
+        ? this.inspect(recovered)
+        : this.inspectCommitted(recovered, currentHead);
+    }
+    const normalizedCommit = normalizeCommit(commitSha);
+    if (currentHead !== normalizedCommit) {
+      throw new Error('Coding worktree commit no longer matches its review.');
+    }
+    return this.inspectCommitted(recovered, normalizedCommit);
+  }
+
   async inspect(worktree: CodingWorktree): Promise<CodingDiff> {
     this.assertRecord(worktree);
     await runGit(worktree.worktreeRoot, ['add', '--intent-to-add', '--', '.']);
@@ -152,6 +204,17 @@ export class CodingWorktreeManager {
   ): Promise<string> {
     this.assertRecord(worktree);
     const message = normalizeCommitMessage(messageInput);
+    const currentHead = await gitHead(worktree.worktreeRoot);
+    if (currentHead !== worktree.baseCommitSha) {
+      const committed = await this.inspectCommitted(worktree, currentHead);
+      if (
+        committed.changedFileCount > 0 &&
+        committed.sha256 === expectedDiffSha256
+      ) {
+        return currentHead;
+      }
+      throw new Error('Coding worktree diff changed after review.');
+    }
     const current = await this.inspect(worktree);
     if (current.changedFileCount === 0) {
       throw new Error('Coding worktree has no changes to commit.');
@@ -162,6 +225,37 @@ export class CodingWorktreeManager {
     await runGit(worktree.worktreeRoot, ['add', '--all', '--', '.']);
     await runGit(worktree.worktreeRoot, ['commit', '-m', message]);
     return gitHead(worktree.worktreeRoot);
+  }
+
+  private async inspectCommitted(
+    worktree: CodingWorktree,
+    commitSha: string,
+  ): Promise<CodingDiff> {
+    const [content, names] = await Promise.all([
+      runGit(worktree.worktreeRoot, [
+        'diff',
+        '--no-ext-diff',
+        '--binary',
+        worktree.baseCommitSha,
+        commitSha,
+        '--',
+        '.',
+      ]),
+      runGit(worktree.worktreeRoot, [
+        'diff',
+        '--name-only',
+        '-z',
+        worktree.baseCommitSha,
+        commitSha,
+        '--',
+        '.',
+      ]),
+    ]);
+    return {
+      content,
+      sha256: `sha256:${createHash('sha256').update(content).digest('hex')}`,
+      changedFileCount: names.split('\0').filter(Boolean).length,
+    };
   }
 
   async remove(
@@ -184,7 +278,16 @@ export class CodingWorktreeManager {
       await runGit(repositoryRoot, ['worktree', 'prune']);
     }
     if (options.deleteBranch) {
-      await runGit(repositoryRoot, ['branch', '-D', expectedBranch]);
+      const branchExists = await runGit(repositoryRoot, [
+        'show-ref',
+        '--verify',
+        `refs/heads/${expectedBranch}`,
+      ])
+        .then(() => true)
+        .catch(() => false);
+      if (branchExists) {
+        await runGit(repositoryRoot, ['branch', '-D', expectedBranch]);
+      }
     }
   }
 
@@ -284,6 +387,11 @@ function assertManagedPath(root: string, candidate: string): void {
   ) {
     throw new Error('Coding worktree path is outside the managed root.');
   }
+}
+
+async function gitCommonDirectory(root: string): Promise<string> {
+  const value = (await runGit(root, ['rev-parse', '--git-common-dir'])).trim();
+  return realpath(resolve(root, value));
 }
 
 function errorMessage(error: unknown): string {

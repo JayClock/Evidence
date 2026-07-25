@@ -12,6 +12,7 @@ import type {
   CodingRunClient,
   RemoteCodingRunResource,
 } from './coding-run-client';
+import { CodingRunStore } from './coding-run-store';
 import { CodingWorktreeManager } from './coding-worktree';
 import { gitHead, runGit } from './git-repository';
 import type { LocalAgent } from './local-agent';
@@ -44,6 +45,7 @@ describe('CodingController', () => {
       { find: vi.fn(async () => binding(repository)) },
       new CodingWorktreeManager(join(root, 'worktrees')),
       remote.client,
+      new CodingRunStore(join(root, 'coding-runs.json')),
       agent,
       gates,
     );
@@ -66,7 +68,7 @@ describe('CodingController', () => {
       }),
       expect.any(AbortSignal),
     );
-    const review = controller.getReview('run-1');
+    const review = await controller.getReview('run-1');
     expect(review).toMatchObject({
       diffSha256: expect.stringMatching(diffPattern),
       changedFileCount: 1,
@@ -87,7 +89,7 @@ describe('CodingController', () => {
       review?.diffSha256,
       expect.stringMatching(/^[a-f0-9]{40}$/),
     );
-    expect(controller.getReview('run-1')).toBeNull();
+    expect(await controller.getReview('run-1')).toBeNull();
     expect(await gitHead(repository)).toBe(await initialCommit(repository));
     expect(
       await runGit(repository, [
@@ -107,6 +109,7 @@ describe('CodingController', () => {
       { find: vi.fn(async () => binding(repository)) },
       new CodingWorktreeManager(join(root, 'worktrees')),
       remote.client,
+      new CodingRunStore(join(root, 'coding-runs.json')),
       agentFixture(async (agentRequest) => {
         await writeFile(
           join(agentRequest.worktreeRoot, 'tracked.txt'),
@@ -128,7 +131,195 @@ describe('CodingController', () => {
     expect(JSON.stringify(remote.fail.mock.calls)).not.toContain(
       'broken implementation',
     );
-    expect(controller.getReview('run-1')).toBeNull();
+    expect(await controller.getReview('run-1')).toBeNull();
+  });
+
+  it('fails an orphaned running Run after Desktop restarts', async () => {
+    const root = await temporaryDirectory();
+    const remote = remoteFixture();
+    const store = new CodingRunStore(join(root, 'coding-runs.json'));
+    await store.save({
+      apiBaseUrl: 'https://api.example.test/api',
+      workspaceId: 'workspace-1',
+      runId: 'run-1',
+      worktree: null,
+      diffSha256: null,
+      changedFileCount: null,
+      commitSha: null,
+    });
+    const controller = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => null) },
+      new CodingWorktreeManager(join(root, 'worktrees')),
+      remote.client,
+      store,
+      agentFixture(async () => undefined),
+      qualityFixture('passed'),
+    );
+
+    await controller.recover();
+
+    expect(remote.fail).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'running' }),
+      'desktop-restarted',
+      'Local Desktop execution ended before review.',
+    );
+    await expect(
+      store.find('https://api.example.test/api', 'run-1'),
+    ).resolves.toBeNull();
+  });
+
+  it('recovers when Desktop stops between commit and manifest update', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const remote = remoteFixture();
+    const storePath = join(root, 'coding-runs.json');
+    const worktreeRoot = join(root, 'worktrees');
+    const store = new CodingRunStore(storePath);
+    const first = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => binding(repository)) },
+      new CodingWorktreeManager(worktreeRoot),
+      remote.client,
+      store,
+      agentFixture(async (agentRequest) => {
+        await writeFile(
+          join(agentRequest.worktreeRoot, 'tracked.txt'),
+          'committed before crash\n',
+        );
+      }),
+      qualityFixture('passed'),
+    );
+    await first.run(request(), () => undefined);
+    const review = await first.getReview('run-1');
+    vi.spyOn(store, 'save').mockRejectedValueOnce(
+      new Error('manifest update interrupted'),
+    );
+
+    await expect(
+      first.accept({
+        workspaceId: 'workspace-1',
+        runId: 'run-1',
+        diffSha256: review?.diffSha256 ?? '',
+      }),
+    ).rejects.toThrow('manifest update interrupted');
+
+    const restarted = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => binding(repository)) },
+      new CodingWorktreeManager(worktreeRoot),
+      remote.client,
+      new CodingRunStore(storePath),
+      agentFixture(async () => undefined),
+      qualityFixture('passed'),
+    );
+    await restarted.recover();
+    const recovered = await restarted.getReview('run-1');
+
+    expect(recovered?.diffSha256).toBe(review?.diffSha256);
+    await expect(
+      restarted.accept({
+        workspaceId: 'workspace-1',
+        runId: 'run-1',
+        diffSha256: recovered?.diffSha256 ?? '',
+      }),
+    ).resolves.toMatchObject({ status: 'accepted' });
+  });
+
+  it('recovers a committed review when Server acceptance is interrupted', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const remote = remoteFixture();
+    const storePath = join(root, 'coding-runs.json');
+    const worktreeRoot = join(root, 'worktrees');
+    const first = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => binding(repository)) },
+      new CodingWorktreeManager(worktreeRoot),
+      remote.client,
+      new CodingRunStore(storePath),
+      agentFixture(async (agentRequest) => {
+        await writeFile(
+          join(agentRequest.worktreeRoot, 'tracked.txt'),
+          'committed implementation\n',
+        );
+      }),
+      qualityFixture('passed'),
+    );
+    await first.run(request(), () => undefined);
+    const review = await first.getReview('run-1');
+    remote.accept.mockRejectedValueOnce(new Error('connection interrupted'));
+
+    await expect(
+      first.accept({
+        workspaceId: 'workspace-1',
+        runId: 'run-1',
+        diffSha256: review?.diffSha256 ?? '',
+      }),
+    ).rejects.toThrow('connection interrupted');
+
+    const restarted = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => binding(repository)) },
+      new CodingWorktreeManager(worktreeRoot),
+      remote.client,
+      new CodingRunStore(storePath),
+      agentFixture(async () => undefined),
+      qualityFixture('passed'),
+    );
+    await restarted.recover();
+    const recovered = await restarted.getReview('run-1');
+
+    expect(recovered?.diffSha256).toBe(review?.diffSha256);
+    await expect(
+      restarted.accept({
+        workspaceId: 'workspace-1',
+        runId: 'run-1',
+        diffSha256: recovered?.diffSha256 ?? '',
+      }),
+    ).resolves.toMatchObject({ status: 'accepted' });
+  });
+
+  it('recovers a reviewable diff after Desktop restarts', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const remote = remoteFixture();
+    const storePath = join(root, 'coding-runs.json');
+    const worktreeRoot = join(root, 'worktrees');
+    const first = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => binding(repository)) },
+      new CodingWorktreeManager(worktreeRoot),
+      remote.client,
+      new CodingRunStore(storePath),
+      agentFixture(async (agentRequest) => {
+        await writeFile(
+          join(agentRequest.worktreeRoot, 'tracked.txt'),
+          'recoverable implementation\n',
+        );
+      }),
+      qualityFixture('passed'),
+    );
+    await first.run(request(), () => undefined);
+
+    const restarted = new CodingController(
+      'https://api.example.test/api',
+      { find: vi.fn(async () => binding(repository)) },
+      new CodingWorktreeManager(worktreeRoot),
+      remote.client,
+      new CodingRunStore(storePath),
+      agentFixture(async () => undefined),
+      qualityFixture('passed'),
+    );
+
+    await restarted.recover();
+
+    const review = await restarted.getReview('run-1');
+    expect(review).toMatchObject({
+      diffSha256: expect.stringMatching(diffPattern),
+      changedFileCount: 1,
+    });
+    expect(review?.diff).toContain('recoverable implementation');
   });
 });
 
@@ -151,13 +342,54 @@ function binding(repositoryRoot: string) {
 }
 
 function remoteFixture() {
-  const running = runResource('running', 1);
-  const review = runResource('review_required', 2);
-  const accepted = runResource('accepted', 3, 'c'.repeat(40));
-  const start = vi.fn(async () => running);
-  const submitForReview = vi.fn(async () => review);
-  const fail = vi.fn(async () => runResource('failed', 2));
-  const accept = vi.fn(async () => accepted);
+  let current = runResource('running', 1);
+  const start = vi.fn(
+    async (
+      _story: unknown,
+      input: { storyRevisionId: string; baseCommitSha: string },
+    ) => {
+      current = runResource(
+        'running',
+        1,
+        null,
+        null,
+        null,
+        input.baseCommitSha,
+      );
+      return current;
+    },
+  );
+  const submitForReview = vi.fn(
+    async (
+      _run: RemoteCodingRunResource,
+      input: { diffSha256: string; changedFileCount: number },
+    ) => {
+      current = runResource(
+        'review_required',
+        2,
+        null,
+        input.diffSha256,
+        input.changedFileCount,
+        current.baseCommitSha,
+      );
+      return current;
+    },
+  );
+  const fail = vi.fn(async () => {
+    current = runResource('failed', 2);
+    return current;
+  });
+  const accept = vi.fn(async () => {
+    current = runResource(
+      'accepted',
+      3,
+      'c'.repeat(40),
+      current.diffSha256,
+      current.changedFileCount,
+      current.baseCommitSha,
+    );
+    return current;
+  });
   const client = {
     getStory: vi.fn(async () => ({
       id: 'story-1',
@@ -165,6 +397,7 @@ function remoteFixture() {
       latestScenarioCount: 1,
       links: { 'start-coding-run': '/api/start' },
     })),
+    getRun: vi.fn(async () => current),
     getStoryRevision: vi.fn(async () => ({
       id: 'revision-2',
       revisionNumber: 2,
@@ -188,7 +421,10 @@ function remoteFixture() {
     start,
     submitForReview,
     fail,
-    cancel: vi.fn(async () => runResource('cancelled', 2)),
+    cancel: vi.fn(async () => {
+      current = runResource('cancelled', 2);
+      return current;
+    }),
     accept,
     reject: vi.fn(async () => runResource('rejected', 3)),
   } as unknown as CodingRunClient;
@@ -205,6 +441,11 @@ function runResource(
     | 'rejected',
   version: number,
   commitSha: string | null = null,
+  diffSha256: string | null = status === 'running'
+    ? null
+    : `sha256:${'b'.repeat(64)}`,
+  changedFileCount: number | null = status === 'running' ? null : 1,
+  baseCommitSha = 'a'.repeat(40),
 ): RemoteCodingRunResource {
   const raw = {
     id: 'run-1',
@@ -212,8 +453,9 @@ function runResource(
     storyRevisionId: 'revision-2',
     status,
     version,
-    baseCommitSha: 'a'.repeat(40),
-    diffSha256: status === 'running' ? null : `sha256:${'b'.repeat(64)}`,
+    baseCommitSha,
+    diffSha256,
+    changedFileCount,
     commitSha,
   };
   return {

@@ -68,6 +68,14 @@ describe('CodingWorktreeManager', () => {
       'feat(workspace): implement reviewed story',
     );
     expect(commitSha).not.toBe(baseCommitSha);
+    expect(await manager.inspectForReview(worktree, commitSha)).toEqual(diff);
+    await expect(
+      manager.commit(
+        worktree,
+        diff.sha256,
+        'feat(workspace): implement reviewed story',
+      ),
+    ).resolves.toBe(commitSha);
     expect(await gitHead(repository)).toBe(baseCommitSha);
   });
 
