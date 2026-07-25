@@ -1,3 +1,5 @@
+import { isAbsolute, resolve } from 'node:path';
+
 const DEFAULT_WEB_URL = 'http://127.0.0.1:4200';
 
 function normalizeHttpUrl(value: string, name: string): string {
@@ -40,6 +42,17 @@ export function resolveWebUrl(
   value = process.env.EVIDENCE_WEB_URL ?? DEFAULT_WEB_URL,
 ): string {
   return normalizeHttpUrl(value, 'EVIDENCE_WEB_URL');
+}
+
+export function resolveUserDataPath(
+  value = process.env.EVIDENCE_USER_DATA_PATH,
+): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized) return undefined;
+  if (!isAbsolute(normalized) || normalized.includes('\0')) {
+    throw new Error('EVIDENCE_USER_DATA_PATH must be an absolute path.');
+  }
+  return resolve(normalized);
 }
 
 export function resolveApiAuthorization(

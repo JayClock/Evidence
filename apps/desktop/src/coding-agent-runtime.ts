@@ -3,6 +3,7 @@ import type {
   AgentSession,
   AgentSessionEvent,
 } from '@earendil-works/pi-coding-agent';
+import { resolveCodingAgentTimeoutMs } from './coding-agent-timeout';
 import {
   parseCodingAgentEvent,
   parseCodingAgentRuntimeRequest,
@@ -18,7 +19,6 @@ import {
 import { createCodingAgentTools } from './coding-agent-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
-const DEFAULT_TIMEOUT_MS = 30 * 60 * 1_000;
 
 const SYSTEM_PROMPT = `You are the local Evidence coding agent.
 
@@ -55,7 +55,7 @@ export async function runCodingAgentRequest(
   const timeout = setTimeout(() => {
     markCodingAgentTimedOut(outcome);
     void session.abort().catch(() => undefined);
-  }, DEFAULT_TIMEOUT_MS);
+  }, resolveCodingAgentTimeoutMs());
 
   try {
     await session.prompt(storyPrompt(request), {

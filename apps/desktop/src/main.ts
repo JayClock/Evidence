@@ -46,6 +46,7 @@ import { piRuntimeEnvironment } from './pi-runtime-environment';
 import {
   resolveApiAuthorization,
   resolveApiBaseUrl,
+  resolveUserDataPath,
   resolveWebUrl,
 } from './runtime-config';
 import { WorkspaceBindingStore } from './workspace-binding-store';
@@ -53,6 +54,8 @@ import { WorkspaceBindingStore } from './workspace-binding-store';
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;
 const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
+const userDataPath = resolveUserDataPath();
+if (userDataPath) app.setPath('userData', userDataPath);
 
 let localAgent: LocalAgent | null = null;
 let codingController: CodingController | null = null;

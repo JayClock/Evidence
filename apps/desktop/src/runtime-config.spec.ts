@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveApiAuthorization,
   resolveApiBaseUrl,
+  resolveUserDataPath,
   resolveWebUrl,
 } from './runtime-config';
 
@@ -35,6 +36,16 @@ describe('desktop runtime config', () => {
   it('requires HTTPS for non-loopback APIs', () => {
     expect(() => resolveApiBaseUrl('http://api.example.com/api')).toThrow(
       'must use HTTPS unless it targets loopback',
+    );
+  });
+
+  it('accepts only an absolute user data override', () => {
+    expect(resolveUserDataPath('/tmp/evidence-user-data')).toBe(
+      '/tmp/evidence-user-data',
+    );
+    expect(resolveUserDataPath('')).toBeUndefined();
+    expect(() => resolveUserDataPath('relative/user-data')).toThrow(
+      'must be an absolute path',
     );
   });
 
