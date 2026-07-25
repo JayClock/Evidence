@@ -1,10 +1,17 @@
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { access, mkdir, rm } from 'node:fs/promises';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { promisify } from 'node:util';
+import { codingCommandEnvironment } from './coding-command-environment';
 import { canonicalGitRepository, gitHead, runGit } from './git-repository';
+
+const execFileAsync = promisify(execFile);
 
 const RUN_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 const COMMIT_PATTERN = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/;
+const DEPENDENCY_OUTPUT_LIMIT = 2 * 1024 * 1024;
+const DEPENDENCY_TIMEOUT_MS = 10 * 60 * 1_000;
 
 export interface CodingDiff {
   content: string;
@@ -20,10 +27,18 @@ export interface CodingWorktree {
   baseCommitSha: string;
 }
 
+export type CodingDependencyHydrator = (
+  worktreeRoot: string,
+  signal?: AbortSignal,
+) => Promise<void>;
+
 export class CodingWorktreeManager {
   private readonly managedRoot: string;
 
-  constructor(root: string) {
+  constructor(
+    root: string,
+    private readonly hydrateDependencies: CodingDependencyHydrator = hydratePnpmDependencies,
+  ) {
     this.managedRoot = resolve(root);
   }
 
@@ -31,6 +46,7 @@ export class CodingWorktreeManager {
     runId: string;
     repositoryRoot: string;
     baseCommitSha: string;
+    signal?: AbortSignal;
   }): Promise<CodingWorktree> {
     const runId = normalizeRunId(input.runId);
     const baseCommitSha = normalizeCommit(input.baseCommitSha);
@@ -68,6 +84,19 @@ export class CodingWorktreeManager {
       if ((await gitHead(worktreeRoot)) !== baseCommitSha) {
         throw new Error(
           'Coding worktree was created from an unexpected commit.',
+        );
+      }
+      await this.hydrateDependencies(worktreeRoot, input.signal);
+      const hydrationChanges = await runGit(worktreeRoot, [
+        'status',
+        '--porcelain=v1',
+        '--untracked-files=all',
+        '--',
+        '.',
+      ]);
+      if (hydrationChanges.trim()) {
+        throw new Error(
+          'Coding worktree dependency preparation changed repository files. Ensure dependency outputs are ignored by Git.',
         );
       }
     } catch (error) {
@@ -180,6 +209,39 @@ export class CodingWorktreeManager {
   }
 }
 
+async function hydratePnpmDependencies(
+  worktreeRoot: string,
+  signal?: AbortSignal,
+): Promise<void> {
+  if (!(await pathExists(join(worktreeRoot, 'pnpm-lock.yaml')))) return;
+
+  try {
+    await execFileAsync(
+      process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
+      [
+        'install',
+        '--offline',
+        '--frozen-lockfile',
+        '--ignore-scripts',
+        '--reporter=append-only',
+      ],
+      {
+        cwd: worktreeRoot,
+        encoding: 'utf8',
+        env: codingCommandEnvironment(),
+        maxBuffer: DEPENDENCY_OUTPUT_LIMIT,
+        signal,
+        timeout: DEPENDENCY_TIMEOUT_MS,
+        windowsHide: true,
+      },
+    );
+  } catch (error) {
+    throw new Error(
+      `Coding worktree dependencies could not be prepared from the local pnpm store: ${errorMessage(error)}`,
+    );
+  }
+}
+
 function normalizeCommitMessage(value: string): string {
   const normalized = value.trim();
   if (
@@ -222,6 +284,10 @@ function assertManagedPath(root: string, candidate: string): void {
   ) {
     throw new Error('Coding worktree path is outside the managed root.');
   }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function pathExists(path: string): Promise<boolean> {

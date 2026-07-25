@@ -124,6 +124,7 @@ export class CodingController {
         runId: active.remoteRun.id,
         repositoryRoot: binding.repositoryRoot,
         baseCommitSha,
+        signal: active.abort.signal,
       });
       this.assertNotCancelled(active);
 

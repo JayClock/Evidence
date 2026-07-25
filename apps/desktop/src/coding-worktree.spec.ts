@@ -71,6 +71,40 @@ describe('CodingWorktreeManager', () => {
     expect(await gitHead(repository)).toBe(baseCommitSha);
   });
 
+  it('prepares locked pnpm dependencies without changing tracked files', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createPnpmRepository(root);
+    const manager = new CodingWorktreeManager(join(root, 'managed'));
+
+    const worktree = await manager.prepare({
+      runId: 'run-dependencies',
+      repositoryRoot: repository,
+      baseCommitSha: await gitHead(repository),
+    });
+
+    expect(
+      JSON.parse(
+        await readFile(
+          join(
+            worktree.worktreeRoot,
+            'node_modules',
+            '@fixture',
+            'tool',
+            'package.json',
+          ),
+          'utf8',
+        ),
+      ),
+    ).toMatchObject({ name: '@fixture/tool' });
+    expect(
+      await runGit(worktree.worktreeRoot, [
+        'status',
+        '--porcelain=v1',
+        '--untracked-files=all',
+      ]),
+    ).toBe('');
+  });
+
   it('removes rejected work and its temporary branch', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);
@@ -141,6 +175,52 @@ describe('CodingWorktreeManager', () => {
     ).rejects.toBeDefined();
   });
 });
+
+async function createPnpmRepository(root: string): Promise<string> {
+  const repository = join(root, 'pnpm-repository');
+  await mkdir(join(repository, 'packages', 'tool'), { recursive: true });
+  await runGit(repository, ['init', '--initial-branch=main']);
+  await runGit(repository, ['config', 'user.name', 'Evidence Test']);
+  await runGit(repository, ['config', 'user.email', 'test@evidence.local']);
+  await writeFile(join(repository, '.gitignore'), '**/node_modules/\n');
+  await writeFile(
+    join(repository, 'package.json'),
+    JSON.stringify({
+      private: true,
+      packageManager: 'pnpm@10.14.0',
+      dependencies: { '@fixture/tool': 'workspace:*' },
+    }),
+  );
+  await writeFile(
+    join(repository, 'pnpm-workspace.yaml'),
+    "packages:\n  - 'packages/*'\n",
+  );
+  await writeFile(
+    join(repository, 'pnpm-lock.yaml'),
+    `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+  .:
+    dependencies:
+      '@fixture/tool':
+        specifier: workspace:*
+        version: link:packages/tool
+
+  packages/tool: {}
+`,
+  );
+  await writeFile(
+    join(repository, 'packages', 'tool', 'package.json'),
+    JSON.stringify({ name: '@fixture/tool', version: '1.0.0' }),
+  );
+  await runGit(repository, ['add', '.']);
+  await runGit(repository, ['commit', '-m', 'Initial pnpm workspace']);
+  return realpath(repository);
+}
 
 async function createRepository(root: string): Promise<string> {
   const repository = join(root, 'repository');
