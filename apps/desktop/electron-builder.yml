@@ -41,5 +41,6 @@ win:
 
 linux:
   category: Development
+  executableName: evidence
   target:
     - AppImage
