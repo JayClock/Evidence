@@ -62,6 +62,10 @@ jobs:
 
       - run: pnpm exec nx affected -t lint test build typecheck
       - run: pnpm api:contracts
+      - name: Verify the packaged Desktop coding boundary
+        run: |
+          pnpm nx run @evidence/desktop:package-smoke
+          pnpm nx run @evidence/desktop:package-e2e
 
       - name: Run contracts against hosted Nest and PostgreSQL
         shell: bash
