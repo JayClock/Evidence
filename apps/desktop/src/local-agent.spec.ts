@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AgentRuntimeRequest, DiagramAgentEvent } from './agent-protocol';
 import { LocalAgent } from './local-agent';
 
@@ -9,6 +9,7 @@ const temporaryPaths: string[] = [];
 const agents: LocalAgent[] = [];
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(agents.splice(0).map((agent) => agent.stop()));
   await Promise.all(
     temporaryPaths
@@ -39,6 +40,37 @@ describe('LocalAgent', () => {
     ]);
   });
 
+  it('does not inherit unrelated Desktop secrets', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://database-secret');
+    vi.stubEnv('EVIDENCE_API_AUTHORIZATION', 'Bearer desktop-secret');
+    const runtimeEntry = await fixtureRuntime(`
+      let input = '';
+      process.stdin.on('data', (chunk) => input += chunk);
+      process.stdin.on('end', () => {
+        const request = JSON.parse(input);
+        const data = JSON.stringify({
+          databaseUrl: process.env.DATABASE_URL ?? null,
+          desktopAuthorization: process.env.EVIDENCE_API_AUTHORIZATION ?? null,
+          explicitProviderKey: process.env.EXPLICIT_PROVIDER_KEY ?? null,
+        });
+        process.stdout.write(JSON.stringify({ id: request.id, event: null, data }) + '\\n');
+        process.stdout.write(JSON.stringify({ id: request.id, event: 'complete', data: '' }) + '\\n');
+      });
+    `);
+    const agent = createAgent(runtimeEntry, {
+      EXPLICIT_PROVIDER_KEY: 'provider-secret',
+    });
+    const events: DiagramAgentEvent[] = [];
+
+    await agent.run(request('request-env'), (event) => events.push(event));
+
+    expect(JSON.parse(events[0]?.data ?? '{}')).toEqual({
+      databaseUrl: null,
+      desktopAuthorization: null,
+      explicitProviderKey: 'provider-secret',
+    });
+  });
+
   it('rejects malformed runtime output instead of forwarding it to the renderer', async () => {
     const runtimeEntry = await fixtureRuntime(`
       process.stdin.resume();
@@ -52,11 +84,15 @@ describe('LocalAgent', () => {
   });
 });
 
-function createAgent(runtimeEntry: string): LocalAgent {
+function createAgent(
+  runtimeEntry: string,
+  environment?: NodeJS.ProcessEnv,
+): LocalAgent {
   const agent = new LocalAgent({
     executablePath: process.execPath,
     runtimeEntry,
     packaged: false,
+    environment,
   });
   agents.push(agent);
   return agent;

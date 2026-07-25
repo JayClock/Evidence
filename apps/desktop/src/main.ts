@@ -42,6 +42,7 @@ import { CodingRunStore } from './coding-run-store';
 import { CodingWorktreeManager } from './coding-worktree';
 import { isTrustedRendererRequest } from './ipc-security';
 import { LocalAgent } from './local-agent';
+import { piRuntimeEnvironment } from './pi-runtime-environment';
 import {
   resolveApiAuthorization,
   resolveApiBaseUrl,
@@ -221,7 +222,7 @@ function registerRendererApiAuthorization(
   );
 }
 
-function createLocalAgent(): LocalAgent {
+function createLocalAgent(authorization: string | undefined): LocalAgent {
   return new LocalAgent({
     executablePath: app.isPackaged
       ? process.execPath
@@ -235,6 +236,10 @@ function createLocalAgent(): LocalAgent {
         )
       : join(__dirname, 'agent-runtime.js'),
     packaged: app.isPackaged,
+    environment: {
+      ...piRuntimeEnvironment(),
+      ...(authorization ? { EVIDENCE_API_AUTHORIZATION: authorization } : {}),
+    },
   });
 }
 
@@ -255,6 +260,7 @@ function createLocalCodingAgent(): LocalAgent<
         )
       : join(__dirname, 'coding-agent-runtime.js'),
     packaged: app.isPackaged,
+    environment: piRuntimeEnvironment(),
     parseEvent: parseCodingAgentEvent,
   });
 }
@@ -347,7 +353,7 @@ void app.whenReady().then(async () => {
     const apiBaseUrl = await connectRemoteApi();
     const authorization = resolveApiAuthorization();
     registerRendererApiAuthorization(apiBaseUrl, authorization);
-    localAgent = createLocalAgent();
+    localAgent = createLocalAgent(authorization);
     const localCodingAgent = createLocalCodingAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),

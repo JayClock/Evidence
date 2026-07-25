@@ -1,0 +1,101 @@
+const PI_RUNTIME_ENVIRONMENT_KEYS = [
+  'PI_CODING_AGENT_DIR',
+  'PI_CODING_AGENT_SESSION_DIR',
+  'PI_PACKAGE_DIR',
+  'PI_OFFLINE',
+  'PI_SKIP_VERSION_CHECK',
+  'PI_TELEMETRY',
+  'PI_CACHE_RETENTION',
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'NO_PROXY',
+  'http_proxy',
+  'https_proxy',
+  'no_proxy',
+  'NODE_EXTRA_CA_CERTS',
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
+  'ANTHROPIC_API_KEY',
+  'ANT_LING_API_KEY',
+  'AZURE_OPENAI_API_KEY',
+  'AZURE_OPENAI_BASE_URL',
+  'AZURE_OPENAI_RESOURCE_NAME',
+  'AZURE_OPENAI_API_VERSION',
+  'AZURE_OPENAI_DEPLOYMENT_NAME_MAP',
+  'OPENAI_API_KEY',
+  'DEEPSEEK_API_KEY',
+  'NVIDIA_API_KEY',
+  'GEMINI_API_KEY',
+  'MISTRAL_API_KEY',
+  'GROQ_API_KEY',
+  'CEREBRAS_API_KEY',
+  'CLOUDFLARE_API_KEY',
+  'CLOUDFLARE_ACCOUNT_ID',
+  'CLOUDFLARE_GATEWAY_ID',
+  'XAI_API_KEY',
+  'OPENROUTER_API_KEY',
+  'AI_GATEWAY_API_KEY',
+  'ZAI_API_KEY',
+  'ZAI_CODING_CN_API_KEY',
+  'OPENCODE_API_KEY',
+  'RADIUS_API_KEY',
+  'HF_TOKEN',
+  'FIREWORKS_API_KEY',
+  'TOGETHER_API_KEY',
+  'KIMI_API_KEY',
+  'MINIMAX_API_KEY',
+  'MINIMAX_CN_API_KEY',
+  'QWEN_TOKEN_PLAN_API_KEY',
+  'QWEN_TOKEN_PLAN_CN_API_KEY',
+  'XIAOMI_API_KEY',
+  'XIAOMI_TOKEN_PLAN_CN_API_KEY',
+  'XIAOMI_TOKEN_PLAN_AMS_API_KEY',
+  'XIAOMI_TOKEN_PLAN_SGP_API_KEY',
+  'AWS_PROFILE',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_SESSION_TOKEN',
+  'AWS_BEARER_TOKEN_BEDROCK',
+  'AWS_REGION',
+  'AWS_DEFAULT_REGION',
+  'AWS_WEB_IDENTITY_TOKEN_FILE',
+  'AWS_ROLE_ARN',
+  'AWS_ROLE_SESSION_NAME',
+  'AWS_CONTAINER_CREDENTIALS_FULL_URI',
+  'AWS_CONTAINER_CREDENTIALS_RELATIVE_URI',
+  'AWS_CONTAINER_AUTHORIZATION_TOKEN',
+  'AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE',
+  'AWS_ENDPOINT_URL_BEDROCK_RUNTIME',
+  'AWS_BEDROCK_FORCE_CACHE',
+  'AWS_BEDROCK_SKIP_AUTH',
+  'AWS_BEDROCK_FORCE_HTTP1',
+  'GOOGLE_CLOUD_PROJECT',
+  'GOOGLE_CLOUD_LOCATION',
+  'GOOGLE_APPLICATION_CREDENTIALS',
+] as const;
+
+const CUSTOM_ENVIRONMENT_KEY_PATTERN = /^[A-Z_][A-Z0-9_]{0,127}$/;
+
+/**
+ * Pi runtimes receive only model/provider configuration. Additional custom
+ * models.json variables must be named explicitly in EVIDENCE_PI_ENV_ALLOWLIST.
+ */
+export function piRuntimeEnvironment(
+  source: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const environment: NodeJS.ProcessEnv = {};
+  for (const key of PI_RUNTIME_ENVIRONMENT_KEYS) {
+    if (source[key] !== undefined) environment[key] = source[key];
+  }
+
+  for (const key of (source.EVIDENCE_PI_ENV_ALLOWLIST ?? '').split(',')) {
+    const normalized = key.trim();
+    if (
+      CUSTOM_ENVIRONMENT_KEY_PATTERN.test(normalized) &&
+      source[normalized] !== undefined
+    ) {
+      environment[normalized] = source[normalized];
+    }
+  }
+  return environment;
+}
