@@ -41,7 +41,10 @@ export async function runCodingAgentRequest(
   request: CodingAgentRuntimeRequest,
   emit: (event: CodingAgentEvent) => void,
 ): Promise<void> {
-  const session = await createSession(request.worktreeRoot);
+  const session = await createSession(
+    request.worktreeRoot,
+    request.qualityGateScripts,
+  );
   const state: StreamState = { completed: false };
   const unsubscribe = session.subscribe((event) => {
     for (const mapped of mapSessionEvent(request.id, event, state)) {
@@ -69,7 +72,10 @@ export async function runCodingAgentRequest(
   }
 }
 
-async function createSession(worktreeRoot: string): Promise<RuntimeSession> {
+async function createSession(
+  worktreeRoot: string,
+  qualityGateScripts: CodingAgentRuntimeRequest['qualityGateScripts'],
+): Promise<RuntimeSession> {
   const {
     createAgentSession,
     DefaultResourceLoader,
@@ -104,7 +110,7 @@ async function createSession(worktreeRoot: string): Promise<RuntimeSession> {
     settingsManager,
     sessionManager: SessionManager.inMemory(worktreeRoot),
     noTools: 'builtin',
-    customTools: await createCodingAgentTools(worktreeRoot),
+    customTools: await createCodingAgentTools(worktreeRoot, qualityGateScripts),
   });
   return session;
 }

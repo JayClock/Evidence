@@ -21,10 +21,24 @@ export interface CodingStoryRevisionSnapshot {
   scenarios: CodingScenarioSnapshot[];
 }
 
+export const CODING_QUALITY_GATE_NAMES = [
+  'lint',
+  'typecheck',
+  'test',
+  'build',
+  'api:check',
+] as const;
+
+export type CodingQualityGateName = (typeof CODING_QUALITY_GATE_NAMES)[number];
+export type LockedCodingQualityGateScripts = Partial<
+  Record<CodingQualityGateName, string>
+>;
+
 export interface CodingAgentRuntimeRequest {
   id: string;
   runId: string;
   worktreeRoot: string;
+  qualityGateScripts: LockedCodingQualityGateScripts;
   storyRevision: CodingStoryRevisionSnapshot;
 }
 
@@ -54,6 +68,7 @@ export function parseCodingAgentRuntimeRequest(
     id: safeId(input.id, 'request id'),
     runId: safeId(input.runId, 'run id'),
     worktreeRoot,
+    qualityGateScripts: parseQualityGateScripts(input.qualityGateScripts),
     storyRevision,
   };
 }
@@ -105,6 +120,24 @@ export function parseCodingAgentEvent(value: unknown): CodingAgentEvent | null {
     return null;
   }
   return { id: event.id, event: event.event, data: event.data };
+}
+
+function parseQualityGateScripts(
+  value: unknown,
+): LockedCodingQualityGateScripts {
+  const input = record(value, 'qualityGateScripts');
+  const unsupported = Object.keys(input).filter(
+    (key) => !CODING_QUALITY_GATE_NAMES.includes(key as CodingQualityGateName),
+  );
+  if (unsupported.length > 0) {
+    throw new Error('Coding Agent quality gate name is unsupported.');
+  }
+  return Object.fromEntries(
+    Object.entries(input).map(([name, script]) => [
+      name,
+      boundedText(script, `qualityGateScripts.${name}`),
+    ]),
+  );
 }
 
 function parseScenario(value: unknown, index: number): CodingScenarioSnapshot {

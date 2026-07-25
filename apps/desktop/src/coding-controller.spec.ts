@@ -252,9 +252,11 @@ function agentFixture(
 
 function qualityFixture(status: 'passed' | 'failed') {
   return {
+    lock: vi.fn(async () => ({ test: 'vitest run' })),
     run: vi.fn(
       async (
         _root: string,
+        _lockedScripts: Record<string, string>,
         _signal: AbortSignal,
         onCheck: (check: {
           name: string;

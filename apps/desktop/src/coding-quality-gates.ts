@@ -2,9 +2,15 @@ import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import {
+  CODING_QUALITY_GATE_NAMES,
+  type CodingQualityGateName,
+  type LockedCodingQualityGateScripts,
+} from './coding-agent-protocol';
+import { codingCommandEnvironment } from './coding-command-environment';
 
 const execFileAsync = promisify(execFile);
-const GATES = ['lint', 'typecheck', 'test', 'build', 'api:check'] as const;
+const GATES = CODING_QUALITY_GATE_NAMES;
 const MAX_SUMMARY = 2_000;
 const MAX_OUTPUT = 2 * 1024 * 1024;
 
@@ -24,23 +30,34 @@ export type QualityCommandRunner = (
 export class CodingQualityGateRunner {
   constructor(private readonly runCommand: QualityCommandRunner = runScript) {}
 
+  async lock(worktreeRoot: string): Promise<LockedCodingQualityGateScripts> {
+    const scripts = await packageScripts(worktreeRoot);
+    return Object.fromEntries(
+      GATES.flatMap((gate) => {
+        const script = scripts.get(gate);
+        return script === undefined ? [] : [[gate, script]];
+      }),
+    );
+  }
+
   async run(
     worktreeRoot: string,
+    lockedScripts: LockedCodingQualityGateScripts,
     signal?: AbortSignal,
     onCheck?: (check: CodingQualityCheck) => void,
   ): Promise<CodingQualityCheck[]> {
-    const scripts = await packageScripts(worktreeRoot);
     const checks: CodingQualityCheck[] = [];
     let blocked = false;
 
     for (const gate of GATES) {
       let check: CodingQualityCheck;
-      if (!scripts.has(gate)) {
+      const lockedScript = lockedScripts[gate];
+      if (lockedScript === undefined) {
         check = {
           name: `pnpm ${gate}`,
           status: 'skipped',
           durationMs: null,
-          summary: 'The repository does not define this script.',
+          summary: 'The repository did not define this script at Run start.',
         };
       } else if (blocked) {
         check = {
@@ -52,6 +69,7 @@ export class CodingQualityGateRunner {
       } else {
         const startedAt = Date.now();
         try {
+          await assertLockedScript(worktreeRoot, gate, lockedScript);
           const output = await this.runCommand(worktreeRoot, gate, signal);
           check = {
             name: `pnpm ${gate}`,
@@ -76,21 +94,39 @@ export class CodingQualityGateRunner {
   }
 }
 
-async function packageScripts(root: string): Promise<Set<string>> {
+async function assertLockedScript(
+  root: string,
+  gate: CodingQualityGateName,
+  expected: string,
+): Promise<void> {
+  if ((await packageScripts(root)).get(gate) !== expected) {
+    throw new Error(
+      `Quality gate pnpm ${gate} changed after the Coding Run started.`,
+    );
+  }
+}
+
+async function packageScripts(root: string): Promise<Map<string, string>> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   } catch {
-    return new Set();
+    return new Map();
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return new Set();
+    return new Map();
   }
   const scripts = (parsed as { scripts?: unknown }).scripts;
   if (!scripts || typeof scripts !== 'object' || Array.isArray(scripts)) {
-    return new Set();
+    return new Map();
   }
-  return new Set(Object.keys(scripts));
+  return new Map(
+    Object.entries(scripts).flatMap(([name, command]) =>
+      typeof command === 'string' && command.trim()
+        ? [[name, command] as const]
+        : [],
+    ),
+  );
 }
 
 async function runScript(
@@ -105,7 +141,7 @@ async function runScript(
       {
         cwd: root,
         encoding: 'utf8',
-        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+        env: codingCommandEnvironment(),
         maxBuffer: MAX_OUTPUT,
         signal,
         timeout: 15 * 60 * 1_000,

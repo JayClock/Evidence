@@ -127,12 +127,16 @@ export class CodingController {
         signal: active.abort.signal,
       });
       this.assertNotCancelled(active);
+      const qualityGateScripts = await this.qualityGates.lock(
+        active.worktree.worktreeRoot,
+      );
 
       await this.agent.run(
         {
           id: request.id,
           runId: active.remoteRun.id,
           worktreeRoot: active.worktree.worktreeRoot,
+          qualityGateScripts,
           storyRevision: revision,
         },
         (event) => {
@@ -159,6 +163,7 @@ export class CodingController {
 
       const checks = await this.qualityGates.run(
         active.worktree.worktreeRoot,
+        qualityGateScripts,
         active.abort.signal,
         (check) => emitEvent(active, 'quality-check', check),
       );

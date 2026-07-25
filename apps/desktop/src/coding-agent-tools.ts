@@ -20,10 +20,17 @@ import {
   type WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import type {
+  CodingQualityGateName,
+  LockedCodingQualityGateScripts,
+} from './coding-agent-protocol';
+import { codingCommandEnvironment } from './coding-command-environment';
 import { runGit } from './git-repository';
 
 const execFileAsync = promisify(execFile);
-const MAX_OUTPUT = 100_000;
+const MAX_CAPTURE = 2 * 1024 * 1024;
+const MAX_TOOL_OUTPUT = 50 * 1024;
+const MAX_TOOL_LINES = 2_000;
 const MAX_SEARCH_RESULTS = 500;
 const QUALITY_GATES = [
   'test',
@@ -37,6 +44,7 @@ type QualityGate = (typeof QUALITY_GATES)[number];
 
 export async function createCodingAgentTools(
   worktreeRoot: string,
+  lockedScripts: LockedCodingQualityGateScripts,
 ): Promise<ToolDefinition[]> {
   const boundary = await FileBoundary.create(worktreeRoot);
   const readOperations: ReadOperations = {
@@ -65,7 +73,7 @@ export async function createCodingAgentTools(
     ),
     searchTool(boundary.root),
     listFilesTool(boundary.root),
-    qualityGateTool(boundary.root),
+    qualityGateTool(boundary.root, lockedScripts),
     diffTool(boundary.root),
   ];
 }
@@ -140,8 +148,12 @@ class FileBoundary {
     const target = resolve(this.root, path);
     this.assertInside(target);
     const within = relative(this.root, target);
-    if (within === '.git' || within.startsWith(`.git${sep}`)) {
+    const segments = within.split(sep);
+    if (segments.includes('.git')) {
       throw new Error('Coding tools cannot modify Git metadata.');
+    }
+    if (segments.includes('node_modules')) {
+      throw new Error('Coding tools cannot access prepared dependencies.');
     }
     return target;
   }
@@ -174,6 +186,7 @@ function searchTool(root: string): ToolDefinition {
         '--color=never',
         '--hidden',
         '--glob=!.git/**',
+        '--glob=!**/node_modules/**',
         ...(params.glob ? [`--glob=${params.glob}`] : []),
         '--',
         params.query,
@@ -201,6 +214,7 @@ function listFilesTool(root: string): ToolDefinition {
         '--files',
         '--hidden',
         '--glob=!.git/**',
+        '--glob=!**/node_modules/**',
         ...(params.glob ? [`--glob=${params.glob}`] : []),
       ];
       return textResult(await execute('rg', args, root, signal));
@@ -208,7 +222,10 @@ function listFilesTool(root: string): ToolDefinition {
   });
 }
 
-function qualityGateTool(root: string): ToolDefinition {
+function qualityGateTool(
+  root: string,
+  lockedScripts: LockedCodingQualityGateScripts,
+): ToolDefinition {
   return defineTool({
     name: 'run_quality_gate',
     label: 'Run quality gate',
@@ -223,6 +240,7 @@ function qualityGateTool(root: string): ToolDefinition {
       ),
     }),
     async execute(_toolCallId, params, signal) {
+      await assertLockedGate(root, params.gate, lockedScripts);
       const output = params.project
         ? await execute(
             packageManager(),
@@ -264,7 +282,39 @@ function diffTool(root: string): ToolDefinition {
   });
 }
 
-function gateTarget(gate: QualityGate): string {
+async function assertLockedGate(
+  root: string,
+  gate: QualityGate,
+  lockedScripts: LockedCodingQualityGateScripts,
+): Promise<void> {
+  const name = gateTarget(gate);
+  const expected = lockedScripts[name];
+  if (expected === undefined) {
+    throw new Error(`Quality gate pnpm ${name} was not declared at Run start.`);
+  }
+
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(
+      await readFile(resolve(root, 'package.json'), 'utf8'),
+    );
+  } catch {
+    throw new Error(`Quality gate pnpm ${name} changed after Run start.`);
+  }
+  const scripts =
+    manifest && typeof manifest === 'object' && !Array.isArray(manifest)
+      ? (manifest as { scripts?: unknown }).scripts
+      : undefined;
+  const current =
+    scripts && typeof scripts === 'object' && !Array.isArray(scripts)
+      ? (scripts as Record<string, unknown>)[name]
+      : undefined;
+  if (current !== expected) {
+    throw new Error(`Quality gate pnpm ${name} changed after Run start.`);
+  }
+}
+
+function gateTarget(gate: QualityGate): CodingQualityGateName {
   return gate === 'api-check' ? 'api:check' : gate;
 }
 
@@ -283,17 +333,17 @@ async function execute(
     const result = await execFileAsync(command, args, {
       cwd,
       encoding: 'utf8',
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-      maxBuffer: MAX_OUTPUT,
+      env: codingCommandEnvironment(),
+      maxBuffer: MAX_CAPTURE,
       signal,
       timeout,
       windowsHide: true,
     });
-    return `${result.stdout}${result.stderr}`.slice(-MAX_OUTPUT);
+    return `${result.stdout}${result.stderr}`;
   } catch (error) {
     const stdout = outputField(error, 'stdout');
     const stderr = outputField(error, 'stderr');
-    const detail = `${stdout}${stderr}`.slice(-MAX_OUTPUT).trim();
+    const detail = `${stdout}${stderr}`.slice(-MAX_TOOL_OUTPUT).trim();
     throw new Error(
       `Allowed command failed${exitCode(error) === undefined ? '' : ` with exit code ${String(exitCode(error))}`}.${detail ? `\n${detail}` : ''}`,
     );
@@ -301,11 +351,25 @@ async function execute(
 }
 
 function textResult(text: string) {
-  const output = text.trim() || '(no output)';
+  const output = boundedToolOutput(text);
   return {
     content: [{ type: 'text' as const, text: output }],
     details: { output },
   };
+}
+
+function boundedToolOutput(value: string): string {
+  const normalized = value.trim() || '(no output)';
+  const lines = normalized.split('\n');
+  const lineBounded = lines.slice(0, MAX_TOOL_LINES).join('\n');
+  const bytes = Buffer.from(lineBounded);
+  const truncated =
+    lines.length > MAX_TOOL_LINES || bytes.byteLength > MAX_TOOL_OUTPUT;
+  if (!truncated) return lineBounded;
+
+  const notice = '\n...[output truncated]';
+  const maximum = MAX_TOOL_OUTPUT - Buffer.byteLength(notice);
+  return `${bytes.subarray(0, maximum).toString()}${notice}`;
 }
 
 function outputField(error: unknown, field: 'stdout' | 'stderr'): string {

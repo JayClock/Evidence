@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { realpath, stat } from 'node:fs/promises';
 import { promisify } from 'node:util';
+import { codingCommandEnvironment } from './coding-command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_GIT_OUTPUT = 10 * 1024 * 1024;
@@ -55,9 +56,8 @@ export async function runGit(cwd: string, args: string[]): Promise<string> {
     cwd,
     encoding: 'utf8',
     env: {
-      ...process.env,
+      ...codingCommandEnvironment(),
       GIT_CONFIG_NOSYSTEM: process.env.GIT_CONFIG_NOSYSTEM,
-      GIT_TERMINAL_PROMPT: '0',
     },
     maxBuffer: MAX_GIT_OUTPUT,
     windowsHide: true,

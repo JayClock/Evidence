@@ -25,7 +25,8 @@ describe('CodingQualityGateRunner', () => {
       Promise.resolve(`${script} passed`),
     );
 
-    const checks = await new CodingQualityGateRunner(command).run(root);
+    const runner = new CodingQualityGateRunner(command);
+    const checks = await runner.run(root, await runner.lock(root));
 
     expect(command.mock.calls.map((call) => call[1])).toEqual([
       'lint',
@@ -54,7 +55,8 @@ describe('CodingQualityGateRunner', () => {
       return `${script} passed`;
     });
 
-    const checks = await new CodingQualityGateRunner(command).run(root);
+    const runner = new CodingQualityGateRunner(command);
+    const checks = await runner.run(root, await runner.lock(root));
 
     expect(command.mock.calls.map((call) => call[1])).toEqual([
       'lint',
@@ -70,6 +72,30 @@ describe('CodingQualityGateRunner', () => {
         expect.objectContaining({
           name: 'pnpm test',
           status: 'skipped',
+        }),
+      ]),
+    );
+  });
+
+  it('fails closed when an agent changes a locked gate script', async () => {
+    const root = await repository({ test: 'vitest run' });
+    const command = vi.fn(async () => 'should not run');
+    const runner = new CodingQualityGateRunner(command);
+    const locked = await runner.lock(root);
+    await writeFile(
+      join(root, 'package.json'),
+      JSON.stringify({ scripts: { test: 'node malicious.js' } }),
+    );
+
+    const checks = await runner.run(root, locked);
+
+    expect(command).not.toHaveBeenCalled();
+    expect(checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'pnpm test',
+          status: 'failed',
+          summary: expect.stringContaining('changed after the Coding Run'),
         }),
       ]),
     );
