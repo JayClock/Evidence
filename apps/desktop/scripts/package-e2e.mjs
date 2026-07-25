@@ -145,21 +145,29 @@ async function main() {
     await verifyRemovedBranch(repository.root, rejected.runId);
 
     provider.setMode('error');
-    const providerFailure = await runPackagedFlow(packaged.executable, {
-      environment: commonEnvironment,
-      input: startInput(workspaceId, stories[3], 'expect-failure'),
-    });
+    const providerFailure = await refreshRunResult(
+      api,
+      workspaceId,
+      await runPackagedFlow(packaged.executable, {
+        environment: commonEnvironment,
+        input: startInput(workspaceId, stories[3], 'expect-failure'),
+      }),
+    );
     assertStatus(providerFailure, 'failed');
     await verifyRemovedBranch(repository.root, providerFailure.runId);
 
     provider.setMode('hang');
-    const timedOut = await runPackagedFlow(packaged.executable, {
-      environment: {
-        ...commonEnvironment,
-        EVIDENCE_CODING_AGENT_TIMEOUT_MS: '300',
-      },
-      input: startInput(workspaceId, stories[4], 'expect-failure'),
-    });
+    const timedOut = await refreshRunResult(
+      api,
+      workspaceId,
+      await runPackagedFlow(packaged.executable, {
+        environment: {
+          ...commonEnvironment,
+          EVIDENCE_CODING_AGENT_TIMEOUT_MS: '300',
+        },
+        input: startInput(workspaceId, stories[4], 'expect-failure'),
+      }),
+    );
     assertStatus(timedOut, 'failed');
     await verifyRemovedBranch(repository.root, timedOut.runId);
 
@@ -455,6 +463,20 @@ async function verifyRemovedBranch(repositoryPath, runId) {
     throw new Error(`Coding Run ${runId} retained a rejected branch.`);
 }
 
+async function refreshRunResult(api, targetWorkspaceId, result) {
+  const run = await api.get(
+    `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}/coding-runs/${encodeURIComponent(result.runId)}`,
+  );
+  return {
+    ...result,
+    status: requiredString(run.status, 'Coding Run status'),
+    diffSha256:
+      typeof run.diffSha256 === 'string' ? run.diffSha256 : result.diffSha256,
+    commitSha:
+      typeof run.commitSha === 'string' ? run.commitSha : result.commitSha,
+  };
+}
+
 async function verifyBoundedRun(
   api,
   targetWorkspaceId,
@@ -590,7 +612,7 @@ function rendererExpression(input) {
       try { return JSON.parse(event.data); } catch { return null; }
     };
     if (input.action === 'expect-failure') {
-      const failed = payload('run-failed')?.run;
+      const failed = payload('run-failed')?.run ?? payload('run-started')?.run;
       if (!executionFailed || !failed) throw new Error('Coding Run did not fail deterministically.');
       return summarize(failed, { executionFailed, eventNames: events.map((event) => event.event) });
     }
