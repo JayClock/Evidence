@@ -26,7 +26,7 @@
 2. Desktop 用户通过 Electron renderer 使用同一前端。
 3. Electron 连接经过健康检查的 Server API；非 loopback endpoint 使用 HTTPS 和配置的 Authorization。
 4. 两者消费一致的 REST/HAL 与权威 PostgreSQL 数据。
-5. Desktop 用户选择本地 repository 时，路径只写入以 API + Workspace 为键的 Desktop binding store。
+5. Desktop 用户选择本地 repository 时，main process 验证路径并向 renderer 只返回项目名、Git HEAD 摘要和一次性 opaque selection id；绝对路径仅写入以 API + Workspace 为键的 Desktop binding store。
 6. Desktop 特有能力通过受限 preload bridge 提供，不复制业务页面或业务 API。
 
 ## 旅程 D：整理可追溯来源

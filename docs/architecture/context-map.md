@@ -2,19 +2,19 @@
 
 ## 产品上下文
 
-| 上游                 | 下游               | 关系与集成                                       |
-| -------------------- | ------------------ | ------------------------------------------------ |
-| Identity & Workspace | Work Intake        | Workspace membership 隔离 Inbox Item 与 Revision |
-| Identity & Workspace | Model Authoring    | Workspace 提供成员和模型所有权边界               |
-| Identity & Workspace | Diagram Projection | 每个 Workspace 提供一个当前 Diagram 投影         |
-| Work Intake          | Delivery Knowledge | 人工决定引用精确不可变 Inbox Revision            |
-| Model Authoring      | Diagram Projection | DiagramNode/Edge 投影 LogicalEntity/Relationship |
-| Desktop Runtime      | Model Authoring    | 本地 Pi Agent 通过认证 REST command 更新模型     |
-| Delivery Knowledge   | Desktop Runtime    | 精确 Story Revision 驱动隔离的本地 CodingRun     |
-| Server Runtime       | Web Runtime        | REST/HAL 与 OpenAPI Published Language           |
-| Desktop Runtime      | Web Runtime        | Electron Wrapper，共享 renderer 与产品语义       |
-| Desktop Runtime      | Server Runtime     | HTTPS + Authorization；loopback HTTP 仅用于开发  |
-| Desktop Runtime      | Local Repository   | API + Workspace 私有 binding；路径不进入 Server  |
+| 上游                 | 下游               | 关系与集成                                            |
+| -------------------- | ------------------ | ----------------------------------------------------- |
+| Identity & Workspace | Work Intake        | Workspace membership 隔离 Inbox Item 与 Revision      |
+| Identity & Workspace | Model Authoring    | Workspace 提供成员和模型所有权边界                    |
+| Identity & Workspace | Diagram Projection | 每个 Workspace 提供一个当前 Diagram 投影              |
+| Work Intake          | Delivery Knowledge | 人工决定引用精确不可变 Inbox Revision                 |
+| Model Authoring      | Diagram Projection | DiagramNode/Edge 投影 LogicalEntity/Relationship      |
+| Desktop Runtime      | Model Authoring    | 本地 Pi Agent 通过认证 REST command 更新模型          |
+| Delivery Knowledge   | Desktop Runtime    | 精确 Story Revision 驱动隔离的本地 CodingRun          |
+| Server Runtime       | Web Runtime        | REST/HAL 与 OpenAPI Published Language                |
+| Desktop Runtime      | Web Runtime        | Electron Wrapper，共享 renderer 与产品语义            |
+| Desktop Runtime      | Server Runtime     | HTTPS + Authorization；loopback HTTP 仅用于开发       |
+| Desktop Runtime      | Local Repository   | API + Workspace 私有 binding；路径仅留在 main process |
 
 ## 实现映射
 
@@ -35,7 +35,7 @@
 - Web 与 Desktop renderer 都通过同一 HAL client 消费 API，不导入 Server 内部类型。
 - Web 与 Desktop 消费同一个 Nest/PostgreSQL API；Desktop 不拥有第二个 Server 或数据库。
 - `.evidence` YAML 是工作空间逻辑模型的持久化语言；Diagram 是其投影，不是第二份领域模型。
-- Electron IPC 仅用于取得 API URL、选择并绑定本地目录和控制本地 Agent；产品业务 command/query 仍走 REST。
+- Electron IPC 仅用于取得 API URL、以短期 opaque id 选择并绑定本地目录，以及控制本地 Agent；renderer 只接收项目名与 Git 摘要，不接收绝对路径；产品业务 command/query 仍走 REST。
 - Server Workspace 使用私有 `modelRoot` 访问自身 `.evidence`，HAL metadata 不发布 Server 或 Desktop 绝对路径。
 - Work Intake 与 Delivery 的 Candidate → Story Revision、Scenario 与 CodingRun 已实现；这些产品记录不能被内部 Orchestrator 工件冒充。
 
