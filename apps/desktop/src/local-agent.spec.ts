@@ -82,6 +82,31 @@ describe('LocalAgent', () => {
       agent.run(request('request-2'), () => undefined),
     ).rejects.toThrow('invalid JSON');
   });
+
+  it('drains the final runtime event before handling a non-zero exit', async () => {
+    const runtimeEntry = await fixtureRuntime(`
+      let input = '';
+      process.stdin.on('data', (chunk) => input += chunk);
+      process.stdin.on('end', () => {
+        const request = JSON.parse(input);
+        process.stdout.write(JSON.stringify({ id: request.id, event: 'error', data: 'Provider failed.' }) + '\\n');
+        process.exitCode = 1;
+      });
+    `);
+    const agent = createAgent(runtimeEntry);
+    const events: DiagramAgentEvent[] = [];
+
+    await expect(
+      agent.run(request('request-error'), (event) => events.push(event)),
+    ).rejects.toThrow('exited unexpectedly');
+    expect(events).toEqual([
+      {
+        id: 'request-error',
+        event: 'error',
+        data: 'Provider failed.',
+      },
+    ]);
+  });
 });
 
 function createAgent(

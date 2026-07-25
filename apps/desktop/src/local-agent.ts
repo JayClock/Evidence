@@ -170,7 +170,7 @@ function monitorAgent<
       stderr = `${stderr}${chunk}`.slice(-4_000);
     });
     child.once('error', (error) => finish(error));
-    child.once('exit', (code, signal) => {
+    child.once('close', (code, signal) => {
       if (stdoutBuffer.trim()) {
         consumeLine(stdoutBuffer);
       }
