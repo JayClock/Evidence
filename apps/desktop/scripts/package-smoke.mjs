@@ -38,9 +38,10 @@ try {
     throw new Error('Embedded Pi SDK did not load successfully.');
   }
 
+  const launch = electronLaunch(packaged.executable);
   const result = await run(
-    packaged.executable,
-    [],
+    launch.command,
+    launch.args,
     {
       EVIDENCE_API_BASE_URL: fakeApi.baseUrl,
       EVIDENCE_DESKTOP_SMOKE_TEST: '1',
@@ -168,6 +169,13 @@ function packagedRuntime(root) {
     executable: join(application, 'evidence'),
     resources: join(application, 'resources'),
   };
+}
+
+function electronLaunch(executable) {
+  if (process.platform === 'linux' && !process.env.DISPLAY) {
+    return { command: 'xvfb-run', args: ['-a', executable] };
+  }
+  return { command: executable, args: [] };
 }
 
 function run(command, args, environment, timeoutMs, cwd) {

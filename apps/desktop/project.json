@@ -69,7 +69,7 @@
       ],
       "outputs": ["{workspaceRoot}/apps/desktop/dist/packages"],
       "options": {
-        "command": "pnpm --dir apps/desktop exec electron-builder --config electron-builder.yml --dir"
+        "command": "pnpm --dir apps/desktop exec electron-builder --config electron-builder.yml --dir --publish never"
       }
     },
     "package-smoke": {

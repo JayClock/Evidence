@@ -63,9 +63,16 @@ jobs:
       - run: pnpm exec nx affected -t lint test build typecheck
       - run: pnpm api:contracts
       - name: Verify the packaged Desktop coding boundary
+        shell: bash
         run: |
-          pnpm nx run @evidence/desktop:package-smoke
-          pnpm nx run @evidence/desktop:package-e2e
+          set -euo pipefail
+          pnpm nx run @evidence/server:build
+          pnpm nx run @evidence/desktop:package-unpacked
+          sandbox=apps/desktop/dist/packages/linux-unpacked/chrome-sandbox
+          sudo chown root:root "$sandbox"
+          sudo chmod 4755 "$sandbox"
+          node apps/desktop/scripts/package-smoke.mjs
+          node apps/desktop/scripts/package-e2e.mjs
 
       - name: Run contracts against hosted Nest and PostgreSQL
         shell: bash
