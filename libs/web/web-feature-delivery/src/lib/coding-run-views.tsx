@@ -120,15 +120,19 @@ export function StoryCodingRunsPanel({
   const loadReview = async (runId: string) => {
     if (!bridge?.getCodingReview) return;
     setError(null);
-    const loaded = await bridge.getCodingReview(runId);
-    if (!loaded) {
-      setError(
-        'This review is not available in the current Desktop session. Start a new Coding Run if its local worktree was removed.',
-      );
-      return;
+    try {
+      const loaded = await bridge.getCodingReview(runId);
+      if (!loaded) {
+        setError(
+          'The local diff could not be recovered. Its worktree may have been removed or changed outside Evidence.',
+        );
+        return;
+      }
+      setActiveRunId(runId);
+      setReview(loaded);
+    } catch (caught) {
+      setError(errorMessage(caught, 'The local diff could not be recovered.'));
     }
-    setActiveRunId(runId);
-    setReview(loaded);
   };
 
   return (
@@ -241,12 +245,19 @@ export function CodingRunDetailView({
 
   const loadReview = async () => {
     if (!bridge?.getCodingReview) return;
-    const loaded = await bridge.getCodingReview(run.id);
-    if (!loaded) {
-      setError('The full diff is not available in this Desktop session.');
-      return;
+    setError(null);
+    try {
+      const loaded = await bridge.getCodingReview(run.id);
+      if (!loaded) {
+        setError(
+          'The local diff could not be recovered. Its worktree may have been removed or changed outside Evidence.',
+        );
+        return;
+      }
+      setReview(loaded);
+    } catch (caught) {
+      setError(errorMessage(caught, 'The local diff could not be recovered.'));
     }
-    setReview(loaded);
   };
 
   return (

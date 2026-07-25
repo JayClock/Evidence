@@ -83,6 +83,37 @@ describe('Coding Run views', () => {
     ).toBe('/api/workspaces/workspace-1/coding-runs/run-1');
   });
 
+  it('reports a local diff recovery failure', async () => {
+    window.evidenceDesktop = {
+      getApiBaseUrl: vi.fn(async () => '/api'),
+      chooseDirectory: vi.fn(async () => null),
+      bindWorkspace: vi.fn(async () => undefined),
+      runDiagramAgent: vi.fn(async () => undefined),
+      cancelDiagramAgent: vi.fn(async () => undefined),
+      runCodingAgent: vi.fn(async () => undefined),
+      cancelCodingAgent: vi.fn(async () => undefined),
+      getCodingReview: vi.fn(async () => {
+        throw new Error('The stored diff no longer matches its worktree.');
+      }),
+      acceptCodingRun: vi.fn(async () => ({ status: 'accepted' })),
+      rejectCodingRun: vi.fn(async () => ({ status: 'rejected' })),
+    };
+
+    render(
+      <MemoryRouter>
+        <CodingRunDetailView resourceState={runState()} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load local diff' }));
+
+    expect(
+      await screen.findByText(
+        'The stored diff no longer matches its worktree.',
+      ),
+    ).toBeTruthy();
+  });
+
   it('loads the full diff locally and commits only after acceptance', async () => {
     const acceptCodingRun = vi.fn(async () => ({ status: 'accepted' }));
     window.evidenceDesktop = {
