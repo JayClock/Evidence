@@ -9,6 +9,12 @@ import {
   type CodingAgentEvent,
   type CodingAgentRuntimeRequest,
 } from './coding-agent-protocol';
+import {
+  assertCodingAgentSucceeded,
+  createCodingAgentOutcome,
+  markCodingAgentTimedOut,
+  observeCodingAgentEvent,
+} from './coding-agent-outcome';
 import { createCodingAgentTools } from './coding-agent-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
@@ -33,10 +39,6 @@ type RuntimeSession = Pick<
   'abort' | 'dispose' | 'prompt' | 'subscribe'
 >;
 
-interface StreamState {
-  completed: boolean;
-}
-
 export async function runCodingAgentRequest(
   request: CodingAgentRuntimeRequest,
   emit: (event: CodingAgentEvent) => void,
@@ -45,21 +47,22 @@ export async function runCodingAgentRequest(
     request.worktreeRoot,
     request.qualityGateScripts,
   );
-  const state: StreamState = { completed: false };
+  const outcome = createCodingAgentOutcome();
   const unsubscribe = session.subscribe((event) => {
-    for (const mapped of mapSessionEvent(request.id, event, state)) {
-      emit(mapped);
-    }
+    observeCodingAgentEvent(outcome, event);
+    for (const mapped of mapSessionEvent(request.id, event)) emit(mapped);
   });
   const timeout = setTimeout(() => {
-    void session.abort();
+    markCodingAgentTimedOut(outcome);
+    void session.abort().catch(() => undefined);
   }, DEFAULT_TIMEOUT_MS);
 
   try {
     await session.prompt(storyPrompt(request), {
       expandPromptTemplates: false,
     });
-    complete(request.id, state, emit);
+    assertCodingAgentSucceeded(outcome);
+    emit(codingEvent(request.id, 'complete', ''));
   } finally {
     clearTimeout(timeout);
     unsubscribe();
@@ -145,7 +148,6 @@ ${scenarios}`;
 function mapSessionEvent(
   id: string,
   event: AgentSessionEvent,
-  state: StreamState,
 ): CodingAgentEvent[] {
   switch (event.type) {
     case 'message_update':
@@ -169,23 +171,9 @@ function mapSessionEvent(
       ];
     case 'auto_retry_start':
       return [codingEvent(id, 'retry', { attempt: event.attempt })];
-    case 'agent_settled':
-      if (state.completed) return [];
-      state.completed = true;
-      return [codingEvent(id, 'complete', '')];
     default:
       return [];
   }
-}
-
-function complete(
-  id: string,
-  state: StreamState,
-  emit: (event: CodingAgentEvent) => void,
-): void {
-  if (state.completed) return;
-  state.completed = true;
-  emit(codingEvent(id, 'complete', ''));
 }
 
 function codingEvent(
