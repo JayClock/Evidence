@@ -64,4 +64,3 @@ graph TD
 - 场景若符合现有架构，iteration 的 `architecture-decisions.md` 明确记录“无新架构决策”。
 - 新决策先以 iteration ADR 评审；只有跨 Feature 稳定适用时才提升到本目录。
 - 运行时事实优先由源码、OpenAPI、Prisma migration、electron-builder 配置和测试表达；Markdown 不得成为冲突的重复真相源。
-- 迁移兼容代码可以读取已退役格式，但不得恢复第二条 Server/Desktop 实现轨道。

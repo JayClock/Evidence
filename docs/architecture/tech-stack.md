@@ -22,7 +22,6 @@
 - Server 只使用 PostgreSQL；Desktop 不包含 Server 或数据库。
 - Electron package 必须包含 Web、运行依赖和 Pi SDK，并通过 `EVIDENCE_API_BASE_URL` 连接 Server；Server package 不包含 Pi SDK。
 - Browser 与 Electron renderer 共享 REST/HAL；IPC 不复制 domain API。
-- 旧格式读取仅存在于一次性迁移边界，不构成仍受支持的第二 runtime。
 
 ## 技术选择变更
 

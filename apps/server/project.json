@@ -23,21 +23,6 @@
         }
       }
     },
-    "build-migration": {
-      "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/apps/server/dist-migration"],
-      "options": {
-        "command": "pnpm exec esbuild apps/server/src/migration-main.ts --bundle --platform=node --target=node20 --format=cjs --outfile=apps/server/dist-migration/main.cjs --external:pg --external:yaml --sourcemap"
-      }
-    },
-    "migrate-postgres": {
-      "executor": "nx:run-commands",
-      "dependsOn": ["build-migration"],
-      "cache": false,
-      "options": {
-        "command": "node apps/server/dist-migration/main.cjs"
-      }
-    },
     "prune-lockfile": {
       "dependsOn": ["build"],
       "cache": true,

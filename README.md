@@ -10,7 +10,7 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 
 仓库还包含项目本地的 **Evidence Orchestrator**，仅用于辅助当前仓库开发 Evidence。它不是面向用户的产品能力；边界决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
 
-[产品能力](#产品能力) · [产品架构](#产品架构) · [数据迁移](#数据迁移) · [Evidence Orchestrator](#evidence-orchestrator) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
+[产品能力](#产品能力) · [产品架构](#产品架构) · [数据库-schema](#数据库-schema) · [Evidence Orchestrator](#evidence-orchestrator) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
 
 ## 产品能力
 
@@ -57,7 +57,7 @@ libs/server/api/                     controllers, HAL, OpenAPI
        ↓
 libs/server/domain/                  framework-free entities and ports
        ↑
-libs/server/persistent/              Prisma and filesystem adapters
+libs/server/persistent/              Prisma schema/migrations and persistence adapters
 ```
 
 Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协议转换和委托；runtime adapter wiring 只存在于 `apps/server`。
@@ -127,27 +127,19 @@ Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api
 - Web renderer、运行依赖和 Pi SDK 进入 electron-builder 包；Server 与数据库不会进入 Desktop 包，Server 也不加载 Pi SDK。
 - package smoke 使用受控 fake API 验证 renderer、远程 API readiness 和内嵌 Pi SDK。
 
-## 数据迁移
+## 数据库 Schema
 
-### 旧 PostgreSQL → Prisma/YAML
-
-迁移器只读取旧数据库，并要求使用不同的目标数据库。先创建并记录源备份，再对目标执行 Prisma baseline migration：
+Prisma PostgreSQL contract 由 persistence adapter 拥有：schema 位于
+[`libs/server/persistent/prisma/schema.prisma`](./libs/server/persistent/prisma/schema.prisma)，版本化 migration
+位于同目录的 `migrations/`。`apps/server/prisma.config.ts` 只负责把 Server 的部署环境和 Prisma CLI
+连接到该 contract。
 
 ```sh
 pnpm prisma:generate
-EVIDENCE_MIGRATION_DATABASE_URL="$TARGET_DATABASE_URL" \
-  pnpm prisma:migrate:deploy
-
-SOURCE_DATABASE_URL="$SOURCE_DATABASE_URL" \
-TARGET_DATABASE_URL="$TARGET_DATABASE_URL" \
-SOURCE_BACKUP_ID="backup-2026-07-20" \
-EVIDENCE_MIGRATION_MODEL_ROOT="$PWD/migrated-workspaces" \
-EVIDENCE_MIGRATION_MANIFEST="$PWD/migration-manifest.json" \
-EVIDENCE_MIGRATION_DRY_RUN=1 \
-  pnpm nx run @evidence/server:migrate-postgres
+pnpm prisma:migrate:deploy
 ```
 
-移除 `EVIDENCE_MIGRATION_DRY_RUN=1` 才写入目标 registry 和 YAML。迁移会校验引用、owner、重复成员和关系端点，记录 counts、源数据 hash、模型 hash、跳过项与工具版本。回滚方式是停止切换并丢弃独立目标数据库/模型目录，再从源备份重建；不要原地覆盖旧数据库。
+生产部署只使用受版本控制的 `prisma migrate deploy`，不提供旧数据库格式的数据导入路径。
 
 ## Evidence Orchestrator
 
@@ -332,23 +324,23 @@ pnpm orchestrator:validate
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                |
-| :------------------------------------------ | :-------------------------------------------------- |
-| `apps/web/`                                 | React + Vite 前端组合根                             |
-| `libs/web/*`                                | Web shell、features、UI 与 HAL API client           |
-| `apps/server/`                              | Nest/PostgreSQL 组合根、Prisma 与迁移入口           |
-| `libs/server/api/`                          | Nest controllers、HAL 与 OpenAPI source             |
-| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                       |
-| `libs/server/persistent/`                   | PostgreSQL 与 filesystem adapters                   |
-| `apps/desktop/`                             | Electron、local agents、CodingRun controller 与打包 |
-| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                      |
-| `docs/product/`                             | 跨迭代统一产品知识                                  |
-| `.evidence/`                                | Evidence 平台权威领域模型                           |
-| `docs/architecture/`                        | 跨迭代统一架构与测试策略                            |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD               |
-| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                    |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                |
-| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                 |
+| 路径                                        | 用途                                                        |
+| :------------------------------------------ | :---------------------------------------------------------- |
+| `apps/web/`                                 | React + Vite 前端组合根                                     |
+| `libs/web/*`                                | Web shell、features、UI 与 HAL API client                   |
+| `apps/server/`                              | Nest/PostgreSQL 组合根与 Prisma 部署入口                    |
+| `libs/server/api/`                          | Nest controllers、HAL 与 OpenAPI source                     |
+| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                               |
+| `libs/server/persistent/`                   | Prisma schema/migrations、PostgreSQL 与 filesystem adapters |
+| `apps/desktop/`                             | Electron、local agents、CodingRun controller 与打包         |
+| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                              |
+| `docs/product/`                             | 跨迭代统一产品知识                                          |
+| `.evidence/`                                | Evidence 平台权威领域模型                                   |
+| `docs/architecture/`                        | 跨迭代统一架构与测试策略                                    |
+| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD                       |
+| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                            |
+| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                        |
+| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                         |
 
 ## 开发约定
 

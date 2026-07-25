@@ -11,9 +11,9 @@ const databaseUrl =
   'postgresql://postgres:postgres@localhost:5432/evidence';
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  schema: '../../libs/server/persistent/prisma/schema.prisma',
   migrations: {
-    path: 'prisma/migrations',
+    path: '../../libs/server/persistent/prisma/migrations',
   },
   datasource: {
     url: databaseUrl,

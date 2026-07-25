@@ -34,7 +34,7 @@ function processDefinition(id = 'rust-workspace') {
     runtime: 'rust',
     applies_to: {
       capabilities: ['workspace'],
-      technical_boundaries: ['rust-domain', 'seaorm-store', 'axum-api'],
+      technical_boundaries: ['rust-domain', 'database-store', 'axum-api'],
       when: 'A workspace Scenario belongs to Rust.',
     },
     steps: [
@@ -64,7 +64,7 @@ function processDefinition(id = 'rust-workspace') {
         functional_contexts: ['workspace'],
         real_boundaries: ['axum-api', 'rust-domain'],
         replaced_boundaries: [
-          { boundary: 'seaorm-store', test_double: 'fake' },
+          { boundary: 'database-store', test_double: 'fake' },
         ],
         nearest_test: { rule: 'Nearest API test.', roots: ['api'] },
         focused_command: {

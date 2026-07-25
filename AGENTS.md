@@ -119,10 +119,8 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 1. 先在 `libs/server/domain` 定义或收窄 port/领域行为。
 2. 在 `libs/server/persistent` 实现 PostgreSQL 或 filesystem adapter；不要把 storage 分支放进 controller。
 3. 为 memory/fake 与生产 adapter 维护等价行为测试；数据库差异必须有专门测试。
-4. PostgreSQL schema 通过 `apps/server/prisma/schema.prisma` 和受版本控制的 Prisma migration 演进，生产使用 `prisma migrate deploy`。
+4. PostgreSQL schema 通过 `libs/server/persistent/prisma/schema.prisma` 和同目录下受版本控制的 Prisma migration 演进，生产使用 `prisma migrate deploy`。
 5. `.evidence` YAML 写入应保持路径安全、原子替换和已有文件保护。
-
-旧版 PostgreSQL 数据只能通过 `apps/server/src/migration/` 中的受控迁移器导入：从已备份的源数据库 ETL 到独立目标数据库和模型目录，支持 dry run 与 manifest。
 
 ## Electron 规范
 
@@ -165,22 +163,22 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                  |
-| ------------------------------------------- | ----------------------------------------------------- |
-| `apps/web/`                                 | React + Vite 前端组合根                               |
-| `libs/web/*`                                | Web shell、features、UI、HAL API client               |
-| `apps/server/`                              | NestJS/PostgreSQL 组合根、Prisma 与迁移入口           |
-| `libs/server/api/`                          | Nest controllers、HAL 和 OpenAPI source               |
-| `libs/server/domain/`                       | 纯领域模型与 ports                                    |
-| `libs/server/persistent/`                   | PostgreSQL 和 filesystem adapters                     |
-| `apps/desktop/`                             | Electron main/preload、remote API bridge 和 packaging |
-| `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                     |
-| `docs/product/`                             | 统一产品上下文、画像和旅程                            |
-| `.evidence/`                                | Evidence 产品权威领域模型                             |
-| `docs/architecture/`                        | 统一架构和测试策略                                    |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、工序与 DoD                     |
-| `.pi/extensions/evidence-orchestrator/`     | 内部六循环编排器                                      |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源和迭代证据；历史内容不得改写                |
+| 路径                                        | 用途                                                        |
+| ------------------------------------------- | ----------------------------------------------------------- |
+| `apps/web/`                                 | React + Vite 前端组合根                                     |
+| `libs/web/*`                                | Web shell、features、UI、HAL API client                     |
+| `apps/server/`                              | NestJS/PostgreSQL 组合根与 Prisma 部署入口                  |
+| `libs/server/api/`                          | Nest controllers、HAL 和 OpenAPI source                     |
+| `libs/server/domain/`                       | 纯领域模型与 ports                                          |
+| `libs/server/persistent/`                   | Prisma schema/migrations、PostgreSQL 和 filesystem adapters |
+| `apps/desktop/`                             | Electron main/preload、remote API bridge 和 packaging       |
+| `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                           |
+| `docs/product/`                             | 统一产品上下文、画像和旅程                                  |
+| `.evidence/`                                | Evidence 产品权威领域模型                                   |
+| `docs/architecture/`                        | 统一架构和测试策略                                          |
+| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、工序与 DoD                           |
+| `.pi/extensions/evidence-orchestrator/`     | 内部六循环编排器                                            |
+| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源和迭代证据；历史内容不得改写                      |
 
 ## Git 纪律
 

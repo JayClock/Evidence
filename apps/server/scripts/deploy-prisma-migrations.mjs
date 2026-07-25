@@ -19,16 +19,7 @@ process.stdout.write(
 const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const child = spawn(
   packageManager,
-  [
-    '--filter',
-    '@evidence/server',
-    'exec',
-    'prisma',
-    'migrate',
-    'deploy',
-    '--schema',
-    'prisma/schema.prisma',
-  ],
+  ['--filter', '@evidence/server', 'exec', 'prisma', 'migrate', 'deploy'],
   {
     cwd: repositoryRoot,
     env: {

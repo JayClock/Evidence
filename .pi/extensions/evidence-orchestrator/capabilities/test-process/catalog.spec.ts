@@ -23,7 +23,7 @@ const validProcessV3 = {
   runtime: 'rust',
   applies_to: {
     capabilities: ['workspace'],
-    technical_boundaries: ['rust-domain', 'seaorm-store', 'axum-api'],
+    technical_boundaries: ['rust-domain', 'database-store', 'axum-api'],
     when: 'A workspace Scenario belongs to the Rust route.',
   },
   steps: [
@@ -55,7 +55,9 @@ const validProcessV3 = {
       quadrant: 'Q2',
       functional_contexts: ['workspace'],
       real_boundaries: ['axum-api', 'rust-domain'],
-      replaced_boundaries: [{ boundary: 'seaorm-store', test_double: 'fake' }],
+      replaced_boundaries: [
+        { boundary: 'database-store', test_double: 'fake' },
+      ],
       nearest_test: {
         rule: 'Use the owning API test.',
         roots: ['libs/server/api/src'],
@@ -418,7 +420,7 @@ describe('test-processes', () => {
         version: 2,
         functional_contexts: [{ id: 'workspace' }],
         technical_boundaries: {
-          rust: ['rust-domain', 'seaorm-store', 'axum-api'],
+          rust: ['rust-domain', 'database-store', 'axum-api'],
         },
         legacy_v1_runtime_contexts: { rust: ['rust-api'] },
       }),

@@ -1,6 +1,6 @@
 # @evidence/server-persistent
 
-Evidence persistence adapters for Prisma/PostgreSQL and workspace `.evidence` YAML files.
+Evidence persistence adapters for Prisma/PostgreSQL and workspace `.evidence` YAML files. The adapter owns its database contract in `prisma/schema.prisma` and versioned `prisma/migrations/`.
 
 ## Running unit tests
 
