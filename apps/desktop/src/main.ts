@@ -235,9 +235,9 @@ function createLocalAgent(authorization: string | undefined): LocalAgent {
           process.resourcesPath,
           'app.asar.unpacked',
           'dist',
-          'agent-runtime.js',
+          'agent-runtime.mjs',
         )
-      : join(__dirname, 'agent-runtime.js'),
+      : join(__dirname, 'agent-runtime.mjs'),
     packaged: app.isPackaged,
     environment: {
       ...piRuntimeEnvironment(),
@@ -259,9 +259,9 @@ function createLocalCodingAgent(): LocalAgent<
           process.resourcesPath,
           'app.asar.unpacked',
           'dist',
-          'coding-agent-runtime.js',
+          'coding-agent-runtime.mjs',
         )
-      : join(__dirname, 'coding-agent-runtime.js'),
+      : join(__dirname, 'coding-agent-runtime.mjs'),
     packaged: app.isPackaged,
     environment: piRuntimeEnvironment(),
     parseEvent: parseCodingAgentEvent,
