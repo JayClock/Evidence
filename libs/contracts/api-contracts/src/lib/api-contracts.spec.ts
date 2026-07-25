@@ -675,6 +675,41 @@ describeContracts('Evidence API contract vertical slice', () => {
     );
 
     const diffSha256 = `sha256:${'b'.repeat(64)}`;
+    for (const invalidReviewInput of [
+      {
+        expectedVersion: 1,
+        diffSha256,
+        changedFileCount: 0,
+        qualityChecks: [
+          {
+            name: 'pnpm test',
+            status: 'passed',
+            durationMs: 1200,
+            summary: 'All focused tests passed.',
+          },
+        ],
+      },
+      {
+        expectedVersion: 1,
+        diffSha256,
+        changedFileCount: 2,
+        qualityChecks: [
+          {
+            name: 'pnpm test',
+            status: 'failed',
+            durationMs: 1200,
+            summary: 'A focused test failed.',
+          },
+        ],
+      },
+    ]) {
+      const invalidReview = await apiRequest(
+        `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
+        { method: 'POST', body: JSON.stringify(invalidReviewInput) },
+      );
+      expect(invalidReview.status).toBe(400);
+    }
+
     const reviewInput = {
       expectedVersion: 1,
       diffSha256,

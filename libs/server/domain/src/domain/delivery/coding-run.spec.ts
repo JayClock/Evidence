@@ -105,8 +105,15 @@ describe('Coding Run validation', () => {
     expect(() =>
       normalizeCodingRunReviewInput({
         diffSha256: 'sha256:bad',
-        changedFileCount: 0,
-        qualityChecks: [],
+        changedFileCount: 1,
+        qualityChecks: [
+          {
+            name: 'pnpm test',
+            status: 'passed',
+            durationMs: 1,
+            summary: null,
+          },
+        ],
       }),
     ).toThrow('diff SHA-256 is invalid');
     expect(() =>
@@ -120,6 +127,49 @@ describe('Coding Run validation', () => {
       normalizeCodingRunFailureInput({ code: '../secret', summary: 'failed' }),
     ).toThrow('failure code is invalid');
   });
+
+  it.each([
+    {
+      changedFileCount: 0,
+      qualityChecks: [
+        {
+          name: 'pnpm test',
+          status: 'passed' as const,
+          durationMs: 1,
+          summary: null,
+        },
+      ],
+      expected: 'changed file count',
+    },
+    {
+      changedFileCount: 1,
+      qualityChecks: [],
+      expected: 'at least one passed quality check',
+    },
+    {
+      changedFileCount: 1,
+      qualityChecks: [
+        {
+          name: 'pnpm test',
+          status: 'failed' as const,
+          durationMs: 1,
+          summary: 'failed',
+        },
+      ],
+      expected: 'failed quality check',
+    },
+  ])(
+    'rejects review evidence without successful changes: $expected',
+    ({ changedFileCount, qualityChecks, expected }) => {
+      expect(() =>
+        normalizeCodingRunReviewInput({
+          diffSha256: diffHash,
+          changedFileCount,
+          qualityChecks,
+        }),
+      ).toThrow(expected);
+    },
+  );
 
   it('parses statuses and positive versions', () => {
     expect(parseCodingRunStatus('review_required')).toBe('review_required');

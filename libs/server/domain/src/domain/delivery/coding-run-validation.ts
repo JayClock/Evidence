@@ -37,17 +37,28 @@ export function normalizeCodingRunReviewInput(
 ): CodingRunReviewInput {
   if (
     !Number.isSafeInteger(input.changedFileCount) ||
-    input.changedFileCount < 0 ||
+    input.changedFileCount < 1 ||
     input.changedFileCount > MAX_CHANGED_FILES
   ) {
     throw DomainError.validation(
-      `Coding Run changed file count must be between 0 and ${String(MAX_CHANGED_FILES)}`,
+      `Coding Run changed file count must be between 1 and ${String(MAX_CHANGED_FILES)}`,
+    );
+  }
+  const qualityChecks = normalizeCodingRunQualityChecks(input.qualityChecks);
+  if (qualityChecks.some((check) => check.status === 'failed')) {
+    throw DomainError.validation(
+      'Coding Run cannot enter review with a failed quality check',
+    );
+  }
+  if (!qualityChecks.some((check) => check.status === 'passed')) {
+    throw DomainError.validation(
+      'Coding Run must contain at least one passed quality check',
     );
   }
   return {
     diffSha256: sha256(input.diffSha256, 'diff SHA-256'),
     changedFileCount: input.changedFileCount,
-    qualityChecks: normalizeCodingRunQualityChecks(input.qualityChecks),
+    qualityChecks,
   };
 }
 
