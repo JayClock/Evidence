@@ -42,6 +42,60 @@ describe('WorkspaceBindingStore', () => {
     ).resolves.toEqual(binding);
   });
 
+  it('binds an opaque repository selection without returning its path', async () => {
+    const root = await temporaryDirectory();
+    const repository = join(root, 'private-repository');
+    await createRepository(repository);
+    await writeFile(join(repository, 'README.md'), '# Private\n');
+    await runGit(repository, ['add', 'README.md']);
+    await runGit(repository, [
+      '-c',
+      'user.name=Evidence Test',
+      '-c',
+      'user.email=evidence@example.test',
+      'commit',
+      '-m',
+      'test: initialize repository',
+    ]);
+    const store = new WorkspaceBindingStore(join(root, 'bindings.json'));
+
+    const selection = await store.selectRepository(repository, 17);
+
+    expect(selection).toMatchObject({
+      id: expect.any(String),
+      name: 'private-repository',
+      headCommitSha: expect.stringMatching(/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/),
+    });
+    expect(JSON.stringify(selection)).not.toContain(await realpath(repository));
+    await expect(
+      store.bindSelection({
+        apiBaseUrl: 'https://api.example.com/api',
+        workspaceId: 'workspace-1',
+        selectionId: selection.id,
+        ownerId: 18,
+      }),
+    ).rejects.toThrow('unavailable or expired');
+
+    await expect(
+      store.bindSelection({
+        apiBaseUrl: 'https://api.example.com/api',
+        workspaceId: 'workspace-1',
+        selectionId: selection.id,
+        ownerId: 17,
+      }),
+    ).resolves.toMatchObject({
+      repositoryRoot: await realpath(repository),
+    });
+    await expect(
+      store.bindSelection({
+        apiBaseUrl: 'https://api.example.com/api',
+        workspaceId: 'workspace-2',
+        selectionId: selection.id,
+        ownerId: 17,
+      }),
+    ).rejects.toThrow('unavailable or expired');
+  });
+
   it('serializes concurrent bindings without dropping either Workspace', async () => {
     const root = await temporaryDirectory();
     const first = join(root, 'first');
@@ -92,6 +146,12 @@ describe('WorkspaceBindingStore', () => {
         repositoryRoot: plainDirectory,
       }),
     ).rejects.toThrow('Git worktree');
+
+    const repositoryWithoutCommit = join(root, 'repository-without-commit');
+    await createRepository(repositoryWithoutCommit);
+    await expect(
+      store.selectRepository(repositoryWithoutCommit, 17),
+    ).rejects.toThrow('must contain at least one commit');
 
     await writeFile(storePath, '{not-json}\n');
     await expect(

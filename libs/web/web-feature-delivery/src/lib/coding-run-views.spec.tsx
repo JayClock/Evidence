@@ -86,7 +86,7 @@ describe('Coding Run views', () => {
   it('reports a local diff recovery failure', async () => {
     window.evidenceDesktop = {
       getApiBaseUrl: vi.fn(async () => '/api'),
-      chooseDirectory: vi.fn(async () => null),
+      chooseRepository: vi.fn(async () => null),
       bindWorkspace: vi.fn(async () => undefined),
       runDiagramAgent: vi.fn(async () => undefined),
       cancelDiagramAgent: vi.fn(async () => undefined),
@@ -118,7 +118,7 @@ describe('Coding Run views', () => {
     const acceptCodingRun = vi.fn(async () => ({ status: 'accepted' }));
     window.evidenceDesktop = {
       getApiBaseUrl: vi.fn(async () => '/api'),
-      chooseDirectory: vi.fn(async () => null),
+      chooseRepository: vi.fn(async () => null),
       bindWorkspace: vi.fn(async () => undefined),
       runDiagramAgent: vi.fn(async () => undefined),
       cancelDiagramAgent: vi.fn(async () => undefined),

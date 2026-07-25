@@ -19,16 +19,17 @@ import {
   parseDiagramAgentEvent,
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
+import type { RepositorySelectionSummary } from './workspace-binding-store';
 
 const bridge = {
   getApiBaseUrl: (): Promise<string> =>
     ipcRenderer.invoke('evidence:get-api-base-url'),
-  chooseDirectory: (): Promise<string | null> =>
-    ipcRenderer.invoke('evidence:choose-directory'),
-  bindWorkspace: (workspaceId: string, repositoryRoot: string): Promise<void> =>
+  chooseRepository: (): Promise<RepositorySelectionSummary | null> =>
+    ipcRenderer.invoke('evidence:choose-repository'),
+  bindWorkspace: (workspaceId: string, selectionId: string): Promise<void> =>
     ipcRenderer.invoke('evidence:bind-workspace', {
       workspaceId,
-      repositoryRoot,
+      selectionId,
     }),
   runDiagramAgent: async (
     request: DiagramAgentRequest,

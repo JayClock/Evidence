@@ -180,7 +180,7 @@ describe('createDiagramProposalTransport', () => {
     );
     (globalThis as { evidenceDesktop?: unknown }).evidenceDesktop = {
       getApiBaseUrl: vi.fn(async () => 'https://api.example.test/api'),
-      chooseDirectory: vi.fn(async () => null),
+      chooseRepository: vi.fn(async () => null),
       runDiagramAgent,
       cancelDiagramAgent: vi.fn(async () => undefined),
     };

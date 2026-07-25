@@ -93,20 +93,23 @@ export function WebShell({
 
   const createWorkspace = useCallback(
     async (input: WorkspaceInput) => {
-      const { localRepositoryRoot, ...serverInput } = input;
+      const { localRepositorySelectionId, ...serverInput } = input;
       const createdWorkspace = (await createWorkspaceResource.post({
         data: serverInput,
       })) as State<WorkspaceResource>;
 
       try {
-        if (localRepositoryRoot) {
+        if (localRepositorySelectionId) {
           const bindWorkspace = window.evidenceDesktop?.bindWorkspace;
           if (!bindWorkspace) {
             throw new Error(
               'Local repositories can only be bound by the Desktop app.',
             );
           }
-          await bindWorkspace(createdWorkspace.data.id, localRepositoryRoot);
+          await bindWorkspace(
+            createdWorkspace.data.id,
+            localRepositorySelectionId,
+          );
         }
       } catch (error) {
         await createdWorkspace

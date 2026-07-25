@@ -122,13 +122,16 @@ function registerDesktopBridge(
     assertTrustedIpcSender(event);
     return apiBaseUrl;
   });
-  ipcMain.handle('evidence:choose-directory', async (event) => {
+  ipcMain.handle('evidence:choose-repository', async (event) => {
     assertTrustedIpcSender(event);
     const selection = await dialog.showOpenDialog({
-      title: 'Choose local project',
-      properties: ['openDirectory', 'createDirectory'],
+      title: 'Choose local Git repository',
+      properties: ['openDirectory'],
     });
-    return selection.canceled ? null : (selection.filePaths[0] ?? null);
+    const repositoryRoot = selection.filePaths[0];
+    return selection.canceled || !repositoryRoot
+      ? null
+      : bindings.selectRepository(repositoryRoot, event.sender.id);
   });
   ipcMain.handle(
     'evidence:bind-workspace',
@@ -140,14 +143,15 @@ function registerDesktopBridge(
       const candidate = input as Record<string, unknown>;
       if (
         typeof candidate.workspaceId !== 'string' ||
-        typeof candidate.repositoryRoot !== 'string'
+        typeof candidate.selectionId !== 'string'
       ) {
         throw new Error('Workspace binding input is invalid.');
       }
-      await bindings.bind({
+      await bindings.bindSelection({
         apiBaseUrl,
         workspaceId: candidate.workspaceId,
-        repositoryRoot: candidate.repositoryRoot,
+        selectionId: candidate.selectionId,
+        ownerId: event.sender.id,
       });
     },
   );

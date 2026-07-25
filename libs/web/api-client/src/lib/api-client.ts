@@ -29,6 +29,12 @@ export type StartCodingRequest = {
   storyRevisionId: string;
 };
 
+export type RepositorySelectionSummary = {
+  id: string;
+  name: string;
+  headCommitSha: string;
+};
+
 export type LocalCodingReview = {
   run: Record<string, unknown>;
   diff: string;
@@ -44,8 +50,8 @@ type CodingRunDecisionRequest = {
 
 type EvidenceDesktopBridge = {
   getApiBaseUrl(): Promise<string>;
-  chooseDirectory(): Promise<string | null>;
-  bindWorkspace(workspaceId: string, repositoryRoot: string): Promise<void>;
+  chooseRepository(): Promise<RepositorySelectionSummary | null>;
+  bindWorkspace(workspaceId: string, selectionId: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

@@ -1,16 +1,31 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute } from 'node:path';
-import { canonicalGitRepository } from './git-repository';
+import { basename, dirname, isAbsolute } from 'node:path';
+import { canonicalGitRepository, gitHead } from './git-repository';
 
 const STORE_VERSION = 1;
 const WORKSPACE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+const SELECTION_ID_PATTERN =
+  /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const SELECTION_TTL_MS = 15 * 60 * 1_000;
 
 export interface WorkspaceBinding {
   apiBaseUrl: string;
   workspaceId: string;
   repositoryRoot: string;
   boundAt: string;
+}
+
+export interface RepositorySelectionSummary {
+  id: string;
+  name: string;
+  headCommitSha: string;
+}
+
+interface PendingRepositorySelection {
+  ownerId: number;
+  repositoryRoot: string;
+  expiresAt: number;
 }
 
 interface BindingDocument {
@@ -20,8 +35,66 @@ interface BindingDocument {
 
 export class WorkspaceBindingStore {
   private writeQueue: Promise<unknown> = Promise.resolve();
+  private readonly pendingSelections = new Map<
+    string,
+    PendingRepositorySelection
+  >();
 
   constructor(private readonly storePath: string) {}
+
+  async selectRepository(
+    repositoryRootInput: string,
+    ownerId: number,
+  ): Promise<RepositorySelectionSummary> {
+    const repositoryRoot = await canonicalGitRepository(repositoryRootInput);
+    const headCommitSha = await gitHead(repositoryRoot).catch(() => {
+      throw new Error(
+        'Selected Git repository must contain at least one commit.',
+      );
+    });
+    const id = randomUUID();
+    const now = Date.now();
+    this.pruneSelections(now);
+    this.pendingSelections.set(id, {
+      ownerId: normalizeOwnerId(ownerId),
+      repositoryRoot,
+      expiresAt: now + SELECTION_TTL_MS,
+    });
+    return {
+      id,
+      name: basename(repositoryRoot) || 'Git repository',
+      headCommitSha,
+    };
+  }
+
+  async bindSelection(input: {
+    apiBaseUrl: string;
+    workspaceId: string;
+    selectionId: string;
+    ownerId: number;
+  }): Promise<WorkspaceBinding> {
+    const selectionId = normalizeSelectionId(input.selectionId);
+    const ownerId = normalizeOwnerId(input.ownerId);
+    const now = Date.now();
+    this.pruneSelections(now);
+    const selection = this.pendingSelections.get(selectionId);
+    if (!selection || selection.ownerId !== ownerId) {
+      throw new Error('Local repository selection is unavailable or expired.');
+    }
+    this.pendingSelections.delete(selectionId);
+    try {
+      return await this.bind({
+        apiBaseUrl: input.apiBaseUrl,
+        workspaceId: input.workspaceId,
+        repositoryRoot: selection.repositoryRoot,
+      });
+    } catch (error) {
+      if (selection.expiresAt > Date.now()) {
+        this.pendingSelections.set(selectionId, selection);
+      }
+      throw error;
+    }
+  }
 
   bind(input: {
     apiBaseUrl: string;
@@ -40,6 +113,12 @@ export class WorkspaceBindingStore {
     await this.writeQueue;
     const document = await this.readDocument();
     return document.bindings[bindingKey(apiBaseUrl, workspaceId)] ?? null;
+  }
+
+  private pruneSelections(now: number): void {
+    for (const [id, selection] of this.pendingSelections) {
+      if (selection.expiresAt <= now) this.pendingSelections.delete(id);
+    }
   }
 
   private async persistBinding(input: {
@@ -109,6 +188,21 @@ function normalizeApiBaseUrl(value: string): string {
   url.hash = '';
   url.search = '';
   return url.toString().replace(/\/$/, '');
+}
+
+function normalizeOwnerId(value: number): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error('Local repository selection owner is invalid.');
+  }
+  return value;
+}
+
+function normalizeSelectionId(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (!SELECTION_ID_PATTERN.test(normalized)) {
+    throw new Error('Local repository selection identity is invalid.');
+  }
+  return normalized;
 }
 
 function normalizeWorkspaceId(value: string): string {

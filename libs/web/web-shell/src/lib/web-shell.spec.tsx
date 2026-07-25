@@ -259,11 +259,15 @@ describe('WebShell', () => {
   });
 
   it('binds a Desktop repository without sending its path to the Server', async () => {
-    const chooseDirectory = vi.fn().mockResolvedValue('/local/repository');
+    const chooseRepository = vi.fn().mockResolvedValue({
+      id: 'selection-1',
+      name: 'repository',
+      headCommitSha: 'a'.repeat(40),
+    });
     const bindWorkspace = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(globalThis, 'evidenceDesktop', {
       configurable: true,
-      value: { chooseDirectory, bindWorkspace },
+      value: { chooseRepository, bindWorkspace },
     });
 
     render(
@@ -275,7 +279,7 @@ describe('WebShell', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Choose folder' }));
-    await waitFor(() => expect(chooseDirectory).toHaveBeenCalledOnce());
+    await waitFor(() => expect(chooseRepository).toHaveBeenCalledOnce());
     fireEvent.change(screen.getByLabelText('Workspace name'), {
       target: { value: 'Local Model' },
     });
@@ -292,7 +296,7 @@ describe('WebShell', () => {
     await waitFor(() =>
       expect(bindWorkspace).toHaveBeenCalledWith(
         'created-workspace',
-        '/local/repository',
+        'selection-1',
       ),
     );
   });

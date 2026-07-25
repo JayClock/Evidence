@@ -9,7 +9,7 @@ import {
 type TestRuntimeWindow = typeof globalThis & {
   evidenceDesktop?: {
     getApiBaseUrl: () => Promise<string>;
-    chooseDirectory: () => Promise<string | null>;
+    chooseRepository: () => Promise<null>;
   };
   window: TestRuntimeWindow;
 };
@@ -33,7 +33,7 @@ describe('api client runtime configuration', () => {
     runtimeWindow.window = runtimeWindow;
     runtimeWindow.evidenceDesktop = {
       getApiBaseUrl: vi.fn(async () => 'http://127.0.0.1:45321/api'),
-      chooseDirectory: vi.fn(async () => null),
+      chooseRepository: vi.fn(async () => null),
     };
 
     await initializeApiClient();

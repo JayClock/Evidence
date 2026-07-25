@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type {
   MembershipWorkspace,
+  RepositorySelectionSummary,
   State,
   WorkspaceResource,
 } from '@evidence/api-client';
@@ -51,17 +52,14 @@ export type WorkspaceInput = {
   title: string;
   description?: string | null;
   status?: string | null;
-  localRepositoryRoot?: string;
+  localRepositorySelectionId?: string;
 };
 
-type SelectedProject = {
-  name: string;
-  source: string;
-};
+type SelectedProject = RepositorySelectionSummary;
 
 type ElectronWindow = Window & {
   evidenceDesktop?: {
-    chooseDirectory?: () => Promise<string | null>;
+    chooseRepository?: () => Promise<RepositorySelectionSummary | null>;
   };
 };
 
@@ -195,7 +193,7 @@ function CreateWorkspaceDialog({
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;
 }) {
-  const chooseDirectory = electronDirectoryPicker();
+  const chooseRepository = electronRepositoryPicker();
   const [selectedProject, setSelectedProject] =
     useState<SelectedProject | null>(null);
   const [title, setTitle] = useState('');
@@ -204,7 +202,7 @@ function CreateWorkspaceDialog({
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const needsLocalProject = Boolean(chooseDirectory);
+  const needsLocalProject = Boolean(chooseRepository);
   const canSubmit =
     Boolean(title.trim()) &&
     (!needsLocalProject || Boolean(selectedProject)) &&
@@ -219,24 +217,23 @@ function CreateWorkspaceDialog({
     setSubmitting(false);
   }
 
-  function selectProject(source: string) {
-    const name = basename(source);
-    setSelectedProject({ name, source });
+  function selectProject(selection: RepositorySelectionSummary) {
+    setSelectedProject(selection);
     setError(null);
     if (!title.trim()) {
-      setTitle(titleFromProjectName(name));
+      setTitle(titleFromProjectName(selection.name));
     }
   }
 
   async function handleChooseProject() {
-    if (!chooseDirectory) {
+    if (!chooseRepository) {
       return;
     }
     setError(null);
     try {
-      const nativeSource = await chooseDirectory();
-      if (nativeSource) {
-        selectProject(nativeSource);
+      const selection = await chooseRepository();
+      if (selection) {
+        selectProject(selection);
       }
     } catch (nativeError) {
       setError(errorMessage(nativeError));
@@ -265,7 +262,7 @@ function CreateWorkspaceDialog({
         description: description.trim() || null,
         status: 'active',
         ...(selectedProject
-          ? { localRepositoryRoot: selectedProject.source }
+          ? { localRepositorySelectionId: selectedProject.id }
           : {}),
       });
       toast.success(`Created ${createdWorkspace.data.title}`);
@@ -293,7 +290,7 @@ function CreateWorkspaceDialog({
           <DialogTitle>Create workspace</DialogTitle>
           <DialogDescription>
             {needsLocalProject
-              ? 'Choose a local repository for Desktop execution. Only the Desktop binding store receives its path.'
+              ? 'Choose a local repository for Desktop execution. Its absolute path stays outside the renderer and Server.'
               : 'Create a Server workspace. Local repository binding is available in the Desktop app.'}
           </DialogDescription>
         </DialogHeader>
@@ -310,8 +307,8 @@ function CreateWorkspaceDialog({
                     </CardTitle>
                     <CardDescription>
                       {selectedProject
-                        ? 'This path stays in the Desktop app.'
-                        : 'Use the system folder picker; the path is never sent to the Server.'}
+                        ? 'Only the project name and Git revision are visible here.'
+                        : 'The Desktop main process validates the folder without exposing its path here or to the Server.'}
                     </CardDescription>
                     <CardAction>
                       <Button
@@ -326,7 +323,14 @@ function CreateWorkspaceDialog({
                   </CardHeader>
                   <CardContent>
                     {selectedProject ? (
-                      <Badge variant="secondary">{selectedProject.name}</Badge>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary">
+                          {selectedProject.name}
+                        </Badge>
+                        <Badge variant="outline">
+                          Git {selectedProject.headCommitSha.slice(0, 12)}
+                        </Badge>
+                      </div>
                     ) : (
                       <FieldDescription>
                         Local execution will use this repository in a later
@@ -375,7 +379,6 @@ function CreateWorkspaceDialog({
                 disabled={submitting}
               />
             </Field>
-
           </FieldGroup>
 
           {error ? (
@@ -402,13 +405,15 @@ function CreateWorkspaceDialog({
   );
 }
 
-function electronDirectoryPicker(): (() => Promise<string | null>) | null {
+function electronRepositoryPicker():
+  | (() => Promise<RepositorySelectionSummary | null>)
+  | null {
   if (typeof window === 'undefined') {
     return null;
   }
 
   const electronWindow = window as ElectronWindow;
-  return electronWindow.evidenceDesktop?.chooseDirectory ?? null;
+  return electronWindow.evidenceDesktop?.chooseRepository ?? null;
 }
 
 export function workspaceSourceName(workspace: MembershipWorkspace) {
@@ -420,10 +425,6 @@ export function workspaceHref(
   rel: keyof WorkspaceResource['links'] = 'self',
 ) {
   return workspace._links[rel]?.href;
-}
-
-function basename(source: string) {
-  return source.split(/[\\/]/).filter(Boolean).pop() ?? source;
 }
 
 function titleFromProjectName(name: string) {
