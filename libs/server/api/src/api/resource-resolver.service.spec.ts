@@ -13,9 +13,7 @@ function fixture() {
   const workspace = { identity: () => 'workspace-1' } as Workspace;
   const memberships = {
     findByWorkspaceIdentity: vi.fn(async (workspaceId: string) =>
-      workspaceId === 'workspace-1'
-        ? { member: {} as never, workspace }
-        : null,
+      workspaceId === 'workspace-1' ? { member: {} as never, workspace } : null,
     ),
   } as unknown as UserMemberships;
   const workspaces = {
@@ -65,12 +63,12 @@ describe('ResourceResolver access boundary', () => {
   it('hides Workspaces outside the current-user boundary', async () => {
     const { resolver, workspaces } = fixture();
 
-    await expect(resolver.requireWorkspace('workspace-2')).rejects.toMatchObject(
+    await expect(
+      resolver.requireWorkspace('workspace-2'),
+    ).rejects.toMatchObject({ kind: 'notFound' });
+    await expect(resolver.deleteWorkspace('workspace-2')).rejects.toMatchObject(
       { kind: 'notFound' },
     );
-    await expect(
-      resolver.deleteWorkspace('workspace-2'),
-    ).rejects.toMatchObject({ kind: 'notFound' });
     expect(workspaces.delete).not.toHaveBeenCalled();
   });
 });

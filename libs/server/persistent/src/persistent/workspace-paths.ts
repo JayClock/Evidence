@@ -5,16 +5,12 @@ import { DomainError } from '@evidence/server-domain';
 const REPOSITORY_ROOT = 'repositoryRoot';
 const EVIDENCE_ROOT = 'evidenceRoot';
 const PATH_ALIASES = [REPOSITORY_ROOT, 'path', 'rootPath'] as const;
-const PRIVATE_METADATA_KEYS = new Set<string>([
-  ...PATH_ALIASES,
-  EVIDENCE_ROOT,
-]);
+const PRIVATE_METADATA_KEYS = new Set<string>([...PATH_ALIASES, EVIDENCE_ROOT]);
 const SAFE_WORKSPACE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 export async function initializeWorkspaceModelRoot(
   workspaceId: string,
-  storageRoot =
-    process.env.EVIDENCE_WORKSPACE_STORAGE_ROOT ??
+  storageRoot = process.env.EVIDENCE_WORKSPACE_STORAGE_ROOT ??
     join(process.cwd(), 'tmp', 'workspace-models'),
 ): Promise<string> {
   if (!SAFE_WORKSPACE_ID.test(workspaceId)) {

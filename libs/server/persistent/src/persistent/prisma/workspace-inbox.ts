@@ -86,11 +86,7 @@ export class PrismaWorkspaceInbox
 
   async capture(sourceInput: InboxSourceInput): Promise<CapturedInboxItem> {
     const { source, contentSha256 } = hashInboxSource(sourceInput);
-    const existing = await findSourceItem(
-      this.store,
-      this.workspaceId,
-      source,
-    );
+    const existing = await findSourceItem(this.store, this.workspaceId, source);
     if (existing) {
       return this.appendRevision(existing.id, source);
     }
@@ -215,9 +211,7 @@ export class PrismaWorkspaceInbox
     } catch (error) {
       if (isUniqueConflict(error)) {
         const concurrent = await this.findByIdentity(itemId);
-        if (
-          concurrent?.description().latestRevisionSha256 === contentSha256
-        ) {
+        if (concurrent?.description().latestRevisionSha256 === contentSha256) {
           return this.captureResult(
             itemId,
             concurrent.description().latestRevisionId,

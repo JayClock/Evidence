@@ -66,7 +66,9 @@ export function assertStoryVersion(value: number): number {
 
 function assertPositiveVersion(value: number, subject: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) {
-    throw DomainError.validation(`${subject} expected version must be positive`);
+    throw DomainError.validation(
+      `${subject} expected version must be positive`,
+    );
   }
   return value;
 }
