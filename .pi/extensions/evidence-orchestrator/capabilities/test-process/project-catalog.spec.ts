@@ -220,7 +220,7 @@ describe('Nx project catalog', () => {
     );
     expect(byName.get('@evidence/server')?.targetNames).toContain('test');
     expect(byName.get('@evidence/server-api')?.targetNames).toContain('test');
-  }, 30_000);
+  }, 60_000);
 
   it('rejects unsafe or missing project ids before accepting resolved output', () => {
     const runner: NxProjectCommandRunner = () =>

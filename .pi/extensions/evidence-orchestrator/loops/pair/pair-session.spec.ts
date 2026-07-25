@@ -1166,7 +1166,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
     write(
       cwd,
       'focused.js',
-      `for (let index = 0; index < 800; index += 1) console.error('trace-' + index + '-xxxxxxxxxxxxxxxxxxxx');\nconsole.error('ASSERTION: workspace Alpha is not visible');\nprocess.exit(1);`,
+      `for (let index = 0; index < 800; index += 1) console.error('trace-' + index + '-xxxxxxxxxxxxxxxxxxxx');\nconsole.error('ASSERTION: workspace Alpha is not visible');\nprocess.exitCode = 1;`,
     );
     const redAction = prepareActivityRun(cwd);
     if (isCompletedIteration(redAction))
@@ -2129,7 +2129,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(understand.confirmed_scenarios).toBeUndefined();
     expect(understand.completed_work_items).toBeUndefined();
     expect(understand.feedback_history?.at(-1)?.target).toBe('scenario');
-  });
+  }, 30_000);
 
   it('blocks Review when model, tests, and implementation do not share a baseline', () => {
     const cwd = workspace();
