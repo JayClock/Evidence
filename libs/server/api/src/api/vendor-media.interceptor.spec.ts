@@ -75,6 +75,10 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.kickoff+json',
     ],
     [
+      '/api/workspaces/default-workspace/iterations/iteration-1/tasking',
+      'application/vnd.evidence.tasking+json',
+    ],
+    [
       '/api/workspaces/default-workspace/stories',
       'application/vnd.evidence.stories+json',
     ],
@@ -147,6 +151,18 @@ describe('vendorMediaType', () => {
     [
       '/api/workspaces/default-workspace/iterations/iteration-1/kickoff/decisions',
       'application/vnd.evidence.kickoff-decision-result+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/tasking/no-model-impact',
+      'application/vnd.evidence.no-model-impact-decision+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/tasking/candidates',
+      'application/vnd.evidence.tasking-candidate+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/tasking/decisions',
+      'application/vnd.evidence.desk-check-decision-result+json',
     ],
     [
       '/api/workspaces/default-workspace/stories/story-1/revisions',

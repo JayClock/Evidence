@@ -263,6 +263,53 @@ export function vendorMediaType(
   ) {
     return mediaType('understanding-decision-result');
   }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'tasking',
+    ])
+  ) {
+    return mediaType('tasking');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'tasking',
+      'no-model-impact',
+    ])
+  ) {
+    return mediaType('no-model-impact-decision');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'tasking',
+      'candidates',
+    ])
+  ) {
+    return mediaType('tasking-candidate');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'tasking',
+      'decisions',
+    ])
+  ) {
+    return mediaType('desk-check-decision-result');
+  }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');
   }

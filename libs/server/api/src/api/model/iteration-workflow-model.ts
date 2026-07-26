@@ -20,6 +20,7 @@ import {
   workspaceIterationKickoffHref,
   workspaceIterationKickoffProposalsHref,
   workspaceIterationProvisioningHref,
+  workspaceIterationTaskingHref,
   workspaceIterationUnderstandingHref,
   workspaceIterationsHref,
   workspaceStoryCandidateHref,
@@ -200,6 +201,7 @@ export function iterationModel(iteration: Iteration): IterationModel {
     links.understanding = link(
       workspaceIterationUnderstandingHref(workspaceId, id),
     );
+    links.tasking = link(workspaceIterationTaskingHref(workspaceId, id));
   }
   return {
     _links: links,

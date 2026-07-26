@@ -14,6 +14,7 @@ import {
   workspaceIterationClarificationsHref,
   workspaceIterationHref,
   workspaceIterationKickoffHref,
+  workspaceIterationNoModelImpactHref,
   workspaceIterationScenarioProposalsHref,
   workspaceIterationUnderstandingDecisionsHref,
   workspaceIterationUnderstandingHref,
@@ -120,6 +121,15 @@ export function understandingModel(
   ) {
     links.decide = link(
       workspaceIterationUnderstandingDecisionsHref(workspaceId, iterationId),
+    );
+  }
+  if (
+    description.lifecycle === 'active' &&
+    description.loop === 'understand' &&
+    description.stage === 'modeling'
+  ) {
+    links['record-no-model-impact'] = link(
+      workspaceIterationNoModelImpactHref(workspaceId, iterationId),
     );
   }
   if (description.loop === 'kickoff') {
