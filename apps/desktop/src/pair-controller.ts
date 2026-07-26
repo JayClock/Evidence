@@ -62,6 +62,18 @@ export interface RunPairRequest {
   iterationId: string;
 }
 
+export interface ReviewPairRequest extends RunPairRequest {
+  expectedManifestSha256: string;
+}
+
+export interface PairLocalReview {
+  manifestSha256: string;
+  diffSha256: string;
+  changedFileCount: number;
+  changedPaths: string[];
+  diff: string;
+}
+
 export interface ApprovePairRequest extends RunPairRequest {
   expectedManifestSha256: string;
   expectedDiffSha256: string;
@@ -345,6 +357,43 @@ export class PairController {
         emit,
         abort,
       });
+    });
+  }
+
+  review(request: ReviewPairRequest): Promise<PairLocalReview> {
+    return this.exclusive(request, async (abort) => {
+      const pair = await this.options.client.getPair(
+        request.workspaceId,
+        request.iterationId,
+        abort.signal,
+      );
+      if (
+        pair.data.run.status !== 'approval_required' ||
+        pair.data.nextAction?.kind !== 'await_human' ||
+        !pair.data.manifest ||
+        pair.data.manifest.contentSha256 !== request.expectedManifestSha256
+      ) {
+        throw new Error(
+          'Pair approval evidence changed; reload before review.',
+        );
+      }
+      const binding = await this.requireBinding(request.workspaceId);
+      const worktree = this.locateWorktree(pair, binding.repositoryRoot);
+      await this.options.worktrees.recover(worktree);
+      const diff = await this.options.worktrees.inspectForReview(
+        worktree,
+        null,
+      );
+      if (diff.sha256 !== pair.data.manifest.finalDiffSha256) {
+        throw new Error('Local Pair diff does not match the Server Manifest.');
+      }
+      return {
+        manifestSha256: pair.data.manifest.contentSha256,
+        diffSha256: diff.sha256,
+        changedFileCount: diff.changedFileCount,
+        changedPaths: pair.data.manifest.changedPaths,
+        diff: diff.content,
+      };
     });
   }
 

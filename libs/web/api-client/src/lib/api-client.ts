@@ -47,6 +47,56 @@ export type IterationProvisioningSummary = {
   baseCommitSha: string;
 };
 
+export type PairRunRequest = {
+  id: string;
+  workspaceId: string;
+  iterationId: string;
+};
+
+export type PairControllerEvent = {
+  requestId: string;
+  event: 'progress' | 'checkpoint' | 'human-required';
+  message: string;
+  checkpoint: string | null;
+};
+
+export type PairControllerSummary = {
+  iterationId: string;
+  pairRunId: string;
+  status:
+    | 'running'
+    | 'approval_required'
+    | 'approved'
+    | 'exception'
+    | 'cancelled';
+  checkpoint: string;
+  version: number;
+  nextAction: string | null;
+  manifestSha256: string | null;
+  diffSha256: string | null;
+  commitSha: string | null;
+  exception: {
+    kind: string;
+    summary: string;
+    allowedRoutes: string[];
+  } | null;
+};
+
+export type PairLocalReview = {
+  manifestSha256: string;
+  diffSha256: string;
+  changedFileCount: number;
+  changedPaths: string[];
+  diff: string;
+};
+
+export type DesktopPairDecisionAction =
+  | 'back_test'
+  | 'back_implementation'
+  | 'back_tasking'
+  | 'retry_quality'
+  | 'cancel';
+
 export type RepositorySelectionSummary = {
   id: string;
   name: string;
@@ -89,6 +139,34 @@ type EvidenceDesktopBridge = {
     onEvent: (event: IntakeAgentEvent) => void,
   ): Promise<void>;
   cancelTaskingAnalyst?(id: string): Promise<void>;
+  startPair?(
+    request: PairRunRequest,
+    onEvent: (event: PairControllerEvent) => void,
+  ): Promise<PairControllerSummary>;
+  resumePair?(
+    request: PairRunRequest,
+    onEvent: (event: PairControllerEvent) => void,
+  ): Promise<PairControllerSummary>;
+  reviewPair?(
+    request: PairRunRequest & { expectedManifestSha256: string },
+  ): Promise<PairLocalReview>;
+  decidePair?(
+    request: PairRunRequest & {
+      action: DesktopPairDecisionAction;
+      reason: string;
+      resume: boolean;
+    },
+    onEvent: (event: PairControllerEvent) => void,
+  ): Promise<PairControllerSummary>;
+  approvePair?(
+    request: PairRunRequest & {
+      expectedManifestSha256: string;
+      expectedDiffSha256: string;
+      commitMessage: string;
+      reason: string;
+    },
+  ): Promise<PairControllerSummary>;
+  cancelPair?(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

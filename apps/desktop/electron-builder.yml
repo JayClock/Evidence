@@ -4,8 +4,10 @@ asar: true
 asarUnpack:
   - dist/agent-runtime.mjs
   - dist/agent-runtime.mjs.map
-  - dist/coding-agent-runtime.mjs
-  - dist/coding-agent-runtime.mjs.map
+  - dist/pair-driver-runtime.mjs
+  - dist/pair-driver-runtime.mjs.map
+  - dist/pair-red-reviewer-runtime.mjs
+  - dist/pair-red-reviewer-runtime.mjs.map
   - dist/inbox-analyst-runtime.mjs
   - dist/inbox-analyst-runtime.mjs.map
   - dist/kickoff-analyst-runtime.mjs
@@ -27,8 +29,10 @@ files:
   - dist/preload.js.map
   - dist/agent-runtime.mjs
   - dist/agent-runtime.mjs.map
-  - dist/coding-agent-runtime.mjs
-  - dist/coding-agent-runtime.mjs.map
+  - dist/pair-driver-runtime.mjs
+  - dist/pair-driver-runtime.mjs.map
+  - dist/pair-red-reviewer-runtime.mjs
+  - dist/pair-red-reviewer-runtime.mjs.map
   - dist/inbox-analyst-runtime.mjs
   - dist/inbox-analyst-runtime.mjs.map
   - dist/kickoff-analyst-runtime.mjs

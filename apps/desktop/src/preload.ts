@@ -34,6 +34,25 @@ import {
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
 import type { RepositorySelectionSummary } from './workspace-binding-store';
+import type {
+  ApprovePairRequest,
+  DecidePairRequest,
+  PairControllerEvent,
+  PairControllerSummary,
+  PairLocalReview,
+  ReviewPairRequest,
+  RunPairRequest,
+} from './pair-controller';
+import {
+  APPROVE_PAIR_CHANNEL,
+  CANCEL_PAIR_CHANNEL,
+  DECIDE_PAIR_CHANNEL,
+  PAIR_EVENT_CHANNEL,
+  parsePairControllerEvent,
+  RESUME_PAIR_CHANNEL,
+  REVIEW_PAIR_CHANNEL,
+  START_PAIR_CHANNEL,
+} from './pair-ipc-protocol';
 
 async function runIntakeAgent(
   channel:
@@ -57,6 +76,26 @@ async function runIntakeAgent(
     await ipcRenderer.invoke(channel, request);
   } finally {
     ipcRenderer.removeListener(INTAKE_AGENT_EVENT_CHANNEL, listener);
+  }
+}
+
+async function runPairController(
+  channel:
+    | typeof START_PAIR_CHANNEL
+    | typeof RESUME_PAIR_CHANNEL
+    | typeof DECIDE_PAIR_CHANNEL,
+  request: RunPairRequest | DecidePairRequest,
+  onEvent: (event: PairControllerEvent) => void,
+): Promise<PairControllerSummary> {
+  const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
+    const event = parsePairControllerEvent(value);
+    if (event?.requestId === request.id) onEvent(event);
+  };
+  ipcRenderer.on(PAIR_EVENT_CHANNEL, listener);
+  try {
+    return await ipcRenderer.invoke(channel, request);
+  } finally {
+    ipcRenderer.removeListener(PAIR_EVENT_CHANNEL, listener);
   }
 }
 
@@ -120,6 +159,27 @@ const bridge = {
     runIntakeAgent(RUN_TASKING_ANALYST_CHANNEL, request, onEvent),
   cancelTaskingAnalyst: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_TASKING_ANALYST_CHANNEL, id),
+  startPair: (
+    request: RunPairRequest,
+    onEvent: (event: PairControllerEvent) => void,
+  ): Promise<PairControllerSummary> =>
+    runPairController(START_PAIR_CHANNEL, request, onEvent),
+  resumePair: (
+    request: RunPairRequest,
+    onEvent: (event: PairControllerEvent) => void,
+  ): Promise<PairControllerSummary> =>
+    runPairController(RESUME_PAIR_CHANNEL, request, onEvent),
+  reviewPair: (request: ReviewPairRequest): Promise<PairLocalReview> =>
+    ipcRenderer.invoke(REVIEW_PAIR_CHANNEL, request),
+  decidePair: (
+    request: DecidePairRequest,
+    onEvent: (event: PairControllerEvent) => void,
+  ): Promise<PairControllerSummary> =>
+    runPairController(DECIDE_PAIR_CHANNEL, request, onEvent),
+  approvePair: (request: ApprovePairRequest): Promise<PairControllerSummary> =>
+    ipcRenderer.invoke(APPROVE_PAIR_CHANNEL, request),
+  cancelPair: (id: string): Promise<void> =>
+    ipcRenderer.invoke(CANCEL_PAIR_CHANNEL, id),
   runDiagramAgent: async (
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

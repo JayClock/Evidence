@@ -22,6 +22,18 @@ const taskingAnalystEntry = join(
   'dist',
   'tasking-analyst-runtime.mjs',
 );
+const pairDriverEntry = join(
+  packaged.resources,
+  'app.asar.unpacked',
+  'dist',
+  'pair-driver-runtime.mjs',
+);
+const pairRedReviewerEntry = join(
+  packaged.resources,
+  'app.asar.unpacked',
+  'dist',
+  'pair-red-reviewer-runtime.mjs',
+);
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-package-smoke-'));
 const fakeApi = await startFakeApi();
 let output = '';
@@ -31,6 +43,8 @@ try {
     access(packaged.executable),
     access(piSdkEntry),
     access(taskingAnalystEntry),
+    access(pairDriverEntry),
+    access(pairRedReviewerEntry),
   ]);
   const sdkCheck = `import('@earendil-works/pi-coding-agent').then((sdk) => {
     if (typeof sdk.createAgentSession !== 'function') throw new Error('createAgentSession is unavailable');

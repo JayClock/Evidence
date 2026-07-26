@@ -29,7 +29,6 @@ const configurations = [
     outExtension: { '.js': '.mjs' },
     entryPoints: [
       resolve(workspaceRoot, 'apps/desktop/src/agent-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/coding-agent-runtime.ts'),
       resolve(workspaceRoot, 'apps/desktop/src/inbox-analyst-runtime.ts'),
       resolve(workspaceRoot, 'apps/desktop/src/kickoff-analyst-runtime.ts'),
       resolve(
@@ -37,6 +36,8 @@ const configurations = [
         'apps/desktop/src/understanding-analyst-runtime.ts',
       ),
       resolve(workspaceRoot, 'apps/desktop/src/tasking-analyst-runtime.ts'),
+      resolve(workspaceRoot, 'apps/desktop/src/pair-driver-runtime.ts'),
+      resolve(workspaceRoot, 'apps/desktop/src/pair-red-reviewer-runtime.ts'),
     ],
   },
 ];
@@ -51,10 +52,6 @@ await Promise.all(
     'agent-runtime.js.map',
     'agent-runtime.mjs',
     'agent-runtime.mjs.map',
-    'coding-agent-runtime.js',
-    'coding-agent-runtime.js.map',
-    'coding-agent-runtime.mjs',
-    'coding-agent-runtime.mjs.map',
     'inbox-analyst-runtime.mjs',
     'inbox-analyst-runtime.mjs.map',
     'kickoff-analyst-runtime.mjs',
@@ -63,6 +60,10 @@ await Promise.all(
     'understanding-analyst-runtime.mjs.map',
     'tasking-analyst-runtime.mjs',
     'tasking-analyst-runtime.mjs.map',
+    'pair-driver-runtime.mjs',
+    'pair-driver-runtime.mjs.map',
+    'pair-red-reviewer-runtime.mjs',
+    'pair-red-reviewer-runtime.mjs.map',
   ].map((file) => rm(resolve(outdir, file), { force: true })),
 );
 if (!watch) {

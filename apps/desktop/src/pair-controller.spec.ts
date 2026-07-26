@@ -107,6 +107,16 @@ describe('PairController', () => {
   it('commits only the reviewed Manifest diff before recording approval', async () => {
     const harness = createHarness({ approvalRequired: true });
     const finalDiff = harness.worktreeState.snapshot().sha256;
+    await expect(
+      harness.controller.review({
+        ...request(),
+        expectedManifestSha256: digest('manifest'),
+      }),
+    ).resolves.toMatchObject({
+      manifestSha256: digest('manifest'),
+      diffSha256: finalDiff,
+      diff: harness.worktreeState.snapshot().content,
+    });
 
     const result = await harness.controller.approve({
       ...request(),

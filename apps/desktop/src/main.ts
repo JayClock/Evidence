@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -57,6 +58,35 @@ import { IntakeApiClient } from './intake-api-client';
 import { isTrustedRendererRequest } from './ipc-security';
 import { IterationController } from './iteration-controller';
 import { LocalAgent } from './local-agent';
+import {
+  parsePairDriverEvent,
+  type PairDriverEvent,
+  type PairDriverRuntimeRequest,
+} from './pair-agent-protocol';
+import { PairApiClient } from './pair-api-client';
+import { PairCheckpointStore } from './pair-checkpoint-store';
+import { PairCommandRunner } from './pair-command-runner';
+import { PairController, type PairControllerEvent } from './pair-controller';
+import {
+  APPROVE_PAIR_CHANNEL,
+  CANCEL_PAIR_CHANNEL,
+  DECIDE_PAIR_CHANNEL,
+  PAIR_EVENT_CHANNEL,
+  parseApprovePairRequest,
+  parseDecidePairRequest,
+  parsePairControllerEvent,
+  parsePairRequestId,
+  parseReviewPairRequest,
+  parseRunPairRequest,
+  RESUME_PAIR_CHANNEL,
+  REVIEW_PAIR_CHANNEL,
+  START_PAIR_CHANNEL,
+} from './pair-ipc-protocol';
+import {
+  parsePairRedReviewerEvent,
+  type PairRedReviewerEvent,
+  type PairRedReviewerRuntimeRequest,
+} from './pair-red-reviewer-protocol';
 import { piRuntimeEnvironment } from './pi-runtime-environment';
 import {
   resolveApiAuthorization,
@@ -90,6 +120,7 @@ let taskingAnalyst: LocalAgent<
   IntakeAgentEvent
 > | null = null;
 let iterationController: IterationController | null = null;
+let pairController: PairController | null = null;
 let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
@@ -159,6 +190,7 @@ function registerDesktopBridge(
   >,
   tasking: LocalAgent<TaskingAnalystRuntimeRequest, IntakeAgentEvent>,
   iterations: IterationController,
+  pairs: PairController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
@@ -327,6 +359,50 @@ function registerDesktopBridge(
     assertTrustedIpcSender(event);
     return iterations.start(parseStartIterationRequest(input));
   });
+  const forwardPairEvent = (
+    event: IpcMainInvokeEvent,
+    pairEvent: PairControllerEvent,
+  ) => {
+    const validated = parsePairControllerEvent(pairEvent);
+    if (!validated)
+      throw new Error('Pair Controller emitted an invalid event.');
+    if (!event.sender.isDestroyed()) {
+      event.sender.send(PAIR_EVENT_CHANNEL, validated);
+    }
+  };
+  ipcMain.handle(START_PAIR_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseRunPairRequest(input);
+    return pairs.start(request, (pairEvent) =>
+      forwardPairEvent(event, pairEvent),
+    );
+  });
+  ipcMain.handle(RESUME_PAIR_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseRunPairRequest(input);
+    return pairs.resume(request, (pairEvent) =>
+      forwardPairEvent(event, pairEvent),
+    );
+  });
+  ipcMain.handle(REVIEW_PAIR_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    return pairs.review(parseReviewPairRequest(input));
+  });
+  ipcMain.handle(DECIDE_PAIR_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseDecidePairRequest(input);
+    return pairs.decide(request, (pairEvent) =>
+      forwardPairEvent(event, pairEvent),
+    );
+  });
+  ipcMain.handle(APPROVE_PAIR_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    return pairs.approve(parseApprovePairRequest(input));
+  });
+  ipcMain.handle(CANCEL_PAIR_CHANNEL, (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    pairs.cancel(parsePairRequestId(id));
+  });
   ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     const request = parseDiagramAgentRequest(input);
@@ -417,6 +493,33 @@ function createIntakeAgent<
     },
     parseEvent: parseIntakeAgentEvent,
   });
+}
+
+function createPairAgent<
+  TRequest extends PairDriverRuntimeRequest | PairRedReviewerRuntimeRequest,
+  TEvent extends PairDriverEvent | PairRedReviewerEvent,
+>(
+  entryName: 'pair-driver-runtime.mjs' | 'pair-red-reviewer-runtime.mjs',
+  parseEvent: (value: unknown) => TEvent | null,
+): LocalAgent<TRequest, TEvent> {
+  return new LocalAgent({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    runtimeEntry: app.isPackaged
+      ? join(process.resourcesPath, 'app.asar.unpacked', 'dist', entryName)
+      : join(__dirname, entryName),
+    packaged: app.isPackaged,
+    environment: piRuntimeEnvironment(),
+    parseEvent,
+  });
+}
+
+function pairExecutorId(): string {
+  return `desktop-${createHash('sha256')
+    .update(app.getPath('userData'))
+    .digest('hex')
+    .slice(0, 24)}`;
 }
 
 async function connectRemoteApi(): Promise<string> {
@@ -528,15 +631,36 @@ void app.whenReady().then(async () => {
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
     );
+    const iterationWorktrees = new IterationWorktreeManager(
+      join(app.getPath('userData'), 'iteration-worktrees'),
+    );
     iterationController = new IterationController(
       apiBaseUrl,
       bindings,
-      new IterationWorktreeManager(
-        join(app.getPath('userData'), 'iteration-worktrees'),
-        async () => undefined,
-      ),
+      iterationWorktrees,
       new IntakeApiClient({ apiBaseUrl, authorization }),
     );
+    const pairDriver = createPairAgent<
+      PairDriverRuntimeRequest,
+      PairDriverEvent
+    >('pair-driver-runtime.mjs', parsePairDriverEvent);
+    const pairRedReviewer = createPairAgent<
+      PairRedReviewerRuntimeRequest,
+      PairRedReviewerEvent
+    >('pair-red-reviewer-runtime.mjs', parsePairRedReviewerEvent);
+    pairController = new PairController({
+      apiBaseUrl,
+      executorId: pairExecutorId(),
+      bindings,
+      worktrees: iterationWorktrees,
+      checkpoints: new PairCheckpointStore(
+        join(app.getPath('userData'), 'pair-checkpoints'),
+      ),
+      client: new PairApiClient({ apiBaseUrl, authorization }),
+      driver: pairDriver,
+      redReviewer: pairRedReviewer,
+      commands: new PairCommandRunner(),
+    });
     registerDesktopBridge(
       apiBaseUrl,
       localAgent,
@@ -546,6 +670,7 @@ void app.whenReady().then(async () => {
       understandingAnalyst,
       taskingAnalyst,
       iterationController,
+      pairController,
     );
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl, authorization);
@@ -579,12 +704,14 @@ app.on('before-quit', (event) => {
       kickoffAnalyst ||
       understandingAnalyst ||
       taskingAnalyst ||
-      iterationController)
+      iterationController ||
+      pairController)
   ) {
     event.preventDefault();
     allowQuit = true;
     iterationController?.stop();
     void Promise.all([
+      pairController?.stop() ?? Promise.resolve(),
       localAgent?.stop() ?? Promise.resolve(),
       inboxAnalyst?.stop() ?? Promise.resolve(),
       kickoffAnalyst?.stop() ?? Promise.resolve(),
