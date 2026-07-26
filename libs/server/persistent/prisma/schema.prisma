@@ -22,6 +22,7 @@ model User {
   noModelImpactDecisions  NoModelImpactDecision[]  @relation("NoModelImpactDecisionActor")
   deskCheckDecisions      DeskCheckDecision[]      @relation("DeskCheckDecisionActor")
   approvedTaskingPlans    ApprovedTaskingPlan[]    @relation("ApprovedTaskingPlanActor")
+  pairCodingDecisions     PairCodingDecision[]     @relation("PairCodingDecisionActor")
 
   @@map("users")
 }
@@ -54,6 +55,7 @@ model Workspace {
   taskingCandidates       TaskingCandidate[]
   deskCheckDecisions      DeskCheckDecision[]
   approvedTaskingPlans    ApprovedTaskingPlan[]
+  pairRuns                PairRun[]
   sequence                WorkspaceSequence?
 
   @@index([deletedAt])
@@ -366,6 +368,7 @@ model Iteration {
   taskingCandidates          TaskingCandidate[]
   deskCheckDecisions         DeskCheckDecision[]
   approvedTaskingPlans       ApprovedTaskingPlan[]
+  pairRuns                   PairRun[]
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, lifecycle, lane, admittedAt])
@@ -510,6 +513,7 @@ model Story {
   noModelImpactDecisions NoModelImpactDecision[]
   taskingCandidates      TaskingCandidate[]
   approvedTaskingPlans   ApprovedTaskingPlan[]
+  pairRuns               PairRun[]
 
   @@index([workspaceId, updatedAt])
   @@map("stories")
@@ -541,6 +545,7 @@ model StoryRevision {
   noModelImpactDecision          NoModelImpactDecision?
   taskingCandidates              TaskingCandidate[]
   approvedTaskingPlans           ApprovedTaskingPlan[]
+  pairRuns                       PairRun[]
 
   @@unique([storyId, revisionNumber])
   @@index([storyId, createdAt])
@@ -774,10 +779,197 @@ model ApprovedTaskingPlan {
   taskingCandidate    TaskingCandidate  @relation(fields: [taskingCandidateId], references: [id], onDelete: Restrict)
   deskCheckDecision   DeskCheckDecision @relation(fields: [deskCheckDecisionId], references: [id], onDelete: Restrict)
   approvedBy          User              @relation("ApprovedTaskingPlanActor", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+  pairRun             PairRun?
 
   @@index([workspaceId, approvedAt])
   @@index([iterationId, approvedAt])
   @@map("approved_tasking_plans")
+}
+
+model PairRun {
+  id                        String                    @id
+  reference                 String
+  workspaceId               String                    @map("workspace_id")
+  iterationId               String                    @map("iteration_id")
+  storyId                   String                    @map("story_id")
+  storyRevisionId           String                    @map("story_revision_id")
+  storyRevisionSha256       String                    @map("story_revision_sha256")
+  approvedTaskingPlanId     String                    @unique @map("approved_tasking_plan_id")
+  approvedTaskingPlanSha256 String                    @map("approved_tasking_plan_sha256")
+  baseCommitSha             String                    @map("base_commit_sha")
+  branchName                String                    @map("branch_name")
+  status                    String
+  checkpoint                String
+  version                   Int                       @default(1)
+  cursor                    Json
+  completedTestIds          Json                      @map("completed_test_ids")
+  completedStepKeys         Json                      @map("completed_step_keys")
+  executionBudget           Json                      @map("execution_budget")
+  budgetUsage               Json                      @map("budget_usage")
+  leaseOwnerId              String?                   @map("lease_owner_id")
+  leaseTokenSha256          String?                   @map("lease_token_sha256")
+  leaseExpiresAt            DateTime?                 @map("lease_expires_at")
+  currentDiffSha256         String?                   @map("current_diff_sha256")
+  finalManifestSha256       String?                   @map("final_manifest_sha256")
+  approvedCommitSha         String?                   @map("approved_commit_sha")
+  startedAt                 DateTime                  @map("started_at")
+  updatedAt                 DateTime                  @map("updated_at")
+  completedAt               DateTime?                 @map("completed_at")
+  workspace                 Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration                 Iteration                 @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story                     Story                     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision             StoryRevision             @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  approvedTaskingPlan       ApprovedTaskingPlan       @relation(fields: [approvedTaskingPlanId], references: [id], onDelete: Restrict)
+  driverAttempts            PairDriverAttempt[]
+  commandObservations       PairCommandObservation[]
+  redReviews                PairRedReview[]
+  automationExceptions      PairAutomationException[]
+  manifest                  PairExecutionManifest?
+  codingDecisions           PairCodingDecision[]
+
+  @@unique([iterationId, reference])
+  @@index([workspaceId, status, updatedAt])
+  @@index([iterationId, startedAt])
+  @@map("pair_runs")
+}
+
+model PairDriverAttempt {
+  id                   String   @id
+  pairRunId            String   @map("pair_run_id")
+  actionId             String   @map("action_id")
+  sequence             Int
+  role                 String
+  mode                 String
+  taskId               String?  @map("task_id")
+  testId               String?  @map("test_id")
+  processId            String?  @map("process_id")
+  stepId               String?  @map("step_id")
+  summary              String
+  changedPaths         Json     @map("changed_paths")
+  beforeWorktreeSha256 String   @map("before_worktree_sha256")
+  afterWorktreeSha256  String   @map("after_worktree_sha256")
+  diffSha256           String   @map("diff_sha256")
+  agentCallCount       Int      @map("agent_call_count")
+  inputTokens          Int?     @map("input_tokens")
+  outputTokens         Int?     @map("output_tokens")
+  completedAt          DateTime @map("completed_at")
+  recordSha256         String   @map("record_sha256")
+  pairRun              PairRun  @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+
+  @@unique([pairRunId, actionId])
+  @@unique([pairRunId, sequence])
+  @@map("pair_driver_attempts")
+}
+
+model PairCommandObservation {
+  id                   String         @id
+  pairRunId            String         @map("pair_run_id")
+  actionId             String         @map("action_id")
+  sequence             Int
+  stage                String
+  taskId               String?        @map("task_id")
+  testId               String?        @map("test_id")
+  processId            String         @map("process_id")
+  stepId               String?        @map("step_id")
+  command              String
+  termination          String
+  exitCode             Int?           @map("exit_code")
+  signal               String?
+  durationMs           Int            @map("duration_ms")
+  stdoutSha256         String         @map("stdout_sha256")
+  stdoutBytes          Int            @map("stdout_bytes")
+  stdoutLines          Int            @map("stdout_lines")
+  stderrSha256         String         @map("stderr_sha256")
+  stderrBytes          Int            @map("stderr_bytes")
+  stderrLines          Int            @map("stderr_lines")
+  worktreeSha256       String         @map("worktree_sha256")
+  diffSha256           String         @map("diff_sha256")
+  failureFingerprint   String?        @map("failure_fingerprint")
+  observedAt           DateTime       @map("observed_at")
+  previousRecordSha256 String?        @map("previous_record_sha256")
+  recordSha256         String         @map("record_sha256")
+  pairRun              PairRun        @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+  redReview            PairRedReview?
+
+  @@unique([pairRunId, actionId])
+  @@unique([pairRunId, sequence])
+  @@map("pair_command_observations")
+}
+
+model PairRedReview {
+  id             String                 @id
+  pairRunId      String                 @map("pair_run_id")
+  actionId       String                 @map("action_id")
+  observationId  String                 @unique @map("observation_id")
+  classification String
+  accepted       Boolean
+  reason         String
+  reviewedAt     DateTime               @map("reviewed_at")
+  recordSha256   String                 @map("record_sha256")
+  pairRun        PairRun                @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+  observation    PairCommandObservation @relation(fields: [observationId], references: [id], onDelete: Restrict)
+
+  @@unique([pairRunId, actionId])
+  @@index([pairRunId, reviewedAt])
+  @@map("pair_red_reviews")
+}
+
+model PairAutomationException {
+  id                 String    @id
+  pairRunId          String    @map("pair_run_id")
+  actionId           String?   @map("action_id")
+  kind               String
+  summary            String
+  failureFingerprint String?   @map("failure_fingerprint")
+  allowedRoutes      Json      @map("allowed_routes")
+  raisedAt           DateTime  @map("raised_at")
+  resolvedAt         DateTime? @map("resolved_at")
+  recordSha256       String    @map("record_sha256")
+  pairRun            PairRun   @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+
+  @@index([pairRunId, resolvedAt, raisedAt])
+  @@map("pair_automation_exceptions")
+}
+
+model PairExecutionManifest {
+  id                        String   @id
+  pairRunId                 String   @unique @map("pair_run_id")
+  approvedTaskingPlanSha256 String   @map("approved_tasking_plan_sha256")
+  storyRevisionSha256       String   @map("story_revision_sha256")
+  baseCommitSha             String   @map("base_commit_sha")
+  completedTestIds          Json     @map("completed_test_ids")
+  completedStepKeys         Json     @map("completed_step_keys")
+  driverAttemptIds          Json     @map("driver_attempt_ids")
+  commandObservationIds     Json     @map("command_observation_ids")
+  redReviewIds              Json     @map("red_review_ids")
+  changedPaths              Json     @map("changed_paths")
+  finalDiffSha256           String   @map("final_diff_sha256")
+  evidenceChainSha256       String   @map("evidence_chain_sha256")
+  generatedAt               DateTime @map("generated_at")
+  contentSha256             String   @map("content_sha256")
+  pairRun                   PairRun  @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+
+  @@map("pair_execution_manifests")
+}
+
+model PairCodingDecision {
+  id              String   @id
+  pairRunId       String   @map("pair_run_id")
+  sequence        Int
+  action          String
+  reason          String
+  manifestSha256  String?  @map("manifest_sha256")
+  diffSha256      String?  @map("diff_sha256")
+  commitSha       String?  @map("commit_sha")
+  decidedByUserId String   @map("decided_by_user_id")
+  decidedAt       DateTime @map("decided_at")
+  contentSha256   String   @map("content_sha256")
+  pairRun         PairRun  @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+  decidedBy       User     @relation("PairCodingDecisionActor", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([pairRunId, sequence])
+  @@index([pairRunId, decidedAt])
+  @@map("pair_coding_decisions")
 }
 
 model StoryRevisionCitation {
