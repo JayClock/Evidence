@@ -222,6 +222,102 @@ describe('IntakeApiClient', () => {
     expect(JSON.stringify(requests)).not.toContain('/Users/');
   });
 
+  it('submits only bounded Tasking metadata through the Server action', async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(
+        response({ id: 'tasking-1', reference: 'TASKING-001' }, 201),
+      );
+    const client = new IntakeApiClient({ apiBaseUrl, fetch });
+    const tasking = {
+      iteration: {
+        id: 'iteration-1',
+        reference: 'ITER-0001',
+        lifecycle: 'active' as const,
+        loop: 'tasking' as const,
+        stage: 'drafting' as const,
+        version: 4,
+        baseCommitSha,
+        branchName: 'evidence/iter-iteration-1',
+        links: {},
+        raw: {},
+      },
+      story: { id: 'story-1' },
+      storyRevision: { id: 'revision-2' },
+      noModelImpactDecision: {
+        id: 'no-model-1',
+        contentSha256: revisionSha256,
+      },
+      currentCandidate: null,
+      decisions: [],
+      approvedPlan: null,
+      processCatalog: [],
+      links: {
+        'propose-candidate':
+          '/api/workspaces/workspace-1/iterations/iteration-1/tasking/candidates',
+      },
+      raw: {},
+    };
+    const projectCatalog = {
+      projects: [
+        {
+          id: '@evidence/desktop',
+          root: 'apps/desktop',
+          targets: ['test'],
+        },
+      ],
+    };
+    const draft = {
+      runtimes: [
+        {
+          id: 'RUNTIME-001',
+          runtime: 'typescript' as const,
+          functionalContexts: ['delivery'],
+          technicalBoundaries: ['electron-main'],
+          projectIds: ['@evidence/desktop'],
+        },
+      ],
+      tests: [
+        {
+          id: 'TEST-001',
+          quadrant: 'Q1' as const,
+          intent: 'Drive the local boundary.',
+          runtimePlanId: 'RUNTIME-001',
+          stepId: 'electron-shell-q1',
+          testFilter: 'tasking',
+          supportedBy: [],
+          scenarioIds: ['SC-001'],
+          businessData: [],
+          modelRefs: { entities: [], associations: [] },
+        },
+      ],
+      tasks: [
+        {
+          id: 'TASK-001',
+          description: 'Drive TEST-001.',
+          testIds: ['TEST-001'],
+          dependsOn: [],
+        },
+      ],
+    };
+
+    await client.proposeTasking(tasking, projectCatalog, draft);
+
+    const body = JSON.parse(String(fetch.mock.calls[0]?.[1]?.body));
+    expect(body).toMatchObject({
+      expectedIterationVersion: 4,
+      storyId: 'story-1',
+      storyRevisionId: 'revision-2',
+      noModelImpactDecisionId: 'no-model-1',
+      noModelImpactDecisionSha256: revisionSha256,
+      projectCatalog,
+      ...draft,
+    });
+    expect(JSON.stringify(body)).not.toMatch(
+      /repositoryRoot|worktreeRoot|source|stdout|prompt|session/i,
+    );
+  });
+
   it('rejects cross-origin HAL actions before sending credentials', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
     const client = new IntakeApiClient({

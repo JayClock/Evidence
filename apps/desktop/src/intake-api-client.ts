@@ -23,13 +23,17 @@ export interface RemoteIteration {
   id: string;
   reference: string;
   lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
-  loop: 'kickoff' | 'understand';
+  loop: 'kickoff' | 'understand' | 'tasking';
   stage:
     | 'candidate_review'
     | 'candidate_drafting'
     | 'tqa'
     | 'scenario_review'
-    | 'modeling';
+    | 'modeling'
+    | 'drafting'
+    | 'desk_check'
+    | 'knowledge_gap'
+    | 'approved';
   version: number;
   baseCommitSha: string;
   branchName: string | null;
@@ -56,6 +60,53 @@ export interface RemoteUnderstanding {
   decisions: Array<Record<string, unknown>>;
   links: Record<string, string>;
   raw: Record<string, unknown>;
+}
+
+export interface RemoteTasking {
+  iteration: RemoteIteration;
+  story: Record<string, unknown>;
+  storyRevision: Record<string, unknown>;
+  noModelImpactDecision: Record<string, unknown> | null;
+  currentCandidate: Record<string, unknown> | null;
+  decisions: Array<Record<string, unknown>>;
+  approvedPlan: Record<string, unknown> | null;
+  processCatalog: Array<Record<string, unknown>>;
+  links: Record<string, string>;
+  raw: Record<string, unknown>;
+}
+
+export interface TaskingProjectCatalogInput {
+  projects: Array<{ id: string; root: string; targets: string[] }>;
+}
+
+export interface TaskingDraftInput {
+  runtimes: Array<{
+    id: string;
+    runtime: 'typescript';
+    functionalContexts: string[];
+    technicalBoundaries: string[];
+    projectIds: string[];
+  }>;
+  tests: Array<{
+    id: string;
+    quadrant: 'Q1' | 'Q2';
+    intent: string;
+    runtimePlanId: string;
+    stepId: string;
+    projectId?: string | null;
+    testFilter: string;
+    supportedBy: string[];
+    scenarioIds: string[];
+    scenarioOutcome?: string | null;
+    businessData: string[];
+    modelRefs: { entities: string[]; associations: string[] };
+  }>;
+  tasks: Array<{
+    id: string;
+    description: string;
+    testIds: string[];
+    dependsOn: string[];
+  }>;
 }
 
 export interface UnderstandingScenarioInput {
@@ -387,6 +438,55 @@ export class IntakeApiClient {
     );
   }
 
+  async getTasking(
+    iterationResource: RemoteIteration,
+    signal?: AbortSignal,
+  ): Promise<RemoteTasking> {
+    return tasking(
+      await this.requestJson(
+        this.resolveApiUrl(requiredLink(iterationResource.links, 'tasking')),
+        { signal },
+      ),
+    );
+  }
+
+  async proposeTasking(
+    resource: RemoteTasking,
+    projectCatalog: TaskingProjectCatalogInput,
+    draft: TaskingDraftInput,
+    signal?: AbortSignal,
+  ): Promise<Record<string, unknown>> {
+    const noModelImpact = resource.noModelImpactDecision;
+    if (!noModelImpact) {
+      throw new Error('Tasking response is missing No Model Impact authority.');
+    }
+    return this.requestJson(
+      this.resolveApiUrl(requiredLink(resource.links, 'propose-candidate')),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedIterationVersion: resource.iteration.version,
+          storyId: requiredString(resource.story.id, 'Story id'),
+          storyRevisionId: requiredString(
+            resource.storyRevision.id,
+            'Story Revision id',
+          ),
+          noModelImpactDecisionId: requiredString(
+            noModelImpact.id,
+            'No Model Impact Decision id',
+          ),
+          noModelImpactDecisionSha256: requiredString(
+            noModelImpact.contentSha256,
+            'No Model Impact Decision SHA-256',
+          ),
+          projectCatalog,
+          ...draft,
+        }),
+        signal,
+      },
+    );
+  }
+
   private async requestJson(
     url: URL,
     init: RequestInit,
@@ -482,7 +582,7 @@ function iteration(value: Record<string, unknown>): RemoteIteration {
   if (!isIterationLifecycle(lifecycle)) {
     throw new Error(`Unsupported Iteration lifecycle: ${lifecycle}`);
   }
-  if (loop !== 'kickoff' && loop !== 'understand') {
+  if (loop !== 'kickoff' && loop !== 'understand' && loop !== 'tasking') {
     throw new Error(`Unsupported Iteration loop: ${loop}`);
   }
   if (
@@ -490,7 +590,11 @@ function iteration(value: Record<string, unknown>): RemoteIteration {
     stage !== 'candidate_drafting' &&
     stage !== 'tqa' &&
     stage !== 'scenario_review' &&
-    stage !== 'modeling'
+    stage !== 'modeling' &&
+    stage !== 'drafting' &&
+    stage !== 'desk_check' &&
+    stage !== 'knowledge_gap' &&
+    stage !== 'approved'
   ) {
     throw new Error(`Unsupported Iteration stage: ${stage}`);
   }
@@ -531,6 +635,39 @@ function understanding(value: Record<string, unknown>): RemoteUnderstanding {
         : record(value.currentScenarioProposal, 'Scenario Proposal'),
     decisions: decisions.map((entry) =>
       record(entry, 'Understanding Decision'),
+    ),
+    links: links(value),
+    raw: value,
+  };
+}
+
+function tasking(value: Record<string, unknown>): RemoteTasking {
+  const decisions = value.decisions;
+  const processCatalog = value.processCatalog;
+  if (!Array.isArray(decisions) || !Array.isArray(processCatalog)) {
+    throw new Error(
+      'Tasking response is missing authority history or catalog.',
+    );
+  }
+  return {
+    iteration: iteration(record(value.iteration, 'Tasking Iteration')),
+    story: record(value.story, 'Tasking Story'),
+    storyRevision: record(value.storyRevision, 'Tasking Story Revision'),
+    noModelImpactDecision:
+      value.noModelImpactDecision === null
+        ? null
+        : record(value.noModelImpactDecision, 'No Model Impact Decision'),
+    currentCandidate:
+      value.currentCandidate === null
+        ? null
+        : record(value.currentCandidate, 'Tasking Candidate'),
+    decisions: decisions.map((entry) => record(entry, 'Desk Check Decision')),
+    approvedPlan:
+      value.approvedPlan === null
+        ? null
+        : record(value.approvedPlan, 'Approved Tasking Plan'),
+    processCatalog: processCatalog.map((entry) =>
+      record(entry, 'Tasking Process'),
     ),
     links: links(value),
     raw: value,

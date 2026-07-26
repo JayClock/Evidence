@@ -11,6 +11,8 @@ export const RUN_UNDERSTANDING_ANALYST_CHANNEL =
   'evidence:run-understanding-analyst';
 export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
   'evidence:cancel-understanding-analyst';
+export const RUN_TASKING_ANALYST_CHANNEL = 'evidence:run-tasking-analyst';
+export const CANCEL_TASKING_ANALYST_CHANNEL = 'evidence:cancel-tasking-analyst';
 export const INTAKE_AGENT_EVENT_CHANNEL = 'evidence:intake-agent-event';
 export const START_ITERATION_CHANNEL = 'evidence:start-iteration';
 

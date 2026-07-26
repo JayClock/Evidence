@@ -4,6 +4,8 @@ import {
   parseInboxAnalystRuntimeRequest,
   parseIntakeAgentEvent,
   parseKickoffAnalystRequest,
+  parseTaskingAnalystRequest,
+  parseTaskingAnalystRuntimeRequest,
 } from './intake-agent-protocol';
 
 describe('intake Agent protocol', () => {
@@ -40,6 +42,27 @@ describe('intake Agent protocol', () => {
       id: 'kickoff:1',
       workspaceId: 'workspace-1',
       iterationId: 'iteration-1',
+    });
+  });
+
+  it('adds local paths only in trusted Tasking runtime configuration', () => {
+    const renderer = {
+      id: 'tasking:1',
+      workspaceId: 'workspace-1',
+      iterationId: 'iteration-1',
+    };
+    expect(parseTaskingAnalystRequest(renderer)).toEqual(renderer);
+    expect(
+      parseTaskingAnalystRuntimeRequest({
+        ...renderer,
+        apiBaseUrl: 'https://evidence.example/api',
+        sessionDirectory: '/private/tasking-session',
+        repositoryRoot: '/private/repository',
+        worktreeRoot: '/private/iteration-worktree',
+      }),
+    ).toMatchObject({
+      ...renderer,
+      worktreeRoot: '/private/iteration-worktree',
     });
   });
 

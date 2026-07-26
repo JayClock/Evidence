@@ -8,6 +8,8 @@ export const RUN_UNDERSTANDING_ANALYST_CHANNEL =
   'evidence:run-understanding-analyst';
 export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
   'evidence:cancel-understanding-analyst';
+export const RUN_TASKING_ANALYST_CHANNEL = 'evidence:run-tasking-analyst';
+export const CANCEL_TASKING_ANALYST_CHANNEL = 'evidence:cancel-tasking-analyst';
 
 export interface InboxAnalystRequest {
   id: string;
@@ -39,6 +41,19 @@ export interface UnderstandingAnalystRuntimeRequest
   extends UnderstandingAnalystRequest {
   apiBaseUrl: string;
   sessionDirectory: string;
+}
+
+export interface TaskingAnalystRequest {
+  id: string;
+  workspaceId: string;
+  iterationId: string;
+}
+
+export interface TaskingAnalystRuntimeRequest extends TaskingAnalystRequest {
+  apiBaseUrl: string;
+  sessionDirectory: string;
+  repositoryRoot: string;
+  worktreeRoot: string;
 }
 
 export interface IntakeAgentEvent {
@@ -112,6 +127,33 @@ export function parseUnderstandingAnalystRuntimeRequest(
       input.sessionDirectory,
       'TQA session directory',
     ),
+  };
+}
+
+export function parseTaskingAnalystRequest(
+  value: unknown,
+): TaskingAnalystRequest {
+  const input = record(value);
+  return {
+    id: requestId(input.id),
+    workspaceId: resourceId(input.workspaceId, 'Workspace id'),
+    iterationId: resourceId(input.iterationId, 'Iteration id'),
+  };
+}
+
+export function parseTaskingAnalystRuntimeRequest(
+  value: unknown,
+): TaskingAnalystRuntimeRequest {
+  const input = record(value);
+  return {
+    ...parseTaskingAnalystRequest(input),
+    apiBaseUrl: requiredString(input.apiBaseUrl, 'API base URL'),
+    sessionDirectory: requiredString(
+      input.sessionDirectory,
+      'Tasking session directory',
+    ),
+    repositoryRoot: requiredString(input.repositoryRoot, 'Repository root'),
+    worktreeRoot: requiredString(input.worktreeRoot, 'Iteration worktree root'),
   };
 }
 
