@@ -1,5 +1,6 @@
 import { DomainError } from '../error';
 import {
+  PAIR_EXECUTION_POLICY,
   TASKING_PROCESS_CATALOG,
   type TaskingProcessDefinition,
 } from './tasking-catalog';
@@ -8,6 +9,7 @@ import type {
   DeskCheckAction,
   MaterializedTaskingCommand,
   MaterializedTaskingGate,
+  PairExecutionBudget,
   ProposeTaskingInput,
   RecordNoModelImpactInput,
   TaskingProjectCatalogInput,
@@ -49,12 +51,51 @@ export interface ValidatedTaskingRuntime {
   qualityGates: MaterializedTaskingGate[];
 }
 
+export interface PairExecutionBudgetInput {
+  testCount: number;
+  processStepCount: number;
+  qualityGateCount: number;
+  policySha256: string;
+}
+
 export interface ValidatedTaskingDraft {
   input: ProposeTaskingInput;
   projectCatalog: TaskingProjectCatalogInput;
   runtimes: ValidatedTaskingRuntime[];
   tests: TaskingTestDescription[];
   tasks: TaskingTaskDescription[];
+}
+
+export function materializePairExecutionBudget(
+  input: PairExecutionBudgetInput,
+): PairExecutionBudget {
+  const testCount = positiveInteger(input.testCount, 'Pair TEST count');
+  const processStepCount = positiveInteger(
+    input.processStepCount,
+    'Pair process step count',
+  );
+  const qualityGateCount = positiveInteger(
+    input.qualityGateCount,
+    'Pair quality gate count',
+  );
+  return {
+    policyId: PAIR_EXECUTION_POLICY.id,
+    policyVersion: PAIR_EXECUTION_POLICY.version,
+    policySha256: sha256(input.policySha256, 'Pair policy SHA-256'),
+    activityTimeoutMs: PAIR_EXECUTION_POLICY.activityTimeoutMs,
+    commandTimeoutMs: PAIR_EXECUTION_POLICY.commandTimeoutMs,
+    maxAgentCalls:
+      PAIR_EXECUTION_POLICY.baseAgentCalls +
+      testCount * PAIR_EXECUTION_POLICY.agentCallsPerTest +
+      processStepCount * PAIR_EXECUTION_POLICY.agentCallsPerStep,
+    maxCheckpoints:
+      PAIR_EXECUTION_POLICY.baseCheckpoints +
+      testCount * PAIR_EXECUTION_POLICY.checkpointsPerTest +
+      processStepCount * PAIR_EXECUTION_POLICY.checkpointsPerStep +
+      qualityGateCount * PAIR_EXECUTION_POLICY.checkpointsPerGate,
+    maxRetriesPerFingerprint: PAIR_EXECUTION_POLICY.maxRetriesPerFingerprint,
+    maxNoProgressCheckpoints: PAIR_EXECUTION_POLICY.maxNoProgressCheckpoints,
+  };
 }
 
 export function normalizeRecordNoModelImpactInput(

@@ -4,9 +4,11 @@ import {
   DeskCheckDecision,
   DomainError,
   NoModelImpactDecision,
+  PAIR_EXECUTION_POLICY,
   Ref,
   TASKING_PROCESS_CATALOG,
   TaskingCandidate,
+  materializePairExecutionBudget,
   normalizeDecideTaskingInput,
   normalizeProposeTaskingInput,
   normalizeRecordNoModelImpactInput,
@@ -14,6 +16,7 @@ import {
   type DeskCheckAction,
   type DeskCheckDecisionResult,
   type JsonValue,
+  type PairExecutionBudget,
   type ProposeTaskingInput,
   type RecordNoModelImpactInput,
   type TaskingCandidateDescription,
@@ -34,10 +37,7 @@ import {
   STORY_INCLUDE,
   STORY_REVISION_INCLUDE,
 } from './workspace-delivery';
-import {
-  assembleIteration,
-  iterationInclude,
-} from './workspace-iterations';
+import { assembleIteration, iterationInclude } from './workspace-iterations';
 
 const ITERATION_INCLUDE = iterationInclude();
 
@@ -51,10 +51,12 @@ type ApprovedPlanRow = Prisma.ApprovedTaskingPlanGetPayload<
 >;
 
 interface StoredTaskingPayload {
+  planVersion: 2;
   projectCatalog: TaskingProjectCatalogInput;
   tests: TaskingTestDescription[];
   tasks: TaskingTaskDescription[];
   processes: TaskingProcessSelection[];
+  executionBudget: PairExecutionBudget;
 }
 
 interface StoredApprovedPlan extends StoredTaskingPayload {
@@ -76,7 +78,11 @@ export class PrismaWorkspaceTasking implements WorkspaceTasking {
   ) {}
 
   async findTasking(iterationId: string): Promise<TaskingView | null> {
-    const context = await findContext(this.store, this.workspaceId, iterationId);
+    const context = await findContext(
+      this.store,
+      this.workspaceId,
+      iterationId,
+    );
     if (!context) return null;
     const [noModelImpact, candidate, decisions, approvedPlan] =
       await Promise.all([
@@ -274,11 +280,27 @@ export class PrismaWorkspaceTasking implements WorkspaceTasking {
           ),
         };
       });
+      const executionBudget = materializePairExecutionBudget({
+        testCount: draft.tests.length,
+        processStepCount: processes.reduce(
+          (count, process) => count + process.selectedStepIds.length,
+          0,
+        ),
+        qualityGateCount: processes.reduce(
+          (count, process) => count + process.qualityGates.length,
+          0,
+        ),
+        policySha256: hashCanonicalJson(
+          PAIR_EXECUTION_POLICY as unknown as JsonValue,
+        ),
+      });
       const payload: StoredTaskingPayload = {
+        planVersion: 2,
         projectCatalog: draft.projectCatalog,
         tests: draft.tests,
         tasks: draft.tasks,
         processes,
+        executionBudget,
       };
       const candidateContent = {
         reference,
@@ -620,7 +642,10 @@ function revalidateCandidate(
   }>,
 ) {
   const payload = taskingPayload(candidate.payload, candidate.id);
-  normalizeProposeTaskingInput(
+  if (payload.planVersion !== 2) {
+    throw DomainError.conflict('Tasking Candidate is not a v2 Pair plan');
+  }
+  const validated = normalizeProposeTaskingInput(
     {
       expectedIterationVersion: 1,
       storyId: candidate.storyId,
@@ -651,6 +676,26 @@ function revalidateCandidate(
       ),
     })),
   );
+  const expectedBudget = materializePairExecutionBudget({
+    testCount: validated.tests.length,
+    processStepCount: validated.runtimes.reduce(
+      (count, runtime) => count + runtime.selectedStepIds.length,
+      0,
+    ),
+    qualityGateCount: validated.runtimes.reduce(
+      (count, runtime) => count + runtime.qualityGates.length,
+      0,
+    ),
+    policySha256: hashCanonicalJson(
+      PAIR_EXECUTION_POLICY as unknown as JsonValue,
+    ),
+  });
+  if (
+    hashCanonicalJson(expectedBudget as unknown as JsonValue) !==
+    hashCanonicalJson(payload.executionBudget as unknown as JsonValue)
+  ) {
+    throw DomainError.conflict('Tasking Pair execution budget has changed');
+  }
   const projectCatalogSha256 = hashCanonicalJson(
     payload.projectCatalog as unknown as JsonValue,
   );
@@ -715,9 +760,7 @@ function approvedSnapshot(candidate: CandidateRow): StoredApprovedPlan {
   };
 }
 
-function assembleNoModelImpact(
-  row: NoModelImpactRow,
-): NoModelImpactDecision {
+function assembleNoModelImpact(row: NoModelImpactRow): NoModelImpactDecision {
   return new NoModelImpactDecision(row.id, {
     reference: row.reference,
     iteration: new Ref(row.iterationId),
@@ -771,6 +814,7 @@ function assembleDecision(row: DecisionRow): DeskCheckDecision {
 function assembleApprovedPlan(row: ApprovedPlanRow): ApprovedTaskingPlan {
   const payload = approvedPayload(row.payload, row.id);
   const plan: TaskingCandidateDescription = {
+    planVersion: payload.planVersion,
     reference: payload.reference,
     iteration: new Ref(row.iterationId),
     story: new Ref(row.storyId),
@@ -785,6 +829,7 @@ function assembleApprovedPlan(row: ApprovedPlanRow): ApprovedTaskingPlan {
     tests: payload.tests,
     tasks: payload.tasks,
     processes: payload.processes,
+    executionBudget: payload.executionBudget,
     contentSha256: payload.candidateContentSha256,
     proposedBy: 'tasking-analyst',
     proposedAt: payload.proposedAt,
@@ -817,7 +862,9 @@ function approvedPayload(
   id: string,
 ): StoredApprovedPlan {
   if (!value || Array.isArray(value) || typeof value !== 'object') {
-    throw DomainError.internal(`Approved Tasking Plan ${id} has invalid payload`);
+    throw DomainError.internal(
+      `Approved Tasking Plan ${id} has invalid payload`,
+    );
   }
   return value as unknown as StoredApprovedPlan;
 }

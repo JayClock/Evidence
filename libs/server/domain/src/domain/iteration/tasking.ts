@@ -106,6 +106,18 @@ export interface MaterializedTaskingCommand {
   command: string;
 }
 
+export interface PairExecutionBudget {
+  policyId: 'pair-default';
+  policyVersion: 1;
+  policySha256: string;
+  activityTimeoutMs: number;
+  commandTimeoutMs: number;
+  maxAgentCalls: number;
+  maxCheckpoints: number;
+  maxRetriesPerFingerprint: number;
+  maxNoProgressCheckpoints: number;
+}
+
 export interface MaterializedTaskingGate {
   projectId: string | null;
   target: string | null;
@@ -152,6 +164,7 @@ export interface TaskingTaskDescription {
 }
 
 export interface TaskingCandidateDescription {
+  planVersion: 2;
   reference: string;
   iteration: Ref<string>;
   story: Ref<string>;
@@ -166,6 +179,7 @@ export interface TaskingCandidateDescription {
   tests: TaskingTestDescription[];
   tasks: TaskingTaskDescription[];
   processes: TaskingProcessSelection[];
+  executionBudget: PairExecutionBudget;
   contentSha256: string;
   proposedBy: 'tasking-analyst';
   proposedAt: string;

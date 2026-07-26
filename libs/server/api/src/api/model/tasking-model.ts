@@ -229,6 +229,7 @@ export function deskCheckDecisionResultModel(
 
 function taskingSnapshotModel(description: TaskingCandidateDescription) {
   return {
+    planVersion: description.planVersion,
     reference: description.reference,
     storyId: description.story.id(),
     storyRevisionId: description.storyRevision.id(),
@@ -242,6 +243,7 @@ function taskingSnapshotModel(description: TaskingCandidateDescription) {
     tests: description.tests,
     tasks: description.tasks,
     processes: description.processes,
+    executionBudget: description.executionBudget,
     contentSha256: description.contentSha256,
     proposedBy: description.proposedBy,
     proposedAt: description.proposedAt,

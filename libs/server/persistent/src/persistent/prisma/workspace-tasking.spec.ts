@@ -259,6 +259,7 @@ describe('PrismaWorkspaceTasking', () => {
     const candidate = await tasking.proposeTasking('iteration-1', proposal());
 
     expect(candidate.description()).toMatchObject({
+      planVersion: 2,
       baseCommitSha: 'd'.repeat(40),
       storyRevisionSha256,
       projectCatalogSha256: expect.stringMatching(/^sha256:/),
@@ -273,6 +274,10 @@ describe('PrismaWorkspaceTasking', () => {
           ),
         }),
       ],
+      executionBudget: expect.objectContaining({
+        policyId: 'pair-default',
+        maxAgentCalls: 10,
+      }),
     });
     expect(stage).toBe('desk_check');
 

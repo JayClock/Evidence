@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DomainError } from '../error';
+import { PAIR_EXECUTION_POLICY } from './tasking-catalog';
 import type { ProposeTaskingInput } from './tasking';
 import {
+  materializePairExecutionBudget,
   normalizeDecideTaskingInput,
   normalizeProposeTaskingInput,
   normalizeRecordNoModelImpactInput,
@@ -140,6 +142,27 @@ describe('Tasking authority validation', () => {
     expect(
       result.tests.every((test) => test.modelRefs.entities.length === 0),
     ).toBe(true);
+  });
+
+  it('materializes a finite Pair execution envelope from the approved plan size', () => {
+    const budget = materializePairExecutionBudget({
+      testCount: 2,
+      processStepCount: 2,
+      qualityGateCount: 4,
+      policySha256: sha256,
+    });
+
+    expect(budget).toEqual({
+      policyId: 'pair-default',
+      policyVersion: 1,
+      policySha256: sha256,
+      activityTimeoutMs: PAIR_EXECUTION_POLICY.activityTimeoutMs,
+      commandTimeoutMs: PAIR_EXECUTION_POLICY.commandTimeoutMs,
+      maxAgentCalls: 10,
+      maxCheckpoints: 34,
+      maxRetriesPerFingerprint: 2,
+      maxNoProgressCheckpoints: 3,
+    });
   });
 
   it('requires every Scenario Then to have one exact Q2 TEST', () => {

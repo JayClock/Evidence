@@ -32,6 +32,7 @@ function noModelImpact() {
 
 function candidate() {
   return new TaskingCandidate('tasking-1', {
+    planVersion: 2,
     reference: 'TASKING-001',
     iteration: new Ref('iteration-1'),
     story: new Ref('story-1'),
@@ -54,6 +55,17 @@ function candidate() {
     tests: [],
     tasks: [],
     processes: [],
+    executionBudget: {
+      policyId: 'pair-default',
+      policyVersion: 1,
+      policySha256: sha256,
+      activityTimeoutMs: 3_600_000,
+      commandTimeoutMs: 600_000,
+      maxAgentCalls: 10,
+      maxCheckpoints: 34,
+      maxRetriesPerFingerprint: 2,
+      maxNoProgressCheckpoints: 3,
+    },
     contentSha256: sha256,
     proposedBy: 'tasking-analyst',
     proposedAt: timestamp,
