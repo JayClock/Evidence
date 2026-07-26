@@ -33,7 +33,6 @@ import { FileWorkspaceLogicalEntities } from '../filesystem/workspace-logical-en
 import { FileWorkspaceLogicalRelationships } from '../filesystem/workspace-logical-relationships';
 import { publicWorkspaceMetadata } from '../workspace-paths';
 import type { PrismaStore } from './types';
-import { PrismaWorkspaceCodingRuns } from './workspace-coding-runs';
 import { PrismaWorkspaceDelivery } from './workspace-delivery';
 import { PrismaWorkspaceMembers } from './workspace-members';
 import { PrismaWorkspaceInbox } from './workspace-inbox';
@@ -80,7 +79,6 @@ export function assembleWorkspace(
     new PrismaWorkspaceUnderstanding(store, row.id),
     new PrismaWorkspaceTasking(store, row.id),
     new PrismaWorkspaceDelivery(store, row.id),
-    new PrismaWorkspaceCodingRuns(store, row.id),
   );
 }
 
