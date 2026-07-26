@@ -84,7 +84,9 @@ async function main() {
       'provider-failure',
       'timeout',
     ]) {
-      stories.push(await createStory(api, workspaceId, name));
+      stories.push(
+        await createStory(api, workspaceId, name, repository.baseCommitSha),
+      );
     }
     await writeWorkspaceBinding(
       userDataPath,
@@ -224,60 +226,113 @@ function startInput(targetWorkspaceId, story, action) {
   };
 }
 
-async function createStory(api, targetWorkspaceId, name) {
-  const source = await api.post(
-    `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}/inbox-items`,
-    {
-      sourceKind: 'manual_text',
-      externalKey: `package-e2e-${name}-${randomUUID()}`,
-      title: `Packaged coding ${name}`,
-      body: 'Use the local coding agent to update tracked.txt and run repository quality gates.',
-      contentType: 'text/plain',
-    },
-  );
-  const candidateInput = {
+async function createStory(api, targetWorkspaceId, name, baseCommitSha) {
+  const workspacePath = `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}`;
+  const source = await api.post(`${workspacePath}/inbox-items`, {
+    sourceKind: 'manual_text',
+    externalKey: `package-e2e-${name}-${randomUUID()}`,
+    title: `Packaged coding ${name}`,
+    body: 'Use the local coding agent to update tracked.txt and run repository quality gates.',
+    contentType: 'text/plain',
+  });
+  const content = {
     title: `Packaged coding ${name}`,
     problem: 'The fixture still contains its original value.',
     role: 'Workspace maintainer',
     goal: 'Replace the fixture value through the isolated local Coding Run.',
     value: 'The packaged Desktop delivery boundary is verified end to end.',
     cognitiveMode: 'clear',
-    citations: [
-      {
-        inboxItemId: requiredString(source.id, 'Inbox Item id'),
-        inboxRevisionId: requiredString(
-          source.latestRevisionId,
-          'Inbox Revision id',
-        ),
-        contentSha256: requiredString(
-          source.latestRevisionSha256,
-          'Inbox Revision SHA-256',
-        ),
-        locator: 'whole-source',
-      },
-    ],
   };
-  const candidate = await api.post(
-    `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}/story-candidates`,
-    candidateInput,
+  const extraction = await api.post(`${workspacePath}/inbox-extractions`, {
+    inboxItemIds: [requiredString(source.id, 'Inbox Item id')],
+  });
+  const candidateSet = await api.post(
+    `${workspacePath}/inbox-extractions/${encodeURIComponent(requiredString(extraction.id, 'Inbox Extraction id'))}/candidates`,
+    {
+      expectedVersion: 1,
+      candidates: [
+        {
+          ...content,
+          citations: [
+            {
+              inboxItemId: requiredString(source.id, 'Inbox Item id'),
+              revisionSha256: requiredString(
+                source.latestRevisionSha256,
+                'Inbox Revision SHA-256',
+              ),
+              locator: 'whole-source',
+            },
+          ],
+        },
+      ],
+    },
   );
-  const firstRevision = await api.post(
-    `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}/story-candidates/${encodeURIComponent(requiredString(candidate.id, 'Story Candidate id'))}/confirm`,
-    { expectedVersion: 1 },
+  const candidate = candidateSet._embedded?.storyCandidates?.[0];
+  const candidateId = requiredString(candidate?.id, 'Inbox Candidate id');
+  const iteration = await api.post(
+    `${workspacePath}/story-candidates/${encodeURIComponent(candidateId)}/select`,
+    {
+      candidateSha256: requiredString(
+        candidate?.contentSha256,
+        'Inbox Candidate SHA-256',
+      ),
+      baseCommitSha,
+    },
   );
-  const decidedCandidate = await api.get(
-    `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}/story-candidates/${encodeURIComponent(requiredString(candidate.id, 'Story Candidate id'))}`,
+  const iterationId = requiredString(iteration.id, 'Iteration id');
+  await api.post(
+    `${workspacePath}/iterations/${encodeURIComponent(iterationId)}/provisioning/complete`,
+    {
+      expectedVersion: 1,
+      baseCommitSha,
+      branchName: `evidence/iter-${iterationId}`,
+    },
   );
-  const storyId = requiredString(decidedCandidate.confirmedStoryId, 'Story id');
+  const kickoff = await api.get(
+    `${workspacePath}/iterations/${encodeURIComponent(iterationId)}/kickoff`,
+  );
+  const confirmed = await api.post(
+    `${workspacePath}/iterations/${encodeURIComponent(iterationId)}/kickoff/decisions`,
+    {
+      proposalId: requiredString(
+        kickoff.currentProposal?.id,
+        'Kickoff Proposal id',
+      ),
+      proposalSha256: requiredString(
+        kickoff.currentProposal?.contentSha256,
+        'Kickoff Proposal SHA-256',
+      ),
+      expectedIterationVersion: 2,
+      action: 'confirm',
+    },
+  );
+  const storyId = requiredString(confirmed.storyCard?.storyId, 'Story id');
+  const story = await api.get(
+    `${workspacePath}/stories/${encodeURIComponent(storyId)}`,
+  );
   const revision = await api.post(
-    `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}/stories/${encodeURIComponent(storyId)}/revisions`,
+    `${workspacePath}/stories/${encodeURIComponent(storyId)}/revisions`,
     {
       expectedVersion: 1,
       expectedLatestRevisionId: requiredString(
-        firstRevision.id,
-        'first Story Revision id',
+        story.latestRevisionId,
+        'baseline Story Revision id',
       ),
-      ...candidateInput,
+      ...content,
+      citations: [
+        {
+          inboxItemId: requiredString(source.id, 'Inbox Item id'),
+          inboxRevisionId: requiredString(
+            source.latestRevisionId,
+            'Inbox Revision id',
+          ),
+          contentSha256: requiredString(
+            source.latestRevisionSha256,
+            'Inbox Revision SHA-256',
+          ),
+          locator: 'whole-source',
+        },
+      ],
       scenarios: [
         {
           title: `Implement the ${name} fixture`,
