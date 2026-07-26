@@ -11,12 +11,9 @@ import {
 } from '@nestjs/common';
 import {
   DomainError,
-  parseStoryCandidateStatus,
   parseStoryCognitiveMode,
   type Story,
-  type StoryCandidate,
   type StoryCandidateInput,
-  type StoryCandidateStatus,
   type StoryRevision,
   type StoryRevisionInput,
 } from '@evidence/server-domain';
@@ -25,15 +22,11 @@ import {
   type Link,
   workspaceHref,
   workspaceStoriesHref,
-  workspaceStoryCandidateHref,
-  workspaceStoryCandidatesHref,
   workspaceStoryHref,
   workspaceStoryRevisionHref,
   workspaceStoryRevisionsHref,
 } from './links';
 import {
-  storyCandidateModel,
-  type StoryCandidateModel,
   storyModel,
   type StoryModel,
   storyRevisionModel,
@@ -42,7 +35,7 @@ import {
 import { parsePositiveInteger, totalPages } from './request';
 import { ResourceResolver } from './resource-resolver.service';
 
-interface StoryCandidateBody {
+interface StoryContentBody {
   title?: unknown;
   problem?: unknown;
   role?: unknown;
@@ -52,11 +45,7 @@ interface StoryCandidateBody {
   citations?: unknown;
 }
 
-interface CandidateDecisionBody {
-  expectedVersion?: unknown;
-}
-
-interface StoryRevisionBody extends StoryCandidateBody {
+interface StoryRevisionBody extends StoryContentBody {
   expectedVersion?: unknown;
   expectedLatestRevisionId?: unknown;
   scenarios?: unknown;
@@ -64,7 +53,6 @@ interface StoryRevisionBody extends StoryCandidateBody {
 
 interface PassthroughResponse {
   setHeader(name: string, value: string): void;
-  status(code: number): void;
 }
 
 interface PageModel {
@@ -72,12 +60,6 @@ interface PageModel {
   size: number;
   totalElements: number;
   totalPages: number;
-}
-
-interface StoryCandidateCollectionModel {
-  _links: Record<string, Link>;
-  _embedded: { storyCandidates: StoryCandidateModel[] };
-  page: PageModel;
 }
 
 interface StoryCollectionModel {
@@ -90,120 +72,6 @@ interface StoryRevisionCollectionModel {
   _links: Record<string, Link>;
   _embedded: { storyRevisions: StoryRevisionModel[] };
   page: PageModel;
-}
-
-@Controller()
-export class StoryCandidatesController {
-  constructor(private readonly resolver: ResourceResolver) {}
-
-  @Get()
-  async listStoryCandidates(
-    @Param('workspaceId') workspaceId: string,
-    @Query('page') pageInput?: string,
-    @Query('pageSize') pageSizeInput?: string,
-    @Query('status') statusInput?: string,
-  ): Promise<StoryCandidateCollectionModel> {
-    const workspace = await this.resolver.requireWorkspace(workspaceId);
-    const page = parsePositiveInteger(pageInput, 1, 'page');
-    const pageSize = Math.min(
-      parsePositiveInteger(pageSizeInput, 20, 'pageSize'),
-      100,
-    );
-    const status = optionalCandidateStatus(statusInput);
-    const [candidates, total] = await workspace.listStoryCandidates({
-      page,
-      pageSize,
-      ...(status ? { status } : {}),
-    });
-    return candidateCollection(
-      workspaceId,
-      candidates,
-      page,
-      pageSize,
-      total,
-      status,
-    );
-  }
-
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async proposeStoryCandidate(
-    @Param('workspaceId') workspaceId: string,
-    @Body() input: StoryCandidateBody,
-    @Res({ passthrough: true }) response: PassthroughResponse,
-  ): Promise<StoryCandidateModel> {
-    const workspace = await this.resolver.requireWorkspace(workspaceId);
-    const candidate = await workspace.proposeStoryCandidate(
-      storyCandidateInput(input),
-      this.resolver.currentUserId(),
-    );
-    response.setHeader(
-      'Location',
-      workspaceStoryCandidateHref(workspaceId, candidate.identity()),
-    );
-    return storyCandidateModel(candidate);
-  }
-
-  @Get(':candidateId')
-  async getStoryCandidate(
-    @Param('workspaceId') workspaceId: string,
-    @Param('candidateId') candidateId: string,
-  ): Promise<StoryCandidateModel> {
-    const [, candidate] = await this.resolver.requireWorkspaceStoryCandidate(
-      workspaceId,
-      candidateId,
-    );
-    return storyCandidateModel(candidate);
-  }
-
-  @Post(':candidateId/confirm')
-  @HttpCode(HttpStatus.CREATED)
-  async confirmStoryCandidate(
-    @Param('workspaceId') workspaceId: string,
-    @Param('candidateId') candidateId: string,
-    @Body() input: CandidateDecisionBody,
-    @Res({ passthrough: true }) response: PassthroughResponse,
-  ): Promise<StoryRevisionModel> {
-    const [workspace] = await this.resolver.requireWorkspaceStoryCandidate(
-      workspaceId,
-      candidateId,
-    );
-    const confirmed = await workspace.confirmStoryCandidate(
-      candidateId,
-      requiredPositiveInteger(input.expectedVersion, 'expectedVersion'),
-      this.resolver.currentUserId(),
-    );
-    response.status(confirmed.created ? HttpStatus.CREATED : HttpStatus.OK);
-    response.setHeader(
-      'Location',
-      workspaceStoryRevisionHref(
-        workspaceId,
-        confirmed.story.identity(),
-        confirmed.revision.identity(),
-      ),
-    );
-    return storyRevisionModel(workspaceId, confirmed.revision);
-  }
-
-  @Post(':candidateId/reject')
-  @HttpCode(HttpStatus.OK)
-  async rejectStoryCandidate(
-    @Param('workspaceId') workspaceId: string,
-    @Param('candidateId') candidateId: string,
-    @Body() input: CandidateDecisionBody,
-  ): Promise<StoryCandidateModel> {
-    const [workspace] = await this.resolver.requireWorkspaceStoryCandidate(
-      workspaceId,
-      candidateId,
-    );
-    return storyCandidateModel(
-      await workspace.rejectStoryCandidate(
-        candidateId,
-        requiredPositiveInteger(input.expectedVersion, 'expectedVersion'),
-        this.resolver.currentUserId(),
-      ),
-    );
-  }
 }
 
 @Controller()
@@ -317,7 +185,7 @@ export class StoriesController {
   }
 }
 
-function storyCandidateInput(input: StoryCandidateBody): StoryCandidateInput {
+function storyContentInput(input: StoryContentBody): StoryCandidateInput {
   if (!Array.isArray(input.citations)) {
     throw DomainError.validation('citations must be an array');
   }
@@ -355,7 +223,7 @@ function storyCandidateInput(input: StoryCandidateBody): StoryCandidateInput {
 }
 
 function storyRevisionInput(input: StoryRevisionBody): StoryRevisionInput {
-  const story = storyCandidateInput(input);
+  const story = storyContentInput(input);
   if (!Array.isArray(input.scenarios)) {
     throw DomainError.validation('scenarios must be an array');
   }
@@ -379,32 +247,6 @@ function storyRevisionInput(input: StoryRevisionBody): StoryRevisionInput {
         ),
       };
     }),
-  };
-}
-
-function candidateCollection(
-  workspaceId: string,
-  candidates: StoryCandidate[],
-  page: number,
-  pageSize: number,
-  total: number,
-  status?: StoryCandidateStatus,
-): StoryCandidateCollectionModel {
-  const pages = totalPages(total, pageSize);
-  const href = (targetPage: number) =>
-    candidatePageHref(workspaceId, targetPage, pageSize, status);
-  const links: Record<string, Link> = {
-    self: link(href(page)),
-    workspace: link(workspaceHref(workspaceId)),
-  };
-  if (page > 1) links.prev = link(href(page - 1));
-  if (page < pages) links.next = link(href(page + 1));
-  return {
-    _links: links,
-    _embedded: {
-      storyCandidates: candidates.map(storyCandidateModel),
-    },
-    page: pageDetails(page, pageSize, total),
   };
 }
 
@@ -459,20 +301,6 @@ function revisionCollection(
   };
 }
 
-function candidatePageHref(
-  workspaceId: string,
-  page: number,
-  pageSize: number,
-  status?: StoryCandidateStatus,
-): string {
-  const parameters = new URLSearchParams({
-    page: String(page),
-    pageSize: String(pageSize),
-  });
-  if (status) parameters.set('status', status);
-  return `${workspaceStoryCandidatesHref(workspaceId)}?${parameters.toString()}`;
-}
-
 function pageDetails(page: number, pageSize: number, total: number): PageModel {
   return {
     number: page,
@@ -480,13 +308,6 @@ function pageDetails(page: number, pageSize: number, total: number): PageModel {
     totalElements: total,
     totalPages: totalPages(total, pageSize),
   };
-}
-
-function optionalCandidateStatus(
-  value: string | undefined,
-): StoryCandidateStatus | undefined {
-  const normalized = value?.trim();
-  return normalized ? parseStoryCandidateStatus(normalized) : undefined;
 }
 
 function requiredString(value: unknown, name: string): string {

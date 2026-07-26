@@ -1,6 +1,5 @@
 import type {
   Story,
-  StoryCandidate,
   StoryCitationDescription,
   StoryRevision,
 } from '@evidence/server-domain';
@@ -13,10 +12,7 @@ import {
   workspaceInboxRevisionHref,
   workspaceStoriesHref,
   workspaceStoryCodingRunsHref,
-  workspaceStoryCandidateConfirmHref,
   workspaceStoryCandidateHref,
-  workspaceStoryCandidateRejectHref,
-  workspaceStoryCandidatesHref,
   workspaceStoryHref,
   workspaceStoryRevisionHref,
   workspaceStoryRevisionsHref,
@@ -29,87 +25,6 @@ export interface StoryCitationModel {
   inboxRevisionNumber: number;
   contentSha256: string;
   locator: string;
-}
-
-export interface StoryCandidateModel {
-  _links: Record<string, Link>;
-  id: string;
-  title: string;
-  problem: string;
-  role: string;
-  goal: string;
-  value: string;
-  cognitiveMode: string;
-  citations: StoryCitationModel[];
-  contentSha256: string;
-  status: string;
-  version: number;
-  proposedByUserId: string;
-  proposedAt: string;
-  decidedByUserId: string | null;
-  decidedAt: string | null;
-  confirmedStoryId: string | null;
-  confirmedRevisionId: string | null;
-}
-
-export function storyCandidateModel(
-  candidate: StoryCandidate,
-): StoryCandidateModel {
-  const candidateId = candidate.identity();
-  const description = candidate.description();
-  const workspaceId = description.workspace.id();
-  const links: Record<string, Link> = {
-    self: link(workspaceStoryCandidateHref(workspaceId, candidateId)),
-    workspace: link(workspaceHref(workspaceId)),
-    collection: link(workspaceStoryCandidatesHref(workspaceId)),
-    'proposed-by': link(userHref(description.proposedBy.id())),
-  };
-  if (description.status === 'pending') {
-    links.confirm = link(
-      workspaceStoryCandidateConfirmHref(workspaceId, candidateId),
-    );
-    links.reject = link(
-      workspaceStoryCandidateRejectHref(workspaceId, candidateId),
-    );
-  }
-  if (description.decidedBy) {
-    links['decided-by'] = link(userHref(description.decidedBy.id()));
-  }
-  if (description.confirmedStory && description.confirmedRevision) {
-    links.story = link(
-      workspaceStoryHref(workspaceId, description.confirmedStory.id()),
-    );
-    links['story-revision'] = link(
-      workspaceStoryRevisionHref(
-        workspaceId,
-        description.confirmedStory.id(),
-        description.confirmedRevision.id(),
-      ),
-    );
-  }
-
-  return {
-    _links: links,
-    id: candidateId,
-    title: description.title,
-    problem: description.problem,
-    role: description.role,
-    goal: description.goal,
-    value: description.value,
-    cognitiveMode: description.cognitiveMode,
-    citations: description.citations.map((citation) =>
-      storyCitationModel(workspaceId, citation),
-    ),
-    contentSha256: description.contentSha256,
-    status: description.status,
-    version: description.version,
-    proposedByUserId: description.proposedBy.id(),
-    proposedAt: description.proposedAt,
-    decidedByUserId: description.decidedBy?.id() ?? null,
-    decidedAt: description.decidedAt,
-    confirmedStoryId: description.confirmedStory?.id() ?? null,
-    confirmedRevisionId: description.confirmedRevision?.id() ?? null,
-  };
 }
 
 export interface StoryModel {

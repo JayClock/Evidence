@@ -119,13 +119,6 @@ export function workspaceStoryCandidateSelectHref(
   return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/select`;
 }
 
-export function workspaceStoryCandidateConfirmHref(
-  workspaceId: string,
-  candidateId: string,
-): string {
-  return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/confirm`;
-}
-
 export function workspaceStoryCandidateRejectHref(
   workspaceId: string,
   candidateId: string,

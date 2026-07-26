@@ -11,7 +11,6 @@ import type {
   LogicalRelationship,
   Member,
   Story,
-  StoryCandidate,
   StoryRevision,
   User,
   UserMemberships,
@@ -149,20 +148,6 @@ export class ResourceResolver {
       throw DomainError.notFound(`Inbox revision ${revisionId} not found`);
     }
     return [workspace, item, revision];
-  }
-
-  async requireWorkspaceStoryCandidate(
-    workspaceId: string,
-    candidateId: string,
-  ): Promise<[Workspace, StoryCandidate]> {
-    const workspace = await this.requireWorkspace(workspaceId);
-    const candidate = await workspace
-      .storyCandidates()
-      .findByIdentity(candidateId);
-    if (!candidate) {
-      throw DomainError.notFound(`Story Candidate ${candidateId} not found`);
-    }
-    return [workspace, candidate];
   }
 
   async requireWorkspaceStory(
