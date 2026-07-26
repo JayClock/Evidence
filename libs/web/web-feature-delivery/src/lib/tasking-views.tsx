@@ -154,9 +154,13 @@ export function TaskingDetailView({
           {tasking.approvedPlan ? (
             <Alert>
               <AlertDescription>
-                Approved Plan {tasking.approvedPlan.contentSha256} is locked.
-                This delivery stops at the plan-confirmed Pair entry; coding has
-                not started.
+                Approved Plan {tasking.approvedPlan.contentSha256} is locked as
+                v{tasking.approvedPlan.plan.planVersion} Pair authority. Its
+                execution envelope allows{' '}
+                {tasking.approvedPlan.plan.executionBudget.maxAgentCalls} Agent
+                calls and{' '}
+                {tasking.approvedPlan.plan.executionBudget.maxCheckpoints}{' '}
+                checkpoints.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -259,11 +263,21 @@ function CandidateReview({
           <Badge variant="secondary">{candidate.contentSha256}</Badge>
         </div>
         <CardDescription>
-          Baseline {candidate.baseCommitSha} · Project catalog{' '}
-          {candidate.projectCatalogSha256}
+          Plan v{candidate.planVersion} · Baseline {candidate.baseCommitSha} ·
+          Project catalog {candidate.projectCatalogSha256}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        <Alert>
+          <AlertDescription>
+            Pair envelope: {candidate.executionBudget.maxAgentCalls} Agent
+            calls, {candidate.executionBudget.maxCheckpoints} checkpoints,{' '}
+            {candidate.executionBudget.commandTimeoutMs} ms per command, and{' '}
+            {candidate.executionBudget.maxRetriesPerFingerprint} retries per
+            failure fingerprint.
+          </AlertDescription>
+        </Alert>
+
         <section aria-labelledby="tasking-tests-heading">
           <h2 className="font-medium" id="tasking-tests-heading">
             Q1 / Q2 test list

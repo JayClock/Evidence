@@ -4,6 +4,17 @@ import type { State, TaskingResource } from '@evidence/api-client';
 import { TaskingDetailView } from './tasking-views';
 
 const sha256 = `sha256:${'a'.repeat(64)}`;
+const executionBudget = {
+  policyId: 'pair-default',
+  policyVersion: 1,
+  policySha256: sha256,
+  activityTimeoutMs: 3_600_000,
+  commandTimeoutMs: 600_000,
+  maxAgentCalls: 10,
+  maxCheckpoints: 34,
+  maxRetriesPerFingerprint: 2,
+  maxNoProgressCheckpoints: 3,
+};
 
 function taskingData(
   stage: 'drafting' | 'desk_check' | 'approved' = 'drafting',
@@ -32,10 +43,12 @@ function taskingData(
       stage === 'desk_check'
         ? {
             id: 'tasking-1',
+            planVersion: 2,
             reference: 'TASKING-001',
             contentSha256: sha256,
             baseCommitSha: 'b'.repeat(40),
             projectCatalogSha256: sha256,
+            executionBudget,
             tests: [
               {
                 id: 'TEST-001',
@@ -77,6 +90,7 @@ function taskingData(
       stage === 'approved'
         ? {
             contentSha256: sha256,
+            plan: { planVersion: 2, executionBudget },
           }
         : null,
     processCatalog: [],
@@ -177,9 +191,7 @@ describe('TaskingDetailView', () => {
       }),
     );
     expect(
-      await screen.findByText(
-        /plan-confirmed Pair entry; coding has not started/i,
-      ),
+      await screen.findByText(/locked as v2 Pair authority/i),
     ).toBeTruthy();
     expect(screen.queryByText(/Start local coding/i)).toBeNull();
   });
