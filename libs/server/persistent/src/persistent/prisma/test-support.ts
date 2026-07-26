@@ -27,6 +27,19 @@ export interface MockPrismaStore {
   logicalRelationship: Record<string, MockFn>;
   inboxItem: Record<string, MockFn>;
   inboxRevision: Record<string, MockFn>;
+  workspaceSequence: Record<string, MockFn>;
+  inboxExtraction: Record<string, MockFn>;
+  inboxExtractionSource: Record<string, MockFn>;
+  inboxStoryCandidate: Record<string, MockFn>;
+  inboxStoryCitation: Record<string, MockFn>;
+  inboxCandidateDecision: Record<string, MockFn>;
+  iteration: Record<string, MockFn>;
+  iterationIntake: Record<string, MockFn>;
+  kickoffProposal: Record<string, MockFn>;
+  kickoffDecision: Record<string, MockFn>;
+  problemStatementRevision: Record<string, MockFn>;
+  storyCardRevision: Record<string, MockFn>;
+  activityRun: Record<string, MockFn>;
   storyCandidate: Record<string, MockFn>;
   storyCandidateCitation: Record<string, MockFn>;
   story: Record<string, MockFn>;
@@ -98,6 +111,31 @@ export function mockPrismaStore(): MockPrismaStore {
       'updateMany',
     ]),
     inboxRevision: delegate(['findMany', 'findFirst', 'count', 'create']),
+    workspaceSequence: delegate(['findUnique', 'upsert', 'update']),
+    inboxExtraction: delegate([
+      'findMany',
+      'findFirst',
+      'count',
+      'create',
+      'updateMany',
+    ]),
+    inboxExtractionSource: delegate(['createMany']),
+    inboxStoryCandidate: delegate(['findMany', 'findFirst', 'count', 'create']),
+    inboxStoryCitation: delegate(['createMany']),
+    inboxCandidateDecision: delegate(['findFirst', 'create']),
+    iteration: delegate([
+      'findMany',
+      'findFirst',
+      'count',
+      'create',
+      'updateMany',
+    ]),
+    iterationIntake: delegate(['findFirst', 'create']),
+    kickoffProposal: delegate(['findMany', 'findFirst', 'create']),
+    kickoffDecision: delegate(['findMany', 'findFirst', 'create']),
+    problemStatementRevision: delegate(['findFirst', 'create']),
+    storyCardRevision: delegate(['findFirst', 'create']),
+    activityRun: delegate(['findFirst', 'create', 'updateMany']),
     storyCandidate: delegate([
       'findMany',
       'findFirst',
