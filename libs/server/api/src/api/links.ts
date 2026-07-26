@@ -209,6 +209,34 @@ export function workspaceIterationUnderstandingDecisionsHref(
   return `${workspaceIterationUnderstandingHref(workspaceId, iterationId)}/decisions`;
 }
 
+export function workspaceIterationTaskingHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/tasking`;
+}
+
+export function workspaceIterationNoModelImpactHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationTaskingHref(workspaceId, iterationId)}/no-model-impact`;
+}
+
+export function workspaceIterationTaskingCandidatesHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationTaskingHref(workspaceId, iterationId)}/candidates`;
+}
+
+export function workspaceIterationDeskCheckDecisionsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationTaskingHref(workspaceId, iterationId)}/decisions`;
+}
+
 export function workspaceStoriesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/stories`;
 }

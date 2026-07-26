@@ -10,5 +10,6 @@ export * from './logical-relationship-model';
 export * from './member-model';
 export * from './node-model';
 export * from './understanding-model';
+export * from './tasking-model';
 export * from './user-model';
 export * from './workspace-model';
