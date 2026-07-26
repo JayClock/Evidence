@@ -47,6 +47,7 @@ import {
   TableRow,
   Textarea,
 } from '@evidence/ui';
+import { DesktopSourceDialog } from './desktop-source-dialog';
 import { InboxExtractionControls } from './inbox-extraction-controls';
 import { InboxPagination } from './inbox-pagination';
 
@@ -70,6 +71,14 @@ export function InboxCollectionView({
       }
       return next;
     });
+  };
+
+  const capture = async (input: InboxSourceInput) => {
+    const collection = collectionState.follow('self');
+    await collection.post({ data: input });
+    const refreshed =
+      (await collection.refresh()) as State<InboxItemCollectionResource>;
+    setCollectionState(refreshed);
   };
 
   const navigatePage = async (relation: 'prev' | 'next') => {
@@ -105,15 +114,11 @@ export function InboxCollectionView({
             collectionState={collectionState}
             selectedIds={[...selectedIds]}
           />
-          <CaptureInboxDialog
-            onCapture={async (input) => {
-              const collection = collectionState.follow('self');
-              await collection.post({ data: input });
-              const refreshed =
-                (await collection.refresh()) as State<InboxItemCollectionResource>;
-              setCollectionState(refreshed);
-            }}
+          <DesktopSourceDialog
+            workspaceId={workspaceId(collectionState)}
+            onCapture={capture}
           />
+          <CaptureInboxDialog onCapture={capture} />
         </div>
       </CardHeader>
       <CardContent>
@@ -406,6 +411,14 @@ function formatDateTime(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(date);
+}
+
+function workspaceId(
+  collectionState: State<InboxItemCollectionResource>,
+): string | null {
+  const href = collectionState.getLink('workspace')?.href;
+  const match = href && /\/workspaces\/([^/?#]+)/.exec(href);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 function createManualSourceKey() {

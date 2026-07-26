@@ -84,7 +84,9 @@ function collectionState({
                 rel,
                 href: '/api/workspaces/workspace-1/inbox-extractions',
               }
-            : undefined,
+            : rel === 'workspace'
+              ? { rel, href: '/api/workspaces/workspace-1' }
+              : undefined,
       follow: (rel: string) => {
         if (rel === 'self') {
           return resource;
@@ -231,6 +233,48 @@ describe('InboxCollectionView', () => {
         '/api/workspaces/workspace-1/story-candidates',
       ),
     );
+  });
+
+  it('captures a repository-relative Markdown snapshot through Desktop', async () => {
+    const source = {
+      sourceKind: 'local_markdown' as const,
+      externalKey: 'workspace:docs/request.md',
+      title: 'Request',
+      body: '# Request',
+      contentType: 'text/markdown' as const,
+      uri: null,
+      providerMetadata: { relativePath: 'docs/request.md' },
+      sourceUpdatedAt: '2026-07-21T10:00:00.000Z',
+    };
+    const readInboxMarkdown = vi.fn().mockResolvedValue(source);
+    window.evidenceDesktop = { readInboxMarkdown } as never;
+    const post = vi.fn().mockResolvedValue(itemState);
+    const refresh = vi
+      .fn()
+      .mockResolvedValue(collectionState({ items: [itemState] }).state);
+    const { state } = collectionState({ items: [], post, refresh });
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Capture Desktop source' }),
+    );
+    fireEvent.change(screen.getByLabelText('Repository-relative path'), {
+      target: { value: 'docs/request.md' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Capture snapshot' }));
+
+    await waitFor(() =>
+      expect(readInboxMarkdown).toHaveBeenCalledWith(
+        'workspace-1',
+        'docs/request.md',
+      ),
+    );
+    expect(post).toHaveBeenCalledWith({ data: source });
   });
 
   it('captures a manual source and refreshes the collection', async () => {
