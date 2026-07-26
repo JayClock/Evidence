@@ -19,26 +19,6 @@ import {
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
 import { authorizedApiRequestHeaders } from './api-request-authorization';
-import type {
-  CodingAgentEvent,
-  CodingAgentRuntimeRequest,
-} from './coding-agent-protocol';
-import { parseCodingAgentEvent } from './coding-agent-protocol';
-import { CodingController } from './coding-controller';
-import {
-  ACCEPT_CODING_RUN_CHANNEL,
-  CANCEL_CODING_AGENT_CHANNEL,
-  CODING_AGENT_EVENT_CHANNEL,
-  GET_CODING_REVIEW_CHANNEL,
-  parseCodingRunDecisionRequest,
-  parseCodingRunId,
-  parseCodingRunRejectionRequest,
-  parseStartCodingRequest,
-  REJECT_CODING_RUN_CHANNEL,
-  RUN_CODING_AGENT_CHANNEL,
-} from './coding-ipc-protocol';
-import { CodingRunClient } from './coding-run-client';
-import { CodingRunStore } from './coding-run-store';
 import { CodingWorktreeManager } from './coding-worktree';
 import {
   captureGitHubIssue,
@@ -110,7 +90,6 @@ let taskingAnalyst: LocalAgent<
   IntakeAgentEvent
 > | null = null;
 let iterationController: IterationController | null = null;
-let codingController: CodingController | null = null;
 let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
@@ -172,7 +151,6 @@ function registerDesktopBridge(
   apiBaseUrl: string,
   agent: LocalAgent,
   bindings: WorkspaceBindingStore,
-  coding: CodingController,
   inbox: LocalAgent<InboxAnalystRuntimeRequest, IntakeAgentEvent>,
   kickoff: LocalAgent<KickoffAnalystRuntimeRequest, IntakeAgentEvent>,
   understanding: LocalAgent<
@@ -365,31 +343,6 @@ function registerDesktopBridge(
     }
     await agent.cancel(id);
   });
-  ipcMain.handle(RUN_CODING_AGENT_CHANNEL, async (event, input: unknown) => {
-    assertTrustedIpcSender(event);
-    const request = parseStartCodingRequest(input);
-    await coding.run(request, (codingEvent) => {
-      if (!event.sender.isDestroyed()) {
-        event.sender.send(CODING_AGENT_EVENT_CHANNEL, codingEvent);
-      }
-    });
-  });
-  ipcMain.handle(CANCEL_CODING_AGENT_CHANNEL, async (event, id: unknown) => {
-    assertTrustedIpcSender(event);
-    await coding.cancel(parseCodingRunId(id));
-  });
-  ipcMain.handle(GET_CODING_REVIEW_CHANNEL, (event, runId: unknown) => {
-    assertTrustedIpcSender(event);
-    return coding.getReview(parseCodingRunId(runId));
-  });
-  ipcMain.handle(ACCEPT_CODING_RUN_CHANNEL, async (event, input: unknown) => {
-    assertTrustedIpcSender(event);
-    return coding.accept(parseCodingRunDecisionRequest(input));
-  });
-  ipcMain.handle(REJECT_CODING_RUN_CHANNEL, async (event, input: unknown) => {
-    assertTrustedIpcSender(event);
-    return coding.reject(parseCodingRunRejectionRequest(input));
-  });
 }
 
 function registerRendererApiAuthorization(
@@ -463,28 +416,6 @@ function createIntakeAgent<
       ...(authorization ? { EVIDENCE_API_AUTHORIZATION: authorization } : {}),
     },
     parseEvent: parseIntakeAgentEvent,
-  });
-}
-
-function createLocalCodingAgent(): LocalAgent<
-  CodingAgentRuntimeRequest,
-  CodingAgentEvent
-> {
-  return new LocalAgent({
-    executablePath: app.isPackaged
-      ? process.execPath
-      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
-    runtimeEntry: app.isPackaged
-      ? join(
-          process.resourcesPath,
-          'app.asar.unpacked',
-          'dist',
-          'coding-agent-runtime.mjs',
-        )
-      : join(__dirname, 'coding-agent-runtime.mjs'),
-    packaged: app.isPackaged,
-    environment: piRuntimeEnvironment(),
-    parseEvent: parseCodingAgentEvent,
   });
 }
 
@@ -594,7 +525,6 @@ void app.whenReady().then(async () => {
       'tasking-analyst-runtime.mjs',
       authorization,
     );
-    const localCodingAgent = createLocalCodingAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
     );
@@ -608,24 +538,10 @@ void app.whenReady().then(async () => {
       ),
       new IntakeApiClient({ apiBaseUrl, authorization }),
     );
-    codingController = new CodingController(
-      apiBaseUrl,
-      bindings,
-      new CodingWorktreeManager(
-        join(app.getPath('userData'), 'coding-worktrees'),
-      ),
-      new CodingRunClient({ apiBaseUrl, authorization }),
-      new CodingRunStore(
-        join(app.getPath('userData'), 'local-coding-runs.json'),
-      ),
-      localCodingAgent,
-    );
-    await codingController.recover();
     registerDesktopBridge(
       apiBaseUrl,
       localAgent,
       bindings,
-      codingController,
       inboxAnalyst,
       kickoffAnalyst,
       understandingAnalyst,
@@ -664,8 +580,7 @@ app.on('before-quit', (event) => {
       kickoffAnalyst ||
       understandingAnalyst ||
       taskingAnalyst ||
-      iterationController ||
-      codingController)
+      iterationController)
   ) {
     event.preventDefault();
     allowQuit = true;
@@ -676,7 +591,6 @@ app.on('before-quit', (event) => {
       kickoffAnalyst?.stop() ?? Promise.resolve(),
       understandingAnalyst?.stop() ?? Promise.resolve(),
       taskingAnalyst?.stop() ?? Promise.resolve(),
-      codingController?.stop() ?? Promise.resolve(),
     ]).finally(() => app.quit());
   }
 });

@@ -28,19 +28,6 @@ import type {
   StartIterationRequest,
 } from './iteration-controller';
 import {
-  ACCEPT_CODING_RUN_CHANNEL,
-  CANCEL_CODING_AGENT_CHANNEL,
-  CODING_AGENT_EVENT_CHANNEL,
-  GET_CODING_REVIEW_CHANNEL,
-  parseCodingRunEvent,
-  REJECT_CODING_RUN_CHANNEL,
-  RUN_CODING_AGENT_CHANNEL,
-  type CodingRunDecisionRequest,
-  type CodingRunEvent,
-  type CodingRunRejectionRequest,
-  type StartCodingRequest,
-} from './coding-ipc-protocol';
-import {
   CANCEL_DIAGRAM_AGENT_CHANNEL,
   DIAGRAM_AGENT_EVENT_CHANNEL,
   parseDiagramAgentEvent,
@@ -152,29 +139,6 @@ const bridge = {
   },
   cancelDiagramAgent: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_DIAGRAM_AGENT_CHANNEL, id),
-  runCodingAgent: async (
-    request: StartCodingRequest,
-    onEvent: (event: CodingRunEvent) => void,
-  ): Promise<void> => {
-    const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
-      const event = parseCodingRunEvent(value);
-      if (event?.id === request.id) onEvent(event);
-    };
-    ipcRenderer.on(CODING_AGENT_EVENT_CHANNEL, listener);
-    try {
-      await ipcRenderer.invoke(RUN_CODING_AGENT_CHANNEL, request);
-    } finally {
-      ipcRenderer.removeListener(CODING_AGENT_EVENT_CHANNEL, listener);
-    }
-  },
-  cancelCodingAgent: (id: string): Promise<void> =>
-    ipcRenderer.invoke(CANCEL_CODING_AGENT_CHANNEL, id),
-  getCodingReview: (runId: string): Promise<unknown> =>
-    ipcRenderer.invoke(GET_CODING_REVIEW_CHANNEL, runId),
-  acceptCodingRun: (input: CodingRunDecisionRequest): Promise<unknown> =>
-    ipcRenderer.invoke(ACCEPT_CODING_RUN_CHANNEL, input),
-  rejectCodingRun: (input: CodingRunRejectionRequest): Promise<unknown> =>
-    ipcRenderer.invoke(REJECT_CODING_RUN_CHANNEL, input),
 };
 
 contextBridge.exposeInMainWorld('evidenceDesktop', bridge);
