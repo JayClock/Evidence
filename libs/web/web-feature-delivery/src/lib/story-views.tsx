@@ -31,7 +31,6 @@ import {
   TableRow,
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
-import { StoryCodingRunsPanel } from './coding-run-views';
 
 export function StoryCollectionView({
   resourceState,
@@ -207,9 +206,6 @@ export function StoryDetailView({
           </div>
         </CardContent>
       </Card>
-      {resourceState.getLink('coding-runs') ? (
-        <StoryCodingRunsPanel storyState={resourceState} />
-      ) : null}
       <RelatedCard
         title={`Latest revision · v${String(story.latestRevisionNumber)}`}
         description="The current immutable Story snapshot."

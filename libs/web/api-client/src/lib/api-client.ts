@@ -16,12 +16,6 @@ type DiagramAgentEvent = {
   data: string;
 };
 
-export type CodingRunEvent = {
-  id: string;
-  event: string;
-  data: string;
-};
-
 export type IntakeAgentEvent = {
   id: string;
   event: 'progress' | 'tool-start' | 'tool-end' | 'complete' | 'error';
@@ -53,30 +47,10 @@ export type IterationProvisioningSummary = {
   baseCommitSha: string;
 };
 
-export type StartCodingRequest = {
-  id: string;
-  workspaceId: string;
-  storyId: string;
-  storyRevisionId: string;
-};
-
 export type RepositorySelectionSummary = {
   id: string;
   name: string;
   headCommitSha: string;
-};
-
-export type LocalCodingReview = {
-  run: Record<string, unknown>;
-  diff: string;
-  diffSha256: string;
-  changedFileCount: number;
-};
-
-type CodingRunDecisionRequest = {
-  workspaceId: string;
-  runId: string;
-  diffSha256: string;
 };
 
 type EvidenceDesktopBridge = {
@@ -120,18 +94,6 @@ type EvidenceDesktopBridge = {
     onEvent: (event: DiagramAgentEvent) => void,
   ): Promise<void>;
   cancelDiagramAgent(id: string): Promise<void>;
-  runCodingAgent(
-    request: StartCodingRequest,
-    onEvent: (event: CodingRunEvent) => void,
-  ): Promise<void>;
-  cancelCodingAgent(id: string): Promise<void>;
-  getCodingReview(runId: string): Promise<LocalCodingReview | null>;
-  acceptCodingRun(
-    input: CodingRunDecisionRequest,
-  ): Promise<Record<string, unknown>>;
-  rejectCodingRun(
-    input: CodingRunDecisionRequest & { reason: string },
-  ): Promise<Record<string, unknown>>;
 };
 
 type EvidenceImportMeta = ImportMeta & {
