@@ -355,6 +355,71 @@ function requireNext(view: PairView): PairNextAction {
 }
 
 describe('PrismaWorkspacePair', () => {
+  it('releases exception authority so a human-routed Pair can be claimed immediately', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    const lease = started.leaseToken;
+    let view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(started.view, lease),
+        role: 'test',
+        mode: 'write_test',
+        summary: 'Added the focused Pair authority test.',
+        changedPaths: ['apps/desktop/src/pair-authority.spec.ts'],
+        beforeWorktreeSha256: sha('1'),
+        afterWorktreeSha256: sha('2'),
+        diffSha256: sha('3'),
+        agentCallCount: 1,
+      })
+    ).view;
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, lease, 0, sha('3')),
+      )
+    ).view;
+    expect(view.run.description()).toMatchObject({
+      status: 'exception',
+      leaseOwnerId: null,
+      leaseExpiresAt: null,
+    });
+
+    view = (
+      await pair.decidePair(
+        'iteration-1',
+        {
+          expectedPairVersion: view.run.description().version,
+          action: 'back_test',
+          reason: 'Repair the TEST so it observes an approved behavior Red.',
+        },
+        'user-1',
+      )
+    ).view;
+    expect(view.run.description()).toMatchObject({
+      status: 'running',
+      checkpoint: 'plan_confirmed',
+      leaseOwnerId: null,
+      leaseExpiresAt: null,
+    });
+
+    await expect(
+      pair.claimPairLease('iteration-1', {
+        pairRunId: view.run.identity(),
+        expectedPairVersion: view.run.description().version,
+        executorId: 'desktop-2',
+      }),
+    ).resolves.toMatchObject({
+      run: expect.objectContaining({}),
+      leaseToken: expect.any(String),
+    });
+  });
+
   it('persists the approved-plan Red/Green/Refactor/gate chain before human approval', async () => {
     const fixture = statefulStore();
     const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');

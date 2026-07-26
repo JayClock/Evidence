@@ -1037,6 +1037,14 @@ async function advancePair(
   },
 ): Promise<void> {
   const run = context.view.run.description();
+  const retainsLease =
+    context.run.leaseTokenSha256 !== null &&
+    context.run.leaseExpiresAt !== null &&
+    data.status !== 'exception' &&
+    data.status !== 'approval_required' &&
+    data.status !== 'approved' &&
+    data.status !== 'cancelled' &&
+    data.leaseTokenSha256 !== null;
   const advanced = await store.pairRun.updateMany({
     where: {
       id: context.run.id,
@@ -1046,10 +1054,9 @@ async function advancePair(
     data: {
       ...data,
       version: { increment: 1 },
-      leaseExpiresAt:
-        data.status === 'running' || !data.status
-          ? new Date(timestamp.getTime() + LEASE_MS)
-          : null,
+      leaseExpiresAt: retainsLease
+        ? new Date(timestamp.getTime() + LEASE_MS)
+        : null,
       updatedAt: timestamp,
     },
   });
