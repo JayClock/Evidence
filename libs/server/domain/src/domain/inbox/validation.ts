@@ -9,7 +9,7 @@ import type {
 const SOURCE_KIND_PATTERN = /^[a-z][a-z0-9_]*$/;
 const MAX_TITLE_LENGTH = 200;
 const MAX_EXTERNAL_KEY_LENGTH = 256;
-const MAX_BODY_BYTES = 256 * 1024;
+const MAX_BODY_BYTES = 1024 * 1024;
 const MAX_METADATA_BYTES = 16 * 1024;
 
 export function normalizeInboxSource(source: InboxSourceInput): Required<

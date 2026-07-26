@@ -58,6 +58,27 @@ describe('Inbox source validation', () => {
     expect(() => normalizeInboxSource(source)).toThrow(DomainError);
   });
 
+  it('accepts at most one MiB of normalized source content', () => {
+    expect(() =>
+      normalizeInboxSource({
+        sourceKind: 'local_markdown',
+        externalKey: 'requirements/large.md',
+        title: 'Large requirement',
+        body: 'a'.repeat(1024 * 1024),
+        contentType: 'text/markdown',
+      }),
+    ).not.toThrow();
+    expect(() =>
+      normalizeInboxSource({
+        sourceKind: 'local_markdown',
+        externalKey: 'requirements/too-large.md',
+        title: 'Too large',
+        body: 'a'.repeat(1024 * 1024 + 1),
+        contentType: 'text/markdown',
+      }),
+    ).toThrow('1048576 bytes');
+  });
+
   it('rejects local file paths as source URIs', () => {
     expect(() =>
       normalizeInboxSource({
