@@ -3,6 +3,7 @@ export { EntityList as MemoryEntityList } from './memory';
 export * from './workspace-paths';
 export * from './inbox-content';
 export * from './story-content';
+export * from './workflow-content';
 export * from './filesystem/workspace-diagram';
 export * from './filesystem/workspace-logical-entities';
 export * from './filesystem/workspace-logical-relationships';
