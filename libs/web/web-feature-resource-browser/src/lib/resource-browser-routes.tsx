@@ -29,6 +29,7 @@ import {
   type StoryResource,
   type StoryRevisionCollectionResource,
   type StoryRevisionResource,
+  type TaskingResource,
   type UnderstandingResource,
   type UserResource,
   type WorkspaceResource,
@@ -56,6 +57,7 @@ import {
   StoryDetailView,
   StoryRevisionCollectionView,
   StoryRevisionDetailView,
+  TaskingDetailView,
   UnderstandingDetailView,
 } from '@evidence/web-feature-delivery';
 import {
@@ -273,6 +275,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <UnderstandingDetailView
           resourceState={resourceState as State<UnderstandingResource>}
+        />
+      );
+    case resourceContentTypes.tasking:
+      return (
+        <TaskingDetailView
+          resourceState={resourceState as State<TaskingResource>}
         />
       );
     case resourceContentTypes.story:

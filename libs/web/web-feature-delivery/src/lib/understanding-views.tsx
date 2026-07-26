@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import type {
   AnswerClarificationInput,
+  NoModelImpactDecisionResource,
+  RecordNoModelImpactInput,
   State,
   UnderstandingDecisionInput,
   UnderstandingDecisionResultResource,
@@ -31,6 +34,7 @@ export function UnderstandingDetailView({
   const [state, setState] = useState(resourceState);
   const [answer, setAnswer] = useState('');
   const [reason, setReason] = useState('');
+  const [modelReason, setModelReason] = useState('');
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +95,38 @@ export function UnderstandingDetailView({
     } catch (caught) {
       setError(
         message(caught, 'The clarification answer could not be recorded.'),
+      );
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const recordNoModelImpact = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (
+      !state.getLink('record-no-model-impact') ||
+      !modelReason.trim() ||
+      pending
+    )
+      return;
+    setPending(true);
+    setError(null);
+    try {
+      const input: RecordNoModelImpactInput = {
+        expectedIterationVersion: understanding.iteration.version,
+        storyId: understanding.story.id,
+        storyRevisionId: understanding.storyRevision.id,
+        storyRevisionSha256: understanding.storyRevision.contentSha256,
+        reason: modelReason.trim(),
+      };
+      (await state.follow('record-no-model-impact').post({
+        data: input,
+      })) as State<NoModelImpactDecisionResource>;
+      setModelReason('');
+      await refresh();
+    } catch (caught) {
+      setError(
+        message(caught, 'The No Model Impact decision could not be recorded.'),
       );
     } finally {
       setPending(false);
@@ -176,12 +212,38 @@ export function UnderstandingDetailView({
             </Alert>
           ) : null}
           {understanding.iteration.stage === 'modeling' ? (
-            <Alert>
-              <AlertDescription>
-                The Scenario Set is confirmed. The next checkpoint is Understand
-                / Modeling / Profile.
-              </AlertDescription>
-            </Alert>
+            <form onSubmit={(event) => void recordNoModelImpact(event)}>
+              <FieldGroup>
+                <Alert>
+                  <AlertDescription>
+                    This release supports only an explicit human no-model-impact
+                    route for tool or glue Stories. Do not use it when domain
+                    impact exists or is uncertain.
+                  </AlertDescription>
+                </Alert>
+                <Field>
+                  <FieldLabel htmlFor="no-model-impact-reason">
+                    Why this Story is tool / none / false
+                  </FieldLabel>
+                  <Textarea
+                    id="no-model-impact-reason"
+                    required
+                    value={modelReason}
+                    onChange={(event) => setModelReason(event.target.value)}
+                  />
+                </Field>
+                <Button disabled={pending || !modelReason.trim()} type="submit">
+                  Record No Model Impact
+                </Button>
+              </FieldGroup>
+            </form>
+          ) : null}
+          {state.getLink('tasking') ? (
+            <Button asChild>
+              <Link to={state.getLink('tasking')?.href ?? '#'}>
+                Open Tasking / Desk Check
+              </Link>
+            </Button>
           ) : null}
         </CardContent>
       </Card>

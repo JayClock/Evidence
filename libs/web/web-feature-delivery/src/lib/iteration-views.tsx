@@ -80,6 +80,13 @@ export function IterationDetailView({
               </Link>
             </Button>
           ) : null}
+          {resourceState.getLink('tasking') ? (
+            <Button asChild>
+              <Link to={resourceState.getLink('tasking')?.href ?? '#'}>
+                Open Tasking / Desk Check
+              </Link>
+            </Button>
+          ) : null}
           {resourceState.getLink('story') ? (
             <Button asChild variant="outline">
               <Link to={resourceState.getLink('story')?.href ?? '#'}>
