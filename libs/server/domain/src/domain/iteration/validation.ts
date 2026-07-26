@@ -126,7 +126,9 @@ export function parseIterationStage(value: string): IterationStage {
   if (
     value === 'candidate_review' ||
     value === 'candidate_drafting' ||
-    value === 'tqa'
+    value === 'tqa' ||
+    value === 'scenario_review' ||
+    value === 'modeling'
   ) {
     return value;
   }

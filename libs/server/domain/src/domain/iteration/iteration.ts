@@ -11,7 +11,12 @@ export type IterationLifecycle =
   | 'provisioning_failed'
   | 'halted';
 export type IterationLoop = 'kickoff' | 'understand';
-export type IterationStage = 'candidate_review' | 'candidate_drafting' | 'tqa';
+export type IterationStage =
+  | 'candidate_review'
+  | 'candidate_drafting'
+  | 'tqa'
+  | 'scenario_review'
+  | 'modeling';
 export type KickoffDecisionAction =
   | 'confirm'
   | 'revise'
