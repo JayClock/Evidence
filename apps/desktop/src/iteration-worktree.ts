@@ -49,6 +49,29 @@ export class IterationWorktreeManager {
     this.managedRoot = resolve(root);
   }
 
+  locate(input: {
+    iterationId: string;
+    repositoryRoot: string;
+    baseCommitSha: string;
+    branchName: string;
+  }): IterationWorktree {
+    const iterationId = normalizeIterationId(input.iterationId);
+    const baseCommitSha = normalizeCommit(input.baseCommitSha);
+    const branchName = `evidence/iter-${iterationId}`;
+    if (input.branchName !== branchName) {
+      throw new Error('Iteration worktree branch identity is invalid.');
+    }
+    const worktreeRoot = resolve(this.managedRoot, iterationId);
+    assertManagedPath(this.managedRoot, worktreeRoot);
+    return {
+      iterationId,
+      repositoryRoot: input.repositoryRoot,
+      worktreeRoot,
+      branchName,
+      baseCommitSha,
+    };
+  }
+
   async prepare(input: {
     iterationId: string;
     repositoryRoot: string;

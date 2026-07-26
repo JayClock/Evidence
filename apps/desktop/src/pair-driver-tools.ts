@@ -106,6 +106,33 @@ export function pairDriverWritePolicy(
   };
 }
 
+export function assertPairDriverChangedPaths(
+  policy: PairDriverWritePolicy,
+  paths: string[],
+): void {
+  for (const path of paths) {
+    const name = path.split('/').at(-1) ?? path;
+    if (protectedPath(path) || PROTECTED_NAMES.has(name)) {
+      throw new Error(`Pair Driver changed protected path ${path}.`);
+    }
+    if (policy.role === 'test') {
+      if (
+        !policy.allowedTestRoots.some((root) => owns(root, path)) ||
+        !isTestPath(path)
+      ) {
+        throw new Error(`Test Driver changed non-test path ${path}.`);
+      }
+      continue;
+    }
+    if (!policy.allowedProductionRoots.some((root) => owns(root, path))) {
+      throw new Error(`Production Driver changed unplanned path ${path}.`);
+    }
+    if (isTestPath(path) || policy.frozenTestPaths.includes(path)) {
+      throw new Error(`Production Driver changed frozen test ${path}.`);
+    }
+  }
+}
+
 class PairFileBoundary {
   private constructor(
     readonly root: string,
