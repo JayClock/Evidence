@@ -180,6 +180,54 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/inbox-extractions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['create_inbox_extraction'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/inbox-extractions/{extractionId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_inbox_extraction'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/inbox-extractions/{extractionId}/candidates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['propose_inbox_story_candidates'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/story-candidates': {
     parameters: {
       query?: never;
@@ -831,6 +879,110 @@ export interface components {
       };
       /** Format: date-time */
       sourceUpdatedAt?: string | null;
+    };
+    CreateInboxExtractionInput: {
+      inboxItemIds: string[];
+    };
+    InboxCandidateCitationInput: {
+      inboxItemId: string;
+      revisionSha256: string;
+      locator: string;
+    };
+    InboxStoryCandidateInput: {
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      /** @enum {string} */
+      cognitiveMode: 'clear' | 'complicated' | 'complex';
+      citations: components['schemas']['InboxCandidateCitationInput'][];
+    };
+    ProposeInboxCandidatesInput: {
+      /** Format: int32 */
+      expectedVersion: number;
+      candidates: components['schemas']['InboxStoryCandidateInput'][];
+    };
+    InboxExtractionSourceResource: {
+      inboxItemId: string;
+      inboxRevisionId: string;
+      /** Format: int32 */
+      revisionNumber: number;
+      sourceKind: string;
+      externalKey: string;
+      /** @enum {string} */
+      itemStatus: 'active' | 'deferred' | 'closed';
+      title: string;
+      body: string;
+      /** @enum {string} */
+      contentType: 'text/plain' | 'text/markdown';
+      /** Format: uri */
+      uri?: string | null;
+      providerMetadata: {
+        [key: string]: unknown;
+      };
+      /** Format: date-time */
+      sourceUpdatedAt?: string | null;
+      /** Format: date-time */
+      capturedAt: string;
+      contentSha256: string;
+      locatorLinks: components['schemas']['BTreeMap'];
+    };
+    InboxExtractionResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      /** @enum {string} */
+      status: 'awaiting_agent' | 'completed' | 'failed' | 'cancelled';
+      sources: components['schemas']['InboxExtractionSourceResource'][];
+      /** Format: int32 */
+      version: number;
+      requestedByUserId: string;
+      /** Format: date-time */
+      requestedAt: string;
+      /** Format: date-time */
+      completedAt?: string | null;
+      failureSummary?: string | null;
+    };
+    InboxCandidateCitationResource: {
+      _links: components['schemas']['BTreeMap'];
+      inboxItemId: string;
+      inboxRevisionId: string;
+      /** Format: int32 */
+      revisionNumber: number;
+      revisionSha256: string;
+      locator: string;
+    };
+    InboxStoryCandidateResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      extractionId: string;
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      /** @enum {string} */
+      cognitiveMode: 'clear' | 'complicated' | 'complex';
+      citations: components['schemas']['InboxCandidateCitationResource'][];
+      contentSha256: string;
+      /** @enum {string} */
+      status: 'ready' | 'stale' | 'selected' | 'deferred' | 'rejected';
+      /** @enum {string} */
+      proposedBy: 'inbox-analyst';
+      /** Format: date-time */
+      proposedAt: string;
+      terminalDecisionId?: string | null;
+      selectedIterationId?: string | null;
+    };
+    InboxStoryCandidateCollectionEmbedded: {
+      storyCandidates: components['schemas']['InboxStoryCandidateResource'][];
+    };
+    ProposedInboxCandidateSetResource: {
+      _links: components['schemas']['BTreeMap'];
+      extraction: components['schemas']['InboxExtractionResource'];
+      _embedded: components['schemas']['InboxStoryCandidateCollectionEmbedded'];
     };
     LogicalEntityCollectionEmbedded: {
       logicalEntities: components['schemas']['LogicalEntityResource'][];
@@ -2091,6 +2243,92 @@ export interface operations {
           'application/json': components['schemas']['ErrorBody'];
         };
       };
+    };
+  };
+  create_inbox_extraction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateInboxExtractionInput'];
+      };
+    };
+    responses: {
+      /** @description Frozen human-selected Inbox source set awaiting analysis */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-extraction+json': components['schemas']['InboxExtractionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_inbox_extraction: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        extractionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Immutable selected source snapshots and extraction state */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-extraction+json': components['schemas']['InboxExtractionResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  propose_inbox_story_candidates: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        extractionId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProposeInboxCandidatesInput'];
+      };
+    };
+    responses: {
+      /** @description One complete non-authoritative Candidate set */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.inbox-candidate-set+json': components['schemas']['ProposedInboxCandidateSetResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
     };
   };
   list_story_candidates: {

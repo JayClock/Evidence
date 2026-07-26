@@ -51,6 +51,10 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.inbox-revision+json',
     ],
     [
+      '/api/workspaces/default-workspace/inbox-extractions/extraction-1',
+      'application/vnd.evidence.inbox-extraction+json',
+    ],
+    [
       '/api/workspaces/default-workspace/story-candidates',
       'application/vnd.evidence.story-candidates+json',
     ],
@@ -99,6 +103,14 @@ describe('vendorMediaType', () => {
     [
       '/api/workspaces/default-workspace/inbox-items/inbox-1/revisions',
       'application/vnd.evidence.inbox-revision+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/inbox-extractions',
+      'application/vnd.evidence.inbox-extraction+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/inbox-extractions/extraction-1/candidates',
+      'application/vnd.evidence.inbox-candidate-set+json',
     ],
     [
       '/api/workspaces/default-workspace/story-candidates',

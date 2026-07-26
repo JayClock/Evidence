@@ -19,6 +19,8 @@ const mediaTypes = {
   inboxItems: 'application/vnd.evidence.inbox-items+json',
   inboxRevision: 'application/vnd.evidence.inbox-revision+json',
   inboxRevisions: 'application/vnd.evidence.inbox-revisions+json',
+  inboxExtraction: 'application/vnd.evidence.inbox-extraction+json',
+  inboxCandidateSet: 'application/vnd.evidence.inbox-candidate-set+json',
   storyCandidate: 'application/vnd.evidence.story-candidate+json',
   storyCandidates: 'application/vnd.evidence.story-candidates+json',
   story: 'application/vnd.evidence.story+json',
@@ -87,6 +89,9 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(openapi.body.paths).toHaveProperty('/api/workspaces');
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/inbox-items',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/inbox-extractions/{extractionId}/candidates',
     );
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm',
@@ -383,6 +388,97 @@ describeContracts('Evidence API contract vertical slice', () => {
       `/api/workspaces/${otherWorkspace.body.id}/inbox-items/${created.body.id}`,
     );
     expect(outsideBoundary.status).toBe(404);
+  });
+
+  it('freezes a selected source set and accepts one exact-revision Candidate batch', async () => {
+    const workspace = await createContractWorkspace('Extraction Workspace');
+    const workspaceId = workspace.body.id as string;
+    const source = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-items`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          sourceKind: 'manual_text',
+          externalKey: uniqueName('extraction-source'),
+          title: 'Frozen delivery intake',
+          body: 'Start one Story from this exact source.',
+          contentType: 'text/markdown',
+        }),
+      },
+    );
+
+    const extraction = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-extractions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ inboxItemIds: [source.body.id] }),
+      },
+    );
+    expect(extraction.status).toBe(201);
+    expectHalResource(extraction, mediaTypes.inboxExtraction);
+    expect(extraction.body).toMatchObject({
+      reference: expect.stringMatching(/^EXTRACT-[0-9]{4,}$/),
+      status: 'awaiting_agent',
+      version: 1,
+      sources: [
+        expect.objectContaining({
+          inboxItemId: source.body.id,
+          inboxRevisionId: source.body.latestRevisionId,
+          contentSha256: source.body.latestRevisionSha256,
+          body: 'Start one Story from this exact source.',
+        }),
+      ],
+    });
+
+    const proposed = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-extractions/${extraction.body.id}/candidates`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedVersion: 1,
+          candidates: [
+            {
+              title: 'Frozen delivery intake',
+              problem: 'Mutable sources cannot authorize delivery.',
+              role: 'Workspace maintainer',
+              goal: 'Start one frozen iteration.',
+              value: 'Every decision remains traceable.',
+              cognitiveMode: 'complicated',
+              citations: [
+                {
+                  inboxItemId: source.body.id,
+                  revisionSha256: source.body.latestRevisionSha256,
+                  locator: 'whole-source',
+                },
+              ],
+            },
+          ],
+        }),
+      },
+    );
+    expect(proposed.status).toBe(201);
+    expectResourceContentType(proposed, mediaTypes.inboxCandidateSet);
+    expect(proposed.body.extraction).toMatchObject({
+      id: extraction.body.id,
+      status: 'completed',
+      version: 2,
+    });
+    expect(proposed.body._embedded.storyCandidates).toEqual([
+      expect.objectContaining({
+        reference: expect.stringMatching(/^CAND-[0-9]{4,}$/),
+        status: 'ready',
+        proposedBy: 'inbox-analyst',
+      }),
+    ]);
+
+    const replay = await apiRequest(
+      `/api/workspaces/${workspaceId}/inbox-extractions/${extraction.body.id}/candidates`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ expectedVersion: 2, candidates: [] }),
+      },
+    );
+    expect(replay.status).toBe(409);
   });
 
   it('confirms a source-cited Candidate as immutable Story Revision v1', async () => {

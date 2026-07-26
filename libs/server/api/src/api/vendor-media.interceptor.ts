@@ -107,6 +107,27 @@ export function vendorMediaType(
   ) {
     return mediaType('inbox-revision');
   }
+  if (matches(apiSegments, ['workspaces', '*', 'inbox-extractions'])) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('inbox-extraction')
+      : null;
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'inbox-extractions', '*'])) {
+    return mediaType('inbox-extraction');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'inbox-extractions',
+      '*',
+      'candidates',
+    ])
+  ) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('inbox-candidate-set')
+      : null;
+  }
   if (matches(apiSegments, ['workspaces', '*', 'story-candidates'])) {
     return method.toUpperCase() === 'POST'
       ? mediaType('story-candidate')

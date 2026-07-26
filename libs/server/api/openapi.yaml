@@ -665,6 +665,96 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
+  /api/workspaces/{workspaceId}/inbox-extractions:
+    post:
+      operationId: create_inbox_extraction
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInboxExtractionInput'
+      responses:
+        '201':
+          description: Frozen human-selected Inbox source set awaiting analysis
+          content:
+            application/vnd.evidence.inbox-extraction+json:
+              schema:
+                $ref: '#/components/schemas/InboxExtractionResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/inbox-extractions/{extractionId}:
+    get:
+      operationId: get_inbox_extraction
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: extractionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Immutable selected source snapshots and extraction state
+          content:
+            application/vnd.evidence.inbox-extraction+json:
+              schema:
+                $ref: '#/components/schemas/InboxExtractionResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/inbox-extractions/{extractionId}/candidates:
+    post:
+      operationId: propose_inbox_story_candidates
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: extractionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProposeInboxCandidatesInput'
+      responses:
+        '201':
+          description: One complete non-authoritative Candidate set
+          content:
+            application/vnd.evidence.inbox-candidate-set+json:
+              schema:
+                $ref: '#/components/schemas/ProposedInboxCandidateSetResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/workspaces/{workspaceId}/story-candidates:
     parameters:
       - name: workspaceId
@@ -2718,6 +2808,298 @@ components:
             - string
             - 'null'
           format: date-time
+    CreateInboxExtractionInput:
+      type: object
+      required:
+        - inboxItemIds
+      properties:
+        inboxItemIds:
+          type: array
+          minItems: 1
+          maxItems: 5
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+    InboxCandidateCitationInput:
+      type: object
+      required:
+        - inboxItemId
+        - revisionSha256
+        - locator
+      properties:
+        inboxItemId:
+          type: string
+          minLength: 1
+        revisionSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        locator:
+          type: string
+          minLength: 1
+          maxLength: 500
+    InboxStoryCandidateInput:
+      type: object
+      required:
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        problem:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        role:
+          type: string
+          minLength: 1
+          maxLength: 200
+        goal:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        value:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        cognitiveMode:
+          type: string
+          enum: [clear, complicated, complex]
+        citations:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/InboxCandidateCitationInput'
+    ProposeInboxCandidatesInput:
+      type: object
+      required:
+        - expectedVersion
+        - candidates
+      properties:
+        expectedVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        candidates:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/InboxStoryCandidateInput'
+    InboxExtractionSourceResource:
+      type: object
+      required:
+        - inboxItemId
+        - inboxRevisionId
+        - revisionNumber
+        - sourceKind
+        - externalKey
+        - itemStatus
+        - title
+        - body
+        - contentType
+        - providerMetadata
+        - capturedAt
+        - contentSha256
+        - locatorLinks
+      properties:
+        inboxItemId:
+          type: string
+        inboxRevisionId:
+          type: string
+        revisionNumber:
+          type: integer
+          format: int32
+          minimum: 1
+        sourceKind:
+          type: string
+        externalKey:
+          type: string
+        itemStatus:
+          type: string
+          enum: [active, deferred, closed]
+        title:
+          type: string
+        body:
+          type: string
+        contentType:
+          type: string
+          enum: [text/plain, text/markdown]
+        uri:
+          type: [string, 'null']
+          format: uri
+        providerMetadata:
+          type: object
+          additionalProperties: {}
+        sourceUpdatedAt:
+          type: [string, 'null']
+          format: date-time
+        capturedAt:
+          type: string
+          format: date-time
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        locatorLinks:
+          $ref: '#/components/schemas/BTreeMap'
+    InboxExtractionResource:
+      type: object
+      required:
+        - _links
+        - id
+        - reference
+        - status
+        - sources
+        - version
+        - requestedByUserId
+        - requestedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        reference:
+          type: string
+          pattern: '^EXTRACT-[0-9]{4,}$'
+        status:
+          type: string
+          enum: [awaiting_agent, completed, failed, cancelled]
+        sources:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/InboxExtractionSourceResource'
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        requestedByUserId:
+          type: string
+        requestedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: [string, 'null']
+          format: date-time
+        failureSummary:
+          type: [string, 'null']
+    InboxCandidateCitationResource:
+      type: object
+      required:
+        - _links
+        - inboxItemId
+        - inboxRevisionId
+        - revisionNumber
+        - revisionSha256
+        - locator
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        inboxItemId:
+          type: string
+        inboxRevisionId:
+          type: string
+        revisionNumber:
+          type: integer
+          format: int32
+          minimum: 1
+        revisionSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        locator:
+          type: string
+    InboxStoryCandidateResource:
+      type: object
+      required:
+        - _links
+        - id
+        - reference
+        - extractionId
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+        - contentSha256
+        - status
+        - proposedBy
+        - proposedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        reference:
+          type: string
+          pattern: '^CAND-[0-9]{4,}$'
+        extractionId:
+          type: string
+        title:
+          type: string
+        problem:
+          type: string
+        role:
+          type: string
+        goal:
+          type: string
+        value:
+          type: string
+        cognitiveMode:
+          type: string
+          enum: [clear, complicated, complex]
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxCandidateCitationResource'
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        status:
+          type: string
+          enum: [ready, stale, selected, deferred, rejected]
+        proposedBy:
+          type: string
+          enum: [inbox-analyst]
+        proposedAt:
+          type: string
+          format: date-time
+        terminalDecisionId:
+          type: [string, 'null']
+        selectedIterationId:
+          type: [string, 'null']
+    InboxStoryCandidateCollectionEmbedded:
+      type: object
+      required:
+        - storyCandidates
+      properties:
+        storyCandidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxStoryCandidateResource'
+    ProposedInboxCandidateSetResource:
+      type: object
+      required:
+        - _links
+        - extraction
+        - _embedded
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        extraction:
+          $ref: '#/components/schemas/InboxExtractionResource'
+        _embedded:
+          $ref: '#/components/schemas/InboxStoryCandidateCollectionEmbedded'
     LogicalEntityCollectionEmbedded:
       type: object
       required:

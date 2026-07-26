@@ -10,6 +10,7 @@ import {
 } from './delivery.controller';
 import { DiagramsController } from './diagrams.controller';
 import { InboxController } from './inbox.controller';
+import { InboxExtractionsController } from './inbox-extractions.controller';
 import { LogicalEntitiesController } from './logical-entities.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
 import { ResourceResolver } from './resource-resolver.service';
@@ -70,6 +71,12 @@ class InboxApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
+  controllers: [InboxExtractionsController],
+})
+class InboxExtractionsApiModule {}
+
+@Module({
+  imports: [ApiResourcesModule],
   controllers: [StoryCandidatesController],
 })
 class StoryCandidatesApiModule {}
@@ -113,6 +120,7 @@ class LogicalRelationshipsApiModule {}
     WorkspacesApiModule,
     DiagramsApiModule,
     InboxApiModule,
+    InboxExtractionsApiModule,
     StoryCandidatesApiModule,
     StoriesApiModule,
     StoryCodingRunsApiModule,
@@ -149,6 +157,10 @@ class LogicalRelationshipsApiModule {}
           {
             path: ':workspaceId/inbox-items',
             module: InboxApiModule,
+          },
+          {
+            path: ':workspaceId/inbox-extractions',
+            module: InboxExtractionsApiModule,
           },
           {
             path: ':workspaceId/story-candidates',
