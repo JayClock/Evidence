@@ -6,13 +6,9 @@ import {
   CodingRunFailureInput,
   CodingRunListQuery,
   CodingRunReviewInput,
-  ConfirmedStoryCandidate,
   CreatedStoryRevision,
   StartCodingRunInput,
   Story,
-  StoryCandidate,
-  StoryCandidateInput,
-  StoryCandidateListQuery,
   StoryListQuery,
   StoryRevision,
   StoryRevisionInput,
@@ -147,47 +143,6 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   iterations(): WorkspaceIterations {
     return this.workspaceIterations;
-  }
-
-  storyCandidates(): HasMany<StoryCandidate> {
-    return this.workspaceDelivery;
-  }
-
-  listStoryCandidates(
-    query: StoryCandidateListQuery,
-  ): Promise<[StoryCandidate[], number]> {
-    return this.workspaceDelivery.listCandidates(query);
-  }
-
-  proposeStoryCandidate(
-    input: StoryCandidateInput,
-    proposedByUserId: string,
-  ): Promise<StoryCandidate> {
-    return this.workspaceDelivery.proposeCandidate(input, proposedByUserId);
-  }
-
-  confirmStoryCandidate(
-    candidateId: string,
-    expectedVersion: number,
-    decidedByUserId: string,
-  ): Promise<ConfirmedStoryCandidate> {
-    return this.workspaceDelivery.confirmCandidate(
-      candidateId,
-      expectedVersion,
-      decidedByUserId,
-    );
-  }
-
-  rejectStoryCandidate(
-    candidateId: string,
-    expectedVersion: number,
-    decidedByUserId: string,
-  ): Promise<StoryCandidate> {
-    return this.workspaceDelivery.rejectCandidate(
-      candidateId,
-      expectedVersion,
-      decidedByUserId,
-    );
   }
 
   listStories(query: StoryListQuery): Promise<[Story[], number]> {

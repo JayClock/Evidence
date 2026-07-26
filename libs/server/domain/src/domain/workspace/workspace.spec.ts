@@ -4,8 +4,6 @@ import type { Diagram, WorkspaceDiagram } from '../diagram';
 import type {
   CodingRun,
   Story,
-  StoryCandidate,
-  StoryCandidateInput,
   StoryRevision,
   StoryRevisionInput,
   WorkspaceCodingRuns,
@@ -59,13 +57,13 @@ const inboxSource: InboxSourceInput = {
   contentType: 'text/markdown',
 };
 
-const storyCandidateInput: StoryCandidateInput = {
+const storyContentInput = {
   title: 'Local coding agent',
   problem: 'Source code must stay local.',
   role: 'Workspace maintainer',
   goal: 'Run coding work locally.',
   value: 'Credentials remain private.',
-  cognitiveMode: 'complicated',
+  cognitiveMode: 'complicated' as const,
   citations: [
     {
       inboxItemId: 'inbox-1',
@@ -77,7 +75,7 @@ const storyCandidateInput: StoryCandidateInput = {
 };
 
 const storyRevisionInput: StoryRevisionInput = {
-  ...storyCandidateInput,
+  ...storyContentInput,
   scenarios: [
     {
       title: 'Run coding in isolation',
@@ -127,7 +125,6 @@ function workspaceFixture() {
   const diagram = {} as Diagram;
   const inboxItem = {} as InboxItem;
   const inboxRevision = {} as InboxRevision;
-  const storyCandidate = {} as StoryCandidate;
   const story = {} as Story;
   const storyRevision = {} as StoryRevision;
   const codingRun = {} as CodingRun;
@@ -135,7 +132,6 @@ function workspaceFixture() {
   const logicalRelationship = {} as LogicalRelationship;
   const manyMembers = many([member]);
   const manyInboxItems = many([inboxItem]);
-  const manyStoryCandidates = many([storyCandidate]);
   const manyCodingRuns = many([codingRun]);
   const manyLogicalEntities = many([logicalEntity]);
   const manyLogicalRelationships = many([logicalRelationship]);
@@ -177,19 +173,6 @@ function workspaceFixture() {
   const iterations = {} as WorkspaceIterations;
 
   const delivery = {
-    findAll: vi.fn(() => manyStoryCandidates),
-    findByIdentity: vi.fn(async () => storyCandidate),
-    listCandidates: vi.fn(
-      async () => [[storyCandidate], 1] as [StoryCandidate[], number],
-    ),
-    proposeCandidate: vi.fn(async () => storyCandidate),
-    confirmCandidate: vi.fn(async () => ({
-      candidate: storyCandidate,
-      story,
-      revision: storyRevision,
-      created: true,
-    })),
-    rejectCandidate: vi.fn(async () => storyCandidate),
     listStories: vi.fn(async () => [[story], 1] as [Story[], number]),
     findStory: vi.fn(async () => story),
     listStoryRevisions: vi.fn(
@@ -260,7 +243,6 @@ function workspaceFixture() {
     inboxItem,
     inboxRevision,
     story,
-    storyCandidate,
     storyRevision,
     logicalEntities,
     logicalEntity,
@@ -373,27 +355,9 @@ describe('Workspace', () => {
     expect(inbox.changeStatus).toHaveBeenCalledWith('inbox-1', 'deferred', 1);
   });
 
-  it('delegates Delivery decisions to the workspace Delivery association', async () => {
-    const { delivery, story, storyCandidate, storyRevision, workspace } =
-      workspaceFixture();
+  it('delegates authoritative Story operations to Delivery', async () => {
+    const { delivery, story, storyRevision, workspace } = workspaceFixture();
 
-    await expect(
-      workspace.proposeStoryCandidate(storyCandidateInput, 'user-1'),
-    ).resolves.toBe(storyCandidate);
-    await expect(
-      workspace.confirmStoryCandidate('candidate-1', 1, 'user-1'),
-    ).resolves.toEqual({
-      candidate: storyCandidate,
-      story,
-      revision: storyRevision,
-      created: true,
-    });
-    await expect(
-      workspace.rejectStoryCandidate('candidate-2', 1, 'user-1'),
-    ).resolves.toBe(storyCandidate);
-    await expect(
-      workspace.listStoryCandidates({ page: 1, pageSize: 20 }),
-    ).resolves.toEqual([[storyCandidate], 1]);
     await expect(
       workspace.listStories({ page: 1, pageSize: 20 }),
     ).resolves.toEqual([[story], 1]);
@@ -414,20 +378,6 @@ describe('Workspace', () => {
       ),
     ).resolves.toEqual({ story, revision: storyRevision });
 
-    expect(delivery.proposeCandidate).toHaveBeenCalledWith(
-      storyCandidateInput,
-      'user-1',
-    );
-    expect(delivery.confirmCandidate).toHaveBeenCalledWith(
-      'candidate-1',
-      1,
-      'user-1',
-    );
-    expect(delivery.rejectCandidate).toHaveBeenCalledWith(
-      'candidate-2',
-      1,
-      'user-1',
-    );
     expect(delivery.appendStoryRevision).toHaveBeenCalledWith(
       'story-1',
       1,

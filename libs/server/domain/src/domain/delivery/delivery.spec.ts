@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DomainError } from '../error';
 import {
-  assertStoryCandidateVersion,
   assertStoryVersion,
   normalizeStoryCandidateInput,
   normalizeStoryRevisionInput,
-  parseStoryCandidateStatus,
   parseStoryCognitiveMode,
 } from './validation';
 
@@ -49,8 +47,8 @@ function revisionInput() {
   };
 }
 
-describe('Story Candidate validation', () => {
-  it('normalizes one source-cited candidate without granting authority', () => {
+describe('Story content validation', () => {
+  it('normalizes source-cited Story content', () => {
     expect(normalizeStoryCandidateInput(candidateInput())).toEqual({
       title: 'Local coding agent',
       problem: 'Sources are reviewed remotely.\nLocal execution is separate.',
@@ -105,13 +103,9 @@ describe('Story Candidate validation', () => {
     ).toThrow('SHA-256 is invalid');
   });
 
-  it('parses only supported modes, statuses, and positive versions', () => {
+  it('parses only supported cognitive modes', () => {
     expect(parseStoryCognitiveMode('clear')).toBe('clear');
-    expect(parseStoryCandidateStatus('pending')).toBe('pending');
-    expect(assertStoryCandidateVersion(1)).toBe(1);
     expect(() => parseStoryCognitiveMode('chaotic')).toThrow(DomainError);
-    expect(() => parseStoryCandidateStatus('accepted')).toThrow(DomainError);
-    expect(() => assertStoryCandidateVersion(0)).toThrow(DomainError);
   });
 });
 

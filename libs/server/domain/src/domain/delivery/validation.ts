@@ -1,7 +1,6 @@
 import { DomainError } from '../error';
 import type {
   StoryCandidateInput,
-  StoryCandidateStatus,
   StoryCitationInput,
   StoryCognitiveMode,
   StoryRevisionInput,
@@ -47,17 +46,6 @@ export function parseStoryCognitiveMode(value: string): StoryCognitiveMode {
     return value;
   }
   throw DomainError.validation(`unsupported Story cognitive mode: ${value}`);
-}
-
-export function parseStoryCandidateStatus(value: string): StoryCandidateStatus {
-  if (value === 'pending' || value === 'confirmed' || value === 'rejected') {
-    return value;
-  }
-  throw DomainError.validation(`unsupported Story Candidate status: ${value}`);
-}
-
-export function assertStoryCandidateVersion(value: number): number {
-  return assertPositiveVersion(value, 'Story Candidate');
 }
 
 export function assertStoryVersion(value: number): number {
@@ -167,12 +155,12 @@ function normalizeCitations(
 ): StoryCitationInput[] {
   if (!Array.isArray(citations) || citations.length === 0) {
     throw DomainError.validation(
-      'Story Candidate must cite at least one Inbox Revision',
+      'Story Revision must cite at least one Inbox Revision',
     );
   }
   if (citations.length > MAX_CITATIONS) {
     throw DomainError.validation(
-      `Story Candidate must not cite more than ${String(MAX_CITATIONS)} Inbox Revisions`,
+      `Story Revision must not cite more than ${String(MAX_CITATIONS)} Inbox Revisions`,
     );
   }
 
@@ -180,7 +168,7 @@ function normalizeCitations(
   return citations.map((citation, index) => {
     if (!citation || typeof citation !== 'object') {
       throw DomainError.validation(
-        `Story Candidate citation ${String(index + 1)} is required`,
+        `Story Revision citation ${String(index + 1)} is required`,
       );
     }
     const normalized = {
@@ -203,7 +191,7 @@ function normalizeCitations(
     ].join('\u0000');
     if (seen.has(key)) {
       throw DomainError.validation(
-        'Story Candidate must not contain duplicate citations',
+        'Story Revision must not contain duplicate citations',
       );
     }
     seen.add(key);
@@ -218,7 +206,7 @@ function normalizeContentSha256(value: string): string {
   ).toLowerCase();
   if (!CONTENT_SHA256_PATTERN.test(normalized)) {
     throw DomainError.validation(
-      'Story Candidate citation content SHA-256 is invalid',
+      'Story Revision citation content SHA-256 is invalid',
     );
   }
   return normalized;
@@ -250,7 +238,7 @@ function singleLine(value: string, label: string): string {
   const normalized = value.trim();
   if (/[\r\n]/.test(normalized)) {
     throw DomainError.validation(
-      `Story Candidate ${label} must be a single line`,
+      `Story Revision ${label} must be a single line`,
     );
   }
   return normalized;
@@ -259,7 +247,7 @@ function singleLine(value: string, label: string): string {
 function limited(value: string, maximum: number, label: string): string {
   if (value.length > maximum) {
     throw DomainError.validation(
-      `Story Candidate ${label} must not exceed ${String(maximum)} characters`,
+      `Story Revision ${label} must not exceed ${String(maximum)} characters`,
     );
   }
   return value;
