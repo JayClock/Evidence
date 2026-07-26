@@ -309,7 +309,7 @@ describe('PrismaWorkspaceKickoff review', () => {
     ).rejects.toThrow('outside Frozen Intake');
   });
 
-  it('creates Story authority only on human confirm', async () => {
+  it('creates Story authority and a non-codable baseline Revision only on human confirm', async () => {
     const store = mockPrismaStore();
     store.iteration.findFirst
       .mockResolvedValueOnce(iterationRow())
@@ -368,6 +368,27 @@ describe('PrismaWorkspaceKickoff review', () => {
         latestRevisionId: null,
       }),
     });
+    expect(store.storyRevision.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        storyId: expect.any(String),
+        revisionNumber: 1,
+        sourceCandidateId: null,
+        createdByUserId: 'user-1',
+      }),
+    });
+    expect(store.storyRevisionCitation.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          inboxRevisionId: 'revision-1',
+          position: 0,
+        }),
+      ],
+    });
+    expect(store.story.update).toHaveBeenCalledWith({
+      where: { id: expect.any(String) },
+      data: { latestRevisionId: expect.any(String) },
+    });
+    expect(store.storyScenario.createMany).not.toHaveBeenCalled();
     expect(store.problemStatementRevision.create).toHaveBeenCalledTimes(1);
     expect(store.storyCardRevision.create).toHaveBeenCalledTimes(1);
   });

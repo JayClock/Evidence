@@ -291,9 +291,28 @@ export class PrismaWorkspaceKickoff {
         if (input.action === 'confirm') {
           assertKickoffCanConfirm(iteration.story?.id ?? null);
           const storyId = randomUUID();
+          const storyRevisionId = randomUUID();
           problemStatementId = randomUUID();
           storyCardId = randomUUID();
           const citations = proposal.citations as unknown as StoredCitation[];
+          const storyRevision = {
+            title: proposal.title,
+            problem: proposal.problem,
+            role: proposal.role,
+            goal: proposal.goal,
+            value: proposal.value,
+            cognitiveMode: parseCognitiveMode(proposal.cognitiveMode),
+            citations: citations.map((citation) => ({
+              inboxItemId: citation.inboxItemId,
+              inboxRevisionId: citation.inboxRevisionId,
+              contentSha256: citation.revisionSha256,
+              locator: citation.locator,
+            })),
+            scenarios: [],
+          };
+          const storyRevisionSha256 = hashCanonicalJson(
+            storyRevision as unknown as JsonValue,
+          );
           const problemContentSha256 = hashCanonicalJson({
             title: proposal.title,
             problem: proposal.problem,
@@ -319,6 +338,36 @@ export class PrismaWorkspaceKickoff {
               createdAt: decidedAt,
               updatedAt: decidedAt,
             },
+          });
+          await store.storyRevision.create({
+            data: {
+              id: storyRevisionId,
+              storyId,
+              revisionNumber: 1,
+              title: storyRevision.title,
+              problem: storyRevision.problem,
+              role: storyRevision.role,
+              goal: storyRevision.goal,
+              value: storyRevision.value,
+              cognitiveMode: storyRevision.cognitiveMode,
+              contentSha256: storyRevisionSha256,
+              sourceCandidateId: null,
+              createdByUserId: decidedByUserId,
+              createdAt: decidedAt,
+            },
+          });
+          await store.storyRevisionCitation.createMany({
+            data: citations.map((citation, position) => ({
+              id: randomUUID(),
+              storyRevisionId,
+              inboxRevisionId: citation.inboxRevisionId,
+              position,
+              locator: citation.locator,
+            })),
+          });
+          await store.story.update({
+            where: { id: storyId },
+            data: { latestRevisionId: storyRevisionId },
           });
           await store.problemStatementRevision.create({
             data: {
