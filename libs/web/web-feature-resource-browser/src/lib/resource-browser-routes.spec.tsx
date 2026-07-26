@@ -59,7 +59,6 @@ vi.mock('@evidence/api-client', () => {
 });
 
 vi.mock('@evidence/web-feature-delivery', () => ({
-  CreateStoryCandidateDialog: () => <div>Propose Story action</div>,
   StoryCandidateCollectionView: () => <div>Story Candidate collection</div>,
   StoryCandidateDetailView: () => <div>Story Candidate detail</div>,
   StoryCollectionView: () => <div>Story collection</div>,

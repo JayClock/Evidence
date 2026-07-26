@@ -26,6 +26,9 @@ import {
 } from '@evidence/ui';
 
 type AdapterKind = 'local_markdown' | 'github_issue';
+type DesktopBridge = NonNullable<Window['evidenceDesktop']>;
+type MarkdownAdapter = NonNullable<DesktopBridge['readInboxMarkdown']>;
+type GitHubAdapter = NonNullable<DesktopBridge['fetchInboxGitHubIssue']>;
 
 export function DesktopSourceDialog({
   workspaceId,
@@ -46,9 +49,10 @@ export function DesktopSourceDialog({
 
   const ready =
     kind === 'local_markdown'
-      ? Boolean(workspaceId && relativePath.trim())
+      ? Boolean(bridge?.readInboxMarkdown && workspaceId && relativePath.trim())
       : Boolean(
-          owner.trim() &&
+          bridge?.fetchInboxGitHubIssue &&
+            owner.trim() &&
             repository.trim() &&
             Number.isSafeInteger(Number(issueNumber)) &&
             Number(issueNumber) > 0,
@@ -62,11 +66,11 @@ export function DesktopSourceDialog({
     try {
       const source =
         kind === 'local_markdown'
-          ? await bridge.readInboxMarkdown(
+          ? await requiredMarkdownAdapter(bridge.readInboxMarkdown)(
               requiredWorkspaceId(workspaceId),
               relativePath.trim(),
             )
-          : await bridge.fetchInboxGitHubIssue(
+          : await requiredGitHubAdapter(bridge.fetchInboxGitHubIssue)(
               owner.trim(),
               repository.trim(),
               Number(issueNumber),
@@ -100,7 +104,12 @@ export function DesktopSourceDialog({
       }}
     >
       <DialogTrigger asChild>
-        <Button disabled={!bridge} variant="outline">
+        <Button
+          disabled={
+            !bridge?.readInboxMarkdown && !bridge?.fetchInboxGitHubIssue
+          }
+          variant="outline"
+        >
           Capture Desktop source
         </Button>
       </DialogTrigger>
@@ -207,6 +216,20 @@ export function DesktopSourceDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function requiredMarkdownAdapter(
+  adapter: MarkdownAdapter | undefined,
+): MarkdownAdapter {
+  if (!adapter) throw new Error('Desktop Markdown adapter is unavailable.');
+  return adapter;
+}
+
+function requiredGitHubAdapter(
+  adapter: GitHubAdapter | undefined,
+): GitHubAdapter {
+  if (!adapter) throw new Error('Desktop GitHub adapter is unavailable.');
+  return adapter;
 }
 
 function requiredWorkspaceId(value: string | null): string {

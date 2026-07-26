@@ -83,28 +83,28 @@ type EvidenceDesktopBridge = {
   getApiBaseUrl(): Promise<string>;
   chooseRepository(): Promise<RepositorySelectionSummary | null>;
   bindWorkspace(workspaceId: string, selectionId: string): Promise<void>;
-  readInboxMarkdown(
+  readInboxMarkdown?(
     workspaceId: string,
     relativePath: string,
   ): Promise<InboxSourceCapture>;
-  fetchInboxGitHubIssue(
+  fetchInboxGitHubIssue?(
     owner: string,
     repository: string,
     issueNumber: number,
   ): Promise<InboxSourceCapture>;
-  runInboxAnalyst(
+  runInboxAnalyst?(
     request: { id: string; workspaceId: string; extractionId: string },
     onEvent: (event: IntakeAgentEvent) => void,
   ): Promise<void>;
-  cancelInboxAnalyst(id: string): Promise<void>;
-  startIteration(
+  cancelInboxAnalyst?(id: string): Promise<void>;
+  startIteration?(
     request: StartIterationRequest,
   ): Promise<IterationProvisioningSummary>;
-  runKickoffAnalyst(
+  runKickoffAnalyst?(
     request: { id: string; workspaceId: string; iterationId: string },
     onEvent: (event: IntakeAgentEvent) => void,
   ): Promise<void>;
-  cancelKickoffAnalyst(id: string): Promise<void>;
+  cancelKickoffAnalyst?(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

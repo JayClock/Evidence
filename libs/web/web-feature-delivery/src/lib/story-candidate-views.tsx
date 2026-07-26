@@ -1,14 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type {
-  InboxItemResource,
   State,
   StoryCandidateCollectionResource,
   StoryCandidateDecisionInput,
-  StoryCandidateInput,
   StoryCandidateResource,
   StoryCandidateStatus,
-  StoryCognitiveMode,
 } from '@evidence/api-client';
 import {
   Alert,
@@ -33,16 +30,8 @@ import {
   EmptyHeader,
   EmptyTitle,
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
-  Input,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
   Table,
   TableBody,
@@ -54,232 +43,6 @@ import {
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
 
-const cognitiveModes: StoryCognitiveMode[] = [
-  'clear',
-  'complicated',
-  'complex',
-];
-
-export function CreateStoryCandidateDialog({
-  inboxItemState,
-}: {
-  inboxItemState: State<InboxItemResource>;
-}) {
-  const navigate = useNavigate();
-  const item = inboxItemState.data;
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState(item.title);
-  const [problem, setProblem] = useState('');
-  const [role, setRole] = useState('');
-  const [goal, setGoal] = useState('');
-  const [value, setValue] = useState('');
-  const [cognitiveMode, setCognitiveMode] =
-    useState<StoryCognitiveMode>('clear');
-  const [locator, setLocator] = useState('whole-source');
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const reset = () => {
-    setTitle(item.title);
-    setProblem('');
-    setRole('');
-    setGoal('');
-    setValue('');
-    setCognitiveMode('clear');
-    setLocator('whole-source');
-    setError(null);
-  };
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (
-      pending ||
-      !formComplete({ title, problem, role, goal, value, locator })
-    ) {
-      return;
-    }
-
-    const input: StoryCandidateInput = {
-      title: title.trim(),
-      problem: problem.trim(),
-      role: role.trim(),
-      goal: goal.trim(),
-      value: value.trim(),
-      cognitiveMode,
-      citations: [
-        {
-          inboxItemId: item.id,
-          inboxRevisionId: item.latestRevisionId,
-          contentSha256: item.latestRevisionSha256,
-          locator: locator.trim(),
-        },
-      ],
-    };
-
-    setPending(true);
-    setError(null);
-    try {
-      const created = await inboxItemState
-        .follow('story-candidates')
-        .post({ data: input });
-      const href = created.getLink('self')?.href;
-      reset();
-      setOpen(false);
-      if (href) {
-        navigate(href);
-      }
-    } catch (caught) {
-      setError(errorMessage(caught, 'The Story Candidate could not be saved.'));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!pending) {
-          if (nextOpen) {
-            reset();
-          }
-          setOpen(nextOpen);
-        }
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button variant="outline">Propose Story</Button>
-      </DialogTrigger>
-      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Propose Story Candidate</DialogTitle>
-          <DialogDescription>
-            Create a non-authoritative proposal citing the current immutable
-            Inbox Revision. A separate confirmation is required before it
-            becomes Story Revision v1.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={(event) => void submit(event)}>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="candidate-title">Title</FieldLabel>
-              <Input
-                id="candidate-title"
-                required
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="candidate-role">Role</FieldLabel>
-              <Input
-                id="candidate-role"
-                placeholder="Workspace maintainer"
-                required
-                value={role}
-                onChange={(event) => setRole(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="candidate-problem">Problem</FieldLabel>
-              <Textarea
-                id="candidate-problem"
-                className="min-h-24 resize-y"
-                required
-                value={problem}
-                onChange={(event) => setProblem(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="candidate-goal">Goal</FieldLabel>
-              <Textarea
-                id="candidate-goal"
-                className="min-h-20 resize-y"
-                required
-                value={goal}
-                onChange={(event) => setGoal(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="candidate-value">Value</FieldLabel>
-              <Textarea
-                id="candidate-value"
-                className="min-h-20 resize-y"
-                required
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="candidate-cognitive-mode">
-                Cognitive mode
-              </FieldLabel>
-              <Select
-                value={cognitiveMode}
-                onValueChange={(mode) =>
-                  setCognitiveMode(mode as StoryCognitiveMode)
-                }
-              >
-                <SelectTrigger id="candidate-cognitive-mode" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {cognitiveModes.map((mode) => (
-                      <SelectItem key={mode} value={mode}>
-                        {formatLabel(mode)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <FieldDescription>
-                Clear is predictable, complicated needs expertise, and complex
-                needs discovery.
-              </FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="candidate-locator">
-                Source locator
-              </FieldLabel>
-              <Input
-                id="candidate-locator"
-                required
-                value={locator}
-                onChange={(event) => setLocator(event.target.value)}
-              />
-              <FieldDescription>
-                Name the cited heading, paragraph, line range, or whole source.
-              </FieldDescription>
-            </Field>
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-          </FieldGroup>
-          <DialogFooter className="mt-5">
-            <DialogClose asChild>
-              <Button disabled={pending} type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button
-              disabled={
-                pending ||
-                !formComplete({ title, problem, role, goal, value, locator })
-              }
-              type="submit"
-            >
-              {pending ? 'Saving…' : 'Save Candidate'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 export function StoryCandidateCollectionView({
   resourceState,
 }: {
@@ -290,9 +53,7 @@ export function StoryCandidateCollectionView({
   const [pageError, setPageError] = useState<string | null>(null);
 
   const navigatePage = async (relation: 'prev' | 'next') => {
-    if (!collectionState.getLink(relation) || pagePending) {
-      return;
-    }
+    if (!collectionState.getLink(relation) || pagePending) return;
     setPagePending(true);
     setPageError(null);
     try {
@@ -311,14 +72,14 @@ export function StoryCandidateCollectionView({
           Story Candidates
         </CardTitle>
         <CardDescription>
-          Proposals remain non-authoritative until a user explicitly confirms
-          one as an immutable Story Revision.
+          Source-cited Inbox Analyst proposals have no Story identity or human
+          authority. Select exactly one to admit a frozen Iteration.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            Review source-cited delivery proposals.
+            Review immutable proposals before WIP admission.
           </p>
           <Badge variant="secondary">
             {collectionState.data.page.totalElements} total
@@ -334,7 +95,7 @@ export function StoryCandidateCollectionView({
             <EmptyHeader>
               <EmptyTitle>No Story Candidates yet</EmptyTitle>
               <EmptyDescription>
-                Open an Inbox item and propose a source-cited Story.
+                Select active Inbox sources and run the local Inbox Analyst.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -343,7 +104,7 @@ export function StoryCandidateCollectionView({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
+                  <TableHead>Candidate</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead>Status</TableHead>
@@ -357,8 +118,11 @@ export function StoryCandidateCollectionView({
                   const href = candidateState.getLink('self')?.href;
                   return (
                     <TableRow key={candidate.id}>
-                      <TableCell className="min-w-56 font-medium">
-                        {candidate.title}
+                      <TableCell className="min-w-56">
+                        <p className="font-medium">{candidate.title}</p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {candidate.reference}
+                        </p>
                       </TableCell>
                       <TableCell>{candidate.role}</TableCell>
                       <TableCell>
@@ -373,7 +137,7 @@ export function StoryCandidateCollectionView({
                       <TableCell className="text-right">
                         {href ? (
                           <Button asChild size="sm" variant="outline">
-                            <Link to={href}>Open</Link>
+                            <Link to={href}>Review</Link>
                           </Button>
                         ) : null}
                       </TableCell>
@@ -406,37 +170,62 @@ export function StoryCandidateDetailView({
 }) {
   const navigate = useNavigate();
   const [candidateState, setCandidateState] = useState(resourceState);
-  const [decisionPending, setDecisionPending] = useState(false);
-  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const candidate = candidateState.data;
+  const bridge = window.evidenceDesktop;
 
-  const decide = async (decision: 'confirm' | 'reject') => {
-    if (candidate.status !== 'pending' || decisionPending) {
-      return;
-    }
-    const input: StoryCandidateDecisionInput = {
-      expectedVersion: candidate.version,
-    };
-    setDecisionPending(true);
-    setDecisionError(null);
+  const decide = async (action: 'defer' | 'reject', reason: string) => {
+    if (!candidateState.getLink(action) || pending) return;
+    setPending(true);
+    setError(null);
     try {
-      const result = await candidateState
-        .follow(decision)
-        .post({ data: input });
-      if (decision === 'confirm') {
-        const href = result.getLink('self')?.href;
-        if (href) navigate(href);
-      } else {
-        setCandidateState(result as State<StoryCandidateResource>);
-      }
-    } catch (caught) {
-      setDecisionError(
-        errorMessage(caught, `The Candidate could not be ${decision}ed.`),
+      const input: StoryCandidateDecisionInput = {
+        candidateSha256: candidate.contentSha256,
+        reason,
+      };
+      setCandidateState(
+        (await candidateState.follow(action).post({
+          data: input,
+        })) as State<StoryCandidateResource>,
       );
+    } catch (caught) {
+      setError(
+        errorMessage(caught, `The Candidate could not be ${action}red.`),
+      );
+      throw caught;
     } finally {
-      setDecisionPending(false);
+      setPending(false);
     }
   };
+
+  const startIteration = async () => {
+    if (!bridge?.startIteration || !candidateState.getLink('select') || pending)
+      return;
+    setPending(true);
+    setError(null);
+    try {
+      await bridge.startIteration({
+        id: requestId('iteration'),
+        workspaceId: workspaceId(candidateState),
+        candidateId: candidate.id,
+      });
+      const selected = (await candidateState
+        .follow('self')
+        .refresh()) as State<StoryCandidateResource>;
+      setCandidateState(selected);
+      const href = selected.getLink('iteration')?.href;
+      if (!href)
+        throw new Error('Selected Candidate is missing its Iteration link.');
+      navigate(href);
+    } catch (caught) {
+      setError(errorMessage(caught, 'The Iteration could not be started.'));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const iterationHref = candidateState.getLink('iteration')?.href;
 
   return (
     <div className="flex flex-col gap-5">
@@ -450,40 +239,61 @@ export function StoryCandidateDetailView({
               <CandidateStatusBadge status={candidate.status} />
             </div>
             <CardDescription>
-              Proposed {formatDateTime(candidate.proposedAt)} · Version{' '}
-              {candidate.version}
+              {candidate.reference} · Proposed by{' '}
+              {formatLabel(candidate.proposedBy)}{' '}
+              {formatDateTime(candidate.proposedAt)}
             </CardDescription>
           </div>
-          {candidate.status === 'pending' ? (
-            <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
+            {candidateState.getLink('defer') ? (
+              <CandidateDecisionDialog
+                action="defer"
+                disabled={pending}
+                onDecide={decide}
+              />
+            ) : null}
+            {candidateState.getLink('reject') ? (
+              <CandidateDecisionDialog
+                action="reject"
+                disabled={pending}
+                onDecide={decide}
+              />
+            ) : null}
+            {candidateState.getLink('select') ? (
               <Button
-                disabled={decisionPending}
+                disabled={pending || !bridge?.startIteration}
                 type="button"
-                variant="outline"
-                onClick={() => void decide('reject')}
+                onClick={() => void startIteration()}
               >
-                Reject
+                {pending ? 'Starting…' : 'Select and start Iteration'}
               </Button>
-              <Button
-                disabled={decisionPending}
-                type="button"
-                onClick={() => void decide('confirm')}
-              >
-                {decisionPending ? 'Recording…' : 'Confirm as Story v1'}
+            ) : null}
+            {iterationHref ? (
+              <Button asChild>
+                <Link to={iterationHref}>Open Iteration</Link>
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           <Alert>
             <AlertDescription>
-              A Candidate is only a proposal. Only the explicit confirmation
-              action creates an authoritative, immutable Story Revision.
+              Selection freezes this exact Candidate and cited Revision
+              snapshots. It does not create a Story; only a later human Kickoff
+              confirmation can create US-001.
             </AlertDescription>
           </Alert>
-          {decisionError ? (
+          {!bridge?.startIteration && candidate.status === 'ready' ? (
+            <Alert>
+              <AlertDescription>
+                Open Evidence Desktop and bind this Workspace to a local Git
+                repository before selecting the Candidate.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {error ? (
             <Alert variant="destructive">
-              <AlertDescription>{decisionError}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
           <div className="grid gap-4 md:grid-cols-2">
@@ -501,15 +311,86 @@ export function StoryCandidateDetailView({
               mono
             />
           </div>
-          {candidate.decidedAt ? (
-            <p className="text-sm text-muted-foreground">
-              Decision recorded {formatDateTime(candidate.decidedAt)}.
-            </p>
-          ) : null}
         </CardContent>
       </Card>
       <CitationCard citations={candidate.citations} />
     </div>
+  );
+}
+
+function CandidateDecisionDialog({
+  action,
+  disabled,
+  onDecide,
+}: {
+  action: 'defer' | 'reject';
+  disabled: boolean;
+  onDecide: (action: 'defer' | 'reject', reason: string) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!reason.trim() || disabled) return;
+    setError(null);
+    try {
+      await onDecide(action, reason.trim());
+      setReason('');
+      setOpen(false);
+    } catch (caught) {
+      setError(
+        errorMessage(caught, `The Candidate could not be ${action}red.`),
+      );
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button disabled={disabled} type="button" variant="outline">
+          {formatLabel(action)}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{formatLabel(action)} Candidate</DialogTitle>
+          <DialogDescription>
+            This terminal decision cannot be undone. Record why it is the right
+            outcome.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={(event) => void submit(event)}>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor={`${action}-reason`}>Reason</FieldLabel>
+              <Textarea
+                id={`${action}-reason`}
+                required
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            </Field>
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
+          </FieldGroup>
+          <DialogFooter className="mt-5">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button disabled={!reason.trim() || disabled} type="submit">
+              Record {action}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -520,55 +401,41 @@ function CitationCard({
 }) {
   return (
     <Card>
-      <CardHeader className="gap-2">
+      <CardHeader>
         <CardTitle aria-level={2} role="heading">
-          Source citations
+          Exact Inbox citations
         </CardTitle>
         <CardDescription>
-          Exact immutable Inbox Revisions used by this proposal.
+          Candidate authority is bounded to these immutable Revision hashes.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {citations.map((citation) => {
-          const href = citation._links.revision?.href;
-          return (
-            <div
-              className="flex flex-col gap-3 rounded-lg border p-4"
-              key={`${citation.inboxRevisionId}:${citation.locator}`}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">
-                    Inbox Revision #{citation.inboxRevisionNumber}
-                  </Badge>
-                  <Badge variant="outline">{citation.locator}</Badge>
-                </div>
-                {href ? (
-                  <Button asChild size="sm" variant="outline">
-                    <Link to={href}>Open source</Link>
-                  </Button>
-                ) : null}
-              </div>
-              <Separator />
-              <p className="break-all font-mono text-xs text-muted-foreground">
-                {citation.contentSha256}
-              </p>
+      <CardContent className="space-y-3">
+        {citations.map((citation, index) => (
+          <div key={`${citation.inboxRevisionId}:${citation.locator}`}>
+            {index > 0 ? <Separator className="mb-3" /> : null}
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <DetailItem
+                label="Inbox Item"
+                value={citation.inboxItemId}
+                mono
+              />
+              <DetailItem
+                label="Revision"
+                value={`v${String(citation.revisionNumber)} · ${citation.inboxRevisionId}`}
+                mono
+              />
+              <DetailItem label="Locator" value={citation.locator} />
+              <DetailItem
+                label="Revision SHA-256"
+                value={citation.revisionSha256}
+                mono
+              />
             </div>
-          );
-        })}
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
-}
-
-function CandidateStatusBadge({ status }: { status: StoryCandidateStatus }) {
-  const variant =
-    status === 'confirmed'
-      ? 'default'
-      : status === 'pending'
-        ? 'secondary'
-        : 'outline';
-  return <Badge variant={variant}>{formatLabel(status)}</Badge>;
 }
 
 function DetailItem({
@@ -581,23 +448,40 @@ function DetailItem({
   mono?: boolean;
 }) {
   return (
-    <div>
-      <p className="text-sm font-medium">{label}</p>
-      {mono ? (
-        <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
-          {value}
-        </p>
-      ) : (
-        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
-          {value}
-        </p>
-      )}
+    <div className="min-w-0 space-y-1">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p
+        className={
+          mono ? 'break-all font-mono text-xs' : 'whitespace-pre-wrap text-sm'
+        }
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
-function formComplete(values: Record<string, string>): boolean {
-  return Object.values(values).every((entry) => entry.trim().length > 0);
+function CandidateStatusBadge({ status }: { status: StoryCandidateStatus }) {
+  const variant =
+    status === 'ready'
+      ? 'default'
+      : status === 'selected'
+        ? 'secondary'
+        : 'outline';
+  return <Badge variant={variant}>{formatLabel(status)}</Badge>;
+}
+
+function workspaceId(state: State<StoryCandidateResource>): string {
+  const href = state.getLink('workspace')?.href;
+  const match = href && /\/workspaces\/([^/?#]+)/.exec(href);
+  if (!match?.[1]) throw new Error('Candidate is missing its Workspace link.');
+  return decodeURIComponent(match[1]);
+}
+
+function requestId(prefix: string): string {
+  return `${prefix}:${globalThis.crypto?.randomUUID?.() ?? String(Date.now())}`;
 }
 
 function formatLabel(value: string): string {
@@ -610,11 +494,12 @@ function formatLabel(value: string): string {
 
 function formatDateTime(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date);
 }
 
 function errorMessage(error: unknown, fallback: string): string {

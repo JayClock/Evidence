@@ -43,7 +43,6 @@ import {
 import {
   CodingRunCollectionView,
   CodingRunDetailView,
-  CreateStoryCandidateDialog,
   StoryCandidateCollectionView,
   StoryCandidateDetailView,
   StoryCollectionView,
@@ -204,14 +203,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
           resourceState={resourceState as State<InboxItemCollectionResource>}
         />
       );
-    case resourceContentTypes.inboxItem: {
-      const inboxItemState = resourceState as State<InboxItemResource>;
+    case resourceContentTypes.inboxItem:
       return (
-        <InboxItemDetailView resourceState={inboxItemState}>
-          <CreateStoryCandidateDialog inboxItemState={inboxItemState} />
-        </InboxItemDetailView>
+        <InboxItemDetailView
+          resourceState={resourceState as State<InboxItemResource>}
+        />
       );
-    }
     case resourceContentTypes.inboxRevisions:
       return (
         <InboxRevisionCollectionView
