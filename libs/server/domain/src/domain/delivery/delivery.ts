@@ -17,7 +17,7 @@ export interface StoryCitationDescription {
   locator: string;
 }
 
-export interface StoryCandidateInput {
+export interface StoryContentInput {
   title: string;
   problem: string;
   role: string;
@@ -38,7 +38,7 @@ export interface StoryScenarioDescription extends StoryScenarioInput {
   id: string;
 }
 
-export interface StoryRevisionInput extends StoryCandidateInput {
+export interface StoryRevisionInput extends StoryContentInput {
   scenarios: StoryScenarioInput[];
 }
 

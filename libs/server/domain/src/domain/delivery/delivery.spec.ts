@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DomainError } from '../error';
 import {
   assertStoryVersion,
-  normalizeStoryCandidateInput,
+  normalizeStoryContentInput,
   normalizeStoryRevisionInput,
   parseStoryCognitiveMode,
 } from './validation';
@@ -49,7 +49,7 @@ function revisionInput() {
 
 describe('Story content validation', () => {
   it('normalizes source-cited Story content', () => {
-    expect(normalizeStoryCandidateInput(candidateInput())).toEqual({
+    expect(normalizeStoryContentInput(candidateInput())).toEqual({
       title: 'Local coding agent',
       problem: 'Sources are reviewed remotely.\nLocal execution is separate.',
       role: 'Workspace maintainer',
@@ -76,7 +76,7 @@ describe('Story content validation', () => {
     { field: 'citations', value: [] },
   ])('rejects invalid $field', ({ field, value }) => {
     expect(() =>
-      normalizeStoryCandidateInput({
+      normalizeStoryContentInput({
         ...candidateInput(),
         [field]: value,
       }),
@@ -85,7 +85,7 @@ describe('Story content validation', () => {
 
   it('rejects malformed and duplicate citations', () => {
     expect(() =>
-      normalizeStoryCandidateInput({
+      normalizeStoryContentInput({
         ...candidateInput(),
         citations: [
           ...candidateInput().citations,
@@ -94,7 +94,7 @@ describe('Story content validation', () => {
       }),
     ).toThrow('duplicate citations');
     expect(() =>
-      normalizeStoryCandidateInput({
+      normalizeStoryContentInput({
         ...candidateInput(),
         citations: [
           { ...candidateInput().citations[0], contentSha256: 'sha256:bad' },

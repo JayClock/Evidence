@@ -13,7 +13,7 @@ import {
   DomainError,
   parseStoryCognitiveMode,
   type Story,
-  type StoryCandidateInput,
+  type StoryContentInput,
   type StoryRevision,
   type StoryRevisionInput,
 } from '@evidence/server-domain';
@@ -185,7 +185,7 @@ export class StoriesController {
   }
 }
 
-function storyContentInput(input: StoryContentBody): StoryCandidateInput {
+function storyContentInput(input: StoryContentBody): StoryContentInput {
   if (!Array.isArray(input.citations)) {
     throw DomainError.validation('citations must be an array');
   }

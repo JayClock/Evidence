@@ -1,6 +1,6 @@
 import { DomainError } from '../error';
 import type {
-  StoryCandidateInput,
+  StoryContentInput,
   StoryCitationInput,
   StoryCognitiveMode,
   StoryRevisionInput,
@@ -16,9 +16,9 @@ const MAX_SCENARIOS = 50;
 const MAX_SCENARIO_STEPS = 20;
 const CONTENT_SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/;
 
-export function normalizeStoryCandidateInput(
-  input: StoryCandidateInput,
-): StoryCandidateInput {
+export function normalizeStoryContentInput(
+  input: StoryContentInput,
+): StoryContentInput {
   const citations = normalizeCitations(input.citations);
   return {
     title: limitedSingleLine(input.title, MAX_TITLE_LENGTH, 'title'),
@@ -34,7 +34,7 @@ export function normalizeStoryCandidateInput(
 export function normalizeStoryRevisionInput(
   input: StoryRevisionInput,
 ): StoryRevisionInput {
-  const story = normalizeStoryCandidateInput(input);
+  const story = normalizeStoryContentInput(input);
   return {
     ...story,
     scenarios: normalizeScenarios(input.scenarios),
@@ -214,11 +214,11 @@ function normalizeContentSha256(value: string): string {
 
 function limitedText(value: string, maximum: number, label: string): string {
   if (typeof value !== 'string') {
-    throw DomainError.validation(`Story Candidate ${label} must not be empty`);
+    throw DomainError.validation(`Story Revision ${label} must not be empty`);
   }
   const normalized = value.replace(/\r\n?/g, '\n').trim();
   if (normalized.length === 0) {
-    throw DomainError.validation(`Story Candidate ${label} must not be empty`);
+    throw DomainError.validation(`Story Revision ${label} must not be empty`);
   }
   return limited(normalized, maximum, label);
 }
@@ -233,7 +233,7 @@ function limitedSingleLine(
 
 function singleLine(value: string, label: string): string {
   if (typeof value !== 'string' || value.trim().length === 0) {
-    throw DomainError.validation(`Story Candidate ${label} must not be empty`);
+    throw DomainError.validation(`Story Revision ${label} must not be empty`);
   }
   const normalized = value.trim();
   if (/[\r\n]/.test(normalized)) {
