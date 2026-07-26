@@ -372,7 +372,6 @@ describe('PrismaWorkspaceKickoff review', () => {
       data: expect.objectContaining({
         storyId: expect.any(String),
         revisionNumber: 1,
-        sourceCandidateId: null,
         createdByUserId: 'user-1',
       }),
     });

@@ -63,7 +63,6 @@ function storyRevisionRow(overrides: Record<string, unknown> = {}) {
     value: revisionInput.value,
     cognitiveMode: revisionInput.cognitiveMode,
     contentSha256: baselineHash,
-    sourceCandidateId: null,
     createdByUserId: 'user-1',
     createdAt: timestamp,
     citations: [
@@ -183,7 +182,6 @@ describe('PrismaWorkspaceDelivery', () => {
       data: expect.objectContaining({
         storyId: 'story-1',
         revisionNumber: 2,
-        sourceCandidateId: null,
         createdByUserId: 'user-1',
       }),
     });

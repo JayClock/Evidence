@@ -159,7 +159,6 @@ export class PrismaWorkspaceDelivery implements WorkspaceDelivery {
           value: revision.value,
           cognitiveMode: revision.cognitiveMode,
           contentSha256,
-          sourceCandidateId: null,
           createdByUserId,
           createdAt,
         },
@@ -308,9 +307,7 @@ function assembleStoryRevision(row: StoryRevisionRow): StoryRevision {
     citations: row.citations.map(assembleCitation),
     scenarios: row.scenarios.map(assembleScenario),
     contentSha256: row.contentSha256,
-    sourceCandidate: row.sourceCandidateId
-      ? new Ref(row.sourceCandidateId)
-      : null,
+    sourceCandidate: null,
     createdBy: new Ref(row.createdByUserId),
     createdAt: row.createdAt.toISOString(),
   });

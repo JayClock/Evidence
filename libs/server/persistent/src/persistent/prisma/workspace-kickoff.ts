@@ -351,7 +351,6 @@ export class PrismaWorkspaceKickoff {
               value: storyRevision.value,
               cognitiveMode: storyRevision.cognitiveMode,
               contentSha256: storyRevisionSha256,
-              sourceCandidateId: null,
               createdByUserId: decidedByUserId,
               createdAt: decidedAt,
             },

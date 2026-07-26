@@ -40,8 +40,6 @@ export interface MockPrismaStore {
   problemStatementRevision: Record<string, MockFn>;
   storyCardRevision: Record<string, MockFn>;
   activityRun: Record<string, MockFn>;
-  storyCandidate: Record<string, MockFn>;
-  storyCandidateCitation: Record<string, MockFn>;
   story: Record<string, MockFn>;
   storyRevision: Record<string, MockFn>;
   storyRevisionCitation: Record<string, MockFn>;
@@ -136,14 +134,6 @@ export function mockPrismaStore(): MockPrismaStore {
     problemStatementRevision: delegate(['findFirst', 'create']),
     storyCardRevision: delegate(['findFirst', 'create']),
     activityRun: delegate(['findFirst', 'create', 'updateMany']),
-    storyCandidate: delegate([
-      'findMany',
-      'findFirst',
-      'count',
-      'create',
-      'updateMany',
-    ]),
-    storyCandidateCitation: delegate(['createMany']),
     story: delegate([
       'findMany',
       'findFirst',
