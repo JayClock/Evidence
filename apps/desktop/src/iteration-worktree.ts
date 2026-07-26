@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, mkdir, realpath, rm } from 'node:fs/promises';
+import { access, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { codingCommandEnvironment } from './coding-command-environment';
@@ -17,6 +17,13 @@ export interface IterationDiff {
   content: string;
   sha256: string;
   changedFileCount: number;
+}
+
+export interface IterationWorktreeSnapshot extends IterationDiff {
+  headSha: string;
+  changedPaths: string[];
+  pathFingerprints: Record<string, string>;
+  worktreeSha256: string;
 }
 
 export interface IterationWorktree {
@@ -184,23 +191,122 @@ export class IterationWorktreeManager {
   }
 
   async inspect(worktree: IterationWorktree): Promise<IterationDiff> {
+    const snapshot = await this.snapshot(worktree);
+    return {
+      content: snapshot.content,
+      sha256: snapshot.sha256,
+      changedFileCount: snapshot.changedFileCount,
+    };
+  }
+
+  async snapshot(
+    worktree: IterationWorktree,
+  ): Promise<IterationWorktreeSnapshot> {
     this.assertRecord(worktree);
+    const headSha = await gitHead(worktree.worktreeRoot);
+    if (headSha !== worktree.baseCommitSha) {
+      throw new Error('Iteration worktree HEAD changed from its locked base.');
+    }
     await runGit(worktree.worktreeRoot, ['add', '--intent-to-add', '--', '.']);
     const [content, names] = await Promise.all([
       runGit(worktree.worktreeRoot, [
         'diff',
         '--no-ext-diff',
+        '--no-renames',
         '--binary',
         '--',
         '.',
       ]),
-      runGit(worktree.worktreeRoot, ['diff', '--name-only', '-z', '--', '.']),
+      runGit(worktree.worktreeRoot, [
+        'diff',
+        '--no-renames',
+        '--name-only',
+        '-z',
+        '--',
+        '.',
+      ]),
     ]);
+    const changedPaths = names.split('\0').filter(Boolean).sort();
+    const pathFingerprints = Object.fromEntries(
+      await Promise.all(
+        changedPaths.map(async (path) => [
+          path,
+          await runGit(worktree.worktreeRoot, [
+            'hash-object',
+            '--no-filters',
+            '--',
+            path,
+          ])
+            .then((value) => `blob:${value.trim().toLowerCase()}`)
+            .catch(() => 'deleted'),
+        ]),
+      ),
+    );
+    const sha256 = digest(content);
     return {
       content,
-      sha256: `sha256:${createHash('sha256').update(content).digest('hex')}`,
-      changedFileCount: names.split('\0').filter(Boolean).length,
+      sha256,
+      changedFileCount: changedPaths.length,
+      headSha,
+      changedPaths,
+      pathFingerprints,
+      worktreeSha256: digest(
+        JSON.stringify({
+          headSha,
+          paths: changedPaths.map((path) => [path, pathFingerprints[path]]),
+        }),
+      ),
     };
+  }
+
+  async restoreCheckpoint(
+    worktree: IterationWorktree,
+    patch: string,
+    expectedDiffSha256: string,
+  ): Promise<IterationWorktreeSnapshot> {
+    this.assertRecord(worktree);
+    await this.recover(worktree);
+    if (digest(patch) !== expectedDiffSha256) {
+      throw new Error('Iteration checkpoint patch SHA-256 is invalid.');
+    }
+    const patchPath = join(
+      this.managedRoot,
+      `.pair-checkpoint-${process.pid}-${Date.now()}.patch`,
+    );
+    await runGit(worktree.worktreeRoot, [
+      'reset',
+      '--hard',
+      worktree.baseCommitSha,
+    ]);
+    await runGit(worktree.worktreeRoot, ['clean', '-fd', '--', '.']);
+    try {
+      if (patch) {
+        await writeFile(patchPath, patch, { encoding: 'utf8', mode: 0o600 });
+        await runGit(worktree.worktreeRoot, [
+          'apply',
+          '--binary',
+          '--whitespace=nowarn',
+          patchPath,
+        ]);
+      }
+      const restored = await this.snapshot(worktree);
+      if (restored.sha256 !== expectedDiffSha256) {
+        throw new Error('Iteration checkpoint did not restore its exact diff.');
+      }
+      return restored;
+    } catch (error) {
+      await runGit(worktree.worktreeRoot, [
+        'reset',
+        '--hard',
+        worktree.baseCommitSha,
+      ]).catch(() => undefined);
+      await runGit(worktree.worktreeRoot, ['clean', '-fd', '--', '.']).catch(
+        () => undefined,
+      );
+      throw error;
+    } finally {
+      await rm(patchPath, { force: true });
+    }
   }
 
   async commit(
@@ -241,6 +347,7 @@ export class IterationWorktreeManager {
       runGit(worktree.worktreeRoot, [
         'diff',
         '--no-ext-diff',
+        '--no-renames',
         '--binary',
         worktree.baseCommitSha,
         commitSha,
@@ -249,6 +356,7 @@ export class IterationWorktreeManager {
       ]),
       runGit(worktree.worktreeRoot, [
         'diff',
+        '--no-renames',
         '--name-only',
         '-z',
         worktree.baseCommitSha,
@@ -349,6 +457,26 @@ async function hydratePnpmDependencies(
       `Iteration worktree dependencies could not be prepared from the local pnpm store: ${errorMessage(error)}`,
     );
   }
+}
+
+export function changedPathsBetween(
+  before: Pick<IterationWorktreeSnapshot, 'pathFingerprints'>,
+  after: Pick<IterationWorktreeSnapshot, 'pathFingerprints'>,
+): string[] {
+  return [
+    ...new Set([
+      ...Object.keys(before.pathFingerprints),
+      ...Object.keys(after.pathFingerprints),
+    ]),
+  ]
+    .filter(
+      (path) => before.pathFingerprints[path] !== after.pathFingerprints[path],
+    )
+    .sort();
+}
+
+function digest(value: string): string {
+  return `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
 function normalizeCommitMessage(value: string): string {

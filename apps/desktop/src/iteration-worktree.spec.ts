@@ -9,7 +9,10 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { IterationWorktreeManager } from './iteration-worktree';
+import {
+  changedPathsBetween,
+  IterationWorktreeManager,
+} from './iteration-worktree';
 import { gitHead, runGit } from './git-repository';
 
 const temporaryPaths: string[] = [];
@@ -129,6 +132,47 @@ describe('IterationWorktreeManager', () => {
 
     expect(worktree.branchName).toBe('evidence/iter-iteration-1');
     await expect(manager.recover(worktree)).resolves.toEqual(worktree);
+  });
+
+  it('snapshots per-action changes and restores an exact binary checkpoint', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
+    const worktree = await manager.prepare({
+      iterationId: 'iteration-checkpoint',
+      repositoryRoot: repository,
+      baseCommitSha: await gitHead(repository),
+    });
+
+    const clean = await manager.snapshot(worktree);
+    await writeFile(join(worktree.worktreeRoot, 'tracked.txt'), 'first\n');
+    const first = await manager.snapshot(worktree);
+    await writeFile(
+      join(worktree.worktreeRoot, 'production.ts'),
+      'export const paired = true;\n',
+    );
+    const second = await manager.snapshot(worktree);
+
+    expect(changedPathsBetween(clean, first)).toEqual(['tracked.txt']);
+    expect(changedPathsBetween(first, second)).toEqual(['production.ts']);
+    expect(first.worktreeSha256).not.toBe(second.worktreeSha256);
+
+    const restored = await manager.restoreCheckpoint(
+      worktree,
+      first.content,
+      first.sha256,
+    );
+    expect(restored).toMatchObject({
+      sha256: first.sha256,
+      changedPaths: ['tracked.txt'],
+      pathFingerprints: first.pathFingerprints,
+    });
+    expect(
+      await readFile(join(worktree.worktreeRoot, 'tracked.txt'), 'utf8'),
+    ).toBe('first\n');
+    await expect(
+      readFile(join(worktree.worktreeRoot, 'production.ts')),
+    ).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
   it('removes rejected work and its temporary branch', async () => {
