@@ -16,6 +16,7 @@ import {
   workspaceIterationKickoffHref,
   workspaceIterationNoModelImpactHref,
   workspaceIterationScenarioProposalsHref,
+  workspaceIterationTaskingHref,
   workspaceIterationUnderstandingDecisionsHref,
   workspaceIterationUnderstandingHref,
   workspaceStoryHref,
@@ -130,6 +131,11 @@ export function understandingModel(
   ) {
     links['record-no-model-impact'] = link(
       workspaceIterationNoModelImpactHref(workspaceId, iterationId),
+    );
+  }
+  if (description.loop === 'tasking') {
+    links.tasking = link(
+      workspaceIterationTaskingHref(workspaceId, iterationId),
     );
   }
   if (description.loop === 'kickoff') {

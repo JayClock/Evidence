@@ -8,6 +8,10 @@ import type {
   IterationResource,
   KickoffResource,
 } from './iteration-resource.js';
+import type {
+  NoModelImpactDecisionResource,
+  TaskingResource,
+} from './tasking-resource.js';
 
 type UnderstandingSchema = components['schemas']['UnderstandingResource'];
 type ClarificationSchema = components['schemas']['ClarificationResource'];
@@ -46,9 +50,11 @@ export type UnderstandingResource = Entity<
     iteration: IterationResource;
     story: StoryResource;
     kickoff: KickoffResource;
+    tasking: TaskingResource;
     'ask-question': ClarificationResource;
     'answer-question': ClarificationAnswerResultResource;
     'propose-scenarios': ScenarioProposalResource;
+    'record-no-model-impact': NoModelImpactDecisionResource;
     decide: UnderstandingDecisionResultResource;
   }
 >;

@@ -3590,7 +3590,7 @@ components:
           enum: [provisioning, active, provisioning_failed, halted]
         loop:
           type: string
-          enum: [kickoff, understand]
+          enum: [kickoff, understand, tasking]
         stage:
           type: string
           enum:
@@ -3600,6 +3600,10 @@ components:
               tqa,
               scenario_review,
               modeling,
+              drafting,
+              desk_check,
+              knowledge_gap,
+              approved,
             ]
         lane:
           type: string

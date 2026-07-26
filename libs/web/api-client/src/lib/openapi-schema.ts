@@ -1302,14 +1302,18 @@ export interface components {
       /** @enum {string} */
       lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
       /** @enum {string} */
-      loop: 'kickoff' | 'understand';
+      loop: 'kickoff' | 'understand' | 'tasking';
       /** @enum {string} */
       stage:
         | 'candidate_review'
         | 'candidate_drafting'
         | 'tqa'
         | 'scenario_review'
-        | 'modeling';
+        | 'modeling'
+        | 'drafting'
+        | 'desk_check'
+        | 'knowledge_gap'
+        | 'approved';
       /** @enum {string} */
       lane: 'discovery';
       /** Format: int32 */
