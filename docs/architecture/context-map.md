@@ -7,7 +7,8 @@
 | Identity & Workspace | Work Intake        | Workspace membership 隔离 Inbox Item 与 Revision      |
 | Identity & Workspace | Model Authoring    | Workspace 提供成员和模型所有权边界                    |
 | Identity & Workspace | Diagram Projection | 每个 Workspace 提供一个当前 Diagram 投影              |
-| Work Intake          | Delivery Knowledge | 人工决定引用精确不可变 Inbox Revision                 |
+| Work Intake          | Iteration & Kickoff | 人类选择精确 Candidate 后冻结自包含 Intake            |
+| Iteration & Kickoff  | Delivery Knowledge | Kickoff confirm 创建本 Iteration 唯一 Story           |
 | Model Authoring      | Diagram Projection | DiagramNode/Edge 投影 LogicalEntity/Relationship      |
 | Desktop Runtime      | Model Authoring    | 本地 Pi Agent 通过认证 REST command 更新模型          |
 | Delivery Knowledge   | Desktop Runtime    | 精确 Story Revision 驱动隔离的本地 CodingRun          |
@@ -21,7 +22,8 @@
 | 上下文               | Server                                          | Web                              | Desktop                              |
 | -------------------- | ----------------------------------------------- | -------------------------------- | ------------------------------------ |
 | Identity & Workspace | `libs/server/domain`、`persistent`、`api`       | `libs/web/web-shell`、API client | 复用 Web 与远程 API                  |
-| Work Intake          | `domain/inbox`、Prisma、Inbox controller        | `web-feature-inbox`              | 复用 Web；本地路径不参与 Inbox       |
+| Work Intake          | `domain/inbox`、Prisma、Inbox controllers       | `web-feature-inbox`              | 本地 Source adapter 与 Inbox Analyst |
+| Iteration & Kickoff  | `domain/iteration`、Prisma、Iteration controller | `web-feature-delivery`          | worktree provision 与 Kickoff Analyst |
 | Delivery Knowledge   | `domain/delivery`、Prisma、Delivery controllers | `web-feature-delivery`           | CodingRun controller 与人工审查      |
 | Model Authoring      | filesystem model adapters、domain、controllers  | logical-entities feature         | 复用 Web 与远程 API                  |
 | Diagram Projection   | `WorkspaceDiagram` 与 YAML projection           | diagrams feature                 | 复用 Web 与远程 API                  |
@@ -37,7 +39,7 @@
 - `.evidence` YAML 是工作空间逻辑模型的持久化语言；Diagram 是其投影，不是第二份领域模型。
 - Electron IPC 仅用于取得 API URL、以短期 opaque id 选择并绑定本地目录，以及控制本地 Agent；renderer 只接收项目名与 Git 摘要，不接收绝对路径；产品业务 command/query 仍走 REST。
 - Server Workspace 使用私有 `modelRoot` 访问自身 `.evidence`，HAL metadata 不发布 Server 或 Desktop 绝对路径。
-- Work Intake 与 Delivery 的 Candidate → Story Revision、Scenario 与 CodingRun 已实现；这些产品记录不能被内部 Orchestrator 工件冒充。
+- Work Intake 的 Candidate 只能经显式 selection 冻结为 Iteration Intake；只有 Kickoff 人工 confirm 可以创建 Story。内部 Orchestrator 工件不能冒充这些产品记录。
 
 ## 内部研发工具边界
 
@@ -50,5 +52,6 @@ Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具�
 - Nest 是唯一 Server runtime；Electron main/preload 不实现 Server domain。
 - Hosted API 必须认证部署 principal，所有 Workspace 访问必须通过其 membership。
 - 同一 Inbox source identity 幂等；同一 Item 内每个 content SHA-256 只有一个 Revision。
-- Candidate 不具权威；确认/拒绝使用 optimistic version，确认原子且重试返回同一 Story Revision v1。
+- Candidate 不具权威；selection 使用 Candidate hash 与事务锁，原子创建 Iteration/Frozen Intake，但不创建 Story。
+- Kickoff 人工决定使用 Proposal hash 与 Iteration version；一个 Iteration 最多创建一张 Story。
 - `.evidence/` 只描述 Evidence 建模平台领域，不承载 Orchestrator 交付状态；`artifacts/iterations` 是研发审计证据，不是产品数据。
