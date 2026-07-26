@@ -7,6 +7,8 @@ import {
   currentUserId,
 } from './app/api-authorization.guard';
 
+const JSON_BODY_LIMIT = '1280kb';
+
 const LOCAL_CORS_ORIGINS = [
   'http://localhost:4200',
   'http://127.0.0.1:4200',
@@ -32,7 +34,7 @@ export async function bootstrap(rootModule: Type<unknown>): Promise<void> {
   assertRemoteApiIsSecured(host);
   currentUserId();
   const app = await NestFactory.create<NestExpressApplication>(rootModule);
-  app.useBodyParser('json', { limit: '320kb' });
+  app.useBodyParser('json', { limit: JSON_BODY_LIMIT });
   app.enableCors({ origin: corsOrigins() });
   app.useGlobalFilters(new DomainErrorFilter());
 

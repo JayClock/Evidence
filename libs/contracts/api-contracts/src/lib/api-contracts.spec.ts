@@ -636,6 +636,11 @@ describeContracts('Evidence API contract vertical slice', () => {
         },
       ],
     };
+    const rejectedCandidateInput = {
+      ...candidateInput,
+      title: 'Rejected coding alternative',
+      goal: 'Send source code to a hosted coding service.',
+    };
     const extraction = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-extractions`,
       {
@@ -649,11 +654,12 @@ describeContracts('Evidence API contract vertical slice', () => {
         method: 'POST',
         body: JSON.stringify({
           expectedVersion: 1,
-          candidates: [candidateInput],
+          candidates: [candidateInput, rejectedCandidateInput],
         }),
       },
     );
     const candidate = proposed.body._embedded.storyCandidates[0];
+    const rejectedCandidate = proposed.body._embedded.storyCandidates[1];
     expect(candidate).toMatchObject({
       status: 'ready',
       reference: 'CAND-0001',
@@ -967,11 +973,11 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(acceptedRun.body._links).not.toHaveProperty('accept');
 
     const originalRevision = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${confirmed.body.id}`,
+      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${baselineRevision.body.id}`,
     );
     expect(originalRevision.status).toBe(200);
     expect(originalRevision.body).toMatchObject({
-      id: confirmed.body.id,
+      id: baselineRevision.body.id,
       revisionNumber: 1,
       scenarios: [],
     });
@@ -988,36 +994,35 @@ describeContracts('Evidence API contract vertical slice', () => {
     expectHalCollection(revisions, mediaTypes.storyRevisions, 'storyRevisions');
     expect(revisions.body._embedded.storyRevisions).toHaveLength(2);
 
-    const rejectConfirmed = await apiRequest(
-      `/api/workspaces/${workspaceId}/story-candidates/${proposed.body.id}/reject`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ expectedVersion: 2 }),
-      },
-    );
-    expect(rejectConfirmed.status).toBe(409);
-
-    const rejectedCandidate = await apiRequest(
-      `/api/workspaces/${workspaceId}/story-candidates`,
+    const rejectSelected = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${candidate.id}/reject`,
       {
         method: 'POST',
         body: JSON.stringify({
-          ...candidateInput,
-          title: 'Rejected alternative',
+          candidateSha256: candidate.contentSha256,
+          reason: 'A selected Candidate cannot be rejected.',
         }),
       },
     );
+    expect(rejectSelected.status).toBe(409);
+
     const rejected = await apiRequest(
-      `/api/workspaces/${workspaceId}/story-candidates/${rejectedCandidate.body.id}/reject`,
+      `/api/workspaces/${workspaceId}/story-candidates/${rejectedCandidate.id}/reject`,
       {
         method: 'POST',
-        body: JSON.stringify({ expectedVersion: 1 }),
+        body: JSON.stringify({
+          candidateSha256: rejectedCandidate.contentSha256,
+          reason: 'This alternative violates the local source boundary.',
+        }),
       },
     );
     expect(rejected.status).toBe(200);
     expectHalResource(rejected, mediaTypes.storyCandidate);
-    expect(rejected.body).toMatchObject({ status: 'rejected', version: 2 });
-    expect(rejected.body.confirmedStoryId).toBeNull();
+    expect(rejected.body).toMatchObject({
+      status: 'rejected',
+      terminalDecisionId: expect.any(String),
+    });
+    expect(rejected.body._links).not.toHaveProperty('reject');
 
     const otherWorkspace = await createContractWorkspace(
       'Other Delivery Workspace',
@@ -1054,10 +1059,10 @@ describeContracts('Evidence API contract vertical slice', () => {
 
     const rejected = await capture(
       uniqueName('rejected-payload'),
-      'x'.repeat(256 * 1024 + 1),
+      'x'.repeat(1024 * 1024 + 1),
     );
     expect(rejected.status).toBe(400);
-    expect(rejected.body.error).toContain('must not exceed 262144 bytes');
+    expect(rejected.body.error).toContain('must not exceed 1048576 bytes');
   });
 
   it('creates, reads, updates, lists, and deletes logical entities', async () => {
