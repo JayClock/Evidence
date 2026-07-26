@@ -13,6 +13,9 @@ import {
   type Entity,
   type InboxItemCollectionResource,
   type InboxItemResource,
+  type IterationIntakeResource,
+  type IterationResource,
+  type KickoffResource,
   type InboxRevisionCollectionResource,
   type InboxRevisionResource,
   type Link as HalLink,
@@ -43,6 +46,9 @@ import {
 import {
   CodingRunCollectionView,
   CodingRunDetailView,
+  IterationDetailView,
+  IterationIntakeDetailView,
+  KickoffDetailView,
   StoryCandidateCollectionView,
   StoryCandidateDetailView,
   StoryCollectionView,
@@ -241,6 +247,24 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <StoryCollectionView
           resourceState={resourceState as State<StoryCollectionResource>}
+        />
+      );
+    case resourceContentTypes.iteration:
+      return (
+        <IterationDetailView
+          resourceState={resourceState as State<IterationResource>}
+        />
+      );
+    case resourceContentTypes.iterationIntake:
+      return (
+        <IterationIntakeDetailView
+          resourceState={resourceState as State<IterationIntakeResource>}
+        />
+      );
+    case resourceContentTypes.kickoff:
+      return (
+        <KickoffDetailView
+          resourceState={resourceState as State<KickoffResource>}
         />
       );
     case resourceContentTypes.story:

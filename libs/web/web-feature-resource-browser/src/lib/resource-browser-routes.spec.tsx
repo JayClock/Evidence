@@ -43,6 +43,9 @@ vi.mock('@evidence/api-client', () => {
       inboxRevisions: 'application/vnd.evidence.inbox-revisions+json',
       storyCandidate: 'application/vnd.evidence.story-candidate+json',
       storyCandidates: 'application/vnd.evidence.story-candidates+json',
+      iteration: 'application/vnd.evidence.iteration+json',
+      iterationIntake: 'application/vnd.evidence.iteration-intake+json',
+      kickoff: 'application/vnd.evidence.kickoff+json',
       story: 'application/vnd.evidence.story+json',
       stories: 'application/vnd.evidence.stories+json',
       storyRevision: 'application/vnd.evidence.story-revision+json',
@@ -59,6 +62,9 @@ vi.mock('@evidence/api-client', () => {
 });
 
 vi.mock('@evidence/web-feature-delivery', () => ({
+  IterationDetailView: () => <div>Iteration detail</div>,
+  IterationIntakeDetailView: () => <div>Iteration intake</div>,
+  KickoffDetailView: () => <div>Kickoff detail</div>,
   StoryCandidateCollectionView: () => <div>Story Candidate collection</div>,
   StoryCandidateDetailView: () => <div>Story Candidate detail</div>,
   StoryCollectionView: () => <div>Story collection</div>,

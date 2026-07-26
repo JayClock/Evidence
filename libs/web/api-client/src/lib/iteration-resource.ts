@@ -19,6 +19,9 @@ export type KickoffDecisionInput =
 export type KickoffDecisionAction = KickoffDecisionInput['action'];
 export type KickoffReplacementInput =
   components['schemas']['KickoffReplacementInput'];
+export type StoryCardResource = components['schemas']['StoryCardResource'];
+export type ProblemStatementResource =
+  components['schemas']['ProblemStatementResource'];
 
 export type IterationResourceData = Omit<IterationSchema, '_links'>;
 export type IterationIntakeResourceData = Omit<IterationIntakeSchema, '_links'>;
