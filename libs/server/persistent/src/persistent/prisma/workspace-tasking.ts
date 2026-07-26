@@ -106,8 +106,9 @@ export class PrismaWorkspaceTasking implements WorkspaceTasking {
           where: { iterationId, workspaceId: this.workspaceId },
           orderBy: { decidedAt: 'asc' },
         }),
-        this.store.approvedTaskingPlan.findUnique({
-          where: { iterationId },
+        this.store.approvedTaskingPlan.findFirst({
+          where: { iterationId, workspaceId: this.workspaceId },
+          orderBy: { approvedAt: 'desc' },
         }),
       ]);
     return {

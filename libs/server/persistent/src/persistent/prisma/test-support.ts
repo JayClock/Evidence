@@ -181,7 +181,7 @@ export function mockPrismaStore(): MockPrismaStore {
     noModelImpactDecision: delegate(['findFirst', 'count', 'create']),
     taskingCandidate: delegate(['findFirst', 'count', 'create']),
     deskCheckDecision: delegate(['findMany', 'count', 'create']),
-    approvedTaskingPlan: delegate(['findUnique', 'create']),
+    approvedTaskingPlan: delegate(['findFirst', 'create']),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 

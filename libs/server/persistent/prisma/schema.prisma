@@ -365,7 +365,7 @@ model Iteration {
   noModelImpactDecisions     NoModelImpactDecision[]
   taskingCandidates          TaskingCandidate[]
   deskCheckDecisions         DeskCheckDecision[]
-  approvedTaskingPlan        ApprovedTaskingPlan?
+  approvedTaskingPlans       ApprovedTaskingPlan[]
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, lifecycle, lane, admittedAt])
@@ -758,7 +758,7 @@ model DeskCheckDecision {
 model ApprovedTaskingPlan {
   id                  String            @id
   workspaceId         String            @map("workspace_id")
-  iterationId         String            @unique @map("iteration_id")
+  iterationId         String            @map("iteration_id")
   storyId             String            @map("story_id")
   storyRevisionId     String            @map("story_revision_id")
   taskingCandidateId  String            @unique @map("tasking_candidate_id")
@@ -776,6 +776,7 @@ model ApprovedTaskingPlan {
   approvedBy          User              @relation("ApprovedTaskingPlanActor", fields: [approvedByUserId], references: [id], onDelete: Restrict)
 
   @@index([workspaceId, approvedAt])
+  @@index([iterationId, approvedAt])
   @@map("approved_tasking_plans")
 }
 
