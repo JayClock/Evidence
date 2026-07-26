@@ -15,7 +15,11 @@ import type {
   WorkspaceInbox,
   WorkspaceInboxWorkflow,
 } from '../inbox';
-import type { WorkspaceIterations, WorkspaceUnderstanding } from '../iteration';
+import type {
+  WorkspaceIterations,
+  WorkspaceTasking,
+  WorkspaceUnderstanding,
+} from '../iteration';
 import type {
   LogicalEntity,
   LogicalEntityDescription,
@@ -142,6 +146,7 @@ function workspaceFixture() {
   const inboxWorkflow = {} as WorkspaceInboxWorkflow;
   const iterations = {} as WorkspaceIterations;
   const understanding = {} as WorkspaceUnderstanding;
+  const tasking = {} as WorkspaceTasking;
 
   const delivery = {
     listStories: vi.fn(async () => [[story], 1] as [Story[], number]),
@@ -195,6 +200,7 @@ function workspaceFixture() {
     inboxWorkflow,
     iterations,
     understanding,
+    tasking,
     delivery,
     codingRuns,
   );
@@ -209,6 +215,7 @@ function workspaceFixture() {
     inboxWorkflow,
     iterations,
     understanding,
+    tasking,
     inboxItem,
     inboxRevision,
     story,
@@ -267,10 +274,13 @@ describe('Workspace', () => {
   });
 
   it('exposes the authoritative Inbox and Iteration workflow ports', () => {
-    const { inboxWorkflow, iterations, workspace } = workspaceFixture();
+    const { inboxWorkflow, iterations, tasking, understanding, workspace } =
+      workspaceFixture();
 
     expect(workspace.inboxWorkflow()).toBe(inboxWorkflow);
     expect(workspace.iterations()).toBe(iterations);
+    expect(workspace.understanding()).toBe(understanding);
+    expect(workspace.tasking()).toBe(tasking);
   });
 
   it('delegates member commands to the workspace members collection', async () => {

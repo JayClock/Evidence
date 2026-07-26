@@ -39,6 +39,7 @@ import { PrismaWorkspaceMembers } from './workspace-members';
 import { PrismaWorkspaceInbox } from './workspace-inbox';
 import { PrismaWorkspaceInboxWorkflow } from './workspace-inbox-workflow';
 import { PrismaWorkspaceIterationWorkflow } from './workspace-iteration-workflow';
+import { PrismaWorkspaceTasking } from './workspace-tasking';
 import { PrismaWorkspaceUnderstanding } from './workspace-understanding';
 
 export function toIso(value: Date): string {
@@ -77,6 +78,7 @@ export function assembleWorkspace(
     new PrismaWorkspaceInboxWorkflow(store, row.id),
     new PrismaWorkspaceIterationWorkflow(store, row.id),
     new PrismaWorkspaceUnderstanding(store, row.id),
+    new PrismaWorkspaceTasking(store, row.id),
     new PrismaWorkspaceDelivery(store, row.id),
     new PrismaWorkspaceCodingRuns(store, row.id),
   );
