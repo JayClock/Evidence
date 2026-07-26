@@ -79,20 +79,6 @@
         "command": "node apps/desktop/scripts/package-smoke.mjs"
       }
     },
-    "package-e2e": {
-      "cache": false,
-      "executor": "nx:run-commands",
-      "dependsOn": [
-        "package-unpacked",
-        {
-          "projects": "@evidence/server",
-          "target": "build"
-        }
-      ],
-      "options": {
-        "command": "node apps/desktop/scripts/package-e2e.mjs"
-      }
-    },
     "package": {
       "executor": "nx:run-commands",
       "dependsOn": [
