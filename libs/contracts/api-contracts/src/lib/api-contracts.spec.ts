@@ -94,6 +94,9 @@ describeContracts('Evidence API contract vertical slice', () => {
       '/api/workspaces/{workspaceId}/inbox-extractions/{extractionId}/candidates',
     );
     expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/select',
+    );
+    expect(openapi.body.paths).not.toHaveProperty(
       '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm',
     );
     expect(openapi.body.paths).toHaveProperty(
@@ -470,6 +473,46 @@ describeContracts('Evidence API contract vertical slice', () => {
         proposedBy: 'inbox-analyst',
       }),
     ]);
+    const candidate = proposed.body._embedded.storyCandidates[0];
+    const listedCandidates = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates?status=ready&page=1&pageSize=20`,
+    );
+    expectHalCollection(
+      listedCandidates,
+      mediaTypes.storyCandidates,
+      'storyCandidates',
+    );
+    expect(listedCandidates.body._embedded.storyCandidates).toEqual([
+      expect.objectContaining({ id: candidate.id, status: 'ready' }),
+    ]);
+
+    const selected = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${candidate.id}/select`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          candidateSha256: candidate.contentSha256,
+          baseCommitSha: 'b'.repeat(40),
+        }),
+      },
+    );
+    expect(selected.status).toBe(201);
+    expectHalResource(selected, 'application/vnd.evidence.iteration+json');
+    expect(selected.body).toMatchObject({
+      reference: expect.stringMatching(/^ITER-[0-9]{4,}$/),
+      lifecycle: 'provisioning',
+      loop: 'kickoff',
+      stage: 'candidate_review',
+      activeStoryId: null,
+    });
+
+    const selectedCandidate = await apiRequest(
+      `/api/workspaces/${workspaceId}/story-candidates/${candidate.id}`,
+    );
+    expect(selectedCandidate.body).toMatchObject({
+      status: 'selected',
+      selectedIterationId: selected.body.id,
+    });
 
     const replay = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-extractions/${extraction.body.id}/candidates`,

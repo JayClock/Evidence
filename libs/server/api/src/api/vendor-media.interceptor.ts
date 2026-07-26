@@ -129,9 +129,7 @@ export function vendorMediaType(
       : null;
   }
   if (matches(apiSegments, ['workspaces', '*', 'story-candidates'])) {
-    return method.toUpperCase() === 'POST'
-      ? mediaType('story-candidate')
-      : mediaType('story-candidates');
+    return mediaType('story-candidates');
   }
   if (matches(apiSegments, ['workspaces', '*', 'story-candidates', '*'])) {
     return mediaType('story-candidate');
@@ -142,17 +140,18 @@ export function vendorMediaType(
       '*',
       'story-candidates',
       '*',
-      'confirm',
-    ])
-  ) {
-    return method.toUpperCase() === 'POST' ? mediaType('story-revision') : null;
-  }
-  if (
+      'defer',
+    ]) ||
     matches(apiSegments, ['workspaces', '*', 'story-candidates', '*', 'reject'])
   ) {
     return method.toUpperCase() === 'POST'
       ? mediaType('story-candidate')
       : null;
+  }
+  if (
+    matches(apiSegments, ['workspaces', '*', 'story-candidates', '*', 'select'])
+  ) {
+    return method.toUpperCase() === 'POST' ? mediaType('iteration') : null;
   }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');

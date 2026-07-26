@@ -4,14 +4,12 @@ import {
   CodingRunsController,
   StoryCodingRunsController,
 } from './coding-runs.controller';
-import {
-  StoriesController,
-  StoryCandidatesController,
-} from './delivery.controller';
+import { StoriesController } from './delivery.controller';
 import { DiagramsController } from './diagrams.controller';
 import { InboxController } from './inbox.controller';
 import { InboxExtractionsController } from './inbox-extractions.controller';
 import { LogicalEntitiesController } from './logical-entities.controller';
+import { InboxStoryCandidatesController } from './story-candidates.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
 import { ResourceResolver } from './resource-resolver.service';
 import { SidebarController } from './sidebar.controller';
@@ -77,7 +75,7 @@ class InboxExtractionsApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
-  controllers: [StoryCandidatesController],
+  controllers: [InboxStoryCandidatesController],
 })
 class StoryCandidatesApiModule {}
 

@@ -113,12 +113,12 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.inbox-candidate-set+json',
     ],
     [
-      '/api/workspaces/default-workspace/story-candidates',
+      '/api/workspaces/default-workspace/story-candidates/candidate-1/defer',
       'application/vnd.evidence.story-candidate+json',
     ],
     [
-      '/api/workspaces/default-workspace/story-candidates/candidate-1/confirm',
-      'application/vnd.evidence.story-revision+json',
+      '/api/workspaces/default-workspace/story-candidates/candidate-1/select',
+      'application/vnd.evidence.iteration+json',
     ],
     [
       '/api/workspaces/default-workspace/story-candidates/candidate-1/reject',

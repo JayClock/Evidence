@@ -237,9 +237,9 @@ export interface paths {
       };
       cookie?: never;
     };
-    get: operations['list_story_candidates'];
+    get: operations['list_inbox_story_candidates'];
     put?: never;
-    post: operations['propose_story_candidate'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -256,7 +256,7 @@ export interface paths {
       };
       cookie?: never;
     };
-    get: operations['get_story_candidate'];
+    get: operations['get_inbox_story_candidate'];
     put?: never;
     post?: never;
     delete?: never;
@@ -265,19 +265,16 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm': {
+  '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/defer': {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        workspaceId: string;
-        candidateId: string;
-      };
+      path?: never;
       cookie?: never;
     };
     get?: never;
     put?: never;
-    post: operations['confirm_story_candidate'];
+    post: operations['defer_inbox_story_candidate'];
     delete?: never;
     options?: never;
     head?: never;
@@ -288,15 +285,28 @@ export interface paths {
     parameters: {
       query?: never;
       header?: never;
-      path: {
-        workspaceId: string;
-        candidateId: string;
-      };
+      path?: never;
       cookie?: never;
     };
     get?: never;
     put?: never;
-    post: operations['reject_story_candidate'];
+    post: operations['reject_inbox_story_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/story-candidates/{candidateId}/select': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['select_inbox_story_candidate'];
     delete?: never;
     options?: never;
     head?: never;
@@ -978,6 +988,52 @@ export interface components {
     };
     InboxStoryCandidateCollectionEmbedded: {
       storyCandidates: components['schemas']['InboxStoryCandidateResource'][];
+    };
+    /** @enum {string} */
+    InboxCandidateStatus:
+      | 'ready'
+      | 'stale'
+      | 'selected'
+      | 'deferred'
+      | 'rejected';
+    InboxStoryCandidateCollectionResource: {
+      _links: components['schemas']['BTreeMap'];
+      _embedded: components['schemas']['InboxStoryCandidateCollectionEmbedded'];
+      page: components['schemas']['PageModel'];
+    };
+    InboxCandidateDecisionInput: {
+      candidateSha256: string;
+      reason: string;
+    };
+    SelectInboxCandidateInput: {
+      candidateSha256: string;
+      baseCommitSha: string;
+    };
+    IterationResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      sourceCandidateId: string;
+      sourceCandidateSha256: string;
+      /** @enum {string} */
+      lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
+      /** @enum {string} */
+      loop: 'kickoff' | 'understand';
+      /** @enum {string} */
+      stage: 'candidate_review' | 'candidate_drafting' | 'tqa';
+      /** @enum {string} */
+      lane: 'discovery';
+      /** Format: int32 */
+      version: number;
+      baseCommitSha: string;
+      branchName?: string | null;
+      provisioningFailureSummary?: string | null;
+      activeStoryId?: string | null;
+      admittedByUserId: string;
+      /** Format: date-time */
+      admittedAt: string;
+      /** Format: date-time */
+      updatedAt: string;
     };
     ProposedInboxCandidateSetResource: {
       _links: components['schemas']['BTreeMap'];
@@ -2331,12 +2387,12 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  list_story_candidates: {
+  list_inbox_story_candidates: {
     parameters: {
       query?: {
         page?: number;
         pageSize?: number;
-        status?: components['schemas']['StoryCandidateStatus'];
+        status?: components['schemas']['InboxCandidateStatus'];
       };
       header?: never;
       path: {
@@ -2346,13 +2402,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Workspace Story Candidate collection */
+      /** @description Non-authoritative Inbox Candidate collection */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.story-candidates+json': components['schemas']['StoryCandidateCollectionResource'];
+          'application/vnd.evidence.story-candidates+json': components['schemas']['InboxStoryCandidateCollectionResource'];
         };
       };
       400: components['responses']['ValidationError'];
@@ -2360,37 +2416,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  propose_story_candidate: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['StoryCandidateInput'];
-      };
-    };
-    responses: {
-      /** @description Persisted non-authoritative Story Candidate */
-      201: {
-        headers: {
-          Location?: string;
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.story-candidate+json': components['schemas']['StoryCandidateResource'];
-        };
-      };
-      400: components['responses']['ValidationError'];
-      404: components['responses']['ResourceNotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  get_story_candidate: {
+  get_inbox_story_candidate: {
     parameters: {
       query?: never;
       header?: never;
@@ -2402,20 +2428,20 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Non-authoritative Story Candidate and decision state */
+      /** @description Immutable Candidate with derived authority status */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.story-candidate+json': components['schemas']['StoryCandidateResource'];
+          'application/vnd.evidence.story-candidate+json': components['schemas']['InboxStoryCandidateResource'];
         };
       };
       404: components['responses']['ResourceNotFound'];
       500: components['responses']['InternalError'];
     };
   };
-  confirm_story_candidate: {
+  defer_inbox_story_candidate: {
     parameters: {
       query?: never;
       header?: never;
@@ -2427,28 +2453,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['StoryCandidateDecisionInput'];
+        'application/json': components['schemas']['InboxCandidateDecisionInput'];
       };
     };
     responses: {
-      /** @description Existing Story Revision returned for an idempotent confirmation retry */
+      /** @description Candidate with an append-only defer decision */
       200: {
         headers: {
-          Location?: string;
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
-        };
-      };
-      /** @description Immutable Story Revision v1 created by explicit human confirmation */
-      201: {
-        headers: {
-          Location?: string;
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
+          'application/vnd.evidence.story-candidate+json': components['schemas']['InboxStoryCandidateResource'];
         };
       };
       400: components['responses']['ValidationError'];
@@ -2457,7 +2472,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  reject_story_candidate: {
+  reject_inbox_story_candidate: {
     parameters: {
       query?: never;
       header?: never;
@@ -2469,17 +2484,49 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['StoryCandidateDecisionInput'];
+        'application/json': components['schemas']['InboxCandidateDecisionInput'];
       };
     };
     responses: {
-      /** @description Story Candidate with recorded rejection decision */
+      /** @description Candidate with an append-only reject decision */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.story-candidate+json': components['schemas']['StoryCandidateResource'];
+          'application/vnd.evidence.story-candidate+json': components['schemas']['InboxStoryCandidateResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  select_inbox_story_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        candidateId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SelectInboxCandidateInput'];
+      };
+    };
+    responses: {
+      /** @description Provisioning Iteration with Frozen Intake and no Story */
+      201: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.iteration+json': components['schemas']['IterationResource'];
         };
       };
       400: components['responses']['ValidationError'];

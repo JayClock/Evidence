@@ -763,7 +763,7 @@ paths:
         schema:
           type: string
     get:
-      operationId: list_story_candidates
+      operationId: list_inbox_story_candidates
       parameters:
         - name: page
           in: query
@@ -781,39 +781,14 @@ paths:
         - name: status
           in: query
           schema:
-            $ref: '#/components/schemas/StoryCandidateStatus'
+            $ref: '#/components/schemas/InboxCandidateStatus'
       responses:
         '200':
-          description: Workspace Story Candidate collection
+          description: Non-authoritative Inbox Candidate collection
           content:
             application/vnd.evidence.story-candidates+json:
               schema:
-                $ref: '#/components/schemas/StoryCandidateCollectionResource'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/ResourceNotFound'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      operationId: propose_story_candidate
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StoryCandidateInput'
-      responses:
-        '201':
-          description: Persisted non-authoritative Story Candidate
-          headers:
-            Location:
-              schema:
-                type: string
-          content:
-            application/vnd.evidence.story-candidate+json:
-              schema:
-                $ref: '#/components/schemas/StoryCandidateResource'
+                $ref: '#/components/schemas/InboxStoryCandidateCollectionResource'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -833,59 +808,45 @@ paths:
         schema:
           type: string
     get:
-      operationId: get_story_candidate
+      operationId: get_inbox_story_candidate
       responses:
         '200':
-          description: Non-authoritative Story Candidate and decision state
+          description: Immutable Candidate with derived authority status
           content:
             application/vnd.evidence.story-candidate+json:
               schema:
-                $ref: '#/components/schemas/StoryCandidateResource'
+                $ref: '#/components/schemas/InboxStoryCandidateResource'
         '404':
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/workspaces/{workspaceId}/story-candidates/{candidateId}/confirm:
-    parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: candidateId
-        in: path
-        required: true
-        schema:
-          type: string
+  /api/workspaces/{workspaceId}/story-candidates/{candidateId}/defer:
     post:
-      operationId: confirm_story_candidate
+      operationId: defer_inbox_story_candidate
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StoryCandidateDecisionInput'
+              $ref: '#/components/schemas/InboxCandidateDecisionInput'
       responses:
-        '201':
-          description: Immutable Story Revision v1 created by explicit human confirmation
-          headers:
-            Location:
-              schema:
-                type: string
-          content:
-            application/vnd.evidence.story-revision+json:
-              schema:
-                $ref: '#/components/schemas/StoryRevisionResource'
         '200':
-          description: Existing Story Revision returned for an idempotent confirmation retry
-          headers:
-            Location:
-              schema:
-                type: string
+          description: Candidate with an append-only defer decision
           content:
-            application/vnd.evidence.story-revision+json:
+            application/vnd.evidence.story-candidate+json:
               schema:
-                $ref: '#/components/schemas/StoryRevisionResource'
+                $ref: '#/components/schemas/InboxStoryCandidateResource'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -895,32 +856,71 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
   /api/workspaces/{workspaceId}/story-candidates/{candidateId}/reject:
-    parameters:
-      - name: workspaceId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: candidateId
-        in: path
-        required: true
-        schema:
-          type: string
     post:
-      operationId: reject_story_candidate
+      operationId: reject_inbox_story_candidate
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StoryCandidateDecisionInput'
+              $ref: '#/components/schemas/InboxCandidateDecisionInput'
       responses:
         '200':
-          description: Story Candidate with recorded rejection decision
+          description: Candidate with an append-only reject decision
           content:
             application/vnd.evidence.story-candidate+json:
               schema:
-                $ref: '#/components/schemas/StoryCandidateResource'
+                $ref: '#/components/schemas/InboxStoryCandidateResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/story-candidates/{candidateId}/select:
+    post:
+      operationId: select_inbox_story_candidate
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: candidateId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SelectInboxCandidateInput'
+      responses:
+        '201':
+          description: Provisioning Iteration with Frozen Intake and no Story
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/vnd.evidence.iteration+json:
+              schema:
+                $ref: '#/components/schemas/IterationResource'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
@@ -3087,6 +3087,109 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InboxStoryCandidateResource'
+    InboxCandidateStatus:
+      type: string
+      enum: [ready, stale, selected, deferred, rejected]
+    InboxStoryCandidateCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        _embedded:
+          $ref: '#/components/schemas/InboxStoryCandidateCollectionEmbedded'
+        page:
+          $ref: '#/components/schemas/PageModel'
+    InboxCandidateDecisionInput:
+      type: object
+      required:
+        - candidateSha256
+        - reason
+      properties:
+        candidateSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    SelectInboxCandidateInput:
+      type: object
+      required:
+        - candidateSha256
+        - baseCommitSha
+      properties:
+        candidateSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        baseCommitSha:
+          type: string
+          pattern: '^[a-fA-F0-9]{40}([a-fA-F0-9]{24})?$'
+    IterationResource:
+      type: object
+      required:
+        - _links
+        - id
+        - reference
+        - sourceCandidateId
+        - sourceCandidateSha256
+        - lifecycle
+        - loop
+        - stage
+        - lane
+        - version
+        - baseCommitSha
+        - admittedByUserId
+        - admittedAt
+        - updatedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        reference:
+          type: string
+          pattern: '^ITER-[0-9]{4,}$'
+        sourceCandidateId:
+          type: string
+        sourceCandidateSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        lifecycle:
+          type: string
+          enum: [provisioning, active, provisioning_failed, halted]
+        loop:
+          type: string
+          enum: [kickoff, understand]
+        stage:
+          type: string
+          enum: [candidate_review, candidate_drafting, tqa]
+        lane:
+          type: string
+          enum: [discovery]
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        baseCommitSha:
+          type: string
+        branchName:
+          type: [string, 'null']
+        provisioningFailureSummary:
+          type: [string, 'null']
+        activeStoryId:
+          type: [string, 'null']
+        admittedByUserId:
+          type: string
+        admittedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     ProposedInboxCandidateSetResource:
       type: object
       required:
