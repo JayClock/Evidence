@@ -247,7 +247,7 @@ export class PrismaWorkspaceInboxWorkflow implements WorkspaceInboxWorkflow {
           this.workspaceId,
           candidateId,
         );
-        const status = deriveCandidateStatus(current);
+        const status = candidateStatus(current);
         if (
           status === 'selected' ||
           status === 'deferred' ||
@@ -332,7 +332,7 @@ export function assembleCandidate(row: CandidateRow): InboxStoryCandidate {
     cognitiveMode: parseCognitiveMode(row.cognitiveMode),
     citations: row.citations.map(assembleCitation),
     contentSha256: row.contentSha256,
-    status: deriveCandidateStatus(row),
+    status: candidateStatus(row),
     proposedBy: 'inbox-analyst',
     proposedAt: row.proposedAt.toISOString(),
     terminalDecision: row.decision ? new Ref(row.decision.id) : null,
@@ -370,7 +370,7 @@ function assembleDecision(row: CandidateDecisionRow): InboxCandidateDecision {
   });
 }
 
-function deriveCandidateStatus(row: CandidateRow) {
+export function candidateStatus(row: CandidateRow) {
   if (row.selectedIteration) return 'selected' as const;
   if (row.decision?.action === 'defer') return 'deferred' as const;
   if (row.decision?.action === 'reject') return 'rejected' as const;

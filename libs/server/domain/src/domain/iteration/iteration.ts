@@ -31,6 +31,7 @@ export interface IterationDescription {
   version: number;
   baseCommitSha: string;
   branchName: string | null;
+  provisioningFailureSummary: string | null;
   activeStory: Ref<string> | null;
   admittedBy: Ref<string>;
   admittedAt: string;

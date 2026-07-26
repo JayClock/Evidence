@@ -329,29 +329,30 @@ model InboxCandidateDecision {
 }
 
 model Iteration {
-  id                    String              @id
-  reference             String
-  workspaceId           String              @map("workspace_id")
-  sourceCandidateId     String              @unique @map("source_candidate_id")
-  sourceCandidateSha256 String              @map("source_candidate_sha256")
-  lifecycle             String
-  loop                  String
-  stage                 String
-  lane                  String
-  version               Int                 @default(1)
-  baseCommitSha         String              @map("base_commit_sha")
-  branchName            String?             @map("branch_name")
-  admittedByUserId      String              @map("admitted_by_user_id")
-  admittedAt            DateTime            @map("admitted_at")
-  updatedAt             DateTime            @map("updated_at")
-  workspace             Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  sourceCandidate       InboxStoryCandidate @relation(fields: [sourceCandidateId], references: [id], onDelete: Restrict)
-  admittedBy            User                @relation("IterationAdmissionActor", fields: [admittedByUserId], references: [id], onDelete: Restrict)
-  intake                IterationIntake?
-  kickoffProposals      KickoffProposal[]
-  kickoffDecisions      KickoffDecision[]
-  story                 Story?              @relation("IterationStory")
-  activityRuns          ActivityRun[]
+  id                         String              @id
+  reference                  String
+  workspaceId                String              @map("workspace_id")
+  sourceCandidateId          String              @unique @map("source_candidate_id")
+  sourceCandidateSha256      String              @map("source_candidate_sha256")
+  lifecycle                  String
+  loop                       String
+  stage                      String
+  lane                       String
+  version                    Int                 @default(1)
+  baseCommitSha              String              @map("base_commit_sha")
+  branchName                 String?             @map("branch_name")
+  provisioningFailureSummary String?             @map("provisioning_failure_summary")
+  admittedByUserId           String              @map("admitted_by_user_id")
+  admittedAt                 DateTime            @map("admitted_at")
+  updatedAt                  DateTime            @map("updated_at")
+  workspace                  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceCandidate            InboxStoryCandidate @relation(fields: [sourceCandidateId], references: [id], onDelete: Restrict)
+  admittedBy                 User                @relation("IterationAdmissionActor", fields: [admittedByUserId], references: [id], onDelete: Restrict)
+  intake                     IterationIntake?
+  kickoffProposals           KickoffProposal[]
+  kickoffDecisions           KickoffDecision[]
+  story                      Story?              @relation("IterationStory")
+  activityRuns               ActivityRun[]
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, lifecycle, lane, admittedAt])
