@@ -313,6 +313,118 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_iteration'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/intake': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_iteration_intake'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/provisioning/complete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['complete_iteration_provisioning'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/provisioning/fail': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['fail_iteration_provisioning'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/kickoff': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['get_iteration_kickoff'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/kickoff/proposals': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['propose_kickoff_replacement'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/kickoff/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['decide_kickoff'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/stories': {
     parameters: {
       query?: never;
@@ -1034,6 +1146,144 @@ export interface components {
       admittedAt: string;
       /** Format: date-time */
       updatedAt: string;
+    };
+    CompleteIterationProvisioningInput: {
+      /** Format: int32 */
+      expectedVersion: number;
+      baseCommitSha: string;
+      branchName: string;
+    };
+    FailIterationProvisioningInput: {
+      /** Format: int32 */
+      expectedVersion: number;
+      reason: string;
+    };
+    FrozenCitationResource: {
+      _links: components['schemas']['BTreeMap'];
+      inboxItemId: string;
+      inboxRevisionId: string;
+      /** Format: int32 */
+      revisionNumber: number;
+      revisionSha256: string;
+      locator: string;
+    };
+    FrozenCandidateSnapshotResource: {
+      candidateId: string;
+      candidateReference: string;
+      extractionId: string;
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      /** @enum {string} */
+      cognitiveMode: 'clear' | 'complicated' | 'complex';
+      citations: components['schemas']['FrozenCitationResource'][];
+      contentSha256: string;
+      /** Format: date-time */
+      proposedAt: string;
+    };
+    IterationIntakeResource: {
+      _links: components['schemas']['BTreeMap'];
+      iterationId: string;
+      candidate: components['schemas']['FrozenCandidateSnapshotResource'];
+      sources: components['schemas']['InboxExtractionSourceResource'][];
+      requirementsProjection: string;
+      contentSha256: string;
+      /** Format: date-time */
+      frozenAt: string;
+    };
+    KickoffReplacementInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      proposal: components['schemas']['InboxStoryCandidateInput'];
+    };
+    KickoffProposalResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      /** Format: int32 */
+      sequence: number;
+      /** @enum {string} */
+      origin: 'inbox_candidate' | 'requirements_analyst';
+      title: string;
+      problem: string;
+      role: string;
+      goal: string;
+      value: string;
+      /** @enum {string} */
+      cognitiveMode: 'clear' | 'complicated' | 'complex';
+      citations: components['schemas']['FrozenCitationResource'][];
+      contentSha256: string;
+      /** Format: date-time */
+      proposedAt: string;
+    };
+    KickoffDecisionInput: {
+      proposalId: string;
+      proposalSha256: string;
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      /** @enum {string} */
+      action: 'confirm' | 'revise' | 'split' | 'defer' | 'stop';
+      reason?: string | null;
+    };
+    KickoffDecisionResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      proposalId: string;
+      proposalSha256: string;
+      /** @enum {string} */
+      action: 'confirm' | 'revise' | 'split' | 'defer' | 'stop';
+      reason?: string | null;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    KickoffResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      intake: components['schemas']['IterationIntakeResource'];
+      currentProposal: null | components['schemas']['KickoffProposalResource'];
+      decisions: components['schemas']['KickoffDecisionResource'][];
+    };
+    ProblemStatementResource: {
+      id: string;
+      storyId: string;
+      revisionNumber: number;
+      title: string;
+      problem: string;
+      /** @enum {string} */
+      cognitiveMode: 'clear' | 'complicated' | 'complex';
+      citations: components['schemas']['FrozenCitationResource'][];
+      contentSha256: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    StoryCardResource: {
+      id: string;
+      /** @enum {string} */
+      reference: 'US-001';
+      storyId: string;
+      revisionNumber: number;
+      title: string;
+      role: string;
+      goal: string;
+      value: string;
+      problemStatementId: string;
+      contentSha256: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    KickoffDecisionResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      decision: components['schemas']['KickoffDecisionResource'];
+      problemStatement:
+        | null
+        | components['schemas']['ProblemStatementResource'];
+      storyCard: null | components['schemas']['StoryCardResource'];
     };
     ProposedInboxCandidateSetResource: {
       _links: components['schemas']['BTreeMap'];
@@ -2527,6 +2777,206 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.iteration+json': components['schemas']['IterationResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_iteration: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Candidate-bound delivery Iteration */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.iteration+json': components['schemas']['IterationResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_iteration_intake: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Self-contained immutable Iteration Intake */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.iteration-intake+json': components['schemas']['IterationIntakeResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  complete_iteration_provisioning: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CompleteIterationProvisioningInput'];
+      };
+    };
+    responses: {
+      /** @description Active Iteration bound to its deterministic branch */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.iteration+json': components['schemas']['IterationResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  fail_iteration_provisioning: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['FailIterationProvisioningInput'];
+      };
+    };
+    responses: {
+      /** @description Provisioning failure preserving the Candidate claim */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.iteration+json': components['schemas']['IterationResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  get_iteration_kickoff: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Frozen Intake, current Proposal, and append-only Decisions */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.kickoff+json': components['schemas']['KickoffResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  propose_kickoff_replacement: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KickoffReplacementInput'];
+      };
+    };
+    responses: {
+      /** @description Requirements Analyst replacement Proposal */
+      201: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.kickoff-proposal+json': components['schemas']['KickoffProposalResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  decide_kickoff: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['KickoffDecisionInput'];
+      };
+    };
+    responses: {
+      /** @description Human Kickoff Decision and resulting authority state */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.kickoff-decision-result+json': components['schemas']['KickoffDecisionResultResource'];
         };
       };
       400: components['responses']['ValidationError'];

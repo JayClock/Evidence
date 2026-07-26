@@ -929,6 +929,225 @@ paths:
           $ref: '#/components/responses/ResourceConflict'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}:
+    get:
+      operationId: get_iteration
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Candidate-bound delivery Iteration
+          content:
+            application/vnd.evidence.iteration+json:
+              schema:
+                $ref: '#/components/schemas/IterationResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/intake:
+    get:
+      operationId: get_iteration_intake
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Self-contained immutable Iteration Intake
+          content:
+            application/vnd.evidence.iteration-intake+json:
+              schema:
+                $ref: '#/components/schemas/IterationIntakeResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/provisioning/complete:
+    post:
+      operationId: complete_iteration_provisioning
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteIterationProvisioningInput'
+      responses:
+        '200':
+          description: Active Iteration bound to its deterministic branch
+          content:
+            application/vnd.evidence.iteration+json:
+              schema:
+                $ref: '#/components/schemas/IterationResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/provisioning/fail:
+    post:
+      operationId: fail_iteration_provisioning
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FailIterationProvisioningInput'
+      responses:
+        '200':
+          description: Provisioning failure preserving the Candidate claim
+          content:
+            application/vnd.evidence.iteration+json:
+              schema:
+                $ref: '#/components/schemas/IterationResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/kickoff:
+    get:
+      operationId: get_iteration_kickoff
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Frozen Intake, current Proposal, and append-only Decisions
+          content:
+            application/vnd.evidence.kickoff+json:
+              schema:
+                $ref: '#/components/schemas/KickoffResource'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/kickoff/proposals:
+    post:
+      operationId: propose_kickoff_replacement
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KickoffReplacementInput'
+      responses:
+        '201':
+          description: Requirements Analyst replacement Proposal
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/vnd.evidence.kickoff-proposal+json:
+              schema:
+                $ref: '#/components/schemas/KickoffProposalResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/kickoff/decisions:
+    post:
+      operationId: decide_kickoff
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: iterationId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KickoffDecisionInput'
+      responses:
+        '200':
+          description: Human Kickoff Decision and resulting authority state
+          content:
+            application/vnd.evidence.kickoff-decision-result+json:
+              schema:
+                $ref: '#/components/schemas/KickoffDecisionResultResource'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/ResourceNotFound'
+        '409':
+          $ref: '#/components/responses/ResourceConflict'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/workspaces/{workspaceId}/stories:
     parameters:
       - name: workspaceId
@@ -3190,6 +3409,376 @@ components:
         updatedAt:
           type: string
           format: date-time
+    CompleteIterationProvisioningInput:
+      type: object
+      required: [expectedVersion, baseCommitSha, branchName]
+      properties:
+        expectedVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        baseCommitSha:
+          type: string
+          pattern: '^[a-fA-F0-9]{40}([a-fA-F0-9]{24})?$'
+        branchName:
+          type: string
+          pattern: '^evidence/iter-[a-z0-9][a-z0-9-]*$'
+    FailIterationProvisioningInput:
+      type: object
+      required: [expectedVersion, reason]
+      properties:
+        expectedVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+    FrozenCitationResource:
+      type: object
+      required:
+        - _links
+        - inboxItemId
+        - inboxRevisionId
+        - revisionNumber
+        - revisionSha256
+        - locator
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        inboxItemId:
+          type: string
+        inboxRevisionId:
+          type: string
+        revisionNumber:
+          type: integer
+          format: int32
+          minimum: 1
+        revisionSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        locator:
+          type: string
+    FrozenCandidateSnapshotResource:
+      type: object
+      required:
+        - candidateId
+        - candidateReference
+        - extractionId
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+        - contentSha256
+        - proposedAt
+      properties:
+        candidateId:
+          type: string
+        candidateReference:
+          type: string
+        extractionId:
+          type: string
+        title:
+          type: string
+        problem:
+          type: string
+        role:
+          type: string
+        goal:
+          type: string
+        value:
+          type: string
+        cognitiveMode:
+          type: string
+          enum: [clear, complicated, complex]
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrozenCitationResource'
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        proposedAt:
+          type: string
+          format: date-time
+    IterationIntakeResource:
+      type: object
+      required:
+        - _links
+        - iterationId
+        - candidate
+        - sources
+        - requirementsProjection
+        - contentSha256
+        - frozenAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        iterationId:
+          type: string
+        candidate:
+          $ref: '#/components/schemas/FrozenCandidateSnapshotResource'
+        sources:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/InboxExtractionSourceResource'
+        requirementsProjection:
+          type: string
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        frozenAt:
+          type: string
+          format: date-time
+    KickoffReplacementInput:
+      type: object
+      required: [expectedIterationVersion, proposal]
+      properties:
+        expectedIterationVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        proposal:
+          $ref: '#/components/schemas/InboxStoryCandidateInput'
+    KickoffProposalResource:
+      type: object
+      required:
+        - _links
+        - id
+        - reference
+        - sequence
+        - origin
+        - title
+        - problem
+        - role
+        - goal
+        - value
+        - cognitiveMode
+        - citations
+        - contentSha256
+        - proposedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        reference:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+          minimum: 1
+        origin:
+          type: string
+          enum: [inbox_candidate, requirements_analyst]
+        title:
+          type: string
+        problem:
+          type: string
+        role:
+          type: string
+        goal:
+          type: string
+        value:
+          type: string
+        cognitiveMode:
+          type: string
+          enum: [clear, complicated, complex]
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrozenCitationResource'
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        proposedAt:
+          type: string
+          format: date-time
+    KickoffDecisionInput:
+      type: object
+      required:
+        - proposalId
+        - proposalSha256
+        - expectedIterationVersion
+        - action
+      properties:
+        proposalId:
+          type: string
+        proposalSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        expectedIterationVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        action:
+          type: string
+          enum: [confirm, revise, split, defer, stop]
+        reason:
+          type: [string, 'null']
+          maxLength: 2000
+    KickoffDecisionResource:
+      type: object
+      required:
+        - _links
+        - id
+        - reference
+        - proposalId
+        - proposalSha256
+        - action
+        - decidedByUserId
+        - decidedAt
+        - contentSha256
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        id:
+          type: string
+        reference:
+          type: string
+        proposalId:
+          type: string
+        proposalSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        action:
+          type: string
+          enum: [confirm, revise, split, defer, stop]
+        reason:
+          type: [string, 'null']
+        decidedByUserId:
+          type: string
+        decidedAt:
+          type: string
+          format: date-time
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+    KickoffResource:
+      type: object
+      required: [_links, iteration, intake, currentProposal, decisions]
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        iteration:
+          $ref: '#/components/schemas/IterationResource'
+        intake:
+          $ref: '#/components/schemas/IterationIntakeResource'
+        currentProposal:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/KickoffProposalResource'
+        decisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/KickoffDecisionResource'
+    ProblemStatementResource:
+      type: object
+      required:
+        - id
+        - storyId
+        - revisionNumber
+        - title
+        - problem
+        - cognitiveMode
+        - citations
+        - contentSha256
+        - createdAt
+      properties:
+        id:
+          type: string
+        storyId:
+          type: string
+        revisionNumber:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        problem:
+          type: string
+        cognitiveMode:
+          type: string
+          enum: [clear, complicated, complex]
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/FrozenCitationResource'
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        createdAt:
+          type: string
+          format: date-time
+    StoryCardResource:
+      type: object
+      required:
+        - id
+        - reference
+        - storyId
+        - revisionNumber
+        - title
+        - role
+        - goal
+        - value
+        - problemStatementId
+        - contentSha256
+        - createdAt
+      properties:
+        id:
+          type: string
+        reference:
+          type: string
+          enum: [US-001]
+        storyId:
+          type: string
+        revisionNumber:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        role:
+          type: string
+        goal:
+          type: string
+        value:
+          type: string
+        problemStatementId:
+          type: string
+        contentSha256:
+          type: string
+          pattern: '^sha256:[a-f0-9]{64}$'
+        createdAt:
+          type: string
+          format: date-time
+    KickoffDecisionResultResource:
+      type: object
+      required:
+        - _links
+        - iteration
+        - decision
+        - problemStatement
+        - storyCard
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        iteration:
+          $ref: '#/components/schemas/IterationResource'
+        decision:
+          $ref: '#/components/schemas/KickoffDecisionResource'
+        problemStatement:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/ProblemStatementResource'
+        storyCard:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/StoryCardResource'
     ProposedInboxCandidateSetResource:
       type: object
       required:

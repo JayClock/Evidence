@@ -23,6 +23,11 @@ const mediaTypes = {
   inboxCandidateSet: 'application/vnd.evidence.inbox-candidate-set+json',
   storyCandidate: 'application/vnd.evidence.story-candidate+json',
   storyCandidates: 'application/vnd.evidence.story-candidates+json',
+  iteration: 'application/vnd.evidence.iteration+json',
+  iterationIntake: 'application/vnd.evidence.iteration-intake+json',
+  kickoff: 'application/vnd.evidence.kickoff+json',
+  kickoffDecisionResult:
+    'application/vnd.evidence.kickoff-decision-result+json',
   story: 'application/vnd.evidence.story+json',
   stories: 'application/vnd.evidence.stories+json',
   storyRevision: 'application/vnd.evidence.story-revision+json',
@@ -512,6 +517,82 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(selectedCandidate.body).toMatchObject({
       status: 'selected',
       selectedIterationId: selected.body.id,
+    });
+
+    const frozenIntake = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/intake`,
+    );
+    expect(frozenIntake.status).toBe(200);
+    expectHalResource(frozenIntake, mediaTypes.iterationIntake);
+    expect(frozenIntake.body).toMatchObject({
+      candidate: expect.objectContaining({
+        candidateReference: candidate.reference,
+      }),
+      sources: [
+        expect.objectContaining({
+          inboxRevisionId: source.body.latestRevisionId,
+          contentSha256: source.body.latestRevisionSha256,
+        }),
+      ],
+    });
+    expect(frozenIntake.body.candidate.candidateId).toBe(candidate.id);
+
+    const provisioned = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/provisioning/complete`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedVersion: 1,
+          baseCommitSha: 'b'.repeat(40),
+          branchName: `evidence/${selected.body.reference.toLowerCase()}`,
+        }),
+      },
+    );
+    expect(provisioned.status).toBe(200);
+    expectHalResource(provisioned, mediaTypes.iteration);
+    expect(provisioned.body).toMatchObject({
+      lifecycle: 'active',
+      version: 2,
+    });
+
+    const kickoff = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/kickoff`,
+    );
+    expect(kickoff.status).toBe(200);
+    expectHalResource(kickoff, mediaTypes.kickoff);
+    expect(kickoff.body.currentProposal).toMatchObject({
+      origin: 'inbox_candidate',
+      title: 'Frozen delivery intake',
+    });
+
+    const confirmed = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/kickoff/decisions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          proposalId: kickoff.body.currentProposal.id,
+          proposalSha256: kickoff.body.currentProposal.contentSha256,
+          expectedIterationVersion: 2,
+          action: 'confirm',
+        }),
+      },
+    );
+    expect(confirmed.status).toBe(200);
+    expectResourceContentType(confirmed, mediaTypes.kickoffDecisionResult);
+    expect(confirmed.body).toMatchObject({
+      iteration: {
+        loop: 'understand',
+        stage: 'tqa',
+        activeStoryId: expect.any(String),
+      },
+      decision: { action: 'confirm', reason: null },
+      problemStatement: expect.objectContaining({
+        problem: 'Mutable sources cannot authorize delivery.',
+      }),
+      storyCard: expect.objectContaining({
+        reference: 'US-001',
+        role: 'Workspace maintainer',
+      }),
     });
 
     const replay = await apiRequest(
