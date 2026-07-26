@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, RouterModule } from '@nestjs/core';
-import {
-  CodingRunsController,
-  StoryCodingRunsController,
-} from './coding-runs.controller';
 import { StoriesController } from './delivery.controller';
 import { DiagramsController } from './diagrams.controller';
 import { InboxController } from './inbox.controller';
@@ -100,18 +96,6 @@ class StoriesApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
-  controllers: [StoryCodingRunsController],
-})
-class StoryCodingRunsApiModule {}
-
-@Module({
-  imports: [ApiResourcesModule],
-  controllers: [CodingRunsController],
-})
-class CodingRunsApiModule {}
-
-@Module({
-  imports: [ApiResourcesModule],
   controllers: [LogicalEntitiesController],
 })
 class LogicalEntitiesApiModule {}
@@ -135,8 +119,6 @@ class LogicalRelationshipsApiModule {}
     StoryCandidatesApiModule,
     IterationsApiModule,
     StoriesApiModule,
-    StoryCodingRunsApiModule,
-    CodingRunsApiModule,
     LogicalEntitiesApiModule,
     LogicalRelationshipsApiModule,
     RouterModule.register([
@@ -185,16 +167,6 @@ class LogicalRelationshipsApiModule {}
           {
             path: ':workspaceId/stories',
             module: StoriesApiModule,
-            children: [
-              {
-                path: ':storyId/coding-runs',
-                module: StoryCodingRunsApiModule,
-              },
-            ],
-          },
-          {
-            path: ':workspaceId/coding-runs',
-            module: CodingRunsApiModule,
           },
           {
             path: ':workspaceId/logical-entities',

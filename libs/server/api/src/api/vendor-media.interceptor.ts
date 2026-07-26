@@ -316,13 +316,6 @@ export function vendorMediaType(
   if (matches(apiSegments, ['workspaces', '*', 'stories', '*'])) {
     return mediaType('story');
   }
-  if (
-    matches(apiSegments, ['workspaces', '*', 'stories', '*', 'coding-runs'])
-  ) {
-    return method.toUpperCase() === 'POST'
-      ? mediaType('coding-run')
-      : mediaType('coding-runs');
-  }
   if (matches(apiSegments, ['workspaces', '*', 'stories', '*', 'revisions'])) {
     return method.toUpperCase() === 'POST'
       ? mediaType('story-revision')
@@ -332,12 +325,6 @@ export function vendorMediaType(
     matches(apiSegments, ['workspaces', '*', 'stories', '*', 'revisions', '*'])
   ) {
     return mediaType('story-revision');
-  }
-  if (matches(apiSegments, ['workspaces', '*', 'coding-runs', '*'])) {
-    return mediaType('coding-run');
-  }
-  if (matches(apiSegments, ['workspaces', '*', 'coding-runs', '*', '*'])) {
-    return method.toUpperCase() === 'POST' ? mediaType('coding-run') : null;
   }
   if (matches(apiSegments, ['workspaces', '*', 'logical-entities'])) {
     return mediaType('logical-entities');

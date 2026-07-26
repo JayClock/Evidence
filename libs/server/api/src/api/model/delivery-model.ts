@@ -11,7 +11,6 @@ import {
   workspaceInboxItemHref,
   workspaceInboxRevisionHref,
   workspaceStoriesHref,
-  workspaceStoryCodingRunsHref,
   workspaceStoryHref,
   workspaceStoryRevisionHref,
   workspaceStoryRevisionsHref,
@@ -56,13 +55,7 @@ export function storyModel(story: Story): StoryModel {
         description.latestRevision.id(),
       ),
     ),
-    'coding-runs': link(workspaceStoryCodingRunsHref(workspaceId, storyId)),
   };
-  if (description.latestScenarioCount > 0) {
-    links['start-coding-run'] = link(
-      workspaceStoryCodingRunsHref(workspaceId, storyId),
-    );
-  }
   return {
     _links: links,
     id: storyId,
