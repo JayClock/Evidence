@@ -3,6 +3,7 @@ export * from './diagram';
 export * from './delivery';
 export * from './error';
 export * from './inbox';
+export * from './iteration';
 export * from './logical-entity';
 export * from './logical-relationship';
 export * from './member';
