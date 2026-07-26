@@ -283,6 +283,7 @@ function assembleStory(row: StoryRow): Story {
   }
   return new Story(row.id, {
     workspace: new Ref(row.workspaceId),
+    reference: storyReference(row.reference),
     title: row.latestRevision.title,
     latestRevision: new Ref(row.latestRevisionId),
     latestRevisionNumber: row.latestRevision.revisionNumber,
@@ -353,6 +354,13 @@ function assembleCitation(
     contentSha256: row.inboxRevision.contentSha256,
     locator: row.locator,
   };
+}
+
+function storyReference(value: string | null): 'US-001' {
+  if (value !== 'US-001') {
+    throw DomainError.internal(`unsupported Story reference: ${String(value)}`);
+  }
+  return value;
 }
 
 function validatePage(page: number, pageSize: number): void {

@@ -44,6 +44,7 @@ export interface StoryRevisionInput extends StoryContentInput {
 
 export interface StoryDescription {
   workspace: Ref<string>;
+  reference: 'US-001';
   title: string;
   latestRevision: Ref<string>;
   latestRevisionNumber: number;

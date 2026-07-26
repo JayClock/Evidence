@@ -4283,6 +4283,7 @@ components:
       required:
         - _links
         - id
+        - reference
         - title
         - latestRevisionId
         - latestRevisionNumber
@@ -4296,6 +4297,9 @@ components:
           $ref: '#/components/schemas/BTreeMap'
         id:
           type: string
+        reference:
+          type: string
+          enum: [US-001]
         title:
           type: string
         latestRevisionId:

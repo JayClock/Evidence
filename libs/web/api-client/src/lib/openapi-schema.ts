@@ -1462,6 +1462,8 @@ export interface components {
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
       id: string;
+      /** @enum {string} */
+      reference: 'US-001';
       title: string;
       latestRevisionId: string;
       /** Format: int32 */

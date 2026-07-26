@@ -25,6 +25,7 @@ function citation() {
 function story() {
   return new Story('story-1', {
     workspace: new Ref('workspace-1'),
+    reference: 'US-001',
     title: 'Local coding agent',
     latestRevision: new Ref('story-revision-1'),
     latestRevisionNumber: 1,
@@ -120,6 +121,7 @@ describe('StoriesController', () => {
     });
     expect(stories._embedded.stories[0]).toMatchObject({
       id: 'story-1',
+      reference: 'US-001',
       title: 'Local coding agent',
       latestRevisionNumber: 1,
       latestScenarioCount: 0,

@@ -476,7 +476,7 @@ model Story {
   id                String                     @id
   workspaceId       String                     @map("workspace_id")
   iterationId       String?                    @unique @map("iteration_id")
-  reference         String?
+  reference         String
   latestRevisionId  String?                    @unique @map("latest_revision_id")
   version           Int                        @default(1)
   createdAt         DateTime                   @map("created_at")

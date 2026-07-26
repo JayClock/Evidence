@@ -29,6 +29,7 @@ export interface StoryCitationModel {
 export interface StoryModel {
   _links: Record<string, Link>;
   id: string;
+  reference: 'US-001';
   title: string;
   latestRevisionId: string;
   latestRevisionNumber: number;
@@ -66,6 +67,7 @@ export function storyModel(story: Story): StoryModel {
   return {
     _links: links,
     id: storyId,
+    reference: description.reference,
     title: description.title,
     latestRevisionId: description.latestRevision.id(),
     latestRevisionNumber: description.latestRevisionNumber,

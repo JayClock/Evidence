@@ -84,6 +84,7 @@ function storyRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'story-1',
     workspaceId: 'workspace-1',
+    reference: 'US-001',
     latestRevisionId: 'story-revision-1',
     version: 1,
     createdAt: timestamp,
@@ -111,6 +112,7 @@ describe('PrismaWorkspaceDelivery', () => {
 
     expect(total).toBe(1);
     expect(stories[0]?.description()).toMatchObject({
+      reference: 'US-001',
       latestRevisionNumber: 1,
       latestScenarioCount: 0,
       revisionCount: 1,
