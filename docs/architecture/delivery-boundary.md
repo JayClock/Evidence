@@ -12,7 +12,7 @@ Evidence 产品增加三个彼此衔接、但不依赖内部研发编排器 Runt
 2. **Iteration & Kickoff**：人类选择精确 Candidate 后冻结 Intake、占用 WIP，并通过 Kickoff 决定创建本 Iteration 唯一的 Story。
 3. **Delivery Knowledge**：保存 Story 的不可变修订、Scenario、CodingRun 及人工接受或拒绝决定。
 
-Inbox 与 Kickoff 由 [Inbox → Kickoff 权威生命周期](./inbox-kickoff-lifecycle.md) 定义；单 Story 澄清与 Scenario authority 由 [Understand / TQA 权威生命周期](./understand-tqa-lifecycle.md) 定义。
+Inbox 与 Kickoff 由 [Inbox → Kickoff 权威生命周期](./inbox-kickoff-lifecycle.md) 定义；单 Story 澄清与 Scenario authority 由 [Understand / TQA 权威生命周期](./understand-tqa-lifecycle.md) 定义；无模型影响出口、Tasking Candidate 与人工 Desk Check 由 [No Model Impact 与 Tasking / Desk Check 权威生命周期](./tasking-desk-check-lifecycle.md) 定义。
 
 Server 是两个上下文的权威知识来源。Desktop 是本地执行边界：它以 `API base URL + workspaceId` 绑定本地 repository，在隔离 worktree 中运行 Pi 和测试。Desktop main process 通过系统选择器接收并验证绝对路径；renderer 只取得短期、不透明、绑定到 IPC sender 的 selection id，以及项目名和 Git HEAD 摘要。Renderer 与 Server 都不接收 Desktop 绝对路径；Server 也不接收 Pi 凭据、完整源码、完整 diff 或 stdout。
 
@@ -42,8 +42,9 @@ Dogfooding 只允许内部工具读取产品知识来辅助开发，不允许产
 - Candidate selection 原子 claim WIP 并创建 Iteration/Frozen Intake；Desktop 从当前 HEAD provision `evidence/iter-*` 隔离 worktree，只回报 bounded facts。
 - Kickoff Frozen Proposal review、append-only 人工 confirm/revise/split/defer/stop、本地 replacement Analyst 和每轮唯一 `US-001` 已落地；Agent 不持有人工决定能力。
 - 旧 direct Candidate confirm API、领域 port、Prisma 表/列与客户端 contract 已删除；destructive migration 不 backfill 旧 Inbox/Story/CodingRun workflow 数据。
-- Understand / TQA 将以 baseline Story Revision 为边界记录单问题 Clarification、完整 Scenario Proposal 和人工 Scenario Set 决定；确认后进入 `understand/modeling/profile`。
-- 当前直接人工创建 Story Revision 与直接 CodingRun admission 将由 EVD-003 breaking cutover 删除；CodingRun 执行基础设施保留给后续 Tasking/Pair admission 重接。
+- Understand / TQA 以 baseline Story Revision 为边界记录单问题 Clarification、完整 Scenario Proposal 和人工 Scenario Set 决定；确认后进入 `understand/modeling`。
+- EVD-004 以显式人工 `tool/none/false` 决定替代本轮完整 Modeling Profile，并在无模型影响证据后生成可供人工 Desk Check 的 Tasking Candidate。
+- 当前直接 CodingRun admission 将由 EVD-004 breaking cutover 删除；Desktop CodingRun 低层执行基础设施保留给后续 Pair admission 重接。
 
 ## 后果
 
