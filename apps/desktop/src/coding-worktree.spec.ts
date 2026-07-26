@@ -113,6 +113,25 @@ describe('CodingWorktreeManager', () => {
     ).toBe('');
   });
 
+  it('reuses the isolation boundary with a locked Iteration namespace', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const manager = new CodingWorktreeManager(
+      join(root, 'managed-iterations'),
+      async () => undefined,
+      'iter',
+    );
+
+    const worktree = await manager.prepare({
+      runId: 'iteration-1',
+      repositoryRoot: repository,
+      baseCommitSha: await gitHead(repository),
+    });
+
+    expect(worktree.branchName).toBe('evidence/iter-iteration-1');
+    await expect(manager.recover(worktree)).resolves.toEqual(worktree);
+  });
+
   it('removes rejected work and its temporary branch', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);

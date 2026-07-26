@@ -38,8 +38,12 @@ export class CodingWorktreeManager {
   constructor(
     root: string,
     private readonly hydrateDependencies: CodingDependencyHydrator = hydratePnpmDependencies,
+    private readonly branchNamespace = 'run',
   ) {
     this.managedRoot = resolve(root);
+    if (!/^[a-z][a-z0-9-]{0,31}$/.test(branchNamespace)) {
+      throw new Error('Worktree branch namespace is invalid.');
+    }
   }
 
   async prepare(input: {
@@ -70,7 +74,7 @@ export class CodingWorktreeManager {
     if (await pathExists(worktreeRoot)) {
       throw new Error(`Coding worktree ${runId} already exists.`);
     }
-    const branchName = `evidence/run-${runId}`;
+    const branchName = `evidence/${this.branchNamespace}-${runId}`;
 
     try {
       await runGit(repositoryRoot, [
@@ -304,7 +308,7 @@ export class CodingWorktreeManager {
     ) {
       throw new Error('Coding worktree path is outside the managed root.');
     }
-    const expectedBranch = `evidence/run-${runId}`;
+    const expectedBranch = `evidence/${this.branchNamespace}-${runId}`;
     if (worktree.branchName !== expectedBranch) {
       throw new Error('Coding worktree branch identity is invalid.');
     }
