@@ -27,7 +27,9 @@ import {
   InboxRevision,
   InboxSourceInput,
   WorkspaceInbox,
+  WorkspaceInboxWorkflow,
 } from '../inbox';
+import { WorkspaceIterations } from '../iteration';
 import {
   LogicalEntity,
   LogicalEntityDescription,
@@ -58,6 +60,8 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     private readonly workspaceLogicalEntities: WorkspaceLogicalEntities,
     private readonly workspaceLogicalRelationships: WorkspaceLogicalRelationships,
     private readonly workspaceInbox: WorkspaceInbox,
+    private readonly workspaceInboxWorkflow: WorkspaceInboxWorkflow,
+    private readonly workspaceIterations: WorkspaceIterations,
     private readonly workspaceDelivery: WorkspaceDelivery,
     private readonly workspaceCodingRuns: WorkspaceCodingRuns,
   ) {}
@@ -135,6 +139,14 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     revisionId: string,
   ): Promise<InboxRevision | null> {
     return this.workspaceInbox.findRevision(itemId, revisionId);
+  }
+
+  inboxWorkflow(): WorkspaceInboxWorkflow {
+    return this.workspaceInboxWorkflow;
+  }
+
+  iterations(): WorkspaceIterations {
+    return this.workspaceIterations;
   }
 
   storyCandidates(): HasMany<StoryCandidate> {

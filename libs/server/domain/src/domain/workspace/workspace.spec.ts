@@ -16,7 +16,9 @@ import type {
   InboxRevision,
   InboxSourceInput,
   WorkspaceInbox,
+  WorkspaceInboxWorkflow,
 } from '../inbox';
+import type { WorkspaceIterations } from '../iteration';
 import type {
   LogicalEntity,
   LogicalEntityDescription,
@@ -171,6 +173,9 @@ function workspaceFixture() {
     findRevision: vi.fn(async () => inboxRevision),
   } satisfies WorkspaceInbox;
 
+  const inboxWorkflow = {} as WorkspaceInboxWorkflow;
+  const iterations = {} as WorkspaceIterations;
+
   const delivery = {
     findAll: vi.fn(() => manyStoryCandidates),
     findByIdentity: vi.fn(async () => storyCandidate),
@@ -237,6 +242,8 @@ function workspaceFixture() {
     logicalEntities,
     logicalRelationships,
     inbox,
+    inboxWorkflow,
+    iterations,
     delivery,
     codingRuns,
   );
@@ -248,6 +255,8 @@ function workspaceFixture() {
     diagram,
     diagramProjection,
     inbox,
+    inboxWorkflow,
+    iterations,
     inboxItem,
     inboxRevision,
     story,
@@ -304,6 +313,13 @@ describe('Workspace', () => {
     await expect(logicalEntities.findByIdentity('entity-1')).resolves.toBe(
       logicalEntity,
     );
+  });
+
+  it('exposes the authoritative Inbox and Iteration workflow ports', () => {
+    const { inboxWorkflow, iterations, workspace } = workspaceFixture();
+
+    expect(workspace.inboxWorkflow()).toBe(inboxWorkflow);
+    expect(workspace.iterations()).toBe(iterations);
   });
 
   it('delegates member commands to the workspace members collection', async () => {

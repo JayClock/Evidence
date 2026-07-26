@@ -37,6 +37,8 @@ import { PrismaWorkspaceCodingRuns } from './workspace-coding-runs';
 import { PrismaWorkspaceDelivery } from './workspace-delivery';
 import { PrismaWorkspaceMembers } from './workspace-members';
 import { PrismaWorkspaceInbox } from './workspace-inbox';
+import { PrismaWorkspaceInboxWorkflow } from './workspace-inbox-workflow';
+import { PrismaWorkspaceIterationWorkflow } from './workspace-iteration-workflow';
 
 export function toIso(value: Date): string {
   return value.toISOString();
@@ -71,6 +73,8 @@ export function assembleWorkspace(
     new FileWorkspaceLogicalEntities(row.id, evidenceRoot),
     new FileWorkspaceLogicalRelationships(row.id, evidenceRoot),
     new PrismaWorkspaceInbox(store, row.id),
+    new PrismaWorkspaceInboxWorkflow(store, row.id),
+    new PrismaWorkspaceIterationWorkflow(store, row.id),
     new PrismaWorkspaceDelivery(store, row.id),
     new PrismaWorkspaceCodingRuns(store, row.id),
   );
