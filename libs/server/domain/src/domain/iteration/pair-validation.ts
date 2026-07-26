@@ -1,5 +1,6 @@
 import { DomainError } from '../error';
 import type {
+  ClaimPairLeaseInput,
   DecidePairInput,
   PairCommandObservationDescription,
   PairDecisionAction,
@@ -185,6 +186,16 @@ export function materializePairExecutionPlan(
     throw DomainError.conflict('Pair requires locked quality gates');
   }
   return { workUnits, qualityGates };
+}
+
+export function normalizeClaimPairLeaseInput(
+  input: ClaimPairLeaseInput,
+): ClaimPairLeaseInput {
+  return {
+    pairRunId: identifier(input.pairRunId, 'Pair Run id'),
+    expectedPairVersion: positive(input.expectedPairVersion, 'Pair version'),
+    executorId: identifier(input.executorId, 'Pair executor id'),
+  };
 }
 
 export function normalizeStartPairInput(input: StartPairInput): StartPairInput {

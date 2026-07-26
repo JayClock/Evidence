@@ -475,6 +475,17 @@ export interface RecordPairExceptionInput extends PairActionInput {
   failureFingerprint?: string | null;
 }
 
+export interface ClaimPairLeaseInput {
+  pairRunId: string;
+  expectedPairVersion: number;
+  executorId: string;
+}
+
+export interface ClaimPairLeaseResult {
+  run: PairRun;
+  leaseToken: string;
+}
+
 export interface HeartbeatPairLeaseInput {
   pairRunId: string;
   expectedPairVersion: number;
@@ -501,6 +512,10 @@ export interface WorkspacePair {
     iterationId: string,
     input: StartPairInput,
   ): Promise<StartPairResult>;
+  claimPairLease(
+    iterationId: string,
+    input: ClaimPairLeaseInput,
+  ): Promise<ClaimPairLeaseResult>;
   heartbeatPairLease(
     iterationId: string,
     input: HeartbeatPairLeaseInput,

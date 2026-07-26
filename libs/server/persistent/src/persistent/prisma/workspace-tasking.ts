@@ -812,7 +812,9 @@ function assembleDecision(row: DecisionRow): DeskCheckDecision {
   });
 }
 
-function assembleApprovedPlan(row: ApprovedPlanRow): ApprovedTaskingPlan {
+export function assembleApprovedPlan(
+  row: ApprovedPlanRow,
+): ApprovedTaskingPlan {
   const payload = approvedPayload(row.payload, row.id);
   const plan: TaskingCandidateDescription = {
     planVersion: payload.planVersion,

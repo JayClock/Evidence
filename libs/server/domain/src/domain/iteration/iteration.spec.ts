@@ -153,9 +153,13 @@ describe('Kickoff authority validation', () => {
     expect(parseIterationStage('modeling')).toBe('modeling');
     expect(parseIterationLoop('tasking')).toBe('tasking');
     expect(parseIterationStage('desk_check')).toBe('desk_check');
+    expect(parseIterationLoop('pair')).toBe('pair');
+    expect(parseIterationStage('quality_gates_passed')).toBe(
+      'quality_gates_passed',
+    );
     expect(parseKickoffDecisionAction('stop')).toBe('stop');
     expect(() => parseIterationLifecycle('complete')).toThrow(DomainError);
-    expect(() => parseIterationLoop('pair')).toThrow(DomainError);
+    expect(() => parseIterationLoop('showcase')).toThrow(DomainError);
     expect(() => parseIterationStage('planning')).toThrow(DomainError);
     expect(() => parseKickoffDecisionAction('approve')).toThrow(DomainError);
   });

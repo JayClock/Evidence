@@ -11,6 +11,7 @@ import type {
 } from '../inbox';
 import type {
   WorkspaceIterations,
+  WorkspacePair,
   WorkspaceTasking,
   WorkspaceUnderstanding,
 } from '../iteration';
@@ -139,6 +140,7 @@ function workspaceFixture() {
   const iterations = {} as WorkspaceIterations;
   const understanding = {} as WorkspaceUnderstanding;
   const tasking = {} as WorkspaceTasking;
+  const pair = {} as WorkspacePair;
 
   const delivery = {
     listStories: vi.fn(async () => [[story], 1] as [Story[], number]),
@@ -181,6 +183,7 @@ function workspaceFixture() {
     iterations,
     understanding,
     tasking,
+    pair,
     delivery,
   );
 
@@ -193,6 +196,7 @@ function workspaceFixture() {
     iterations,
     understanding,
     tasking,
+    pair,
     inboxItem,
     inboxRevision,
     story,
@@ -251,13 +255,20 @@ describe('Workspace', () => {
   });
 
   it('exposes the authoritative Inbox and Iteration workflow ports', () => {
-    const { inboxWorkflow, iterations, tasking, understanding, workspace } =
-      workspaceFixture();
+    const {
+      inboxWorkflow,
+      iterations,
+      pair,
+      tasking,
+      understanding,
+      workspace,
+    } = workspaceFixture();
 
     expect(workspace.inboxWorkflow()).toBe(inboxWorkflow);
     expect(workspace.iterations()).toBe(iterations);
     expect(workspace.understanding()).toBe(understanding);
     expect(workspace.tasking()).toBe(tasking);
+    expect(workspace.pair()).toBe(pair);
   });
 
   it('delegates member commands to the workspace members collection', async () => {

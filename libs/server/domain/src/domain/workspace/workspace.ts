@@ -18,6 +18,7 @@ import {
 } from '../inbox';
 import {
   WorkspaceIterations,
+  WorkspacePair,
   WorkspaceTasking,
   WorkspaceUnderstanding,
 } from '../iteration';
@@ -55,6 +56,7 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     private readonly workspaceIterations: WorkspaceIterations,
     private readonly workspaceUnderstanding: WorkspaceUnderstanding,
     private readonly workspaceTasking: WorkspaceTasking,
+    private readonly workspacePair: WorkspacePair,
     private readonly workspaceDelivery: WorkspaceDelivery,
   ) {}
 
@@ -147,6 +149,10 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   tasking(): WorkspaceTasking {
     return this.workspaceTasking;
+  }
+
+  pair(): WorkspacePair {
+    return this.workspacePair;
   }
 
   listStories(query: StoryListQuery): Promise<[Story[], number]> {

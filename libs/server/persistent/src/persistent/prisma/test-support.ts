@@ -51,6 +51,13 @@ export interface MockPrismaStore {
   taskingCandidate: Record<string, MockFn>;
   deskCheckDecision: Record<string, MockFn>;
   approvedTaskingPlan: Record<string, MockFn>;
+  pairRun: Record<string, MockFn>;
+  pairDriverAttempt: Record<string, MockFn>;
+  pairCommandObservation: Record<string, MockFn>;
+  pairRedReview: Record<string, MockFn>;
+  pairAutomationException: Record<string, MockFn>;
+  pairExecutionManifest: Record<string, MockFn>;
+  pairCodingDecision: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -182,6 +189,18 @@ export function mockPrismaStore(): MockPrismaStore {
     taskingCandidate: delegate(['findFirst', 'count', 'create']),
     deskCheckDecision: delegate(['findMany', 'count', 'create']),
     approvedTaskingPlan: delegate(['findFirst', 'create']),
+    pairRun: delegate(['findFirst', 'count', 'create', 'updateMany']),
+    pairDriverAttempt: delegate(['findFirst', 'findMany', 'count', 'create']),
+    pairCommandObservation: delegate([
+      'findFirst',
+      'findMany',
+      'count',
+      'create',
+    ]),
+    pairRedReview: delegate(['findFirst', 'findMany', 'create']),
+    pairAutomationException: delegate(['findFirst', 'create', 'updateMany']),
+    pairExecutionManifest: delegate(['findFirst', 'create']),
+    pairCodingDecision: delegate(['findFirst', 'findMany', 'count', 'create']),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 
