@@ -150,6 +150,21 @@ export class IntakeApiClient {
     };
   }
 
+  async getCandidate(
+    workspaceId: string,
+    candidateId: string,
+    signal?: AbortSignal,
+  ): Promise<RemoteInboxCandidate> {
+    return candidate(
+      await this.requestJson(
+        this.path(
+          `/workspaces/${encode(workspaceId)}/story-candidates/${encode(candidateId)}`,
+        ),
+        { signal },
+      ),
+    );
+  }
+
   async selectCandidate(
     candidateResource: RemoteInboxCandidate,
     baseCommitSha: string,
