@@ -153,6 +153,55 @@ export function vendorMediaType(
   ) {
     return method.toUpperCase() === 'POST' ? mediaType('iteration') : null;
   }
+  if (matches(apiSegments, ['workspaces', '*', 'iterations', '*'])) {
+    return mediaType('iteration');
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'iterations', '*', 'intake'])) {
+    return mediaType('iteration-intake');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'provisioning',
+      '*',
+    ])
+  ) {
+    return method.toUpperCase() === 'POST' ? mediaType('iteration') : null;
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'iterations', '*', 'kickoff'])) {
+    return mediaType('kickoff');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'kickoff',
+      'proposals',
+    ])
+  ) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('kickoff-proposal')
+      : null;
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'kickoff',
+      'decisions',
+    ])
+  ) {
+    return method.toUpperCase() === 'POST'
+      ? mediaType('kickoff-decision-result')
+      : null;
+  }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');
   }

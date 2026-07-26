@@ -88,6 +88,7 @@ export interface IterationIntakeModel {
     sourceUpdatedAt: string | null;
     capturedAt: string;
     contentSha256: string;
+    locatorLinks: Record<string, Link>;
   }>;
   requirementsProjection: string;
   contentSha256: string;
@@ -253,6 +254,16 @@ export function iterationIntakeModel(
       sourceUpdatedAt: source.sourceUpdatedAt,
       capturedAt: source.capturedAt,
       contentSha256: source.contentSha256,
+      locatorLinks: {
+        item: link(workspaceInboxItemHref(workspaceId, source.inboxItem.id())),
+        revision: link(
+          workspaceInboxRevisionHref(
+            workspaceId,
+            source.inboxItem.id(),
+            source.inboxRevision.id(),
+          ),
+        ),
+      },
     })),
     requirementsProjection: description.requirementsProjection,
     contentSha256: description.contentSha256,

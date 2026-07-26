@@ -63,6 +63,18 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.story-candidate+json',
     ],
     [
+      '/api/workspaces/default-workspace/iterations/iteration-1',
+      'application/vnd.evidence.iteration+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/intake',
+      'application/vnd.evidence.iteration-intake+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/kickoff',
+      'application/vnd.evidence.kickoff+json',
+    ],
+    [
       '/api/workspaces/default-workspace/stories',
       'application/vnd.evidence.stories+json',
     ],
@@ -123,6 +135,18 @@ describe('vendorMediaType', () => {
     [
       '/api/workspaces/default-workspace/story-candidates/candidate-1/reject',
       'application/vnd.evidence.story-candidate+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/provisioning/complete',
+      'application/vnd.evidence.iteration+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/kickoff/proposals',
+      'application/vnd.evidence.kickoff-proposal+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/kickoff/decisions',
+      'application/vnd.evidence.kickoff-decision-result+json',
     ],
     [
       '/api/workspaces/default-workspace/stories/story-1/revisions',
