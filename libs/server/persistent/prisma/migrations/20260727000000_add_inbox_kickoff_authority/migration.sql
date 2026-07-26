@@ -396,4 +396,3 @@ ALTER TABLE "story_card_revisions" ADD CONSTRAINT "story_card_revisions_story_id
 
 -- AddForeignKey
 ALTER TABLE "stories" ADD CONSTRAINT "stories_iteration_id_fkey" FOREIGN KEY ("iteration_id") REFERENCES "iterations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
