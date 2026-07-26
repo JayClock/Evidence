@@ -521,6 +521,82 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_tasking'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/no-model-impact': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_no_model_impact'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/candidates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['propose_tasking_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['decide_tasking_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/stories': {
     parameters: {
       query?: never;
@@ -1681,6 +1757,266 @@ export interface components {
       iteration: components['schemas']['IterationResource'];
       decision: components['schemas']['UnderstandingDecisionResource'];
       storyRevision?: components['schemas']['StoryRevisionResource'] | null;
+    };
+    RecordNoModelImpactInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      storyId: string;
+      storyRevisionId: string;
+      storyRevisionSha256: string;
+      reason: string;
+    };
+    NoModelImpactDecisionResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      storyId: string;
+      storyRevisionId: string;
+      storyRevisionSha256: string;
+      /** @enum {string} */
+      subject: 'tool';
+      /** @enum {string} */
+      method: 'none';
+      /** @enum {boolean} */
+      modelChangeRequired: false;
+      reason: string;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    /** @enum {string} */
+    TaskingFunctionalContext:
+      | 'workspace'
+      | 'work-intake'
+      | 'delivery'
+      | 'logical-model'
+      | 'diagram-projection'
+      | 'model-proposal';
+    /** @enum {string} */
+    TaskingTechnicalBoundary:
+      | 'react-route'
+      | 'react-feature'
+      | 'rest-client'
+      | 'http-server'
+      | 'nest-api'
+      | 'nest-domain'
+      | 'prisma-store'
+      | 'electron-main'
+      | 'electron-preload'
+      | 'desktop-binding-store'
+      | 'git-worktree'
+      | 'webview';
+    TaskingProject: {
+      id: string;
+      root: string;
+      targets: string[];
+    };
+    TaskingProjectCatalog: {
+      projects: components['schemas']['TaskingProject'][];
+    };
+    TaskingRuntimeInput: {
+      id: string;
+      /** @enum {string} */
+      runtime: 'typescript';
+      functionalContexts: components['schemas']['TaskingFunctionalContext'][];
+      technicalBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
+      projectIds: string[];
+    };
+    EmptyTaskingModelRefs: {
+      entities: string[];
+      associations: string[];
+    };
+    TaskingTestInput: {
+      id: string;
+      /** @enum {string} */
+      quadrant: 'Q1' | 'Q2';
+      intent: string;
+      runtimePlanId: string;
+      stepId: string;
+      projectId?: string | null;
+      testFilter: string;
+      supportedBy: string[];
+      scenarioIds: string[];
+      scenarioOutcome?: string | null;
+      businessData: string[];
+      modelRefs: components['schemas']['EmptyTaskingModelRefs'];
+    };
+    TaskingTaskInput: {
+      id: string;
+      description: string;
+      testIds: string[];
+      dependsOn: string[];
+    };
+    ProposeTaskingInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      storyId: string;
+      storyRevisionId: string;
+      noModelImpactDecisionId: string;
+      noModelImpactDecisionSha256: string;
+      projectCatalog: components['schemas']['TaskingProjectCatalog'];
+      runtimes: components['schemas']['TaskingRuntimeInput'][];
+      tests: components['schemas']['TaskingTestInput'][];
+      tasks: components['schemas']['TaskingTaskInput'][];
+    };
+    TaskingTestResource: components['schemas']['TaskingTestInput'] & {
+      processId: string;
+      projectId: string | null;
+      scenarioOutcome: string | null;
+    };
+    TaskingTaskResource: components['schemas']['TaskingTaskInput'] & {
+      modelRefs: components['schemas']['EmptyTaskingModelRefs'];
+    };
+    MaterializedTaskingCommand: {
+      testId: string;
+      stepId: string;
+      projectId: string | null;
+      command: string;
+    };
+    MaterializedTaskingGate: {
+      projectId: string | null;
+      target: string | null;
+      command: string;
+    };
+    TaskingProcessSelection: {
+      runtimePlanId: string;
+      processId: string;
+      /** @enum {integer} */
+      processVersion: 3;
+      definitionSha256: string;
+      functionalContexts: components['schemas']['TaskingFunctionalContext'][];
+      technicalBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
+      selectedStepIds: string[];
+      projectIds: string[];
+      projectCatalogSha256: string;
+      focusedCommands: components['schemas']['MaterializedTaskingCommand'][];
+      qualityGates: components['schemas']['MaterializedTaskingGate'][];
+      materializedSha256: string;
+    };
+    TaskingCandidateSnapshot: {
+      reference: string;
+      storyId: string;
+      storyRevisionId: string;
+      storyRevisionSha256: string;
+      baseCommitSha: string;
+      noModelImpactDecisionId: string;
+      noModelImpactDecisionSha256: string;
+      /** Format: int32 */
+      sequence: number;
+      projectCatalog: components['schemas']['TaskingProjectCatalog'];
+      projectCatalogSha256: string;
+      tests: components['schemas']['TaskingTestResource'][];
+      tasks: components['schemas']['TaskingTaskResource'][];
+      processes: components['schemas']['TaskingProcessSelection'][];
+      contentSha256: string;
+      /** @enum {string} */
+      proposedBy: 'tasking-analyst';
+      /** Format: date-time */
+      proposedAt: string;
+    };
+    TaskingCandidateResource: components['schemas']['TaskingCandidateSnapshot'] & {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+    };
+    /** @enum {string} */
+    DeskCheckAction:
+      | 'approve'
+      | 'revise'
+      | 'architecture_gap'
+      | 'process_gap'
+      | 'scenario_gap';
+    DeskCheckDecisionInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      candidateId: string;
+      candidateSha256: string;
+      action: components['schemas']['DeskCheckAction'];
+      reason?: string | null;
+    };
+    DeskCheckDecisionResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      reference: string;
+      candidateId: string;
+      candidateSha256: string;
+      action: components['schemas']['DeskCheckAction'];
+      reason: string | null;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    ApprovedTaskingPlanResource: {
+      _links: components['schemas']['BTreeMap'];
+      id: string;
+      storyId: string;
+      storyRevisionId: string;
+      taskingCandidateId: string;
+      deskCheckDecisionId: string;
+      plan: components['schemas']['TaskingCandidateSnapshot'];
+      contentSha256: string;
+      approvedByUserId: string;
+      /** Format: date-time */
+      approvedAt: string;
+    };
+    /** @enum {string} */
+    TaskingTestDouble: 'fake' | 'stub' | 'spy' | 'mock';
+    TaskingReplacedBoundary: {
+      boundary: components['schemas']['TaskingTechnicalBoundary'];
+      testDouble: components['schemas']['TaskingTestDouble'];
+    };
+    TaskingProcessStepDefinition: {
+      id: string;
+      /** @enum {string} */
+      quadrant: 'Q1' | 'Q2';
+      purpose: string;
+      functionalContexts: components['schemas']['TaskingFunctionalContext'][];
+      realBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
+      replacedBoundaries: components['schemas']['TaskingReplacedBoundary'][];
+      nearestTestRoots: string[];
+      focusedCommandTemplate: string;
+      requiresProject: boolean;
+    };
+    TaskingQualityGateDefinition: {
+      /** @enum {string} */
+      scope: 'test_projects' | 'planned_projects' | 'process';
+      requiredTarget?: string;
+      commandTemplate: string;
+    };
+    TaskingProcessDefinition: {
+      /** @enum {integer} */
+      version: 3;
+      id: string;
+      owner: string;
+      /** @enum {string} */
+      runtime: 'typescript';
+      functionalContexts: components['schemas']['TaskingFunctionalContext'][];
+      technicalBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
+      appliesWhen: string;
+      steps: components['schemas']['TaskingProcessStepDefinition'][];
+      qualityGates: components['schemas']['TaskingQualityGateDefinition'][];
+    };
+    TaskingResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      story: components['schemas']['StoryResource'];
+      storyRevision: components['schemas']['StoryRevisionResource'];
+      noModelImpactDecision:
+        | components['schemas']['NoModelImpactDecisionResource']
+        | null;
+      currentCandidate:
+        | components['schemas']['TaskingCandidateResource']
+        | null;
+      decisions: components['schemas']['DeskCheckDecisionResource'][];
+      approvedPlan: components['schemas']['ApprovedTaskingPlanResource'] | null;
+      processCatalog: components['schemas']['TaskingProcessDefinition'][];
+    };
+    DeskCheckDecisionResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      decision: components['schemas']['DeskCheckDecisionResource'];
+      approvedPlan: components['schemas']['ApprovedTaskingPlanResource'] | null;
     };
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
@@ -3289,6 +3625,121 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.understanding-decision-result+json': components['schemas']['UnderstandingDecisionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  get_tasking: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Model Impact, Tasking Candidate, and Desk Check authority view */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.tasking+json': components['schemas']['TaskingResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  record_no_model_impact: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordNoModelImpactInput'];
+      };
+    };
+    responses: {
+      /** @description Immutable human tool/none/false decision */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.no-model-impact-decision+json': components['schemas']['NoModelImpactDecisionResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  propose_tasking_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProposeTaskingInput'];
+      };
+    };
+    responses: {
+      /** @description Complete non-authoritative Tasking Candidate */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.tasking-candidate+json': components['schemas']['TaskingCandidateResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  decide_tasking_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DeskCheckDecisionInput'];
+      };
+    };
+    responses: {
+      /** @description Human Desk Check decision and optional Approved Plan */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.desk-check-decision-result+json': components['schemas']['DeskCheckDecisionResultResource'];
         };
       };
       400: components['responses']['ValidationError'];

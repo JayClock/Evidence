@@ -1221,7 +1221,10 @@ paths:
           description: Explicit human answer and deterministic route
           content:
             application/vnd.evidence.clarification-answer-result+json:
-              schema: { $ref: '#/components/schemas/ClarificationAnswerResultResource' }
+              schema:
+                {
+                  $ref: '#/components/schemas/ClarificationAnswerResultResource',
+                }
         '400': { $ref: '#/components/responses/ValidationError' }
         '404': { $ref: '#/components/responses/ResourceNotFound' }
         '409': { $ref: '#/components/responses/ResourceConflict' }
@@ -1273,7 +1276,110 @@ paths:
           description: Human Scenario/TQA decision result
           content:
             application/vnd.evidence.understanding-decision-result+json:
-              schema: { $ref: '#/components/schemas/UnderstandingDecisionResultResource' }
+              schema:
+                {
+                  $ref: '#/components/schemas/UnderstandingDecisionResultResource',
+                }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/tasking:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: get_tasking
+      responses:
+        '200':
+          description: No Model Impact, Tasking Candidate, and Desk Check authority view
+          content:
+            application/vnd.evidence.tasking+json:
+              schema: { $ref: '#/components/schemas/TaskingResource' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/no-model-impact:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: record_no_model_impact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordNoModelImpactInput' }
+      responses:
+        '201':
+          description: Immutable human tool/none/false decision
+          content:
+            application/vnd.evidence.no-model-impact-decision+json:
+              schema:
+                { $ref: '#/components/schemas/NoModelImpactDecisionResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/candidates:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: propose_tasking_candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProposeTaskingInput' }
+      responses:
+        '201':
+          description: Complete non-authoritative Tasking Candidate
+          content:
+            application/vnd.evidence.tasking-candidate+json:
+              schema: { $ref: '#/components/schemas/TaskingCandidateResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/decisions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: decide_tasking_candidate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeskCheckDecisionInput' }
+      responses:
+        '200':
+          description: Human Desk Check decision and optional Approved Plan
+          content:
+            application/vnd.evidence.desk-check-decision-result+json:
+              schema:
+                { $ref: '#/components/schemas/DeskCheckDecisionResultResource' }
         '400': { $ref: '#/components/responses/ValidationError' }
         '404': { $ref: '#/components/responses/ResourceNotFound' }
         '409': { $ref: '#/components/responses/ResourceConflict' }
@@ -3487,7 +3593,14 @@ components:
           enum: [kickoff, understand]
         stage:
           type: string
-          enum: [candidate_review, candidate_drafting, tqa, scenario_review, modeling]
+          enum:
+            [
+              candidate_review,
+              candidate_drafting,
+              tqa,
+              scenario_review,
+              modeling,
+            ]
         lane:
           type: string
           enum: [discovery]
@@ -4399,7 +4512,8 @@ components:
       enum: [pending, answered, waived]
     AskClarificationInput:
       type: object
-      required: [expectedIterationVersion, storyId, storyRevisionId, target, question]
+      required:
+        [expectedIterationVersion, storyId, storyRevisionId, target, question]
       properties:
         expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
         storyId: { type: string, minLength: 1 }
@@ -4414,7 +4528,18 @@ components:
         answer: { type: string, minLength: 1, maxLength: 16000 }
     ClarificationResource:
       type: object
-      required: [id, reference, storyId, storyRevisionId, target, question, status, askedAt, contentSha256]
+      required:
+        [
+          id,
+          reference,
+          storyId,
+          storyRevisionId,
+          target,
+          question,
+          status,
+          askedAt,
+          contentSha256,
+        ]
       properties:
         id: { type: string }
         reference: { type: string }
@@ -4473,7 +4598,17 @@ components:
             contentSha256: { type: string }
     ScenarioProposalResource:
       type: object
-      required: [id, reference, storyId, storyRevisionId, sequence, drafts, proposedAt, contentSha256]
+      required:
+        [
+          id,
+          reference,
+          storyId,
+          storyRevisionId,
+          sequence,
+          drafts,
+          proposedAt,
+          contentSha256,
+        ]
       properties:
         id: { type: string }
         reference: { type: string }
@@ -4501,7 +4636,17 @@ components:
         reason: { type: [string, 'null'] }
     UnderstandingDecisionResource:
       type: object
-      required: [id, reference, action, selectedDraftIds, confirmedScenarioIds, decidedByUserId, decidedAt, contentSha256]
+      required:
+        [
+          id,
+          reference,
+          action,
+          selectedDraftIds,
+          confirmedScenarioIds,
+          decidedByUserId,
+          decidedAt,
+          contentSha256,
+        ]
       properties:
         id: { type: string }
         reference: { type: string }
@@ -4519,7 +4664,8 @@ components:
         contentSha256: { type: string }
     UnderstandingResource:
       type: object
-      required: [_links, iteration, story, storyRevision, clarifications, decisions]
+      required:
+        [_links, iteration, story, storyRevision, clarifications, decisions]
       properties:
         _links: { $ref: '#/components/schemas/BTreeMap' }
         iteration: { $ref: '#/components/schemas/IterationResource' }
@@ -4556,6 +4702,540 @@ components:
         storyRevision:
           oneOf:
             - $ref: '#/components/schemas/StoryRevisionResource'
+            - type: 'null'
+    RecordNoModelImpactInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          expectedIterationVersion,
+          storyId,
+          storyRevisionId,
+          storyRevisionSha256,
+          reason,
+        ]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        storyId: { type: string, minLength: 1 }
+        storyRevisionId: { type: string, minLength: 1 }
+        storyRevisionSha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        reason: { type: string, minLength: 1, maxLength: 2000 }
+    NoModelImpactDecisionResource:
+      type: object
+      required:
+        [
+          _links,
+          id,
+          reference,
+          storyId,
+          storyRevisionId,
+          storyRevisionSha256,
+          subject,
+          method,
+          modelChangeRequired,
+          reason,
+          decidedByUserId,
+          decidedAt,
+          contentSha256,
+        ]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        id: { type: string }
+        reference: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        storyRevisionSha256: { type: string }
+        subject: { type: string, enum: [tool] }
+        method: { type: string, enum: [none] }
+        modelChangeRequired: { type: boolean, enum: [false] }
+        reason: { type: string }
+        decidedByUserId: { type: string }
+        decidedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    TaskingFunctionalContext:
+      type: string
+      enum:
+        [
+          workspace,
+          work-intake,
+          delivery,
+          logical-model,
+          diagram-projection,
+          model-proposal,
+        ]
+    TaskingTechnicalBoundary:
+      type: string
+      enum:
+        [
+          react-route,
+          react-feature,
+          rest-client,
+          http-server,
+          nest-api,
+          nest-domain,
+          prisma-store,
+          electron-main,
+          electron-preload,
+          desktop-binding-store,
+          git-worktree,
+          webview,
+        ]
+    TaskingProject:
+      type: object
+      additionalProperties: false
+      required: [id, root, targets]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 200 }
+        root: { type: string, minLength: 1, maxLength: 500 }
+        targets:
+          type: array
+          minItems: 1
+          items: { type: string, minLength: 1 }
+    TaskingProjectCatalog:
+      type: object
+      additionalProperties: false
+      required: [projects]
+      properties:
+        projects:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TaskingProject' }
+    TaskingRuntimeInput:
+      type: object
+      additionalProperties: false
+      required:
+        [id, runtime, functionalContexts, technicalBoundaries, projectIds]
+      properties:
+        id: { type: string, pattern: '^RUNTIME-[0-9]{3,}$' }
+        runtime: { type: string, enum: [typescript] }
+        functionalContexts:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TaskingFunctionalContext' }
+        technicalBoundaries:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TaskingTechnicalBoundary' }
+        projectIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+    EmptyTaskingModelRefs:
+      type: object
+      additionalProperties: false
+      required: [entities, associations]
+      properties:
+        entities:
+          type: array
+          maxItems: 0
+          items: { type: string }
+        associations:
+          type: array
+          maxItems: 0
+          items: { type: string }
+    TaskingTestInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          id,
+          quadrant,
+          intent,
+          runtimePlanId,
+          stepId,
+          testFilter,
+          supportedBy,
+          scenarioIds,
+          businessData,
+          modelRefs,
+        ]
+      properties:
+        id: { type: string, pattern: '^TEST-[0-9]{3,}$' }
+        quadrant: { type: string, enum: [Q1, Q2] }
+        intent: { type: string, minLength: 1, maxLength: 2000 }
+        runtimePlanId: { type: string }
+        stepId: { type: string }
+        projectId: { type: [string, 'null'] }
+        testFilter: { type: string, minLength: 1 }
+        supportedBy:
+          type: array
+          items: { type: string }
+        scenarioIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+        scenarioOutcome: { type: [string, 'null'] }
+        businessData:
+          type: array
+          items: { type: string }
+        modelRefs: { $ref: '#/components/schemas/EmptyTaskingModelRefs' }
+    TaskingTaskInput:
+      type: object
+      additionalProperties: false
+      required: [id, description, testIds, dependsOn]
+      properties:
+        id: { type: string, pattern: '^TASK-[0-9]{3,}$' }
+        description: { type: string, minLength: 1, maxLength: 2000 }
+        testIds:
+          type: array
+          minItems: 1
+          items: { type: string }
+        dependsOn:
+          type: array
+          items: { type: string }
+    ProposeTaskingInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          expectedIterationVersion,
+          storyId,
+          storyRevisionId,
+          noModelImpactDecisionId,
+          noModelImpactDecisionSha256,
+          projectCatalog,
+          runtimes,
+          tests,
+          tasks,
+        ]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        storyId: { type: string, minLength: 1 }
+        storyRevisionId: { type: string, minLength: 1 }
+        noModelImpactDecisionId: { type: string, minLength: 1 }
+        noModelImpactDecisionSha256:
+          { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        projectCatalog: { $ref: '#/components/schemas/TaskingProjectCatalog' }
+        runtimes:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TaskingRuntimeInput' }
+        tests:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/TaskingTestInput' }
+        tasks:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/TaskingTaskInput' }
+    TaskingTestResource:
+      allOf:
+        - $ref: '#/components/schemas/TaskingTestInput'
+        - type: object
+          required: [processId, projectId, scenarioOutcome]
+          properties:
+            processId: { type: string }
+            projectId: { type: [string, 'null'] }
+            scenarioOutcome: { type: [string, 'null'] }
+    TaskingTaskResource:
+      allOf:
+        - $ref: '#/components/schemas/TaskingTaskInput'
+        - type: object
+          required: [modelRefs]
+          properties:
+            modelRefs: { $ref: '#/components/schemas/EmptyTaskingModelRefs' }
+    MaterializedTaskingCommand:
+      type: object
+      required: [testId, stepId, projectId, command]
+      properties:
+        testId: { type: string }
+        stepId: { type: string }
+        projectId: { type: [string, 'null'] }
+        command: { type: string }
+    MaterializedTaskingGate:
+      type: object
+      required: [projectId, target, command]
+      properties:
+        projectId: { type: [string, 'null'] }
+        target: { type: [string, 'null'] }
+        command: { type: string }
+    TaskingProcessSelection:
+      type: object
+      required:
+        [
+          runtimePlanId,
+          processId,
+          processVersion,
+          definitionSha256,
+          functionalContexts,
+          technicalBoundaries,
+          selectedStepIds,
+          projectIds,
+          projectCatalogSha256,
+          focusedCommands,
+          qualityGates,
+          materializedSha256,
+        ]
+      properties:
+        runtimePlanId: { type: string }
+        processId: { type: string }
+        processVersion: { type: integer, enum: [3] }
+        definitionSha256: { type: string }
+        functionalContexts:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingFunctionalContext' }
+        technicalBoundaries:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingTechnicalBoundary' }
+        selectedStepIds:
+          type: array
+          items: { type: string }
+        projectIds:
+          type: array
+          items: { type: string }
+        projectCatalogSha256: { type: string }
+        focusedCommands:
+          type: array
+          items: { $ref: '#/components/schemas/MaterializedTaskingCommand' }
+        qualityGates:
+          type: array
+          items: { $ref: '#/components/schemas/MaterializedTaskingGate' }
+        materializedSha256: { type: string }
+    TaskingCandidateSnapshot:
+      type: object
+      required:
+        [
+          reference,
+          storyId,
+          storyRevisionId,
+          storyRevisionSha256,
+          baseCommitSha,
+          noModelImpactDecisionId,
+          noModelImpactDecisionSha256,
+          sequence,
+          projectCatalog,
+          projectCatalogSha256,
+          tests,
+          tasks,
+          processes,
+          contentSha256,
+          proposedBy,
+          proposedAt,
+        ]
+      properties:
+        reference: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        storyRevisionSha256: { type: string }
+        baseCommitSha: { type: string }
+        noModelImpactDecisionId: { type: string }
+        noModelImpactDecisionSha256: { type: string }
+        sequence: { type: integer, format: int32, minimum: 1 }
+        projectCatalog: { $ref: '#/components/schemas/TaskingProjectCatalog' }
+        projectCatalogSha256: { type: string }
+        tests:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingTestResource' }
+        tasks:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingTaskResource' }
+        processes:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingProcessSelection' }
+        contentSha256: { type: string }
+        proposedBy: { type: string, enum: [tasking-analyst] }
+        proposedAt: { type: string, format: date-time }
+    TaskingCandidateResource:
+      allOf:
+        - $ref: '#/components/schemas/TaskingCandidateSnapshot'
+        - type: object
+          required: [_links, id]
+          properties:
+            _links: { $ref: '#/components/schemas/BTreeMap' }
+            id: { type: string }
+    DeskCheckAction:
+      type: string
+      enum: [approve, revise, architecture_gap, process_gap, scenario_gap]
+    DeskCheckDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [expectedIterationVersion, candidateId, candidateSha256, action]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        candidateId: { type: string, minLength: 1 }
+        candidateSha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        action: { $ref: '#/components/schemas/DeskCheckAction' }
+        reason: { type: [string, 'null'], maxLength: 2000 }
+    DeskCheckDecisionResource:
+      type: object
+      required:
+        [
+          _links,
+          id,
+          reference,
+          candidateId,
+          candidateSha256,
+          action,
+          reason,
+          decidedByUserId,
+          decidedAt,
+          contentSha256,
+        ]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        id: { type: string }
+        reference: { type: string }
+        candidateId: { type: string }
+        candidateSha256: { type: string }
+        action: { $ref: '#/components/schemas/DeskCheckAction' }
+        reason: { type: [string, 'null'] }
+        decidedByUserId: { type: string }
+        decidedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    ApprovedTaskingPlanResource:
+      type: object
+      required:
+        [
+          _links,
+          id,
+          storyId,
+          storyRevisionId,
+          taskingCandidateId,
+          deskCheckDecisionId,
+          plan,
+          contentSha256,
+          approvedByUserId,
+          approvedAt,
+        ]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        id: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        taskingCandidateId: { type: string }
+        deskCheckDecisionId: { type: string }
+        plan: { $ref: '#/components/schemas/TaskingCandidateSnapshot' }
+        contentSha256: { type: string }
+        approvedByUserId: { type: string }
+        approvedAt: { type: string, format: date-time }
+    TaskingTestDouble:
+      type: string
+      enum: [fake, stub, spy, mock]
+    TaskingReplacedBoundary:
+      type: object
+      required: [boundary, testDouble]
+      properties:
+        boundary: { $ref: '#/components/schemas/TaskingTechnicalBoundary' }
+        testDouble: { $ref: '#/components/schemas/TaskingTestDouble' }
+    TaskingProcessStepDefinition:
+      type: object
+      required:
+        [
+          id,
+          quadrant,
+          purpose,
+          functionalContexts,
+          realBoundaries,
+          replacedBoundaries,
+          nearestTestRoots,
+          focusedCommandTemplate,
+          requiresProject,
+        ]
+      properties:
+        id: { type: string }
+        quadrant: { type: string, enum: [Q1, Q2] }
+        purpose: { type: string }
+        functionalContexts:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingFunctionalContext' }
+        realBoundaries:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingTechnicalBoundary' }
+        replacedBoundaries:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingReplacedBoundary' }
+        nearestTestRoots:
+          type: array
+          items: { type: string }
+        focusedCommandTemplate: { type: string }
+        requiresProject: { type: boolean }
+    TaskingQualityGateDefinition:
+      type: object
+      required: [scope, commandTemplate]
+      properties:
+        scope:
+          { type: string, enum: [test_projects, planned_projects, process] }
+        requiredTarget: { type: string }
+        commandTemplate: { type: string }
+    TaskingProcessDefinition:
+      type: object
+      required:
+        [
+          version,
+          id,
+          owner,
+          runtime,
+          functionalContexts,
+          technicalBoundaries,
+          appliesWhen,
+          steps,
+          qualityGates,
+        ]
+      properties:
+        version: { type: integer, enum: [3] }
+        id: { type: string }
+        owner: { type: string }
+        runtime: { type: string, enum: [typescript] }
+        functionalContexts:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingFunctionalContext' }
+        technicalBoundaries:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingTechnicalBoundary' }
+        appliesWhen: { type: string }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingProcessStepDefinition' }
+        qualityGates:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingQualityGateDefinition' }
+    TaskingResource:
+      type: object
+      required:
+        [
+          _links,
+          iteration,
+          story,
+          storyRevision,
+          noModelImpactDecision,
+          currentCandidate,
+          decisions,
+          approvedPlan,
+          processCatalog,
+        ]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        story: { $ref: '#/components/schemas/StoryResource' }
+        storyRevision: { $ref: '#/components/schemas/StoryRevisionResource' }
+        noModelImpactDecision:
+          oneOf:
+            - $ref: '#/components/schemas/NoModelImpactDecisionResource'
+            - type: 'null'
+        currentCandidate:
+          oneOf:
+            - $ref: '#/components/schemas/TaskingCandidateResource'
+            - type: 'null'
+        decisions:
+          type: array
+          items: { $ref: '#/components/schemas/DeskCheckDecisionResource' }
+        approvedPlan:
+          oneOf:
+            - $ref: '#/components/schemas/ApprovedTaskingPlanResource'
+            - type: 'null'
+        processCatalog:
+          type: array
+          items: { $ref: '#/components/schemas/TaskingProcessDefinition' }
+    DeskCheckDecisionResultResource:
+      type: object
+      required: [_links, iteration, decision, approvedPlan]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        decision: { $ref: '#/components/schemas/DeskCheckDecisionResource' }
+        approvedPlan:
+          oneOf:
+            - $ref: '#/components/schemas/ApprovedTaskingPlanResource'
             - type: 'null'
     StoryResource:
       type: object
