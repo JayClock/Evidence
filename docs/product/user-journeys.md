@@ -48,7 +48,7 @@
 6. 用户在 Kickoff 核对 Frozen Proposal。`revise` 先记录人工理由，再由本地 Kickoff Analyst 只基于 Frozen Intake 与决定历史提出替代 Proposal。
 7. `split/defer/stop` 终止当前 Iteration 且不创建 Story；Agent 没有任何人工决定工具。
 8. 只有用户 `confirm` 当前 Proposal 时，Server 才原子创建该 Iteration 唯一 `US-001`、Problem Statement、Lean Story Card 和不可编码 baseline Revision，并进入 `understand/tqa`。
-9. 用户可浏览 Frozen Intake、append-only 决定、Story、最新 Revision 和完整 Revision 历史；至少一个 Scenario 进入 latest Revision 前不提供 CodingRun admission。
+9. 用户可浏览 Frozen Intake、append-only 决定、Story、最新 Revision 和完整 Revision 历史；至少一个 Scenario 进入 latest Revision 前不提供 Tasking admission。
 
 ## 旅程 F：通过 TQA 确认 Story 场景
 
@@ -60,11 +60,12 @@
 6. confirm 原子创建连续 `SC-xxx` 与新的不可变 Story Revision，并进入 `understand/modeling/profile`。
 7. Browser 不运行 Pi；Desktop 的持久 TQA session 只是本地缓存，Server Clarification、Proposal 和 Decision 始终是事实源。
 
-## 旅程 G：审查本地 CodingRun
+## 旅程 G：通过 Pair 执行并审查 Story 代码
 
-1. 后续 Tasking/Pair 基于已确认 Scenario 与批准执行计划创建 CodingRun；Scenario confirm 本身不提供直接 Coding admission。
-2. Desktop 使用 API + Workspace 对应的本地 Git repository binding 创建独立 branch/worktree，主工作树保持不变。
-3. 本地 Pi Agent 只使用 worktree 内受限文件工具和固定质量门；Controller 计算 diff hash 并把 Run 推进到待审查。
-4. 用户在共享 Web UI 中检查 Server 保存的有限执行事实和 Desktop 提供的本地完整 diff。
-5. 接受时 Desktop 先校验 diff hash，再创建一个本地 Conventional Commit 并通知 Server；不自动 merge/push。
-6. 拒绝、取消或失败会记录决定并清理本地 worktree/branch，不提交代码。
+1. 人工 Desk Check 批准锁定精确 Story Revision、TEST/TASK、v3 process、focused commands、质量门和有限预算；Scenario confirm 本身不提供直接 Coding admission。
+2. Desktop 复用 API + Workspace 对应的 Iteration 隔离 branch/worktree，主工作树保持不变；Server 从 Approved Plan 发布唯一下一动作。
+3. 短生命周期 Test Driver 只写当前 TEST，Controller 执行锁定 Red 命令，独立 Red Reviewer 只接受达到业务断言的行为失败。
+4. Production Driver 写最小实现，Controller 观察 Green；当前 process step 全部 Green 后执行一次 Refactor 或显式 no-op，再运行最终质量门。
+5. 用户在共享 Web UI 中检查 Server 保存的有限执行事实和 Desktop 提供的本地完整 Story diff。
+6. 接受时 Desktop 先校验 Manifest/diff hash，再创建一个本地 Conventional Commit；Web 通过 REST/HAL 记录人工决定，不自动 merge/push。
+7. pseudo-Red、越界、重复失败、预算耗尽或中断会 fail closed；人工只能按当前 checkpoint 提供的路由返回 Test、Implementation、Tasking、重试质量门或取消。

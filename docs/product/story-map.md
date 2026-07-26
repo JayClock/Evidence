@@ -11,7 +11,7 @@
 | 5    | 澄清一张 Story  | 单问题 TQA、显式回答、Clarification history 与 Story correction 路由  |
 | 6    | 确认验收场景    | 完整 Scenario Proposal、具体业务数据、人工决定与不可变 Story Revision |
 | 7    | 建模与任务规划  | Modeling Profile、模型决定、TEST/TASK 与 Desk Check                   |
-| 8    | 执行并审查代码  | CodingRun、隔离 worktree、质量门、本地 diff 与人工接受/拒绝           |
+| 8    | 执行并审查代码  | Approved Plan、逐 TEST Pair、独立 Red、质量门、本地 diff 与人工审批   |
 | 9    | 编写逻辑模型    | 逻辑实体、逻辑关系、属性、行为和定义                                  |
 | 10   | 构建关系图      | 图、节点、边、布局和逻辑模型引用                                      |
 | 11   | 浏览与评审      | 资源浏览、模型解释、错误反馈和变更影响                                |
