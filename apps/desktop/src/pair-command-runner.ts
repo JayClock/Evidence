@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 
 const execFileAsync = promisify(execFile);
 const SAFE_TOKEN = /^[A-Za-z0-9_@./:=-]+$/;
@@ -84,7 +84,7 @@ export class PairCommandRunner {
       const output = await this.execute(command.executable, command.args, {
         cwd: resolve(options.cwd),
         encoding: 'utf8',
-        env: codingCommandEnvironment(),
+        env: localCommandEnvironment(),
         maxBuffer: MAX_OUTPUT_BYTES,
         timeout: timeoutMs,
         windowsHide: true,

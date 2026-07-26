@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 
-describe('codingCommandEnvironment', () => {
+describe('localCommandEnvironment', () => {
   it('keeps operating-system plumbing and removes credentials', () => {
-    const environment = codingCommandEnvironment({
+    const environment = localCommandEnvironment({
       PATH: '/usr/bin',
       HOME: '/home/developer',
       LANG: 'en_US.UTF-8',

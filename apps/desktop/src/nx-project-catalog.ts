@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { isAbsolute, normalize, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import type { TaskingProjectCatalogInput } from './intake-api-client';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_PROJECTS = 250;
@@ -43,17 +43,14 @@ export async function readNxProjectCatalog(
   };
 }
 
-async function runNxGraph(
-  cwd: string,
-  signal?: AbortSignal,
-): Promise<string> {
+async function runNxGraph(cwd: string, signal?: AbortSignal): Promise<string> {
   const { stdout } = await execFileAsync(
     pnpmExecutable(),
     ['nx', 'graph', '--print'],
     {
       cwd,
       encoding: 'utf8',
-      env: codingCommandEnvironment(),
+      env: localCommandEnvironment(),
       maxBuffer: MAX_OUTPUT_BYTES,
       timeout: COMMAND_TIMEOUT_MS,
       signal,

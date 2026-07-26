@@ -24,7 +24,7 @@ const PASSTHROUGH_ENVIRONMENT_KEYS = [
  * Repository commands receive only operating-system plumbing, never the
  * Desktop process's API or model credentials.
  */
-export function codingCommandEnvironment(
+export function localCommandEnvironment(
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
   const environment: NodeJS.ProcessEnv = {

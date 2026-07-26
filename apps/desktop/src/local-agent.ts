@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { AgentRuntimeRequest, DiagramAgentEvent } from './agent-protocol';
 import { parseDiagramAgentEvent } from './agent-protocol';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 
 const CANCEL_TIMEOUT_MS = 5_000;
 
@@ -62,7 +62,7 @@ export class LocalAgent<
       {
         cwd: dirname(this.options.runtimeEntry),
         env: {
-          ...codingCommandEnvironment(),
+          ...localCommandEnvironment(),
           ...this.options.environment,
           ...(this.options.packaged ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
         },

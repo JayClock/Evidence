@@ -24,7 +24,7 @@ import type {
   PairDriverRole,
   PairDriverRuntimeRequest,
 } from './pair-agent-protocol';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_CAPTURE = 2 * 1024 * 1024;
@@ -344,7 +344,7 @@ async function executeRg(
     const result = await execFileAsync('rg', args, {
       cwd,
       encoding: 'utf8',
-      env: codingCommandEnvironment(),
+      env: localCommandEnvironment(),
       maxBuffer: MAX_CAPTURE,
       signal,
       timeout: 30_000,

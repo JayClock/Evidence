@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { access, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 import { canonicalGitRepository, gitHead, runGit } from './git-repository';
 
 const execFileAsync = promisify(execFile);
@@ -468,7 +468,7 @@ async function hydratePnpmDependencies(
       {
         cwd: worktreeRoot,
         encoding: 'utf8',
-        env: codingCommandEnvironment(),
+        env: localCommandEnvironment(),
         maxBuffer: DEPENDENCY_OUTPUT_LIMIT,
         signal,
         timeout: DEPENDENCY_TIMEOUT_MS,

@@ -4,7 +4,7 @@ import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { canonicalGitRepository } from './git-repository';
-import { codingCommandEnvironment } from './coding-command-environment';
+import { localCommandEnvironment } from './local-command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_MARKDOWN_BYTES = 1024 * 1024;
@@ -159,7 +159,7 @@ export async function captureGitHubIssue(
 async function runGitHub(command: string, args: string[]): Promise<string> {
   const result = await execFileAsync(command, args, {
     encoding: 'utf8',
-    env: codingCommandEnvironment(),
+    env: localCommandEnvironment(),
     maxBuffer: 2 * 1024 * 1024,
     timeout: 30_000,
     windowsHide: true,
