@@ -16,6 +16,7 @@ export * from './prisma/workspace-inbox';
 export * from './prisma/workspace-inbox-extractions';
 export * from './prisma/workspace-inbox-workflow';
 export * from './prisma/workspace-iterations';
+export * from './prisma/workspace-kickoff';
 export * from './prisma/workspace-delivery';
 export * from './prisma/workspace-coding-runs';
 export * from './prisma/diagram-nodes';
