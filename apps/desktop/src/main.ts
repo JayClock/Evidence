@@ -19,7 +19,7 @@ import {
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
 import { authorizedApiRequestHeaders } from './api-request-authorization';
-import { CodingWorktreeManager } from './coding-worktree';
+import { IterationWorktreeManager } from './iteration-worktree';
 import {
   captureGitHubIssue,
   captureRepositoryMarkdown,
@@ -531,10 +531,9 @@ void app.whenReady().then(async () => {
     iterationController = new IterationController(
       apiBaseUrl,
       bindings,
-      new CodingWorktreeManager(
+      new IterationWorktreeManager(
         join(app.getPath('userData'), 'iteration-worktrees'),
         async () => undefined,
-        'iter',
       ),
       new IntakeApiClient({ apiBaseUrl, authorization }),
     );

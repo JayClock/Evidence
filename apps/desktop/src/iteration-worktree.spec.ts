@@ -9,7 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CodingWorktreeManager } from './coding-worktree';
+import { IterationWorktreeManager } from './iteration-worktree';
 import { gitHead, runGit } from './git-repository';
 
 const temporaryPaths: string[] = [];
@@ -22,23 +22,23 @@ afterEach(async () => {
   );
 });
 
-describe('CodingWorktreeManager', () => {
+describe('IterationWorktreeManager', () => {
   it('creates an isolated branch and worktree at the locked base commit', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);
     const baseCommitSha = await gitHead(repository);
-    const manager = new CodingWorktreeManager(join(root, 'managed'));
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
 
     const worktree = await manager.prepare({
-      runId: 'run-1',
+      iterationId: 'iteration-1',
       repositoryRoot: repository,
       baseCommitSha,
     });
 
     expect(worktree).toMatchObject({
-      runId: 'run-1',
+      iterationId: 'iteration-1',
       repositoryRoot: repository,
-      branchName: 'evidence/run-run-1',
+      branchName: 'evidence/iter-iteration-1',
       baseCommitSha,
     });
     expect(await gitHead(worktree.worktreeRoot)).toBe(baseCommitSha);
@@ -46,7 +46,7 @@ describe('CodingWorktreeManager', () => {
       await runGit(repository, [
         'show-ref',
         '--verify',
-        'refs/heads/evidence/run-run-1',
+        'refs/heads/evidence/iter-iteration-1',
       ]),
     ).toContain(baseCommitSha);
 
@@ -82,10 +82,10 @@ describe('CodingWorktreeManager', () => {
   it('prepares locked pnpm dependencies without changing tracked files', async () => {
     const root = await temporaryDirectory();
     const repository = await createPnpmRepository(root);
-    const manager = new CodingWorktreeManager(join(root, 'managed'));
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
 
     const worktree = await manager.prepare({
-      runId: 'run-dependencies',
+      iterationId: 'iteration-dependencies',
       repositoryRoot: repository,
       baseCommitSha: await gitHead(repository),
     });
@@ -116,14 +116,13 @@ describe('CodingWorktreeManager', () => {
   it('reuses the isolation boundary with a locked Iteration namespace', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);
-    const manager = new CodingWorktreeManager(
+    const manager = new IterationWorktreeManager(
       join(root, 'managed-iterations'),
       async () => undefined,
-      'iter',
     );
 
     const worktree = await manager.prepare({
-      runId: 'iteration-1',
+      iterationId: 'iteration-1',
       repositoryRoot: repository,
       baseCommitSha: await gitHead(repository),
     });
@@ -135,9 +134,9 @@ describe('CodingWorktreeManager', () => {
   it('removes rejected work and its temporary branch', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);
-    const manager = new CodingWorktreeManager(join(root, 'managed'));
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
     const worktree = await manager.prepare({
-      runId: 'run-2',
+      iterationId: 'iteration-2',
       repositoryRoot: repository,
       baseCommitSha: await gitHead(repository),
     });
@@ -151,7 +150,7 @@ describe('CodingWorktreeManager', () => {
       runGit(repository, [
         'show-ref',
         '--verify',
-        'refs/heads/evidence/run-run-2',
+        'refs/heads/evidence/iter-iteration-2',
       ]),
     ).rejects.toBeDefined();
   });
@@ -159,9 +158,9 @@ describe('CodingWorktreeManager', () => {
   it('refuses to commit a diff that changed after review', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);
-    const manager = new CodingWorktreeManager(join(root, 'managed'));
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
     const worktree = await manager.prepare({
-      runId: 'run-stale',
+      iterationId: 'iteration-stale',
       repositoryRoot: repository,
       baseCommitSha: await gitHead(repository),
     });
@@ -184,18 +183,18 @@ describe('CodingWorktreeManager', () => {
   it('rejects unsafe identities and unknown base commits', async () => {
     const root = await temporaryDirectory();
     const repository = await createRepository(root);
-    const manager = new CodingWorktreeManager(join(root, 'managed'));
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
 
     await expect(
       manager.prepare({
-        runId: '../outside',
+        iterationId: '../outside',
         repositoryRoot: repository,
         baseCommitSha: await gitHead(repository),
       }),
     ).rejects.toThrow('identity is invalid');
     await expect(
       manager.prepare({
-        runId: 'run-3',
+        iterationId: 'iteration-3',
         repositoryRoot: repository,
         baseCommitSha: 'f'.repeat(40),
       }),

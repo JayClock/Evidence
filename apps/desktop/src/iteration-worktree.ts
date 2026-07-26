@@ -8,51 +8,47 @@ import { canonicalGitRepository, gitHead, runGit } from './git-repository';
 
 const execFileAsync = promisify(execFile);
 
-const RUN_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
+const ITERATION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 const COMMIT_PATTERN = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/;
 const DEPENDENCY_OUTPUT_LIMIT = 2 * 1024 * 1024;
 const DEPENDENCY_TIMEOUT_MS = 10 * 60 * 1_000;
 
-export interface CodingDiff {
+export interface IterationDiff {
   content: string;
   sha256: string;
   changedFileCount: number;
 }
 
-export interface CodingWorktree {
-  runId: string;
+export interface IterationWorktree {
+  iterationId: string;
   repositoryRoot: string;
   worktreeRoot: string;
   branchName: string;
   baseCommitSha: string;
 }
 
-export type CodingDependencyHydrator = (
+export type IterationDependencyHydrator = (
   worktreeRoot: string,
   signal?: AbortSignal,
 ) => Promise<void>;
 
-export class CodingWorktreeManager {
+export class IterationWorktreeManager {
   private readonly managedRoot: string;
 
   constructor(
     root: string,
-    private readonly hydrateDependencies: CodingDependencyHydrator = hydratePnpmDependencies,
-    private readonly branchNamespace = 'run',
+    private readonly hydrateDependencies: IterationDependencyHydrator = hydratePnpmDependencies,
   ) {
     this.managedRoot = resolve(root);
-    if (!/^[a-z][a-z0-9-]{0,31}$/.test(branchNamespace)) {
-      throw new Error('Worktree branch namespace is invalid.');
-    }
   }
 
   async prepare(input: {
-    runId: string;
+    iterationId: string;
     repositoryRoot: string;
     baseCommitSha: string;
     signal?: AbortSignal;
-  }): Promise<CodingWorktree> {
-    const runId = normalizeRunId(input.runId);
+  }): Promise<IterationWorktree> {
+    const iterationId = normalizeIterationId(input.iterationId);
     const baseCommitSha = normalizeCommit(input.baseCommitSha);
     const repositoryRoot = await canonicalGitRepository(input.repositoryRoot);
     const resolvedBase = (
@@ -65,16 +61,16 @@ export class CodingWorktreeManager {
       .trim()
       .toLowerCase();
     if (resolvedBase !== baseCommitSha) {
-      throw new Error('Coding worktree base commit does not match Git.');
+      throw new Error('Iteration worktree base commit does not match Git.');
     }
 
     await mkdir(this.managedRoot, { recursive: true });
-    const worktreeRoot = resolve(this.managedRoot, runId);
+    const worktreeRoot = resolve(this.managedRoot, iterationId);
     assertManagedPath(this.managedRoot, worktreeRoot);
     if (await pathExists(worktreeRoot)) {
-      throw new Error(`Coding worktree ${runId} already exists.`);
+      throw new Error(`Iteration worktree ${iterationId} already exists.`);
     }
-    const branchName = `evidence/${this.branchNamespace}-${runId}`;
+    const branchName = `evidence/iter-${iterationId}`;
 
     try {
       await runGit(repositoryRoot, [
@@ -87,7 +83,7 @@ export class CodingWorktreeManager {
       ]);
       if ((await gitHead(worktreeRoot)) !== baseCommitSha) {
         throw new Error(
-          'Coding worktree was created from an unexpected commit.',
+          'Iteration worktree was created from an unexpected commit.',
         );
       }
       await this.hydrateDependencies(worktreeRoot, input.signal);
@@ -100,7 +96,7 @@ export class CodingWorktreeManager {
       ]);
       if (hydrationChanges.trim()) {
         throw new Error(
-          'Coding worktree dependency preparation changed repository files. Ensure dependency outputs are ignored by Git.',
+          'Iteration worktree dependency preparation changed repository files. Ensure dependency outputs are ignored by Git.',
         );
       }
     } catch (error) {
@@ -121,7 +117,7 @@ export class CodingWorktreeManager {
     }
 
     return {
-      runId,
+      iterationId,
       repositoryRoot,
       worktreeRoot,
       branchName,
@@ -129,7 +125,7 @@ export class CodingWorktreeManager {
     };
   }
 
-  async recover(worktree: CodingWorktree): Promise<CodingWorktree> {
+  async recover(worktree: IterationWorktree): Promise<IterationWorktree> {
     const { expectedBranch, expectedRoot } = this.assertRecord(worktree);
     const repositoryRoot = await canonicalGitRepository(
       worktree.repositoryRoot,
@@ -137,7 +133,7 @@ export class CodingWorktreeManager {
     const worktreeRoot = await canonicalGitRepository(expectedRoot);
     if (worktreeRoot !== (await realpath(expectedRoot))) {
       throw new Error(
-        'Coding worktree path no longer identifies its Git root.',
+        'Iteration worktree path no longer identifies its Git root.',
       );
     }
     const [repositoryCommonDirectory, worktreeCommonDirectory] =
@@ -146,13 +142,17 @@ export class CodingWorktreeManager {
         gitCommonDirectory(worktreeRoot),
       ]);
     if (repositoryCommonDirectory !== worktreeCommonDirectory) {
-      throw new Error('Coding worktree belongs to a different Git repository.');
+      throw new Error(
+        'Iteration worktree belongs to a different Git repository.',
+      );
     }
     const branch = (
       await runGit(worktreeRoot, ['branch', '--show-current'])
     ).trim();
     if (branch !== expectedBranch) {
-      throw new Error('Coding worktree branch no longer matches its Run.');
+      throw new Error(
+        'Iteration worktree branch no longer matches its Iteration.',
+      );
     }
     await runGit(worktreeRoot, [
       'merge-base',
@@ -164,9 +164,9 @@ export class CodingWorktreeManager {
   }
 
   async inspectForReview(
-    worktree: CodingWorktree,
+    worktree: IterationWorktree,
     commitSha: string | null,
-  ): Promise<CodingDiff> {
+  ): Promise<IterationDiff> {
     const recovered = await this.recover(worktree);
     const currentHead = await gitHead(recovered.worktreeRoot);
     if (commitSha === null) {
@@ -176,12 +176,14 @@ export class CodingWorktreeManager {
     }
     const normalizedCommit = normalizeCommit(commitSha);
     if (currentHead !== normalizedCommit) {
-      throw new Error('Coding worktree commit no longer matches its review.');
+      throw new Error(
+        'Iteration worktree commit no longer matches its review.',
+      );
     }
     return this.inspectCommitted(recovered, normalizedCommit);
   }
 
-  async inspect(worktree: CodingWorktree): Promise<CodingDiff> {
+  async inspect(worktree: IterationWorktree): Promise<IterationDiff> {
     this.assertRecord(worktree);
     await runGit(worktree.worktreeRoot, ['add', '--intent-to-add', '--', '.']);
     const [content, names] = await Promise.all([
@@ -202,7 +204,7 @@ export class CodingWorktreeManager {
   }
 
   async commit(
-    worktree: CodingWorktree,
+    worktree: IterationWorktree,
     expectedDiffSha256: string,
     messageInput: string,
   ): Promise<string> {
@@ -217,14 +219,14 @@ export class CodingWorktreeManager {
       ) {
         return currentHead;
       }
-      throw new Error('Coding worktree diff changed after review.');
+      throw new Error('Iteration worktree diff changed after review.');
     }
     const current = await this.inspect(worktree);
     if (current.changedFileCount === 0) {
-      throw new Error('Coding worktree has no changes to commit.');
+      throw new Error('Iteration worktree has no changes to commit.');
     }
     if (current.sha256 !== expectedDiffSha256) {
-      throw new Error('Coding worktree diff changed after review.');
+      throw new Error('Iteration worktree diff changed after review.');
     }
     await runGit(worktree.worktreeRoot, ['add', '--all', '--', '.']);
     await runGit(worktree.worktreeRoot, ['commit', '-m', message]);
@@ -232,9 +234,9 @@ export class CodingWorktreeManager {
   }
 
   private async inspectCommitted(
-    worktree: CodingWorktree,
+    worktree: IterationWorktree,
     commitSha: string,
-  ): Promise<CodingDiff> {
+  ): Promise<IterationDiff> {
     const [content, names] = await Promise.all([
       runGit(worktree.worktreeRoot, [
         'diff',
@@ -263,7 +265,7 @@ export class CodingWorktreeManager {
   }
 
   async remove(
-    worktree: CodingWorktree,
+    worktree: IterationWorktree,
     options: { deleteBranch: boolean },
   ): Promise<void> {
     const { expectedBranch, expectedRoot } = this.assertRecord(worktree);
@@ -295,22 +297,22 @@ export class CodingWorktreeManager {
     }
   }
 
-  private assertRecord(worktree: CodingWorktree): {
+  private assertRecord(worktree: IterationWorktree): {
     expectedBranch: string;
     expectedRoot: string;
   } {
-    const runId = normalizeRunId(worktree.runId);
-    const expectedRoot = resolve(this.managedRoot, runId);
+    const iterationId = normalizeIterationId(worktree.iterationId);
+    const expectedRoot = resolve(this.managedRoot, iterationId);
     assertManagedPath(this.managedRoot, expectedRoot);
     if (
       !isAbsolute(worktree.worktreeRoot) ||
       resolve(worktree.worktreeRoot) !== expectedRoot
     ) {
-      throw new Error('Coding worktree path is outside the managed root.');
+      throw new Error('Iteration worktree path is outside the managed root.');
     }
-    const expectedBranch = `evidence/${this.branchNamespace}-${runId}`;
+    const expectedBranch = `evidence/iter-${iterationId}`;
     if (worktree.branchName !== expectedBranch) {
-      throw new Error('Coding worktree branch identity is invalid.');
+      throw new Error('Iteration worktree branch identity is invalid.');
     }
     return { expectedBranch, expectedRoot };
   }
@@ -344,7 +346,7 @@ async function hydratePnpmDependencies(
     );
   } catch (error) {
     throw new Error(
-      `Coding worktree dependencies could not be prepared from the local pnpm store: ${errorMessage(error)}`,
+      `Iteration worktree dependencies could not be prepared from the local pnpm store: ${errorMessage(error)}`,
     );
   }
 }
@@ -359,16 +361,16 @@ function normalizeCommitMessage(value: string): string {
     )
   ) {
     throw new Error(
-      'Coding commit message must be a supported Conventional Commit.',
+      'Iteration commit message must be a supported Conventional Commit.',
     );
   }
   return normalized;
 }
 
-function normalizeRunId(value: string): string {
+function normalizeIterationId(value: string): string {
   const normalized = value.trim();
-  if (!RUN_ID_PATTERN.test(normalized)) {
-    throw new Error('Coding Run identity is invalid.');
+  if (!ITERATION_ID_PATTERN.test(normalized)) {
+    throw new Error('Iteration identity is invalid.');
   }
   return normalized;
 }
@@ -376,7 +378,7 @@ function normalizeRunId(value: string): string {
 function normalizeCommit(value: string): string {
   const normalized = value.trim().toLowerCase();
   if (!COMMIT_PATTERN.test(normalized)) {
-    throw new Error('Coding worktree base commit SHA is invalid.');
+    throw new Error('Iteration worktree base commit SHA is invalid.');
   }
   return normalized;
 }
@@ -389,7 +391,7 @@ function assertManagedPath(root: string, candidate: string): void {
     within === '..' ||
     within.startsWith(`..${sep}`)
   ) {
-    throw new Error('Coding worktree path is outside the managed root.');
+    throw new Error('Iteration worktree path is outside the managed root.');
   }
 }
 

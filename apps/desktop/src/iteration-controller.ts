@@ -1,4 +1,4 @@
-import type { CodingWorktreeManager } from './coding-worktree';
+import type { IterationWorktreeManager } from './iteration-worktree';
 import { gitHead } from './git-repository';
 import type {
   IntakeApiClient,
@@ -29,7 +29,7 @@ interface BindingReader {
 }
 
 interface IterationWorktrees {
-  prepare: CodingWorktreeManager['prepare'];
+  prepare: IterationWorktreeManager['prepare'];
 }
 
 interface IterationClient {
@@ -85,7 +85,7 @@ export class IterationController {
 
       try {
         const worktree = await this.worktrees.prepare({
-          runId: iteration.id,
+          iterationId: iteration.id,
           repositoryRoot: binding.repositoryRoot,
           baseCommitSha: iteration.baseCommitSha,
           signal: abort.signal,

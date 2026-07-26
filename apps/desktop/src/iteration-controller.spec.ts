@@ -62,7 +62,7 @@ function fixture(
   };
   const worktrees = {
     prepare: vi.fn(async () => ({
-      runId: 'iteration-1',
+      iterationId: 'iteration-1',
       repositoryRoot,
       worktreeRoot: '/Users/private/worktrees/iteration-1',
       branchName: 'evidence/iter-iteration-1',
@@ -109,7 +109,7 @@ describe('IterationController', () => {
       expect.any(AbortSignal),
     );
     expect(worktrees.prepare).toHaveBeenCalledWith({
-      runId: 'iteration-1',
+      iterationId: 'iteration-1',
       repositoryRoot,
       baseCommitSha,
       signal: expect.any(AbortSignal),
