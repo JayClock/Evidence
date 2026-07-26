@@ -12,8 +12,6 @@ model User {
   email                   String?
   members                 WorkspaceMember[]
   createdStoryRevisions   StoryRevision[]          @relation("StoryRevisionAuthor")
-  requestedCodingRuns     CodingRun[]              @relation("CodingRunRequester")
-  decidedCodingRuns       CodingRun[]              @relation("CodingRunDecider")
   requestedExtractions    InboxExtraction[]        @relation("InboxExtractionRequester")
   decidedInboxCandidates  InboxCandidateDecision[] @relation("InboxCandidateDecisionActor")
   admittedIterations      Iteration[]              @relation("IterationAdmissionActor")
@@ -56,7 +54,6 @@ model Workspace {
   taskingCandidates       TaskingCandidate[]
   deskCheckDecisions      DeskCheckDecision[]
   approvedTaskingPlans    ApprovedTaskingPlan[]
-  codingRuns              CodingRun[]
   sequence                WorkspaceSequence?
 
   @@index([deletedAt])
@@ -507,7 +504,6 @@ model Story {
   latestRevision         StoryRevision?             @relation("LatestStoryRevision", fields: [latestRevisionId], references: [id], onDelete: Restrict)
   problemStatements      ProblemStatementRevision[]
   storyCards             StoryCardRevision[]
-  codingRuns             CodingRun[]
   clarifications         StoryClarification[]
   scenarioProposals      ScenarioSetProposal[]
   understandingDecisions UnderstandingDecision[]
@@ -537,7 +533,6 @@ model StoryRevision {
   createdBy                      User                    @relation("StoryRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict)
   citations                      StoryRevisionCitation[]
   scenarios                      StoryScenario[]
-  codingRuns                     CodingRun[]
   clarificationQuestions         StoryClarification[]
   scenarioProposals              ScenarioSetProposal[]
   sourceUnderstandingDecisions   UnderstandingDecision[] @relation("UnderstandingDecisionSourceRevision")
@@ -782,38 +777,6 @@ model ApprovedTaskingPlan {
 
   @@index([workspaceId, approvedAt])
   @@map("approved_tasking_plans")
-}
-
-model CodingRun {
-  id                  String        @id
-  workspaceId         String        @map("workspace_id")
-  storyId             String        @map("story_id")
-  storyRevisionId     String        @map("story_revision_id")
-  requestedByUserId   String        @map("requested_by_user_id")
-  status              String
-  version             Int           @default(1)
-  baseCommitSha       String        @map("base_commit_sha")
-  diffSha256          String?       @map("diff_sha256")
-  changedFileCount    Int?          @map("changed_file_count")
-  qualityChecks       Json          @default("[]") @map("quality_checks")
-  commitSha           String?       @map("commit_sha")
-  failureCode         String?       @map("failure_code")
-  failureSummary      String?       @map("failure_summary")
-  decisionReason      String?       @map("decision_reason")
-  startedAt           DateTime      @map("started_at")
-  executionFinishedAt DateTime?     @map("execution_finished_at")
-  decidedByUserId     String?       @map("decided_by_user_id")
-  decidedAt           DateTime?     @map("decided_at")
-  workspace           Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  story               Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  storyRevision       StoryRevision @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
-  requestedBy         User          @relation("CodingRunRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
-  decidedBy           User?         @relation("CodingRunDecider", fields: [decidedByUserId], references: [id], onDelete: Restrict)
-
-  @@index([workspaceId, status, startedAt])
-  @@index([storyId, startedAt])
-  @@index([storyRevisionId, status])
-  @@map("coding_runs")
 }
 
 model StoryRevisionCitation {

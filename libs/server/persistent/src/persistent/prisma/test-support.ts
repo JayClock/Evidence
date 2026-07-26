@@ -51,7 +51,6 @@ export interface MockPrismaStore {
   taskingCandidate: Record<string, MockFn>;
   deskCheckDecision: Record<string, MockFn>;
   approvedTaskingPlan: Record<string, MockFn>;
-  codingRun: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -183,13 +182,6 @@ export function mockPrismaStore(): MockPrismaStore {
     taskingCandidate: delegate(['findFirst', 'count', 'create']),
     deskCheckDecision: delegate(['findMany', 'count', 'create']),
     approvedTaskingPlan: delegate(['findUnique', 'create']),
-    codingRun: delegate([
-      'findMany',
-      'findFirst',
-      'count',
-      'create',
-      'updateMany',
-    ]),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 
