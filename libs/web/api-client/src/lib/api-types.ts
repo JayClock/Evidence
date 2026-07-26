@@ -2,6 +2,7 @@ export * from './delivery-resource.js';
 export * from './diagram-resource.js';
 export * from './health-resource.js';
 export * from './inbox-resource.js';
+export * from './iteration-resource.js';
 export * from './logical-entity-resource.js';
 export * from './logical-relationship-resource.js';
 export * from './member-resource.js';

@@ -22,6 +22,37 @@ export type CodingRunEvent = {
   data: string;
 };
 
+export type IntakeAgentEvent = {
+  id: string;
+  event: 'progress' | 'tool-start' | 'tool-end' | 'complete' | 'error';
+  data: string;
+};
+
+export type InboxSourceCapture = {
+  sourceKind: 'manual_text' | 'local_markdown' | 'github_issue';
+  externalKey: string;
+  title: string;
+  body: string;
+  contentType: 'text/plain' | 'text/markdown';
+  uri: string | null;
+  providerMetadata: Record<string, unknown>;
+  sourceUpdatedAt: string | null;
+};
+
+export type StartIterationRequest = {
+  id: string;
+  workspaceId: string;
+  candidateId: string;
+};
+
+export type IterationProvisioningSummary = {
+  iterationId: string;
+  reference: string;
+  lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
+  branchName: string | null;
+  baseCommitSha: string;
+};
+
 export type StartCodingRequest = {
   id: string;
   workspaceId: string;
@@ -52,6 +83,28 @@ type EvidenceDesktopBridge = {
   getApiBaseUrl(): Promise<string>;
   chooseRepository(): Promise<RepositorySelectionSummary | null>;
   bindWorkspace(workspaceId: string, selectionId: string): Promise<void>;
+  readInboxMarkdown(
+    workspaceId: string,
+    relativePath: string,
+  ): Promise<InboxSourceCapture>;
+  fetchInboxGitHubIssue(
+    owner: string,
+    repository: string,
+    issueNumber: number,
+  ): Promise<InboxSourceCapture>;
+  runInboxAnalyst(
+    request: { id: string; workspaceId: string; extractionId: string },
+    onEvent: (event: IntakeAgentEvent) => void,
+  ): Promise<void>;
+  cancelInboxAnalyst(id: string): Promise<void>;
+  startIteration(
+    request: StartIterationRequest,
+  ): Promise<IterationProvisioningSummary>;
+  runKickoffAnalyst(
+    request: { id: string; workspaceId: string; iterationId: string },
+    onEvent: (event: IntakeAgentEvent) => void,
+  ): Promise<void>;
+  cancelKickoffAnalyst(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

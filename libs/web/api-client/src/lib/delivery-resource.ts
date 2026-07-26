@@ -6,9 +6,9 @@ import type { UserResource } from './user-resource.js';
 import type { WorkspaceResource } from './workspace-resource.js';
 
 type StoryCandidateResourceSchema =
-  components['schemas']['StoryCandidateResource'];
+  components['schemas']['InboxStoryCandidateResource'];
 type StoryCandidateCollectionResourceSchema =
-  components['schemas']['StoryCandidateCollectionResource'];
+  components['schemas']['InboxStoryCandidateCollectionResource'];
 type StoryResourceSchema = components['schemas']['StoryResource'];
 type StoryCollectionResourceSchema =
   components['schemas']['StoryCollectionResource'];
@@ -24,11 +24,14 @@ type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: Exclude<T[P], undefined>;
 };
 
-export type StoryCandidateInput = components['schemas']['StoryCandidateInput'];
+export type StoryCandidateInput =
+  components['schemas']['InboxStoryCandidateInput'];
 export type StoryCandidateDecisionInput =
-  components['schemas']['StoryCandidateDecisionInput'];
+  components['schemas']['InboxCandidateDecisionInput'];
+export type SelectStoryCandidateInput =
+  components['schemas']['SelectInboxCandidateInput'];
 export type StoryCandidateStatus =
-  components['schemas']['StoryCandidateStatus'];
+  components['schemas']['InboxCandidateStatus'];
 export type StoryCognitiveMode = components['schemas']['StoryCognitiveMode'];
 export type StoryRevisionInput = components['schemas']['StoryRevisionInput'];
 export type StoryScenarioInput = components['schemas']['StoryScenarioInput'];
@@ -47,9 +50,9 @@ export type CodingRunRejectionInput =
 export type CodingRunVersionInput =
   components['schemas']['CodingRunVersionInput'];
 
-export type StoryCandidateResourceData = RequiredNullable<
-  Omit<StoryCandidateResourceSchema, '_links'>,
-  'decidedByUserId' | 'decidedAt' | 'confirmedStoryId' | 'confirmedRevisionId'
+export type StoryCandidateResourceData = Omit<
+  StoryCandidateResourceSchema,
+  '_links'
 >;
 export type StoryCandidateCollectionResourceData = Omit<
   StoryCandidateCollectionResourceSchema,
@@ -80,12 +83,11 @@ export type StoryCandidateResource = Entity<
     self: StoryCandidateResource;
     workspace: WorkspaceResource;
     collection: StoryCandidateCollectionResource;
-    'proposed-by': UserResource;
-    'decided-by': UserResource;
-    confirm: StoryRevisionResource;
+    extraction: import('./inbox-resource.js').InboxExtractionResource;
+    defer: StoryCandidateResource;
     reject: StoryCandidateResource;
-    story: StoryResource;
-    'story-revision': StoryRevisionResource;
+    select: import('./iteration-resource.js').IterationResource;
+    iteration: import('./iteration-resource.js').IterationResource;
   }
 >;
 

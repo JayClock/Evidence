@@ -12,12 +12,16 @@ type InboxRevisionResourceSchema =
   components['schemas']['InboxRevisionResource'];
 type InboxRevisionCollectionResourceSchema =
   components['schemas']['InboxRevisionCollectionResource'];
+type InboxExtractionResourceSchema =
+  components['schemas']['InboxExtractionResource'];
 
 type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
   [P in K]-?: Exclude<T[P], undefined>;
 };
 
 export type InboxSourceInput = components['schemas']['InboxSourceInput'];
+export type CreateInboxExtractionInput =
+  components['schemas']['CreateInboxExtractionInput'];
 export type InboxSourceUpdateInput =
   components['schemas']['InboxSourceUpdateInput'];
 export type InboxItemStatusInput =
@@ -37,6 +41,10 @@ export type InboxRevisionCollectionResourceData = Omit<
   InboxRevisionCollectionResourceSchema,
   '_links' | '_embedded'
 >;
+export type InboxExtractionResourceData = Omit<
+  InboxExtractionResourceSchema,
+  '_links'
+>;
 
 export type InboxItemResource = Entity<
   InboxItemResourceData,
@@ -47,6 +55,7 @@ export type InboxItemResource = Entity<
     revisions: InboxRevisionCollectionResource;
     'story-candidates': StoryCandidateCollectionResource;
     'latest-revision': InboxRevisionResource;
+    'inbox-extractions': InboxExtractionResource;
   }
 >;
 
@@ -58,6 +67,7 @@ export type InboxItemCollectionResource = Collection<InboxItemResource> &
       workspace: WorkspaceResource;
       prev: InboxItemCollectionResource;
       next: InboxItemCollectionResource;
+      'inbox-extractions': InboxExtractionResource;
     }
   >;
 
@@ -67,6 +77,15 @@ export type InboxRevisionResource = Entity<
     self: InboxRevisionResource;
     item: InboxItemResource;
     collection: InboxRevisionCollectionResource;
+    workspace: WorkspaceResource;
+    'story-candidates': StoryCandidateCollectionResource;
+  }
+>;
+
+export type InboxExtractionResource = Entity<
+  InboxExtractionResourceData,
+  {
+    self: InboxExtractionResource;
     workspace: WorkspaceResource;
     'story-candidates': StoryCandidateCollectionResource;
   }
