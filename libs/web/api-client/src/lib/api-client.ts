@@ -105,6 +105,11 @@ type EvidenceDesktopBridge = {
     onEvent: (event: IntakeAgentEvent) => void,
   ): Promise<void>;
   cancelKickoffAnalyst?(id: string): Promise<void>;
+  runUnderstandingAnalyst?(
+    request: { id: string; workspaceId: string; iterationId: string },
+    onEvent: (event: IntakeAgentEvent) => void,
+  ): Promise<void>;
+  cancelUnderstandingAnalyst?(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

@@ -10,6 +10,8 @@ asarUnpack:
   - dist/inbox-analyst-runtime.mjs.map
   - dist/kickoff-analyst-runtime.mjs
   - dist/kickoff-analyst-runtime.mjs.map
+  - dist/understanding-analyst-runtime.mjs
+  - dist/understanding-analyst-runtime.mjs.map
   - node_modules/**/*
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
@@ -29,6 +31,8 @@ files:
   - dist/inbox-analyst-runtime.mjs.map
   - dist/kickoff-analyst-runtime.mjs
   - dist/kickoff-analyst-runtime.mjs.map
+  - dist/understanding-analyst-runtime.mjs
+  - dist/understanding-analyst-runtime.mjs.map
   - package.json
 
 extraResources:

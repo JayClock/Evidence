@@ -47,6 +47,7 @@ import {
 import {
   CANCEL_INBOX_ANALYST_CHANNEL,
   CANCEL_KICKOFF_ANALYST_CHANNEL,
+  CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
   FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
   INTAKE_AGENT_EVENT_CHANNEL,
   parseGitHubIssueReference,
@@ -55,15 +56,18 @@ import {
   READ_INBOX_MARKDOWN_CHANNEL,
   RUN_INBOX_ANALYST_CHANNEL,
   RUN_KICKOFF_ANALYST_CHANNEL,
+  RUN_UNDERSTANDING_ANALYST_CHANNEL,
   START_ITERATION_CHANNEL,
 } from './intake-ipc-protocol';
 import {
   parseInboxAnalystRequest,
   parseIntakeAgentEvent,
   parseKickoffAnalystRequest,
+  parseUnderstandingAnalystRequest,
   type InboxAnalystRuntimeRequest,
   type IntakeAgentEvent,
   type KickoffAnalystRuntimeRequest,
+  type UnderstandingAnalystRuntimeRequest,
 } from './intake-agent-protocol';
 import { IntakeApiClient } from './intake-api-client';
 import { isTrustedRendererRequest } from './ipc-security';
@@ -91,6 +95,10 @@ let inboxAnalyst: LocalAgent<
 > | null = null;
 let kickoffAnalyst: LocalAgent<
   KickoffAnalystRuntimeRequest,
+  IntakeAgentEvent
+> | null = null;
+let understandingAnalyst: LocalAgent<
+  UnderstandingAnalystRuntimeRequest,
   IntakeAgentEvent
 > | null = null;
 let iterationController: IterationController | null = null;
@@ -159,6 +167,10 @@ function registerDesktopBridge(
   coding: CodingController,
   inbox: LocalAgent<InboxAnalystRuntimeRequest, IntakeAgentEvent>,
   kickoff: LocalAgent<KickoffAnalystRuntimeRequest, IntakeAgentEvent>,
+  understanding: LocalAgent<
+    UnderstandingAnalystRuntimeRequest,
+    IntakeAgentEvent
+  >,
   iterations: IterationController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
@@ -253,6 +265,37 @@ function registerDesktopBridge(
     }
     await kickoff.cancel(id);
   });
+  ipcMain.handle(
+    RUN_UNDERSTANDING_ANALYST_CHANNEL,
+    async (event, input: unknown) => {
+      assertTrustedIpcSender(event);
+      const request = parseUnderstandingAnalystRequest(input);
+      const sessionDirectory = join(
+        app.getPath('userData'),
+        'tqa-sessions',
+        request.workspaceId,
+        request.iterationId,
+      );
+      await understanding.run(
+        { ...request, apiBaseUrl, sessionDirectory },
+        (agentEvent) => {
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+          }
+        },
+      );
+    },
+  );
+  ipcMain.handle(
+    CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
+    async (event, id: unknown) => {
+      assertTrustedIpcSender(event);
+      if (typeof id !== 'string') {
+        throw new Error('Understanding Analyst request id is required.');
+      }
+      await understanding.cancel(id);
+    },
+  );
   ipcMain.handle(START_ITERATION_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     return iterations.start(parseStartIterationRequest(input));
@@ -345,9 +388,15 @@ function createLocalAgent(authorization: string | undefined): LocalAgent {
 }
 
 function createIntakeAgent<
-  TRequest extends InboxAnalystRuntimeRequest | KickoffAnalystRuntimeRequest,
+  TRequest extends
+    | InboxAnalystRuntimeRequest
+    | KickoffAnalystRuntimeRequest
+    | UnderstandingAnalystRuntimeRequest,
 >(
-  entryName: 'inbox-analyst-runtime.mjs' | 'kickoff-analyst-runtime.mjs',
+  entryName:
+    | 'inbox-analyst-runtime.mjs'
+    | 'kickoff-analyst-runtime.mjs'
+    | 'understanding-analyst-runtime.mjs',
   authorization: string | undefined,
 ): LocalAgent<TRequest, IntakeAgentEvent> {
   return new LocalAgent({
@@ -485,6 +534,11 @@ void app.whenReady().then(async () => {
       'kickoff-analyst-runtime.mjs',
       authorization,
     );
+    understandingAnalyst =
+      createIntakeAgent<UnderstandingAnalystRuntimeRequest>(
+        'understanding-analyst-runtime.mjs',
+        authorization,
+      );
     const localCodingAgent = createLocalCodingAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
@@ -519,6 +573,7 @@ void app.whenReady().then(async () => {
       codingController,
       inboxAnalyst,
       kickoffAnalyst,
+      understandingAnalyst,
       iterationController,
     );
     const window = await createWindow();
@@ -551,6 +606,7 @@ app.on('before-quit', (event) => {
     (localAgent ||
       inboxAnalyst ||
       kickoffAnalyst ||
+      understandingAnalyst ||
       iterationController ||
       codingController)
   ) {
@@ -561,6 +617,7 @@ app.on('before-quit', (event) => {
       localAgent?.stop() ?? Promise.resolve(),
       inboxAnalyst?.stop() ?? Promise.resolve(),
       kickoffAnalyst?.stop() ?? Promise.resolve(),
+      understandingAnalyst?.stop() ?? Promise.resolve(),
       codingController?.stop() ?? Promise.resolve(),
     ]).finally(() => app.quit());
   }

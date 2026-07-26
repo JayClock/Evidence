@@ -6,15 +6,18 @@ import {
   type InboxAnalystRequest,
   type IntakeAgentEvent,
   type KickoffAnalystRequest,
+  type UnderstandingAnalystRequest,
 } from './intake-agent-protocol';
 import {
   CANCEL_INBOX_ANALYST_CHANNEL,
   CANCEL_KICKOFF_ANALYST_CHANNEL,
+  CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
   FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
   INTAKE_AGENT_EVENT_CHANNEL,
   READ_INBOX_MARKDOWN_CHANNEL,
   RUN_INBOX_ANALYST_CHANNEL,
   RUN_KICKOFF_ANALYST_CHANNEL,
+  RUN_UNDERSTANDING_ANALYST_CHANNEL,
   START_ITERATION_CHANNEL,
 } from './intake-ipc-protocol';
 import type {
@@ -45,8 +48,12 @@ import type { RepositorySelectionSummary } from './workspace-binding-store';
 async function runIntakeAgent(
   channel:
     | typeof RUN_INBOX_ANALYST_CHANNEL
-    | typeof RUN_KICKOFF_ANALYST_CHANNEL,
-  request: InboxAnalystRequest | KickoffAnalystRequest,
+    | typeof RUN_KICKOFF_ANALYST_CHANNEL
+    | typeof RUN_UNDERSTANDING_ANALYST_CHANNEL,
+  request:
+    | InboxAnalystRequest
+    | KickoffAnalystRequest
+    | UnderstandingAnalystRequest,
   onEvent: (event: IntakeAgentEvent) => void,
 ): Promise<void> {
   const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
@@ -107,6 +114,13 @@ const bridge = {
     runIntakeAgent(RUN_KICKOFF_ANALYST_CHANNEL, request, onEvent),
   cancelKickoffAnalyst: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_KICKOFF_ANALYST_CHANNEL, id),
+  runUnderstandingAnalyst: (
+    request: UnderstandingAnalystRequest,
+    onEvent: (event: IntakeAgentEvent) => void,
+  ): Promise<void> =>
+    runIntakeAgent(RUN_UNDERSTANDING_ANALYST_CHANNEL, request, onEvent),
+  cancelUnderstandingAnalyst: (id: string): Promise<void> =>
+    ipcRenderer.invoke(CANCEL_UNDERSTANDING_ANALYST_CHANNEL, id),
   runDiagramAgent: async (
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

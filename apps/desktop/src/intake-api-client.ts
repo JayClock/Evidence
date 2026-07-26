@@ -24,7 +24,12 @@ export interface RemoteIteration {
   reference: string;
   lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
   loop: 'kickoff' | 'understand';
-  stage: 'candidate_review' | 'candidate_drafting' | 'tqa';
+  stage:
+    | 'candidate_review'
+    | 'candidate_drafting'
+    | 'tqa'
+    | 'scenario_review'
+    | 'modeling';
   version: number;
   baseCommitSha: string;
   branchName: string | null;
@@ -39,6 +44,26 @@ export interface RemoteKickoff {
   decisions: Array<Record<string, unknown>>;
   links: Record<string, string>;
   raw: Record<string, unknown>;
+}
+
+export interface RemoteUnderstanding {
+  iteration: RemoteIteration;
+  story: Record<string, unknown>;
+  storyRevision: Record<string, unknown>;
+  pendingClarification: Record<string, unknown> | null;
+  clarifications: Array<Record<string, unknown>>;
+  currentScenarioProposal: Record<string, unknown> | null;
+  decisions: Array<Record<string, unknown>>;
+  links: Record<string, string>;
+  raw: Record<string, unknown>;
+}
+
+export interface UnderstandingScenarioInput {
+  title: string;
+  given: string[];
+  when: string;
+  then: string[];
+  businessData: string[];
 }
 
 export interface InboxCandidateProposalInput {
@@ -300,6 +325,68 @@ export class IntakeApiClient {
     );
   }
 
+  async getUnderstanding(
+    iterationResource: RemoteIteration,
+    signal?: AbortSignal,
+  ): Promise<RemoteUnderstanding> {
+    const raw = await this.requestJson(
+      this.resolveApiUrl(
+        requiredLink(iterationResource.links, 'understanding'),
+      ),
+      { signal },
+    );
+    return understanding(raw);
+  }
+
+  async askUnderstandingQuestion(
+    resource: RemoteUnderstanding,
+    input: {
+      target: 'business_context' | 'story' | 'history';
+      question: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<Record<string, unknown>> {
+    return this.requestJson(
+      this.resolveApiUrl(requiredLink(resource.links, 'ask-question')),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedIterationVersion: resource.iteration.version,
+          storyId: requiredString(resource.story.id, 'Story id'),
+          storyRevisionId: requiredString(
+            resource.storyRevision.id,
+            'Story Revision id',
+          ),
+          ...input,
+        }),
+        signal,
+      },
+    );
+  }
+
+  async proposeUnderstandingScenarios(
+    resource: RemoteUnderstanding,
+    scenarios: UnderstandingScenarioInput[],
+    signal?: AbortSignal,
+  ): Promise<Record<string, unknown>> {
+    return this.requestJson(
+      this.resolveApiUrl(requiredLink(resource.links, 'propose-scenarios')),
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedIterationVersion: resource.iteration.version,
+          storyId: requiredString(resource.story.id, 'Story id'),
+          storyRevisionId: requiredString(
+            resource.storyRevision.id,
+            'Story Revision id',
+          ),
+          scenarios,
+        }),
+        signal,
+      },
+    );
+  }
+
   private async requestJson(
     url: URL,
     init: RequestInit,
@@ -401,7 +488,9 @@ function iteration(value: Record<string, unknown>): RemoteIteration {
   if (
     stage !== 'candidate_review' &&
     stage !== 'candidate_drafting' &&
-    stage !== 'tqa'
+    stage !== 'tqa' &&
+    stage !== 'scenario_review' &&
+    stage !== 'modeling'
   ) {
     throw new Error(`Unsupported Iteration stage: ${stage}`);
   }
@@ -414,6 +503,35 @@ function iteration(value: Record<string, unknown>): RemoteIteration {
     version: positiveInteger(value.version, 'Iteration version'),
     baseCommitSha: requiredString(value.baseCommitSha, 'Iteration base SHA'),
     branchName: nullableString(value.branchName, 'Iteration branch'),
+    links: links(value),
+    raw: value,
+  };
+}
+
+function understanding(value: Record<string, unknown>): RemoteUnderstanding {
+  const clarifications = value.clarifications;
+  const decisions = value.decisions;
+  if (!Array.isArray(clarifications) || !Array.isArray(decisions)) {
+    throw new Error('Understanding response is missing history.');
+  }
+  return {
+    iteration: iteration(record(value.iteration, 'Understanding Iteration')),
+    story: record(value.story, 'Understanding Story'),
+    storyRevision: record(value.storyRevision, 'Understanding Story Revision'),
+    pendingClarification:
+      value.pendingClarification === null
+        ? null
+        : record(value.pendingClarification, 'Pending Clarification'),
+    clarifications: clarifications.map((entry) =>
+      record(entry, 'Understanding Clarification'),
+    ),
+    currentScenarioProposal:
+      value.currentScenarioProposal === null
+        ? null
+        : record(value.currentScenarioProposal, 'Scenario Proposal'),
+    decisions: decisions.map((entry) =>
+      record(entry, 'Understanding Decision'),
+    ),
     links: links(value),
     raw: value,
   };

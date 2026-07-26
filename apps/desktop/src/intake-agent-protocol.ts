@@ -4,6 +4,10 @@ export const INBOX_ANALYST_EVENT_CHANNEL = 'evidence:inbox-analyst-event';
 export const RUN_KICKOFF_ANALYST_CHANNEL = 'evidence:run-kickoff-analyst';
 export const CANCEL_KICKOFF_ANALYST_CHANNEL = 'evidence:cancel-kickoff-analyst';
 export const KICKOFF_ANALYST_EVENT_CHANNEL = 'evidence:kickoff-analyst-event';
+export const RUN_UNDERSTANDING_ANALYST_CHANNEL =
+  'evidence:run-understanding-analyst';
+export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
+  'evidence:cancel-understanding-analyst';
 
 export interface InboxAnalystRequest {
   id: string;
@@ -23,6 +27,18 @@ export interface KickoffAnalystRequest {
 
 export interface KickoffAnalystRuntimeRequest extends KickoffAnalystRequest {
   apiBaseUrl: string;
+}
+
+export interface UnderstandingAnalystRequest {
+  id: string;
+  workspaceId: string;
+  iterationId: string;
+}
+
+export interface UnderstandingAnalystRuntimeRequest
+  extends UnderstandingAnalystRequest {
+  apiBaseUrl: string;
+  sessionDirectory: string;
 }
 
 export interface IntakeAgentEvent {
@@ -71,6 +87,31 @@ export function parseKickoffAnalystRuntimeRequest(
   return {
     ...parseKickoffAnalystRequest(input),
     apiBaseUrl: requiredString(input.apiBaseUrl, 'API base URL'),
+  };
+}
+
+export function parseUnderstandingAnalystRequest(
+  value: unknown,
+): UnderstandingAnalystRequest {
+  const input = record(value);
+  return {
+    id: requestId(input.id),
+    workspaceId: resourceId(input.workspaceId, 'Workspace id'),
+    iterationId: resourceId(input.iterationId, 'Iteration id'),
+  };
+}
+
+export function parseUnderstandingAnalystRuntimeRequest(
+  value: unknown,
+): UnderstandingAnalystRuntimeRequest {
+  const input = record(value);
+  return {
+    ...parseUnderstandingAnalystRequest(input),
+    apiBaseUrl: requiredString(input.apiBaseUrl, 'API base URL'),
+    sessionDirectory: requiredString(
+      input.sessionDirectory,
+      'TQA session directory',
+    ),
   };
 }
 

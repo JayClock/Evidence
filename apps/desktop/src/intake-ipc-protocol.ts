@@ -7,6 +7,10 @@ export const RUN_INBOX_ANALYST_CHANNEL = 'evidence:run-inbox-analyst';
 export const CANCEL_INBOX_ANALYST_CHANNEL = 'evidence:cancel-inbox-analyst';
 export const RUN_KICKOFF_ANALYST_CHANNEL = 'evidence:run-kickoff-analyst';
 export const CANCEL_KICKOFF_ANALYST_CHANNEL = 'evidence:cancel-kickoff-analyst';
+export const RUN_UNDERSTANDING_ANALYST_CHANNEL =
+  'evidence:run-understanding-analyst';
+export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
+  'evidence:cancel-understanding-analyst';
 export const INTAKE_AGENT_EVENT_CHANNEL = 'evidence:intake-agent-event';
 export const START_ITERATION_CHANNEL = 'evidence:start-iteration';
 

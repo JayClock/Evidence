@@ -32,6 +32,10 @@ const configurations = [
       resolve(workspaceRoot, 'apps/desktop/src/coding-agent-runtime.ts'),
       resolve(workspaceRoot, 'apps/desktop/src/inbox-analyst-runtime.ts'),
       resolve(workspaceRoot, 'apps/desktop/src/kickoff-analyst-runtime.ts'),
+      resolve(
+        workspaceRoot,
+        'apps/desktop/src/understanding-analyst-runtime.ts',
+      ),
     ],
   },
 ];
@@ -54,6 +58,8 @@ await Promise.all(
     'inbox-analyst-runtime.mjs.map',
     'kickoff-analyst-runtime.mjs',
     'kickoff-analyst-runtime.mjs.map',
+    'understanding-analyst-runtime.mjs',
+    'understanding-analyst-runtime.mjs.map',
   ].map((file) => rm(resolve(outdir, file), { force: true })),
 );
 if (!watch) {
