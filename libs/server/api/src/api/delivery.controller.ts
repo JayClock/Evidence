@@ -1,29 +1,11 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-  Res,
-} from '@nestjs/common';
-import {
-  DomainError,
-  parseStoryCognitiveMode,
-  type Story,
-  type StoryContentInput,
-  type StoryRevision,
-  type StoryRevisionInput,
-} from '@evidence/server-domain';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import type { Story, StoryRevision } from '@evidence/server-domain';
 import {
   link,
   type Link,
   workspaceHref,
   workspaceStoriesHref,
   workspaceStoryHref,
-  workspaceStoryRevisionHref,
   workspaceStoryRevisionsHref,
 } from './links';
 import {
@@ -34,26 +16,6 @@ import {
 } from './model';
 import { parsePositiveInteger, totalPages } from './request';
 import { ResourceResolver } from './resource-resolver.service';
-
-interface StoryContentBody {
-  title?: unknown;
-  problem?: unknown;
-  role?: unknown;
-  goal?: unknown;
-  value?: unknown;
-  cognitiveMode?: unknown;
-  citations?: unknown;
-}
-
-interface StoryRevisionBody extends StoryContentBody {
-  expectedVersion?: unknown;
-  expectedLatestRevisionId?: unknown;
-  scenarios?: unknown;
-}
-
-interface PassthroughResponse {
-  setHeader(name: string, value: string): void;
-}
 
 interface PageModel {
   number: number;
@@ -137,39 +99,6 @@ export class StoriesController {
     );
   }
 
-  @Post(':storyId/revisions')
-  @HttpCode(HttpStatus.CREATED)
-  async createStoryRevision(
-    @Param('workspaceId') workspaceId: string,
-    @Param('storyId') storyId: string,
-    @Body() input: StoryRevisionBody,
-    @Res({ passthrough: true }) response: PassthroughResponse,
-  ): Promise<StoryRevisionModel> {
-    const [workspace] = await this.resolver.requireWorkspaceStory(
-      workspaceId,
-      storyId,
-    );
-    const created = await workspace.appendStoryRevision(
-      storyId,
-      requiredPositiveInteger(input.expectedVersion, 'expectedVersion'),
-      requiredString(
-        input.expectedLatestRevisionId,
-        'expectedLatestRevisionId',
-      ),
-      storyRevisionInput(input),
-      this.resolver.currentUserId(),
-    );
-    response.setHeader(
-      'Location',
-      workspaceStoryRevisionHref(
-        workspaceId,
-        storyId,
-        created.revision.identity(),
-      ),
-    );
-    return storyRevisionModel(workspaceId, created.revision);
-  }
-
   @Get(':storyId/revisions/:revisionId')
   async getStoryRevision(
     @Param('workspaceId') workspaceId: string,
@@ -183,71 +112,6 @@ export class StoriesController {
     );
     return storyRevisionModel(workspaceId, revision);
   }
-}
-
-function storyContentInput(input: StoryContentBody): StoryContentInput {
-  if (!Array.isArray(input.citations)) {
-    throw DomainError.validation('citations must be an array');
-  }
-  return {
-    title: requiredString(input.title, 'title'),
-    problem: requiredString(input.problem, 'problem'),
-    role: requiredString(input.role, 'role'),
-    goal: requiredString(input.goal, 'goal'),
-    value: requiredString(input.value, 'value'),
-    cognitiveMode: parseStoryCognitiveMode(
-      requiredString(input.cognitiveMode, 'cognitiveMode'),
-    ),
-    citations: input.citations.map((entry, index) => {
-      const citation = requiredObject(entry, `citations[${String(index)}]`);
-      return {
-        inboxItemId: requiredString(
-          citation.inboxItemId,
-          `citations[${String(index)}].inboxItemId`,
-        ),
-        inboxRevisionId: requiredString(
-          citation.inboxRevisionId,
-          `citations[${String(index)}].inboxRevisionId`,
-        ),
-        contentSha256: requiredString(
-          citation.contentSha256,
-          `citations[${String(index)}].contentSha256`,
-        ),
-        locator: requiredString(
-          citation.locator,
-          `citations[${String(index)}].locator`,
-        ),
-      };
-    }),
-  };
-}
-
-function storyRevisionInput(input: StoryRevisionBody): StoryRevisionInput {
-  const story = storyContentInput(input);
-  if (!Array.isArray(input.scenarios)) {
-    throw DomainError.validation('scenarios must be an array');
-  }
-  return {
-    ...story,
-    scenarios: input.scenarios.map((entry, index) => {
-      const scenario = requiredObject(entry, `scenarios[${String(index)}]`);
-      return {
-        title: requiredString(
-          scenario.title,
-          `scenarios[${String(index)}].title`,
-        ),
-        given: requiredStringArray(
-          scenario.given,
-          `scenarios[${String(index)}].given`,
-        ),
-        when: requiredString(scenario.when, `scenarios[${String(index)}].when`),
-        then: requiredStringArray(
-          scenario.then,
-          `scenarios[${String(index)}].then`,
-        ),
-      };
-    }),
-  };
 }
 
 function storyCollection(
@@ -308,34 +172,4 @@ function pageDetails(page: number, pageSize: number, total: number): PageModel {
     totalElements: total,
     totalPages: totalPages(total, pageSize),
   };
-}
-
-function requiredString(value: unknown, name: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw DomainError.validation(`${name} is required`);
-  }
-  return value.trim();
-}
-
-function requiredObject(value: unknown, name: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw DomainError.validation(`${name} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function requiredStringArray(value: unknown, name: string): string[] {
-  if (!Array.isArray(value)) {
-    throw DomainError.validation(`${name} must be an array`);
-  }
-  return value.map((entry, index) =>
-    requiredString(entry, `${name}[${String(index)}]`),
-  );
-}
-
-function requiredPositiveInteger(value: unknown, name: string): number {
-  if (!Number.isSafeInteger(value) || Number(value) <= 0) {
-    throw DomainError.validation(`${name} must be a positive integer`);
-  }
-  return Number(value);
 }

@@ -29,8 +29,6 @@ export type SelectStoryCandidateInput =
 export type StoryCandidateStatus =
   components['schemas']['InboxCandidateStatus'];
 export type StoryCognitiveMode = components['schemas']['StoryCognitiveMode'];
-export type StoryRevisionInput = components['schemas']['StoryRevisionInput'];
-export type StoryScenarioInput = components['schemas']['StoryScenarioInput'];
 export type CodingRunStatus = components['schemas']['CodingRunStatus'];
 export type CodingRunQualityCheck =
   components['schemas']['CodingRunQualityCheck'];
@@ -106,7 +104,6 @@ export type StoryResource = Entity<
     workspace: WorkspaceResource;
     collection: StoryCollectionResource;
     revisions: StoryRevisionCollectionResource;
-    'create-revision': StoryRevisionResource;
     'latest-revision': StoryRevisionResource;
     'coding-runs': CodingRunCollectionResource;
     'start-coding-run': CodingRunResource;

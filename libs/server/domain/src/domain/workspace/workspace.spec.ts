@@ -5,7 +5,6 @@ import type {
   CodingRun,
   Story,
   StoryRevision,
-  StoryRevisionInput,
   WorkspaceCodingRuns,
   WorkspaceDelivery,
 } from '../delivery';
@@ -55,35 +54,6 @@ const inboxSource: InboxSourceInput = {
   title: 'Local coding agent',
   body: 'Run Pi in the desktop app.',
   contentType: 'text/markdown',
-};
-
-const storyContentInput = {
-  title: 'Local coding agent',
-  problem: 'Source code must stay local.',
-  role: 'Workspace maintainer',
-  goal: 'Run coding work locally.',
-  value: 'Credentials remain private.',
-  cognitiveMode: 'complicated' as const,
-  citations: [
-    {
-      inboxItemId: 'inbox-1',
-      inboxRevisionId: 'revision-1',
-      contentSha256: `sha256:${'a'.repeat(64)}`,
-      locator: 'whole-source',
-    },
-  ],
-};
-
-const storyRevisionInput: StoryRevisionInput = {
-  ...storyContentInput,
-  scenarios: [
-    {
-      title: 'Run coding in isolation',
-      given: ['The repository is bound to the Workspace.'],
-      when: 'The user starts a Coding Run.',
-      then: ['The primary working tree remains unchanged.'],
-    },
-  ],
 };
 
 const logicalEntityDescription: LogicalEntityDescription = {
@@ -179,10 +149,6 @@ function workspaceFixture() {
       async () => [[storyRevision], 1] as [StoryRevision[], number],
     ),
     findStoryRevision: vi.fn(async () => storyRevision),
-    appendStoryRevision: vi.fn(async () => ({
-      story,
-      revision: storyRevision,
-    })),
   } satisfies WorkspaceDelivery;
 
   const codingRuns = {
@@ -356,7 +322,7 @@ describe('Workspace', () => {
   });
 
   it('delegates authoritative Story operations to Delivery', async () => {
-    const { delivery, story, storyRevision, workspace } = workspaceFixture();
+    const { story, storyRevision, workspace } = workspaceFixture();
 
     await expect(
       workspace.listStories({ page: 1, pageSize: 20 }),
@@ -368,23 +334,6 @@ describe('Workspace', () => {
     await expect(
       workspace.findStoryRevision('story-1', 'revision-1'),
     ).resolves.toBe(storyRevision);
-    await expect(
-      workspace.appendStoryRevision(
-        'story-1',
-        1,
-        'revision-1',
-        storyRevisionInput,
-        'user-1',
-      ),
-    ).resolves.toEqual({ story, revision: storyRevision });
-
-    expect(delivery.appendStoryRevision).toHaveBeenCalledWith(
-      'story-1',
-      1,
-      'revision-1',
-      storyRevisionInput,
-      'user-1',
-    );
   });
 
   it('delegates logical entity commands to the workspace logical entities collection', async () => {

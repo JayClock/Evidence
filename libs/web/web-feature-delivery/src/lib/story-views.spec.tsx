@@ -83,7 +83,7 @@ const storyState = {
         href: '/api/workspaces/workspace-1/stories/story-1',
       };
     }
-    if (relation === 'revisions' || relation === 'create-revision') {
+    if (relation === 'revisions') {
       return {
         rel: relation,
         href: '/api/workspaces/workspace-1/stories/story-1/revisions',

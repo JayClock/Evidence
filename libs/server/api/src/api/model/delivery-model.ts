@@ -49,7 +49,6 @@ export function storyModel(story: Story): StoryModel {
     workspace: link(workspaceHref(workspaceId)),
     collection: link(workspaceStoriesHref(workspaceId)),
     revisions: link(workspaceStoryRevisionsHref(workspaceId, storyId)),
-    'create-revision': link(workspaceStoryRevisionsHref(workspaceId, storyId)),
     'latest-revision': link(
       workspaceStoryRevisionHref(
         workspaceId,

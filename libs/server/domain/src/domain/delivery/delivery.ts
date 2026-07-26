@@ -106,11 +106,6 @@ export interface StoryListQuery {
   pageSize: number;
 }
 
-export interface CreatedStoryRevision {
-  story: Story;
-  revision: StoryRevision;
-}
-
 export interface WorkspaceDelivery {
   listStories(query: StoryListQuery): Promise<[Story[], number]>;
   findStory(storyId: string): Promise<Story | null>;
@@ -123,11 +118,4 @@ export interface WorkspaceDelivery {
     storyId: string,
     revisionId: string,
   ): Promise<StoryRevision | null>;
-  appendStoryRevision(
-    storyId: string,
-    expectedVersion: number,
-    expectedLatestRevisionId: string,
-    input: StoryRevisionInput,
-    createdByUserId: string,
-  ): Promise<CreatedStoryRevision>;
 }

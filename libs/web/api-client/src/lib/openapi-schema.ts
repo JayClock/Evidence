@@ -474,7 +474,7 @@ export interface paths {
     };
     get: operations['list_story_revisions'];
     put?: never;
-    post: operations['create_story_revision'];
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1486,19 +1486,6 @@ export interface components {
       _links: components['schemas']['BTreeMap'];
       _embedded: components['schemas']['StoryCollectionEmbedded'];
       page: components['schemas']['PageModel'];
-    };
-    StoryRevisionInput: {
-      /** Format: int32 */
-      expectedVersion: number;
-      expectedLatestRevisionId: string;
-      title: string;
-      problem: string;
-      role: string;
-      goal: string;
-      value: string;
-      cognitiveMode: components['schemas']['StoryCognitiveMode'];
-      citations: components['schemas']['StoryCitationInput'][];
-      scenarios: components['schemas']['StoryScenarioInput'][];
     };
     StoryRevisionResource: {
       _links: components['schemas']['BTreeMap'];
@@ -3019,38 +3006,6 @@ export interface operations {
       };
       400: components['responses']['ValidationError'];
       404: components['responses']['ResourceNotFound'];
-      500: components['responses']['InternalError'];
-    };
-  };
-  create_story_revision: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        workspaceId: string;
-        storyId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['StoryRevisionInput'];
-      };
-    };
-    responses: {
-      /** @description Subsequent immutable Story Revision created by the current user */
-      201: {
-        headers: {
-          Location?: string;
-          [name: string]: unknown;
-        };
-        content: {
-          'application/vnd.evidence.story-revision+json': components['schemas']['StoryRevisionResource'];
-        };
-      };
-      400: components['responses']['ValidationError'];
-      404: components['responses']['ResourceNotFound'];
-      409: components['responses']['ResourceConflict'];
       500: components['responses']['InternalError'];
     };
   };

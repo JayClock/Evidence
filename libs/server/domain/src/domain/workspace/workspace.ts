@@ -6,12 +6,10 @@ import {
   CodingRunFailureInput,
   CodingRunListQuery,
   CodingRunReviewInput,
-  CreatedStoryRevision,
   StartCodingRunInput,
   Story,
   StoryListQuery,
   StoryRevision,
-  StoryRevisionInput,
   WorkspaceCodingRuns,
   WorkspaceDelivery,
 } from '../delivery';
@@ -166,22 +164,6 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     revisionId: string,
   ): Promise<StoryRevision | null> {
     return this.workspaceDelivery.findStoryRevision(storyId, revisionId);
-  }
-
-  appendStoryRevision(
-    storyId: string,
-    expectedVersion: number,
-    expectedLatestRevisionId: string,
-    input: StoryRevisionInput,
-    createdByUserId: string,
-  ): Promise<CreatedStoryRevision> {
-    return this.workspaceDelivery.appendStoryRevision(
-      storyId,
-      expectedVersion,
-      expectedLatestRevisionId,
-      input,
-      createdByUserId,
-    );
   }
 
   codingRuns(): HasMany<CodingRun> {
