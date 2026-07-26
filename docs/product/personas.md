@@ -20,15 +20,15 @@
 
 - **目标**：把访谈、Issue、合同片段和手工记录保存为可追溯来源，供后续建模或交付确认使用。
 - **痛点**：来源会反复更新或重试同步，难以判断哪一版被评审、是否重复以及当前处理状态。
-- **关键活动**：捕获 Inbox 来源、查看不可变 Revision、核对来源 URI/metadata、延后或关闭条目。
-- **成功标准**：同一来源可幂等同步，每个不同快照可按哈希追踪，后续决定能引用精确 Revision。
+- **关键活动**：捕获 Inbox 来源、查看不可变 Revision、核对来源 URI/metadata、延后或关闭条目，并明确选择 1–5 个 active Item 冻结 Extraction。
+- **成功标准**：同一来源可幂等同步，每个不同快照可按哈希追踪，Extraction 与后续决定引用精确 Revision。
 
 ## 交付确认者
 
-- **目标**：把有来源依据的交付建议提升为明确、可复现的 Story 输入。
-- **痛点**：自动提议容易被误当成已批准需求，后续执行也可能引用错来源版本。
-- **关键活动**：核对 Candidate 的角色、问题、目标、价值、认知模式与精确 Inbox 引用，明确确认或拒绝。
-- **成功标准**：只有确认动作创建不可变 Story Revision v1；重试不重复创建，拒绝保留决定但不产生 Story。
+- **目标**：把有来源依据的交付建议经 Frozen Intake 和 Kickoff 提升为明确、可复现的 `US-001`。
+- **痛点**：自动提议容易被误当成已批准需求，selection 容易被误解为 Story 创建，后续执行也可能引用错来源版本。
+- **关键活动**：核对 Candidate 与精确 citation，执行 defer/reject/select；检查 Frozen Intake 和隔离 worktree 后，明确 confirm/revise/split/defer/stop。
+- **成功标准**：Agent 只能提案；selection 不创建 Story；只有人工 Kickoff confirm 创建一轮唯一 `US-001`，所有决定 append-only。
 
 ## 交付实现与审查者
 

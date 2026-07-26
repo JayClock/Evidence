@@ -28,7 +28,7 @@ libs/
 - Nest bootstrap、environment parsing 和 adapter wiring 放在 `apps/server`。
 - 业务模型、ports 和不变量放在 `libs/server/domain`；不得导入 Nest、Prisma 或 Electron。
 - Controller、请求/响应模型、HAL links 和 media type 放在 `libs/server/api`。
-- Prisma schema/migrations、PostgreSQL registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`；Candidate 决定与 Story Revision 必须在同一 Prisma transaction 内持久化。
+- Prisma schema/migrations、PostgreSQL registry 与 `.evidence` filesystem adapter 放在 `libs/server/persistent`；Candidate selection 必须原子创建 Iteration/Frozen Intake，Kickoff confirm 必须原子创建唯一 Story、Problem Statement、Story Card 与 baseline Revision。
 - Desktop 拥有 Electron 壳、受限 preload、本地 workspace binding、隔离 Git worktree、Agent/controller 执行和 packaging；共享 UI 留在 Web，业务 API 留在 Server。
 - OpenAPI source 位于 `libs/server/api/openapi.yaml`；生成的 Web 类型位于 `libs/web/api-client`；契约 runner 位于 `libs/contracts/api-contracts`。
 

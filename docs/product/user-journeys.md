@@ -32,20 +32,23 @@
 ## 旅程 D：整理可追溯来源
 
 1. 交付输入整理者进入自己具有 membership 的 Workspace Inbox。
-2. 用户捕获手工文本，或 provider 以稳定 source kind/external key 同步来源。
+2. 用户捕获手工文本；Desktop 也可从 bound repository 的相对 Markdown 路径或本地 `gh` 读取 provider-neutral 快照，绝对路径和凭据不上传 Server。
 3. 重复请求返回同一 Inbox Item；只有不同内容哈希形成新的不可变 Revision。
 4. 用户浏览来源正文、URI、provider metadata、更新时间和完整 Revision 分页历史。
 5. 用户把条目标记为 active、deferred 或 closed，并通过乐观版本避免覆盖并发决定。
 6. 后续建模或 Delivery 决定引用精确 Revision，而不是可变的外部来源。
 
-## 旅程 E：确认交付 Story
+## 旅程 E：从 Inbox 冻结一轮 Kickoff Story
 
-1. 交付确认者从 Inbox 当前 Revision 提出包含角色、问题、目标、价值和认知模式的 Story Candidate。
-2. Candidate 保存精确 Inbox Item、Revision、SHA-256 和 locator，但保持非权威状态。
-3. 用户在 Story Candidates 页面核对陈述和来源，可明确拒绝并保留决定。
-4. 用户明确确认 pending Candidate 时，Server 原子创建 Story 与不可变 Story Revision v1，并记录确认者。
-5. 确认请求重试返回同一个 Revision；已拒绝 Candidate 不能再确认，已确认 Candidate 不能再拒绝。
-6. 用户可浏览 Story、最新 Revision 和完整 Revision 历史；后续 CodingRun 只能锁定具体 Revision。
+1. 交付确认者明确选择 1–5 个 active Inbox Item；Server 原子冻结各 Item 的 exact latest Revision 为 Extraction。
+2. Desktop Inbox Analyst 只能读取该 Extraction，并一次性提出 1–5 张包含角色、问题、目标、价值、认知模式和精确 citation 的 Candidate；Candidate 没有 Story ID。
+3. live Inbox 后续更新使未选择的 ready Candidate 投影为 stale，但不能改写 Extraction 或后续 Frozen Intake。
+4. 用户核对 Candidate，可填写理由执行不可撤销 defer/reject；选择一张 ready Candidate 时 Server claim WIP、分配 `ITER-xxxx`、复制自包含 Frozen Intake，但不创建 Story。
+5. Desktop 从当前 Git HEAD 创建 `evidence/iter-*` branch 与隔离 worktree，只向 Server 回报 base SHA、branch name 和 bounded failure summary；失败不自动释放 Candidate。
+6. 用户在 Kickoff 核对 Frozen Proposal。`revise` 先记录人工理由，再由本地 Kickoff Analyst 只基于 Frozen Intake 与决定历史提出替代 Proposal。
+7. `split/defer/stop` 终止当前 Iteration 且不创建 Story；Agent 没有任何人工决定工具。
+8. 只有用户 `confirm` 当前 Proposal 时，Server 才原子创建该 Iteration 唯一 `US-001`、Problem Statement、Lean Story Card 和不可编码 baseline Revision，并进入 `understand/tqa`。
+9. 用户可浏览 Frozen Intake、append-only 决定、Story、最新 Revision 和完整 Revision 历史；至少一个 Scenario 进入 latest Revision 前不提供 CodingRun admission。
 
 ## 旅程 F：细化场景并审查本地 CodingRun
 

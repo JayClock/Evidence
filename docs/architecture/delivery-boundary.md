@@ -29,19 +29,20 @@ Dogfooding 只允许内部工具读取产品知识来辅助开发，不允许产
 
 ## 权威数据与本地数据
 
-| 边界                  | 保存内容                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------- |
-| Server/PostgreSQL     | Inbox source identity、不可变 Revision、Story/Scenario、CodingRun 状态、摘要、哈希和人工决定 |
-| Server filesystem     | Server 自有的 `.evidence` 模型目录；私有 `modelRoot` 不进入 HAL metadata                     |
-| Desktop binding store | 规范化的本地 repositoryRoot，以 API + Workspace 为键；仅 main process 访问                   |
-| Desktop worktree      | 临时代码、diff、测试 stdout 和 Pi session；未经人工接受不得 merge/push                       |
+| 边界                  | 保存内容                                                                                                    |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Server/PostgreSQL     | Inbox/Extraction/Candidate、Iteration/Frozen Intake/Kickoff、Story/Scenario、CodingRun 状态、哈希和人工决定 |
+| Server filesystem     | Server 自有的 `.evidence` 模型目录；私有 `modelRoot` 不进入 HAL metadata                                    |
+| Desktop binding store | 规范化的本地 repositoryRoot，以 API + Workspace 为键；仅 main process 访问                                  |
+| Desktop worktree      | 临时代码、diff、测试 stdout 和 Pi session；未经人工接受不得 merge/push                                      |
 
 ## 当前落地状态
 
-- Work Intake 的 Inbox、Revision、状态、HAL/OpenAPI、Web 页面和 PostgreSQL migration 已落地。
-- Desktop repository binding、Git 验证、隔离 coding worktree、受限 coding agent、固定质量门和本地 diff 审查已落地；repository 选择使用一次性 opaque id，绝对路径不再进入 renderer。
-- 旧的 Story Candidate 直接确认模型正在由 Extraction → Candidate Selection → Frozen Intake → Kickoff 模型替换；旧 API 和旧数据不兼容。
-- Story 只能由 Kickoff 人工确认创建；Understand 后才可基于精确 Story 修订确认有序 Given/When/Then Scenario Set。
+- Work Intake 的 provider-neutral source adapter、Inbox/Revision、1–5 项 Extraction、一次性 Inbox Analyst、Candidate 状态/决定、HAL/OpenAPI、Web 页面和 PostgreSQL migration 已落地。
+- Candidate selection 原子 claim WIP 并创建 Iteration/Frozen Intake；Desktop 从当前 HEAD provision `evidence/iter-*` 隔离 worktree，只回报 bounded facts。
+- Kickoff Frozen Proposal review、append-only 人工 confirm/revise/split/defer/stop、本地 replacement Analyst 和每轮唯一 `US-001` 已落地；Agent 不持有人工决定能力。
+- 旧 direct Candidate confirm API、领域 port、Prisma 表/列与客户端 contract 已删除；destructive migration 不 backfill 旧 Inbox/Story/CodingRun workflow 数据。
+- Understand 后可基于 baseline Story Revision 确认有序 Given/When/Then Scenario Set；至少一个 Scenario 进入前不暴露 CodingRun admission。
 - CodingRun Domain、PostgreSQL、REST/HAL、OpenAPI、Web 审查 UI 与 Desktop controller 已落地；Server 端 Pi runtime 和建模 proposal endpoint 已退休。
 
 ## 后果

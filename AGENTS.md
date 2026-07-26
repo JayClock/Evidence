@@ -51,21 +51,24 @@ Electron
 
 ### 领域聚合
 
-| 聚合 / 概念                   | 说明                                                  |
-| ----------------------------- | ----------------------------------------------------- |
-| `User`                        | 用户身份及可访问工作空间                              |
-| `Workspace`                   | 成员、当前图、逻辑模型和 `.evidence` 根的协作边界     |
-| `Member`                      | 用户到工作空间的成员关系与角色                        |
-| `LogicalEntity`               | Evidence、Participant、Role 或 Context 类型的业务概念 |
-| `LogicalRelationship`         | 同一工作空间内两个逻辑实体之间的关系                  |
-| `Diagram`                     | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`    |
-| `DiagramNode` / `DiagramEdge` | 从 `.evidence` 实体和关联投影出的图元素               |
-| `InboxItem` / `InboxRevision` | 来源身份、处理状态和不可变内容快照                    |
-| `StoryCandidate`              | 引用精确 Inbox Revision 的非权威交付提案              |
-| `Story` / `StoryRevision`     | 人工确认后的稳定身份与不可变权威修订                  |
-| `CodingRun`                   | 锁定精确 Story Revision 的本地编码执行和人工决定      |
+| 聚合 / 概念                           | 说明                                                  |
+| ------------------------------------- | ----------------------------------------------------- |
+| `User`                                | 用户身份及可访问工作空间                              |
+| `Workspace`                           | 成员、当前图、逻辑模型和 `.evidence` 根的协作边界     |
+| `Member`                              | 用户到工作空间的成员关系与角色                        |
+| `LogicalEntity`                       | Evidence、Participant、Role 或 Context 类型的业务概念 |
+| `LogicalRelationship`                 | 同一工作空间内两个逻辑实体之间的关系                  |
+| `Diagram`                             | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`    |
+| `DiagramNode` / `DiagramEdge`         | 从 `.evidence` 实体和关联投影出的图元素               |
+| `InboxItem` / `InboxRevision`         | 来源身份、处理状态和不可变内容快照                    |
+| `InboxExtraction`                     | 人工选择的 1–5 个精确 latest Revision                 |
+| `InboxStoryCandidate`                 | Inbox Analyst 提出的精确引用、无 Story ID 的提案      |
+| `Iteration` / `IterationIntake`       | Candidate claim、WIP 与自包含 Frozen Intake           |
+| `KickoffProposal` / `KickoffDecision` | 替代提案与 append-only 人工权威决定                   |
+| `Story` / `StoryRevision`             | Kickoff confirm 后的 US-001 与不可变权威修订          |
+| `CodingRun`                           | 锁定精确 Story Revision 的本地编码执行和人工决定      |
 
-Story Candidate 只能经显式确认原子创建 `Story + StoryRevision v1`，确认重试必须返回同一 Revision；拒绝不得创建 Story。Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
+Candidate selection 只能原子创建一轮 `Iteration + Frozen Intake`，不能创建 Story。只有该 Iteration 的人工 Kickoff `confirm` 可以创建唯一 `US-001`、Problem Statement、Lean Story Card 和不可编码的 baseline Story Revision；至少一个 Scenario 进入后才可创建 CodingRun。`revise` 只能基于 Frozen Intake，`split/defer/stop` 不得创建 Story。Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
 
 ## REST/OpenAPI
 
@@ -77,28 +80,33 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 
 主要路由：
 
-| 路由                                                                     | 方法                   | 说明                   |
-| ------------------------------------------------------------------------ | ---------------------- | ---------------------- |
-| `/api`、`/health`、`/api/openapi.json`                                   | GET                    | 根、健康检查和 OpenAPI |
-| `/api/users/{userId}`                                                    | GET                    | 用户资源               |
-| `/api/users/{userId}/sidebar`                                            | GET                    | 工作空间导航投影       |
-| `/api/users/{userId}/workspaces`                                         | GET、POST              | 查询/创建工作空间      |
-| `/api/users/{userId}/workspaces/{workspaceId}`                           | GET、PUT、DELETE       | 工作空间 CRUD          |
-| `/api/users/{userId}/workspaces/{workspaceId}/members`                   | GET、POST              | 查询/添加成员          |
-| `/api/users/{userId}/workspaces/{workspaceId}/members/{memberId}`        | DELETE                 | 移除成员               |
-| `/api/workspaces/{workspaceId}/diagram`                                  | GET                    | 单一当前图             |
-| `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`                 | GET                    | 图节点投影             |
-| `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                 | GET                    | 图边投影               |
-| `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                   | GET、POST、PATCH       | Inbox 捕获、查询和状态 |
-| `/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions[/{id}]`    | GET、POST              | 不可变 Inbox Revision  |
-| `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`         | GET、POST              | Candidate 提议与查询   |
-| `/api/workspaces/{workspaceId}/story-candidates/{id}/{confirm,reject}`   | POST                   | 人工确认或拒绝         |
-| `/api/workspaces/{workspaceId}/stories[/{storyId}]`                      | GET                    | 权威 Story 查询        |
-| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`       | GET、POST（集合）      | 不可变 Story Revision  |
-| `/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs`            | GET、POST              | CodingRun 查询与创建   |
-| `/api/workspaces/{workspaceId}/coding-runs/{id}/{review,...}`            | POST                   | CodingRun 显式状态命令 |
-| `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`            | GET、POST、PUT、DELETE | 逻辑实体 CRUD          |
-| `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]` | GET、POST、PUT、DELETE | 逻辑关系 CRUD          |
+| 路由                                                                          | 方法                   | 说明                                |
+| ----------------------------------------------------------------------------- | ---------------------- | ----------------------------------- |
+| `/api`、`/health`、`/api/openapi.json`                                        | GET                    | 根、健康检查和 OpenAPI              |
+| `/api/users/{userId}`                                                         | GET                    | 用户资源                            |
+| `/api/users/{userId}/sidebar`                                                 | GET                    | 工作空间导航投影                    |
+| `/api/users/{userId}/workspaces`                                              | GET、POST              | 查询/创建工作空间                   |
+| `/api/users/{userId}/workspaces/{workspaceId}`                                | GET、PUT、DELETE       | 工作空间 CRUD                       |
+| `/api/users/{userId}/workspaces/{workspaceId}/members`                        | GET、POST              | 查询/添加成员                       |
+| `/api/users/{userId}/workspaces/{workspaceId}/members/{memberId}`             | DELETE                 | 移除成员                            |
+| `/api/workspaces/{workspaceId}/diagram`                                       | GET                    | 单一当前图                          |
+| `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`                      | GET                    | 图节点投影                          |
+| `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                      | GET                    | 图边投影                            |
+| `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                        | GET、POST、PATCH       | Inbox 捕获、查询和状态              |
+| `/api/workspaces/{workspaceId}/inbox-items/{itemId}/revisions[/{id}]`         | GET、POST              | 不可变 Inbox Revision               |
+| `/api/workspaces/{workspaceId}/inbox-extractions[/{extractionId}]`            | POST、GET              | 冻结所选 Inbox Revision             |
+| `/api/workspaces/{workspaceId}/inbox-extractions/{id}/candidates`             | POST                   | Agent 一次性提议 Candidate          |
+| `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`              | GET                    | Candidate 查询                      |
+| `/api/workspaces/{workspaceId}/story-candidates/{id}/{defer,reject,select}`   | POST                   | 人工 Candidate 决定与 admission     |
+| `/api/workspaces/{workspaceId}/iterations/{iterationId}[/{intake,kickoff}]`   | GET                    | Iteration、Frozen Intake 与 Kickoff |
+| `/api/workspaces/{workspaceId}/iterations/{id}/provisioning/{complete,fail}`  | POST                   | Desktop provisioning 结果           |
+| `/api/workspaces/{workspaceId}/iterations/{id}/kickoff/{proposals,decisions}` | POST                   | Agent 替代提案与人工 Kickoff 决定   |
+| `/api/workspaces/{workspaceId}/stories[/{storyId}]`                           | GET                    | 权威 Story 查询                     |
+| `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{id}]`            | GET、POST（集合）      | 不可变 Story Revision               |
+| `/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs`                 | GET、POST              | CodingRun 查询与创建                |
+| `/api/workspaces/{workspaceId}/coding-runs/{id}/{review,...}`                 | POST                   | CodingRun 显式状态命令              |
+| `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`                 | GET、POST、PUT、DELETE | 逻辑实体 CRUD                       |
+| `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]`      | GET、POST、PUT、DELETE | 逻辑关系 CRUD                       |
 
 ## TypeScript 与 Nx 规范
 

@@ -28,7 +28,7 @@ Capture / Sync Source
 - Kickoff Proposal 没有 Story 权威。只有人类 `confirm` 才能创建本 Iteration 唯一的 Story。
 - `revise` 记录理由并让 Requirements Analyst 仅基于 Frozen Intake 与决定历史提出替代 Proposal。
 - `split`、`defer` 和 `stop` 终止当前 Iteration，不自动创建其他 Story 或 Candidate。
-- 一轮 Iteration 最多创建一张 Story；后续反馈重入 Kickoff 时保留原 Story identity 并追加不可变修订。
+- 一轮 Iteration 最多创建一张 `US-001`；baseline Revision 不含 Scenario，后续反馈重入时保留 Story identity 并追加不可变修订。
 
 ## Candidate 状态
 
@@ -43,13 +43,13 @@ ready|stale ──reject────> rejected
 
 ## Kickoff 决定
 
-| 决定 | 结果 |
-| --- | --- |
-| `confirm` | 创建 Problem Statement、Lean Story Card 和 Story，进入 `understand/tqa` |
-| `revise` | 记录必填理由，清除 current Proposal，进入 `candidate_drafting` |
-| `split` | 终止当前 Iteration；人类回 Inbox 重新提取 |
-| `defer` | 终止并保留完整审计证据 |
-| `stop` | 终止并保留完整审计证据 |
+| 决定      | 结果                                                                                                           |
+| --------- | -------------------------------------------------------------------------------------------------------------- |
+| `confirm` | 创建 Problem Statement、Lean Story Card、每轮唯一 `US-001` 和不可编码 baseline Revision，进入 `understand/tqa` |
+| `revise`  | 记录必填理由，清除 current Proposal，进入 `candidate_drafting`                                                 |
+| `split`   | 终止当前 Iteration；人类回 Inbox 重新提取                                                                      |
+| `defer`   | 终止并保留完整审计证据                                                                                         |
+| `stop`    | 终止并保留完整审计证据                                                                                         |
 
 Lean Story Card 只包含 title、role、goal、value 和 Problem Statement link。Scenario、TQA 对话、决定和执行元数据必须保存在独立资源中。
 
