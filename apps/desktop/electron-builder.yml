@@ -6,6 +6,10 @@ asarUnpack:
   - dist/agent-runtime.mjs.map
   - dist/coding-agent-runtime.mjs
   - dist/coding-agent-runtime.mjs.map
+  - dist/inbox-analyst-runtime.mjs
+  - dist/inbox-analyst-runtime.mjs.map
+  - dist/kickoff-analyst-runtime.mjs
+  - dist/kickoff-analyst-runtime.mjs.map
   - node_modules/**/*
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
@@ -21,6 +25,10 @@ files:
   - dist/agent-runtime.mjs.map
   - dist/coding-agent-runtime.mjs
   - dist/coding-agent-runtime.mjs.map
+  - dist/inbox-analyst-runtime.mjs
+  - dist/inbox-analyst-runtime.mjs.map
+  - dist/kickoff-analyst-runtime.mjs
+  - dist/kickoff-analyst-runtime.mjs.map
   - package.json
 
 extraResources:

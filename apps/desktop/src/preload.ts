@@ -1,5 +1,26 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { DiagramAgentEvent, DiagramAgentRequest } from './agent-protocol';
+import type { InboxSourceCapture } from './inbox-source-adapters';
+import {
+  parseIntakeAgentEvent,
+  type InboxAnalystRequest,
+  type IntakeAgentEvent,
+  type KickoffAnalystRequest,
+} from './intake-agent-protocol';
+import {
+  CANCEL_INBOX_ANALYST_CHANNEL,
+  CANCEL_KICKOFF_ANALYST_CHANNEL,
+  FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
+  INTAKE_AGENT_EVENT_CHANNEL,
+  READ_INBOX_MARKDOWN_CHANNEL,
+  RUN_INBOX_ANALYST_CHANNEL,
+  RUN_KICKOFF_ANALYST_CHANNEL,
+  START_ITERATION_CHANNEL,
+} from './intake-ipc-protocol';
+import type {
+  IterationProvisioningSummary,
+  StartIterationRequest,
+} from './iteration-controller';
 import {
   ACCEPT_CODING_RUN_CHANNEL,
   CANCEL_CODING_AGENT_CHANNEL,
@@ -21,6 +42,25 @@ import {
 } from './agent-protocol';
 import type { RepositorySelectionSummary } from './workspace-binding-store';
 
+async function runIntakeAgent(
+  channel:
+    | typeof RUN_INBOX_ANALYST_CHANNEL
+    | typeof RUN_KICKOFF_ANALYST_CHANNEL,
+  request: InboxAnalystRequest | KickoffAnalystRequest,
+  onEvent: (event: IntakeAgentEvent) => void,
+): Promise<void> {
+  const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
+    const event = parseIntakeAgentEvent(value);
+    if (event?.id === request.id) onEvent(event);
+  };
+  ipcRenderer.on(INTAKE_AGENT_EVENT_CHANNEL, listener);
+  try {
+    await ipcRenderer.invoke(channel, request);
+  } finally {
+    ipcRenderer.removeListener(INTAKE_AGENT_EVENT_CHANNEL, listener);
+  }
+}
+
 const bridge = {
   getApiBaseUrl: (): Promise<string> =>
     ipcRenderer.invoke('evidence:get-api-base-url'),
@@ -31,6 +71,42 @@ const bridge = {
       workspaceId,
       selectionId,
     }),
+  readInboxMarkdown: (
+    workspaceId: string,
+    relativePath: string,
+  ): Promise<InboxSourceCapture> =>
+    ipcRenderer.invoke(READ_INBOX_MARKDOWN_CHANNEL, {
+      workspaceId,
+      relativePath,
+    }),
+  fetchInboxGitHubIssue: (
+    owner: string,
+    repository: string,
+    issueNumber: number,
+  ): Promise<InboxSourceCapture> =>
+    ipcRenderer.invoke(FETCH_INBOX_GITHUB_ISSUE_CHANNEL, {
+      owner,
+      repository,
+      issueNumber,
+    }),
+  runInboxAnalyst: (
+    request: InboxAnalystRequest,
+    onEvent: (event: IntakeAgentEvent) => void,
+  ): Promise<void> =>
+    runIntakeAgent(RUN_INBOX_ANALYST_CHANNEL, request, onEvent),
+  cancelInboxAnalyst: (id: string): Promise<void> =>
+    ipcRenderer.invoke(CANCEL_INBOX_ANALYST_CHANNEL, id),
+  startIteration: (
+    request: StartIterationRequest,
+  ): Promise<IterationProvisioningSummary> =>
+    ipcRenderer.invoke(START_ITERATION_CHANNEL, request),
+  runKickoffAnalyst: (
+    request: KickoffAnalystRequest,
+    onEvent: (event: IntakeAgentEvent) => void,
+  ): Promise<void> =>
+    runIntakeAgent(RUN_KICKOFF_ANALYST_CHANNEL, request, onEvent),
+  cancelKickoffAnalyst: (id: string): Promise<void> =>
+    ipcRenderer.invoke(CANCEL_KICKOFF_ANALYST_CHANNEL, id),
   runDiagramAgent: async (
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

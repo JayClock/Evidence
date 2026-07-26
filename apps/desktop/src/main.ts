@@ -40,7 +40,34 @@ import {
 import { CodingRunClient } from './coding-run-client';
 import { CodingRunStore } from './coding-run-store';
 import { CodingWorktreeManager } from './coding-worktree';
+import {
+  captureGitHubIssue,
+  captureRepositoryMarkdown,
+} from './inbox-source-adapters';
+import {
+  CANCEL_INBOX_ANALYST_CHANNEL,
+  CANCEL_KICKOFF_ANALYST_CHANNEL,
+  FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
+  INTAKE_AGENT_EVENT_CHANNEL,
+  parseGitHubIssueReference,
+  parseReadInboxMarkdownRequest,
+  parseStartIterationRequest,
+  READ_INBOX_MARKDOWN_CHANNEL,
+  RUN_INBOX_ANALYST_CHANNEL,
+  RUN_KICKOFF_ANALYST_CHANNEL,
+  START_ITERATION_CHANNEL,
+} from './intake-ipc-protocol';
+import {
+  parseInboxAnalystRequest,
+  parseIntakeAgentEvent,
+  parseKickoffAnalystRequest,
+  type InboxAnalystRuntimeRequest,
+  type IntakeAgentEvent,
+  type KickoffAnalystRuntimeRequest,
+} from './intake-agent-protocol';
+import { IntakeApiClient } from './intake-api-client';
 import { isTrustedRendererRequest } from './ipc-security';
+import { IterationController } from './iteration-controller';
 import { LocalAgent } from './local-agent';
 import { piRuntimeEnvironment } from './pi-runtime-environment';
 import {
@@ -58,6 +85,15 @@ const userDataPath = resolveUserDataPath();
 if (userDataPath) app.setPath('userData', userDataPath);
 
 let localAgent: LocalAgent | null = null;
+let inboxAnalyst: LocalAgent<
+  InboxAnalystRuntimeRequest,
+  IntakeAgentEvent
+> | null = null;
+let kickoffAnalyst: LocalAgent<
+  KickoffAnalystRuntimeRequest,
+  IntakeAgentEvent
+> | null = null;
+let iterationController: IterationController | null = null;
 let codingController: CodingController | null = null;
 let allowQuit = false;
 
@@ -121,6 +157,9 @@ function registerDesktopBridge(
   agent: LocalAgent,
   bindings: WorkspaceBindingStore,
   coding: CodingController,
+  inbox: LocalAgent<InboxAnalystRuntimeRequest, IntakeAgentEvent>,
+  kickoff: LocalAgent<KickoffAnalystRuntimeRequest, IntakeAgentEvent>,
+  iterations: IterationController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
@@ -159,6 +198,65 @@ function registerDesktopBridge(
       });
     },
   );
+  ipcMain.handle(READ_INBOX_MARKDOWN_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseReadInboxMarkdownRequest(input);
+    const binding = await bindings.find(apiBaseUrl, request.workspaceId);
+    if (!binding) {
+      throw new Error('The Workspace is not bound to a local repository.');
+    }
+    return captureRepositoryMarkdown({
+      repositoryRoot: binding.repositoryRoot,
+      relativePath: request.relativePath,
+    });
+  });
+  ipcMain.handle(
+    FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
+    async (event, input: unknown) => {
+      assertTrustedIpcSender(event);
+      const reference = parseGitHubIssueReference(input);
+      return captureGitHubIssue({
+        repository: `${reference.owner}/${reference.repository}`,
+        issueNumber: reference.issueNumber,
+      });
+    },
+  );
+  ipcMain.handle(RUN_INBOX_ANALYST_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseInboxAnalystRequest(input);
+    await inbox.run({ ...request, apiBaseUrl }, (agentEvent) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+      }
+    });
+  });
+  ipcMain.handle(CANCEL_INBOX_ANALYST_CHANNEL, async (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    if (typeof id !== 'string') {
+      throw new Error('Inbox Analyst request id is required.');
+    }
+    await inbox.cancel(id);
+  });
+  ipcMain.handle(RUN_KICKOFF_ANALYST_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseKickoffAnalystRequest(input);
+    await kickoff.run({ ...request, apiBaseUrl }, (agentEvent) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+      }
+    });
+  });
+  ipcMain.handle(CANCEL_KICKOFF_ANALYST_CHANNEL, async (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    if (typeof id !== 'string') {
+      throw new Error('Kickoff Analyst request id is required.');
+    }
+    await kickoff.cancel(id);
+  });
+  ipcMain.handle(START_ITERATION_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    return iterations.start(parseStartIterationRequest(input));
+  });
   ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     const request = parseDiagramAgentRequest(input);
@@ -243,6 +341,28 @@ function createLocalAgent(authorization: string | undefined): LocalAgent {
       ...piRuntimeEnvironment(),
       ...(authorization ? { EVIDENCE_API_AUTHORIZATION: authorization } : {}),
     },
+  });
+}
+
+function createIntakeAgent<
+  TRequest extends InboxAnalystRuntimeRequest | KickoffAnalystRuntimeRequest,
+>(
+  entryName: 'inbox-analyst-runtime.mjs' | 'kickoff-analyst-runtime.mjs',
+  authorization: string | undefined,
+): LocalAgent<TRequest, IntakeAgentEvent> {
+  return new LocalAgent({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    runtimeEntry: app.isPackaged
+      ? join(process.resourcesPath, 'app.asar.unpacked', 'dist', entryName)
+      : join(__dirname, entryName),
+    packaged: app.isPackaged,
+    environment: {
+      ...piRuntimeEnvironment(),
+      ...(authorization ? { EVIDENCE_API_AUTHORIZATION: authorization } : {}),
+    },
+    parseEvent: parseIntakeAgentEvent,
   });
 }
 
@@ -357,9 +477,27 @@ void app.whenReady().then(async () => {
     const authorization = resolveApiAuthorization();
     registerRendererApiAuthorization(apiBaseUrl, authorization);
     localAgent = createLocalAgent(authorization);
+    inboxAnalyst = createIntakeAgent<InboxAnalystRuntimeRequest>(
+      'inbox-analyst-runtime.mjs',
+      authorization,
+    );
+    kickoffAnalyst = createIntakeAgent<KickoffAnalystRuntimeRequest>(
+      'kickoff-analyst-runtime.mjs',
+      authorization,
+    );
     const localCodingAgent = createLocalCodingAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
+    );
+    iterationController = new IterationController(
+      apiBaseUrl,
+      bindings,
+      new CodingWorktreeManager(
+        join(app.getPath('userData'), 'iteration-worktrees'),
+        async () => undefined,
+        'iter',
+      ),
+      new IntakeApiClient({ apiBaseUrl, authorization }),
     );
     codingController = new CodingController(
       apiBaseUrl,
@@ -374,7 +512,15 @@ void app.whenReady().then(async () => {
       localCodingAgent,
     );
     await codingController.recover();
-    registerDesktopBridge(apiBaseUrl, localAgent, bindings, codingController);
+    registerDesktopBridge(
+      apiBaseUrl,
+      localAgent,
+      bindings,
+      codingController,
+      inboxAnalyst,
+      kickoffAnalyst,
+      iterationController,
+    );
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl, authorization);
 
@@ -400,11 +546,21 @@ void app.whenReady().then(async () => {
 });
 
 app.on('before-quit', (event) => {
-  if (!allowQuit && (localAgent || codingController)) {
+  if (
+    !allowQuit &&
+    (localAgent ||
+      inboxAnalyst ||
+      kickoffAnalyst ||
+      iterationController ||
+      codingController)
+  ) {
     event.preventDefault();
     allowQuit = true;
+    iterationController?.stop();
     void Promise.all([
       localAgent?.stop() ?? Promise.resolve(),
+      inboxAnalyst?.stop() ?? Promise.resolve(),
+      kickoffAnalyst?.stop() ?? Promise.resolve(),
       codingController?.stop() ?? Promise.resolve(),
     ]).finally(() => app.quit());
   }
