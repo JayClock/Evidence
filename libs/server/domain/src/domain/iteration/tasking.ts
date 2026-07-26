@@ -157,6 +157,7 @@ export interface TaskingCandidateDescription {
   story: Ref<string>;
   storyRevision: Ref<string>;
   storyRevisionSha256: string;
+  baseCommitSha: string;
   noModelImpactDecision: Ref<string>;
   noModelImpactDecisionSha256: string;
   sequence: number;

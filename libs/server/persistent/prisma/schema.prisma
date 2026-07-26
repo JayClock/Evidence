@@ -21,6 +21,9 @@ model User {
   answeredClarifications  StoryClarification[]     @relation("ClarificationAnswerActor")
   waivedClarifications    StoryClarification[]     @relation("ClarificationWaiverActor")
   understandingDecisions  UnderstandingDecision[]  @relation("UnderstandingDecisionActor")
+  noModelImpactDecisions  NoModelImpactDecision[]  @relation("NoModelImpactDecisionActor")
+  deskCheckDecisions      DeskCheckDecision[]      @relation("DeskCheckDecisionActor")
+  approvedTaskingPlans    ApprovedTaskingPlan[]    @relation("ApprovedTaskingPlanActor")
 
   @@map("users")
 }
@@ -49,6 +52,10 @@ model Workspace {
   storyClarifications     StoryClarification[]
   scenarioSetProposals    ScenarioSetProposal[]
   understandingDecisions  UnderstandingDecision[]
+  noModelImpactDecisions  NoModelImpactDecision[]
+  taskingCandidates       TaskingCandidate[]
+  deskCheckDecisions      DeskCheckDecision[]
+  approvedTaskingPlans    ApprovedTaskingPlan[]
   codingRuns              CodingRun[]
   sequence                WorkspaceSequence?
 
@@ -358,6 +365,10 @@ model Iteration {
   storyClarifications        StoryClarification[]
   scenarioSetProposals       ScenarioSetProposal[]
   understandingDecisions     UnderstandingDecision[]
+  noModelImpactDecisions     NoModelImpactDecision[]
+  taskingCandidates          TaskingCandidate[]
+  deskCheckDecisions         DeskCheckDecision[]
+  approvedTaskingPlan        ApprovedTaskingPlan?
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, lifecycle, lane, admittedAt])
@@ -500,6 +511,9 @@ model Story {
   clarifications         StoryClarification[]
   scenarioProposals      ScenarioSetProposal[]
   understandingDecisions UnderstandingDecision[]
+  noModelImpactDecisions NoModelImpactDecision[]
+  taskingCandidates      TaskingCandidate[]
+  approvedTaskingPlans   ApprovedTaskingPlan[]
 
   @@index([workspaceId, updatedAt])
   @@map("stories")
@@ -529,6 +543,9 @@ model StoryRevision {
   sourceUnderstandingDecisions   UnderstandingDecision[] @relation("UnderstandingDecisionSourceRevision")
   authorityUnderstandingDecision UnderstandingDecision?  @relation("UnderstandingDecisionStoryRevision", fields: [understandingDecisionId], references: [id], onDelete: Restrict)
   understandingDecisionId        String?                 @unique @map("understanding_decision_id")
+  noModelImpactDecision          NoModelImpactDecision?
+  taskingCandidates              TaskingCandidate[]
+  approvedTaskingPlans           ApprovedTaskingPlan[]
 
   @@unique([storyId, revisionNumber])
   @@index([storyId, createdAt])
@@ -664,6 +681,107 @@ model UnderstandingDecision {
   @@index([workspaceId, iterationId, decidedAt])
   @@index([storyRevisionId])
   @@map("understanding_decisions")
+}
+
+model NoModelImpactDecision {
+  id                  String             @id
+  reference           String
+  workspaceId         String             @map("workspace_id")
+  iterationId         String             @map("iteration_id")
+  storyId             String             @map("story_id")
+  storyRevisionId     String             @unique @map("story_revision_id")
+  storyRevisionSha256 String             @map("story_revision_sha256")
+  reason              String
+  decidedByUserId     String             @map("decided_by_user_id")
+  decidedAt           DateTime           @map("decided_at")
+  contentSha256       String             @map("content_sha256")
+  workspace           Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration           Iteration          @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story               Story              @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision       StoryRevision      @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  decidedBy           User               @relation("NoModelImpactDecisionActor", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  taskingCandidates   TaskingCandidate[]
+
+  @@unique([iterationId, reference])
+  @@index([workspaceId, iterationId, decidedAt])
+  @@map("no_model_impact_decisions")
+}
+
+model TaskingCandidate {
+  id                          String                @id
+  reference                   String
+  workspaceId                 String                @map("workspace_id")
+  iterationId                 String                @map("iteration_id")
+  storyId                     String                @map("story_id")
+  storyRevisionId             String                @map("story_revision_id")
+  storyRevisionSha256         String                @map("story_revision_sha256")
+  baseCommitSha               String                @map("base_commit_sha")
+  noModelImpactDecisionId     String                @map("no_model_impact_decision_id")
+  noModelImpactDecisionSha256 String                @map("no_model_impact_decision_sha256")
+  sequence                    Int
+  projectCatalogSha256        String                @map("project_catalog_sha256")
+  payload                     Json
+  contentSha256               String                @map("content_sha256")
+  proposedAt                  DateTime              @map("proposed_at")
+  workspace                   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration                   Iteration             @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story                       Story                 @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision               StoryRevision         @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  noModelImpactDecision       NoModelImpactDecision @relation(fields: [noModelImpactDecisionId], references: [id], onDelete: Restrict)
+  decision                    DeskCheckDecision?
+  approvedPlan                ApprovedTaskingPlan?
+
+  @@unique([iterationId, reference])
+  @@unique([iterationId, sequence])
+  @@index([workspaceId, iterationId, proposedAt])
+  @@map("tasking_candidates")
+}
+
+model DeskCheckDecision {
+  id              String               @id
+  reference       String
+  workspaceId     String               @map("workspace_id")
+  iterationId     String               @map("iteration_id")
+  candidateId     String               @unique @map("candidate_id")
+  candidateSha256 String               @map("candidate_sha256")
+  action          String
+  reason          String?
+  decidedByUserId String               @map("decided_by_user_id")
+  decidedAt       DateTime             @map("decided_at")
+  contentSha256   String               @map("content_sha256")
+  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration       Iteration            @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  candidate       TaskingCandidate     @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  decidedBy       User                 @relation("DeskCheckDecisionActor", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  approvedPlan    ApprovedTaskingPlan?
+
+  @@unique([iterationId, reference])
+  @@index([workspaceId, iterationId, decidedAt])
+  @@map("desk_check_decisions")
+}
+
+model ApprovedTaskingPlan {
+  id                  String            @id
+  workspaceId         String            @map("workspace_id")
+  iterationId         String            @unique @map("iteration_id")
+  storyId             String            @map("story_id")
+  storyRevisionId     String            @map("story_revision_id")
+  taskingCandidateId  String            @unique @map("tasking_candidate_id")
+  deskCheckDecisionId String            @unique @map("desk_check_decision_id")
+  payload             Json
+  contentSha256       String            @map("content_sha256")
+  approvedByUserId    String            @map("approved_by_user_id")
+  approvedAt          DateTime          @map("approved_at")
+  workspace           Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration           Iteration         @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story               Story             @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision       StoryRevision     @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  taskingCandidate    TaskingCandidate  @relation(fields: [taskingCandidateId], references: [id], onDelete: Restrict)
+  deskCheckDecision   DeskCheckDecision @relation(fields: [deskCheckDecisionId], references: [id], onDelete: Restrict)
+  approvedBy          User              @relation("ApprovedTaskingPlanActor", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([workspaceId, approvedAt])
+  @@map("approved_tasking_plans")
 }
 
 model CodingRun {

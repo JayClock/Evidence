@@ -47,6 +47,10 @@ export interface MockPrismaStore {
   storyClarification: Record<string, MockFn>;
   scenarioSetProposal: Record<string, MockFn>;
   understandingDecision: Record<string, MockFn>;
+  noModelImpactDecision: Record<string, MockFn>;
+  taskingCandidate: Record<string, MockFn>;
+  deskCheckDecision: Record<string, MockFn>;
+  approvedTaskingPlan: Record<string, MockFn>;
   codingRun: Record<string, MockFn>;
   $transaction: MockFn;
 }
@@ -175,6 +179,10 @@ export function mockPrismaStore(): MockPrismaStore {
       'count',
       'create',
     ]),
+    noModelImpactDecision: delegate(['findFirst', 'count', 'create']),
+    taskingCandidate: delegate(['findFirst', 'count', 'create']),
+    deskCheckDecision: delegate(['findMany', 'count', 'create']),
+    approvedTaskingPlan: delegate(['findUnique', 'create']),
     codingRun: delegate([
       'findMany',
       'findFirst',
