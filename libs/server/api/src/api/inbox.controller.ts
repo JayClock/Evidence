@@ -22,6 +22,7 @@ import {
   link,
   type Link,
   workspaceHref,
+  workspaceInboxExtractionsHref,
   workspaceInboxItemHref,
   workspaceInboxItemsHref,
   workspaceInboxRevisionsHref,
@@ -297,6 +298,7 @@ function inboxItemCollection(
   const links: Record<string, Link> = {
     self: link(href(page)),
     workspace: link(workspaceHref(workspaceId)),
+    'inbox-extractions': link(workspaceInboxExtractionsHref(workspaceId)),
   };
   if (page > 1) links.prev = link(href(page - 1));
   if (page < pages) links.next = link(href(page + 1));

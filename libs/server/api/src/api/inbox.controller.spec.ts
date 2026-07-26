@@ -108,6 +108,9 @@ describe('InboxController', () => {
       },
       prev: expect.anything(),
       next: expect.anything(),
+      'inbox-extractions': {
+        href: '/api/workspaces/workspace-1/inbox-extractions',
+      },
     });
     expect(result._embedded.inboxItems[0]).toMatchObject({
       id: 'inbox-1',

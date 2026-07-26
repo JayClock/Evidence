@@ -3,6 +3,7 @@ import {
   link,
   type Link,
   workspaceHref,
+  workspaceInboxExtractionsHref,
   workspaceInboxItemHref,
   workspaceInboxItemsHref,
   workspaceInboxRevisionHref,
@@ -36,6 +37,7 @@ export function inboxItemModel(item: InboxItem): InboxItemModel {
       collection: link(workspaceInboxItemsHref(workspaceId)),
       revisions: link(workspaceInboxRevisionsHref(workspaceId, itemId)),
       'story-candidates': link(workspaceStoryCandidatesHref(workspaceId)),
+      'inbox-extractions': link(workspaceInboxExtractionsHref(workspaceId)),
       'latest-revision': link(
         workspaceInboxRevisionHref(
           workspaceId,
