@@ -95,6 +95,9 @@ export function noModelImpactDecisionModel(
   const iterationId = description.iteration.id();
   return {
     _links: {
+      self: link(
+        `${workspaceIterationNoModelImpactHref(workspaceId, iterationId)}/${value.identity()}`,
+      ),
       tasking: link(workspaceIterationTaskingHref(workspaceId, iterationId)),
       iteration: link(workspaceIterationHref(workspaceId, iterationId)),
       story: link(workspaceStoryHref(workspaceId, description.story.id())),
@@ -129,6 +132,9 @@ export function taskingCandidateModel(
   const iterationId = description.iteration.id();
   return {
     _links: {
+      self: link(
+        `${workspaceIterationTaskingCandidatesHref(workspaceId, iterationId)}/${value.identity()}`,
+      ),
       tasking: link(workspaceIterationTaskingHref(workspaceId, iterationId)),
       iteration: link(workspaceIterationHref(workspaceId, iterationId)),
       decide: link(
@@ -148,6 +154,9 @@ export function deskCheckDecisionModel(
   const iterationId = description.iteration.id();
   return {
     _links: {
+      self: link(
+        `${workspaceIterationDeskCheckDecisionsHref(workspaceId, iterationId)}/${value.identity()}`,
+      ),
       tasking: link(workspaceIterationTaskingHref(workspaceId, iterationId)),
       iteration: link(workspaceIterationHref(workspaceId, iterationId)),
     },
@@ -171,6 +180,9 @@ export function approvedTaskingPlanModel(
   const iterationId = description.iteration.id();
   return {
     _links: {
+      self: link(
+        `${workspaceIterationTaskingHref(workspaceId, iterationId)}/approved-plan`,
+      ),
       tasking: link(workspaceIterationTaskingHref(workspaceId, iterationId)),
       iteration: link(workspaceIterationHref(workspaceId, iterationId)),
       story: link(workspaceStoryHref(workspaceId, description.story.id())),
@@ -201,6 +213,9 @@ export function deskCheckDecisionResultModel(
   const iterationId = result.iteration.identity();
   return {
     _links: {
+      self: link(
+        `${workspaceIterationDeskCheckDecisionsHref(workspaceId, iterationId)}/${result.decision.identity()}`,
+      ),
       tasking: link(workspaceIterationTaskingHref(workspaceId, iterationId)),
       iteration: link(workspaceIterationHref(workspaceId, iterationId)),
     },

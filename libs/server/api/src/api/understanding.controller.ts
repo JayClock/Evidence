@@ -122,6 +122,7 @@ export class UnderstandingController {
   }
 
   @Post(':iterationId/understanding/decisions')
+  @HttpCode(HttpStatus.OK)
   async decide(
     @Param('workspaceId') workspaceId: string,
     @Param('iterationId') iterationId: string,

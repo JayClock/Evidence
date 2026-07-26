@@ -85,6 +85,7 @@ export class TaskingController {
   }
 
   @Post(':iterationId/tasking/decisions')
+  @HttpCode(HttpStatus.OK)
   async decide(
     @Param('workspaceId') workspaceId: string,
     @Param('iterationId') iterationId: string,
@@ -261,7 +262,9 @@ function deskCheckAction(value: unknown): DeskCheckAction {
     value !== 'process_gap' &&
     value !== 'scenario_gap'
   ) {
-    throw DomainError.validation(`unsupported Desk Check action: ${String(value)}`);
+    throw DomainError.validation(
+      `unsupported Desk Check action: ${String(value)}`,
+    );
   }
   return value;
 }

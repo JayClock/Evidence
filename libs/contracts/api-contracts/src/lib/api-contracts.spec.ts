@@ -119,7 +119,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       openapi.body.paths[
         '/api/workspaces/{workspaceId}/stories/{storyId}/revisions'
       ],
-    ).toHaveProperty('post');
+    ).not.toHaveProperty('post');
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking',
     );
