@@ -5,6 +5,7 @@ import type {
   StoryRevisionResource,
 } from './delivery-resource.js';
 import type { IterationResource } from './iteration-resource.js';
+import type { PairResource, StartPairResultResource } from './pair-resource.js';
 
 type TaskingSchema = components['schemas']['TaskingResource'];
 type NoModelImpactDecisionSchema =
@@ -45,6 +46,8 @@ export type TaskingResource = Entity<
     'record-no-model-impact': NoModelImpactDecisionResource;
     'propose-candidate': TaskingCandidateResource;
     decide: DeskCheckDecisionResultResource;
+    pair: PairResource;
+    'start-pair': StartPairResultResource;
   }
 >;
 

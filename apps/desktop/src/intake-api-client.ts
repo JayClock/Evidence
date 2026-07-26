@@ -23,7 +23,7 @@ export interface RemoteIteration {
   id: string;
   reference: string;
   lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
-  loop: 'kickoff' | 'understand' | 'tasking';
+  loop: 'kickoff' | 'understand' | 'tasking' | 'pair';
   stage:
     | 'candidate_review'
     | 'candidate_drafting'
@@ -33,7 +33,16 @@ export interface RemoteIteration {
     | 'drafting'
     | 'desk_check'
     | 'knowledge_gap'
-    | 'approved';
+    | 'approved'
+    | 'plan_confirmed'
+    | 'test_written'
+    | 'red_observed'
+    | 'implementation_written'
+    | 'green_observed'
+    | 'refactored'
+    | 'quality_gate_failed'
+    | 'quality_gates_passed'
+    | 'exception';
   version: number;
   baseCommitSha: string;
   branchName: string | null;
@@ -582,7 +591,12 @@ function iteration(value: Record<string, unknown>): RemoteIteration {
   if (!isIterationLifecycle(lifecycle)) {
     throw new Error(`Unsupported Iteration lifecycle: ${lifecycle}`);
   }
-  if (loop !== 'kickoff' && loop !== 'understand' && loop !== 'tasking') {
+  if (
+    loop !== 'kickoff' &&
+    loop !== 'understand' &&
+    loop !== 'tasking' &&
+    loop !== 'pair'
+  ) {
     throw new Error(`Unsupported Iteration loop: ${loop}`);
   }
   if (
@@ -594,7 +608,16 @@ function iteration(value: Record<string, unknown>): RemoteIteration {
     stage !== 'drafting' &&
     stage !== 'desk_check' &&
     stage !== 'knowledge_gap' &&
-    stage !== 'approved'
+    stage !== 'approved' &&
+    stage !== 'plan_confirmed' &&
+    stage !== 'test_written' &&
+    stage !== 'red_observed' &&
+    stage !== 'implementation_written' &&
+    stage !== 'green_observed' &&
+    stage !== 'refactored' &&
+    stage !== 'quality_gate_failed' &&
+    stage !== 'quality_gates_passed' &&
+    stage !== 'exception'
   ) {
     throw new Error(`Unsupported Iteration stage: ${stage}`);
   }
