@@ -1765,7 +1765,22 @@ export interface components {
       qualityGates: components['schemas']['MaterializedTaskingGate'][];
       materializedSha256: string;
     };
+    PairExecutionBudget: {
+      /** @enum {string} */
+      policyId: 'pair-default';
+      /** @enum {integer} */
+      policyVersion: 1;
+      policySha256: string;
+      activityTimeoutMs: number;
+      commandTimeoutMs: number;
+      maxAgentCalls: number;
+      maxCheckpoints: number;
+      maxRetriesPerFingerprint: number;
+      maxNoProgressCheckpoints: number;
+    };
     TaskingCandidateSnapshot: {
+      /** @enum {integer} */
+      planVersion: 2;
       reference: string;
       storyId: string;
       storyRevisionId: string;
@@ -1780,6 +1795,7 @@ export interface components {
       tests: components['schemas']['TaskingTestResource'][];
       tasks: components['schemas']['TaskingTaskResource'][];
       processes: components['schemas']['TaskingProcessSelection'][];
+      executionBudget: components['schemas']['PairExecutionBudget'];
       contentSha256: string;
       /** @enum {string} */
       proposedBy: 'tasking-analyst';
@@ -1837,11 +1853,19 @@ export interface components {
       boundary: components['schemas']['TaskingTechnicalBoundary'];
       testDouble: components['schemas']['TaskingTestDouble'];
     };
+    TaskingRedContract: {
+      /** @enum {string} */
+      expectedFailureKind: 'behavior';
+      expectedFailure: string;
+    };
     TaskingProcessStepDefinition: {
       id: string;
       /** @enum {string} */
       quadrant: 'Q1' | 'Q2';
       purpose: string;
+      red: components['schemas']['TaskingRedContract'];
+      greenDoneWhen: string;
+      refactorDoneWhen: string;
       functionalContexts: components['schemas']['TaskingFunctionalContext'][];
       realBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
       replacedBoundaries: components['schemas']['TaskingReplacedBoundary'][];

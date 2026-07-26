@@ -4723,10 +4723,35 @@ components:
           type: array
           items: { $ref: '#/components/schemas/MaterializedTaskingGate' }
         materializedSha256: { type: string }
+    PairExecutionBudget:
+      type: object
+      required:
+        [
+          policyId,
+          policyVersion,
+          policySha256,
+          activityTimeoutMs,
+          commandTimeoutMs,
+          maxAgentCalls,
+          maxCheckpoints,
+          maxRetriesPerFingerprint,
+          maxNoProgressCheckpoints,
+        ]
+      properties:
+        policyId: { type: string, enum: [pair-default] }
+        policyVersion: { type: integer, enum: [1] }
+        policySha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        activityTimeoutMs: { type: integer, minimum: 1 }
+        commandTimeoutMs: { type: integer, minimum: 1 }
+        maxAgentCalls: { type: integer, minimum: 1 }
+        maxCheckpoints: { type: integer, minimum: 1 }
+        maxRetriesPerFingerprint: { type: integer, minimum: 1 }
+        maxNoProgressCheckpoints: { type: integer, minimum: 1 }
     TaskingCandidateSnapshot:
       type: object
       required:
         [
+          planVersion,
           reference,
           storyId,
           storyRevisionId,
@@ -4740,11 +4765,13 @@ components:
           tests,
           tasks,
           processes,
+          executionBudget,
           contentSha256,
           proposedBy,
           proposedAt,
         ]
       properties:
+        planVersion: { type: integer, enum: [2] }
         reference: { type: string }
         storyId: { type: string }
         storyRevisionId: { type: string }
@@ -4764,6 +4791,7 @@ components:
         processes:
           type: array
           items: { $ref: '#/components/schemas/TaskingProcessSelection' }
+        executionBudget: { $ref: '#/components/schemas/PairExecutionBudget' }
         contentSha256: { type: string }
         proposedBy: { type: string, enum: [tasking-analyst] }
         proposedAt: { type: string, format: date-time }
@@ -4849,6 +4877,12 @@ components:
       properties:
         boundary: { $ref: '#/components/schemas/TaskingTechnicalBoundary' }
         testDouble: { $ref: '#/components/schemas/TaskingTestDouble' }
+    TaskingRedContract:
+      type: object
+      required: [expectedFailureKind, expectedFailure]
+      properties:
+        expectedFailureKind: { type: string, enum: [behavior] }
+        expectedFailure: { type: string }
     TaskingProcessStepDefinition:
       type: object
       required:
@@ -4856,6 +4890,9 @@ components:
           id,
           quadrant,
           purpose,
+          red,
+          greenDoneWhen,
+          refactorDoneWhen,
           functionalContexts,
           realBoundaries,
           replacedBoundaries,
@@ -4867,6 +4904,9 @@ components:
         id: { type: string }
         quadrant: { type: string, enum: [Q1, Q2] }
         purpose: { type: string }
+        red: { $ref: '#/components/schemas/TaskingRedContract' }
+        greenDoneWhen: { type: string }
+        refactorDoneWhen: { type: string }
         functionalContexts:
           type: array
           items: { $ref: '#/components/schemas/TaskingFunctionalContext' }
