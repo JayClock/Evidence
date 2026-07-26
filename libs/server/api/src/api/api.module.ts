@@ -6,6 +6,7 @@ import { InboxController } from './inbox.controller';
 import { InboxExtractionsController } from './inbox-extractions.controller';
 import { IterationsController } from './iterations.controller';
 import { LogicalEntitiesController } from './logical-entities.controller';
+import { PairController } from './pair.controller';
 import { InboxStoryCandidatesController } from './story-candidates.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
 import { ResourceResolver } from './resource-resolver.service';
@@ -84,6 +85,7 @@ class StoryCandidatesApiModule {}
     IterationsController,
     UnderstandingController,
     TaskingController,
+    PairController,
   ],
 })
 class IterationsApiModule {}

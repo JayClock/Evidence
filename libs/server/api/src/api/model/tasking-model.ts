@@ -13,6 +13,8 @@ import {
   workspaceIterationDeskCheckDecisionsHref,
   workspaceIterationHref,
   workspaceIterationNoModelImpactHref,
+  workspaceIterationPairHref,
+  workspaceIterationPairRunsHref,
   workspaceIterationTaskingCandidatesHref,
   workspaceIterationTaskingHref,
   workspaceStoryHref,
@@ -64,6 +66,17 @@ export function taskingModel(workspaceId: string, view: TaskingView) {
   ) {
     links.decide = link(
       workspaceIterationDeskCheckDecisionsHref(workspaceId, iterationId),
+    );
+  }
+  if (
+    iteration.lifecycle === 'active' &&
+    iteration.loop === 'tasking' &&
+    iteration.stage === 'approved' &&
+    view.approvedPlan
+  ) {
+    links.pair = link(workspaceIterationPairHref(workspaceId, iterationId));
+    links['start-pair'] = link(
+      workspaceIterationPairRunsHref(workspaceId, iterationId),
     );
   }
   return {

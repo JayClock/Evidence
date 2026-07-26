@@ -237,6 +237,41 @@ export function workspaceIterationDeskCheckDecisionsHref(
   return `${workspaceIterationTaskingHref(workspaceId, iterationId)}/decisions`;
 }
 
+export function workspaceIterationPairHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/pair`;
+}
+
+export function workspaceIterationPairRunsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationPairHref(workspaceId, iterationId)}/runs`;
+}
+
+export function workspaceIterationPairLeaseHref(
+  workspaceId: string,
+  iterationId: string,
+  action: 'claim' | 'heartbeat',
+): string {
+  return `${workspaceIterationPairHref(workspaceId, iterationId)}/lease/${action}`;
+}
+
+export function workspaceIterationPairActionHref(
+  workspaceId: string,
+  iterationId: string,
+  resource:
+    | 'driver-attempts'
+    | 'command-observations'
+    | 'red-reviews'
+    | 'exceptions'
+    | 'decisions',
+): string {
+  return `${workspaceIterationPairHref(workspaceId, iterationId)}/${resource}`;
+}
+
 export function workspaceStoriesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/stories`;
 }

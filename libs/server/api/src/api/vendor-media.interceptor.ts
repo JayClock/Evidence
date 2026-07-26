@@ -263,15 +263,7 @@ export function vendorMediaType(
   ) {
     return mediaType('understanding-decision-result');
   }
-  if (
-    matches(apiSegments, [
-      'workspaces',
-      '*',
-      'iterations',
-      '*',
-      'tasking',
-    ])
-  ) {
+  if (matches(apiSegments, ['workspaces', '*', 'iterations', '*', 'tasking'])) {
     return mediaType('tasking');
   }
   if (
@@ -309,6 +301,23 @@ export function vendorMediaType(
     ])
   ) {
     return mediaType('desk-check-decision-result');
+  }
+  if (matches(apiSegments, ['workspaces', '*', 'iterations', '*', 'pair'])) {
+    return mediaType('pair');
+  }
+  if (
+    apiSegments.length >= 6 &&
+    matches(apiSegments.slice(0, 5), [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'pair',
+    ])
+  ) {
+    return apiSegments.at(-1) === 'runs'
+      ? mediaType('pair-start-result')
+      : mediaType('pair-action-result');
   }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');
