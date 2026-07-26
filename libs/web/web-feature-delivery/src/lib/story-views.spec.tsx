@@ -180,8 +180,8 @@ describe('Story views', () => {
     expect(screen.getByText(revisionHash)).toBeTruthy();
     expect(screen.getByText('Needs acceptance scenarios')).toBeTruthy();
     expect(
-      screen.getByRole('button', { name: 'Confirm acceptance revision' }),
-    ).toBeTruthy();
+      screen.queryByRole('button', { name: 'Confirm acceptance revision' }),
+    ).toBeNull();
     expect(
       screen
         .getByRole('link', { name: 'Revision history' })

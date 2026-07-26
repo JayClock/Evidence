@@ -32,7 +32,6 @@ import {
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
 import { StoryCodingRunsPanel } from './coding-run-views';
-import { CreateStoryRevisionDialog } from './story-revision-dialog';
 
 export function StoryCollectionView({
   resourceState,
@@ -188,13 +187,6 @@ export function StoryDetailView({
             </Badge>
           </div>
           <div className="flex flex-wrap gap-2">
-            {latest.resourceState &&
-            resourceState.getLink('create-revision') ? (
-              <CreateStoryRevisionDialog
-                storyState={resourceState}
-                latestRevisionState={latest.resourceState}
-              />
-            ) : null}
             {revisionsHref ? (
               <Button asChild variant="outline">
                 <Link to={revisionsHref}>Revision history</Link>
