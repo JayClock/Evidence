@@ -51,7 +51,6 @@ const revisionState = {
     ],
     scenarios: [],
     contentSha256: revisionHash,
-    sourceCandidateId: 'candidate-1',
     createdByUserId: 'user-1',
     createdAt: '2026-07-24T11:00:00.000Z',
   },
@@ -105,7 +104,6 @@ const acceptanceRevisionState = {
     ...revisionState.data,
     id: 'story-revision-2',
     revisionNumber: 2,
-    sourceCandidateId: null,
     scenarios: [
       {
         id: 'scenario-1',

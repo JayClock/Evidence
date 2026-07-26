@@ -61,7 +61,6 @@ const latestRevisionState = {
     ],
     scenarios: [],
     contentSha256: `sha256:${'b'.repeat(64)}`,
-    sourceCandidateId: 'candidate-1',
     createdByUserId: 'user-1',
     createdAt: '2026-07-24T11:00:00.000Z',
   },

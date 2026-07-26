@@ -81,7 +81,6 @@ export interface StoryRevisionDescription {
   citations: StoryCitationDescription[];
   scenarios: StoryScenarioDescription[];
   contentSha256: string;
-  sourceCandidate: Ref<string> | null;
   createdBy: Ref<string>;
   createdAt: string;
 }

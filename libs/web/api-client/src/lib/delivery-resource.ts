@@ -20,10 +20,6 @@ type CodingRunResourceSchema = components['schemas']['CodingRunResource'];
 type CodingRunCollectionResourceSchema =
   components['schemas']['CodingRunCollectionResource'];
 
-type RequiredNullable<T, K extends keyof T> = Omit<T, K> & {
-  [P in K]-?: Exclude<T[P], undefined>;
-};
-
 export type StoryCandidateInput =
   components['schemas']['InboxStoryCandidateInput'];
 export type StoryCandidateDecisionInput =
@@ -63,9 +59,9 @@ export type StoryCollectionResourceData = Omit<
   StoryCollectionResourceSchema,
   '_links' | '_embedded'
 >;
-export type StoryRevisionResourceData = RequiredNullable<
-  Omit<StoryRevisionResourceSchema, '_links'>,
-  'sourceCandidateId'
+export type StoryRevisionResourceData = Omit<
+  StoryRevisionResourceSchema,
+  '_links'
 >;
 export type StoryRevisionCollectionResourceData = Omit<
   StoryRevisionCollectionResourceSchema,
@@ -136,7 +132,6 @@ export type StoryRevisionResource = Entity<
     collection: StoryRevisionCollectionResource;
     workspace: WorkspaceResource;
     'created-by': UserResource;
-    'source-candidate': StoryCandidateResource;
   }
 >;
 

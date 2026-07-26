@@ -59,7 +59,6 @@ function storyRevision(
     citations: [citation()],
     scenarios,
     contentSha256: revisionHash,
-    sourceCandidate: null,
     createdBy: new Ref('user-1'),
     createdAt: timestamp,
   });
@@ -187,7 +186,6 @@ describe('StoriesController', () => {
     expect(result).toMatchObject({
       id: appendedRevision.identity(),
       revisionNumber: 2,
-      sourceCandidateId: null,
       scenarios: [
         expect.objectContaining({
           id: 'scenario-1',

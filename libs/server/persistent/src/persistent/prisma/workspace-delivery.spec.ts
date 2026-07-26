@@ -175,7 +175,6 @@ describe('PrismaWorkspaceDelivery', () => {
     expect(result.revision.description()).toMatchObject({
       revisionNumber: 2,
       contentSha256: revisionHash,
-      sourceCandidate: null,
       scenarios: [expect.objectContaining({ id: 'scenario-1' })],
     });
     expect(store.storyRevision.create).toHaveBeenCalledWith({

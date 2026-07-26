@@ -307,7 +307,6 @@ function assembleStoryRevision(row: StoryRevisionRow): StoryRevision {
     citations: row.citations.map(assembleCitation),
     scenarios: row.scenarios.map(assembleScenario),
     contentSha256: row.contentSha256,
-    sourceCandidate: null,
     createdBy: new Ref(row.createdByUserId),
     createdAt: row.createdAt.toISOString(),
   });

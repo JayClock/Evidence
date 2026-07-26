@@ -12,7 +12,6 @@ import {
   workspaceInboxRevisionHref,
   workspaceStoriesHref,
   workspaceStoryCodingRunsHref,
-  workspaceStoryCandidateHref,
   workspaceStoryHref,
   workspaceStoryRevisionHref,
   workspaceStoryRevisionsHref,
@@ -99,7 +98,6 @@ export interface StoryRevisionModel {
   citations: StoryCitationModel[];
   scenarios: StoryScenarioModel[];
   contentSha256: string;
-  sourceCandidateId: string | null;
   createdByUserId: string;
   createdAt: string;
 }
@@ -118,14 +116,6 @@ export function storyRevisionModel(
     workspace: link(workspaceHref(workspaceId)),
     'created-by': link(userHref(description.createdBy.id())),
   };
-  if (description.sourceCandidate) {
-    links['source-candidate'] = link(
-      workspaceStoryCandidateHref(
-        workspaceId,
-        description.sourceCandidate.id(),
-      ),
-    );
-  }
   return {
     _links: links,
     id: revisionId,
@@ -141,7 +131,6 @@ export function storyRevisionModel(
     ),
     scenarios: description.scenarios.map((scenario) => ({ ...scenario })),
     contentSha256: description.contentSha256,
-    sourceCandidateId: description.sourceCandidate?.id() ?? null,
     createdByUserId: description.createdBy.id(),
     createdAt: description.createdAt,
   };

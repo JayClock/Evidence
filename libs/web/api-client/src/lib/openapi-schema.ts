@@ -1431,8 +1431,6 @@ export interface components {
     };
     /** @enum {string} */
     StoryCognitiveMode: 'clear' | 'complicated' | 'complex';
-    /** @enum {string} */
-    StoryCandidateStatus: 'pending' | 'confirmed' | 'rejected';
     StoryCitationInput: {
       inboxItemId: string;
       inboxRevisionId: string;
@@ -1460,50 +1458,6 @@ export interface components {
       given: string[];
       when: string;
       then: string[];
-    };
-    StoryCandidateInput: {
-      title: string;
-      problem: string;
-      role: string;
-      goal: string;
-      value: string;
-      cognitiveMode: components['schemas']['StoryCognitiveMode'];
-      citations: components['schemas']['StoryCitationInput'][];
-    };
-    StoryCandidateDecisionInput: {
-      /** Format: int32 */
-      expectedVersion: number;
-    };
-    StoryCandidateResource: {
-      _links: components['schemas']['BTreeMap'];
-      id: string;
-      title: string;
-      problem: string;
-      role: string;
-      goal: string;
-      value: string;
-      cognitiveMode: components['schemas']['StoryCognitiveMode'];
-      citations: components['schemas']['StoryCitationResource'][];
-      contentSha256: string;
-      status: components['schemas']['StoryCandidateStatus'];
-      /** Format: int32 */
-      version: number;
-      proposedByUserId: string;
-      /** Format: date-time */
-      proposedAt: string;
-      decidedByUserId: string | null;
-      /** Format: date-time */
-      decidedAt: string | null;
-      confirmedStoryId: string | null;
-      confirmedRevisionId: string | null;
-    };
-    StoryCandidateCollectionEmbedded: {
-      storyCandidates: components['schemas']['StoryCandidateResource'][];
-    };
-    StoryCandidateCollectionResource: {
-      _links: components['schemas']['BTreeMap'];
-      _embedded: components['schemas']['StoryCandidateCollectionEmbedded'];
-      page: components['schemas']['PageModel'];
     };
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
@@ -1558,7 +1512,6 @@ export interface components {
       citations: components['schemas']['StoryCitationResource'][];
       scenarios: components['schemas']['StoryScenarioResource'][];
       contentSha256: string;
-      sourceCandidateId: string | null;
       createdByUserId: string;
       /** Format: date-time */
       createdAt: string;
