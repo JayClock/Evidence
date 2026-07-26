@@ -1,8 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type {
   InboxItemCollectionResource,
   InboxItemResource,
+  IntakeAgentEvent,
   State,
 } from '@evidence/api-client';
 
@@ -40,6 +41,7 @@ function collectionState({
   refresh,
   nextRefresh,
   previousRefresh,
+  extractionPost,
 }: {
   items?: State<InboxItemResource>[];
   total?: number;
@@ -49,6 +51,7 @@ function collectionState({
   refresh?: ReturnType<typeof vi.fn>;
   nextRefresh?: ReturnType<typeof vi.fn>;
   previousRefresh?: ReturnType<typeof vi.fn>;
+  extractionPost?: ReturnType<typeof vi.fn>;
 } = {}) {
   const state = {
     data: {
@@ -76,10 +79,18 @@ function collectionState({
       getLink: (rel: string) =>
         rel in pageResources && pageResources[rel as 'next' | 'prev']
           ? { rel, href: `/api/inbox?page=${rel}` }
-          : undefined,
+          : rel === 'inbox-extractions'
+            ? {
+                rel,
+                href: '/api/workspaces/workspace-1/inbox-extractions',
+              }
+            : undefined,
       follow: (rel: string) => {
         if (rel === 'self') {
           return resource;
+        }
+        if (rel === 'inbox-extractions' && extractionPost) {
+          return { post: extractionPost };
         }
         const pageResource = pageResources[rel as 'next' | 'prev'];
         if (!pageResource) {
@@ -92,6 +103,14 @@ function collectionState({
     refresh: resource.refresh,
   };
 }
+
+function LocationProbe() {
+  return <output data-testid="location">{useLocation().pathname}</output>;
+}
+
+afterEach(() => {
+  delete window.evidenceDesktop;
+});
 
 describe('InboxCollectionView', () => {
   it('renders workspace Inbox items and their resource links', () => {
@@ -158,6 +177,60 @@ describe('InboxCollectionView', () => {
     await waitFor(() => expect(nextRefresh).toHaveBeenCalledOnce());
     expect(await screen.findByText('Second page source')).toBeTruthy();
     expect(screen.getByText('Page 2 of 2')).toBeTruthy();
+  });
+
+  it('freezes one to five selected active sources before local analysis', async () => {
+    const extractionState = {
+      data: { id: 'extraction-1', reference: 'EXTRACT-0001' },
+      getLink: (relation: string) =>
+        relation === 'workspace'
+          ? { href: '/api/workspaces/workspace-1' }
+          : relation === 'story-candidates'
+            ? {
+                href: '/api/workspaces/workspace-1/story-candidates',
+              }
+            : undefined,
+    };
+    const extractionPost = vi.fn().mockResolvedValue(extractionState);
+    const runInboxAnalyst = vi.fn(
+      async (_request: unknown, onEvent: (event: IntakeAgentEvent) => void) => {
+        onEvent({ id: 'inbox:1', event: 'complete', data: '' });
+      },
+    );
+    window.evidenceDesktop = { runInboxAnalyst } as never;
+    const { state } = collectionState({ extractionPost });
+
+    render(
+      <MemoryRouter
+        initialEntries={['/api/workspaces/workspace-1/inbox-items']}
+      >
+        <InboxCollectionView resourceState={state} />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Select Customer interview' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Analyze 1 selected' }));
+
+    await waitFor(() =>
+      expect(extractionPost).toHaveBeenCalledWith({
+        data: { inboxItemIds: ['item-1'] },
+      }),
+    );
+    expect(runInboxAnalyst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceId: 'workspace-1',
+        extractionId: 'extraction-1',
+      }),
+      expect.any(Function),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe(
+        '/api/workspaces/workspace-1/story-candidates',
+      ),
+    );
   });
 
   it('captures a manual source and refreshes the collection', async () => {

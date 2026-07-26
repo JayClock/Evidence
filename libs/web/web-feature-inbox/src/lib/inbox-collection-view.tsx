@@ -47,6 +47,7 @@ import {
   TableRow,
   Textarea,
 } from '@evidence/ui';
+import { InboxExtractionControls } from './inbox-extraction-controls';
 import { InboxPagination } from './inbox-pagination';
 
 export function InboxCollectionView({
@@ -57,6 +58,19 @@ export function InboxCollectionView({
   const [collectionState, setCollectionState] = useState(resourceState);
   const [pagePending, setPagePending] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelection = (itemId: string, selected: boolean) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (selected) {
+        if (next.size < 5) next.add(itemId);
+      } else {
+        next.delete(itemId);
+      }
+      return next;
+    });
+  };
 
   const navigatePage = async (relation: 'prev' | 'next') => {
     if (!collectionState.getLink(relation) || pagePending) {
@@ -86,15 +100,21 @@ export function InboxCollectionView({
             delivery Story.
           </CardDescription>
         </div>
-        <CaptureInboxDialog
-          onCapture={async (input) => {
-            const collection = collectionState.follow('self');
-            await collection.post({ data: input });
-            const refreshed =
-              (await collection.refresh()) as State<InboxItemCollectionResource>;
-            setCollectionState(refreshed);
-          }}
-        />
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          <InboxExtractionControls
+            collectionState={collectionState}
+            selectedIds={[...selectedIds]}
+          />
+          <CaptureInboxDialog
+            onCapture={async (input) => {
+              const collection = collectionState.follow('self');
+              await collection.post({ data: input });
+              const refreshed =
+                (await collection.refresh()) as State<InboxItemCollectionResource>;
+              setCollectionState(refreshed);
+            }}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -114,6 +134,7 @@ export function InboxCollectionView({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">Select</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Source</TableHead>
@@ -125,7 +146,7 @@ export function InboxCollectionView({
             <TableBody>
               {collectionState.collection.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <Empty className="py-8">
                       <EmptyHeader>
                         <EmptyTitle>No inbox items yet</EmptyTitle>
@@ -138,7 +159,13 @@ export function InboxCollectionView({
                 </TableRow>
               ) : (
                 collectionState.collection.map((itemState) => (
-                  <InboxItemRow key={itemState.data.id} itemState={itemState} />
+                  <InboxItemRow
+                    key={itemState.data.id}
+                    itemState={itemState}
+                    selected={selectedIds.has(itemState.data.id)}
+                    selectionLimitReached={selectedIds.size >= 5}
+                    onSelectionChange={toggleSelection}
+                  />
                 ))
               )}
             </TableBody>
@@ -159,12 +186,35 @@ export function InboxCollectionView({
   );
 }
 
-function InboxItemRow({ itemState }: { itemState: State<InboxItemResource> }) {
+function InboxItemRow({
+  itemState,
+  selected,
+  selectionLimitReached,
+  onSelectionChange,
+}: {
+  itemState: State<InboxItemResource>;
+  selected: boolean;
+  selectionLimitReached: boolean;
+  onSelectionChange: (itemId: string, selected: boolean) => void;
+}) {
   const item = itemState.data;
   const href = itemState.getLink('self')?.href;
+  const selectable = item.status === 'active';
 
   return (
     <TableRow>
+      <TableCell>
+        <input
+          aria-label={`Select ${item.title}`}
+          checked={selected}
+          className="size-4 accent-primary"
+          disabled={!selectable || (selectionLimitReached && !selected)}
+          type="checkbox"
+          onChange={(event) =>
+            onSelectionChange(item.id, event.currentTarget.checked)
+          }
+        />
+      </TableCell>
       <TableCell className="min-w-56 font-medium">{item.title}</TableCell>
       <TableCell>
         <StatusBadge status={item.status} />
