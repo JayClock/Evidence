@@ -50,12 +50,21 @@
 8. 只有用户 `confirm` 当前 Proposal 时，Server 才原子创建该 Iteration 唯一 `US-001`、Problem Statement、Lean Story Card 和不可编码 baseline Revision，并进入 `understand/tqa`。
 9. 用户可浏览 Frozen Intake、append-only 决定、Story、最新 Revision 和完整 Revision 历史；至少一个 Scenario 进入 latest Revision 前不提供 CodingRun admission。
 
-## 旅程 F：细化场景并审查本地 CodingRun
+## 旅程 F：通过 TQA 确认 Story 场景
 
-1. 用户基于 latest Story Revision 确认至少一个有序 Given/When/Then Scenario，形成新的不可变 Revision。
-2. 用户为该 latest Revision 创建 CodingRun；同一 Revision 同时不能有另一个活动 Run。
-3. Desktop 使用 API + Workspace 对应的本地 Git repository binding 创建独立 branch/worktree，主工作树保持不变。
-4. 本地 Pi Agent 只使用 worktree 内受限文件工具和固定质量门；Controller 计算 diff hash 并把 Run 推进到待审查。
-5. 用户在共享 Web UI 中检查 Server 保存的有限执行事实和 Desktop 提供的本地完整 diff。
-6. 接受时 Desktop 先校验 diff hash，再创建一个本地 Conventional Commit 并通知 Server；不自动 merge/push。
-7. 拒绝、取消或失败会记录决定并清理本地 worktree/branch，不提交代码。
+1. Kickoff confirm 后，用户进入同一 `US-001` 的 Understand/TQA；本地 Requirements Analyst 每轮只能提出一个业务问题，或提出完整的 1–5 个 Scenario Draft。
+2. 问题必须面向业务，并路由为 `business_context`、`story` 或 `history`；用户的原文回答先成为 Server 权威记录，Agent 不能代答。
+3. `business_context` 与 `history` 回答继续同一 TQA；`story` 回答返回 Kickoff，由 replacement Proposal 修正同一 Story identity，而不是创建第二张 Story。
+4. 当知识充分时，Agent 提出包含具体 Given、一个 When、可观察 Then 与 business data 的完整 Scenario Set。
+5. 用户可 confirm、continue、split 或 defer；省略 Draft 时必须说明理由，所有决定 append-only。
+6. confirm 原子创建连续 `SC-xxx` 与新的不可变 Story Revision，并进入 `understand/modeling/profile`。
+7. Browser 不运行 Pi；Desktop 的持久 TQA session 只是本地缓存，Server Clarification、Proposal 和 Decision 始终是事实源。
+
+## 旅程 G：审查本地 CodingRun
+
+1. 后续 Tasking/Pair 基于已确认 Scenario 与批准执行计划创建 CodingRun；Scenario confirm 本身不提供直接 Coding admission。
+2. Desktop 使用 API + Workspace 对应的本地 Git repository binding 创建独立 branch/worktree，主工作树保持不变。
+3. 本地 Pi Agent 只使用 worktree 内受限文件工具和固定质量门；Controller 计算 diff hash 并把 Run 推进到待审查。
+4. 用户在共享 Web UI 中检查 Server 保存的有限执行事实和 Desktop 提供的本地完整 diff。
+5. 接受时 Desktop 先校验 diff hash，再创建一个本地 Conventional Commit 并通知 Server；不自动 merge/push。
+6. 拒绝、取消或失败会记录决定并清理本地 worktree/branch，不提交代码。

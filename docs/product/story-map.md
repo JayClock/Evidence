@@ -8,13 +8,15 @@
 | 2    | 整理来源输入    | Inbox、不可变 Revision、Desktop source adapter 与 1–5 项 Extraction   |
 | 3    | 选择交付提案    | 本地 Inbox Analyst、精确 citation、ready/stale 与 defer/reject/select |
 | 4    | 确认 Kickoff    | Iteration、Frozen Intake、隔离 worktree、替代 Proposal 与人工决定     |
-| 5    | 细化验收场景    | `US-001`、latest Revision、有序 Given/When/Then 和不可变后续 Revision |
-| 6    | 执行并审查代码  | CodingRun、隔离 worktree、质量门、本地 diff 与人工接受/拒绝           |
-| 7    | 编写逻辑模型    | 逻辑实体、逻辑关系、属性、行为和定义                                  |
-| 8    | 构建关系图      | 图、节点、边、布局和逻辑模型引用                                      |
-| 9    | 浏览与评审      | 资源浏览、模型解释、错误反馈和变更影响                                |
-| 10   | Desktop AI 建模 | 本地 Agent、受限工具、流式活动和远程模型 command                      |
-| 11   | 跨运行界面使用  | Web 共享前端、Desktop repository binding 和一致 REST/HAL 语义         |
+| 5    | 澄清一张 Story  | 单问题 TQA、显式回答、Clarification history 与 Story correction 路由  |
+| 6    | 确认验收场景    | 完整 Scenario Proposal、具体业务数据、人工决定与不可变 Story Revision |
+| 7    | 建模与任务规划  | Modeling Profile、模型决定、TEST/TASK 与 Desk Check                   |
+| 8    | 执行并审查代码  | CodingRun、隔离 worktree、质量门、本地 diff 与人工接受/拒绝           |
+| 9    | 编写逻辑模型    | 逻辑实体、逻辑关系、属性、行为和定义                                  |
+| 10   | 构建关系图      | 图、节点、边、布局和逻辑模型引用                                      |
+| 11   | 浏览与评审      | 资源浏览、模型解释、错误反馈和变更影响                                |
+| 12   | Desktop AI 建模 | 本地 Agent、受限工具、流式活动和远程模型 command                      |
+| 13   | 跨运行界面使用  | Web 共享前端、Desktop repository binding 和一致 REST/HAL 语义         |
 
 ## 切片原则
 
