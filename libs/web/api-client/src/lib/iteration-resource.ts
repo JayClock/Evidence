@@ -5,6 +5,7 @@ import type {
   StoryCandidateResource,
   StoryResource,
 } from './delivery-resource.js';
+import type { UnderstandingResource } from './understanding-resource.js';
 import type { WorkspaceResource } from './workspace-resource.js';
 
 type IterationSchema = components['schemas']['IterationResource'];
@@ -41,6 +42,7 @@ export type IterationResource = Entity<
     intake: IterationIntakeResource;
     kickoff: KickoffResource;
     story: StoryResource;
+    understanding: UnderstandingResource;
   }
 >;
 

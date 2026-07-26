@@ -425,6 +425,102 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/understanding': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_understanding'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/clarifications': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['ask_understanding_clarification'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/clarifications/{clarificationId}/answer': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+        clarificationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['answer_understanding_clarification'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/scenario-proposals': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['propose_understanding_scenarios'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['decide_understanding'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/stories': {
     parameters: {
       query?: never;
@@ -1454,10 +1550,132 @@ export interface components {
     };
     StoryScenarioResource: {
       id: string;
+      reference: string;
+      sourceDraftId: string;
       title: string;
       given: string[];
       when: string;
       then: string[];
+      businessData: string[];
+    };
+    /** @enum {string} */
+    ClarificationTarget: 'business_context' | 'story' | 'history';
+    /** @enum {string} */
+    ClarificationStatus: 'pending' | 'answered' | 'waived';
+    AskClarificationInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      storyId: string;
+      storyRevisionId: string;
+      target: components['schemas']['ClarificationTarget'];
+      question: string;
+    };
+    AnswerClarificationInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      answer: string;
+    };
+    ClarificationResource: {
+      id: string;
+      reference: string;
+      storyId: string;
+      storyRevisionId: string;
+      target: components['schemas']['ClarificationTarget'];
+      question: string;
+      status: components['schemas']['ClarificationStatus'];
+      /** Format: date-time */
+      askedAt: string;
+      answer?: string | null;
+      answeredByUserId?: string | null;
+      /** Format: date-time */
+      answeredAt?: string | null;
+      waivedReason?: string | null;
+      waivedByUserId?: string | null;
+      /** Format: date-time */
+      waivedAt?: string | null;
+      contentSha256: string;
+    };
+    UnderstandingScenarioInput: {
+      title: string;
+      given: string[];
+      when: string;
+      then: string[];
+      businessData: string[];
+    };
+    ScenarioProposalInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      storyId: string;
+      storyRevisionId: string;
+      scenarios: components['schemas']['UnderstandingScenarioInput'][];
+    };
+    ScenarioDraftResource: components['schemas']['UnderstandingScenarioInput'] & {
+      id: string;
+      reference: string;
+      /** Format: int32 */
+      position: number;
+      contentSha256: string;
+    };
+    ScenarioProposalResource: {
+      id: string;
+      reference: string;
+      storyId: string;
+      storyRevisionId: string;
+      /** Format: int32 */
+      sequence: number;
+      drafts: components['schemas']['ScenarioDraftResource'][];
+      /** Format: date-time */
+      proposedAt: string;
+      contentSha256: string;
+    };
+    UnderstandingDecisionInput: {
+      /** Format: int32 */
+      expectedIterationVersion: number;
+      /** @enum {string} */
+      action: 'confirm' | 'continue' | 'split' | 'defer';
+      proposalId?: string | null;
+      proposalSha256?: string | null;
+      selectedDraftIds?: string[];
+      reason?: string | null;
+    };
+    UnderstandingDecisionResource: {
+      id: string;
+      reference: string;
+      proposalId?: string | null;
+      /** @enum {string} */
+      action: 'confirm' | 'continue' | 'split' | 'defer';
+      reason?: string | null;
+      selectedDraftIds: string[];
+      confirmedScenarioIds: string[];
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    UnderstandingResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      story: components['schemas']['StoryResource'];
+      storyRevision: components['schemas']['StoryRevisionResource'];
+      pendingClarification?:
+        | components['schemas']['ClarificationResource']
+        | null;
+      clarifications: components['schemas']['ClarificationResource'][];
+      currentScenarioProposal?:
+        | components['schemas']['ScenarioProposalResource']
+        | null;
+      decisions: components['schemas']['UnderstandingDecisionResource'][];
+    };
+    ClarificationAnswerResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      clarification: components['schemas']['ClarificationResource'];
+    };
+    UnderstandingDecisionResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      decision: components['schemas']['UnderstandingDecisionResource'];
+      storyRevision?: components['schemas']['StoryRevisionResource'] | null;
     };
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
@@ -2925,6 +3143,152 @@ export interface operations {
       404: components['responses']['ResourceNotFound'];
       409: components['responses']['ResourceConflict'];
       500: components['responses']['InternalError'];
+    };
+  };
+  get_understanding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description One Story Understand/TQA authority view */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.understanding+json': components['schemas']['UnderstandingResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  ask_understanding_clarification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AskClarificationInput'];
+      };
+    };
+    responses: {
+      /** @description One pending clarification */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.clarification+json': components['schemas']['ClarificationResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  answer_understanding_clarification: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+        clarificationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AnswerClarificationInput'];
+      };
+    };
+    responses: {
+      /** @description Explicit human answer and deterministic route */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.clarification-answer-result+json': components['schemas']['ClarificationAnswerResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  propose_understanding_scenarios: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ScenarioProposalInput'];
+      };
+    };
+    responses: {
+      /** @description Complete Scenario Proposal without human authority */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.scenario-proposal+json': components['schemas']['ScenarioProposalResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  decide_understanding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UnderstandingDecisionInput'];
+      };
+    };
+    responses: {
+      /** @description Human Scenario/TQA decision result */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.understanding-decision-result+json': components['schemas']['UnderstandingDecisionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
     };
   };
   list_stories: {

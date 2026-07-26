@@ -202,6 +202,67 @@ export function vendorMediaType(
       ? mediaType('kickoff-decision-result')
       : null;
   }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'understanding',
+    ])
+  ) {
+    return mediaType('understanding');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'understanding',
+      'clarifications',
+    ])
+  ) {
+    return mediaType('clarification');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'understanding',
+      'clarifications',
+      '*',
+      'answer',
+    ])
+  ) {
+    return mediaType('clarification-answer-result');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'understanding',
+      'scenario-proposals',
+    ])
+  ) {
+    return mediaType('scenario-proposal');
+  }
+  if (
+    matches(apiSegments, [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'understanding',
+      'decisions',
+    ])
+  ) {
+    return mediaType('understanding-decision-result');
+  }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');
   }

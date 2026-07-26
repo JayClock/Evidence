@@ -1148,6 +1148,135 @@ paths:
           $ref: '#/components/responses/ResourceConflict'
         '500':
           $ref: '#/components/responses/InternalError'
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/understanding:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: get_understanding
+      responses:
+        '200':
+          description: One Story Understand/TQA authority view
+          content:
+            application/vnd.evidence.understanding+json:
+              schema:
+                $ref: '#/components/schemas/UnderstandingResource'
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/clarifications:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: ask_understanding_clarification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AskClarificationInput' }
+      responses:
+        '201':
+          description: One pending clarification
+          content:
+            application/vnd.evidence.clarification+json:
+              schema: { $ref: '#/components/schemas/ClarificationResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/clarifications/{clarificationId}/answer:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: clarificationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: answer_understanding_clarification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnswerClarificationInput' }
+      responses:
+        '200':
+          description: Explicit human answer and deterministic route
+          content:
+            application/vnd.evidence.clarification-answer-result+json:
+              schema: { $ref: '#/components/schemas/ClarificationAnswerResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/scenario-proposals:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: propose_understanding_scenarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScenarioProposalInput' }
+      responses:
+        '201':
+          description: Complete Scenario Proposal without human authority
+          content:
+            application/vnd.evidence.scenario-proposal+json:
+              schema: { $ref: '#/components/schemas/ScenarioProposalResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/understanding/decisions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: decide_understanding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UnderstandingDecisionInput' }
+      responses:
+        '200':
+          description: Human Scenario/TQA decision result
+          content:
+            application/vnd.evidence.understanding-decision-result+json:
+              schema: { $ref: '#/components/schemas/UnderstandingDecisionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
   /api/workspaces/{workspaceId}/stories:
     parameters:
       - name: workspaceId
@@ -4232,12 +4361,19 @@ components:
       type: object
       required:
         - id
+        - reference
+        - sourceDraftId
         - title
         - given
         - when
         - then
+        - businessData
       properties:
         id:
+          type: string
+        reference:
+          type: string
+        sourceDraftId:
           type: string
         title:
           type: string
@@ -4251,6 +4387,176 @@ components:
           type: array
           items:
             type: string
+        businessData:
+          type: array
+          items:
+            type: string
+    ClarificationTarget:
+      type: string
+      enum: [business_context, story, history]
+    ClarificationStatus:
+      type: string
+      enum: [pending, answered, waived]
+    AskClarificationInput:
+      type: object
+      required: [expectedIterationVersion, storyId, storyRevisionId, target, question]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        storyId: { type: string, minLength: 1 }
+        storyRevisionId: { type: string, minLength: 1 }
+        target: { $ref: '#/components/schemas/ClarificationTarget' }
+        question: { type: string, minLength: 1, maxLength: 1536 }
+    AnswerClarificationInput:
+      type: object
+      required: [expectedIterationVersion, answer]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        answer: { type: string, minLength: 1, maxLength: 16000 }
+    ClarificationResource:
+      type: object
+      required: [id, reference, storyId, storyRevisionId, target, question, status, askedAt, contentSha256]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        target: { $ref: '#/components/schemas/ClarificationTarget' }
+        question: { type: string }
+        status: { $ref: '#/components/schemas/ClarificationStatus' }
+        askedAt: { type: string, format: date-time }
+        answer: { type: [string, 'null'] }
+        answeredByUserId: { type: [string, 'null'] }
+        answeredAt: { type: [string, 'null'], format: date-time }
+        waivedReason: { type: [string, 'null'] }
+        waivedByUserId: { type: [string, 'null'] }
+        waivedAt: { type: [string, 'null'], format: date-time }
+        contentSha256: { type: string }
+    UnderstandingScenarioInput:
+      type: object
+      required: [title, given, when, then, businessData]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        given:
+          type: array
+          minItems: 1
+          items: { type: string }
+        when: { type: string, minLength: 1 }
+        then:
+          type: array
+          minItems: 1
+          items: { type: string }
+        businessData:
+          type: array
+          minItems: 1
+          items: { type: string }
+    ScenarioProposalInput:
+      type: object
+      required: [expectedIterationVersion, storyId, storyRevisionId, scenarios]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        scenarios:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items: { $ref: '#/components/schemas/UnderstandingScenarioInput' }
+    ScenarioDraftResource:
+      allOf:
+        - $ref: '#/components/schemas/UnderstandingScenarioInput'
+        - type: object
+          required: [id, reference, position, contentSha256]
+          properties:
+            id: { type: string }
+            reference: { type: string }
+            position: { type: integer, format: int32, minimum: 0 }
+            contentSha256: { type: string }
+    ScenarioProposalResource:
+      type: object
+      required: [id, reference, storyId, storyRevisionId, sequence, drafts, proposedAt, contentSha256]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        sequence: { type: integer, format: int32, minimum: 1 }
+        drafts:
+          type: array
+          items: { $ref: '#/components/schemas/ScenarioDraftResource' }
+        proposedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    UnderstandingDecisionInput:
+      type: object
+      required: [expectedIterationVersion, action]
+      properties:
+        expectedIterationVersion: { type: integer, format: int32, minimum: 1 }
+        action:
+          type: string
+          enum: [confirm, continue, split, defer]
+        proposalId: { type: [string, 'null'] }
+        proposalSha256: { type: [string, 'null'] }
+        selectedDraftIds:
+          type: array
+          items: { type: string }
+        reason: { type: [string, 'null'] }
+    UnderstandingDecisionResource:
+      type: object
+      required: [id, reference, action, selectedDraftIds, confirmedScenarioIds, decidedByUserId, decidedAt, contentSha256]
+      properties:
+        id: { type: string }
+        reference: { type: string }
+        proposalId: { type: [string, 'null'] }
+        action: { type: string, enum: [confirm, continue, split, defer] }
+        reason: { type: [string, 'null'] }
+        selectedDraftIds:
+          type: array
+          items: { type: string }
+        confirmedScenarioIds:
+          type: array
+          items: { type: string }
+        decidedByUserId: { type: string }
+        decidedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    UnderstandingResource:
+      type: object
+      required: [_links, iteration, story, storyRevision, clarifications, decisions]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        story: { $ref: '#/components/schemas/StoryResource' }
+        storyRevision: { $ref: '#/components/schemas/StoryRevisionResource' }
+        pendingClarification:
+          oneOf:
+            - $ref: '#/components/schemas/ClarificationResource'
+            - type: 'null'
+        clarifications:
+          type: array
+          items: { $ref: '#/components/schemas/ClarificationResource' }
+        currentScenarioProposal:
+          oneOf:
+            - $ref: '#/components/schemas/ScenarioProposalResource'
+            - type: 'null'
+        decisions:
+          type: array
+          items: { $ref: '#/components/schemas/UnderstandingDecisionResource' }
+    ClarificationAnswerResultResource:
+      type: object
+      required: [_links, iteration, clarification]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        clarification: { $ref: '#/components/schemas/ClarificationResource' }
+    UnderstandingDecisionResultResource:
+      type: object
+      required: [_links, iteration, decision]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        decision: { $ref: '#/components/schemas/UnderstandingDecisionResource' }
+        storyRevision:
+          oneOf:
+            - $ref: '#/components/schemas/StoryRevisionResource'
+            - type: 'null'
     StoryResource:
       type: object
       required:

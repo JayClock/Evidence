@@ -173,6 +173,42 @@ export function workspaceIterationKickoffDecisionsHref(
   return `${workspaceIterationKickoffHref(workspaceId, iterationId)}/decisions`;
 }
 
+export function workspaceIterationUnderstandingHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/understanding`;
+}
+
+export function workspaceIterationClarificationsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationUnderstandingHref(workspaceId, iterationId)}/clarifications`;
+}
+
+export function workspaceIterationClarificationAnswerHref(
+  workspaceId: string,
+  iterationId: string,
+  clarificationId: string,
+): string {
+  return `${workspaceIterationClarificationsHref(workspaceId, iterationId)}/${clarificationId}/answer`;
+}
+
+export function workspaceIterationScenarioProposalsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationUnderstandingHref(workspaceId, iterationId)}/scenario-proposals`;
+}
+
+export function workspaceIterationUnderstandingDecisionsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationUnderstandingHref(workspaceId, iterationId)}/decisions`;
+}
+
 export function workspaceStoriesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/stories`;
 }

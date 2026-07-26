@@ -42,10 +42,13 @@ function storyRevision(
   revisionNumber = 1,
   scenarios: Array<{
     id: string;
+    reference: string;
+    sourceDraftId: string;
     title: string;
     given: string[];
     when: string;
     then: string[];
+    businessData: string[];
   }> = [],
 ) {
   return new StoryRevision(id, {

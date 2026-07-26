@@ -9,5 +9,6 @@ export * from './member-resource.js';
 export * from './root-resource.js';
 export * from './resource-types.js';
 export * from './sidebar-resource.js';
+export * from './understanding-resource.js';
 export * from './user-resource.js';
 export * from './workspace-resource.js';

@@ -80,10 +80,13 @@ export function storyModel(story: Story): StoryModel {
 
 export interface StoryScenarioModel {
   id: string;
+  reference: string;
+  sourceDraftId: string;
   title: string;
   given: string[];
   when: string;
   then: string[];
+  businessData: string[];
 }
 
 export interface StoryRevisionModel {

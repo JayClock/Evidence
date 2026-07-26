@@ -15,6 +15,7 @@ import { LogicalRelationshipsController } from './logical-relationships.controll
 import { ResourceResolver } from './resource-resolver.service';
 import { SidebarController } from './sidebar.controller';
 import { UserMembershipsController } from './user-memberships.controller';
+import { UnderstandingController } from './understanding.controller';
 import { UsersController } from './users.controller';
 import { VendorMediaTypeInterceptor } from './vendor-media.interceptor';
 import { WorkspaceMembersController } from './workspace-members.controller';
@@ -82,7 +83,7 @@ class StoryCandidatesApiModule {}
 
 @Module({
   imports: [ApiResourcesModule],
-  controllers: [IterationsController],
+  controllers: [IterationsController, UnderstandingController],
 })
 class IterationsApiModule {}
 
