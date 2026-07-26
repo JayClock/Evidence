@@ -28,12 +28,20 @@ const mediaTypes = {
   kickoff: 'application/vnd.evidence.kickoff+json',
   kickoffDecisionResult:
     'application/vnd.evidence.kickoff-decision-result+json',
+  understanding: 'application/vnd.evidence.understanding+json',
+  scenarioProposal: 'application/vnd.evidence.scenario-proposal+json',
+  understandingDecisionResult:
+    'application/vnd.evidence.understanding-decision-result+json',
+  tasking: 'application/vnd.evidence.tasking+json',
+  noModelImpactDecision:
+    'application/vnd.evidence.no-model-impact-decision+json',
+  taskingCandidate: 'application/vnd.evidence.tasking-candidate+json',
+  deskCheckDecisionResult:
+    'application/vnd.evidence.desk-check-decision-result+json',
   story: 'application/vnd.evidence.story+json',
   stories: 'application/vnd.evidence.stories+json',
   storyRevision: 'application/vnd.evidence.story-revision+json',
   storyRevisions: 'application/vnd.evidence.story-revisions+json',
-  codingRun: 'application/vnd.evidence.coding-run+json',
-  codingRuns: 'application/vnd.evidence.coding-runs+json',
   logicalEntity: 'application/vnd.evidence.logical-entity+json',
   logicalEntities: 'application/vnd.evidence.logical-entities+json',
   logicalRelationship: 'application/vnd.evidence.logical-relationship+json',
@@ -113,9 +121,15 @@ describeContracts('Evidence API contract vertical slice', () => {
       ],
     ).toHaveProperty('post');
     expect(openapi.body.paths).toHaveProperty(
-      '/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs',
+      '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking',
     );
     expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/decisions',
+    );
+    expect(openapi.body.paths).not.toHaveProperty(
+      '/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs',
+    );
+    expect(openapi.body.paths).not.toHaveProperty(
       '/api/workspaces/{workspaceId}/coding-runs/{runId}/accept',
     );
 
@@ -605,8 +619,8 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(replay.status).toBe(409);
   });
 
-  it('extends a human-confirmed Kickoff Story with Scenarios and a Coding Run', async () => {
-    const workspace = await createContractWorkspace('Delivery Workspace');
+  it('requires No Model Impact and approved Tasking authority before Pair', async () => {
+    const workspace = await createContractWorkspace('Tasking Workspace');
     const workspaceId = workspace.body.id as string;
     const source = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-items`,
@@ -614,19 +628,19 @@ describeContracts('Evidence API contract vertical slice', () => {
         method: 'POST',
         body: JSON.stringify({
           sourceKind: 'manual_text',
-          externalKey: uniqueName('delivery-source'),
-          title: 'Local coding agent',
-          body: 'Run Pi in an isolated local worktree.',
+          externalKey: uniqueName('tasking-source'),
+          title: 'Review one local Tasking plan',
+          body: 'Plan one tool-only delivery change and stop before coding.',
           contentType: 'text/markdown',
         }),
       },
     );
     const candidateInput = {
-      title: 'Local coding agent',
-      problem: 'Hosted services must not receive source code.',
-      role: 'Workspace maintainer',
-      goal: 'Run coding work in an isolated local worktree.',
-      value: 'Source and credentials remain local.',
+      title: 'Review one local Tasking plan',
+      problem: 'Coding lacks an explicit approved Tasking boundary.',
+      role: 'Delivery lead',
+      goal: 'Approve one complete tool-only Tasking plan.',
+      value: 'Pair starts only from reviewed authority.',
       cognitiveMode: 'complicated',
       citations: [
         {
@@ -635,11 +649,6 @@ describeContracts('Evidence API contract vertical slice', () => {
           locator: 'whole-source',
         },
       ],
-    };
-    const rejectedCandidateInput = {
-      ...candidateInput,
-      title: 'Rejected coding alternative',
-      goal: 'Send source code to a hosted coding service.',
     };
     const extraction = await apiRequest(
       `/api/workspaces/${workspaceId}/inbox-extractions`,
@@ -654,17 +663,11 @@ describeContracts('Evidence API contract vertical slice', () => {
         method: 'POST',
         body: JSON.stringify({
           expectedVersion: 1,
-          candidates: [candidateInput, rejectedCandidateInput],
+          candidates: [candidateInput],
         }),
       },
     );
     const candidate = proposed.body._embedded.storyCandidates[0];
-    const rejectedCandidate = proposed.body._embedded.storyCandidates[1];
-    expect(candidate).toMatchObject({
-      status: 'ready',
-      reference: 'CAND-0001',
-    });
-
     const baseCommitSha = 'a'.repeat(40);
     const selected = await apiRequest(
       `/api/workspaces/${workspaceId}/story-candidates/${candidate.id}/select`,
@@ -676,26 +679,23 @@ describeContracts('Evidence API contract vertical slice', () => {
         }),
       },
     );
-    const provisioned = await apiRequest(
-      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/provisioning/complete`,
+    const iterationId = selected.body.id as string;
+    await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/provisioning/complete`,
       {
         method: 'POST',
         body: JSON.stringify({
           expectedVersion: 1,
           baseCommitSha,
-          branchName: `evidence/iter-${selected.body.id}`,
+          branchName: `evidence/iter-${iterationId}`,
         }),
       },
     );
-    expect(provisioned.body).toMatchObject({
-      lifecycle: 'active',
-      version: 2,
-    });
     const kickoff = await apiRequest(
-      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/kickoff`,
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/kickoff`,
     );
     const confirmed = await apiRequest(
-      `/api/workspaces/${workspaceId}/iterations/${selected.body.id}/kickoff/decisions`,
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/kickoff/decisions`,
       {
         method: 'POST',
         body: JSON.stringify({
@@ -706,335 +706,280 @@ describeContracts('Evidence API contract vertical slice', () => {
         }),
       },
     );
-    expect(confirmed.status).toBe(200);
-    expect(confirmed.body.storyCard).toMatchObject({ reference: 'US-001' });
     const storyId = confirmed.body.storyCard.storyId as string;
-    const story = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}`,
+    const understanding = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/understanding`,
     );
-    expect(story.status).toBe(200);
-    expectHalResource(story, mediaTypes.story);
-    expect(story.body).toMatchObject({
-      id: storyId,
-      reference: 'US-001',
-      title: candidateInput.title,
-      latestRevisionNumber: 1,
-      latestScenarioCount: 0,
-      revisionCount: 1,
-      version: 1,
+    expect(understanding.status).toBe(200);
+    expectHalResource(understanding, mediaTypes.understanding);
+    expect(understanding.body.iteration).toMatchObject({
+      loop: 'understand',
+      stage: 'tqa',
+      version: 3,
     });
-    const baselineRevision = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${story.body.latestRevisionId}`,
-    );
-    expect(baselineRevision.body).toMatchObject({
-      revisionNumber: 1,
-      scenarios: [],
-      createdByUserId: userId,
-    });
-    const storyContent = {
-      title: candidateInput.title,
-      problem: candidateInput.problem,
-      role: candidateInput.role,
-      goal: candidateInput.goal,
-      value: candidateInput.value,
-      cognitiveMode: candidateInput.cognitiveMode,
-      citations: [
-        {
-          inboxItemId: source.body.id,
-          inboxRevisionId: source.body.latestRevisionId,
-          contentSha256: source.body.latestRevisionSha256,
-          locator: 'whole-source',
-        },
+
+    const scenarioInput = {
+      title: 'Review one complete Tasking Candidate',
+      given: [
+        'A confirmed Story Revision is active.',
+        'The Story changes only local workflow glue.',
       ],
+      when: 'The delivery lead reviews the proposed Tasking plan.',
+      then: ['A complete Tasking Candidate awaits human Desk Check.'],
+      businessData: ['Story Revision v2', 'TASKING-001'],
     };
-    const acceptanceInput = {
-      expectedVersion: 1,
-      expectedLatestRevisionId: baselineRevision.body.id,
-      ...storyContent,
-      scenarios: [
-        {
-          title: 'Create an isolated coding worktree',
-          given: ['The Workspace is bound to an accessible Git repository.'],
-          when: 'The user starts a Coding Run.',
-          then: [
-            'A dedicated branch and worktree are created.',
-            'The primary working tree remains unchanged.',
-          ],
-        },
-      ],
-    };
-    const invalidAcceptance = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
+    const scenarioProposal = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/understanding/scenario-proposals`,
       {
         method: 'POST',
-        body: JSON.stringify({ ...acceptanceInput, scenarios: [] }),
+        body: JSON.stringify({
+          expectedIterationVersion: understanding.body.iteration.version,
+          storyId,
+          storyRevisionId: understanding.body.storyRevision.id,
+          scenarios: [scenarioInput],
+        }),
       },
     );
-    expect(invalidAcceptance.status).toBe(400);
-
-    const acceptedRevision = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
-      { method: 'POST', body: JSON.stringify(acceptanceInput) },
+    expect(scenarioProposal.status).toBe(201);
+    expectResourceContentType(scenarioProposal, mediaTypes.scenarioProposal);
+    const scenarioDecision = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/understanding/decisions`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedIterationVersion: 4,
+          action: 'confirm',
+          proposalId: scenarioProposal.body.id,
+          proposalSha256: scenarioProposal.body.contentSha256,
+          selectedDraftIds: scenarioProposal.body.drafts.map(
+            (draft: { id: string }) => draft.id,
+          ),
+        }),
+      },
     );
-    expect(acceptedRevision.status).toBe(201);
-    expectHalResource(acceptedRevision, mediaTypes.storyRevision);
-    expect(acceptedRevision.headers.get('location')).toBe(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${acceptedRevision.body.id}`,
+    expect(scenarioDecision.status).toBe(200);
+    expectResourceContentType(
+      scenarioDecision,
+      mediaTypes.understandingDecisionResult,
     );
-    expect(acceptedRevision.body).toMatchObject({
+    expect(scenarioDecision.body.iteration).toMatchObject({
+      loop: 'understand',
+      stage: 'modeling',
+      version: 5,
+    });
+    expect(scenarioDecision.body.storyRevision).toMatchObject({
       revisionNumber: 2,
-      createdByUserId: userId,
       scenarios: [
         expect.objectContaining({
-          id: expect.any(String),
-          ...acceptanceInput.scenarios[0],
+          reference: 'SC-001',
+          title: scenarioInput.title,
+          then: scenarioInput.then,
+          businessData: scenarioInput.businessData,
         }),
       ],
     });
-    expect(acceptedRevision.body.contentSha256).toMatch(
-      /^sha256:[a-f0-9]{64}$/,
-    );
-    expect(acceptedRevision.body.contentSha256).not.toBe(
-      baselineRevision.body.contentSha256,
-    );
 
-    const staleRevision = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions`,
-      { method: 'POST', body: JSON.stringify(acceptanceInput) },
+    const modelingTasking = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/tasking`,
     );
-    expect(staleRevision.status).toBe(409);
-
-    const updatedStory = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}`,
+    expect(modelingTasking.status).toBe(200);
+    expectHalResource(modelingTasking, mediaTypes.tasking);
+    expect(modelingTasking.body._links).toHaveProperty(
+      'record-no-model-impact',
     );
-    expect(updatedStory.body).toMatchObject({
-      latestRevisionId: acceptedRevision.body.id,
-      latestRevisionNumber: 2,
-      latestScenarioCount: 1,
-      revisionCount: 2,
-      version: 2,
-    });
-
-    const startedRun = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
+    const noModelImpact = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/tasking/no-model-impact`,
       {
         method: 'POST',
         body: JSON.stringify({
-          storyRevisionId: acceptedRevision.body.id,
-          baseCommitSha,
+          expectedIterationVersion: 5,
+          storyId,
+          storyRevisionId: scenarioDecision.body.storyRevision.id,
+          storyRevisionSha256:
+            scenarioDecision.body.storyRevision.contentSha256,
+          reason: 'This Story changes only local workflow glue.',
         }),
       },
     );
-    expect(startedRun.status).toBe(201);
-    expectHalResource(startedRun, mediaTypes.codingRun);
-    expect(startedRun.headers.get('location')).toBe(
-      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}`,
-    );
-    expect(startedRun.body).toMatchObject({
-      storyId,
-      storyRevisionId: acceptedRevision.body.id,
-      requestedByUserId: userId,
-      status: 'running',
-      version: 1,
-      baseCommitSha,
-      diffSha256: null,
-      commitSha: null,
-    });
-    expect(startedRun.body._links).toMatchObject({
-      review: {
-        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
-      },
-      cancel: {
-        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/cancel`,
-      },
+    expect(noModelImpact.status).toBe(201);
+    expectHalResource(noModelImpact, mediaTypes.noModelImpactDecision);
+    expect(noModelImpact.body).toMatchObject({
+      subject: 'tool',
+      method: 'none',
+      modelChangeRequired: false,
+      decidedByUserId: userId,
     });
 
-    const duplicateRun = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          storyRevisionId: acceptedRevision.body.id,
-          baseCommitSha,
-        }),
-      },
+    const drafting = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/tasking`,
     );
-    expect(duplicateRun.status).toBe(409);
-
-    const listedRuns = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs?status=running&page=1&pageSize=20`,
-    );
-    expect(listedRuns.status).toBe(200);
-    expectHalCollection(listedRuns, mediaTypes.codingRuns, 'codingRuns');
-    expect(listedRuns.body._embedded.codingRuns).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: startedRun.body.id }),
-      ]),
-    );
-
-    const diffSha256 = `sha256:${'b'.repeat(64)}`;
-    for (const invalidReviewInput of [
-      {
-        expectedVersion: 1,
-        diffSha256,
-        changedFileCount: 0,
-        qualityChecks: [
-          {
-            name: 'pnpm test',
-            status: 'passed',
-            durationMs: 1200,
-            summary: 'All focused tests passed.',
-          },
-        ],
-      },
-      {
-        expectedVersion: 1,
-        diffSha256,
-        changedFileCount: 2,
-        qualityChecks: [
-          {
-            name: 'pnpm test',
-            status: 'failed',
-            durationMs: 1200,
-            summary: 'A focused test failed.',
-          },
-        ],
-      },
-    ]) {
-      const invalidReview = await apiRequest(
-        `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
-        { method: 'POST', body: JSON.stringify(invalidReviewInput) },
-      );
-      expect(invalidReview.status).toBe(400);
-    }
-
-    const reviewInput = {
-      expectedVersion: 1,
-      diffSha256,
-      changedFileCount: 2,
-      qualityChecks: [
+    expect(drafting.body.iteration).toMatchObject({
+      loop: 'tasking',
+      stage: 'drafting',
+      version: 6,
+    });
+    expect(drafting.body._links).toHaveProperty('propose-candidate');
+    const projectCatalog = {
+      projects: [
         {
-          name: 'pnpm test',
-          status: 'passed',
-          durationMs: 1200,
-          summary: 'All focused tests passed.',
+          id: '@evidence/server-domain',
+          root: 'libs/server/domain',
+          targets: ['lint', 'test', 'typecheck'],
+        },
+        {
+          id: '@evidence/server-persistent',
+          root: 'libs/server/persistent',
+          targets: ['lint', 'test', 'typecheck'],
+        },
+        {
+          id: '@evidence/server-api',
+          root: 'libs/server/api',
+          targets: ['lint', 'test', 'typecheck'],
         },
       ],
     };
-    const reviewRequired = await apiRequest(
-      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
-      { method: 'POST', body: JSON.stringify(reviewInput) },
-    );
-    expect(reviewRequired.status).toBe(200);
-    expectHalResource(reviewRequired, mediaTypes.codingRun);
-    expect(reviewRequired.body).toMatchObject({
-      status: 'review_required',
-      version: 2,
-      diffSha256,
-      changedFileCount: 2,
-      qualityChecks: reviewInput.qualityChecks,
-    });
-    expect(reviewRequired.body._links).toMatchObject({
-      accept: {
-        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/accept`,
+    const emptyModelRefs = { entities: [], associations: [] };
+    const tests = [
+      {
+        id: 'TEST-001',
+        quadrant: 'Q1',
+        intent: 'The Tasking domain preserves the approval boundary.',
+        runtimePlanId: 'RUNTIME-001',
+        stepId: 'nest-domain-q1',
+        projectId: '@evidence/server-domain',
+        testFilter: 'tasking-domain',
+        supportedBy: [],
+        scenarioIds: ['SC-001'],
+        businessData: ['Story Revision v2'],
+        modelRefs: emptyModelRefs,
       },
-      reject: {
-        href: `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/reject`,
+      {
+        id: 'TEST-002',
+        quadrant: 'Q1',
+        intent: 'Tasking authority remains immutable in persistence.',
+        runtimePlanId: 'RUNTIME-001',
+        stepId: 'nest-persistent-q1',
+        projectId: '@evidence/server-persistent',
+        testFilter: 'tasking-persistent',
+        supportedBy: [],
+        scenarioIds: ['SC-001'],
+        businessData: ['TASKING-001'],
+        modelRefs: emptyModelRefs,
       },
-    });
-
-    const reviewReplay = await apiRequest(
-      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/review`,
-      { method: 'POST', body: JSON.stringify(reviewInput) },
-    );
-    expect(reviewReplay.status).toBe(200);
-    expect(reviewReplay.body.id).toBe(startedRun.body.id);
-    expect(reviewReplay.body.version).toBe(2);
-
-    const acceptedCommitSha = 'c'.repeat(40);
-    const acceptedRun = await apiRequest(
-      `/api/workspaces/${workspaceId}/coding-runs/${startedRun.body.id}/accept`,
+      {
+        id: 'TEST-003',
+        quadrant: 'Q2',
+        intent: 'The confirmed Scenario reaches human Desk Check.',
+        runtimePlanId: 'RUNTIME-001',
+        stepId: 'nest-api-q2',
+        projectId: '@evidence/server-api',
+        testFilter: 'tasking-desk-check',
+        supportedBy: ['TEST-001', 'TEST-002'],
+        scenarioIds: ['SC-001'],
+        scenarioOutcome:
+          'A complete Tasking Candidate awaits human Desk Check.',
+        businessData: ['TASKING-001'],
+        modelRefs: emptyModelRefs,
+      },
+    ];
+    const taskingCandidate = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/tasking/candidates`,
       {
         method: 'POST',
         body: JSON.stringify({
-          expectedVersion: 2,
-          diffSha256,
-          commitSha: acceptedCommitSha,
+          expectedIterationVersion: 6,
+          storyId,
+          storyRevisionId: scenarioDecision.body.storyRevision.id,
+          noModelImpactDecisionId: noModelImpact.body.id,
+          noModelImpactDecisionSha256: noModelImpact.body.contentSha256,
+          projectCatalog,
+          runtimes: [
+            {
+              id: 'RUNTIME-001',
+              runtime: 'typescript',
+              functionalContexts: ['delivery'],
+              technicalBoundaries: ['nest-domain'],
+              projectIds: projectCatalog.projects.map(({ id }) => id),
+            },
+          ],
+          tests,
+          tasks: [
+            {
+              id: 'TASK-001',
+              description: 'Drive the complete Tasking authority chain.',
+              testIds: tests.map(({ id }) => id),
+              dependsOn: [],
+            },
+          ],
         }),
       },
     );
-    expect(acceptedRun.status).toBe(200);
-    expect(acceptedRun.body).toMatchObject({
-      status: 'accepted',
-      version: 3,
-      commitSha: acceptedCommitSha,
-      decidedByUserId: userId,
-    });
-    expect(acceptedRun.body._links).not.toHaveProperty('accept');
-
-    const originalRevision = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions/${baselineRevision.body.id}`,
-    );
-    expect(originalRevision.status).toBe(200);
-    expect(originalRevision.body).toMatchObject({
-      id: baselineRevision.body.id,
-      revisionNumber: 1,
-      scenarios: [],
+    expect(taskingCandidate.status).toBe(201);
+    expectHalResource(taskingCandidate, mediaTypes.taskingCandidate);
+    expect(taskingCandidate.body).toMatchObject({
+      storyId,
+      storyRevisionId: scenarioDecision.body.storyRevision.id,
+      baseCommitSha,
+      tests: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'TEST-003',
+          processId: 'typescript-nest-feature',
+          modelRefs: emptyModelRefs,
+        }),
+      ]),
+      tasks: [expect.objectContaining({ modelRefs: emptyModelRefs })],
     });
 
-    const stories = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories?page=1&pageSize=20`,
+    const deskCheck = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/tasking`,
     );
-    expect(stories.status).toBe(200);
-    expectHalCollection(stories, mediaTypes.stories, 'stories');
-    const revisions = await apiRequest(
-      `/api/workspaces/${workspaceId}/stories/${storyId}/revisions?page=1&pageSize=20`,
-    );
-    expect(revisions.status).toBe(200);
-    expectHalCollection(revisions, mediaTypes.storyRevisions, 'storyRevisions');
-    expect(revisions.body._embedded.storyRevisions).toHaveLength(2);
-
-    const rejectSelected = await apiRequest(
-      `/api/workspaces/${workspaceId}/story-candidates/${candidate.id}/reject`,
+    expect(deskCheck.body.iteration).toMatchObject({
+      stage: 'desk_check',
+      version: 7,
+    });
+    expect(deskCheck.body.currentCandidate.id).toBe(taskingCandidate.body.id);
+    const approved = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/tasking/decisions`,
       {
         method: 'POST',
         body: JSON.stringify({
-          candidateSha256: candidate.contentSha256,
-          reason: 'A selected Candidate cannot be rejected.',
+          expectedIterationVersion: 7,
+          candidateId: taskingCandidate.body.id,
+          candidateSha256: taskingCandidate.body.contentSha256,
+          action: 'approve',
         }),
       },
     );
-    expect(rejectSelected.status).toBe(409);
+    expect(approved.status).toBe(200);
+    expectHalResource(approved, mediaTypes.deskCheckDecisionResult);
+    expect(approved.body.iteration).toMatchObject({
+      loop: 'tasking',
+      stage: 'approved',
+      version: 8,
+    });
+    expect(approved.body.approvedPlan).toMatchObject({
+      storyId,
+      storyRevisionId: scenarioDecision.body.storyRevision.id,
+      taskingCandidateId: taskingCandidate.body.id,
+      approvedByUserId: userId,
+      plan: expect.objectContaining({
+        contentSha256: taskingCandidate.body.contentSha256,
+        baseCommitSha,
+      }),
+    });
+    expect(approved.body._links).not.toHaveProperty('start-coding-run');
 
-    const rejected = await apiRequest(
-      `/api/workspaces/${workspaceId}/story-candidates/${rejectedCandidate.id}/reject`,
+    const removedDirectAdmission = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
       {
         method: 'POST',
         body: JSON.stringify({
-          candidateSha256: rejectedCandidate.contentSha256,
-          reason: 'This alternative violates the local source boundary.',
+          storyRevisionId: scenarioDecision.body.storyRevision.id,
+          baseCommitSha,
         }),
       },
     );
-    expect(rejected.status).toBe(200);
-    expectHalResource(rejected, mediaTypes.storyCandidate);
-    expect(rejected.body).toMatchObject({
-      status: 'rejected',
-      terminalDecisionId: expect.any(String),
-    });
-    expect(rejected.body._links).not.toHaveProperty('reject');
-
-    const otherWorkspace = await createContractWorkspace(
-      'Other Delivery Workspace',
-    );
-    const hiddenCandidate = await apiRequest(
-      `/api/workspaces/${otherWorkspace.body.id}/story-candidates/${proposed.body.id}`,
-    );
-    const hiddenStory = await apiRequest(
-      `/api/workspaces/${otherWorkspace.body.id}/stories/${storyId}`,
-    );
-    expect(hiddenCandidate.status).toBe(404);
-    expect(hiddenStory.status).toBe(404);
+    expect(removedDirectAdmission.status).toBe(404);
   });
 
   it('accepts Inbox JSON overhead while enforcing the domain body limit', async () => {
