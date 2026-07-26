@@ -23,7 +23,7 @@ import {
   WorkspaceInbox,
   WorkspaceInboxWorkflow,
 } from '../inbox';
-import { WorkspaceIterations } from '../iteration';
+import { WorkspaceIterations, WorkspaceUnderstanding } from '../iteration';
 import {
   LogicalEntity,
   LogicalEntityDescription,
@@ -56,6 +56,7 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
     private readonly workspaceInbox: WorkspaceInbox,
     private readonly workspaceInboxWorkflow: WorkspaceInboxWorkflow,
     private readonly workspaceIterations: WorkspaceIterations,
+    private readonly workspaceUnderstanding: WorkspaceUnderstanding,
     private readonly workspaceDelivery: WorkspaceDelivery,
     private readonly workspaceCodingRuns: WorkspaceCodingRuns,
   ) {}
@@ -141,6 +142,10 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   iterations(): WorkspaceIterations {
     return this.workspaceIterations;
+  }
+
+  understanding(): WorkspaceUnderstanding {
+    return this.workspaceUnderstanding;
   }
 
   listStories(query: StoryListQuery): Promise<[Story[], number]> {

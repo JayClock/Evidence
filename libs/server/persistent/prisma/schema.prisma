@@ -18,6 +18,9 @@ model User {
   decidedInboxCandidates  InboxCandidateDecision[] @relation("InboxCandidateDecisionActor")
   admittedIterations      Iteration[]              @relation("IterationAdmissionActor")
   decidedKickoffProposals KickoffDecision[]        @relation("KickoffDecisionActor")
+  answeredClarifications  StoryClarification[]     @relation("ClarificationAnswerActor")
+  waivedClarifications    StoryClarification[]     @relation("ClarificationWaiverActor")
+  understandingDecisions  UnderstandingDecision[]  @relation("UnderstandingDecisionActor")
 
   @@map("users")
 }
@@ -43,6 +46,9 @@ model Workspace {
   iterations              Iteration[]
   activityRuns            ActivityRun[]
   stories                 Story[]
+  storyClarifications     StoryClarification[]
+  scenarioSetProposals    ScenarioSetProposal[]
+  understandingDecisions  UnderstandingDecision[]
   codingRuns              CodingRun[]
   sequence                WorkspaceSequence?
 
@@ -325,30 +331,33 @@ model InboxCandidateDecision {
 }
 
 model Iteration {
-  id                         String              @id
+  id                         String                  @id
   reference                  String
-  workspaceId                String              @map("workspace_id")
-  sourceCandidateId          String              @unique @map("source_candidate_id")
-  sourceCandidateSha256      String              @map("source_candidate_sha256")
+  workspaceId                String                  @map("workspace_id")
+  sourceCandidateId          String                  @unique @map("source_candidate_id")
+  sourceCandidateSha256      String                  @map("source_candidate_sha256")
   lifecycle                  String
   loop                       String
   stage                      String
   lane                       String
-  version                    Int                 @default(1)
-  baseCommitSha              String              @map("base_commit_sha")
-  branchName                 String?             @map("branch_name")
-  provisioningFailureSummary String?             @map("provisioning_failure_summary")
-  admittedByUserId           String              @map("admitted_by_user_id")
-  admittedAt                 DateTime            @map("admitted_at")
-  updatedAt                  DateTime            @map("updated_at")
-  workspace                  Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  sourceCandidate            InboxStoryCandidate @relation(fields: [sourceCandidateId], references: [id], onDelete: Restrict)
-  admittedBy                 User                @relation("IterationAdmissionActor", fields: [admittedByUserId], references: [id], onDelete: Restrict)
+  version                    Int                     @default(1)
+  baseCommitSha              String                  @map("base_commit_sha")
+  branchName                 String?                 @map("branch_name")
+  provisioningFailureSummary String?                 @map("provisioning_failure_summary")
+  admittedByUserId           String                  @map("admitted_by_user_id")
+  admittedAt                 DateTime                @map("admitted_at")
+  updatedAt                  DateTime                @map("updated_at")
+  workspace                  Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sourceCandidate            InboxStoryCandidate     @relation(fields: [sourceCandidateId], references: [id], onDelete: Restrict)
+  admittedBy                 User                    @relation("IterationAdmissionActor", fields: [admittedByUserId], references: [id], onDelete: Restrict)
   intake                     IterationIntake?
   kickoffProposals           KickoffProposal[]
   kickoffDecisions           KickoffDecision[]
-  story                      Story?              @relation("IterationStory")
+  story                      Story?                  @relation("IterationStory")
   activityRuns               ActivityRun[]
+  storyClarifications        StoryClarification[]
+  scenarioSetProposals       ScenarioSetProposal[]
+  understandingDecisions     UnderstandingDecision[]
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, lifecycle, lane, admittedAt])
@@ -473,45 +482,53 @@ model StoryCardRevision {
 }
 
 model Story {
-  id                String                     @id
-  workspaceId       String                     @map("workspace_id")
-  iterationId       String?                    @unique @map("iteration_id")
-  reference         String
-  latestRevisionId  String?                    @unique @map("latest_revision_id")
-  version           Int                        @default(1)
-  createdAt         DateTime                   @map("created_at")
-  updatedAt         DateTime                   @map("updated_at")
-  workspace         Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  iteration         Iteration?                 @relation("IterationStory", fields: [iterationId], references: [id], onDelete: Restrict)
-  revisions         StoryRevision[]            @relation("StoryRevisions")
-  latestRevision    StoryRevision?             @relation("LatestStoryRevision", fields: [latestRevisionId], references: [id], onDelete: Restrict)
-  problemStatements ProblemStatementRevision[]
-  storyCards        StoryCardRevision[]
-  codingRuns        CodingRun[]
+  id                     String                     @id
+  workspaceId            String                     @map("workspace_id")
+  iterationId            String?                    @unique @map("iteration_id")
+  reference              String
+  latestRevisionId       String?                    @unique @map("latest_revision_id")
+  version                Int                        @default(1)
+  createdAt              DateTime                   @map("created_at")
+  updatedAt              DateTime                   @map("updated_at")
+  workspace              Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration              Iteration?                 @relation("IterationStory", fields: [iterationId], references: [id], onDelete: Restrict)
+  revisions              StoryRevision[]            @relation("StoryRevisions")
+  latestRevision         StoryRevision?             @relation("LatestStoryRevision", fields: [latestRevisionId], references: [id], onDelete: Restrict)
+  problemStatements      ProblemStatementRevision[]
+  storyCards             StoryCardRevision[]
+  codingRuns             CodingRun[]
+  clarifications         StoryClarification[]
+  scenarioProposals      ScenarioSetProposal[]
+  understandingDecisions UnderstandingDecision[]
 
   @@index([workspaceId, updatedAt])
   @@map("stories")
 }
 
 model StoryRevision {
-  id              String                  @id
-  storyId         String                  @map("story_id")
-  revisionNumber  Int                     @map("revision_number")
-  title           String
-  problem         String
-  role            String
-  goal            String
-  value           String
-  cognitiveMode   String                  @map("cognitive_mode")
-  contentSha256   String                  @map("content_sha256")
-  createdByUserId String                  @map("created_by_user_id")
-  createdAt       DateTime                @map("created_at")
-  story           Story                   @relation("StoryRevisions", fields: [storyId], references: [id], onDelete: Cascade)
-  latestForStory  Story?                  @relation("LatestStoryRevision")
-  createdBy       User                    @relation("StoryRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  citations       StoryRevisionCitation[]
-  scenarios       StoryScenario[]
-  codingRuns      CodingRun[]
+  id                             String                  @id
+  storyId                        String                  @map("story_id")
+  revisionNumber                 Int                     @map("revision_number")
+  title                          String
+  problem                        String
+  role                           String
+  goal                           String
+  value                          String
+  cognitiveMode                  String                  @map("cognitive_mode")
+  contentSha256                  String                  @map("content_sha256")
+  createdByUserId                String                  @map("created_by_user_id")
+  createdAt                      DateTime                @map("created_at")
+  story                          Story                   @relation("StoryRevisions", fields: [storyId], references: [id], onDelete: Cascade)
+  latestForStory                 Story?                  @relation("LatestStoryRevision")
+  createdBy                      User                    @relation("StoryRevisionAuthor", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  citations                      StoryRevisionCitation[]
+  scenarios                      StoryScenario[]
+  codingRuns                     CodingRun[]
+  clarificationQuestions         StoryClarification[]
+  scenarioProposals              ScenarioSetProposal[]
+  sourceUnderstandingDecisions   UnderstandingDecision[] @relation("UnderstandingDecisionSourceRevision")
+  authorityUnderstandingDecision UnderstandingDecision?  @relation("UnderstandingDecisionStoryRevision", fields: [understandingDecisionId], references: [id], onDelete: Restrict)
+  understandingDecisionId        String?                 @unique @map("understanding_decision_id")
 
   @@unique([storyId, revisionNumber])
   @@index([storyId, createdAt])
@@ -519,17 +536,134 @@ model StoryRevision {
 }
 
 model StoryScenario {
-  id              String        @id
-  storyRevisionId String        @map("story_revision_id")
-  position        Int
-  title           String
-  givenSteps      Json          @map("given_steps")
-  whenStep        String        @map("when_step")
-  thenSteps       Json          @map("then_steps")
-  storyRevision   StoryRevision @relation(fields: [storyRevisionId], references: [id], onDelete: Cascade)
+  id                      String                @id
+  reference               String
+  storyRevisionId         String                @map("story_revision_id")
+  sourceDraftId           String                @map("source_draft_id")
+  understandingDecisionId String                @map("understanding_decision_id")
+  position                Int
+  title                   String
+  givenSteps              Json                  @map("given_steps")
+  whenStep                String                @map("when_step")
+  thenSteps               Json                  @map("then_steps")
+  businessData            Json                  @map("business_data")
+  confirmedAt             DateTime              @map("confirmed_at")
+  storyRevision           StoryRevision         @relation(fields: [storyRevisionId], references: [id], onDelete: Cascade)
+  sourceDraft             ScenarioDraft         @relation(fields: [sourceDraftId], references: [id], onDelete: Restrict)
+  understandingDecision   UnderstandingDecision @relation(fields: [understandingDecisionId], references: [id], onDelete: Restrict)
 
   @@unique([storyRevisionId, position])
+  @@unique([storyRevisionId, reference])
+  @@index([sourceDraftId])
+  @@index([understandingDecisionId])
   @@map("story_scenarios")
+}
+
+model StoryClarification {
+  id               String        @id
+  reference        String
+  workspaceId      String        @map("workspace_id")
+  iterationId      String        @map("iteration_id")
+  storyId          String        @map("story_id")
+  storyRevisionId  String        @map("story_revision_id")
+  sequence         Int
+  target           String
+  question         String
+  status           String
+  askedAt          DateTime      @map("asked_at")
+  answer           String?
+  answeredByUserId String?       @map("answered_by_user_id")
+  answeredAt       DateTime?     @map("answered_at")
+  waivedReason     String?       @map("waived_reason")
+  waivedByUserId   String?       @map("waived_by_user_id")
+  waivedAt         DateTime?     @map("waived_at")
+  contentSha256    String        @map("content_sha256")
+  workspace        Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration        Iteration     @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story            Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision    StoryRevision @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  answeredBy       User?         @relation("ClarificationAnswerActor", fields: [answeredByUserId], references: [id], onDelete: Restrict)
+  waivedBy         User?         @relation("ClarificationWaiverActor", fields: [waivedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([iterationId, reference])
+  @@unique([iterationId, sequence])
+  @@index([workspaceId, iterationId, askedAt])
+  @@index([storyRevisionId])
+  @@map("story_clarifications")
+}
+
+model ScenarioSetProposal {
+  id              String                 @id
+  reference       String
+  workspaceId     String                 @map("workspace_id")
+  iterationId     String                 @map("iteration_id")
+  storyId         String                 @map("story_id")
+  storyRevisionId String                 @map("story_revision_id")
+  sequence        Int
+  contentSha256   String                 @map("content_sha256")
+  proposedAt      DateTime               @map("proposed_at")
+  workspace       Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration       Iteration              @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story           Story                  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision   StoryRevision          @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  drafts          ScenarioDraft[]
+  decision        UnderstandingDecision?
+
+  @@unique([iterationId, reference])
+  @@unique([iterationId, sequence])
+  @@index([workspaceId, iterationId, proposedAt])
+  @@index([storyRevisionId])
+  @@map("scenario_set_proposals")
+}
+
+model ScenarioDraft {
+  id                 String              @id
+  reference          String
+  proposalId         String              @map("proposal_id")
+  position           Int
+  title              String
+  givenSteps         Json                @map("given_steps")
+  whenStep           String              @map("when_step")
+  thenSteps          Json                @map("then_steps")
+  businessData       Json                @map("business_data")
+  contentSha256      String              @map("content_sha256")
+  proposal           ScenarioSetProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  confirmedScenarios StoryScenario[]
+
+  @@unique([proposalId, reference])
+  @@unique([proposalId, position])
+  @@map("scenario_drafts")
+}
+
+model UnderstandingDecision {
+  id                   String               @id
+  reference            String
+  workspaceId          String               @map("workspace_id")
+  iterationId          String               @map("iteration_id")
+  storyId              String               @map("story_id")
+  storyRevisionId      String               @map("story_revision_id")
+  proposalId           String?              @unique @map("proposal_id")
+  proposalSha256       String?              @map("proposal_sha256")
+  action               String
+  reason               String?
+  selectedDraftIds     Json                 @map("selected_draft_ids")
+  confirmedScenarioIds Json                 @map("confirmed_scenario_ids")
+  decidedByUserId      String               @map("decided_by_user_id")
+  decidedAt            DateTime             @map("decided_at")
+  contentSha256        String               @map("content_sha256")
+  workspace            Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration            Iteration            @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story                Story                @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  sourceStoryRevision  StoryRevision        @relation("UnderstandingDecisionSourceRevision", fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  proposal             ScenarioSetProposal? @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  decidedBy            User                 @relation("UnderstandingDecisionActor", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  createdStoryRevision StoryRevision?       @relation("UnderstandingDecisionStoryRevision")
+  confirmedScenarios   StoryScenario[]
+
+  @@unique([iterationId, reference])
+  @@index([workspaceId, iterationId, decidedAt])
+  @@index([storyRevisionId])
+  @@map("understanding_decisions")
 }
 
 model CodingRun {

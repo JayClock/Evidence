@@ -15,7 +15,7 @@ import type {
   WorkspaceInbox,
   WorkspaceInboxWorkflow,
 } from '../inbox';
-import type { WorkspaceIterations } from '../iteration';
+import type { WorkspaceIterations, WorkspaceUnderstanding } from '../iteration';
 import type {
   LogicalEntity,
   LogicalEntityDescription,
@@ -141,6 +141,7 @@ function workspaceFixture() {
 
   const inboxWorkflow = {} as WorkspaceInboxWorkflow;
   const iterations = {} as WorkspaceIterations;
+  const understanding = {} as WorkspaceUnderstanding;
 
   const delivery = {
     listStories: vi.fn(async () => [[story], 1] as [Story[], number]),
@@ -193,6 +194,7 @@ function workspaceFixture() {
     inbox,
     inboxWorkflow,
     iterations,
+    understanding,
     delivery,
     codingRuns,
   );
@@ -206,6 +208,7 @@ function workspaceFixture() {
     inbox,
     inboxWorkflow,
     iterations,
+    understanding,
     inboxItem,
     inboxRevision,
     story,

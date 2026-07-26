@@ -42,6 +42,7 @@ function revisionInput() {
           ' A dedicated branch and worktree are created. ',
           ' The primary working tree is unchanged. ',
         ],
+        businessData: [' repository=alpha ', ' branch=evidence/run-1 '],
       },
     ],
   };
@@ -124,6 +125,7 @@ describe('Story Revision validation', () => {
             'A dedicated branch and worktree are created.',
             'The primary working tree is unchanged.',
           ],
+          businessData: ['repository=alpha', 'branch=evidence/run-1'],
         },
       ],
     });

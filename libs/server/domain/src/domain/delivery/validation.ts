@@ -100,6 +100,10 @@ function normalizeScenarios(
         scenario.then,
         `Scenario ${String(index + 1)} Then`,
       ),
+      businessData: normalizeScenarioSteps(
+        scenario.businessData,
+        `Scenario ${String(index + 1)} businessData`,
+      ),
     };
   });
 }

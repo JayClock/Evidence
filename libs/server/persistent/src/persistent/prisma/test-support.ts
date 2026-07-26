@@ -44,6 +44,9 @@ export interface MockPrismaStore {
   storyRevision: Record<string, MockFn>;
   storyRevisionCitation: Record<string, MockFn>;
   storyScenario: Record<string, MockFn>;
+  storyClarification: Record<string, MockFn>;
+  scenarioSetProposal: Record<string, MockFn>;
+  understandingDecision: Record<string, MockFn>;
   codingRun: Record<string, MockFn>;
   $transaction: MockFn;
 }
@@ -126,6 +129,7 @@ export function mockPrismaStore(): MockPrismaStore {
       'findFirst',
       'count',
       'create',
+      'update',
       'updateMany',
     ]),
     iterationIntake: delegate(['findFirst', 'create']),
@@ -142,9 +146,35 @@ export function mockPrismaStore(): MockPrismaStore {
       'update',
       'updateMany',
     ]),
-    storyRevision: delegate(['findMany', 'findFirst', 'count', 'create']),
+    storyRevision: delegate([
+      'findMany',
+      'findFirst',
+      'findUnique',
+      'count',
+      'create',
+    ]),
     storyRevisionCitation: delegate(['createMany']),
-    storyScenario: delegate(['createMany']),
+    storyScenario: delegate(['count', 'createMany']),
+    storyClarification: delegate([
+      'findMany',
+      'findFirst',
+      'count',
+      'create',
+      'update',
+      'updateMany',
+    ]),
+    scenarioSetProposal: delegate([
+      'findFirst',
+      'findUnique',
+      'count',
+      'create',
+    ]),
+    understandingDecision: delegate([
+      'findMany',
+      'findUnique',
+      'count',
+      'create',
+    ]),
     codingRun: delegate([
       'findMany',
       'findFirst',

@@ -32,10 +32,13 @@ export interface StoryScenarioInput {
   given: string[];
   when: string;
   then: string[];
+  businessData: string[];
 }
 
 export interface StoryScenarioDescription extends StoryScenarioInput {
   id: string;
+  reference: string;
+  sourceDraftId: string;
 }
 
 export interface StoryRevisionInput extends StoryContentInput {

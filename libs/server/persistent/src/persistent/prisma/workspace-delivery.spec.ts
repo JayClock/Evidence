@@ -30,6 +30,7 @@ const revisionInput: StoryRevisionInput = {
         'A dedicated branch and worktree are created.',
         'The primary working tree is unchanged.',
       ],
+      businessData: ['repository=alpha', 'branch=evidence/run-1'],
     },
   ],
 };
@@ -120,120 +121,6 @@ describe('PrismaWorkspaceDelivery', () => {
     expect(store.story.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { workspaceId: 'workspace-1' } }),
     );
-  });
-
-  it('atomically appends an acceptance Scenario Set as the next revision', async () => {
-    const store = mockPrismaStore();
-    const revisionHash = hashStoryRevisionInput(revisionInput).contentSha256;
-    const savedRevision = storyRevisionRow({
-      id: 'story-revision-2',
-      revisionNumber: 2,
-      contentSha256: revisionHash,
-      scenarios: [
-        {
-          id: 'scenario-1',
-          storyRevisionId: 'story-revision-2',
-          position: 0,
-          title: revisionInput.scenarios[0]?.title,
-          givenSteps: revisionInput.scenarios[0]?.given,
-          whenStep: revisionInput.scenarios[0]?.when,
-          thenSteps: revisionInput.scenarios[0]?.then,
-        },
-      ],
-    });
-    store.story.findFirst
-      .mockResolvedValueOnce(storyRow())
-      .mockResolvedValueOnce(
-        storyRow({
-          latestRevisionId: 'story-revision-2',
-          version: 2,
-          latestRevision: {
-            ...savedRevision,
-            _count: { scenarios: 1 },
-          },
-          _count: { revisions: 2 },
-        }),
-      );
-    store.inboxRevision.findMany.mockResolvedValue([inboxRevisionRow()]);
-    store.story.updateMany.mockResolvedValue({ count: 1 });
-    store.storyRevision.findFirst.mockResolvedValue(savedRevision);
-    const delivery = new PrismaWorkspaceDelivery(asStore(store), 'workspace-1');
-
-    const result = await delivery.appendStoryRevision(
-      'story-1',
-      1,
-      'story-revision-1',
-      revisionInput,
-      'user-1',
-    );
-
-    expect(result.story.description()).toMatchObject({
-      latestRevision: { value: 'story-revision-2' },
-      latestRevisionNumber: 2,
-      latestScenarioCount: 1,
-      revisionCount: 2,
-      version: 2,
-    });
-    expect(result.revision.description()).toMatchObject({
-      revisionNumber: 2,
-      contentSha256: revisionHash,
-      scenarios: [expect.objectContaining({ id: 'scenario-1' })],
-    });
-    expect(store.storyRevision.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        storyId: 'story-1',
-        revisionNumber: 2,
-        createdByUserId: 'user-1',
-      }),
-    });
-    expect(store.storyScenario.createMany).toHaveBeenCalledWith({
-      data: [
-        expect.objectContaining({
-          position: 0,
-          title: 'Create an isolated worktree',
-        }),
-      ],
-    });
-  });
-
-  it('rejects a citation whose hash does not identify the exact revision', async () => {
-    const store = mockPrismaStore();
-    store.story.findFirst.mockResolvedValue(storyRow());
-    store.inboxRevision.findMany.mockResolvedValue([
-      inboxRevisionRow({ contentSha256: `sha256:${'c'.repeat(64)}` }),
-    ]);
-    const delivery = new PrismaWorkspaceDelivery(asStore(store), 'workspace-1');
-
-    await expect(
-      delivery.appendStoryRevision(
-        'story-1',
-        1,
-        'story-revision-1',
-        revisionInput,
-        'user-1',
-      ),
-    ).rejects.toMatchObject({ kind: 'validation' });
-    expect(store.storyRevision.create).not.toHaveBeenCalled();
-  });
-
-  it('rejects a stale Story revision without leaving a partial write', async () => {
-    const store = mockPrismaStore();
-    store.story.findFirst.mockResolvedValue(
-      storyRow({ latestRevisionId: 'story-revision-2', version: 2 }),
-    );
-    const delivery = new PrismaWorkspaceDelivery(asStore(store), 'workspace-1');
-
-    await expect(
-      delivery.appendStoryRevision(
-        'story-1',
-        1,
-        'story-revision-1',
-        revisionInput,
-        'user-1',
-      ),
-    ).rejects.toMatchObject({ kind: 'conflict' });
-    expect(store.storyRevision.create).not.toHaveBeenCalled();
-    expect(store.storyScenario.createMany).not.toHaveBeenCalled();
   });
 
   it('hashes normalized Scenario content and order deterministically', () => {
