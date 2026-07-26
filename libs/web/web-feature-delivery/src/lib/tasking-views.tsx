@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type {
   DeskCheckAction,
   DeskCheckDecisionInput,
@@ -40,6 +41,7 @@ export function TaskingDetailView({
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
   const tasking = state.data;
   const candidate = tasking.currentCandidate;
   const bridge = window.evidenceDesktop;
@@ -71,6 +73,30 @@ export function TaskingDetailView({
       await refresh();
     } catch (caught) {
       setError(message(caught, 'The Tasking Analyst could not complete.'));
+    } finally {
+      setPending(false);
+      setProgress(null);
+    }
+  };
+
+  const startPair = async () => {
+    const pairHref = state.getLink('pair')?.href;
+    if (!bridge?.startPair || !pairHref || pending) return;
+    setPending(true);
+    setError(null);
+    setProgress('Starting the locked Pair execution plan…');
+    try {
+      await bridge.startPair(
+        {
+          id: pairRequestId(),
+          workspaceId: workspaceId(state),
+          iterationId: tasking.iteration.id,
+        },
+        (event) => setProgress(event.message),
+      );
+      navigate(appPath(pairHref));
+    } catch (caught) {
+      setError(message(caught, 'The approved Pair Plan could not run.'));
     } finally {
       setPending(false);
       setProgress(null);
@@ -161,6 +187,28 @@ export function TaskingDetailView({
                 calls and{' '}
                 {tasking.approvedPlan.plan.executionBudget.maxCheckpoints}{' '}
                 checkpoints.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          {tasking.iteration.loop === 'tasking' &&
+          tasking.iteration.stage === 'approved' &&
+          tasking.approvedPlan ? (
+            <Button
+              disabled={pending || !bridge?.startPair}
+              type="button"
+              onClick={() => void startPair()}
+            >
+              {pending ? 'Running Pair…' : 'Run approved Pair Plan'}
+            </Button>
+          ) : null}
+          {tasking.iteration.loop === 'tasking' &&
+          tasking.iteration.stage === 'approved' &&
+          tasking.approvedPlan &&
+          !bridge?.startPair ? (
+            <Alert>
+              <AlertDescription>
+                Open Evidence Desktop to execute Pair in the isolated Iteration
+                worktree. Browser mode can only inspect Server evidence.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -384,6 +432,15 @@ function workspaceId(state: State<TaskingResource>): string {
 
 function requestId(): string {
   return `tasking:${globalThis.crypto?.randomUUID?.() ?? String(Date.now())}`;
+}
+
+function pairRequestId(): string {
+  return `pair:${globalThis.crypto?.randomUUID?.() ?? String(Date.now())}`;
+}
+
+function appPath(href: string): string {
+  const url = new URL(href, window.location.origin);
+  return `${url.pathname}${url.search}`;
 }
 
 function formatLabel(value: string): string {

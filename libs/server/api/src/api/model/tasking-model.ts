@@ -78,6 +78,8 @@ export function taskingModel(workspaceId: string, view: TaskingView) {
     links['start-pair'] = link(
       workspaceIterationPairRunsHref(workspaceId, iterationId),
     );
+  } else if (iteration.loop === 'pair') {
+    links.pair = link(workspaceIterationPairHref(workspaceId, iterationId));
   }
   return {
     _links: links,

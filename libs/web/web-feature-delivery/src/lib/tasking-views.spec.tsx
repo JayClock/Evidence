@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { State, TaskingResource } from '@evidence/api-client';
 import { TaskingDetailView } from './tasking-views';
 
@@ -124,6 +126,11 @@ function taskingState({
           href: '/api/workspaces/workspace-1/iterations/iteration-1/tasking/decisions',
         };
       }
+      if (relation === 'pair' && data.iteration.stage === 'approved') {
+        return {
+          href: '/api/workspaces/workspace-1/iterations/iteration-1/pair',
+        };
+      }
       return undefined;
     },
     follow: (relation: string) => ({
@@ -144,7 +151,9 @@ describe('TaskingDetailView', () => {
     const runTaskingAnalyst = vi.fn(async () => undefined);
     window.evidenceDesktop = { runTaskingAnalyst } as never;
 
-    render(<TaskingDetailView resourceState={taskingState({ refresh })} />);
+    renderTasking(
+      <TaskingDetailView resourceState={taskingState({ refresh })} />,
+    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Run local Tasking Analyst' }),
@@ -167,7 +176,7 @@ describe('TaskingDetailView', () => {
     const post = vi.fn().mockResolvedValue({});
     const refresh = vi.fn().mockResolvedValue(approved);
 
-    render(
+    renderTasking(
       <TaskingDetailView
         resourceState={taskingState({
           data: taskingData('desk_check'),
@@ -195,4 +204,35 @@ describe('TaskingDetailView', () => {
     ).toBeTruthy();
     expect(screen.queryByText(/Start local coding/i)).toBeNull();
   });
+
+  it('starts the exact approved Plan through the Desktop Pair bridge', async () => {
+    const startPair = vi.fn().mockResolvedValue({
+      status: 'approval_required',
+      checkpoint: 'quality_gates_passed',
+    });
+    window.evidenceDesktop = { startPair } as never;
+    renderTasking(
+      <TaskingDetailView
+        resourceState={taskingState({ data: taskingData('approved') })}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Run approved Pair Plan' }),
+    );
+
+    await waitFor(() =>
+      expect(startPair).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          iterationId: 'iteration-1',
+        }),
+        expect.any(Function),
+      ),
+    );
+  });
 });
+
+function renderTasking(view: ReactNode) {
+  return render(<MemoryRouter>{view}</MemoryRouter>);
+}

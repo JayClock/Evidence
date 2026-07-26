@@ -19,6 +19,7 @@ import {
   type Link as HalLink,
   type LogicalEntityCollectionResource,
   type LogicalEntityResource,
+  type PairResource,
   type RootResource,
   type State,
   type StoryCandidateCollectionResource,
@@ -47,6 +48,7 @@ import {
   IterationDetailView,
   IterationIntakeDetailView,
   KickoffDetailView,
+  PairDetailView,
   StoryCandidateCollectionView,
   StoryCandidateDetailView,
   StoryCollectionView,
@@ -278,6 +280,10 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
         <TaskingDetailView
           resourceState={resourceState as State<TaskingResource>}
         />
+      );
+    case resourceContentTypes.pair:
+      return (
+        <PairDetailView resourceState={resourceState as State<PairResource>} />
       );
     case resourceContentTypes.story:
       return (
