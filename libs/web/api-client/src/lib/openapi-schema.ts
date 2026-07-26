@@ -597,6 +597,192 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_pair'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['start_pair'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/lease/claim': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['claim_pair_lease'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/lease/heartbeat': {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['heartbeat_pair_lease'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/driver-attempts': {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_pair_driver_attempt'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/command-observations': {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_pair_command_observation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/red-reviews': {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_pair_red_review'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/exceptions': {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_pair_exception'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['decide_pair'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/stories': {
     parameters: {
       query?: never;
@@ -1169,7 +1355,7 @@ export interface components {
       /** @enum {string} */
       lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
       /** @enum {string} */
-      loop: 'kickoff' | 'understand' | 'tasking';
+      loop: 'kickoff' | 'understand' | 'tasking' | 'pair';
       /** @enum {string} */
       stage:
         | 'candidate_review'
@@ -1180,7 +1366,16 @@ export interface components {
         | 'drafting'
         | 'desk_check'
         | 'knowledge_gap'
-        | 'approved';
+        | 'approved'
+        | 'plan_confirmed'
+        | 'test_written'
+        | 'red_observed'
+        | 'implementation_written'
+        | 'green_observed'
+        | 'refactored'
+        | 'quality_gate_failed'
+        | 'quality_gates_passed'
+        | 'exception';
       /** @enum {string} */
       lane: 'discovery';
       /** Format: int32 */
@@ -1913,6 +2108,396 @@ export interface components {
       decision: components['schemas']['DeskCheckDecisionResource'];
       approvedPlan: components['schemas']['ApprovedTaskingPlanResource'] | null;
     };
+    /** @enum {string} */
+    PairStatus:
+      | 'running'
+      | 'approval_required'
+      | 'approved'
+      | 'exception'
+      | 'cancelled';
+    /** @enum {string} */
+    PairCheckpoint:
+      | 'plan_confirmed'
+      | 'test_written'
+      | 'red_observed'
+      | 'implementation_written'
+      | 'green_observed'
+      | 'refactored'
+      | 'quality_gate_failed'
+      | 'quality_gates_passed'
+      | 'approved'
+      | 'exception';
+    /** @enum {string} */
+    PairDriverRole: 'test' | 'production' | 'refactor';
+    /** @enum {string} */
+    PairDriverMode:
+      | 'write_test'
+      | 'repair_test'
+      | 'implement'
+      | 'repair_implementation'
+      | 'refactor'
+      | 'repair_refactor'
+      | 'repair_quality_gate';
+    /** @enum {string} */
+    PairCommandStage: 'red' | 'green' | 'refactor' | 'quality_gate';
+    /** @enum {string} */
+    PairTermination: 'exited' | 'timed_out' | 'signaled' | 'spawn_error';
+    /** @enum {string} */
+    PairRedClassification:
+      | 'behavior'
+      | 'compile'
+      | 'dependency'
+      | 'configuration'
+      | 'network'
+      | 'fixture'
+      | 'other';
+    /** @enum {string} */
+    PairExceptionKind:
+      | 'unexpected_green'
+      | 'pseudo_red'
+      | 'green_failed'
+      | 'refactor_failed'
+      | 'quality_gate_failed'
+      | 'path_violation'
+      | 'git_head_changed'
+      | 'project_ownership_changed'
+      | 'lease_expired'
+      | 'interrupted'
+      | 'budget_exhausted'
+      | 'no_progress'
+      | 'evidence_mismatch'
+      | 'runtime_failure';
+    /** @enum {string} */
+    PairDecisionAction:
+      | 'approve'
+      | 'back_test'
+      | 'back_implementation'
+      | 'back_tasking'
+      | 'retry_quality'
+      | 'cancel';
+    PairCursor: {
+      unitIndex: number;
+      pendingRefactorStepKey: string | null;
+      refactorVerificationIndex: number;
+      qualityGateIndex: number;
+    };
+    PairBudgetUsage: {
+      agentCalls: number;
+      checkpoints: number;
+      repeatedFingerprintCount: number;
+      noProgressCheckpoints: number;
+    };
+    PairRunResource: {
+      id: string;
+      reference: string;
+      workspaceId: string;
+      iterationId: string;
+      storyId: string;
+      storyRevisionId: string;
+      storyRevisionSha256: string;
+      approvedTaskingPlanId: string;
+      approvedTaskingPlanSha256: string;
+      baseCommitSha: string;
+      branchName: string;
+      status: components['schemas']['PairStatus'];
+      checkpoint: components['schemas']['PairCheckpoint'];
+      version: number;
+      cursor: components['schemas']['PairCursor'];
+      completedTestIds: string[];
+      completedStepKeys: string[];
+      executionBudget: components['schemas']['PairExecutionBudget'];
+      budgetUsage: components['schemas']['PairBudgetUsage'];
+      leaseOwnerId: string | null;
+      /** Format: date-time */
+      leaseExpiresAt: string | null;
+      currentDiffSha256: string | null;
+      finalManifestSha256: string | null;
+      approvedCommitSha: string | null;
+      /** Format: date-time */
+      startedAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      /** Format: date-time */
+      completedAt: string | null;
+    };
+    PairWorkUnit: {
+      index: number;
+      stepKey: string;
+      task: components['schemas']['TaskingTaskResource'];
+      test: components['schemas']['TaskingTestResource'];
+      process: components['schemas']['TaskingProcessSelection'];
+      step: components['schemas']['TaskingProcessStepDefinition'];
+      focusedCommand: {
+        command: string;
+        projectId: string | null;
+      };
+      testRoots: string[];
+      productionRoots: string[];
+    };
+    PairQualityGate: {
+      index: number;
+      processId: string;
+      projectId: string | null;
+      target: string | null;
+      command: string;
+    };
+    PairActionAuthority: {
+      actionId: string;
+      expectedPairVersion: number;
+    };
+    PairRunDriverAction: components['schemas']['PairActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'run_driver';
+      role: components['schemas']['PairDriverRole'];
+      mode: components['schemas']['PairDriverMode'];
+      workUnit: components['schemas']['PairWorkUnit'] | null;
+      stepKey: string | null;
+      allowedTestRoots: string[];
+      allowedProductionRoots: string[];
+      frozenTestPaths: string[];
+      diagnosticObservationId: string | null;
+    };
+    PairExecuteCommandAction: components['schemas']['PairActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'execute_command';
+      stage: components['schemas']['PairCommandStage'];
+      workUnit: components['schemas']['PairWorkUnit'] | null;
+      gate: components['schemas']['PairQualityGate'] | null;
+      command: string;
+      timeoutMs: number;
+    };
+    PairReviewRedAction: components['schemas']['PairActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'review_red';
+      workUnit: components['schemas']['PairWorkUnit'];
+      observationId: string;
+      /** @enum {string} */
+      expectedFailureKind: 'behavior';
+      expectedFailure: string;
+    };
+    PairAwaitHumanAction: components['schemas']['PairActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'await_human';
+      manifestSha256: string;
+    };
+    PairResolveExceptionAction: components['schemas']['PairActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'resolve_exception';
+      exceptionId: string;
+      allowedRoutes: components['schemas']['PairDecisionAction'][];
+    };
+    PairNextAction:
+      | components['schemas']['PairRunDriverAction']
+      | components['schemas']['PairExecuteCommandAction']
+      | components['schemas']['PairReviewRedAction']
+      | components['schemas']['PairAwaitHumanAction']
+      | components['schemas']['PairResolveExceptionAction'];
+    PairDriverAttemptResource: {
+      id: string;
+      pairRunId: string;
+      actionId: string;
+      sequence: number;
+      role: components['schemas']['PairDriverRole'];
+      mode: components['schemas']['PairDriverMode'];
+      taskId: string | null;
+      testId: string | null;
+      processId: string | null;
+      stepId: string | null;
+      summary: string;
+      changedPaths: string[];
+      beforeWorktreeSha256: string;
+      afterWorktreeSha256: string;
+      diffSha256: string;
+      agentCallCount: number;
+      inputTokens: number | null;
+      outputTokens: number | null;
+      /** Format: date-time */
+      completedAt: string;
+      recordSha256: string;
+    };
+    PairCommandObservationResource: {
+      id: string;
+      pairRunId: string;
+      actionId: string;
+      sequence: number;
+      stage: components['schemas']['PairCommandStage'];
+      taskId: string | null;
+      testId: string | null;
+      processId: string;
+      stepId: string | null;
+      command: string;
+      termination: components['schemas']['PairTermination'];
+      exitCode: number | null;
+      signal: string | null;
+      durationMs: number;
+      stdoutSha256: string;
+      stdoutBytes: number;
+      stdoutLines: number;
+      stderrSha256: string;
+      stderrBytes: number;
+      stderrLines: number;
+      worktreeSha256: string;
+      diffSha256: string;
+      failureFingerprint: string | null;
+      /** Format: date-time */
+      observedAt: string;
+      previousRecordSha256: string | null;
+      recordSha256: string;
+    };
+    PairRedReviewResource: {
+      id: string;
+      pairRunId: string;
+      actionId: string;
+      observationId: string;
+      classification: components['schemas']['PairRedClassification'];
+      accepted: boolean;
+      reason: string;
+      /** Format: date-time */
+      reviewedAt: string;
+      recordSha256: string;
+    };
+    PairAutomationExceptionResource: {
+      id: string;
+      pairRunId: string;
+      actionId: string | null;
+      kind: components['schemas']['PairExceptionKind'];
+      summary: string;
+      failureFingerprint: string | null;
+      allowedRoutes: components['schemas']['PairDecisionAction'][];
+      /** Format: date-time */
+      raisedAt: string;
+      /** Format: date-time */
+      resolvedAt: string | null;
+      recordSha256: string;
+    };
+    PairExecutionManifestResource: {
+      id: string;
+      pairRunId: string;
+      approvedTaskingPlanSha256: string;
+      storyRevisionSha256: string;
+      baseCommitSha: string;
+      completedTestIds: string[];
+      completedStepKeys: string[];
+      driverAttemptIds: string[];
+      commandObservationIds: string[];
+      redReviewIds: string[];
+      changedPaths: string[];
+      finalDiffSha256: string;
+      evidenceChainSha256: string;
+      /** Format: date-time */
+      generatedAt: string;
+      contentSha256: string;
+    };
+    PairCodingDecisionResource: {
+      id: string;
+      pairRunId: string;
+      action: components['schemas']['PairDecisionAction'];
+      reason: string;
+      manifestSha256: string | null;
+      diffSha256: string | null;
+      commitSha: string | null;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    PairResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      story: components['schemas']['StoryResource'];
+      storyRevision: components['schemas']['StoryRevisionResource'];
+      approvedPlan: components['schemas']['ApprovedTaskingPlanResource'];
+      run: components['schemas']['PairRunResource'];
+      driverAttempts: components['schemas']['PairDriverAttemptResource'][];
+      commandObservations: components['schemas']['PairCommandObservationResource'][];
+      redReviews: components['schemas']['PairRedReviewResource'][];
+      currentException:
+        | components['schemas']['PairAutomationExceptionResource']
+        | null;
+      manifest: components['schemas']['PairExecutionManifestResource'] | null;
+      decisions: components['schemas']['PairCodingDecisionResource'][];
+      nextAction: components['schemas']['PairNextAction'] | null;
+    };
+    StartPairInput: {
+      expectedIterationVersion: number;
+      approvedTaskingPlanId: string;
+      approvedTaskingPlanSha256: string;
+      executorId: string;
+    };
+    ClaimPairLeaseInput: {
+      pairRunId: string;
+      expectedPairVersion: number;
+      executorId: string;
+    };
+    HeartbeatPairLeaseInput: {
+      pairRunId: string;
+      expectedPairVersion: number;
+    };
+    PairActionAuthorityInput: {
+      pairRunId: string;
+      actionId: string;
+      expectedPairVersion: number;
+    };
+    RecordPairDriverAttemptInput: components['schemas']['PairActionAuthorityInput'] & {
+      role: components['schemas']['PairDriverRole'];
+      mode: components['schemas']['PairDriverMode'];
+      summary: string;
+      changedPaths: string[];
+      beforeWorktreeSha256: string;
+      afterWorktreeSha256: string;
+      diffSha256: string;
+      agentCallCount: number;
+      inputTokens?: number | null;
+      outputTokens?: number | null;
+    };
+    RecordPairCommandObservationInput: components['schemas']['PairActionAuthorityInput'] & {
+      stage: components['schemas']['PairCommandStage'];
+      command: string;
+      termination: components['schemas']['PairTermination'];
+      exitCode: number | null;
+      signal?: string | null;
+      durationMs: number;
+      stdoutSha256: string;
+      stdoutBytes: number;
+      stdoutLines: number;
+      stderrSha256: string;
+      stderrBytes: number;
+      stderrLines: number;
+      worktreeSha256: string;
+      diffSha256: string;
+    };
+    RecordPairRedReviewInput: components['schemas']['PairActionAuthorityInput'] & {
+      observationId: string;
+      classification: components['schemas']['PairRedClassification'];
+      reason: string;
+    };
+    RecordPairExceptionInput: components['schemas']['PairActionAuthorityInput'] & {
+      kind: components['schemas']['PairExceptionKind'];
+      summary: string;
+      failureFingerprint?: string | null;
+    };
+    DecidePairInput: {
+      expectedPairVersion: number;
+      action: components['schemas']['PairDecisionAction'];
+      reason: string;
+      manifestSha256?: string | null;
+      diffSha256?: string | null;
+      commitSha?: string | null;
+    };
+    StartPairResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      pair: components['schemas']['PairResource'];
+      leaseToken: string;
+    };
+    ClaimPairLeaseResult: {
+      run: components['schemas']['PairRunResource'];
+      leaseToken: string;
+    };
+    PairActionResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      pair: components['schemas']['PairResource'];
+      acceptedRecordId: string;
+    };
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
       id: string;
@@ -2061,7 +2646,10 @@ export interface components {
       };
     };
   };
-  parameters: never;
+  parameters: {
+    /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+    PairLeaseHeader: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -3559,6 +4147,286 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.desk-check-decision-result+json': components['schemas']['DeskCheckDecisionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  get_pair: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Approved-plan Pair checkpoint and bounded evidence view */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair+json': components['schemas']['PairResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  start_pair: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['StartPairInput'];
+      };
+    };
+    responses: {
+      /** @description Pair Run locked to the exact Approved Tasking Plan */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-start-result+json': components['schemas']['StartPairResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  claim_pair_lease: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClaimPairLeaseInput'];
+      };
+    };
+    responses: {
+      /** @description Opaque short-lived local Pair executor lease */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['ClaimPairLeaseResult'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  heartbeat_pair_lease: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['HeartbeatPairLeaseInput'];
+      };
+    };
+    responses: {
+      /** @description Refreshed Pair lease facts without exposing its token */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['PairRunResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_pair_driver_attempt: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordPairDriverAttemptInput'];
+      };
+    };
+    responses: {
+      /** @description Bounded Driver completion evidence */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['PairActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_pair_command_observation: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordPairCommandObservationInput'];
+      };
+    };
+    responses: {
+      /** @description Controller-observed command hashes and termination facts */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['PairActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_pair_red_review: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordPairRedReviewInput'];
+      };
+    };
+    responses: {
+      /** @description Independent Red classification */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['PairActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_pair_exception: {
+    parameters: {
+      query?: never;
+      header: {
+        /** @description Opaque short-lived lease returned only to the Desktop Pair controller. */
+        'X-Evidence-Pair-Lease': components['parameters']['PairLeaseHeader'];
+      };
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordPairExceptionInput'];
+      };
+    };
+    responses: {
+      /** @description Fail-closed Pair automation exception */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['PairActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  decide_pair: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DecidePairInput'];
+      };
+    };
+    responses: {
+      /** @description Append-only human Story coding decision or route */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.pair-action-result+json': components['schemas']['PairActionResultResource'];
         };
       };
       400: components['responses']['ValidationError'];

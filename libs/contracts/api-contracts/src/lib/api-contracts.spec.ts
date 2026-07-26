@@ -38,6 +38,8 @@ const mediaTypes = {
   taskingCandidate: 'application/vnd.evidence.tasking-candidate+json',
   deskCheckDecisionResult:
     'application/vnd.evidence.desk-check-decision-result+json',
+  pair: 'application/vnd.evidence.pair+json',
+  pairStartResult: 'application/vnd.evidence.pair-start-result+json',
   story: 'application/vnd.evidence.story+json',
   stories: 'application/vnd.evidence.stories+json',
   storyRevision: 'application/vnd.evidence.story-revision+json',
@@ -125,6 +127,12 @@ describeContracts('Evidence API contract vertical slice', () => {
     );
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking/decisions',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/command-observations',
     );
     expect(openapi.body.paths).not.toHaveProperty(
       '/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs',
@@ -963,11 +971,50 @@ describeContracts('Evidence API contract vertical slice', () => {
       taskingCandidateId: taskingCandidate.body.id,
       approvedByUserId: userId,
       plan: expect.objectContaining({
+        planVersion: 2,
         contentSha256: taskingCandidate.body.contentSha256,
         baseCommitSha,
+        executionBudget: expect.objectContaining({
+          policyId: 'pair-default',
+          maxAgentCalls: expect.any(Number),
+          maxCheckpoints: expect.any(Number),
+        }),
       }),
     });
     expect(approved.body._links).not.toHaveProperty('start-coding-run');
+
+    const pairStart = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/pair/runs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedIterationVersion: 8,
+          approvedTaskingPlanId: approved.body.approvedPlan.id,
+          approvedTaskingPlanSha256: approved.body.approvedPlan.contentSha256,
+          executorId: 'contract-desktop',
+        }),
+      },
+    );
+    expect(pairStart.status).toBe(201);
+    expectHalResource(pairStart, mediaTypes.pairStartResult);
+    expect(pairStart.body).toMatchObject({
+      leaseToken: expect.any(String),
+      pair: {
+        run: {
+          status: 'running',
+          checkpoint: 'plan_confirmed',
+          approvedTaskingPlanId: approved.body.approvedPlan.id,
+        },
+        nextAction: { kind: 'run_driver', role: 'test' },
+      },
+    });
+
+    const pair = await apiRequest(
+      `/api/workspaces/${workspaceId}/iterations/${iterationId}/pair`,
+    );
+    expect(pair.status).toBe(200);
+    expectHalResource(pair, mediaTypes.pair);
+    expect(pair.body.run.id).toBe(pairStart.body.pair.run.id);
 
     const removedDirectAdmission = await apiRequest(
       `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,

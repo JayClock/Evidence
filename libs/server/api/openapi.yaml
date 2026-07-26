@@ -1383,6 +1383,241 @@ paths:
         '400': { $ref: '#/components/responses/ValidationError' }
         '404': { $ref: '#/components/responses/ResourceNotFound' }
         '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: get_pair
+      responses:
+        '200':
+          description: Approved-plan Pair checkpoint and bounded evidence view
+          content:
+            application/vnd.evidence.pair+json:
+              schema: { $ref: '#/components/schemas/PairResource' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/runs:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: start_pair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartPairInput' }
+      responses:
+        '201':
+          description: Pair Run locked to the exact Approved Tasking Plan
+          content:
+            application/vnd.evidence.pair-start-result+json:
+              schema: { $ref: '#/components/schemas/StartPairResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/lease/claim:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: claim_pair_lease
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClaimPairLeaseInput' }
+      responses:
+        '200':
+          description: Opaque short-lived local Pair executor lease
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/ClaimPairLeaseResult' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/lease/heartbeat:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+      - $ref: '#/components/parameters/PairLeaseHeader'
+    post:
+      operationId: heartbeat_pair_lease
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HeartbeatPairLeaseInput' }
+      responses:
+        '200':
+          description: Refreshed Pair lease facts without exposing its token
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/PairRunResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/driver-attempts:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+      - $ref: '#/components/parameters/PairLeaseHeader'
+    post:
+      operationId: record_pair_driver_attempt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/RecordPairDriverAttemptInput' }
+      responses:
+        '201':
+          description: Bounded Driver completion evidence
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/PairActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/command-observations:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+      - $ref: '#/components/parameters/PairLeaseHeader'
+    post:
+      operationId: record_pair_command_observation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/RecordPairCommandObservationInput' }
+      responses:
+        '201':
+          description: Controller-observed command hashes and termination facts
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/PairActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/red-reviews:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+      - $ref: '#/components/parameters/PairLeaseHeader'
+    post:
+      operationId: record_pair_red_review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordPairRedReviewInput' }
+      responses:
+        '201':
+          description: Independent Red classification
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/PairActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/exceptions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+      - $ref: '#/components/parameters/PairLeaseHeader'
+    post:
+      operationId: record_pair_exception
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordPairExceptionInput' }
+      responses:
+        '201':
+          description: Fail-closed Pair automation exception
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/PairActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/pair/decisions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: decide_pair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecidePairInput' }
+      responses:
+        '200':
+          description: Append-only human Story coding decision or route
+          content:
+            application/vnd.evidence.pair-action-result+json:
+              schema: { $ref: '#/components/schemas/PairActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
   /api/workspaces/{workspaceId}/stories:
     parameters:
       - name: workspaceId
@@ -2441,6 +2676,13 @@ components:
       in: header
       name: Authorization
       description: Exact authorization value configured by the Evidence Server.
+  parameters:
+    PairLeaseHeader:
+      name: X-Evidence-Pair-Lease
+      in: header
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 500 }
+      description: Opaque short-lived lease returned only to the Desktop Pair controller.
   responses:
     ValidationError:
       description: Validation error
@@ -3318,7 +3560,7 @@ components:
           enum: [provisioning, active, provisioning_failed, halted]
         loop:
           type: string
-          enum: [kickoff, understand, tasking]
+          enum: [kickoff, understand, tasking, pair]
         stage:
           type: string
           enum:
@@ -3332,6 +3574,15 @@ components:
               desk_check,
               knowledge_gap,
               approved,
+              plan_confirmed,
+              test_written,
+              red_observed,
+              implementation_written,
+              green_observed,
+              refactored,
+              quality_gate_failed,
+              quality_gates_passed,
+              exception,
             ]
         lane:
           type: string
@@ -5009,6 +5260,749 @@ components:
           oneOf:
             - $ref: '#/components/schemas/ApprovedTaskingPlanResource'
             - type: 'null'
+    PairStatus:
+      type: string
+      enum: [running, approval_required, approved, exception, cancelled]
+    PairCheckpoint:
+      type: string
+      enum:
+        [
+          plan_confirmed,
+          test_written,
+          red_observed,
+          implementation_written,
+          green_observed,
+          refactored,
+          quality_gate_failed,
+          quality_gates_passed,
+          approved,
+          exception,
+        ]
+    PairDriverRole:
+      type: string
+      enum: [test, production, refactor]
+    PairDriverMode:
+      type: string
+      enum:
+        [
+          write_test,
+          repair_test,
+          implement,
+          repair_implementation,
+          refactor,
+          repair_refactor,
+          repair_quality_gate,
+        ]
+    PairCommandStage:
+      type: string
+      enum: [red, green, refactor, quality_gate]
+    PairTermination:
+      type: string
+      enum: [exited, timed_out, signaled, spawn_error]
+    PairRedClassification:
+      type: string
+      enum:
+        [behavior, compile, dependency, configuration, network, fixture, other]
+    PairExceptionKind:
+      type: string
+      enum:
+        [
+          unexpected_green,
+          pseudo_red,
+          green_failed,
+          refactor_failed,
+          quality_gate_failed,
+          path_violation,
+          git_head_changed,
+          project_ownership_changed,
+          lease_expired,
+          interrupted,
+          budget_exhausted,
+          no_progress,
+          evidence_mismatch,
+          runtime_failure,
+        ]
+    PairDecisionAction:
+      type: string
+      enum:
+        [
+          approve,
+          back_test,
+          back_implementation,
+          back_tasking,
+          retry_quality,
+          cancel,
+        ]
+    PairCursor:
+      type: object
+      required:
+        [
+          unitIndex,
+          pendingRefactorStepKey,
+          refactorVerificationIndex,
+          qualityGateIndex,
+        ]
+      properties:
+        unitIndex: { type: integer, minimum: 0 }
+        pendingRefactorStepKey: { type: [string, 'null'] }
+        refactorVerificationIndex: { type: integer, minimum: 0 }
+        qualityGateIndex: { type: integer, minimum: 0 }
+    PairBudgetUsage:
+      type: object
+      required:
+        [
+          agentCalls,
+          checkpoints,
+          repeatedFingerprintCount,
+          noProgressCheckpoints,
+        ]
+      properties:
+        agentCalls: { type: integer, minimum: 0 }
+        checkpoints: { type: integer, minimum: 0 }
+        repeatedFingerprintCount: { type: integer, minimum: 0 }
+        noProgressCheckpoints: { type: integer, minimum: 0 }
+    PairRunResource:
+      type: object
+      required:
+        [
+          id,
+          reference,
+          workspaceId,
+          iterationId,
+          storyId,
+          storyRevisionId,
+          storyRevisionSha256,
+          approvedTaskingPlanId,
+          approvedTaskingPlanSha256,
+          baseCommitSha,
+          branchName,
+          status,
+          checkpoint,
+          version,
+          cursor,
+          completedTestIds,
+          completedStepKeys,
+          executionBudget,
+          budgetUsage,
+          leaseOwnerId,
+          leaseExpiresAt,
+          currentDiffSha256,
+          finalManifestSha256,
+          approvedCommitSha,
+          startedAt,
+          updatedAt,
+          completedAt,
+        ]
+      properties:
+        id: { type: string }
+        reference: { type: string, pattern: '^PAIR-[0-9]{4,}$' }
+        workspaceId: { type: string }
+        iterationId: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        storyRevisionSha256: { type: string }
+        approvedTaskingPlanId: { type: string }
+        approvedTaskingPlanSha256: { type: string }
+        baseCommitSha: { type: string }
+        branchName: { type: string }
+        status: { $ref: '#/components/schemas/PairStatus' }
+        checkpoint: { $ref: '#/components/schemas/PairCheckpoint' }
+        version: { type: integer, minimum: 1 }
+        cursor: { $ref: '#/components/schemas/PairCursor' }
+        completedTestIds:
+          type: array
+          items: { type: string }
+        completedStepKeys:
+          type: array
+          items: { type: string }
+        executionBudget: { $ref: '#/components/schemas/PairExecutionBudget' }
+        budgetUsage: { $ref: '#/components/schemas/PairBudgetUsage' }
+        leaseOwnerId: { type: [string, 'null'] }
+        leaseExpiresAt: { type: [string, 'null'], format: date-time }
+        currentDiffSha256: { type: [string, 'null'] }
+        finalManifestSha256: { type: [string, 'null'] }
+        approvedCommitSha: { type: [string, 'null'] }
+        startedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+    PairWorkUnit:
+      type: object
+      required:
+        [
+          index,
+          stepKey,
+          task,
+          test,
+          process,
+          step,
+          focusedCommand,
+          testRoots,
+          productionRoots,
+        ]
+      properties:
+        index: { type: integer, minimum: 0 }
+        stepKey: { type: string }
+        task: { $ref: '#/components/schemas/TaskingTaskResource' }
+        test: { $ref: '#/components/schemas/TaskingTestResource' }
+        process: { $ref: '#/components/schemas/TaskingProcessSelection' }
+        step: { $ref: '#/components/schemas/TaskingProcessStepDefinition' }
+        focusedCommand:
+          type: object
+          required: [command, projectId]
+          properties:
+            command: { type: string }
+            projectId: { type: [string, 'null'] }
+        testRoots:
+          type: array
+          items: { type: string }
+        productionRoots:
+          type: array
+          items: { type: string }
+    PairQualityGate:
+      type: object
+      required: [index, processId, projectId, target, command]
+      properties:
+        index: { type: integer, minimum: 0 }
+        processId: { type: string }
+        projectId: { type: [string, 'null'] }
+        target: { type: [string, 'null'] }
+        command: { type: string }
+    PairActionAuthority:
+      type: object
+      required: [actionId, expectedPairVersion]
+      properties:
+        actionId: { type: string }
+        expectedPairVersion: { type: integer, minimum: 1 }
+    PairRunDriverAction:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthority'
+        - type: object
+          required:
+            [
+              kind,
+              role,
+              mode,
+              workUnit,
+              stepKey,
+              allowedTestRoots,
+              allowedProductionRoots,
+              frozenTestPaths,
+              diagnosticObservationId,
+            ]
+          properties:
+            kind: { type: string, enum: [run_driver] }
+            role: { $ref: '#/components/schemas/PairDriverRole' }
+            mode: { $ref: '#/components/schemas/PairDriverMode' }
+            workUnit:
+              oneOf:
+                - $ref: '#/components/schemas/PairWorkUnit'
+                - type: 'null'
+            stepKey: { type: [string, 'null'] }
+            allowedTestRoots:
+              type: array
+              items: { type: string }
+            allowedProductionRoots:
+              type: array
+              items: { type: string }
+            frozenTestPaths:
+              type: array
+              items: { type: string }
+            diagnosticObservationId: { type: [string, 'null'] }
+    PairExecuteCommandAction:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthority'
+        - type: object
+          required: [kind, stage, workUnit, gate, command, timeoutMs]
+          properties:
+            kind: { type: string, enum: [execute_command] }
+            stage: { $ref: '#/components/schemas/PairCommandStage' }
+            workUnit:
+              oneOf:
+                - $ref: '#/components/schemas/PairWorkUnit'
+                - type: 'null'
+            gate:
+              oneOf:
+                - $ref: '#/components/schemas/PairQualityGate'
+                - type: 'null'
+            command: { type: string }
+            timeoutMs: { type: integer, minimum: 1 }
+    PairReviewRedAction:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthority'
+        - type: object
+          required:
+            [
+              kind,
+              workUnit,
+              observationId,
+              expectedFailureKind,
+              expectedFailure,
+            ]
+          properties:
+            kind: { type: string, enum: [review_red] }
+            workUnit: { $ref: '#/components/schemas/PairWorkUnit' }
+            observationId: { type: string }
+            expectedFailureKind: { type: string, enum: [behavior] }
+            expectedFailure: { type: string }
+    PairAwaitHumanAction:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthority'
+        - type: object
+          required: [kind, manifestSha256]
+          properties:
+            kind: { type: string, enum: [await_human] }
+            manifestSha256: { type: string }
+    PairResolveExceptionAction:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthority'
+        - type: object
+          required: [kind, exceptionId, allowedRoutes]
+          properties:
+            kind: { type: string, enum: [resolve_exception] }
+            exceptionId: { type: string }
+            allowedRoutes:
+              type: array
+              items: { $ref: '#/components/schemas/PairDecisionAction' }
+    PairNextAction:
+      oneOf:
+        - $ref: '#/components/schemas/PairRunDriverAction'
+        - $ref: '#/components/schemas/PairExecuteCommandAction'
+        - $ref: '#/components/schemas/PairReviewRedAction'
+        - $ref: '#/components/schemas/PairAwaitHumanAction'
+        - $ref: '#/components/schemas/PairResolveExceptionAction'
+    PairDriverAttemptResource:
+      type: object
+      required:
+        [
+          id,
+          pairRunId,
+          actionId,
+          sequence,
+          role,
+          mode,
+          taskId,
+          testId,
+          processId,
+          stepId,
+          summary,
+          changedPaths,
+          beforeWorktreeSha256,
+          afterWorktreeSha256,
+          diffSha256,
+          agentCallCount,
+          inputTokens,
+          outputTokens,
+          completedAt,
+          recordSha256,
+        ]
+      properties:
+        id: { type: string }
+        pairRunId: { type: string }
+        actionId: { type: string }
+        sequence: { type: integer, minimum: 1 }
+        role: { $ref: '#/components/schemas/PairDriverRole' }
+        mode: { $ref: '#/components/schemas/PairDriverMode' }
+        taskId: { type: [string, 'null'] }
+        testId: { type: [string, 'null'] }
+        processId: { type: [string, 'null'] }
+        stepId: { type: [string, 'null'] }
+        summary: { type: string }
+        changedPaths:
+          type: array
+          items: { type: string }
+        beforeWorktreeSha256: { type: string }
+        afterWorktreeSha256: { type: string }
+        diffSha256: { type: string }
+        agentCallCount: { type: integer, minimum: 1 }
+        inputTokens: { type: [integer, 'null'], minimum: 0 }
+        outputTokens: { type: [integer, 'null'], minimum: 0 }
+        completedAt: { type: string, format: date-time }
+        recordSha256: { type: string }
+    PairCommandObservationResource:
+      type: object
+      required:
+        [
+          id,
+          pairRunId,
+          actionId,
+          sequence,
+          stage,
+          taskId,
+          testId,
+          processId,
+          stepId,
+          command,
+          termination,
+          exitCode,
+          signal,
+          durationMs,
+          stdoutSha256,
+          stdoutBytes,
+          stdoutLines,
+          stderrSha256,
+          stderrBytes,
+          stderrLines,
+          worktreeSha256,
+          diffSha256,
+          failureFingerprint,
+          observedAt,
+          previousRecordSha256,
+          recordSha256,
+        ]
+      properties:
+        id: { type: string }
+        pairRunId: { type: string }
+        actionId: { type: string }
+        sequence: { type: integer, minimum: 1 }
+        stage: { $ref: '#/components/schemas/PairCommandStage' }
+        taskId: { type: [string, 'null'] }
+        testId: { type: [string, 'null'] }
+        processId: { type: string }
+        stepId: { type: [string, 'null'] }
+        command: { type: string }
+        termination: { $ref: '#/components/schemas/PairTermination' }
+        exitCode: { type: [integer, 'null'] }
+        signal: { type: [string, 'null'] }
+        durationMs: { type: integer, minimum: 0 }
+        stdoutSha256: { type: string }
+        stdoutBytes: { type: integer, minimum: 0 }
+        stdoutLines: { type: integer, minimum: 0 }
+        stderrSha256: { type: string }
+        stderrBytes: { type: integer, minimum: 0 }
+        stderrLines: { type: integer, minimum: 0 }
+        worktreeSha256: { type: string }
+        diffSha256: { type: string }
+        failureFingerprint: { type: [string, 'null'] }
+        observedAt: { type: string, format: date-time }
+        previousRecordSha256: { type: [string, 'null'] }
+        recordSha256: { type: string }
+    PairRedReviewResource:
+      type: object
+      required:
+        [
+          id,
+          pairRunId,
+          actionId,
+          observationId,
+          classification,
+          accepted,
+          reason,
+          reviewedAt,
+          recordSha256,
+        ]
+      properties:
+        id: { type: string }
+        pairRunId: { type: string }
+        actionId: { type: string }
+        observationId: { type: string }
+        classification: { $ref: '#/components/schemas/PairRedClassification' }
+        accepted: { type: boolean }
+        reason: { type: string }
+        reviewedAt: { type: string, format: date-time }
+        recordSha256: { type: string }
+    PairAutomationExceptionResource:
+      type: object
+      required:
+        [
+          id,
+          pairRunId,
+          actionId,
+          kind,
+          summary,
+          failureFingerprint,
+          allowedRoutes,
+          raisedAt,
+          resolvedAt,
+          recordSha256,
+        ]
+      properties:
+        id: { type: string }
+        pairRunId: { type: string }
+        actionId: { type: [string, 'null'] }
+        kind: { $ref: '#/components/schemas/PairExceptionKind' }
+        summary: { type: string }
+        failureFingerprint: { type: [string, 'null'] }
+        allowedRoutes:
+          type: array
+          items: { $ref: '#/components/schemas/PairDecisionAction' }
+        raisedAt: { type: string, format: date-time }
+        resolvedAt: { type: [string, 'null'], format: date-time }
+        recordSha256: { type: string }
+    PairExecutionManifestResource:
+      type: object
+      required:
+        [
+          id,
+          pairRunId,
+          approvedTaskingPlanSha256,
+          storyRevisionSha256,
+          baseCommitSha,
+          completedTestIds,
+          completedStepKeys,
+          driverAttemptIds,
+          commandObservationIds,
+          redReviewIds,
+          changedPaths,
+          finalDiffSha256,
+          evidenceChainSha256,
+          generatedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        pairRunId: { type: string }
+        approvedTaskingPlanSha256: { type: string }
+        storyRevisionSha256: { type: string }
+        baseCommitSha: { type: string }
+        completedTestIds:
+          type: array
+          items: { type: string }
+        completedStepKeys:
+          type: array
+          items: { type: string }
+        driverAttemptIds:
+          type: array
+          items: { type: string }
+        commandObservationIds:
+          type: array
+          items: { type: string }
+        redReviewIds:
+          type: array
+          items: { type: string }
+        changedPaths:
+          type: array
+          items: { type: string }
+        finalDiffSha256: { type: string }
+        evidenceChainSha256: { type: string }
+        generatedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    PairCodingDecisionResource:
+      type: object
+      required:
+        [
+          id,
+          pairRunId,
+          action,
+          reason,
+          manifestSha256,
+          diffSha256,
+          commitSha,
+          decidedByUserId,
+          decidedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        pairRunId: { type: string }
+        action: { $ref: '#/components/schemas/PairDecisionAction' }
+        reason: { type: string }
+        manifestSha256: { type: [string, 'null'] }
+        diffSha256: { type: [string, 'null'] }
+        commitSha: { type: [string, 'null'] }
+        decidedByUserId: { type: string }
+        decidedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    PairResource:
+      type: object
+      required:
+        [
+          _links,
+          iteration,
+          story,
+          storyRevision,
+          approvedPlan,
+          run,
+          driverAttempts,
+          commandObservations,
+          redReviews,
+          currentException,
+          manifest,
+          decisions,
+          nextAction,
+        ]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        story: { $ref: '#/components/schemas/StoryResource' }
+        storyRevision: { $ref: '#/components/schemas/StoryRevisionResource' }
+        approvedPlan:
+          { $ref: '#/components/schemas/ApprovedTaskingPlanResource' }
+        run: { $ref: '#/components/schemas/PairRunResource' }
+        driverAttempts:
+          type: array
+          items: { $ref: '#/components/schemas/PairDriverAttemptResource' }
+        commandObservations:
+          type: array
+          items: { $ref: '#/components/schemas/PairCommandObservationResource' }
+        redReviews:
+          type: array
+          items: { $ref: '#/components/schemas/PairRedReviewResource' }
+        currentException:
+          oneOf:
+            - $ref: '#/components/schemas/PairAutomationExceptionResource'
+            - type: 'null'
+        manifest:
+          oneOf:
+            - $ref: '#/components/schemas/PairExecutionManifestResource'
+            - type: 'null'
+        decisions:
+          type: array
+          items: { $ref: '#/components/schemas/PairCodingDecisionResource' }
+        nextAction:
+          oneOf:
+            - $ref: '#/components/schemas/PairNextAction'
+            - type: 'null'
+    StartPairInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          expectedIterationVersion,
+          approvedTaskingPlanId,
+          approvedTaskingPlanSha256,
+          executorId,
+        ]
+      properties:
+        expectedIterationVersion: { type: integer, minimum: 1 }
+        approvedTaskingPlanId: { type: string, minLength: 1 }
+        approvedTaskingPlanSha256:
+          { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        executorId: { type: string, minLength: 1 }
+    ClaimPairLeaseInput:
+      type: object
+      additionalProperties: false
+      required: [pairRunId, expectedPairVersion, executorId]
+      properties:
+        pairRunId: { type: string, minLength: 1 }
+        expectedPairVersion: { type: integer, minimum: 1 }
+        executorId: { type: string, minLength: 1 }
+    HeartbeatPairLeaseInput:
+      type: object
+      additionalProperties: false
+      required: [pairRunId, expectedPairVersion]
+      properties:
+        pairRunId: { type: string, minLength: 1 }
+        expectedPairVersion: { type: integer, minimum: 1 }
+    PairActionAuthorityInput:
+      type: object
+      required: [pairRunId, actionId, expectedPairVersion]
+      properties:
+        pairRunId: { type: string, minLength: 1 }
+        actionId: { type: string, minLength: 1 }
+        expectedPairVersion: { type: integer, minimum: 1 }
+    RecordPairDriverAttemptInput:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthorityInput'
+        - type: object
+          required:
+            [
+              role,
+              mode,
+              summary,
+              changedPaths,
+              beforeWorktreeSha256,
+              afterWorktreeSha256,
+              diffSha256,
+              agentCallCount,
+            ]
+          properties:
+            role: { $ref: '#/components/schemas/PairDriverRole' }
+            mode: { $ref: '#/components/schemas/PairDriverMode' }
+            summary: { type: string, minLength: 1, maxLength: 2000 }
+            changedPaths:
+              type: array
+              items: { type: string }
+            beforeWorktreeSha256: { type: string }
+            afterWorktreeSha256: { type: string }
+            diffSha256: { type: string }
+            agentCallCount: { type: integer, minimum: 1 }
+            inputTokens: { type: [integer, 'null'], minimum: 0 }
+            outputTokens: { type: [integer, 'null'], minimum: 0 }
+    RecordPairCommandObservationInput:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthorityInput'
+        - type: object
+          required:
+            [
+              stage,
+              command,
+              termination,
+              exitCode,
+              durationMs,
+              stdoutSha256,
+              stdoutBytes,
+              stdoutLines,
+              stderrSha256,
+              stderrBytes,
+              stderrLines,
+              worktreeSha256,
+              diffSha256,
+            ]
+          properties:
+            stage: { $ref: '#/components/schemas/PairCommandStage' }
+            command: { type: string, minLength: 1 }
+            termination: { $ref: '#/components/schemas/PairTermination' }
+            exitCode: { type: [integer, 'null'] }
+            signal: { type: [string, 'null'] }
+            durationMs: { type: integer, minimum: 0 }
+            stdoutSha256: { type: string }
+            stdoutBytes: { type: integer, minimum: 0 }
+            stdoutLines: { type: integer, minimum: 0 }
+            stderrSha256: { type: string }
+            stderrBytes: { type: integer, minimum: 0 }
+            stderrLines: { type: integer, minimum: 0 }
+            worktreeSha256: { type: string }
+            diffSha256: { type: string }
+    RecordPairRedReviewInput:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthorityInput'
+        - type: object
+          required: [observationId, classification, reason]
+          properties:
+            observationId: { type: string, minLength: 1 }
+            classification:
+              { $ref: '#/components/schemas/PairRedClassification' }
+            reason: { type: string, minLength: 1, maxLength: 2000 }
+    RecordPairExceptionInput:
+      allOf:
+        - $ref: '#/components/schemas/PairActionAuthorityInput'
+        - type: object
+          required: [kind, summary]
+          properties:
+            kind: { $ref: '#/components/schemas/PairExceptionKind' }
+            summary: { type: string, minLength: 1, maxLength: 2000 }
+            failureFingerprint: { type: [string, 'null'] }
+    DecidePairInput:
+      type: object
+      additionalProperties: false
+      required: [expectedPairVersion, action, reason]
+      properties:
+        expectedPairVersion: { type: integer, minimum: 1 }
+        action: { $ref: '#/components/schemas/PairDecisionAction' }
+        reason: { type: string, minLength: 1, maxLength: 2000 }
+        manifestSha256: { type: [string, 'null'] }
+        diffSha256: { type: [string, 'null'] }
+        commitSha: { type: [string, 'null'] }
+    StartPairResultResource:
+      type: object
+      required: [_links, pair, leaseToken]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        pair: { $ref: '#/components/schemas/PairResource' }
+        leaseToken: { type: string }
+    ClaimPairLeaseResult:
+      type: object
+      required: [run, leaseToken]
+      properties:
+        run: { $ref: '#/components/schemas/PairRunResource' }
+        leaseToken: { type: string }
+    PairActionResultResource:
+      type: object
+      required: [_links, pair, acceptedRecordId]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        pair: { $ref: '#/components/schemas/PairResource' }
+        acceptedRecordId: { type: string }
     StoryResource:
       type: object
       required:
