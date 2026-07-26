@@ -710,6 +710,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expectHalResource(story, mediaTypes.story);
     expect(story.body).toMatchObject({
       id: storyId,
+      reference: 'US-001',
       title: candidateInput.title,
       latestRevisionNumber: 1,
       latestScenarioCount: 0,

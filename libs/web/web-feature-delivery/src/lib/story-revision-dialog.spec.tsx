@@ -22,6 +22,7 @@ const postRevision = vi.fn(async () => createdRevision);
 const storyState = {
   data: {
     id: 'story-1',
+    reference: 'US-001',
     title: 'Local coding agent',
     latestRevisionId: 'story-revision-1',
     latestRevisionNumber: 1,

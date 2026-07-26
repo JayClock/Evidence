@@ -66,6 +66,7 @@ const revisionState = {
 const storyState = {
   data: {
     id: 'story-1',
+    reference: 'US-001',
     title: 'Local coding agent',
     latestRevisionId: 'story-revision-1',
     latestRevisionNumber: 1,
@@ -158,6 +159,7 @@ describe('Story views', () => {
 
     expect(screen.getByRole('heading', { name: 'Stories' })).toBeTruthy();
     expect(screen.getByText('Local coding agent')).toBeTruthy();
+    expect(screen.getByText('US-001')).toBeTruthy();
     expect(screen.getByText('v1')).toBeTruthy();
     expect(
       screen.getByRole('link', { name: 'Open' }).getAttribute('href'),

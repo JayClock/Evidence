@@ -86,7 +86,7 @@ export function StoryCollectionView({
             <EmptyHeader>
               <EmptyTitle>No confirmed Stories yet</EmptyTitle>
               <EmptyDescription>
-                Confirm a pending Story Candidate to create Revision v1.
+                Confirm one frozen Kickoff Proposal to create US-001.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -108,8 +108,11 @@ export function StoryCollectionView({
                   const href = storyState.getLink('self')?.href;
                   return (
                     <TableRow key={story.id}>
-                      <TableCell className="min-w-56 font-medium">
-                        {story.title}
+                      <TableCell className="min-w-56">
+                        <p className="font-medium">{story.title}</p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {story.reference}
+                        </p>
                       </TableCell>
                       <TableCell className="tabular-nums">
                         v{story.latestRevisionNumber}
@@ -167,11 +170,14 @@ export function StoryDetailView({
       <Card>
         <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1.5">
-            <CardTitle aria-level={1} role="heading">
-              {story.title}
-            </CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle aria-level={1} role="heading">
+                {story.title}
+              </CardTitle>
+              <Badge variant="outline">{story.reference}</Badge>
+            </div>
             <CardDescription>
-              Story · latest revision v{story.latestRevisionNumber} ·{' '}
+              Iteration Story · latest revision v{story.latestRevisionNumber} ·{' '}
               {story.revisionCount}{' '}
               {story.revisionCount === 1 ? 'revision' : 'revisions'}
             </CardDescription>
