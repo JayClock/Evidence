@@ -46,6 +46,7 @@ async function main() {
   let server;
   let provider;
   let workspaceId;
+  let intakeWorkspaceId;
 
   try {
     await access(packaged.executable);
@@ -71,27 +72,18 @@ async function main() {
     const userDataPath = join(testRoot, 'user-data');
     server = await startEvidenceServer(database.url, authorization, testRoot);
     const api = createApi(server.origin, authorization);
-    const workspace = await api.post('/api/workspaces', {
-      title: `Packaged E2E ${randomUUID()}`,
-      metadata: { source: 'packaged-desktop-e2e' },
+    const intakeWorkspace = await api.post('/api/workspaces', {
+      title: `Packaged Intake E2E ${randomUUID()}`,
+      metadata: { source: 'packaged-desktop-intake-e2e' },
     });
-    workspaceId = requiredString(workspace.id, 'Workspace id');
-    const stories = [];
-    for (const name of [
-      'accept',
-      'restart',
-      'reject',
-      'provider-failure',
-      'timeout',
-    ]) {
-      stories.push(
-        await createStory(api, workspaceId, name, repository.baseCommitSha),
-      );
-    }
+    intakeWorkspaceId = requiredString(
+      intakeWorkspace.id,
+      'Intake Workspace id',
+    );
     await writeWorkspaceBinding(
       userDataPath,
       server.apiBaseUrl,
-      workspaceId,
+      intakeWorkspaceId,
       repository.root,
     );
 
@@ -107,6 +99,55 @@ async function main() {
       DATABASE_URL: 'postgresql://must-not-reach-agent',
       UNRELATED_SECRET: 'must-not-reach-agent',
     };
+
+    const extractionId = await createIntakeExtraction(
+      api,
+      intakeWorkspaceId,
+      'lifecycle',
+    );
+    provider.setMode('normal');
+    const intakeLifecycle = await runPackagedFlow(packaged.executable, {
+      environment: commonEnvironment,
+      input: {
+        action: 'intake-lifecycle',
+        requestId: `package-e2e-intake-${randomUUID()}`,
+        workspaceId: intakeWorkspaceId,
+        extractionId,
+      },
+    });
+    if (
+      intakeLifecycle.kind !== 'intake' ||
+      intakeLifecycle.status !== 'understand' ||
+      intakeLifecycle.storyReference !== 'US-001'
+    ) {
+      throw new Error(
+        `Packaged Inbox -> Kickoff lifecycle was incomplete: ${JSON.stringify(intakeLifecycle)}.`,
+      );
+    }
+
+    await api.delete(
+      `/api/workspaces/${encodeURIComponent(intakeWorkspaceId)}`,
+    );
+    intakeWorkspaceId = undefined;
+
+    const workspace = await api.post('/api/workspaces', {
+      title: `Packaged Coding E2E ${randomUUID()}`,
+      metadata: { source: 'packaged-desktop-coding-e2e' },
+    });
+    workspaceId = requiredString(workspace.id, 'Workspace id');
+    await writeWorkspaceBinding(
+      userDataPath,
+      server.apiBaseUrl,
+      workspaceId,
+      repository.root,
+    );
+    const story = await createStory(
+      api,
+      workspaceId,
+      'coding',
+      repository.baseCommitSha,
+    );
+    const stories = Array.from({ length: 5 }, () => story);
 
     provider.setMode('normal');
     const accepted = await runPackagedFlow(packaged.executable, {
@@ -173,7 +214,7 @@ async function main() {
     assertStatus(timedOut, 'failed');
     await verifyRemovedBranch(repository.root, timedOut.runId);
 
-    if (provider.requests.length < 8) {
+    if (provider.requests.length < 12) {
       throw new Error(
         'Fake Pi Provider did not observe the expected SDK turns.',
       );
@@ -193,6 +234,7 @@ async function main() {
 
     process.stdout.write(
       `Packaged Desktop coding E2E passed: ${JSON.stringify({
+        intakeIteration: intakeLifecycle.iterationReference,
         acceptedRunId: accepted.runId,
         recoveredRunId: recovered.runId,
         rejectedRunId: rejected.runId,
@@ -204,10 +246,15 @@ async function main() {
     if (server?.output) process.stderr.write(server.output());
     throw error;
   } finally {
-    if (server && workspaceId) {
-      await createApi(server.origin, authorization)
-        .delete(`/api/workspaces/${encodeURIComponent(workspaceId)}`)
-        .catch(() => undefined);
+    if (server) {
+      const api = createApi(server.origin, authorization);
+      for (const id of [workspaceId, intakeWorkspaceId]) {
+        if (id) {
+          await api
+            .delete(`/api/workspaces/${encodeURIComponent(id)}`)
+            .catch(() => undefined);
+        }
+      }
     }
     await server?.close().catch(() => undefined);
     await provider?.close().catch(() => undefined);
@@ -224,6 +271,21 @@ function startInput(targetWorkspaceId, story, action) {
     storyId: story.storyId,
     storyRevisionId: story.storyRevisionId,
   };
+}
+
+async function createIntakeExtraction(api, targetWorkspaceId, name) {
+  const workspacePath = `/api/workspaces/${encodeURIComponent(targetWorkspaceId)}`;
+  const source = await api.post(`${workspacePath}/inbox-items`, {
+    sourceKind: 'manual_text',
+    externalKey: `package-e2e-intake-${name}-${randomUUID()}`,
+    title: 'Packaged Inbox Kickoff lifecycle',
+    body: 'A Workspace maintainer needs one frozen delivery Story so the packaged authority boundary is auditable.',
+    contentType: 'text/plain',
+  });
+  const extraction = await api.post(`${workspacePath}/inbox-extractions`, {
+    inboxItemIds: [requiredString(source.id, 'Inbox Item id')],
+  });
+  return requiredString(extraction.id, 'Inbox Extraction id');
 }
 
 async function createStory(api, targetWorkspaceId, name, baseCommitSha) {
@@ -613,7 +675,14 @@ async function waitForRendererBridge(cdp) {
   while (Date.now() < deadline) {
     if (
       await cdp
-        .evaluate('Boolean(window.evidenceDesktop?.runCodingAgent)')
+        .evaluate(
+          `Boolean(
+          window.evidenceDesktop?.runCodingAgent &&
+          window.evidenceDesktop?.runInboxAnalyst &&
+          window.evidenceDesktop?.startIteration &&
+          window.evidenceDesktop?.runKickoffAnalyst
+        )`,
+        )
         .catch(() => false)
     ) {
       return;
@@ -636,6 +705,77 @@ function rendererExpression(input) {
       commitSha: typeof run.commitSha === 'string' ? run.commitSha : null,
       ...extra,
     });
+    if (input.action === 'intake-lifecycle') {
+      const apiBaseUrl = await bridge.getApiBaseUrl();
+      const request = async (path, options = {}) => {
+        const response = await fetch(apiBaseUrl + path, {
+          ...options,
+          headers: {
+            Accept: 'application/json',
+            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+          },
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error('Intake API ' + path + ' returned ' + response.status + ': ' + JSON.stringify(body));
+        }
+        return body;
+      };
+      const inboxEvents = [];
+      await bridge.runInboxAnalyst({
+        id: input.requestId,
+        workspaceId: input.workspaceId,
+        extractionId: input.extractionId,
+      }, (event) => inboxEvents.push(event));
+      const workspacePath = '/workspaces/' + encodeURIComponent(input.workspaceId);
+      const candidates = await request(workspacePath + '/story-candidates?status=ready&page=1&pageSize=20');
+      const candidate = candidates._embedded?.storyCandidates?.find(
+        (entry) => entry.extractionId === input.extractionId,
+      );
+      if (!candidate) throw new Error('Inbox Analyst did not create a ready Candidate.');
+      const iteration = await bridge.startIteration({
+        id: input.requestId + ':iteration',
+        workspaceId: input.workspaceId,
+        candidateId: candidate.id,
+      });
+      const kickoffPath = workspacePath + '/iterations/' + encodeURIComponent(iteration.iterationId) + '/kickoff';
+      const kickoff = await request(kickoffPath);
+      await request(kickoffPath + '/decisions', {
+        method: 'POST',
+        body: JSON.stringify({
+          proposalId: kickoff.currentProposal.id,
+          proposalSha256: kickoff.currentProposal.contentSha256,
+          expectedIterationVersion: kickoff.iteration.version,
+          action: 'revise',
+          reason: 'Exercise the packaged Frozen Intake revision boundary.',
+        }),
+      });
+      const kickoffEvents = [];
+      await bridge.runKickoffAnalyst({
+        id: input.requestId + ':kickoff',
+        workspaceId: input.workspaceId,
+        iterationId: iteration.iterationId,
+      }, (event) => kickoffEvents.push(event));
+      const revised = await request(kickoffPath);
+      const confirmed = await request(kickoffPath + '/decisions', {
+        method: 'POST',
+        body: JSON.stringify({
+          proposalId: revised.currentProposal.id,
+          proposalSha256: revised.currentProposal.contentSha256,
+          expectedIterationVersion: revised.iteration.version,
+          action: 'confirm',
+        }),
+      });
+      return {
+        kind: 'intake',
+        status: String(confirmed.iteration.loop ?? ''),
+        iterationReference: String(confirmed.iteration.reference ?? ''),
+        storyReference: String(confirmed.storyCard?.reference ?? ''),
+        branchName: iteration.branchName,
+        inboxEventNames: inboxEvents.map((event) => event.event),
+        kickoffEventNames: kickoffEvents.map((event) => event.event),
+      };
+    }
     if (input.action === 'accept-existing') {
       const review = await bridge.getCodingReview(input.runId);
       if (!review || review.diffSha256 !== input.diffSha256) {
@@ -704,6 +844,24 @@ function validateFlowResult(value) {
     throw new Error('Packaged renderer returned an invalid Coding Run result.');
   }
   const result = value;
+  if (result.kind === 'intake') {
+    requiredString(result.iterationReference, 'Iteration reference');
+    requiredString(result.storyReference, 'Story reference');
+    if (!/^evidence\/iter-[a-zA-Z0-9._-]+$/.test(String(result.branchName))) {
+      throw new Error(
+        'Packaged renderer returned an invalid Iteration branch.',
+      );
+    }
+    if (
+      !Array.isArray(result.inboxEventNames) ||
+      !result.inboxEventNames.includes('complete') ||
+      !Array.isArray(result.kickoffEventNames) ||
+      !result.kickoffEventNames.includes('complete')
+    ) {
+      throw new Error('Packaged intake Agents did not complete.');
+    }
+    return result;
+  }
   requiredString(result.runId, 'Coding Run id');
   requiredString(result.status, 'Coding Run status');
   if (
@@ -780,6 +938,7 @@ async function startFakeProvider() {
       );
       sendSse(response, completionChunk(body.model, {}, 'stop'));
     } else {
+      const toolCall = providerToolCall(body);
       sendSse(
         response,
         completionChunk(body.model, {
@@ -790,11 +949,8 @@ async function startFakeProvider() {
               id: `call_${randomUUID().replaceAll('-', '')}`,
               type: 'function',
               function: {
-                name: 'write',
-                arguments: JSON.stringify({
-                  path: 'tracked.txt',
-                  content: implementation,
-                }),
+                name: toolCall.name,
+                arguments: JSON.stringify(toolCall.arguments),
               },
             },
           ],
@@ -824,6 +980,96 @@ async function startFakeProvider() {
       await closeServer(serverInstance);
     },
   };
+}
+
+function providerToolCall(body) {
+  const toolNames = Array.isArray(body.tools)
+    ? body.tools
+        .map((tool) => tool?.function?.name)
+        .filter((name) => typeof name === 'string')
+    : [];
+  if (toolNames.includes('evidence_propose_inbox_stories')) {
+    const extraction = providerPromptJson(body);
+    const source = extraction.sources?.[0];
+    return {
+      name: 'evidence_propose_inbox_stories',
+      arguments: {
+        candidates: [
+          {
+            title: 'Packaged Inbox Kickoff lifecycle',
+            problem: 'The packaged authority boundary is not yet demonstrated.',
+            role: 'Workspace maintainer',
+            goal: 'Confirm one frozen delivery Story.',
+            value: 'The packaged lifecycle remains auditable.',
+            cognitiveMode: 'clear',
+            citations: [
+              {
+                inboxItemId: requiredString(
+                  source?.inboxItemId,
+                  'provider Inbox Item id',
+                ),
+                revisionSha256: requiredString(
+                  source?.contentSha256,
+                  'provider Inbox Revision SHA-256',
+                ),
+                locator: 'whole-source',
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+  if (toolNames.includes('evidence_propose_kickoff_candidate')) {
+    const context = providerPromptJson(body);
+    const candidate = context.intake?.candidate;
+    return {
+      name: 'evidence_propose_kickoff_candidate',
+      arguments: {
+        title: 'Revised packaged Inbox Kickoff lifecycle',
+        problem:
+          'The packaged Frozen Intake revision boundary needs explicit evidence.',
+        role: requiredString(candidate?.role, 'provider Candidate role'),
+        goal: 'Confirm one revised frozen delivery Story.',
+        value: requiredString(candidate?.value, 'provider Candidate value'),
+        cognitiveMode: 'clear',
+        citations: Array.isArray(candidate?.citations)
+          ? candidate.citations.map((citation) => ({
+              inboxItemId: requiredString(
+                citation?.inboxItemId,
+                'provider citation Inbox Item id',
+              ),
+              revisionSha256: requiredString(
+                citation?.revisionSha256,
+                'provider citation Revision SHA-256',
+              ),
+              locator: 'whole-source',
+            }))
+          : [],
+      },
+    };
+  }
+  return {
+    name: 'write',
+    arguments: { path: 'tracked.txt', content: implementation },
+  };
+}
+
+function providerPromptJson(body) {
+  const messages = Array.isArray(body.messages) ? [...body.messages] : [];
+  const message = messages.reverse().find((entry) => entry?.role === 'user');
+  const content = message?.content;
+  const text =
+    typeof content === 'string'
+      ? content
+      : Array.isArray(content)
+        ? content
+            .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+            .join('')
+        : '';
+  const start = text.indexOf('{');
+  if (start < 0) throw new Error('Fake Provider could not find prompt JSON.');
+  return JSON.parse(text.slice(start));
 }
 
 function completionChunk(model, delta, finishReason = null) {
