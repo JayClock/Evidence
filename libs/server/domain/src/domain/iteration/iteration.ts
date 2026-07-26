@@ -10,13 +10,17 @@ export type IterationLifecycle =
   | 'active'
   | 'provisioning_failed'
   | 'halted';
-export type IterationLoop = 'kickoff' | 'understand';
+export type IterationLoop = 'kickoff' | 'understand' | 'tasking';
 export type IterationStage =
   | 'candidate_review'
   | 'candidate_drafting'
   | 'tqa'
   | 'scenario_review'
-  | 'modeling';
+  | 'modeling'
+  | 'drafting'
+  | 'desk_check'
+  | 'knowledge_gap'
+  | 'approved';
 export type KickoffDecisionAction =
   | 'confirm'
   | 'revise'

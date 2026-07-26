@@ -116,7 +116,7 @@ export function parseIterationLifecycle(value: string): IterationLifecycle {
 }
 
 export function parseIterationLoop(value: string): IterationLoop {
-  if (value === 'kickoff' || value === 'understand') {
+  if (value === 'kickoff' || value === 'understand' || value === 'tasking') {
     return value;
   }
   throw DomainError.validation(`unsupported Iteration loop: ${value}`);
@@ -128,7 +128,11 @@ export function parseIterationStage(value: string): IterationStage {
     value === 'candidate_drafting' ||
     value === 'tqa' ||
     value === 'scenario_review' ||
-    value === 'modeling'
+    value === 'modeling' ||
+    value === 'drafting' ||
+    value === 'desk_check' ||
+    value === 'knowledge_gap' ||
+    value === 'approved'
   ) {
     return value;
   }
