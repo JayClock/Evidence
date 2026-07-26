@@ -47,6 +47,7 @@ import {
 import {
   CANCEL_INBOX_ANALYST_CHANNEL,
   CANCEL_KICKOFF_ANALYST_CHANNEL,
+  CANCEL_TASKING_ANALYST_CHANNEL,
   CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
   FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
   INTAKE_AGENT_EVENT_CHANNEL,
@@ -56,6 +57,7 @@ import {
   READ_INBOX_MARKDOWN_CHANNEL,
   RUN_INBOX_ANALYST_CHANNEL,
   RUN_KICKOFF_ANALYST_CHANNEL,
+  RUN_TASKING_ANALYST_CHANNEL,
   RUN_UNDERSTANDING_ANALYST_CHANNEL,
   START_ITERATION_CHANNEL,
 } from './intake-ipc-protocol';
@@ -63,10 +65,12 @@ import {
   parseInboxAnalystRequest,
   parseIntakeAgentEvent,
   parseKickoffAnalystRequest,
+  parseTaskingAnalystRequest,
   parseUnderstandingAnalystRequest,
   type InboxAnalystRuntimeRequest,
   type IntakeAgentEvent,
   type KickoffAnalystRuntimeRequest,
+  type TaskingAnalystRuntimeRequest,
   type UnderstandingAnalystRuntimeRequest,
 } from './intake-agent-protocol';
 import { IntakeApiClient } from './intake-api-client';
@@ -99,6 +103,10 @@ let kickoffAnalyst: LocalAgent<
 > | null = null;
 let understandingAnalyst: LocalAgent<
   UnderstandingAnalystRuntimeRequest,
+  IntakeAgentEvent
+> | null = null;
+let taskingAnalyst: LocalAgent<
+  TaskingAnalystRuntimeRequest,
   IntakeAgentEvent
 > | null = null;
 let iterationController: IterationController | null = null;
@@ -171,6 +179,7 @@ function registerDesktopBridge(
     UnderstandingAnalystRuntimeRequest,
     IntakeAgentEvent
   >,
+  tasking: LocalAgent<TaskingAnalystRuntimeRequest, IntakeAgentEvent>,
   iterations: IterationController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
@@ -296,6 +305,46 @@ function registerDesktopBridge(
       await understanding.cancel(id);
     },
   );
+  ipcMain.handle(RUN_TASKING_ANALYST_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseTaskingAnalystRequest(input);
+    const binding = await bindings.find(apiBaseUrl, request.workspaceId);
+    if (!binding) {
+      throw new Error('The Workspace is not bound to a local repository.');
+    }
+    const sessionDirectory = join(
+      app.getPath('userData'),
+      'tasking-sessions',
+      request.workspaceId,
+      request.iterationId,
+    );
+    const worktreeRoot = join(
+      app.getPath('userData'),
+      'iteration-worktrees',
+      request.iterationId,
+    );
+    await tasking.run(
+      {
+        ...request,
+        apiBaseUrl,
+        sessionDirectory,
+        repositoryRoot: binding.repositoryRoot,
+        worktreeRoot,
+      },
+      (agentEvent) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+        }
+      },
+    );
+  });
+  ipcMain.handle(CANCEL_TASKING_ANALYST_CHANNEL, async (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    if (typeof id !== 'string') {
+      throw new Error('Tasking Analyst request id is required.');
+    }
+    await tasking.cancel(id);
+  });
   ipcMain.handle(START_ITERATION_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     return iterations.start(parseStartIterationRequest(input));
@@ -391,12 +440,14 @@ function createIntakeAgent<
   TRequest extends
     | InboxAnalystRuntimeRequest
     | KickoffAnalystRuntimeRequest
-    | UnderstandingAnalystRuntimeRequest,
+    | UnderstandingAnalystRuntimeRequest
+    | TaskingAnalystRuntimeRequest,
 >(
   entryName:
     | 'inbox-analyst-runtime.mjs'
     | 'kickoff-analyst-runtime.mjs'
-    | 'understanding-analyst-runtime.mjs',
+    | 'understanding-analyst-runtime.mjs'
+    | 'tasking-analyst-runtime.mjs',
   authorization: string | undefined,
 ): LocalAgent<TRequest, IntakeAgentEvent> {
   return new LocalAgent({
@@ -539,6 +590,10 @@ void app.whenReady().then(async () => {
         'understanding-analyst-runtime.mjs',
         authorization,
       );
+    taskingAnalyst = createIntakeAgent<TaskingAnalystRuntimeRequest>(
+      'tasking-analyst-runtime.mjs',
+      authorization,
+    );
     const localCodingAgent = createLocalCodingAgent();
     const bindings = new WorkspaceBindingStore(
       join(app.getPath('userData'), 'workspace-bindings.json'),
@@ -574,6 +629,7 @@ void app.whenReady().then(async () => {
       inboxAnalyst,
       kickoffAnalyst,
       understandingAnalyst,
+      taskingAnalyst,
       iterationController,
     );
     const window = await createWindow();
@@ -607,6 +663,7 @@ app.on('before-quit', (event) => {
       inboxAnalyst ||
       kickoffAnalyst ||
       understandingAnalyst ||
+      taskingAnalyst ||
       iterationController ||
       codingController)
   ) {
@@ -618,6 +675,7 @@ app.on('before-quit', (event) => {
       inboxAnalyst?.stop() ?? Promise.resolve(),
       kickoffAnalyst?.stop() ?? Promise.resolve(),
       understandingAnalyst?.stop() ?? Promise.resolve(),
+      taskingAnalyst?.stop() ?? Promise.resolve(),
       codingController?.stop() ?? Promise.resolve(),
     ]).finally(() => app.quit());
   }

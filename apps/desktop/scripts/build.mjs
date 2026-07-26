@@ -36,6 +36,7 @@ const configurations = [
         workspaceRoot,
         'apps/desktop/src/understanding-analyst-runtime.ts',
       ),
+      resolve(workspaceRoot, 'apps/desktop/src/tasking-analyst-runtime.ts'),
     ],
   },
 ];
@@ -60,6 +61,8 @@ await Promise.all(
     'kickoff-analyst-runtime.mjs.map',
     'understanding-analyst-runtime.mjs',
     'understanding-analyst-runtime.mjs.map',
+    'tasking-analyst-runtime.mjs',
+    'tasking-analyst-runtime.mjs.map',
   ].map((file) => rm(resolve(outdir, file), { force: true })),
 );
 if (!watch) {
