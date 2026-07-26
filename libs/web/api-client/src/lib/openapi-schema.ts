@@ -1228,7 +1228,12 @@ export interface components {
       /** @enum {string} */
       loop: 'kickoff' | 'understand';
       /** @enum {string} */
-      stage: 'candidate_review' | 'candidate_drafting' | 'tqa';
+      stage:
+        | 'candidate_review'
+        | 'candidate_drafting'
+        | 'tqa'
+        | 'scenario_review'
+        | 'modeling';
       /** @enum {string} */
       lane: 'discovery';
       /** Format: int32 */

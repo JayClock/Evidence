@@ -21,6 +21,7 @@ export const resourceContentTypes = {
   kickoff: `${VENDOR_PREFIX}.kickoff+json`,
   kickoffProposal: `${VENDOR_PREFIX}.kickoff-proposal+json`,
   kickoffDecisionResult: `${VENDOR_PREFIX}.kickoff-decision-result+json`,
+  understanding: `${VENDOR_PREFIX}.understanding+json`,
   story: `${VENDOR_PREFIX}.story+json`,
   stories: `${VENDOR_PREFIX}.stories+json`,
   storyRevision: `${VENDOR_PREFIX}.story-revision+json`,

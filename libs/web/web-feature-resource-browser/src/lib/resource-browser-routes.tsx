@@ -29,6 +29,7 @@ import {
   type StoryResource,
   type StoryRevisionCollectionResource,
   type StoryRevisionResource,
+  type UnderstandingResource,
   type UserResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
@@ -55,6 +56,7 @@ import {
   StoryDetailView,
   StoryRevisionCollectionView,
   StoryRevisionDetailView,
+  UnderstandingDetailView,
 } from '@evidence/web-feature-delivery';
 import {
   DiagramCollectionView,
@@ -265,6 +267,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <KickoffDetailView
           resourceState={resourceState as State<KickoffResource>}
+        />
+      );
+    case resourceContentTypes.understanding:
+      return (
+        <UnderstandingDetailView
+          resourceState={resourceState as State<UnderstandingResource>}
         />
       );
     case resourceContentTypes.story:

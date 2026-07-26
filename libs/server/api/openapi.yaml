@@ -3487,7 +3487,7 @@ components:
           enum: [kickoff, understand]
         stage:
           type: string
-          enum: [candidate_review, candidate_drafting, tqa]
+          enum: [candidate_review, candidate_drafting, tqa, scenario_review, modeling]
         lane:
           type: string
           enum: [discovery]

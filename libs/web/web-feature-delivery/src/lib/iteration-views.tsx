@@ -73,8 +73,15 @@ export function IterationDetailView({
               </Link>
             </Button>
           ) : null}
-          {resourceState.getLink('story') ? (
+          {resourceState.getLink('understanding') ? (
             <Button asChild>
+              <Link to={resourceState.getLink('understanding')?.href ?? '#'}>
+                Open Understand / TQA
+              </Link>
+            </Button>
+          ) : null}
+          {resourceState.getLink('story') ? (
+            <Button asChild variant="outline">
               <Link to={resourceState.getLink('story')?.href ?? '#'}>
                 Open US-001
               </Link>
