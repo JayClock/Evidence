@@ -76,6 +76,24 @@ export function workspaceInboxRevisionHref(
   return `${workspaceInboxRevisionsHref(workspaceId, itemId)}/${revisionId}`;
 }
 
+export function workspaceInboxExtractionsHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/inbox-extractions`;
+}
+
+export function workspaceInboxExtractionHref(
+  workspaceId: string,
+  extractionId: string,
+): string {
+  return `${workspaceInboxExtractionsHref(workspaceId)}/${extractionId}`;
+}
+
+export function workspaceInboxExtractionCandidatesHref(
+  workspaceId: string,
+  extractionId: string,
+): string {
+  return `${workspaceInboxExtractionHref(workspaceId, extractionId)}/candidates`;
+}
+
 export function workspaceStoryCandidatesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/story-candidates`;
 }
@@ -85,6 +103,20 @@ export function workspaceStoryCandidateHref(
   candidateId: string,
 ): string {
   return `${workspaceStoryCandidatesHref(workspaceId)}/${candidateId}`;
+}
+
+export function workspaceStoryCandidateDeferHref(
+  workspaceId: string,
+  candidateId: string,
+): string {
+  return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/defer`;
+}
+
+export function workspaceStoryCandidateSelectHref(
+  workspaceId: string,
+  candidateId: string,
+): string {
+  return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/select`;
 }
 
 export function workspaceStoryCandidateConfirmHref(
@@ -99,6 +131,53 @@ export function workspaceStoryCandidateRejectHref(
   candidateId: string,
 ): string {
   return `${workspaceStoryCandidateHref(workspaceId, candidateId)}/reject`;
+}
+
+export function workspaceIterationsHref(workspaceId: string): string {
+  return `${workspaceHref(workspaceId)}/iterations`;
+}
+
+export function workspaceIterationHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationsHref(workspaceId)}/${iterationId}`;
+}
+
+export function workspaceIterationIntakeHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/intake`;
+}
+
+export function workspaceIterationKickoffHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/kickoff`;
+}
+
+export function workspaceIterationProvisioningHref(
+  workspaceId: string,
+  iterationId: string,
+  outcome: 'complete' | 'fail',
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/provisioning/${outcome}`;
+}
+
+export function workspaceIterationKickoffProposalsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationKickoffHref(workspaceId, iterationId)}/proposals`;
+}
+
+export function workspaceIterationKickoffDecisionsHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationKickoffHref(workspaceId, iterationId)}/decisions`;
 }
 
 export function workspaceStoriesHref(workspaceId: string): string {
