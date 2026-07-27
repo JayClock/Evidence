@@ -491,8 +491,8 @@ function CreateEntityDialog({
   );
 }
 
-function MarkdownContent({ content }: { content: string }) {
-  const markdown = content.trim();
+function MarkdownContent({ content }: { content?: string | null }) {
+  const markdown = content?.trim() ?? '';
   if (!markdown)
     return <span className="text-sm text-muted-foreground">—</span>;
   return (

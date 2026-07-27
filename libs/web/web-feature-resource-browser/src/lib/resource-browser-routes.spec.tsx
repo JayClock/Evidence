@@ -583,13 +583,13 @@ describe('ResourceBrowserRoutes', () => {
     expect(await screen.findByText(expected)).toBeTruthy();
   });
 
-  it('renders logical entities as a table for logical entity collection resources', async () => {
+  it('renders the localized logical entity workbench for collection resources', async () => {
     await act(async () => {
       renderRoutes('/workspaces/default-workspace/logical-entities');
     });
 
     expect(await screen.findByRole('table')).toBeTruthy();
-    expect(screen.getByText('Logical Entities')).toBeTruthy();
+    expect(screen.getByText('逻辑实体')).toBeTruthy();
     expect(screen.getAllByText('Contract').length).toBeGreaterThan(0);
   });
 });
