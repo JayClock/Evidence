@@ -1,6 +1,7 @@
 export * from './lib/iteration-views';
 export * from './lib/kickoff-view';
 export * from './lib/story-candidate-views';
+export * from './lib/story-board';
 export * from './lib/story-detail-view';
 export * from './lib/story-views';
 export * from './lib/understanding-views';

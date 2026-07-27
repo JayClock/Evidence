@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   State,
-  StoryCollectionResource,
   StoryRevisionCollectionResource,
   StoryRevisionResource,
 } from '@evidence/api-client';
@@ -29,135 +28,6 @@ import {
   TableRow,
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
-
-export function StoryCollectionView({
-  resourceState,
-}: {
-  resourceState: State<StoryCollectionResource>;
-}) {
-  const [collectionState, setCollectionState] = useState(resourceState);
-  const [pagePending, setPagePending] = useState(false);
-  const [pageError, setPageError] = useState<string | null>(null);
-
-  const navigatePage = async (relation: 'prev' | 'next') => {
-    if (!collectionState.getLink(relation) || pagePending) return;
-    setPagePending(true);
-    setPageError(null);
-    try {
-      setCollectionState(await collectionState.follow(relation).refresh());
-    } catch (caught) {
-      setPageError(errorMessage(caught, '无法载入 Story 页面。'));
-    } finally {
-      setPagePending(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader className="gap-2">
-        <CardTitle aria-level={1} role="heading">
-          权威 Story
-        </CardTitle>
-        <CardDescription>
-          这里只展示经人工 Kickoff confirm 创建的 Story identity
-          及其不可变修订历史。
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Pair 必须锁定人工批准的 Tasking Plan 与精确 Story Revision。
-          </p>
-          <Badge variant="secondary">
-            共 {collectionState.data.page.totalElements} 张
-          </Badge>
-        </div>
-        {pageError ? (
-          <Alert className="mb-3" variant="destructive">
-            <AlertDescription>{pageError}</AlertDescription>
-          </Alert>
-        ) : null}
-        {collectionState.collection.length === 0 ? (
-          <Empty className="py-8">
-            <EmptyHeader>
-              <EmptyTitle>尚无权威 Story</EmptyTitle>
-              <EmptyDescription>
-                人工 confirm 一份 Frozen Kickoff Proposal 后才会创建 US-001。
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Story</TableHead>
-                  <TableHead>Iteration</TableHead>
-                  <TableHead>当前阶段</TableHead>
-                  <TableHead>Latest Revision</TableHead>
-                  <TableHead>更新时间</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {collectionState.collection.map((storyState) => {
-                  const story = storyState.data;
-                  const href = storyState.getLink('self')?.href;
-                  return (
-                    <TableRow key={story.id}>
-                      <TableCell className="min-w-56">
-                        <p className="font-medium">{story.title}</p>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {story.reference}
-                        </p>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {story.iterationReference}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {workflowStageLabel(story.iterationStage)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="tabular-nums">
-                          v{story.latestRevisionNumber}
-                        </span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {story.latestScenarioCount} 个 Scenario
-                        </span>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {formatDateTime(story.updatedAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {href ? (
-                          <Button asChild size="sm" variant="outline">
-                            <Link to={href}>打开</Link>
-                          </Button>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        <DeliveryPagination
-          label="Story 分页"
-          page={collectionState.data.page.number}
-          totalPages={collectionState.data.page.totalPages}
-          hasPrevious={Boolean(collectionState.getLink('prev'))}
-          hasNext={Boolean(collectionState.getLink('next'))}
-          pending={pagePending}
-          onPrevious={() => void navigatePage('prev')}
-          onNext={() => void navigatePage('next')}
-        />
-      </CardContent>
-    </Card>
-  );
-}
 
 export function StoryRevisionCollectionView({
   resourceState,
@@ -437,28 +307,6 @@ function DetailItem({
       </p>
     </div>
   );
-}
-
-function workflowStageLabel(value: string): string {
-  const labels: Record<string, string> = {
-    tqa: 'Understand / TQA',
-    scenario_review: 'Scenario 审查',
-    modeling: '模型影响决定',
-    drafting: 'Tasking 起草',
-    desk_check: 'Desk Check',
-    knowledge_gap: '知识缺口',
-    approved: '计划已批准',
-    plan_confirmed: 'Pair Plan 已锁定',
-    test_written: 'Test 已写入',
-    red_observed: 'Red 已观察',
-    implementation_written: '实现已写入',
-    green_observed: 'Green 已观察',
-    refactored: 'Refactor 已完成',
-    quality_gate_failed: '质量门失败',
-    quality_gates_passed: '质量门已通过',
-    exception: 'Pair 异常',
-  };
-  return labels[value] ?? value;
 }
 
 function cognitiveModeLabel(value: string): string {

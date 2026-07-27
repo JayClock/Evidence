@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   useResource,
@@ -9,9 +9,9 @@ import {
   type StoryRevisionResource,
 } from '@evidence/api-client';
 import type { Mock } from 'vitest';
+import { StoryCollectionView } from './story-board';
 import { StoryDetailView } from './story-detail-view';
 import {
-  StoryCollectionView,
   StoryRevisionCollectionView,
   StoryRevisionDetailView,
 } from './story-views';
@@ -75,9 +75,13 @@ function storyState(
     iterationStage: 'tqa',
     reference: 'US-001',
     title: '本地编码智能体',
+    goal: '在本地运行受限的编码工作。',
     latestRevisionId: 'story-revision-1',
     latestRevisionNumber: 1,
     latestScenarioCount: 0,
+    latestCitationCount: 1,
+    pendingClarificationReference: 'Q-001',
+    authority: { owner: 'human', nextAction: 'answer_clarification' },
     revisionCount: 1,
     version: 1,
     createdAt: '2026-07-24T11:00:00.000Z',
@@ -169,6 +173,13 @@ describe('Story views', () => {
     const collection = {
       data: {
         page: { number: 1, size: 20, totalElements: 1, totalPages: 1 },
+        summary: {
+          humanAttention: 1,
+          agentAttention: 0,
+          approved: 0,
+          stages: [{ loop: 'understand', stage: 'tqa', count: 1 }],
+          actions: [{ action: 'answer_clarification', count: 1 }],
+        },
       },
       collection: [storyState()],
       getLink: () => undefined,
@@ -180,14 +191,63 @@ describe('Story views', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: '权威 Story' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '故事交付看板' })).toBeTruthy();
     expect(screen.getByText('本地编码智能体')).toBeTruthy();
-    expect(screen.getByText('US-001')).toBeTruthy();
-    expect(screen.getByText('ITER-0001')).toBeTruthy();
-    expect(screen.getByText('Understand / TQA')).toBeTruthy();
+    expect(screen.getByText(/US-001 · ITER-0001 · v1/)).toBeTruthy();
+    expect(screen.getByText('TQA 澄清')).toBeTruthy();
+    expect(screen.getByText('回答一个业务问题')).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: '打开' }).getAttribute('href'),
-    ).toBe('/api/workspaces/workspace-1/stories/story-1');
+      screen.getByRole('link', { name: '回答' }).getAttribute('href'),
+    ).toBe('/api/workspaces/workspace-1/iterations/iteration-1/understanding');
+  });
+
+  it('supports a deep-linked search and opens bounded authority details', () => {
+    const approvalStory = storyState({
+      id: 'story-47',
+      iterationId: 'iteration-47',
+      iterationReference: 'ITER-0047',
+      iterationLoop: 'pair',
+      iterationStage: 'quality_gates_passed',
+      title: '保护本地交付隐私',
+      goal: '完整 Diff 只由 Desktop 本地提供。',
+      latestRevisionNumber: 3,
+      latestScenarioCount: 3,
+      authority: { owner: 'human', nextAction: 'review_pair_change' },
+    });
+    const collection = {
+      data: {
+        page: { number: 1, size: 20, totalElements: 2, totalPages: 1 },
+        summary: {
+          humanAttention: 2,
+          agentAttention: 0,
+          approved: 0,
+          stages: [
+            { loop: 'understand', stage: 'tqa', count: 1 },
+            { loop: 'pair', stage: 'quality_gates_passed', count: 1 },
+          ],
+          actions: [
+            { action: 'answer_clarification', count: 1 },
+            { action: 'review_pair_change', count: 1 },
+          ],
+        },
+      },
+      collection: [storyState(), approvalStory],
+      getLink: () => undefined,
+    } as unknown as State<StoryCollectionResource>;
+
+    render(
+      <MemoryRouter initialEntries={['/?q=ITER-0047']}>
+        <StoryCollectionView resourceState={collection} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByText('本地编码智能体')).toBeNull();
+    expect(screen.getByText('保护本地交付隐私')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: '快速查看 保护本地交付隐私' }),
+    );
+    expect(screen.getByText('列位置不是可拖拽状态')).toBeTruthy();
+    expect(screen.getByText('精确 Approved Plan')).toBeTruthy();
   });
 
   it('routes a baseline Story to Understand instead of direct coding', () => {
