@@ -9,9 +9,9 @@ import {
   type StoryRevisionResource,
 } from '@evidence/api-client';
 import type { Mock } from 'vitest';
+import { StoryDetailView } from './story-detail-view';
 import {
   StoryCollectionView,
-  StoryDetailView,
   StoryRevisionCollectionView,
   StoryRevisionDetailView,
 } from './story-views';
@@ -28,11 +28,11 @@ const revisionState = {
   data: {
     id: 'story-revision-1',
     revisionNumber: 1,
-    title: 'Local coding agent',
-    problem: 'Hosted services must not receive source code.',
-    role: 'Workspace maintainer',
-    goal: 'Run coding work locally.',
-    value: 'Credentials remain local.',
+    title: '本地编码智能体',
+    problem: '托管服务不能接收本地源码。',
+    role: '工作区维护者',
+    goal: '在本地运行受限的编码工作。',
+    value: '凭据和仓库内容保持在本地。',
     cognitiveMode: 'complicated',
     citations: [
       {
@@ -63,11 +63,18 @@ const revisionState = {
       : undefined,
 } as unknown as State<StoryRevisionResource>;
 
-const storyState = {
-  data: {
+function storyState(
+  overrides: Partial<StoryResource['data']> = {},
+): State<StoryResource> {
+  const data: StoryResource['data'] = {
     id: 'story-1',
+    iterationId: 'iteration-1',
+    iterationReference: 'ITER-0001',
+    iterationLifecycle: 'active',
+    iterationLoop: 'understand',
+    iterationStage: 'tqa',
     reference: 'US-001',
-    title: 'Local coding agent',
+    title: '本地编码智能体',
     latestRevisionId: 'story-revision-1',
     latestRevisionNumber: 1,
     latestScenarioCount: 0,
@@ -75,29 +82,45 @@ const storyState = {
     version: 1,
     createdAt: '2026-07-24T11:00:00.000Z',
     updatedAt: '2026-07-24T11:00:00.000Z',
-  },
-  getLink: (relation: string) => {
-    if (relation === 'self') {
-      return {
-        rel: relation,
-        href: '/api/workspaces/workspace-1/stories/story-1',
-      };
-    }
-    if (relation === 'revisions') {
-      return {
-        rel: relation,
-        href: '/api/workspaces/workspace-1/stories/story-1/revisions',
-      };
-    }
-    return undefined;
-  },
-  follow: (relation: string) => {
-    if (relation !== 'latest-revision') {
-      throw new Error(`Unexpected relation: ${relation}`);
-    }
-    return { kind: 'latest-revision' };
-  },
-} as unknown as State<StoryResource>;
+    ...overrides,
+  };
+  const links: Record<string, { rel: string; href: string }> = {
+    self: {
+      rel: 'self',
+      href: '/api/workspaces/workspace-1/stories/story-1',
+    },
+    collection: {
+      rel: 'collection',
+      href: '/api/workspaces/workspace-1/stories',
+    },
+    revisions: {
+      rel: 'revisions',
+      href: '/api/workspaces/workspace-1/stories/story-1/revisions',
+    },
+    understanding: {
+      rel: 'understanding',
+      href: '/api/workspaces/workspace-1/iterations/iteration-1/understanding',
+    },
+    tasking: {
+      rel: 'tasking',
+      href: '/api/workspaces/workspace-1/iterations/iteration-1/tasking',
+    },
+    pair: {
+      rel: 'pair',
+      href: '/api/workspaces/workspace-1/iterations/iteration-1/pair',
+    },
+  };
+  return {
+    data,
+    getLink: (relation: string) => links[relation],
+    follow: (relation: string) => {
+      if (relation !== 'latest-revision') {
+        throw new Error(`Unexpected relation: ${relation}`);
+      }
+      return { kind: 'latest-revision' };
+    },
+  } as unknown as State<StoryResource>;
+}
 
 const acceptanceRevisionState = {
   ...revisionState,
@@ -108,13 +131,13 @@ const acceptanceRevisionState = {
     scenarios: [
       {
         id: 'scenario-1',
-        title: 'Create an isolated worktree',
-        given: ['The Workspace is bound to an accessible Git repository.'],
-        when: 'The user starts a Coding Run.',
-        then: [
-          'A dedicated branch and worktree are created.',
-          'The primary working tree remains unchanged.',
-        ],
+        reference: 'SC-001',
+        sourceDraftId: 'scenario-draft-1',
+        title: '创建隔离工作树',
+        given: ['Workspace 已绑定可访问的 Git repository。'],
+        when: '人工 Desk Check 批准精确 Tasking Plan。',
+        then: ['创建专用分支与工作树。', '主工作树保持不变。'],
+        businessData: ['ITER-0001', 'US-001'],
       },
     ],
   },
@@ -142,12 +165,12 @@ describe('Story views', () => {
     });
   });
 
-  it('lists confirmed Story identities and their latest revision', () => {
+  it('lists confirmed Story identities with their Iteration workflow stage', () => {
     const collection = {
       data: {
         page: { number: 1, size: 20, totalElements: 1, totalPages: 1 },
       },
-      collection: [storyState],
+      collection: [storyState()],
       getLink: () => undefined,
     } as unknown as State<StoryCollectionResource>;
 
@@ -157,36 +180,78 @@ describe('Story views', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Stories' })).toBeTruthy();
-    expect(screen.getByText('Local coding agent')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '权威 Story' })).toBeTruthy();
+    expect(screen.getByText('本地编码智能体')).toBeTruthy();
     expect(screen.getByText('US-001')).toBeTruthy();
-    expect(screen.getByText('v1')).toBeTruthy();
+    expect(screen.getByText('ITER-0001')).toBeTruthy();
+    expect(screen.getByText('Understand / TQA')).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Open' }).getAttribute('href'),
+      screen.getByRole('link', { name: '打开' }).getAttribute('href'),
     ).toBe('/api/workspaces/workspace-1/stories/story-1');
   });
 
-  it('shows the latest immutable revision from a Story', () => {
+  it('routes a baseline Story to Understand instead of direct coding', () => {
     render(
       <MemoryRouter>
-        <StoryDetailView resourceState={storyState} />
+        <StoryDetailView resourceState={storyState()} />
       </MemoryRouter>,
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Latest revision · v1' }),
+      screen.getByRole('heading', {
+        name: 'US-001 · 本地编码智能体',
+      }),
     ).toBeTruthy();
-    expect(screen.getByText('Workspace maintainer')).toBeTruthy();
-    expect(screen.getByText(revisionHash)).toBeTruthy();
-    expect(screen.getByText('Needs acceptance scenarios')).toBeTruthy();
-    expect(
-      screen.queryByRole('button', { name: 'Confirm acceptance revision' }),
-    ).toBeNull();
+    expect(screen.getByText('编码准入尚未开放')).toBeTruthy();
     expect(
       screen
-        .getByRole('link', { name: 'Revision history' })
+        .getByRole('link', { name: '定义验收 Scenario' })
         .getAttribute('href'),
+    ).toBe('/api/workspaces/workspace-1/iterations/iteration-1/understanding');
+    expect(
+      screen.getByText(
+        `${revisionHash.slice(0, 14)}…${revisionHash.slice(-8)}`,
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /CodingRun/ })).toBeNull();
+    expect(
+      screen.getByRole('link', { name: '修订历史' }).getAttribute('href'),
     ).toBe('/api/workspaces/workspace-1/stories/story-1/revisions');
+  });
+
+  it('keeps a confirmed Scenario in Understand for explicit modeling impact', () => {
+    useResourceMock.mockReturnValue({
+      loading: false,
+      error: null,
+      data: acceptanceRevisionState.data,
+      resourceState: acceptanceRevisionState,
+      resource: { kind: 'latest-revision' },
+    });
+
+    render(
+      <MemoryRouter>
+        <StoryDetailView
+          resourceState={storyState({
+            iterationStage: 'modeling',
+            latestRevisionId: 'story-revision-2',
+            latestRevisionNumber: 2,
+            latestScenarioCount: 1,
+            revisionCount: 2,
+          })}
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Understand · 模型影响决定')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: '继续 Understand / Modeling' }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: '创建隔离工作树' }),
+    ).toBeTruthy();
+    expect(screen.getByText('GIVEN')).toBeTruthy();
+    expect(screen.getByText('WHEN')).toBeTruthy();
+    expect(screen.getByText('THEN')).toBeTruthy();
   });
 
   it('renders revision history and exact Inbox citation links', () => {
@@ -197,10 +262,10 @@ describe('Story views', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Story revision history' }),
+      screen.getByRole('heading', { name: 'Story 修订历史' }),
     ).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Open' }).getAttribute('href'),
+      screen.getByRole('link', { name: '打开' }).getAttribute('href'),
     ).toBe(
       '/api/workspaces/workspace-1/stories/story-1/revisions/story-revision-1',
     );
@@ -212,16 +277,13 @@ describe('Story views', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Local coding agent' }),
+      screen.getByRole('heading', { name: '本地编码智能体' }),
     ).toBeTruthy();
     expect(
-      screen.getByRole('heading', { name: 'Create an isolated worktree' }),
+      screen.getByRole('heading', { name: '创建隔离工作树' }),
     ).toBeTruthy();
-    expect(screen.getByText('GIVEN')).toBeTruthy();
-    expect(screen.getByText('WHEN')).toBeTruthy();
-    expect(screen.getByText('THEN')).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Open source' }).getAttribute('href'),
+      screen.getByRole('link', { name: '打开来源' }).getAttribute('href'),
     ).toBe(
       '/api/workspaces/workspace-1/inbox-items/item-1/revisions/inbox-revision-1',
     );

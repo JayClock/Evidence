@@ -1,12 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  useResource,
-  type State,
-  type StoryCollectionResource,
-  type StoryResource,
-  type StoryRevisionCollectionResource,
-  type StoryRevisionResource,
+import type {
+  State,
+  StoryCollectionResource,
+  StoryRevisionCollectionResource,
+  StoryRevisionResource,
 } from '@evidence/api-client';
 import {
   Alert,
@@ -48,7 +46,7 @@ export function StoryCollectionView({
     try {
       setCollectionState(await collectionState.follow(relation).refresh());
     } catch (caught) {
-      setPageError(errorMessage(caught, 'The Story page could not load.'));
+      setPageError(errorMessage(caught, '无法载入 Story 页面。'));
     } finally {
       setPagePending(false);
     }
@@ -58,20 +56,20 @@ export function StoryCollectionView({
     <Card>
       <CardHeader className="gap-2">
         <CardTitle aria-level={1} role="heading">
-          Stories
+          权威 Story
         </CardTitle>
         <CardDescription>
-          Human-confirmed Story identities and their immutable revision
-          histories.
+          这里只展示经人工 Kickoff confirm 创建的 Story identity
+          及其不可变修订历史。
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">
-            Coding runs must lock one exact Story Revision.
+            Pair 必须锁定人工批准的 Tasking Plan 与精确 Story Revision。
           </p>
           <Badge variant="secondary">
-            {collectionState.data.page.totalElements} total
+            共 {collectionState.data.page.totalElements} 张
           </Badge>
         </div>
         {pageError ? (
@@ -82,9 +80,9 @@ export function StoryCollectionView({
         {collectionState.collection.length === 0 ? (
           <Empty className="py-8">
             <EmptyHeader>
-              <EmptyTitle>No confirmed Stories yet</EmptyTitle>
+              <EmptyTitle>尚无权威 Story</EmptyTitle>
               <EmptyDescription>
-                Confirm one frozen Kickoff Proposal to create US-001.
+                人工 confirm 一份 Frozen Kickoff Proposal 后才会创建 US-001。
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -93,11 +91,12 @@ export function StoryCollectionView({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Latest revision</TableHead>
-                  <TableHead>Revision count</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>Story</TableHead>
+                  <TableHead>Iteration</TableHead>
+                  <TableHead>当前阶段</TableHead>
+                  <TableHead>Latest Revision</TableHead>
+                  <TableHead>更新时间</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -112,11 +111,21 @@ export function StoryCollectionView({
                           {story.reference}
                         </p>
                       </TableCell>
-                      <TableCell className="tabular-nums">
-                        v{story.latestRevisionNumber}
+                      <TableCell className="font-mono text-xs">
+                        {story.iterationReference}
                       </TableCell>
-                      <TableCell className="tabular-nums">
-                        {story.revisionCount}
+                      <TableCell>
+                        <Badge variant="outline">
+                          {workflowStageLabel(story.iterationStage)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="tabular-nums">
+                          v{story.latestRevisionNumber}
+                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {story.latestScenarioCount} 个 Scenario
+                        </span>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {formatDateTime(story.updatedAt)}
@@ -124,7 +133,7 @@ export function StoryCollectionView({
                       <TableCell className="text-right">
                         {href ? (
                           <Button asChild size="sm" variant="outline">
-                            <Link to={href}>Open</Link>
+                            <Link to={href}>打开</Link>
                           </Button>
                         ) : null}
                       </TableCell>
@@ -136,7 +145,7 @@ export function StoryCollectionView({
           </div>
         )}
         <DeliveryPagination
-          label="Story pages"
+          label="Story 分页"
           page={collectionState.data.page.number}
           totalPages={collectionState.data.page.totalPages}
           hasPrevious={Boolean(collectionState.getLink('prev'))}
@@ -147,76 +156,6 @@ export function StoryCollectionView({
         />
       </CardContent>
     </Card>
-  );
-}
-
-export function StoryDetailView({
-  resourceState,
-}: {
-  resourceState: State<StoryResource>;
-}) {
-  const latestResource = useMemo(
-    () => resourceState.follow('latest-revision'),
-    [resourceState],
-  );
-  const latest = useResource<StoryRevisionResource>(latestResource);
-  const story = resourceState.data;
-  const revisionsHref = resourceState.getLink('revisions')?.href;
-
-  return (
-    <div className="flex flex-col gap-5">
-      <Card>
-        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle aria-level={1} role="heading">
-                {story.title}
-              </CardTitle>
-              <Badge variant="outline">{story.reference}</Badge>
-            </div>
-            <CardDescription>
-              Iteration Story · latest revision v{story.latestRevisionNumber} ·{' '}
-              {story.revisionCount}{' '}
-              {story.revisionCount === 1 ? 'revision' : 'revisions'}
-            </CardDescription>
-            <Badge className="w-fit" variant="secondary">
-              {story.latestScenarioCount > 0
-                ? `${String(story.latestScenarioCount)} acceptance ${story.latestScenarioCount === 1 ? 'scenario' : 'scenarios'}`
-                : 'Needs acceptance scenarios'}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {revisionsHref ? (
-              <Button asChild variant="outline">
-                <Link to={revisionsHref}>Revision history</Link>
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DetailItem
-              label="Created"
-              value={formatDateTime(story.createdAt)}
-            />
-            <DetailItem
-              label="Updated"
-              value={formatDateTime(story.updatedAt)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-      <RelatedCard
-        title={`Latest revision · v${String(story.latestRevisionNumber)}`}
-        description="The current immutable Story snapshot."
-        loading={latest.loading}
-        error={latest.error}
-      >
-        {latest.resourceState ? (
-          <StoryRevisionContent resourceState={latest.resourceState} />
-        ) : null}
-      </RelatedCard>
-    </div>
   );
 }
 
@@ -236,7 +175,7 @@ export function StoryRevisionCollectionView({
     try {
       setPageState(await pageState.follow(relation).refresh());
     } catch (caught) {
-      setPageError(errorMessage(caught, 'The revision page could not load.'));
+      setPageError(errorMessage(caught, '无法载入 Story Revision 页面。'));
     } finally {
       setPagePending(false);
     }
@@ -246,10 +185,10 @@ export function StoryRevisionCollectionView({
     <Card>
       <CardHeader className="gap-2">
         <CardTitle aria-level={1} role="heading">
-          Story revision history
+          Story 修订历史
         </CardTitle>
         <CardDescription>
-          Every immutable snapshot retained for reproducible delivery work.
+          保留每个不可变快照，使 Scenario、Tasking 与 Pair 权威可复现。
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -261,9 +200,9 @@ export function StoryRevisionCollectionView({
         {pageState.collection.length === 0 ? (
           <Empty className="py-8">
             <EmptyHeader>
-              <EmptyTitle>No Story Revisions found</EmptyTitle>
+              <EmptyTitle>未找到 Story Revision</EmptyTitle>
               <EmptyDescription>
-                A confirmed Story always begins with Revision v1.
+                人工 confirm 创建 Story 时必定同时形成 baseline Revision v1。
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -273,10 +212,11 @@ export function StoryRevisionCollectionView({
               <TableHeader>
                 <TableRow>
                   <TableHead>Revision</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Content hash</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
+                  <TableHead>标题</TableHead>
+                  <TableHead>Scenario</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead>内容哈希</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -291,6 +231,7 @@ export function StoryRevisionCollectionView({
                       <TableCell className="min-w-56">
                         {revision.title}
                       </TableCell>
+                      <TableCell>{revision.scenarios.length}</TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {formatDateTime(revision.createdAt)}
                       </TableCell>
@@ -300,7 +241,7 @@ export function StoryRevisionCollectionView({
                       <TableCell className="text-right">
                         {href ? (
                           <Button asChild size="sm" variant="outline">
-                            <Link to={href}>Open</Link>
+                            <Link to={href}>打开</Link>
                           </Button>
                         ) : null}
                       </TableCell>
@@ -312,7 +253,7 @@ export function StoryRevisionCollectionView({
           </div>
         )}
         <DeliveryPagination
-          label="Story Revision pages"
+          label="Story Revision 分页"
           page={pageState.data.page.number}
           totalPages={pageState.data.page.totalPages}
           hasPrevious={Boolean(pageState.getLink('prev'))}
@@ -341,8 +282,7 @@ export function StoryRevisionDetailView({
           {resourceState.data.title}
         </CardTitle>
         <CardDescription>
-          Immutable Story snapshot created{' '}
-          {formatDateTime(resourceState.data.createdAt)}
+          不可变 Story 快照 · {formatDateTime(resourceState.data.createdAt)}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -352,7 +292,7 @@ export function StoryRevisionDetailView({
   );
 }
 
-function StoryRevisionContent({
+export function StoryRevisionContent({
   resourceState,
 }: {
   resourceState: State<StoryRevisionResource>;
@@ -361,18 +301,14 @@ function StoryRevisionContent({
   return (
     <div className="flex flex-col gap-5">
       <div className="grid gap-4 md:grid-cols-2">
-        <DetailItem label="Role" value={revision.role} />
+        <DetailItem label="角色" value={revision.role} />
         <DetailItem
-          label="Cognitive mode"
-          value={formatLabel(revision.cognitiveMode)}
+          label="认知模式"
+          value={cognitiveModeLabel(revision.cognitiveMode)}
         />
-        <DetailItem
-          label="Problem"
-          value={revision.problem}
-          variant="multiline"
-        />
-        <DetailItem label="Goal" value={revision.goal} variant="multiline" />
-        <DetailItem label="Value" value={revision.value} variant="multiline" />
+        <DetailItem label="问题" value={revision.problem} variant="multiline" />
+        <DetailItem label="目标" value={revision.goal} variant="multiline" />
+        <DetailItem label="价值" value={revision.value} variant="multiline" />
         <DetailItem
           label="Story Revision SHA-256"
           value={revision.contentSha256}
@@ -382,23 +318,23 @@ function StoryRevisionContent({
       <Separator />
       <div className="flex flex-col gap-3">
         <div>
-          <p className="text-sm font-medium">Acceptance scenarios</p>
+          <p className="text-sm font-medium">验收 Scenario</p>
           <p className="text-sm text-muted-foreground">
-            Ordered Given/When/Then outcomes frozen into this Revision.
+            按顺序冻结在本 Revision 中的 Given / When / Then 业务结果。
           </p>
         </div>
         {revision.scenarios.length === 0 ? (
           <Alert>
             <AlertDescription>
-              This Revision predates acceptance Scenario confirmation.
+              此 Revision 尚未包含经人工确认的 Scenario Set。
             </AlertDescription>
           </Alert>
         ) : (
-          revision.scenarios.map((scenario, index) => (
+          revision.scenarios.map((scenario) => (
             <Card key={scenario.id} size="sm">
               <CardHeader>
                 <Badge className="w-fit" variant="outline">
-                  Scenario {index + 1}
+                  {scenario.reference}
                 </Badge>
                 <CardTitle aria-level={3} role="heading">
                   {scenario.title}
@@ -416,9 +352,9 @@ function StoryRevisionContent({
       <Separator />
       <div className="flex flex-col gap-3">
         <div>
-          <p className="text-sm font-medium">Source citations</p>
+          <p className="text-sm font-medium">来源引用</p>
           <p className="text-sm text-muted-foreground">
-            Exact Inbox Revisions frozen into this Story Revision.
+            此 Story Revision 锁定的精确 Inbox Revision。
           </p>
         </div>
         {revision.citations.map((citation) => {
@@ -437,7 +373,7 @@ function StoryRevisionContent({
                 </div>
                 {href ? (
                   <Button asChild size="sm" variant="outline">
-                    <Link to={href}>Open source</Link>
+                    <Link to={href}>打开来源</Link>
                   </Button>
                 ) : null}
               </div>
@@ -467,48 +403,12 @@ function ScenarioPhase({
       <div className="flex flex-col gap-2">
         {steps.map((step, index) => (
           <p className="whitespace-pre-wrap text-sm" key={`${label}-${index}`}>
-            {index > 0 ? 'AND ' : ''}
+            {index > 0 ? '并且 ' : ''}
             {step}
           </p>
         ))}
       </div>
     </div>
-  );
-}
-
-function RelatedCard({
-  title,
-  description,
-  loading,
-  error,
-  children,
-}: {
-  title: string;
-  description: string;
-  loading: boolean;
-  error: Error | null;
-  children: ReactNode;
-}) {
-  return (
-    <Card>
-      <CardHeader className="gap-2">
-        <CardTitle aria-level={2} role="heading">
-          {title}
-        </CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error.message}</AlertDescription>
-          </Alert>
-        ) : (
-          children
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -519,41 +419,66 @@ function DetailItem({
 }: {
   label: string;
   value: string;
-  variant?: 'plain' | 'mono' | 'multiline';
+  variant?: 'plain' | 'multiline' | 'mono';
 }) {
   return (
-    <div>
-      <p className="text-sm font-medium">{label}</p>
-      {variant === 'mono' ? (
-        <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
-          {value}
-        </p>
-      ) : variant === 'multiline' ? (
-        <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">
-          {value}
-        </p>
-      ) : (
-        <p className="mt-1 text-sm text-muted-foreground">{value}</p>
-      )}
+    <div className="flex flex-col gap-1 rounded-lg border p-3">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p
+        className={
+          variant === 'mono'
+            ? 'break-all font-mono text-xs'
+            : variant === 'multiline'
+              ? 'whitespace-pre-wrap text-sm'
+              : 'text-sm'
+        }
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
-function formatLabel(value: string): string {
-  return value
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+function workflowStageLabel(value: string): string {
+  const labels: Record<string, string> = {
+    tqa: 'Understand / TQA',
+    scenario_review: 'Scenario 审查',
+    modeling: '模型影响决定',
+    drafting: 'Tasking 起草',
+    desk_check: 'Desk Check',
+    knowledge_gap: '知识缺口',
+    approved: '计划已批准',
+    plan_confirmed: 'Pair Plan 已锁定',
+    test_written: 'Test 已写入',
+    red_observed: 'Red 已观察',
+    implementation_written: '实现已写入',
+    green_observed: 'Green 已观察',
+    refactored: 'Refactor 已完成',
+    quality_gate_failed: '质量门失败',
+    quality_gates_passed: '质量门已通过',
+    exception: 'Pair 异常',
+  };
+  return labels[value] ?? value;
+}
+
+function cognitiveModeLabel(value: string): string {
+  return (
+    {
+      clear: '清晰',
+      complicated: '繁杂',
+      complex: '复杂',
+    }[value] ?? value
+  );
 }
 
 function formatDateTime(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat('zh-CN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(date);
 }
 
 function errorMessage(error: unknown, fallback: string): string {
