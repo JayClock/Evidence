@@ -93,10 +93,10 @@ export function WorkspaceSwitcher({
     );
   }
 
-  const activeTitle = activeWorkspace?.title ?? 'No workspace';
+  const activeTitle = activeWorkspace?.title ?? '尚无工作区';
   const activeSource = activeWorkspace
     ? workspaceSourceName(activeWorkspace)
-    : 'Add a local workspace';
+    : '创建本地工作区';
 
   return (
     <>
@@ -114,7 +114,7 @@ export function WorkspaceSwitcher({
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
                   <span className="text-xs text-sidebar-foreground/70">
-                    Workspace
+                    工作区
                   </span>
                   <span className="truncate font-medium">{activeTitle}</span>
                 </span>
@@ -123,15 +123,11 @@ export function WorkspaceSwitcher({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-64">
               <DropdownMenuGroup>
-                <DropdownMenuLabel>Switch workspace</DropdownMenuLabel>
+                <DropdownMenuLabel>切换工作区</DropdownMenuLabel>
                 {error ? (
-                  <DropdownMenuItem disabled>
-                    Failed to load workspaces
-                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>工作区载入失败</DropdownMenuItem>
                 ) : workspaces.length === 0 ? (
-                  <DropdownMenuItem disabled>
-                    No workspaces yet
-                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>尚无工作区</DropdownMenuItem>
                 ) : (
                   <DropdownMenuRadioGroup
                     value={activeWorkspaceId}
@@ -163,7 +159,7 @@ export function WorkspaceSwitcher({
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem onSelect={() => setCreateDialogOpen(true)}>
-                  <span>+ Create workspace</span>
+                  <span>+ 创建工作区</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -177,7 +173,7 @@ export function WorkspaceSwitcher({
         onCreateWorkspace={onCreateWorkspace}
       />
 
-      <span className="sr-only">Current project: {activeSource}</span>
+      <span className="sr-only">当前项目：{activeSource}</span>
     </>
   );
 }
@@ -247,8 +243,8 @@ function CreateWorkspaceDialog({
     if (!title.trim() || (needsLocalProject && !selectedProject)) {
       setError(
         needsLocalProject
-          ? 'Choose a local project and name the workspace.'
-          : 'Name the workspace.',
+          ? '请选择本地项目并填写工作区名称。'
+          : '请填写工作区名称。',
       );
       return;
     }
@@ -265,7 +261,7 @@ function CreateWorkspaceDialog({
           ? { localRepositorySelectionId: selectedProject.id }
           : {}),
       });
-      toast.success(`Created ${createdWorkspace.data.title}`);
+      toast.success(`已创建 ${createdWorkspace.data.title}`);
       onOpenChange(false);
       resetForm();
     } catch (createError) {
@@ -287,11 +283,11 @@ function CreateWorkspaceDialog({
     >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Create workspace</DialogTitle>
+          <DialogTitle>创建工作区</DialogTitle>
           <DialogDescription>
             {needsLocalProject
-              ? 'Choose a local repository for Desktop execution. Its absolute path stays outside the renderer and Server.'
-              : 'Create a Server workspace. Local repository binding is available in the Desktop app.'}
+              ? '选择供 Desktop 本地执行使用的仓库。绝对路径不会进入 renderer 或 Server。'
+              : '创建 Server 工作区。本地仓库绑定仅由 Desktop 应用提供。'}
           </DialogDescription>
         </DialogHeader>
 
@@ -299,16 +295,16 @@ function CreateWorkspaceDialog({
           <FieldGroup>
             {needsLocalProject ? (
               <Field data-invalid={submitted && !selectedProject}>
-                <FieldLabel>Local project</FieldLabel>
+                <FieldLabel>本地项目</FieldLabel>
                 <Card size="sm">
                   <CardHeader>
                     <CardTitle>
-                      {selectedProject?.name ?? 'Choose a project folder'}
+                      {selectedProject?.name ?? '选择项目目录'}
                     </CardTitle>
                     <CardDescription>
                       {selectedProject
-                        ? 'Only the project name and Git revision are visible here.'
-                        : 'The Desktop main process validates the folder without exposing its path here or to the Server.'}
+                        ? '这里只显示项目名称和 Git revision。'
+                        : 'Desktop main process 会验证目录，但不会向此界面或 Server 暴露路径。'}
                     </CardDescription>
                     <CardAction>
                       <Button
@@ -317,7 +313,7 @@ function CreateWorkspaceDialog({
                         onClick={handleChooseProject}
                         disabled={submitting}
                       >
-                        Choose folder
+                        选择目录
                       </Button>
                     </CardAction>
                   </CardHeader>
@@ -333,22 +329,21 @@ function CreateWorkspaceDialog({
                       </div>
                     ) : (
                       <FieldDescription>
-                        Local execution will use this repository in a later
-                        isolated worktree.
+                        后续本地执行会在此仓库的隔离 worktree 中进行。
                       </FieldDescription>
                     )}
                   </CardContent>
                 </Card>
                 <FieldError>
                   {submitted && !selectedProject
-                    ? 'Choose a local project folder.'
+                    ? '请选择本地项目目录。'
                     : null}
                 </FieldError>
               </Field>
             ) : null}
 
             <Field data-invalid={submitted && !title.trim()}>
-              <FieldLabel htmlFor="workspace-title">Workspace name</FieldLabel>
+              <FieldLabel htmlFor="workspace-title">工作区名称</FieldLabel>
               <Input
                 id="workspace-title"
                 value={title}
@@ -359,23 +354,23 @@ function CreateWorkspaceDialog({
               />
               <FieldDescription>
                 {selectedProject
-                  ? 'The folder name is only a suggestion. You can rename it.'
-                  : 'Use a name shared by Web and Desktop clients.'}
+                  ? '目录名仅作为建议，可以修改。'
+                  : '请使用 Web 与 Desktop 客户端共享的名称。'}
               </FieldDescription>
               <FieldError>
-                {submitted && !title.trim() ? 'Enter a workspace name.' : null}
+                {submitted && !title.trim() ? '请输入工作区名称。' : null}
               </FieldError>
             </Field>
 
             <Field>
               <FieldLabel htmlFor="workspace-description">
-                Description
+                工作区说明
               </FieldLabel>
               <Textarea
                 id="workspace-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="What evidence does this workspace model?"
+                placeholder="这个工作区需要建模哪些证据？"
                 disabled={submitting}
               />
             </Field>
@@ -383,7 +378,7 @@ function CreateWorkspaceDialog({
 
           {error ? (
             <Alert variant="destructive">
-              <AlertTitle>Unable to continue</AlertTitle>
+              <AlertTitle>无法继续</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
@@ -391,12 +386,12 @@ function CreateWorkspaceDialog({
           <DialogFooter>
             <DialogClose asChild>
               <Button type="button" variant="outline" disabled={submitting}>
-                Cancel
+                取消
               </Button>
             </DialogClose>
             <Button type="submit" disabled={!canSubmit}>
               {submitting ? <Spinner data-icon="inline-start" /> : null}
-              Create and switch
+              创建并切换
             </Button>
           </DialogFooter>
         </form>
@@ -417,7 +412,7 @@ function electronRepositoryPicker():
 }
 
 export function workspaceSourceName(workspace: MembershipWorkspace) {
-  return workspace.description?.trim() || `${workspace.status} workspace`;
+  return workspace.description?.trim() || `${workspace.status} 工作区`;
 }
 
 export function workspaceHref(
@@ -436,5 +431,5 @@ function titleFromProjectName(name: string) {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Something went wrong.';
+  return error instanceof Error ? error.message : '操作未完成。';
 }

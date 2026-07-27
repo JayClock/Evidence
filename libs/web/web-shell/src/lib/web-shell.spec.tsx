@@ -129,8 +129,21 @@ const sidebarState = {
   data: {
     sections: [
       {
-        title: 'USER',
-        key: 'user',
+        title: '工作区',
+        key: 'workspace',
+        items: [
+          {
+            key: 'workspace-overview',
+            label: '工作区总览',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}',
+            path: '/api/workspaces/{workspaceId}',
+          },
+        ],
+      },
+      {
+        title: '来源',
+        key: 'source',
         items: [
           {
             key: 'inbox-items',
@@ -139,9 +152,42 @@ const sidebarState = {
             href: '/api/workspaces/{workspaceId}/inbox-items',
             path: '/api/workspaces/{workspaceId}/inbox-items',
           },
+        ],
+      },
+      {
+        title: '交付',
+        key: 'delivery',
+        items: [
+          {
+            key: 'stories',
+            label: '故事看板',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/stories',
+            path: '/api/workspaces/{workspaceId}/stories',
+          },
+          {
+            key: 'tasking-queue',
+            label: '交付计划',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/stories?filter=tasking',
+            path: '/api/workspaces/{workspaceId}/stories?filter=tasking',
+          },
+          {
+            key: 'pair-queue',
+            label: 'Pair 工作台',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/stories?filter=pair',
+            path: '/api/workspaces/{workspaceId}/stories?filter=pair',
+          },
+        ],
+      },
+      {
+        title: '模型',
+        key: 'model',
+        items: [
           {
             key: 'logical-entities',
-            label: 'Logical Entities',
+            label: '逻辑实体',
             type: 'resource',
             href: '/api/workspaces/{workspaceId}/logical-entities',
             path: '/api/workspaces/{workspaceId}/logical-entities',
@@ -159,6 +205,9 @@ const workspace = {
     diagram: { href: '/api/workspaces/default-workspace/diagram' },
     'inbox-items': {
       href: '/api/workspaces/default-workspace/inbox-items',
+    },
+    stories: {
+      href: '/api/workspaces/default-workspace/stories',
     },
     'logical-entities': {
       href: '/api/workspaces/default-workspace/logical-entities',
@@ -245,7 +294,7 @@ describe('WebShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
+    expect(screen.getByText('Evidence 交付工作区')).toBeTruthy();
     expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workspaces')).toBeNull();
     expect(screen.queryByText('Diagram')).toBeNull();
@@ -253,9 +302,33 @@ describe('WebShell', () => {
       'pathname',
       '/api/workspaces/default-workspace/inbox-items',
     );
-    expect(screen.getByText('Logical Entities')).toBeTruthy();
+    expect(screen.getByText('逻辑实体')).toBeTruthy();
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();
+  });
+
+  it('marks only the query-specific delivery queue as current', () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/api/workspaces/default-workspace/stories?filter=pair',
+        ]}
+      >
+        <WebShell userState={userState as unknown as State<UserResource>}>
+          <div>Route content</div>
+        </WebShell>
+      </MemoryRouter>,
+    );
+
+    const currentValue = (name: string) =>
+      (
+        screen.getByRole('link', { name }) as unknown as {
+          getAttribute(attribute: string): string | null;
+        }
+      ).getAttribute('aria-current');
+    expect(currentValue('Pair 工作台')).toBe('page');
+    expect(currentValue('故事看板')).toBeNull();
+    expect(currentValue('工作区总览')).toBeNull();
   });
 
   it('binds a Desktop repository without sending its path to the Server', async () => {
@@ -278,12 +351,12 @@ describe('WebShell', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Choose folder' }));
+    fireEvent.click(screen.getByRole('button', { name: '选择目录' }));
     await waitFor(() => expect(chooseRepository).toHaveBeenCalledOnce());
-    fireEvent.change(screen.getByLabelText('Workspace name'), {
+    fireEvent.change(screen.getByLabelText('工作区名称'), {
       target: { value: 'Local Model' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Create and switch' }));
+    fireEvent.click(screen.getByRole('button', { name: '创建并切换' }));
 
     await waitFor(() => expect(createWorkspacePost).toHaveBeenCalledOnce());
     expect(createWorkspacePost).toHaveBeenCalledWith({

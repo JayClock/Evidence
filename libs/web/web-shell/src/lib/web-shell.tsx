@@ -102,9 +102,7 @@ export function WebShell({
         if (localRepositorySelectionId) {
           const bindWorkspace = window.evidenceDesktop?.bindWorkspace;
           if (!bindWorkspace) {
-            throw new Error(
-              'Local repositories can only be bound by the Desktop app.',
-            );
+            throw new Error('本地仓库只能由 Desktop 应用绑定。');
           }
           await bindWorkspace(
             createdWorkspace.data.id,
@@ -146,7 +144,9 @@ export function WebShell({
         />
         <SidebarInset className="h-svh min-w-0 overflow-hidden md:h-[calc(100svh-1rem)]">
           <AppHeader activeWorkspaceTitle={activeWorkspace?.title} />
-          <main className="h-full w-full p-6">{children}</main>
+          <main className="min-h-0 w-full flex-1 overflow-hidden p-4 md:p-6">
+            {children}
+          </main>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
@@ -164,12 +164,12 @@ function AppHeader({
       <Separator orientation="vertical" className="h-5" />
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-medium">
-          Evidence Workspace Console
+          Evidence 交付工作区
         </span>
         <span className="truncate text-xs text-muted-foreground">
           {activeWorkspaceTitle
-            ? `Current workspace: ${activeWorkspaceTitle}`
-            : 'HATEOAS navigation shell'}
+            ? `当前工作区：${activeWorkspaceTitle}`
+            : '正在等待工作区上下文'}
         </span>
       </div>
     </header>
@@ -235,7 +235,7 @@ function AppSidebar({
                     <SidebarNavItem
                       key={item.key ?? item.label}
                       item={item}
-                      pathname={location.pathname}
+                      currentLocation={`${location.pathname}${location.search}`}
                       activeWorkspace={activeWorkspace}
                     />
                   ))}
@@ -264,7 +264,7 @@ function isVisibleSidebarItem(
 function SidebarLoading() {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Loading</SidebarGroupLabel>
+      <SidebarGroupLabel>正在加载</SidebarGroupLabel>
       <SidebarMenu>
         <SidebarMenuSkeleton showIcon />
         <SidebarMenuSkeleton showIcon />
@@ -275,21 +275,26 @@ function SidebarLoading() {
 
 function SidebarNavItem({
   item,
-  pathname,
+  currentLocation,
   activeWorkspace,
 }: {
   item: SidebarItem;
-  pathname: string;
+  currentLocation: string;
   activeWorkspace?: MembershipWorkspace;
 }) {
   const resourcePath = sidebarItemResourcePath(item, activeWorkspace);
   const target = sidebarItemRoute(item, activeWorkspace);
-  const active = item.active ?? isPathActive(pathname, target);
+  const active =
+    item.active ?? isSidebarItemActive(item, currentLocation, target);
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild tooltip={item.label} isActive={active}>
-        <Link to={target} data-resource-path={resourcePath}>
+        <Link
+          aria-current={active ? 'page' : undefined}
+          to={target}
+          data-resource-path={resourcePath}
+        >
           <span>{item.label}</span>
         </Link>
       </SidebarMenuButton>
@@ -329,7 +334,7 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link to={selfHref}>User resource</Link>
+                <Link to={selfHref}>用户资源</Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -368,14 +373,61 @@ function isWorkspaceScopedSidebarItem(item: SidebarItem) {
   );
 }
 
-function isPathActive(pathname: string, candidate: string) {
-  if (candidate === '#') {
-    return false;
+function isSidebarItemActive(
+  item: SidebarItem,
+  currentLocation: string,
+  candidate: string,
+) {
+  const currentPath = currentLocation.split('?')[0] ?? currentLocation;
+  if (item.key === 'workspace-overview') {
+    return routeCandidates(candidate).some(
+      (route) => currentPath === route.split('?')[0],
+    );
   }
+  if (
+    item.key === 'tasking-queue' &&
+    /\/(?:api\/)?workspaces\/[^/]+\/iterations\/[^/]+\/tasking(?:\/|$)/.test(
+      currentPath,
+    )
+  ) {
+    return true;
+  }
+  if (
+    item.key === 'pair-queue' &&
+    /\/(?:api\/)?workspaces\/[^/]+\/iterations\/[^/]+\/pair(?:\/|$)/.test(
+      currentPath,
+    )
+  ) {
+    return true;
+  }
+  return isPathActive(currentLocation, candidate);
+}
 
-  return routeCandidates(candidate).some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
+function isPathActive(currentLocation: string, candidate: string) {
+  if (candidate === '#') return false;
+
+  const [currentPath, currentQuery = ''] = currentLocation.split('?');
+  const currentParameters = new URLSearchParams(currentQuery);
+  return routeCandidates(candidate).some((route) => {
+    const [routePath, routeQuery = ''] = route.split('?');
+    if (routeQuery) {
+      return (
+        currentPath === routePath &&
+        [...new URLSearchParams(routeQuery)].every(
+          ([key, value]) => currentParameters.get(key) === value,
+        )
+      );
+    }
+    if (
+      currentPath === routePath &&
+      ['tasking', 'pair'].includes(currentParameters.get('filter') ?? '')
+    ) {
+      return false;
+    }
+    return (
+      currentPath === routePath || currentPath?.startsWith(`${routePath}/`)
+    );
+  });
 }
 
 function routeCandidates(pathname: string) {

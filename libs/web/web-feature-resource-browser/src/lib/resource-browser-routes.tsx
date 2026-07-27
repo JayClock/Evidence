@@ -141,17 +141,17 @@ function Health({ rootState }: { rootState: State<RootResource> }) {
 
   if (loading) {
     return (
-      <LoadingCard title="Loading health" detail="Following rel=health…" />
+      <LoadingCard title="正在检查 Server 健康状态" detail="跟随 rel=health…" />
     );
   }
 
   if (error) {
-    return <ErrorAlert title="Health unavailable" detail={error.message} />;
+    return <ErrorAlert title="Server 健康状态不可用" detail={error.message} />;
   }
 
   return (
     <StatusCard
-      title="Server health"
+      title="Server 健康状态"
       detail={`${data.service}: ${data.status}`}
     />
   );
@@ -164,9 +164,7 @@ function ApiResourcePage() {
   return (
     <Suspense
       key={apiPath}
-      fallback={
-        <LoadingCard title="Loading resource" detail={`GET ${apiPath}`} />
-      }
+      fallback={<LoadingCard title="正在载入资源" detail={`GET ${apiPath}`} />}
     >
       <ApiResourcePageContent apiPath={apiPath} />
     </Suspense>
@@ -348,8 +346,8 @@ function UnknownResourceView({
   return (
     <Card>
       <CardHeader>
-        <CardDescription>Unsupported Resource Type</CardDescription>
-        <CardTitle>{contentType || 'unknown content type'}</CardTitle>
+        <CardDescription>不支持的资源类型</CardDescription>
+        <CardTitle>{contentType || '未知 content type'}</CardTitle>
       </CardHeader>
       <CardContent>
         <pre className="overflow-auto rounded-md border bg-muted p-3 text-xs">
@@ -416,7 +414,7 @@ function StatusCard({ title, detail }: { title: string; detail: string }) {
   return (
     <Card role="status">
       <CardHeader>
-        <CardDescription>Status</CardDescription>
+        <CardDescription>状态</CardDescription>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{detail}</CardDescription>
       </CardHeader>
