@@ -9,6 +9,8 @@ type LogicalEntityResourceSchema =
 type LogicalEntityCollectionResourceSchema =
   components['schemas']['LogicalEntityCollectionResource'];
 
+export type CreateLogicalEntityInput =
+  components['schemas']['CreateLogicalEntityInput'];
 export type LogicalEntityType = components['schemas']['LogicalEntityType'];
 export type LogicalEntitySubType = NonNullable<
   LogicalEntityResourceSchema['subType']

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type {
   LogicalEntityCollectionResource,
@@ -34,6 +40,9 @@ const logicalEntityState = {
   links: links('self', 'workspace', 'collection'),
 };
 
+const collectionPost = vi.fn();
+const collectionRefresh = vi.fn();
+
 const collectionState = {
   data: {
     page: {
@@ -44,10 +53,16 @@ const collectionState = {
     },
   },
   collection: [logicalEntityState],
+  follow: () => ({ post: collectionPost, refresh: collectionRefresh }),
 };
 
 describe('LogicalEntityCollectionView', () => {
-  it('renders logical entities as a table without content cells', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    collectionPost.mockResolvedValue(logicalEntityState);
+    collectionRefresh.mockResolvedValue(collectionState);
+  });
+  it('renders logical entities as a table with a focused inspector', () => {
     render(
       <MemoryRouter>
         <LogicalEntityCollectionView
@@ -60,11 +75,44 @@ describe('LogicalEntityCollectionView', () => {
 
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getAllByText('Contract').length).toBeGreaterThan(0);
-    expect(screen.getByText('contract')).toBeTruthy();
-    expect(screen.getByText('Evidence')).toBeTruthy();
+    expect(screen.getAllByText('contract').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Evidence').length).toBeGreaterThan(0);
     expect(screen.queryByRole('columnheader', { name: 'Content' })).toBeNull();
-    expect(screen.queryByText('Customer contract evidence')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Open Contract' })).toBeTruthy();
+    expect(screen.getByText('Customer contract evidence')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '查看 Contract' })).toBeTruthy();
+  });
+
+  it('creates a logical entity through the collection relation', async () => {
+    render(
+      <MemoryRouter>
+        <LogicalEntityCollectionView
+          resourceState={
+            collectionState as unknown as State<LogicalEntityCollectionResource>
+          }
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '新增实体' }));
+    fireEvent.change(screen.getByLabelText('标签'), {
+      target: { value: 'Policy' },
+    });
+    fireEvent.change(screen.getByLabelText('稳定名称'), {
+      target: { value: 'policy' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '创建实体' }));
+
+    await waitFor(() => expect(collectionPost).toHaveBeenCalledOnce());
+    expect(collectionPost).toHaveBeenCalledWith({
+      data: {
+        content: '',
+        label: 'Policy',
+        name: 'policy',
+        subType: null,
+        type: 'EVIDENCE',
+      },
+    });
+    expect(collectionRefresh).toHaveBeenCalledOnce();
   });
 
   it('opens logical entity markdown content in a drawer', () => {
@@ -78,7 +126,7 @@ describe('LogicalEntityCollectionView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open Contract' }));
+    fireEvent.click(screen.getByRole('button', { name: '打开完整内容' }));
 
     const dialog = screen.getByRole('dialog');
 
@@ -104,7 +152,7 @@ describe('LogicalEntityCollectionView', () => {
     );
 
     expect(screen.getByRole('table')).toBeTruthy();
-    expect(screen.getByText('No logical entities found')).toBeTruthy();
+    expect(screen.getByText('没有匹配的逻辑实体')).toBeTruthy();
   });
 });
 
@@ -118,7 +166,7 @@ describe('LogicalEntityDetailView', () => {
       />,
     );
 
-    expect(screen.getByText('Logical entity')).toBeTruthy();
+    expect(screen.getByText('逻辑实体')).toBeTruthy();
     expect(screen.getByText('Contract')).toBeTruthy();
     expect(screen.getByText('Customer contract evidence')).toBeTruthy();
   });
