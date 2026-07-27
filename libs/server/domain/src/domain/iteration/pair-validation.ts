@@ -395,7 +395,7 @@ export function allowedPairExceptionRoutes(
     case 'lease_expired':
     case 'interrupted':
     case 'runtime_failure':
-      return ['back_test', 'back_implementation', 'retry_quality', 'cancel'];
+      return ['back_tasking', 'cancel'];
     case 'budget_exhausted':
     case 'no_progress':
       return ['back_tasking', 'cancel'];

@@ -24,6 +24,7 @@ import {
   type PairActionResult,
   type PairBudgetUsage,
   type PairCursor,
+  type PairDecisionAction,
   type PairExceptionKind,
   type PairExecutionBudget,
   type PairNextAction,
@@ -351,7 +352,6 @@ export class PrismaWorkspacePair implements WorkspacePair {
         runDescription.budgetUsage,
         input.agentCallCount,
       );
-      requireBudget(runDescription.executionBudget, usage);
       const timestamp = now();
       const sequence =
         (await store.pairDriverAttempt.count({
@@ -390,21 +390,37 @@ export class PrismaWorkspacePair implements WorkspacePair {
         },
       });
       const checkpoint =
-        input.role === 'test'
-          ? 'test_written'
-          : input.role === 'production'
-            ? 'implementation_written'
-            : 'refactored';
-      await advancePair(
-        store,
-        context,
-        {
-          checkpoint,
-          currentDiffSha256: input.diffSha256,
-          budgetUsage: inputJson(usage),
-        },
-        timestamp,
-      );
+        input.mode === 'repair_quality_gate'
+          ? 'refactored'
+          : input.role === 'test'
+            ? 'test_written'
+            : input.role === 'production'
+              ? 'implementation_written'
+              : 'refactored';
+      const transition = budgetExceeded(runDescription.executionBudget, usage)
+        ? await exceptionTransition(
+            store,
+            input.pairRunId,
+            input.actionId,
+            'budget_exhausted',
+            'Pair execution budget was exhausted by the Driver attempt.',
+            null,
+            usage,
+            timestamp,
+          )
+        : {
+            checkpoint,
+            cursor: inputJson({
+              ...runDescription.cursor,
+              repairMode: null,
+              repairDiagnosticObservationId: null,
+              repairDecisionId: null,
+              repairInstruction: null,
+            }),
+            currentDiffSha256: input.diffSha256,
+            budgetUsage: inputJson(usage),
+          };
+      await advancePair(store, context, transition, timestamp);
       return actionResult(store, this.workspaceId, iterationId, attempt.id);
     });
   }
@@ -435,8 +451,6 @@ export class PrismaWorkspacePair implements WorkspacePair {
         throw DomainError.conflict('Pair command authority no longer matches');
       }
       const description = context.view.run.description();
-      const usage = incrementUsage(description.budgetUsage, 0);
-      requireBudget(description.executionBudget, usage);
       const timestamp = now();
       const previous = await store.pairCommandObservation.findFirst({
         where: { pairRunId: input.pairRunId },
@@ -444,18 +458,27 @@ export class PrismaWorkspacePair implements WorkspacePair {
       });
       const sequence = (previous?.sequence ?? 0) + 1;
       const passed = pairCommandPassed(input);
-      const failureFingerprint = passed
-        ? null
-        : hashCanonicalJson({
-            stage: input.stage,
-            command: input.command,
-            termination: input.termination,
-            exitCode: input.exitCode,
-            signal: input.signal ?? null,
-            stdoutSha256: input.stdoutSha256,
-            stderrSha256: input.stderrSha256,
-            diffSha256: input.diffSha256,
-          });
+      const failureFingerprint =
+        passed && input.stage !== 'red'
+          ? null
+          : hashCanonicalJson({
+              stage: input.stage,
+              command: input.command,
+              termination: input.termination,
+              exitCode: input.exitCode,
+              signal: input.signal ?? null,
+              stdoutSha256: input.stdoutSha256,
+              stderrSha256: input.stderrSha256,
+            });
+      const checkpointUsage = incrementUsage(description.budgetUsage, 0);
+      const usage: PairBudgetUsage = {
+        ...checkpointUsage,
+        repeatedFingerprintCount:
+          failureFingerprint &&
+          previous?.failureFingerprint === failureFingerprint
+            ? checkpointUsage.repeatedFingerprintCount + 1
+            : 0,
+      };
       const processId =
         next.workUnit?.process.processId ?? next.gate?.processId;
       if (!processId) {
@@ -497,16 +520,27 @@ export class PrismaWorkspacePair implements WorkspacePair {
           ),
         },
       });
-      const transition = await commandTransition(
-        store,
-        context,
-        next,
-        input,
-        observation as PairCommandObservationRow,
-        passed,
-        usage,
-        timestamp,
-      );
+      const transition = budgetExceeded(description.executionBudget, usage)
+        ? await exceptionTransition(
+            store,
+            input.pairRunId,
+            input.actionId,
+            'budget_exhausted',
+            'Pair execution budget was exhausted by repeated command evidence.',
+            failureFingerprint,
+            usage,
+            timestamp,
+          )
+        : await commandTransition(
+            store,
+            context,
+            next,
+            input,
+            observation as PairCommandObservationRow,
+            passed,
+            usage,
+            timestamp,
+          );
       await advancePair(store, context, transition, timestamp);
       return actionResult(store, this.workspaceId, iterationId, observation.id);
     });
@@ -570,23 +604,34 @@ export class PrismaWorkspacePair implements WorkspacePair {
           ),
         },
       });
-      const usage = incrementUsage(
-        context.view.run.description().budgetUsage,
-        1,
-      );
-      requireBudget(context.view.run.description().executionBudget, usage);
-      const transition: PairAdvance = accepted
-        ? { checkpoint: 'red_observed', budgetUsage: inputJson(usage) }
-        : await exceptionTransition(
+      const description = context.view.run.description();
+      const usage = incrementUsage(description.budgetUsage, 1);
+      const transition: PairAdvance = budgetExceeded(
+        description.executionBudget,
+        usage,
+      )
+        ? await exceptionTransition(
             store,
             context.view.run.identity(),
             input.actionId,
-            'pseudo_red',
-            `Red Reviewer classified the failure as ${input.classification}.`,
+            'budget_exhausted',
+            'Pair execution budget was exhausted by Red Review.',
             observation.failureFingerprint,
             usage,
             timestamp,
-          );
+          )
+        : accepted
+          ? { checkpoint: 'red_observed', budgetUsage: inputJson(usage) }
+          : await exceptionTransition(
+              store,
+              context.view.run.identity(),
+              input.actionId,
+              'pseudo_red',
+              `Red Reviewer classified the failure as ${input.classification}.`,
+              observation.failureFingerprint,
+              usage,
+              timestamp,
+            );
       await advancePair(store, context, transition, timestamp);
       return actionResult(store, this.workspaceId, iterationId, review.id);
     });
@@ -614,24 +659,56 @@ export class PrismaWorkspacePair implements WorkspacePair {
         iterationId,
         input,
       );
-      const usage = incrementUsage(
-        context.view.run.description().budgetUsage,
-        0,
-      );
+      const description = context.view.run.description();
+      const checkpointUsage = incrementUsage(description.budgetUsage, 0);
+      const usage: PairBudgetUsage = {
+        ...checkpointUsage,
+        noProgressCheckpoints:
+          checkpointUsage.noProgressCheckpoints +
+          (input.kind === 'no_progress' ? 1 : 0),
+      };
       const timestamp = now();
+      const exhausted = budgetExceeded(description.executionBudget, usage);
+      const triggerRoutes = actionExceptionRoutes(
+        input.kind,
+        context.view.nextAction,
+      );
+      if (exhausted && input.kind !== 'budget_exhausted') {
+        await persistExceptionEvidence(
+          store,
+          input.pairRunId,
+          input.actionId,
+          input.kind,
+          input.summary,
+          input.failureFingerprint ?? null,
+          triggerRoutes ?? allowedPairExceptionRoutes(input.kind),
+          timestamp,
+          timestamp,
+        );
+      }
       const transition = await exceptionTransition(
         store,
         input.pairRunId,
         input.actionId,
-        input.kind,
-        input.summary,
+        exhausted ? 'budget_exhausted' : input.kind,
+        exhausted
+          ? `Pair execution budget was exhausted after ${input.kind}: ${input.summary}`.slice(
+              0,
+              2_000,
+            )
+          : input.summary,
         input.failureFingerprint ?? null,
         usage,
         timestamp,
+        exhausted ? undefined : triggerRoutes,
       );
       await advancePair(store, context, transition, timestamp);
       const exception = await store.pairAutomationException.findFirst({
-        where: { pairRunId: input.pairRunId, actionId: input.actionId },
+        where: {
+          pairRunId: input.pairRunId,
+          actionId: input.actionId,
+          resolvedAt: null,
+        },
       });
       if (!exception) {
         throw DomainError.internal('Pair exception was not persisted');
@@ -652,21 +729,24 @@ export class PrismaWorkspacePair implements WorkspacePair {
         orderBy: { startedAt: 'desc' },
       });
       if (!run) throw DomainError.notFound(`Pair ${iterationId} not found`);
-      const existing = await store.pairCodingDecision.findFirst({
-        where: {
-          pairRunId: run.id,
-          action: input.action,
-          manifestSha256: input.manifestSha256 ?? null,
-          diffSha256: input.diffSha256 ?? null,
-          commitSha: input.commitSha ?? null,
-          decidedByUserId,
-        },
-        orderBy: { decidedAt: 'desc' },
-      });
-      if (existing) {
-        return actionResult(store, this.workspaceId, iterationId, existing.id);
-      }
       if (run.version !== input.expectedPairVersion) {
+        const replay =
+          run.version === input.expectedPairVersion + 1
+            ? await store.pairCodingDecision.findFirst({
+                where: {
+                  pairRunId: run.id,
+                  action: input.action,
+                  reason: input.reason,
+                  manifestSha256: input.manifestSha256 ?? null,
+                  diffSha256: input.diffSha256 ?? null,
+                  commitSha: input.commitSha ?? null,
+                  decidedByUserId,
+                },
+              })
+            : null;
+        if (replay) {
+          return actionResult(store, this.workspaceId, iterationId, replay.id);
+        }
         throw DomainError.conflict('Pair changed; reload before deciding');
       }
       const view = await loadPairView(
@@ -692,6 +772,7 @@ export class PrismaWorkspacePair implements WorkspacePair {
         (await store.pairCodingDecision.count({
           where: { pairRunId: run.id },
         })) + 1;
+      const decisionId = randomUUID();
       const decisionContent = {
         pairRunId: run.id,
         sequence,
@@ -705,7 +786,7 @@ export class PrismaWorkspacePair implements WorkspacePair {
       };
       const decision = await store.pairCodingDecision.create({
         data: {
-          id: randomUUID(),
+          id: decisionId,
           ...decisionContent,
           decidedAt: timestamp,
           contentSha256: hashCanonicalJson(
@@ -718,7 +799,7 @@ export class PrismaWorkspacePair implements WorkspacePair {
         view,
         iteration: view.iteration,
       };
-      const transition = decisionTransition(view, input, timestamp);
+      const transition = decisionTransition(view, input, decisionId, timestamp);
       await advancePair(store, context, transition.pair, timestamp, {
         loop: transition.iterationLoop,
         stage: transition.iterationStage,
@@ -842,7 +923,7 @@ async function loadPairView(
           iterationId: run.iterationId,
         },
       }),
-      loadEvidenceRows(store, run.id),
+      loadEvidenceRows(store, run.id, run.finalManifestSha256),
     ]);
   if (!storyRow || !revisionRow || !planRow) {
     throw DomainError.internal(`Pair Run ${run.id} lost its authority`);
@@ -863,7 +944,10 @@ async function loadPairView(
     currentException: rows.currentException
       ? assemblePairException(rows.currentException)
       : null,
-    manifest: rows.manifest ? assemblePairManifest(rows.manifest) : null,
+    manifest:
+      rows.manifest?.contentSha256 === run.finalManifestSha256
+        ? assemblePairManifest(rows.manifest)
+        : null,
     decisions: rows.decisions.map(assemblePairDecision),
     nextAction: pairNextAction(pairRun, approvedPlan, rows),
   };
@@ -872,6 +956,7 @@ async function loadPairView(
 async function loadEvidenceRows(
   store: PrismaStore,
   pairRunId: string,
+  authoritativeManifestSha256: string | null = null,
 ): Promise<PairEvidenceRows> {
   const [
     driverAttempts,
@@ -897,7 +982,14 @@ async function loadEvidenceRows(
       where: { pairRunId, resolvedAt: null },
       orderBy: { raisedAt: 'desc' },
     }),
-    store.pairExecutionManifest.findFirst({ where: { pairRunId } }),
+    authoritativeManifestSha256
+      ? store.pairExecutionManifest.findFirst({
+          where: {
+            pairRunId,
+            contentSha256: authoritativeManifestSha256,
+          },
+        })
+      : Promise.resolve(null),
     store.pairCodingDecision.findMany({
       where: { pairRunId },
       orderBy: { decidedAt: 'asc' },
@@ -1387,6 +1479,39 @@ async function createManifest(
   });
 }
 
+function actionExceptionRoutes(
+  kind: PairExceptionKind,
+  action: PairNextAction | null,
+): PairDecisionAction[] | undefined {
+  if (
+    !['lease_expired', 'interrupted', 'runtime_failure'].includes(kind) ||
+    !action ||
+    action.kind === 'await_human' ||
+    action.kind === 'resolve_exception'
+  ) {
+    return undefined;
+  }
+  if (action.kind === 'run_driver') {
+    const resume: PairDecisionAction[] =
+      action.role === 'test'
+        ? ['back_test']
+        : action.mode === 'repair_quality_gate'
+          ? ['retry_quality', 'back_implementation']
+          : ['back_implementation'];
+    return [...resume, 'back_tasking', 'cancel'];
+  }
+  if (action.kind === 'execute_command') {
+    const resume: PairDecisionAction[] =
+      action.stage === 'red'
+        ? ['back_test']
+        : action.stage === 'quality_gate'
+          ? ['retry_quality', 'back_implementation']
+          : ['back_implementation'];
+    return [...resume, 'back_tasking', 'cancel'];
+  }
+  return ['back_test', 'back_tasking', 'cancel'];
+}
+
 async function exceptionTransition(
   store: PrismaStore,
   pairRunId: string,
@@ -1396,31 +1521,19 @@ async function exceptionTransition(
   failureFingerprint: string | null,
   usage: PairBudgetUsage,
   timestamp: Date,
+  routeOverride?: PairDecisionAction[],
 ): Promise<PairAdvance> {
-  const allowedRoutes = allowedPairExceptionRoutes(kind);
-  const content = {
+  await persistExceptionEvidence(
+    store,
     pairRunId,
     actionId,
     kind,
     summary,
     failureFingerprint,
-    allowedRoutes,
-    raisedAt: timestamp.toISOString(),
-  };
-  await store.pairAutomationException.create({
-    data: {
-      id: randomUUID(),
-      pairRunId,
-      actionId,
-      kind,
-      summary,
-      failureFingerprint,
-      allowedRoutes: inputJson(allowedRoutes),
-      raisedAt: timestamp,
-      resolvedAt: null,
-      recordSha256: hashCanonicalJson(content as unknown as JsonValue),
-    },
-  });
+    routeOverride ?? allowedPairExceptionRoutes(kind),
+    timestamp,
+    null,
+  );
   return {
     status: 'exception',
     checkpoint: 'exception',
@@ -1431,15 +1544,73 @@ async function exceptionTransition(
   };
 }
 
+async function persistExceptionEvidence(
+  store: PrismaStore,
+  pairRunId: string,
+  actionId: string | null,
+  kind: PairExceptionKind,
+  summary: string,
+  failureFingerprint: string | null,
+  allowedRoutes: PairDecisionAction[],
+  raisedAt: Date,
+  resolvedAt: Date | null,
+): Promise<void> {
+  const content = {
+    pairRunId,
+    actionId,
+    kind,
+    summary,
+    failureFingerprint,
+    allowedRoutes,
+    raisedAt: raisedAt.toISOString(),
+  };
+  await store.pairAutomationException.create({
+    data: {
+      id: randomUUID(),
+      pairRunId,
+      actionId,
+      kind,
+      summary,
+      failureFingerprint,
+      allowedRoutes: inputJson(allowedRoutes),
+      raisedAt,
+      resolvedAt,
+      recordSha256: hashCanonicalJson(content as unknown as JsonValue),
+    },
+  });
+}
+
 function decisionTransition(
   view: PairView,
   input: ReturnType<typeof normalizeDecidePairInput>,
+  decisionId: string,
   timestamp: Date,
 ) {
   const description = view.run.description();
   const execution = materializePairExecutionPlan(
     view.approvedPlan.description().plan,
   );
+  const failedObservation = view.currentException
+    ? repairDiagnosticObservation(view)
+    : null;
+  const repairDiagnosticObservationId = failedObservation?.identity() ?? null;
+  const priorRepair = failedObservation
+    ? null
+    : {
+        mode: description.cursor.repairMode,
+        diagnosticObservationId:
+          description.cursor.repairDiagnosticObservationId,
+        decisionId: description.cursor.repairDecisionId,
+        instruction: description.cursor.repairInstruction,
+      };
+  const transientException =
+    !failedObservation &&
+    ['lease_expired', 'interrupted', 'runtime_failure'].includes(
+      view.currentException?.description().kind ?? '',
+    );
+  const latestDriver = view.driverAttempts.at(-1)?.description() ?? null;
+  const latestDriverIsCurrent =
+    latestDriver?.diffSha256 === description.currentDiffSha256;
   switch (input.action) {
     case 'approve':
       return {
@@ -1457,10 +1628,47 @@ function decisionTransition(
         iterationLifecycle: 'active',
       };
     case 'back_test':
+      if (
+        transientException &&
+        priorRepair?.mode === null &&
+        latestDriver?.role === 'test' &&
+        latestDriverIsCurrent
+      ) {
+        return {
+          pair: {
+            status: 'running',
+            checkpoint: 'test_written',
+            completedAt: null,
+          } satisfies PairAdvance,
+          iterationLoop: 'pair',
+          iterationStage: 'test_written',
+          iterationLifecycle: 'active',
+        };
+      }
       return {
         pair: {
           status: 'running',
           checkpoint: 'plan_confirmed',
+          cursor: inputJson({
+            ...description.cursor,
+            repairMode:
+              failedObservation || priorRepair?.mode === 'repair_test'
+                ? 'repair_test'
+                : null,
+            repairDiagnosticObservationId:
+              repairDiagnosticObservationId ??
+              (priorRepair?.mode === 'repair_test'
+                ? priorRepair.diagnosticObservationId
+                : null),
+            repairDecisionId:
+              priorRepair?.mode === 'repair_test'
+                ? priorRepair.decisionId
+                : null,
+            repairInstruction:
+              priorRepair?.mode === 'repair_test'
+                ? priorRepair.instruction
+                : null,
+          }),
           completedAt: null,
         } satisfies PairAdvance,
         iterationLoop: 'pair',
@@ -1468,10 +1676,94 @@ function decisionTransition(
         iterationLifecycle: 'active',
       };
     case 'back_implementation': {
-      const unitIndex = Math.min(
-        description.cursor.unitIndex,
-        Math.max(execution.workUnits.length - 1, 0),
-      );
+      if (
+        transientException &&
+        priorRepair?.mode === null &&
+        latestDriver?.role === 'production' &&
+        latestDriverIsCurrent
+      ) {
+        return {
+          pair: {
+            status: 'running',
+            checkpoint: 'implementation_written',
+            completedAt: null,
+          } satisfies PairAdvance,
+          iterationLoop: 'pair',
+          iterationStage: 'implementation_written',
+          iterationLifecycle: 'active',
+        };
+      }
+      if (
+        transientException &&
+        priorRepair?.mode === null &&
+        latestDriver?.role === 'refactor' &&
+        latestDriverIsCurrent &&
+        description.cursor.pendingRefactorStepKey
+      ) {
+        return {
+          pair: {
+            status: 'running',
+            checkpoint: 'refactored',
+            completedAt: null,
+          } satisfies PairAdvance,
+          iterationLoop: 'pair',
+          iterationStage: 'refactored',
+          iterationLifecycle: 'active',
+        };
+      }
+      if (
+        description.cursor.pendingRefactorStepKey &&
+        (view.currentException?.description().kind === 'refactor_failed' ||
+          priorRepair?.mode === 'repair_refactor' ||
+          (priorRepair?.mode === null &&
+            ['lease_expired', 'interrupted', 'runtime_failure'].includes(
+              view.currentException?.description().kind ?? '',
+            )))
+      ) {
+        return {
+          pair: {
+            status: 'running',
+            checkpoint: 'green_observed',
+            cursor: inputJson({
+              ...description.cursor,
+              repairMode:
+                failedObservation || priorRepair?.mode === 'repair_refactor'
+                  ? 'repair_refactor'
+                  : null,
+              repairDiagnosticObservationId:
+                repairDiagnosticObservationId ??
+                (priorRepair?.mode === 'repair_refactor'
+                  ? priorRepair.diagnosticObservationId
+                  : null),
+              repairDecisionId:
+                priorRepair?.mode === 'repair_refactor'
+                  ? priorRepair.decisionId
+                  : null,
+              repairInstruction:
+                priorRepair?.mode === 'repair_refactor'
+                  ? priorRepair.instruction
+                  : null,
+            }),
+            completedAt: null,
+          } satisfies PairAdvance,
+          iterationLoop: 'pair',
+          iterationStage: 'green_observed',
+          iterationLifecycle: 'active',
+        };
+      }
+      const observedTestId = failedObservation?.description().testId ?? null;
+      const observedUnitIndex = observedTestId
+        ? execution.workUnits.findIndex(
+            (candidate) => candidate.test.id === observedTestId,
+          )
+        : -1;
+      const unitIndex =
+        observedUnitIndex >= 0
+          ? observedUnitIndex
+          : Math.min(
+              description.cursor.unitIndex,
+              Math.max(execution.workUnits.length - 1, 0),
+            );
       const unit = execution.workUnits[unitIndex];
       return {
         pair: {
@@ -1482,6 +1774,30 @@ function decisionTransition(
             unitIndex,
             pendingRefactorStepKey: null,
             refactorVerificationIndex: 0,
+            qualityGateIndex: 0,
+            repairMode:
+              description.status === 'approval_required' ||
+              failedObservation ||
+              priorRepair?.mode === 'repair_implementation'
+                ? 'repair_implementation'
+                : null,
+            repairDiagnosticObservationId:
+              repairDiagnosticObservationId ??
+              (priorRepair?.mode === 'repair_implementation'
+                ? priorRepair.diagnosticObservationId
+                : null),
+            repairDecisionId:
+              description.status === 'approval_required'
+                ? decisionId
+                : priorRepair?.mode === 'repair_implementation'
+                  ? priorRepair.decisionId
+                  : null,
+            repairInstruction:
+              description.status === 'approval_required'
+                ? input.reason
+                : priorRepair?.mode === 'repair_implementation'
+                  ? priorRepair.instruction
+                  : null,
           }),
           completedTestIds: inputJson(
             unit
@@ -1495,6 +1811,7 @@ function decisionTransition(
                 )
               : description.completedStepKeys,
           ),
+          finalManifestSha256: null,
           completedAt: null,
         } satisfies PairAdvance,
         iterationLoop: 'pair',
@@ -1512,7 +1829,25 @@ function decisionTransition(
             pendingRefactorStepKey: null,
             refactorVerificationIndex: 0,
             qualityGateIndex: 0,
+            repairMode:
+              failedObservation || priorRepair?.mode === 'repair_quality_gate'
+                ? 'repair_quality_gate'
+                : null,
+            repairDiagnosticObservationId:
+              repairDiagnosticObservationId ??
+              (priorRepair?.mode === 'repair_quality_gate'
+                ? priorRepair.diagnosticObservationId
+                : null),
+            repairDecisionId:
+              priorRepair?.mode === 'repair_quality_gate'
+                ? priorRepair.decisionId
+                : null,
+            repairInstruction:
+              priorRepair?.mode === 'repair_quality_gate'
+                ? priorRepair.instruction
+                : null,
           }),
+          finalManifestSha256: null,
           completedAt: null,
         } satisfies PairAdvance,
         iterationLoop: 'pair',
@@ -1550,6 +1885,32 @@ function decisionTransition(
   }
 }
 
+function repairDiagnosticObservation(view: PairView) {
+  const exception = view.currentException?.description();
+  if (
+    !exception ||
+    ![
+      'unexpected_green',
+      'pseudo_red',
+      'green_failed',
+      'refactor_failed',
+      'quality_gate_failed',
+    ].includes(exception.kind)
+  ) {
+    return null;
+  }
+  return (
+    [...view.commandObservations].reverse().find((observation) => {
+      const description = observation.description();
+      return (
+        description.actionId === exception.actionId ||
+        (exception.failureFingerprint !== null &&
+          description.failureFingerprint === exception.failureFingerprint)
+      );
+    }) ?? null
+  );
+}
+
 function requireHumanAction(view: PairView, action: DecidePairInput['action']) {
   if (view.run.description().status === 'approval_required') {
     if (
@@ -1579,6 +1940,10 @@ function initialCursor(): PairCursor {
     pendingRefactorStepKey: null,
     refactorVerificationIndex: 0,
     qualityGateIndex: 0,
+    repairMode: null,
+    repairDiagnosticObservationId: null,
+    repairDecisionId: null,
+    repairInstruction: null,
   };
 }
 
@@ -1602,18 +1967,16 @@ function incrementUsage(
   };
 }
 
-function requireBudget(
+function budgetExceeded(
   budget: PairExecutionBudget,
   usage: PairBudgetUsage,
-): void {
-  if (
+): boolean {
+  return (
     usage.agentCalls > budget.maxAgentCalls ||
     usage.checkpoints > budget.maxCheckpoints ||
     usage.repeatedFingerprintCount > budget.maxRetriesPerFingerprint ||
     usage.noProgressCheckpoints > budget.maxNoProgressCheckpoints
-  ) {
-    throw DomainError.conflict('Pair execution budget is exhausted');
-  }
+  );
 }
 
 function owns(root: string, path: string): boolean {

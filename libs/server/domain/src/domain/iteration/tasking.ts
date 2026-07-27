@@ -108,7 +108,7 @@ export interface MaterializedTaskingCommand {
 
 export interface PairExecutionBudget {
   policyId: 'pair-default';
-  policyVersion: 1;
+  policyVersion: 2;
   policySha256: string;
   activityTimeoutMs: number;
   commandTimeoutMs: number;

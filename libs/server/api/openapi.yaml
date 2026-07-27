@@ -4990,7 +4990,7 @@ components:
         ]
       properties:
         policyId: { type: string, enum: [pair-default] }
-        policyVersion: { type: integer, enum: [1] }
+        policyVersion: { type: integer, enum: [2] }
         policySha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
         activityTimeoutMs: { type: integer, minimum: 1 }
         commandTimeoutMs: { type: integer, minimum: 1 }
@@ -5293,6 +5293,15 @@ components:
           repair_refactor,
           repair_quality_gate,
         ]
+    PairRepairMode:
+      type: string
+      enum:
+        [
+          repair_test,
+          repair_implementation,
+          repair_refactor,
+          repair_quality_gate,
+        ]
     PairCommandStage:
       type: string
       enum: [red, green, refactor, quality_gate]
@@ -5341,12 +5350,23 @@ components:
           pendingRefactorStepKey,
           refactorVerificationIndex,
           qualityGateIndex,
+          repairMode,
+          repairDiagnosticObservationId,
+          repairDecisionId,
+          repairInstruction,
         ]
       properties:
         unitIndex: { type: integer, minimum: 0 }
         pendingRefactorStepKey: { type: [string, 'null'] }
         refactorVerificationIndex: { type: integer, minimum: 0 }
         qualityGateIndex: { type: integer, minimum: 0 }
+        repairMode:
+          oneOf:
+            - $ref: '#/components/schemas/PairRepairMode'
+            - type: 'null'
+        repairDiagnosticObservationId: { type: [string, 'null'] }
+        repairDecisionId: { type: [string, 'null'] }
+        repairInstruction: { type: [string, 'null'], maxLength: 2000 }
     PairBudgetUsage:
       type: object
       required:
@@ -5488,6 +5508,8 @@ components:
               allowedProductionRoots,
               frozenTestPaths,
               diagnosticObservationId,
+              repairDecisionId,
+              repairInstruction,
             ]
           properties:
             kind: { type: string, enum: [run_driver] }
@@ -5508,6 +5530,8 @@ components:
               type: array
               items: { type: string }
             diagnosticObservationId: { type: [string, 'null'] }
+            repairDecisionId: { type: [string, 'null'] }
+            repairInstruction: { type: [string, 'null'], maxLength: 2000 }
     PairExecuteCommandAction:
       allOf:
         - $ref: '#/components/schemas/PairActionAuthority'

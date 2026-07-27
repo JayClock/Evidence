@@ -28,6 +28,7 @@ import {
   type PairQualityGate,
   type PairRedClassification,
   type PairRedReviewDescription,
+  type PairRepairMode,
   type PairRunDescription,
   type PairStatus,
   type PairTermination,
@@ -277,7 +278,10 @@ export function pairNextAction(
     });
   }
   if (description.status === 'approval_required') {
-    if (!rows.manifest) {
+    if (
+      !rows.manifest ||
+      rows.manifest.contentSha256 !== description.finalManifestSha256
+    ) {
       throw DomainError.internal(
         `Pair Run ${run.identity()} lost its execution Manifest`,
       );
@@ -301,9 +305,19 @@ export function pairNextAction(
   switch (description.checkpoint) {
     case 'plan_confirmed':
       return unit
-        ? driverAction(description.version, 'test', 'write_test', unit, null, [
-            ...new Set(frozenTestPaths),
-          ])
+        ? driverAction(
+            description.version,
+            'test',
+            description.cursor.repairMode === 'repair_test'
+              ? 'repair_test'
+              : 'write_test',
+            unit,
+            null,
+            [...new Set(frozenTestPaths)],
+            description.cursor.repairDiagnosticObservationId,
+            description.cursor.repairDecisionId,
+            description.cursor.repairInstruction,
+          )
         : qualityGateAction(
             description.version,
             execution.qualityGates,
@@ -315,7 +329,10 @@ export function pairNextAction(
       const observation = [...rows.commandObservations]
         .reverse()
         .find(
-          (entry) => entry.stage === 'red' && entry.testId === unit.test.id,
+          (entry) =>
+            entry.stage === 'red' &&
+            entry.testId === unit.test.id &&
+            entry.diffSha256 === description.currentDiffSha256,
         );
       if (!observation) {
         return commandAction(
@@ -346,6 +363,9 @@ export function pairNextAction(
             unit,
             null,
             frozenTestPaths,
+            null,
+            null,
+            null,
           )
         : invalidCheckpoint(run);
     }
@@ -354,10 +374,15 @@ export function pairNextAction(
         ? driverAction(
             description.version,
             'production',
-            'implement',
+            description.cursor.repairMode === 'repair_implementation'
+              ? 'repair_implementation'
+              : 'implement',
             unit,
             null,
             frozenTestPaths,
+            description.cursor.repairDiagnosticObservationId,
+            description.cursor.repairDecisionId,
+            description.cursor.repairInstruction,
           )
         : invalidCursor(run);
     case 'implementation_written':
@@ -379,10 +404,15 @@ export function pairNextAction(
         ? driverAction(
             description.version,
             'refactor',
-            'refactor',
+            description.cursor.repairMode === 'repair_refactor'
+              ? 'repair_refactor'
+              : 'refactor',
             stepUnit,
             stepKey,
             frozenTestPaths,
+            description.cursor.repairDiagnosticObservationId,
+            description.cursor.repairDecisionId,
+            description.cursor.repairInstruction,
           )
         : invalidCheckpoint(run);
     }
@@ -404,6 +434,37 @@ export function pairNextAction(
             )
           : invalidCursor(run);
       }
+      if (description.cursor.repairMode === 'repair_quality_gate') {
+        const failedObservation = rows.commandObservations.find(
+          (candidate) =>
+            candidate.id === description.cursor.repairDiagnosticObservationId,
+        );
+        const repairUnit =
+          execution.workUnits.find(
+            (candidate) =>
+              candidate.process.processId === failedObservation?.processId,
+          ) ?? execution.workUnits.at(-1);
+        return repairUnit
+          ? driverAction(
+              description.version,
+              'production',
+              'repair_quality_gate',
+              repairUnit,
+              null,
+              frozenTestPaths,
+              description.cursor.repairDiagnosticObservationId,
+              description.cursor.repairDecisionId,
+              description.cursor.repairInstruction,
+              [
+                ...new Set(
+                  execution.workUnits.flatMap(
+                    (candidate) => candidate.productionRoots,
+                  ),
+                ),
+              ].sort(),
+            )
+          : invalidCursor(run);
+      }
       return qualityGateAction(
         description.version,
         execution.qualityGates,
@@ -416,7 +477,8 @@ export function pairNextAction(
       return invalidCheckpoint(run);
     case 'quality_gates_passed':
     case 'approved':
-      return rows.manifest
+      return rows.manifest &&
+        rows.manifest.contentSha256 === description.finalManifestSha256
         ? action(description.version, {
             kind: 'await_human',
             manifestSha256: rows.manifest.contentSha256,
@@ -432,6 +494,10 @@ function driverAction(
   workUnit: PairWorkUnit,
   stepKey: string | null,
   frozenTestPaths: string[],
+  diagnosticObservationId: string | null,
+  repairDecisionId: string | null,
+  repairInstruction: string | null,
+  allowedProductionRoots: string[] = workUnit.productionRoots,
 ): PairNextAction {
   return action(version, {
     kind: 'run_driver',
@@ -440,9 +506,11 @@ function driverAction(
     workUnit,
     stepKey,
     allowedTestRoots: role === 'test' ? workUnit.testRoots : [],
-    allowedProductionRoots: role === 'test' ? [] : workUnit.productionRoots,
+    allowedProductionRoots: role === 'test' ? [] : allowedProductionRoots,
     frozenTestPaths: [...new Set(frozenTestPaths)].sort(),
-    diagnosticObservationId: null,
+    diagnosticObservationId,
+    repairDecisionId,
+    repairInstruction,
   });
 }
 
@@ -528,7 +596,37 @@ function pairCursor(value: Prisma.JsonValue, id: string): PairCursor {
       id,
       'qualityGateIndex',
     ),
+    repairMode:
+      object.repairMode == null ? null : pairRepairMode(object.repairMode, id),
+    repairDiagnosticObservationId:
+      object.repairDiagnosticObservationId == null
+        ? null
+        : jsonString(
+            object.repairDiagnosticObservationId,
+            id,
+            'repairDiagnosticObservationId',
+          ),
+    repairDecisionId:
+      object.repairDecisionId == null
+        ? null
+        : jsonString(object.repairDecisionId, id, 'repairDecisionId'),
+    repairInstruction:
+      object.repairInstruction == null
+        ? null
+        : jsonString(object.repairInstruction, id, 'repairInstruction'),
   };
+}
+
+function pairRepairMode(value: Prisma.JsonValue, id: string): PairRepairMode {
+  if (
+    value === 'repair_test' ||
+    value === 'repair_implementation' ||
+    value === 'repair_refactor' ||
+    value === 'repair_quality_gate'
+  ) {
+    return value;
+  }
+  throw DomainError.internal(`Pair Run ${id} has invalid repair mode`);
 }
 
 function jsonObject(

@@ -1964,7 +1964,7 @@ export interface components {
       /** @enum {string} */
       policyId: 'pair-default';
       /** @enum {integer} */
-      policyVersion: 1;
+      policyVersion: 2;
       policySha256: string;
       activityTimeoutMs: number;
       commandTimeoutMs: number;
@@ -2139,6 +2139,12 @@ export interface components {
       | 'repair_refactor'
       | 'repair_quality_gate';
     /** @enum {string} */
+    PairRepairMode:
+      | 'repair_test'
+      | 'repair_implementation'
+      | 'repair_refactor'
+      | 'repair_quality_gate';
+    /** @enum {string} */
     PairCommandStage: 'red' | 'green' | 'refactor' | 'quality_gate';
     /** @enum {string} */
     PairTermination: 'exited' | 'timed_out' | 'signaled' | 'spawn_error';
@@ -2180,6 +2186,10 @@ export interface components {
       pendingRefactorStepKey: string | null;
       refactorVerificationIndex: number;
       qualityGateIndex: number;
+      repairMode: components['schemas']['PairRepairMode'] | null;
+      repairDiagnosticObservationId: string | null;
+      repairDecisionId: string | null;
+      repairInstruction: string | null;
     };
     PairBudgetUsage: {
       agentCalls: number;
@@ -2256,6 +2266,8 @@ export interface components {
       allowedProductionRoots: string[];
       frozenTestPaths: string[];
       diagnosticObservationId: string | null;
+      repairDecisionId: string | null;
+      repairInstruction: string | null;
     };
     PairExecuteCommandAction: components['schemas']['PairActionAuthority'] & {
       /** @enum {string} */

@@ -824,7 +824,7 @@ model PairRun {
   commandObservations       PairCommandObservation[]
   redReviews                PairRedReview[]
   automationExceptions      PairAutomationException[]
-  manifest                  PairExecutionManifest?
+  manifests                 PairExecutionManifest[]
   codingDecisions           PairCodingDecision[]
 
   @@unique([iterationId, reference])
@@ -933,7 +933,7 @@ model PairAutomationException {
 
 model PairExecutionManifest {
   id                        String   @id
-  pairRunId                 String   @unique @map("pair_run_id")
+  pairRunId                 String   @map("pair_run_id")
   approvedTaskingPlanSha256 String   @map("approved_tasking_plan_sha256")
   storyRevisionSha256       String   @map("story_revision_sha256")
   baseCommitSha             String   @map("base_commit_sha")
@@ -949,6 +949,7 @@ model PairExecutionManifest {
   contentSha256             String   @map("content_sha256")
   pairRun                   PairRun  @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
 
+  @@index([pairRunId, generatedAt])
   @@map("pair_execution_manifests")
 }
 

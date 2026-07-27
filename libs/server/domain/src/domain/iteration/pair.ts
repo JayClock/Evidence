@@ -38,6 +38,7 @@ export type PairDriverMode =
   | 'refactor'
   | 'repair_refactor'
   | 'repair_quality_gate';
+export type PairRepairMode = Extract<PairDriverMode, `repair_${string}`>;
 export type PairCommandStage = 'red' | 'green' | 'refactor' | 'quality_gate';
 export type PairTermination =
   | 'exited'
@@ -80,6 +81,10 @@ export interface PairCursor {
   pendingRefactorStepKey: string | null;
   refactorVerificationIndex: number;
   qualityGateIndex: number;
+  repairMode: PairRepairMode | null;
+  repairDiagnosticObservationId: string | null;
+  repairDecisionId: string | null;
+  repairInstruction: string | null;
 }
 
 export interface PairBudgetUsage {
@@ -375,6 +380,8 @@ export type PairNextAction = PairActionAuthority &
         allowedProductionRoots: string[];
         frozenTestPaths: string[];
         diagnosticObservationId: string | null;
+        repairDecisionId: string | null;
+        repairInstruction: string | null;
       }
     | {
         kind: 'execute_command';

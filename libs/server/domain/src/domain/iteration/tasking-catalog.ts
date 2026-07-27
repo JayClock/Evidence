@@ -51,7 +51,7 @@ export interface TaskingQualityGateDefinition {
 
 export interface PairExecutionPolicyDefinition {
   id: 'pair-default';
-  version: 1;
+  version: 2;
   activityTimeoutMs: number;
   commandTimeoutMs: number;
   baseAgentCalls: number;
@@ -79,11 +79,11 @@ export interface TaskingProcessDefinition {
 
 export const PAIR_EXECUTION_POLICY: PairExecutionPolicyDefinition = {
   id: 'pair-default',
-  version: 1,
+  version: 2,
   activityTimeoutMs: 3_600_000,
   commandTimeoutMs: 600_000,
   baseAgentCalls: 4,
-  agentCallsPerTest: 2,
+  agentCallsPerTest: 3,
   agentCallsPerStep: 1,
   baseCheckpoints: 8,
   checkpointsPerTest: 6,
