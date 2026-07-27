@@ -16,6 +16,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  EvidenceCanvas,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Separator,
   Spinner,
 } from '@evidence/ui';
@@ -36,25 +43,23 @@ export function StoryDetailView({
   const workflow = workflowAction(resourceState);
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 xl:overflow-hidden">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
+    <EvidenceCanvas>
+      <PageHeader>
+        <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {story.iterationReference}
-            </p>
+            <PageEyebrow>{story.iterationReference}</PageEyebrow>
             <Badge>权威 Story</Badge>
             <Badge variant="outline">{workflowStageLabel(story)}</Badge>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <PageTitle>
             {story.reference} · {story.title}
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
+          </PageTitle>
+          <PageDescription>
             Kickoff confirm 已创建本 Iteration 唯一的 Story、Problem
             Statement、Lean Story Card 和不可编码的 baseline Revision v1。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
           {collectionHref ? (
             <Button asChild variant="outline">
               <Link to={collectionHref}>返回故事列表</Link>
@@ -65,12 +70,12 @@ export function StoryDetailView({
               <Link to={revisionsHref}>修订历史</Link>
             </Button>
           ) : null}
-        </div>
-      </header>
+        </PageActions>
+      </PageHeader>
 
       <AuthorityProgress />
 
-      <div className="grid min-h-[42rem] shrink-0 overflow-hidden rounded-xl border bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className="grid min-h-[42rem] shrink-0 overflow-hidden border-t bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-4 p-4 sm:p-5">
             <Alert>
@@ -110,7 +115,7 @@ export function StoryDetailView({
           />
         </aside>
       </div>
-    </section>
+    </EvidenceCanvas>
   );
 }
 
@@ -124,11 +129,11 @@ function AuthorityProgress() {
   return (
     <ol
       aria-label="Inbox 到 Story 权威流程"
-      className="grid shrink-0 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4"
+      className="grid shrink-0 overflow-hidden border-y bg-card sm:grid-cols-2 xl:grid-cols-4"
     >
       {steps.map(([number, label, detail]) => (
         <li
-          className="flex min-w-0 items-center gap-3 border-b px-4 py-3 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
+          className="flex min-w-0 items-center gap-2 border-b px-3 py-2 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
           key={number}
         >
           <Badge>{number}</Badge>
