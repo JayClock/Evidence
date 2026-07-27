@@ -443,11 +443,13 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '采集 Desktop 来源' }));
+    expect(screen.getAllByRole('button', { name: '添加来源' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '添加来源' }));
+    fireEvent.click(screen.getByRole('radio', { name: '仓库 Markdown' }));
     fireEvent.change(screen.getByLabelText('仓库相对路径'), {
       target: { value: 'docs/request.md' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '采集快照' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存来源' }));
 
     await waitFor(() =>
       expect(readInboxMarkdown).toHaveBeenCalledWith(
@@ -476,14 +478,29 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '采集来源' }));
+    expect(screen.getAllByRole('button', { name: '添加来源' })).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: '添加来源' }));
+    expect(
+      (
+        screen.getByRole('radio', {
+          name: '仓库 Markdown',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole('radio', {
+          name: 'GitHub Issue',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
     fireEvent.change(screen.getByLabelText('标题'), {
       target: { value: '  Customer interview  ' },
     });
     fireEvent.change(screen.getByLabelText('正文'), {
       target: { value: '# Interview notes' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '采集' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存来源' }));
 
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     expect(post).toHaveBeenCalledWith({

@@ -11,16 +11,7 @@ import {
   AlertDescription,
   Badge,
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
   Input,
@@ -30,9 +21,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea,
 } from '@evidence/ui';
-import { DesktopSourceDialog } from './desktop-source-dialog';
+import { InboxSourceDialog } from './inbox-source-dialog';
 import { InboxExtractionControls } from './inbox-extraction-controls';
 import { InboxPagination } from './inbox-pagination';
 import {
@@ -150,13 +140,10 @@ export function InboxCollectionView({
             来源。分析时会原子冻结各来源的精确 latest Revision。
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <DesktopSourceDialog
-            workspaceId={workspaceId(collectionState)}
-            onCapture={capture}
-          />
-          <CaptureInboxDialog onCapture={capture} />
-        </div>
+        <InboxSourceDialog
+          workspaceId={workspaceId(collectionState)}
+          onCapture={capture}
+        />
       </header>
 
       <form
@@ -259,142 +246,6 @@ export function InboxCollectionView({
   );
 }
 
-function CaptureInboxDialog({
-  onCapture,
-}: {
-  onCapture: (input: InboxSourceInput) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [contentType, setContentType] =
-    useState<InboxSourceInput['contentType']>('text/markdown');
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const reset = () => {
-    setTitle('');
-    setBody('');
-    setContentType('text/markdown');
-    setError(null);
-  };
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalizedTitle = title.trim();
-    if (!normalizedTitle || !body.trim() || pending) return;
-
-    setPending(true);
-    setError(null);
-    try {
-      await onCapture({
-        sourceKind: 'manual_text',
-        externalKey: createManualSourceKey(),
-        title: normalizedTitle,
-        body,
-        contentType,
-      });
-      reset();
-      setOpen(false);
-    } catch (caught) {
-      setError(errorMessage(caught));
-    } finally {
-      setPending(false);
-    }
-  };
-
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!pending) {
-          if (!nextOpen) reset();
-          setOpen(nextOpen);
-        }
-      }}
-    >
-      <DialogTrigger asChild>
-        <Button>采集来源</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>采集手工来源</DialogTitle>
-          <DialogDescription>
-            向当前工作区收件箱添加 Markdown 或纯文本，并创建第一个不可变
-            Revision。
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={(event) => void submit(event)}>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="inbox-title">标题</FieldLabel>
-              <Input
-                id="inbox-title"
-                autoFocus
-                required
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="inbox-content-type">内容类型</FieldLabel>
-              <Select
-                value={contentType}
-                onValueChange={(value) =>
-                  setContentType(value as InboxSourceInput['contentType'])
-                }
-              >
-                <SelectTrigger id="inbox-content-type" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="text/markdown">Markdown</SelectItem>
-                    <SelectItem value="text/plain">纯文本</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <FieldDescription>
-                原始文本会保存在不可变 Revision 中；读取时再进行渲染。
-              </FieldDescription>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="inbox-body">正文</FieldLabel>
-              <Textarea
-                id="inbox-body"
-                className="min-h-52 resize-y font-mono text-sm"
-                required
-                value={body}
-                onChange={(event) => setBody(event.target.value)}
-              />
-            </Field>
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-          </FieldGroup>
-          <DialogFooter className="mt-5">
-            <DialogClose asChild>
-              <Button disabled={pending} type="button" variant="outline">
-                取消
-              </Button>
-            </DialogClose>
-            <Button
-              disabled={
-                pending || title.trim().length === 0 || body.trim().length === 0
-              }
-              type="submit"
-            >
-              {pending ? '采集中…' : '采集'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 function collectionHref(
   selfHref: string,
   query: string,
@@ -425,11 +276,6 @@ function workspaceId(
   const href = collectionState.getLink('workspace')?.href;
   const match = href && /\/workspaces\/([^/?#]+)/.exec(href);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
-}
-
-function createManualSourceKey() {
-  const randomUuid = globalThis.crypto?.randomUUID?.();
-  return `manual:${randomUuid ?? `${Date.now()}-${Math.random()}`}`;
 }
 
 function errorMessage(error: unknown) {
