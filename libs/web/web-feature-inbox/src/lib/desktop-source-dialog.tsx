@@ -110,21 +110,21 @@ export function DesktopSourceDialog({
           }
           variant="outline"
         >
-          Capture Desktop source
+          采集 Desktop 来源
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Capture Desktop source</DialogTitle>
+          <DialogTitle>采集 Desktop 来源</DialogTitle>
           <DialogDescription>
-            Read a repository-relative Markdown file or GitHub Issue locally,
-            then send only the provider-neutral source snapshot to Evidence.
+            在本地读取仓库相对路径下的 Markdown 或 GitHub Issue，仅向 Evidence
+            发送 provider-neutral 来源快照。
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(event) => void submit(event)}>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="desktop-source-kind">Source</FieldLabel>
+              <FieldLabel htmlFor="desktop-source-kind">来源类型</FieldLabel>
               <Select
                 value={kind}
                 onValueChange={(value) => setKind(value as AdapterKind)}
@@ -135,7 +135,7 @@ export function DesktopSourceDialog({
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="local_markdown">
-                      Repository Markdown
+                      仓库 Markdown
                     </SelectItem>
                     <SelectItem value="github_issue">GitHub Issue</SelectItem>
                   </SelectGroup>
@@ -145,7 +145,7 @@ export function DesktopSourceDialog({
             {kind === 'local_markdown' ? (
               <Field>
                 <FieldLabel htmlFor="desktop-markdown-path">
-                  Repository-relative path
+                  仓库相对路径
                 </FieldLabel>
                 <Input
                   id="desktop-markdown-path"
@@ -155,14 +155,13 @@ export function DesktopSourceDialog({
                   onChange={(event) => setRelativePath(event.target.value)}
                 />
                 <FieldDescription>
-                  Absolute paths and files outside the bound repository are
-                  rejected and never sent to the Server.
+                  绝对路径及绑定仓库之外的文件会被拒绝，且不会发送到 Server。
                 </FieldDescription>
               </Field>
             ) : (
               <>
                 <Field>
-                  <FieldLabel htmlFor="github-owner">Owner</FieldLabel>
+                  <FieldLabel htmlFor="github-owner">所有者</FieldLabel>
                   <Input
                     id="github-owner"
                     required
@@ -171,9 +170,7 @@ export function DesktopSourceDialog({
                   />
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="github-repository">
-                    Repository
-                  </FieldLabel>
+                  <FieldLabel htmlFor="github-repository">仓库</FieldLabel>
                   <Input
                     id="github-repository"
                     required
@@ -183,7 +180,7 @@ export function DesktopSourceDialog({
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="github-issue-number">
-                    Issue number
+                    Issue 编号
                   </FieldLabel>
                   <Input
                     id="github-issue-number"
@@ -205,11 +202,11 @@ export function DesktopSourceDialog({
           <DialogFooter className="mt-5">
             <DialogClose asChild>
               <Button disabled={pending} type="button" variant="outline">
-                Cancel
+                取消
               </Button>
             </DialogClose>
             <Button disabled={!ready || pending} type="submit">
-              {pending ? 'Capturing…' : 'Capture snapshot'}
+              {pending ? '采集中…' : '采集快照'}
             </Button>
           </DialogFooter>
         </form>
@@ -221,24 +218,22 @@ export function DesktopSourceDialog({
 function requiredMarkdownAdapter(
   adapter: MarkdownAdapter | undefined,
 ): MarkdownAdapter {
-  if (!adapter) throw new Error('Desktop Markdown adapter is unavailable.');
+  if (!adapter) throw new Error('Desktop Markdown adapter 不可用。');
   return adapter;
 }
 
 function requiredGitHubAdapter(
   adapter: GitHubAdapter | undefined,
 ): GitHubAdapter {
-  if (!adapter) throw new Error('Desktop GitHub adapter is unavailable.');
+  if (!adapter) throw new Error('Desktop GitHub adapter 不可用。');
   return adapter;
 }
 
 function requiredWorkspaceId(value: string | null): string {
-  if (!value) throw new Error('The Inbox is missing its Workspace relation.');
+  if (!value) throw new Error('Inbox 缺少 Workspace relation。');
   return value;
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'The Desktop source could not be captured.';
+  return error instanceof Error ? error.message : '无法采集 Desktop 来源。';
 }

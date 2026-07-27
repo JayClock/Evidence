@@ -5,38 +5,43 @@ import type {
   InboxItemCollectionResource,
   State,
 } from '@evidence/api-client';
-import { Alert, AlertDescription, Button } from '@evidence/ui';
+import {
+  Alert,
+  AlertDescription,
+  Badge,
+  Button,
+  Card,
+  CardContent,
+} from '@evidence/ui';
+import type { InboxSourceSelection } from './inbox-source-browser';
 
 export function InboxExtractionControls({
   collectionState,
-  selectedIds,
+  selectedSources,
+  onClear,
 }: {
   collectionState: State<InboxItemCollectionResource>;
-  selectedIds: string[];
+  selectedSources: InboxSourceSelection[];
+  onClear: () => void;
 }) {
   const navigate = useNavigate();
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const bridge = window.evidenceDesktop;
+  const selectionIsValid =
+    selectedSources.length >= 1 && selectedSources.length <= 5;
 
   const extract = async () => {
-    if (
-      pending ||
-      selectedIds.length < 1 ||
-      selectedIds.length > 5 ||
-      !bridge?.runInboxAnalyst
-    ) {
-      return;
-    }
+    if (pending || !selectionIsValid || !bridge?.runInboxAnalyst) return;
     setPending(true);
     setError(null);
-    setProgress('Freezing selected source revisions…');
+    setProgress('正在冻结所选来源的精确 latest Revision…');
     try {
       const extraction = (await collectionState
         .follow('inbox-extractions')
         .post({
-          data: { inboxItemIds: selectedIds },
+          data: { inboxItemIds: selectedSources.map((source) => source.id) },
         })) as State<InboxExtractionResource>;
       const workspaceId = workspaceIdFromState(extraction);
       await bridge.runInboxAnalyst(
@@ -48,13 +53,13 @@ export function InboxExtractionControls({
         (event) => {
           if (event.event === 'progress') setProgress(event.data);
           if (event.event === 'tool-start') {
-            setProgress('Submitting the bounded Candidate set…');
+            setProgress('正在提交受 Extraction 约束的 Candidate 集合…');
           }
           if (event.event === 'error') setError(event.data);
         },
       );
       const href = extraction.getLink('story-candidates')?.href;
-      if (!href) throw new Error('Extraction is missing its Candidate link.');
+      if (!href) throw new Error('Extraction 缺少 story-candidates relation。');
       navigate(href);
     } catch (caught) {
       setError(errorMessage(caught));
@@ -65,44 +70,69 @@ export function InboxExtractionControls({
   };
 
   return (
-    <div className="space-y-2">
-      <Button
-        disabled={
-          pending ||
-          selectedIds.length < 1 ||
-          selectedIds.length > 5 ||
-          !bridge?.runInboxAnalyst
-        }
-        type="button"
-        onClick={() => void extract()}
-      >
-        {pending
-          ? 'Analyzing…'
-          : `Analyze ${String(selectedIds.length)} selected`}
-      </Button>
-      {!bridge?.runInboxAnalyst ? (
-        <p className="max-w-xs text-xs text-muted-foreground">
-          Open Evidence Desktop to run the local Inbox Analyst.
-        </p>
-      ) : null}
-      {progress ? (
-        <p aria-live="polite" className="text-xs text-muted-foreground">
-          {progress}
-        </p>
-      ) : null}
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-    </div>
+    <Card className="shrink-0 border-primary/20 py-3">
+      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge>{selectedSources.length} / 5</Badge>
+            <p className="font-medium">个 active 来源已选</p>
+            <span className="text-xs text-muted-foreground">
+              下一步将冻结精确 Revision，不会读取后续 live 变化。
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {selectedSources.map((source) => (
+              <Badge
+                key={source.id}
+                title={source.latestRevisionSha256}
+                variant="outline"
+              >
+                {source.title}
+              </Badge>
+            ))}
+          </div>
+          {!bridge?.runInboxAnalyst ? (
+            <p className="text-xs text-muted-foreground">
+              请在已绑定本地仓库的 Evidence Desktop 中运行 Inbox Analyst。
+            </p>
+          ) : null}
+          {progress ? (
+            <p aria-live="polite" className="text-xs text-muted-foreground">
+              {progress}
+            </p>
+          ) : null}
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button
+            disabled={pending}
+            type="button"
+            variant="outline"
+            onClick={onClear}
+          >
+            清空
+          </Button>
+          <Button
+            disabled={pending || !selectionIsValid || !bridge?.runInboxAnalyst}
+            type="button"
+            onClick={() => void extract()}
+          >
+            {pending ? '分析中…' : '冻结修订并分析'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
 function workspaceIdFromState(state: State<InboxExtractionResource>): string {
   const href = state.getLink('workspace')?.href;
   const match = href && /\/workspaces\/([^/?#]+)/.exec(href);
-  if (!match?.[1]) throw new Error('Extraction is missing its Workspace link.');
+  if (!match?.[1]) throw new Error('Extraction 缺少 Workspace relation。');
   return decodeURIComponent(match[1]);
 }
 
@@ -114,5 +144,5 @@ function requestId(prefix: string): string {
 function errorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
-    : 'The selected Inbox sources could not be analyzed.';
+    : '无法分析所选 Inbox 来源，请重试。';
 }

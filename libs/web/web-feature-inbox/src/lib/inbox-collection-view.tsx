@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type {
   InboxItemCollectionResource,
   InboxItemResource,
@@ -11,11 +11,6 @@ import {
   AlertDescription,
   Badge,
   Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
   Dialog,
   DialogClose,
   DialogContent,
@@ -24,10 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
   Field,
   FieldDescription,
   FieldGroup,
@@ -39,57 +30,93 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
   Textarea,
 } from '@evidence/ui';
 import { DesktopSourceDialog } from './desktop-source-dialog';
 import { InboxExtractionControls } from './inbox-extraction-controls';
 import { InboxPagination } from './inbox-pagination';
+import {
+  InboxSourceBrowser,
+  type InboxSourceSelection,
+} from './inbox-source-browser';
+
+const maximumExtractionSources = 5;
+
+type InboxStatusFilter = 'all' | 'active' | 'deferred' | 'closed';
 
 export function InboxCollectionView({
   resourceState,
 }: {
   resourceState: State<InboxItemCollectionResource>;
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialParameters = new URLSearchParams(location.search);
   const [collectionState, setCollectionState] = useState(resourceState);
   const [pagePending, setPagePending] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<
+    Map<string, InboxSourceSelection>
+  >(() => new Map());
+  const [query, setQuery] = useState(initialParameters.get('q') ?? '');
+  const [status, setStatus] = useState<InboxStatusFilter>(
+    statusFilter(initialParameters.get('status')),
+  );
 
-  const toggleSelection = (itemId: string, selected: boolean) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (selected) {
-        if (next.size < 5) next.add(itemId);
-      } else {
-        next.delete(itemId);
+  const focusedItem =
+    collectionState.collection.find(
+      (itemState) => itemState.data.id === focusedItemId,
+    ) ?? collectionState.collection[0];
+  const selectedIds = new Set(selectedItems.keys());
+  const selfHref = collectionState.getLink('self')?.href;
+
+  const toggleSelection = (
+    itemState: State<InboxItemResource>,
+    selected: boolean,
+  ) => {
+    setSelectedItems((current) => {
+      const item = itemState.data;
+      const next = new Map(current);
+      if (!selected) {
+        next.delete(item.id);
+        return next;
       }
+      if (
+        item.status !== 'active' ||
+        next.has(item.id) ||
+        next.size >= maximumExtractionSources
+      ) {
+        return current;
+      }
+      next.set(item.id, {
+        id: item.id,
+        title: item.title,
+        latestRevisionSha256: item.latestRevisionSha256,
+      });
       return next;
     });
   };
 
   const capture = async (input: InboxSourceInput) => {
     const collection = collectionState.follow('self');
-    await collection.post({ data: input });
+    const created = (await collection.post({
+      data: input,
+    })) as State<InboxItemResource>;
     const refreshed =
       (await collection.refresh()) as State<InboxItemCollectionResource>;
     setCollectionState(refreshed);
+    setFocusedItemId(created.data.id);
   };
 
   const navigatePage = async (relation: 'prev' | 'next') => {
-    if (!collectionState.getLink(relation) || pagePending) {
-      return;
-    }
+    if (!collectionState.getLink(relation) || pagePending) return;
     setPagePending(true);
     setPageError(null);
     try {
       const nextState = await collectionState.follow(relation).refresh();
       setCollectionState(nextState);
+      setFocusedItemId(nextState.collection[0]?.data.id ?? null);
     } catch (caught) {
       setPageError(errorMessage(caught));
     } finally {
@@ -97,87 +124,120 @@ export function InboxCollectionView({
     }
   };
 
+  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selfHref) return;
+    navigate(collectionHref(selfHref, query, status));
+  };
+
+  const resetFilters = () => {
+    if (!selfHref) return;
+    setQuery('');
+    setStatus('all');
+    navigate(collectionHref(selfHref, '', 'all'));
+  };
+
   return (
-    <Card>
-      <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
-          <CardTitle aria-level={2} role="heading">
-            Inbox
-          </CardTitle>
-          <CardDescription>
-            Capture source material before it becomes modeled evidence or a
-            delivery Story.
-          </CardDescription>
+    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 lg:overflow-hidden">
+      <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex min-w-0 flex-col gap-1">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            工作区来源 · {collectionState.data.page.totalElements} 条记录
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">收件箱</h1>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            采集并核对来源身份，然后由人工选择 1–5 个 active
+            来源。分析时会原子冻结各来源的精确 latest Revision。
+          </p>
         </div>
-        <div className="flex flex-wrap items-start justify-end gap-2">
-          <InboxExtractionControls
-            collectionState={collectionState}
-            selectedIds={[...selectedIds]}
-          />
+        <div className="flex flex-wrap gap-2">
           <DesktopSourceDialog
             workspaceId={workspaceId(collectionState)}
             onCapture={capture}
           />
           <CaptureInboxDialog onCapture={capture} />
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            Workspace source records and their immutable revision history.
-          </p>
+      </header>
+
+      <form
+        className="rounded-xl bg-card p-3 ring-1 ring-foreground/10"
+        onSubmit={applyFilters}
+      >
+        <FieldGroup className="grid gap-2 lg:grid-cols-[minmax(14rem,1fr)_12rem_auto_auto]">
+          <Field>
+            <FieldLabel className="sr-only" htmlFor="inbox-search">
+              搜索来源
+            </FieldLabel>
+            <Input
+              id="inbox-search"
+              placeholder="搜索标题、正文或来源键…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel className="sr-only" htmlFor="inbox-status-filter">
+              状态筛选
+            </FieldLabel>
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as InboxStatusFilter)}
+            >
+              <SelectTrigger id="inbox-status-filter" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="active">活跃</SelectItem>
+                  <SelectItem value="deferred">已暂缓</SelectItem>
+                  <SelectItem value="closed">已关闭</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Button disabled={!selfHref} type="submit" variant="outline">
+            应用筛选
+          </Button>
+          <Button
+            disabled={!selfHref || (!query && status === 'all')}
+            type="button"
+            variant="ghost"
+            onClick={resetFilters}
+          >
+            清除
+          </Button>
+        </FieldGroup>
+      </form>
+
+      {pageError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{pageError}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="min-h-0 flex-1 lg:[&>div]:h-full">
+        <InboxSourceBrowser
+          focusedItem={focusedItem}
+          itemStates={collectionState.collection}
+          selectedIds={selectedIds}
+          selectionLimitReached={selectedItems.size >= maximumExtractionSources}
+          onFocus={setFocusedItemId}
+          onSelectionChange={toggleSelection}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
           <Badge variant="secondary">
-            {collectionState.data.page.totalElements} total
+            第 {collectionState.data.page.number} 页
           </Badge>
-        </div>
-        {pageError ? (
-          <Alert className="mb-3" variant="destructive">
-            <AlertDescription>{pageError}</AlertDescription>
-          </Alert>
-        ) : null}
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">Select</TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead className="text-right">Revisions</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {collectionState.collection.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7}>
-                    <Empty className="py-8">
-                      <EmptyHeader>
-                        <EmptyTitle>No inbox items yet</EmptyTitle>
-                        <EmptyDescription>
-                          Capture a Markdown or plain-text source to begin.
-                        </EmptyDescription>
-                      </EmptyHeader>
-                    </Empty>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                collectionState.collection.map((itemState) => (
-                  <InboxItemRow
-                    key={itemState.data.id}
-                    itemState={itemState}
-                    selected={selectedIds.has(itemState.data.id)}
-                    selectionLimitReached={selectedIds.size >= 5}
-                    onSelectionChange={toggleSelection}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <span className="text-xs text-muted-foreground">
+            当前页 {collectionState.collection.length} 条
+          </span>
         </div>
         <InboxPagination
-          label="Inbox pages"
+          label="收件箱分页"
           page={collectionState.data.page.number}
           totalPages={collectionState.data.page.totalPages}
           hasPrevious={Boolean(collectionState.getLink('prev'))}
@@ -186,59 +246,16 @@ export function InboxCollectionView({
           onPrevious={() => void navigatePage('prev')}
           onNext={() => void navigatePage('next')}
         />
-      </CardContent>
-    </Card>
-  );
-}
+      </div>
 
-function InboxItemRow({
-  itemState,
-  selected,
-  selectionLimitReached,
-  onSelectionChange,
-}: {
-  itemState: State<InboxItemResource>;
-  selected: boolean;
-  selectionLimitReached: boolean;
-  onSelectionChange: (itemId: string, selected: boolean) => void;
-}) {
-  const item = itemState.data;
-  const href = itemState.getLink('self')?.href;
-  const selectable = item.status === 'active';
-
-  return (
-    <TableRow>
-      <TableCell>
-        <input
-          aria-label={`Select ${item.title}`}
-          checked={selected}
-          className="size-4 accent-primary"
-          disabled={!selectable || (selectionLimitReached && !selected)}
-          type="checkbox"
-          onChange={(event) =>
-            onSelectionChange(item.id, event.currentTarget.checked)
-          }
+      {selectedItems.size > 0 ? (
+        <InboxExtractionControls
+          collectionState={collectionState}
+          selectedSources={[...selectedItems.values()]}
+          onClear={() => setSelectedItems(new Map())}
         />
-      </TableCell>
-      <TableCell className="min-w-56 font-medium">{item.title}</TableCell>
-      <TableCell>
-        <StatusBadge status={item.status} />
-      </TableCell>
-      <TableCell className="font-mono text-xs">{item.sourceKind}</TableCell>
-      <TableCell className="text-right tabular-nums">
-        {item.revisionCount}
-      </TableCell>
-      <TableCell className="whitespace-nowrap text-muted-foreground">
-        {formatDateTime(item.updatedAt)}
-      </TableCell>
-      <TableCell className="text-right">
-        {href ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to={href}>Open</Link>
-          </Button>
-        ) : null}
-      </TableCell>
-    </TableRow>
+      ) : null}
+    </section>
   );
 }
 
@@ -265,9 +282,7 @@ function CaptureInboxDialog({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedTitle = title.trim();
-    if (!normalizedTitle || !body.trim() || pending) {
-      return;
-    }
+    if (!normalizedTitle || !body.trim() || pending) return;
 
     setPending(true);
     setError(null);
@@ -293,28 +308,26 @@ function CaptureInboxDialog({
       open={open}
       onOpenChange={(nextOpen) => {
         if (!pending) {
-          if (!nextOpen) {
-            reset();
-          }
+          if (!nextOpen) reset();
           setOpen(nextOpen);
         }
       }}
     >
       <DialogTrigger asChild>
-        <Button>Capture source</Button>
+        <Button>采集来源</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Capture source</DialogTitle>
+          <DialogTitle>采集手工来源</DialogTitle>
           <DialogDescription>
-            Add a manual text source to this workspace Inbox. The server will
-            create its first immutable revision.
+            向当前工作区收件箱添加 Markdown 或纯文本，并创建第一个不可变
+            Revision。
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={(event) => void submit(event)}>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="inbox-title">Title</FieldLabel>
+              <FieldLabel htmlFor="inbox-title">标题</FieldLabel>
               <Input
                 id="inbox-title"
                 autoFocus
@@ -324,7 +337,7 @@ function CaptureInboxDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="inbox-content-type">Content type</FieldLabel>
+              <FieldLabel htmlFor="inbox-content-type">内容类型</FieldLabel>
               <Select
                 value={contentType}
                 onValueChange={(value) =>
@@ -337,16 +350,16 @@ function CaptureInboxDialog({
                 <SelectContent>
                   <SelectGroup>
                     <SelectItem value="text/markdown">Markdown</SelectItem>
-                    <SelectItem value="text/plain">Plain text</SelectItem>
+                    <SelectItem value="text/plain">纯文本</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
               <FieldDescription>
-                Markdown is stored as source text and rendered only when read.
+                原始文本会保存在不可变 Revision 中；读取时再进行渲染。
               </FieldDescription>
             </Field>
             <Field>
-              <FieldLabel htmlFor="inbox-body">Content</FieldLabel>
+              <FieldLabel htmlFor="inbox-body">正文</FieldLabel>
               <Textarea
                 id="inbox-body"
                 className="min-h-52 resize-y font-mono text-sm"
@@ -364,7 +377,7 @@ function CaptureInboxDialog({
           <DialogFooter className="mt-5">
             <DialogClose asChild>
               <Button disabled={pending} type="button" variant="outline">
-                Cancel
+                取消
               </Button>
             </DialogClose>
             <Button
@@ -373,7 +386,7 @@ function CaptureInboxDialog({
               }
               type="submit"
             >
-              {pending ? 'Capturing…' : 'Capture'}
+              {pending ? '采集中…' : '采集'}
             </Button>
           </DialogFooter>
         </form>
@@ -382,35 +395,28 @@ function CaptureInboxDialog({
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const variant =
-    status === 'active'
-      ? 'default'
-      : status === 'deferred'
-        ? 'secondary'
-        : 'outline';
-
-  return <Badge variant={variant}>{formatLabel(status)}</Badge>;
+function collectionHref(
+  selfHref: string,
+  query: string,
+  status: InboxStatusFilter,
+): string {
+  const url = new URL(
+    selfHref,
+    globalThis.location?.origin ?? 'http://localhost',
+  );
+  url.searchParams.set('page', '1');
+  const normalizedQuery = query.trim();
+  if (normalizedQuery) url.searchParams.set('q', normalizedQuery);
+  else url.searchParams.delete('q');
+  if (status === 'all') url.searchParams.delete('status');
+  else url.searchParams.set('status', status);
+  return `${url.pathname}${url.search}`;
 }
 
-function formatLabel(value: string) {
-  return value
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+function statusFilter(value: string | null): InboxStatusFilter {
+  return value === 'active' || value === 'deferred' || value === 'closed'
+    ? value
+    : 'all';
 }
 
 function workspaceId(
@@ -427,7 +433,5 @@ function createManualSourceKey() {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error
-    ? error.message
-    : 'The source could not be captured.';
+  return error instanceof Error ? error.message : '来源操作失败，请重试。';
 }

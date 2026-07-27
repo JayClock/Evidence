@@ -1,39 +1,97 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import type {
-  InboxItemCollectionResource,
-  InboxItemResource,
-  IntakeAgentEvent,
-  State,
+import {
+  useResource,
+  type InboxItemCollectionResource,
+  type InboxItemResource,
+  type InboxRevisionResource,
+  type IntakeAgentEvent,
+  type State,
 } from '@evidence/api-client';
+import type { Mock } from 'vitest';
 
 import { InboxCollectionView } from './inbox-collection-view';
 
-const itemState = {
+vi.mock('@evidence/api-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@evidence/api-client')>();
+  return {
+    ...actual,
+    useResource: vi.fn(),
+  };
+});
+
+const revisionState = {
   data: {
-    id: 'item-1',
-    sourceKind: 'manual_text',
-    externalKey: 'manual:one',
+    id: 'revision-1',
+    revisionNumber: 1,
     title: 'Customer interview',
-    status: 'active',
-    latestRevisionId: 'revision-1',
-    latestRevisionSha256: 'a'.repeat(64),
-    revisionCount: 1,
-    version: 1,
-    createdAt: '2026-07-21T10:00:00.000Z',
-    updatedAt: '2026-07-21T10:00:00.000Z',
+    body: '# Interview insight\n\nCustomers need a durable Inbox.',
+    contentType: 'text/markdown',
+    uri: null,
+    providerMetadata: { channel: 'manual' },
+    sourceUpdatedAt: null,
+    capturedAt: '2026-07-21T10:00:00.000Z',
+    contentSha256: 'a'.repeat(64),
   },
-  getLink: (rel: string) =>
-    rel === 'self'
-      ? {
+  getLink: () => undefined,
+} as unknown as State<InboxRevisionResource>;
+
+function inboxItemState({
+  id = 'item-1',
+  title = 'Customer interview',
+  status = 'active',
+  sourceKind = 'manual_text',
+}: {
+  id?: string;
+  title?: string;
+  status?: 'active' | 'deferred' | 'closed';
+  sourceKind?: string;
+} = {}) {
+  const latestRevision = { kind: 'latest-revision', id };
+  return {
+    data: {
+      id,
+      sourceKind,
+      externalKey: `manual:${id}`,
+      title,
+      status,
+      latestRevisionId: `revision-${id}`,
+      latestRevisionSha256: 'a'.repeat(64),
+      revisionCount: 1,
+      version: 1,
+      createdAt: '2026-07-21T10:00:00.000Z',
+      updatedAt: '2026-07-21T10:00:00.000Z',
+    },
+    getLink: (rel: string) => {
+      if (rel === 'self') {
+        return {
           rel,
-          href: '/api/workspaces/workspace-1/inbox-items/item-1',
-        }
-      : undefined,
-} as unknown as State<InboxItemResource>;
+          href: `/api/workspaces/workspace-1/inbox-items/${id}`,
+        };
+      }
+      if (rel === 'revisions') {
+        return {
+          rel,
+          href: `/api/workspaces/workspace-1/inbox-items/${id}/revisions`,
+        };
+      }
+      if (rel === 'latest-revision') {
+        return {
+          rel,
+          href: `/api/workspaces/workspace-1/inbox-items/${id}/revisions/revision-${id}`,
+        };
+      }
+      return undefined;
+    },
+    follow: (rel: string) => {
+      if (rel === 'latest-revision') return latestRevision;
+      throw new Error(`Unexpected item relation: ${rel}`);
+    },
+  } as unknown as State<InboxItemResource>;
+}
 
 function collectionState({
-  items = [itemState],
+  items = [inboxItemState()],
   total = items.length,
   page = 1,
   totalPages = total === 0 ? 0 : 1,
@@ -76,28 +134,34 @@ function collectionState({
   return {
     state: {
       ...state,
-      getLink: (rel: string) =>
-        rel in pageResources && pageResources[rel as 'next' | 'prev']
-          ? { rel, href: `/api/inbox?page=${rel}` }
-          : rel === 'inbox-extractions'
-            ? {
-                rel,
-                href: '/api/workspaces/workspace-1/inbox-extractions',
-              }
-            : rel === 'workspace'
-              ? { rel, href: '/api/workspaces/workspace-1' }
-              : undefined,
-      follow: (rel: string) => {
+      getLink: (rel: string) => {
         if (rel === 'self') {
-          return resource;
+          return {
+            rel,
+            href: `/api/workspaces/workspace-1/inbox-items?page=${String(page)}&pageSize=20`,
+          };
         }
+        if (rel in pageResources && pageResources[rel as 'next' | 'prev']) {
+          return { rel, href: `/api/inbox?page=${rel}` };
+        }
+        if (rel === 'inbox-extractions') {
+          return {
+            rel,
+            href: '/api/workspaces/workspace-1/inbox-extractions',
+          };
+        }
+        if (rel === 'workspace') {
+          return { rel, href: '/api/workspaces/workspace-1' };
+        }
+        return undefined;
+      },
+      follow: (rel: string) => {
+        if (rel === 'self') return resource;
         if (rel === 'inbox-extractions' && extractionPost) {
           return { post: extractionPost };
         }
         const pageResource = pageResources[rel as 'next' | 'prev'];
-        if (!pageResource) {
-          throw new Error(`Unexpected relation: ${rel}`);
-        }
+        if (!pageResource) throw new Error(`Unexpected relation: ${rel}`);
         return pageResource;
       },
     } as unknown as State<InboxItemCollectionResource>,
@@ -107,15 +171,33 @@ function collectionState({
 }
 
 function LocationProbe() {
-  return <output data-testid="location">{useLocation().pathname}</output>;
+  const location = useLocation();
+  return (
+    <output data-testid="location">
+      {location.pathname}
+      {location.search}
+    </output>
+  );
 }
+
+const useResourceMock = useResource as unknown as Mock;
 
 afterEach(() => {
   delete window.evidenceDesktop;
 });
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  useResourceMock.mockReturnValue({
+    loading: false,
+    error: null,
+    data: revisionState.data,
+    resourceState: revisionState,
+  });
+});
+
 describe('InboxCollectionView', () => {
-  it('renders workspace Inbox items and their resource links', () => {
+  it('renders the Chinese source browser and latest immutable Revision', () => {
     const { state } = collectionState();
 
     render(
@@ -124,12 +206,12 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: 'Inbox' })).toBeTruthy();
-    expect(screen.getByText('Customer interview')).toBeTruthy();
-    expect(screen.getByText('Active')).toBeTruthy();
-    expect(screen.getByText('1 total')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '收件箱' })).toBeTruthy();
+    expect(screen.getAllByText('Customer interview').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('活跃').length).toBeGreaterThan(0);
+    expect(screen.getByText('Customers need a durable Inbox.')).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: 'Open' }).getAttribute('href'),
+      screen.getByRole('link', { name: '打开来源' }).getAttribute('href'),
     ).toBe('/api/workspaces/workspace-1/inbox-items/item-1');
   });
 
@@ -142,19 +224,15 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('No inbox items yet')).toBeTruthy();
-    expect(screen.getByText('0 total')).toBeTruthy();
+    expect(screen.getByText('没有匹配的来源')).toBeTruthy();
+    expect(screen.getByText('工作区来源 · 0 条记录')).toBeTruthy();
   });
 
-  it('follows the HAL next relation to render another page', async () => {
-    const secondItem = {
-      ...itemState,
-      data: {
-        ...itemState.data,
-        id: 'item-2',
-        title: 'Second page source',
-      },
-    } as State<InboxItemResource>;
+  it('follows the HAL next relation and retains selected sources across pages', async () => {
+    const secondItem = inboxItemState({
+      id: 'item-2',
+      title: 'Second page source',
+    });
     const { state: secondPage } = collectionState({
       items: [secondItem],
       total: 21,
@@ -174,16 +252,93 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择来源 Customer interview' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
 
     await waitFor(() => expect(nextRefresh).toHaveBeenCalledOnce());
-    expect(await screen.findByText('Second page source')).toBeTruthy();
-    expect(screen.getByText('Page 2 of 2')).toBeTruthy();
+    expect(
+      (await screen.findAllByText('Second page source')).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText('第 2 页，共 2 页')).toBeTruthy();
+    expect(screen.getByText('1 / 5')).toBeTruthy();
+    expect(screen.getAllByText('Customer interview').length).toBeGreaterThan(0);
   });
 
-  it('freezes one to five selected active sources before local analysis', async () => {
+  it('filters through the canonical collection URL instead of filtering one page locally', () => {
+    const { state } = collectionState();
+
+    render(
+      <MemoryRouter
+        initialEntries={['/api/workspaces/workspace-1/inbox-items']}
+      >
+        <InboxCollectionView resourceState={state} />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    fireEvent.change(screen.getByLabelText('搜索来源'), {
+      target: { value: 'privacy boundary' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '应用筛选' }));
+
+    expect(screen.getByTestId('location').textContent).toBe(
+      '/api/workspaces/workspace-1/inbox-items?page=1&pageSize=20&q=privacy+boundary',
+    );
+  });
+
+  it('only admits one to five active sources to Extraction', () => {
+    const activeItems = Array.from({ length: 6 }, (_, index) =>
+      inboxItemState({
+        id: `item-${String(index + 1)}`,
+        title: `Active source ${String(index + 1)}`,
+      }),
+    );
+    const deferred = inboxItemState({
+      id: 'item-deferred',
+      title: 'Deferred source',
+      status: 'deferred',
+    });
+    const { state } = collectionState({
+      items: [...activeItems, deferred],
+      total: 7,
+    });
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    for (const item of activeItems.slice(0, 5)) {
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: `选择来源 ${item.data.title}`,
+        }),
+      );
+    }
+
+    expect(screen.getByText('5 / 5')).toBeTruthy();
+    expect(
+      (
+        screen.getByRole('checkbox', {
+          name: '选择来源 Active source 6',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole('checkbox', {
+          name: '选择来源 Deferred source',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+  });
+
+  it('freezes selected active sources before local Inbox analysis', async () => {
     const extractionState = {
-      data: { id: 'extraction-1', reference: 'EXTRACT-0001' },
+      data: { id: 'extraction-1', reference: 'EXT-0001' },
       getLink: (relation: string) =>
         relation === 'workspace'
           ? { href: '/api/workspaces/workspace-1' }
@@ -212,9 +367,9 @@ describe('InboxCollectionView', () => {
     );
 
     fireEvent.click(
-      screen.getByRole('checkbox', { name: 'Select Customer interview' }),
+      screen.getByRole('checkbox', { name: '选择来源 Customer interview' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Analyze 1 selected' }));
+    fireEvent.click(screen.getByRole('button', { name: '冻结修订并分析' }));
 
     await waitFor(() =>
       expect(extractionPost).toHaveBeenCalledWith({
@@ -235,6 +390,33 @@ describe('InboxCollectionView', () => {
     );
   });
 
+  it('requires Desktop capability before running Inbox Analyst', () => {
+    const { state } = collectionState();
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '选择来源 Customer interview' }),
+    );
+
+    expect(
+      (
+        screen.getByRole('button', {
+          name: '冻结修订并分析',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      screen.getByText(
+        '请在已绑定本地仓库的 Evidence Desktop 中运行 Inbox Analyst。',
+      ),
+    ).toBeTruthy();
+  });
+
   it('captures a repository-relative Markdown snapshot through Desktop', async () => {
     const source = {
       sourceKind: 'local_markdown' as const,
@@ -248,10 +430,11 @@ describe('InboxCollectionView', () => {
     };
     const readInboxMarkdown = vi.fn().mockResolvedValue(source);
     window.evidenceDesktop = { readInboxMarkdown } as never;
-    const post = vi.fn().mockResolvedValue(itemState);
+    const created = inboxItemState({ title: 'Request' });
+    const post = vi.fn().mockResolvedValue(created);
     const refresh = vi
       .fn()
-      .mockResolvedValue(collectionState({ items: [itemState] }).state);
+      .mockResolvedValue(collectionState({ items: [created] }).state);
     const { state } = collectionState({ items: [], post, refresh });
 
     render(
@@ -260,13 +443,11 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Capture Desktop source' }),
-    );
-    fireEvent.change(screen.getByLabelText('Repository-relative path'), {
+    fireEvent.click(screen.getByRole('button', { name: '采集 Desktop 来源' }));
+    fireEvent.change(screen.getByLabelText('仓库相对路径'), {
       target: { value: 'docs/request.md' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Capture snapshot' }));
+    fireEvent.click(screen.getByRole('button', { name: '采集快照' }));
 
     await waitFor(() =>
       expect(readInboxMarkdown).toHaveBeenCalledWith(
@@ -278,19 +459,9 @@ describe('InboxCollectionView', () => {
   });
 
   it('captures a manual source and refreshes the collection', async () => {
-    const post = vi.fn().mockResolvedValue(itemState);
-    const refreshedState = {
-      data: {
-        page: {
-          number: 1,
-          size: 20,
-          totalElements: 1,
-          totalPages: 1,
-        },
-      },
-      collection: [itemState],
-      getLink: () => undefined,
-    };
+    const created = inboxItemState();
+    const post = vi.fn().mockResolvedValue(created);
+    const refreshedState = collectionState({ items: [created] }).state;
     const refresh = vi.fn().mockResolvedValue(refreshedState);
     const { state } = collectionState({
       items: [],
@@ -305,14 +476,14 @@ describe('InboxCollectionView', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Capture source' }));
-    fireEvent.change(screen.getByLabelText('Title'), {
+    fireEvent.click(screen.getByRole('button', { name: '采集来源' }));
+    fireEvent.change(screen.getByLabelText('标题'), {
       target: { value: '  Customer interview  ' },
     });
-    fireEvent.change(screen.getByLabelText('Content'), {
+    fireEvent.change(screen.getByLabelText('正文'), {
       target: { value: '# Interview notes' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Capture' }));
+    fireEvent.click(screen.getByRole('button', { name: '采集' }));
 
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
     expect(post).toHaveBeenCalledWith({
@@ -325,6 +496,8 @@ describe('InboxCollectionView', () => {
       }),
     });
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText('Customer interview')).toBeTruthy();
+    expect(await screen.findAllByText('Customer interview')).not.toHaveLength(
+      0,
+    );
   });
 });

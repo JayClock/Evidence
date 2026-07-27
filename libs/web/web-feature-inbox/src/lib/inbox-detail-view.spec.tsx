@@ -263,11 +263,11 @@ describe('Inbox revision resource views', () => {
         <InboxRevisionCollectionView resourceState={firstPage} />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(screen.getByRole('button', { name: '下一页' }));
 
     await waitFor(() => expect(nextRefresh).toHaveBeenCalledOnce());
     expect(await screen.findByText('Second revision page')).toBeTruthy();
-    expect(screen.getByText('Page 2 of 2')).toBeTruthy();
+    expect(screen.getByText('第 2 页，共 2 页')).toBeTruthy();
   });
 
   it('renders a revision resource independently', () => {

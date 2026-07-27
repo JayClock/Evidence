@@ -29,7 +29,7 @@ export function InboxPagination({
       className="mt-4 flex items-center justify-between gap-3"
     >
       <p className="text-sm text-muted-foreground">
-        Page {page} of {totalPages}
+        第 {page} 页，共 {totalPages} 页
       </p>
       <div className="flex gap-2">
         <Button
@@ -39,7 +39,7 @@ export function InboxPagination({
           disabled={!hasPrevious || pending}
           onClick={onPrevious}
         >
-          Previous
+          上一页
         </Button>
         <Button
           type="button"
@@ -48,7 +48,7 @@ export function InboxPagination({
           disabled={!hasNext || pending}
           onClick={onNext}
         >
-          Next
+          下一页
         </Button>
       </div>
     </nav>

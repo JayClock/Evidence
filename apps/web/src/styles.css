@@ -4,3 +4,4 @@
 @source '../../../libs/web/web-shell/src/**/*.{ts,tsx}';
 @source '../../../libs/web/web-feature-resource-browser/src/**/*.{ts,tsx}';
 @source '../../../libs/web/web-feature-diagrams/src/**/*.{ts,tsx}';
+@source '../../../libs/web/web-feature-inbox/src/**/*.{ts,tsx}';
