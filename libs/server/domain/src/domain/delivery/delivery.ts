@@ -1,4 +1,9 @@
 import { Entity, Ref } from '../core';
+import type {
+  IterationLifecycle,
+  IterationLoop,
+  IterationStage,
+} from '../iteration/iteration';
 
 export type StoryCognitiveMode = 'clear' | 'complicated' | 'complex';
 
@@ -47,6 +52,11 @@ export interface StoryRevisionInput extends StoryContentInput {
 
 export interface StoryDescription {
   workspace: Ref<string>;
+  iteration: Ref<string>;
+  iterationReference: string;
+  iterationLifecycle: IterationLifecycle;
+  iterationLoop: IterationLoop;
+  iterationStage: IterationStage;
   reference: 'US-001';
   title: string;
   latestRevision: Ref<string>;

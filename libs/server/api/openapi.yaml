@@ -6044,6 +6044,11 @@ components:
       required:
         - _links
         - id
+        - iterationId
+        - iterationReference
+        - iterationLifecycle
+        - iterationLoop
+        - iterationStage
         - reference
         - title
         - latestRevisionId
@@ -6058,6 +6063,40 @@ components:
           $ref: '#/components/schemas/BTreeMap'
         id:
           type: string
+        iterationId:
+          type: string
+        iterationReference:
+          type: string
+          pattern: '^ITER-[0-9]{4,}$'
+        iterationLifecycle:
+          type: string
+          enum: [provisioning, active, provisioning_failed, halted]
+        iterationLoop:
+          type: string
+          enum: [kickoff, understand, tasking, pair]
+        iterationStage:
+          type: string
+          enum:
+            [
+              candidate_review,
+              candidate_drafting,
+              tqa,
+              scenario_review,
+              modeling,
+              drafting,
+              desk_check,
+              knowledge_gap,
+              approved,
+              plan_confirmed,
+              test_written,
+              red_observed,
+              implementation_written,
+              green_observed,
+              refactored,
+              quality_gate_failed,
+              quality_gates_passed,
+              exception,
+            ]
         reference:
           type: string
           enum: [US-001]

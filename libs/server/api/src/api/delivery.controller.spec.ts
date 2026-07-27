@@ -25,6 +25,11 @@ function citation() {
 function story() {
   return new Story('story-1', {
     workspace: new Ref('workspace-1'),
+    iteration: new Ref('iteration-1'),
+    iterationReference: 'ITER-0001',
+    iterationLifecycle: 'active',
+    iterationLoop: 'understand',
+    iterationStage: 'tqa',
     reference: 'US-001',
     title: 'Local coding agent',
     latestRevision: new Ref('story-revision-1'),
@@ -110,12 +115,24 @@ describe('StoriesController', () => {
     });
     expect(stories._embedded.stories[0]).toMatchObject({
       id: 'story-1',
+      iterationId: 'iteration-1',
+      iterationReference: 'ITER-0001',
+      iterationLoop: 'understand',
+      iterationStage: 'tqa',
       reference: 'US-001',
       title: 'Local coding agent',
       latestRevisionNumber: 1,
       latestScenarioCount: 0,
       revisionCount: 1,
       version: 1,
+      _links: {
+        iteration: {
+          href: '/api/workspaces/workspace-1/iterations/iteration-1',
+        },
+        understanding: {
+          href: '/api/workspaces/workspace-1/iterations/iteration-1/understanding',
+        },
+      },
     });
     expect(revisions._embedded.storyRevisions[0]).toMatchObject({
       id: 'story-revision-1',

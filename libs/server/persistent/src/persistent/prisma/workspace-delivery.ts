@@ -2,6 +2,9 @@ import {
   DomainError,
   Ref,
   Story,
+  parseIterationLifecycle,
+  parseIterationLoop,
+  parseIterationStage,
   StoryRevision,
   type StoryCitationDescription,
   type StoryCognitiveMode,
@@ -12,6 +15,15 @@ import { Prisma } from '@prisma/client';
 import type { PrismaStore } from './types';
 
 export const STORY_INCLUDE = {
+  iteration: {
+    select: {
+      id: true,
+      reference: true,
+      lifecycle: true,
+      loop: true,
+      stage: true,
+    },
+  },
   latestRevision: {
     include: { _count: { select: { scenarios: true } } },
   },
@@ -119,8 +131,16 @@ export function assembleStory(row: StoryRow): Story {
   if (!row.latestRevisionId || !row.latestRevision) {
     throw DomainError.internal(`Story ${row.id} has no latest revision`);
   }
+  if (!row.iterationId || !row.iteration) {
+    throw DomainError.internal(`Story ${row.id} has no authority Iteration`);
+  }
   return new Story(row.id, {
     workspace: new Ref(row.workspaceId),
+    iteration: new Ref(row.iteration.id),
+    iterationReference: row.iteration.reference,
+    iterationLifecycle: parseIterationLifecycle(row.iteration.lifecycle),
+    iterationLoop: parseIterationLoop(row.iteration.loop),
+    iterationStage: parseIterationStage(row.iteration.stage),
     reference: storyReference(row.reference),
     title: row.latestRevision.title,
     latestRevision: new Ref(row.latestRevisionId),

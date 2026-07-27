@@ -74,6 +74,13 @@ function storyRow() {
     version: 2,
     createdAt: timestamp,
     updatedAt: timestamp,
+    iteration: {
+      id: 'iteration-1',
+      reference: 'ITER-0001',
+      lifecycle: 'active',
+      loop: 'pair',
+      stage: 'plan_confirmed',
+    },
     latestRevision: { ...revisionRow(), _count: { scenarios: 1 } },
     _count: { revisions: 2 },
   };

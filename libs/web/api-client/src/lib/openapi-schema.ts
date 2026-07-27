@@ -2513,6 +2513,36 @@ export interface components {
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
       id: string;
+      iterationId: string;
+      iterationReference: string;
+      /** @enum {string} */
+      iterationLifecycle:
+        | 'provisioning'
+        | 'active'
+        | 'provisioning_failed'
+        | 'halted';
+      /** @enum {string} */
+      iterationLoop: 'kickoff' | 'understand' | 'tasking' | 'pair';
+      /** @enum {string} */
+      iterationStage:
+        | 'candidate_review'
+        | 'candidate_drafting'
+        | 'tqa'
+        | 'scenario_review'
+        | 'modeling'
+        | 'drafting'
+        | 'desk_check'
+        | 'knowledge_gap'
+        | 'approved'
+        | 'plan_confirmed'
+        | 'test_written'
+        | 'red_observed'
+        | 'implementation_written'
+        | 'green_observed'
+        | 'refactored'
+        | 'quality_gate_failed'
+        | 'quality_gates_passed'
+        | 'exception';
       /** @enum {string} */
       reference: 'US-001';
       title: string;

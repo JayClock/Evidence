@@ -10,6 +10,10 @@ import {
   workspaceHref,
   workspaceInboxItemHref,
   workspaceInboxRevisionHref,
+  workspaceIterationHref,
+  workspaceIterationPairHref,
+  workspaceIterationTaskingHref,
+  workspaceIterationUnderstandingHref,
   workspaceStoriesHref,
   workspaceStoryHref,
   workspaceStoryRevisionHref,
@@ -28,6 +32,11 @@ export interface StoryCitationModel {
 export interface StoryModel {
   _links: Record<string, Link>;
   id: string;
+  iterationId: string;
+  iterationReference: string;
+  iterationLifecycle: string;
+  iterationLoop: string;
+  iterationStage: string;
   reference: 'US-001';
   title: string;
   latestRevisionId: string;
@@ -43,10 +52,15 @@ export function storyModel(story: Story): StoryModel {
   const storyId = story.identity();
   const description = story.description();
   const workspaceId = description.workspace.id();
+  const iterationId = description.iteration.id();
   const links: Record<string, Link> = {
     self: link(workspaceStoryHref(workspaceId, storyId)),
     workspace: link(workspaceHref(workspaceId)),
     collection: link(workspaceStoriesHref(workspaceId)),
+    iteration: link(workspaceIterationHref(workspaceId, iterationId)),
+    understanding: link(
+      workspaceIterationUnderstandingHref(workspaceId, iterationId),
+    ),
     revisions: link(workspaceStoryRevisionsHref(workspaceId, storyId)),
     'latest-revision': link(
       workspaceStoryRevisionHref(
@@ -56,9 +70,25 @@ export function storyModel(story: Story): StoryModel {
       ),
     ),
   };
+  if (
+    description.iterationLoop === 'tasking' ||
+    description.iterationLoop === 'pair'
+  ) {
+    links.tasking = link(
+      workspaceIterationTaskingHref(workspaceId, iterationId),
+    );
+  }
+  if (description.iterationLoop === 'pair') {
+    links.pair = link(workspaceIterationPairHref(workspaceId, iterationId));
+  }
   return {
     _links: links,
     id: storyId,
+    iterationId,
+    iterationReference: description.iterationReference,
+    iterationLifecycle: description.iterationLifecycle,
+    iterationLoop: description.iterationLoop,
+    iterationStage: description.iterationStage,
     reference: description.reference,
     title: description.title,
     latestRevisionId: description.latestRevision.id(),

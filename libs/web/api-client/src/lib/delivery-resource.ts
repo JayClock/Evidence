@@ -79,6 +79,10 @@ export type StoryResource = Entity<
     self: StoryResource;
     workspace: WorkspaceResource;
     collection: StoryCollectionResource;
+    iteration: import('./iteration-resource.js').IterationResource;
+    understanding: import('./understanding-resource.js').UnderstandingResource;
+    tasking: import('./tasking-resource.js').TaskingResource;
+    pair: import('./pair-resource.js').PairResource;
     revisions: StoryRevisionCollectionResource;
     'latest-revision': StoryRevisionResource;
   }

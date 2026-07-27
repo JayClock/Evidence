@@ -729,6 +729,28 @@ describeContracts('Evidence API contract vertical slice', () => {
       },
     );
     const storyId = confirmed.body.storyCard.storyId as string;
+    const story = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}`,
+    );
+    expect(story.status).toBe(200);
+    expectHalResource(story, mediaTypes.story);
+    expect(story.body).toMatchObject({
+      iterationId,
+      iterationReference: selected.body.reference,
+      iterationLifecycle: 'active',
+      iterationLoop: 'understand',
+      iterationStage: 'tqa',
+      reference: 'US-001',
+      latestScenarioCount: 0,
+      _links: {
+        iteration: {
+          href: `/api/workspaces/${workspaceId}/iterations/${iterationId}`,
+        },
+        understanding: {
+          href: `/api/workspaces/${workspaceId}/iterations/${iterationId}/understanding`,
+        },
+      },
+    });
     const understanding = await apiRequest(
       `/api/workspaces/${workspaceId}/iterations/${iterationId}/understanding`,
     );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { StoryRevisionInput } from '@evidence/server-domain';
+import { Ref, type StoryRevisionInput } from '@evidence/server-domain';
 import { hashStoryRevisionInput } from '../story-content';
 import { asStore, mockPrismaStore, timestamp } from './test-support';
 import { PrismaWorkspaceDelivery } from './workspace-delivery';
@@ -85,11 +85,19 @@ function storyRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 'story-1',
     workspaceId: 'workspace-1',
+    iterationId: 'iteration-1',
     reference: 'US-001',
     latestRevisionId: 'story-revision-1',
     version: 1,
     createdAt: timestamp,
     updatedAt: timestamp,
+    iteration: {
+      id: 'iteration-1',
+      reference: 'ITER-0001',
+      lifecycle: 'active',
+      loop: 'understand',
+      stage: 'tqa',
+    },
     latestRevision: {
       ...storyRevisionRow(),
       _count: { scenarios: 0 },
@@ -113,6 +121,10 @@ describe('PrismaWorkspaceDelivery', () => {
 
     expect(total).toBe(1);
     expect(stories[0]?.description()).toMatchObject({
+      iteration: new Ref('iteration-1'),
+      iterationReference: 'ITER-0001',
+      iterationLoop: 'understand',
+      iterationStage: 'tqa',
       reference: 'US-001',
       latestRevisionNumber: 1,
       latestScenarioCount: 0,
