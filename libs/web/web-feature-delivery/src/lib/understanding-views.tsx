@@ -34,15 +34,25 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  EvidencePage,
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Spinner,
   Textarea,
   toast,
+  Workbench,
+  WorkbenchMain,
+  WorkbenchRail,
 } from '@evidence/ui';
 import {
   DeliveryAuthorityProgress,
@@ -235,28 +245,28 @@ export function UnderstandingDetailView({
   const taskingHref = state.getLink('tasking')?.href;
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 xl:overflow-hidden">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <PageEyebrow>
               {understanding.iteration.reference} · version{' '}
               {understanding.iteration.version}
-            </span>
+            </PageEyebrow>
             <Badge>{iterationStageLabel(understanding.iteration)}</Badge>
             <Badge variant="outline">
               Story Revision v{understanding.storyRevision.revisionNumber}
             </Badge>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <PageTitle>
             {understanding.story.reference} · Understand / TQA
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
+          </PageTitle>
+          <PageDescription>
             Requirements Analyst 每轮只能提出一个业务问题或一组完整 Scenario
             Draft；回答、选择与路由决定始终由人类负责。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
           {storyHref ? (
             <Button asChild variant="outline">
               <Link to={storyHref}>返回 Story</Link>
@@ -272,13 +282,13 @@ export function UnderstandingDetailView({
               <Link to={taskingHref}>进入 Tasking / Desk Check</Link>
             </Button>
           ) : null}
-        </div>
-      </header>
+        </PageActions>
+      </PageHeader>
 
       <DeliveryAuthorityProgress iteration={understanding.iteration} />
 
-      <div className="grid min-h-[44rem] shrink-0 overflow-hidden rounded-xl border bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-h-0 overflow-y-auto bg-muted/20">
+      <Workbench className="lg:grid-cols-[minmax(0,1fr)_20.375rem]">
+        <WorkbenchMain>
           <div className="flex flex-col gap-4 p-4 sm:p-5">
             <Alert>
               <AlertTitle>{authorityNotice(understanding).title}</AlertTitle>
@@ -384,9 +394,9 @@ export function UnderstandingDetailView({
 
             <UnderstandHistory understanding={understanding} />
           </div>
-        </div>
+        </WorkbenchMain>
 
-        <aside className="min-h-0 border-t bg-card xl:overflow-y-auto xl:border-t-0 xl:border-l">
+        <WorkbenchRail>
           <div className="flex flex-col gap-5 p-4">
             <div>
               <h2 className="text-base font-medium">Understand 人工决定</h2>
@@ -603,9 +613,9 @@ export function UnderstandingDetailView({
             </Alert>
             <AuthorityFacts understanding={understanding} />
           </div>
-        </aside>
-      </div>
-    </section>
+        </WorkbenchRail>
+      </Workbench>
+    </EvidencePage>
   );
 }
 
