@@ -50,7 +50,7 @@ describe('DiagramCollectionView', () => {
     expect(screen.getByText('Fulfillment Flow')).toBeTruthy();
     expect(
       (
-        screen.getByRole('link', { name: 'Open' }) as unknown as {
+        screen.getByRole('link', { name: '打开' }) as unknown as {
           getAttribute(name: string): string | null;
         }
       ).getAttribute('href'),
@@ -72,6 +72,6 @@ describe('DiagramCollectionView', () => {
     );
 
     expect(screen.getByRole('table')).toBeTruthy();
-    expect(screen.getByText('No diagrams found.')).toBeTruthy();
+    expect(screen.getByText('尚无模型图')).toBeTruthy();
   });
 });

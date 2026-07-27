@@ -10,6 +10,7 @@ import {
 } from '@evidence/api-client';
 import {
   ActionForm,
+  Badge,
   Button,
   Dialog,
   DialogClose,
@@ -19,6 +20,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+  EvidenceCanvas,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Table,
   TableBody,
   TableCell,
@@ -37,42 +49,51 @@ export function DiagramCollectionView({
   const createAction = useCreateDiagramAction(resourceState);
 
   return (
-    <section className="rounded-xl border bg-card p-5 text-card-foreground shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Collection
-          </p>
-          <h2 className="text-xl font-semibold tracking-tight">Diagrams</h2>
-        </div>
-        <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-          {resourceState.data.page.totalElements} total
-        </span>
-      </div>
-      {createAction ? (
-        <CreateDiagramForm
-          action={createAction}
-          onCreated={() => resourceState.follow('self').refresh()}
-        />
-      ) : null}
-      <div className="mt-4 rounded-lg border">
+    <EvidenceCanvas>
+      <PageHeader>
+        <PageHeaderCopy>
+          <PageEyebrow>
+            权威模型 · {resourceState.data.page.totalElements} 个模型图
+          </PageEyebrow>
+          <PageTitle>模型图</PageTitle>
+          <PageDescription>
+            查看工作区当前模型投影，并从 Diagram 进入节点、关系和证据引用。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
+          <Badge variant="secondary">
+            {resourceState.data.page.totalElements} 个模型图
+          </Badge>
+          {createAction ? (
+            <CreateDiagramForm
+              action={createAction}
+              onCreated={() => resourceState.follow('self').refresh()}
+            />
+          ) : null}
+        </PageActions>
+      </PageHeader>
+      <div className="min-h-0 flex-1 overflow-auto bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>标题</TableHead>
+              <TableHead>创建时间</TableHead>
+              <TableHead>更新时间</TableHead>
+              <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {resourceState.collection.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="py-6 text-center text-muted-foreground"
-                >
-                  No diagrams found.
+                <TableCell colSpan={4}>
+                  <Empty className="py-12">
+                    <EmptyHeader>
+                      <EmptyTitle>尚无模型图</EmptyTitle>
+                      <EmptyDescription>
+                        当前工作区还没有可查看的 Diagram。
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 </TableCell>
               </TableRow>
             ) : (
@@ -99,7 +120,7 @@ export function DiagramCollectionView({
                     <TableCell className="text-right">
                       {href ? (
                         <Button asChild size="sm" variant="outline">
-                          <Link to={href}>Open</Link>
+                          <Link to={href}>打开</Link>
                         </Button>
                       ) : null}
                     </TableCell>
@@ -110,7 +131,7 @@ export function DiagramCollectionView({
           </TableBody>
         </Table>
       </div>
-    </section>
+    </EvidenceCanvas>
   );
 }
 
@@ -140,7 +161,7 @@ function CreateDiagramForm({
   );
   const [pending, setPending] = useState(false);
   const canSubmit = !pending && getTitle(formData).length > 0;
-  const actionTitle = action.title ?? 'Create diagram';
+  const actionTitle = action.title ?? '创建模型图';
 
   return (
     <Dialog
@@ -154,17 +175,13 @@ function CreateDiagramForm({
         }
       }}
     >
-      <div className="mt-4 flex justify-end">
-        <DialogTrigger asChild>
-          <Button>{actionTitle}</Button>
-        </DialogTrigger>
-      </div>
+      <DialogTrigger asChild>
+        <Button size="sm">{actionTitle}</Button>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{actionTitle}</DialogTitle>
-          <DialogDescription>
-            Add a new diagram to this collection.
-          </DialogDescription>
+          <DialogDescription>在当前工作区创建新的模型图。</DialogDescription>
         </DialogHeader>
         <ActionForm
           action={action}
@@ -184,19 +201,19 @@ function CreateDiagramForm({
               });
               setFormData(createInitialFormData(action));
               setOpen(false);
-              toast.success('Diagram created', {
+              toast.success('模型图已创建', {
                 description: title,
               });
 
               try {
                 await onCreated();
               } catch (caught) {
-                toast.error('Diagram list refresh failed', {
+                toast.error('模型图列表刷新失败', {
                   description: errorMessage(caught),
                 });
               }
             } catch (caught) {
-              toast.error('Failed to create diagram', {
+              toast.error('模型图创建失败', {
                 description: errorMessage(caught),
               });
             } finally {
@@ -218,11 +235,11 @@ function CreateDiagramForm({
           <DialogFooter>
             <DialogClose asChild>
               <Button disabled={pending} type="button" variant="outline">
-                Cancel
+                取消
               </Button>
             </DialogClose>
             <Button disabled={!canSubmit} type="submit">
-              {pending ? 'Creating…' : actionTitle}
+              {pending ? '正在创建…' : actionTitle}
             </Button>
           </DialogFooter>
         </ActionForm>
