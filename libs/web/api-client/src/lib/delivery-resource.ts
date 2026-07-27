@@ -67,6 +67,7 @@ export type StoryCandidateCollectionResource =
       {
         self: StoryCandidateCollectionResource;
         workspace: WorkspaceResource;
+        extraction: import('./inbox-resource.js').InboxExtractionResource;
         prev: StoryCandidateCollectionResource;
         next: StoryCandidateCollectionResource;
       }
