@@ -1,6 +1,7 @@
 export * from './alert';
 export * from './avatar';
 export * from './badge';
+export * from './breadcrumb';
 export * from './button';
 export * from './button-group';
 export * from './card';
@@ -14,6 +15,8 @@ export * from './field';
 export * from './input';
 export * from './label';
 export * from './input-group';
+export * from './pagination';
+export * from './progress';
 export * from './select';
 export * from './separator';
 export * from './scroll-area';
