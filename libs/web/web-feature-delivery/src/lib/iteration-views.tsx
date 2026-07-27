@@ -14,6 +14,13 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  EvidenceCanvas,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Separator,
 } from '@evidence/ui';
 
@@ -24,100 +31,101 @@ export function IterationDetailView({
 }) {
   const iteration = resourceState.data;
   return (
-    <section className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pb-1">
-      <Card>
-        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle aria-level={1} role="heading">
-                {iteration.reference}
-              </CardTitle>
-              <Badge>{iterationLifecycleLabel(iteration.lifecycle)}</Badge>
-              <Badge variant="outline">
-                {iterationLoopLabel(iteration.loop)} /{' '}
-                {iterationStageLabel(iteration.stage)}
-              </Badge>
-            </div>
-            <CardDescription>
-              一张冻结 Candidate、一个隔离分支，以及最多一张权威 Story。
-            </CardDescription>
+    <EvidenceCanvas>
+      <PageHeader>
+        <PageHeaderCopy>
+          <div className="flex flex-wrap items-center gap-2">
+            <PageEyebrow>Iteration authority</PageEyebrow>
+            <Badge>{iterationLifecycleLabel(iteration.lifecycle)}</Badge>
+            <Badge variant="outline">
+              {iterationLoopLabel(iteration.loop)} /{' '}
+              {iterationStageLabel(iteration.stage)}
+            </Badge>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {resourceState.getLink('intake') ? (
-              <Button asChild variant="outline">
-                <Link to={resourceState.getLink('intake')?.href ?? '#'}>
-                  Frozen Intake
-                </Link>
-              </Button>
-            ) : null}
-            {resourceState.getLink('kickoff') ? (
-              <Button asChild>
-                <Link to={resourceState.getLink('kickoff')?.href ?? '#'}>
-                  打开 Kickoff
-                </Link>
-              </Button>
-            ) : null}
-            {resourceState.getLink('understanding') ? (
-              <Button asChild>
-                <Link to={resourceState.getLink('understanding')?.href ?? '#'}>
-                  打开 Understand / TQA
-                </Link>
-              </Button>
-            ) : null}
-            {resourceState.getLink('tasking') ? (
-              <Button asChild>
-                <Link to={resourceState.getLink('tasking')?.href ?? '#'}>
-                  打开 Tasking / Desk Check
-                </Link>
-              </Button>
-            ) : null}
-            {resourceState.getLink('story') ? (
-              <Button asChild variant="outline">
-                <Link to={resourceState.getLink('story')?.href ?? '#'}>
-                  打开 US-001
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          {iteration.lifecycle === 'provisioning_failed' ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                {iteration.provisioningFailureSummary ??
-                  'Desktop provision 失败；Candidate 仍保持 selected，等待人工恢复。'}
-              </AlertDescription>
-            </Alert>
+          <PageTitle>{iteration.reference}</PageTitle>
+          <PageDescription>
+            一张冻结 Candidate、一个隔离分支，以及最多一张权威 Story。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
+          {resourceState.getLink('intake') ? (
+            <Button asChild variant="outline">
+              <Link to={resourceState.getLink('intake')?.href ?? '#'}>
+                Frozen Intake
+              </Link>
+            </Button>
           ) : null}
-          <div className="grid gap-4 md:grid-cols-2">
-            <Detail label="基准提交" value={iteration.baseCommitSha} mono />
-            <Detail
-              label="隔离分支"
-              value={iteration.branchName ?? '尚未完成 provision'}
-              mono
-            />
-            <Detail
-              label="Candidate"
-              value={iteration.sourceCandidateId}
-              mono
-            />
-            <Detail
-              label="Candidate SHA-256"
-              value={iteration.sourceCandidateSha256}
-              mono
-            />
-            <Detail
-              label="准入时间"
-              value={formatDateTime(iteration.admittedAt)}
-            />
-            <Detail
-              label="Iteration version"
-              value={String(iteration.version)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </section>
+          {resourceState.getLink('kickoff') ? (
+            <Button asChild>
+              <Link to={resourceState.getLink('kickoff')?.href ?? '#'}>
+                打开 Kickoff
+              </Link>
+            </Button>
+          ) : null}
+          {resourceState.getLink('understanding') ? (
+            <Button asChild>
+              <Link to={resourceState.getLink('understanding')?.href ?? '#'}>
+                打开 Understand / TQA
+              </Link>
+            </Button>
+          ) : null}
+          {resourceState.getLink('tasking') ? (
+            <Button asChild>
+              <Link to={resourceState.getLink('tasking')?.href ?? '#'}>
+                打开 Tasking / Desk Check
+              </Link>
+            </Button>
+          ) : null}
+          {resourceState.getLink('story') ? (
+            <Button asChild variant="outline">
+              <Link to={resourceState.getLink('story')?.href ?? '#'}>
+                打开 US-001
+              </Link>
+            </Button>
+          ) : null}
+        </PageActions>
+      </PageHeader>
+      <div className="p-4">
+        <Card>
+          <CardContent className="flex flex-col gap-5">
+            {iteration.lifecycle === 'provisioning_failed' ? (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {iteration.provisioningFailureSummary ??
+                    'Desktop provision 失败；Candidate 仍保持 selected，等待人工恢复。'}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Detail label="基准提交" value={iteration.baseCommitSha} mono />
+              <Detail
+                label="隔离分支"
+                value={iteration.branchName ?? '尚未完成 provision'}
+                mono
+              />
+              <Detail
+                label="Candidate"
+                value={iteration.sourceCandidateId}
+                mono
+              />
+              <Detail
+                label="Candidate SHA-256"
+                value={iteration.sourceCandidateSha256}
+                mono
+              />
+              <Detail
+                label="准入时间"
+                value={formatDateTime(iteration.admittedAt)}
+              />
+              <Detail
+                label="Iteration version"
+                value={String(iteration.version)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </EvidenceCanvas>
   );
 }
 
@@ -128,31 +136,33 @@ export function IterationIntakeDetailView({
 }) {
   const intake = resourceState.data;
   return (
-    <section className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pb-1">
-      <Card>
-        <CardHeader>
-          <CardTitle aria-level={1} role="heading">
-            Frozen Intake
-          </CardTitle>
-          <CardDescription>
-            自包含 Candidate 与精确 Revision 快照 ·{' '}
-            {formatDateTime(intake.frozenAt)}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Alert>
-            <AlertDescription>
-              后续校验只读取这份冻结内容，不回读 live Inbox Item、provider
-              或可变 Candidate。
-            </AlertDescription>
-          </Alert>
-          <Detail label="Intake SHA-256" value={intake.contentSha256} mono />
-          <Separator />
-          <CandidateSnapshot candidate={intake.candidate} />
-        </CardContent>
-      </Card>
-      <FrozenSources sources={intake.sources} />
-    </section>
+    <EvidenceCanvas>
+      <PageHeader>
+        <PageHeaderCopy>
+          <PageEyebrow>{formatDateTime(intake.frozenAt)}</PageEyebrow>
+          <PageTitle>Frozen Intake</PageTitle>
+          <PageDescription>
+            自包含 Candidate 与精确、不可变的 Inbox Revision 快照。
+          </PageDescription>
+        </PageHeaderCopy>
+      </PageHeader>
+      <div className="flex flex-col gap-4 p-4">
+        <Card>
+          <CardContent className="flex flex-col gap-4">
+            <Alert>
+              <AlertDescription>
+                后续校验只读取这份冻结内容，不回读 live Inbox Item、provider
+                或可变 Candidate。
+              </AlertDescription>
+            </Alert>
+            <Detail label="Intake SHA-256" value={intake.contentSha256} mono />
+            <Separator />
+            <CandidateSnapshot candidate={intake.candidate} />
+          </CardContent>
+        </Card>
+        <FrozenSources sources={intake.sources} />
+      </div>
+    </EvidenceCanvas>
   );
 }
 

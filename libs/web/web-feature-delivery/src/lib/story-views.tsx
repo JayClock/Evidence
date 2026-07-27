@@ -12,13 +12,18 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  EvidenceCanvas,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Separator,
   Table,
   TableBody,
@@ -52,16 +57,17 @@ export function StoryRevisionCollectionView({
   };
 
   return (
-    <Card>
-      <CardHeader className="gap-2">
-        <CardTitle aria-level={1} role="heading">
-          Story 修订历史
-        </CardTitle>
-        <CardDescription>
-          保留每个不可变快照，使 Scenario、Tasking 与 Pair 权威可复现。
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <EvidenceCanvas>
+      <PageHeader>
+        <PageHeaderCopy>
+          <PageEyebrow>Append-only authority</PageEyebrow>
+          <PageTitle>Story 修订历史</PageTitle>
+          <PageDescription>
+            保留每个不可变快照，使 Scenario、Tasking 与 Pair 权威可复现。
+          </PageDescription>
+        </PageHeaderCopy>
+      </PageHeader>
+      <div className="p-4">
         {pageError ? (
           <Alert className="mb-3" variant="destructive">
             <AlertDescription>{pageError}</AlertDescription>
@@ -132,8 +138,8 @@ export function StoryRevisionCollectionView({
           onPrevious={() => void navigatePage('prev')}
           onNext={() => void navigatePage('next')}
         />
-      </CardContent>
-    </Card>
+      </div>
+    </EvidenceCanvas>
   );
 }
 
@@ -143,22 +149,29 @@ export function StoryRevisionDetailView({
   resourceState: State<StoryRevisionResource>;
 }) {
   return (
-    <Card>
-      <CardHeader className="gap-2">
-        <Badge className="w-fit" variant="secondary">
-          Revision v{resourceState.data.revisionNumber}
-        </Badge>
-        <CardTitle aria-level={1} role="heading">
-          {resourceState.data.title}
-        </CardTitle>
-        <CardDescription>
-          不可变 Story 快照 · {formatDateTime(resourceState.data.createdAt)}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <StoryRevisionContent resourceState={resourceState} />
-      </CardContent>
-    </Card>
+    <EvidenceCanvas>
+      <PageHeader>
+        <PageHeaderCopy>
+          <div className="flex items-center gap-2">
+            <PageEyebrow>不可变 Story 快照</PageEyebrow>
+            <Badge variant="secondary">
+              Revision v{resourceState.data.revisionNumber}
+            </Badge>
+          </div>
+          <PageTitle>{resourceState.data.title}</PageTitle>
+          <PageDescription>
+            创建于 {formatDateTime(resourceState.data.createdAt)}
+          </PageDescription>
+        </PageHeaderCopy>
+      </PageHeader>
+      <div className="p-4">
+        <Card>
+          <CardContent>
+            <StoryRevisionContent resourceState={resourceState} />
+          </CardContent>
+        </Card>
+      </div>
+    </EvidenceCanvas>
   );
 }
 
