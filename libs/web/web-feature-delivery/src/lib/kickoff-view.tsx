@@ -29,11 +29,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  EvidencePage,
   Field,
   FieldContent,
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   ScrollArea,
   Separator,
   Spinner,
@@ -42,6 +49,9 @@ import {
   TabsList,
   TabsTrigger,
   Textarea,
+  Workbench,
+  WorkbenchMain,
+  WorkbenchRail,
 } from '@evidence/ui';
 
 const decisionLabels: Record<KickoffDecisionAction, string> = {
@@ -177,27 +187,23 @@ export function KickoffDetailView({
     kickoff.iteration.stage === 'candidate_review';
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 xl:overflow-hidden">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {kickoff.iteration.reference}
-            </p>
+            <PageEyebrow>{kickoff.iteration.reference}</PageEyebrow>
             <Badge>
               {iterationLifecycleLabel(kickoff.iteration.lifecycle)}
             </Badge>
             <Badge variant="outline">Kickoff / Candidate Review</Badge>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Kickoff 人工确认
-          </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
+          <PageTitle>Kickoff 人工确认</PageTitle>
+          <PageDescription>
             核对 Frozen Intake 限定的当前 Proposal。只有人工 confirm 才会创建本
-            Iteration 唯一的 US-001；其他决定都不会创建 Story。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+            Iteration 唯一的 US-001。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
           {candidateHref ? (
             <Button asChild variant="outline">
               <Link to={candidateHref}>返回 Candidate</Link>
@@ -208,79 +214,81 @@ export function KickoffDetailView({
               <Link to={intakeHref}>Frozen Intake</Link>
             </Button>
           ) : null}
-        </div>
-      </header>
+        </PageActions>
+      </PageHeader>
 
       <AuthorityProgress />
 
-      <div className="grid min-h-[42rem] shrink-0 overflow-hidden rounded-xl border bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <ScrollArea className="min-h-0">
-          <div className="flex flex-col gap-4 p-4 sm:p-5">
-            <ProvisioningStatus iteration={kickoff.iteration} />
+      <Workbench>
+        <WorkbenchMain>
+          <ScrollArea className="h-full">
+            <div className="flex flex-col gap-4 p-4 sm:p-5">
+              <ProvisioningStatus iteration={kickoff.iteration} />
 
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-            {progress ? (
-              <Alert>
-                <Spinner />
-                <AlertDescription aria-live="polite">
-                  {progress}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {confirmedCard ? (
-              <AuthoritativeStoryCard card={confirmedCard} />
-            ) : null}
+              {error ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : null}
+              {progress ? (
+                <Alert>
+                  <Spinner />
+                  <AlertDescription aria-live="polite">
+                    {progress}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {confirmedCard ? (
+                <AuthoritativeStoryCard card={confirmedCard} />
+              ) : null}
 
-            {proposal ? (
-              <ProposalCard proposal={proposal} />
-            ) : drafting ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle aria-level={2} role="heading">
-                    等待替代 Proposal
-                  </CardTitle>
-                  <CardDescription>
-                    上一条 revise 已成为权威记录；本地 Analyst 只能基于 Frozen
-                    Intake 与决定历史继续。
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter>
-                  <Button
-                    disabled={pending || !bridge?.runKickoffAnalyst}
-                    type="button"
-                    onClick={() => void runAnalyst()}
-                  >
-                    {pending ? <Spinner data-icon="inline-start" /> : null}
-                    运行本地 Kickoff Analyst
-                  </Button>
-                </CardFooter>
-              </Card>
-            ) : (
-              <Alert>
-                <AlertDescription>
-                  当前 Iteration 没有可供人工决定的 Proposal。
-                </AlertDescription>
-              </Alert>
-            )}
+              {proposal ? (
+                <ProposalCard proposal={proposal} />
+              ) : drafting ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle aria-level={2} role="heading">
+                      等待替代 Proposal
+                    </CardTitle>
+                    <CardDescription>
+                      上一条 revise 已成为权威记录；本地 Analyst 只能基于 Frozen
+                      Intake 与决定历史继续。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button
+                      disabled={pending || !bridge?.runKickoffAnalyst}
+                      type="button"
+                      onClick={() => void runAnalyst()}
+                    >
+                      {pending ? <Spinner data-icon="inline-start" /> : null}
+                      运行本地 Kickoff Analyst
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ) : (
+                <Alert>
+                  <AlertDescription>
+                    当前 Iteration 没有可供人工决定的 Proposal。
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            <KickoffEvidenceTabs kickoff={kickoff} />
-          </div>
-        </ScrollArea>
+              <KickoffEvidenceTabs kickoff={kickoff} />
+            </div>
+          </ScrollArea>
+        </WorkbenchMain>
 
-        <aside className="border-t bg-muted/20 xl:min-h-0 xl:overflow-y-auto xl:border-t-0 xl:border-l">
+        <WorkbenchRail>
           <DecisionPanel
             disabled={!reviewing || !proposal || pending}
             iteration={kickoff.iteration}
             proposal={proposal}
             onDecide={decide}
           />
-        </aside>
-      </div>
-    </section>
+        </WorkbenchRail>
+      </Workbench>
+    </EvidencePage>
   );
 }
 
@@ -294,11 +302,11 @@ function AuthorityProgress() {
   return (
     <ol
       aria-label="Inbox 到 Story 权威流程"
-      className="grid shrink-0 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4"
+      className="grid shrink-0 overflow-hidden border-b bg-card sm:grid-cols-2 xl:grid-cols-4"
     >
       {steps.map(([number, label, detail, state]) => (
         <li
-          className="flex min-w-0 items-center gap-3 border-b px-4 py-3 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
+          className="flex min-w-0 items-center gap-2 border-b px-3 py-2 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
           key={number}
         >
           <Badge variant={state === 'pending' ? 'outline' : 'default'}>
