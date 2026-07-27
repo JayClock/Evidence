@@ -276,7 +276,7 @@ describe('PrismaWorkspaceTasking', () => {
       ],
       executionBudget: expect.objectContaining({
         policyId: 'pair-default',
-        maxAgentCalls: 10,
+        maxAgentCalls: 12,
       }),
     });
     expect(stage).toBe('desk_check');

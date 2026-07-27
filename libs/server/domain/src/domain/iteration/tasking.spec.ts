@@ -154,11 +154,11 @@ describe('Tasking authority validation', () => {
 
     expect(budget).toEqual({
       policyId: 'pair-default',
-      policyVersion: 1,
+      policyVersion: 2,
       policySha256: sha256,
       activityTimeoutMs: PAIR_EXECUTION_POLICY.activityTimeoutMs,
       commandTimeoutMs: PAIR_EXECUTION_POLICY.commandTimeoutMs,
-      maxAgentCalls: 10,
+      maxAgentCalls: 12,
       maxCheckpoints: 34,
       maxRetriesPerFingerprint: 2,
       maxNoProgressCheckpoints: 3,

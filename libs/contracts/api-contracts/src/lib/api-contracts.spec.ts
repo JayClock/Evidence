@@ -66,6 +66,10 @@ async function createContractWorkspace(prefix: string) {
   });
 }
 
+function contractSha(value: number): string {
+  return `sha256:${value.toString(16).padStart(64, '0')}`;
+}
+
 describeContracts('Evidence API contract vertical slice', () => {
   const userId = 'desktop-user';
 
@@ -1016,6 +1020,207 @@ describeContracts('Evidence API contract vertical slice', () => {
     expectHalResource(pair, mediaTypes.pair);
     expect(pair.body.run.id).toBe(pairStart.body.pair.run.id);
 
+    const pairPath = `/api/workspaces/${workspaceId}/iterations/${iterationId}/pair`;
+    let pairView = pairStart.body.pair;
+    let leaseToken = pairStart.body.leaseToken as string;
+    let evidenceSequence = 1;
+    let worktreeSha256 = contractSha(evidenceSequence++);
+    let diffSha256 = contractSha(evidenceSequence++);
+    const postMachineEvidence = async (suffix: string, body: object) => {
+      const response = await apiRequest(`${pairPath}/${suffix}`, {
+        method: 'POST',
+        headers: { 'X-Evidence-Pair-Lease': leaseToken },
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(201);
+      pairView = response.body.pair;
+      return response;
+    };
+    const authority = () => ({
+      pairRunId: pairView.run.id,
+      actionId: pairView.nextAction.actionId,
+      expectedPairVersion: pairView.nextAction.expectedPairVersion,
+    });
+    const claimPair = async (executorId: string) => {
+      const claimed = await apiRequest(`${pairPath}/lease/claim`, {
+        method: 'POST',
+        body: JSON.stringify({
+          pairRunId: pairView.run.id,
+          expectedPairVersion: pairView.run.version,
+          executorId,
+        }),
+      });
+      expect(claimed.status).toBe(200);
+      leaseToken = claimed.body.leaseToken;
+    };
+    const driveToHuman = async (failOneQualityGate: boolean) => {
+      let qualityFailurePending = failOneQualityGate;
+      for (let step = 0; step < 100; step += 1) {
+        const action = pairView.nextAction;
+        if (!action || action.kind === 'await_human') return;
+        if (action.kind === 'run_driver') {
+          const beforeWorktreeSha256 = worktreeSha256;
+          const changedPaths: string[] = [];
+          if (action.role !== 'refactor') {
+            const roots =
+              action.role === 'test'
+                ? action.allowedTestRoots
+                : action.allowedProductionRoots;
+            const root = roots[0];
+            if (typeof root !== 'string') {
+              throw new Error('Pair Driver action lost its approved root.');
+            }
+            changedPaths.push(
+              `${root}/pair-contract-${String(evidenceSequence)}${
+                action.role === 'test' ? '.spec.ts' : '.ts'
+              }`,
+            );
+            worktreeSha256 = contractSha(evidenceSequence++);
+            diffSha256 = contractSha(evidenceSequence++);
+          }
+          await postMachineEvidence('driver-attempts', {
+            ...authority(),
+            role: action.role,
+            mode: action.mode,
+            summary: `Contract ${action.mode} completed.`,
+            changedPaths,
+            beforeWorktreeSha256,
+            afterWorktreeSha256: worktreeSha256,
+            diffSha256,
+            agentCallCount: 1,
+            inputTokens: null,
+            outputTokens: null,
+          });
+          continue;
+        }
+        if (action.kind === 'execute_command') {
+          const fail =
+            action.stage === 'red' ||
+            (action.stage === 'quality_gate' && qualityFailurePending);
+          if (action.stage === 'quality_gate' && qualityFailurePending) {
+            qualityFailurePending = false;
+          }
+          await postMachineEvidence('command-observations', {
+            ...authority(),
+            stage: action.stage,
+            command: action.command,
+            termination: 'exited',
+            exitCode: fail ? 1 : 0,
+            signal: null,
+            durationMs: 25,
+            stdoutSha256: contractSha(fail ? 900 : 901),
+            stdoutBytes: 24,
+            stdoutLines: 1,
+            stderrSha256: contractSha(fail ? 902 : 903),
+            stderrBytes: fail ? 12 : 0,
+            stderrLines: fail ? 1 : 0,
+            worktreeSha256,
+            diffSha256,
+          });
+          if (pairView.run.status === 'exception') return;
+          continue;
+        }
+        if (action.kind === 'review_red') {
+          await postMachineEvidence('red-reviews', {
+            ...authority(),
+            observationId: action.observationId,
+            classification: 'behavior',
+            reason: 'The approved behavior assertion was reached and failed.',
+          });
+          continue;
+        }
+        throw new Error(`Unexpected Pair action ${String(action.kind)}.`);
+      }
+      throw new Error('Pair contract exceeded its bounded action loop.');
+    };
+
+    await driveToHuman(true);
+    expect(pairView.currentException).toMatchObject({
+      kind: 'quality_gate_failed',
+    });
+    const retryQuality = await apiRequest(`${pairPath}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        expectedPairVersion: pairView.run.version,
+        action: 'retry_quality',
+        reason: 'Repair the exact failed quality observation.',
+      }),
+    });
+    expect(retryQuality.status).toBe(200);
+    pairView = retryQuality.body.pair;
+    expect(pairView.nextAction).toMatchObject({
+      kind: 'run_driver',
+      mode: 'repair_quality_gate',
+      diagnosticObservationId: expect.any(String),
+    });
+    await claimPair('contract-desktop-quality-repair');
+    await driveToHuman(false);
+    expect(pairView.run.status).toBe('approval_required');
+    const firstManifest = pairView.manifest;
+
+    const implementationReason =
+      'The complete diff needs one bounded implementation correction.';
+    const backImplementation = await apiRequest(`${pairPath}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        expectedPairVersion: pairView.run.version,
+        action: 'back_implementation',
+        reason: implementationReason,
+      }),
+    });
+    expect(backImplementation.status).toBe(200);
+    pairView = backImplementation.body.pair;
+    expect(pairView).toMatchObject({
+      manifest: null,
+      nextAction: {
+        kind: 'run_driver',
+        mode: 'repair_implementation',
+        repairDecisionId: expect.any(String),
+        repairInstruction: implementationReason,
+      },
+    });
+    await claimPair('contract-desktop-implementation-repair');
+    await driveToHuman(false);
+    expect(pairView.run.status).toBe('approval_required');
+    expect(pairView.manifest.id).not.toBe(firstManifest.id);
+    expect(pairView.manifest.finalDiffSha256).toBe(diffSha256);
+    expect(pairView.decisions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ action: 'retry_quality' }),
+        expect.objectContaining({
+          action: 'back_implementation',
+          reason: implementationReason,
+        }),
+      ]),
+    );
+
+    const approvalInput = {
+      expectedPairVersion: pairView.run.version,
+      action: 'approve',
+      reason: 'Reviewed the complete revised Story diff.',
+      manifestSha256: pairView.manifest.contentSha256,
+      diffSha256: pairView.manifest.finalDiffSha256,
+      commitSha: 'c'.repeat(40),
+    };
+    const pairApproval = await apiRequest(`${pairPath}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify(approvalInput),
+    });
+    expect(pairApproval.status).toBe(200);
+    expect(pairApproval.body.pair.run).toMatchObject({
+      status: 'approved',
+      checkpoint: 'approved',
+      approvedCommitSha: approvalInput.commitSha,
+    });
+    const approvalReplay = await apiRequest(`${pairPath}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify(approvalInput),
+    });
+    expect(approvalReplay.status).toBe(200);
+    expect(approvalReplay.body.acceptedRecordId).toBe(
+      pairApproval.body.acceptedRecordId,
+    );
+
     const removedDirectAdmission = await apiRequest(
       `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
       {
@@ -1027,7 +1232,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       },
     );
     expect(removedDirectAdmission.status).toBe(404);
-  });
+  }, 30_000);
 
   it('accepts Inbox JSON overhead while enforcing the domain body limit', async () => {
     const workspace = await createContractWorkspace('Inbox Payload Workspace');

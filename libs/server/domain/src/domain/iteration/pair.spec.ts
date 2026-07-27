@@ -117,7 +117,7 @@ function plan(): TaskingCandidateDescription {
     ],
     executionBudget: {
       policyId: 'pair-default',
-      policyVersion: 1,
+      policyVersion: 2,
       policySha256: sha256,
       activityTimeoutMs: 3_600_000,
       commandTimeoutMs: 600_000,
@@ -216,6 +216,10 @@ describe('Pair authority', () => {
     expect(allowedPairExceptionRoutes('quality_gate_failed')).toContain(
       'retry_quality',
     );
+    expect(allowedPairExceptionRoutes('runtime_failure')).toEqual([
+      'back_tasking',
+      'cancel',
+    ]);
     expect(allowedPairExceptionRoutes('budget_exhausted')).not.toContain(
       'retry_quality',
     );

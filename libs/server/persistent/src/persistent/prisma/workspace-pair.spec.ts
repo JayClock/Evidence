@@ -354,6 +354,88 @@ function requireNext(view: PairView): PairNextAction {
   return view.nextAction;
 }
 
+async function driveToRefactorVerification(
+  pair: PrismaWorkspacePair,
+  initial: PairView,
+  lease: string,
+): Promise<PairView> {
+  let view = (
+    await pair.recordPairDriverAttempt('iteration-1', {
+      ...machineInput(initial, lease),
+      role: 'test',
+      mode: 'write_test',
+      summary: 'Added the focused Pair authority test.',
+      changedPaths: ['apps/desktop/src/pair-authority.spec.ts'],
+      beforeWorktreeSha256: sha('1'),
+      afterWorktreeSha256: sha('2'),
+      diffSha256: sha('3'),
+      agentCallCount: 1,
+    })
+  ).view;
+  view = (
+    await pair.recordPairCommandObservation(
+      'iteration-1',
+      observationInput(view, lease, 1, sha('3')),
+    )
+  ).view;
+  const red = requireNext(view);
+  if (red.kind !== 'review_red') throw new Error('Expected Red review.');
+  view = (
+    await pair.recordPairRedReview('iteration-1', {
+      ...machineInput(view, lease),
+      observationId: red.observationId,
+      classification: 'behavior',
+      reason: 'The assertion reached the absent approved behavior.',
+    })
+  ).view;
+  view = (
+    await pair.recordPairDriverAttempt('iteration-1', {
+      ...machineInput(view, lease),
+      role: 'production',
+      mode: 'implement',
+      summary: 'Implemented the minimum approved behavior.',
+      changedPaths: ['apps/desktop/src/pair-authority.ts'],
+      beforeWorktreeSha256: sha('2'),
+      afterWorktreeSha256: sha('4'),
+      diffSha256: sha('5'),
+      agentCallCount: 1,
+    })
+  ).view;
+  view = (
+    await pair.recordPairCommandObservation(
+      'iteration-1',
+      observationInput(view, lease, 0, sha('5')),
+    )
+  ).view;
+  return (
+    await pair.recordPairDriverAttempt('iteration-1', {
+      ...machineInput(view, lease),
+      role: 'refactor',
+      mode: 'refactor',
+      summary: 'No safe structural change was needed.',
+      changedPaths: [],
+      beforeWorktreeSha256: sha('4'),
+      afterWorktreeSha256: sha('4'),
+      diffSha256: sha('5'),
+      agentCallCount: 1,
+    })
+  ).view;
+}
+
+async function driveToQualityGate(
+  pair: PrismaWorkspacePair,
+  initial: PairView,
+  lease: string,
+): Promise<PairView> {
+  const view = await driveToRefactorVerification(pair, initial, lease);
+  return (
+    await pair.recordPairCommandObservation(
+      'iteration-1',
+      observationInput(view, lease, 0, sha('5')),
+    )
+  ).view;
+}
+
 describe('PrismaWorkspacePair', () => {
   it('releases exception authority so a human-routed Pair can be claimed immediately', async () => {
     const fixture = statefulStore();
@@ -407,17 +489,529 @@ describe('PrismaWorkspacePair', () => {
       leaseOwnerId: null,
       leaseExpiresAt: null,
     });
+    expect(requireNext(view)).toMatchObject({
+      kind: 'run_driver',
+      role: 'test',
+      mode: 'repair_test',
+      diagnosticObservationId: expect.any(String),
+    });
 
-    await expect(
-      pair.claimPairLease('iteration-1', {
-        pairRunId: view.run.identity(),
-        expectedPairVersion: view.run.description().version,
-        executorId: 'desktop-2',
-      }),
-    ).resolves.toMatchObject({
+    const reclaimed = await pair.claimPairLease('iteration-1', {
+      pairRunId: view.run.identity(),
+      expectedPairVersion: view.run.description().version,
+      executorId: 'desktop-2',
+    });
+    expect(reclaimed).toMatchObject({
       run: expect.objectContaining({}),
       leaseToken: expect.any(String),
     });
+    view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(view, reclaimed.leaseToken),
+        role: 'test',
+        mode: 'repair_test',
+        summary: 'Repaired the focused behavior assertion.',
+        changedPaths: ['apps/desktop/src/pair-authority.spec.ts'],
+        beforeWorktreeSha256: sha('2'),
+        afterWorktreeSha256: sha('4'),
+        diffSha256: sha('5'),
+        agentCallCount: 1,
+      })
+    ).view;
+    expect(requireNext(view)).toMatchObject({
+      kind: 'execute_command',
+      stage: 'red',
+    });
+  });
+
+  it('resumes the exact Red Review after a transient reviewer failure', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    const lease = started.leaseToken;
+    let view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(started.view, lease),
+        role: 'test',
+        mode: 'write_test',
+        summary: 'Added the focused Pair authority test.',
+        changedPaths: ['apps/desktop/src/pair-authority.spec.ts'],
+        beforeWorktreeSha256: sha('1'),
+        afterWorktreeSha256: sha('2'),
+        diffSha256: sha('3'),
+        agentCallCount: 1,
+      })
+    ).view;
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, lease, 1, sha('3')),
+      )
+    ).view;
+    const review = requireNext(view);
+    if (review.kind !== 'review_red') throw new Error('Expected Red review.');
+    const observation = view.commandObservations.find(
+      (candidate) => candidate.identity() === review.observationId,
+    );
+    if (!observation) throw new Error('Expected the Red observation.');
+    view = (
+      await pair.recordPairException('iteration-1', {
+        ...machineInput(view, lease),
+        kind: 'runtime_failure',
+        summary: 'The independent Red Reviewer stopped unexpectedly.',
+        failureFingerprint: observation.description().failureFingerprint,
+      })
+    ).view;
+    expect(view.currentException?.description().allowedRoutes).toEqual([
+      'back_test',
+      'back_tasking',
+      'cancel',
+    ]);
+
+    view = (
+      await pair.decidePair(
+        'iteration-1',
+        {
+          expectedPairVersion: view.run.description().version,
+          action: 'back_test',
+          reason: 'Resume the exact pending Red Review.',
+        },
+        'user-1',
+      )
+    ).view;
+    expect(requireNext(view)).toMatchObject({
+      kind: 'review_red',
+      observationId: review.observationId,
+    });
+  });
+
+  it('resumes refactor verification without rerunning its Driver', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    const lease = started.leaseToken;
+    let view = await driveToRefactorVerification(pair, started.view, lease);
+    expect(requireNext(view)).toMatchObject({
+      kind: 'execute_command',
+      stage: 'refactor',
+    });
+    view = (
+      await pair.recordPairException('iteration-1', {
+        ...machineInput(view, lease),
+        kind: 'runtime_failure',
+        summary: 'The refactor verification command runner stopped.',
+        failureFingerprint: null,
+      })
+    ).view;
+    expect(view.currentException?.description().allowedRoutes).toEqual([
+      'back_implementation',
+      'back_tasking',
+      'cancel',
+    ]);
+
+    view = (
+      await pair.decidePair(
+        'iteration-1',
+        {
+          expectedPairVersion: view.run.description().version,
+          action: 'back_implementation',
+          reason: 'Resume the exact refactor verification command.',
+        },
+        'user-1',
+      )
+    ).view;
+    expect(requireNext(view)).toMatchObject({
+      kind: 'execute_command',
+      stage: 'refactor',
+    });
+  });
+
+  it('persists evidence at and beyond the finite execution budget boundary', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    const run = fixture.currentRun();
+    if (!run) throw new Error('Expected the Pair Run row.');
+    run.executionBudget = {
+      ...(run.executionBudget as Record<string, unknown>),
+      maxAgentCalls: 1,
+      maxCheckpoints: 1,
+    };
+    const lease = started.leaseToken;
+    let view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(started.view, lease),
+        role: 'test',
+        mode: 'write_test',
+        summary: 'Used the last approved Agent call.',
+        changedPaths: ['apps/desktop/src/pair-authority.spec.ts'],
+        beforeWorktreeSha256: sha('1'),
+        afterWorktreeSha256: sha('2'),
+        diffSha256: sha('3'),
+        agentCallCount: 1,
+      })
+    ).view;
+    expect(view.run.description()).toMatchObject({
+      status: 'running',
+      budgetUsage: { agentCalls: 1, checkpoints: 1 },
+    });
+
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, lease, 1, sha('3')),
+      )
+    ).view;
+    expect(fixture.store.pairCommandObservation.create).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(view.currentException?.description()).toMatchObject({
+      kind: 'budget_exhausted',
+      allowedRoutes: ['back_tasking', 'cancel'],
+    });
+    expect(view.run.description().budgetUsage.checkpoints).toBe(2);
+  });
+
+  it('preserves a no-progress trigger before converting it to budget exhaustion', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    const run = fixture.currentRun();
+    if (!run) throw new Error('Expected the Pair Run row.');
+    run.executionBudget = {
+      ...(run.executionBudget as Record<string, unknown>),
+      maxNoProgressCheckpoints: 0,
+    };
+
+    const view = (
+      await pair.recordPairException('iteration-1', {
+        ...machineInput(started.view, started.leaseToken),
+        kind: 'no_progress',
+        summary: 'The Test Driver produced no observable change.',
+        failureFingerprint: null,
+      })
+    ).view;
+    expect(
+      fixture.store.pairAutomationException.create,
+    ).toHaveBeenNthCalledWith(1, {
+      data: expect.objectContaining({
+        kind: 'no_progress',
+        resolvedAt: expect.any(Date),
+      }),
+    });
+    expect(
+      fixture.store.pairAutomationException.create,
+    ).toHaveBeenNthCalledWith(2, {
+      data: expect.objectContaining({
+        kind: 'budget_exhausted',
+        summary: expect.stringContaining('no_progress'),
+        resolvedAt: null,
+      }),
+    });
+    expect(view.currentException?.description().kind).toBe('budget_exhausted');
+    expect(view.run.description().budgetUsage.noProgressCheckpoints).toBe(1);
+  });
+
+  it('runs a bounded quality repair and preserves superseded Manifests', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    const lease = started.leaseToken;
+    let view = await driveToQualityGate(pair, started.view, lease);
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, lease, 1, sha('5')),
+      )
+    ).view;
+    expect(view.run.description().status).toBe('exception');
+
+    view = (
+      await pair.decidePair(
+        'iteration-1',
+        {
+          expectedPairVersion: view.run.description().version,
+          action: 'retry_quality',
+          reason: 'Repair the production boundary before retrying its gate.',
+        },
+        'user-1',
+      )
+    ).view;
+    expect(requireNext(view)).toMatchObject({
+      kind: 'run_driver',
+      role: 'production',
+      mode: 'repair_quality_gate',
+      diagnosticObservationId: expect.any(String),
+    });
+    const reclaimed = await pair.claimPairLease('iteration-1', {
+      pairRunId: view.run.identity(),
+      expectedPairVersion: view.run.description().version,
+      executorId: 'desktop-2',
+    });
+    view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(view, reclaimed.leaseToken),
+        role: 'production',
+        mode: 'repair_quality_gate',
+        summary: 'Repaired the quality-gate production issue.',
+        changedPaths: ['apps/desktop/src/pair-authority.ts'],
+        beforeWorktreeSha256: sha('4'),
+        afterWorktreeSha256: sha('8'),
+        diffSha256: sha('9'),
+        agentCallCount: 1,
+      })
+    ).view;
+    expect(requireNext(view)).toMatchObject({
+      kind: 'execute_command',
+      stage: 'quality_gate',
+    });
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, reclaimed.leaseToken, 0, sha('9')),
+      )
+    ).view;
+    const firstManifest = view.manifest?.identity();
+    expect(firstManifest).toBeDefined();
+
+    view = (
+      await pair.decidePair(
+        'iteration-1',
+        {
+          expectedPairVersion: view.run.description().version,
+          action: 'back_implementation',
+          reason: 'The complete diff still needs one implementation repair.',
+        },
+        'user-1',
+      )
+    ).view;
+    expect(view.manifest).toBeNull();
+    expect(view.run.description().finalManifestSha256).toBeNull();
+    expect(requireNext(view)).toMatchObject({
+      kind: 'run_driver',
+      mode: 'repair_implementation',
+      repairDecisionId: expect.any(String),
+      repairInstruction:
+        'The complete diff still needs one implementation repair.',
+    });
+    const secondLease = await pair.claimPairLease('iteration-1', {
+      pairRunId: view.run.identity(),
+      expectedPairVersion: view.run.description().version,
+      executorId: 'desktop-3',
+    });
+    view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(view, secondLease.leaseToken),
+        role: 'production',
+        mode: 'repair_implementation',
+        summary: 'Repaired the reviewed implementation.',
+        changedPaths: ['apps/desktop/src/pair-authority.ts'],
+        beforeWorktreeSha256: sha('8'),
+        afterWorktreeSha256: sha('a'),
+        diffSha256: sha('b'),
+        agentCallCount: 1,
+      })
+    ).view;
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, secondLease.leaseToken, 0, sha('b')),
+      )
+    ).view;
+    view = (
+      await pair.recordPairDriverAttempt('iteration-1', {
+        ...machineInput(view, secondLease.leaseToken),
+        role: 'refactor',
+        mode: 'refactor',
+        summary: 'No further refactor was needed.',
+        changedPaths: [],
+        beforeWorktreeSha256: sha('a'),
+        afterWorktreeSha256: sha('a'),
+        diffSha256: sha('b'),
+        agentCallCount: 1,
+      })
+    ).view;
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, secondLease.leaseToken, 0, sha('b')),
+      )
+    ).view;
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, secondLease.leaseToken, 0, sha('b')),
+      )
+    ).view;
+
+    expect(view.run.description().status).toBe('approval_required');
+    expect(view.manifest?.identity()).not.toBe(firstManifest);
+    expect(fixture.store.pairExecutionManifest.create).toHaveBeenCalledTimes(2);
+
+    const secondRevisionInput = {
+      expectedPairVersion: view.run.description().version,
+      action: 'back_implementation' as const,
+      reason: 'The revised complete diff still needs one bounded repair.',
+    };
+    const secondRevision = await pair.decidePair(
+      'iteration-1',
+      secondRevisionInput,
+      'user-1',
+    );
+    expect(requireNext(secondRevision.view)).toMatchObject({
+      kind: 'run_driver',
+      mode: 'repair_implementation',
+    });
+    expect(fixture.store.pairCodingDecision.create).toHaveBeenCalledTimes(3);
+
+    const replay = await pair.decidePair(
+      'iteration-1',
+      secondRevisionInput,
+      'user-1',
+    );
+    expect(replay.acceptedRecordId).toBe(secondRevision.acceptedRecordId);
+    expect(fixture.store.pairCodingDecision.create).toHaveBeenCalledTimes(3);
+    await expect(
+      pair.decidePair(
+        'iteration-1',
+        {
+          ...secondRevisionInput,
+          reason: 'A different stale decision must not replay.',
+        },
+        'user-1',
+      ),
+    ).rejects.toThrow('Pair changed; reload before deciding');
+
+    const repairAction = requireNext(secondRevision.view);
+    if (repairAction.kind !== 'run_driver') {
+      throw new Error('Expected the reviewed implementation repair.');
+    }
+    const repairLease = await pair.claimPairLease('iteration-1', {
+      pairRunId: secondRevision.view.run.identity(),
+      expectedPairVersion: secondRevision.view.run.description().version,
+      executorId: 'desktop-repair-retry',
+    });
+    view = (
+      await pair.recordPairException('iteration-1', {
+        ...machineInput(secondRevision.view, repairLease.leaseToken),
+        kind: 'runtime_failure',
+        summary: 'The local Driver process stopped before producing evidence.',
+        failureFingerprint: null,
+      })
+    ).view;
+    view = (
+      await pair.decidePair(
+        'iteration-1',
+        {
+          expectedPairVersion: view.run.description().version,
+          action: 'back_implementation',
+          reason: 'Resume the already bounded human-requested repair.',
+        },
+        'user-1',
+      )
+    ).view;
+    expect(requireNext(view)).toMatchObject({
+      kind: 'run_driver',
+      mode: 'repair_implementation',
+      repairDecisionId: repairAction.repairDecisionId,
+      repairInstruction: secondRevisionInput.reason,
+    });
+  });
+
+  it('stops repeated quality failures at the approved fingerprint retry budget', async () => {
+    const fixture = statefulStore();
+    const pair = new PrismaWorkspacePair(asStore(fixture.store), 'workspace-1');
+    const started = await pair.startPair('iteration-1', {
+      expectedIterationVersion: 6,
+      approvedTaskingPlanId: 'approved-plan-1',
+      approvedTaskingPlanSha256: sha('6'),
+      executorId: 'desktop-1',
+    });
+    let lease = started.leaseToken;
+    let view = await driveToQualityGate(pair, started.view, lease);
+    view = (
+      await pair.recordPairCommandObservation(
+        'iteration-1',
+        observationInput(view, lease, 1, sha('5')),
+      )
+    ).view;
+
+    const repairHashes = [
+      { after: '8', diff: '9' },
+      { after: 'a', diff: 'b' },
+      { after: 'c', diff: 'd' },
+    ] as const;
+    let beforeHash = '4';
+    for (const [retry, hashes] of repairHashes.entries()) {
+      view = (
+        await pair.decidePair(
+          'iteration-1',
+          {
+            expectedPairVersion: view.run.description().version,
+            action: 'retry_quality',
+            reason: `Bounded quality repair ${String(retry + 1)}.`,
+          },
+          'user-1',
+        )
+      ).view;
+      const claimed = await pair.claimPairLease('iteration-1', {
+        pairRunId: view.run.identity(),
+        expectedPairVersion: view.run.description().version,
+        executorId: `desktop-${String(retry + 2)}`,
+      });
+      lease = claimed.leaseToken;
+      view = (
+        await pair.recordPairDriverAttempt('iteration-1', {
+          ...machineInput(view, lease),
+          role: 'production',
+          mode: 'repair_quality_gate',
+          summary: `Applied bounded quality repair ${String(retry + 1)}.`,
+          changedPaths: ['apps/desktop/src/pair-authority.ts'],
+          beforeWorktreeSha256: sha(beforeHash),
+          afterWorktreeSha256: sha(hashes.after),
+          diffSha256: sha(hashes.diff),
+          agentCallCount: 1,
+        })
+      ).view;
+      view = (
+        await pair.recordPairCommandObservation(
+          'iteration-1',
+          observationInput(view, lease, 1, sha(hashes.diff)),
+        )
+      ).view;
+      beforeHash = hashes.after;
+    }
+
+    expect(view.currentException?.description()).toMatchObject({
+      kind: 'budget_exhausted',
+      allowedRoutes: ['back_tasking', 'cancel'],
+    });
+    expect(view.run.description().budgetUsage.repeatedFingerprintCount).toBe(3);
   });
 
   it('persists the approved-plan Red/Green/Refactor/gate chain before human approval', async () => {

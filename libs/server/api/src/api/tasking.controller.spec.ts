@@ -57,7 +57,7 @@ function candidate() {
     processes: [],
     executionBudget: {
       policyId: 'pair-default',
-      policyVersion: 1,
+      policyVersion: 2,
       policySha256: sha256,
       activityTimeoutMs: 3_600_000,
       commandTimeoutMs: 600_000,

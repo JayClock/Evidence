@@ -8,7 +8,7 @@ import { TaskingDetailView } from './tasking-views';
 const sha256 = `sha256:${'a'.repeat(64)}`;
 const executionBudget = {
   policyId: 'pair-default',
-  policyVersion: 1,
+  policyVersion: 2,
   policySha256: sha256,
   activityTimeoutMs: 3_600_000,
   commandTimeoutMs: 600_000,
