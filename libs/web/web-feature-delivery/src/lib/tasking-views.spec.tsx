@@ -1,15 +1,23 @@
 import type { ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { State, TaskingResource } from '@evidence/api-client';
 import { TaskingDetailView } from './tasking-views';
 
-const sha256 = `sha256:${'a'.repeat(64)}`;
+const sha = (character: string) => `sha256:${character.repeat(64)}`;
 const executionBudget = {
-  policyId: 'pair-default',
-  policyVersion: 2,
-  policySha256: sha256,
+  policyId: 'pair-default' as const,
+  policyVersion: 2 as const,
+  policySha256: sha('e'),
   activityTimeoutMs: 3_600_000,
   commandTimeoutMs: 600_000,
   maxAgentCalls: 10,
@@ -18,145 +26,46 @@ const executionBudget = {
   maxNoProgressCheckpoints: 3,
 };
 
-function taskingData(
-  stage: 'drafting' | 'desk_check' | 'approved' = 'drafting',
-) {
-  return {
-    iteration: {
-      id: 'iteration-1',
-      reference: 'ITER-0001',
-      lifecycle: 'active',
-      loop: 'tasking',
-      stage,
-      version: stage === 'drafting' ? 4 : 5,
-    },
-    story: { id: 'story-1', reference: 'US-001' },
-    storyRevision: {
-      id: 'revision-2',
-      revisionNumber: 2,
-      contentSha256: sha256,
-    },
-    noModelImpactDecision: {
-      id: 'no-model-1',
-      reference: 'NMI-001',
-      reason: 'This Story changes only local workflow glue.',
-    },
-    currentCandidate:
-      stage === 'desk_check'
-        ? {
-            id: 'tasking-1',
-            planVersion: 2,
-            reference: 'TASKING-001',
-            contentSha256: sha256,
-            baseCommitSha: 'b'.repeat(40),
-            projectCatalogSha256: sha256,
-            executionBudget,
-            tests: [
-              {
-                id: 'TEST-001',
-                quadrant: 'Q2',
-                stepId: 'electron-package-q2',
-                intent: 'The confirmed Scenario reaches Desk Check.',
-                scenarioIds: ['SC-001'],
-                scenarioOutcome: 'A complete Candidate awaits Desk Check',
-              },
-            ],
-            processes: [
-              {
-                runtimePlanId: 'RUNTIME-001',
-                processId: 'typescript-electron-shell',
-                processVersion: 3,
-                focusedCommands: [
-                  {
-                    command:
-                      'pnpm nx test @evidence/desktop --run --testNamePattern=tasking',
-                  },
-                ],
-                qualityGates: [
-                  { command: 'pnpm nx run @evidence/desktop:package-smoke' },
-                ],
-              },
-            ],
-            tasks: [
-              {
-                id: 'TASK-001',
-                description: 'Drive the package outcome.',
-                testIds: ['TEST-001'],
-                dependsOn: [],
-              },
-            ],
-          }
-        : null,
-    decisions: [],
-    approvedPlan:
-      stage === 'approved'
-        ? {
-            contentSha256: sha256,
-            plan: { planVersion: 2, executionBudget },
-          }
-        : null,
-    processCatalog: [],
-  } as unknown as TaskingResource['data'];
-}
-
-function taskingState({
-  data = taskingData(),
-  post = vi.fn(),
-  refresh = vi.fn(),
-}: {
-  data?: TaskingResource['data'];
-  post?: ReturnType<typeof vi.fn>;
-  refresh?: ReturnType<typeof vi.fn>;
-} = {}) {
-  return {
-    data,
-    getLink: (relation: string) => {
-      if (relation === 'iteration') {
-        return {
-          href: '/api/workspaces/workspace-1/iterations/iteration-1',
-        };
+beforeAll(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {
+        return undefined;
       }
-      if (relation === 'self') {
-        return {
-          href: '/api/workspaces/workspace-1/iterations/iteration-1/tasking',
-        };
+      unobserve() {
+        return undefined;
       }
-      if (relation === 'decide' && data.iteration.stage === 'desk_check') {
-        return {
-          href: '/api/workspaces/workspace-1/iterations/iteration-1/tasking/decisions',
-        };
+      disconnect() {
+        return undefined;
       }
-      if (relation === 'pair' && data.iteration.stage === 'approved') {
-        return {
-          href: '/api/workspaces/workspace-1/iterations/iteration-1/pair',
-        };
-      }
-      return undefined;
     },
-    follow: (relation: string) => ({
-      post: relation === 'decide' ? post : vi.fn(),
-      refresh: relation === 'self' ? refresh : vi.fn(),
-    }),
-  } as unknown as State<TaskingResource>;
-}
+  );
+});
 
 afterEach(() => {
   delete window.evidenceDesktop;
 });
 
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
+
 describe('TaskingDetailView', () => {
   it('runs the Tasking Analyst only through the Desktop bridge', async () => {
-    const refreshed = taskingState({ data: taskingData('desk_check') });
+    const refreshed = taskingState(taskingData('desk_check'));
     const refresh = vi.fn().mockResolvedValue(refreshed);
     const runTaskingAnalyst = vi.fn(async () => undefined);
     window.evidenceDesktop = { runTaskingAnalyst } as never;
 
     renderTasking(
-      <TaskingDetailView resourceState={taskingState({ refresh })} />,
+      <TaskingDetailView
+        resourceState={taskingState(taskingData('drafting'), { refresh })}
+      />,
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Run local Tasking Analyst' }),
+      screen.getByRole('button', { name: '运行本地 Tasking Analyst' }),
     );
 
     await waitFor(() =>
@@ -168,57 +77,59 @@ describe('TaskingDetailView', () => {
         expect.any(Function),
       ),
     );
-    expect(await screen.findByText('TASKING-001')).toBeTruthy();
+    expect((await screen.findAllByText('TCAND-001')).length).toBeGreaterThan(0);
   });
 
-  it('approves the exact Candidate without starting coding', async () => {
-    const approved = taskingState({ data: taskingData('approved') });
+  it('approves the exact Candidate without starting Pair', async () => {
+    const approved = taskingState(taskingData('approved'));
     const post = vi.fn().mockResolvedValue({});
     const refresh = vi.fn().mockResolvedValue(approved);
 
     renderTasking(
       <TaskingDetailView
-        resourceState={taskingState({
-          data: taskingData('desk_check'),
+        resourceState={taskingState(taskingData('desk_check'), {
           post,
           refresh,
         })}
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Approve exact plan' }));
+    fireEvent.click(screen.getByRole('button', { name: '批准精确计划' }));
+    fireEvent.click(screen.getByLabelText(/我已检查 Scenario/));
+    fireEvent.click(screen.getByRole('button', { name: '确认批准计划' }));
 
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith({
         data: {
           expectedIterationVersion: 5,
           candidateId: 'tasking-1',
-          candidateSha256: sha256,
+          candidateSha256: sha('c'),
           action: 'approve',
           reason: null,
         },
       }),
     );
-    expect(
-      await screen.findByText(/locked as v2 Pair authority/i),
-    ).toBeTruthy();
-    expect(screen.queryByText(/Start local coding/i)).toBeNull();
+    expect(await screen.findByText('PLAN v2 已批准')).toBeTruthy();
+    expect(window.evidenceDesktop?.startPair).toBeUndefined();
   });
 
-  it('starts the exact approved Plan through the Desktop Pair bridge', async () => {
+  it('starts only the exact approved Plan through the Desktop Pair bridge', async () => {
     const startPair = vi.fn().mockResolvedValue({
       status: 'approval_required',
       checkpoint: 'quality_gates_passed',
     });
     window.evidenceDesktop = { startPair } as never;
+
     renderTasking(
       <TaskingDetailView
-        resourceState={taskingState({ data: taskingData('approved') })}
+        resourceState={taskingState(taskingData('approved'))}
       />,
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Run approved Pair Plan' }),
+      screen.getByRole('button', {
+        name: '在 Desktop 启动 Approved Pair Plan',
+      }),
     );
 
     await waitFor(() =>
@@ -231,7 +142,225 @@ describe('TaskingDetailView', () => {
       ),
     );
   });
+
+  it('requires a reason for every Desk Check return route', async () => {
+    const post = vi.fn().mockResolvedValue({});
+    const refresh = vi
+      .fn()
+      .mockResolvedValue(taskingState(taskingData('knowledge_gap')));
+
+    renderTasking(
+      <TaskingDetailView
+        resourceState={taskingState(taskingData('desk_check'), {
+          post,
+          refresh,
+        })}
+      />,
+    );
+
+    const routeButton = screen.getByRole('button', { name: '工序缺口' });
+    expect(routeButton.hasAttribute('disabled')).toBe(true);
+    fireEvent.change(screen.getByLabelText('修订或缺口路由理由'), {
+      target: { value: '现有 v3 process 未覆盖此技术边界。' },
+    });
+    fireEvent.click(routeButton);
+
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          action: 'process_gap',
+          reason: '现有 v3 process 未覆盖此技术边界。',
+        }),
+      }),
+    );
+  });
 });
+
+function taskingData(
+  stage: 'drafting' | 'desk_check' | 'knowledge_gap' | 'approved',
+): TaskingResource['data'] {
+  const candidate = taskingCandidate();
+  return {
+    iteration: {
+      id: 'iteration-1',
+      reference: 'ITER-0001',
+      lifecycle: 'active',
+      loop: 'tasking',
+      stage,
+      version: stage === 'drafting' ? 4 : stage === 'desk_check' ? 5 : 6,
+    },
+    story: { id: 'story-1', reference: 'US-001' },
+    storyRevision: {
+      id: 'revision-2',
+      revisionNumber: 2,
+      contentSha256: sha('s'),
+    },
+    noModelImpactDecision: {
+      id: 'no-model-1',
+      reference: 'NMI-001',
+      storyId: 'story-1',
+      storyRevisionId: 'revision-2',
+      storyRevisionSha256: sha('s'),
+      subject: 'tool',
+      method: 'none',
+      modelChangeRequired: false,
+      reason: 'This Story changes only local workflow glue.',
+      decidedByUserId: 'user-1',
+      decidedAt: '2026-07-24T11:30:00.000Z',
+      contentSha256: sha('n'),
+    },
+    currentCandidate: stage === 'desk_check' ? candidate : null,
+    decisions: [],
+    approvedPlan:
+      stage === 'approved'
+        ? {
+            id: 'plan-1',
+            storyId: 'story-1',
+            storyRevisionId: 'revision-2',
+            taskingCandidateId: candidate.id,
+            deskCheckDecisionId: 'decision-1',
+            plan: candidate,
+            contentSha256: sha('a'),
+            approvedByUserId: 'user-1',
+            approvedAt: '2026-07-24T12:00:00.000Z',
+          }
+        : null,
+    processCatalog: [],
+  } as unknown as TaskingResource['data'];
+}
+
+function taskingCandidate() {
+  return {
+    id: 'tasking-1',
+    planVersion: 2,
+    reference: 'TCAND-001',
+    storyId: 'story-1',
+    storyRevisionId: 'revision-2',
+    storyRevisionSha256: sha('s'),
+    baseCommitSha: 'b'.repeat(40),
+    noModelImpactDecisionId: 'no-model-1',
+    noModelImpactDecisionSha256: sha('n'),
+    sequence: 1,
+    projectCatalog: {
+      projects: [
+        {
+          id: '@evidence/desktop',
+          root: 'apps/desktop',
+          targets: ['test', 'typecheck', 'lint'],
+        },
+      ],
+    },
+    projectCatalogSha256: sha('j'),
+    tests: [
+      {
+        id: 'TEST-001',
+        quadrant: 'Q2',
+        intent: 'The confirmed Scenario reaches Desk Check.',
+        runtimePlanId: 'RUNTIME-001',
+        processId: 'typescript-electron-shell',
+        stepId: 'electron-package-q2',
+        projectId: '@evidence/desktop',
+        testFilter: 'tasking authority',
+        supportedBy: [],
+        scenarioIds: ['SC-001'],
+        scenarioOutcome: 'A complete Candidate awaits Desk Check',
+        businessData: ['iterationId'],
+        modelRefs: { entities: [], associations: [] },
+      },
+      {
+        id: 'TEST-002',
+        quadrant: 'Q1',
+        intent: 'The allowlist is serialized deterministically.',
+        runtimePlanId: 'RUNTIME-001',
+        processId: 'typescript-electron-shell',
+        stepId: 'electron-shell-q1',
+        projectId: '@evidence/desktop',
+        testFilter: 'tasking allowlist',
+        supportedBy: ['TEST-001'],
+        scenarioIds: ['SC-001'],
+        scenarioOutcome: null,
+        businessData: [],
+        modelRefs: { entities: [], associations: [] },
+      },
+    ],
+    processes: [
+      {
+        runtimePlanId: 'RUNTIME-001',
+        processId: 'typescript-electron-shell',
+        processVersion: 3,
+        definitionSha256: sha('d'),
+        functionalContexts: ['delivery'],
+        technicalBoundaries: ['electron-main'],
+        selectedStepIds: ['electron-package-q2', 'electron-shell-q1'],
+        projectIds: ['@evidence/desktop'],
+        projectCatalogSha256: sha('j'),
+        focusedCommands: [
+          {
+            testId: 'TEST-001',
+            stepId: 'electron-package-q2',
+            projectId: '@evidence/desktop',
+            command:
+              'pnpm nx test @evidence/desktop --run --testNamePattern=tasking',
+          },
+        ],
+        qualityGates: [
+          {
+            projectId: '@evidence/desktop',
+            target: 'package-smoke',
+            command: 'pnpm nx run @evidence/desktop:package-smoke',
+          },
+        ],
+        materializedSha256: sha('m'),
+      },
+    ],
+    tasks: [
+      {
+        id: 'TASK-001',
+        description: 'Drive the package outcome.',
+        testIds: ['TEST-001', 'TEST-002'],
+        dependsOn: [],
+        modelRefs: { entities: [], associations: [] },
+      },
+    ],
+    executionBudget,
+    contentSha256: sha('c'),
+    proposedBy: 'tasking-analyst',
+    proposedAt: '2026-07-24T11:45:00.000Z',
+  };
+}
+
+function taskingState(
+  data: TaskingResource['data'],
+  {
+    post = vi.fn(),
+    refresh = vi.fn(),
+  }: {
+    post?: ReturnType<typeof vi.fn>;
+    refresh?: ReturnType<typeof vi.fn>;
+  } = {},
+): State<TaskingResource> {
+  return {
+    data,
+    getLink: (relation: string) => {
+      const links: Record<string, string> = {
+        self: '/api/workspaces/workspace-1/iterations/iteration-1/tasking',
+        iteration: '/api/workspaces/workspace-1/iterations/iteration-1',
+        story: '/api/workspaces/workspace-1/stories/story-1',
+      };
+      if (data.iteration.stage === 'desk_check') {
+        links.decide = `${links.self}/decisions`;
+      }
+      if (data.iteration.stage === 'approved') {
+        links.pair = '/api/workspaces/workspace-1/iterations/iteration-1/pair';
+      }
+      return links[relation] ? { href: links[relation] } : undefined;
+    },
+    follow: (relation: string) => ({
+      post,
+      refresh: relation === 'self' ? refresh : vi.fn(),
+    }),
+  } as unknown as State<TaskingResource>;
+}
 
 function renderTasking(view: ReactNode) {
   return render(<MemoryRouter>{view}</MemoryRouter>);
