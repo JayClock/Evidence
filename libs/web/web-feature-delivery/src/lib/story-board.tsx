@@ -171,7 +171,7 @@ export function StoryCollectionView({
   const summary = collectionState.data.summary;
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-5">
+    <section className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pb-6 *:shrink-0">
       <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div className="max-w-3xl">
           <p className="text-sm font-medium text-muted-foreground">
