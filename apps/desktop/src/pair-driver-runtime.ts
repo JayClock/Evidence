@@ -9,10 +9,8 @@ import {
   type PairDriverEvent,
   type PairDriverRuntimeRequest,
 } from './pair-agent-protocol';
-import {
-  createPairDriverTools,
-  pairDriverWritePolicy,
-} from './pair-driver-tools';
+import { pairDriverWritePolicy } from './pair-driver-policy';
+import { createPairDriverTools } from './pair-driver-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 

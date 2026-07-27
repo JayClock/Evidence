@@ -65,7 +65,7 @@ export interface PairDriverRuntimeRequest {
   allowedProductionRoots: string[];
   frozenTestPaths: string[];
   diagnostic: {
-    stage: 'red' | 'green' | 'refactor' | 'quality_gate';
+    stage: 'red' | 'green' | 'refactor' | 'quality_gate' | 'human_review';
     summary: string;
     stdout: string;
     stderr: string;
@@ -114,6 +114,7 @@ export function parsePairDriverRuntimeRequest(
     'repair_quality_gate',
   ] as const);
   assertRoleMode(role, mode);
+  assertRepairDiagnostic(mode, diagnostic);
   return {
     id: identifier(input.id, 'request id'),
     role,
@@ -256,6 +257,7 @@ function parseDiagnostic(
       'green',
       'refactor',
       'quality_gate',
+      'human_review',
     ] as const),
     summary: text(diagnostic.summary, 'diagnostic summary', 2_000),
     stdout: boundedOutput(diagnostic.stdout, 'diagnostic stdout'),
@@ -272,6 +274,36 @@ function assertRoleMode(role: PairDriverRole, mode: PairDriverMode): void {
       )) ||
     (role === 'refactor' && ['refactor', 'repair_refactor'].includes(mode));
   if (!valid) throw new Error(`Pair ${role} Driver cannot run ${mode}.`);
+}
+
+function assertRepairDiagnostic(
+  mode: PairDriverMode,
+  diagnostic: PairDriverRuntimeRequest['diagnostic'],
+): void {
+  if (!mode.startsWith('repair_')) {
+    if (diagnostic) {
+      throw new Error(`Pair ${mode} Driver cannot receive repair evidence.`);
+    }
+    return;
+  }
+  if (!diagnostic) {
+    throw new Error(`Pair ${mode} Driver requires exact repair evidence.`);
+  }
+  const repairMode = mode as Extract<PairDriverMode, `repair_${string}`>;
+  const allowedStages: Record<
+    Extract<PairDriverMode, `repair_${string}`>,
+    string[]
+  > = {
+    repair_test: ['red'],
+    repair_implementation: ['green', 'quality_gate', 'human_review'],
+    repair_refactor: ['refactor'],
+    repair_quality_gate: ['quality_gate'],
+  };
+  if (!allowedStages[repairMode].includes(diagnostic.stage)) {
+    throw new Error(
+      `Pair ${mode} Driver cannot receive ${diagnostic.stage} evidence.`,
+    );
+  }
 }
 
 function paths(value: unknown, label: string): string[] {

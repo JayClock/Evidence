@@ -21,7 +21,7 @@ import type {
 import {
   assertPairDriverChangedPaths,
   pairDriverWritePolicy,
-} from './pair-driver-tools';
+} from './pair-driver-policy';
 import type {
   PairRedReviewerEvent,
   PairRedReviewerRuntimeRequest,
@@ -488,6 +488,23 @@ export class PairController {
         );
         return summary(context.pair);
       }
+      const usage = context.pair.data.run.budgetUsage;
+      const budget = context.pair.data.run.executionBudget;
+      const requiresAgent =
+        action.kind === 'run_driver' || action.kind === 'review_red';
+      if (
+        usage.checkpoints >= budget.maxCheckpoints ||
+        (requiresAgent && usage.agentCalls >= budget.maxAgentCalls)
+      ) {
+        await this.raiseException(
+          context,
+          action,
+          'budget_exhausted',
+          'Approved Pair execution budget is exhausted.',
+          context.snapshot,
+        );
+        continue;
+      }
       emitEvent(
         context.emit,
         context.request.id,
@@ -865,7 +882,7 @@ export class PairController {
       context.worktree,
       context.snapshot,
       null,
-      null,
+      context.pair.data.run.status === 'exception' ? diagnostic : null,
     );
   }
 
@@ -883,16 +900,27 @@ export class PairController {
     ) {
       throw new Error(summary);
     }
+    const reviewedObservation =
+      action.kind === 'review_red'
+        ? context.pair.data.commandObservations.find(
+            ({ id }) => id === action.observationId,
+          )
+        : null;
     const input: RecordPairExceptionInput = {
       pairRunId: context.pair.data.run.id,
       actionId: action.actionId,
       expectedPairVersion: action.expectedPairVersion,
       kind,
       summary: summary.slice(0, 2_000),
-      failureFingerprint: null,
+      failureFingerprint: reviewedObservation?.failureFingerprint ?? null,
     };
+    const diagnostic = context.checkpoint?.diagnostic ?? null;
     context.snapshot = snapshot;
-    await this.persistPending(context, { kind: 'exception', input }, null);
+    await this.persistPending(
+      context,
+      { kind: 'exception', input },
+      diagnostic,
+    );
     context.pair = await this.options.client.recordException(
       context.pair,
       context.leaseToken,
@@ -905,7 +933,7 @@ export class PairController {
       context.worktree,
       snapshot,
       null,
-      null,
+      diagnostic,
     );
   }
 
@@ -914,6 +942,18 @@ export class PairController {
     action: PairRunDriverAction,
   ): PairDriverRuntimeRequest {
     if (!action.workUnit) throw new Error('Pair Driver work unit is required.');
+    const hasDiagnostic = Boolean(action.diagnosticObservationId);
+    const hasDecision = Boolean(action.repairDecisionId);
+    const hasInstruction = Boolean(action.repairInstruction);
+    const repairEvidenceCount = Number(hasDiagnostic) + Number(hasDecision);
+    if (
+      hasDecision !== hasInstruction ||
+      (action.mode.startsWith('repair_')
+        ? repairEvidenceCount !== 1
+        : repairEvidenceCount !== 0)
+    ) {
+      throw new Error('Pair repair evidence is internally inconsistent.');
+    }
     const diagnostic = action.diagnosticObservationId
       ? this.requireDiagnostic(context, action.diagnosticObservationId)
       : null;
@@ -922,6 +962,15 @@ export class PairController {
           ({ id }) => id === action.diagnosticObservationId,
         )
       : null;
+    const repairInstruction =
+      action.repairDecisionId && action.repairInstruction
+        ? {
+            stage: 'human_review' as const,
+            summary: `Human coding decision ${action.repairDecisionId}: ${action.repairInstruction}`,
+            stdout: '',
+            stderr: '',
+          }
+        : null;
     return {
       id: action.actionId,
       role: action.role,
@@ -955,7 +1004,7 @@ export class PairController {
               stdout: diagnostic.stdout,
               stderr: diagnostic.stderr,
             }
-          : null,
+          : repairInstruction,
     };
   }
 

@@ -72,6 +72,27 @@ describe('Pair Agent protocol', () => {
     });
   });
 
+  it('accepts one bounded human-review repair instruction', () => {
+    expect(
+      parsePairDriverRuntimeRequest({
+        ...request(),
+        role: 'production',
+        mode: 'repair_implementation',
+        allowedTestRoots: [],
+        allowedProductionRoots: ['apps/desktop/src'],
+        diagnostic: {
+          stage: 'human_review',
+          summary: 'Human coding decision decision-1: preserve the HAL root.',
+          stdout: '',
+          stderr: '',
+        },
+      }).diagnostic,
+    ).toMatchObject({
+      stage: 'human_review',
+      summary: expect.stringContaining('decision-1'),
+    });
+  });
+
   it('rejects mismatched roles, unsafe roots, and unbounded diagnostics', () => {
     expect(() =>
       parsePairDriverRuntimeRequest({
@@ -97,6 +118,24 @@ describe('Pair Agent protocol', () => {
         },
       }),
     ).toThrow('stdout');
+    expect(() =>
+      parsePairDriverRuntimeRequest({
+        ...request(),
+        mode: 'repair_test',
+      }),
+    ).toThrow('requires exact repair evidence');
+    expect(() =>
+      parsePairDriverRuntimeRequest({
+        ...request(),
+        mode: 'repair_test',
+        diagnostic: {
+          stage: 'green',
+          summary: 'Wrong repair evidence.',
+          stdout: '',
+          stderr: '',
+        },
+      }),
+    ).toThrow('cannot receive green evidence');
   });
 
   it('accepts only one structured Driver completion event', () => {

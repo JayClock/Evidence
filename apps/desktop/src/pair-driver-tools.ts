@@ -20,44 +20,25 @@ import {
   type WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import type {
-  PairDriverRole,
-  PairDriverRuntimeRequest,
-} from './pair-agent-protocol';
 import { localCommandEnvironment } from './local-command-environment';
+import {
+  PAIR_PROTECTED_NAMES as PROTECTED_NAMES,
+  PAIR_PROTECTED_ROOTS as PROTECTED_ROOTS,
+  pairProtectedPath as protectedPath,
+  pairRootOwns as owns,
+  pairTestPath as isTestPath,
+  type PairDriverWritePolicy,
+} from './pair-driver-policy';
 
 const execFileAsync = promisify(execFile);
 const MAX_CAPTURE = 2 * 1024 * 1024;
 const MAX_TOOL_OUTPUT = 50 * 1024;
 const MAX_TOOL_LINES = 2_000;
 const MAX_SEARCH_RESULTS = 500;
-const PROTECTED_ROOTS = [
-  '.git',
-  '.pi',
-  '.evidence',
-  'node_modules',
-  'engineering/evidence-orchestrator',
-  'artifacts/iterations',
-];
-const PROTECTED_NAMES = new Set([
-  'package.json',
-  'pnpm-lock.yaml',
-  'nx.json',
-  'project.json',
-  'tsconfig.json',
-  'tsconfig.base.json',
-]);
 
 export interface PairDriverToolState {
   completed: boolean;
   summary: string | null;
-}
-
-export interface PairDriverWritePolicy {
-  role: PairDriverRole;
-  allowedTestRoots: string[];
-  allowedProductionRoots: string[];
-  frozenTestPaths: string[];
 }
 
 export async function createPairDriverTools(
@@ -93,44 +74,6 @@ export async function createPairDriverTools(
     listFilesTool(boundary.root),
     completeTool(state),
   ];
-}
-
-export function pairDriverWritePolicy(
-  request: PairDriverRuntimeRequest,
-): PairDriverWritePolicy {
-  return {
-    role: request.role,
-    allowedTestRoots: request.allowedTestRoots,
-    allowedProductionRoots: request.allowedProductionRoots,
-    frozenTestPaths: request.frozenTestPaths,
-  };
-}
-
-export function assertPairDriverChangedPaths(
-  policy: PairDriverWritePolicy,
-  paths: string[],
-): void {
-  for (const path of paths) {
-    const name = path.split('/').at(-1) ?? path;
-    if (protectedPath(path) || PROTECTED_NAMES.has(name)) {
-      throw new Error(`Pair Driver changed protected path ${path}.`);
-    }
-    if (policy.role === 'test') {
-      if (
-        !policy.allowedTestRoots.some((root) => owns(root, path)) ||
-        !isTestPath(path)
-      ) {
-        throw new Error(`Test Driver changed non-test path ${path}.`);
-      }
-      continue;
-    }
-    if (!policy.allowedProductionRoots.some((root) => owns(root, path))) {
-      throw new Error(`Production Driver changed unplanned path ${path}.`);
-    }
-    if (isTestPath(path) || policy.frozenTestPaths.includes(path)) {
-      throw new Error(`Production Driver changed frozen test ${path}.`);
-    }
-  }
 }
 
 class PairFileBoundary {
@@ -383,22 +326,6 @@ function boundedOutput(value: string): string {
   return `${bytes
     .subarray(0, MAX_TOOL_OUTPUT - Buffer.byteLength(notice))
     .toString()}${notice}`;
-}
-
-function protectedPath(path: string): boolean {
-  return PROTECTED_ROOTS.some(
-    (root) => path === root || path.startsWith(`${root}/`),
-  );
-}
-
-function owns(root: string, path: string): boolean {
-  return path === root || path.startsWith(`${root}/`);
-}
-
-function isTestPath(path: string): boolean {
-  return /(^|\/)(?:tests?\/|__tests__\/)|\.(?:test|spec)\.[cm]?[jt]sx?$/.test(
-    path,
-  );
 }
 
 function output(error: unknown, field: 'stdout' | 'stderr'): string {

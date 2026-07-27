@@ -83,6 +83,7 @@ try {
   process.stdout.write('Packaged Electron smoke test passed.\n');
 } catch (error) {
   process.stderr.write(output);
+  process.stderr.write(`Fake API requests: ${fakeApi.requests.join(', ')}\n`);
   throw error;
 } finally {
   await fakeApi.close();
@@ -91,7 +92,9 @@ try {
 
 function startFakeApi() {
   return new Promise((resolveStart, reject) => {
+    const requests = [];
     const server = createServer((request, response) => {
+      requests.push(`${request.method ?? 'GET'} ${request.url ?? '/'}`);
       response.setHeader('access-control-allow-origin', '*');
       response.setHeader('content-type', 'application/hal+json');
       if (request.method === 'OPTIONS') {
@@ -117,6 +120,7 @@ function startFakeApi() {
       }
       resolveStart({
         baseUrl: `http://127.0.0.1:${address.port}/api`,
+        requests,
         close: () =>
           new Promise((resolveClose, rejectClose) => {
             server.close((error) =>
@@ -218,7 +222,11 @@ function run(command, args, environment, timeoutMs, cwd) {
 
     const timeout = setTimeout(() => {
       child.kill('SIGKILL');
-      reject(new Error('Packaged runtime smoke test timed out.'));
+      reject(
+        new Error(
+          `Packaged runtime smoke test timed out. Output:\n${combinedOutput}`,
+        ),
+      );
     }, timeoutMs);
     child.once('error', (error) => {
       clearTimeout(timeout);

@@ -91,6 +91,42 @@ describe('PairController', () => {
     expect(harness.worktreeState.snapshot().changedPaths).toEqual([]);
   });
 
+  it('supplies only the Server-selected failed observation to a repair Driver', async () => {
+    const harness = createHarness({ repairTest: true });
+
+    const result = await harness.controller.resume(request());
+
+    expect(result.status).toBe('approval_required');
+    expect(harness.driverRequests[0]).toMatchObject({
+      role: 'test',
+      mode: 'repair_test',
+      diagnostic: {
+        stage: 'red',
+        stdout: 'focused command passed',
+        stderr: '',
+      },
+    });
+    expect(harness.driverInputs[0]).toMatchObject({
+      role: 'test',
+      mode: 'repair_test',
+    });
+  });
+
+  it('stops before an Agent call when the approved Agent budget is at its limit', async () => {
+    const harness = createHarness({ agentBudgetExhausted: true });
+
+    const result = await harness.controller.start(request());
+
+    expect(result).toMatchObject({
+      status: 'exception',
+      exception: { kind: 'budget_exhausted' },
+    });
+    expect(harness.driverRequests).toHaveLength(0);
+    expect(harness.exceptionInputs).toEqual([
+      expect.objectContaining({ kind: 'budget_exhausted' }),
+    ]);
+  });
+
   it('replays locally durable evidence instead of rerunning a Driver', async () => {
     const harness = createHarness({ pendingDriver: true });
 
@@ -153,10 +189,12 @@ function createHarness(
     invalidTestPath?: boolean;
     pendingDriver?: boolean;
     approvalRequired?: boolean;
+    repairTest?: boolean;
+    agentBudgetExhausted?: boolean;
   } = {},
 ) {
   const worktreeState = new WorktreeState();
-  if (options.pendingDriver || options.approvalRequired) {
+  if (options.pendingDriver || options.approvalRequired || options.repairTest) {
     worktreeState.testChange();
   }
   const driverRequests: PairDriverRuntimeRequest[] = [];
@@ -166,10 +204,55 @@ function createHarness(
   const exceptionInputs: Array<{ kind: string }> = [];
   const decisions: Array<Record<string, unknown>> = [];
   let checkpoint: PairLocalCheckpoint | null = null;
-  const initialAction = driverAction(1, 'test', 'write_test');
+  const initialAction = driverAction(
+    1,
+    'test',
+    options.repairTest ? 'repair_test' : 'write_test',
+    options.repairTest ? 'observation-repair-red' : null,
+  );
   let pair = options.approvalRequired
     ? approvalPair(worktreeState.snapshot().sha256)
     : runningPair(initialAction, 1, 'plan_confirmed');
+  if (options.agentBudgetExhausted) {
+    pair = remotePair({
+      ...pair.data,
+      run: {
+        ...pair.data.run,
+        budgetUsage: {
+          ...pair.data.run.budgetUsage,
+          agentCalls: pair.data.run.executionBudget.maxAgentCalls,
+        },
+      },
+    });
+  }
+  if (options.repairTest) {
+    const diagnosticResult = commandResult(0);
+    pair = remotePair({
+      ...pair.data,
+      run: {
+        ...pair.data.run,
+        currentDiffSha256: worktreeState.snapshot().sha256,
+      },
+      commandObservations: [
+        {
+          id: 'observation-repair-red',
+          actionId: 'ACT-prior-red-command',
+          stage: 'red',
+        } as never,
+      ],
+    });
+    checkpoint = localCheckpoint(pair, worktreeState.snapshot(), null, {
+      actionId: 'ACT-prior-red-command',
+      observationId: 'observation-repair-red',
+      termination: diagnosticResult.termination,
+      exitCode: diagnosticResult.exitCode,
+      signal: diagnosticResult.signal,
+      stdout: diagnosticResult.stdout,
+      stderr: diagnosticResult.stderr,
+      stdoutSha256: diagnosticResult.stdoutSha256,
+      stderrSha256: diagnosticResult.stderrSha256,
+    });
+  }
   if (options.pendingDriver) {
     const pendingInput: RecordPairDriverAttemptInput = {
       pairRunId: 'pair-1',
@@ -336,6 +419,8 @@ function createHarness(
         if (request.role === 'test') {
           if (options.invalidTestPath) {
             worktreeState.invalidTestChange();
+          } else if (request.mode === 'repair_test') {
+            worktreeState.repairTestChange();
           } else {
             worktreeState.testChange();
           }
@@ -418,6 +503,15 @@ class WorktreeState {
     );
   }
 
+  repairTestChange(): void {
+    this.index += 1;
+    this.remember(
+      this.create(`patch-${String(this.index)}`, {
+        'libs/feature/pair.spec.ts': 'blob:test-2',
+      }),
+    );
+  }
+
   invalidTestChange(): void {
     this.index += 1;
     this.remember(
@@ -431,7 +525,9 @@ class WorktreeState {
     this.index += 1;
     this.remember(
       this.create(`patch-${String(this.index)}`, {
-        'libs/feature/pair.spec.ts': 'blob:test-1',
+        'libs/feature/pair.spec.ts':
+          this.snapshot().pathFingerprints['libs/feature/pair.spec.ts'] ??
+          'blob:test-1',
         'libs/feature/pair.ts': 'blob:production-1',
       }),
     );
@@ -441,7 +537,9 @@ class WorktreeState {
     this.index += 1;
     this.remember(
       this.create(`patch-${String(this.index)}`, {
-        'libs/feature/pair.spec.ts': 'blob:test-1',
+        'libs/feature/pair.spec.ts':
+          this.snapshot().pathFingerprints['libs/feature/pair.spec.ts'] ??
+          'blob:test-1',
         'libs/feature/pair.ts': 'blob:production-refactored',
       }),
     );
@@ -597,8 +695,21 @@ function pairAuthority(): PairResourceData {
       checkpoint: 'plan_confirmed',
       version: 1,
       executionBudget: {
+        policyId: 'pair-default',
+        policyVersion: 2,
+        policySha256: digest('pair-budget'),
         activityTimeoutMs: 30_000,
         commandTimeoutMs: 30_000,
+        maxAgentCalls: 20,
+        maxCheckpoints: 40,
+        maxRetriesPerFingerprint: 2,
+        maxNoProgressCheckpoints: 3,
+      },
+      budgetUsage: {
+        agentCalls: 0,
+        checkpoints: 0,
+        repeatedFingerprintCount: 0,
+        noProgressCheckpoints: 0,
       },
       currentDiffSha256: null,
       finalManifestSha256: null,
@@ -618,7 +729,8 @@ function pairAuthority(): PairResourceData {
 function driverAction(
   version: number,
   role: 'test' | 'production' | 'refactor',
-  mode: 'write_test' | 'implement' | 'refactor',
+  mode: 'write_test' | 'repair_test' | 'implement' | 'refactor',
+  diagnosticObservationId: string | null = null,
 ): NonNullable<PairResourceData['nextAction']> {
   return {
     kind: 'run_driver',
@@ -631,7 +743,9 @@ function driverAction(
     allowedTestRoots: role === 'test' ? ['libs/feature'] : [],
     allowedProductionRoots: role === 'test' ? [] : ['libs/feature'],
     frozenTestPaths: role === 'test' ? [] : ['libs/feature/pair.spec.ts'],
-    diagnosticObservationId: null,
+    diagnosticObservationId,
+    repairDecisionId: null,
+    repairInstruction: null,
   };
 }
 
