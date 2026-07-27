@@ -5,6 +5,7 @@ import type {
   State,
   WorkspaceResource,
 } from '@evidence/api-client';
+import { ChevronsUpDownIcon, HexagonIcon, PlusIcon } from 'lucide-react';
 import {
   Alert,
   AlertDescription,
@@ -109,16 +110,18 @@ export function WorkspaceSwitcher({
                 tooltip={activeTitle}
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                <span className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  E
+                <span className="flex size-8 items-center justify-center rounded-[0.625rem] bg-sidebar-accent text-sidebar-accent-foreground">
+                  <HexagonIcon aria-hidden />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
-                  <span className="text-xs text-sidebar-foreground/70">
-                    工作区
+                  <span className="truncate text-sm font-medium">
+                    Evidence 平台
                   </span>
-                  <span className="truncate font-medium">{activeTitle}</span>
+                  <span className="truncate text-xs text-sidebar-foreground/70">
+                    {activeTitle}
+                  </span>
                 </span>
-                <span className="ml-auto text-sidebar-foreground/70">⌄</span>
+                <ChevronsUpDownIcon aria-hidden />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-64">
@@ -159,7 +162,8 @@ export function WorkspaceSwitcher({
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
                 <DropdownMenuItem onSelect={() => setCreateDialogOpen(true)}>
-                  <span>+ 创建工作区</span>
+                  <PlusIcon aria-hidden />
+                  <span>创建工作区</span>
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>

@@ -170,13 +170,11 @@ describe('App', () => {
   it('renders the HAL-discovered current user and active workspace', () => {
     renderApp('/health');
 
-    expect(screen.getAllByText('Evidence 交付工作区').length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText('Evidence 平台').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('模型')).toBeTruthy();
     expect(screen.getByText('逻辑实体')).toBeTruthy();
-    expect(screen.getByText('Default Workspace')).toBeTruthy();
+    expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
   });
 
   it('follows the health relation from the API root', () => {

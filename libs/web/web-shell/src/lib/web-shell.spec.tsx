@@ -50,6 +50,12 @@ vi.mock('@evidence/ui', () => {
     Avatar: Div,
     AvatarFallback: Div,
     Badge: Span,
+    Breadcrumb: Div,
+    BreadcrumbItem: Div,
+    BreadcrumbLink: Fragment,
+    BreadcrumbList: Div,
+    BreadcrumbPage: Span,
+    BreadcrumbSeparator: () => <span>/</span>,
     Button,
     Card: Div,
     CardAction: Div,
@@ -57,6 +63,14 @@ vi.mock('@evidence/ui', () => {
     CardDescription: Div,
     CardHeader: Div,
     CardTitle: Div,
+    Command: Div,
+    CommandDialog: Fragment,
+    CommandEmpty: Div,
+    CommandGroup: Div,
+    CommandInput: Input,
+    CommandItem: Div,
+    CommandList: Div,
+    CommandShortcut: Span,
     Dialog: Fragment,
     DialogClose: Fragment,
     DialogContent: Div,
@@ -294,15 +308,15 @@ describe('WebShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Evidence 交付工作区')).toBeTruthy();
+    expect(screen.getByText('Evidence 平台')).toBeTruthy();
     expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workspaces')).toBeNull();
     expect(screen.queryByText('Diagram')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Inbox' })).toHaveProperty(
+    expect(screen.getByRole('link', { name: '收件箱' })).toHaveProperty(
       'pathname',
       '/api/workspaces/default-workspace/inbox-items',
     );
-    expect(screen.getByText('逻辑实体')).toBeTruthy();
+    expect(screen.getAllByText('逻辑实体').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();
   });
@@ -328,7 +342,7 @@ describe('WebShell', () => {
       ).getAttribute('aria-current');
     expect(currentValue('Pair 工作台')).toBe('page');
     expect(currentValue('故事看板')).toBeNull();
-    expect(currentValue('工作区总览')).toBeNull();
+    expect(currentValue('总览')).toBeNull();
   });
 
   it('binds a Desktop repository without sending its path to the Server', async () => {
