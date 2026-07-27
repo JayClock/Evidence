@@ -14,8 +14,14 @@ import {
   AlertTitle,
   Badge,
   Button,
+  EvidencePage,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
 } from '@evidence/ui';
-import { DeliveryAuthorityProgress } from './delivery-authority-progress';
 import {
   ApprovalAuthority,
   ApprovedAuthority,
@@ -26,6 +32,7 @@ import {
   PairAuthorityProgress,
   PairEvidenceTabs,
   PairFacts,
+  PairRunNavigation,
   ServerActionStrip,
 } from './pair-evidence';
 import {
@@ -57,7 +64,9 @@ export function PairDetailView({
   );
   const [review, setReview] = useState<PairLocalReview | null>(null);
   const [authorityConfirmed, setAuthorityConfirmed] = useState(false);
-  const [evidenceTab, setEvidenceTab] = useState('timeline');
+  const [evidenceTab, setEvidenceTab] = useState(
+    resourceState.data.run.status === 'approval_required' ? 'diff' : 'timeline',
+  );
   const activeRequestId = useRef<string | null>(null);
   const pair = state.data;
   const bridge = window.evidenceDesktop;
@@ -206,26 +215,24 @@ export function PairDetailView({
   const taskingHref = state.getLink('tasking')?.href;
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 xl:overflow-hidden">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <PageEyebrow>
               EVD-005 · {pair.run.reference} · version {pair.run.version}
-            </span>
+            </PageEyebrow>
             <Badge>{pairStatusLabel(pair.run.status)}</Badge>
             <Badge variant="outline">
               {pairCheckpointLabel(pair.run.checkpoint)}
             </Badge>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <PageTitle>
             {pair.story.reference} · {pairTitle(pair.run.status)}
-          </h1>
-          <p className="max-w-4xl text-sm text-muted-foreground">
-            {pairDescription(pair.run.status)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          </PageTitle>
+          <PageDescription>{pairDescription(pair.run.status)}</PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
           {storyHref ? (
             <Button asChild variant="outline">
               <Link to={storyHref}>返回 Story</Link>
@@ -236,14 +243,14 @@ export function PairDetailView({
               <Link to={taskingHref}>查看 Approved Plan</Link>
             </Button>
           ) : null}
-        </div>
-      </header>
+        </PageActions>
+      </PageHeader>
 
-      <DeliveryAuthorityProgress iteration={pair.iteration} />
       <PairAuthorityProgress pair={pair} />
 
-      <div className="grid min-h-[46rem] shrink-0 overflow-hidden rounded-xl border bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_23rem]">
-        <div className="min-h-0 overflow-y-auto bg-muted/20">
+      <div className="grid min-h-[46rem] shrink-0 overflow-hidden bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[14.125rem_minmax(0,1fr)_19rem]">
+        <PairRunNavigation pair={pair} />
+        <div className="min-h-0 overflow-y-auto bg-secondary">
           <div className="flex flex-col gap-4 p-4 sm:p-5">
             <ServerActionStrip pair={pair} />
             <Alert>
@@ -356,6 +363,6 @@ export function PairDetailView({
           </div>
         </aside>
       </div>
-    </section>
+    </EvidencePage>
   );
 }

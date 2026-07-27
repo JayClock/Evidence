@@ -13,6 +13,7 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  Progress,
   Tabs,
   TabsContent,
   TabsList,
@@ -45,10 +46,10 @@ export function PairAuthorityProgress({
   ] as const;
   const current = pairStepIndex(pair);
   return (
-    <div className="shrink-0 overflow-x-auto pb-1">
+    <div className="shrink-0 overflow-x-auto border-b bg-card">
       <ol
         aria-label="Pair 权威阶段"
-        className="grid min-w-[56rem] grid-cols-7 overflow-hidden rounded-xl border bg-card"
+        className="grid min-w-[56rem] grid-cols-7 overflow-hidden"
       >
         {steps.map(([label, detail], index) => {
           const state =
@@ -59,7 +60,7 @@ export function PairAuthorityProgress({
                 : 'upcoming';
           return (
             <li
-              className="flex min-w-0 items-center gap-2 border-r px-3 py-2.5 last:border-r-0 data-[state=current]:bg-primary/10 data-[state=done]:bg-muted/50"
+              className="flex min-w-0 items-center gap-2 border-r px-3 py-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
               data-state={state}
               key={label}
             >
@@ -85,6 +86,88 @@ export function PairAuthorityProgress({
         })}
       </ol>
     </div>
+  );
+}
+
+export function PairRunNavigation({ pair }: { pair: PairResource['data'] }) {
+  const tests = pair.approvedPlan.plan?.tests ?? [];
+  const completed = new Set(pair.run.completedTestIds);
+  const progress = tests.length
+    ? Math.round((completed.size / tests.length) * 100)
+    : 0;
+  const gateObservations = pair.commandObservations.filter(
+    ({ stage }) => stage === 'quality_gate',
+  );
+
+  return (
+    <nav
+      aria-label="Pair 交付运行"
+      className="flex min-h-0 flex-col border-b bg-ev-soft p-3 xl:border-r xl:border-b-0"
+    >
+      <div className="shrink-0">
+        <p className="font-mono text-xs font-semibold">{pair.run.reference}</p>
+        <p className="mt-1 text-[0.6875rem] text-muted-foreground">
+          交付运行 · {pairStatusLabel(pair.run.status)}
+        </p>
+        <Progress aria-label="测试执行进度" className="mt-3" value={progress} />
+      </div>
+
+      <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-xs font-semibold">测试执行</h2>
+          <span className="font-mono text-[0.6875rem] text-muted-foreground">
+            {completed.size} / {tests.length}
+          </span>
+        </div>
+        <ol className="mt-2 flex flex-col gap-1.5">
+          {tests.map((test) => {
+            const done = completed.has(test.id);
+            return (
+              <li
+                className="rounded-md border bg-card px-2.5 py-2 data-[done=true]:border-ev-brand data-[done=true]:bg-ev-brand-soft"
+                data-done={done}
+                key={test.id}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <code className="text-[0.6875rem] font-semibold">
+                    {test.id}
+                  </code>
+                  <Badge variant={done ? 'default' : 'outline'}>
+                    {done ? '完成' : '等待'}
+                  </Badge>
+                </div>
+                <p className="mt-1 line-clamp-2 text-[0.6875rem] leading-4 text-muted-foreground">
+                  {test.intent}
+                </p>
+              </li>
+            );
+          })}
+        </ol>
+
+        <h2 className="mt-4 text-xs font-semibold">质量门</h2>
+        {gateObservations.length ? (
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {gateObservations.map((observation) => (
+              <li
+                className="flex items-center justify-between gap-2 rounded-md border bg-card px-2.5 py-2"
+                key={observation.id}
+              >
+                <span className="truncate text-[0.6875rem]">
+                  {observation.command}
+                </span>
+                <Badge variant="outline">
+                  {observation.exitCode === 0 ? '通过' : '失败'}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-[0.6875rem] text-muted-foreground">
+            尚无质量门 observation。
+          </p>
+        )}
+      </div>
+    </nav>
   );
 }
 
