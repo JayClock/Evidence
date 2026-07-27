@@ -111,11 +111,7 @@ type EvidenceDesktopBridge = {
     workspaceId: string,
     relativePath: string,
   ): Promise<InboxSourceCapture>;
-  fetchInboxGitHubIssue?(
-    owner: string,
-    repository: string,
-    issueNumber: number,
-  ): Promise<InboxSourceCapture>;
+  fetchInboxGitHubIssues?(workspaceId: string): Promise<InboxSourceCapture[]>;
   runInboxAnalyst?(
     request: { id: string; workspaceId: string; extractionId: string },
     onEvent: (event: IntakeAgentEvent) => void,

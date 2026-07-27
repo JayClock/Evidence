@@ -28,17 +28,17 @@ import {
   ToggleGroupItem,
 } from '@evidence/ui';
 
-type SourceMethod = 'manual_text' | 'local_markdown' | 'github_issue';
+type SourceMethod = 'manual_text' | 'local_markdown' | 'github_issues';
 type DesktopBridge = NonNullable<Window['evidenceDesktop']>;
 type MarkdownAdapter = NonNullable<DesktopBridge['readInboxMarkdown']>;
-type GitHubAdapter = NonNullable<DesktopBridge['fetchInboxGitHubIssue']>;
+type GitHubAdapter = NonNullable<DesktopBridge['fetchInboxGitHubIssues']>;
 
 export function InboxSourceDialog({
   workspaceId,
   onCapture,
 }: {
   workspaceId: string | null;
-  onCapture: (input: InboxSourceInput) => Promise<void>;
+  onCapture: (input: InboxSourceInput | InboxSourceInput[]) => Promise<void>;
 }) {
   const bridge = window.evidenceDesktop;
   const [open, setOpen] = useState(false);
@@ -48,11 +48,9 @@ export function InboxSourceDialog({
   const [contentType, setContentType] =
     useState<InboxSourceInput['contentType']>('text/markdown');
   const [relativePath, setRelativePath] = useState('');
-  const [owner, setOwner] = useState('');
-  const [repository, setRepository] = useState('');
-  const [issueNumber, setIssueNumber] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const ready =
     method === 'manual_text'
@@ -61,13 +59,7 @@ export function InboxSourceDialog({
         ? Boolean(
             bridge?.readInboxMarkdown && workspaceId && relativePath.trim(),
           )
-        : Boolean(
-            bridge?.fetchInboxGitHubIssue &&
-              owner.trim() &&
-              repository.trim() &&
-              Number.isSafeInteger(Number(issueNumber)) &&
-              Number(issueNumber) > 0,
-          );
+        : Boolean(bridge?.fetchInboxGitHubIssues && workspaceId);
 
   const reset = () => {
     setMethod('manual_text');
@@ -75,10 +67,8 @@ export function InboxSourceDialog({
     setBody('');
     setContentType('text/markdown');
     setRelativePath('');
-    setOwner('');
-    setRepository('');
-    setIssueNumber('');
     setError(null);
+    setNotice(null);
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -87,27 +77,45 @@ export function InboxSourceDialog({
 
     setPending(true);
     setError(null);
+    setNotice(null);
     try {
-      const source =
-        method === 'manual_text'
-          ? {
-              sourceKind: 'manual_text',
-              externalKey: createManualSourceKey(),
-              title: title.trim(),
-              body,
-              contentType,
-            }
-          : method === 'local_markdown'
-            ? await requiredMarkdownAdapter(bridge?.readInboxMarkdown)(
-                requiredWorkspaceId(workspaceId),
-                relativePath.trim(),
-              )
-            : await requiredGitHubAdapter(bridge?.fetchInboxGitHubIssue)(
-                owner.trim(),
-                repository.trim(),
-                Number(issueNumber),
-              );
-      await onCapture(source);
+      if (method === 'github_issues') {
+        const adapter = requiredGitHubAdapter(bridge?.fetchInboxGitHubIssues);
+        const sources = await readFromWorkspaceBinding(
+          bridge,
+          workspaceId,
+          adapter,
+        );
+        if (!sources) {
+          setNotice('未选择本地仓库，无法导入来源。');
+          return;
+        }
+        if (sources.length === 0) {
+          setNotice('当前绑定仓库没有 open GitHub Issues。');
+          return;
+        }
+        await onCapture(sources);
+      } else if (method === 'local_markdown') {
+        const adapter = requiredMarkdownAdapter(bridge?.readInboxMarkdown);
+        const source = await readFromWorkspaceBinding(
+          bridge,
+          workspaceId,
+          (id) => adapter(id, relativePath.trim()),
+        );
+        if (!source) {
+          setNotice('未选择本地仓库，无法导入来源。');
+          return;
+        }
+        await onCapture(source);
+      } else {
+        await onCapture({
+          sourceKind: 'manual_text',
+          externalKey: createManualSourceKey(),
+          title: title.trim(),
+          body,
+          contentType,
+        });
+      }
       reset();
       setOpen(false);
     } catch (caught) {
@@ -134,7 +142,7 @@ export function InboxSourceDialog({
         <DialogHeader>
           <DialogTitle>添加来源</DialogTitle>
           <DialogDescription>
-            手工录入，或在 Desktop 中从仓库 Markdown、GitHub Issue
+            手工录入，或在 Desktop 中从仓库 Markdown、GitHub Issues
             创建不可变来源快照。
           </DialogDescription>
         </DialogHeader>
@@ -152,6 +160,7 @@ export function InboxSourceDialog({
                   if (value) {
                     setMethod(value as SourceMethod);
                     setError(null);
+                    setNotice(null);
                   }
                 }}
               >
@@ -167,10 +176,10 @@ export function InboxSourceDialog({
                 </ToggleGroupItem>
                 <ToggleGroupItem
                   className="flex-1"
-                  disabled={!bridge?.fetchInboxGitHubIssue}
-                  value="github_issue"
+                  disabled={!bridge?.fetchInboxGitHubIssues || !workspaceId}
+                  value="github_issues"
                 >
-                  GitHub Issue
+                  GitHub Issues
                 </ToggleGroupItem>
               </ToggleGroup>
               <FieldDescription>
@@ -241,42 +250,21 @@ export function InboxSourceDialog({
                 </FieldDescription>
               </Field>
             ) : (
-              <>
-                <Field>
-                  <FieldLabel htmlFor="github-owner">所有者</FieldLabel>
-                  <Input
-                    id="github-owner"
-                    autoFocus
-                    required
-                    value={owner}
-                    onChange={(event) => setOwner(event.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="github-repository">仓库</FieldLabel>
-                  <Input
-                    id="github-repository"
-                    required
-                    value={repository}
-                    onChange={(event) => setRepository(event.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="github-issue-number">
-                    Issue 编号
-                  </FieldLabel>
-                  <Input
-                    id="github-issue-number"
-                    min={1}
-                    required
-                    type="number"
-                    value={issueNumber}
-                    onChange={(event) => setIssueNumber(event.target.value)}
-                  />
-                </Field>
-              </>
+              <Alert>
+                <AlertDescription>
+                  将从当前 Workspace 绑定仓库的 GitHub origin 读取并导入全部
+                  open Issues。重复同步只会为内容变化的来源追加不可变
+                  Revision。若尚未绑定，将先提示选择本地仓库；本地路径与凭据不会发送到
+                  Server。
+                </AlertDescription>
+              </Alert>
             )}
 
+            {notice ? (
+              <Alert>
+                <AlertDescription>{notice}</AlertDescription>
+              </Alert>
+            ) : null}
             {error ? (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -290,12 +278,41 @@ export function InboxSourceDialog({
               </Button>
             </DialogClose>
             <Button disabled={!ready || pending} type="submit">
-              {pending ? '添加中…' : '保存来源'}
+              {pending
+                ? method === 'github_issues'
+                  ? '导入中…'
+                  : '添加中…'
+                : method === 'github_issues'
+                  ? '导入全部 open Issues'
+                  : '保存来源'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+async function readFromWorkspaceBinding<T>(
+  bridge: DesktopBridge | undefined,
+  workspaceId: string | null,
+  read: (workspaceId: string) => Promise<T>,
+): Promise<T | null> {
+  const id = requiredWorkspaceId(workspaceId);
+  try {
+    return await read(id);
+  } catch (caught) {
+    if (!bridge || !isMissingWorkspaceBinding(caught)) throw caught;
+    const selection = await bridge.chooseRepository();
+    if (!selection) return null;
+    await bridge.bindWorkspace(id, selection.id);
+    return read(id);
+  }
+}
+
+function isMissingWorkspaceBinding(error: unknown): boolean {
+  return errorMessage(error).includes(
+    'Workspace is not bound to a local repository',
   );
 }
 

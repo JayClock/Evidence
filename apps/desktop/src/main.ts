@@ -22,7 +22,7 @@ import {
 import { authorizedApiRequestHeaders } from './api-request-authorization';
 import { IterationWorktreeManager } from './iteration-worktree';
 import {
-  captureGitHubIssue,
+  captureOpenGitHubIssues,
   captureRepositoryMarkdown,
 } from './inbox-source-adapters';
 import {
@@ -30,9 +30,9 @@ import {
   CANCEL_KICKOFF_ANALYST_CHANNEL,
   CANCEL_TASKING_ANALYST_CHANNEL,
   CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
-  FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
+  FETCH_INBOX_GITHUB_ISSUES_CHANNEL,
   INTAKE_AGENT_EVENT_CHANNEL,
-  parseGitHubIssueReference,
+  parseFetchInboxGitHubIssuesRequest,
   parseReadInboxMarkdownRequest,
   parseStartIterationRequest,
   READ_INBOX_MARKDOWN_CHANNEL,
@@ -242,13 +242,16 @@ function registerDesktopBridge(
     });
   });
   ipcMain.handle(
-    FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
+    FETCH_INBOX_GITHUB_ISSUES_CHANNEL,
     async (event, input: unknown) => {
       assertTrustedIpcSender(event);
-      const reference = parseGitHubIssueReference(input);
-      return captureGitHubIssue({
-        repository: `${reference.owner}/${reference.repository}`,
-        issueNumber: reference.issueNumber,
+      const request = parseFetchInboxGitHubIssuesRequest(input);
+      const binding = await bindings.find(apiBaseUrl, request.workspaceId);
+      if (!binding) {
+        throw new Error('The Workspace is not bound to a local repository.');
+      }
+      return captureOpenGitHubIssues({
+        repositoryRoot: binding.repositoryRoot,
       });
     },
   );

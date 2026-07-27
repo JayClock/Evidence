@@ -14,7 +14,7 @@ import {
   CANCEL_KICKOFF_ANALYST_CHANNEL,
   CANCEL_TASKING_ANALYST_CHANNEL,
   CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
-  FETCH_INBOX_GITHUB_ISSUE_CHANNEL,
+  FETCH_INBOX_GITHUB_ISSUES_CHANNEL,
   INTAKE_AGENT_EVENT_CHANNEL,
   READ_INBOX_MARKDOWN_CHANNEL,
   RUN_INBOX_ANALYST_CHANNEL,
@@ -117,15 +117,11 @@ const bridge = {
       workspaceId,
       relativePath,
     }),
-  fetchInboxGitHubIssue: (
-    owner: string,
-    repository: string,
-    issueNumber: number,
-  ): Promise<InboxSourceCapture> =>
-    ipcRenderer.invoke(FETCH_INBOX_GITHUB_ISSUE_CHANNEL, {
-      owner,
-      repository,
-      issueNumber,
+  fetchInboxGitHubIssues: (
+    workspaceId: string,
+  ): Promise<InboxSourceCapture[]> =>
+    ipcRenderer.invoke(FETCH_INBOX_GITHUB_ISSUES_CHANNEL, {
+      workspaceId,
     }),
   runInboxAnalyst: (
     request: InboxAnalystRequest,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  parseGitHubIssueReference,
+  parseFetchInboxGitHubIssuesRequest,
   parseReadInboxMarkdownRequest,
   parseStartIterationRequest,
 } from './intake-ipc-protocol';
@@ -39,23 +39,17 @@ describe('intake IPC protocol', () => {
     });
   });
 
-  it('validates structured GitHub Issue references', () => {
+  it('uses the Workspace binding for bounded GitHub Issue list requests', () => {
     expect(
-      parseGitHubIssueReference({
-        owner: 'evidence-org',
-        repository: 'evidence',
-        issueNumber: 42,
+      parseFetchInboxGitHubIssuesRequest({
+        workspaceId: 'workspace-1',
       }),
     ).toEqual({
-      owner: 'evidence-org',
-      repository: 'evidence',
-      issueNumber: 42,
+      workspaceId: 'workspace-1',
     });
     expect(() =>
-      parseGitHubIssueReference({
-        owner: 'evidence/org',
-        repository: 'evidence',
-        issueNumber: 42,
+      parseFetchInboxGitHubIssuesRequest({
+        workspaceId: '/Users/private/workspace',
       }),
     ).toThrow('unsupported characters');
   });

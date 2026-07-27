@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  captureGitHubIssue,
   captureManualText,
+  captureOpenGitHubIssues,
   captureRepositoryMarkdown,
 } from './inbox-source-adapters';
 import { runGit } from './git-repository';
@@ -124,65 +124,139 @@ describe('repository Markdown Inbox source adapter', () => {
 });
 
 describe('GitHub Issue Inbox source adapter', () => {
-  it('captures one exact issue without exposing provider credentials', async () => {
+  it('imports every open Issue from the bound Workspace origin', async () => {
+    const root = await repository();
+    await runGit(root, [
+      'remote',
+      'add',
+      'origin',
+      'git@github.com:Earendil/Evidence.git',
+    ]);
     const runner = vi.fn(async () =>
-      JSON.stringify({
-        number: 42,
-        title: 'Desktop Inbox',
-        body: 'Capture this requirement.',
-        url: 'https://github.com/earendil/evidence/issues/42',
-        updatedAt: '2026-01-01T08:00:00+08:00',
-        state: 'OPEN',
-        labels: [{ name: 'feature' }, { name: 'desktop' }],
-      }),
+      JSON.stringify([
+        {
+          number: 42,
+          title: 'Desktop Inbox',
+          body: 'Capture this requirement.',
+          url: 'https://github.com/earendil/evidence/issues/42',
+          updatedAt: '2026-01-01T08:00:00+08:00',
+          state: 'OPEN',
+          labels: [{ name: 'feature' }, { name: 'desktop' }],
+        },
+        {
+          number: 43,
+          title: 'Empty description',
+          body: '',
+          url: 'https://github.com/earendil/evidence/issues/43',
+          updatedAt: '2026-01-02T00:00:00Z',
+          state: 'OPEN',
+          labels: [],
+        },
+      ]),
     );
 
-    const capture = await captureGitHubIssue(
-      { repository: 'Earendil/Evidence', issueNumber: 42 },
+    const captures = await captureOpenGitHubIssues(
+      { repositoryRoot: root },
       runner,
     );
 
     expect(runner).toHaveBeenCalledWith('gh', [
       'issue',
-      'view',
-      '42',
+      'list',
       '--repo',
       'Earendil/Evidence',
+      '--state',
+      'open',
+      '--limit',
+      '2147483647',
       '--json',
       'number,title,body,url,updatedAt,state,labels',
     ]);
-    expect(capture).toEqual({
-      sourceKind: 'github_issue',
-      externalKey: 'github:earendil/evidence#42',
-      title: 'Desktop Inbox',
-      body: 'Capture this requirement.',
-      contentType: 'text/markdown',
-      uri: 'https://github.com/earendil/evidence/issues/42',
-      providerMetadata: {
-        repository: 'earendil/evidence',
-        number: 42,
-        state: 'open',
-        labels: ['feature', 'desktop'],
+    expect(captures).toEqual([
+      {
+        sourceKind: 'github_issue',
+        externalKey: 'github:earendil/evidence#42',
+        title: 'Desktop Inbox',
+        body: 'Capture this requirement.',
+        contentType: 'text/markdown',
+        uri: 'https://github.com/earendil/evidence/issues/42',
+        providerMetadata: {
+          repository: 'earendil/evidence',
+          number: 42,
+          state: 'open',
+          labels: ['feature', 'desktop'],
+        },
+        sourceUpdatedAt: '2026-01-01T00:00:00.000Z',
       },
-      sourceUpdatedAt: '2026-01-01T00:00:00.000Z',
-    });
+      {
+        sourceKind: 'github_issue',
+        externalKey: 'github:earendil/evidence#43',
+        title: 'Empty description',
+        body: '# Empty description\n',
+        contentType: 'text/markdown',
+        uri: 'https://github.com/earendil/evidence/issues/43',
+        providerMetadata: {
+          repository: 'earendil/evidence',
+          number: 43,
+          state: 'open',
+          labels: [],
+        },
+        sourceUpdatedAt: '2026-01-02T00:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('returns an empty import when the repository has no open Issues', async () => {
+    const root = await repository();
+    await runGit(root, [
+      'remote',
+      'add',
+      'origin',
+      'https://github.com/earendil/evidence.git',
+    ]);
+
+    await expect(
+      captureOpenGitHubIssues({ repositoryRoot: root }, async () => '[]'),
+    ).resolves.toEqual([]);
   });
 
   it('rejects a provider response that changes source identity', async () => {
+    const root = await repository();
+    await runGit(root, [
+      'remote',
+      'add',
+      'origin',
+      'https://github.com/earendil/evidence.git',
+    ]);
+
     await expect(
-      captureGitHubIssue(
-        { repository: 'earendil/evidence', issueNumber: 42 },
-        async () =>
-          JSON.stringify({
-            number: 43,
-            title: 'Different issue',
+      captureOpenGitHubIssues({ repositoryRoot: root }, async () =>
+        JSON.stringify([
+          {
+            number: 42,
+            title: 'Different repository',
             body: 'Wrong identity.',
-            url: 'https://github.com/earendil/evidence/issues/43',
+            url: 'https://github.com/other/evidence/issues/42',
             updatedAt: '2026-01-01T00:00:00Z',
             state: 'OPEN',
             labels: [],
-          }),
+          },
+        ]),
       ),
     ).rejects.toThrow('identity changed');
+  });
+
+  it('rejects a bound Workspace without a github.com origin', async () => {
+    const root = await repository();
+    await runGit(root, [
+      'remote',
+      'add',
+      'origin',
+      'https://gitlab.com/earendil/evidence.git',
+    ]);
+
+    await expect(
+      captureOpenGitHubIssues({ repositoryRoot: root }),
+    ).rejects.toThrow('must point to github.com');
   });
 });

@@ -1,8 +1,8 @@
 import type { StartIterationRequest } from './iteration-controller';
 
 export const READ_INBOX_MARKDOWN_CHANNEL = 'evidence:read-inbox-markdown';
-export const FETCH_INBOX_GITHUB_ISSUE_CHANNEL =
-  'evidence:fetch-inbox-github-issue';
+export const FETCH_INBOX_GITHUB_ISSUES_CHANNEL =
+  'evidence:fetch-inbox-github-issues';
 export const RUN_INBOX_ANALYST_CHANNEL = 'evidence:run-inbox-analyst';
 export const CANCEL_INBOX_ANALYST_CHANNEL = 'evidence:cancel-inbox-analyst';
 export const RUN_KICKOFF_ANALYST_CHANNEL = 'evidence:run-kickoff-analyst';
@@ -17,17 +17,14 @@ export const INTAKE_AGENT_EVENT_CHANNEL = 'evidence:intake-agent-event';
 export const START_ITERATION_CHANNEL = 'evidence:start-iteration';
 
 const ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9:._-]{0,199}$/;
-const GITHUB_NAME_PATTERN = /^[a-zA-Z0-9_.-]{1,100}$/;
 
 export interface ReadInboxMarkdownRequest {
   workspaceId: string;
   relativePath: string;
 }
 
-export interface GitHubIssueReference {
-  owner: string;
-  repository: string;
-  issueNumber: number;
+export interface FetchInboxGitHubIssuesRequest {
+  workspaceId: string;
 }
 
 export function parseReadInboxMarkdownRequest(
@@ -40,21 +37,13 @@ export function parseReadInboxMarkdownRequest(
   };
 }
 
-export function parseGitHubIssueReference(
+export function parseFetchInboxGitHubIssuesRequest(
   value: unknown,
-): GitHubIssueReference {
+): FetchInboxGitHubIssuesRequest {
   const input = record(value);
-  const owner = githubName(input.owner, 'GitHub owner');
-  const repository = githubName(input.repository, 'GitHub repository');
-  if (
-    typeof input.issueNumber !== 'number' ||
-    !Number.isSafeInteger(input.issueNumber) ||
-    input.issueNumber < 1 ||
-    input.issueNumber > 2_147_483_647
-  ) {
-    throw new Error('GitHub issue number is invalid.');
-  }
-  return { owner, repository, issueNumber: input.issueNumber };
+  return {
+    workspaceId: id(input.workspaceId, 'Workspace'),
+  };
 }
 
 export function parseStartIterationRequest(
@@ -79,14 +68,6 @@ function id(value: unknown, label: string): string {
   const normalized = requiredString(value, `${label} id`).trim();
   if (!ID_PATTERN.test(normalized)) {
     throw new Error(`${label} id contains unsupported characters.`);
-  }
-  return normalized;
-}
-
-function githubName(value: unknown, label: string): string {
-  const normalized = requiredString(value, label).trim();
-  if (!GITHUB_NAME_PATTERN.test(normalized)) {
-    throw new Error(`${label} contains unsupported characters.`);
   }
   return normalized;
 }

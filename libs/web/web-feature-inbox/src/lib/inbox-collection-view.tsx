@@ -88,15 +88,29 @@ export function InboxCollectionView({
     });
   };
 
-  const capture = async (input: InboxSourceInput) => {
+  const capture = async (input: InboxSourceInput | InboxSourceInput[]) => {
+    const sources = Array.isArray(input) ? input : [input];
+    if (sources.length === 0) return;
+
     const collection = collectionState.follow('self');
-    const created = (await collection.post({
-      data: input,
-    })) as State<InboxItemResource>;
-    const refreshed =
-      (await collection.refresh()) as State<InboxItemCollectionResource>;
-    setCollectionState(refreshed);
-    setFocusedItemId(created.data.id);
+    let firstCreatedId: string | null = null;
+    try {
+      for (const source of sources) {
+        const created = (await collection.post({
+          data: source,
+        })) as State<InboxItemResource>;
+        firstCreatedId ??= created.data.id;
+      }
+    } finally {
+      const refreshed =
+        (await collection.refresh()) as State<InboxItemCollectionResource>;
+      setCollectionState(refreshed);
+      setFocusedItemId(
+        sources.length === 1
+          ? firstCreatedId
+          : (refreshed.collection[0]?.data.id ?? null),
+      );
+    }
   };
 
   const navigatePage = async (relation: 'prev' | 'next') => {

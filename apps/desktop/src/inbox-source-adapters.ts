@@ -3,11 +3,14 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
-import { canonicalGitRepository } from './git-repository';
+import { canonicalGitRepository, runGit } from './git-repository';
 import { localCommandEnvironment } from './local-command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_MARKDOWN_BYTES = 1024 * 1024;
+const MAX_GITHUB_OUTPUT_BYTES = 64 * 1024 * 1024;
+const GITHUB_LIST_TIMEOUT_MS = 2 * 60 * 1_000;
+const ALL_GITHUB_ISSUES_LIMIT = 2_147_483_647;
 const GITHUB_REPOSITORY_PATTERN = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
 
 export interface InboxSourceCapture {
@@ -24,9 +27,8 @@ export interface InboxSourceCapture {
   sourceUpdatedAt: string | null;
 }
 
-export interface GitHubIssueCaptureInput {
-  repository: string;
-  issueNumber: number;
+export interface GitHubIssuesCaptureInput {
+  repositoryRoot: string;
 }
 
 export type GitHubCommandRunner = (
@@ -93,49 +95,65 @@ export async function captureRepositoryMarkdown(input: {
   };
 }
 
-export async function captureGitHubIssue(
-  input: GitHubIssueCaptureInput,
+export async function captureOpenGitHubIssues(
+  input: GitHubIssuesCaptureInput,
   runner: GitHubCommandRunner = runGitHub,
-): Promise<InboxSourceCapture> {
-  const repository = input.repository.trim();
-  if (!GITHUB_REPOSITORY_PATTERN.test(repository)) {
-    throw new Error('GitHub repository must use owner/name.');
-  }
-  if (!Number.isSafeInteger(input.issueNumber) || input.issueNumber <= 0) {
-    throw new Error('GitHub issue number must be a positive integer.');
-  }
+): Promise<InboxSourceCapture[]> {
+  const repository = await workspaceGitHubRepository(input.repositoryRoot);
   const output = await runner('gh', [
     'issue',
-    'view',
-    String(input.issueNumber),
+    'list',
     '--repo',
     repository,
+    '--state',
+    'open',
+    '--limit',
+    String(ALL_GITHUB_ISSUES_LIMIT),
     '--json',
     'number,title,body,url,updatedAt,state,labels',
   ]);
-  const issue = jsonObject(output, 'GitHub Issue response');
-  const number = positiveInteger(issue.number, 'GitHub Issue number');
-  if (number !== input.issueNumber) {
-    throw new Error('GitHub Issue identity changed during capture.');
+  const issues = jsonObjectArray(output, 'GitHub Issue list response');
+  const captures = issues.map((issue, index) =>
+    githubIssueCapture(repository, issue, index + 1),
+  );
+  const identities = new Set<string>();
+  for (const capture of captures) {
+    if (identities.has(capture.externalKey)) {
+      throw new Error('GitHub Issue list contains a duplicate identity.');
+    }
+    identities.add(capture.externalKey);
   }
-  const title = singleLine(issue.title, 'GitHub Issue title');
-  const body = sourceBody(issue.body, 'GitHub Issue body');
-  const uri = absoluteHttpsUrl(issue.url, 'GitHub Issue URL');
+  return captures;
+}
+
+function githubIssueCapture(
+  repository: string,
+  issue: Record<string, unknown>,
+  index: number,
+): InboxSourceCapture {
+  const prefix = `GitHub Issue list item ${String(index)}`;
+  const number = positiveInteger(issue.number, `${prefix} number`);
+  const title = singleLine(issue.title, `${prefix} title`);
+  const body = githubIssueBody(issue.body, title, `${prefix} body`);
+  const uri = githubIssueUri(issue.url, repository, number, `${prefix} URL`);
   const sourceUpdatedAt = isoTimestamp(
     issue.updatedAt,
-    'GitHub Issue updated timestamp',
+    `${prefix} updated timestamp`,
   );
-  const state = singleLine(issue.state, 'GitHub Issue state').toLowerCase();
+  const state = singleLine(issue.state, `${prefix} state`).toLowerCase();
+  if (state !== 'open') {
+    throw new Error(`${prefix} must be open.`);
+  }
   const labels = Array.isArray(issue.labels)
-    ? issue.labels.map((label, index) => {
+    ? issue.labels.map((label, labelIndex) => {
         if (!label || typeof label !== 'object' || Array.isArray(label)) {
           throw new Error(
-            `GitHub Issue label ${String(index + 1)} is invalid.`,
+            `${prefix} label ${String(labelIndex + 1)} is invalid.`,
           );
         }
         return singleLine(
           (label as Record<string, unknown>).name,
-          `GitHub Issue label ${String(index + 1)}`,
+          `${prefix} label ${String(labelIndex + 1)}`,
         );
       })
     : [];
@@ -156,15 +174,101 @@ export async function captureGitHubIssue(
   };
 }
 
+function githubIssueBody(value: unknown, title: string, label: string): string {
+  if (value !== null && typeof value !== 'string') {
+    throw new Error(`${label} is invalid.`);
+  }
+  const normalized = (value ?? '').replace(/\r\n?/g, '\n');
+  return normalized.trim().length > 0 ? normalized : `# ${title}\n`;
+}
+
+function githubIssueUri(
+  value: unknown,
+  repository: string,
+  number: number,
+  label: string,
+): string {
+  const uri = absoluteHttpsUrl(value, label);
+  const url = new URL(uri);
+  const expectedPath = `/${repository}/issues/${String(number)}`.toLowerCase();
+  if (
+    url.hostname.toLowerCase() !== 'github.com' ||
+    url.pathname.replace(/\/+$/, '').toLowerCase() !== expectedPath ||
+    url.search ||
+    url.hash
+  ) {
+    throw new Error('GitHub Issue identity changed during capture.');
+  }
+  return uri;
+}
+
 async function runGitHub(command: string, args: string[]): Promise<string> {
   const result = await execFileAsync(command, args, {
     encoding: 'utf8',
     env: localCommandEnvironment(),
-    maxBuffer: 2 * 1024 * 1024,
-    timeout: 30_000,
+    maxBuffer: MAX_GITHUB_OUTPUT_BYTES,
+    timeout: GITHUB_LIST_TIMEOUT_MS,
     windowsHide: true,
   });
   return result.stdout;
+}
+
+async function workspaceGitHubRepository(
+  repositoryRootInput: string,
+): Promise<string> {
+  const repositoryRoot = await canonicalGitRepository(repositoryRootInput);
+  let remote: string;
+  try {
+    remote = (
+      await runGit(repositoryRoot, ['remote', 'get-url', 'origin'])
+    ).trim();
+  } catch {
+    throw new Error(
+      'The bound Workspace repository must have an origin remote.',
+    );
+  }
+  return githubRepositoryFromRemote(remote);
+}
+
+function githubRepositoryFromRemote(remote: string): string {
+  const scpRemote = /^git@github\.com:(.+)$/i.exec(remote);
+  let repositoryPath: string;
+
+  if (scpRemote?.[1]) {
+    repositoryPath = scpRemote[1];
+  } else {
+    let url: URL;
+    try {
+      url = new URL(remote);
+    } catch {
+      throw new Error(
+        'The bound Workspace repository origin must point to github.com.',
+      );
+    }
+    if (
+      url.hostname.toLowerCase() !== 'github.com' ||
+      !['git:', 'https:', 'ssh:'].includes(url.protocol) ||
+      url.search ||
+      url.hash
+    ) {
+      throw new Error(
+        'The bound Workspace repository origin must point to github.com.',
+      );
+    }
+    repositoryPath = url.pathname.replace(/^\/+/, '');
+  }
+
+  const [owner, rawName, ...extra] = repositoryPath
+    .replace(/\/+$/, '')
+    .split('/');
+  const name = rawName?.replace(/\.git$/i, '');
+  const repository = `${owner ?? ''}/${name ?? ''}`;
+  if (extra.length > 0 || !GITHUB_REPOSITORY_PATTERN.test(repository)) {
+    throw new Error(
+      'The bound Workspace repository origin must point to github.com.',
+    );
+  }
+  return repository;
 }
 
 function normalizeRepositoryRelativePath(value: string): string {
@@ -251,17 +355,25 @@ function isoTimestamp(value: unknown, label: string): string {
   return timestamp.toISOString();
 }
 
-function jsonObject(value: string, label: string): Record<string, unknown> {
+function jsonObjectArray(
+  value: string,
+  label: string,
+): Array<Record<string, unknown>> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(value) as unknown;
   } catch {
     throw new Error(`${label} was not valid JSON.`);
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`${label} must be an object.`);
+  if (!Array.isArray(parsed)) {
+    throw new Error(`${label} must be an array.`);
   }
-  return parsed as Record<string, unknown>;
+  return parsed.map((entry, index) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`${label} item ${String(index + 1)} must be an object.`);
+    }
+    return entry as Record<string, unknown>;
+  });
 }
 
 function sha256(value: string): string {

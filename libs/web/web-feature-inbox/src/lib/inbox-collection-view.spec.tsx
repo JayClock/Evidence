@@ -460,6 +460,163 @@ describe('InboxCollectionView', () => {
     expect(post).toHaveBeenCalledWith({ data: source });
   });
 
+  it('imports every open GitHub Issue from the Workspace-bound repository', async () => {
+    const firstSource = {
+      sourceKind: 'github_issue' as const,
+      externalKey: 'github:earendil/evidence#42',
+      title: 'Workspace binding',
+      body: 'Reuse the bound repository.',
+      contentType: 'text/markdown' as const,
+      uri: 'https://github.com/earendil/evidence/issues/42',
+      providerMetadata: {
+        repository: 'earendil/evidence',
+        number: 42,
+        state: 'open',
+        labels: [],
+      },
+      sourceUpdatedAt: '2026-07-21T10:00:00.000Z',
+    };
+    const secondSource = {
+      ...firstSource,
+      externalKey: 'github:earendil/evidence#43',
+      title: 'Batch import',
+      body: 'Import all open Issues.',
+      uri: 'https://github.com/earendil/evidence/issues/43',
+      providerMetadata: { ...firstSource.providerMetadata, number: 43 },
+    };
+    const fetchInboxGitHubIssues = vi
+      .fn()
+      .mockResolvedValue([firstSource, secondSource]);
+    window.evidenceDesktop = { fetchInboxGitHubIssues } as never;
+    const firstCreated = inboxItemState({
+      id: 'item-42',
+      title: 'Workspace binding',
+      sourceKind: 'github_issue',
+    });
+    const secondCreated = inboxItemState({
+      id: 'item-43',
+      title: 'Batch import',
+      sourceKind: 'github_issue',
+    });
+    const post = vi
+      .fn()
+      .mockResolvedValueOnce(firstCreated)
+      .mockResolvedValueOnce(secondCreated);
+    const refresh = vi
+      .fn()
+      .mockResolvedValue(
+        collectionState({ items: [secondCreated, firstCreated] }).state,
+      );
+    const { state } = collectionState({ items: [], post, refresh });
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '添加来源' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'GitHub Issues' }));
+    expect(screen.queryByLabelText('Issue 编号')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: '导入全部 open Issues' }),
+    );
+
+    await waitFor(() =>
+      expect(fetchInboxGitHubIssues).toHaveBeenCalledWith('workspace-1'),
+    );
+    expect(post).toHaveBeenNthCalledWith(1, { data: firstSource });
+    expect(post).toHaveBeenNthCalledWith(2, { data: secondSource });
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('binds an existing Workspace before importing GitHub Issues', async () => {
+    const source = {
+      sourceKind: 'github_issue' as const,
+      externalKey: 'github:earendil/evidence#42',
+      title: 'Workspace binding',
+      body: 'Bind before import.',
+      contentType: 'text/markdown' as const,
+      uri: 'https://github.com/earendil/evidence/issues/42',
+      providerMetadata: {
+        repository: 'earendil/evidence',
+        number: 42,
+        state: 'open',
+        labels: [],
+      },
+      sourceUpdatedAt: '2026-07-21T10:00:00.000Z',
+    };
+    const fetchInboxGitHubIssues = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new Error(
+          "Error invoking remote method 'evidence:fetch-inbox-github-issues': Error: The Workspace is not bound to a local repository.",
+        ),
+      )
+      .mockResolvedValueOnce([source]);
+    const chooseRepository = vi.fn().mockResolvedValue({
+      id: 'selection-1',
+      name: 'Evidence',
+      headCommitSha: 'a'.repeat(40),
+    });
+    const bindWorkspace = vi.fn().mockResolvedValue(undefined);
+    window.evidenceDesktop = {
+      fetchInboxGitHubIssues,
+      chooseRepository,
+      bindWorkspace,
+    } as never;
+    const created = inboxItemState({
+      title: 'Workspace binding',
+      sourceKind: 'github_issue',
+    });
+    const post = vi.fn().mockResolvedValue(created);
+    const refresh = vi
+      .fn()
+      .mockResolvedValue(collectionState({ items: [created] }).state);
+    const { state } = collectionState({ items: [], post, refresh });
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '添加来源' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'GitHub Issues' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: '导入全部 open Issues' }),
+    );
+
+    await waitFor(() => expect(chooseRepository).toHaveBeenCalledOnce());
+    expect(bindWorkspace).toHaveBeenCalledWith('workspace-1', 'selection-1');
+    expect(fetchInboxGitHubIssues).toHaveBeenCalledTimes(2);
+    expect(post).toHaveBeenCalledWith({ data: source });
+  });
+
+  it('reports when the bound repository has no open GitHub Issues', async () => {
+    const fetchInboxGitHubIssues = vi.fn().mockResolvedValue([]);
+    window.evidenceDesktop = { fetchInboxGitHubIssues } as never;
+    const { state, post, refresh } = collectionState({ items: [] });
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '添加来源' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'GitHub Issues' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: '导入全部 open Issues' }),
+    );
+
+    expect(
+      await screen.findByText('当前绑定仓库没有 open GitHub Issues。'),
+    ).toBeTruthy();
+    expect(post).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it('captures a manual source and refreshes the collection', async () => {
     const created = inboxItemState();
     const post = vi.fn().mockResolvedValue(created);
@@ -490,7 +647,7 @@ describe('InboxCollectionView', () => {
     expect(
       (
         screen.getByRole('radio', {
-          name: 'GitHub Issue',
+          name: 'GitHub Issues',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
