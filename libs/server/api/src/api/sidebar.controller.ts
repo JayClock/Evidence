@@ -44,8 +44,23 @@ export function sidebarResource(userId: string): SidebarResource {
     },
     sections: [
       {
-        title: 'USER',
-        key: 'user',
+        title: '工作区',
+        key: 'workspace',
+        defaultOpen: true,
+        items: [
+          {
+            key: 'workspace-overview',
+            label: '工作区总览',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}',
+            path: '/api/workspaces/{workspaceId}',
+            icon: 'home',
+          },
+        ],
+      },
+      {
+        title: '来源',
+        key: 'source',
         defaultOpen: true,
         items: [
           {
@@ -56,24 +71,16 @@ export function sidebarResource(userId: string): SidebarResource {
             path: '/api/workspaces/{workspaceId}/inbox-items',
             icon: 'inbox',
           },
-          {
-            key: 'logical-entities',
-            label: 'Logical Entities',
-            type: 'resource',
-            href: '/api/workspaces/{workspaceId}/logical-entities',
-            path: '/api/workspaces/{workspaceId}/logical-entities',
-            icon: 'database',
-          },
         ],
       },
       {
-        title: 'DELIVERY',
+        title: '交付',
         key: 'delivery',
         defaultOpen: true,
         items: [
           {
             key: 'story-candidates',
-            label: 'Story Candidates',
+            label: '故事候选',
             type: 'resource',
             href: '/api/workspaces/{workspaceId}/story-candidates',
             path: '/api/workspaces/{workspaceId}/story-candidates',
@@ -81,11 +88,50 @@ export function sidebarResource(userId: string): SidebarResource {
           },
           {
             key: 'stories',
-            label: 'Stories',
+            label: '故事看板',
             type: 'resource',
             href: '/api/workspaces/{workspaceId}/stories',
             path: '/api/workspaces/{workspaceId}/stories',
-            icon: 'book-open',
+            icon: 'columns',
+          },
+          {
+            key: 'tasking-queue',
+            label: '交付计划',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/stories?filter=tasking',
+            path: '/api/workspaces/{workspaceId}/stories?filter=tasking',
+            icon: 'list-todo',
+          },
+          {
+            key: 'pair-queue',
+            label: 'Pair 工作台',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/stories?filter=pair',
+            path: '/api/workspaces/{workspaceId}/stories?filter=pair',
+            icon: 'terminal',
+          },
+        ],
+      },
+      {
+        title: '模型',
+        key: 'model',
+        defaultOpen: true,
+        items: [
+          {
+            key: 'diagram',
+            label: '模型图',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/diagram',
+            path: '/api/workspaces/{workspaceId}/diagram',
+            icon: 'workflow',
+          },
+          {
+            key: 'logical-entities',
+            label: '逻辑实体',
+            type: 'resource',
+            href: '/api/workspaces/{workspaceId}/logical-entities',
+            path: '/api/workspaces/{workspaceId}/logical-entities',
+            icon: 'database',
           },
         ],
       },
