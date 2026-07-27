@@ -112,7 +112,7 @@ function fixture() {
 }
 
 describe('InboxStoryCandidatesController', () => {
-  it('lists only the requested derived Candidate status', async () => {
+  it('lists only the requested Extraction, query, and derived Candidate status', async () => {
     const { controller, inboxWorkflow } = fixture();
 
     const collection = await controller.listCandidates(
@@ -120,12 +120,26 @@ describe('InboxStoryCandidatesController', () => {
       '1',
       '20',
       'ready',
+      ' extraction-1 ',
+      ' delivery ',
     );
 
     expect(inboxWorkflow.listCandidates).toHaveBeenCalledWith({
       page: 1,
       pageSize: 20,
       status: 'ready',
+      extractionId: 'extraction-1',
+      query: 'delivery',
+    });
+    expect(collection).toMatchObject({
+      _links: {
+        self: {
+          href: '/api/workspaces/workspace-1/story-candidates?page=1&pageSize=20&status=ready&extractionId=extraction-1&q=delivery',
+        },
+        extraction: {
+          href: '/api/workspaces/workspace-1/inbox-extractions/extraction-1',
+        },
+      },
     });
     expect(collection._embedded.storyCandidates[0]).toMatchObject({
       status: 'ready',

@@ -265,6 +265,38 @@ describe('PrismaWorkspaceInboxWorkflow candidate authority', () => {
     expect(store.inboxStoryCandidate.findMany).toHaveBeenCalledTimes(1);
   });
 
+  it('scopes Candidate queries to one Extraction and matching business text', async () => {
+    const store = mockPrismaStore();
+    store.inboxStoryCandidate.findMany.mockResolvedValue([candidateRow()]);
+    const workflow = new PrismaWorkspaceInboxWorkflow(
+      asStore(store),
+      'workspace-1',
+    );
+
+    await workflow.listCandidates({
+      page: 1,
+      pageSize: 20,
+      extractionId: 'extraction-1',
+      query: 'delivery',
+    });
+
+    expect(store.inboxStoryCandidate.findMany).toHaveBeenCalledWith({
+      where: {
+        workspaceId: 'workspace-1',
+        extractionId: 'extraction-1',
+        OR: [
+          { title: { contains: 'delivery', mode: 'insensitive' } },
+          { problem: { contains: 'delivery', mode: 'insensitive' } },
+          { role: { contains: 'delivery', mode: 'insensitive' } },
+          { goal: { contains: 'delivery', mode: 'insensitive' } },
+          { value: { contains: 'delivery', mode: 'insensitive' } },
+        ],
+      },
+      include: expect.any(Object),
+      orderBy: { proposedAt: 'desc' },
+    });
+  });
+
   it('gives a unique Iteration claim precedence over later source changes', async () => {
     const store = mockPrismaStore();
     store.inboxStoryCandidate.findFirst.mockResolvedValue(

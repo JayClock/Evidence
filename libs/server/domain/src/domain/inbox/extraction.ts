@@ -161,6 +161,8 @@ export interface InboxCandidateListQuery {
   page: number;
   pageSize: number;
   status?: InboxCandidateStatus;
+  extractionId?: string;
+  query?: string;
 }
 
 export interface ProposedInboxCandidateSet {

@@ -453,6 +453,11 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(extraction.body).toMatchObject({
       reference: expect.stringMatching(/^EXTRACT-[0-9]{4,}$/),
       status: 'awaiting_agent',
+      _links: {
+        'story-candidates': {
+          href: `/api/workspaces/${workspaceId}/story-candidates?extractionId=${extraction.body.id}`,
+        },
+      },
       version: 1,
       sources: [
         expect.objectContaining({
@@ -505,8 +510,13 @@ describeContracts('Evidence API contract vertical slice', () => {
       }),
     ]);
     const candidate = proposed.body._embedded.storyCandidates[0];
+    expect(proposed.body._links).toMatchObject({
+      'story-candidates': {
+        href: `/api/workspaces/${workspaceId}/story-candidates?extractionId=${extraction.body.id}`,
+      },
+    });
     const listedCandidates = await apiRequest(
-      `/api/workspaces/${workspaceId}/story-candidates?status=ready&page=1&pageSize=20`,
+      `/api/workspaces/${workspaceId}/story-candidates?status=ready&extractionId=${extraction.body.id}&q=frozen&page=1&pageSize=20`,
     );
     expectHalCollection(
       listedCandidates,

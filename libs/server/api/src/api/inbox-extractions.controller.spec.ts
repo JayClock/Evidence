@@ -124,6 +124,9 @@ describe('InboxExtractionsController', () => {
         'propose-candidates': {
           href: '/api/workspaces/workspace-1/inbox-extractions/extraction-1/candidates',
         },
+        'story-candidates': {
+          href: '/api/workspaces/workspace-1/story-candidates?extractionId=extraction-1',
+        },
       },
       sources: [
         expect.objectContaining({
@@ -170,7 +173,21 @@ describe('InboxExtractionsController', () => {
         ],
       }),
     ]);
-    expect(model.extraction.status).toBe('completed');
+    expect(model).toMatchObject({
+      _links: {
+        'story-candidates': {
+          href: '/api/workspaces/workspace-1/story-candidates?extractionId=extraction-1',
+        },
+      },
+      extraction: {
+        status: 'completed',
+        _links: {
+          'story-candidates': {
+            href: '/api/workspaces/workspace-1/story-candidates?extractionId=extraction-1',
+          },
+        },
+      },
+    });
     expect(model._embedded.storyCandidates[0]).toMatchObject({
       id: 'candidate-1',
       status: 'ready',

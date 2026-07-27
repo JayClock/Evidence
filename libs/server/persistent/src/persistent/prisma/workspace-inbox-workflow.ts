@@ -200,7 +200,7 @@ export class PrismaWorkspaceInboxWorkflow implements WorkspaceInboxWorkflow {
     validatePage(query.page, query.pageSize);
     if (query.status) parseInboxCandidateStatus(query.status);
     const rows = await this.store.inboxStoryCandidate.findMany({
-      where: { workspaceId: this.workspaceId },
+      where: candidateListWhere(this.workspaceId, query),
       include: CANDIDATE_INCLUDE,
       orderBy: { proposedAt: 'desc' },
     });
@@ -368,6 +368,28 @@ function assembleDecision(row: CandidateDecisionRow): InboxCandidateDecision {
     decidedAt: row.decidedAt.toISOString(),
     contentSha256: row.contentSha256,
   });
+}
+
+function candidateListWhere(
+  workspaceId: string,
+  query: InboxCandidateListQuery,
+): Prisma.InboxStoryCandidateWhereInput {
+  const search = query.query?.trim();
+  return {
+    workspaceId,
+    ...(query.extractionId ? { extractionId: query.extractionId.trim() } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search, mode: 'insensitive' } },
+            { problem: { contains: search, mode: 'insensitive' } },
+            { role: { contains: search, mode: 'insensitive' } },
+            { goal: { contains: search, mode: 'insensitive' } },
+            { value: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
 }
 
 export function candidateStatus(row: CandidateRow) {

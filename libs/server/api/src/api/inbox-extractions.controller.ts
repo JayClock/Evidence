@@ -15,8 +15,8 @@ import {
 import {
   link,
   type Link,
+  workspaceExtractionStoryCandidatesHref,
   workspaceInboxExtractionHref,
-  workspaceStoryCandidatesHref,
 } from './links';
 import {
   inboxExtractionModel,
@@ -105,7 +105,9 @@ export class InboxExtractionsController {
         extraction: link(
           workspaceInboxExtractionHref(workspaceId, extractionId),
         ),
-        'story-candidates': link(workspaceStoryCandidatesHref(workspaceId)),
+        'story-candidates': link(
+          workspaceExtractionStoryCandidatesHref(workspaceId, extractionId),
+        ),
       },
       extraction: inboxExtractionModel(result.extraction),
       _embedded: {

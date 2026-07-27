@@ -3563,6 +3563,10 @@ export interface operations {
         page?: number;
         pageSize?: number;
         status?: components['schemas']['InboxCandidateStatus'];
+        /** @description Restrict Candidates to one exact Inbox Extraction. */
+        extractionId?: string;
+        /** @description Case-insensitive business text search. */
+        q?: string;
       };
       header?: never;
       path: {

@@ -19,6 +19,7 @@ import {
   link,
   type Link,
   workspaceHref,
+  workspaceInboxExtractionHref,
   workspaceIterationHref,
   workspaceStoryCandidatesHref,
 } from './links';
@@ -66,6 +67,8 @@ export class InboxStoryCandidatesController {
     @Query('page') pageInput?: string,
     @Query('pageSize') pageSizeInput?: string,
     @Query('status') statusInput?: string,
+    @Query('extractionId') extractionIdInput?: string,
+    @Query('q') queryInput?: string,
   ): Promise<CandidateCollectionModel> {
     const workspace = await this.resolver.requireWorkspace(workspaceId);
     const page = parsePositiveInteger(pageInput, 1, 'page');
@@ -74,9 +77,15 @@ export class InboxStoryCandidatesController {
       100,
     );
     const status = optionalStatus(statusInput);
-    const [candidates, total] = await workspace
-      .inboxWorkflow()
-      .listCandidates({ page, pageSize, ...(status ? { status } : {}) });
+    const extractionId = optionalQuery(extractionIdInput);
+    const query = optionalQuery(queryInput);
+    const [candidates, total] = await workspace.inboxWorkflow().listCandidates({
+      page,
+      pageSize,
+      ...(status ? { status } : {}),
+      ...(extractionId ? { extractionId } : {}),
+      ...(query ? { query } : {}),
+    });
     return candidateCollection(
       workspaceId,
       candidates,
@@ -84,6 +93,8 @@ export class InboxStoryCandidatesController {
       pageSize,
       total,
       status,
+      extractionId,
+      query,
     );
   }
 
@@ -176,6 +187,8 @@ function candidateCollection(
   pageSize: number,
   total: number,
   status?: InboxCandidateStatus,
+  extractionId?: string,
+  query?: string,
 ): CandidateCollectionModel {
   const href = (targetPage: number) => {
     const parameters = new URLSearchParams({
@@ -183,6 +196,8 @@ function candidateCollection(
       pageSize: String(pageSize),
     });
     if (status) parameters.set('status', status);
+    if (extractionId) parameters.set('extractionId', extractionId);
+    if (query) parameters.set('q', query);
     return `${workspaceStoryCandidatesHref(workspaceId)}?${parameters.toString()}`;
   };
   const pages = totalPages(total, pageSize);
@@ -190,6 +205,11 @@ function candidateCollection(
     self: link(href(page)),
     workspace: link(workspaceHref(workspaceId)),
   };
+  if (extractionId) {
+    links.extraction = link(
+      workspaceInboxExtractionHref(workspaceId, extractionId),
+    );
+  }
   if (page > 1) links.prev = link(href(page - 1));
   if (page < pages) links.next = link(href(page + 1));
   return {
@@ -207,8 +227,13 @@ function candidateCollection(
 }
 
 function optionalStatus(value: string | undefined) {
-  const normalized = value?.trim();
+  const normalized = optionalQuery(value);
   return normalized ? parseInboxCandidateStatus(normalized) : undefined;
+}
+
+function optionalQuery(value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
 }
 
 function requiredString(value: unknown, name: string): string {

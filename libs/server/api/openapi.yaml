@@ -782,6 +782,18 @@ paths:
           in: query
           schema:
             $ref: '#/components/schemas/InboxCandidateStatus'
+        - name: extractionId
+          in: query
+          description: Restrict Candidates to one exact Inbox Extraction.
+          schema:
+            type: string
+            minLength: 1
+        - name: q
+          in: query
+          description: Case-insensitive business text search.
+          schema:
+            type: string
+            minLength: 1
       responses:
         '200':
           description: Non-authoritative Inbox Candidate collection

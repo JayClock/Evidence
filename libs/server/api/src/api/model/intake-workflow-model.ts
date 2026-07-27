@@ -7,6 +7,7 @@ import {
   link,
   type Link,
   workspaceHref,
+  workspaceExtractionStoryCandidatesHref,
   workspaceInboxExtractionCandidatesHref,
   workspaceInboxExtractionHref,
   workspaceInboxExtractionsHref,
@@ -105,6 +106,9 @@ export function inboxExtractionModel(
     self: link(workspaceInboxExtractionHref(workspaceId, id)),
     collection: link(workspaceInboxExtractionsHref(workspaceId)),
     workspace: link(workspaceHref(workspaceId)),
+    'story-candidates': link(
+      workspaceExtractionStoryCandidatesHref(workspaceId, id),
+    ),
   };
   if (description.status === 'awaiting_agent') {
     links['propose-candidates'] = link(

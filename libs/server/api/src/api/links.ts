@@ -98,6 +98,14 @@ export function workspaceStoryCandidatesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/story-candidates`;
 }
 
+export function workspaceExtractionStoryCandidatesHref(
+  workspaceId: string,
+  extractionId: string,
+): string {
+  const parameters = new URLSearchParams({ extractionId });
+  return `${workspaceStoryCandidatesHref(workspaceId)}?${parameters.toString()}`;
+}
+
 export function workspaceStoryCandidateHref(
   workspaceId: string,
   candidateId: string,
