@@ -135,9 +135,7 @@ describe('Story Candidate views', () => {
     expect(screen.getByText(revisionHash)).toBeTruthy();
     expect(screen.getByText(/这不是 Story/)).toBeTruthy();
     expect(
-      screen
-        .getByRole('link', { name: '查看 Extraction' })
-        .getAttribute('href'),
+      screen.getByRole('link', { name: '查看提取' }).getAttribute('href'),
     ).toBe('/api/workspaces/workspace-1/inbox-extractions/extraction-1');
   });
 

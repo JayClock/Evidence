@@ -29,24 +29,38 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  EvidencePage,
   Field,
   FieldGroup,
   FieldLabel,
   Input,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
+  PageToolbar,
   ScrollArea,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Separator,
   Textarea,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@evidence/ui';
 import { DeliveryPagination } from './delivery-pagination';
 
 type CandidateStatusFilter = StoryCandidateStatus | 'all';
 type CandidateDecisionAction = 'defer' | 'reject';
+
+const candidateStatusOptions: Array<{
+  value: CandidateStatusFilter;
+  label: string;
+}> = [
+  { value: 'all', label: '全部' },
+  { value: 'ready', label: '可选择' },
+  { value: 'stale', label: '来源已变化' },
+  { value: 'selected', label: '已决定' },
+];
 
 export function StoryCandidateCollectionView({
   resourceState,
@@ -119,93 +133,88 @@ export function StoryCandidateCollectionView({
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 lg:overflow-hidden">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            Inbox Analyst 已完成
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">故事候选</h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            候选是带精确来源引用的非权威提案，没有 Story ID。人工选择只会创建
-            Iteration 与 Frozen Intake；只有后续 Kickoff confirm 才能创建
-            Story。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
+          <PageEyebrow>Inbox Analyst 已完成</PageEyebrow>
+          <PageTitle>故事候选</PageTitle>
+          <PageDescription>
+            候选是带精确来源引用的非权威提案。只有人工选择 ready Candidate
+            后，才会冻结 Intake 并创建 Iteration。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
           {extractionHref ? (
-            <Button asChild variant="outline">
-              <Link to={extractionHref}>查看 Extraction</Link>
+            <Button asChild size="sm" variant="outline">
+              <Link to={extractionHref}>查看提取</Link>
             </Button>
           ) : null}
-        </div>
-      </header>
+        </PageActions>
+      </PageHeader>
 
       <AuthorityProgress />
 
-      <form
-        className="shrink-0 rounded-xl bg-card p-3 ring-1 ring-foreground/10"
-        onSubmit={applyFilters}
-      >
-        <FieldGroup className="grid gap-2 lg:grid-cols-[minmax(14rem,1fr)_12rem_auto_auto]">
-          <Field>
+      <PageToolbar>
+        <form
+          className="flex w-full min-w-0 items-center gap-2"
+          onSubmit={applyFilters}
+        >
+          <Field className="min-w-0 flex-1">
             <FieldLabel className="sr-only" htmlFor="candidate-search">
               搜索候选
             </FieldLabel>
             <Input
               id="candidate-search"
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="搜索候选标题、角色或目标…"
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
             />
           </Field>
-          <Field>
-            <FieldLabel className="sr-only" htmlFor="candidate-status-filter">
-              状态筛选
-            </FieldLabel>
-            <Select
-              value={status}
-              onValueChange={(value) =>
-                setStatus(value as CandidateStatusFilter)
-              }
-            >
-              <SelectTrigger id="candidate-status-filter" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="ready">可选择</SelectItem>
-                  <SelectItem value="stale">来源已变化</SelectItem>
-                  <SelectItem value="selected">已选择</SelectItem>
-                  <SelectItem value="deferred">已暂缓</SelectItem>
-                  <SelectItem value="rejected">已拒绝</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Button disabled={!selfHref} type="submit" variant="outline">
+          <ToggleGroup
+            aria-label="候选状态"
+            onValueChange={(value) => {
+              if (value) setStatus(value as CandidateStatusFilter);
+            }}
+            size="sm"
+            spacing={0}
+            type="single"
+            value={status}
+            variant="outline"
+          >
+            {candidateStatusOptions.map((option) => (
+              <ToggleGroupItem key={option.value} value={option.value}>
+                {option.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <Button
+            disabled={!selfHref}
+            size="sm"
+            type="submit"
+            variant="outline"
+          >
             应用筛选
           </Button>
           <Button
             disabled={!selfHref || (!query && status === 'all')}
+            onClick={resetFilters}
+            size="sm"
             type="button"
             variant="ghost"
-            onClick={resetFilters}
           >
             清除
           </Button>
-        </FieldGroup>
-      </form>
+        </form>
+      </PageToolbar>
 
       {pageError ? (
-        <Alert variant="destructive">
+        <Alert className="m-2" variant="destructive">
           <AlertDescription>{pageError}</AlertDescription>
         </Alert>
       ) : null}
 
       {candidateStates.length === 0 ? (
-        <Empty className="min-h-80 flex-1 rounded-xl border bg-card">
+        <Empty className="min-h-80 flex-1 border-0">
           <EmptyHeader>
             <EmptyTitle>没有符合条件的候选</EmptyTitle>
             <EmptyDescription>
@@ -214,35 +223,35 @@ export function StoryCandidateCollectionView({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid min-h-[34rem] shrink-0 rounded-xl border bg-card lg:min-h-0 lg:flex-1 lg:grid-cols-[19rem_minmax(0,1fr)] lg:overflow-hidden">
+        <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[21.875rem_minmax(0,1fr)]">
           <CandidateList
             candidateStates={candidateStates}
             selectedCandidateId={selectedCandidateState?.data.id ?? null}
             onSelect={setSelectedCandidateId}
           />
           {selectedCandidateState ? (
-            <div className="border-t lg:min-h-0 lg:overflow-y-auto lg:border-t-0 lg:border-l">
-              <CandidateReviewPanel
-                key={selectedCandidateState.data.id}
-                resourceState={selectedCandidateState}
-                onChange={updateCandidate}
-              />
-            </div>
+            <CandidateReviewPanel
+              key={selectedCandidateState.data.id}
+              resourceState={selectedCandidateState}
+              onChange={updateCandidate}
+            />
           ) : null}
         </div>
       )}
 
-      <DeliveryPagination
-        label="故事候选分页"
-        page={collectionState.data.page.number}
-        totalPages={collectionState.data.page.totalPages}
-        hasPrevious={Boolean(collectionState.getLink('prev'))}
-        hasNext={Boolean(collectionState.getLink('next'))}
-        pending={pagePending}
-        onPrevious={() => void navigatePage('prev')}
-        onNext={() => void navigatePage('next')}
-      />
-    </section>
+      <div className="shrink-0 border-t px-3 pb-2">
+        <DeliveryPagination
+          hasNext={Boolean(collectionState.getLink('next'))}
+          hasPrevious={Boolean(collectionState.getLink('prev'))}
+          label="故事候选分页"
+          page={collectionState.data.page.number}
+          pending={pagePending}
+          totalPages={collectionState.data.page.totalPages}
+          onNext={() => void navigatePage('next')}
+          onPrevious={() => void navigatePage('prev')}
+        />
+      </div>
+    </EvidencePage>
   );
 }
 
@@ -269,11 +278,11 @@ function AuthorityProgress() {
   return (
     <ol
       aria-label="Inbox 到 Story 权威流程"
-      className="grid shrink-0 overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4"
+      className="grid shrink-0 overflow-hidden border-b bg-card sm:grid-cols-2 xl:grid-cols-4"
     >
       {steps.map(([number, label, detail], index) => (
         <li
-          className="flex min-w-0 items-center gap-3 border-b px-4 py-3 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
+          className="flex min-w-0 items-center gap-2 border-b px-3 py-2 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
           key={number}
         >
           <Badge variant={index < 2 ? 'default' : 'outline'}>{number}</Badge>
@@ -300,11 +309,11 @@ function CandidateList({
 }) {
   return (
     <aside
-      className="flex h-72 min-h-0 flex-col lg:h-auto"
+      className="flex h-72 min-h-0 flex-col border-b bg-secondary lg:h-auto lg:border-r lg:border-b-0"
       aria-label="候选列表"
     >
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <p className="text-sm font-medium">本次提取的候选</p>
+      <div className="flex h-10 shrink-0 items-center justify-between border-b px-3">
+        <p className="text-xs font-semibold">本次提取的候选</p>
         <Badge variant="secondary">{candidateStates.length}</Badge>
       </div>
       <ScrollArea className="min-h-0 flex-1">
@@ -417,23 +426,20 @@ function CandidateReviewPanel({
   const iterationHref = candidateState.getLink('iteration')?.href;
 
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-5">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-xs text-muted-foreground">
-              {candidate.reference}
-            </span>
+    <div className="flex h-full min-h-0 flex-col bg-card">
+      <header className="flex shrink-0 flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] text-muted-foreground">
             <CandidateStatusBadge status={candidate.status} />
+            <span>{candidate.reference}</span>
+            <span>Inbox Analyst · {formatDateTime(candidate.proposedAt)}</span>
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {candidate.title}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Inbox Analyst 提出于 {formatDateTime(candidate.proposedAt)}
+          <h2 className="mt-1.5 text-lg font-semibold">{candidate.title}</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            一次性、来源受限的非权威提案
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           {candidateState.getLink('defer') ? (
             <CandidateDecisionDialog
               action="defer"
@@ -456,73 +462,78 @@ function CandidateReviewPanel({
             />
           ) : null}
           {iterationHref ? (
-            <Button asChild>
+            <Button asChild size="sm">
               <Link to={iterationHref}>打开 Iteration</Link>
             </Button>
           ) : null}
         </div>
       </header>
 
-      <Alert>
-        <AlertDescription>
-          <strong>这不是 Story。</strong> Candidate 没有 US-001
-          身份，也没有人工权威。选择动作只会 claim WIP、创建 Iteration 并冻结
-          Intake。
-        </AlertDescription>
-      </Alert>
+      <div className="grid min-h-0 flex-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_18.25rem]">
+        <ScrollArea className="min-h-0">
+          <div className="flex flex-col gap-4 p-4">
+            <Alert>
+              <AlertDescription>
+                <strong>这不是 Story。</strong> Candidate 没有 US-001
+                身份，也没有人工权威。选择只会创建 Iteration 与 Frozen Intake。
+              </AlertDescription>
+            </Alert>
 
-      {candidate.status === 'stale' ? (
-        <Alert>
-          <AlertDescription>
-            引用来源已有更新，此 Candidate 不能再被选择。可记录暂缓或拒绝决定。
-          </AlertDescription>
-        </Alert>
-      ) : null}
+            {candidate.status === 'stale' ? (
+              <Alert>
+                <AlertDescription>
+                  引用来源已有更新，此 Candidate 不能再被选择。
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {!bridge?.startIteration && candidate.status === 'ready' ? (
+              <Alert>
+                <AlertDescription>
+                  请在 Evidence Desktop 中绑定当前 Workspace 后选择 Candidate。
+                </AlertDescription>
+              </Alert>
+            ) : null}
+            {error ? (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            ) : null}
 
-      {!bridge?.startIteration && candidate.status === 'ready' ? (
-        <Alert>
-          <AlertDescription>
-            请在 Evidence Desktop 中打开并绑定当前 Workspace，才能选择 Candidate
-            和 provision 隔离 worktree。
-          </AlertDescription>
-        </Alert>
-      ) : null}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DetailItem label="角色" value={candidate.role} />
+              <DetailItem
+                label="认知模式"
+                value={cognitiveModeLabel(candidate.cognitiveMode)}
+              />
+              <div className="sm:col-span-2">
+                <DetailItem label="问题" value={candidate.problem} />
+              </div>
+              <DetailItem label="目标" value={candidate.goal} />
+              <DetailItem label="价值" value={candidate.value} />
+            </div>
 
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <DetailItem label="角色" value={candidate.role} />
-        <DetailItem
-          label="认知模式"
-          value={cognitiveModeLabel(candidate.cognitiveMode)}
-        />
-        <div className="sm:col-span-2">
-          <DetailItem label="问题" value={candidate.problem} />
-        </div>
-        <DetailItem label="目标" value={candidate.goal} />
-        <DetailItem label="价值" value={candidate.value} />
-      </div>
-
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardDescription>候选 Lean Story 表述</CardDescription>
-          <CardTitle className="text-base">
-            作为{candidate.role}，我希望{candidate.goal}，从而{candidate.value}
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
-      <CitationCard citations={candidate.citations} />
-
-      <div className="flex flex-col gap-2 rounded-lg border p-4">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          Candidate SHA-256
-        </p>
-        <code className="break-all text-xs">{candidate.contentSha256}</code>
+            <Card className="bg-ev-brand-soft">
+              <CardHeader>
+                <CardDescription>候选 Lean Story 表述</CardDescription>
+                <CardTitle>
+                  作为{candidate.role}，我希望{candidate.goal}，从而
+                  {candidate.value}
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+        </ScrollArea>
+        <aside className="min-h-0 overflow-y-auto border-t bg-ev-soft p-3.5 xl:border-t-0 xl:border-l">
+          <CitationCard citations={candidate.citations} />
+          <div className="mt-3 flex flex-col gap-2 rounded-lg border bg-card p-3">
+            <p className="text-[0.6875rem] font-medium tracking-wide text-muted-foreground uppercase">
+              Candidate SHA-256
+            </p>
+            <code className="break-all text-[0.625rem]">
+              {candidate.contentSha256}
+            </code>
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -691,11 +702,11 @@ function CitationCard({
   citations: StoryCandidateResource['data']['citations'];
 }) {
   return (
-    <Card>
+    <Card size="sm">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <CardTitle className="text-base">精确 Inbox 引用</CardTitle>
+            <CardTitle>精确 Inbox 引用</CardTitle>
             <CardDescription>
               Candidate 仅受这些不可变 Revision hash 约束。
             </CardDescription>
