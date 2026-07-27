@@ -32,6 +32,7 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  EvidenceCanvas,
   Field,
   FieldDescription,
   FieldGroup,
@@ -126,109 +127,113 @@ export function InboxItemDetailView({
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <Card>
-        <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle aria-level={1} role="heading">
-                {item.title}
-              </CardTitle>
-              <StatusBadge status={item.status} />
+    <EvidenceCanvas>
+      <div className="flex flex-col gap-4 p-4">
+        <Card>
+          <CardHeader className="gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle aria-level={1} role="heading">
+                  {item.title}
+                </CardTitle>
+                <StatusBadge status={item.status} />
+              </div>
+              <CardDescription>
+                {formatLabel(item.sourceKind)} source · {item.revisionCount}{' '}
+                {item.revisionCount === 1 ? 'revision' : 'revisions'}
+              </CardDescription>
             </div>
-            <CardDescription>
-              {formatLabel(item.sourceKind)} source · {item.revisionCount}{' '}
-              {item.revisionCount === 1 ? 'revision' : 'revisions'}
-            </CardDescription>
-          </div>
-          {children ||
-          (!latestRevision.loading &&
-            latestRevision.resourceState &&
-            isManualSource(item.sourceKind)) ? (
-            <div className="flex flex-wrap gap-2">
-              {!latestRevision.loading &&
+            {children ||
+            (!latestRevision.loading &&
               latestRevision.resourceState &&
-              isManualSource(item.sourceKind) ? (
-                <EditSourceDialog
-                  expectedLatestRevisionSha256={item.latestRevisionSha256}
-                  latestRevisionState={latestRevision.resourceState}
-                  onUpdate={updateSource}
-                />
-              ) : null}
-              {children}
+              isManualSource(item.sourceKind)) ? (
+              <div className="flex flex-wrap gap-2">
+                {!latestRevision.loading &&
+                latestRevision.resourceState &&
+                isManualSource(item.sourceKind) ? (
+                  <EditSourceDialog
+                    expectedLatestRevisionSha256={item.latestRevisionSha256}
+                    latestRevisionState={latestRevision.resourceState}
+                    onUpdate={updateSource}
+                  />
+                ) : null}
+                {children}
+              </div>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DetailItem
+                label="Created"
+                value={formatDateTime(item.createdAt)}
+              />
+              <DetailItem
+                label="Updated"
+                value={formatDateTime(item.updatedAt)}
+              />
             </div>
-          ) : null}
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <DetailItem
-              label="Created"
-              value={formatDateTime(item.createdAt)}
-            />
-            <DetailItem
-              label="Updated"
-              value={formatDateTime(item.updatedAt)}
-            />
-          </div>
-          <Separator />
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium">Status</p>
-            <div
-              className="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Inbox status"
-            >
-              {inboxStatuses.map((status) => (
-                <Button
-                  key={status}
-                  aria-label={`Mark ${status}`}
-                  aria-pressed={item.status === status}
-                  disabled={statusPending || item.status === status}
-                  size="sm"
-                  type="button"
-                  variant={item.status === status ? 'default' : 'outline'}
-                  onClick={() => void changeStatus(status)}
-                >
-                  {formatLabel(status)}
-                </Button>
-              ))}
+            <Separator />
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium">Status</p>
+              <div
+                className="flex flex-wrap gap-2"
+                role="group"
+                aria-label="Inbox status"
+              >
+                {inboxStatuses.map((status) => (
+                  <Button
+                    key={status}
+                    aria-label={`Mark ${status}`}
+                    aria-pressed={item.status === status}
+                    disabled={statusPending || item.status === status}
+                    size="sm"
+                    type="button"
+                    variant={item.status === status ? 'default' : 'outline'}
+                    onClick={() => void changeStatus(status)}
+                  >
+                    {formatLabel(status)}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
-          {mutationError ? (
-            <Alert variant="destructive">
-              <AlertDescription>{mutationError}</AlertDescription>
-            </Alert>
+            {mutationError ? (
+              <Alert variant="destructive">
+                <AlertDescription>{mutationError}</AlertDescription>
+              </Alert>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <RelatedResourceCard
+          title="Latest revision"
+          description="The current immutable source snapshot."
+          loading={latestRevision.loading}
+          error={latestRevision.error}
+        >
+          {latestRevision.resourceState ? (
+            <InboxRevisionContent
+              revisionState={latestRevision.resourceState}
+            />
           ) : null}
-        </CardContent>
-      </Card>
+        </RelatedResourceCard>
 
-      <RelatedResourceCard
-        title="Latest revision"
-        description="The current immutable source snapshot."
-        loading={latestRevision.loading}
-        error={latestRevision.error}
-      >
-        {latestRevision.resourceState ? (
-          <InboxRevisionContent revisionState={latestRevision.resourceState} />
-        ) : null}
-      </RelatedResourceCard>
-
-      <RelatedResourceCard
-        title="Revision history"
-        description="Every distinct source snapshot captured for this Inbox item."
-        loading={revisions.loading}
-        error={revisions.error}
-        count={revisions.resourceState?.data.page.totalElements}
-      >
-        {revisions.resourceState ? (
-          <PaginatedRevisionTimeline
-            key={item.latestRevisionId}
-            latestRevisionId={item.latestRevisionId}
-            resourceState={revisions.resourceState}
-          />
-        ) : null}
-      </RelatedResourceCard>
-    </div>
+        <RelatedResourceCard
+          title="Revision history"
+          description="Every distinct source snapshot captured for this Inbox item."
+          loading={revisions.loading}
+          error={revisions.error}
+          count={revisions.resourceState?.data.page.totalElements}
+        >
+          {revisions.resourceState ? (
+            <PaginatedRevisionTimeline
+              key={item.latestRevisionId}
+              latestRevisionId={item.latestRevisionId}
+              resourceState={revisions.resourceState}
+            />
+          ) : null}
+        </RelatedResourceCard>
+      </div>
+    </EvidenceCanvas>
   );
 }
 
@@ -238,15 +243,19 @@ export function InboxRevisionCollectionView({
   resourceState: State<InboxRevisionCollectionResource>;
 }) {
   return (
-    <RelatedResourceCard
-      title="Revision history"
-      description="Every distinct source snapshot captured for this Inbox item."
-      loading={false}
-      error={null}
-      count={resourceState.data.page.totalElements}
-    >
-      <PaginatedRevisionTimeline resourceState={resourceState} />
-    </RelatedResourceCard>
+    <EvidenceCanvas>
+      <div className="p-4">
+        <RelatedResourceCard
+          title="Revision history"
+          description="Every distinct source snapshot captured for this Inbox item."
+          loading={false}
+          error={null}
+          count={resourceState.data.page.totalElements}
+        >
+          <PaginatedRevisionTimeline resourceState={resourceState} />
+        </RelatedResourceCard>
+      </div>
+    </EvidenceCanvas>
   );
 }
 
@@ -258,25 +267,31 @@ export function InboxRevisionDetailView({
   const revision = resourceState.data;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">Revision {revision.revisionNumber}</Badge>
-          <Badge variant="outline">
-            {contentTypeLabel(revision.contentType)}
-          </Badge>
-        </div>
-        <CardTitle aria-level={1} role="heading">
-          {revision.title}
-        </CardTitle>
-        <CardDescription>
-          Captured {formatDateTime(revision.capturedAt)}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <InboxRevisionContent revisionState={resourceState} />
-      </CardContent>
-    </Card>
+    <EvidenceCanvas>
+      <div className="p-4">
+        <Card>
+          <CardHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">
+                Revision {revision.revisionNumber}
+              </Badge>
+              <Badge variant="outline">
+                {contentTypeLabel(revision.contentType)}
+              </Badge>
+            </div>
+            <CardTitle aria-level={1} role="heading">
+              {revision.title}
+            </CardTitle>
+            <CardDescription>
+              Captured {formatDateTime(revision.capturedAt)}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <InboxRevisionContent revisionState={resourceState} />
+          </CardContent>
+        </Card>
+      </div>
+    </EvidenceCanvas>
   );
 }
 
