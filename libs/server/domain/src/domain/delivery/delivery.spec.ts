@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DomainError } from '../error';
+import { storyWorkflowAuthority } from './delivery';
 import {
   assertStoryVersion,
   normalizeStoryContentInput,
@@ -107,6 +108,71 @@ describe('Story content validation', () => {
   it('parses only supported cognitive modes', () => {
     expect(parseStoryCognitiveMode('clear')).toBe('clear');
     expect(() => parseStoryCognitiveMode('chaotic')).toThrow(DomainError);
+  });
+});
+
+describe('Story workflow authority', () => {
+  it.each([
+    {
+      loop: 'understand' as const,
+      stage: 'tqa' as const,
+      hasPendingClarification: true,
+      owner: 'human',
+      nextAction: 'answer_clarification',
+    },
+    {
+      loop: 'understand' as const,
+      stage: 'tqa' as const,
+      hasPendingClarification: false,
+      owner: 'agent',
+      nextAction: 'run_understanding_analyst',
+    },
+    {
+      loop: 'tasking' as const,
+      stage: 'desk_check' as const,
+      hasPendingClarification: false,
+      owner: 'human',
+      nextAction: 'review_tasking_candidate',
+    },
+    {
+      loop: 'pair' as const,
+      stage: 'green_observed' as const,
+      hasPendingClarification: false,
+      owner: 'agent',
+      nextAction: 'run_pair',
+    },
+    {
+      loop: 'pair' as const,
+      stage: 'quality_gates_passed' as const,
+      hasPendingClarification: false,
+      owner: 'human',
+      nextAction: 'review_pair_change',
+    },
+    {
+      loop: 'pair' as const,
+      stage: 'approved' as const,
+      hasPendingClarification: false,
+      owner: 'none',
+      nextAction: 'none',
+    },
+  ])(
+    'maps $loop/$stage to $owner/$nextAction',
+    ({ owner, nextAction, ...input }) => {
+      expect(storyWorkflowAuthority({ lifecycle: 'active', ...input })).toEqual(
+        { owner, nextAction },
+      );
+    },
+  );
+
+  it('publishes no action for a halted Iteration', () => {
+    expect(
+      storyWorkflowAuthority({
+        lifecycle: 'halted',
+        loop: 'pair',
+        stage: 'exception',
+        hasPendingClarification: false,
+      }),
+    ).toEqual({ owner: 'none', nextAction: 'none' });
   });
 });
 

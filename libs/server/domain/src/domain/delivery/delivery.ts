@@ -7,6 +7,51 @@ import type {
 
 export type StoryCognitiveMode = 'clear' | 'complicated' | 'complex';
 
+export type StoryAuthorityOwner = 'human' | 'agent' | 'none';
+export type StoryNextAction =
+  | 'answer_clarification'
+  | 'run_understanding_analyst'
+  | 'review_scenario_set'
+  | 'record_model_impact'
+  | 'run_tasking_analyst'
+  | 'review_tasking_candidate'
+  | 'start_pair'
+  | 'run_pair'
+  | 'route_pair_exception'
+  | 'review_pair_change'
+  | 'none';
+
+export interface StoryWorkflowAuthority {
+  owner: StoryAuthorityOwner;
+  nextAction: StoryNextAction;
+}
+
+export interface StoryWorkflowAuthorityInput {
+  lifecycle: IterationLifecycle;
+  loop: IterationLoop;
+  stage: IterationStage;
+  hasPendingClarification: boolean;
+}
+
+export interface StoryStageCount {
+  loop: IterationLoop;
+  stage: IterationStage;
+  count: number;
+}
+
+export interface StoryActionCount {
+  action: StoryNextAction;
+  count: number;
+}
+
+export interface StoryPortfolioSummary {
+  humanAttention: number;
+  agentAttention: number;
+  approved: number;
+  stages: StoryStageCount[];
+  actions: StoryActionCount[];
+}
+
 export interface StoryCitationInput {
   inboxItemId: string;
   inboxRevisionId: string;
@@ -59,9 +104,13 @@ export interface StoryDescription {
   iterationStage: IterationStage;
   reference: 'US-001';
   title: string;
+  goal: string;
   latestRevision: Ref<string>;
   latestRevisionNumber: number;
   latestScenarioCount: number;
+  latestCitationCount: number;
+  pendingClarificationReference: string | null;
+  authority: StoryWorkflowAuthority;
   revisionCount: number;
   version: number;
   createdAt: string;
@@ -119,8 +168,58 @@ export interface StoryListQuery {
   pageSize: number;
 }
 
+export function storyWorkflowAuthority(
+  input: StoryWorkflowAuthorityInput,
+): StoryWorkflowAuthority {
+  if (input.lifecycle !== 'active') {
+    return { owner: 'none', nextAction: 'none' };
+  }
+
+  if (input.loop === 'understand') {
+    if (input.stage === 'tqa') {
+      return input.hasPendingClarification
+        ? { owner: 'human', nextAction: 'answer_clarification' }
+        : { owner: 'agent', nextAction: 'run_understanding_analyst' };
+    }
+    if (input.stage === 'scenario_review') {
+      return { owner: 'human', nextAction: 'review_scenario_set' };
+    }
+    if (input.stage === 'modeling') {
+      return { owner: 'human', nextAction: 'record_model_impact' };
+    }
+  }
+
+  if (input.loop === 'tasking') {
+    if (input.stage === 'drafting' || input.stage === 'knowledge_gap') {
+      return { owner: 'agent', nextAction: 'run_tasking_analyst' };
+    }
+    if (input.stage === 'desk_check') {
+      return { owner: 'human', nextAction: 'review_tasking_candidate' };
+    }
+    if (input.stage === 'approved') {
+      return { owner: 'human', nextAction: 'start_pair' };
+    }
+  }
+
+  if (input.loop === 'pair') {
+    if (input.stage === 'quality_gate_failed' || input.stage === 'exception') {
+      return { owner: 'human', nextAction: 'route_pair_exception' };
+    }
+    if (input.stage === 'quality_gates_passed') {
+      return { owner: 'human', nextAction: 'review_pair_change' };
+    }
+    if (input.stage === 'approved') {
+      return { owner: 'none', nextAction: 'none' };
+    }
+    return { owner: 'agent', nextAction: 'run_pair' };
+  }
+
+  return { owner: 'none', nextAction: 'none' };
+}
+
 export interface WorkspaceDelivery {
   listStories(query: StoryListQuery): Promise<[Story[], number]>;
+  summarizeStories(): Promise<StoryPortfolioSummary>;
   findStory(storyId: string): Promise<Story | null>;
   listStoryRevisions(
     storyId: string,

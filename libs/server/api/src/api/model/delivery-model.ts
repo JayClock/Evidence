@@ -39,9 +39,16 @@ export interface StoryModel {
   iterationStage: string;
   reference: 'US-001';
   title: string;
+  goal: string;
   latestRevisionId: string;
   latestRevisionNumber: number;
   latestScenarioCount: number;
+  latestCitationCount: number;
+  pendingClarificationReference: string | null;
+  authority: {
+    owner: string;
+    nextAction: string;
+  };
   revisionCount: number;
   version: number;
   createdAt: string;
@@ -91,9 +98,13 @@ export function storyModel(story: Story): StoryModel {
     iterationStage: description.iterationStage,
     reference: description.reference,
     title: description.title,
+    goal: description.goal,
     latestRevisionId: description.latestRevision.id(),
     latestRevisionNumber: description.latestRevisionNumber,
     latestScenarioCount: description.latestScenarioCount,
+    latestCitationCount: description.latestCitationCount,
+    pendingClarificationReference: description.pendingClarificationReference,
+    authority: description.authority,
     revisionCount: description.revisionCount,
     version: description.version,
     createdAt: description.createdAt,

@@ -142,8 +142,16 @@ function workspaceFixture() {
   const tasking = {} as WorkspaceTasking;
   const pair = {} as WorkspacePair;
 
+  const storySummary = {
+    humanAttention: 0,
+    agentAttention: 1,
+    approved: 0,
+    stages: [{ loop: 'understand' as const, stage: 'tqa' as const, count: 1 }],
+    actions: [{ action: 'run_understanding_analyst' as const, count: 1 }],
+  };
   const delivery = {
     listStories: vi.fn(async () => [[story], 1] as [Story[], number]),
+    summarizeStories: vi.fn(async () => storySummary),
     findStory: vi.fn(async () => story),
     listStoryRevisions: vi.fn(
       async () => [[storyRevision], 1] as [StoryRevision[], number],
@@ -201,6 +209,7 @@ function workspaceFixture() {
     inboxRevision,
     story,
     storyRevision,
+    storySummary,
     logicalEntities,
     logicalEntity,
     logicalRelationship,
@@ -323,11 +332,13 @@ describe('Workspace', () => {
   });
 
   it('delegates authoritative Story operations to Delivery', async () => {
-    const { story, storyRevision, workspace } = workspaceFixture();
+    const { story, storyRevision, storySummary, workspace } =
+      workspaceFixture();
 
     await expect(
       workspace.listStories({ page: 1, pageSize: 20 }),
     ).resolves.toEqual([[story], 1]);
+    await expect(workspace.summarizeStories()).resolves.toBe(storySummary);
     await expect(workspace.findStory('story-1')).resolves.toBe(story);
     await expect(
       workspace.listStoryRevisions('story-1', 1, 20),

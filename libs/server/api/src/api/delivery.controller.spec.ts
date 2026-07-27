@@ -32,9 +32,13 @@ function story() {
     iterationStage: 'tqa',
     reference: 'US-001',
     title: 'Local coding agent',
+    goal: 'Run coding work locally.',
     latestRevision: new Ref('story-revision-1'),
     latestRevisionNumber: 1,
     latestScenarioCount: 0,
+    latestCitationCount: 1,
+    pendingClarificationReference: 'Q-001',
+    authority: { owner: 'human', nextAction: 'answer_clarification' },
     revisionCount: 1,
     version: 1,
     createdAt: timestamp,
@@ -78,6 +82,13 @@ function fixture() {
   const revision = storyRevision();
   const workspace = {
     listStories: vi.fn(async () => [[canonicalStory], 1]),
+    summarizeStories: vi.fn(async () => ({
+      humanAttention: 1,
+      agentAttention: 0,
+      approved: 0,
+      stages: [{ loop: 'understand', stage: 'tqa', count: 1 }],
+      actions: [{ action: 'answer_clarification', count: 1 }],
+    })),
     listStoryRevisions: vi.fn(async () => [[revision], 1]),
   } as unknown as Workspace;
   const resolver = {
@@ -121,8 +132,12 @@ describe('StoriesController', () => {
       iterationStage: 'tqa',
       reference: 'US-001',
       title: 'Local coding agent',
+      goal: 'Run coding work locally.',
       latestRevisionNumber: 1,
       latestScenarioCount: 0,
+      latestCitationCount: 1,
+      pendingClarificationReference: 'Q-001',
+      authority: { owner: 'human', nextAction: 'answer_clarification' },
       revisionCount: 1,
       version: 1,
       _links: {
@@ -133,6 +148,13 @@ describe('StoriesController', () => {
           href: '/api/workspaces/workspace-1/iterations/iteration-1/understanding',
         },
       },
+    });
+    expect(stories.summary).toEqual({
+      humanAttention: 1,
+      agentAttention: 0,
+      approved: 0,
+      stages: [{ loop: 'understand', stage: 'tqa', count: 1 }],
+      actions: [{ action: 'answer_clarification', count: 1 }],
     });
     expect(revisions._embedded.storyRevisions[0]).toMatchObject({
       id: 'story-revision-1',

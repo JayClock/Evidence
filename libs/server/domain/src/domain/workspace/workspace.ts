@@ -3,6 +3,7 @@ import { Diagram, WorkspaceDiagram } from '../diagram';
 import {
   Story,
   StoryListQuery,
+  StoryPortfolioSummary,
   StoryRevision,
   WorkspaceDelivery,
 } from '../delivery';
@@ -157,6 +158,10 @@ export class Workspace implements Entity<string, WorkspaceDescription> {
 
   listStories(query: StoryListQuery): Promise<[Story[], number]> {
     return this.workspaceDelivery.listStories(query);
+  }
+
+  summarizeStories(): Promise<StoryPortfolioSummary> {
+    return this.workspaceDelivery.summarizeStories();
   }
 
   findStory(storyId: string): Promise<Story | null> {

@@ -1,5 +1,9 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import type { Story, StoryRevision } from '@evidence/server-domain';
+import type {
+  Story,
+  StoryPortfolioSummary,
+  StoryRevision,
+} from '@evidence/server-domain';
 import {
   link,
   type Link,
@@ -28,6 +32,7 @@ interface StoryCollectionModel {
   _links: Record<string, Link>;
   _embedded: { stories: StoryModel[] };
   page: PageModel;
+  summary: StoryPortfolioSummary;
 }
 
 interface StoryRevisionCollectionModel {
@@ -52,8 +57,18 @@ export class StoriesController {
       parsePositiveInteger(pageSizeInput, 20, 'pageSize'),
       100,
     );
-    const [stories, total] = await workspace.listStories({ page, pageSize });
-    return storyCollection(workspaceId, stories, page, pageSize, total);
+    const [[stories, total], summary] = await Promise.all([
+      workspace.listStories({ page, pageSize }),
+      workspace.summarizeStories(),
+    ]);
+    return storyCollection(
+      workspaceId,
+      stories,
+      page,
+      pageSize,
+      total,
+      summary,
+    );
   }
 
   @Get(':storyId')
@@ -120,6 +135,7 @@ function storyCollection(
   page: number,
   pageSize: number,
   total: number,
+  summary: StoryPortfolioSummary,
 ): StoryCollectionModel {
   const pages = totalPages(total, pageSize);
   const href = (targetPage: number) =>
@@ -134,6 +150,7 @@ function storyCollection(
     _links: links,
     _embedded: { stories: stories.map(storyModel) },
     page: pageDetails(page, pageSize, total),
+    summary,
   };
 }
 

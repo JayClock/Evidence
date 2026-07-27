@@ -100,8 +100,9 @@ function storyRow(overrides: Record<string, unknown> = {}) {
     },
     latestRevision: {
       ...storyRevisionRow(),
-      _count: { scenarios: 0 },
+      _count: { citations: 1, scenarios: 0 },
     },
+    clarifications: [],
     _count: { revisions: 1 },
     ...overrides,
   };
@@ -126,12 +127,64 @@ describe('PrismaWorkspaceDelivery', () => {
       iterationLoop: 'understand',
       iterationStage: 'tqa',
       reference: 'US-001',
+      goal: revisionInput.goal,
       latestRevisionNumber: 1,
       latestScenarioCount: 0,
+      latestCitationCount: 1,
+      pendingClarificationReference: null,
+      authority: {
+        owner: 'agent',
+        nextAction: 'run_understanding_analyst',
+      },
       revisionCount: 1,
     });
     expect(store.story.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { workspaceId: 'workspace-1' } }),
+    );
+  });
+
+  it('summarizes exact authority actions across the workspace', async () => {
+    const store = mockPrismaStore();
+    store.story.findMany.mockResolvedValue([
+      {
+        id: 'story-1',
+        iteration: {
+          lifecycle: 'active',
+          loop: 'understand',
+          stage: 'tqa',
+        },
+        clarifications: [{ reference: 'Q-001' }],
+      },
+      {
+        id: 'story-2',
+        iteration: {
+          lifecycle: 'active',
+          loop: 'pair',
+          stage: 'approved',
+        },
+        clarifications: [],
+      },
+    ]);
+    const delivery = new PrismaWorkspaceDelivery(asStore(store), 'workspace-1');
+
+    await expect(delivery.summarizeStories()).resolves.toEqual({
+      humanAttention: 1,
+      agentAttention: 0,
+      approved: 1,
+      stages: [
+        { loop: 'pair', stage: 'approved', count: 1 },
+        { loop: 'understand', stage: 'tqa', count: 1 },
+      ],
+      actions: [
+        { action: 'answer_clarification', count: 1 },
+        { action: 'none', count: 1 },
+      ],
+    });
+    expect(store.story.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { workspaceId: 'workspace-1' },
+        select: expect.any(Object),
+      }),
     );
   });
 

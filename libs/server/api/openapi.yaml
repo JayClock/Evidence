@@ -6039,6 +6039,99 @@ components:
         _links: { $ref: '#/components/schemas/BTreeMap' }
         pair: { $ref: '#/components/schemas/PairResource' }
         acceptedRecordId: { type: string }
+    StoryAuthorityOwner:
+      type: string
+      enum: [human, agent, none]
+    StoryNextAction:
+      type: string
+      enum:
+        - answer_clarification
+        - run_understanding_analyst
+        - review_scenario_set
+        - record_model_impact
+        - run_tasking_analyst
+        - review_tasking_candidate
+        - start_pair
+        - run_pair
+        - route_pair_exception
+        - review_pair_change
+        - none
+    StoryWorkflowAuthority:
+      type: object
+      required: [owner, nextAction]
+      properties:
+        owner:
+          $ref: '#/components/schemas/StoryAuthorityOwner'
+        nextAction:
+          $ref: '#/components/schemas/StoryNextAction'
+    StoryStageCount:
+      type: object
+      required: [loop, stage, count]
+      properties:
+        loop:
+          type: string
+          enum: [kickoff, understand, tasking, pair]
+        stage:
+          type: string
+          enum:
+            [
+              candidate_review,
+              candidate_drafting,
+              tqa,
+              scenario_review,
+              modeling,
+              drafting,
+              desk_check,
+              knowledge_gap,
+              approved,
+              plan_confirmed,
+              test_written,
+              red_observed,
+              implementation_written,
+              green_observed,
+              refactored,
+              quality_gate_failed,
+              quality_gates_passed,
+              exception,
+            ]
+        count:
+          type: integer
+          format: int32
+          minimum: 1
+    StoryActionCount:
+      type: object
+      required: [action, count]
+      properties:
+        action:
+          $ref: '#/components/schemas/StoryNextAction'
+        count:
+          type: integer
+          format: int32
+          minimum: 1
+    StoryPortfolioSummary:
+      type: object
+      required: [humanAttention, agentAttention, approved, stages, actions]
+      properties:
+        humanAttention:
+          type: integer
+          format: int32
+          minimum: 0
+        agentAttention:
+          type: integer
+          format: int32
+          minimum: 0
+        approved:
+          type: integer
+          format: int32
+          minimum: 0
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryStageCount'
+        actions:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoryActionCount'
     StoryResource:
       type: object
       required:
@@ -6051,9 +6144,13 @@ components:
         - iterationStage
         - reference
         - title
+        - goal
         - latestRevisionId
         - latestRevisionNumber
         - latestScenarioCount
+        - latestCitationCount
+        - pendingClarificationReference
+        - authority
         - revisionCount
         - version
         - createdAt
@@ -6102,6 +6199,8 @@ components:
           enum: [US-001]
         title:
           type: string
+        goal:
+          type: string
         latestRevisionId:
           type: string
         latestRevisionNumber:
@@ -6112,6 +6211,17 @@ components:
           type: integer
           format: int32
           minimum: 0
+        latestCitationCount:
+          type: integer
+          format: int32
+          minimum: 0
+        pendingClarificationReference:
+          type:
+            - string
+            - 'null'
+          pattern: '^Q-[0-9]{3,}$'
+        authority:
+          $ref: '#/components/schemas/StoryWorkflowAuthority'
         revisionCount:
           type: integer
           format: int32
@@ -6141,6 +6251,7 @@ components:
         - _links
         - _embedded
         - page
+        - summary
       properties:
         _links:
           $ref: '#/components/schemas/BTreeMap'
@@ -6148,6 +6259,8 @@ components:
           $ref: '#/components/schemas/StoryCollectionEmbedded'
         page:
           $ref: '#/components/schemas/PageModel'
+        summary:
+          $ref: '#/components/schemas/StoryPortfolioSummary'
     StoryRevisionResource:
       type: object
       required:

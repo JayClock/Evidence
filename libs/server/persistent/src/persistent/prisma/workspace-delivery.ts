@@ -5,10 +5,16 @@ import {
   parseIterationLifecycle,
   parseIterationLoop,
   parseIterationStage,
+  storyWorkflowAuthority,
   StoryRevision,
+  type IterationLifecycle,
+  type IterationLoop,
+  type IterationStage,
   type StoryCitationDescription,
   type StoryCognitiveMode,
   type StoryListQuery,
+  type StoryNextAction,
+  type StoryPortfolioSummary,
   type WorkspaceDelivery,
 } from '@evidence/server-domain';
 import { Prisma } from '@prisma/client';
@@ -25,10 +31,33 @@ export const STORY_INCLUDE = {
     },
   },
   latestRevision: {
-    include: { _count: { select: { scenarios: true } } },
+    include: { _count: { select: { citations: true, scenarios: true } } },
+  },
+  clarifications: {
+    where: { status: 'pending' },
+    select: { reference: true },
+    orderBy: { askedAt: 'desc' },
+    take: 1,
   },
   _count: { select: { revisions: true } },
 } satisfies Prisma.StoryInclude;
+
+const STORY_PORTFOLIO_SELECT = {
+  id: true,
+  iteration: {
+    select: {
+      lifecycle: true,
+      loop: true,
+      stage: true,
+    },
+  },
+  clarifications: {
+    where: { status: 'pending' },
+    select: { reference: true },
+    orderBy: { askedAt: 'desc' },
+    take: 1,
+  },
+} satisfies Prisma.StorySelect;
 
 export const STORY_REVISION_INCLUDE = {
   citations: {
@@ -41,6 +70,9 @@ export const STORY_REVISION_INCLUDE = {
 type StoryRow = Prisma.StoryGetPayload<{ include: typeof STORY_INCLUDE }>;
 type StoryRevisionRow = Prisma.StoryRevisionGetPayload<{
   include: typeof STORY_REVISION_INCLUDE;
+}>;
+type StoryPortfolioRow = Prisma.StoryGetPayload<{
+  select: typeof STORY_PORTFOLIO_SELECT;
 }>;
 type StoryRevisionCitationRow = StoryRevisionRow['citations'][number];
 type StoryScenarioRow = StoryRevisionRow['scenarios'][number];
@@ -65,6 +97,55 @@ export class PrismaWorkspaceDelivery implements WorkspaceDelivery {
       this.store.story.count({ where }),
     ]);
     return [rows.map(assembleStory), total];
+  }
+
+  async summarizeStories(): Promise<StoryPortfolioSummary> {
+    const rows = await this.store.story.findMany({
+      where: { workspaceId: this.workspaceId },
+      select: STORY_PORTFOLIO_SELECT,
+    });
+    const stageCounts = new Map<
+      string,
+      { loop: IterationLoop; stage: IterationStage; count: number }
+    >();
+    const actionCounts = new Map<StoryNextAction, number>();
+    let humanAttention = 0;
+    let agentAttention = 0;
+    let approved = 0;
+
+    for (const row of rows) {
+      const workflow = storyWorkflow(row);
+      const stageKey = `${workflow.loop}/${workflow.stage}`;
+      const stage = stageCounts.get(stageKey);
+      stageCounts.set(stageKey, {
+        loop: workflow.loop,
+        stage: workflow.stage,
+        count: (stage?.count ?? 0) + 1,
+      });
+      actionCounts.set(
+        workflow.authority.nextAction,
+        (actionCounts.get(workflow.authority.nextAction) ?? 0) + 1,
+      );
+      if (workflow.authority.owner === 'human') humanAttention += 1;
+      if (workflow.authority.owner === 'agent') agentAttention += 1;
+      if (workflow.loop === 'pair' && workflow.stage === 'approved') {
+        approved += 1;
+      }
+    }
+
+    return {
+      humanAttention,
+      agentAttention,
+      approved,
+      stages: [...stageCounts.values()].sort((left, right) =>
+        `${left.loop}/${left.stage}`.localeCompare(
+          `${right.loop}/${right.stage}`,
+        ),
+      ),
+      actions: [...actionCounts.entries()]
+        .map(([action, count]) => ({ action, count }))
+        .sort((left, right) => left.action.localeCompare(right.action)),
+    };
   }
 
   async findStory(storyId: string): Promise<Story | null> {
@@ -134,18 +215,23 @@ export function assembleStory(row: StoryRow): Story {
   if (!row.iterationId || !row.iteration) {
     throw DomainError.internal(`Story ${row.id} has no authority Iteration`);
   }
+  const workflow = storyWorkflow(row);
   return new Story(row.id, {
     workspace: new Ref(row.workspaceId),
     iteration: new Ref(row.iteration.id),
     iterationReference: row.iteration.reference,
-    iterationLifecycle: parseIterationLifecycle(row.iteration.lifecycle),
-    iterationLoop: parseIterationLoop(row.iteration.loop),
-    iterationStage: parseIterationStage(row.iteration.stage),
+    iterationLifecycle: workflow.lifecycle,
+    iterationLoop: workflow.loop,
+    iterationStage: workflow.stage,
     reference: storyReference(row.reference),
     title: row.latestRevision.title,
+    goal: row.latestRevision.goal,
     latestRevision: new Ref(row.latestRevisionId),
     latestRevisionNumber: row.latestRevision.revisionNumber,
     latestScenarioCount: row.latestRevision._count.scenarios,
+    latestCitationCount: row.latestRevision._count.citations,
+    pendingClarificationReference: workflow.pendingClarificationReference,
+    authority: workflow.authority,
     revisionCount: row._count.revisions,
     version: row.version,
     createdAt: row.createdAt.toISOString(),
@@ -214,6 +300,35 @@ function assembleCitation(
     inboxRevisionNumber: row.inboxRevision.revisionNumber,
     contentSha256: row.inboxRevision.contentSha256,
     locator: row.locator,
+  };
+}
+
+function storyWorkflow(row: StoryRow | StoryPortfolioRow): {
+  lifecycle: IterationLifecycle;
+  loop: IterationLoop;
+  stage: IterationStage;
+  pendingClarificationReference: string | null;
+  authority: ReturnType<typeof storyWorkflowAuthority>;
+} {
+  if (!row.iteration) {
+    throw DomainError.internal(`Story ${row.id} has no authority Iteration`);
+  }
+  const lifecycle = parseIterationLifecycle(row.iteration.lifecycle);
+  const loop = parseIterationLoop(row.iteration.loop);
+  const stage = parseIterationStage(row.iteration.stage);
+  const pendingClarificationReference =
+    row.clarifications?.[0]?.reference ?? null;
+  return {
+    lifecycle,
+    loop,
+    stage,
+    pendingClarificationReference,
+    authority: storyWorkflowAuthority({
+      lifecycle,
+      loop,
+      stage,
+      hasPendingClarification: pendingClarificationReference !== null,
+    }),
   };
 }
 

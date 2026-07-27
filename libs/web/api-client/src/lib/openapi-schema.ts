@@ -2510,6 +2510,66 @@ export interface components {
       pair: components['schemas']['PairResource'];
       acceptedRecordId: string;
     };
+    /** @enum {string} */
+    StoryAuthorityOwner: 'human' | 'agent' | 'none';
+    /** @enum {string} */
+    StoryNextAction:
+      | 'answer_clarification'
+      | 'run_understanding_analyst'
+      | 'review_scenario_set'
+      | 'record_model_impact'
+      | 'run_tasking_analyst'
+      | 'review_tasking_candidate'
+      | 'start_pair'
+      | 'run_pair'
+      | 'route_pair_exception'
+      | 'review_pair_change'
+      | 'none';
+    StoryWorkflowAuthority: {
+      owner: components['schemas']['StoryAuthorityOwner'];
+      nextAction: components['schemas']['StoryNextAction'];
+    };
+    StoryStageCount: {
+      /** @enum {string} */
+      loop: 'kickoff' | 'understand' | 'tasking' | 'pair';
+      /** @enum {string} */
+      stage:
+        | 'candidate_review'
+        | 'candidate_drafting'
+        | 'tqa'
+        | 'scenario_review'
+        | 'modeling'
+        | 'drafting'
+        | 'desk_check'
+        | 'knowledge_gap'
+        | 'approved'
+        | 'plan_confirmed'
+        | 'test_written'
+        | 'red_observed'
+        | 'implementation_written'
+        | 'green_observed'
+        | 'refactored'
+        | 'quality_gate_failed'
+        | 'quality_gates_passed'
+        | 'exception';
+      /** Format: int32 */
+      count: number;
+    };
+    StoryActionCount: {
+      action: components['schemas']['StoryNextAction'];
+      /** Format: int32 */
+      count: number;
+    };
+    StoryPortfolioSummary: {
+      /** Format: int32 */
+      humanAttention: number;
+      /** Format: int32 */
+      agentAttention: number;
+      /** Format: int32 */
+      approved: number;
+      stages: components['schemas']['StoryStageCount'][];
+      actions: components['schemas']['StoryActionCount'][];
+    };
     StoryResource: {
       _links: components['schemas']['BTreeMap'];
       id: string;
@@ -2546,11 +2606,16 @@ export interface components {
       /** @enum {string} */
       reference: 'US-001';
       title: string;
+      goal: string;
       latestRevisionId: string;
       /** Format: int32 */
       latestRevisionNumber: number;
       /** Format: int32 */
       latestScenarioCount: number;
+      /** Format: int32 */
+      latestCitationCount: number;
+      pendingClarificationReference: string | null;
+      authority: components['schemas']['StoryWorkflowAuthority'];
       /** Format: int32 */
       revisionCount: number;
       /** Format: int32 */
@@ -2567,6 +2632,7 @@ export interface components {
       _links: components['schemas']['BTreeMap'];
       _embedded: components['schemas']['StoryCollectionEmbedded'];
       page: components['schemas']['PageModel'];
+      summary: components['schemas']['StoryPortfolioSummary'];
     };
     StoryRevisionResource: {
       _links: components['schemas']['BTreeMap'];

@@ -742,6 +742,12 @@ describeContracts('Evidence API contract vertical slice', () => {
       iterationStage: 'tqa',
       reference: 'US-001',
       latestScenarioCount: 0,
+      latestCitationCount: 1,
+      pendingClarificationReference: null,
+      authority: {
+        owner: 'agent',
+        nextAction: 'run_understanding_analyst',
+      },
       _links: {
         iteration: {
           href: `/api/workspaces/${workspaceId}/iterations/${iterationId}`,
@@ -751,6 +757,18 @@ describeContracts('Evidence API contract vertical slice', () => {
         },
       },
     });
+    const stories = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories?page=1&pageSize=20`,
+    );
+    expectHalCollection(stories, mediaTypes.stories, 'stories');
+    expect(stories.body.summary).toMatchObject({
+      humanAttention: 0,
+      agentAttention: 1,
+      approved: 0,
+      stages: [{ loop: 'understand', stage: 'tqa', count: 1 }],
+      actions: [{ action: 'run_understanding_analyst', count: 1 }],
+    });
+
     const understanding = await apiRequest(
       `/api/workspaces/${workspaceId}/iterations/${iterationId}/understanding`,
     );
