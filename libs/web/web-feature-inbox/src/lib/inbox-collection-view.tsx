@@ -9,18 +9,21 @@ import type {
 import {
   Alert,
   AlertDescription,
-  Badge,
   Button,
+  EvidencePage,
   Field,
   FieldGroup,
   FieldLabel,
   Input,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
+  PageToolbar,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@evidence/ui';
 import { InboxSourceDialog } from './inbox-source-dialog';
 import { InboxExtractionControls } from './inbox-extraction-controls';
@@ -31,8 +34,14 @@ import {
 } from './inbox-source-browser';
 
 const maximumExtractionSources = 5;
-
 type InboxStatusFilter = 'all' | 'active' | 'deferred' | 'closed';
+
+const statusOptions: Array<{ value: InboxStatusFilter; label: string }> = [
+  { value: 'all', label: '全部' },
+  { value: 'active', label: '活跃' },
+  { value: 'deferred', label: '已暂缓' },
+  { value: 'closed', label: '已关闭' },
+];
 
 export function InboxCollectionView({
   resourceState,
@@ -130,8 +139,7 @@ export function InboxCollectionView({
 
   const applyFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!selfHref) return;
-    navigate(collectionHref(selfHref, query, status));
+    if (selfHref) navigate(collectionHref(selfHref, query, status));
   };
 
   const resetFilters = () => {
@@ -142,121 +150,122 @@ export function InboxCollectionView({
   };
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 lg:overflow-hidden">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
+          <PageEyebrow>
             工作区来源 · {collectionState.data.page.totalElements} 条记录
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight">收件箱</h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            采集并核对来源身份，然后由人工选择 1–5 个 active
-            来源。分析时会原子冻结各来源的精确 latest Revision。
-          </p>
-        </div>
-        <InboxSourceDialog
-          workspaceId={workspaceId(collectionState)}
-          onCapture={capture}
-        />
-      </header>
+          </PageEyebrow>
+          <PageTitle>收件箱</PageTitle>
+          <PageDescription>
+            采集并核对来源身份，然后由人工选择 1–5
+            个活跃条目。分析时会原子冻结各条目的精确最新修订，再由本地 Inbox
+            Analyst 一次性提出候选。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
+          <InboxSourceDialog
+            workspaceId={workspaceId(collectionState)}
+            onCapture={capture}
+          />
+        </PageActions>
+      </PageHeader>
 
-      <form
-        className="rounded-xl bg-card p-3 ring-1 ring-foreground/10"
-        onSubmit={applyFilters}
-      >
-        <FieldGroup className="grid gap-2 lg:grid-cols-[minmax(14rem,1fr)_12rem_auto_auto]">
-          <Field>
-            <FieldLabel className="sr-only" htmlFor="inbox-search">
-              搜索来源
-            </FieldLabel>
-            <Input
-              id="inbox-search"
-              placeholder="搜索标题、正文或来源键…"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel className="sr-only" htmlFor="inbox-status-filter">
-              状态筛选
-            </FieldLabel>
-            <Select
+      <PageToolbar>
+        <form
+          className="flex w-full min-w-0 items-center gap-2"
+          onSubmit={applyFilters}
+        >
+          <FieldGroup className="flex min-w-0 flex-1 flex-col gap-2 lg:flex-row lg:items-center">
+            <Field className="min-w-0 flex-1">
+              <FieldLabel className="sr-only" htmlFor="inbox-search">
+                搜索来源
+              </FieldLabel>
+              <Input
+                id="inbox-search"
+                placeholder="搜索标题、正文或来源类型…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </Field>
+            <ToggleGroup
+              aria-label="来源状态"
+              onValueChange={(value) => {
+                if (value) setStatus(value as InboxStatusFilter);
+              }}
+              size="sm"
+              spacing={0}
+              type="single"
               value={status}
-              onValueChange={(value) => setStatus(value as InboxStatusFilter)}
+              variant="outline"
             >
-              <SelectTrigger id="inbox-status-filter" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="active">活跃</SelectItem>
-                  <SelectItem value="deferred">已暂缓</SelectItem>
-                  <SelectItem value="closed">已关闭</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Button disabled={!selfHref} type="submit" variant="outline">
-            应用筛选
-          </Button>
-          <Button
-            disabled={!selfHref || (!query && status === 'all')}
-            type="button"
-            variant="ghost"
-            onClick={resetFilters}
-          >
-            清除
-          </Button>
-        </FieldGroup>
-      </form>
+              {statusOptions.map((option) => (
+                <ToggleGroupItem key={option.value} value={option.value}>
+                  {option.label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <Button
+              disabled={!selfHref}
+              size="sm"
+              type="submit"
+              variant="outline"
+            >
+              应用筛选
+            </Button>
+            <Button
+              disabled={!selfHref || (!query && status === 'all')}
+              onClick={resetFilters}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              清除
+            </Button>
+          </FieldGroup>
+        </form>
+      </PageToolbar>
 
       {pageError ? (
-        <Alert variant="destructive">
+        <Alert className="m-2" variant="destructive">
           <AlertDescription>{pageError}</AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="min-h-0 flex-1 lg:[&>div]:h-full">
+      <div className="min-h-0 flex-1">
         <InboxSourceBrowser
           focusedItem={focusedItem}
           itemStates={collectionState.collection}
+          pagination={
+            <InboxPagination
+              hasNext={Boolean(collectionState.getLink('next'))}
+              hasPrevious={Boolean(collectionState.getLink('prev'))}
+              label="收件箱分页"
+              page={collectionState.data.page.number}
+              pending={pagePending}
+              totalPages={collectionState.data.page.totalPages}
+              onNext={() => void navigatePage('next')}
+              onPrevious={() => void navigatePage('prev')}
+            />
+          }
           selectedIds={selectedIds}
           selectionLimitReached={selectedItems.size >= maximumExtractionSources}
+          total={collectionState.data.page.totalElements}
           onFocus={setFocusedItemId}
           onSelectionChange={toggleSelection}
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">
-            第 {collectionState.data.page.number} 页
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            当前页 {collectionState.collection.length} 条
-          </span>
-        </div>
-        <InboxPagination
-          label="收件箱分页"
-          page={collectionState.data.page.number}
-          totalPages={collectionState.data.page.totalPages}
-          hasPrevious={Boolean(collectionState.getLink('prev'))}
-          hasNext={Boolean(collectionState.getLink('next'))}
-          pending={pagePending}
-          onPrevious={() => void navigatePage('prev')}
-          onNext={() => void navigatePage('next')}
-        />
-      </div>
-
       {selectedItems.size > 0 ? (
-        <InboxExtractionControls
-          collectionState={collectionState}
-          selectedSources={[...selectedItems.values()]}
-          onClear={() => setSelectedItems(new Map())}
-        />
+        <div className="shrink-0 border-t p-2">
+          <InboxExtractionControls
+            collectionState={collectionState}
+            selectedSources={[...selectedItems.values()]}
+            onClear={() => setSelectedItems(new Map())}
+          />
+        </div>
       ) : null}
-    </section>
+    </EvidencePage>
   );
 }
 

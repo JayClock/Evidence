@@ -26,12 +26,12 @@ export function InboxPagination({
   return (
     <nav
       aria-label={label}
-      className="mt-4 flex items-center justify-between gap-3"
+      className="flex items-center justify-between gap-2 pt-2"
     >
-      <p className="text-sm text-muted-foreground">
+      <p className="font-mono text-[0.6875rem] text-muted-foreground">
         第 {page} 页，共 {totalPages} 页
       </p>
-      <div className="flex gap-2">
+      <div className="flex gap-1">
         <Button
           type="button"
           size="sm"
