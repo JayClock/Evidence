@@ -113,12 +113,12 @@ export function WorkspaceSwitcher({
                   E
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-sidebar-foreground/70">
                     Workspace
                   </span>
                   <span className="truncate font-medium">{activeTitle}</span>
                 </span>
-                <span className="ml-auto text-muted-foreground">⌄</span>
+                <span className="ml-auto text-sidebar-foreground/70">⌄</span>
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-64">
