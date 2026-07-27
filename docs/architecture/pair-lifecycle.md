@@ -50,15 +50,16 @@ stdout/stderr 正文、源码、完整 diff、绝对路径、Pi Prompt、消息�
 
 ## 异常与人工路由
 
-- 相同 failure fingerprint 的重试、无进展 checkpoint、Agent call、命令 timeout 和总活动时间均受 Approved Plan 中的有限预算约束；预算不能自动扩大。
+- 相同 failure fingerprint 的重试、无进展 checkpoint、Agent call、命令 timeout 和总活动时间均受 Approved Plan 中的有限预算约束；预算不能自动扩大。跨越边界的 Driver、命令、Red Review 或 automation trigger 必须先持久化，再转换为 `budget_exhausted`，不得以 conflict 丢弃触发证据。
 - Desktop 中断、lease 过期、Unexpected Green、路径越界、Git HEAD 改变、Nx owner 漂移或 evidence hash 不一致必须 fail closed。
-- Server 根据当前 checkpoint 只提供允许的 `back_test`、`back_implementation`、`back_tasking`、`retry_quality` 或 `cancel` 路由；每个人工路由都要求理由。
+- Server 根据失败动作和当前 checkpoint 只提供允许的 `back_test`、`back_implementation`、`back_tasking`、`retry_quality` 或 `cancel` 路由；每个人工路由都要求理由。瞬时 Driver、命令或 Red Reviewer 故障只能恢复对应未完成动作，不能跳过 Red、Green、Refactor 或质量门。
+- 继续 Pair 时，Server 在 `nextAction` 中锁定 `repair_test`、`repair_implementation`、`repair_refactor` 或 `repair_quality_gate`。命令失败只引用精确 observation；完整 diff 审查退回只引用该 append-only 人工决定及其 bounded reason。Desktop 只把匹配引用的本地 bounded diagnostics 交给 Driver。
 - 返回 Tasking 时旧 Plan、PairRun 和执行事实保持不可变；后续 Plan 必须重新 Desk Check，并由新的 PairRun 精确引用。
 
 ## 编码审批
 
 - 完整 diff 由 Desktop 本地提供给共享 Web renderer；Browser-only 模式只能查看 Server evidence，不能完成审批。
-- 人工接受前，Desktop 必须重新计算 diff hash，并与 Server Manifest 锁定值一致。
+- 人工接受前，Desktop 必须重新计算 diff hash，并与 Server Manifest 锁定值一致。每次退回修复都会清除当前 Manifest authority；后续质量门生成新的不可变 Manifest revision，旧 revision 不覆盖、不删除。
 - Desktop 创建一个本地 Conventional Commit 后，Web 通过 REST/HAL 提交 `manifestSha256 + diffSha256 + commitSha + reason` 的人工决定。
 - 决定失败可按同一 hash/commit 幂等重试；不得自动 merge 或 push，Iteration worktree 为后续 Showcase 保留。
 
