@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import type {
   IntakeAgentEvent,
   IterationResource,
@@ -7,13 +7,30 @@ import type {
   KickoffResource,
   State,
 } from '@evidence/api-client';
-import { IterationDetailView, KickoffDetailView } from './iteration-views';
+import { IterationDetailView } from './iteration-views';
+import { KickoffDetailView } from './kickoff-view';
 
 const candidateHash = `sha256:${'a'.repeat(64)}`;
 const intakeHash = `sha256:${'b'.repeat(64)}`;
 const proposalHash = `sha256:${'c'.repeat(64)}`;
 const revisionHash = `sha256:${'d'.repeat(64)}`;
 const commitSha = 'e'.repeat(40);
+
+class ResizeObserverStub {
+  observe() {
+    // jsdom does not implement ResizeObserver.
+  }
+
+  unobserve() {
+    // jsdom does not implement ResizeObserver.
+  }
+
+  disconnect() {
+    // jsdom does not implement ResizeObserver.
+  }
+}
+
+vi.stubGlobal('ResizeObserver', ResizeObserverStub);
 
 function iterationData(
   overrides: Partial<IterationResource['data']> = {},
@@ -39,11 +56,29 @@ function iterationData(
   };
 }
 
+function embeddedIteration(overrides: Partial<IterationResource['data']> = {}) {
+  return {
+    _links: {
+      candidate: {
+        href: '/api/workspaces/workspace-1/story-candidates/candidate-1',
+      },
+      ...(overrides.activeStoryId
+        ? {
+            story: {
+              href: `/api/workspaces/workspace-1/stories/${overrides.activeStoryId}`,
+            },
+          }
+        : {}),
+    },
+    ...iterationData(overrides),
+  };
+}
+
 function kickoffData(
   overrides: Partial<KickoffResource['data']> = {},
 ): KickoffResource['data'] {
   return {
-    iteration: { _links: {}, ...iterationData() },
+    iteration: embeddedIteration(),
     intake: {
       _links: {},
       iterationId: 'iteration-1',
@@ -51,11 +86,11 @@ function kickoffData(
         candidateId: 'candidate-1',
         candidateReference: 'CAND-0001',
         extractionId: 'extraction-1',
-        title: 'Local coding agent',
-        problem: 'Hosted services must not receive source code.',
-        role: 'Workspace maintainer',
-        goal: 'Run coding work locally.',
-        value: 'Credentials remain local.',
+        title: '本地编码智能体',
+        problem: '托管服务不能接收源码。',
+        role: '工作区维护者',
+        goal: '在本地运行受限的编码工作。',
+        value: '凭据和仓库内容保持在本地。',
         cognitiveMode: 'complicated',
         citations: [],
         contentSha256: candidateHash,
@@ -69,8 +104,8 @@ function kickoffData(
           sourceKind: 'manual_text',
           externalKey: 'manual:one',
           itemStatus: 'active',
-          title: 'Local coding agent',
-          body: 'Run Pi locally.',
+          title: '本地编码智能体',
+          body: '在本地运行 Pi。',
           contentType: 'text/markdown',
           uri: null,
           providerMetadata: {},
@@ -80,7 +115,7 @@ function kickoffData(
           locatorLinks: {},
         },
       ],
-      requirementsProjection: 'As a Workspace maintainer…',
+      requirementsProjection: '作为工作区维护者…',
       contentSha256: intakeHash,
       frozenAt: '2026-07-24T10:00:00.000Z',
     },
@@ -90,11 +125,11 @@ function kickoffData(
       reference: 'KICKOFF-CAND-001',
       sequence: 1,
       origin: 'inbox_candidate',
-      title: 'Local coding agent',
-      problem: 'Hosted services must not receive source code.',
-      role: 'Workspace maintainer',
-      goal: 'Run coding work locally.',
-      value: 'Credentials remain local.',
+      title: '本地编码智能体',
+      problem: '托管服务不能接收源码。',
+      role: '工作区维护者',
+      goal: '在本地运行受限的编码工作。',
+      value: '凭据和仓库内容保持在本地。',
       cognitiveMode: 'complicated',
       citations: [],
       contentSha256: proposalHash,
@@ -123,6 +158,10 @@ function kickoffState({
       rel: 'iteration',
       href: '/api/workspaces/workspace-1/iterations/iteration-1',
     },
+    intake: {
+      rel: 'intake',
+      href: '/api/workspaces/workspace-1/iterations/iteration-1/intake',
+    },
   };
   if (data.currentProposal) {
     links.decide = {
@@ -142,21 +181,19 @@ function kickoffState({
 }
 
 function decisionResult(action: 'confirm' | 'revise') {
+  const confirmed = action === 'confirm';
   return {
     data: {
-      iteration: {
-        _links: {},
-        ...iterationData(
-          action === 'confirm'
-            ? {
-                loop: 'understand',
-                stage: 'tqa',
-                version: 3,
-                activeStoryId: 'story-1',
-              }
-            : { stage: 'candidate_drafting', version: 3 },
-        ),
-      },
+      iteration: embeddedIteration(
+        confirmed
+          ? {
+              loop: 'understand',
+              stage: 'tqa',
+              version: 3,
+              activeStoryId: 'story-1',
+            }
+          : { stage: 'candidate_drafting', version: 3 },
+      ),
       decision: {
         _links: {},
         id: 'decision-1',
@@ -164,43 +201,46 @@ function decisionResult(action: 'confirm' | 'revise') {
         proposalId: 'proposal-1',
         proposalSha256: proposalHash,
         action,
-        reason: action === 'confirm' ? null : 'Narrow the goal.',
+        reason: confirmed ? null : '收窄目标。',
         decidedByUserId: 'user-1',
         decidedAt: '2026-07-24T11:00:00.000Z',
         contentSha256: `sha256:${'f'.repeat(64)}`,
       },
-      problemStatement:
-        action === 'confirm'
-          ? {
-              id: 'problem-1',
-              storyId: 'story-1',
-              revisionNumber: 1,
-              title: 'Local coding agent',
-              problem: 'Hosted services must not receive source code.',
-              cognitiveMode: 'complicated',
-              citations: [],
-              contentSha256: `sha256:${'1'.repeat(64)}`,
-              createdAt: '2026-07-24T11:00:00.000Z',
-            }
-          : null,
-      storyCard:
-        action === 'confirm'
-          ? {
-              id: 'card-1',
-              reference: 'US-001' as const,
-              storyId: 'story-1',
-              revisionNumber: 1,
-              title: 'Local coding agent',
-              role: 'Workspace maintainer',
-              goal: 'Run coding work locally.',
-              value: 'Credentials remain local.',
-              problemStatementId: 'problem-1',
-              contentSha256: `sha256:${'2'.repeat(64)}`,
-              createdAt: '2026-07-24T11:00:00.000Z',
-            }
-          : null,
+      problemStatement: confirmed
+        ? {
+            id: 'problem-1',
+            storyId: 'story-1',
+            revisionNumber: 1,
+            title: '本地编码智能体',
+            problem: '托管服务不能接收源码。',
+            cognitiveMode: 'complicated',
+            citations: [],
+            contentSha256: `sha256:${'1'.repeat(64)}`,
+            createdAt: '2026-07-24T11:00:00.000Z',
+          }
+        : null,
+      storyCard: confirmed
+        ? {
+            id: 'card-1',
+            reference: 'US-001' as const,
+            storyId: 'story-1',
+            revisionNumber: 1,
+            title: '本地编码智能体',
+            role: '工作区维护者',
+            goal: '在本地运行受限的编码工作。',
+            value: '凭据和仓库内容保持在本地。',
+            problemStatementId: 'problem-1',
+            contentSha256: `sha256:${'2'.repeat(64)}`,
+            createdAt: '2026-07-24T11:00:00.000Z',
+          }
+        : null,
     },
   } as unknown as State<KickoffDecisionResultResource>;
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname}</output>;
 }
 
 afterEach(() => {
@@ -232,16 +272,19 @@ describe('Iteration and Kickoff views', () => {
     expect(screen.getByRole('heading', { name: 'ITER-0001' })).toBeTruthy();
     expect(screen.getByText('evidence/iter-iteration-1')).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Frozen Intake' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Open Kickoff' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '打开 Kickoff' })).toBeTruthy();
   });
 
-  it('creates US-001 only after the explicit human confirm Decision', async () => {
+  it('creates US-001 only after explicit human confirmation', async () => {
     const refreshed = kickoffState({
       data: kickoffData({
-        iteration: {
-          _links: {},
-          ...iterationData({ loop: 'understand', stage: 'tqa', version: 3 }),
-        },
+        iteration: embeddedIteration({
+          loop: 'understand',
+          stage: 'tqa',
+          version: 3,
+          activeStoryId: 'story-1',
+        }),
+        currentProposal: null,
       }),
     });
     const post = vi.fn().mockResolvedValue(decisionResult('confirm'));
@@ -249,12 +292,23 @@ describe('Iteration and Kickoff views', () => {
     const state = kickoffState({ post, refresh });
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/kickoff']}>
         <KickoffDetailView resourceState={state} />
+        <LocationProbe />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm as US-001' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认并创建 US-001' }));
+    expect(screen.getByRole('button', { name: '创建 US-001' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: '我确认当前 Proposal 可以成为权威 Story',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '创建 US-001' }));
 
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith({
@@ -267,18 +321,22 @@ describe('Iteration and Kickoff views', () => {
         },
       }),
     );
-    expect(await screen.findByText(/US-001: Local coding agent/)).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByTestId('location').textContent).toBe(
+        '/api/workspaces/workspace-1/stories/story-1',
+      ),
+    );
   });
 
   it('records human revise before invoking the local replacement Analyst', async () => {
+    const initialProposal = kickoffData().currentProposal;
+    expect(initialProposal).not.toBeNull();
+    if (!initialProposal) return;
     const replacement = kickoffState({
       data: kickoffData({
-        iteration: {
-          _links: {},
-          ...iterationData({ version: 4 }),
-        },
+        iteration: embeddedIteration({ version: 4 }),
         currentProposal: {
-          ...kickoffData().currentProposal!,
+          ...initialProposal,
           id: 'proposal-2',
           reference: 'KICKOFF-CAND-002',
         },
@@ -300,11 +358,11 @@ describe('Iteration and Kickoff views', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Revise' }));
-    fireEvent.change(screen.getByLabelText('Reason'), {
-      target: { value: 'Narrow the goal.' },
+    fireEvent.click(screen.getByRole('button', { name: '修订' }));
+    fireEvent.change(screen.getByLabelText('决定理由'), {
+      target: { value: '收窄目标。' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Record revise' }));
+    fireEvent.click(screen.getByRole('button', { name: '记录修订决定' }));
 
     await waitFor(() => expect(post).toHaveBeenCalledOnce());
     await waitFor(() =>

@@ -23,6 +23,7 @@ export * from './skeleton';
 export * from './sonner';
 export * from './spinner';
 export * from './table';
+export * from './tabs';
 export * from './textarea';
 export * from './toggle';
 export * from './toggle-group';

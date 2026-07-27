@@ -1,14 +1,8 @@
-import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   IterationIntakeResource,
   IterationResource,
-  KickoffDecisionAction,
-  KickoffDecisionInput,
-  KickoffDecisionResultResource,
-  KickoffResource,
   State,
-  StoryCardResource,
 } from '@evidence/api-client';
 import {
   Alert,
@@ -20,19 +14,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  Field,
-  FieldGroup,
-  FieldLabel,
   Separator,
-  Textarea,
 } from '@evidence/ui';
 
 export function IterationDetailView({
@@ -42,90 +24,100 @@ export function IterationDetailView({
 }) {
   const iteration = resourceState.data;
   return (
-    <Card>
-      <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle aria-level={1} role="heading">
-              {iteration.reference}
-            </CardTitle>
-            <Badge>{formatLabel(iteration.lifecycle)}</Badge>
-            <Badge variant="outline">
-              {formatLabel(iteration.loop)} / {formatLabel(iteration.stage)}
-            </Badge>
+    <section className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pb-1">
+      <Card>
+        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle aria-level={1} role="heading">
+                {iteration.reference}
+              </CardTitle>
+              <Badge>{iterationLifecycleLabel(iteration.lifecycle)}</Badge>
+              <Badge variant="outline">
+                {iterationLoopLabel(iteration.loop)} /{' '}
+                {iterationStageLabel(iteration.stage)}
+              </Badge>
+            </div>
+            <CardDescription>
+              一张冻结 Candidate、一个隔离分支，以及最多一张权威 Story。
+            </CardDescription>
           </div>
-          <CardDescription>
-            One frozen Candidate, one isolated branch, and at most one Story.
-          </CardDescription>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {resourceState.getLink('intake') ? (
-            <Button asChild variant="outline">
-              <Link to={resourceState.getLink('intake')?.href ?? '#'}>
-                Frozen Intake
-              </Link>
-            </Button>
+          <div className="flex flex-wrap gap-2">
+            {resourceState.getLink('intake') ? (
+              <Button asChild variant="outline">
+                <Link to={resourceState.getLink('intake')?.href ?? '#'}>
+                  Frozen Intake
+                </Link>
+              </Button>
+            ) : null}
+            {resourceState.getLink('kickoff') ? (
+              <Button asChild>
+                <Link to={resourceState.getLink('kickoff')?.href ?? '#'}>
+                  打开 Kickoff
+                </Link>
+              </Button>
+            ) : null}
+            {resourceState.getLink('understanding') ? (
+              <Button asChild>
+                <Link to={resourceState.getLink('understanding')?.href ?? '#'}>
+                  打开 Understand / TQA
+                </Link>
+              </Button>
+            ) : null}
+            {resourceState.getLink('tasking') ? (
+              <Button asChild>
+                <Link to={resourceState.getLink('tasking')?.href ?? '#'}>
+                  打开 Tasking / Desk Check
+                </Link>
+              </Button>
+            ) : null}
+            {resourceState.getLink('story') ? (
+              <Button asChild variant="outline">
+                <Link to={resourceState.getLink('story')?.href ?? '#'}>
+                  打开 US-001
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          {iteration.lifecycle === 'provisioning_failed' ? (
+            <Alert variant="destructive">
+              <AlertDescription>
+                {iteration.provisioningFailureSummary ??
+                  'Desktop provision 失败；Candidate 仍保持 selected，等待人工恢复。'}
+              </AlertDescription>
+            </Alert>
           ) : null}
-          {resourceState.getLink('kickoff') ? (
-            <Button asChild>
-              <Link to={resourceState.getLink('kickoff')?.href ?? '#'}>
-                Open Kickoff
-              </Link>
-            </Button>
-          ) : null}
-          {resourceState.getLink('understanding') ? (
-            <Button asChild>
-              <Link to={resourceState.getLink('understanding')?.href ?? '#'}>
-                Open Understand / TQA
-              </Link>
-            </Button>
-          ) : null}
-          {resourceState.getLink('tasking') ? (
-            <Button asChild>
-              <Link to={resourceState.getLink('tasking')?.href ?? '#'}>
-                Open Tasking / Desk Check
-              </Link>
-            </Button>
-          ) : null}
-          {resourceState.getLink('story') ? (
-            <Button asChild variant="outline">
-              <Link to={resourceState.getLink('story')?.href ?? '#'}>
-                Open US-001
-              </Link>
-            </Button>
-          ) : null}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {iteration.lifecycle === 'provisioning_failed' ? (
-          <Alert variant="destructive">
-            <AlertDescription>
-              {iteration.provisioningFailureSummary ??
-                'Desktop provisioning failed. This Candidate remains selected for explicit recovery.'}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Detail label="Base commit" value={iteration.baseCommitSha} mono />
-          <Detail
-            label="Branch"
-            value={iteration.branchName ?? 'Provisioning not complete'}
-            mono
-          />
-          <Detail label="Candidate" value={iteration.sourceCandidateId} mono />
-          <Detail
-            label="Candidate SHA-256"
-            value={iteration.sourceCandidateSha256}
-            mono
-          />
-          <Detail
-            label="Admitted"
-            value={formatDateTime(iteration.admittedAt)}
-          />
-          <Detail label="Version" value={String(iteration.version)} />
-        </div>
-      </CardContent>
-    </Card>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Detail label="基准提交" value={iteration.baseCommitSha} mono />
+            <Detail
+              label="隔离分支"
+              value={iteration.branchName ?? '尚未完成 provision'}
+              mono
+            />
+            <Detail
+              label="Candidate"
+              value={iteration.sourceCandidateId}
+              mono
+            />
+            <Detail
+              label="Candidate SHA-256"
+              value={iteration.sourceCandidateSha256}
+              mono
+            />
+            <Detail
+              label="准入时间"
+              value={formatDateTime(iteration.admittedAt)}
+            />
+            <Detail
+              label="Iteration version"
+              value={String(iteration.version)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </section>
   );
 }
 
@@ -136,22 +128,22 @@ export function IterationIntakeDetailView({
 }) {
   const intake = resourceState.data;
   return (
-    <div className="space-y-5">
+    <section className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pb-1">
       <Card>
         <CardHeader>
           <CardTitle aria-level={1} role="heading">
             Frozen Intake
           </CardTitle>
           <CardDescription>
-            Self-contained Candidate and exact Revision snapshots ·{' '}
+            自包含 Candidate 与精确 Revision 快照 ·{' '}
             {formatDateTime(intake.frozenAt)}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="flex flex-col gap-4">
           <Alert>
             <AlertDescription>
-              This content is validated without reading live Inbox Items,
-              providers, or mutable Candidate records.
+              后续校验只读取这份冻结内容，不回读 live Inbox Item、provider
+              或可变 Candidate。
             </AlertDescription>
           </Alert>
           <Detail label="Intake SHA-256" value={intake.contentSha256} mono />
@@ -160,326 +152,7 @@ export function IterationIntakeDetailView({
         </CardContent>
       </Card>
       <FrozenSources sources={intake.sources} />
-    </div>
-  );
-}
-
-export function KickoffDetailView({
-  resourceState,
-}: {
-  resourceState: State<KickoffResource>;
-}) {
-  const [kickoffState, setKickoffState] = useState(resourceState);
-  const [pending, setPending] = useState(false);
-  const [progress, setProgress] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [confirmedCard, setConfirmedCard] = useState<StoryCardResource | null>(
-    null,
-  );
-  const kickoff = kickoffState.data;
-  const proposal = kickoff.currentProposal;
-  const bridge = window.evidenceDesktop;
-
-  const refresh = async () => {
-    setKickoffState(
-      (await kickoffState.follow('self').refresh()) as State<KickoffResource>,
-    );
-  };
-
-  const runAnalyst = async () => {
-    if (!bridge?.runKickoffAnalyst || pending) return;
-    setPending(true);
-    setError(null);
-    setProgress('Revising the Frozen Intake…');
-    try {
-      await bridge.runKickoffAnalyst(
-        {
-          id: requestId('kickoff'),
-          workspaceId: workspaceId(kickoffState),
-          iterationId: kickoff.iteration.id,
-        },
-        (event) => {
-          if (event.event === 'progress') setProgress(event.data);
-          if (event.event === 'tool-start') {
-            setProgress('Submitting the replacement Proposal…');
-          }
-          if (event.event === 'error') setError(event.data);
-        },
-      );
-      await refresh();
-    } catch (caught) {
-      setError(
-        errorMessage(
-          caught,
-          'The Kickoff Analyst could not revise the Proposal.',
-        ),
-      );
-    } finally {
-      setPending(false);
-      setProgress(null);
-    }
-  };
-
-  const decide = async (
-    action: KickoffDecisionAction,
-    reason: string | null,
-  ) => {
-    if (!proposal || !kickoffState.getLink('decide') || pending) return;
-    setPending(true);
-    setError(null);
-    try {
-      const input: KickoffDecisionInput = {
-        proposalId: proposal.id,
-        proposalSha256: proposal.contentSha256,
-        expectedIterationVersion: kickoff.iteration.version,
-        action,
-        reason,
-      };
-      const result = (await kickoffState.follow('decide').post({
-        data: input,
-      })) as State<KickoffDecisionResultResource>;
-      setConfirmedCard(result.data.storyCard);
-      if (action === 'revise') {
-        if (!bridge?.runKickoffAnalyst) {
-          setError(
-            'Revise was recorded. Open Evidence Desktop to run the local Kickoff Analyst.',
-          );
-          await refresh();
-        } else {
-          setPending(false);
-          await runAnalyst();
-          return;
-        }
-      } else {
-        await refresh();
-      }
-    } catch (caught) {
-      setError(
-        errorMessage(caught, 'The Kickoff Decision could not be recorded.'),
-      );
-      throw caught;
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const drafting =
-    kickoff.iteration.lifecycle === 'active' &&
-    kickoff.iteration.loop === 'kickoff' &&
-    kickoff.iteration.stage === 'candidate_drafting';
-
-  return (
-    <div className="space-y-5">
-      <Card>
-        <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle aria-level={1} role="heading">
-                {kickoff.iteration.reference} Kickoff
-              </CardTitle>
-              <Badge>{formatLabel(kickoff.iteration.lifecycle)}</Badge>
-              <Badge variant="outline">
-                {formatLabel(kickoff.iteration.stage)}
-              </Badge>
-            </div>
-            <CardDescription>
-              Human authority is required for every confirm, revise, split,
-              defer, or stop Decision.
-            </CardDescription>
-          </div>
-          {drafting && !proposal ? (
-            <Button
-              disabled={pending || !bridge?.runKickoffAnalyst}
-              type="button"
-              onClick={() => void runAnalyst()}
-            >
-              {pending ? 'Revising…' : 'Run local Kickoff Analyst'}
-            </Button>
-          ) : null}
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!bridge?.runKickoffAnalyst && drafting && !proposal ? (
-            <Alert>
-              <AlertDescription>
-                Open Evidence Desktop to draft the replacement from Frozen
-                Intake and prior human Decisions.
-              </AlertDescription>
-            </Alert>
-          ) : null}
-          {progress ? (
-            <p aria-live="polite" className="text-sm text-muted-foreground">
-              {progress}
-            </p>
-          ) : null}
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-          {confirmedCard ? (
-            <AuthoritativeStoryCard card={confirmedCard} />
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {proposal ? (
-        <Card>
-          <CardHeader>
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle aria-level={2} role="heading">
-                {proposal.title}
-              </CardTitle>
-              <Badge variant="secondary">{proposal.reference}</Badge>
-              <Badge variant="outline">{formatLabel(proposal.origin)}</Badge>
-            </div>
-            <CardDescription>
-              Proposal only · {proposal.contentSha256}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Detail label="Role" value={proposal.role} />
-              <Detail label="Problem" value={proposal.problem} />
-              <Detail label="Goal" value={proposal.goal} />
-              <Detail label="Value" value={proposal.value} />
-            </div>
-            {kickoff.iteration.lifecycle === 'active' &&
-            kickoff.iteration.loop === 'kickoff' &&
-            kickoff.iteration.stage === 'candidate_review' ? (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  disabled={pending}
-                  type="button"
-                  onClick={() => void decide('confirm', null)}
-                >
-                  Confirm as US-001
-                </Button>
-                {(['revise', 'split', 'defer', 'stop'] as const).map(
-                  (action) => (
-                    <KickoffDecisionDialog
-                      key={action}
-                      action={action}
-                      disabled={pending}
-                      onDecide={decide}
-                    />
-                  ),
-                )}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle aria-level={2} role="heading">
-            Frozen Candidate
-          </CardTitle>
-          <CardDescription>
-            The Kickoff Proposal and every replacement remain bounded by this
-            immutable Intake.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CandidateSnapshot candidate={kickoff.intake.candidate} />
-        </CardContent>
-      </Card>
-      <FrozenSources sources={kickoff.intake.sources} />
-      <DecisionHistory decisions={kickoff.decisions} />
-    </div>
-  );
-}
-
-function KickoffDecisionDialog({
-  action,
-  disabled,
-  onDecide,
-}: {
-  action: Exclude<KickoffDecisionAction, 'confirm'>;
-  disabled: boolean;
-  onDecide: (
-    action: KickoffDecisionAction,
-    reason: string | null,
-  ) => Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!reason.trim() || disabled) return;
-    setError(null);
-    try {
-      await onDecide(action, reason.trim());
-      setReason('');
-      setOpen(false);
-    } catch (caught) {
-      setError(
-        errorMessage(caught, 'The Kickoff Decision could not be recorded.'),
-      );
-    }
-  };
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button disabled={disabled} type="button" variant="outline">
-          {formatLabel(action)}
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{formatLabel(action)} this Kickoff</DialogTitle>
-          <DialogDescription>
-            Record the human reason. This Decision is append-only.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={(event) => void submit(event)}>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor={`kickoff-${action}-reason`}>
-                Reason
-              </FieldLabel>
-              <Textarea
-                id={`kickoff-${action}-reason`}
-                required
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-              />
-            </Field>
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
-          </FieldGroup>
-          <DialogFooter className="mt-5">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button disabled={!reason.trim() || disabled} type="submit">
-              Record {action}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function AuthoritativeStoryCard({ card }: { card: StoryCardResource }) {
-  return (
-    <Alert>
-      <AlertDescription>
-        <strong>
-          {card.reference}: {card.title}
-        </strong>
-        <span className="mt-1 block">
-          As a {card.role}, {card.goal}, so that {card.value}
-        </span>
-      </AlertDescription>
-    </Alert>
+    </section>
   );
 }
 
@@ -494,10 +167,10 @@ function CandidateSnapshot({
         label="Candidate"
         value={`${candidate.candidateReference} · ${candidate.title}`}
       />
-      <Detail label="Role" value={candidate.role} />
-      <Detail label="Problem" value={candidate.problem} />
-      <Detail label="Goal" value={candidate.goal} />
-      <Detail label="Value" value={candidate.value} />
+      <Detail label="角色" value={candidate.role} />
+      <Detail label="问题" value={candidate.problem} />
+      <Detail label="目标" value={candidate.goal} />
+      <Detail label="价值" value={candidate.value} />
       <Detail label="Candidate SHA-256" value={candidate.contentSha256} mono />
     </div>
   );
@@ -512,72 +185,28 @@ function FrozenSources({
     <Card>
       <CardHeader>
         <CardTitle aria-level={2} role="heading">
-          Frozen sources
+          冻结来源
         </CardTitle>
         <CardDescription>
-          {sources.length} exact immutable Revision snapshot(s).
+          {sources.length} 个精确、不可变的 Revision 快照。
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col gap-4">
         {sources.map((source, index) => (
-          <div key={source.inboxRevisionId}>
-            {index > 0 ? <Separator className="mb-4" /> : null}
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-medium">{source.title}</p>
-                <Badge variant="outline">
-                  Revision {source.revisionNumber}
-                </Badge>
-              </div>
-              <p className="break-all font-mono text-xs text-muted-foreground">
-                {source.contentSha256}
-              </p>
-              <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-                {source.body}
-              </pre>
+          <div className="flex flex-col gap-3" key={source.inboxRevisionId}>
+            {index > 0 ? <Separator /> : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-medium">{source.title}</p>
+              <Badge variant="outline">Revision {source.revisionNumber}</Badge>
             </div>
+            <p className="break-all font-mono text-xs text-muted-foreground">
+              {source.contentSha256}
+            </p>
+            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
+              {source.body}
+            </pre>
           </div>
         ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function DecisionHistory({
-  decisions,
-}: {
-  decisions: KickoffResource['data']['decisions'];
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle aria-level={2} role="heading">
-          Decision history
-        </CardTitle>
-        <CardDescription>Append-only human Kickoff authority.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {decisions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No Decisions recorded.
-          </p>
-        ) : (
-          <ol className="space-y-3">
-            {decisions.map((decision) => (
-              <li key={decision.id} className="rounded-md border p-3 text-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>{formatLabel(decision.action)}</Badge>
-                  <span className="font-mono text-xs">
-                    {decision.reference}
-                  </span>
-                </div>
-                {decision.reason ? (
-                  <p className="mt-2">{decision.reason}</p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
       </CardContent>
     </Card>
   );
@@ -593,8 +222,8 @@ function Detail({
   mono?: boolean;
 }) {
   return (
-    <div className="min-w-0 space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className="flex min-w-0 flex-col gap-1">
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
         {label}
       </p>
       <p
@@ -608,36 +237,53 @@ function Detail({
   );
 }
 
-function workspaceId(state: State<KickoffResource>): string {
-  const href = state.getLink('iteration')?.href;
-  const match = href && /\/workspaces\/([^/?#]+)/.exec(href);
-  if (!match?.[1])
-    throw new Error('Kickoff is missing its Workspace identity.');
-  return decodeURIComponent(match[1]);
+function iterationLifecycleLabel(value: string): string {
+  return (
+    {
+      provisioning: 'Provision 中',
+      active: 'Active',
+      provisioning_failed: 'Provision 失败',
+      halted: '已终止',
+    }[value] ?? value
+  );
 }
 
-function requestId(prefix: string): string {
-  return `${prefix}:${globalThis.crypto?.randomUUID?.() ?? String(Date.now())}`;
+function iterationLoopLabel(value: string): string {
+  return (
+    {
+      kickoff: 'Kickoff',
+      understand: 'Understand',
+      tasking: 'Tasking',
+      pair: 'Pair',
+    }[value] ?? value
+  );
 }
 
-function formatLabel(value: string): string {
-  return value
-    .split(/[_\s-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+function iterationStageLabel(value: string): string {
+  return (
+    {
+      candidate_review: 'Candidate 审查',
+      candidate_drafting: 'Proposal 修订',
+      tqa: 'TQA',
+      scenario_review: 'Scenario 审查',
+      modeling: '模型影响决定',
+      drafting: 'Tasking 起草',
+      desk_check: 'Desk Check',
+      knowledge_gap: '知识缺口',
+      approved: '计划已批准',
+      plan_confirmed: 'Pair 计划已锁定',
+      quality_gates_passed: '质量门已通过',
+      exception: '异常',
+    }[value] ?? value
+  );
 }
 
 function formatDateTime(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat(undefined, {
+    : new Intl.DateTimeFormat('zh-CN', {
         dateStyle: 'medium',
         timeStyle: 'short',
       }).format(date);
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message : fallback;
 }
