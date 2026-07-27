@@ -58,13 +58,13 @@ const sidebarState = {
   data: {
     sections: [
       {
-        title: 'USER',
-        key: 'user',
+        title: '模型',
+        key: 'model',
         defaultOpen: true,
         items: [
           {
             key: 'logical-entities',
-            label: 'Logical Entities',
+            label: '逻辑实体',
             type: 'resource',
             href: '/api/workspaces/default-workspace/logical-entities',
             path: '/api/workspaces/default-workspace/logical-entities',
@@ -168,17 +168,15 @@ describe('App', () => {
   });
 
   it('renders the HAL-discovered current user and active workspace', () => {
-    renderApp();
+    renderApp('/health');
 
-    expect(
-      screen.getAllByText('Evidence Workspace Console').length,
-    ).toBeGreaterThan(0);
+    expect(screen.getAllByText('Evidence 交付工作区').length).toBeGreaterThan(
+      0,
+    );
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Workspaces')).toBeNull();
-    expect(screen.queryByText('Diagram')).toBeNull();
-    expect(screen.getByText('Logical Entities')).toBeTruthy();
+    expect(screen.getByText('模型')).toBeTruthy();
+    expect(screen.getByText('逻辑实体')).toBeTruthy();
     expect(screen.getByText('Default Workspace')).toBeTruthy();
-    expect(screen.queryByText('1 total')).toBeNull();
   });
 
   it('follows the health relation from the API root', () => {
