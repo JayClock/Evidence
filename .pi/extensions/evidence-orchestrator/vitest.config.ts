@@ -15,5 +15,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['.pi/extensions/evidence-orchestrator/**/*.spec.ts'],
+    // Most suites create Git repositories and worktrees. Running files in
+    // parallel makes their 5-second fail-fast budgets contend on local I/O.
+    maxWorkers: 1,
   },
 });
