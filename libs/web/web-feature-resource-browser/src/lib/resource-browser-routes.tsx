@@ -1,5 +1,5 @@
 import { Suspense, use, useMemo } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
   apiClient,
   normalizeContentType,
@@ -16,9 +16,9 @@ import {
   type KickoffResource,
   type InboxRevisionCollectionResource,
   type InboxRevisionResource,
-  type Link as HalLink,
   type LogicalEntityCollectionResource,
   type LogicalEntityResource,
+  type MembershipCollectionResource,
   type PairResource,
   type RootResource,
   type State,
@@ -37,7 +37,6 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
-  Badge,
   Card,
   CardContent,
   CardDescription,
@@ -72,6 +71,7 @@ import {
   LogicalEntityCollectionView,
   LogicalEntityDetailView,
 } from '@evidence/web-feature-logical-entities';
+import { WorkspaceOverviewView } from './workspace-overview';
 
 export function ResourceBrowserRoutes({
   rootState,
@@ -82,10 +82,7 @@ export function ResourceBrowserRoutes({
 }) {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<Overview rootState={rootState} userState={userState} />}
-      />
+      <Route path="/" element={<Overview userState={userState} />} />
       <Route path="/health" element={<Health rootState={rootState} />} />
       <Route path="/workspaces" element={null} />
       <Route path="/users/*" element={<ApiResourcePage />} />
@@ -95,40 +92,47 @@ export function ResourceBrowserRoutes({
   );
 }
 
-function Overview({
-  rootState,
-  userState,
-}: {
-  rootState: State<RootResource>;
-  userState: State<UserResource>;
-}) {
-  return (
-    <section className="flex flex-col gap-5">
-      <div>
-        <p className="text-sm font-medium text-muted-foreground">Evidence</p>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Evidence Workspace Console
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          The app shell discovers the current user from the API root and follows
-          the user sidebar relation with @hateoas-ts/resource.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <ResourceSummaryCard
-          title="API root"
-          detail="Discovered links"
-          links={rootState.links.getAll().map((link: HalLink) => link.rel)}
-        />
-        <ResourceSummaryCard
-          title={userState.data.name}
-          detail={userState.data.email ?? userState.data.id}
-          links={userState.links.getAll().map((link: HalLink) => link.rel)}
-        />
-      </div>
-    </section>
+function Overview({ userState }: { userState: State<UserResource> }) {
+  const membershipsResource = useMemo(
+    () => userState.follow('memberships'),
+    [userState],
   );
+  const memberships =
+    useResource<MembershipCollectionResource>(membershipsResource);
+
+  if (memberships.loading) {
+    return (
+      <LoadingCard
+        title="正在打开工作区"
+        detail="读取当前用户的 Workspace membership…"
+      />
+    );
+  }
+  if (memberships.error) {
+    return (
+      <ErrorAlert title="无法读取工作区" detail={memberships.error.message} />
+    );
+  }
+
+  const firstMembership = memberships.resourceState?.collection[0];
+  if (!firstMembership) {
+    return (
+      <StatusCard
+        title="尚无工作区"
+        detail="请使用左侧工作区切换器创建第一个 Workspace。"
+      />
+    );
+  }
+  const workspaceHref = firstMembership.getLink('workspace')?.href;
+  if (!workspaceHref) {
+    return (
+      <ErrorAlert
+        title="工作区关系不可用"
+        detail="Membership 未发布 rel=workspace。"
+      />
+    );
+  }
+  return <Navigate replace to={workspaceHref} />;
 }
 
 function Health({ rootState }: { rootState: State<RootResource> }) {
@@ -331,31 +335,7 @@ function WorkspaceDetailView({
 }: {
   resourceState: State<WorkspaceResource>;
 }) {
-  const diagramResource = useMemo(
-    () => resourceState.follow('diagram'),
-    [resourceState],
-  );
-  const diagram = useResource<DiagramResource>(diagramResource);
-
-  if (diagram.loading) {
-    return (
-      <LoadingCard title="Loading diagram" detail="Following rel=diagram…" />
-    );
-  }
-
-  if (diagram.error) {
-    return (
-      <ErrorAlert title="Diagram unavailable" detail={diagram.error.message} />
-    );
-  }
-
-  if (!diagram.resourceState) {
-    return (
-      <LoadingCard title="Loading diagram" detail="Following rel=diagram…" />
-    );
-  }
-
-  return <DiagramDetailView resourceState={diagram.resourceState} />;
+  return <WorkspaceOverviewView resourceState={resourceState} />;
 }
 
 function UnknownResourceView({
@@ -383,33 +363,6 @@ function UnknownResourceView({
             2,
           )}
         </pre>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ResourceSummaryCard({
-  title,
-  detail,
-  links,
-}: {
-  title: string;
-  detail: string;
-  links: string[];
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>Resource</CardDescription>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{detail}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-wrap gap-2">
-        {links.map((link) => (
-          <Badge key={link} variant="secondary">
-            {link}
-          </Badge>
-        ))}
       </CardContent>
     </Card>
   );

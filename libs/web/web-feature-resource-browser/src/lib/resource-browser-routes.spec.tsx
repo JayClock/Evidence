@@ -71,6 +71,8 @@ vi.mock('@evidence/web-feature-delivery', () => ({
   StoryDetailView: () => <div>Story detail</div>,
   StoryRevisionCollectionView: () => <div>Story revisions</div>,
   StoryRevisionDetailView: () => <div>Story revision</div>,
+  storyAuthorityHref: () => '/api/workspaces/default-workspace/stories',
+  storyAuthorityLabel: () => '下一权威动作',
 }));
 
 vi.mock('@evidence/web-feature-diagrams', () => ({
@@ -92,7 +94,11 @@ type ResourceMarker =
         | 'memberships'
         | 'diagram'
         | 'diagram-nodes'
-        | 'diagram-edges';
+        | 'diagram-edges'
+        | 'inbox-items'
+        | 'story-candidates'
+        | 'stories'
+        | 'logical-entities';
     }
   | {
       kind: 'dynamic';
@@ -121,18 +127,87 @@ const userState = {
   follow: (): ResourceMarker => ({ kind: 'memberships' }),
 };
 
+const workspaceLinkMap: Record<string, { rel: string; href: string }> = {
+  self: {
+    rel: 'self',
+    href: '/api/workspaces/default-workspace',
+  },
+  diagram: {
+    rel: 'diagram',
+    href: '/api/workspaces/default-workspace/diagram',
+  },
+  'inbox-items': {
+    rel: 'inbox-items',
+    href: '/api/workspaces/default-workspace/inbox-items',
+  },
+  'story-candidates': {
+    rel: 'story-candidates',
+    href: '/api/workspaces/default-workspace/story-candidates',
+  },
+  stories: {
+    rel: 'stories',
+    href: '/api/workspaces/default-workspace/stories',
+  },
+  'logical-entities': {
+    rel: 'logical-entities',
+    href: '/api/workspaces/default-workspace/logical-entities',
+  },
+};
+
 const workspaceState = {
   data: {
     id: 'default-workspace',
     title: 'Default Workspace',
     description: 'Seed workspace for local desktop usage',
+    status: 'active',
+    metadata: {},
+    createdAt: '2026-01-02T03:04:05Z',
+    updatedAt: '2026-01-03T04:05:06Z',
   },
+  getLink: (rel: string) => workspaceLinkMap[rel],
   follow: (rel: string): ResourceMarker => ({
-    kind: rel === 'diagram' ? 'diagram' : 'memberships',
+    kind:
+      rel === 'diagram'
+        ? 'diagram'
+        : rel === 'inbox-items'
+          ? 'inbox-items'
+          : rel === 'story-candidates'
+            ? 'story-candidates'
+            : rel === 'stories'
+              ? 'stories'
+              : rel === 'logical-entities'
+                ? 'logical-entities'
+                : 'memberships',
   }),
-  links: links('self', 'members', 'diagram', 'inbox-items', 'logical-entities'),
+  links: links(
+    'self',
+    'members',
+    'diagram',
+    'inbox-items',
+    'story-candidates',
+    'stories',
+    'logical-entities',
+  ),
   contentHeaders: () =>
     new Headers({ 'content-type': 'application/vnd.evidence.workspace+json' }),
+};
+
+const membershipState = {
+  data: {
+    id: 'default-workspace-owner',
+    role: 'owner',
+    workspace: {
+      ...workspaceState.data,
+      _links: Object.fromEntries(
+        Object.entries(workspaceLinkMap).map(([key, value]) => [
+          key,
+          { href: value.href },
+        ]),
+      ),
+    },
+  },
+  getLink: (rel: string) =>
+    rel === 'workspace' ? workspaceLinkMap.self : undefined,
 };
 
 const membershipCollectionState = {
@@ -141,7 +216,7 @@ const membershipCollectionState = {
       totalElements: 1,
     },
   },
-  collection: [workspaceState],
+  collection: [membershipState],
   contentHeaders: () =>
     new Headers({
       'content-type': 'application/vnd.evidence.memberships+json',
@@ -206,6 +281,10 @@ const inboxRevisionState = {
 };
 
 const storyCandidateCollectionState = {
+  data: {
+    page: { number: 1, size: 20, totalElements: 2, totalPages: 1 },
+  },
+  collection: [],
   contentHeaders: () =>
     new Headers({
       'content-type': 'application/vnd.evidence.story-candidates+json',
@@ -220,6 +299,17 @@ const storyCandidateState = {
 };
 
 const storyCollectionState = {
+  data: {
+    page: { number: 1, size: 20, totalElements: 0, totalPages: 0 },
+    summary: {
+      humanAttention: 0,
+      agentAttention: 0,
+      approved: 0,
+      stages: [],
+      actions: [],
+    },
+  },
+  collection: [],
   contentHeaders: () =>
     new Headers({ 'content-type': 'application/vnd.evidence.stories+json' }),
 };
@@ -374,6 +464,30 @@ describe('ResourceBrowserRoutes', () => {
             error: null,
             resourceState: diagramEdgeCollectionState,
           };
+        case 'inbox-items':
+          return {
+            loading: false,
+            error: null,
+            resourceState: inboxItemCollectionState,
+          };
+        case 'story-candidates':
+          return {
+            loading: false,
+            error: null,
+            resourceState: storyCandidateCollectionState,
+          };
+        case 'stories':
+          return {
+            loading: false,
+            error: null,
+            resourceState: storyCollectionState,
+          };
+        case 'logical-entities':
+          return {
+            loading: false,
+            error: null,
+            resourceState: logicalEntityCollectionState,
+          };
         case 'dynamic':
           return {
             loading: false,
@@ -384,13 +498,16 @@ describe('ResourceBrowserRoutes', () => {
     });
   });
 
-  it('renders the overview without the workspace list page', () => {
-    renderRoutes();
+  it('redirects the root to the first workspace overview', async () => {
+    await act(async () => {
+      renderRoutes();
+    });
 
-    expect(screen.getByText('Evidence Workspace Console')).toBeTruthy();
-    expect(screen.getByText('Desktop User')).toBeTruthy();
-    expect(screen.queryByText('Default Workspace')).toBeNull();
-    expect(screen.queryByText('1 total')).toBeNull();
+    expect(
+      await screen.findByRole('heading', { name: 'Default Workspace' }),
+    ).toBeTruthy();
+    expect(screen.getByText('需要你处理')).toBeTruthy();
+    expect(screen.queryByText('Evidence Workspace Console')).toBeNull();
   });
 
   it('does not render membership collection resources as a list page', async () => {
@@ -409,12 +526,15 @@ describe('ResourceBrowserRoutes', () => {
     expect(screen.getByText('evidence-server: ok')).toBeTruthy();
   });
 
-  it('renders the projected diagram on the workspace home resource', async () => {
+  it('renders the delivery overview on the workspace home resource', async () => {
     await act(async () => {
       renderRoutes('/workspaces/default-workspace');
     });
 
-    expect(await screen.findByText('Diagram detail')).toBeTruthy();
+    expect(
+      await screen.findByRole('heading', { name: 'Default Workspace' }),
+    ).toBeTruthy();
+    expect(screen.getByText('交付权威流程')).toBeTruthy();
   });
 
   it.each([
