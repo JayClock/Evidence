@@ -32,11 +32,18 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  EvidencePage,
   Field,
   FieldContent,
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Spinner,
   Tabs,
   TabsContent,
@@ -44,6 +51,9 @@ import {
   TabsTrigger,
   Textarea,
   toast,
+  Workbench,
+  WorkbenchMain,
+  WorkbenchRail,
 } from '@evidence/ui';
 import {
   DeliveryAuthorityProgress,
@@ -188,28 +198,28 @@ export function TaskingDetailView({
   const pairHref = state.getLink('pair')?.href;
 
   return (
-    <section className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto pb-1 xl:overflow-hidden">
-      <header className="flex shrink-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <PageEyebrow>
               {tasking.iteration.reference} · version{' '}
               {tasking.iteration.version}
-            </span>
+            </PageEyebrow>
             <Badge>{iterationStageLabel(tasking.iteration)}</Badge>
             <Badge variant="outline">
               Story Revision v{tasking.storyRevision.revisionNumber}
             </Badge>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <PageTitle>
             {tasking.story.reference} · Tasking / Desk Check
-          </h1>
-          <p className="max-w-4xl text-sm text-muted-foreground">
-            一张完整 Candidate 锁定 Scenario、No Model Impact、Nx ownership、 v3
-            test process、命令、质量门、依赖有序 TASK 与 Pair 有限执行预算。
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          </PageTitle>
+          <PageDescription>
+            完整 Candidate 锁定 Scenario、Nx ownership、v3
+            process、命令、质量门、TASK 与 Pair 预算。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
           {storyHref ? (
             <Button asChild variant="outline">
               <Link to={storyHref}>返回 Story</Link>
@@ -220,13 +230,13 @@ export function TaskingDetailView({
               <Link to={pairHref}>打开 Pair 工作台</Link>
             </Button>
           ) : null}
-        </div>
-      </header>
+        </PageActions>
+      </PageHeader>
 
       <DeliveryAuthorityProgress iteration={tasking.iteration} />
 
-      <div className="grid min-h-[44rem] shrink-0 overflow-hidden rounded-xl border bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-h-0 overflow-y-auto bg-muted/20">
+      <Workbench className="lg:grid-cols-[minmax(0,1fr)_21.25rem]">
+        <WorkbenchMain>
           <div className="flex flex-col gap-4 p-4 sm:p-5">
             <Alert>
               <AlertTitle>
@@ -263,9 +273,9 @@ export function TaskingDetailView({
               </Empty>
             )}
           </div>
-        </div>
+        </WorkbenchMain>
 
-        <aside className="min-h-0 border-t bg-card xl:overflow-y-auto xl:border-t-0 xl:border-l">
+        <WorkbenchRail>
           <div className="flex flex-col gap-5 p-4">
             <div>
               <h2 className="text-base font-medium">
@@ -388,9 +398,9 @@ export function TaskingDetailView({
             </Alert>
             <TaskingFacts tasking={tasking} />
           </div>
-        </aside>
-      </div>
-    </section>
+        </WorkbenchRail>
+      </Workbench>
+    </EvidencePage>
   );
 }
 
