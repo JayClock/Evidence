@@ -19,7 +19,7 @@ import {
   parseDiagramAgentRequest,
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
-import { authorizedApiRequestHeaders } from './api-request-authorization';
+import { authorizedApiRequestHeaders } from './electron/api-request-authorization';
 import { IterationWorktreeManager } from './iteration-worktree';
 import {
   captureOpenGitHubIssues,
@@ -55,7 +55,7 @@ import {
   type UnderstandingAnalystRuntimeRequest,
 } from './intake-agent-protocol';
 import { IntakeApiClient } from './intake-api-client';
-import { isTrustedRendererRequest } from './ipc-security';
+import { isTrustedRendererRequest } from './electron/ipc-security';
 import { IterationController } from './iteration-controller';
 import { LocalAgent } from './local-agent';
 import {
@@ -130,7 +130,7 @@ import {
   resolveApiBaseUrl,
   resolveUserDataPath,
   resolveWebUrl,
-} from './runtime-config';
+} from './electron/runtime-config';
 import { WorkspaceBindingStore } from './workspace-binding-store';
 
 const APP_SCHEME = 'evidence';
