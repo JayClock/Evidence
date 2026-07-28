@@ -46,7 +46,7 @@ const configurations = [
       ),
       'tasking-analyst-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/tasking-analyst-runtime.ts',
+        'apps/desktop/src/loops/tasking/analyst-runtime.ts',
       ),
       'pair-driver-runtime': resolve(
         workspaceRoot,

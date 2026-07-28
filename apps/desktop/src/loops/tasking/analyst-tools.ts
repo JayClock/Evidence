@@ -8,7 +8,7 @@ import {
   type RemoteTasking,
   type TaskingDraftInput,
   type TaskingProjectCatalogInput,
-} from './adapters/server-api/flow-client';
+} from '../../adapters/server-api/flow-client';
 
 export interface TaskingAnalystToolState {
   attempted: boolean;

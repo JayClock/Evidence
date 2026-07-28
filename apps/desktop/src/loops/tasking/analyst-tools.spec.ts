@@ -5,8 +5,8 @@ import type {
   RemoteTasking,
   TaskingDraftInput,
   TaskingProjectCatalogInput,
-} from './adapters/server-api/flow-client';
-import { createTaskingAnalystTools } from './tasking-analyst-tools';
+} from '../../adapters/server-api/flow-client';
+import { createTaskingAnalystTools } from './analyst-tools';
 
 const projectCatalog: TaskingProjectCatalogInput = {
   projects: [

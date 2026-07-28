@@ -10,15 +10,15 @@ import {
   parseTaskingAnalystRuntimeRequest,
   type AnalystEvent,
   type TaskingAnalystRuntimeRequest,
-} from './capabilities/analyst-process/protocol';
-import { FlowApiClient } from './adapters/server-api/flow-client';
+} from '../../capabilities/analyst-process/protocol';
+import { FlowApiClient } from '../../adapters/server-api/flow-client';
 import {
   canonicalGitRepository,
   gitHead,
   runGit,
-} from './adapters/git/repository';
-import { readNxProjectCatalog } from './adapters/nx/project-catalog';
-import { createTaskingAnalystTools } from './tasking-analyst-tools';
+} from '../../adapters/git/repository';
+import { readNxProjectCatalog } from '../../adapters/nx/project-catalog';
+import { createTaskingAnalystTools } from './analyst-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const DEFAULT_TIMEOUT_MS = 180_000;
