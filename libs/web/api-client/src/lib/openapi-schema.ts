@@ -916,6 +916,63 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/respond': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_respond'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/respond/candidates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['propose_respond_candidate'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/respond/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['decide_respond'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/stories': {
     parameters: {
       query?: never;
@@ -2961,6 +3018,131 @@ export interface components {
       acceptedRecordId: string;
     };
     /** @enum {string} */
+    RespondKnowledgeKind:
+      | 'product'
+      | 'model'
+      | 'architecture'
+      | 'contract'
+      | 'test_process'
+      | 'skill'
+      | 'prompt'
+      | 'other';
+    /** @enum {string} */
+    RespondPromotionDecision: 'promoted' | 'deferred' | 'rejected';
+    /** @enum {string} */
+    RespondDecisionAction: 'approve' | 'revise';
+    RespondPromotion: {
+      sourceRef: string;
+      kind: components['schemas']['RespondKnowledgeKind'];
+      decision: components['schemas']['RespondPromotionDecision'];
+      reason: string;
+      validationEvidenceRefs: string[];
+      canonicalTarget: string | null;
+    };
+    RespondNextProbe: {
+      question: string;
+      whyNow: string;
+      evidenceRefs: string[];
+      firstAction: string;
+    };
+    RespondAuthority: {
+      storyRevisionSha256: string;
+      approvedTaskingPlanSha256: string;
+      pairManifestSha256: string;
+      approvedCommitSha: string;
+      showcaseEvidenceBundleSha256: string;
+      showcaseReviewSha256: string;
+      showcaseDecisionSha256: string;
+      authoritySha256: string;
+    };
+    RespondCandidateResource: {
+      id: string;
+      reference: string;
+      sequence: number;
+      workspaceId: string;
+      iterationId: string;
+      storyId: string;
+      storyRevisionId: string;
+      showcaseRunId: string;
+      showcaseDecisionId: string;
+      authority: components['schemas']['RespondAuthority'];
+      promotions: components['schemas']['RespondPromotion'][];
+      noPromotionReason: string | null;
+      observedOutcomes: string[];
+      residualRisks: string[];
+      nextProbe: components['schemas']['RespondNextProbe'];
+      /** Format: date-time */
+      proposedAt: string;
+      contentSha256: string;
+    };
+    RespondDecisionResource: {
+      id: string;
+      candidateId: string;
+      action: components['schemas']['RespondDecisionAction'];
+      reason: string;
+      candidateSha256: string;
+      authoritySha256: string;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    RespondActionAuthority: {
+      actionId: string;
+      expectedIterationVersion: number;
+      authoritySha256: string;
+    };
+    RespondRunLearnerAction: components['schemas']['RespondActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'run_learner';
+      showcaseRunId: string;
+      showcaseDecisionId: string;
+    };
+    RespondAwaitHumanAction: components['schemas']['RespondActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'await_human';
+      candidateId: string;
+      candidateSha256: string;
+    };
+    RespondNextAction:
+      | components['schemas']['RespondRunLearnerAction']
+      | components['schemas']['RespondAwaitHumanAction'];
+    ProposeRespondCandidateInput: {
+      actionId: string;
+      expectedIterationVersion: number;
+      authoritySha256: string;
+      promotions: components['schemas']['RespondPromotion'][];
+      noPromotionReason?: string | null;
+      observedOutcomes: string[];
+      residualRisks: string[];
+      nextProbe: components['schemas']['RespondNextProbe'];
+    };
+    DecideRespondInput: {
+      expectedIterationVersion: number;
+      candidateId: string;
+      candidateSha256: string;
+      authoritySha256: string;
+      action: components['schemas']['RespondDecisionAction'];
+      reason: string;
+    };
+    RespondResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      story: components['schemas']['StoryResource'];
+      storyRevision: components['schemas']['StoryRevisionResource'];
+      showcaseRun: components['schemas']['ShowcaseRunResource'];
+      showcaseDecision: components['schemas']['ShowcaseDecisionResource'];
+      authority: components['schemas']['RespondAuthority'];
+      candidates: components['schemas']['RespondCandidateResource'][];
+      decisions: components['schemas']['RespondDecisionResource'][];
+      nextAction: components['schemas']['RespondNextAction'] | null;
+    };
+    RespondActionResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      respond: components['schemas']['RespondResource'];
+      acceptedRecordId: string;
+    };
+    /** @enum {string} */
     StoryAuthorityOwner: 'human' | 'agent' | 'none';
     /** @enum {string} */
     StoryNextAction:
@@ -2978,7 +3160,8 @@ export interface components {
       | 'record_showcase_evidence'
       | 'review_showcase'
       | 'decide_showcase'
-      | 'draft_response'
+      | 'run_respond_learner'
+      | 'review_respond_candidate'
       | 'none';
     StoryWorkflowAuthority: {
       owner: components['schemas']['StoryAuthorityOwner'];
@@ -5221,6 +5404,91 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  get_respond: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Accepted Showcase learning boundary and current Respond authority */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.respond+json': components['schemas']['RespondResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  propose_respond_candidate: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ProposeRespondCandidateInput'];
+      };
+    };
+    responses: {
+      /** @description One bounded, non-authoritative knowledge response Candidate */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.respond-action-result+json': components['schemas']['RespondActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  decide_respond: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DecideRespondInput'];
+      };
+    };
+    responses: {
+      /** @description Human approval or revision of one exact Respond Candidate */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.respond-action-result+json': components['schemas']['RespondActionResultResource'];
         };
       };
       400: components['responses']['ValidationError'];

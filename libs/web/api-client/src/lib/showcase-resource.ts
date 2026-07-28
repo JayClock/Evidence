@@ -57,5 +57,6 @@ export type ShowcaseResource = Entity<
     'record-evaluation': ShowcaseActionResultResource;
     'record-review': ShowcaseActionResultResource;
     decide: ShowcaseActionResultResource;
+    respond: import('./respond-resource.js').RespondResource;
   }
 >;

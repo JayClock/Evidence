@@ -84,6 +84,7 @@ export type StoryResource = Entity<
     tasking: import('./tasking-resource.js').TaskingResource;
     pair: import('./pair-resource.js').PairResource;
     showcase: import('./showcase-resource.js').ShowcaseResource;
+    respond: import('./respond-resource.js').RespondResource;
     revisions: StoryRevisionCollectionResource;
     'latest-revision': StoryRevisionResource;
   }

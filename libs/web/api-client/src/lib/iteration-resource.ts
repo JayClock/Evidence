@@ -5,6 +5,7 @@ import type {
   StoryCandidateResource,
   StoryResource,
 } from './delivery-resource.js';
+import type { RespondResource } from './respond-resource.js';
 import type { ShowcaseResource } from './showcase-resource.js';
 import type { TaskingResource } from './tasking-resource.js';
 import type { UnderstandingResource } from './understanding-resource.js';
@@ -47,6 +48,7 @@ export type IterationResource = Entity<
     understanding: UnderstandingResource;
     tasking: TaskingResource;
     showcase: ShowcaseResource;
+    respond: RespondResource;
   }
 >;
 

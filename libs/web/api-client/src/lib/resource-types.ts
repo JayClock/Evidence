@@ -28,6 +28,8 @@ export const resourceContentTypes = {
   pairActionResult: `${VENDOR_PREFIX}.pair-action-result+json`,
   showcase: `${VENDOR_PREFIX}.showcase+json`,
   showcaseActionResult: `${VENDOR_PREFIX}.showcase-action-result+json`,
+  respond: `${VENDOR_PREFIX}.respond+json`,
+  respondActionResult: `${VENDOR_PREFIX}.respond-action-result+json`,
   story: `${VENDOR_PREFIX}.story+json`,
   stories: `${VENDOR_PREFIX}.stories+json`,
   storyRevision: `${VENDOR_PREFIX}.story-revision+json`,
