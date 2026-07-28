@@ -144,7 +144,7 @@ function planDescription(): TaskingCandidateDescription {
     tests: [
       {
         id: 'TEST-001',
-        quadrant: 'Q1',
+        quadrant: 'Q2',
         intent: 'Pair records one controlled Red and Green.',
         runtimePlanId: 'RUNTIME-001',
         processId: definition.id,
@@ -153,7 +153,7 @@ function planDescription(): TaskingCandidateDescription {
         testFilter: 'pair-authority',
         supportedBy: [],
         scenarioIds: ['SC-001'],
-        scenarioOutcome: null,
+        scenarioOutcome: 'The approved increment remains observable.',
         businessData: ['US-001'],
         modelRefs: { entities: [], associations: [] },
       },
@@ -228,6 +228,7 @@ function statefulStore() {
   const exceptions: Array<Record<string, unknown>> = [];
   const decisions: Array<Record<string, unknown>> = [];
   let manifest: Record<string, unknown> | null = null;
+  let showcaseRun: Record<string, unknown> | null = null;
 
   store.iteration.findFirst.mockImplementation(async () => iteration);
   store.iteration.updateMany.mockImplementation(async ({ data }) => {
@@ -282,8 +283,14 @@ function statefulStore() {
     return manifest;
   });
   configureEvidenceDelegate(store.pairCodingDecision, decisions, 'decidedAt');
+  store.showcaseRun.findFirst.mockImplementation(async () => showcaseRun);
+  store.showcaseRun.count.mockResolvedValue(0);
+  store.showcaseRun.create.mockImplementation(async ({ data }) => {
+    showcaseRun = { ...data };
+    return showcaseRun;
+  });
 
-  return { store, currentRun: () => run };
+  return { store, currentRun: () => run, currentShowcase: () => showcaseRun };
 }
 
 function configureEvidenceDelegate(
@@ -1178,6 +1185,19 @@ describe('PrismaWorkspacePair', () => {
       approvedCommitSha: 'f'.repeat(40),
     });
     expect(view.nextAction).toBeNull();
+    expect(view.iteration.description()).toMatchObject({
+      loop: 'showcase',
+      stage: 'setup',
+      lane: 'review',
+    });
+    expect(fixture.currentShowcase()).toMatchObject({
+      reference: 'SHOW-0001',
+      attempt: 1,
+      pairRunId: view.run.identity(),
+      pairManifestSha256: manifestSha256,
+      approvedCommitSha: 'f'.repeat(40),
+      stage: 'setup',
+    });
   });
 });
 

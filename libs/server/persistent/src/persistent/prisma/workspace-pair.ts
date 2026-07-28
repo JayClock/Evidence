@@ -61,6 +61,7 @@ import {
   type PairEvidenceRows,
   type PairRunRow,
 } from './pair-persistence';
+import { openShowcaseRun } from './workspace-showcase';
 import { assembleApprovedPlan } from './workspace-tasking';
 import type { PrismaStore } from './types';
 import { inputJson, now } from './utils';
@@ -815,6 +816,18 @@ export class PrismaWorkspacePair implements WorkspacePair {
           data: { resolvedAt: timestamp },
         });
       }
+      if (input.action === 'approve') {
+        if (!view.manifest || !input.commitSha) {
+          throw DomainError.internal(
+            'Approved Pair lost its Manifest or commit authority',
+          );
+        }
+        await openShowcaseRun(store, this.workspaceId, iterationId, {
+          pairRunId: run.id,
+          pairManifestId: view.manifest.identity(),
+          approvedCommitSha: input.commitSha,
+        });
+      }
       return actionResult(store, this.workspaceId, iterationId, decision.id);
     });
   }
@@ -1174,6 +1187,7 @@ async function advancePair(
       ...(iterationOverride?.lifecycle
         ? { lifecycle: iterationOverride.lifecycle }
         : {}),
+      ...(iterationOverride?.loop === 'showcase' ? { lane: 'review' } : {}),
       version: { increment: 1 },
       updatedAt: timestamp,
     },
@@ -1623,8 +1637,8 @@ function decisionTransition(
           leaseTokenSha256: null,
           leaseExpiresAt: null,
         } satisfies PairAdvance,
-        iterationLoop: 'pair',
-        iterationStage: 'approved',
+        iterationLoop: 'showcase',
+        iterationStage: 'setup',
         iterationLifecycle: 'active',
       };
     case 'back_test':

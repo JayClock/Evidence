@@ -593,7 +593,7 @@ function parseProposalOrigin(value: string) {
   throw DomainError.internal(`unsupported Kickoff Proposal origin: ${value}`);
 }
 
-function parseLane(value: string): 'discovery' {
-  if (value === 'discovery') return value;
+function parseLane(value: string): 'discovery' | 'review' {
+  if (value === 'discovery' || value === 'review') return value;
   throw DomainError.internal(`unsupported Iteration lane: ${value}`);
 }

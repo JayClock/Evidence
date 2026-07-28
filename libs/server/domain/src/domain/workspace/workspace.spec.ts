@@ -12,6 +12,7 @@ import type {
 import type {
   WorkspaceIterations,
   WorkspacePair,
+  WorkspaceShowcase,
   WorkspaceTasking,
   WorkspaceUnderstanding,
 } from '../iteration';
@@ -141,6 +142,7 @@ function workspaceFixture() {
   const understanding = {} as WorkspaceUnderstanding;
   const tasking = {} as WorkspaceTasking;
   const pair = {} as WorkspacePair;
+  const showcase = {} as WorkspaceShowcase;
 
   const storySummary = {
     humanAttention: 0,
@@ -192,6 +194,7 @@ function workspaceFixture() {
     understanding,
     tasking,
     pair,
+    showcase,
     delivery,
   );
 
@@ -205,6 +208,7 @@ function workspaceFixture() {
     understanding,
     tasking,
     pair,
+    showcase,
     inboxItem,
     inboxRevision,
     story,

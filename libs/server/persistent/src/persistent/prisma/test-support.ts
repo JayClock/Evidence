@@ -58,6 +58,13 @@ export interface MockPrismaStore {
   pairAutomationException: Record<string, MockFn>;
   pairExecutionManifest: Record<string, MockFn>;
   pairCodingDecision: Record<string, MockFn>;
+  showcaseRun: Record<string, MockFn>;
+  showcaseQ2Observation: Record<string, MockFn>;
+  showcaseProductObservation: Record<string, MockFn>;
+  showcaseRiskDecision: Record<string, MockFn>;
+  showcaseEvaluation: Record<string, MockFn>;
+  showcaseReview: Record<string, MockFn>;
+  showcaseDecision: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -201,6 +208,13 @@ export function mockPrismaStore(): MockPrismaStore {
     pairAutomationException: delegate(['findFirst', 'create', 'updateMany']),
     pairExecutionManifest: delegate(['findFirst', 'create']),
     pairCodingDecision: delegate(['findFirst', 'findMany', 'count', 'create']),
+    showcaseRun: delegate(['findFirst', 'count', 'create', 'updateMany']),
+    showcaseQ2Observation: delegate(['findFirst', 'findMany', 'create']),
+    showcaseProductObservation: delegate(['findMany', 'create']),
+    showcaseRiskDecision: delegate(['findMany', 'create']),
+    showcaseEvaluation: delegate(['findMany', 'create']),
+    showcaseReview: delegate(['findUnique', 'create']),
+    showcaseDecision: delegate(['findUnique', 'create']),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 
