@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type {
   FlowApiClient,
   RemoteKickoff,
-} from './adapters/server-api/flow-client';
-import { createKickoffAnalystTools } from './kickoff-analyst-tools';
+} from '../../adapters/server-api/flow-client';
+import { createKickoffAnalystTools } from './analyst-tools';
 
 const revisionSha256 = `sha256:${'a'.repeat(64)}`;
 const proposal = {

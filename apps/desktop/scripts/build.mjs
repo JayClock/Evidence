@@ -38,7 +38,7 @@ const configurations = [
       ),
       'kickoff-analyst-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/kickoff-analyst-runtime.ts',
+        'apps/desktop/src/loops/kickoff/analyst-runtime.ts',
       ),
       'understanding-analyst-runtime': resolve(
         workspaceRoot,

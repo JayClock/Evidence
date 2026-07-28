@@ -7,7 +7,7 @@ import {
   type InboxCandidateProposalInput,
   FlowApiClient,
   type RemoteKickoff,
-} from './adapters/server-api/flow-client';
+} from '../../adapters/server-api/flow-client';
 
 const cognitiveMode = Type.Union([
   Type.Literal('clear'),

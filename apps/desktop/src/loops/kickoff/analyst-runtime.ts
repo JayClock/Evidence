@@ -8,9 +8,9 @@ import {
   parseKickoffAnalystRuntimeRequest,
   type AnalystEvent,
   type KickoffAnalystRuntimeRequest,
-} from './capabilities/analyst-process/protocol';
-import { FlowApiClient } from './adapters/server-api/flow-client';
-import { createKickoffAnalystTools } from './kickoff-analyst-tools';
+} from '../../capabilities/analyst-process/protocol';
+import { FlowApiClient } from '../../adapters/server-api/flow-client';
+import { createKickoffAnalystTools } from './analyst-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const DEFAULT_TIMEOUT_MS = 120_000;
