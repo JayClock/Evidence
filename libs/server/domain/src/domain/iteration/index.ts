@@ -1,6 +1,7 @@
 export * from './iteration';
 export * from './pair';
 export * from './pair-validation';
+export * from './showcase';
 export * from './tasking';
 export * from './tasking-catalog';
 export * from './tasking-validation';

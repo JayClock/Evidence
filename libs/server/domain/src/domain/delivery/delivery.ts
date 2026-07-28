@@ -19,6 +19,11 @@ export type StoryNextAction =
   | 'run_pair'
   | 'route_pair_exception'
   | 'review_pair_change'
+  | 'run_showcase'
+  | 'record_showcase_evidence'
+  | 'review_showcase'
+  | 'decide_showcase'
+  | 'draft_response'
   | 'none';
 
 export interface StoryWorkflowAuthority {
@@ -212,6 +217,23 @@ export function storyWorkflowAuthority(
       return { owner: 'none', nextAction: 'none' };
     }
     return { owner: 'agent', nextAction: 'run_pair' };
+  }
+
+  if (input.loop === 'showcase') {
+    if (input.stage === 'setup') {
+      return { owner: 'human', nextAction: 'record_showcase_evidence' };
+    }
+    if (input.stage === 'reviewing') {
+      return { owner: 'agent', nextAction: 'review_showcase' };
+    }
+    if (input.stage === 'decision') {
+      return { owner: 'human', nextAction: 'decide_showcase' };
+    }
+    return { owner: 'none', nextAction: 'none' };
+  }
+
+  if (input.loop === 'respond' && input.stage === 'drafting') {
+    return { owner: 'agent', nextAction: 'draft_response' };
   }
 
   return { owner: 'none', nextAction: 'none' };

@@ -120,7 +120,9 @@ export function parseIterationLoop(value: string): IterationLoop {
     value === 'kickoff' ||
     value === 'understand' ||
     value === 'tasking' ||
-    value === 'pair'
+    value === 'pair' ||
+    value === 'showcase' ||
+    value === 'respond'
   ) {
     return value;
   }
@@ -146,7 +148,12 @@ export function parseIterationStage(value: string): IterationStage {
     value === 'refactored' ||
     value === 'quality_gate_failed' ||
     value === 'quality_gates_passed' ||
-    value === 'exception'
+    value === 'exception' ||
+    value === 'setup' ||
+    value === 'reviewing' ||
+    value === 'decision' ||
+    value === 'accepted' ||
+    value === 'rejected'
   ) {
     return value;
   }

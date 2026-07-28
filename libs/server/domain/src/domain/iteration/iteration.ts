@@ -10,7 +10,13 @@ export type IterationLifecycle =
   | 'active'
   | 'provisioning_failed'
   | 'halted';
-export type IterationLoop = 'kickoff' | 'understand' | 'tasking' | 'pair';
+export type IterationLoop =
+  | 'kickoff'
+  | 'understand'
+  | 'tasking'
+  | 'pair'
+  | 'showcase'
+  | 'respond';
 export type IterationStage =
   | 'candidate_review'
   | 'candidate_drafting'
@@ -29,7 +35,12 @@ export type IterationStage =
   | 'refactored'
   | 'quality_gate_failed'
   | 'quality_gates_passed'
-  | 'exception';
+  | 'exception'
+  | 'setup'
+  | 'reviewing'
+  | 'decision'
+  | 'accepted'
+  | 'rejected';
 export type KickoffDecisionAction =
   | 'confirm'
   | 'revise'
@@ -45,7 +56,7 @@ export interface IterationDescription {
   lifecycle: IterationLifecycle;
   loop: IterationLoop;
   stage: IterationStage;
-  lane: 'discovery';
+  lane: 'discovery' | 'review';
   version: number;
   baseCommitSha: string;
   branchName: string | null;
