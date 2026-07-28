@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type {
-  IterationIntakeResource,
   KickoffDecisionAction,
   KickoffDecisionInput,
   KickoffDecisionResultResource,
@@ -42,12 +41,7 @@ import {
   PageHeaderCopy,
   PageTitle,
   ScrollArea,
-  Separator,
   Spinner,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
   Textarea,
   Workbench,
   WorkbenchMain,
@@ -188,7 +182,7 @@ export function KickoffDetailView({
 
   return (
     <EvidencePage>
-      <PageHeader>
+      <PageHeader className="px-4 pt-3.5 pb-[0.6875rem]">
         <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
             <PageEyebrow>{kickoff.iteration.reference}</PageEyebrow>
@@ -197,7 +191,7 @@ export function KickoffDetailView({
             </Badge>
             <Badge variant="outline">Kickoff / Candidate Review</Badge>
           </div>
-          <PageTitle>Kickoff 人工确认</PageTitle>
+          <PageTitle className="leading-7">Kickoff 人工确认</PageTitle>
           <PageDescription>
             核对 Frozen Intake 限定的当前 Proposal。只有人工 confirm 才会创建本
             Iteration 唯一的 US-001。
@@ -219,10 +213,10 @@ export function KickoffDetailView({
 
       <AuthorityProgress />
 
-      <Workbench>
+      <Workbench className="lg:grid-cols-[minmax(0,1fr)_21.125rem]">
         <WorkbenchMain>
           <ScrollArea className="h-full">
-            <div className="flex flex-col gap-4 p-4 sm:p-5">
+            <div className="flex flex-col gap-2.5 p-[0.8125rem]">
               <ProvisioningStatus iteration={kickoff.iteration} />
 
               {error ? (
@@ -273,8 +267,6 @@ export function KickoffDetailView({
                   </AlertDescription>
                 </Alert>
               )}
-
-              <KickoffEvidenceTabs kickoff={kickoff} />
             </div>
           </ScrollArea>
         </WorkbenchMain>
@@ -282,8 +274,6 @@ export function KickoffDetailView({
         <WorkbenchRail>
           <DecisionPanel
             disabled={!reviewing || !proposal || pending}
-            iteration={kickoff.iteration}
-            proposal={proposal}
             onDecide={decide}
           />
         </WorkbenchRail>
@@ -300,27 +290,29 @@ function AuthorityProgress() {
     ['4', '创建 US-001', '仅 confirm', 'pending'],
   ] as const;
   return (
-    <ol
-      aria-label="Inbox 到 Story 权威流程"
-      className="grid shrink-0 overflow-hidden border-b bg-card sm:grid-cols-2 xl:grid-cols-4"
-    >
-      {steps.map(([number, label, detail, state]) => (
-        <li
-          className="flex min-w-0 items-center gap-2 border-b px-3 py-2 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
-          key={number}
-        >
-          <Badge variant={state === 'pending' ? 'outline' : 'default'}>
-            {number}
-          </Badge>
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-xs font-medium">{label}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {detail}
+    <div className="h-[3.625rem] shrink-0 px-4 pb-[0.6875rem]">
+      <ol
+        aria-label="Inbox 到 Story 权威流程"
+        className="grid h-[2.9375rem] overflow-hidden rounded-lg border bg-card sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {steps.map(([number, label, detail, state]) => (
+          <li
+            className="flex min-w-0 items-center gap-2 border-b px-3 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
+            key={number}
+          >
+            <Badge variant={state === 'pending' ? 'outline' : 'default'}>
+              {number}
+            </Badge>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-xs font-medium">{label}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {detail}
+              </span>
             </span>
-          </span>
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -414,69 +406,18 @@ function ProposalCard({
   );
 }
 
-function KickoffEvidenceTabs({
-  kickoff,
-}: {
-  kickoff: KickoffResource['data'];
-}) {
-  return (
-    <Tabs defaultValue="intake">
-      <TabsList className="w-full" variant="line">
-        <TabsTrigger value="intake">Frozen Intake</TabsTrigger>
-        <TabsTrigger value="sources">
-          冻结来源 · {kickoff.intake.sources.length}
-        </TabsTrigger>
-        <TabsTrigger value="decisions">
-          决定记录 · {kickoff.decisions.length}
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="intake">
-        <Card>
-          <CardHeader>
-            <CardTitle aria-level={2} role="heading">
-              冻结 Candidate
-            </CardTitle>
-            <CardDescription>
-              后续 Proposal 只能在这份自包含 Intake 的业务边界内变化。
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <CandidateSnapshot candidate={kickoff.intake.candidate} />
-            <Separator />
-            <Detail
-              label="Intake SHA-256"
-              value={kickoff.intake.contentSha256}
-              mono
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-      <TabsContent value="sources">
-        <FrozenSources sources={kickoff.intake.sources} />
-      </TabsContent>
-      <TabsContent value="decisions">
-        <DecisionHistory decisions={kickoff.decisions} />
-      </TabsContent>
-    </Tabs>
-  );
-}
-
 function DecisionPanel({
   disabled,
-  iteration,
-  proposal,
   onDecide,
 }: {
   disabled: boolean;
-  iteration: KickoffResource['data']['iteration'];
-  proposal: KickoffResource['data']['currentProposal'];
   onDecide: (
     action: KickoffDecisionAction,
     reason: string | null,
   ) => Promise<void>;
 }) {
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-5">
+    <div className="flex flex-col gap-3 p-[0.8125rem]">
       <div className="flex flex-col gap-1">
         <h2 className="text-base font-semibold">记录人工决定</h2>
         <p className="text-xs text-muted-foreground">
@@ -489,12 +430,11 @@ function DecisionPanel({
         disabled={disabled}
         onConfirm={() => onDecide('confirm', null)}
       />
-      <p className="-mt-3 text-center text-xs text-muted-foreground">
+      <p className="text-center text-xs text-muted-foreground">
         创建 Problem Statement、Lean Story Card 与 baseline Revision v1
       </p>
 
-      <Separator />
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         <h3 className="text-sm font-medium">需要其他处置？</h3>
         <div className="grid grid-cols-2 gap-2">
           {(['revise', 'split', 'defer', 'stop'] as const).map((action) => (
@@ -508,51 +448,11 @@ function DecisionPanel({
         </div>
       </div>
 
-      <Separator />
-      <dl className="flex flex-col gap-3 text-xs">
-        <DecisionDefinition
-          action="confirm"
-          outcome="创建本轮唯一 US-001，并进入 Understand / TQA。"
-        />
-        <DecisionDefinition
-          action="revise"
-          outcome="记录理由，再由本地 Analyst 基于 Frozen Intake 提出替代 Proposal。"
-        />
-        <DecisionDefinition
-          action="split"
-          outcome="终止本 Iteration；返回 Inbox 重新提取。"
-        />
-        <DecisionDefinition action="defer" outcome="终止并保留完整审计证据。" />
-        <DecisionDefinition
-          action="stop"
-          outcome="停止本轮并保留完整审计证据。"
-        />
-      </dl>
-
       <Alert>
         <AlertDescription>
           所有 Kickoff 决定只能由当前认证用户触发。Agent 没有人工决定工具。
         </AlertDescription>
       </Alert>
-
-      <dl className="flex flex-col gap-2 text-xs text-muted-foreground">
-        <div className="flex items-center justify-between gap-3">
-          <dt>Iteration version</dt>
-          <dd className="font-mono text-foreground">{iteration.version}</dd>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <dt>Proposal SHA-256</dt>
-          <dd className="font-mono text-foreground">
-            {proposal ? shortHash(proposal.contentSha256) : '—'}
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <dt>Story</dt>
-          <dd className="font-mono text-foreground">
-            {iteration.activeStoryId ? 'US-001' : '尚未创建'}
-          </dd>
-        </div>
-      </dl>
     </div>
   );
 }
@@ -720,128 +620,6 @@ function KickoffDecisionDialog({
   );
 }
 
-function DecisionDefinition({
-  action,
-  outcome,
-}: {
-  action: KickoffDecisionAction;
-  outcome: string;
-}) {
-  return (
-    <div className="grid grid-cols-[4.5rem_1fr] gap-2">
-      <dt className="font-mono font-medium">{action}</dt>
-      <dd className="text-muted-foreground">{outcome}</dd>
-    </div>
-  );
-}
-
-function CandidateSnapshot({
-  candidate,
-}: {
-  candidate: IterationIntakeResource['data']['candidate'];
-}) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Detail label="Candidate" value={candidate.candidateReference} />
-      <Detail
-        label="认知模式"
-        value={cognitiveModeLabel(candidate.cognitiveMode)}
-      />
-      <Detail label="角色" value={candidate.role} />
-      <Detail label="问题" value={candidate.problem} wide />
-      <Detail label="目标" value={candidate.goal} />
-      <Detail label="价值" value={candidate.value} />
-      <Detail
-        label="Candidate SHA-256"
-        value={candidate.contentSha256}
-        mono
-        wide
-      />
-    </div>
-  );
-}
-
-function FrozenSources({
-  sources,
-}: {
-  sources: IterationIntakeResource['data']['sources'];
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle aria-level={2} role="heading">
-          冻结来源
-        </CardTitle>
-        <CardDescription>
-          {sources.length} 个精确、不可变的 Revision 快照。
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {sources.map((source, index) => (
-          <div className="flex flex-col gap-3" key={source.inboxRevisionId}>
-            {index > 0 ? <Separator /> : null}
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-medium">{source.title}</p>
-              <Badge variant="outline">Revision {source.revisionNumber}</Badge>
-              <Badge variant="secondary">{source.sourceKind}</Badge>
-            </div>
-            <p className="break-all font-mono text-xs text-muted-foreground">
-              {source.contentSha256}
-            </p>
-            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-xs">
-              {source.body}
-            </pre>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function DecisionHistory({
-  decisions,
-}: {
-  decisions: KickoffResource['data']['decisions'];
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle aria-level={2} role="heading">
-          人工决定历史
-        </CardTitle>
-        <CardDescription>Append-only Kickoff 权威证据。</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {decisions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">尚未记录人工决定。</p>
-        ) : (
-          <ol className="flex flex-col gap-3">
-            {decisions.map((decision) => (
-              <li className="rounded-lg border p-3 text-sm" key={decision.id}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>
-                    {decisionLabels[decision.action as KickoffDecisionAction] ??
-                      decision.action}
-                  </Badge>
-                  <span className="font-mono text-xs">
-                    {decision.reference}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatDateTime(decision.decidedAt)}
-                  </span>
-                </div>
-                {decision.reason ? (
-                  <p className="mt-2">{decision.reason}</p>
-                ) : null}
-              </li>
-            ))}
-          </ol>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 function AuthoritativeStoryCard({ card }: { card: StoryCardResource }) {
   return (
     <Alert>
@@ -936,16 +714,6 @@ function cognitiveModeLabel(value: string): string {
 
 function shortHash(value: string): string {
   return value.length > 22 ? `${value.slice(0, 14)}…${value.slice(-8)}` : value;
-}
-
-function formatDateTime(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat('zh-CN', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      }).format(date);
 }
 
 function errorMessage(error: unknown, fallback: string): string {

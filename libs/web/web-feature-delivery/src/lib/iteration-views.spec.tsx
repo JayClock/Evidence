@@ -298,6 +298,8 @@ describe('Iteration and Kickoff views', () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByRole('link', { name: 'Frozen Intake' })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'Frozen Intake' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '确认并创建 US-001' }));
     expect(screen.getByRole('button', { name: '创建 US-001' })).toHaveProperty(
       'disabled',
