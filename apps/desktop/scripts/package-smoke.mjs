@@ -34,6 +34,12 @@ const pairRedReviewerEntry = join(
   'dist',
   'pair-red-reviewer-runtime.mjs',
 );
+const showcaseReviewerEntry = join(
+  packaged.resources,
+  'app.asar.unpacked',
+  'dist',
+  'showcase-reviewer-runtime.mjs',
+);
 const testRoot = await mkdtemp(join(tmpdir(), 'evidence-package-smoke-'));
 const fakeApi = await startFakeApi();
 let output = '';
@@ -45,6 +51,7 @@ try {
     access(taskingAnalystEntry),
     access(pairDriverEntry),
     access(pairRedReviewerEntry),
+    access(showcaseReviewerEntry),
   ]);
   const sdkCheck = `import('@earendil-works/pi-coding-agent').then((sdk) => {
     if (typeof sdk.createAgentSession !== 'function') throw new Error('createAgentSession is unavailable');
