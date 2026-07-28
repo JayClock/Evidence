@@ -5,6 +5,7 @@ import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { canonicalGitRepository, runGit } from '../../adapters/git/repository';
 import { localCommandEnvironment } from '../../adapters/node/command-environment';
+import type { InboxSourceCapture } from '../../capabilities/inbox-source/capture';
 
 const execFileAsync = promisify(execFile);
 const MAX_MARKDOWN_BYTES = 1024 * 1024;
@@ -12,20 +13,6 @@ const MAX_GITHUB_OUTPUT_BYTES = 64 * 1024 * 1024;
 const GITHUB_LIST_TIMEOUT_MS = 2 * 60 * 1_000;
 const ALL_GITHUB_ISSUES_LIMIT = 2_147_483_647;
 const GITHUB_REPOSITORY_PATTERN = /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/;
-
-export interface InboxSourceCapture {
-  sourceKind: 'manual_text' | 'local_markdown' | 'github_issue';
-  externalKey: string;
-  title: string;
-  body: string;
-  contentType: 'text/plain' | 'text/markdown';
-  uri: string | null;
-  providerMetadata: Record<
-    string,
-    null | boolean | number | string | Array<string>
-  >;
-  sourceUpdatedAt: string | null;
-}
 
 export interface GitHubIssuesCaptureInput {
   repositoryRoot: string;

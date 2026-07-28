@@ -3,7 +3,7 @@ import type {
   DiagramAgentEvent,
   DiagramAgentRequest,
 } from './features/diagram/protocol';
-import type { InboxSourceCapture } from './features/inbox/source-adapters';
+import type { InboxSourceCapture } from './capabilities/inbox-source/capture';
 import {
   parseAnalystEvent,
   type AnalystEvent,
