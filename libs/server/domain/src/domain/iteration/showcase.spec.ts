@@ -300,6 +300,15 @@ describe('Showcase authority', () => {
       }),
     ).toThrow(/feedback target/);
 
+    expect(() =>
+      normalizeDecideShowcaseInput({
+        expectedShowcaseVersion: 3,
+        action: 'revise',
+        reason: 'Implementation must reopen deterministically.',
+        feedbackTarget: 'implementation' as never,
+      }),
+    ).toThrow(/unsupported/);
+
     expect(
       normalizeDecideShowcaseInput({
         expectedShowcaseVersion: 3,
