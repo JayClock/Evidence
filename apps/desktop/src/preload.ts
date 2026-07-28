@@ -29,7 +29,7 @@ import {
 import type {
   IterationProvisioningSummary,
   StartIterationRequest,
-} from './iteration-controller';
+} from './iteration/provisioning-controller';
 import {
   CANCEL_DIAGRAM_AGENT_CHANNEL,
   DIAGRAM_AGENT_EVENT_CHANNEL,

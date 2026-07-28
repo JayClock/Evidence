@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { IterationController } from './iteration-controller';
+import { IterationProvisioningController } from './provisioning-controller';
 import type {
   RemoteInboxCandidate,
   RemoteIteration,
-} from './adapters/server-api/flow-client';
-import type { WorkspaceBinding } from './capabilities/workspace-binding/store';
+} from '../adapters/server-api/flow-client';
+import type { WorkspaceBinding } from '../capabilities/workspace-binding/store';
 
 const apiBaseUrl = 'https://evidence.example/api';
 const repositoryRoot = '/Users/private/repository';
@@ -79,7 +79,7 @@ function fixture(
   };
   const resolveGitHead = vi.fn(async () => baseCommitSha);
   return {
-    controller: new IterationController(
+    controller: new IterationProvisioningController(
       apiBaseUrl,
       bindings,
       worktrees,
@@ -93,7 +93,7 @@ function fixture(
   };
 }
 
-describe('IterationController', () => {
+describe('IterationProvisioningController', () => {
   it('selects at local HEAD and reports only bounded provisioning facts', async () => {
     const { controller, client, worktrees } = fixture();
 

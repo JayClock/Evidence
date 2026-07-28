@@ -1,11 +1,11 @@
-import type { IterationWorktreeManager } from './capabilities/work-item-worktree/manager';
-import { gitHead } from './adapters/git/repository';
+import type { IterationWorktreeManager } from '../capabilities/work-item-worktree/manager';
+import { gitHead } from '../adapters/git/repository';
 import type {
   FlowApiClient,
   RemoteInboxCandidate,
   RemoteIteration,
-} from './adapters/server-api/flow-client';
-import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
+} from '../adapters/server-api/flow-client';
+import type { WorkspaceBindingStore } from '../capabilities/workspace-binding/store';
 
 export interface StartIterationRequest {
   id: string;
@@ -39,7 +39,7 @@ interface IterationClient {
   failProvisioning: FlowApiClient['failProvisioning'];
 }
 
-export class IterationController {
+export class IterationProvisioningController {
   private readonly active = new Map<string, AbortController>();
 
   constructor(

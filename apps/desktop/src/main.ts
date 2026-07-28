@@ -59,7 +59,7 @@ import {
 } from './capabilities/analyst-process/protocol';
 import { FlowApiClient } from './adapters/server-api/flow-client';
 import { isTrustedRendererRequest } from './electron/ipc-security';
-import { IterationController } from './iteration-controller';
+import { IterationProvisioningController } from './iteration/provisioning-controller';
 import { LocalAgentProcess } from './adapters/node/agent-process';
 import {
   parsePairDriverEvent,
@@ -165,7 +165,7 @@ let taskingAnalyst: LocalAgentProcess<
   TaskingAnalystRuntimeRequest,
   AnalystEvent
 > | null = null;
-let iterationController: IterationController | null = null;
+let iterationController: IterationProvisioningController | null = null;
 let pairController: PairController | null = null;
 let showcaseController: ShowcaseController | null = null;
 let respondController: RespondController | null = null;
@@ -237,7 +237,7 @@ function registerDesktopBridge(
     AnalystEvent
   >,
   tasking: LocalAgentProcess<TaskingAnalystRuntimeRequest, AnalystEvent>,
-  iterations: IterationController,
+  iterations: IterationProvisioningController,
   pairs: PairController,
   showcases: ShowcaseController,
   responds: RespondController,
@@ -789,7 +789,7 @@ void app.whenReady().then(async () => {
     const iterationWorktrees = new IterationWorktreeManager(
       join(app.getPath('userData'), 'iteration-worktrees'),
     );
-    iterationController = new IterationController(
+    iterationController = new IterationProvisioningController(
       apiBaseUrl,
       bindings,
       iterationWorktrees,

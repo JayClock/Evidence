@@ -1,4 +1,4 @@
-import type { StartIterationRequest } from '../iteration-controller';
+import type { StartIterationRequest } from '../iteration/provisioning-controller';
 
 export const READ_INBOX_MARKDOWN_CHANNEL = 'evidence:read-inbox-markdown';
 export const FETCH_INBOX_GITHUB_ISSUES_CHANNEL =
