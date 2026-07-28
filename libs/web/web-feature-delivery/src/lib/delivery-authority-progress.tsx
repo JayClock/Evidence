@@ -93,7 +93,9 @@ function authorityStepIndex(
     return 7;
   }
   if (iteration.loop === 'showcase') return 9;
-  if (iteration.loop === 'respond') return 10;
+  if (iteration.loop === 'respond') {
+    return iteration.stage === 'accepted' ? steps.length : 10;
+  }
   return steps.length;
 }
 
@@ -135,5 +137,7 @@ const stageLabels: Record<string, string> = {
   'showcase/accepted': 'Showcase · 已接受',
   'showcase/revised': 'Showcase · 已路由修订',
   'showcase/rejected': 'Showcase · 已拒绝',
-  'respond/drafting': 'Respond · 正在准备响应',
+  'respond/drafting': 'Respond · Learner 提案',
+  'respond/decision': 'Respond · 等待人工决定',
+  'respond/accepted': 'Respond · Iteration 已完成',
 };

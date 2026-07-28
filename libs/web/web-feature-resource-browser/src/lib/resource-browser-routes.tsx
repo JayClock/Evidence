@@ -20,6 +20,7 @@ import {
   type LogicalEntityResource,
   type MembershipCollectionResource,
   type PairResource,
+  type RespondResource,
   type RootResource,
   type ShowcaseResource,
   type State,
@@ -49,6 +50,7 @@ import {
   IterationIntakeDetailView,
   KickoffDetailView,
   PairDetailView,
+  RespondDetailView,
   ShowcaseDetailView,
   StoryCandidateCollectionView,
   StoryCandidateDetailView,
@@ -293,6 +295,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
       return (
         <ShowcaseDetailView
           resourceState={resourceState as State<ShowcaseResource>}
+        />
+      );
+    case resourceContentTypes.respond:
+      return (
+        <RespondDetailView
+          resourceState={resourceState as State<RespondResource>}
         />
       );
     case resourceContentTypes.story:

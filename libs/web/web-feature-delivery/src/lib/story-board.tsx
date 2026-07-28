@@ -554,7 +554,7 @@ export function storyAuthorityHref(storyState: StoryState): string | null {
 
 function authorityRelation(
   action: StoryAction,
-): 'understanding' | 'tasking' | 'pair' | 'showcase' | null {
+): 'understanding' | 'tasking' | 'pair' | 'showcase' | 'respond' | null {
   if (
     action === 'answer_clarification' ||
     action === 'run_understanding_analyst' ||
@@ -581,11 +581,15 @@ function authorityRelation(
     action === 'run_showcase' ||
     action === 'record_showcase_evidence' ||
     action === 'review_showcase' ||
-    action === 'decide_showcase' ||
-    action === 'draft_response' ||
-    action === 'none'
+    action === 'decide_showcase'
   ) {
     return 'showcase';
+  }
+  if (
+    action === 'run_respond_learner' ||
+    action === 'review_respond_candidate'
+  ) {
+    return 'respond';
   }
   return null;
 }
@@ -606,7 +610,8 @@ export function storyAuthorityLabel(action: StoryAction): string {
     record_showcase_evidence: '记录产品观察与风险证据',
     review_showcase: '运行独立 Showcase Reviewer',
     decide_showcase: '执行人工价值决定',
-    draft_response: '起草交付响应',
+    run_respond_learner: '运行只读 Respond Learner',
+    review_respond_candidate: '审查知识响应与 next Probe',
     none: '没有自动动作',
   };
   return labels[action];
@@ -624,6 +629,7 @@ function storyActionButtonLabel(story: StoryData): string {
   if (story.authority.nextAction === 'review_pair_change') return '审批';
   if (story.authority.nextAction === 'review_showcase') return 'Reviewer';
   if (story.authority.nextAction === 'decide_showcase') return '决定';
+  if (story.authority.nextAction === 'review_respond_candidate') return '审查';
   if (story.authority.nextAction === 'none') return '查看证据';
   return '打开';
 }

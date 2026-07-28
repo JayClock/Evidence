@@ -7,4 +7,5 @@ export * from './lib/story-views';
 export * from './lib/understanding-views';
 export * from './lib/tasking-views';
 export * from './lib/pair-views';
+export * from './lib/respond-views';
 export * from './lib/showcase-views';
