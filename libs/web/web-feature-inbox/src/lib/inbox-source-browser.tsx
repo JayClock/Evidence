@@ -1,8 +1,11 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
   useResource,
   type InboxItemResource,
+  type InboxItemStatus,
+  type InboxItemStatusInput,
+  type InboxRevisionCollectionResource,
   type InboxRevisionResource,
   type State,
 } from '@evidence/api-client';
@@ -11,6 +14,10 @@ import {
   AlertDescription,
   Badge,
   Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
   Checkbox,
   Empty,
   EmptyDescription,
@@ -22,6 +29,12 @@ import {
   ScrollArea,
   Separator,
   Skeleton,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+  ToggleGroup,
+  ToggleGroupItem,
 } from '@evidence/ui';
 
 export interface InboxSourceSelection {
@@ -38,6 +51,7 @@ export function InboxSourceBrowser({
   pagination,
   total,
   onFocus,
+  onItemChange,
   onSelectionChange,
 }: {
   itemStates: State<InboxItemResource>[];
@@ -47,6 +61,7 @@ export function InboxSourceBrowser({
   pagination?: ReactNode;
   total: number;
   onFocus: (itemId: string) => void;
+  onItemChange: (itemState: State<InboxItemResource>) => void;
   onSelectionChange: (
     itemState: State<InboxItemResource>,
     selected: boolean,
@@ -65,7 +80,13 @@ export function InboxSourceBrowser({
         onSelectionChange={onSelectionChange}
       />
       {focusedItem ? (
-        <SourceDetail key={focusedItem.data.id} itemState={focusedItem} />
+        <SourceDetail
+          itemState={focusedItem}
+          key={focusedItem.data.id}
+          selected={selectedIds.has(focusedItem.data.id)}
+          onItemChange={onItemChange}
+          onSelectionChange={onSelectionChange}
+        />
       ) : (
         <EmptySourceDetail />
       )}
@@ -178,15 +199,59 @@ function SourceList({
   );
 }
 
-function SourceDetail({ itemState }: { itemState: State<InboxItemResource> }) {
+function SourceDetail({
+  itemState,
+  selected,
+  onItemChange,
+  onSelectionChange,
+}: {
+  itemState: State<InboxItemResource>;
+  selected: boolean;
+  onItemChange: (itemState: State<InboxItemResource>) => void;
+  onSelectionChange: (
+    itemState: State<InboxItemResource>,
+    selected: boolean,
+  ) => void;
+}) {
+  const [currentItemState, setCurrentItemState] = useState(itemState);
+  const [statusPending, setStatusPending] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const revisionResource = useMemo(
-    () => itemState.follow('latest-revision'),
-    [itemState],
+    () => currentItemState.follow('latest-revision'),
+    [currentItemState],
+  );
+  const revisionsResource = useMemo(
+    () => currentItemState.follow('revisions'),
+    [currentItemState],
   );
   const revision = useResource<InboxRevisionResource>(revisionResource);
-  const item = itemState.data;
-  const selfHref = itemState.getLink('self')?.href;
-  const revisionsHref = itemState.getLink('revisions')?.href;
+  const revisions =
+    useResource<InboxRevisionCollectionResource>(revisionsResource);
+  const item = currentItemState.data;
+  const selfHref = currentItemState.getLink('self')?.href;
+  const revisionsHref = currentItemState.getLink('revisions')?.href;
+
+  const changeStatus = async (status: InboxItemStatus) => {
+    if (status === item.status || statusPending) return;
+    setStatusPending(true);
+    setStatusError(null);
+    try {
+      const input: InboxItemStatusInput = {
+        status,
+        expectedVersion: item.version,
+      };
+      const updated = (await currentItemState
+        .follow('self')
+        .patch({ data: input })) as State<InboxItemResource>;
+      setCurrentItemState(updated);
+      onItemChange(updated);
+      if (status !== 'active' && selected) onSelectionChange(updated, false);
+    } catch (caught) {
+      setStatusError(errorMessage(caught, '无法更新来源状态。'));
+    } finally {
+      setStatusPending(false);
+    }
+  };
 
   return (
     <>
@@ -205,36 +270,79 @@ function SourceDetail({ itemState }: { itemState: State<InboxItemResource> }) {
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            {revisionsHref ? (
-              <Button asChild size="sm" variant="outline">
-                <Link to={revisionsHref}>修订历史</Link>
+            {selected ? (
+              <Button
+                onClick={() => onSelectionChange(currentItemState, false)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                移出本次提取
               </Button>
             ) : null}
             {selfHref ? (
               <Button asChild size="sm">
-                <Link to={selfHref}>打开来源</Link>
+                <Link to={selfHref}>编辑来源</Link>
               </Button>
             ) : null}
           </div>
         </header>
-        <ScrollArea className="min-h-0 flex-1">
-          {revision.error ? (
-            <Alert className="m-4" variant="destructive">
-              <AlertDescription>
-                最新 Revision 加载失败：{revision.error.message}
-              </AlertDescription>
-            </Alert>
-          ) : revision.loading || !revision.resourceState ? (
-            <RevisionSkeleton />
-          ) : (
-            <SourceDocument revisionState={revision.resourceState} />
-          )}
-        </ScrollArea>
+        <Tabs className="min-h-0 flex-1 gap-0" defaultValue="content">
+          <TabsList
+            className="h-10 w-full shrink-0 justify-start rounded-none border-b px-4"
+            variant="line"
+          >
+            <TabsTrigger className="flex-none px-3" value="content">
+              当前内容
+            </TabsTrigger>
+            <TabsTrigger className="flex-none px-3" value="revisions">
+              修订历史 {item.revisionCount}
+            </TabsTrigger>
+            <TabsTrigger className="flex-none px-3" value="source">
+              来源信息
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent className="mt-0 min-h-0 overflow-hidden" value="content">
+            <ScrollArea className="h-full">
+              {revision.error ? (
+                <Alert className="m-4" variant="destructive">
+                  <AlertDescription>
+                    最新 Revision 加载失败：{revision.error.message}
+                  </AlertDescription>
+                </Alert>
+              ) : revision.loading || !revision.resourceState ? (
+                <RevisionSkeleton />
+              ) : (
+                <SourceDocument revisionState={revision.resourceState} />
+              )}
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent
+            className="mt-0 min-h-0 overflow-hidden"
+            value="revisions"
+          >
+            <ScrollArea className="h-full">
+              <SourceRevisionHistory
+                revisionsHref={revisionsHref}
+                resourceState={revisions.resourceState}
+              />
+            </ScrollArea>
+          </TabsContent>
+          <TabsContent className="mt-0 min-h-0 overflow-hidden" value="source">
+            <ScrollArea className="h-full">
+              <SourceMetadata itemState={currentItemState} />
+            </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </article>
       <Inspector className="min-h-[24rem] xl:min-h-0">
         <SourceFacts
-          itemState={itemState}
+          itemState={currentItemState}
+          revisionCollectionState={revisions.resourceState}
           revisionState={revision.resourceState}
+          statusError={statusError}
+          statusPending={statusPending}
+          onStatusChange={changeStatus}
         />
       </Inspector>
     </>
@@ -273,60 +381,211 @@ function SourceDocument({
   );
 }
 
-function SourceFacts({
+function SourceRevisionHistory({
+  resourceState,
+  revisionsHref,
+}: {
+  resourceState?: State<InboxRevisionCollectionResource>;
+  revisionsHref?: string;
+}) {
+  if (!resourceState) return <RevisionSkeleton />;
+  if (resourceState.collection.length === 0) {
+    return (
+      <Empty className="border-0 py-12">
+        <EmptyHeader>
+          <EmptyTitle>尚无修订</EmptyTitle>
+          <EmptyDescription>保存变化后会创建不可变 Revision。</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 p-5">
+      <div>
+        <h3 className="font-medium">不可变修订历史</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          最近的内容快照；每个 hash 均可独立复核。
+        </p>
+      </div>
+      {resourceState.collection.slice(0, 5).map((revisionState) => {
+        const revision = revisionState.data;
+        return (
+          <Card key={revision.id} size="sm">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant="secondary">#{revision.revisionNumber}</Badge>
+                <time
+                  className="font-mono text-[0.625rem] text-muted-foreground"
+                  dateTime={revision.capturedAt}
+                >
+                  {formatDateTime(revision.capturedAt)}
+                </time>
+              </div>
+              <CardTitle>{revision.title}</CardTitle>
+            </CardHeader>
+          </Card>
+        );
+      })}
+      {revisionsHref ? (
+        <Button asChild size="sm" variant="outline">
+          <Link to={revisionsHref}>打开完整修订历史</Link>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function SourceMetadata({
   itemState,
-  revisionState,
 }: {
   itemState: State<InboxItemResource>;
-  revisionState?: State<InboxRevisionResource>;
 }) {
   const item = itemState.data;
-  const revision = revisionState?.data;
   const facts = [
-    ['处理状态', statusLabel(item.status)],
+    ['来源 ID', item.id],
     ['来源类型', sourceKindLabel(item.sourceKind)],
-    ['内容类型', revision ? contentTypeLabel(revision.contentType) : '…'],
+    ['外部键', item.externalKey],
+    ['创建时间', formatDateTime(item.createdAt)],
     ['最近更新', formatDateTime(item.updatedAt)],
-    ['版本数量', String(item.revisionCount)],
+    ['资源版本', String(item.version)],
   ];
   return (
-    <div className="flex flex-col gap-4 p-3.5">
+    <div className="flex flex-col gap-4 p-5">
       <div>
-        <h2 className="text-xs font-semibold">来源信息</h2>
-        <p className="mt-1 text-[0.6875rem] text-muted-foreground">
-          当前资源与不可变最新修订。
+        <h3 className="font-medium">来源身份</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          来源身份稳定；内容变化只会追加不可变 Revision。
         </p>
       </div>
       <dl>
         {facts.map(([label, value]) => (
           <FactRow key={label}>
             <dt className="text-muted-foreground">{label}</dt>
-            <dd className="text-right">{value}</dd>
+            <dd className="max-w-[70%] break-all text-right font-mono">
+              {value}
+            </dd>
           </FactRow>
         ))}
       </dl>
+    </div>
+  );
+}
+
+function SourceFacts({
+  itemState,
+  revisionCollectionState,
+  revisionState,
+  statusError,
+  statusPending,
+  onStatusChange,
+}: {
+  itemState: State<InboxItemResource>;
+  revisionCollectionState?: State<InboxRevisionCollectionResource>;
+  revisionState?: State<InboxRevisionResource>;
+  statusError: string | null;
+  statusPending: boolean;
+  onStatusChange: (status: InboxItemStatus) => Promise<void>;
+}) {
+  const item = itemState.data;
+  const revision = revisionState?.data;
+  const recentRevisions = revisionCollectionState?.collection.slice(0, 3) ?? [];
+  const facts = [
+    ['来源类型', sourceKindLabel(item.sourceKind)],
+    ['内容类型', revision ? contentTypeLabel(revision.contentType) : '…'],
+    ['外部键', item.externalKey],
+    ['最近更新', formatDateTime(item.updatedAt)],
+    ['版本数量', String(item.revisionCount)],
+    ['最新 SHA-256', shortHash(item.latestRevisionSha256)],
+  ];
+  const citation = `${shortIdentifier(item.id)} · #${revision?.revisionNumber ?? item.revisionCount} · ${item.latestRevisionSha256}`;
+
+  return (
+    <div className="flex flex-col gap-4 p-3.5">
       <div>
-        <p className="text-[0.6875rem] font-medium text-muted-foreground">
-          最新 SHA-256
-        </p>
-        <code className="mt-1 block break-all text-[0.625rem]">
-          {item.latestRevisionSha256}
-        </code>
+        <h2 className="text-xs font-semibold">处理状态</h2>
+        <ToggleGroup
+          aria-label="来源处理状态"
+          className="mt-2 w-full"
+          disabled={statusPending}
+          onValueChange={(value) => {
+            if (value) void onStatusChange(value as InboxItemStatus);
+          }}
+          size="sm"
+          spacing={0}
+          type="single"
+          value={item.status}
+          variant="outline"
+        >
+          <ToggleGroupItem value="active">活跃</ToggleGroupItem>
+          <ToggleGroupItem value="deferred">已暂缓</ToggleGroupItem>
+          <ToggleGroupItem value="closed">已关闭</ToggleGroupItem>
+        </ToggleGroup>
       </div>
-      {revision ? (
-        <div className="rounded-md border bg-card p-3">
-          <div className="flex items-center justify-between gap-2">
-            <Badge variant="secondary">#{revision.revisionNumber}</Badge>
-            <time
-              className="font-mono text-[0.625rem] text-muted-foreground"
-              dateTime={revision.capturedAt}
-            >
-              {formatDateTime(revision.capturedAt)}
-            </time>
+      {statusError ? (
+        <Alert variant="destructive">
+          <AlertDescription>{statusError}</AlertDescription>
+        </Alert>
+      ) : null}
+      <div>
+        <h3 className="text-xs font-semibold">来源事实</h3>
+        <dl className="mt-2">
+          {facts.map(([label, value]) => (
+            <FactRow key={label}>
+              <dt className="text-muted-foreground">{label}</dt>
+              <dd className="max-w-[65%] break-all text-right">{value}</dd>
+            </FactRow>
+          ))}
+        </dl>
+      </div>
+      {recentRevisions.length > 0 ? (
+        <div>
+          <h3 className="text-xs font-semibold">最近修订</h3>
+          <div className="mt-2 flex flex-col gap-2">
+            {recentRevisions.map((recentState, index) => (
+              <div
+                className="rounded-md border bg-card p-2.5"
+                key={recentState.data.id}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant="secondary">
+                    #{recentState.data.revisionNumber}
+                  </Badge>
+                  {index === 0 ? <Badge variant="outline">最新</Badge> : null}
+                </div>
+                <p className="mt-2 truncate text-xs font-medium">
+                  {recentState.data.title}
+                </p>
+                <time
+                  className="mt-1 block font-mono text-[0.625rem] text-muted-foreground"
+                  dateTime={recentState.data.capturedAt}
+                >
+                  {formatDateTime(recentState.data.capturedAt)}
+                </time>
+              </div>
+            ))}
           </div>
-          <p className="mt-2 text-xs font-medium">{revision.title}</p>
         </div>
       ) : null}
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>引用当前修订</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          <p className="text-xs text-muted-foreground">
+            Candidate 必须锁定精确 Revision、hash 和定位信息。
+          </p>
+          <code className="break-all text-[0.625rem]">{citation}</code>
+          <Button
+            onClick={() => void window.navigator.clipboard?.writeText(citation)}
+            size="xs"
+            type="button"
+            variant="outline"
+          >
+            复制引用
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -388,6 +647,14 @@ function contentTypeLabel(contentType: string): string {
 
 function shortIdentifier(value: string): string {
   return value.length > 16 ? `${value.slice(0, 12)}…` : value;
+}
+
+function shortHash(value: string): string {
+  return value.length > 24 ? `${value.slice(0, 12)}…${value.slice(-8)}` : value;
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function formatDateTime(value: string): string {

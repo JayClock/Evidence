@@ -1,9 +1,16 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import {
   useResource,
   type InboxItemCollectionResource,
   type InboxItemResource,
+  type InboxRevisionCollectionResource,
   type InboxRevisionResource,
   type IntakeAgentEvent,
   type State,
@@ -36,18 +43,28 @@ const revisionState = {
   getLink: () => undefined,
 } as unknown as State<InboxRevisionResource>;
 
+const revisionCollectionState = {
+  data: {
+    page: { number: 1, size: 20, totalElements: 1, totalPages: 1 },
+  },
+  collection: [revisionState],
+} as unknown as State<InboxRevisionCollectionResource>;
+
 function inboxItemState({
   id = 'item-1',
   title = 'Customer interview',
   status = 'active',
   sourceKind = 'manual_text',
+  statusPatch = vi.fn(),
 }: {
   id?: string;
   title?: string;
   status?: 'active' | 'deferred' | 'closed';
   sourceKind?: string;
+  statusPatch?: ReturnType<typeof vi.fn>;
 } = {}) {
   const latestRevision = { kind: 'latest-revision', id };
+  const revisions = { kind: 'revisions', id };
   return {
     data: {
       id,
@@ -85,6 +102,8 @@ function inboxItemState({
     },
     follow: (rel: string) => {
       if (rel === 'latest-revision') return latestRevision;
+      if (rel === 'revisions') return revisions;
+      if (rel === 'self') return { patch: statusPatch };
       throw new Error(`Unexpected item relation: ${rel}`);
     },
   } as unknown as State<InboxItemResource>;
@@ -188,12 +207,16 @@ afterEach(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useResourceMock.mockReturnValue({
+  useResourceMock.mockImplementation((resource: { kind?: string }) => ({
     loading: false,
     error: null,
-    data: revisionState.data,
-    resourceState: revisionState,
-  });
+    data:
+      resource.kind === 'revisions'
+        ? revisionCollectionState.data
+        : revisionState.data,
+    resourceState:
+      resource.kind === 'revisions' ? revisionCollectionState : revisionState,
+  }));
 });
 
 describe('InboxCollectionView', () => {
@@ -210,9 +233,39 @@ describe('InboxCollectionView', () => {
     expect(screen.getAllByText('Customer interview').length).toBeGreaterThan(0);
     expect(screen.getAllByText('活跃').length).toBeGreaterThan(0);
     expect(screen.getByText('Customers need a durable Inbox.')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '当前内容' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '修订历史 1' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '来源信息' })).toBeTruthy();
     expect(
-      screen.getByRole('link', { name: '打开来源' }).getAttribute('href'),
+      screen.getByRole('link', { name: '编辑来源' }).getAttribute('href'),
     ).toBe('/api/workspaces/workspace-1/inbox-items/item-1');
+  });
+
+  it('changes source status from the focused inspector', async () => {
+    const statusPatch = vi.fn();
+    const updated = inboxItemState({ status: 'deferred', statusPatch });
+    statusPatch.mockResolvedValue(updated);
+    const { state } = collectionState({
+      items: [inboxItemState({ statusPatch })],
+    });
+
+    render(
+      <MemoryRouter>
+        <InboxCollectionView resourceState={state} />
+      </MemoryRouter>,
+    );
+
+    const statusGroup = screen.getByRole('group', {
+      name: '来源处理状态',
+    });
+    fireEvent.click(within(statusGroup).getByRole('radio', { name: '已暂缓' }));
+
+    await waitFor(() =>
+      expect(statusPatch).toHaveBeenCalledWith({
+        data: { status: 'deferred', expectedVersion: 1 },
+      }),
+    );
+    expect(screen.getAllByText('已暂缓').length).toBeGreaterThan(0);
   });
 
   it('renders an empty Inbox state', () => {

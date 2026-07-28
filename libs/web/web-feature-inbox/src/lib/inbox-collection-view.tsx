@@ -55,6 +55,9 @@ export function InboxCollectionView({
   const [pagePending, setPagePending] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [focusedItemId, setFocusedItemId] = useState<string | null>(null);
+  const [itemOverrides, setItemOverrides] = useState<
+    Map<string, State<InboxItemResource>>
+  >(() => new Map());
   const [selectedItems, setSelectedItems] = useState<
     Map<string, InboxSourceSelection>
   >(() => new Map());
@@ -63,10 +66,12 @@ export function InboxCollectionView({
     statusFilter(initialParameters.get('status')),
   );
 
+  const itemStates = collectionState.collection.map(
+    (itemState) => itemOverrides.get(itemState.data.id) ?? itemState,
+  );
   const focusedItem =
-    collectionState.collection.find(
-      (itemState) => itemState.data.id === focusedItemId,
-    ) ?? collectionState.collection[0];
+    itemStates.find((itemState) => itemState.data.id === focusedItemId) ??
+    itemStates[0];
   const selectedIds = new Set(selectedItems.keys());
   const selfHref = collectionState.getLink('self')?.href;
 
@@ -97,6 +102,22 @@ export function InboxCollectionView({
     });
   };
 
+  const itemChanged = (itemState: State<InboxItemResource>) => {
+    setItemOverrides((current) => {
+      const next = new Map(current);
+      next.set(itemState.data.id, itemState);
+      return next;
+    });
+    if (itemState.data.status !== 'active') {
+      setSelectedItems((current) => {
+        if (!current.has(itemState.data.id)) return current;
+        const next = new Map(current);
+        next.delete(itemState.data.id);
+        return next;
+      });
+    }
+  };
+
   const capture = async (input: InboxSourceInput | InboxSourceInput[]) => {
     const sources = Array.isArray(input) ? input : [input];
     if (sources.length === 0) return;
@@ -114,6 +135,7 @@ export function InboxCollectionView({
       const refreshed =
         (await collection.refresh()) as State<InboxItemCollectionResource>;
       setCollectionState(refreshed);
+      setItemOverrides(new Map());
       setFocusedItemId(
         sources.length === 1
           ? firstCreatedId
@@ -129,6 +151,7 @@ export function InboxCollectionView({
     try {
       const nextState = await collectionState.follow(relation).refresh();
       setCollectionState(nextState);
+      setItemOverrides(new Map());
       setFocusedItemId(nextState.collection[0]?.data.id ?? null);
     } catch (caught) {
       setPageError(errorMessage(caught));
@@ -150,7 +173,7 @@ export function InboxCollectionView({
   };
 
   return (
-    <EvidencePage>
+    <EvidencePage className="m-1 h-[calc(100%-0.5rem)]">
       <PageHeader>
         <PageHeaderCopy>
           <PageEyebrow>
@@ -235,7 +258,7 @@ export function InboxCollectionView({
       <div className="min-h-0 flex-1">
         <InboxSourceBrowser
           focusedItem={focusedItem}
-          itemStates={collectionState.collection}
+          itemStates={itemStates}
           pagination={
             <InboxPagination
               hasNext={Boolean(collectionState.getLink('next'))}
@@ -252,6 +275,7 @@ export function InboxCollectionView({
           selectionLimitReached={selectedItems.size >= maximumExtractionSources}
           total={collectionState.data.page.totalElements}
           onFocus={setFocusedItemId}
+          onItemChange={itemChanged}
           onSelectionChange={toggleSelection}
         />
       </div>
