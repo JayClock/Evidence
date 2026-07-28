@@ -82,6 +82,38 @@ describe('IterationWorktreeManager', () => {
     expect(await gitHead(repository)).toBe(baseCommitSha);
   });
 
+  it('locks Showcase observations to one clean approved commit', async () => {
+    const root = await temporaryDirectory();
+    const repository = await createRepository(root);
+    const baseCommitSha = await gitHead(repository);
+    const manager = new IterationWorktreeManager(join(root, 'managed'));
+    const worktree = await manager.prepare({
+      iterationId: 'iteration-showcase',
+      repositoryRoot: repository,
+      baseCommitSha,
+    });
+    await writeFile(join(worktree.worktreeRoot, 'tracked.txt'), 'approved\n');
+    const diff = await manager.inspect(worktree);
+    const approvedCommitSha = await manager.commit(
+      worktree,
+      diff.sha256,
+      'feat(workspace): approve showcase increment',
+    );
+
+    await expect(
+      manager.snapshotApproved(worktree, approvedCommitSha),
+    ).resolves.toMatchObject({
+      headSha: approvedCommitSha,
+      changedFileCount: 0,
+      changedPaths: [],
+    });
+
+    await writeFile(join(worktree.worktreeRoot, 'tracked.txt'), 'drifted\n');
+    await expect(
+      manager.snapshotApproved(worktree, approvedCommitSha),
+    ).rejects.toThrow('must remain clean');
+  });
+
   it('prepares locked pnpm dependencies without changing tracked files', async () => {
     const root = await temporaryDirectory();
     const repository = await createPnpmRepository(root);
