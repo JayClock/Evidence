@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import type {
   ApprovedTaskingPlanData,
   DeskCheckAction,
@@ -17,10 +17,12 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
   Checkbox,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
   Dialog,
   DialogClose,
   DialogContent,
@@ -38,17 +40,18 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  PageActions,
   PageDescription,
   PageEyebrow,
   PageHeader,
   PageHeaderCopy,
   PageTitle,
   Spinner,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
   Textarea,
   toast,
   Workbench,
@@ -194,12 +197,10 @@ export function TaskingDetailView({
     tasking.iteration.loop === 'tasking' &&
     tasking.iteration.stage === 'approved' &&
     Boolean(approvedPlan);
-  const storyHref = state.getLink('story')?.href;
-  const pairHref = state.getLink('pair')?.href;
 
   return (
     <EvidencePage>
-      <PageHeader>
+      <PageHeader className="px-4 pt-3.5 pb-[0.6875rem]">
         <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
             <PageEyebrow>
@@ -211,7 +212,7 @@ export function TaskingDetailView({
               Story Revision v{tasking.storyRevision.revisionNumber}
             </Badge>
           </div>
-          <PageTitle>
+          <PageTitle className="leading-7">
             {tasking.story.reference} · Tasking / Desk Check
           </PageTitle>
           <PageDescription>
@@ -219,25 +220,13 @@ export function TaskingDetailView({
             process、命令、质量门、TASK 与 Pair 预算。
           </PageDescription>
         </PageHeaderCopy>
-        <PageActions>
-          {storyHref ? (
-            <Button asChild variant="outline">
-              <Link to={storyHref}>返回 Story</Link>
-            </Button>
-          ) : null}
-          {tasking.iteration.loop === 'pair' && pairHref ? (
-            <Button asChild>
-              <Link to={pairHref}>打开 Pair 工作台</Link>
-            </Button>
-          ) : null}
-        </PageActions>
       </PageHeader>
 
       <DeliveryAuthorityProgress iteration={tasking.iteration} />
 
       <Workbench className="lg:grid-cols-[minmax(0,1fr)_21.25rem]">
         <WorkbenchMain>
-          <div className="flex flex-col gap-4 p-4 sm:p-5">
+          <div className="flex flex-col gap-2.5 p-3">
             <Alert>
               <AlertTitle>
                 {approvedPlan
@@ -250,12 +239,14 @@ export function TaskingDetailView({
                 {approvedPlan
                   ? 'Desk Check 只创建不可变 Approved Plan，不执行代码。Desktop 必须显式启动 Pair。'
                   : 'Tasking Analyst 只有 propose capability，不能执行 Desk Check；Browser 不会运行 Server Pi fallback。'}
+                {tasking.noModelImpactDecision ? (
+                  <span className="mt-2 flex items-center gap-2 text-xs">
+                    <Badge>{tasking.noModelImpactDecision.reference}</Badge>
+                    <span>{tasking.noModelImpactDecision.reason}</span>
+                  </span>
+                ) : null}
               </AlertDescription>
             </Alert>
-
-            {tasking.noModelImpactDecision ? (
-              <NoModelImpactCard decision={tasking.noModelImpactDecision} />
-            ) : null}
 
             {reviewPlan ? (
               <CandidateReview
@@ -276,7 +267,7 @@ export function TaskingDetailView({
         </WorkbenchMain>
 
         <WorkbenchRail>
-          <div className="flex flex-col gap-5 p-4">
+          <div className="flex flex-col gap-2.5 p-3">
             <div>
               <h2 className="text-base font-medium">
                 {approvedPlan ? 'Approved Tasking Plan' : 'Human Desk Check'}
@@ -316,7 +307,7 @@ export function TaskingDetailView({
             {candidate && tasking.iteration.stage === 'desk_check' ? (
               <>
                 <DeskCheckSummary candidate={candidate} />
-                <Field data-invalid={!reason.trim()}>
+                <Field>
                   <FieldLabel htmlFor="desk-check-reason">
                     修订或缺口路由理由
                   </FieldLabel>
@@ -325,7 +316,6 @@ export function TaskingDetailView({
                     scenario_gap 必填。
                   </FieldDescription>
                   <Textarea
-                    aria-invalid={!reason.trim()}
                     id="desk-check-reason"
                     onChange={(event) => setReason(event.target.value)}
                     placeholder="明确说明需要修正的计划、知识或 Scenario 边界…"
@@ -404,28 +394,6 @@ export function TaskingDetailView({
   );
 }
 
-function NoModelImpactCard({
-  decision,
-}: {
-  decision: NonNullable<TaskingResource['data']['noModelImpactDecision']>;
-}) {
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge>{decision.reference}</Badge>
-          <Badge variant="secondary">tool / none / false</Badge>
-          <span className="font-mono text-xs text-muted-foreground">
-            {shortHash(decision.contentSha256)}
-          </span>
-        </div>
-        <CardTitle>No Model Impact 已由人工确认</CardTitle>
-        <CardDescription>{decision.reason}</CardDescription>
-      </CardHeader>
-    </Card>
-  );
-}
-
 function CandidateReview({
   plan,
   approved,
@@ -433,136 +401,177 @@ function CandidateReview({
   plan: CandidatePlan;
   approved: boolean;
 }) {
-  const q2Count = plan.tests.filter(({ quadrant }) => quadrant === 'Q2').length;
-  const q1Count = plan.tests.length - q2Count;
   return (
-    <Card>
-      <CardHeader className="border-b">
+    <>
+      <TaskingTestsCard approved={approved} plan={plan} />
+      <ProcessPlanCard plan={plan} />
+      <PlanEvidenceDisclosure plan={plan} />
+    </>
+  );
+}
+
+function TaskingTestsCard({
+  plan,
+  approved,
+}: {
+  plan: CandidatePlan;
+  approved: boolean;
+}) {
+  const q2Count = plan.tests.filter(({ quadrant }) => quadrant === 'Q2').length;
+  return (
+    <Card size="sm">
+      <CardHeader className="border-b !pb-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge>{plan.reference}</Badge>
           <Badge variant={approved ? 'default' : 'secondary'}>
-            {approved ? 'Approved Plan 快照' : '非权威 Candidate'}
+            {approved ? 'Approved Plan' : '非权威 Candidate'}
           </Badge>
-          <Badge variant="outline">Plan v{plan.planVersion}</Badge>
+          <Badge variant="outline">
+            Q2 × {q2Count} · Q1 × {plan.tests.length - q2Count}
+          </Badge>
         </div>
-        <CardTitle>完整 Tasking {approved ? 'Plan' : 'Candidate'}</CardTitle>
+        <CardTitle>Q1 / Q2 测试清单 · {plan.tests.length}</CardTitle>
         <CardDescription>
-          Baseline {shortHash(plan.baseCommitSha)} · Project catalog{' '}
-          {shortHash(plan.projectCatalogSha256)} ·{' '}
-          {shortHash(plan.contentSha256)}
+          每个 Scenario Then 有独立 Q2；公共 Q1 去重并支撑 Q2。
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="tests">
-          <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
-            <TabsTrigger value="tests">测试 · {plan.tests.length}</TabsTrigger>
-            <TabsTrigger value="processes">
-              流程 · {plan.processes.length}
-            </TabsTrigger>
-            <TabsTrigger value="tasks">TASK · {plan.tasks.length}</TabsTrigger>
-            <TabsTrigger value="evidence">锁定证据</TabsTrigger>
-          </TabsList>
-          <TabsContent className="mt-4" value="tests">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h3 className="font-medium">Q1 / Q2 测试清单</h3>
-                <p className="text-sm text-muted-foreground">
-                  每个 Scenario Then 有独立 Q2；公共 Q1 去重并支撑 Q2。
-                </p>
-              </div>
-              <Badge variant="outline">
-                Q2 × {q2Count} · Q1 × {q1Count}
-              </Badge>
-            </div>
-            <ol className="flex flex-col gap-3">
-              {plan.tests.map((test) => (
-                <li className="rounded-lg border p-3" key={test.id}>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{test.id}</Badge>
-                    <Badge variant="outline">{test.quadrant}</Badge>
-                    <Badge variant="secondary">{test.stepId}</Badge>
-                  </div>
-                  <p className="mt-2 font-medium">{test.intent}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {test.scenarioIds.join(', ')}
-                    {test.scenarioOutcome
-                      ? ` · Then：${test.scenarioOutcome}`
-                      : ''}
-                  </p>
-                  <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-                    <SmallFact
-                      label="Nx project"
-                      value={test.projectId ?? 'process'}
-                    />
-                    <SmallFact label="安全过滤" value={test.testFilter} />
-                    <SmallFact
-                      label="modelRefs"
-                      value={`entities [${test.modelRefs.entities.join(', ')}] · associations [${test.modelRefs.associations.join(', ')}]`}
-                    />
-                  </dl>
-                </li>
-              ))}
-            </ol>
-          </TabsContent>
-          <TabsContent className="mt-4" value="processes">
-            <div className="flex flex-col gap-3">
-              {plan.processes.map((process) => (
-                <div
-                  className="rounded-lg border p-3"
-                  key={process.runtimePlanId}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{process.runtimePlanId}</Badge>
-                    <Badge variant="secondary">
-                      {process.processId} · v{process.processVersion}
-                    </Badge>
-                    <Badge variant="outline">
-                      {shortHash(process.definitionSha256)}
-                    </Badge>
-                  </div>
-                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                    <CommandList
-                      label="聚焦命令"
-                      values={process.focusedCommands.map(
-                        ({ command }) => command,
-                      )}
-                    />
-                    <CommandList
-                      label="物化质量门"
-                      values={process.qualityGates.map(
-                        ({ command }) => command,
-                      )}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-          <TabsContent className="mt-4" value="tasks">
-            <ol className="flex flex-col gap-3">
-              {plan.tasks.map((task, index) => (
-                <li className="flex gap-3 rounded-lg border p-3" key={task.id}>
-                  <Badge variant="secondary">
-                    {String(index + 1).padStart(2, '0')}
-                  </Badge>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge>{task.id}</Badge>
-                      <Badge variant="outline">{task.testIds.join(', ')}</Badge>
-                    </div>
-                    <p className="mt-2 font-medium">{task.description}</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      dependsOn: {task.dependsOn.join(', ') || 'none'} ·
-                      modelRefs: entities [{task.modelRefs.entities.join(', ')}
-                      ], associations [{task.modelRefs.associations.join(', ')}]
+      <CardContent className="px-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>TEST</TableHead>
+              <TableHead>类型</TableHead>
+              <TableHead>行为意图</TableHead>
+              <TableHead>Scenario / Ownership</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {plan.tests.map((test) => (
+              <TableRow key={test.id}>
+                <TableCell className="font-mono text-xs">{test.id}</TableCell>
+                <TableCell>
+                  <Badge variant="outline">{test.quadrant}</Badge>
+                </TableCell>
+                <TableCell className="min-w-56 whitespace-normal">
+                  <p className="text-xs font-medium">{test.intent}</p>
+                  {test.scenarioOutcome ? (
+                    <p className="mt-1 line-clamp-1 text-[0.6875rem] text-muted-foreground">
+                      Then：{test.scenarioOutcome}
                     </p>
+                  ) : null}
+                </TableCell>
+                <TableCell className="min-w-44 whitespace-normal text-xs">
+                  <p>{test.scenarioIds.join(', ') || '公共 Q1'}</p>
+                  <code className="text-[0.625rem] text-muted-foreground">
+                    {test.projectId ?? test.processId}
+                  </code>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProcessPlanCard({ plan }: { plan: CandidatePlan }) {
+  return (
+    <Card size="sm">
+      <CardHeader className="border-b !pb-3">
+        <CardTitle>流程与命令 · {plan.processes.length}</CardTitle>
+        <CardDescription>
+          每个技术边界唯一匹配的 v3 test process。
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="px-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>v3 test process</TableHead>
+              <TableHead>聚焦命令与质量门</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {plan.processes.map((process) => (
+              <TableRow key={process.runtimePlanId}>
+                <TableCell className="font-mono text-xs">
+                  {process.runtimePlanId}
+                </TableCell>
+                <TableCell className="min-w-52 whitespace-normal">
+                  <p className="text-xs font-medium">
+                    {process.processId} · v{process.processVersion}
+                  </p>
+                  <code className="text-[0.625rem] text-muted-foreground">
+                    {shortHash(process.definitionSha256)}
+                  </code>
+                </TableCell>
+                <TableCell className="min-w-72 whitespace-normal">
+                  <div className="flex flex-col gap-1 font-mono text-[0.625rem]">
+                    {process.focusedCommands.map(({ command }) => (
+                      <code className="break-all" key={command}>
+                        {command}
+                      </code>
+                    ))}
+                    {process.qualityGates.map(({ command }) => (
+                      <code
+                        className="break-all text-muted-foreground"
+                        key={command}
+                      >
+                        Gate · {command}
+                      </code>
+                    ))}
                   </div>
-                </li>
-              ))}
-            </ol>
-          </TabsContent>
-          <TabsContent className="mt-4" value="evidence">
-            <dl className="grid gap-3 sm:grid-cols-2">
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlanEvidenceDisclosure({ plan }: { plan: CandidatePlan }) {
+  return (
+    <Collapsible>
+      <Card size="sm">
+        <CardHeader>
+          <CollapsibleTrigger asChild>
+            <Button className="w-full justify-between" variant="ghost">
+              TASK 与锁定证据
+              <Badge variant="outline">TASK {plan.tasks.length} · 证据 6</Badge>
+            </Button>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className="flex flex-col gap-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>TASK</TableHead>
+                  <TableHead>TEST</TableHead>
+                  <TableHead>实现意图</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {plan.tasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell className="font-mono text-xs">
+                      {task.id}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {task.testIds.join(', ')}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-xs">
+                      {task.description}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <dl className="grid gap-2 sm:grid-cols-2">
               <EvidenceFact
                 label="Story Revision"
                 value={shortHash(plan.storyRevisionSha256)}
@@ -588,17 +597,10 @@ function CandidateReview({
                 value={shortHash(plan.contentSha256)}
               />
             </dl>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-      <CardFooter className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span>{plan.projectCatalog.projects.length} 个 Nx project</span>
-        <span>·</span>
-        <span>{plan.processes.length} 个唯一 v3 process</span>
-        <span>·</span>
-        <span>{plan.executionBudget.maxCheckpoints} 个 checkpoint 上限</span>
-      </CardFooter>
-    </Card>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
 
@@ -607,21 +609,6 @@ function SmallFact({ label, value }: { label: string; value: string }) {
     <div className="min-w-0 rounded-lg border bg-muted/30 p-2">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="mt-1 break-words font-mono">{value}</dd>
-    </div>
-  );
-}
-
-function CommandList({ label, values }: { label: string; values: string[] }) {
-  return (
-    <div className="rounded-lg bg-muted/40 p-3">
-      <p className="text-sm font-medium">{label}</p>
-      <ul className="mt-2 flex flex-col gap-2 font-mono text-xs text-muted-foreground">
-        {values.map((value) => (
-          <li className="break-all" key={value}>
-            {value}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

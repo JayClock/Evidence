@@ -94,6 +94,14 @@ describe('TaskingDetailView', () => {
       />,
     );
 
+    expect(screen.getAllByRole('table')).toHaveLength(2);
+    expect(screen.getByText('Q1 / Q2 测试清单 · 2')).toBeTruthy();
+    expect(screen.getByText('流程与命令 · 1')).toBeTruthy();
+    expect(screen.queryByRole('tab')).toBeNull();
+    const reason = screen.getByLabelText('修订或缺口路由理由') as unknown as {
+      getAttribute: (name: string) => string | null;
+    };
+    expect(reason.getAttribute('aria-invalid')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '批准精确计划' }));
     fireEvent.click(screen.getByLabelText(/我已检查 Scenario/));
     fireEvent.click(screen.getByRole('button', { name: '确认批准计划' }));
