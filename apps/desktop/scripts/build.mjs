@@ -39,6 +39,7 @@ const configurations = [
       resolve(workspaceRoot, 'apps/desktop/src/pair-driver-runtime.ts'),
       resolve(workspaceRoot, 'apps/desktop/src/pair-red-reviewer-runtime.ts'),
       resolve(workspaceRoot, 'apps/desktop/src/showcase-reviewer-runtime.ts'),
+      resolve(workspaceRoot, 'apps/desktop/src/respond-learner-runtime.ts'),
     ],
   },
 ];
@@ -67,6 +68,8 @@ await Promise.all(
     'pair-red-reviewer-runtime.mjs.map',
     'showcase-reviewer-runtime.mjs',
     'showcase-reviewer-runtime.mjs.map',
+    'respond-learner-runtime.mjs',
+    'respond-learner-runtime.mjs.map',
   ].map((file) => rm(resolve(outdir, file), { force: true })),
 );
 if (!watch) {

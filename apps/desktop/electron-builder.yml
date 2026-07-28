@@ -10,6 +10,8 @@ asarUnpack:
   - dist/pair-red-reviewer-runtime.mjs.map
   - dist/showcase-reviewer-runtime.mjs
   - dist/showcase-reviewer-runtime.mjs.map
+  - dist/respond-learner-runtime.mjs
+  - dist/respond-learner-runtime.mjs.map
   - dist/inbox-analyst-runtime.mjs
   - dist/inbox-analyst-runtime.mjs.map
   - dist/kickoff-analyst-runtime.mjs
@@ -37,6 +39,8 @@ files:
   - dist/pair-red-reviewer-runtime.mjs.map
   - dist/showcase-reviewer-runtime.mjs
   - dist/showcase-reviewer-runtime.mjs.map
+  - dist/respond-learner-runtime.mjs
+  - dist/respond-learner-runtime.mjs.map
   - dist/inbox-analyst-runtime.mjs
   - dist/inbox-analyst-runtime.mjs.map
   - dist/kickoff-analyst-runtime.mjs

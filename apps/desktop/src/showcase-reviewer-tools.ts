@@ -31,6 +31,15 @@ export async function createShowcaseReviewerTools(
   worktreeRoot: string,
   state: ShowcaseReviewerToolState,
 ): Promise<ToolDefinition[]> {
+  return [
+    ...(await createReadOnlyRepositoryTools(worktreeRoot)),
+    submitReviewTool(state),
+  ];
+}
+
+export async function createReadOnlyRepositoryTools(
+  worktreeRoot: string,
+): Promise<ToolDefinition[]> {
   const boundary = await ReadOnlyWorktreeBoundary.create(worktreeRoot);
   const operations: ReadOperations = {
     readFile: (path) => boundary.readFile(path),
@@ -40,7 +49,6 @@ export async function createShowcaseReviewerTools(
     defineTool(createReadToolDefinition(boundary.root, { operations })),
     searchTool(boundary.root),
     listFilesTool(boundary.root),
-    submitReviewTool(state),
   ];
 }
 
