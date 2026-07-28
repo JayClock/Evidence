@@ -43,6 +43,10 @@ import {
   PageToolbar,
   ScrollArea,
   Separator,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   Textarea,
   ToggleGroup,
   ToggleGroupItem,
@@ -134,10 +138,10 @@ export function StoryCandidateCollectionView({
 
   return (
     <EvidencePage>
-      <PageHeader>
+      <PageHeader className="px-4 pt-3.5 pb-[0.6875rem]">
         <PageHeaderCopy>
           <PageEyebrow>Inbox Analyst 已完成</PageEyebrow>
-          <PageTitle>故事候选</PageTitle>
+          <PageTitle className="leading-7">故事候选</PageTitle>
           <PageDescription>
             候选是带精确来源引用的非权威提案。只有人工选择 ready Candidate
             后，才会冻结 Intake 并创建 Iteration。
@@ -276,25 +280,27 @@ function AuthorityProgress() {
   ] as const;
 
   return (
-    <ol
-      aria-label="Inbox 到 Story 权威流程"
-      className="grid shrink-0 overflow-hidden border-b bg-card sm:grid-cols-2 xl:grid-cols-4"
-    >
-      {steps.map(([number, label, detail], index) => (
-        <li
-          className="flex min-w-0 items-center gap-2 border-b px-3 py-2 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
-          key={number}
-        >
-          <Badge variant={index < 2 ? 'default' : 'outline'}>{number}</Badge>
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-xs font-medium">{label}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {detail}
+    <div className="h-[3.625rem] shrink-0 px-4 pb-[0.6875rem]">
+      <ol
+        aria-label="Inbox 到 Story 权威流程"
+        className="grid h-[2.9375rem] overflow-hidden rounded-lg border bg-card sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {steps.map(([number, label, detail], index) => (
+          <li
+            className="flex min-w-0 items-center gap-2 border-b px-3 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
+            key={number}
+          >
+            <Badge variant={index < 2 ? 'default' : 'outline'}>{number}</Badge>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-xs font-medium">{label}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {detail}
+              </span>
             </span>
-          </span>
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -427,16 +433,17 @@ function CandidateReviewPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card">
-      <header className="flex shrink-0 flex-col gap-3 border-b px-4 py-3 lg:flex-row lg:items-start lg:justify-between">
+      <header className="flex h-[5.125rem] shrink-0 flex-col gap-3 border-b px-[0.9375rem] py-[0.8125rem] lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[0.6875rem] text-muted-foreground">
-            <CandidateStatusBadge status={candidate.status} />
-            <span>{candidate.reference}</span>
-            <span>Inbox Analyst · {formatDateTime(candidate.proposedAt)}</span>
-          </div>
-          <h2 className="mt-1.5 text-lg font-semibold">{candidate.title}</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            一次性、来源受限的非权威提案
+          <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">
+            {candidateStatusLabel(candidate.status)} · {candidate.reference} ·
+            Inbox Analyst 提出于 {formatDateTime(candidate.proposedAt)}
+          </p>
+          <h2 className="mt-1 truncate text-base font-semibold">
+            {candidate.title}
+          </h2>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            来自 {candidate.extractionId} 的一次性、来源受限提案
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -469,73 +476,104 @@ function CandidateReviewPanel({
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_18.25rem]">
-        <ScrollArea className="min-h-0">
-          <div className="flex flex-col gap-4 p-4">
-            <Alert>
-              <AlertDescription>
-                <strong>这不是 Story。</strong> Candidate 没有 US-001
-                身份，也没有人工权威。选择只会创建 Iteration 与 Frozen Intake。
-              </AlertDescription>
-            </Alert>
+      <Tabs className="min-h-0 flex-1 gap-0" defaultValue="content">
+        <TabsList
+          className="h-10 w-full shrink-0 justify-start rounded-none border-b px-4"
+          variant="line"
+        >
+          <TabsTrigger className="flex-none px-3" value="content">
+            候选内容
+          </TabsTrigger>
+          <TabsTrigger className="flex-none px-3" value="sources">
+            冻结来源 {candidate.citations.length}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent className="mt-0 min-h-0 overflow-hidden" value="content">
+          <div className="grid h-full min-h-0 overflow-hidden xl:grid-cols-[minmax(0,1fr)_18.25rem]">
+            <ScrollArea className="min-h-0">
+              <div className="flex flex-col gap-4 p-4">
+                <Alert>
+                  <AlertDescription>
+                    <strong>这不是 Story。</strong> Candidate 没有 US-001
+                    身份，也没有人工权威。选择只会创建 Iteration 与 Frozen
+                    Intake。
+                  </AlertDescription>
+                </Alert>
 
-            {candidate.status === 'stale' ? (
-              <Alert>
-                <AlertDescription>
-                  引用来源已有更新，此 Candidate 不能再被选择。
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {!bridge?.startIteration && candidate.status === 'ready' ? (
-              <Alert>
-                <AlertDescription>
-                  请在 Evidence Desktop 中绑定当前 Workspace 后选择 Candidate。
-                </AlertDescription>
-              </Alert>
-            ) : null}
-            {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            ) : null}
+                {candidate.status === 'stale' ? (
+                  <Alert>
+                    <AlertDescription>
+                      引用来源已有更新，此 Candidate 不能再被选择。
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {!bridge?.startIteration && candidate.status === 'ready' ? (
+                  <Alert>
+                    <AlertDescription>
+                      请在 Evidence Desktop 中绑定当前 Workspace 后选择
+                      Candidate。
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {error ? (
+                  <Alert variant="destructive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ) : null}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <DetailItem label="角色" value={candidate.role} />
-              <DetailItem
-                label="认知模式"
-                value={cognitiveModeLabel(candidate.cognitiveMode)}
-              />
-              <div className="sm:col-span-2">
-                <DetailItem label="问题" value={candidate.problem} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <DetailItem label="角色" value={candidate.role} />
+                  <DetailItem
+                    label="认知模式"
+                    value={cognitiveModeLabel(candidate.cognitiveMode)}
+                  />
+                  <div className="sm:col-span-2">
+                    <DetailItem label="问题" value={candidate.problem} />
+                  </div>
+                  <DetailItem label="目标" value={candidate.goal} />
+                  <DetailItem label="价值" value={candidate.value} />
+                </div>
+
+                <Card className="bg-ev-brand-soft">
+                  <CardHeader>
+                    <CardDescription>候选 Lean Story 表述</CardDescription>
+                    <CardTitle>
+                      作为{candidate.role}，我希望{candidate.goal}，从而
+                      {candidate.value}
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
               </div>
-              <DetailItem label="目标" value={candidate.goal} />
-              <DetailItem label="价值" value={candidate.value} />
+            </ScrollArea>
+            <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto border-t bg-ev-soft p-3.5 xl:border-t-0 xl:border-l">
+              <CitationCard citations={candidate.citations} />
+              <CandidateHash value={candidate.contentSha256} />
+            </aside>
+          </div>
+        </TabsContent>
+        <TabsContent className="mt-0 min-h-0 overflow-hidden" value="sources">
+          <ScrollArea className="h-full">
+            <div className="mx-auto grid max-w-4xl gap-4 p-4 md:grid-cols-[minmax(0,1fr)_18.25rem]">
+              <CitationCard citations={candidate.citations} />
+              <CandidateHash value={candidate.contentSha256} />
             </div>
-
-            <Card className="bg-ev-brand-soft">
-              <CardHeader>
-                <CardDescription>候选 Lean Story 表述</CardDescription>
-                <CardTitle>
-                  作为{candidate.role}，我希望{candidate.goal}，从而
-                  {candidate.value}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-        </ScrollArea>
-        <aside className="min-h-0 overflow-y-auto border-t bg-ev-soft p-3.5 xl:border-t-0 xl:border-l">
-          <CitationCard citations={candidate.citations} />
-          <div className="mt-3 flex flex-col gap-2 rounded-lg border bg-card p-3">
-            <p className="text-[0.6875rem] font-medium tracking-wide text-muted-foreground uppercase">
-              Candidate SHA-256
-            </p>
-            <code className="break-all text-[0.625rem]">
-              {candidate.contentSha256}
-            </code>
-          </div>
-        </aside>
-      </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
+  );
+}
+
+function CandidateHash({ value }: { value: string }) {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardDescription>Candidate SHA-256</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <code className="break-all text-[0.625rem]">{value}</code>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -564,7 +602,7 @@ function CandidateSelectionDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button disabled={disabled} type="button">
+        <Button disabled={disabled} size="sm" type="button">
           选择并开始 Iteration
         </Button>
       </DialogTrigger>
@@ -643,6 +681,7 @@ function CandidateDecisionDialog({
       <DialogTrigger asChild>
         <Button
           disabled={disabled}
+          size="sm"
           type="button"
           variant={action === 'reject' ? 'destructive' : 'outline'}
         >

@@ -132,6 +132,8 @@ describe('Story Candidate views', () => {
     expect(screen.getByRole('heading', { name: '故事候选' })).toBeTruthy();
     expect(screen.getAllByText('CAND-0001').length).toBeGreaterThan(0);
     expect(screen.getAllByText('可选择').length).toBeGreaterThan(0);
+    expect(screen.getByRole('tab', { name: '候选内容' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '冻结来源 1' })).toBeTruthy();
     expect(screen.getByText(revisionHash)).toBeTruthy();
     expect(screen.getByText(/这不是 Story/)).toBeTruthy();
     expect(
@@ -185,7 +187,7 @@ describe('Story Candidate views', () => {
         },
       }),
     );
-    expect(await screen.findByText('已拒绝')).toBeTruthy();
+    expect(await screen.findByText(/已拒绝 · CAND-0001/)).toBeTruthy();
   });
 
   it('confirms selection before delegating provisioning to Desktop', async () => {
@@ -246,7 +248,7 @@ describe('Story Candidate views', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('来源已变化')).toBeTruthy();
+    expect(screen.getByText(/来源已变化 · CAND-0001/)).toBeTruthy();
     expect(screen.getByText(/此 Candidate 不能再被选择/)).toBeTruthy();
     expect(
       screen.queryByRole('button', { name: '选择并开始 Iteration' }),
