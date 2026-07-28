@@ -12,6 +12,7 @@ import type {
 import type {
   WorkspaceIterations,
   WorkspacePair,
+  WorkspaceRespond,
   WorkspaceShowcase,
   WorkspaceTasking,
   WorkspaceUnderstanding,
@@ -143,6 +144,7 @@ function workspaceFixture() {
   const tasking = {} as WorkspaceTasking;
   const pair = {} as WorkspacePair;
   const showcase = {} as WorkspaceShowcase;
+  const respond = {} as WorkspaceRespond;
 
   const storySummary = {
     humanAttention: 0,
@@ -195,6 +197,7 @@ function workspaceFixture() {
     tasking,
     pair,
     showcase,
+    respond,
     delivery,
   );
 
@@ -209,6 +212,7 @@ function workspaceFixture() {
     tasking,
     pair,
     showcase,
+    respond,
     inboxItem,
     inboxRevision,
     story,
@@ -272,6 +276,8 @@ describe('Workspace', () => {
       inboxWorkflow,
       iterations,
       pair,
+      respond,
+      showcase,
       tasking,
       understanding,
       workspace,
@@ -282,6 +288,8 @@ describe('Workspace', () => {
     expect(workspace.understanding()).toBe(understanding);
     expect(workspace.tasking()).toBe(tasking);
     expect(workspace.pair()).toBe(pair);
+    expect(workspace.showcase()).toBe(showcase);
+    expect(workspace.respond()).toBe(respond);
   });
 
   it('delegates member commands to the workspace members collection', async () => {
