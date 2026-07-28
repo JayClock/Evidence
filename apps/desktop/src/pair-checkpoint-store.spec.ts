@@ -3,7 +3,7 @@ import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { IterationWorktreeSnapshot } from './iteration-worktree';
+import type { IterationWorktreeSnapshot } from './capabilities/work-item-worktree/manager';
 import {
   PairCheckpointStore,
   type PairCheckpointIdentity,

@@ -2,8 +2,8 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { runGit } from './adapters/git/repository';
-import { WorkspaceBindingStore } from './workspace-binding-store';
+import { runGit } from '../../adapters/git/repository';
+import { WorkspaceBindingStore } from './store';
 
 const temporaryPaths: string[] = [];
 

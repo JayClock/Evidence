@@ -4,7 +4,7 @@ import type {
   RemoteInboxCandidate,
   RemoteIteration,
 } from './intake-api-client';
-import type { WorkspaceBinding } from './workspace-binding-store';
+import type { WorkspaceBinding } from './capabilities/workspace-binding/store';
 
 const apiBaseUrl = 'https://evidence.example/api';
 const repositoryRoot = '/Users/private/repository';

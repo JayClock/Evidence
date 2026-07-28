@@ -1,11 +1,11 @@
-import type { IterationWorktreeManager } from './iteration-worktree';
+import type { IterationWorktreeManager } from './capabilities/work-item-worktree/manager';
 import { gitHead } from './adapters/git/repository';
 import type {
   IntakeApiClient,
   RemoteInboxCandidate,
   RemoteIteration,
 } from './intake-api-client';
-import type { WorkspaceBindingStore } from './workspace-binding-store';
+import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
 
 export interface StartIterationRequest {
   id: string;

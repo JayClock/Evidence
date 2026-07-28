@@ -12,8 +12,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   changedPathsBetween,
   IterationWorktreeManager,
-} from './iteration-worktree';
-import { gitHead, runGit } from './adapters/git/repository';
+} from './manager';
+import { gitHead, runGit } from '../../adapters/git/repository';
 
 const temporaryPaths: string[] = [];
 

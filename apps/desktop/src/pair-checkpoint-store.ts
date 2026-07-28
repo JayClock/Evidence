@@ -10,7 +10,7 @@ import type {
 import type {
   IterationWorktreeSnapshot,
   IterationWorktree,
-} from './iteration-worktree';
+} from './capabilities/work-item-worktree/manager';
 import type { PairCommandResult } from './pair-command-runner';
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;

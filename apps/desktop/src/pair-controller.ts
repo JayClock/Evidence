@@ -12,8 +12,8 @@ import {
   type IterationWorktree,
   type IterationWorktreeManager,
   type IterationWorktreeSnapshot,
-} from './iteration-worktree';
-import type { WorkspaceBindingStore } from './workspace-binding-store';
+} from './capabilities/work-item-worktree/manager';
+import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
 import type {
   PairDriverEvent,
   PairDriverRuntimeRequest,

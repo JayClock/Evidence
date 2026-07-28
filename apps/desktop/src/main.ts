@@ -23,7 +23,7 @@ import {
   type DiagramAgentEvent,
 } from './agent-protocol';
 import { authorizedApiRequestHeaders } from './electron/api-request-authorization';
-import { IterationWorktreeManager } from './iteration-worktree';
+import { IterationWorktreeManager } from './capabilities/work-item-worktree/manager';
 import {
   captureOpenGitHubIssues,
   captureRepositoryMarkdown,
@@ -134,7 +134,7 @@ import {
   resolveUserDataPath,
   resolveWebUrl,
 } from './electron/runtime-config';
-import { WorkspaceBindingStore } from './workspace-binding-store';
+import { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
 
 const APP_SCHEME = 'evidence';
 const APP_URL = `${APP_SCHEME}://app/`;

@@ -7,8 +7,8 @@ import {
   canonicalGitRepository,
   gitHead,
   runGit,
-} from './adapters/git/repository';
-import { localCommandEnvironment } from './adapters/node/command-environment';
+} from '../../adapters/git/repository';
+import { localCommandEnvironment } from '../../adapters/node/command-environment';
 
 const execFileAsync = promisify(execFile);
 

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute } from 'node:path';
-import { canonicalGitRepository, gitHead } from './adapters/git/repository';
+import { canonicalGitRepository, gitHead } from '../../adapters/git/repository';
 
 const STORE_VERSION = 1;
 const WORKSPACE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;

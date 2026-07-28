@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ShowcaseResourceData } from '@evidence/api-client';
-import type { IterationWorktreeSnapshot } from './iteration-worktree';
+import type { IterationWorktreeSnapshot } from './capabilities/work-item-worktree/manager';
 import { ShowcaseController } from './showcase-controller';
 import type { RemoteShowcase } from './showcase-api-client';
 import type {

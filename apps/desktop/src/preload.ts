@@ -33,7 +33,7 @@ import {
   parseDiagramAgentEvent,
   RUN_DIAGRAM_AGENT_CHANNEL,
 } from './agent-protocol';
-import type { RepositorySelectionSummary } from './workspace-binding-store';
+import type { RepositorySelectionSummary } from './capabilities/workspace-binding/store';
 import type {
   ApprovePairRequest,
   DecidePairRequest,

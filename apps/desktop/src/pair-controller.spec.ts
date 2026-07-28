@@ -7,7 +7,7 @@ import type {
 import type {
   IterationWorktree,
   IterationWorktreeSnapshot,
-} from './iteration-worktree';
+} from './capabilities/work-item-worktree/manager';
 import type { PairDriverRuntimeRequest } from './pair-agent-protocol';
 import type { PairRedReviewerRuntimeRequest } from './pair-red-reviewer-protocol';
 import type { RemotePair } from './pair-api-client';

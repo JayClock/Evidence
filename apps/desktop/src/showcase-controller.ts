@@ -6,14 +6,14 @@ import type {
 import type {
   IterationWorktree,
   IterationWorktreeManager,
-} from './iteration-worktree';
+} from './capabilities/work-item-worktree/manager';
 import type { PairCommandRunner } from './pair-command-runner';
 import type { RemoteShowcase, ShowcaseApiClient } from './showcase-api-client';
 import type {
   ShowcaseReviewerEvent,
   ShowcaseReviewerRuntimeRequest,
 } from './showcase-reviewer-protocol';
-import type { WorkspaceBindingStore } from './workspace-binding-store';
+import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
 
 const MAX_Q2_ACTIONS = 100;
 
