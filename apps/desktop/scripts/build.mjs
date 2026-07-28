@@ -42,7 +42,7 @@ const configurations = [
       ),
       'understanding-analyst-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/understanding-analyst-runtime.ts',
+        'apps/desktop/src/loops/understand/analyst-runtime.ts',
       ),
       'tasking-analyst-runtime': resolve(
         workspaceRoot,

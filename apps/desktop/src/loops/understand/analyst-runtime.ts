@@ -8,9 +8,9 @@ import {
   parseUnderstandingAnalystRuntimeRequest,
   type AnalystEvent,
   type UnderstandingAnalystRuntimeRequest,
-} from './capabilities/analyst-process/protocol';
-import { FlowApiClient } from './adapters/server-api/flow-client';
-import { createUnderstandingAnalystTools } from './understanding-analyst-tools';
+} from '../../capabilities/analyst-process/protocol';
+import { FlowApiClient } from '../../adapters/server-api/flow-client';
+import { createUnderstandingAnalystTools } from './analyst-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const DEFAULT_TIMEOUT_MS = 120_000;

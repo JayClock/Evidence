@@ -7,7 +7,7 @@ import {
   FlowApiClient,
   type RemoteUnderstanding,
   type UnderstandingScenarioInput,
-} from './adapters/server-api/flow-client';
+} from '../../adapters/server-api/flow-client';
 
 export interface UnderstandingAnalystToolState {
   attempted: boolean;
