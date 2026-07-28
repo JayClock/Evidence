@@ -5,6 +5,7 @@ import type {
   StoryRevisionResource,
 } from './delivery-resource.js';
 import type { IterationResource } from './iteration-resource.js';
+import type { ShowcaseResource } from './showcase-resource.js';
 import type { TaskingResource } from './tasking-resource.js';
 
 type PairSchema = components['schemas']['PairResource'];
@@ -64,5 +65,6 @@ export type PairResource = Entity<
     'record-red-review': PairResource;
     'record-exception': PairResource;
     decide: PairResource;
+    showcase: ShowcaseResource;
   }
 >;

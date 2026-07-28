@@ -26,6 +26,8 @@ export const resourceContentTypes = {
   pair: `${VENDOR_PREFIX}.pair+json`,
   pairStartResult: `${VENDOR_PREFIX}.pair-start-result+json`,
   pairActionResult: `${VENDOR_PREFIX}.pair-action-result+json`,
+  showcase: `${VENDOR_PREFIX}.showcase+json`,
+  showcaseActionResult: `${VENDOR_PREFIX}.showcase-action-result+json`,
   story: `${VENDOR_PREFIX}.story+json`,
   stories: `${VENDOR_PREFIX}.stories+json`,
   storyRevision: `${VENDOR_PREFIX}.story-revision+json`,
