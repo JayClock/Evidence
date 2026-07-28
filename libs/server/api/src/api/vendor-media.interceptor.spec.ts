@@ -83,6 +83,10 @@ describe('vendorMediaType', () => {
       'application/vnd.evidence.pair+json',
     ],
     [
+      '/api/workspaces/default-workspace/iterations/iteration-1/showcase',
+      'application/vnd.evidence.showcase+json',
+    ],
+    [
       '/api/workspaces/default-workspace/stories',
       'application/vnd.evidence.stories+json',
     ],
@@ -167,6 +171,14 @@ describe('vendorMediaType', () => {
     [
       '/api/workspaces/default-workspace/iterations/iteration-1/pair/command-observations',
       'application/vnd.evidence.pair-action-result+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/showcase/product-observations',
+      'application/vnd.evidence.showcase-action-result+json',
+    ],
+    [
+      '/api/workspaces/default-workspace/iterations/iteration-1/showcase/decisions',
+      'application/vnd.evidence.showcase-action-result+json',
     ],
     [
       '/api/workspaces/default-workspace/stories/story-1/revisions',
