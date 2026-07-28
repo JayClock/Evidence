@@ -26,9 +26,6 @@ export type ShowcaseFeedbackTarget =
   | 'architecture'
   | 'test_strategy'
   | 'test_process'
-  | 'test'
-  | 'implementation'
-  | 'refactor'
   | 'value_validation'
   | 'showcase_setup';
 export type ShowcaseQ3Activity =
@@ -63,9 +60,6 @@ export const SHOWCASE_FEEDBACK_ROUTES: Record<
   architecture: { loop: 'tasking', stage: 'drafting' },
   test_strategy: { loop: 'tasking', stage: 'drafting' },
   test_process: { loop: 'tasking', stage: 'drafting' },
-  test: { loop: 'pair', stage: 'plan_confirmed' },
-  implementation: { loop: 'pair', stage: 'red_observed' },
-  refactor: { loop: 'pair', stage: 'green_observed' },
   value_validation: { loop: 'showcase', stage: 'setup' },
   showcase_setup: { loop: 'showcase', stage: 'setup' },
 };

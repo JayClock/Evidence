@@ -2751,9 +2751,6 @@ export interface components {
       | 'architecture'
       | 'test_strategy'
       | 'test_process'
-      | 'test'
-      | 'implementation'
-      | 'refactor'
       | 'value_validation'
       | 'showcase_setup';
     ShowcaseRunResource: {

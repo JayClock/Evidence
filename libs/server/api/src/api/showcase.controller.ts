@@ -346,9 +346,6 @@ function optionalFeedbackTarget(value: unknown): ShowcaseFeedbackTarget | null {
     'architecture',
     'test_strategy',
     'test_process',
-    'test',
-    'implementation',
-    'refactor',
     'value_validation',
     'showcase_setup',
   ]);
