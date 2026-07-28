@@ -40,6 +40,10 @@ const mediaTypes = {
     'application/vnd.evidence.desk-check-decision-result+json',
   pair: 'application/vnd.evidence.pair+json',
   pairStartResult: 'application/vnd.evidence.pair-start-result+json',
+  showcase: 'application/vnd.evidence.showcase+json',
+  showcaseActionResult: 'application/vnd.evidence.showcase-action-result+json',
+  respond: 'application/vnd.evidence.respond+json',
+  respondActionResult: 'application/vnd.evidence.respond-action-result+json',
   story: 'application/vnd.evidence.story+json',
   stories: 'application/vnd.evidence.stories+json',
   storyRevision: 'application/vnd.evidence.story-revision+json',
@@ -137,6 +141,12 @@ describeContracts('Evidence API contract vertical slice', () => {
     );
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/iterations/{iterationId}/pair/command-observations',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase',
+    );
+    expect(openapi.body.paths).toHaveProperty(
+      '/api/workspaces/{workspaceId}/iterations/{iterationId}/respond',
     );
     expect(openapi.body.paths).not.toHaveProperty(
       '/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs',
@@ -1270,6 +1280,215 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(approvalReplay.body.acceptedRecordId).toBe(
       pairApproval.body.acceptedRecordId,
     );
+
+    const showcasePath = `/api/workspaces/${workspaceId}/iterations/${iterationId}/showcase`;
+    const showcase = await apiRequest(showcasePath);
+    expect(showcase.status).toBe(200);
+    expectHalResource(showcase, mediaTypes.showcase);
+    let showcaseView = showcase.body;
+    expect(showcaseView).toMatchObject({
+      run: {
+        pairRunId: pairView.run.id,
+        pairManifestSha256: pairView.manifest.contentSha256,
+        approvedCommitSha: approvalInput.commitSha,
+        stage: 'setup',
+      },
+      nextAction: { kind: 'execute_q2', testId: 'TEST-003' },
+    });
+    const postShowcase = async (
+      suffix: string,
+      body: object,
+      expectedStatus = 201,
+    ) => {
+      const response = await apiRequest(`${showcasePath}/${suffix}`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(expectedStatus);
+      expectHalResource(response, mediaTypes.showcaseActionResult);
+      showcaseView = response.body.showcase;
+      return response;
+    };
+
+    const q2Action = showcaseView.nextAction;
+    await postShowcase('q2-observations', {
+      showcaseRunId: showcaseView.run.id,
+      actionId: q2Action.actionId,
+      expectedShowcaseVersion: q2Action.expectedShowcaseVersion,
+      command: q2Action.command,
+      termination: 'exited',
+      exitCode: 0,
+      signal: null,
+      durationMs: 50,
+      stdoutSha256: contractSha(950),
+      stdoutBytes: 20,
+      stdoutLines: 1,
+      stderrSha256: contractSha(951),
+      stderrBytes: 0,
+      stderrLines: 0,
+      approvedCommitSha: approvalInput.commitSha,
+      worktreeSha256,
+    });
+    expect(showcaseView.nextAction).toMatchObject({
+      kind: 'observe_scenario',
+      scenarioReference: 'SC-001',
+    });
+
+    const observeAction = showcaseView.nextAction;
+    await postShowcase('product-observations', {
+      expectedShowcaseVersion: observeAction.expectedShowcaseVersion,
+      scenarioId: observeAction.scenarioId,
+      observedOutcomes: [
+        'A complete Tasking Candidate awaited human Desk Check.',
+      ],
+      observation:
+        'The delivery lead observed the complete Candidate in the product surface.',
+      valueFeedback:
+        'The confirmed Scenario value is visible and remains human-controlled.',
+      evidenceRefs: ['contract:showcase-product-observation'],
+    });
+    expect(showcaseView.nextAction).toMatchObject({
+      kind: 'decide_risk',
+      quadrant: 'Q3',
+    });
+
+    for (const quadrant of ['Q3', 'Q4']) {
+      const riskAction = showcaseView.nextAction;
+      expect(riskAction).toMatchObject({ kind: 'decide_risk', quadrant });
+      await postShowcase('risk-decisions', {
+        expectedShowcaseVersion: riskAction.expectedShowcaseVersion,
+        quadrant,
+        disposition: 'not_required',
+        activities: [],
+        reason: `${quadrant} adds no further risk activity for this contract slice.`,
+      });
+    }
+    const reviewAction = showcaseView.nextAction;
+    expect(reviewAction).toMatchObject({
+      kind: 'run_reviewer',
+      evidenceBundleSha256: expect.any(String),
+    });
+    await postShowcase('reviews', {
+      expectedShowcaseVersion: reviewAction.expectedShowcaseVersion,
+      evidenceBundleSha256: reviewAction.evidenceBundleSha256,
+      observedFacts: [
+        'Fresh Q2 and human product observations cover the confirmed Scenario.',
+      ],
+      productDomainFeedback: [],
+      technicalQualityFeedback: [],
+      unresolvedAssumptions: [],
+      recommendation: 'accept',
+    });
+    expect(showcaseView.nextAction).toMatchObject({ kind: 'await_human' });
+
+    const unsafePairRoute = await apiRequest(`${showcasePath}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        expectedShowcaseVersion:
+          showcaseView.nextAction.expectedShowcaseVersion,
+        action: 'revise',
+        reason: 'This route requires deterministic worktree recovery.',
+        feedbackTarget: 'implementation',
+        evidenceBundleSha256: showcaseView.run.evidenceBundleSha256,
+        reviewSha256: showcaseView.review.contentSha256,
+      }),
+    });
+    expect(unsafePairRoute.status).toBe(400);
+
+    const showcaseAcceptance = await postShowcase(
+      'decisions',
+      {
+        expectedShowcaseVersion:
+          showcaseView.nextAction.expectedShowcaseVersion,
+        action: 'accept',
+        reason:
+          'The domain expert accepts the observed product behavior and value.',
+        evidenceBundleSha256: showcaseView.run.evidenceBundleSha256,
+        reviewSha256: showcaseView.review.contentSha256,
+      },
+      200,
+    );
+    expect(showcaseAcceptance.body.showcase.run.stage).toBe('accepted');
+    expect(showcaseAcceptance.body.showcase._links).toHaveProperty('respond');
+
+    const respondPath = `/api/workspaces/${workspaceId}/iterations/${iterationId}/respond`;
+    const respond = await apiRequest(respondPath);
+    expect(respond.status).toBe(200);
+    expectHalResource(respond, mediaTypes.respond);
+    expect(respond.body).toMatchObject({
+      iteration: { loop: 'respond', stage: 'drafting' },
+      candidates: [],
+      decisions: [],
+      nextAction: { kind: 'run_learner' },
+    });
+    const learnerAction = respond.body.nextAction;
+    const respondCandidate = await apiRequest(`${respondPath}/candidates`, {
+      method: 'POST',
+      body: JSON.stringify({
+        actionId: learnerAction.actionId,
+        expectedIterationVersion: learnerAction.expectedIterationVersion,
+        authoritySha256: learnerAction.authoritySha256,
+        promotions: [],
+        noPromotionReason:
+          'This contract run validated no reusable knowledge beyond existing authority.',
+        observedOutcomes: [
+          'The confirmed Scenario behavior and value were accepted by a human.',
+        ],
+        residualRisks: [],
+        nextProbe: {
+          question:
+            'Which additional product risk should a future human-selected Story validate?',
+          whyNow:
+            'The current Story is complete and should not absorb unrelated scope.',
+          evidenceRefs: ['showcase:accepted-decision'],
+          firstAction:
+            'A human decides whether to capture this Probe into the Inbox.',
+        },
+      }),
+    });
+    expect(respondCandidate.status).toBe(201);
+    expectHalResource(respondCandidate, mediaTypes.respondActionResult);
+    const respondView = respondCandidate.body.respond;
+    expect(respondView).toMatchObject({
+      iteration: { stage: 'decision' },
+      candidates: [
+        expect.objectContaining({
+          promotions: [],
+          noPromotionReason: expect.any(String),
+        }),
+      ],
+      nextAction: { kind: 'await_human' },
+    });
+    const respondDecisionAction = respondView.nextAction;
+    const respondApproval = await apiRequest(`${respondPath}/decisions`, {
+      method: 'POST',
+      body: JSON.stringify({
+        expectedIterationVersion:
+          respondDecisionAction.expectedIterationVersion,
+        candidateId: respondDecisionAction.candidateId,
+        candidateSha256: respondDecisionAction.candidateSha256,
+        authoritySha256: respondDecisionAction.authoritySha256,
+        action: 'approve',
+        reason:
+          'The domain expert reviewed the no-promotion reason and concrete next Probe.',
+      }),
+    });
+    expect(respondApproval.status).toBe(200);
+    expectHalResource(respondApproval, mediaTypes.respondActionResult);
+    expect(respondApproval.body.respond).toMatchObject({
+      iteration: { loop: 'respond', stage: 'accepted' },
+      nextAction: null,
+      decisions: [expect.objectContaining({ action: 'approve' })],
+    });
+
+    const completedStory = await apiRequest(
+      `/api/workspaces/${workspaceId}/stories/${storyId}`,
+    );
+    expect(completedStory.body).toMatchObject({
+      iterationLoop: 'respond',
+      iterationStage: 'accepted',
+      authority: { owner: 'none', nextAction: 'none' },
+    });
 
     const removedDirectAdmission = await apiRequest(
       `/api/workspaces/${workspaceId}/stories/${storyId}/coding-runs`,
