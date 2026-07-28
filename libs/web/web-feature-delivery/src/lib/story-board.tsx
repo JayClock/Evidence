@@ -11,12 +11,6 @@ import {
   AlertTitle,
   Badge,
   Button,
-  Card,
-  CardAction,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -43,7 +37,7 @@ import { DeliveryPagination } from './delivery-pagination';
 type StoryState = State<StoryResource>;
 type StoryData = StoryResource['data'];
 type StoryAction = StoryData['authority']['nextAction'];
-type BoardFilter = 'all' | 'human' | 'agent' | 'tasking' | 'pair' | 'approved';
+type BoardFilter = 'all' | 'human' | 'approved';
 type BoardColumnKey =
   | 'tqa'
   | 'scenario'
@@ -59,7 +53,7 @@ interface BoardColumnDefinition {
   key: BoardColumnKey;
   title: string;
   rule: string;
-  footer: string;
+  dotClassName: string;
 }
 
 const BOARD_COLUMNS: BoardColumnDefinition[] = [
@@ -67,64 +61,61 @@ const BOARD_COLUMNS: BoardColumnDefinition[] = [
     key: 'tqa',
     title: 'TQA 澄清',
     rule: '一个 pending question 或下一轮 Analyst',
-    footer: '每轮只能存在一个待回答问题。',
+    dotClassName: 'bg-ev-blue',
   },
   {
     key: 'scenario',
     title: 'Scenario 审查',
     rule: '完整的 1–5 个 Draft 等待人工决定',
-    footer: '只有人工确认才能形成 Scenario authority。',
+    dotClassName: 'bg-ev-blue',
   },
   {
     key: 'modeling',
-    title: '模型影响处置',
+    title: '模型影响',
     rule: '显式记录模型决定后才可进入 Tasking',
-    footer: 'No Model Impact 必须包含非空理由。',
+    dotClassName: 'bg-ev-violet',
   },
   {
     key: 'tasking',
-    title: 'Tasking 起草',
+    title: 'Tasking',
     rule: 'Desktop Analyst 生成完整 Candidate',
-    footer: 'Agent 只能使用受限 process 与 Nx catalog。',
+    dotClassName: 'bg-ev-blue',
   },
   {
     key: 'desk-check',
     title: 'Desk Check',
     rule: '人工审查 exact Candidate 与追踪链',
-    footer: 'Desk Check 不会隐式启动 Pair。',
+    dotClassName: 'bg-ev-blue',
   },
   {
     key: 'plan-ready',
     title: 'Pair 待启动',
     rule: 'Approved Plan 是唯一入口',
-    footer: 'Desktop 显式启动精确 Approved Plan。',
+    dotClassName: 'bg-ev-blue',
   },
   {
     key: 'pair',
     title: 'Pair 执行',
     rule: 'Server 发布唯一 nextAction',
-    footer: '逐 TEST 执行 Red / Green，再完成一次 Refactor。',
+    dotClassName: 'bg-ev-blue',
   },
   {
     key: 'approval',
-    title: 'Story 编码审批',
+    title: '编码审批',
     rule: '完整本地 Diff 与 bounded evidence',
-    footer: '批准只创建一个本地 commit。',
+    dotClassName: 'bg-ev-amber',
   },
   {
     key: 'approved',
     title: 'Pair 已批准',
     rule: '本地 commit 已创建，Pair 到此停止',
-    footer: '不会自动 Showcase、merge 或 push。',
+    dotClassName: 'bg-ev-brand',
   },
 ];
 
 const FILTER_LABELS: Array<{ value: BoardFilter; label: string }> = [
   { value: 'all', label: '全部' },
   { value: 'human', label: '待人工' },
-  { value: 'agent', label: '待 Agent' },
-  { value: 'tasking', label: 'Tasking' },
-  { value: 'pair', label: 'Pair' },
   { value: 'approved', label: '已批准' },
 ];
 
@@ -171,7 +162,7 @@ export function StoryCollectionView({
 
   return (
     <EvidenceCanvas className="overflow-hidden">
-      <PageHeader>
+      <PageHeader className="h-[5.875rem] px-4 pt-3.5 pb-[0.6875rem]">
         <PageHeaderCopy>
           <PageEyebrow>
             交付组合 · {collectionState.data.page.totalElements} 个已确认 Story
@@ -184,8 +175,8 @@ export function StoryCollectionView({
         </PageHeaderCopy>
       </PageHeader>
 
-      <PageToolbar>
-        <label className="min-w-0 flex-1">
+      <PageToolbar className="h-[3.625rem] gap-2 px-5 pt-2 pb-2.5">
+        <label className="w-[19.375rem] shrink-0">
           <span className="sr-only">搜索 Story</span>
           <Input
             onChange={(event) => setQuery(event.target.value)}
@@ -246,18 +237,20 @@ export function StoryCollectionView({
         )}
       </div>
 
-      <div className="shrink-0 border-t px-3 pb-2">
-        <DeliveryPagination
-          hasNext={Boolean(collectionState.getLink('next'))}
-          hasPrevious={Boolean(collectionState.getLink('prev'))}
-          label="Story 分页"
-          page={collectionState.data.page.number}
-          pending={pagePending}
-          totalPages={collectionState.data.page.totalPages}
-          onNext={() => void navigatePage('next')}
-          onPrevious={() => void navigatePage('prev')}
-        />
-      </div>
+      {collectionState.data.page.totalPages > 1 ? (
+        <div className="shrink-0 border-t px-3 pb-2">
+          <DeliveryPagination
+            hasNext={Boolean(collectionState.getLink('next'))}
+            hasPrevious={Boolean(collectionState.getLink('prev'))}
+            label="Story 分页"
+            page={collectionState.data.page.number}
+            pending={pagePending}
+            totalPages={collectionState.data.page.totalPages}
+            onNext={() => void navigatePage('next')}
+            onPrevious={() => void navigatePage('prev')}
+          />
+        </div>
+      ) : null}
 
       <StoryQuickView
         onOpenChange={(open) => {
@@ -280,16 +273,20 @@ function StoryBoard({
 
   return (
     <div aria-label="故事交付看板" className="h-full overflow-x-auto">
-      <div className="grid h-full min-w-[72rem] grid-cols-9 gap-2 bg-background p-3">
+      <div className="grid h-full min-w-[70.25rem] grid-cols-9 gap-2.5 bg-background px-5 pt-3 pb-[1.125rem]">
         {BOARD_COLUMNS.map((column) => {
           const columnStories = grouped.get(column.key) ?? [];
           return (
             <section
               aria-labelledby={`story-column-${column.key}`}
-              className="flex min-w-0 flex-col rounded-lg border bg-secondary"
+              className="flex min-w-0 flex-col gap-2 rounded-lg border bg-secondary p-2"
               key={column.key}
             >
-              <header className="flex min-h-10 items-center justify-between gap-2 border-b px-2 py-1.5">
+              <header className="flex h-[2.375rem] shrink-0 items-center gap-2 border-b">
+                <span
+                  aria-hidden="true"
+                  className={`size-2 shrink-0 rounded-full ${column.dotClassName}`}
+                />
                 <h2
                   className="min-w-0 truncate text-xs font-semibold"
                   id={`story-column-${column.key}`}
@@ -299,20 +296,14 @@ function StoryBoard({
                 </h2>
                 <Badge variant="outline">{columnStories.length}</Badge>
               </header>
-              <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
-                {columnStories.length === 0 ? (
-                  <p className="rounded-md border border-dashed p-2 text-center text-[0.625rem] leading-4 text-muted-foreground">
-                    暂无 Story
-                  </p>
-                ) : (
-                  columnStories.map((storyState) => (
-                    <StoryCard
-                      key={storyState.data.id}
-                      onInspect={onInspect}
-                      storyState={storyState}
-                    />
-                  ))
-                )}
+              <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
+                {columnStories.map((storyState) => (
+                  <StoryCard
+                    key={storyState.data.id}
+                    onInspect={onInspect}
+                    storyState={storyState}
+                  />
+                ))}
               </div>
             </section>
           );
@@ -330,53 +321,25 @@ function StoryCard({
   onInspect: (story: StoryState) => void;
 }) {
   const story = storyState.data;
-  const actionHref = storyAuthorityHref(storyState);
 
   return (
-    <Card size="sm">
-      <CardHeader>
-        <div className="font-mono text-[0.625rem] text-muted-foreground">
-          {story.reference} · {story.iterationReference} · v
-          {story.latestRevisionNumber}
-        </div>
-        <CardTitle aria-level={3} className="line-clamp-3" role="heading">
-          {story.title}
-        </CardTitle>
-        <CardAction>
-          <Badge variant={ownerBadgeVariant(story.authority.owner)}>
-            {storyOwnerLabel(story.authority.owner)}
-          </Badge>
-        </CardAction>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        <code className="text-[0.625rem] text-muted-foreground">
-          {story.iterationLoop} / {story.iterationStage}
-        </code>
-        <p className="text-[0.6875rem] leading-4 font-medium">
-          {storyAuthorityLabel(story.authority.nextAction)}
-        </p>
-        <div className="flex flex-wrap gap-1">
-          <Badge variant="outline">SC {story.latestScenarioCount}</Badge>
-          <Badge variant="outline">来源 {story.latestCitationCount}</Badge>
-        </div>
-      </CardContent>
-      <CardFooter className="flex-col items-stretch gap-1">
-        <Button
-          aria-label={`快速查看 ${story.title}`}
-          onClick={() => onInspect(storyState)}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          快速查看
-        </Button>
-        {actionHref ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to={actionHref}>{storyActionButtonLabel(story)}</Link>
-          </Button>
-        ) : null}
-      </CardFooter>
-    </Card>
+    <button
+      aria-label={`快速查看 ${story.title}`}
+      className="flex w-full flex-col gap-1.5 rounded-lg border bg-card px-[0.5625rem] py-2 text-left shadow-xs outline-none transition-colors hover:border-ev-line-strong focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      onClick={() => onInspect(storyState)}
+      type="button"
+    >
+      <span className="font-mono text-[0.625rem] text-muted-foreground">
+        {story.reference} · {story.iterationReference}
+      </span>
+      <span className="line-clamp-3 text-xs font-bold">{story.title}</span>
+      <Badge variant={ownerBadgeVariant(story.authority.owner)}>
+        {storyOwnerLabel(story.authority.owner)}
+      </Badge>
+      <span className="text-[0.625rem] text-muted-foreground">
+        当前阶段 · {storyColumnTitle(story)}
+      </span>
+    </button>
   );
 }
 
@@ -513,6 +476,11 @@ function storyColumn(story: StoryData): BoardColumnKey {
   return 'tqa';
 }
 
+function storyColumnTitle(story: StoryData): string {
+  const key = storyColumn(story);
+  return BOARD_COLUMNS.find((column) => column.key === key)?.title ?? key;
+}
+
 function storyMatches(
   story: StoryData,
   query: string,
@@ -535,9 +503,6 @@ function storyMatches(
   }
 
   if (filter === 'human') return story.authority.owner === 'human';
-  if (filter === 'agent') return story.authority.owner === 'agent';
-  if (filter === 'tasking') return story.iterationLoop === 'tasking';
-  if (filter === 'pair') return story.iterationLoop === 'pair';
   if (filter === 'approved') {
     return (
       story.iterationLoop === 'pair' && story.iterationStage === 'approved'
@@ -625,7 +590,7 @@ function storyActionButtonLabel(story: StoryData): string {
 function storyOwnerLabel(owner: StoryData['authority']['owner']): string {
   return (
     {
-      human: '待人工',
+      human: '待领域专家',
       agent: '待本地 Agent',
       none: '已完成',
     }[owner] ?? owner

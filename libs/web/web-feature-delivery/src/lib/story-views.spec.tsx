@@ -193,8 +193,12 @@ describe('Story views', () => {
 
     expect(screen.getByRole('heading', { name: '故事交付看板' })).toBeTruthy();
     expect(screen.getByText('本地编码智能体')).toBeTruthy();
-    expect(screen.getByText(/US-001 · ITER-0001 · v1/)).toBeTruthy();
+    expect(screen.getByText('US-001 · ITER-0001')).toBeTruthy();
     expect(screen.getByText('TQA 澄清')).toBeTruthy();
+    expect(screen.getByText('当前阶段 · TQA 澄清')).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole('button', { name: '快速查看 本地编码智能体' }),
+    );
     expect(screen.getByText('回答一个业务问题')).toBeTruthy();
     expect(
       screen.getByRole('link', { name: '回答' }).getAttribute('href'),
