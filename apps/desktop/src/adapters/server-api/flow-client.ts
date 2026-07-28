@@ -1,4 +1,4 @@
-import type { InboxSourceCapture } from '../../inbox-source-adapters';
+import type { InboxSourceCapture } from '../../features/inbox/source-adapters';
 
 export interface RemoteInboxExtraction {
   id: string;

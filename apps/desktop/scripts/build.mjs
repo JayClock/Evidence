@@ -34,7 +34,7 @@ const configurations = [
       ),
       'inbox-analyst-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/inbox-analyst-runtime.ts',
+        'apps/desktop/src/features/inbox/analyst-runtime.ts',
       ),
       'kickoff-analyst-runtime': resolve(
         workspaceRoot,

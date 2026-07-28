@@ -27,7 +27,7 @@ import { IterationWorktreeManager } from './capabilities/work-item-worktree/mana
 import {
   captureOpenGitHubIssues,
   captureRepositoryMarkdown,
-} from './inbox-source-adapters';
+} from './features/inbox/source-adapters';
 import {
   CANCEL_INBOX_ANALYST_CHANNEL,
   CANCEL_KICKOFF_ANALYST_CHANNEL,

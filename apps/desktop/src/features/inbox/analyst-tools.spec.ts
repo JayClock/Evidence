@@ -1,10 +1,10 @@
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
-import { createInboxAnalystTools } from './inbox-analyst-tools';
+import { createInboxAnalystTools } from './analyst-tools';
 import type {
   FlowApiClient,
   RemoteInboxExtraction,
-} from './adapters/server-api/flow-client';
+} from '../../adapters/server-api/flow-client';
 
 const revisionSha256 = `sha256:${'a'.repeat(64)}`;
 const extraction: RemoteInboxExtraction = {

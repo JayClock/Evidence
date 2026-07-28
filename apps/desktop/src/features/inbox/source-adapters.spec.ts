@@ -6,8 +6,8 @@ import {
   captureManualText,
   captureOpenGitHubIssues,
   captureRepositoryMarkdown,
-} from './inbox-source-adapters';
-import { runGit } from './adapters/git/repository';
+} from './source-adapters';
+import { runGit } from '../../adapters/git/repository';
 
 const temporaryPaths: string[] = [];
 
