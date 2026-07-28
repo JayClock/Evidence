@@ -88,6 +88,19 @@ import {
   type PairRedReviewerRuntimeRequest,
 } from './pair-red-reviewer-protocol';
 import { piRuntimeEnvironment } from './pi-runtime-environment';
+import { ShowcaseApiClient } from './showcase-api-client';
+import {
+  ShowcaseController,
+  type ShowcaseControllerEvent,
+} from './showcase-controller';
+import {
+  CANCEL_SHOWCASE_CHANNEL,
+  parseRunShowcaseRequest,
+  parseShowcaseControllerEvent,
+  parseShowcaseRequestId,
+  RUN_SHOWCASE_CHECKS_CHANNEL,
+  SHOWCASE_EVENT_CHANNEL,
+} from './showcase-ipc-protocol';
 import {
   resolveApiAuthorization,
   resolveApiBaseUrl,
@@ -121,6 +134,7 @@ let taskingAnalyst: LocalAgent<
 > | null = null;
 let iterationController: IterationController | null = null;
 let pairController: PairController | null = null;
+let showcaseController: ShowcaseController | null = null;
 let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
@@ -191,6 +205,7 @@ function registerDesktopBridge(
   tasking: LocalAgent<TaskingAnalystRuntimeRequest, IntakeAgentEvent>,
   iterations: IterationController,
   pairs: PairController,
+  showcases: ShowcaseController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
@@ -405,6 +420,24 @@ function registerDesktopBridge(
   ipcMain.handle(CANCEL_PAIR_CHANNEL, (event, id: unknown) => {
     assertTrustedIpcSender(event);
     pairs.cancel(parsePairRequestId(id));
+  });
+  ipcMain.handle(RUN_SHOWCASE_CHECKS_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseRunShowcaseRequest(input);
+    const forward = (showcaseEvent: ShowcaseControllerEvent) => {
+      const validated = parseShowcaseControllerEvent(showcaseEvent);
+      if (!validated) {
+        throw new Error('Showcase Controller emitted an invalid event.');
+      }
+      if (!event.sender.isDestroyed()) {
+        event.sender.send(SHOWCASE_EVENT_CHANNEL, validated);
+      }
+    };
+    return showcases.runChecks(request, forward);
+  });
+  ipcMain.handle(CANCEL_SHOWCASE_CHANNEL, (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    showcases.cancel(parseShowcaseRequestId(id));
   });
   ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
@@ -664,6 +697,13 @@ void app.whenReady().then(async () => {
       redReviewer: pairRedReviewer,
       commands: new PairCommandRunner(),
     });
+    showcaseController = new ShowcaseController({
+      apiBaseUrl,
+      bindings,
+      worktrees: iterationWorktrees,
+      client: new ShowcaseApiClient({ apiBaseUrl, authorization }),
+      commands: new PairCommandRunner(),
+    });
     registerDesktopBridge(
       apiBaseUrl,
       localAgent,
@@ -674,6 +714,7 @@ void app.whenReady().then(async () => {
       taskingAnalyst,
       iterationController,
       pairController,
+      showcaseController,
     );
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl, authorization);
@@ -708,13 +749,15 @@ app.on('before-quit', (event) => {
       understandingAnalyst ||
       taskingAnalyst ||
       iterationController ||
-      pairController)
+      pairController ||
+      showcaseController)
   ) {
     event.preventDefault();
     allowQuit = true;
     iterationController?.stop();
     void Promise.all([
       pairController?.stop() ?? Promise.resolve(),
+      Promise.resolve(showcaseController?.stop()),
       localAgent?.stop() ?? Promise.resolve(),
       inboxAnalyst?.stop() ?? Promise.resolve(),
       kickoffAnalyst?.stop() ?? Promise.resolve(),

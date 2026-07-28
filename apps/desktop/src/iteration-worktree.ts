@@ -193,6 +193,41 @@ export class IterationWorktreeManager {
     return worktree;
   }
 
+  async snapshotApproved(
+    worktree: IterationWorktree,
+    approvedCommitSha: string,
+  ): Promise<IterationWorktreeSnapshot> {
+    const recovered = await this.recover(worktree);
+    const headSha = await gitHead(recovered.worktreeRoot);
+    const expectedCommitSha = normalizeCommit(approvedCommitSha);
+    if (headSha !== expectedCommitSha) {
+      throw new Error(
+        'Iteration worktree HEAD no longer matches the approved commit.',
+      );
+    }
+    const status = await runGit(recovered.worktreeRoot, [
+      'status',
+      '--porcelain=v1',
+      '--untracked-files=all',
+      '--',
+      '.',
+    ]);
+    if (status.trim()) {
+      throw new Error(
+        'Iteration worktree must remain clean during Showcase review.',
+      );
+    }
+    return {
+      content: '',
+      sha256: digest(''),
+      changedFileCount: 0,
+      headSha,
+      changedPaths: [],
+      pathFingerprints: {},
+      worktreeSha256: digest(JSON.stringify({ headSha, paths: [] })),
+    };
+  }
+
   async inspectForReview(
     worktree: IterationWorktree,
     commitSha: string | null,

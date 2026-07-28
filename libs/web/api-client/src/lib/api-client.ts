@@ -82,6 +82,37 @@ export type PairControllerSummary = {
   } | null;
 };
 
+export type ShowcaseRunRequest = {
+  id: string;
+  workspaceId: string;
+  iterationId: string;
+};
+
+export type ShowcaseControllerEvent = {
+  requestId: string;
+  event: 'progress' | 'checkpoint' | 'human-required';
+  message: string;
+  stage:
+    | 'setup'
+    | 'reviewing'
+    | 'decision'
+    | 'accepted'
+    | 'revised'
+    | 'rejected'
+    | null;
+};
+
+export type ShowcaseControllerSummary = {
+  iterationId: string;
+  showcaseRunId: string;
+  stage: Exclude<ShowcaseControllerEvent['stage'], null>;
+  version: number;
+  nextAction: string | null;
+  evidenceBundleSha256: string | null;
+  q2Passed: number;
+  q2Total: number;
+};
+
 export type PairLocalReview = {
   manifestSha256: string;
   diffSha256: string;
@@ -163,6 +194,11 @@ type EvidenceDesktopBridge = {
     },
   ): Promise<PairControllerSummary>;
   cancelPair?(id: string): Promise<void>;
+  runShowcaseChecks?(
+    request: ShowcaseRunRequest,
+    onEvent: (event: ShowcaseControllerEvent) => void,
+  ): Promise<ShowcaseControllerSummary>;
+  cancelShowcase?(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

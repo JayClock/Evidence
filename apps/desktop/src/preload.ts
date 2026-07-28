@@ -43,6 +43,17 @@ import type {
   ReviewPairRequest,
   RunPairRequest,
 } from './pair-controller';
+import type {
+  RunShowcaseRequest,
+  ShowcaseControllerEvent,
+  ShowcaseControllerSummary,
+} from './showcase-controller';
+import {
+  CANCEL_SHOWCASE_CHANNEL,
+  parseShowcaseControllerEvent,
+  RUN_SHOWCASE_CHECKS_CHANNEL,
+  SHOWCASE_EVENT_CHANNEL,
+} from './showcase-ipc-protocol';
 import {
   APPROVE_PAIR_CHANNEL,
   CANCEL_PAIR_CHANNEL,
@@ -76,6 +87,22 @@ async function runIntakeAgent(
     await ipcRenderer.invoke(channel, request);
   } finally {
     ipcRenderer.removeListener(INTAKE_AGENT_EVENT_CHANNEL, listener);
+  }
+}
+
+async function runShowcaseController(
+  request: RunShowcaseRequest,
+  onEvent: (event: ShowcaseControllerEvent) => void,
+): Promise<ShowcaseControllerSummary> {
+  const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
+    const event = parseShowcaseControllerEvent(value);
+    if (event?.requestId === request.id) onEvent(event);
+  };
+  ipcRenderer.on(SHOWCASE_EVENT_CHANNEL, listener);
+  try {
+    return await ipcRenderer.invoke(RUN_SHOWCASE_CHECKS_CHANNEL, request);
+  } finally {
+    ipcRenderer.removeListener(SHOWCASE_EVENT_CHANNEL, listener);
   }
 }
 
@@ -176,6 +203,13 @@ const bridge = {
     ipcRenderer.invoke(APPROVE_PAIR_CHANNEL, request),
   cancelPair: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_PAIR_CHANNEL, id),
+  runShowcaseChecks: (
+    request: RunShowcaseRequest,
+    onEvent: (event: ShowcaseControllerEvent) => void,
+  ): Promise<ShowcaseControllerSummary> =>
+    runShowcaseController(request, onEvent),
+  cancelShowcase: (id: string): Promise<void> =>
+    ipcRenderer.invoke(CANCEL_SHOWCASE_CHANNEL, id),
   runDiagramAgent: async (
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

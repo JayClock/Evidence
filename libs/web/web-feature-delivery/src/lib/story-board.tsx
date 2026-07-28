@@ -529,7 +529,7 @@ export function storyAuthorityHref(storyState: StoryState): string | null {
 
 function authorityRelation(
   action: StoryAction,
-): 'understanding' | 'tasking' | 'pair' | null {
+): 'understanding' | 'tasking' | 'pair' | 'showcase' | null {
   if (
     action === 'answer_clarification' ||
     action === 'run_understanding_analyst' ||
@@ -548,10 +548,19 @@ function authorityRelation(
   if (
     action === 'run_pair' ||
     action === 'route_pair_exception' ||
-    action === 'review_pair_change' ||
-    action === 'none'
+    action === 'review_pair_change'
   ) {
     return 'pair';
+  }
+  if (
+    action === 'run_showcase' ||
+    action === 'record_showcase_evidence' ||
+    action === 'review_showcase' ||
+    action === 'decide_showcase' ||
+    action === 'draft_response' ||
+    action === 'none'
+  ) {
+    return 'showcase';
   }
   return null;
 }
@@ -568,7 +577,12 @@ export function storyAuthorityLabel(action: StoryAction): string {
     run_pair: '执行 Server 发布的 nextAction',
     route_pair_exception: '记录人工异常路由',
     review_pair_change: '审查完整本地 Story Diff',
-    none: '没有 Pair 自动动作',
+    run_showcase: '重新执行批准的 Q2',
+    record_showcase_evidence: '记录产品观察与风险证据',
+    review_showcase: '运行独立 Showcase Reviewer',
+    decide_showcase: '执行人工价值决定',
+    draft_response: '起草交付响应',
+    none: '没有自动动作',
   };
   return labels[action];
 }
@@ -583,6 +597,8 @@ function storyActionButtonLabel(story: StoryData): string {
   if (story.authority.nextAction === 'start_pair') return '启动';
   if (story.authority.nextAction === 'route_pair_exception') return '路由';
   if (story.authority.nextAction === 'review_pair_change') return '审批';
+  if (story.authority.nextAction === 'review_showcase') return 'Reviewer';
+  if (story.authority.nextAction === 'decide_showcase') return '决定';
   if (story.authority.nextAction === 'none') return '查看证据';
   return '打开';
 }
