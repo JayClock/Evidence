@@ -1630,6 +1630,194 @@ paths:
         '400': { $ref: '#/components/responses/ValidationError' }
         '404': { $ref: '#/components/responses/ResourceNotFound' }
         '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: get_showcase
+      responses:
+        '200':
+          description: Value-validation evidence and current Showcase authority
+          content:
+            application/vnd.evidence.showcase+json:
+              schema: { $ref: '#/components/schemas/ShowcaseResource' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/q2-observations:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: record_showcase_q2_observation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/RecordShowcaseQ2ObservationInput' }
+      responses:
+        '201':
+          description: Bounded observation of an exact Approved Plan Q2 command
+          content:
+            application/vnd.evidence.showcase-action-result+json:
+              schema:
+                { $ref: '#/components/schemas/ShowcaseActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/product-observations:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: record_showcase_product_observation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              {
+                $ref: '#/components/schemas/RecordShowcaseProductObservationInput',
+              }
+      responses:
+        '201':
+          description: Human-observed product behavior and value feedback
+          content:
+            application/vnd.evidence.showcase-action-result+json:
+              schema:
+                { $ref: '#/components/schemas/ShowcaseActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/risk-decisions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: record_showcase_risk_decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/RecordShowcaseRiskDecisionInput' }
+      responses:
+        '201':
+          description: Explicit human Q3 or Q4 risk disposition
+          content:
+            application/vnd.evidence.showcase-action-result+json:
+              schema:
+                { $ref: '#/components/schemas/ShowcaseActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/evaluations:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: record_showcase_evaluation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              { $ref: '#/components/schemas/RecordShowcaseEvaluationInput' }
+      responses:
+        '201':
+          description: Human evaluation of one required Q3 or Q4 activity
+          content:
+            application/vnd.evidence.showcase-action-result+json:
+              schema:
+                { $ref: '#/components/schemas/ShowcaseActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/reviews:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: record_showcase_review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecordShowcaseReviewInput' }
+      responses:
+        '201':
+          description: Independent Reviewer report bound to the evidence bundle
+          content:
+            application/vnd.evidence.showcase-action-result+json:
+              schema:
+                { $ref: '#/components/schemas/ShowcaseActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
+  /api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/decisions:
+    parameters:
+      - name: workspaceId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: iterationId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: decide_showcase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecideShowcaseInput' }
+      responses:
+        '200':
+          description: Human value acceptance, revision route, or rejection
+          content:
+            application/vnd.evidence.showcase-action-result+json:
+              schema:
+                { $ref: '#/components/schemas/ShowcaseActionResultResource' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '404': { $ref: '#/components/responses/ResourceNotFound' }
+        '409': { $ref: '#/components/responses/ResourceConflict' }
   /api/workspaces/{workspaceId}/stories:
     parameters:
       - name: workspaceId
@@ -3572,7 +3760,7 @@ components:
           enum: [provisioning, active, provisioning_failed, halted]
         loop:
           type: string
-          enum: [kickoff, understand, tasking, pair]
+          enum: [kickoff, understand, tasking, pair, showcase, respond]
         stage:
           type: string
           enum:
@@ -3595,10 +3783,15 @@ components:
               quality_gate_failed,
               quality_gates_passed,
               exception,
+              setup,
+              reviewing,
+              decision,
+              accepted,
+              rejected,
             ]
         lane:
           type: string
-          enum: [discovery]
+          enum: [discovery, review]
         version:
           type: integer
           format: int32
@@ -6039,6 +6232,596 @@ components:
         _links: { $ref: '#/components/schemas/BTreeMap' }
         pair: { $ref: '#/components/schemas/PairResource' }
         acceptedRecordId: { type: string }
+    ShowcaseStage:
+      type: string
+      enum: [setup, reviewing, decision, accepted, revised, rejected]
+    ShowcaseQuadrant:
+      type: string
+      enum: [Q3, Q4]
+    ShowcaseRiskDisposition:
+      type: string
+      enum: [required, not_required]
+    ShowcaseRiskActivity:
+      type: string
+      enum:
+        [
+          exploratory,
+          usability,
+          accessibility,
+          compatibility,
+          performance,
+          security,
+          reliability,
+          operability,
+          other,
+        ]
+    ShowcaseEvaluationOutcome:
+      type: string
+      enum: [passed, concern]
+    ShowcaseReviewRecommendation:
+      type: string
+      enum: [accept, revise]
+    ShowcaseDecisionAction:
+      type: string
+      enum: [accept, revise, reject]
+    ShowcaseFeedbackTarget:
+      type: string
+      enum:
+        [
+          problem,
+          story,
+          business_knowledge,
+          scenario,
+          model,
+          modeling_method,
+          architecture,
+          test_strategy,
+          test_process,
+          test,
+          implementation,
+          refactor,
+          value_validation,
+          showcase_setup,
+        ]
+    ShowcaseRunResource:
+      type: object
+      required:
+        [
+          id,
+          reference,
+          attempt,
+          workspaceId,
+          iterationId,
+          storyId,
+          storyRevisionId,
+          storyRevisionSha256,
+          approvedTaskingPlanId,
+          approvedTaskingPlanSha256,
+          pairRunId,
+          pairManifestId,
+          pairManifestSha256,
+          approvedCommitSha,
+          stage,
+          version,
+          evidenceBundleSha256,
+          startedAt,
+          updatedAt,
+          completedAt,
+        ]
+      properties:
+        id: { type: string }
+        reference: { type: string, pattern: '^SHOW-[0-9]{4,}$' }
+        attempt: { type: integer, minimum: 1 }
+        workspaceId: { type: string }
+        iterationId: { type: string }
+        storyId: { type: string }
+        storyRevisionId: { type: string }
+        storyRevisionSha256: { type: string }
+        approvedTaskingPlanId: { type: string }
+        approvedTaskingPlanSha256: { type: string }
+        pairRunId: { type: string }
+        pairManifestId: { type: string }
+        pairManifestSha256: { type: string }
+        approvedCommitSha: { type: string }
+        stage: { $ref: '#/components/schemas/ShowcaseStage' }
+        version: { type: integer, minimum: 1 }
+        evidenceBundleSha256: { type: [string, 'null'] }
+        startedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+    ShowcaseQ2ObservationResource:
+      type: object
+      required:
+        [
+          id,
+          showcaseRunId,
+          actionId,
+          sequence,
+          testId,
+          scenarioIds,
+          processId,
+          stepId,
+          projectId,
+          command,
+          termination,
+          exitCode,
+          signal,
+          durationMs,
+          stdoutSha256,
+          stdoutBytes,
+          stdoutLines,
+          stderrSha256,
+          stderrBytes,
+          stderrLines,
+          approvedCommitSha,
+          worktreeSha256,
+          observedAt,
+          previousRecordSha256,
+          recordSha256,
+        ]
+      properties:
+        id: { type: string }
+        showcaseRunId: { type: string }
+        actionId: { type: string }
+        sequence: { type: integer, minimum: 1 }
+        testId: { type: string }
+        scenarioIds: { type: array, items: { type: string } }
+        processId: { type: string }
+        stepId: { type: string }
+        projectId: { type: [string, 'null'] }
+        command: { type: string }
+        termination: { $ref: '#/components/schemas/PairTermination' }
+        exitCode: { type: [integer, 'null'] }
+        signal: { type: [string, 'null'] }
+        durationMs: { type: integer, minimum: 0 }
+        stdoutSha256: { type: string }
+        stdoutBytes: { type: integer, minimum: 0 }
+        stdoutLines: { type: integer, minimum: 0 }
+        stderrSha256: { type: string }
+        stderrBytes: { type: integer, minimum: 0 }
+        stderrLines: { type: integer, minimum: 0 }
+        approvedCommitSha: { type: string }
+        worktreeSha256: { type: string }
+        observedAt: { type: string, format: date-time }
+        previousRecordSha256: { type: [string, 'null'] }
+        recordSha256: { type: string }
+    ShowcaseProductObservationResource:
+      type: object
+      required:
+        [
+          id,
+          showcaseRunId,
+          scenarioId,
+          scenarioReference,
+          givenSteps,
+          whenStep,
+          expectedThenSteps,
+          businessData,
+          observedOutcomes,
+          observation,
+          valueFeedback,
+          evidenceRefs,
+          observedByUserId,
+          observedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        showcaseRunId: { type: string }
+        scenarioId: { type: string }
+        scenarioReference: { type: string }
+        givenSteps: { type: array, items: { type: string } }
+        whenStep: { type: string }
+        expectedThenSteps: { type: array, items: { type: string } }
+        businessData: { type: array, items: { type: string } }
+        observedOutcomes: { type: array, items: { type: string } }
+        observation: { type: string }
+        valueFeedback: { type: string }
+        evidenceRefs: { type: array, items: { type: string } }
+        observedByUserId: { type: string }
+        observedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    ShowcaseRiskDecisionResource:
+      type: object
+      required:
+        [
+          id,
+          showcaseRunId,
+          quadrant,
+          disposition,
+          activities,
+          reason,
+          decidedByUserId,
+          decidedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        showcaseRunId: { type: string }
+        quadrant: { $ref: '#/components/schemas/ShowcaseQuadrant' }
+        disposition: { $ref: '#/components/schemas/ShowcaseRiskDisposition' }
+        activities:
+          type: array
+          items: { $ref: '#/components/schemas/ShowcaseRiskActivity' }
+        reason: { type: string }
+        decidedByUserId: { type: string }
+        decidedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    ShowcaseEvaluationResource:
+      type: object
+      required:
+        [
+          id,
+          showcaseRunId,
+          sequence,
+          quadrant,
+          activity,
+          outcome,
+          finding,
+          evidenceRefs,
+          observedByUserId,
+          observedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        showcaseRunId: { type: string }
+        sequence: { type: integer, minimum: 1 }
+        quadrant: { $ref: '#/components/schemas/ShowcaseQuadrant' }
+        activity: { $ref: '#/components/schemas/ShowcaseRiskActivity' }
+        outcome: { $ref: '#/components/schemas/ShowcaseEvaluationOutcome' }
+        finding: { type: string }
+        evidenceRefs: { type: array, items: { type: string } }
+        observedByUserId: { type: string }
+        observedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    ShowcaseReviewResource:
+      type: object
+      required:
+        [
+          id,
+          showcaseRunId,
+          evidenceBundleSha256,
+          observedFacts,
+          productDomainFeedback,
+          technicalQualityFeedback,
+          unresolvedAssumptions,
+          recommendation,
+          reviewedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        showcaseRunId: { type: string }
+        evidenceBundleSha256: { type: string }
+        observedFacts: { type: array, items: { type: string } }
+        productDomainFeedback: { type: array, items: { type: string } }
+        technicalQualityFeedback: { type: array, items: { type: string } }
+        unresolvedAssumptions: { type: array, items: { type: string } }
+        recommendation:
+          { $ref: '#/components/schemas/ShowcaseReviewRecommendation' }
+        reviewedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    ShowcaseDecisionResource:
+      type: object
+      required:
+        [
+          id,
+          showcaseRunId,
+          action,
+          reason,
+          feedbackTarget,
+          evidenceBundleSha256,
+          reviewId,
+          decidedByUserId,
+          decidedAt,
+          contentSha256,
+        ]
+      properties:
+        id: { type: string }
+        showcaseRunId: { type: string }
+        action: { $ref: '#/components/schemas/ShowcaseDecisionAction' }
+        reason: { type: string }
+        feedbackTarget:
+          oneOf:
+            - $ref: '#/components/schemas/ShowcaseFeedbackTarget'
+            - type: 'null'
+        evidenceBundleSha256: { type: [string, 'null'] }
+        reviewId: { type: [string, 'null'] }
+        decidedByUserId: { type: string }
+        decidedAt: { type: string, format: date-time }
+        contentSha256: { type: string }
+    ShowcaseActionAuthority:
+      type: object
+      required: [actionId, expectedShowcaseVersion]
+      properties:
+        actionId: { type: string }
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+    ShowcaseExecuteQ2Action:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required:
+            [
+              kind,
+              testId,
+              scenarioIds,
+              processId,
+              stepId,
+              projectId,
+              command,
+              timeoutMs,
+              approvedCommitSha,
+            ]
+          properties:
+            kind: { type: string, enum: [execute_q2] }
+            testId: { type: string }
+            scenarioIds: { type: array, items: { type: string } }
+            processId: { type: string }
+            stepId: { type: string }
+            projectId: { type: [string, 'null'] }
+            command: { type: string }
+            timeoutMs: { type: integer, minimum: 1 }
+            approvedCommitSha: { type: string }
+    ShowcaseObserveScenarioAction:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required: [kind, scenarioId, scenarioReference]
+          properties:
+            kind: { type: string, enum: [observe_scenario] }
+            scenarioId: { type: string }
+            scenarioReference: { type: string }
+    ShowcaseDecideRiskAction:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required: [kind, quadrant]
+          properties:
+            kind: { type: string, enum: [decide_risk] }
+            quadrant: { $ref: '#/components/schemas/ShowcaseQuadrant' }
+    ShowcaseEvaluateRiskAction:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required: [kind, quadrant, activity]
+          properties:
+            kind: { type: string, enum: [evaluate_risk] }
+            quadrant: { $ref: '#/components/schemas/ShowcaseQuadrant' }
+            activity: { $ref: '#/components/schemas/ShowcaseRiskActivity' }
+    ShowcaseRunReviewerAction:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required: [kind, evidenceBundleSha256]
+          properties:
+            kind: { type: string, enum: [run_reviewer] }
+            evidenceBundleSha256: { type: string }
+    ShowcaseAwaitHumanAction:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required: [kind, reviewId, reviewSha256]
+          properties:
+            kind: { type: string, enum: [await_human] }
+            reviewId: { type: string }
+            reviewSha256: { type: string }
+    ShowcaseResolveFailureAction:
+      allOf:
+        - $ref: '#/components/schemas/ShowcaseActionAuthority'
+        - type: object
+          required: [kind, observationId, allowedActions]
+          properties:
+            kind: { type: string, enum: [resolve_failure] }
+            observationId: { type: string }
+            allowedActions:
+              type: array
+              items: { type: string, enum: [revise, reject] }
+    ShowcaseNextAction:
+      oneOf:
+        - $ref: '#/components/schemas/ShowcaseExecuteQ2Action'
+        - $ref: '#/components/schemas/ShowcaseObserveScenarioAction'
+        - $ref: '#/components/schemas/ShowcaseDecideRiskAction'
+        - $ref: '#/components/schemas/ShowcaseEvaluateRiskAction'
+        - $ref: '#/components/schemas/ShowcaseRunReviewerAction'
+        - $ref: '#/components/schemas/ShowcaseAwaitHumanAction'
+        - $ref: '#/components/schemas/ShowcaseResolveFailureAction'
+    ShowcaseResource:
+      type: object
+      required:
+        [
+          _links,
+          iteration,
+          story,
+          storyRevision,
+          approvedPlan,
+          pairRun,
+          pairManifest,
+          run,
+          q2Observations,
+          productObservations,
+          riskDecisions,
+          evaluations,
+          review,
+          decision,
+          nextAction,
+        ]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        iteration: { $ref: '#/components/schemas/IterationResource' }
+        story: { $ref: '#/components/schemas/StoryResource' }
+        storyRevision: { $ref: '#/components/schemas/StoryRevisionResource' }
+        approvedPlan:
+          { $ref: '#/components/schemas/ApprovedTaskingPlanResource' }
+        pairRun: { $ref: '#/components/schemas/PairRunResource' }
+        pairManifest:
+          { $ref: '#/components/schemas/PairExecutionManifestResource' }
+        run: { $ref: '#/components/schemas/ShowcaseRunResource' }
+        q2Observations:
+          type: array
+          items: { $ref: '#/components/schemas/ShowcaseQ2ObservationResource' }
+        productObservations:
+          type: array
+          items:
+            { $ref: '#/components/schemas/ShowcaseProductObservationResource' }
+        riskDecisions:
+          type: array
+          items: { $ref: '#/components/schemas/ShowcaseRiskDecisionResource' }
+        evaluations:
+          type: array
+          items: { $ref: '#/components/schemas/ShowcaseEvaluationResource' }
+        review:
+          oneOf:
+            - $ref: '#/components/schemas/ShowcaseReviewResource'
+            - type: 'null'
+        decision:
+          oneOf:
+            - $ref: '#/components/schemas/ShowcaseDecisionResource'
+            - type: 'null'
+        nextAction:
+          oneOf:
+            - $ref: '#/components/schemas/ShowcaseNextAction'
+            - type: 'null'
+    RecordShowcaseQ2ObservationInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          showcaseRunId,
+          actionId,
+          expectedShowcaseVersion,
+          command,
+          termination,
+          exitCode,
+          durationMs,
+          stdoutSha256,
+          stdoutBytes,
+          stdoutLines,
+          stderrSha256,
+          stderrBytes,
+          stderrLines,
+          approvedCommitSha,
+          worktreeSha256,
+        ]
+      properties:
+        showcaseRunId: { type: string, minLength: 1 }
+        actionId: { type: string, minLength: 1 }
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+        command: { type: string, minLength: 1 }
+        termination: { $ref: '#/components/schemas/PairTermination' }
+        exitCode: { type: [integer, 'null'] }
+        signal: { type: [string, 'null'] }
+        durationMs: { type: integer, minimum: 0 }
+        stdoutSha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        stdoutBytes: { type: integer, minimum: 0 }
+        stdoutLines: { type: integer, minimum: 0 }
+        stderrSha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        stderrBytes: { type: integer, minimum: 0 }
+        stderrLines: { type: integer, minimum: 0 }
+        approvedCommitSha:
+          { type: string, pattern: '^[a-f0-9]{40}(?:[a-f0-9]{24})?$' }
+        worktreeSha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+    RecordShowcaseProductObservationInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          expectedShowcaseVersion,
+          scenarioId,
+          observedOutcomes,
+          observation,
+          valueFeedback,
+          evidenceRefs,
+        ]
+      properties:
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+        scenarioId: { type: string, minLength: 1 }
+        observedOutcomes:
+          { type: array, minItems: 1, items: { type: string, minLength: 1 } }
+        observation: { type: string, minLength: 1, maxLength: 4000 }
+        valueFeedback: { type: string, minLength: 1, maxLength: 4000 }
+        evidenceRefs:
+          { type: array, minItems: 1, items: { type: string, minLength: 1 } }
+    RecordShowcaseRiskDecisionInput:
+      type: object
+      additionalProperties: false
+      required:
+        [expectedShowcaseVersion, quadrant, disposition, activities, reason]
+      properties:
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+        quadrant: { $ref: '#/components/schemas/ShowcaseQuadrant' }
+        disposition: { $ref: '#/components/schemas/ShowcaseRiskDisposition' }
+        activities:
+          type: array
+          items: { $ref: '#/components/schemas/ShowcaseRiskActivity' }
+        reason: { type: string, minLength: 1, maxLength: 4000 }
+    RecordShowcaseEvaluationInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          expectedShowcaseVersion,
+          quadrant,
+          activity,
+          outcome,
+          finding,
+          evidenceRefs,
+        ]
+      properties:
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+        quadrant: { $ref: '#/components/schemas/ShowcaseQuadrant' }
+        activity: { $ref: '#/components/schemas/ShowcaseRiskActivity' }
+        outcome: { $ref: '#/components/schemas/ShowcaseEvaluationOutcome' }
+        finding: { type: string, minLength: 1, maxLength: 4000 }
+        evidenceRefs:
+          { type: array, minItems: 1, items: { type: string, minLength: 1 } }
+    RecordShowcaseReviewInput:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          expectedShowcaseVersion,
+          evidenceBundleSha256,
+          observedFacts,
+          productDomainFeedback,
+          technicalQualityFeedback,
+          unresolvedAssumptions,
+          recommendation,
+        ]
+      properties:
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+        evidenceBundleSha256: { type: string, pattern: '^sha256:[a-f0-9]{64}$' }
+        observedFacts:
+          { type: array, minItems: 1, items: { type: string, minLength: 1 } }
+        productDomainFeedback:
+          { type: array, items: { type: string, minLength: 1 } }
+        technicalQualityFeedback:
+          { type: array, items: { type: string, minLength: 1 } }
+        unresolvedAssumptions:
+          { type: array, items: { type: string, minLength: 1 } }
+        recommendation:
+          { $ref: '#/components/schemas/ShowcaseReviewRecommendation' }
+    DecideShowcaseInput:
+      type: object
+      additionalProperties: false
+      required: [expectedShowcaseVersion, action, reason]
+      properties:
+        expectedShowcaseVersion: { type: integer, minimum: 1 }
+        action: { $ref: '#/components/schemas/ShowcaseDecisionAction' }
+        reason: { type: string, minLength: 1, maxLength: 4000 }
+        evidenceBundleSha256: { type: [string, 'null'] }
+        reviewSha256: { type: [string, 'null'] }
+        feedbackTarget:
+          oneOf:
+            - $ref: '#/components/schemas/ShowcaseFeedbackTarget'
+            - type: 'null'
+    ShowcaseActionResultResource:
+      type: object
+      required: [_links, showcase, acceptedRecordId]
+      properties:
+        _links: { $ref: '#/components/schemas/BTreeMap' }
+        showcase: { $ref: '#/components/schemas/ShowcaseResource' }
+        acceptedRecordId: { type: string }
     StoryAuthorityOwner:
       type: string
       enum: [human, agent, none]
@@ -6055,6 +6838,11 @@ components:
         - run_pair
         - route_pair_exception
         - review_pair_change
+        - run_showcase
+        - record_showcase_evidence
+        - review_showcase
+        - decide_showcase
+        - draft_response
         - none
     StoryWorkflowAuthority:
       type: object
@@ -6070,7 +6858,7 @@ components:
       properties:
         loop:
           type: string
-          enum: [kickoff, understand, tasking, pair]
+          enum: [kickoff, understand, tasking, pair, showcase, respond]
         stage:
           type: string
           enum:
@@ -6093,6 +6881,11 @@ components:
               quality_gate_failed,
               quality_gates_passed,
               exception,
+              setup,
+              reviewing,
+              decision,
+              accepted,
+              rejected,
             ]
         count:
           type: integer
@@ -6170,7 +6963,7 @@ components:
           enum: [provisioning, active, provisioning_failed, halted]
         iterationLoop:
           type: string
-          enum: [kickoff, understand, tasking, pair]
+          enum: [kickoff, understand, tasking, pair, showcase, respond]
         iterationStage:
           type: string
           enum:
@@ -6193,6 +6986,11 @@ components:
               quality_gate_failed,
               quality_gates_passed,
               exception,
+              setup,
+              reviewing,
+              decision,
+              accepted,
+              rejected,
             ]
         reference:
           type: string

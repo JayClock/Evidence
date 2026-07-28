@@ -783,6 +783,139 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get: operations['get_showcase'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/q2-observations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_showcase_q2_observation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/product-observations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_showcase_product_observation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/risk-decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_showcase_risk_decision'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/evaluations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_showcase_evaluation'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/reviews': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['record_showcase_review'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase/decisions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['decide_showcase'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/workspaces/{workspaceId}/stories': {
     parameters: {
       query?: never;
@@ -1355,7 +1488,13 @@ export interface components {
       /** @enum {string} */
       lifecycle: 'provisioning' | 'active' | 'provisioning_failed' | 'halted';
       /** @enum {string} */
-      loop: 'kickoff' | 'understand' | 'tasking' | 'pair';
+      loop:
+        | 'kickoff'
+        | 'understand'
+        | 'tasking'
+        | 'pair'
+        | 'showcase'
+        | 'respond';
       /** @enum {string} */
       stage:
         | 'candidate_review'
@@ -1375,9 +1514,14 @@ export interface components {
         | 'refactored'
         | 'quality_gate_failed'
         | 'quality_gates_passed'
-        | 'exception';
+        | 'exception'
+        | 'setup'
+        | 'reviewing'
+        | 'decision'
+        | 'accepted'
+        | 'rejected';
       /** @enum {string} */
-      lane: 'discovery';
+      lane: 'discovery' | 'review';
       /** Format: int32 */
       version: number;
       baseCommitSha: string;
@@ -2511,6 +2655,312 @@ export interface components {
       acceptedRecordId: string;
     };
     /** @enum {string} */
+    ShowcaseStage:
+      | 'setup'
+      | 'reviewing'
+      | 'decision'
+      | 'accepted'
+      | 'revised'
+      | 'rejected';
+    /** @enum {string} */
+    ShowcaseQuadrant: 'Q3' | 'Q4';
+    /** @enum {string} */
+    ShowcaseRiskDisposition: 'required' | 'not_required';
+    /** @enum {string} */
+    ShowcaseRiskActivity:
+      | 'exploratory'
+      | 'usability'
+      | 'accessibility'
+      | 'compatibility'
+      | 'performance'
+      | 'security'
+      | 'reliability'
+      | 'operability'
+      | 'other';
+    /** @enum {string} */
+    ShowcaseEvaluationOutcome: 'passed' | 'concern';
+    /** @enum {string} */
+    ShowcaseReviewRecommendation: 'accept' | 'revise';
+    /** @enum {string} */
+    ShowcaseDecisionAction: 'accept' | 'revise' | 'reject';
+    /** @enum {string} */
+    ShowcaseFeedbackTarget:
+      | 'problem'
+      | 'story'
+      | 'business_knowledge'
+      | 'scenario'
+      | 'model'
+      | 'modeling_method'
+      | 'architecture'
+      | 'test_strategy'
+      | 'test_process'
+      | 'test'
+      | 'implementation'
+      | 'refactor'
+      | 'value_validation'
+      | 'showcase_setup';
+    ShowcaseRunResource: {
+      id: string;
+      reference: string;
+      attempt: number;
+      workspaceId: string;
+      iterationId: string;
+      storyId: string;
+      storyRevisionId: string;
+      storyRevisionSha256: string;
+      approvedTaskingPlanId: string;
+      approvedTaskingPlanSha256: string;
+      pairRunId: string;
+      pairManifestId: string;
+      pairManifestSha256: string;
+      approvedCommitSha: string;
+      stage: components['schemas']['ShowcaseStage'];
+      version: number;
+      evidenceBundleSha256: string | null;
+      /** Format: date-time */
+      startedAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+      /** Format: date-time */
+      completedAt: string | null;
+    };
+    ShowcaseQ2ObservationResource: {
+      id: string;
+      showcaseRunId: string;
+      actionId: string;
+      sequence: number;
+      testId: string;
+      scenarioIds: string[];
+      processId: string;
+      stepId: string;
+      projectId: string | null;
+      command: string;
+      termination: components['schemas']['PairTermination'];
+      exitCode: number | null;
+      signal: string | null;
+      durationMs: number;
+      stdoutSha256: string;
+      stdoutBytes: number;
+      stdoutLines: number;
+      stderrSha256: string;
+      stderrBytes: number;
+      stderrLines: number;
+      approvedCommitSha: string;
+      worktreeSha256: string;
+      /** Format: date-time */
+      observedAt: string;
+      previousRecordSha256: string | null;
+      recordSha256: string;
+    };
+    ShowcaseProductObservationResource: {
+      id: string;
+      showcaseRunId: string;
+      scenarioId: string;
+      scenarioReference: string;
+      givenSteps: string[];
+      whenStep: string;
+      expectedThenSteps: string[];
+      businessData: string[];
+      observedOutcomes: string[];
+      observation: string;
+      valueFeedback: string;
+      evidenceRefs: string[];
+      observedByUserId: string;
+      /** Format: date-time */
+      observedAt: string;
+      contentSha256: string;
+    };
+    ShowcaseRiskDecisionResource: {
+      id: string;
+      showcaseRunId: string;
+      quadrant: components['schemas']['ShowcaseQuadrant'];
+      disposition: components['schemas']['ShowcaseRiskDisposition'];
+      activities: components['schemas']['ShowcaseRiskActivity'][];
+      reason: string;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    ShowcaseEvaluationResource: {
+      id: string;
+      showcaseRunId: string;
+      sequence: number;
+      quadrant: components['schemas']['ShowcaseQuadrant'];
+      activity: components['schemas']['ShowcaseRiskActivity'];
+      outcome: components['schemas']['ShowcaseEvaluationOutcome'];
+      finding: string;
+      evidenceRefs: string[];
+      observedByUserId: string;
+      /** Format: date-time */
+      observedAt: string;
+      contentSha256: string;
+    };
+    ShowcaseReviewResource: {
+      id: string;
+      showcaseRunId: string;
+      evidenceBundleSha256: string;
+      observedFacts: string[];
+      productDomainFeedback: string[];
+      technicalQualityFeedback: string[];
+      unresolvedAssumptions: string[];
+      recommendation: components['schemas']['ShowcaseReviewRecommendation'];
+      /** Format: date-time */
+      reviewedAt: string;
+      contentSha256: string;
+    };
+    ShowcaseDecisionResource: {
+      id: string;
+      showcaseRunId: string;
+      action: components['schemas']['ShowcaseDecisionAction'];
+      reason: string;
+      feedbackTarget: components['schemas']['ShowcaseFeedbackTarget'] | null;
+      evidenceBundleSha256: string | null;
+      reviewId: string | null;
+      decidedByUserId: string;
+      /** Format: date-time */
+      decidedAt: string;
+      contentSha256: string;
+    };
+    ShowcaseActionAuthority: {
+      actionId: string;
+      expectedShowcaseVersion: number;
+    };
+    ShowcaseExecuteQ2Action: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'execute_q2';
+      testId: string;
+      scenarioIds: string[];
+      processId: string;
+      stepId: string;
+      projectId: string | null;
+      command: string;
+      timeoutMs: number;
+      approvedCommitSha: string;
+    };
+    ShowcaseObserveScenarioAction: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'observe_scenario';
+      scenarioId: string;
+      scenarioReference: string;
+    };
+    ShowcaseDecideRiskAction: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'decide_risk';
+      quadrant: components['schemas']['ShowcaseQuadrant'];
+    };
+    ShowcaseEvaluateRiskAction: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'evaluate_risk';
+      quadrant: components['schemas']['ShowcaseQuadrant'];
+      activity: components['schemas']['ShowcaseRiskActivity'];
+    };
+    ShowcaseRunReviewerAction: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'run_reviewer';
+      evidenceBundleSha256: string;
+    };
+    ShowcaseAwaitHumanAction: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'await_human';
+      reviewId: string;
+      reviewSha256: string;
+    };
+    ShowcaseResolveFailureAction: components['schemas']['ShowcaseActionAuthority'] & {
+      /** @enum {string} */
+      kind: 'resolve_failure';
+      observationId: string;
+      allowedActions: ('revise' | 'reject')[];
+    };
+    ShowcaseNextAction:
+      | components['schemas']['ShowcaseExecuteQ2Action']
+      | components['schemas']['ShowcaseObserveScenarioAction']
+      | components['schemas']['ShowcaseDecideRiskAction']
+      | components['schemas']['ShowcaseEvaluateRiskAction']
+      | components['schemas']['ShowcaseRunReviewerAction']
+      | components['schemas']['ShowcaseAwaitHumanAction']
+      | components['schemas']['ShowcaseResolveFailureAction'];
+    ShowcaseResource: {
+      _links: components['schemas']['BTreeMap'];
+      iteration: components['schemas']['IterationResource'];
+      story: components['schemas']['StoryResource'];
+      storyRevision: components['schemas']['StoryRevisionResource'];
+      approvedPlan: components['schemas']['ApprovedTaskingPlanResource'];
+      pairRun: components['schemas']['PairRunResource'];
+      pairManifest: components['schemas']['PairExecutionManifestResource'];
+      run: components['schemas']['ShowcaseRunResource'];
+      q2Observations: components['schemas']['ShowcaseQ2ObservationResource'][];
+      productObservations: components['schemas']['ShowcaseProductObservationResource'][];
+      riskDecisions: components['schemas']['ShowcaseRiskDecisionResource'][];
+      evaluations: components['schemas']['ShowcaseEvaluationResource'][];
+      review: components['schemas']['ShowcaseReviewResource'] | null;
+      decision: components['schemas']['ShowcaseDecisionResource'] | null;
+      nextAction: components['schemas']['ShowcaseNextAction'] | null;
+    };
+    RecordShowcaseQ2ObservationInput: {
+      showcaseRunId: string;
+      actionId: string;
+      expectedShowcaseVersion: number;
+      command: string;
+      termination: components['schemas']['PairTermination'];
+      exitCode: number | null;
+      signal?: string | null;
+      durationMs: number;
+      stdoutSha256: string;
+      stdoutBytes: number;
+      stdoutLines: number;
+      stderrSha256: string;
+      stderrBytes: number;
+      stderrLines: number;
+      approvedCommitSha: string;
+      worktreeSha256: string;
+    };
+    RecordShowcaseProductObservationInput: {
+      expectedShowcaseVersion: number;
+      scenarioId: string;
+      observedOutcomes: string[];
+      observation: string;
+      valueFeedback: string;
+      evidenceRefs: string[];
+    };
+    RecordShowcaseRiskDecisionInput: {
+      expectedShowcaseVersion: number;
+      quadrant: components['schemas']['ShowcaseQuadrant'];
+      disposition: components['schemas']['ShowcaseRiskDisposition'];
+      activities: components['schemas']['ShowcaseRiskActivity'][];
+      reason: string;
+    };
+    RecordShowcaseEvaluationInput: {
+      expectedShowcaseVersion: number;
+      quadrant: components['schemas']['ShowcaseQuadrant'];
+      activity: components['schemas']['ShowcaseRiskActivity'];
+      outcome: components['schemas']['ShowcaseEvaluationOutcome'];
+      finding: string;
+      evidenceRefs: string[];
+    };
+    RecordShowcaseReviewInput: {
+      expectedShowcaseVersion: number;
+      evidenceBundleSha256: string;
+      observedFacts: string[];
+      productDomainFeedback: string[];
+      technicalQualityFeedback: string[];
+      unresolvedAssumptions: string[];
+      recommendation: components['schemas']['ShowcaseReviewRecommendation'];
+    };
+    DecideShowcaseInput: {
+      expectedShowcaseVersion: number;
+      action: components['schemas']['ShowcaseDecisionAction'];
+      reason: string;
+      evidenceBundleSha256?: string | null;
+      reviewSha256?: string | null;
+      feedbackTarget?: components['schemas']['ShowcaseFeedbackTarget'] | null;
+    };
+    ShowcaseActionResultResource: {
+      _links: components['schemas']['BTreeMap'];
+      showcase: components['schemas']['ShowcaseResource'];
+      acceptedRecordId: string;
+    };
+    /** @enum {string} */
     StoryAuthorityOwner: 'human' | 'agent' | 'none';
     /** @enum {string} */
     StoryNextAction:
@@ -2524,6 +2974,11 @@ export interface components {
       | 'run_pair'
       | 'route_pair_exception'
       | 'review_pair_change'
+      | 'run_showcase'
+      | 'record_showcase_evidence'
+      | 'review_showcase'
+      | 'decide_showcase'
+      | 'draft_response'
       | 'none';
     StoryWorkflowAuthority: {
       owner: components['schemas']['StoryAuthorityOwner'];
@@ -2531,7 +2986,13 @@ export interface components {
     };
     StoryStageCount: {
       /** @enum {string} */
-      loop: 'kickoff' | 'understand' | 'tasking' | 'pair';
+      loop:
+        | 'kickoff'
+        | 'understand'
+        | 'tasking'
+        | 'pair'
+        | 'showcase'
+        | 'respond';
       /** @enum {string} */
       stage:
         | 'candidate_review'
@@ -2551,7 +3012,12 @@ export interface components {
         | 'refactored'
         | 'quality_gate_failed'
         | 'quality_gates_passed'
-        | 'exception';
+        | 'exception'
+        | 'setup'
+        | 'reviewing'
+        | 'decision'
+        | 'accepted'
+        | 'rejected';
       /** Format: int32 */
       count: number;
     };
@@ -2582,7 +3048,13 @@ export interface components {
         | 'provisioning_failed'
         | 'halted';
       /** @enum {string} */
-      iterationLoop: 'kickoff' | 'understand' | 'tasking' | 'pair';
+      iterationLoop:
+        | 'kickoff'
+        | 'understand'
+        | 'tasking'
+        | 'pair'
+        | 'showcase'
+        | 'respond';
       /** @enum {string} */
       iterationStage:
         | 'candidate_review'
@@ -2602,7 +3074,12 @@ export interface components {
         | 'refactored'
         | 'quality_gate_failed'
         | 'quality_gates_passed'
-        | 'exception';
+        | 'exception'
+        | 'setup'
+        | 'reviewing'
+        | 'decision'
+        | 'accepted'
+        | 'rejected';
       /** @enum {string} */
       reference: 'US-001';
       title: string;
@@ -4539,6 +5016,211 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.pair-action-result+json': components['schemas']['PairActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  get_showcase: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Value-validation evidence and current Showcase authority */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase+json': components['schemas']['ShowcaseResource'];
+        };
+      };
+      404: components['responses']['ResourceNotFound'];
+      500: components['responses']['InternalError'];
+    };
+  };
+  record_showcase_q2_observation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordShowcaseQ2ObservationInput'];
+      };
+    };
+    responses: {
+      /** @description Bounded observation of an exact Approved Plan Q2 command */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_showcase_product_observation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordShowcaseProductObservationInput'];
+      };
+    };
+    responses: {
+      /** @description Human-observed product behavior and value feedback */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_showcase_risk_decision: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordShowcaseRiskDecisionInput'];
+      };
+    };
+    responses: {
+      /** @description Explicit human Q3 or Q4 risk disposition */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_showcase_evaluation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordShowcaseEvaluationInput'];
+      };
+    };
+    responses: {
+      /** @description Human evaluation of one required Q3 or Q4 activity */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  record_showcase_review: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RecordShowcaseReviewInput'];
+      };
+    };
+    responses: {
+      /** @description Independent Reviewer report bound to the evidence bundle */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      404: components['responses']['ResourceNotFound'];
+      409: components['responses']['ResourceConflict'];
+    };
+  };
+  decide_showcase: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        workspaceId: string;
+        iterationId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['DecideShowcaseInput'];
+      };
+    };
+    responses: {
+      /** @description Human value acceptance, revision route, or rejection */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.showcase-action-result+json': components['schemas']['ShowcaseActionResultResource'];
         };
       };
       400: components['responses']['ValidationError'];
