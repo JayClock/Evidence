@@ -128,7 +128,7 @@ export class PrismaWorkspaceDelivery implements WorkspaceDelivery {
       );
       if (workflow.authority.owner === 'human') humanAttention += 1;
       if (workflow.authority.owner === 'agent') agentAttention += 1;
-      if (workflow.loop === 'pair' && workflow.stage === 'approved') {
+      if (workflow.loop === 'respond' && workflow.stage === 'accepted') {
         approved += 1;
       }
     }

@@ -159,8 +159,8 @@ describe('PrismaWorkspaceDelivery', () => {
         id: 'story-2',
         iteration: {
           lifecycle: 'active',
-          loop: 'pair',
-          stage: 'approved',
+          loop: 'respond',
+          stage: 'accepted',
         },
         clarifications: [],
       },
@@ -172,7 +172,7 @@ describe('PrismaWorkspaceDelivery', () => {
       agentAttention: 0,
       approved: 1,
       stages: [
-        { loop: 'pair', stage: 'approved', count: 1 },
+        { loop: 'respond', stage: 'accepted', count: 1 },
         { loop: 'understand', stage: 'tqa', count: 1 },
       ],
       actions: [
