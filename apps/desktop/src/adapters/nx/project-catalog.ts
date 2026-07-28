@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 import { isAbsolute, normalize, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
-import type { TaskingProjectCatalogInput } from './intake-api-client';
-import { localCommandEnvironment } from './local-command-environment';
+import type { TaskingProjectCatalogInput } from '../../intake-api-client';
+import { localCommandEnvironment } from '../node/command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_PROJECTS = 250;

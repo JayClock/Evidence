@@ -9,7 +9,7 @@ import {
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { localCommandEnvironment } from './local-command-environment';
+import { localCommandEnvironment } from './adapters/node/command-environment';
 import { PAIR_PROTECTED_ROOTS, pairProtectedPath } from './pair-driver-policy';
 import type { ShowcaseReviewerEvent } from './showcase-reviewer-protocol';
 

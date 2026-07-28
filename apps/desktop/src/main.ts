@@ -87,7 +87,7 @@ import {
   type PairRedReviewerEvent,
   type PairRedReviewerRuntimeRequest,
 } from './pair-red-reviewer-protocol';
-import { piRuntimeEnvironment } from './pi-runtime-environment';
+import { piRuntimeEnvironment } from './adapters/pi/runtime-environment';
 import { RespondApiClient } from './respond-api-client';
 import {
   RespondController,

@@ -3,8 +3,12 @@ import { createHash } from 'node:crypto';
 import { access, mkdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
-import { localCommandEnvironment } from './local-command-environment';
-import { canonicalGitRepository, gitHead, runGit } from './git-repository';
+import {
+  canonicalGitRepository,
+  gitHead,
+  runGit,
+} from './adapters/git/repository';
+import { localCommandEnvironment } from './adapters/node/command-environment';
 
 const execFileAsync = promisify(execFile);
 

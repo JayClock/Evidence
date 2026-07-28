@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { readNxProjectCatalog } from './nx-project-catalog';
+import { readNxProjectCatalog } from './project-catalog';
 
 describe('readNxProjectCatalog', () => {
   it('returns only sorted relative project identities and target names', async () => {

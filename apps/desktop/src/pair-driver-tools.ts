@@ -20,7 +20,7 @@ import {
   type WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { localCommandEnvironment } from './local-command-environment';
+import { localCommandEnvironment } from './adapters/node/command-environment';
 import {
   PAIR_PROTECTED_NAMES as PROTECTED_NAMES,
   PAIR_PROTECTED_ROOTS as PROTECTED_ROOTS,

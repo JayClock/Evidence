@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { AgentRuntimeRequest, DiagramAgentEvent } from './agent-protocol';
 import { parseDiagramAgentEvent } from './agent-protocol';
-import { localCommandEnvironment } from './local-command-environment';
+import { localCommandEnvironment } from './adapters/node/command-environment';
 
 const CANCEL_TIMEOUT_MS = 5_000;
 

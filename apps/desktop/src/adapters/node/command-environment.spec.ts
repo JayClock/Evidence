@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localCommandEnvironment } from './local-command-environment';
+import { localCommandEnvironment } from './command-environment';
 
 describe('localCommandEnvironment', () => {
   it('keeps operating-system plumbing and removes credentials', () => {

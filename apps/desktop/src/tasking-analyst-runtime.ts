@@ -12,8 +12,12 @@ import {
   type TaskingAnalystRuntimeRequest,
 } from './intake-agent-protocol';
 import { IntakeApiClient } from './intake-api-client';
-import { canonicalGitRepository, gitHead, runGit } from './git-repository';
-import { readNxProjectCatalog } from './nx-project-catalog';
+import {
+  canonicalGitRepository,
+  gitHead,
+  runGit,
+} from './adapters/git/repository';
+import { readNxProjectCatalog } from './adapters/nx/project-catalog';
 import { createTaskingAnalystTools } from './tasking-analyst-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
@@ -61,7 +65,9 @@ export async function runTaskingAnalystRequest(
     );
   }
   await verifyIterationWorktree(request, tasking.iteration);
-  emit(agentEvent(request.id, 'progress', 'Reading bounded Nx project metadata'));
+  emit(
+    agentEvent(request.id, 'progress', 'Reading bounded Nx project metadata'),
+  );
   const projectCatalog = await readNxProjectCatalog(request.worktreeRoot);
   const toolState = { attempted: false, completed: false };
   const session = await createSession(
@@ -78,7 +84,9 @@ export async function runTaskingAnalystRequest(
     void session.abort().catch(() => undefined);
   }, DEFAULT_TIMEOUT_MS);
   try {
-    emit(agentEvent(request.id, 'progress', 'Drafting the complete Tasking plan'));
+    emit(
+      agentEvent(request.id, 'progress', 'Drafting the complete Tasking plan'),
+    );
     await session.prompt(
       `Propose one complete Candidate from this exact bounded authority snapshot. Call exactly one workflow tool, then stop.\n\n${JSON.stringify(
         { tasking: tasking.raw, projectCatalog },
@@ -126,7 +134,9 @@ async function verifyIterationWorktree(
     throw new Error('Iteration worktree belongs to a different repository.');
   }
   if (head !== iteration.baseCommitSha) {
-    throw new Error('Iteration worktree no longer matches its locked baseline.');
+    throw new Error(
+      'Iteration worktree no longer matches its locked baseline.',
+    );
   }
   if (!iteration.branchName || branch.trim() !== iteration.branchName) {
     throw new Error('Iteration worktree branch no longer matches the Server.');
@@ -156,7 +166,9 @@ async function createSession(
   } = await import(/* @vite-ignore */ PI_SDK_MODULE_NAME);
   const existing = await SessionManager.list(cwd, sessionDirectory);
   if (existing.length > 1) {
-    throw new Error('The Tasking session directory contains multiple sessions.');
+    throw new Error(
+      'The Tasking session directory contains multiple sessions.',
+    );
   }
   const sessionManager = existing[0]
     ? SessionManager.open(existing[0].path, sessionDirectory)

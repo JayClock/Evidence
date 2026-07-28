@@ -13,7 +13,7 @@ import {
   changedPathsBetween,
   IterationWorktreeManager,
 } from './iteration-worktree';
-import { gitHead, runGit } from './git-repository';
+import { gitHead, runGit } from './adapters/git/repository';
 
 const temporaryPaths: string[] = [];
 

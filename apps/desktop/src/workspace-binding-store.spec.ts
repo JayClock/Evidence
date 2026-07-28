@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { runGit } from './git-repository';
+import { runGit } from './adapters/git/repository';
 import { WorkspaceBindingStore } from './workspace-binding-store';
 
 const temporaryPaths: string[] = [];

@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { extname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
-import { canonicalGitRepository, runGit } from './git-repository';
-import { localCommandEnvironment } from './local-command-environment';
+import { canonicalGitRepository, runGit } from './adapters/git/repository';
+import { localCommandEnvironment } from './adapters/node/command-environment';
 
 const execFileAsync = promisify(execFile);
 const MAX_MARKDOWN_BYTES = 1024 * 1024;

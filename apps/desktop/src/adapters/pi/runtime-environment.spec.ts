@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { piRuntimeEnvironment } from './pi-runtime-environment';
+import { piRuntimeEnvironment } from './runtime-environment';
 
 describe('piRuntimeEnvironment', () => {
   it('passes only provider configuration and explicitly allowed custom keys', () => {

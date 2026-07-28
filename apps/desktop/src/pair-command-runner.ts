@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { localCommandEnvironment } from './local-command-environment';
+import { localCommandEnvironment } from './adapters/node/command-environment';
 
 const execFileAsync = promisify(execFile);
 const SAFE_TOKEN = /^[A-Za-z0-9_@./:=-]+$/;

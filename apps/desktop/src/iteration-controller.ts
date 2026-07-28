@@ -1,5 +1,5 @@
 import type { IterationWorktreeManager } from './iteration-worktree';
-import { gitHead } from './git-repository';
+import { gitHead } from './adapters/git/repository';
 import type {
   IntakeApiClient,
   RemoteInboxCandidate,
