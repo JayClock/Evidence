@@ -88,6 +88,24 @@ import {
   type PairRedReviewerRuntimeRequest,
 } from './pair-red-reviewer-protocol';
 import { piRuntimeEnvironment } from './pi-runtime-environment';
+import { RespondApiClient } from './respond-api-client';
+import {
+  RespondController,
+  type RespondControllerEvent,
+} from './respond-controller';
+import {
+  CANCEL_RESPOND_CHANNEL,
+  parseRespondControllerEvent,
+  parseRespondRequestId,
+  parseRunRespondRequest,
+  RESPOND_EVENT_CHANNEL,
+  RUN_RESPOND_LEARNER_CHANNEL,
+} from './respond-ipc-protocol';
+import {
+  parseRespondLearnerEvent,
+  type RespondLearnerEvent,
+  type RespondLearnerRuntimeRequest,
+} from './respond-learner-protocol';
 import { ShowcaseApiClient } from './showcase-api-client';
 import {
   ShowcaseController,
@@ -141,6 +159,7 @@ let taskingAnalyst: LocalAgent<
 let iterationController: IterationController | null = null;
 let pairController: PairController | null = null;
 let showcaseController: ShowcaseController | null = null;
+let respondController: RespondController | null = null;
 let allowQuit = false;
 
 protocol.registerSchemesAsPrivileged([
@@ -212,6 +231,7 @@ function registerDesktopBridge(
   iterations: IterationController,
   pairs: PairController,
   showcases: ShowcaseController,
+  responds: RespondController,
 ): void {
   ipcMain.handle('evidence:get-api-base-url', (event) => {
     assertTrustedIpcSender(event);
@@ -462,6 +482,26 @@ function registerDesktopBridge(
     assertTrustedIpcSender(event);
     showcases.cancel(parseShowcaseRequestId(id));
   });
+  ipcMain.handle(RUN_RESPOND_LEARNER_CHANNEL, async (event, input: unknown) => {
+    assertTrustedIpcSender(event);
+    const request = parseRunRespondRequest(input);
+    return responds.runLearner(
+      request,
+      (respondEvent: RespondControllerEvent) => {
+        const validated = parseRespondControllerEvent(respondEvent);
+        if (!validated) {
+          throw new Error('Respond Controller emitted an invalid event.');
+        }
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(RESPOND_EVENT_CHANNEL, validated);
+        }
+      },
+    );
+  });
+  ipcMain.handle(CANCEL_RESPOND_CHANNEL, (event, id: unknown) => {
+    assertTrustedIpcSender(event);
+    responds.cancel(parseRespondRequestId(id));
+  });
   ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     const request = parseDiagramAgentRequest(input);
@@ -593,6 +633,28 @@ function createShowcaseReviewerAgent(): LocalAgent<
     packaged: app.isPackaged,
     environment: piRuntimeEnvironment(),
     parseEvent: parseShowcaseReviewerEvent,
+  });
+}
+
+function createRespondLearnerAgent(): LocalAgent<
+  RespondLearnerRuntimeRequest,
+  RespondLearnerEvent
+> {
+  return new LocalAgent({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    runtimeEntry: app.isPackaged
+      ? join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'dist',
+          'respond-learner-runtime.mjs',
+        )
+      : join(__dirname, 'respond-learner-runtime.mjs'),
+    packaged: app.isPackaged,
+    environment: piRuntimeEnvironment(),
+    parseEvent: parseRespondLearnerEvent,
   });
 }
 
@@ -742,13 +804,22 @@ void app.whenReady().then(async () => {
       redReviewer: pairRedReviewer,
       commands: new PairCommandRunner(),
     });
+    const showcaseClient = new ShowcaseApiClient({ apiBaseUrl, authorization });
     showcaseController = new ShowcaseController({
       apiBaseUrl,
       bindings,
       worktrees: iterationWorktrees,
-      client: new ShowcaseApiClient({ apiBaseUrl, authorization }),
+      client: showcaseClient,
       commands: new PairCommandRunner(),
       reviewer: createShowcaseReviewerAgent(),
+    });
+    respondController = new RespondController({
+      apiBaseUrl,
+      bindings,
+      worktrees: iterationWorktrees,
+      respond: new RespondApiClient({ apiBaseUrl, authorization }),
+      showcase: showcaseClient,
+      learner: createRespondLearnerAgent(),
     });
     registerDesktopBridge(
       apiBaseUrl,
@@ -761,6 +832,7 @@ void app.whenReady().then(async () => {
       iterationController,
       pairController,
       showcaseController,
+      respondController,
     );
     const window = await createWindow();
     await verifyPackagedRuntime(window, apiBaseUrl, authorization);
@@ -796,7 +868,8 @@ app.on('before-quit', (event) => {
       taskingAnalyst ||
       iterationController ||
       pairController ||
-      showcaseController)
+      showcaseController ||
+      respondController)
   ) {
     event.preventDefault();
     allowQuit = true;
@@ -804,6 +877,7 @@ app.on('before-quit', (event) => {
     void Promise.all([
       pairController?.stop() ?? Promise.resolve(),
       Promise.resolve(showcaseController?.stop()),
+      Promise.resolve(respondController?.stop()),
       localAgent?.stop() ?? Promise.resolve(),
       inboxAnalyst?.stop() ?? Promise.resolve(),
       kickoffAnalyst?.stop() ?? Promise.resolve(),

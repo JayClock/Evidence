@@ -14,6 +14,7 @@ type RespondActionResultSchema =
 export type RespondResourceData = Omit<RespondSchema, '_links'>;
 export type RespondNextAction = components['schemas']['RespondNextAction'];
 export type RespondPromotion = components['schemas']['RespondPromotion'];
+export type RespondNextProbe = components['schemas']['RespondNextProbe'];
 export type RespondKnowledgeKind =
   components['schemas']['RespondKnowledgeKind'];
 export type ProposeRespondCandidateInput =

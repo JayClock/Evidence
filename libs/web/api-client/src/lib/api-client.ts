@@ -113,6 +113,23 @@ export type ShowcaseControllerSummary = {
   q2Total: number;
 };
 
+export type RespondRunRequest = ShowcaseRunRequest;
+
+export type RespondControllerEvent = {
+  requestId: string;
+  event: 'progress' | 'checkpoint' | 'human-required';
+  message: string;
+  stage: string;
+};
+
+export type RespondControllerSummary = {
+  iterationId: string;
+  stage: string;
+  version: number;
+  nextAction: 'run_learner' | 'await_human' | null;
+  candidateId: string | null;
+};
+
 export type PairLocalReview = {
   manifestSha256: string;
   diffSha256: string;
@@ -203,6 +220,11 @@ type EvidenceDesktopBridge = {
     onEvent: (event: ShowcaseControllerEvent) => void,
   ): Promise<ShowcaseControllerSummary>;
   cancelShowcase?(id: string): Promise<void>;
+  runRespondLearner?(
+    request: RespondRunRequest,
+    onEvent: (event: RespondControllerEvent) => void,
+  ): Promise<RespondControllerSummary>;
+  cancelRespond?(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,

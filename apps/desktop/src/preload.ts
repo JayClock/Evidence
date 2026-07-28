@@ -44,6 +44,17 @@ import type {
   RunPairRequest,
 } from './pair-controller';
 import type {
+  RespondControllerEvent,
+  RespondControllerSummary,
+  RunRespondRequest,
+} from './respond-controller';
+import {
+  CANCEL_RESPOND_CHANNEL,
+  parseRespondControllerEvent,
+  RESPOND_EVENT_CHANNEL,
+  RUN_RESPOND_LEARNER_CHANNEL,
+} from './respond-ipc-protocol';
+import type {
   RunShowcaseRequest,
   ShowcaseControllerEvent,
   ShowcaseControllerSummary,
@@ -107,6 +118,22 @@ async function runShowcaseController(
     return await ipcRenderer.invoke(channel, request);
   } finally {
     ipcRenderer.removeListener(SHOWCASE_EVENT_CHANNEL, listener);
+  }
+}
+
+async function runRespondController(
+  request: RunRespondRequest,
+  onEvent: (event: RespondControllerEvent) => void,
+): Promise<RespondControllerSummary> {
+  const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
+    const event = parseRespondControllerEvent(value);
+    if (event?.requestId === request.id) onEvent(event);
+  };
+  ipcRenderer.on(RESPOND_EVENT_CHANNEL, listener);
+  try {
+    return await ipcRenderer.invoke(RUN_RESPOND_LEARNER_CHANNEL, request);
+  } finally {
+    ipcRenderer.removeListener(RESPOND_EVENT_CHANNEL, listener);
   }
 }
 
@@ -219,6 +246,13 @@ const bridge = {
     runShowcaseController(RUN_SHOWCASE_REVIEWER_CHANNEL, request, onEvent),
   cancelShowcase: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_SHOWCASE_CHANNEL, id),
+  runRespondLearner: (
+    request: RunRespondRequest,
+    onEvent: (event: RespondControllerEvent) => void,
+  ): Promise<RespondControllerSummary> =>
+    runRespondController(request, onEvent),
+  cancelRespond: (id: string): Promise<void> =>
+    ipcRenderer.invoke(CANCEL_RESPOND_CHANNEL, id),
   runDiagramAgent: async (
     request: DiagramAgentRequest,
     onEvent: (event: DiagramAgentEvent) => void,
