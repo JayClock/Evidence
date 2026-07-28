@@ -21,6 +21,7 @@ import {
   type MembershipCollectionResource,
   type PairResource,
   type RootResource,
+  type ShowcaseResource,
   type State,
   type StoryCandidateCollectionResource,
   type StoryCandidateResource,
@@ -48,6 +49,7 @@ import {
   IterationIntakeDetailView,
   KickoffDetailView,
   PairDetailView,
+  ShowcaseDetailView,
   StoryCandidateCollectionView,
   StoryCandidateDetailView,
   StoryCollectionView,
@@ -286,6 +288,12 @@ function ResourceRenderer({ resourceState }: { resourceState: State<Entity> }) {
     case resourceContentTypes.pair:
       return (
         <PairDetailView resourceState={resourceState as State<PairResource>} />
+      );
+    case resourceContentTypes.showcase:
+      return (
+        <ShowcaseDetailView
+          resourceState={resourceState as State<ShowcaseResource>}
+        />
       );
     case resourceContentTypes.story:
       return (

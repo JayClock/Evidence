@@ -11,6 +11,8 @@ const steps = [
   { label: 'Plan 已批准', detail: 'Pair 唯一入口' },
   { label: 'Pair', detail: '逐 TEST 与质量门' },
   { label: '编码审批', detail: '本地 Diff 与 commit' },
+  { label: 'Showcase', detail: '价值验证与人工决定' },
+  { label: 'Respond', detail: '发布响应' },
 ] as const;
 
 type AuthorityStepState = 'done' | 'current' | 'upcoming';
@@ -26,7 +28,7 @@ export function DeliveryAuthorityProgress({
     <div className="h-[3.625rem] shrink-0 overflow-x-auto px-4 pb-[0.6875rem]">
       <ol
         aria-label="Iteration 交付阶段"
-        className="grid h-[2.9375rem] min-w-[69.75rem] grid-cols-9 overflow-hidden rounded-lg border bg-card"
+        className="grid h-[2.9375rem] min-w-[85rem] grid-cols-11 overflow-hidden rounded-lg border bg-card"
       >
         {steps.map((step, index) => {
           const state = stepState(index, currentIndex);
@@ -85,9 +87,14 @@ function authorityStepIndex(
     if (iteration.stage === 'approved') return 6;
     return 4;
   }
-  if (iteration.stage === 'quality_gates_passed') return 8;
-  if (iteration.stage === 'approved') return 8;
-  return 7;
+  if (iteration.loop === 'pair') {
+    if (iteration.stage === 'quality_gates_passed') return 8;
+    if (iteration.stage === 'approved') return 8;
+    return 7;
+  }
+  if (iteration.loop === 'showcase') return 9;
+  if (iteration.loop === 'respond') return 10;
+  return steps.length;
 }
 
 function stepState(index: number, currentIndex: number): AuthorityStepState {
@@ -122,4 +129,11 @@ const stageLabels: Record<string, string> = {
   'pair/quality_gates_passed': 'Pair · 等待编码审批',
   'pair/exception': 'Pair · 异常待决定',
   'pair/approved': 'Pair · 编码已批准',
+  'showcase/setup': 'Showcase · Q2 重跑',
+  'showcase/reviewing': 'Showcase · 产品观察与评价',
+  'showcase/decision': 'Showcase · 等待人工决定',
+  'showcase/accepted': 'Showcase · 已接受',
+  'showcase/revised': 'Showcase · 已路由修订',
+  'showcase/rejected': 'Showcase · 已拒绝',
+  'respond/drafting': 'Respond · 正在准备响应',
 };

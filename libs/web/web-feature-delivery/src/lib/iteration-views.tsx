@@ -76,6 +76,13 @@ export function IterationDetailView({
               </Link>
             </Button>
           ) : null}
+          {resourceState.getLink('showcase') ? (
+            <Button asChild>
+              <Link to={resourceState.getLink('showcase')?.href ?? '#'}>
+                打开 Showcase
+              </Link>
+            </Button>
+          ) : null}
           {resourceState.getLink('story') ? (
             <Button asChild variant="outline">
               <Link to={resourceState.getLink('story')?.href ?? '#'}>
