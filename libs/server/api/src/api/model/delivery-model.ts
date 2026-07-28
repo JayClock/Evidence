@@ -12,6 +12,8 @@ import {
   workspaceInboxRevisionHref,
   workspaceIterationHref,
   workspaceIterationPairHref,
+  workspaceIterationRespondHref,
+  workspaceIterationShowcaseHref,
   workspaceIterationTaskingHref,
   workspaceIterationUnderstandingHref,
   workspaceStoriesHref,
@@ -87,6 +89,19 @@ export function storyModel(story: Story): StoryModel {
   }
   if (description.iterationLoop === 'pair') {
     links.pair = link(workspaceIterationPairHref(workspaceId, iterationId));
+  }
+  if (
+    description.iterationLoop === 'showcase' ||
+    description.iterationLoop === 'respond'
+  ) {
+    links.showcase = link(
+      workspaceIterationShowcaseHref(workspaceId, iterationId),
+    );
+  }
+  if (description.iterationLoop === 'respond') {
+    links.respond = link(
+      workspaceIterationRespondHref(workspaceId, iterationId),
+    );
   }
   return {
     _links: links,

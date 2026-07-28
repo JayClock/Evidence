@@ -336,6 +336,21 @@ export function vendorMediaType(
   ) {
     return mediaType('showcase-action-result');
   }
+  if (matches(apiSegments, ['workspaces', '*', 'iterations', '*', 'respond'])) {
+    return mediaType('respond');
+  }
+  if (
+    apiSegments.length === 6 &&
+    matches(apiSegments.slice(0, 5), [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'respond',
+    ])
+  ) {
+    return mediaType('respond-action-result');
+  }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');
   }

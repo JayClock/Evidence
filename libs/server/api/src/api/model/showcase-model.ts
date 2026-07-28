@@ -14,6 +14,7 @@ import {
   type Link,
   workspaceIterationHref,
   workspaceIterationPairHref,
+  workspaceIterationRespondHref,
   workspaceIterationShowcaseActionHref,
   workspaceIterationShowcaseHref,
   workspaceIterationTaskingHref,
@@ -41,6 +42,11 @@ export function showcaseViewModel(workspaceId: string, view: ShowcaseView) {
       ),
     ),
   };
+  if (view.run.description().stage === 'accepted') {
+    links.respond = link(
+      workspaceIterationRespondHref(workspaceId, iterationId),
+    );
+  }
   switch (view.nextAction?.kind) {
     case 'execute_q2':
       links['record-q2-observation'] = actionLink(
@@ -117,7 +123,7 @@ export function showcaseActionResultModel(
   };
 }
 
-function showcaseRunModel(value: ShowcaseRun) {
+export function showcaseRunModel(value: ShowcaseRun) {
   const description = value.description();
   return {
     id: value.identity(),
@@ -191,7 +197,7 @@ function showcaseReviewModel(value: ShowcaseReview) {
   };
 }
 
-function showcaseDecisionModel(value: ShowcaseDecision) {
+export function showcaseDecisionModel(value: ShowcaseDecision) {
   const { showcaseRun, review, decidedBy, ...description } =
     value.description();
   return {

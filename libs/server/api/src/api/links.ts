@@ -301,6 +301,21 @@ export function workspaceIterationShowcaseActionHref(
   return `${workspaceIterationShowcaseHref(workspaceId, iterationId)}/${resource}`;
 }
 
+export function workspaceIterationRespondHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/respond`;
+}
+
+export function workspaceIterationRespondActionHref(
+  workspaceId: string,
+  iterationId: string,
+  resource: 'candidates' | 'decisions',
+): string {
+  return `${workspaceIterationRespondHref(workspaceId, iterationId)}/${resource}`;
+}
+
 export function workspaceStoriesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/stories`;
 }

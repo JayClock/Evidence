@@ -23,7 +23,8 @@ export type StoryNextAction =
   | 'record_showcase_evidence'
   | 'review_showcase'
   | 'decide_showcase'
-  | 'draft_response'
+  | 'run_respond_learner'
+  | 'review_respond_candidate'
   | 'none';
 
 export interface StoryWorkflowAuthority {
@@ -232,8 +233,13 @@ export function storyWorkflowAuthority(
     return { owner: 'none', nextAction: 'none' };
   }
 
-  if (input.loop === 'respond' && input.stage === 'drafting') {
-    return { owner: 'agent', nextAction: 'draft_response' };
+  if (input.loop === 'respond') {
+    if (input.stage === 'drafting') {
+      return { owner: 'agent', nextAction: 'run_respond_learner' };
+    }
+    if (input.stage === 'decision') {
+      return { owner: 'human', nextAction: 'review_respond_candidate' };
+    }
   }
 
   return { owner: 'none', nextAction: 'none' };

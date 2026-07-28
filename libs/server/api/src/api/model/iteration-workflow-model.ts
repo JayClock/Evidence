@@ -20,6 +20,7 @@ import {
   workspaceIterationKickoffHref,
   workspaceIterationKickoffProposalsHref,
   workspaceIterationProvisioningHref,
+  workspaceIterationRespondHref,
   workspaceIterationShowcaseHref,
   workspaceIterationTaskingHref,
   workspaceIterationUnderstandingHref,
@@ -209,6 +210,9 @@ export function iterationModel(iteration: Iteration): IterationModel {
       description.lane === 'review'
     ) {
       links.showcase = link(workspaceIterationShowcaseHref(workspaceId, id));
+    }
+    if (description.loop === 'respond') {
+      links.respond = link(workspaceIterationRespondHref(workspaceId, id));
     }
   }
   return {
