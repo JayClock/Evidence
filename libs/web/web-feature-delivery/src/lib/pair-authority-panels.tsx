@@ -11,6 +11,14 @@ import {
   Badge,
   Button,
   Checkbox,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
   Field,
   FieldContent,
   FieldDescription,
@@ -157,7 +165,7 @@ export function ApprovalAuthority({
     review && reviewMatchesManifest(review, manifest),
   );
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <Alert>
         <AlertTitle>全部锁定质量门已通过</AlertTitle>
         <AlertDescription>
@@ -173,7 +181,7 @@ export function ApprovalAuthority({
         variant="outline"
       >
         {pending ? <Spinner data-icon="inline-start" /> : null}
-        {review ? '重新加载并校验本地 Story Diff' : '加载并校验本地 Story Diff'}
+        {review ? '重新加载本地 Story Diff' : '加载并校验本地 Story Diff'}
       </Button>
       {!desktopAvailable ? (
         <Alert>
@@ -183,86 +191,169 @@ export function ApprovalAuthority({
           </AlertDescription>
         </Alert>
       ) : null}
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="pair-commit-message">
-            Conventional Commit message
-          </FieldLabel>
-          <FieldDescription>
-            只创建在 Iteration branch；不会 merge 或 push。
-          </FieldDescription>
-          <Input
-            id="pair-commit-message"
-            onChange={(event) => onCommitMessageChange(event.target.value)}
-            value={commitMessage}
+      <Alert>
+        <AlertTitle>本地证据边界</AlertTitle>
+        <AlertDescription>
+          完整 Diff、源码与命令输出只留在 Desktop；Server 仅持有 hash
+          与受限执行事实。
+        </AlertDescription>
+      </Alert>
+
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button disabled={pending || !desktopAvailable || !hashesMatch}>
+            批准并创建本地 Commit
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>确认 Pair 编码批准</DialogTitle>
+            <DialogDescription>
+              重算 diff hash、校验 Manifest 后只创建一个本地 commit；不会 merge
+              或 push。
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="pair-commit-message">
+                Conventional Commit message
+              </FieldLabel>
+              <Input
+                id="pair-commit-message"
+                onChange={(event) => onCommitMessageChange(event.target.value)}
+                value={commitMessage}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="pair-approval-reason">
+                编码审查决定理由
+              </FieldLabel>
+              <FieldDescription>
+                说明完整 Diff 满足 Story 与锁定计划的依据。
+              </FieldDescription>
+              <Textarea
+                id="pair-approval-reason"
+                onChange={(event) => onReasonChange(event.target.value)}
+                value={reason}
+              />
+            </Field>
+            <Field orientation="horizontal">
+              <Checkbox
+                checked={authorityConfirmed}
+                disabled={!hashesMatch}
+                id="confirm-pair-authority"
+                onCheckedChange={(value) => onAuthorityChange(value === true)}
+              />
+              <FieldContent>
+                <FieldLabel htmlFor="confirm-pair-authority">
+                  我已审查完整本地 Story Diff 和全部 changed paths，并确认
+                  Manifest / diff hash 一致。
+                </FieldLabel>
+              </FieldContent>
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                取消
+              </Button>
+            </DialogClose>
+            <DialogClose asChild>
+              <Button
+                disabled={
+                  pending ||
+                  !hashesMatch ||
+                  !authorityConfirmed ||
+                  !reason.trim() ||
+                  !commitMessage.trim()
+                }
+                onClick={() => void onApprove()}
+                type="button"
+              >
+                创建本地 commit 并批准 Pair
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid gap-2">
+        {approvalPairReturnRoutes().map((action) => (
+          <PairRouteDialog
+            action={action}
+            key={action}
+            onReasonChange={onReasonChange}
+            onRoute={onRoute}
+            pending={pending}
+            reason={reason}
           />
-        </Field>
-        <Field data-invalid={!reason.trim()}>
-          <FieldLabel htmlFor="pair-approval-reason">
-            编码审查决定理由
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PairRouteDialog({
+  action,
+  pending,
+  reason,
+  onReasonChange,
+  onRoute,
+}: {
+  action: DesktopPairDecisionAction;
+  pending: boolean;
+  reason: string;
+  onReasonChange: (value: string) => void;
+  onRoute: (action: DesktopPairDecisionAction) => Promise<void>;
+}) {
+  const label = pairDecisionLabel(action);
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          disabled={pending}
+          type="button"
+          variant={action === 'cancel' ? 'destructive' : 'outline'}
+        >
+          {label}
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{label}</DialogTitle>
+          <DialogDescription>
+            决定将 append-only 记录；不要粘贴源码、完整输出或设备路径。
+          </DialogDescription>
+        </DialogHeader>
+        <Field>
+          <FieldLabel htmlFor={`pair-route-reason-${action}`}>
+            决定理由
           </FieldLabel>
-          <FieldDescription>
-            批准、退回实现、返回 Tasking 或取消都必须记录理由。
-          </FieldDescription>
           <Textarea
-            aria-invalid={!reason.trim()}
-            id="pair-approval-reason"
+            id={`pair-route-reason-${action}`}
             onChange={(event) => onReasonChange(event.target.value)}
             value={reason}
           />
         </Field>
-        <Field orientation="horizontal">
-          <Checkbox
-            checked={authorityConfirmed}
-            disabled={!hashesMatch}
-            id="confirm-pair-authority"
-            onCheckedChange={(value) => onAuthorityChange(value === true)}
-          />
-          <FieldContent>
-            <FieldLabel htmlFor="confirm-pair-authority">
-              我已审查完整本地 Story Diff、全部 changed paths 和 Server
-              有限证据，并确认 Manifest / diff hash 一致；我理解此决定不 merge
-              或 push。
-            </FieldLabel>
-          </FieldContent>
-        </Field>
-        <Button
-          disabled={
-            pending ||
-            !desktopAvailable ||
-            !hashesMatch ||
-            !authorityConfirmed ||
-            !reason.trim() ||
-            !commitMessage.trim()
-          }
-          onClick={() => void onApprove()}
-          type="button"
-        >
-          {pending ? <Spinner data-icon="inline-start" /> : null}
-          创建本地 commit 并批准 Pair
-        </Button>
-      </FieldGroup>
-      <div className="grid gap-2">
-        {approvalPairReturnRoutes().map((action) => (
-          <Button
-            disabled={pending || !reason.trim()}
-            key={action}
-            onClick={() => void onRoute(action)}
-            type="button"
-            variant={action === 'cancel' ? 'destructive' : 'outline'}
-          >
-            {pairDecisionLabel(action)}
-          </Button>
-        ))}
-      </div>
-      <Alert>
-        <AlertDescription>
-          接受顺序固定：重算 diff hash → 校验 Manifest → 创建一个本地 commit →
-          记录 Manifest、Diff、commit hash 与理由。退回修复会使当前 Manifest
-          失效。
-        </AlertDescription>
-      </Alert>
-    </div>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              取消
+            </Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button
+              disabled={pending || !reason.trim()}
+              onClick={() => void onRoute(action)}
+              type="button"
+              variant={action === 'cancel' ? 'destructive' : 'default'}
+            >
+              确认{label}
+            </Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

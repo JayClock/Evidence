@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import type {
   DecidePairInput,
   DesktopPairDecisionAction,
@@ -15,7 +14,6 @@ import {
   Badge,
   Button,
   EvidencePage,
-  PageActions,
   PageDescription,
   PageEyebrow,
   PageHeader,
@@ -31,7 +29,7 @@ import {
 import {
   PairAuthorityProgress,
   PairEvidenceTabs,
-  PairFacts,
+  PairReviewWorkspace,
   PairRunNavigation,
   ServerActionStrip,
 } from './pair-evidence';
@@ -211,12 +209,9 @@ export function PairDetailView({
     }
   }
 
-  const storyHref = state.getLink('story')?.href;
-  const taskingHref = state.getLink('tasking')?.href;
-
   return (
     <EvidencePage>
-      <PageHeader>
+      <PageHeader className="px-4 pt-2 pb-1.5">
         <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
             <PageEyebrow>
@@ -227,51 +222,37 @@ export function PairDetailView({
               {pairCheckpointLabel(pair.run.checkpoint)}
             </Badge>
           </div>
-          <PageTitle>
+          <PageTitle className="leading-7">
             {pair.story.reference} · {pairTitle(pair.run.status)}
           </PageTitle>
           <PageDescription>{pairDescription(pair.run.status)}</PageDescription>
         </PageHeaderCopy>
-        <PageActions>
-          {storyHref ? (
-            <Button asChild variant="outline">
-              <Link to={storyHref}>返回 Story</Link>
-            </Button>
-          ) : null}
-          {taskingHref ? (
-            <Button asChild variant="outline">
-              <Link to={taskingHref}>查看 Approved Plan</Link>
-            </Button>
-          ) : null}
-        </PageActions>
       </PageHeader>
 
       <PairAuthorityProgress pair={pair} />
 
       <div className="grid min-h-[46rem] shrink-0 overflow-hidden bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[14.125rem_minmax(0,1fr)_19rem]">
         <PairRunNavigation pair={pair} />
-        <div className="min-h-0 overflow-y-auto bg-secondary">
-          <div className="flex flex-col gap-4 p-4 sm:p-5">
-            <ServerActionStrip pair={pair} />
-            <Alert>
-              <AlertTitle>Server 只保存受限执行事实</AlertTitle>
-              <AlertDescription>
-                角色、相对 changed paths、终止状态、exit
-                code、hash、字节数与预算可共享；源码、完整 Diff、stdout / stderr
-                正文、Prompt、消息、Session、推理、凭据与绝对路径留在 Desktop。
-              </AlertDescription>
-            </Alert>
-            <PairEvidenceTabs
-              onTabChange={setEvidenceTab}
-              pair={pair}
-              review={review}
-              tab={evidenceTab}
-            />
-          </div>
+        <div className="min-h-0 overflow-hidden bg-secondary">
+          {pair.run.status === 'approval_required' ? (
+            <PairReviewWorkspace pair={pair} review={review} />
+          ) : (
+            <div className="h-full overflow-y-auto">
+              <div className="flex flex-col gap-3 p-3">
+                <ServerActionStrip pair={pair} />
+                <PairEvidenceTabs
+                  onTabChange={setEvidenceTab}
+                  pair={pair}
+                  review={review}
+                  tab={evidenceTab}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <aside className="min-h-0 border-t bg-card xl:overflow-y-auto xl:border-t-0 xl:border-l">
-          <div className="flex flex-col gap-5 p-4">
+          <div className="flex flex-col gap-3 p-3.5">
             <div>
               <h2 className="text-base font-medium">
                 {pairAuthorityTitle(pair.run.status)}
@@ -352,14 +333,15 @@ export function PairDetailView({
               </Alert>
             ) : null}
 
-            <Alert>
-              <AlertTitle>Pair 人工权威边界</AlertTitle>
-              <AlertDescription>
-                接受只创建一个本地 commit；不会自动 Showcase、Respond、merge 或
-                push。所有退回与取消路由都要求理由并追加决定。
-              </AlertDescription>
-            </Alert>
-            <PairFacts pair={pair} />
+            {pair.run.status !== 'approval_required' ? (
+              <Alert>
+                <AlertTitle>Pair 人工权威边界</AlertTitle>
+                <AlertDescription>
+                  接受只创建一个本地 commit；不会自动 Showcase、Respond、merge
+                  或 push。
+                </AlertDescription>
+              </Alert>
+            ) : null}
           </div>
         </aside>
       </div>

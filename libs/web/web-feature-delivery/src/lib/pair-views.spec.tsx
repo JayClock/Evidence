@@ -101,6 +101,13 @@ describe('PairDetailView', () => {
       screen.getByRole('button', { name: '加载并校验本地 Story Diff' }),
     );
     expect(await screen.findByText(/diff --git/)).toBeTruthy();
+    expect(
+      screen.getByRole('region', { name: '本地 Story Diff 审查' }),
+    ).toBeTruthy();
+    expect(screen.queryByText('SERVER 唯一 NEXT ACTION')).toBeNull();
+    fireEvent.click(
+      screen.getByRole('button', { name: '批准并创建本地 Commit' }),
+    );
     fireEvent.change(screen.getByLabelText('编码审查决定理由'), {
       target: { value: '已逐文件审查本地 Diff 与全部 bounded evidence。' },
     });
@@ -166,10 +173,11 @@ describe('PairDetailView', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('编码审查决定理由'), {
+    fireEvent.click(screen.getByRole('button', { name: '退回实现' }));
+    fireEvent.change(screen.getByLabelText('决定理由'), {
       target: { value: '实现仍未满足确认的 Scenario。' },
     });
-    fireEvent.click(screen.getByRole('button', { name: '退回实现' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认退回实现' }));
 
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith({

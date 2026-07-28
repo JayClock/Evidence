@@ -46,10 +46,10 @@ export function PairAuthorityProgress({
   ] as const;
   const current = pairStepIndex(pair);
   return (
-    <div className="shrink-0 overflow-x-auto border-b bg-card">
+    <div className="h-[3.375rem] shrink-0 overflow-x-auto px-4 pb-[0.4375rem]">
       <ol
         aria-label="Pair 权威阶段"
-        className="grid min-w-[56rem] grid-cols-7 overflow-hidden"
+        className="grid h-[2.9375rem] min-w-[56rem] grid-cols-7 overflow-hidden rounded-lg border bg-card"
       >
         {steps.map(([label, detail], index) => {
           const state =
@@ -60,7 +60,7 @@ export function PairAuthorityProgress({
                 : 'upcoming';
           return (
             <li
-              className="flex min-w-0 items-center gap-2 border-r px-3 py-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
+              className="flex min-w-0 items-center gap-2 border-r px-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
               data-state={state}
               key={label}
             >
@@ -77,7 +77,7 @@ export function PairAuthorityProgress({
               </Badge>
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-xs font-medium">{label}</span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-[0.6875rem] text-muted-foreground">
                   {detail}
                 </span>
               </span>
@@ -124,21 +124,19 @@ export function PairRunNavigation({ pair }: { pair: PairResource['data'] }) {
             const done = completed.has(test.id);
             return (
               <li
-                className="rounded-md border bg-card px-2.5 py-2 data-[done=true]:border-ev-brand data-[done=true]:bg-ev-brand-soft"
+                className="flex h-[2.625rem] items-center gap-2 rounded-md border bg-card px-2 data-[done=true]:border-ev-brand data-[done=true]:bg-ev-brand-soft"
                 data-done={done}
                 key={test.id}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <code className="text-[0.6875rem] font-semibold">
-                    {test.id}
-                  </code>
-                  <Badge variant={done ? 'default' : 'outline'}>
-                    {done ? '完成' : '等待'}
-                  </Badge>
-                </div>
-                <p className="mt-1 line-clamp-2 text-[0.6875rem] leading-4 text-muted-foreground">
+                <code className="shrink-0 text-[0.625rem] font-semibold">
+                  {test.id}
+                </code>
+                <p className="min-w-0 flex-1 truncate text-[0.625rem] text-muted-foreground">
                   {test.intent}
                 </p>
+                <Badge variant={done ? 'default' : 'outline'}>
+                  {done ? '完成' : '等待'}
+                </Badge>
               </li>
             );
           })}
@@ -149,7 +147,7 @@ export function PairRunNavigation({ pair }: { pair: PairResource['data'] }) {
           <ul className="mt-2 flex flex-col gap-1.5">
             {gateObservations.map((observation) => (
               <li
-                className="flex items-center justify-between gap-2 rounded-md border bg-card px-2.5 py-2"
+                className="flex h-7 items-center justify-between gap-2 rounded-md border bg-card px-2"
                 key={observation.id}
               >
                 <span className="truncate text-[0.6875rem]">
@@ -336,6 +334,87 @@ export function PairEvidenceTabs({
         </Tabs>
       </CardContent>
     </Card>
+  );
+}
+
+export function PairReviewWorkspace({
+  pair,
+  review,
+}: {
+  pair: PairResource['data'];
+  review: PairLocalReview | null;
+}) {
+  if (!review) {
+    return (
+      <Empty className="h-full min-h-64 rounded-none border-0">
+        <EmptyHeader>
+          <EmptyTitle>尚未加载本地 Story Diff</EmptyTitle>
+          <EmptyDescription>
+            在右侧从 Evidence Desktop 加载并校验完整 Diff；正文不会上传 Server。
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  const validation = pair.commandObservations.filter(
+    ({ stage }) => stage === 'refactor' || stage === 'quality_gate',
+  );
+  const matches = Boolean(
+    pair.manifest && reviewMatchesManifest(review, pair.manifest),
+  );
+  return (
+    <section
+      aria-label="本地 Story Diff 审查"
+      className="flex h-full min-h-0 flex-col bg-card"
+    >
+      <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+        <span className="min-w-0 flex-1 truncate font-mono text-xs">
+          {review.changedPaths[0] ?? 'Story Diff'}
+        </span>
+        <Badge variant={matches ? 'default' : 'destructive'}>
+          {matches ? 'Manifest 已匹配' : 'Hash 不匹配'}
+        </Badge>
+        <span className="font-mono text-[0.6875rem] text-muted-foreground">
+          {review.changedFileCount} files
+        </span>
+      </header>
+      <div className="flex h-[2.125rem] shrink-0 items-center gap-4 overflow-x-auto border-b px-3">
+        {review.changedPaths.map((path, index) => (
+          <span
+            className="shrink-0 font-mono text-[0.6875rem] text-muted-foreground data-[active=true]:font-semibold data-[active=true]:text-foreground"
+            data-active={index === 0}
+            key={path}
+          >
+            {path}
+          </span>
+        ))}
+      </div>
+      <pre className="min-h-0 flex-1 overflow-auto bg-card p-3 font-mono text-xs leading-6 whitespace-pre">
+        {review.diff}
+      </pre>
+      <div className="h-[7.25rem] shrink-0 border-t bg-secondary">
+        <div className="flex h-8 items-center justify-between border-b px-2.5">
+          <h3 className="text-xs font-semibold">验证输出</h3>
+          <span className="font-mono text-[0.625rem] text-muted-foreground">
+            {validation.length} observations
+          </span>
+        </div>
+        <div className="flex h-[5.25rem] flex-col gap-1 overflow-y-auto px-2.5 py-2 font-mono text-[0.625rem]">
+          {validation.length ? (
+            validation.map((observation) => (
+              <p className="truncate" key={observation.id}>
+                {observation.exitCode === 0 ? '✓' : '×'} {observation.command}
+              </p>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              Manifest 已锁定全部质量门结果。
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
