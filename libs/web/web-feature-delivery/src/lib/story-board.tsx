@@ -37,7 +37,7 @@ import { DeliveryPagination } from './delivery-pagination';
 type StoryState = State<StoryResource>;
 type StoryData = StoryResource['data'];
 type StoryAction = StoryData['authority']['nextAction'];
-type BoardFilter = 'all' | 'human' | 'approved';
+type BoardFilter = 'all' | 'human' | 'accepted';
 type BoardColumnKey =
   | 'tqa'
   | 'scenario'
@@ -47,7 +47,9 @@ type BoardColumnKey =
   | 'plan-ready'
   | 'pair'
   | 'approval'
-  | 'approved';
+  | 'showcase'
+  | 'respond'
+  | 'complete';
 
 interface BoardColumnDefinition {
   key: BoardColumnKey;
@@ -106,9 +108,21 @@ const BOARD_COLUMNS: BoardColumnDefinition[] = [
     dotClassName: 'bg-ev-amber',
   },
   {
-    key: 'approved',
-    title: 'Pair 已批准',
-    rule: '本地 commit 已创建，Pair 到此停止',
+    key: 'showcase',
+    title: 'Showcase',
+    rule: 'Q2 重跑、产品观察、风险评价与独立建议',
+    dotClassName: 'bg-ev-violet',
+  },
+  {
+    key: 'respond',
+    title: 'Respond',
+    rule: '起草并确认交付响应',
+    dotClassName: 'bg-ev-blue',
+  },
+  {
+    key: 'complete',
+    title: '已接受',
+    rule: '人工价值决定与响应均已完成',
     dotClassName: 'bg-ev-brand',
   },
 ];
@@ -116,7 +130,7 @@ const BOARD_COLUMNS: BoardColumnDefinition[] = [
 const FILTER_LABELS: Array<{ value: BoardFilter; label: string }> = [
   { value: 'all', label: '全部' },
   { value: 'human', label: '待人工' },
-  { value: 'approved', label: '已批准' },
+  { value: 'accepted', label: '已接受' },
 ];
 
 export function StoryCollectionView({
@@ -273,7 +287,7 @@ function StoryBoard({
 
   return (
     <div aria-label="故事交付看板" className="h-full overflow-x-auto">
-      <div className="grid h-full min-w-[70.25rem] grid-cols-9 gap-2.5 bg-background px-5 pt-3 pb-[1.125rem]">
+      <div className="grid h-full min-w-[86rem] grid-cols-11 gap-2.5 bg-background px-5 pt-3 pb-[1.125rem]">
         {BOARD_COLUMNS.map((column) => {
           const columnStories = grouped.get(column.key) ?? [];
           return (
@@ -399,6 +413,9 @@ function StoryQuickView({
             <QuickFact label="Pair 终点">
               本地批准；不自动 merge / push
             </QuickFact>
+            <QuickFact label="Showcase authority">
+              产品观察与 Accept / Revise / Reject 只能由人提交
+            </QuickFact>
           </QuickViewSection>
         </div>
         <SheetFooter className="sm:flex-row sm:justify-end">
@@ -469,9 +486,17 @@ function storyColumn(story: StoryData): BoardColumnKey {
     return 'tasking';
   }
   if (story.iterationLoop === 'pair') {
-    if (story.iterationStage === 'quality_gates_passed') return 'approval';
-    if (story.iterationStage === 'approved') return 'approved';
+    if (
+      story.iterationStage === 'quality_gates_passed' ||
+      story.iterationStage === 'approved'
+    ) {
+      return 'approval';
+    }
     return 'pair';
+  }
+  if (story.iterationLoop === 'showcase') return 'showcase';
+  if (story.iterationLoop === 'respond') {
+    return story.iterationStage === 'accepted' ? 'complete' : 'respond';
   }
   return 'tqa';
 }
@@ -503,9 +528,9 @@ function storyMatches(
   }
 
   if (filter === 'human') return story.authority.owner === 'human';
-  if (filter === 'approved') {
+  if (filter === 'accepted') {
     return (
-      story.iterationLoop === 'pair' && story.iterationStage === 'approved'
+      story.iterationLoop === 'respond' && story.iterationStage === 'accepted'
     );
   }
   return true;
