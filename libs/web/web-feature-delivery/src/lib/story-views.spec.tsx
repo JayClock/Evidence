@@ -263,6 +263,7 @@ describe('Story views', () => {
       }),
     ).toBeTruthy();
     expect(screen.getByText('编码准入尚未开放')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '精确来源引用' })).toBeTruthy();
     expect(
       screen
         .getByRole('link', { name: '定义验收 Scenario' })

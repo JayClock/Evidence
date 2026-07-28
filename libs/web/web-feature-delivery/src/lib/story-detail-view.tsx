@@ -38,13 +38,12 @@ export function StoryDetailView({
   );
   const latest = useResource<StoryRevisionResource>(latestResource);
   const story = resourceState.data;
-  const collectionHref = resourceState.getLink('collection')?.href;
   const revisionsHref = resourceState.getLink('revisions')?.href;
   const workflow = workflowAction(resourceState);
 
   return (
     <EvidenceCanvas>
-      <PageHeader>
+      <PageHeader className="px-6 pt-6 pb-[1.125rem]">
         <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
             <PageEyebrow>{story.iterationReference}</PageEyebrow>
@@ -60,13 +59,8 @@ export function StoryDetailView({
           </PageDescription>
         </PageHeaderCopy>
         <PageActions>
-          {collectionHref ? (
-            <Button asChild variant="outline">
-              <Link to={collectionHref}>返回故事列表</Link>
-            </Button>
-          ) : null}
           {revisionsHref ? (
-            <Button asChild variant="outline">
+            <Button asChild size="sm" variant="outline">
               <Link to={revisionsHref}>修订历史</Link>
             </Button>
           ) : null}
@@ -75,9 +69,9 @@ export function StoryDetailView({
 
       <AuthorityProgress />
 
-      <div className="grid min-h-[42rem] shrink-0 overflow-hidden border-t bg-card xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className="grid min-h-[42rem] shrink-0 gap-4 overflow-hidden bg-background p-4 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-4 p-4 sm:p-5">
+          <div className="flex flex-col gap-2.5">
             <Alert>
               <AlertDescription>
                 <strong>Story authority 已由人工 Kickoff confirm 创建。</strong>
@@ -108,7 +102,7 @@ export function StoryDetailView({
           </div>
         </div>
 
-        <aside className="border-t bg-muted/20 xl:min-h-0 xl:overflow-y-auto xl:border-t-0 xl:border-l">
+        <aside className="max-h-full self-start overflow-y-auto rounded-xl border bg-card">
           <StoryWorkflowPanel
             resourceState={resourceState}
             workflow={workflow}
@@ -127,25 +121,27 @@ function AuthorityProgress() {
     ['4', 'US-001 已创建', 'baseline v1'],
   ] as const;
   return (
-    <ol
-      aria-label="Inbox 到 Story 权威流程"
-      className="grid shrink-0 overflow-hidden border-y bg-card sm:grid-cols-2 xl:grid-cols-4"
-    >
-      {steps.map(([number, label, detail]) => (
-        <li
-          className="flex min-w-0 items-center gap-2 border-b px-3 py-2 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
-          key={number}
-        >
-          <Badge>{number}</Badge>
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-xs font-medium">{label}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {detail}
+    <div className="h-[4.4375rem] shrink-0 px-6 py-3">
+      <ol
+        aria-label="Inbox 到 Story 权威流程"
+        className="grid h-[2.9375rem] overflow-hidden rounded-lg border bg-card sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {steps.map(([number, label, detail]) => (
+          <li
+            className="flex min-w-0 items-center gap-2 border-b px-3 last:border-b-0 xl:border-r xl:border-b-0 xl:last:border-r-0"
+            key={number}
+          >
+            <Badge>{number}</Badge>
+            <span className="flex min-w-0 flex-col">
+              <span className="truncate text-xs font-medium">{label}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {detail}
+              </span>
             </span>
-          </span>
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -159,8 +155,8 @@ function StoryAuthorityContent({
   const revision = resourceState.data;
   return (
     <>
-      <Card>
-        <CardHeader className="border-b">
+      <Card size="sm">
+        <CardHeader className="border-b !pb-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Badge variant="secondary">Lean Story Card · US-001</Badge>
             <span className="font-mono text-xs text-muted-foreground">
@@ -171,18 +167,18 @@ function StoryAuthorityContent({
             {revision.title}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="rounded-lg bg-primary/10 p-4 text-sm">
+        <CardContent className="flex flex-col gap-3">
+          <div className="rounded-lg bg-primary/10 p-3 text-sm">
             作为{revision.role}，我希望{revision.goal}，从而{revision.value}。
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <Detail label="角色" value={revision.role} />
             <Detail label="价值" value={revision.value} />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card size="sm">
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Badge variant="outline">Problem Statement</Badge>
@@ -194,7 +190,7 @@ function StoryAuthorityContent({
             {revision.problem}
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
+        <CardContent className="grid gap-3 md:grid-cols-2">
           <Detail
             label="认知模式"
             value={cognitiveModeLabel(revision.cognitiveMode)}
@@ -206,8 +202,8 @@ function StoryAuthorityContent({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="border-b">
+      <Card size="sm">
+        <CardHeader className="border-b !pb-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge>Latest · v{revision.revisionNumber}</Badge>
             <Badge variant="outline">
@@ -221,7 +217,7 @@ function StoryAuthorityContent({
             共 {revisionCount} 个修订；每次人工权威变化都追加新 Revision。
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-5">
+        <CardContent className="flex flex-col gap-3">
           {revision.scenarios.length === 0 ? (
             <Alert>
               <AlertDescription>
@@ -230,50 +226,64 @@ function StoryAuthorityContent({
               </AlertDescription>
             </Alert>
           ) : (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {revision.scenarios.map((scenario) => (
                 <ScenarioSummary key={scenario.id} scenario={scenario} />
               ))}
             </div>
           )}
-          <Separator />
-          <div className="flex flex-col gap-3">
-            <div>
-              <h3 className="text-sm font-medium">精确来源引用</h3>
-              <p className="text-xs text-muted-foreground">
-                Story Revision 锁定以下 Inbox Revision，不跟随 live 来源变化。
-              </p>
-            </div>
-            {revision.citations.map((citation) => {
-              const href = citation._links.revision?.href;
-              return (
-                <div
-                  className="flex flex-col gap-2 rounded-lg border p-3"
-                  key={`${citation.inboxRevisionId}:${citation.locator}`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">
-                        Inbox Revision #{citation.inboxRevisionNumber}
-                      </Badge>
-                      <Badge variant="outline">{citation.locator}</Badge>
-                    </div>
-                    {href ? (
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={href}>打开来源</Link>
-                      </Button>
-                    ) : null}
-                  </div>
-                  <p className="break-all font-mono text-xs text-muted-foreground">
-                    {citation.contentSha256}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
         </CardContent>
       </Card>
+
+      <SourceCitations citations={revision.citations} />
     </>
+  );
+}
+
+function SourceCitations({
+  citations,
+}: {
+  citations: StoryRevisionResource['data']['citations'];
+}) {
+  return (
+    <Card size="sm">
+      <CardHeader className="border-b !pb-3">
+        <CardTitle aria-level={2} role="heading">
+          精确来源引用
+        </CardTitle>
+        <CardDescription>
+          Story Revision 锁定以下 Inbox Revision，不跟随 live 来源变化。
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {citations.map((citation) => {
+          const href = citation._links.revision?.href;
+          return (
+            <div
+              className="flex flex-col gap-2 rounded-lg border p-3"
+              key={`${citation.inboxRevisionId}:${citation.locator}`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">
+                    Inbox Revision #{citation.inboxRevisionNumber}
+                  </Badge>
+                  <Badge variant="outline">{citation.locator}</Badge>
+                </div>
+                {href ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={href}>打开来源</Link>
+                  </Button>
+                ) : null}
+              </div>
+              <p className="break-all font-mono text-xs text-muted-foreground">
+                {citation.contentSha256}
+              </p>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -283,7 +293,7 @@ function ScenarioSummary({
   scenario: StoryRevisionResource['data']['scenarios'][number];
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-4">
+    <div className="flex flex-col gap-2 rounded-lg border p-3">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary">{scenario.reference}</Badge>
         <h3 className="font-medium">{scenario.title}</h3>
@@ -336,7 +346,7 @@ function StoryWorkflowPanel({
   const story = resourceState.data;
   const codingAdmissionOpen = story.iterationLoop === 'pair';
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-5">
+    <div className="flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <span className="size-2 rounded-full bg-primary" />
