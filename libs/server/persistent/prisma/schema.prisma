@@ -7,22 +7,26 @@ datasource db {
 }
 
 model User {
-  id                      String                   @id
-  name                    String
-  email                   String?
-  members                 WorkspaceMember[]
-  createdStoryRevisions   StoryRevision[]          @relation("StoryRevisionAuthor")
-  requestedExtractions    InboxExtraction[]        @relation("InboxExtractionRequester")
-  decidedInboxCandidates  InboxCandidateDecision[] @relation("InboxCandidateDecisionActor")
-  admittedIterations      Iteration[]              @relation("IterationAdmissionActor")
-  decidedKickoffProposals KickoffDecision[]        @relation("KickoffDecisionActor")
-  answeredClarifications  StoryClarification[]     @relation("ClarificationAnswerActor")
-  waivedClarifications    StoryClarification[]     @relation("ClarificationWaiverActor")
-  understandingDecisions  UnderstandingDecision[]  @relation("UnderstandingDecisionActor")
-  noModelImpactDecisions  NoModelImpactDecision[]  @relation("NoModelImpactDecisionActor")
-  deskCheckDecisions      DeskCheckDecision[]      @relation("DeskCheckDecisionActor")
-  approvedTaskingPlans    ApprovedTaskingPlan[]    @relation("ApprovedTaskingPlanActor")
-  pairCodingDecisions     PairCodingDecision[]     @relation("PairCodingDecisionActor")
+  id                          String                       @id
+  name                        String
+  email                       String?
+  members                     WorkspaceMember[]
+  createdStoryRevisions       StoryRevision[]              @relation("StoryRevisionAuthor")
+  requestedExtractions        InboxExtraction[]            @relation("InboxExtractionRequester")
+  decidedInboxCandidates      InboxCandidateDecision[]     @relation("InboxCandidateDecisionActor")
+  admittedIterations          Iteration[]                  @relation("IterationAdmissionActor")
+  decidedKickoffProposals     KickoffDecision[]            @relation("KickoffDecisionActor")
+  answeredClarifications      StoryClarification[]         @relation("ClarificationAnswerActor")
+  waivedClarifications        StoryClarification[]         @relation("ClarificationWaiverActor")
+  understandingDecisions      UnderstandingDecision[]      @relation("UnderstandingDecisionActor")
+  noModelImpactDecisions      NoModelImpactDecision[]      @relation("NoModelImpactDecisionActor")
+  deskCheckDecisions          DeskCheckDecision[]          @relation("DeskCheckDecisionActor")
+  approvedTaskingPlans        ApprovedTaskingPlan[]        @relation("ApprovedTaskingPlanActor")
+  pairCodingDecisions         PairCodingDecision[]         @relation("PairCodingDecisionActor")
+  showcaseProductObservations ShowcaseProductObservation[] @relation("ShowcaseProductObservationActor")
+  showcaseRiskDecisions       ShowcaseRiskDecision[]       @relation("ShowcaseRiskDecisionActor")
+  showcaseEvaluations         ShowcaseEvaluation[]         @relation("ShowcaseEvaluationActor")
+  showcaseDecisions           ShowcaseDecision[]           @relation("ShowcaseDecisionActor")
 
   @@map("users")
 }
@@ -56,6 +60,7 @@ model Workspace {
   deskCheckDecisions      DeskCheckDecision[]
   approvedTaskingPlans    ApprovedTaskingPlan[]
   pairRuns                PairRun[]
+  showcaseRuns            ShowcaseRun[]
   sequence                WorkspaceSequence?
 
   @@index([deletedAt])
@@ -369,6 +374,7 @@ model Iteration {
   deskCheckDecisions         DeskCheckDecision[]
   approvedTaskingPlans       ApprovedTaskingPlan[]
   pairRuns                   PairRun[]
+  showcaseRuns               ShowcaseRun[]
 
   @@unique([workspaceId, reference])
   @@index([workspaceId, lifecycle, lane, admittedAt])
@@ -514,6 +520,7 @@ model Story {
   taskingCandidates      TaskingCandidate[]
   approvedTaskingPlans   ApprovedTaskingPlan[]
   pairRuns               PairRun[]
+  showcaseRuns           ShowcaseRun[]
 
   @@index([workspaceId, updatedAt])
   @@map("stories")
@@ -546,6 +553,7 @@ model StoryRevision {
   taskingCandidates              TaskingCandidate[]
   approvedTaskingPlans           ApprovedTaskingPlan[]
   pairRuns                       PairRun[]
+  showcaseRuns                   ShowcaseRun[]
 
   @@unique([storyId, revisionNumber])
   @@index([storyId, createdAt])
@@ -553,21 +561,22 @@ model StoryRevision {
 }
 
 model StoryScenario {
-  id                      String                @id
+  id                      String                       @id
   reference               String
-  storyRevisionId         String                @map("story_revision_id")
-  sourceDraftId           String                @map("source_draft_id")
-  understandingDecisionId String                @map("understanding_decision_id")
+  storyRevisionId         String                       @map("story_revision_id")
+  sourceDraftId           String                       @map("source_draft_id")
+  understandingDecisionId String                       @map("understanding_decision_id")
   position                Int
   title                   String
-  givenSteps              Json                  @map("given_steps")
-  whenStep                String                @map("when_step")
-  thenSteps               Json                  @map("then_steps")
-  businessData            Json                  @map("business_data")
-  confirmedAt             DateTime              @map("confirmed_at")
-  storyRevision           StoryRevision         @relation(fields: [storyRevisionId], references: [id], onDelete: Cascade)
-  sourceDraft             ScenarioDraft         @relation(fields: [sourceDraftId], references: [id], onDelete: Restrict)
-  understandingDecision   UnderstandingDecision @relation(fields: [understandingDecisionId], references: [id], onDelete: Restrict)
+  givenSteps              Json                         @map("given_steps")
+  whenStep                String                       @map("when_step")
+  thenSteps               Json                         @map("then_steps")
+  businessData            Json                         @map("business_data")
+  confirmedAt             DateTime                     @map("confirmed_at")
+  storyRevision           StoryRevision                @relation(fields: [storyRevisionId], references: [id], onDelete: Cascade)
+  sourceDraft             ScenarioDraft                @relation(fields: [sourceDraftId], references: [id], onDelete: Restrict)
+  understandingDecision   UnderstandingDecision        @relation(fields: [understandingDecisionId], references: [id], onDelete: Restrict)
+  showcaseObservations    ShowcaseProductObservation[]
 
   @@unique([storyRevisionId, position])
   @@unique([storyRevisionId, reference])
@@ -780,6 +789,7 @@ model ApprovedTaskingPlan {
   deskCheckDecision   DeskCheckDecision @relation(fields: [deskCheckDecisionId], references: [id], onDelete: Restrict)
   approvedBy          User              @relation("ApprovedTaskingPlanActor", fields: [approvedByUserId], references: [id], onDelete: Restrict)
   pairRun             PairRun?
+  showcaseRuns        ShowcaseRun[]
 
   @@index([workspaceId, approvedAt])
   @@index([iterationId, approvedAt])
@@ -826,6 +836,7 @@ model PairRun {
   automationExceptions      PairAutomationException[]
   manifests                 PairExecutionManifest[]
   codingDecisions           PairCodingDecision[]
+  showcaseRuns              ShowcaseRun[]
 
   @@unique([iterationId, reference])
   @@index([workspaceId, status, updatedAt])
@@ -932,22 +943,23 @@ model PairAutomationException {
 }
 
 model PairExecutionManifest {
-  id                        String   @id
-  pairRunId                 String   @map("pair_run_id")
-  approvedTaskingPlanSha256 String   @map("approved_tasking_plan_sha256")
-  storyRevisionSha256       String   @map("story_revision_sha256")
-  baseCommitSha             String   @map("base_commit_sha")
-  completedTestIds          Json     @map("completed_test_ids")
-  completedStepKeys         Json     @map("completed_step_keys")
-  driverAttemptIds          Json     @map("driver_attempt_ids")
-  commandObservationIds     Json     @map("command_observation_ids")
-  redReviewIds              Json     @map("red_review_ids")
-  changedPaths              Json     @map("changed_paths")
-  finalDiffSha256           String   @map("final_diff_sha256")
-  evidenceChainSha256       String   @map("evidence_chain_sha256")
-  generatedAt               DateTime @map("generated_at")
-  contentSha256             String   @map("content_sha256")
-  pairRun                   PairRun  @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+  id                        String        @id
+  pairRunId                 String        @map("pair_run_id")
+  approvedTaskingPlanSha256 String        @map("approved_tasking_plan_sha256")
+  storyRevisionSha256       String        @map("story_revision_sha256")
+  baseCommitSha             String        @map("base_commit_sha")
+  completedTestIds          Json          @map("completed_test_ids")
+  completedStepKeys         Json          @map("completed_step_keys")
+  driverAttemptIds          Json          @map("driver_attempt_ids")
+  commandObservationIds     Json          @map("command_observation_ids")
+  redReviewIds              Json          @map("red_review_ids")
+  changedPaths              Json          @map("changed_paths")
+  finalDiffSha256           String        @map("final_diff_sha256")
+  evidenceChainSha256       String        @map("evidence_chain_sha256")
+  generatedAt               DateTime      @map("generated_at")
+  contentSha256             String        @map("content_sha256")
+  pairRun                   PairRun       @relation(fields: [pairRunId], references: [id], onDelete: Cascade)
+  showcaseRuns              ShowcaseRun[]
 
   @@index([pairRunId, generatedAt])
   @@map("pair_execution_manifests")
@@ -971,6 +983,178 @@ model PairCodingDecision {
   @@unique([pairRunId, sequence])
   @@index([pairRunId, decidedAt])
   @@map("pair_coding_decisions")
+}
+
+model ShowcaseRun {
+  id                        String                       @id
+  reference                 String
+  attempt                   Int
+  workspaceId               String                       @map("workspace_id")
+  iterationId               String                       @map("iteration_id")
+  storyId                   String                       @map("story_id")
+  storyRevisionId           String                       @map("story_revision_id")
+  storyRevisionSha256       String                       @map("story_revision_sha256")
+  approvedTaskingPlanId     String                       @map("approved_tasking_plan_id")
+  approvedTaskingPlanSha256 String                       @map("approved_tasking_plan_sha256")
+  pairRunId                 String                       @map("pair_run_id")
+  pairManifestId            String                       @map("pair_manifest_id")
+  pairManifestSha256        String                       @map("pair_manifest_sha256")
+  approvedCommitSha         String                       @map("approved_commit_sha")
+  stage                     String
+  version                   Int                          @default(1)
+  evidenceBundleSha256      String?                      @map("evidence_bundle_sha256")
+  startedAt                 DateTime                     @map("started_at")
+  updatedAt                 DateTime                     @map("updated_at")
+  completedAt               DateTime?                    @map("completed_at")
+  workspace                 Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  iteration                 Iteration                    @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  story                     Story                        @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyRevision             StoryRevision                @relation(fields: [storyRevisionId], references: [id], onDelete: Restrict)
+  approvedTaskingPlan       ApprovedTaskingPlan          @relation(fields: [approvedTaskingPlanId], references: [id], onDelete: Restrict)
+  pairRun                   PairRun                      @relation(fields: [pairRunId], references: [id], onDelete: Restrict)
+  pairManifest              PairExecutionManifest        @relation(fields: [pairManifestId], references: [id], onDelete: Restrict)
+  q2Observations            ShowcaseQ2Observation[]
+  productObservations       ShowcaseProductObservation[]
+  riskDecisions             ShowcaseRiskDecision[]
+  evaluations               ShowcaseEvaluation[]
+  review                    ShowcaseReview?
+  decision                  ShowcaseDecision?
+
+  @@unique([iterationId, attempt])
+  @@unique([workspaceId, reference])
+  @@index([workspaceId, stage, updatedAt])
+  @@index([pairRunId, startedAt])
+  @@map("showcase_runs")
+}
+
+model ShowcaseQ2Observation {
+  id                   String      @id
+  showcaseRunId        String      @map("showcase_run_id")
+  actionId             String      @map("action_id")
+  sequence             Int
+  testId               String      @map("test_id")
+  scenarioIds          Json        @map("scenario_ids")
+  processId            String      @map("process_id")
+  stepId               String      @map("step_id")
+  projectId            String?     @map("project_id")
+  command              String
+  termination          String
+  exitCode             Int?        @map("exit_code")
+  signal               String?
+  durationMs           Int         @map("duration_ms")
+  stdoutSha256         String      @map("stdout_sha256")
+  stdoutBytes          Int         @map("stdout_bytes")
+  stdoutLines          Int         @map("stdout_lines")
+  stderrSha256         String      @map("stderr_sha256")
+  stderrBytes          Int         @map("stderr_bytes")
+  stderrLines          Int         @map("stderr_lines")
+  approvedCommitSha    String      @map("approved_commit_sha")
+  worktreeSha256       String      @map("worktree_sha256")
+  observedAt           DateTime    @map("observed_at")
+  previousRecordSha256 String?     @map("previous_record_sha256")
+  recordSha256         String      @map("record_sha256")
+  showcaseRun          ShowcaseRun @relation(fields: [showcaseRunId], references: [id], onDelete: Cascade)
+
+  @@unique([showcaseRunId, actionId])
+  @@unique([showcaseRunId, sequence])
+  @@unique([showcaseRunId, testId])
+  @@map("showcase_q2_observations")
+}
+
+model ShowcaseProductObservation {
+  id                String        @id
+  showcaseRunId     String        @map("showcase_run_id")
+  scenarioId        String        @map("scenario_id")
+  scenarioReference String        @map("scenario_reference")
+  givenSteps        Json          @map("given_steps")
+  whenStep          String        @map("when_step")
+  expectedThenSteps Json          @map("expected_then_steps")
+  businessData      Json          @map("business_data")
+  observedOutcomes  Json          @map("observed_outcomes")
+  observation       String
+  valueFeedback     String        @map("value_feedback")
+  evidenceRefs      Json          @map("evidence_refs")
+  observedByUserId  String        @map("observed_by_user_id")
+  observedAt        DateTime      @map("observed_at")
+  contentSha256     String        @map("content_sha256")
+  showcaseRun       ShowcaseRun   @relation(fields: [showcaseRunId], references: [id], onDelete: Cascade)
+  scenario          StoryScenario @relation(fields: [scenarioId], references: [id], onDelete: Restrict)
+  observedBy        User          @relation("ShowcaseProductObservationActor", fields: [observedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([showcaseRunId, scenarioId])
+  @@index([scenarioId])
+  @@map("showcase_product_observations")
+}
+
+model ShowcaseRiskDecision {
+  id              String      @id
+  showcaseRunId   String      @map("showcase_run_id")
+  quadrant        String
+  disposition     String
+  activities      Json
+  reason          String
+  decidedByUserId String      @map("decided_by_user_id")
+  decidedAt       DateTime    @map("decided_at")
+  contentSha256   String      @map("content_sha256")
+  showcaseRun     ShowcaseRun @relation(fields: [showcaseRunId], references: [id], onDelete: Cascade)
+  decidedBy       User        @relation("ShowcaseRiskDecisionActor", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([showcaseRunId, quadrant])
+  @@map("showcase_risk_decisions")
+}
+
+model ShowcaseEvaluation {
+  id               String      @id
+  showcaseRunId    String      @map("showcase_run_id")
+  sequence         Int
+  quadrant         String
+  activity         String
+  outcome          String
+  finding          String
+  evidenceRefs     Json        @map("evidence_refs")
+  observedByUserId String      @map("observed_by_user_id")
+  observedAt       DateTime    @map("observed_at")
+  contentSha256    String      @map("content_sha256")
+  showcaseRun      ShowcaseRun @relation(fields: [showcaseRunId], references: [id], onDelete: Cascade)
+  observedBy       User        @relation("ShowcaseEvaluationActor", fields: [observedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([showcaseRunId, sequence])
+  @@index([showcaseRunId, quadrant, activity, observedAt])
+  @@map("showcase_evaluations")
+}
+
+model ShowcaseReview {
+  id                       String      @id
+  showcaseRunId            String      @unique @map("showcase_run_id")
+  evidenceBundleSha256     String      @map("evidence_bundle_sha256")
+  observedFacts            Json        @map("observed_facts")
+  productDomainFeedback    Json        @map("product_domain_feedback")
+  technicalQualityFeedback Json        @map("technical_quality_feedback")
+  unresolvedAssumptions    Json        @map("unresolved_assumptions")
+  recommendation           String
+  reviewedAt               DateTime    @map("reviewed_at")
+  contentSha256            String      @map("content_sha256")
+  showcaseRun              ShowcaseRun @relation(fields: [showcaseRunId], references: [id], onDelete: Cascade)
+
+  @@map("showcase_reviews")
+}
+
+model ShowcaseDecision {
+  id                   String      @id
+  showcaseRunId        String      @unique @map("showcase_run_id")
+  action               String
+  reason               String
+  feedbackTarget       String?     @map("feedback_target")
+  evidenceBundleSha256 String?     @map("evidence_bundle_sha256")
+  reviewId             String?     @map("review_id")
+  decidedByUserId      String      @map("decided_by_user_id")
+  decidedAt            DateTime    @map("decided_at")
+  contentSha256        String      @map("content_sha256")
+  showcaseRun          ShowcaseRun @relation(fields: [showcaseRunId], references: [id], onDelete: Cascade)
+  decidedBy            User        @relation("ShowcaseDecisionActor", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([decidedByUserId, decidedAt])
+  @@map("showcase_decisions")
 }
 
 model StoryRevisionCitation {
