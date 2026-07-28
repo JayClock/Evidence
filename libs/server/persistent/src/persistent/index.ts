@@ -21,6 +21,7 @@ export * from './prisma/workspace-iteration-workflow';
 export * from './prisma/workspace-understanding';
 export * from './prisma/workspace-tasking';
 export * from './prisma/workspace-showcase';
+export * from './prisma/workspace-respond';
 export * from './prisma/workspace-delivery';
 export * from './prisma/diagram-nodes';
 export * from './prisma/diagram-edges';

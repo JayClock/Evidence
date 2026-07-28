@@ -39,6 +39,7 @@ import { PrismaWorkspaceInbox } from './workspace-inbox';
 import { PrismaWorkspaceInboxWorkflow } from './workspace-inbox-workflow';
 import { PrismaWorkspaceIterationWorkflow } from './workspace-iteration-workflow';
 import { PrismaWorkspacePair } from './workspace-pair';
+import { PrismaWorkspaceRespond } from './workspace-respond';
 import { PrismaWorkspaceShowcase } from './workspace-showcase';
 import { PrismaWorkspaceTasking } from './workspace-tasking';
 import { PrismaWorkspaceUnderstanding } from './workspace-understanding';
@@ -82,6 +83,7 @@ export function assembleWorkspace(
     new PrismaWorkspaceTasking(store, row.id),
     new PrismaWorkspacePair(store, row.id),
     new PrismaWorkspaceShowcase(store, row.id),
+    new PrismaWorkspaceRespond(store, row.id),
     new PrismaWorkspaceDelivery(store, row.id),
   );
 }
