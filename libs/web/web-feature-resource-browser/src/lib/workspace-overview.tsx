@@ -78,8 +78,8 @@ export function WorkspaceOverviewView({
         </PageHeaderCopy>
       </PageHeader>
 
-      <div className="flex flex-col gap-[0.6875rem] pt-2.5">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-[2.125rem] shrink-0 flex-wrap items-center gap-1.5">
           <Badge variant="outline">托管 API 已连接</Badge>
           <Badge variant="secondary">Authority projection 已同步</Badge>
         </div>
@@ -91,38 +91,27 @@ export function WorkspaceOverviewView({
           </Alert>
         ) : null}
 
-        <section aria-labelledby="workspace-attention-title">
-          <div className="mb-2 flex items-end justify-between gap-3">
-            <div>
-              <h2
-                className="text-sm font-semibold"
-                id="workspace-attention-title"
-              >
-                需要你处理
-              </h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                只显示 Server authority projection 发布的人工下一动作。
-              </p>
-            </div>
-            {boardHref ? (
-              <Button asChild size="sm" variant="ghost">
-                <Link to={withFilter(boardHref, 'human') ?? boardHref}>
-                  查看全部
-                </Link>
-              </Button>
-            ) : null}
-          </div>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <section
+          aria-labelledby="workspace-attention-title"
+          className="h-[6.8125rem] shrink-0"
+        >
+          <h2
+            className="h-[1.0625rem] text-sm font-semibold"
+            id="workspace-attention-title"
+          >
+            需要你处理
+          </h2>
+          <div className="grid h-[5.75rem] items-start gap-[0.5625rem] sm:grid-cols-2 xl:grid-cols-4">
             <AttentionCard
               count={actionCount(summary, 'route_pair_exception')}
               detail="失败保持 fail closed"
-              href={withFilter(boardHref, 'pair')}
+              href={withFilter(boardHref, 'human')}
               label="Pair 异常待路由"
             />
             <AttentionCard
               count={actionCount(summary, 'review_pair_change')}
               detail="核对完整本地 Story Diff"
-              href={withFilter(boardHref, 'pair')}
+              href={withFilter(boardHref, 'human')}
               label="Story 编码待审批"
             />
             <AttentionCard
@@ -134,7 +123,7 @@ export function WorkspaceOverviewView({
             <AttentionCard
               count={actionCount(summary, 'review_tasking_candidate')}
               detail="批准精确 Candidate"
-              href={withFilter(boardHref, 'tasking')}
+              href={withFilter(boardHref, 'human')}
               label="Tasking 待 Desk Check"
             />
           </div>
@@ -188,11 +177,13 @@ export function WorkspaceOverviewView({
           </CardContent>
         </Card>
 
-        <ActiveIterations
-          boardHref={boardHref}
-          loading={stories.loading}
-          storyStates={storyState?.collection ?? []}
-        />
+        <div className="min-h-0 flex-1 pt-[0.6875rem]">
+          <ActiveIterations
+            boardHref={boardHref}
+            loading={stories.loading}
+            storyStates={storyState?.collection ?? []}
+          />
+        </div>
       </div>
     </EvidenceCanvas>
   );
@@ -209,25 +200,27 @@ function AttentionCard({
   detail: string;
   href: string | null;
 }) {
-  return (
-    <Card className="h-20 gap-1 py-2" size="sm">
-      <CardHeader>
-        <CardDescription className="text-xs">{label}</CardDescription>
-        <CardTitle className="font-mono text-base tabular-nums">
-          {count}
-        </CardTitle>
-        {href ? (
-          <CardAction>
-            <Button asChild size="sm" variant="ghost">
-              <Link to={href}>查看</Link>
-            </Button>
-          </CardAction>
-        ) : null}
-      </CardHeader>
-      <CardContent className="truncate text-[0.6875rem] text-muted-foreground">
-        {detail}
-      </CardContent>
-    </Card>
+  const content = (
+    <div className="flex h-20 items-center gap-2.5 rounded-lg border bg-card p-3 shadow-xs">
+      <Badge className="font-mono text-[0.8125rem] tabular-nums">{count}</Badge>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[0.625rem] font-semibold">{label}</span>
+        <span className="mt-0.5 block truncate text-[0.5rem] text-muted-foreground">
+          {detail}
+        </span>
+      </span>
+    </div>
+  );
+  return href ? (
+    <Link
+      aria-label={`查看 ${label}`}
+      className="rounded-lg outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      to={href}
+    >
+      {content}
+    </Link>
+  ) : (
+    content
   );
 }
 
@@ -276,7 +269,7 @@ function ActiveIterations({
   boardHref?: string;
 }) {
   return (
-    <Card className="min-h-0 flex-1" size="sm">
+    <Card className="h-full min-h-0" size="sm">
       <CardHeader className="border-b !pb-3">
         <CardTitle aria-level={2} role="heading">
           活跃 Iteration
@@ -375,10 +368,7 @@ function stageCount(
   );
 }
 
-function withFilter(
-  href: string | undefined,
-  filter: 'human' | 'tasking' | 'pair',
-): string | null {
+function withFilter(href: string | undefined, filter: 'human'): string | null {
   if (!href) return null;
   const [path, query = ''] = href.split('?');
   const parameters = new URLSearchParams(query);
