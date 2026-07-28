@@ -19,7 +19,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
   Checkbox,
@@ -36,12 +35,12 @@ import {
   EmptyTitle,
   EvidencePage,
   Field,
+  FieldContent,
   FieldDescription,
   FieldGroup,
   FieldLabel,
   FieldLegend,
   FieldSet,
-  PageActions,
   PageDescription,
   PageEyebrow,
   PageHeader,
@@ -240,13 +239,10 @@ export function UnderstandingDetailView({
   const partialSelection = Boolean(
     proposal && selectedDraftIds.length < proposal.drafts.length,
   );
-  const storyHref = state.getLink('story')?.href;
-  const kickoffHref = state.getLink('kickoff')?.href;
   const taskingHref = state.getLink('tasking')?.href;
-
   return (
     <EvidencePage>
-      <PageHeader>
+      <PageHeader className="px-[1.125rem] pt-4 pb-3">
         <PageHeaderCopy>
           <div className="flex flex-wrap items-center gap-2">
             <PageEyebrow>
@@ -258,7 +254,7 @@ export function UnderstandingDetailView({
               Story Revision v{understanding.storyRevision.revisionNumber}
             </Badge>
           </div>
-          <PageTitle>
+          <PageTitle className="leading-7">
             {understanding.story.reference} · Understand / TQA
           </PageTitle>
           <PageDescription>
@@ -266,30 +262,13 @@ export function UnderstandingDetailView({
             Draft；回答、选择与路由决定始终由人类负责。
           </PageDescription>
         </PageHeaderCopy>
-        <PageActions>
-          {storyHref ? (
-            <Button asChild variant="outline">
-              <Link to={storyHref}>返回 Story</Link>
-            </Button>
-          ) : null}
-          {kickoffHref ? (
-            <Button asChild>
-              <Link to={kickoffHref}>返回 Kickoff 修订 Story</Link>
-            </Button>
-          ) : null}
-          {taskingHref ? (
-            <Button asChild>
-              <Link to={taskingHref}>进入 Tasking / Desk Check</Link>
-            </Button>
-          ) : null}
-        </PageActions>
       </PageHeader>
 
       <DeliveryAuthorityProgress iteration={understanding.iteration} />
 
       <Workbench className="lg:grid-cols-[minmax(0,1fr)_20.375rem]">
         <WorkbenchMain>
-          <div className="flex flex-col gap-4 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 p-3.5">
             <Alert>
               <AlertTitle>{authorityNotice(understanding).title}</AlertTitle>
               <AlertDescription>
@@ -397,7 +376,7 @@ export function UnderstandingDetailView({
         </WorkbenchMain>
 
         <WorkbenchRail>
-          <div className="flex flex-col gap-5 p-4">
+          <div className="flex flex-col gap-3 p-3.5">
             <div>
               <h2 className="text-base font-medium">Understand 人工决定</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -584,6 +563,10 @@ export function UnderstandingDetailView({
                   </Button>
                 </FieldGroup>
               </form>
+            ) : taskingHref ? (
+              <Button asChild>
+                <Link to={taskingHref}>进入 Tasking / Desk Check</Link>
+              </Button>
             ) : (
               <Alert>
                 <AlertTitle>当前没有待处理的 Understand 决定</AlertTitle>
@@ -611,7 +594,6 @@ export function UnderstandingDetailView({
                 与 no-model-impact 决定只能由认证用户触发。
               </AlertDescription>
             </Alert>
-            <AuthorityFacts understanding={understanding} />
           </div>
         </WorkbenchRail>
       </Workbench>
@@ -629,25 +611,26 @@ function ScenarioProposal({
   onToggleDraft: (draftId: string, checked: boolean) => void;
 }) {
   return (
-    <Card>
-      <CardHeader className="border-b">
-        <div className="flex flex-wrap items-center gap-2">
+    <Card className="gap-0 py-0" size="sm">
+      <CardHeader className="h-[2.625rem] grid-cols-[1fr_auto] items-center border-b !pb-0">
+        <CardTitle>Scenario Proposal</CardTitle>
+        <div className="flex items-center gap-2">
           <Badge>{proposal.reference}</Badge>
-          <Badge variant="secondary">非权威 Proposal</Badge>
           <Badge variant="outline">{proposal.drafts.length} 个 Draft</Badge>
+          <code className="hidden text-[0.625rem] text-muted-foreground xl:block">
+            {shortHash(proposal.contentSha256)}
+          </code>
         </div>
-        <CardTitle>完整 Scenario Proposal</CardTitle>
-        <CardDescription>{shortHash(proposal.contentSha256)}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2.5">
         <FieldSet>
-          <FieldLegend>选择完整 Scenario Set</FieldLegend>
-          <FieldDescription>
+          <FieldLegend className="sr-only">选择完整 Scenario Set</FieldLegend>
+          <FieldDescription className="sr-only">
             省略任一 Draft 时必须记录理由；Draft 本身不可编辑。
           </FieldDescription>
-          <FieldGroup data-slot="checkbox-group">
+          <FieldGroup className="gap-0" data-slot="checkbox-group">
             {proposal.drafts.map((draft) => (
-              <ScenarioDraftCard
+              <ScenarioDraftRow
                 checked={selectedDrafts.has(draft.id)}
                 draft={draft}
                 key={draft.id}
@@ -661,7 +644,7 @@ function ScenarioProposal({
   );
 }
 
-function ScenarioDraftCard({
+function ScenarioDraftRow({
   draft,
   checked,
   onCheckedChange,
@@ -671,50 +654,33 @@ function ScenarioDraftCard({
   onCheckedChange: (checked: boolean) => void;
 }) {
   const checkboxId = `scenario-draft-${draft.id}`;
+  const outcome = `Given ${draft.given.join('；')} · When ${draft.when} · Then ${draft.then.join('；')}`;
   return (
-    <Card size="sm">
-      <CardHeader>
-        <div className="flex items-start gap-3">
-          <Checkbox
-            aria-label={`选择 ${draft.reference}`}
-            checked={checked}
-            id={checkboxId}
-            onCheckedChange={(value) => onCheckedChange(value === true)}
-          />
-          <FieldLabel htmlFor={checkboxId}>
-            <Badge variant="outline">{draft.reference}</Badge>
-            {draft.title}
-          </FieldLabel>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-3 md:grid-cols-2">
-        <ScenarioPhase label="GIVEN" values={draft.given} />
-        <ScenarioPhase label="WHEN" values={[draft.when]} />
-        <div className="md:col-span-2">
-          <ScenarioPhase label="THEN" values={draft.then} />
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-wrap gap-2">
-        {draft.businessData.map((value) => (
-          <Badge key={value} variant="outline">
-            {value}
-          </Badge>
-        ))}
-      </CardFooter>
-    </Card>
-  );
-}
-
-function ScenarioPhase({ label, values }: { label: string; values: string[] }) {
-  return (
-    <div className="rounded-lg border bg-background p-3">
-      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-      <ul className="mt-2 flex list-disc flex-col gap-1 pl-4 text-sm">
-        {values.map((value) => (
-          <li key={value}>{value}</li>
-        ))}
-      </ul>
-    </div>
+    <Field
+      className="items-start gap-2 border-b px-1 py-2.5 last:border-b-0"
+      orientation="horizontal"
+    >
+      <Checkbox
+        aria-label={`选择 ${draft.reference}`}
+        checked={checked}
+        id={checkboxId}
+        onCheckedChange={(value) => onCheckedChange(value === true)}
+      />
+      <FieldContent className="min-w-0 gap-1">
+        <FieldLabel className="min-w-0" htmlFor={checkboxId}>
+          <Badge variant="outline">{draft.reference}</Badge>
+          <span className="truncate">{draft.title}</span>
+        </FieldLabel>
+        <FieldDescription className="line-clamp-2 text-xs">
+          {outcome}
+        </FieldDescription>
+        {draft.businessData.length > 0 ? (
+          <p className="truncate font-mono text-[0.625rem] text-muted-foreground">
+            {draft.businessData.join(' · ')}
+          </p>
+        ) : null}
+      </FieldContent>
+    </Field>
   );
 }
 
@@ -787,52 +753,6 @@ function UnderstandHistory({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function AuthorityFacts({
-  understanding,
-}: {
-  understanding: UnderstandingResource['data'];
-}) {
-  const facts = [
-    [
-      'Iteration',
-      `${understanding.iteration.reference} · v${understanding.iteration.version}`,
-    ],
-    ['Story', understanding.story.reference],
-    [
-      'Story Revision',
-      `v${understanding.storyRevision.revisionNumber} · ${shortHash(understanding.storyRevision.contentSha256)}`,
-    ],
-    [
-      'Scenario Proposal',
-      understanding.currentScenarioProposal
-        ? shortHash(understanding.currentScenarioProposal.contentSha256)
-        : 'none',
-    ],
-    [
-      'Pending question',
-      understanding.pendingClarification?.reference ?? 'none',
-    ],
-  ];
-  return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium">并发锁定事实</h3>
-      <dl className="flex flex-col gap-2 text-xs">
-        {facts.map(([label, value]) => (
-          <div
-            className="flex items-start justify-between gap-3 rounded-lg border p-2.5"
-            key={label}
-          >
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="max-w-[12rem] break-all text-right font-mono">
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
   );
 }
 

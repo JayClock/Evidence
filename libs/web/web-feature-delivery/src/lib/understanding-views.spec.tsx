@@ -61,6 +61,8 @@ describe('UnderstandingDetailView', () => {
       />,
     );
 
+    expect(screen.getAllByText(/Given Story Revision 已锁定/).length).toBe(2);
+    expect(screen.queryByText('并发锁定事实')).toBeNull();
     fireEvent.click(screen.getByLabelText('选择 DRAFT-002'));
     fireEvent.change(screen.getByLabelText('省略 Draft 或其他路由的理由'), {
       target: { value: 'DRAFT-002 属于另一条独立业务边界。' },
