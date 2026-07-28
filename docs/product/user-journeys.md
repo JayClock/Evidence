@@ -69,3 +69,13 @@
 5. 用户在共享 Web UI 中检查 Server 保存的有限执行事实和 Desktop 提供的本地完整 Story diff。
 6. 接受时 Desktop 先校验 Manifest/diff hash，再创建一个本地 Conventional Commit；Web 通过 REST/HAL 记录人工决定，不自动 merge/push。
 7. pseudo-Red、越界、重复失败、预算耗尽或中断会 fail closed；人工只能按当前 checkpoint 提供的路由返回 Test、Implementation、Tasking、重试质量门或取消。
+
+## 旅程 H：观察产品价值并确认本轮学习
+
+1. 人工编码批准后，Server 原子创建锁定 Story Revision、Approved Plan、Pair Manifest 与 approved commit 的 Showcase Attempt；旧 Pair 证据保持不变。
+2. Desktop 在干净的 approved commit 上重新执行 Plan 中全部 Q2，并只向 Server 回传 termination、hash 与大小等 bounded facts；Pair 质量门结果不能复用。
+3. 领域专家逐个 Scenario 观察实际产品行为，记录与每个 Then 对应的结果、价值反馈和 evidence refs；测试或 AI 不能代替该观察。
+4. 用户分别决定 Q3/Q4 是否需要活动；required 的每项活动记录 passed/concern，not_required 记录理由。失败或 concern 禁止 Accept。
+5. Desktop 启动独立只读 Showcase Reviewer；Reviewer 只能给出结构化建议。用户再以理由 Accept、按知识缺口 Revise 或 Reject。
+6. Accept 后 Desktop 启动只读 Respond Learner，基于 accepted Showcase 提出一份 knowledge response、残余风险与一个 next Probe；空 promotions 合法但必须说明理由。
+7. 用户审查精确 Respond Candidate，可 Revise 并保留旧 Candidate，或 Approve 完成本轮。next Probe 不自动写入 Inbox，也不自动创建下一张 Story。

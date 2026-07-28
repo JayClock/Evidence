@@ -2,34 +2,34 @@
 
 ## 产品上下文
 
-| 上游                 | 下游               | 关系与集成                                            |
-| -------------------- | ------------------ | ----------------------------------------------------- |
-| Identity & Workspace | Work Intake        | Workspace membership 隔离 Inbox Item 与 Revision      |
-| Identity & Workspace | Model Authoring    | Workspace 提供成员和模型所有权边界                    |
-| Identity & Workspace | Diagram Projection | 每个 Workspace 提供一个当前 Diagram 投影              |
+| 上游                 | 下游                | 关系与集成                                            |
+| -------------------- | ------------------- | ----------------------------------------------------- |
+| Identity & Workspace | Work Intake         | Workspace membership 隔离 Inbox Item 与 Revision      |
+| Identity & Workspace | Model Authoring     | Workspace 提供成员和模型所有权边界                    |
+| Identity & Workspace | Diagram Projection  | 每个 Workspace 提供一个当前 Diagram 投影              |
 | Work Intake          | Iteration & Kickoff | 人类选择精确 Candidate 后冻结自包含 Intake            |
-| Iteration & Kickoff  | Delivery Knowledge | Kickoff confirm 创建本 Iteration 唯一 Story           |
-| Model Authoring      | Diagram Projection | DiagramNode/Edge 投影 LogicalEntity/Relationship      |
-| Desktop Runtime      | Model Authoring    | 本地 Pi Agent 通过认证 REST command 更新模型          |
-| Delivery Knowledge   | Desktop Runtime    | 精确 Story Revision 驱动隔离的本地 CodingRun          |
-| Server Runtime       | Web Runtime        | REST/HAL 与 OpenAPI Published Language                |
-| Desktop Runtime      | Web Runtime        | Electron Wrapper，共享 renderer 与产品语义            |
-| Desktop Runtime      | Server Runtime     | HTTPS + Authorization；loopback HTTP 仅用于开发       |
-| Desktop Runtime      | Local Repository   | API + Workspace 私有 binding；路径仅留在 main process |
+| Iteration & Kickoff  | Delivery Knowledge  | Kickoff confirm 创建本 Iteration 唯一 Story           |
+| Model Authoring      | Diagram Projection  | DiagramNode/Edge 投影 LogicalEntity/Relationship      |
+| Desktop Runtime      | Model Authoring     | 本地 Pi Agent 通过认证 REST command 更新模型          |
+| Delivery Knowledge   | Desktop Runtime     | 精确 Plan/nextAction 驱动 Pair、Showcase 与 Respond   |
+| Server Runtime       | Web Runtime         | REST/HAL 与 OpenAPI Published Language                |
+| Desktop Runtime      | Web Runtime         | Electron Wrapper，共享 renderer 与产品语义            |
+| Desktop Runtime      | Server Runtime      | HTTPS + Authorization；loopback HTTP 仅用于开发       |
+| Desktop Runtime      | Local Repository    | API + Workspace 私有 binding；路径仅留在 main process |
 
 ## 实现映射
 
-| 上下文               | Server                                          | Web                              | Desktop                              |
-| -------------------- | ----------------------------------------------- | -------------------------------- | ------------------------------------ |
-| Identity & Workspace | `libs/server/domain`、`persistent`、`api`       | `libs/web/web-shell`、API client | 复用 Web 与远程 API                  |
-| Work Intake          | `domain/inbox`、Prisma、Inbox controllers       | `web-feature-inbox`              | 本地 Source adapter 与 Inbox Analyst |
-| Iteration & Kickoff  | `domain/iteration`、Prisma、Iteration controller | `web-feature-delivery`          | worktree provision 与 Kickoff Analyst |
-| Delivery Knowledge   | `domain/delivery`、Prisma、Delivery controllers | `web-feature-delivery`           | CodingRun controller 与人工审查      |
-| Model Authoring      | filesystem model adapters、domain、controllers  | logical-entities feature         | 复用 Web 与远程 API                  |
-| Diagram Projection   | `WorkspaceDiagram` 与 YAML projection           | diagrams feature                 | 复用 Web 与远程 API                  |
-| AI Modeling          | 仅提供模型 command/query REST API               | diagrams AI UI                   | 嵌入式 Pi SDK + 远程模型 API         |
-| Coding Execution     | CodingRun 状态与有限执行事实                    | coding run 审查 UI               | 隔离 worktree、Pi、质量门与本地 diff |
-| Resource Navigation  | HAL controllers                                 | resource-browser、web-shell      | API URL、repository binding、Agent   |
+| 上下文               | Server                                             | Web                              | Desktop                               |
+| -------------------- | -------------------------------------------------- | -------------------------------- | ------------------------------------- |
+| Identity & Workspace | `libs/server/domain`、`persistent`、`api`          | `libs/web/web-shell`、API client | 复用 Web 与远程 API                   |
+| Work Intake          | `domain/inbox`、Prisma、Inbox controllers          | `web-feature-inbox`              | 本地 Source adapter 与 Inbox Analyst  |
+| Iteration & Kickoff  | `domain/iteration`、Prisma、Iteration controller   | `web-feature-delivery`           | worktree provision 与 Kickoff Analyst |
+| Delivery Knowledge   | iteration/delivery Domain、Prisma、HAL controllers | `web-feature-delivery`           | Pair/Showcase/Respond controllers     |
+| Model Authoring      | filesystem model adapters、domain、controllers     | logical-entities feature         | 复用 Web 与远程 API                   |
+| Diagram Projection   | `WorkspaceDiagram` 与 YAML projection              | diagrams feature                 | 复用 Web 与远程 API                   |
+| AI Modeling          | 仅提供模型 command/query REST API                  | diagrams AI UI                   | 嵌入式 Pi SDK + 远程模型 API          |
+| Delivery Execution   | Pair/Showcase/Respond 状态与 bounded evidence      | 人工审查与产品观察 UI            | 隔离 worktree、Pi、命令与本地 diff    |
+| Resource Navigation  | HAL controllers                                    | resource-browser、web-shell      | API URL、repository binding、Agent    |
 
 ## Published Language 与适配边界
 
@@ -48,7 +48,7 @@ Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具�
 ## 边界规则
 
 - LogicalRelationship 的端点必须属于同一 Workspace。
-- Coding Pi 不能自行宣告运行成功、接受变更或绕过人工审查提交代码。
+- Pair Driver 不能自行宣告命令成功或提交代码；Showcase Reviewer 与 Respond Learner 都是独立只读 session，不能作人工决定。
 - Nest 是唯一 Server runtime；Electron main/preload 不实现 Server domain。
 - Hosted API 必须认证部署 principal，所有 Workspace 访问必须通过其 membership。
 - 同一 Inbox source identity 幂等；同一 Item 内每个 content SHA-256 只有一个 Revision。

@@ -25,7 +25,7 @@ tasking/approved
   → pair/approved
 ```
 
-Pair 在 `pair/approved` 停止。Showcase、Respond、merge 和 push 不属于本决定。
+Pair 自身在 `pair/approved` 停止；批准事务随后按 [EVD-006](./showcase-respond-lifecycle.md) 原子创建 Showcase authority。Showcase/Respond 不改写 Pair 证据，merge 和 push 仍不属于产品自动动作。
 
 ## 权威与执行边界
 
