@@ -271,6 +271,21 @@ const createdWorkspaceState = {
 };
 
 const useResourceMock = useResource as unknown as Mock;
+const browser = globalThis as unknown as {
+  document: {
+    documentElement: {
+      classList: {
+        contains: (value: string) => boolean;
+        remove: (value: string) => void;
+      };
+      style: { colorScheme: string };
+    };
+  };
+  localStorage: {
+    clear: () => void;
+    getItem: (key: string) => string | null;
+  };
+};
 
 describe('WebShell', () => {
   beforeEach(() => {
@@ -281,6 +296,9 @@ describe('WebShell', () => {
       configurable: true,
       value: undefined,
     });
+    browser.localStorage.clear();
+    browser.document.documentElement.classList.remove('dark');
+    browser.document.documentElement.style.colorScheme = '';
     useResourceMock.mockImplementation((resourceLike: { kind: string }) => {
       if (resourceLike.kind === 'memberships') {
         return {
@@ -319,6 +337,46 @@ describe('WebShell', () => {
     expect(screen.getAllByText('逻辑实体').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Desktop User').length).toBeGreaterThan(0);
     expect(screen.getByText('Route content')).toBeTruthy();
+  });
+
+  it('uses semantic breadcrumbs without exposing resource UUIDs', () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/api/workspaces/default-workspace/iterations/iteration-uuid/pair',
+        ]}
+      >
+        <WebShell userState={userState as unknown as State<UserResource>}>
+          <div>Route content</div>
+        </WebShell>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByText('Pair 工作台').length).toBeGreaterThan(0);
+    expect(screen.getByText('Story 级编码审批')).toBeTruthy();
+    expect(screen.queryByText('iteration-uuid')).toBeNull();
+    expect(screen.getByText('Web · 查看模式')).toBeTruthy();
+  });
+
+  it('persists the explicit theme selected from every topbar', async () => {
+    render(
+      <MemoryRouter>
+        <WebShell userState={userState as unknown as State<UserResource>}>
+          <div>Route content</div>
+        </WebShell>
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '切换到深色模式' }));
+
+    await waitFor(() =>
+      expect(browser.document.documentElement.classList.contains('dark')).toBe(
+        true,
+      ),
+    );
+    expect(browser.localStorage.getItem('evidence-theme')).toBe('dark');
+    expect(screen.getByRole('button', { name: '切换到浅色模式' })).toBeTruthy();
+    expect(screen.queryByText('Web · 查看模式')).toBeNull();
   });
 
   it('marks only the query-specific delivery queue as current', () => {

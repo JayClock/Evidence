@@ -108,6 +108,12 @@ export function WebShell({
     <TooltipProvider>
       <Toaster position="top-center" />
       <SidebarProvider>
+        <a
+          className="sr-only top-2 left-2 rounded-md bg-card px-3 py-2 text-sm font-medium shadow focus:fixed focus:not-sr-only"
+          href="#main-content"
+        >
+          跳到主要内容
+        </a>
         <AppSidebar
           activeWorkspace={activeWorkspace}
           navigation={navigation}
@@ -120,13 +126,14 @@ export function WebShell({
           onSelectWorkspace={selectWorkspace}
         />
         <SidebarInset className="h-svh min-w-0 overflow-hidden">
-          <AppTopbar
-            activeWorkspaceTitle={activeWorkspace?.title}
-            navigation={navigation}
-          />
-          <main className="min-h-0 w-full flex-1 overflow-hidden p-2.5 md:p-3.5">
+          <AppTopbar navigation={navigation} />
+          <div
+            className="min-h-0 w-full flex-1 overflow-hidden p-2.5"
+            id="main-content"
+            tabIndex={-1}
+          >
             {children}
-          </main>
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

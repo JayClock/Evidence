@@ -20,7 +20,7 @@ import {
   Separator,
   SidebarTrigger,
 } from '@evidence/ui';
-import { SearchIcon } from 'lucide-react';
+import { MoonIcon, SearchIcon, SunIcon } from 'lucide-react';
 
 import type { ShellNavigationSection } from './navigation';
 
@@ -30,17 +30,15 @@ interface BreadcrumbEntry {
 }
 
 export function AppTopbar({
-  activeWorkspaceTitle,
   navigation,
 }: {
-  activeWorkspaceTitle?: string;
   navigation: ShellNavigationSection[];
 }) {
   const location = useLocation();
   const [commandOpen, setCommandOpen] = useState(false);
   const breadcrumbs = useMemo(
-    () => breadcrumbEntries(location.pathname, activeWorkspaceTitle),
-    [activeWorkspaceTitle, location.pathname],
+    () => breadcrumbEntries(location.pathname),
+    [location.pathname],
   );
 
   useEffect(() => {
@@ -60,8 +58,8 @@ export function AppTopbar({
   return (
     <>
       <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-card px-3.5">
-        <SidebarTrigger />
-        <Separator orientation="vertical" className="h-5" />
+        <SidebarTrigger className="lg:hidden" />
+        <Separator orientation="vertical" className="h-5 lg:hidden" />
         <Breadcrumb className="min-w-0">
           <BreadcrumbList className="flex-nowrap overflow-hidden">
             {breadcrumbs.map((entry, index) => {
@@ -90,12 +88,12 @@ export function AppTopbar({
         <div className="min-w-0 flex-1" />
         <Button
           aria-label="搜索工作区或执行命令"
-          className="hidden w-64 justify-start text-muted-foreground lg:flex"
+          className="hidden w-[15.625rem] justify-start text-muted-foreground lg:flex"
           onClick={() => setCommandOpen(true)}
           type="button"
           variant="outline"
         >
-          <SearchIcon data-icon="inline-start" />
+          <SearchIcon aria-hidden data-icon="inline-start" />
           <span className="truncate">搜索工作区或执行命令</span>
           <kbd className="ml-auto font-mono text-[0.625rem]">⌘K</kbd>
         </Button>
@@ -107,11 +105,14 @@ export function AppTopbar({
           type="button"
           variant="outline"
         >
-          <SearchIcon />
+          <SearchIcon aria-hidden />
         </Button>
-        <Badge variant="secondary">
-          {desktopConnected ? 'Desktop · 已连接' : 'Web · 查看模式'}
-        </Badge>
+        {requiresDesktopStatus(location.pathname) ? (
+          <Badge variant="secondary">
+            {desktopConnected ? 'Desktop · 已连接' : 'Web · 查看模式'}
+          </Badge>
+        ) : null}
+        <ThemeToggle />
       </header>
       <NavigationCommand
         navigation={navigation}
@@ -120,6 +121,41 @@ export function AppTopbar({
       />
     </>
   );
+}
+
+type Theme = 'light' | 'dark';
+
+const themeStorageKey = 'evidence-theme';
+
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const dark = theme === 'dark';
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem(themeStorageKey, theme);
+  }, [dark, theme]);
+
+  return (
+    <Button
+      aria-label={dark ? '切换到浅色模式' : '切换到深色模式'}
+      onClick={() => setTheme(dark ? 'light' : 'dark')}
+      size="icon-sm"
+      type="button"
+      variant="ghost"
+    >
+      {dark ? <SunIcon aria-hidden /> : <MoonIcon aria-hidden />}
+    </Button>
+  );
+}
+
+function initialTheme(): Theme {
+  const saved = window.localStorage.getItem(themeStorageKey);
+  if (saved === 'light' || saved === 'dark') return saved;
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 function NavigationCommand({
@@ -166,59 +202,118 @@ function NavigationCommand({
   );
 }
 
-function breadcrumbEntries(
-  pathname: string,
-  workspaceTitle?: string,
-): BreadcrumbEntry[] {
-  const appPath = pathname.startsWith('/api/')
-    ? pathname.slice('/api'.length)
-    : pathname;
+function breadcrumbEntries(pathname: string): BreadcrumbEntry[] {
+  const appPath = canonicalPath(pathname);
   const match = appPath.match(/^\/workspaces\/([^/]+)(?:\/(.*))?$/);
   if (!match) return [{ label: 'Evidence' }];
 
   const workspaceId = match[1] ?? '';
   const base = `/workspaces/${workspaceId}`;
   const tail = match[2]?.split('/').filter(Boolean) ?? [];
-  const entries: BreadcrumbEntry[] = [
-    { href: base, label: workspaceTitle ?? '工作区' },
-  ];
-  if (tail.length === 0) return [...entries, { label: '总览' }];
-
   const first = tail[0];
-  const known: Record<string, [string, string]> = {
-    'inbox-items': ['工作区', '收件箱'],
-    'story-candidates': ['交付', '故事候选'],
-    stories: ['交付', '故事看板'],
-    iterations: ['交付', 'Iteration'],
-    diagram: ['模型', '模型图'],
-    'logical-entities': ['模型', '逻辑实体'],
-  };
-  const labels = known[first ?? ''];
-  if (!labels) return [...entries, { label: humanize(first ?? '') }];
 
-  entries.push({ label: labels[0] });
-  if (first === 'iterations' && tail[1]) {
-    entries.push({ label: decodeURIComponent(tail[1]) });
-    if (tail[2]) entries.push({ label: humanize(tail[2]) });
-    return entries;
+  if (!first) {
+    return [{ href: base, label: '工作区' }, { label: '总览' }];
   }
-  if (tail.length > 1) {
-    entries.push({ href: `${base}/${first}`, label: labels[1] });
-    entries.push({ label: decodeURIComponent(tail.at(-1) ?? '') });
-    return entries;
+
+  if (first === 'inbox-items') {
+    return collectionBreadcrumb(
+      base,
+      first,
+      '工作区',
+      '收件箱',
+      tail,
+      '来源详情',
+    );
   }
-  entries.push({ label: labels[1] });
-  return entries;
+  if (first === 'story-candidates') {
+    return collectionBreadcrumb(
+      base,
+      first,
+      '交付',
+      '故事候选',
+      tail,
+      'Candidate',
+    );
+  }
+  if (first === 'stories') {
+    return tail.length === 1
+      ? [{ label: '交付' }, { label: '故事看板' }]
+      : [
+          { href: `${base}/stories`, label: '故事看板' },
+          { label: tail.includes('revisions') ? 'Story Revision' : 'Story' },
+        ];
+  }
+  if (first === 'iterations') {
+    return iterationBreadcrumb(base, tail[2]);
+  }
+  if (first === 'diagram') {
+    return [{ label: '模型' }, { label: '模型图' }];
+  }
+  if (first === 'logical-entities') {
+    return collectionBreadcrumb(
+      base,
+      first,
+      '模型',
+      '逻辑实体',
+      tail,
+      '实体详情',
+    );
+  }
+
+  return [{ href: base, label: '工作区' }, { label: '资源' }];
 }
 
-function humanize(value: string): string {
-  const labels: Record<string, string> = {
-    kickoff: 'Kickoff',
-    intake: 'Frozen Intake',
-    understanding: 'Understand / TQA',
-    tasking: 'Tasking / Desk Check',
-    pair: 'Pair 工作台',
-    revisions: '修订历史',
+function collectionBreadcrumb(
+  base: string,
+  segment: string,
+  parent: string,
+  collection: string,
+  tail: string[],
+  detail: string,
+): BreadcrumbEntry[] {
+  if (tail.length === 1) return [{ label: parent }, { label: collection }];
+  return [
+    { href: `${base}/${segment}`, label: collection },
+    { label: tail.includes('revisions') ? '修订历史' : detail },
+  ];
+}
+
+function iterationBreadcrumb(
+  base: string,
+  activity?: string,
+): BreadcrumbEntry[] {
+  const labels: Record<string, [string, string]> = {
+    kickoff: ['交付', 'Kickoff'],
+    intake: ['交付', 'Frozen Intake'],
+    understanding: ['故事看板', 'Understand / TQA'],
+    tasking: ['交付计划', 'Tasking / Desk Check'],
+    pair: ['Pair 工作台', 'Story 级编码审批'],
   };
-  return labels[value] ?? value.replaceAll('-', ' ');
+  const [parent, current] = labels[activity ?? ''] ?? ['交付', 'Iteration'];
+  const parentHref =
+    activity === 'understanding'
+      ? `${base}/stories`
+      : activity === 'tasking'
+        ? `${base}/stories?filter=tasking`
+        : activity === 'pair'
+          ? `${base}/stories?filter=pair`
+          : undefined;
+  return [{ href: parentHref, label: parent }, { label: current }];
+}
+
+function requiresDesktopStatus(pathname: string): boolean {
+  const appPath = canonicalPath(pathname);
+  return (
+    appPath.endsWith('/understanding') ||
+    appPath.endsWith('/tasking') ||
+    appPath.endsWith('/pair') ||
+    /\/workspaces\/[^/]+\/stories\/?$/.test(appPath)
+  );
+}
+
+function canonicalPath(pathname: string): string {
+  return pathname.startsWith('/api/')
+    ? pathname.slice('/api'.length)
+    : pathname;
 }
