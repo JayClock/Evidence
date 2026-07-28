@@ -16,8 +16,11 @@ import {
 import {
   CANCEL_DIAGRAM_AGENT_CHANNEL,
   DIAGRAM_AGENT_EVENT_CHANNEL,
+  parseDiagramAgentEvent,
   parseDiagramAgentRequest,
   RUN_DIAGRAM_AGENT_CHANNEL,
+  type AgentRuntimeRequest,
+  type DiagramAgentEvent,
 } from './agent-protocol';
 import { authorizedApiRequestHeaders } from './electron/api-request-authorization';
 import { IterationWorktreeManager } from './iteration-worktree';
@@ -57,7 +60,7 @@ import {
 import { IntakeApiClient } from './intake-api-client';
 import { isTrustedRendererRequest } from './electron/ipc-security';
 import { IterationController } from './iteration-controller';
-import { LocalAgent } from './local-agent';
+import { LocalAgentProcess } from './adapters/node/agent-process';
 import {
   parsePairDriverEvent,
   type PairDriverEvent,
@@ -139,20 +142,23 @@ const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
 const userDataPath = resolveUserDataPath();
 if (userDataPath) app.setPath('userData', userDataPath);
 
-let localAgent: LocalAgent | null = null;
-let inboxAnalyst: LocalAgent<
+let localAgent: LocalAgentProcess<
+  AgentRuntimeRequest,
+  DiagramAgentEvent
+> | null = null;
+let inboxAnalyst: LocalAgentProcess<
   InboxAnalystRuntimeRequest,
   IntakeAgentEvent
 > | null = null;
-let kickoffAnalyst: LocalAgent<
+let kickoffAnalyst: LocalAgentProcess<
   KickoffAnalystRuntimeRequest,
   IntakeAgentEvent
 > | null = null;
-let understandingAnalyst: LocalAgent<
+let understandingAnalyst: LocalAgentProcess<
   UnderstandingAnalystRuntimeRequest,
   IntakeAgentEvent
 > | null = null;
-let taskingAnalyst: LocalAgent<
+let taskingAnalyst: LocalAgentProcess<
   TaskingAnalystRuntimeRequest,
   IntakeAgentEvent
 > | null = null;
@@ -219,15 +225,15 @@ function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
 
 function registerDesktopBridge(
   apiBaseUrl: string,
-  agent: LocalAgent,
+  agent: LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent>,
   bindings: WorkspaceBindingStore,
-  inbox: LocalAgent<InboxAnalystRuntimeRequest, IntakeAgentEvent>,
-  kickoff: LocalAgent<KickoffAnalystRuntimeRequest, IntakeAgentEvent>,
-  understanding: LocalAgent<
+  inbox: LocalAgentProcess<InboxAnalystRuntimeRequest, IntakeAgentEvent>,
+  kickoff: LocalAgentProcess<KickoffAnalystRuntimeRequest, IntakeAgentEvent>,
+  understanding: LocalAgentProcess<
     UnderstandingAnalystRuntimeRequest,
     IntakeAgentEvent
   >,
-  tasking: LocalAgent<TaskingAnalystRuntimeRequest, IntakeAgentEvent>,
+  tasking: LocalAgentProcess<TaskingAnalystRuntimeRequest, IntakeAgentEvent>,
   iterations: IterationController,
   pairs: PairController,
   showcases: ShowcaseController,
@@ -543,8 +549,10 @@ function registerRendererApiAuthorization(
   );
 }
 
-function createLocalAgent(authorization: string | undefined): LocalAgent {
-  return new LocalAgent({
+function createLocalAgent(
+  authorization: string | undefined,
+): LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent> {
+  return new LocalAgentProcess({
     executablePath: app.isPackaged
       ? process.execPath
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
@@ -561,6 +569,7 @@ function createLocalAgent(authorization: string | undefined): LocalAgent {
       ...piRuntimeEnvironment(),
       ...(authorization ? { EVIDENCE_API_AUTHORIZATION: authorization } : {}),
     },
+    parseEvent: parseDiagramAgentEvent,
   });
 }
 
@@ -577,8 +586,8 @@ function createIntakeAgent<
     | 'understanding-analyst-runtime.mjs'
     | 'tasking-analyst-runtime.mjs',
   authorization: string | undefined,
-): LocalAgent<TRequest, IntakeAgentEvent> {
-  return new LocalAgent({
+): LocalAgentProcess<TRequest, IntakeAgentEvent> {
+  return new LocalAgentProcess({
     executablePath: app.isPackaged
       ? process.execPath
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
@@ -600,8 +609,8 @@ function createPairAgent<
 >(
   entryName: 'pair-driver-runtime.mjs' | 'pair-red-reviewer-runtime.mjs',
   parseEvent: (value: unknown) => TEvent | null,
-): LocalAgent<TRequest, TEvent> {
-  return new LocalAgent({
+): LocalAgentProcess<TRequest, TEvent> {
+  return new LocalAgentProcess({
     executablePath: app.isPackaged
       ? process.execPath
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
@@ -614,11 +623,11 @@ function createPairAgent<
   });
 }
 
-function createShowcaseReviewerAgent(): LocalAgent<
+function createShowcaseReviewerAgent(): LocalAgentProcess<
   ShowcaseReviewerRuntimeRequest,
   ShowcaseReviewerEvent
 > {
-  return new LocalAgent({
+  return new LocalAgentProcess({
     executablePath: app.isPackaged
       ? process.execPath
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
@@ -636,11 +645,11 @@ function createShowcaseReviewerAgent(): LocalAgent<
   });
 }
 
-function createRespondLearnerAgent(): LocalAgent<
+function createRespondLearnerAgent(): LocalAgentProcess<
   RespondLearnerRuntimeRequest,
   RespondLearnerEvent
 > {
-  return new LocalAgent({
+  return new LocalAgentProcess({
     executablePath: app.isPackaged
       ? process.execPath
       : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),

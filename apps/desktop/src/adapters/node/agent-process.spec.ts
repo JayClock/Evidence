@@ -2,11 +2,16 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { AgentRuntimeRequest, DiagramAgentEvent } from './agent-protocol';
-import { LocalAgent } from './local-agent';
+import {
+  parseDiagramAgentEvent,
+  type AgentRuntimeRequest,
+  type DiagramAgentEvent,
+} from '../../agent-protocol';
+import { LocalAgentProcess } from './agent-process';
 
 const temporaryPaths: string[] = [];
-const agents: LocalAgent[] = [];
+const agents: Array<LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent>> =
+  [];
 
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -18,7 +23,7 @@ afterEach(async () => {
   );
 });
 
-describe('LocalAgent', () => {
+describe('LocalAgentProcess', () => {
   it('streams validated events from an isolated runtime process', async () => {
     const runtimeEntry = await fixtureRuntime(`
       let input = '';
@@ -112,12 +117,13 @@ describe('LocalAgent', () => {
 function createAgent(
   runtimeEntry: string,
   environment?: NodeJS.ProcessEnv,
-): LocalAgent {
-  const agent = new LocalAgent({
+): LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent> {
+  const agent = new LocalAgentProcess({
     executablePath: process.execPath,
     runtimeEntry,
     packaged: false,
     environment,
+    parseEvent: parseDiagramAgentEvent,
   });
   agents.push(agent);
   return agent;

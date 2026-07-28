@@ -1,9 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { AgentRuntimeRequest, DiagramAgentEvent } from './agent-protocol';
-import { parseDiagramAgentEvent } from './agent-protocol';
-import { localCommandEnvironment } from './adapters/node/command-environment';
+import { localCommandEnvironment } from './command-environment';
 
 const CANCEL_TIMEOUT_MS = 5_000;
 
@@ -17,12 +15,12 @@ interface LocalRuntimeEvent {
   data: string;
 }
 
-export interface LocalAgentOptions<TEvent extends LocalRuntimeEvent> {
+export interface LocalAgentProcessOptions<TEvent extends LocalRuntimeEvent> {
   executablePath: string;
   runtimeEntry: string;
   packaged: boolean;
   environment?: NodeJS.ProcessEnv;
-  parseEvent?: (value: unknown) => TEvent | null;
+  parseEvent: (value: unknown) => TEvent | null;
 }
 
 interface ActiveAgent {
@@ -30,18 +28,13 @@ interface ActiveAgent {
   cancelled: boolean;
 }
 
-export class LocalAgent<
-  TRequest extends LocalRuntimeRequest = AgentRuntimeRequest,
-  TEvent extends LocalRuntimeEvent = DiagramAgentEvent,
+export class LocalAgentProcess<
+  TRequest extends LocalRuntimeRequest,
+  TEvent extends LocalRuntimeEvent,
 > {
   private readonly active = new Map<string, ActiveAgent>();
-  private readonly parseEvent: (value: unknown) => TEvent | null;
 
-  constructor(private readonly options: LocalAgentOptions<TEvent>) {
-    this.parseEvent =
-      options.parseEvent ??
-      (parseDiagramAgentEvent as (value: unknown) => TEvent | null);
-  }
+  constructor(private readonly options: LocalAgentProcessOptions<TEvent>) {}
 
   async run(
     request: TRequest,
@@ -79,7 +72,7 @@ export class LocalAgent<
         request,
         onEvent,
         () => active.cancelled,
-        this.parseEvent,
+        this.options.parseEvent,
       );
     } finally {
       if (this.active.get(request.id) === active) {
