@@ -4,11 +4,11 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import {
-  IntakeApiClient,
+  FlowApiClient,
   type RemoteTasking,
   type TaskingDraftInput,
   type TaskingProjectCatalogInput,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 
 export interface TaskingAnalystToolState {
   attempted: boolean;
@@ -40,7 +40,7 @@ const technicalBoundary = Type.Union([
 ]);
 
 export function createTaskingAnalystTools(
-  client: IntakeApiClient,
+  client: FlowApiClient,
   tasking: RemoteTasking,
   projectCatalog: TaskingProjectCatalogInput,
   state: TaskingAnalystToolState,

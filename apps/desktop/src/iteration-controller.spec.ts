@@ -3,7 +3,7 @@ import { IterationController } from './iteration-controller';
 import type {
   RemoteInboxCandidate,
   RemoteIteration,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 import type { WorkspaceBinding } from './capabilities/workspace-binding/store';
 
 const apiBaseUrl = 'https://evidence.example/api';

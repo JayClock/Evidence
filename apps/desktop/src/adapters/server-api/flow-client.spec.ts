@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { IntakeApiClient } from './intake-api-client';
+import { FlowApiClient } from './flow-client';
 
 const apiBaseUrl = 'https://evidence.example/api';
 const revisionSha256 = `sha256:${'a'.repeat(64)}`;
@@ -82,13 +82,13 @@ function iterationResource(lifecycle = 'provisioning', version = 1) {
   };
 }
 
-describe('IntakeApiClient', () => {
+describe('FlowApiClient', () => {
   it('captures sources and creates an explicit Extraction inside the API root', async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(response({ id: 'inbox-1' }, 201))
       .mockResolvedValueOnce(response(extractionResource(), 201));
-    const client = new IntakeApiClient({
+    const client = new FlowApiClient({
       apiBaseUrl,
       authorization: 'Bearer secret',
       fetch,
@@ -138,7 +138,7 @@ describe('IntakeApiClient', () => {
         201,
       ),
     );
-    const client = new IntakeApiClient({ apiBaseUrl, fetch });
+    const client = new FlowApiClient({ apiBaseUrl, fetch });
     const extraction = {
       id: 'extraction-1',
       reference: 'EXTRACT-0001',
@@ -188,7 +188,7 @@ describe('IntakeApiClient', () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(response(iterationResource(), 201))
       .mockResolvedValueOnce(response(iterationResource('active', 2)));
-    const client = new IntakeApiClient({ apiBaseUrl, fetch });
+    const client = new FlowApiClient({ apiBaseUrl, fetch });
     const candidate = {
       id: 'candidate-1',
       reference: 'CAND-0001',
@@ -228,7 +228,7 @@ describe('IntakeApiClient', () => {
       .mockResolvedValue(
         response({ id: 'tasking-1', reference: 'TASKING-001' }, 201),
       );
-    const client = new IntakeApiClient({ apiBaseUrl, fetch });
+    const client = new FlowApiClient({ apiBaseUrl, fetch });
     const tasking = {
       iteration: {
         id: 'iteration-1',
@@ -320,7 +320,7 @@ describe('IntakeApiClient', () => {
 
   it('rejects cross-origin HAL actions before sending credentials', async () => {
     const fetch = vi.fn<typeof globalThis.fetch>();
-    const client = new IntakeApiClient({
+    const client = new FlowApiClient({
       apiBaseUrl,
       authorization: 'Bearer secret',
       fetch,

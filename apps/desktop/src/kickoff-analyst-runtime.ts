@@ -9,7 +9,7 @@ import {
   type AnalystEvent,
   type KickoffAnalystRuntimeRequest,
 } from './capabilities/analyst-process/protocol';
-import { IntakeApiClient } from './intake-api-client';
+import { FlowApiClient } from './adapters/server-api/flow-client';
 import { createKickoffAnalystTools } from './kickoff-analyst-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
@@ -36,7 +36,7 @@ export async function runKickoffAnalystRequest(
   request: KickoffAnalystRuntimeRequest,
   emit: (event: AnalystEvent) => void,
 ): Promise<void> {
-  const client = new IntakeApiClient({
+  const client = new FlowApiClient({
     apiBaseUrl: request.apiBaseUrl,
     authorization: process.env.EVIDENCE_API_AUTHORIZATION,
   });

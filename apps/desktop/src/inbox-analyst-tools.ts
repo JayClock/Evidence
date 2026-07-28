@@ -5,9 +5,9 @@ import {
 import { Type } from 'typebox';
 import {
   type InboxCandidateProposalInput,
-  IntakeApiClient,
+  FlowApiClient,
   type RemoteInboxExtraction,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 
 const cognitiveMode = Type.Union([
   Type.Literal('clear'),
@@ -21,7 +21,7 @@ export interface InboxAnalystToolState {
 }
 
 export function createInboxAnalystTools(
-  client: IntakeApiClient,
+  client: FlowApiClient,
   extraction: RemoteInboxExtraction,
   state: InboxAnalystToolState,
 ): ToolDefinition[] {

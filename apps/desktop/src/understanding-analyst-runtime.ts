@@ -9,7 +9,7 @@ import {
   type AnalystEvent,
   type UnderstandingAnalystRuntimeRequest,
 } from './capabilities/analyst-process/protocol';
-import { IntakeApiClient } from './intake-api-client';
+import { FlowApiClient } from './adapters/server-api/flow-client';
 import { createUnderstandingAnalystTools } from './understanding-analyst-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
@@ -35,7 +35,7 @@ export async function runUnderstandingAnalystRequest(
   request: UnderstandingAnalystRuntimeRequest,
   emit: (event: AnalystEvent) => void,
 ): Promise<void> {
-  const client = new IntakeApiClient({
+  const client = new FlowApiClient({
     apiBaseUrl: request.apiBaseUrl,
     authorization: process.env.EVIDENCE_API_AUTHORIZATION,
   });
@@ -141,10 +141,7 @@ async function createSession(
   return session;
 }
 
-function mapSessionEvent(
-  id: string,
-  event: AgentSessionEvent,
-): AnalystEvent[] {
+function mapSessionEvent(id: string, event: AgentSessionEvent): AnalystEvent[] {
   if (event.type === 'tool_execution_start') {
     return [agentEvent(id, 'tool-start', event.toolName)];
   }

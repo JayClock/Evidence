@@ -2,9 +2,9 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
 import { createInboxAnalystTools } from './inbox-analyst-tools';
 import type {
-  IntakeApiClient,
+  FlowApiClient,
   RemoteInboxExtraction,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 
 const revisionSha256 = `sha256:${'a'.repeat(64)}`;
 const extraction: RemoteInboxExtraction = {
@@ -52,7 +52,7 @@ describe('Inbox Analyst tools', () => {
         },
       ],
     }));
-    const client = { proposeInboxCandidates } as unknown as IntakeApiClient;
+    const client = { proposeInboxCandidates } as unknown as FlowApiClient;
     const state = { attempted: false, completed: false };
     const tools = createInboxAnalystTools(client, extraction, state);
 
@@ -83,7 +83,7 @@ describe('Inbox Analyst tools', () => {
       proposeInboxCandidates: vi.fn(async () => {
         throw new Error('connection closed after write');
       }),
-    } as unknown as IntakeApiClient;
+    } as unknown as FlowApiClient;
     const state = { attempted: false, completed: false };
     const tool = createInboxAnalystTools(client, extraction, state)[0];
     if (!tool) throw new Error('Inbox Analyst tool missing');

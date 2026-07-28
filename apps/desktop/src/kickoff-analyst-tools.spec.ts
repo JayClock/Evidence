@@ -1,6 +1,9 @@
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
-import type { IntakeApiClient, RemoteKickoff } from './intake-api-client';
+import type {
+  FlowApiClient,
+  RemoteKickoff,
+} from './adapters/server-api/flow-client';
 import { createKickoffAnalystTools } from './kickoff-analyst-tools';
 
 const revisionSha256 = `sha256:${'a'.repeat(64)}`;
@@ -47,7 +50,7 @@ describe('Kickoff Analyst tools', () => {
       reference: 'KICKOFF-0002',
       contentSha256: `sha256:${'c'.repeat(64)}`,
     }));
-    const client = { proposeKickoffReplacement } as unknown as IntakeApiClient;
+    const client = { proposeKickoffReplacement } as unknown as FlowApiClient;
     const state = { attempted: false, completed: false };
     const tools = createKickoffAnalystTools(client, kickoff, state);
 

@@ -4,10 +4,10 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import {
-  IntakeApiClient,
+  FlowApiClient,
   type RemoteUnderstanding,
   type UnderstandingScenarioInput,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 
 export interface UnderstandingAnalystToolState {
   attempted: boolean;
@@ -15,7 +15,7 @@ export interface UnderstandingAnalystToolState {
 }
 
 export function createUnderstandingAnalystTools(
-  client: IntakeApiClient,
+  client: FlowApiClient,
   understanding: RemoteUnderstanding,
   state: UnderstandingAnalystToolState,
 ): ToolDefinition[] {

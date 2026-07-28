@@ -11,7 +11,7 @@ import {
   type AnalystEvent,
   type TaskingAnalystRuntimeRequest,
 } from './capabilities/analyst-process/protocol';
-import { IntakeApiClient } from './intake-api-client';
+import { FlowApiClient } from './adapters/server-api/flow-client';
 import {
   canonicalGitRepository,
   gitHead,
@@ -44,7 +44,7 @@ export async function runTaskingAnalystRequest(
   request: TaskingAnalystRuntimeRequest,
   emit: (event: AnalystEvent) => void,
 ): Promise<void> {
-  const client = new IntakeApiClient({
+  const client = new FlowApiClient({
     apiBaseUrl: request.apiBaseUrl,
     authorization: process.env.EVIDENCE_API_AUTHORIZATION,
   });

@@ -1,4 +1,4 @@
-import type { InboxSourceCapture } from './inbox-source-adapters';
+import type { InboxSourceCapture } from '../../inbox-source-adapters';
 
 export interface RemoteInboxExtraction {
   id: string;
@@ -140,18 +140,18 @@ export interface InboxCandidateProposalInput {
   }>;
 }
 
-export interface IntakeApiClientOptions {
+export interface FlowApiClientOptions {
   apiBaseUrl: string;
   authorization?: string;
   fetch?: typeof fetch;
 }
 
-export class IntakeApiClient {
+export class FlowApiClient {
   private readonly apiBaseUrl: URL;
   private readonly authorization: string | undefined;
   private readonly fetch: typeof fetch;
 
-  constructor(options: IntakeApiClientOptions) {
+  constructor(options: FlowApiClientOptions) {
     this.apiBaseUrl = normalizeApiBaseUrl(options.apiBaseUrl);
     this.authorization = options.authorization?.trim() || undefined;
     this.fetch = options.fetch ?? globalThis.fetch;
@@ -513,14 +513,14 @@ export class IntakeApiClient {
     const text = await response.text();
     if (!response.ok) {
       throw new Error(
-        `Evidence Intake request failed (${String(response.status)}): ${text.slice(0, 2_000) || response.statusText}`,
+        `Evidence Flow request failed (${String(response.status)}): ${text.slice(0, 2_000) || response.statusText}`,
       );
     }
     try {
-      return record(JSON.parse(text) as unknown, 'Evidence Intake response');
+      return record(JSON.parse(text) as unknown, 'Evidence Flow response');
     } catch (error) {
       if (error instanceof SyntaxError) {
-        throw new Error('Evidence Intake response was not valid JSON.');
+        throw new Error('Evidence Flow response was not valid JSON.');
       }
       throw error;
     }
@@ -539,9 +539,7 @@ export class IntakeApiClient {
       url.origin !== this.apiBaseUrl.origin ||
       (url.pathname !== root && !url.pathname.startsWith(`${root}/`))
     ) {
-      throw new Error(
-        'Evidence Intake link is outside the configured API root.',
-      );
+      throw new Error('Evidence Flow link is outside the configured API root.');
     }
     return url;
   }

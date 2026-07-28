@@ -1,11 +1,11 @@
 import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { describe, expect, it, vi } from 'vitest';
 import type {
-  IntakeApiClient,
+  FlowApiClient,
   RemoteTasking,
   TaskingDraftInput,
   TaskingProjectCatalogInput,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 import { createTaskingAnalystTools } from './tasking-analyst-tools';
 
 const projectCatalog: TaskingProjectCatalogInput = {
@@ -101,7 +101,7 @@ describe('Tasking Analyst tools', () => {
       id: 'tasking-1',
       reference: 'TASKING-001',
     }));
-    const client = { proposeTasking } as unknown as IntakeApiClient;
+    const client = { proposeTasking } as unknown as FlowApiClient;
     const state = { attempted: false, completed: false };
     const tools = createTaskingAnalystTools(
       client,

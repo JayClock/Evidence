@@ -57,7 +57,7 @@ import {
   type TaskingAnalystRuntimeRequest,
   type UnderstandingAnalystRuntimeRequest,
 } from './capabilities/analyst-process/protocol';
-import { IntakeApiClient } from './intake-api-client';
+import { FlowApiClient } from './adapters/server-api/flow-client';
 import { isTrustedRendererRequest } from './electron/ipc-security';
 import { IterationController } from './iteration-controller';
 import { LocalAgentProcess } from './adapters/node/agent-process';
@@ -793,7 +793,7 @@ void app.whenReady().then(async () => {
       apiBaseUrl,
       bindings,
       iterationWorktrees,
-      new IntakeApiClient({ apiBaseUrl, authorization }),
+      new FlowApiClient({ apiBaseUrl, authorization }),
     );
     const pairDriver = createPairAgent<
       PairDriverRuntimeRequest,

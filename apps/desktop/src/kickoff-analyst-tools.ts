@@ -5,9 +5,9 @@ import {
 import { Type } from 'typebox';
 import {
   type InboxCandidateProposalInput,
-  IntakeApiClient,
+  FlowApiClient,
   type RemoteKickoff,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 
 const cognitiveMode = Type.Union([
   Type.Literal('clear'),
@@ -21,7 +21,7 @@ export interface KickoffAnalystToolState {
 }
 
 export function createKickoffAnalystTools(
-  client: IntakeApiClient,
+  client: FlowApiClient,
   kickoff: RemoteKickoff,
   state: KickoffAnalystToolState,
 ): ToolDefinition[] {

@@ -1,10 +1,10 @@
 import type { IterationWorktreeManager } from './capabilities/work-item-worktree/manager';
 import { gitHead } from './adapters/git/repository';
 import type {
-  IntakeApiClient,
+  FlowApiClient,
   RemoteInboxCandidate,
   RemoteIteration,
-} from './intake-api-client';
+} from './adapters/server-api/flow-client';
 import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
 
 export interface StartIterationRequest {
@@ -33,10 +33,10 @@ interface IterationWorktrees {
 }
 
 interface IterationClient {
-  getCandidate: IntakeApiClient['getCandidate'];
-  selectCandidate: IntakeApiClient['selectCandidate'];
-  completeProvisioning: IntakeApiClient['completeProvisioning'];
-  failProvisioning: IntakeApiClient['failProvisioning'];
+  getCandidate: FlowApiClient['getCandidate'];
+  selectCandidate: FlowApiClient['selectCandidate'];
+  completeProvisioning: FlowApiClient['completeProvisioning'];
+  failProvisioning: FlowApiClient['failProvisioning'];
 }
 
 export class IterationController {

@@ -10,7 +10,7 @@ import {
   type AnalystEvent,
   type InboxAnalystRuntimeRequest,
 } from './capabilities/analyst-process/protocol';
-import { IntakeApiClient } from './intake-api-client';
+import { FlowApiClient } from './adapters/server-api/flow-client';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -37,7 +37,7 @@ export async function runInboxAnalystRequest(
   request: InboxAnalystRuntimeRequest,
   emit: (event: AnalystEvent) => void,
 ): Promise<void> {
-  const client = new IntakeApiClient({
+  const client = new FlowApiClient({
     apiBaseUrl: request.apiBaseUrl,
     authorization: process.env.EVIDENCE_API_AUTHORIZATION,
   });
