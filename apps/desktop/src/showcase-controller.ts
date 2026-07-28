@@ -7,7 +7,7 @@ import type {
   IterationWorktree,
   IterationWorktreeManager,
 } from './capabilities/work-item-worktree/manager';
-import type { PairCommandRunner } from './pair-command-runner';
+import type { PairCommandRunner } from './capabilities/command-execution/runner';
 import type { RemoteShowcase, ShowcaseApiClient } from './showcase-api-client';
 import type {
   ShowcaseReviewerEvent,

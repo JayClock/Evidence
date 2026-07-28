@@ -15,7 +15,7 @@ import type {
   PairCheckpointInput,
   PairLocalCheckpoint,
 } from './pair-checkpoint-store';
-import type { PairCommandResult } from './pair-command-runner';
+import type { PairCommandResult } from './capabilities/command-execution/runner';
 import { PairController, type PairControllerOptions } from './pair-controller';
 
 const baseCommitSha = 'b'.repeat(40);

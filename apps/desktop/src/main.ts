@@ -68,7 +68,7 @@ import {
 } from './pair-agent-protocol';
 import { PairApiClient } from './pair-api-client';
 import { PairCheckpointStore } from './pair-checkpoint-store';
-import { PairCommandRunner } from './pair-command-runner';
+import { PairCommandRunner } from './capabilities/command-execution/runner';
 import { PairController, type PairControllerEvent } from './pair-controller';
 import {
   APPROVE_PAIR_CHANNEL,

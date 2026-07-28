@@ -10,7 +10,10 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { localCommandEnvironment } from './adapters/node/command-environment';
-import { PAIR_PROTECTED_ROOTS, pairProtectedPath } from './pair-driver-policy';
+import {
+  protectedWorktreePath,
+  WORKTREE_PROTECTED_ROOTS,
+} from './capabilities/worktree-protection/policy';
 import type { ShowcaseReviewerEvent } from './showcase-reviewer-protocol';
 
 const execFileAsync = promisify(execFile);
@@ -71,7 +74,7 @@ class ReadOnlyWorktreeBoundary {
     const lexical = resolve(this.root, path);
     this.assertInside(lexical);
     const within = relative(this.root, lexical).split(sep).join('/');
-    if (pairProtectedPath(within)) {
+    if (protectedWorktreePath(within)) {
       throw new Error('Showcase Reviewer cannot read a protected path.');
     }
     let canonical: string;
@@ -221,7 +224,7 @@ function submitReviewTool(state: ShowcaseReviewerToolState): ToolDefinition {
 }
 
 function protectedGlobs(): string[] {
-  return PAIR_PROTECTED_ROOTS.map((root) => `--glob=!${root}/**`);
+  return WORKTREE_PROTECTED_ROOTS.map((root) => `--glob=!${root}/**`);
 }
 
 async function executeRg(

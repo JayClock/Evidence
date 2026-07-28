@@ -22,13 +22,13 @@ import {
 import { Type } from 'typebox';
 import { localCommandEnvironment } from './adapters/node/command-environment';
 import {
-  PAIR_PROTECTED_NAMES as PROTECTED_NAMES,
-  PAIR_PROTECTED_ROOTS as PROTECTED_ROOTS,
-  pairProtectedPath as protectedPath,
-  pairRootOwns as owns,
-  pairTestPath as isTestPath,
-  type PairDriverWritePolicy,
-} from './pair-driver-policy';
+  protectedWorktreePath as protectedPath,
+  testSourcePath as isTestPath,
+  worktreeRootOwns as owns,
+  WORKTREE_PROTECTED_NAMES as PROTECTED_NAMES,
+  WORKTREE_PROTECTED_ROOTS as PROTECTED_ROOTS,
+} from './capabilities/worktree-protection/policy';
+import type { PairDriverWritePolicy } from './pair-driver-policy';
 
 const execFileAsync = promisify(execFile);
 const MAX_CAPTURE = 2 * 1024 * 1024;

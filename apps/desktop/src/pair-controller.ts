@@ -41,7 +41,7 @@ import type {
 import type {
   PairCommandResult,
   PairCommandRunner,
-} from './pair-command-runner';
+} from './capabilities/command-execution/runner';
 
 const MAX_CONTROLLER_ACTIONS = 512;
 const DEFAULT_HEARTBEAT_MS = 8_000;

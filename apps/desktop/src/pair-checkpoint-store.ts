@@ -11,7 +11,7 @@ import type {
   IterationWorktreeSnapshot,
   IterationWorktree,
 } from './capabilities/work-item-worktree/manager';
-import type { PairCommandResult } from './pair-command-runner';
+import type { PairCommandResult } from './capabilities/command-execution/runner';
 
 const SHA256 = /^sha256:[a-f0-9]{64}$/;
 const GIT_SHA = /^[a-f0-9]{40}(?:[a-f0-9]{24})?$/;

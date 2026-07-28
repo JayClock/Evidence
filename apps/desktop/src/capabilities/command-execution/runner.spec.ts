@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   PairCommandRunner,
   parseLockedPairCommand,
-} from './pair-command-runner';
+} from './runner';
 
 describe('PairCommandRunner', () => {
   it.each([
