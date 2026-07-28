@@ -4,11 +4,11 @@ import type {
   AgentSessionEvent,
 } from '@earendil-works/pi-coding-agent';
 import {
-  parseIntakeAgentEvent,
+  parseAnalystEvent,
   parseKickoffAnalystRuntimeRequest,
-  type IntakeAgentEvent,
+  type AnalystEvent,
   type KickoffAnalystRuntimeRequest,
-} from './intake-agent-protocol';
+} from './capabilities/analyst-process/protocol';
 import { IntakeApiClient } from './intake-api-client';
 import { createKickoffAnalystTools } from './kickoff-analyst-tools';
 
@@ -34,7 +34,7 @@ type RuntimeSession = Pick<
 
 export async function runKickoffAnalystRequest(
   request: KickoffAnalystRuntimeRequest,
-  emit: (event: IntakeAgentEvent) => void,
+  emit: (event: AnalystEvent) => void,
 ): Promise<void> {
   const client = new IntakeApiClient({
     apiBaseUrl: request.apiBaseUrl,
@@ -148,10 +148,7 @@ async function createSession(
   return session;
 }
 
-function mapSessionEvent(
-  id: string,
-  event: AgentSessionEvent,
-): IntakeAgentEvent[] {
+function mapSessionEvent(id: string, event: AgentSessionEvent): AnalystEvent[] {
   switch (event.type) {
     case 'tool_execution_start':
       return [agentEvent(id, 'tool-start', event.toolName)];
@@ -178,9 +175,9 @@ function mapSessionEvent(
 
 function agentEvent(
   id: string,
-  event: IntakeAgentEvent['event'],
+  event: AnalystEvent['event'],
   data: string,
-): IntakeAgentEvent {
+): AnalystEvent {
   return { id, event, data };
 }
 
@@ -207,8 +204,8 @@ async function main(): Promise<void> {
   }
 }
 
-function writeEvent(event: IntakeAgentEvent): void {
-  const validated = parseIntakeAgentEvent(event);
+function writeEvent(event: AnalystEvent): void {
+  const validated = parseAnalystEvent(event);
   if (!validated) throw new Error('Kickoff Analyst emitted an invalid event.');
   process.stdout.write(`${JSON.stringify(validated)}\n`);
 }

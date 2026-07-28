@@ -46,17 +46,17 @@ import {
   START_ITERATION_CHANNEL,
 } from './intake-ipc-protocol';
 import {
+  parseAnalystEvent,
   parseInboxAnalystRequest,
-  parseIntakeAgentEvent,
   parseKickoffAnalystRequest,
   parseTaskingAnalystRequest,
   parseUnderstandingAnalystRequest,
+  type AnalystEvent,
   type InboxAnalystRuntimeRequest,
-  type IntakeAgentEvent,
   type KickoffAnalystRuntimeRequest,
   type TaskingAnalystRuntimeRequest,
   type UnderstandingAnalystRuntimeRequest,
-} from './intake-agent-protocol';
+} from './capabilities/analyst-process/protocol';
 import { IntakeApiClient } from './intake-api-client';
 import { isTrustedRendererRequest } from './electron/ipc-security';
 import { IterationController } from './iteration-controller';
@@ -151,19 +151,19 @@ let localAgent: LocalAgentProcess<
 > | null = null;
 let inboxAnalyst: LocalAgentProcess<
   InboxAnalystRuntimeRequest,
-  IntakeAgentEvent
+  AnalystEvent
 > | null = null;
 let kickoffAnalyst: LocalAgentProcess<
   KickoffAnalystRuntimeRequest,
-  IntakeAgentEvent
+  AnalystEvent
 > | null = null;
 let understandingAnalyst: LocalAgentProcess<
   UnderstandingAnalystRuntimeRequest,
-  IntakeAgentEvent
+  AnalystEvent
 > | null = null;
 let taskingAnalyst: LocalAgentProcess<
   TaskingAnalystRuntimeRequest,
-  IntakeAgentEvent
+  AnalystEvent
 > | null = null;
 let iterationController: IterationController | null = null;
 let pairController: PairController | null = null;
@@ -230,13 +230,13 @@ function registerDesktopBridge(
   apiBaseUrl: string,
   agent: LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent>,
   bindings: WorkspaceBindingStore,
-  inbox: LocalAgentProcess<InboxAnalystRuntimeRequest, IntakeAgentEvent>,
-  kickoff: LocalAgentProcess<KickoffAnalystRuntimeRequest, IntakeAgentEvent>,
+  inbox: LocalAgentProcess<InboxAnalystRuntimeRequest, AnalystEvent>,
+  kickoff: LocalAgentProcess<KickoffAnalystRuntimeRequest, AnalystEvent>,
   understanding: LocalAgentProcess<
     UnderstandingAnalystRuntimeRequest,
-    IntakeAgentEvent
+    AnalystEvent
   >,
-  tasking: LocalAgentProcess<TaskingAnalystRuntimeRequest, IntakeAgentEvent>,
+  tasking: LocalAgentProcess<TaskingAnalystRuntimeRequest, AnalystEvent>,
   iterations: IterationController,
   pairs: PairController,
   showcases: ShowcaseController,
@@ -576,7 +576,7 @@ function createLocalAgent(
   });
 }
 
-function createIntakeAgent<
+function createAnalystAgent<
   TRequest extends
     | InboxAnalystRuntimeRequest
     | KickoffAnalystRuntimeRequest
@@ -589,7 +589,7 @@ function createIntakeAgent<
     | 'understanding-analyst-runtime.mjs'
     | 'tasking-analyst-runtime.mjs',
   authorization: string | undefined,
-): LocalAgentProcess<TRequest, IntakeAgentEvent> {
+): LocalAgentProcess<TRequest, AnalystEvent> {
   return new LocalAgentProcess({
     executablePath: app.isPackaged
       ? process.execPath
@@ -602,7 +602,7 @@ function createIntakeAgent<
       ...piRuntimeEnvironment(),
       ...(authorization ? { EVIDENCE_API_AUTHORIZATION: authorization } : {}),
     },
-    parseEvent: parseIntakeAgentEvent,
+    parseEvent: parseAnalystEvent,
   });
 }
 
@@ -766,20 +766,20 @@ void app.whenReady().then(async () => {
     const authorization = resolveApiAuthorization();
     registerRendererApiAuthorization(apiBaseUrl, authorization);
     localAgent = createLocalAgent(authorization);
-    inboxAnalyst = createIntakeAgent<InboxAnalystRuntimeRequest>(
+    inboxAnalyst = createAnalystAgent<InboxAnalystRuntimeRequest>(
       'inbox-analyst-runtime.mjs',
       authorization,
     );
-    kickoffAnalyst = createIntakeAgent<KickoffAnalystRuntimeRequest>(
+    kickoffAnalyst = createAnalystAgent<KickoffAnalystRuntimeRequest>(
       'kickoff-analyst-runtime.mjs',
       authorization,
     );
     understandingAnalyst =
-      createIntakeAgent<UnderstandingAnalystRuntimeRequest>(
+      createAnalystAgent<UnderstandingAnalystRuntimeRequest>(
         'understanding-analyst-runtime.mjs',
         authorization,
       );
-    taskingAnalyst = createIntakeAgent<TaskingAnalystRuntimeRequest>(
+    taskingAnalyst = createAnalystAgent<TaskingAnalystRuntimeRequest>(
       'tasking-analyst-runtime.mjs',
       authorization,
     );

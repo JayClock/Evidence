@@ -5,11 +5,11 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import { createInboxAnalystTools } from './inbox-analyst-tools';
 import {
+  parseAnalystEvent,
   parseInboxAnalystRuntimeRequest,
-  parseIntakeAgentEvent,
+  type AnalystEvent,
   type InboxAnalystRuntimeRequest,
-  type IntakeAgentEvent,
-} from './intake-agent-protocol';
+} from './capabilities/analyst-process/protocol';
 import { IntakeApiClient } from './intake-api-client';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
@@ -35,7 +35,7 @@ type RuntimeSession = Pick<
 
 export async function runInboxAnalystRequest(
   request: InboxAnalystRuntimeRequest,
-  emit: (event: IntakeAgentEvent) => void,
+  emit: (event: AnalystEvent) => void,
 ): Promise<void> {
   const client = new IntakeApiClient({
     apiBaseUrl: request.apiBaseUrl,
@@ -137,10 +137,7 @@ function extractionPrompt(extraction: Record<string, unknown>): string {
   )}`;
 }
 
-function mapSessionEvent(
-  id: string,
-  event: AgentSessionEvent,
-): IntakeAgentEvent[] {
+function mapSessionEvent(id: string, event: AgentSessionEvent): AnalystEvent[] {
   switch (event.type) {
     case 'tool_execution_start':
       return [agentEvent(id, 'tool-start', event.toolName)];
@@ -167,9 +164,9 @@ function mapSessionEvent(
 
 function agentEvent(
   id: string,
-  event: IntakeAgentEvent['event'],
+  event: AnalystEvent['event'],
   data: string,
-): IntakeAgentEvent {
+): AnalystEvent {
   return { id, event, data };
 }
 
@@ -196,8 +193,8 @@ async function main(): Promise<void> {
   }
 }
 
-function writeEvent(event: IntakeAgentEvent): void {
-  const validated = parseIntakeAgentEvent(event);
+function writeEvent(event: AnalystEvent): void {
+  const validated = parseAnalystEvent(event);
   if (!validated) throw new Error('Inbox Analyst emitted an invalid event.');
   process.stdout.write(`${JSON.stringify(validated)}\n`);
 }

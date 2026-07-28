@@ -5,13 +5,13 @@ import type {
 } from './features/diagram/protocol';
 import type { InboxSourceCapture } from './inbox-source-adapters';
 import {
-  parseIntakeAgentEvent,
+  parseAnalystEvent,
+  type AnalystEvent,
   type InboxAnalystRequest,
-  type IntakeAgentEvent,
   type KickoffAnalystRequest,
   type TaskingAnalystRequest,
   type UnderstandingAnalystRequest,
-} from './intake-agent-protocol';
+} from './capabilities/analyst-process/protocol';
 import {
   CANCEL_INBOX_ANALYST_CHANNEL,
   CANCEL_KICKOFF_ANALYST_CHANNEL,
@@ -80,7 +80,7 @@ import {
   START_PAIR_CHANNEL,
 } from './loops/pair/ipc-protocol';
 
-async function runIntakeAgent(
+async function runAnalyst(
   channel:
     | typeof RUN_INBOX_ANALYST_CHANNEL
     | typeof RUN_KICKOFF_ANALYST_CHANNEL
@@ -91,10 +91,10 @@ async function runIntakeAgent(
     | KickoffAnalystRequest
     | UnderstandingAnalystRequest
     | TaskingAnalystRequest,
-  onEvent: (event: IntakeAgentEvent) => void,
+  onEvent: (event: AnalystEvent) => void,
 ): Promise<void> {
   const listener = (_event: Electron.IpcRendererEvent, value: unknown) => {
-    const event = parseIntakeAgentEvent(value);
+    const event = parseAnalystEvent(value);
     if (event?.id === request.id) onEvent(event);
   };
   ipcRenderer.on(INTAKE_AGENT_EVENT_CHANNEL, listener);
@@ -186,9 +186,8 @@ const bridge = {
     }),
   runInboxAnalyst: (
     request: InboxAnalystRequest,
-    onEvent: (event: IntakeAgentEvent) => void,
-  ): Promise<void> =>
-    runIntakeAgent(RUN_INBOX_ANALYST_CHANNEL, request, onEvent),
+    onEvent: (event: AnalystEvent) => void,
+  ): Promise<void> => runAnalyst(RUN_INBOX_ANALYST_CHANNEL, request, onEvent),
   cancelInboxAnalyst: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_INBOX_ANALYST_CHANNEL, id),
   startIteration: (
@@ -197,23 +196,21 @@ const bridge = {
     ipcRenderer.invoke(START_ITERATION_CHANNEL, request),
   runKickoffAnalyst: (
     request: KickoffAnalystRequest,
-    onEvent: (event: IntakeAgentEvent) => void,
-  ): Promise<void> =>
-    runIntakeAgent(RUN_KICKOFF_ANALYST_CHANNEL, request, onEvent),
+    onEvent: (event: AnalystEvent) => void,
+  ): Promise<void> => runAnalyst(RUN_KICKOFF_ANALYST_CHANNEL, request, onEvent),
   cancelKickoffAnalyst: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_KICKOFF_ANALYST_CHANNEL, id),
   runUnderstandingAnalyst: (
     request: UnderstandingAnalystRequest,
-    onEvent: (event: IntakeAgentEvent) => void,
+    onEvent: (event: AnalystEvent) => void,
   ): Promise<void> =>
-    runIntakeAgent(RUN_UNDERSTANDING_ANALYST_CHANNEL, request, onEvent),
+    runAnalyst(RUN_UNDERSTANDING_ANALYST_CHANNEL, request, onEvent),
   cancelUnderstandingAnalyst: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_UNDERSTANDING_ANALYST_CHANNEL, id),
   runTaskingAnalyst: (
     request: TaskingAnalystRequest,
-    onEvent: (event: IntakeAgentEvent) => void,
-  ): Promise<void> =>
-    runIntakeAgent(RUN_TASKING_ANALYST_CHANNEL, request, onEvent),
+    onEvent: (event: AnalystEvent) => void,
+  ): Promise<void> => runAnalyst(RUN_TASKING_ANALYST_CHANNEL, request, onEvent),
   cancelTaskingAnalyst: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_TASKING_ANALYST_CHANNEL, id),
   startPair: (

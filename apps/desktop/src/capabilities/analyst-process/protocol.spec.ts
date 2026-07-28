@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  parseAnalystEvent,
   parseInboxAnalystRequest,
   parseInboxAnalystRuntimeRequest,
-  parseIntakeAgentEvent,
   parseKickoffAnalystRequest,
   parseTaskingAnalystRequest,
   parseTaskingAnalystRuntimeRequest,
-} from './intake-agent-protocol';
+} from './protocol';
 
-describe('intake Agent protocol', () => {
+describe('Analyst process protocol', () => {
   it('separates renderer requests from main-process runtime configuration', () => {
     expect(
       parseInboxAnalystRequest({
@@ -75,14 +75,14 @@ describe('intake Agent protocol', () => {
       }),
     ).toThrow('unsupported characters');
     expect(
-      parseIntakeAgentEvent({
+      parseAnalystEvent({
         id: 'inbox:1',
         event: 'complete',
         data: '',
       }),
     ).toEqual({ id: 'inbox:1', event: 'complete', data: '' });
     expect(
-      parseIntakeAgentEvent({ id: 'inbox:1', event: 'thinking', data: 'x' }),
+      parseAnalystEvent({ id: 'inbox:1', event: 'thinking', data: 'x' }),
     ).toBeNull();
   });
 });

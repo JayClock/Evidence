@@ -1,16 +1,3 @@
-export const RUN_INBOX_ANALYST_CHANNEL = 'evidence:run-inbox-analyst';
-export const CANCEL_INBOX_ANALYST_CHANNEL = 'evidence:cancel-inbox-analyst';
-export const INBOX_ANALYST_EVENT_CHANNEL = 'evidence:inbox-analyst-event';
-export const RUN_KICKOFF_ANALYST_CHANNEL = 'evidence:run-kickoff-analyst';
-export const CANCEL_KICKOFF_ANALYST_CHANNEL = 'evidence:cancel-kickoff-analyst';
-export const KICKOFF_ANALYST_EVENT_CHANNEL = 'evidence:kickoff-analyst-event';
-export const RUN_UNDERSTANDING_ANALYST_CHANNEL =
-  'evidence:run-understanding-analyst';
-export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
-  'evidence:cancel-understanding-analyst';
-export const RUN_TASKING_ANALYST_CHANNEL = 'evidence:run-tasking-analyst';
-export const CANCEL_TASKING_ANALYST_CHANNEL = 'evidence:cancel-tasking-analyst';
-
 export interface InboxAnalystRequest {
   id: string;
   workspaceId: string;
@@ -56,7 +43,7 @@ export interface TaskingAnalystRuntimeRequest extends TaskingAnalystRequest {
   worktreeRoot: string;
 }
 
-export interface IntakeAgentEvent {
+export interface AnalystEvent {
   id: string;
   event: 'progress' | 'tool-start' | 'tool-end' | 'complete' | 'error';
   data: string;
@@ -157,7 +144,7 @@ export function parseTaskingAnalystRuntimeRequest(
   };
 }
 
-export function parseIntakeAgentEvent(value: unknown): IntakeAgentEvent | null {
+export function parseAnalystEvent(value: unknown): AnalystEvent | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
   if (
@@ -201,7 +188,7 @@ function record(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function isEvent(value: unknown): value is IntakeAgentEvent['event'] {
+function isEvent(value: unknown): value is AnalystEvent['event'] {
   return (
     value === 'progress' ||
     value === 'tool-start' ||
