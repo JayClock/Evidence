@@ -23,16 +23,16 @@ export function DeliveryAuthorityProgress({
   const currentIndex = authorityStepIndex(iteration);
 
   return (
-    <div className="shrink-0 overflow-x-auto border-b bg-card">
+    <div className="h-[3.625rem] shrink-0 overflow-x-auto px-4 pb-[0.6875rem]">
       <ol
         aria-label="Iteration 交付阶段"
-        className="grid min-w-[72rem] grid-cols-9 overflow-hidden"
+        className="grid h-[2.9375rem] min-w-[69.75rem] grid-cols-9 overflow-hidden rounded-lg border bg-card"
       >
         {steps.map((step, index) => {
           const state = stepState(index, currentIndex);
           return (
             <li
-              className="flex min-w-0 items-center gap-2 border-r px-3 py-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
+              className="flex min-w-0 items-center gap-2 border-r px-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
               data-state={state}
               key={step.label}
             >
@@ -43,7 +43,7 @@ export function DeliveryAuthorityProgress({
                 <span className="truncate text-xs font-medium">
                   {step.label}
                 </span>
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-[0.6875rem] text-muted-foreground">
                   {step.detail}
                 </span>
               </span>
