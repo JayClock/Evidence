@@ -7,7 +7,7 @@ import {
   RemoteEvidenceClient,
   type LogicalEntityInput,
   type LogicalRelationshipInput,
-} from './remote-evidence-client';
+} from './api-client';
 
 const logicalEntityType = Type.Union([
   Type.Literal('EVIDENCE'),

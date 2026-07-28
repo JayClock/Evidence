@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { DiagramAgentEvent, DiagramAgentRequest } from './agent-protocol';
+import type {
+  DiagramAgentEvent,
+  DiagramAgentRequest,
+} from './features/diagram/protocol';
 import type { InboxSourceCapture } from './inbox-source-adapters';
 import {
   parseIntakeAgentEvent,
@@ -32,7 +35,7 @@ import {
   DIAGRAM_AGENT_EVENT_CHANNEL,
   parseDiagramAgentEvent,
   RUN_DIAGRAM_AGENT_CHANNEL,
-} from './agent-protocol';
+} from './features/diagram/protocol';
 import type { RepositorySelectionSummary } from './capabilities/workspace-binding/store';
 import type {
   ApprovePairRequest,

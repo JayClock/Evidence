@@ -6,7 +6,7 @@ import {
   parseDiagramAgentEvent,
   type AgentRuntimeRequest,
   type DiagramAgentEvent,
-} from '../../agent-protocol';
+} from '../../features/diagram/protocol';
 import { LocalAgentProcess } from './agent-process';
 
 const temporaryPaths: string[] = [];

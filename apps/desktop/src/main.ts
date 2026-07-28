@@ -21,7 +21,7 @@ import {
   RUN_DIAGRAM_AGENT_CHANNEL,
   type AgentRuntimeRequest,
   type DiagramAgentEvent,
-} from './agent-protocol';
+} from './features/diagram/protocol';
 import { authorizedApiRequestHeaders } from './electron/api-request-authorization';
 import { IterationWorktreeManager } from './capabilities/work-item-worktree/manager';
 import {

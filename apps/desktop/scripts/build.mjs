@@ -18,29 +18,53 @@ const configurations = [
   {
     ...shared,
     format: 'cjs',
-    entryPoints: [
-      resolve(workspaceRoot, 'apps/desktop/src/main.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/preload.ts'),
-    ],
+    entryPoints: {
+      main: resolve(workspaceRoot, 'apps/desktop/src/main.ts'),
+      preload: resolve(workspaceRoot, 'apps/desktop/src/preload.ts'),
+    },
   },
   {
     ...shared,
     format: 'esm',
     outExtension: { '.js': '.mjs' },
-    entryPoints: [
-      resolve(workspaceRoot, 'apps/desktop/src/agent-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/inbox-analyst-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/kickoff-analyst-runtime.ts'),
-      resolve(
+    entryPoints: {
+      'agent-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/features/diagram/agent-runtime.ts',
+      ),
+      'inbox-analyst-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/inbox-analyst-runtime.ts',
+      ),
+      'kickoff-analyst-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/kickoff-analyst-runtime.ts',
+      ),
+      'understanding-analyst-runtime': resolve(
         workspaceRoot,
         'apps/desktop/src/understanding-analyst-runtime.ts',
       ),
-      resolve(workspaceRoot, 'apps/desktop/src/tasking-analyst-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/pair-driver-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/pair-red-reviewer-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/showcase-reviewer-runtime.ts'),
-      resolve(workspaceRoot, 'apps/desktop/src/respond-learner-runtime.ts'),
-    ],
+      'tasking-analyst-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/tasking-analyst-runtime.ts',
+      ),
+      'pair-driver-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/pair-driver-runtime.ts',
+      ),
+      'pair-red-reviewer-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/pair-red-reviewer-runtime.ts',
+      ),
+      'showcase-reviewer-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/showcase-reviewer-runtime.ts',
+      ),
+      'respond-learner-runtime': resolve(
+        workspaceRoot,
+        'apps/desktop/src/respond-learner-runtime.ts',
+      ),
+    },
   },
 ];
 

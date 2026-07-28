@@ -3,13 +3,10 @@ import type {
   AgentSession,
   AgentSessionEvent,
 } from '@earendil-works/pi-coding-agent';
-import type { AgentRuntimeRequest, DiagramAgentEvent } from './agent-protocol';
-import {
-  parseAgentRuntimeRequest,
-  parseDiagramAgentEvent,
-} from './agent-protocol';
-import { createModelingAgentTools } from './modeling-agent-tools';
-import { RemoteEvidenceClient } from './remote-evidence-client';
+import type { AgentRuntimeRequest, DiagramAgentEvent } from './protocol';
+import { parseAgentRuntimeRequest, parseDiagramAgentEvent } from './protocol';
+import { createModelingAgentTools } from './agent-tools';
+import { RemoteEvidenceClient } from './api-client';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const DEFAULT_TIMEOUT_MS = 120_000;
