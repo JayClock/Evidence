@@ -1,4 +1,4 @@
-import type { StartIterationRequest } from './iteration-controller';
+import type { StartIterationRequest } from '../iteration-controller';
 
 export const READ_INBOX_MARKDOWN_CHANNEL = 'evidence:read-inbox-markdown';
 export const FETCH_INBOX_GITHUB_ISSUES_CHANNEL =
@@ -13,7 +13,7 @@ export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
   'evidence:cancel-understanding-analyst';
 export const RUN_TASKING_ANALYST_CHANNEL = 'evidence:run-tasking-analyst';
 export const CANCEL_TASKING_ANALYST_CHANNEL = 'evidence:cancel-tasking-analyst';
-export const INTAKE_AGENT_EVENT_CHANNEL = 'evidence:intake-agent-event';
+export const ANALYST_EVENT_CHANNEL = 'evidence:intake-agent-event';
 export const START_ITERATION_CHANNEL = 'evidence:start-iteration';
 
 const ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9:._-]{0,199}$/;
@@ -59,7 +59,7 @@ export function parseStartIterationRequest(
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Desktop intake request must be an object.');
+    throw new Error('Desktop flow request must be an object.');
   }
   return value as Record<string, unknown>;
 }

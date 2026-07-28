@@ -18,14 +18,14 @@ import {
   CANCEL_TASKING_ANALYST_CHANNEL,
   CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
   FETCH_INBOX_GITHUB_ISSUES_CHANNEL,
-  INTAKE_AGENT_EVENT_CHANNEL,
+  ANALYST_EVENT_CHANNEL,
   READ_INBOX_MARKDOWN_CHANNEL,
   RUN_INBOX_ANALYST_CHANNEL,
   RUN_KICKOFF_ANALYST_CHANNEL,
   RUN_TASKING_ANALYST_CHANNEL,
   RUN_UNDERSTANDING_ANALYST_CHANNEL,
   START_ITERATION_CHANNEL,
-} from './intake-ipc-protocol';
+} from './electron/flow-ipc-protocol';
 import type {
   IterationProvisioningSummary,
   StartIterationRequest,
@@ -97,11 +97,11 @@ async function runAnalyst(
     const event = parseAnalystEvent(value);
     if (event?.id === request.id) onEvent(event);
   };
-  ipcRenderer.on(INTAKE_AGENT_EVENT_CHANNEL, listener);
+  ipcRenderer.on(ANALYST_EVENT_CHANNEL, listener);
   try {
     await ipcRenderer.invoke(channel, request);
   } finally {
-    ipcRenderer.removeListener(INTAKE_AGENT_EVENT_CHANNEL, listener);
+    ipcRenderer.removeListener(ANALYST_EVENT_CHANNEL, listener);
   }
 }
 

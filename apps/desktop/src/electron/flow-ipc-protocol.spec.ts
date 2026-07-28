@@ -3,9 +3,9 @@ import {
   parseFetchInboxGitHubIssuesRequest,
   parseReadInboxMarkdownRequest,
   parseStartIterationRequest,
-} from './intake-ipc-protocol';
+} from './flow-ipc-protocol';
 
-describe('intake IPC protocol', () => {
+describe('flow IPC protocol', () => {
   it('accepts only bounded opaque workflow identities', () => {
     expect(
       parseStartIterationRequest({

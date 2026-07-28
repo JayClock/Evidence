@@ -34,7 +34,7 @@ import {
   CANCEL_TASKING_ANALYST_CHANNEL,
   CANCEL_UNDERSTANDING_ANALYST_CHANNEL,
   FETCH_INBOX_GITHUB_ISSUES_CHANNEL,
-  INTAKE_AGENT_EVENT_CHANNEL,
+  ANALYST_EVENT_CHANNEL,
   parseFetchInboxGitHubIssuesRequest,
   parseReadInboxMarkdownRequest,
   parseStartIterationRequest,
@@ -44,7 +44,7 @@ import {
   RUN_TASKING_ANALYST_CHANNEL,
   RUN_UNDERSTANDING_ANALYST_CHANNEL,
   START_ITERATION_CHANNEL,
-} from './intake-ipc-protocol';
+} from './electron/flow-ipc-protocol';
 import {
   parseAnalystEvent,
   parseInboxAnalystRequest,
@@ -310,7 +310,7 @@ function registerDesktopBridge(
     const request = parseInboxAnalystRequest(input);
     await inbox.run({ ...request, apiBaseUrl }, (agentEvent) => {
       if (!event.sender.isDestroyed()) {
-        event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+        event.sender.send(ANALYST_EVENT_CHANNEL, agentEvent);
       }
     });
   });
@@ -326,7 +326,7 @@ function registerDesktopBridge(
     const request = parseKickoffAnalystRequest(input);
     await kickoff.run({ ...request, apiBaseUrl }, (agentEvent) => {
       if (!event.sender.isDestroyed()) {
-        event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+        event.sender.send(ANALYST_EVENT_CHANNEL, agentEvent);
       }
     });
   });
@@ -352,7 +352,7 @@ function registerDesktopBridge(
         { ...request, apiBaseUrl, sessionDirectory },
         (agentEvent) => {
           if (!event.sender.isDestroyed()) {
-            event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+            event.sender.send(ANALYST_EVENT_CHANNEL, agentEvent);
           }
         },
       );
@@ -396,7 +396,7 @@ function registerDesktopBridge(
       },
       (agentEvent) => {
         if (!event.sender.isDestroyed()) {
-          event.sender.send(INTAKE_AGENT_EVENT_CHANNEL, agentEvent);
+          event.sender.send(ANALYST_EVENT_CHANNEL, agentEvent);
         }
       },
     );
