@@ -99,8 +99,14 @@ import {
   parseShowcaseControllerEvent,
   parseShowcaseRequestId,
   RUN_SHOWCASE_CHECKS_CHANNEL,
+  RUN_SHOWCASE_REVIEWER_CHANNEL,
   SHOWCASE_EVENT_CHANNEL,
 } from './showcase-ipc-protocol';
+import {
+  parseShowcaseReviewerEvent,
+  type ShowcaseReviewerEvent,
+  type ShowcaseReviewerRuntimeRequest,
+} from './showcase-reviewer-protocol';
 import {
   resolveApiAuthorization,
   resolveApiBaseUrl,
@@ -435,6 +441,23 @@ function registerDesktopBridge(
     };
     return showcases.runChecks(request, forward);
   });
+  ipcMain.handle(
+    RUN_SHOWCASE_REVIEWER_CHANNEL,
+    async (event, input: unknown) => {
+      assertTrustedIpcSender(event);
+      const request = parseRunShowcaseRequest(input);
+      const forward = (showcaseEvent: ShowcaseControllerEvent) => {
+        const validated = parseShowcaseControllerEvent(showcaseEvent);
+        if (!validated) {
+          throw new Error('Showcase Controller emitted an invalid event.');
+        }
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(SHOWCASE_EVENT_CHANNEL, validated);
+        }
+      };
+      return showcases.runReviewer(request, forward);
+    },
+  );
   ipcMain.handle(CANCEL_SHOWCASE_CHANNEL, (event, id: unknown) => {
     assertTrustedIpcSender(event);
     showcases.cancel(parseShowcaseRequestId(id));
@@ -548,6 +571,28 @@ function createPairAgent<
     packaged: app.isPackaged,
     environment: piRuntimeEnvironment(),
     parseEvent,
+  });
+}
+
+function createShowcaseReviewerAgent(): LocalAgent<
+  ShowcaseReviewerRuntimeRequest,
+  ShowcaseReviewerEvent
+> {
+  return new LocalAgent({
+    executablePath: app.isPackaged
+      ? process.execPath
+      : (process.env.EVIDENCE_NODE_EXECUTABLE ?? 'node'),
+    runtimeEntry: app.isPackaged
+      ? join(
+          process.resourcesPath,
+          'app.asar.unpacked',
+          'dist',
+          'showcase-reviewer-runtime.mjs',
+        )
+      : join(__dirname, 'showcase-reviewer-runtime.mjs'),
+    packaged: app.isPackaged,
+    environment: piRuntimeEnvironment(),
+    parseEvent: parseShowcaseReviewerEvent,
   });
 }
 
@@ -703,6 +748,7 @@ void app.whenReady().then(async () => {
       worktrees: iterationWorktrees,
       client: new ShowcaseApiClient({ apiBaseUrl, authorization }),
       commands: new PairCommandRunner(),
+      reviewer: createShowcaseReviewerAgent(),
     });
     registerDesktopBridge(
       apiBaseUrl,

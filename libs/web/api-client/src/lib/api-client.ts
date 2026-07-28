@@ -198,6 +198,10 @@ type EvidenceDesktopBridge = {
     request: ShowcaseRunRequest,
     onEvent: (event: ShowcaseControllerEvent) => void,
   ): Promise<ShowcaseControllerSummary>;
+  runShowcaseReviewer?(
+    request: ShowcaseRunRequest,
+    onEvent: (event: ShowcaseControllerEvent) => void,
+  ): Promise<ShowcaseControllerSummary>;
   cancelShowcase?(id: string): Promise<void>;
   runDiagramAgent(
     request: DiagramAgentRequest,

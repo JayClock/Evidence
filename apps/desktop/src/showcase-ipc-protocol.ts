@@ -4,6 +4,7 @@ import type {
 } from './showcase-controller';
 
 export const RUN_SHOWCASE_CHECKS_CHANNEL = 'evidence:run-showcase-checks';
+export const RUN_SHOWCASE_REVIEWER_CHANNEL = 'evidence:run-showcase-reviewer';
 export const CANCEL_SHOWCASE_CHANNEL = 'evidence:cancel-showcase';
 export const SHOWCASE_EVENT_CHANNEL = 'evidence:showcase-event';
 

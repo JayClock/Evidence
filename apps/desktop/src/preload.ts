@@ -52,6 +52,7 @@ import {
   CANCEL_SHOWCASE_CHANNEL,
   parseShowcaseControllerEvent,
   RUN_SHOWCASE_CHECKS_CHANNEL,
+  RUN_SHOWCASE_REVIEWER_CHANNEL,
   SHOWCASE_EVENT_CHANNEL,
 } from './showcase-ipc-protocol';
 import {
@@ -91,6 +92,9 @@ async function runIntakeAgent(
 }
 
 async function runShowcaseController(
+  channel:
+    | typeof RUN_SHOWCASE_CHECKS_CHANNEL
+    | typeof RUN_SHOWCASE_REVIEWER_CHANNEL,
   request: RunShowcaseRequest,
   onEvent: (event: ShowcaseControllerEvent) => void,
 ): Promise<ShowcaseControllerSummary> {
@@ -100,7 +104,7 @@ async function runShowcaseController(
   };
   ipcRenderer.on(SHOWCASE_EVENT_CHANNEL, listener);
   try {
-    return await ipcRenderer.invoke(RUN_SHOWCASE_CHECKS_CHANNEL, request);
+    return await ipcRenderer.invoke(channel, request);
   } finally {
     ipcRenderer.removeListener(SHOWCASE_EVENT_CHANNEL, listener);
   }
@@ -207,7 +211,12 @@ const bridge = {
     request: RunShowcaseRequest,
     onEvent: (event: ShowcaseControllerEvent) => void,
   ): Promise<ShowcaseControllerSummary> =>
-    runShowcaseController(request, onEvent),
+    runShowcaseController(RUN_SHOWCASE_CHECKS_CHANNEL, request, onEvent),
+  runShowcaseReviewer: (
+    request: RunShowcaseRequest,
+    onEvent: (event: ShowcaseControllerEvent) => void,
+  ): Promise<ShowcaseControllerSummary> =>
+    runShowcaseController(RUN_SHOWCASE_REVIEWER_CHANNEL, request, onEvent),
   cancelShowcase: (id: string): Promise<void> =>
     ipcRenderer.invoke(CANCEL_SHOWCASE_CHANNEL, id),
   runDiagramAgent: async (
