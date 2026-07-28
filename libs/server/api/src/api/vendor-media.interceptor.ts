@@ -319,6 +319,23 @@ export function vendorMediaType(
       ? mediaType('pair-start-result')
       : mediaType('pair-action-result');
   }
+  if (
+    matches(apiSegments, ['workspaces', '*', 'iterations', '*', 'showcase'])
+  ) {
+    return mediaType('showcase');
+  }
+  if (
+    apiSegments.length === 6 &&
+    matches(apiSegments.slice(0, 5), [
+      'workspaces',
+      '*',
+      'iterations',
+      '*',
+      'showcase',
+    ])
+  ) {
+    return mediaType('showcase-action-result');
+  }
   if (matches(apiSegments, ['workspaces', '*', 'stories'])) {
     return mediaType('stories');
   }

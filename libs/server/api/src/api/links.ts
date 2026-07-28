@@ -280,6 +280,27 @@ export function workspaceIterationPairActionHref(
   return `${workspaceIterationPairHref(workspaceId, iterationId)}/${resource}`;
 }
 
+export function workspaceIterationShowcaseHref(
+  workspaceId: string,
+  iterationId: string,
+): string {
+  return `${workspaceIterationHref(workspaceId, iterationId)}/showcase`;
+}
+
+export function workspaceIterationShowcaseActionHref(
+  workspaceId: string,
+  iterationId: string,
+  resource:
+    | 'q2-observations'
+    | 'product-observations'
+    | 'risk-decisions'
+    | 'evaluations'
+    | 'reviews'
+    | 'decisions',
+): string {
+  return `${workspaceIterationShowcaseHref(workspaceId, iterationId)}/${resource}`;
+}
+
 export function workspaceStoriesHref(workspaceId: string): string {
   return `${workspaceHref(workspaceId)}/stories`;
 }

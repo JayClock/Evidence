@@ -19,6 +19,7 @@ import {
   workspaceIterationPairHref,
   workspaceIterationPairLeaseHref,
   workspaceIterationPairRunsHref,
+  workspaceIterationShowcaseHref,
   workspaceIterationTaskingHref,
   workspaceStoryHref,
   workspaceStoryRevisionHref,
@@ -90,6 +91,11 @@ export function pairViewModel(workspaceId: string, view: PairView) {
   if (run.status === 'exception' || run.status === 'approval_required') {
     links.decide = link(
       workspaceIterationPairActionHref(workspaceId, iterationId, 'decisions'),
+    );
+  }
+  if (run.status === 'approved') {
+    links.showcase = link(
+      workspaceIterationShowcaseHref(workspaceId, iterationId),
     );
   }
   return {
@@ -169,7 +175,7 @@ export function pairEntryLinks(workspaceId: string, iterationId: string) {
   };
 }
 
-function pairRunModel(value: PairRun) {
+export function pairRunModel(value: PairRun) {
   const description = value.description();
   return {
     id: value.identity(),
@@ -239,7 +245,7 @@ function pairExceptionModel(value: PairAutomationException) {
   };
 }
 
-function pairManifestModel(value: PairExecutionManifest) {
+export function pairManifestModel(value: PairExecutionManifest) {
   const { pairRun, ...description } = value.description();
   return {
     id: value.identity(),

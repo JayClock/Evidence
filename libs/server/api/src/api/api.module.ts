@@ -10,6 +10,7 @@ import { PairController } from './pair.controller';
 import { InboxStoryCandidatesController } from './story-candidates.controller';
 import { LogicalRelationshipsController } from './logical-relationships.controller';
 import { ResourceResolver } from './resource-resolver.service';
+import { ShowcaseController } from './showcase.controller';
 import { SidebarController } from './sidebar.controller';
 import { UserMembershipsController } from './user-memberships.controller';
 import { TaskingController } from './tasking.controller';
@@ -86,6 +87,7 @@ class StoryCandidatesApiModule {}
     UnderstandingController,
     TaskingController,
     PairController,
+    ShowcaseController,
   ],
 })
 class IterationsApiModule {}
