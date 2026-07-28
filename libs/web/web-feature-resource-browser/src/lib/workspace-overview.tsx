@@ -129,7 +129,7 @@ export function WorkspaceOverviewView({
           </div>
         </section>
 
-        <Card className="h-48 gap-0 py-0 lg:h-[11.5rem] xl:h-[10.75rem]">
+        <Card className="h-48 gap-0 py-0 lg:h-[11.625rem] xl:h-[10.75rem]">
           <CardHeader className="h-[2.875rem] justify-center border-b py-2 !pb-2">
             <CardTitle aria-level={2} role="heading">
               交付权威流程
