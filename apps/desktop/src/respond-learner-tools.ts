@@ -4,7 +4,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import type { RespondLearnerDetails } from './respond-learner-protocol';
-import { createReadOnlyRepositoryTools } from './showcase-reviewer-tools';
+import { createReadOnlyWorktreeTools } from './capabilities/read-only-worktree/tools';
 
 export interface RespondLearnerToolState {
   response: Omit<RespondLearnerDetails, 'agentCallCount'> | null;
@@ -15,7 +15,7 @@ export async function createRespondLearnerTools(
   state: RespondLearnerToolState,
 ): Promise<ToolDefinition[]> {
   return [
-    ...(await createReadOnlyRepositoryTools(worktreeRoot)),
+    ...(await createReadOnlyWorktreeTools(worktreeRoot)),
     submitResponseTool(state),
   ];
 }
