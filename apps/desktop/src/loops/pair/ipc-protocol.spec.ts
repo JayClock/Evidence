@@ -5,7 +5,7 @@ import {
   parsePairControllerEvent,
   parseReviewPairRequest,
   parseRunPairRequest,
-} from './pair-ipc-protocol';
+} from './ipc-protocol';
 
 const sha = `sha256:${'a'.repeat(64)}`;
 const request = {

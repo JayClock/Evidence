@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parsePairRedReviewerEvent,
   parsePairRedReviewerRuntimeRequest,
-} from './pair-red-reviewer-protocol';
+} from './red-reviewer-protocol';
 
 const sha256 = `sha256:${'a'.repeat(64)}`;
 

@@ -65,11 +65,14 @@ import {
   parsePairDriverEvent,
   type PairDriverEvent,
   type PairDriverRuntimeRequest,
-} from './pair-agent-protocol';
-import { PairApiClient } from './pair-api-client';
-import { PairCheckpointStore } from './pair-checkpoint-store';
+} from './loops/pair/driver-protocol';
+import { PairApiClient } from './loops/pair/api-client';
+import { PairCheckpointStore } from './loops/pair/checkpoint-store';
 import { PairCommandRunner } from './capabilities/command-execution/runner';
-import { PairController, type PairControllerEvent } from './pair-controller';
+import {
+  PairController,
+  type PairControllerEvent,
+} from './loops/pair/controller';
 import {
   APPROVE_PAIR_CHANNEL,
   CANCEL_PAIR_CHANNEL,
@@ -84,12 +87,12 @@ import {
   RESUME_PAIR_CHANNEL,
   REVIEW_PAIR_CHANNEL,
   START_PAIR_CHANNEL,
-} from './pair-ipc-protocol';
+} from './loops/pair/ipc-protocol';
 import {
   parsePairRedReviewerEvent,
   type PairRedReviewerEvent,
   type PairRedReviewerRuntimeRequest,
-} from './pair-red-reviewer-protocol';
+} from './loops/pair/red-reviewer-protocol';
 import { piRuntimeEnvironment } from './adapters/pi/runtime-environment';
 import { RespondApiClient } from './respond-api-client';
 import {

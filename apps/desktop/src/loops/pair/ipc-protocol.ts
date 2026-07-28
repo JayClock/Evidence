@@ -4,7 +4,7 @@ import type {
   PairControllerEvent,
   ReviewPairRequest,
   RunPairRequest,
-} from './pair-controller';
+} from './controller';
 
 export const START_PAIR_CHANNEL = 'evidence:start-pair';
 export const RESUME_PAIR_CHANNEL = 'evidence:resume-pair';

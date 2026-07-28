@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parsePairDriverEvent,
   parsePairDriverRuntimeRequest,
-} from './pair-agent-protocol';
+} from './driver-protocol';
 
 const sha256 = `sha256:${'a'.repeat(64)}`;
 

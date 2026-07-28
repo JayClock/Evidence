@@ -12,36 +12,36 @@ import {
   type IterationWorktree,
   type IterationWorktreeManager,
   type IterationWorktreeSnapshot,
-} from './capabilities/work-item-worktree/manager';
-import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
+} from '../../capabilities/work-item-worktree/manager';
+import type { WorkspaceBindingStore } from '../../capabilities/workspace-binding/store';
 import type {
   PairDriverEvent,
   PairDriverRuntimeRequest,
-} from './pair-agent-protocol';
+} from './driver-protocol';
 import {
   assertPairDriverChangedPaths,
   pairDriverWritePolicy,
-} from './pair-driver-policy';
+} from './driver-policy';
 import type {
   PairRedReviewerEvent,
   PairRedReviewerRuntimeRequest,
-} from './pair-red-reviewer-protocol';
+} from './red-reviewer-protocol';
 import type {
   PairApiClient,
   RemotePair,
   RemotePairTaskingEntry,
-} from './pair-api-client';
+} from './api-client';
 import type {
   PairCheckpointIdentity,
   PairCheckpointStore,
   PairLocalCheckpoint,
   PairLocalDiagnostic,
   PairPendingEvidence,
-} from './pair-checkpoint-store';
+} from './checkpoint-store';
 import type {
   PairCommandResult,
   PairCommandRunner,
-} from './capabilities/command-execution/runner';
+} from '../../capabilities/command-execution/runner';
 
 const MAX_CONTROLLER_ACTIONS = 512;
 const DEFAULT_HEARTBEAT_MS = 8_000;

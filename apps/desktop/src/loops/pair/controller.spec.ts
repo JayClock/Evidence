@@ -7,16 +7,16 @@ import type {
 import type {
   IterationWorktree,
   IterationWorktreeSnapshot,
-} from './capabilities/work-item-worktree/manager';
-import type { PairDriverRuntimeRequest } from './pair-agent-protocol';
-import type { PairRedReviewerRuntimeRequest } from './pair-red-reviewer-protocol';
-import type { RemotePair } from './pair-api-client';
+} from '../../capabilities/work-item-worktree/manager';
+import type { PairDriverRuntimeRequest } from './driver-protocol';
+import type { PairRedReviewerRuntimeRequest } from './red-reviewer-protocol';
+import type { RemotePair } from './api-client';
 import type {
   PairCheckpointInput,
   PairLocalCheckpoint,
-} from './pair-checkpoint-store';
-import type { PairCommandResult } from './capabilities/command-execution/runner';
-import { PairController, type PairControllerOptions } from './pair-controller';
+} from './checkpoint-store';
+import type { PairCommandResult } from '../../capabilities/command-execution/runner';
+import { PairController, type PairControllerOptions } from './controller';
 
 const baseCommitSha = 'b'.repeat(40);
 const approvedSha = digest('approved-plan');

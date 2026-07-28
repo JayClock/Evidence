@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createPairDriverTools,
   type PairDriverToolState,
-} from './pair-driver-tools';
+} from './driver-tools';
 
 const temporaryPaths: string[] = [];
 

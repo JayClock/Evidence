@@ -20,15 +20,15 @@ import {
   type WriteOperations,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { localCommandEnvironment } from './adapters/node/command-environment';
+import { localCommandEnvironment } from '../../adapters/node/command-environment';
 import {
   protectedWorktreePath as protectedPath,
   testSourcePath as isTestPath,
   worktreeRootOwns as owns,
   WORKTREE_PROTECTED_NAMES as PROTECTED_NAMES,
   WORKTREE_PROTECTED_ROOTS as PROTECTED_ROOTS,
-} from './capabilities/worktree-protection/policy';
-import type { PairDriverWritePolicy } from './pair-driver-policy';
+} from '../../capabilities/worktree-protection/policy';
+import type { PairDriverWritePolicy } from './driver-policy';
 
 const execFileAsync = promisify(execFile);
 const MAX_CAPTURE = 2 * 1024 * 1024;

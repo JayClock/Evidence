@@ -50,11 +50,11 @@ const configurations = [
       ),
       'pair-driver-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/pair-driver-runtime.ts',
+        'apps/desktop/src/loops/pair/driver-runtime.ts',
       ),
       'pair-red-reviewer-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/pair-red-reviewer-runtime.ts',
+        'apps/desktop/src/loops/pair/red-reviewer-runtime.ts',
       ),
       'showcase-reviewer-runtime': resolve(
         workspaceRoot,

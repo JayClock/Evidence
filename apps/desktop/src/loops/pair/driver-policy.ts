@@ -3,11 +3,11 @@ import {
   testSourcePath,
   worktreeRootOwns,
   WORKTREE_PROTECTED_NAMES,
-} from './capabilities/worktree-protection/policy';
+} from '../../capabilities/worktree-protection/policy';
 import type {
   PairDriverRole,
   PairDriverRuntimeRequest,
-} from './pair-agent-protocol';
+} from './driver-protocol';
 
 export interface PairDriverWritePolicy {
   role: PairDriverRole;

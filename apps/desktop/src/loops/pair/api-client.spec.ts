@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RecordPairCommandObservationInput } from '@evidence/api-client';
-import { PairApiClient } from './pair-api-client';
+import { PairApiClient } from './api-client';
 
 const sha256 = `sha256:${'a'.repeat(64)}`;
 

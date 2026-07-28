@@ -12,7 +12,7 @@ import {
   type PairRedClassification,
   type PairRedReviewerEvent,
   type PairRedReviewerRuntimeRequest,
-} from './pair-red-reviewer-protocol';
+} from './red-reviewer-protocol';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const CLASSIFICATIONS = [

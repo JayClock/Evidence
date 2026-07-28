@@ -45,7 +45,7 @@ import type {
   PairLocalReview,
   ReviewPairRequest,
   RunPairRequest,
-} from './pair-controller';
+} from './loops/pair/controller';
 import type {
   RespondControllerEvent,
   RespondControllerSummary,
@@ -78,7 +78,7 @@ import {
   RESUME_PAIR_CHANNEL,
   REVIEW_PAIR_CHANNEL,
   START_PAIR_CHANNEL,
-} from './pair-ipc-protocol';
+} from './loops/pair/ipc-protocol';
 
 async function runIntakeAgent(
   channel:
