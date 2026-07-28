@@ -93,7 +93,7 @@ export function WorkspaceOverviewView({
 
         <section
           aria-labelledby="workspace-attention-title"
-          className="h-[6.8125rem] shrink-0"
+          className="shrink-0"
         >
           <h2
             className="h-[1.0625rem] text-sm font-semibold"
@@ -101,7 +101,7 @@ export function WorkspaceOverviewView({
           >
             需要你处理
           </h2>
-          <div className="grid h-[5.75rem] items-start gap-[0.5625rem] sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid items-start gap-[0.5625rem] pb-3 sm:grid-cols-2 lg:grid-cols-4">
             <AttentionCard
               count={actionCount(summary, 'route_pair_exception')}
               detail="失败保持 fail closed"
