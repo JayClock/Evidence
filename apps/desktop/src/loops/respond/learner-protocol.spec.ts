@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseRespondLearnerEvent,
   parseRespondLearnerRuntimeRequest,
-} from './respond-learner-protocol';
+} from './learner-protocol';
 
 const sha = (character: string) => `sha256:${character.repeat(64)}`;
 

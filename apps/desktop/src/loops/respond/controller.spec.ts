@@ -3,9 +3,9 @@ import type {
   RespondResourceData,
   ShowcaseResourceData,
 } from '@evidence/api-client';
-import type { RemoteRespond } from './respond-api-client';
-import type { RemoteShowcase } from './loops/showcase/public';
-import { RespondController } from './respond-controller';
+import type { RemoteRespond } from './api-client';
+import type { RemoteShowcase } from '../showcase/public';
+import { RespondController } from './controller';
 
 const sha = (character: string) => `sha256:${character.repeat(64)}`;
 

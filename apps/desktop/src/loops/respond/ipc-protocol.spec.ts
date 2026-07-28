@@ -3,7 +3,7 @@ import {
   parseRespondControllerEvent,
   parseRespondControllerSummary,
   parseRunRespondRequest,
-} from './respond-ipc-protocol';
+} from './ipc-protocol';
 
 describe('Respond IPC protocol', () => {
   it('accepts bounded controller requests and events', () => {

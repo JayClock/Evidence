@@ -50,13 +50,13 @@ import type {
   RespondControllerEvent,
   RespondControllerSummary,
   RunRespondRequest,
-} from './respond-controller';
+} from './loops/respond/controller';
 import {
   CANCEL_RESPOND_CHANNEL,
   parseRespondControllerEvent,
   RESPOND_EVENT_CHANNEL,
   RUN_RESPOND_LEARNER_CHANNEL,
-} from './respond-ipc-protocol';
+} from './loops/respond/ipc-protocol';
 import type {
   RunShowcaseRequest,
   ShowcaseControllerEvent,

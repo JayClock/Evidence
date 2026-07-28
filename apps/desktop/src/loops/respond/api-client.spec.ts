@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ProposeRespondCandidateInput } from '@evidence/api-client';
-import { RespondApiClient } from './respond-api-client';
+import { RespondApiClient } from './api-client';
 
 const sha = (character: string) => `sha256:${character.repeat(64)}`;
 

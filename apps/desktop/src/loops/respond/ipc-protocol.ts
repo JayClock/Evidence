@@ -2,7 +2,7 @@ import type {
   RespondControllerEvent,
   RespondControllerSummary,
   RunRespondRequest,
-} from './respond-controller';
+} from './controller';
 
 export const RUN_RESPOND_LEARNER_CHANNEL = 'evidence:respond:run-learner';
 export const CANCEL_RESPOND_CHANNEL = 'evidence:respond:cancel';

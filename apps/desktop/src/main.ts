@@ -94,11 +94,11 @@ import {
   type PairRedReviewerRuntimeRequest,
 } from './loops/pair/red-reviewer-protocol';
 import { piRuntimeEnvironment } from './adapters/pi/runtime-environment';
-import { RespondApiClient } from './respond-api-client';
+import { RespondApiClient } from './loops/respond/api-client';
 import {
   RespondController,
   type RespondControllerEvent,
-} from './respond-controller';
+} from './loops/respond/controller';
 import {
   CANCEL_RESPOND_CHANNEL,
   parseRespondControllerEvent,
@@ -106,12 +106,12 @@ import {
   parseRunRespondRequest,
   RESPOND_EVENT_CHANNEL,
   RUN_RESPOND_LEARNER_CHANNEL,
-} from './respond-ipc-protocol';
+} from './loops/respond/ipc-protocol';
 import {
   parseRespondLearnerEvent,
   type RespondLearnerEvent,
   type RespondLearnerRuntimeRequest,
-} from './respond-learner-protocol';
+} from './loops/respond/learner-protocol';
 import { ShowcaseApiClient } from './loops/showcase/api-client';
 import {
   ShowcaseController,

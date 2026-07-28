@@ -5,14 +5,14 @@ import type {
 import type {
   IterationWorktree,
   IterationWorktreeManager,
-} from './capabilities/work-item-worktree/manager';
-import type { RespondApiClient, RemoteRespond } from './respond-api-client';
+} from '../../capabilities/work-item-worktree/manager';
+import type { RespondApiClient, RemoteRespond } from './api-client';
 import type {
   RespondLearnerEvent,
   RespondLearnerRuntimeRequest,
-} from './respond-learner-protocol';
-import type { AcceptedShowcaseReader } from './loops/showcase/public';
-import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
+} from './learner-protocol';
+import type { AcceptedShowcaseReader } from '../showcase/public';
+import type { WorkspaceBindingStore } from '../../capabilities/workspace-binding/store';
 
 export interface RunRespondRequest {
   id: string;

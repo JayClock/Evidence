@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createRespondLearnerTools,
   type RespondLearnerToolState,
-} from './respond-learner-tools';
+} from './learner-tools';
 
 const temporaryPaths: string[] = [];
 

@@ -3,8 +3,8 @@ import {
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import type { RespondLearnerDetails } from './respond-learner-protocol';
-import { createReadOnlyWorktreeTools } from './capabilities/read-only-worktree/tools';
+import type { RespondLearnerDetails } from './learner-protocol';
+import { createReadOnlyWorktreeTools } from '../../capabilities/read-only-worktree/tools';
 
 export interface RespondLearnerToolState {
   response: Omit<RespondLearnerDetails, 'agentCallCount'> | null;

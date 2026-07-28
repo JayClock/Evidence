@@ -9,11 +9,11 @@ import {
   parseRespondLearnerRuntimeRequest,
   type RespondLearnerEvent,
   type RespondLearnerRuntimeRequest,
-} from './respond-learner-protocol';
+} from './learner-protocol';
 import {
   createRespondLearnerTools,
   type RespondLearnerToolState,
-} from './respond-learner-tools';
+} from './learner-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const SYSTEM_PROMPT = `You are the Evidence Respond Learner for exactly one human-accepted Showcase.

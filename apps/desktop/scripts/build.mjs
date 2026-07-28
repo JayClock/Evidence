@@ -62,7 +62,7 @@ const configurations = [
       ),
       'respond-learner-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/respond-learner-runtime.ts',
+        'apps/desktop/src/loops/respond/learner-runtime.ts',
       ),
     },
   },
