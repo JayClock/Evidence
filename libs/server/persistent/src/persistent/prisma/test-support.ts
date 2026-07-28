@@ -65,6 +65,8 @@ export interface MockPrismaStore {
   showcaseEvaluation: Record<string, MockFn>;
   showcaseReview: Record<string, MockFn>;
   showcaseDecision: Record<string, MockFn>;
+  respondCandidate: Record<string, MockFn>;
+  respondDecision: Record<string, MockFn>;
   $transaction: MockFn;
 }
 
@@ -213,8 +215,10 @@ export function mockPrismaStore(): MockPrismaStore {
     showcaseProductObservation: delegate(['findMany', 'create']),
     showcaseRiskDecision: delegate(['findMany', 'create']),
     showcaseEvaluation: delegate(['findMany', 'create']),
-    showcaseReview: delegate(['findUnique', 'create']),
-    showcaseDecision: delegate(['findUnique', 'create']),
+    showcaseReview: delegate(['findFirst', 'findUnique', 'create']),
+    showcaseDecision: delegate(['findFirst', 'findUnique', 'create']),
+    respondCandidate: delegate(['findFirst', 'findMany', 'count', 'create']),
+    respondDecision: delegate(['findFirst', 'findMany', 'create']),
     $transaction: vi.fn(),
   } satisfies MockPrismaStore;
 
