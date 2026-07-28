@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseRunShowcaseRequest,
   parseShowcaseControllerEvent,
-} from './showcase-ipc-protocol';
+} from './ipc-protocol';
 
 describe('Showcase IPC protocol', () => {
   it('accepts one bounded request and event', () => {

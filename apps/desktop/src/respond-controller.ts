@@ -11,7 +11,7 @@ import type {
   RespondLearnerEvent,
   RespondLearnerRuntimeRequest,
 } from './respond-learner-protocol';
-import type { ShowcaseApiClient } from './showcase-api-client';
+import type { AcceptedShowcaseReader } from './loops/showcase/public';
 import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
 
 export interface RunRespondRequest {
@@ -43,7 +43,7 @@ interface RespondControllerOptions {
     'locate' | 'recover' | 'snapshotApproved'
   >;
   respond: Pick<RespondApiClient, 'getRespond' | 'proposeCandidate'>;
-  showcase: Pick<ShowcaseApiClient, 'getShowcase'>;
+  showcase: AcceptedShowcaseReader;
   learner: {
     run(
       request: RespondLearnerRuntimeRequest,

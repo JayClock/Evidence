@@ -61,14 +61,14 @@ import type {
   RunShowcaseRequest,
   ShowcaseControllerEvent,
   ShowcaseControllerSummary,
-} from './showcase-controller';
+} from './loops/showcase/controller';
 import {
   CANCEL_SHOWCASE_CHANNEL,
   parseShowcaseControllerEvent,
   RUN_SHOWCASE_CHECKS_CHANNEL,
   RUN_SHOWCASE_REVIEWER_CHANNEL,
   SHOWCASE_EVENT_CHANNEL,
-} from './showcase-ipc-protocol';
+} from './loops/showcase/ipc-protocol';
 import {
   APPROVE_PAIR_CHANNEL,
   CANCEL_PAIR_CHANNEL,

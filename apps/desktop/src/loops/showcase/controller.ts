@@ -6,14 +6,14 @@ import type {
 import type {
   IterationWorktree,
   IterationWorktreeManager,
-} from './capabilities/work-item-worktree/manager';
-import type { PairCommandRunner } from './capabilities/command-execution/runner';
-import type { RemoteShowcase, ShowcaseApiClient } from './showcase-api-client';
+} from '../../capabilities/work-item-worktree/manager';
+import type { PairCommandRunner } from '../../capabilities/command-execution/runner';
+import type { RemoteShowcase, ShowcaseApiClient } from './api-client';
 import type {
   ShowcaseReviewerEvent,
   ShowcaseReviewerRuntimeRequest,
-} from './showcase-reviewer-protocol';
-import type { WorkspaceBindingStore } from './capabilities/workspace-binding/store';
+} from './reviewer-protocol';
+import type { WorkspaceBindingStore } from '../../capabilities/workspace-binding/store';
 
 const MAX_Q2_ACTIONS = 100;
 

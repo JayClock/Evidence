@@ -1,7 +1,4 @@
-import type {
-  RunShowcaseRequest,
-  ShowcaseControllerEvent,
-} from './showcase-controller';
+import type { RunShowcaseRequest, ShowcaseControllerEvent } from './controller';
 
 export const RUN_SHOWCASE_CHECKS_CHANNEL = 'evidence:run-showcase-checks';
 export const RUN_SHOWCASE_REVIEWER_CHANNEL = 'evidence:run-showcase-reviewer';

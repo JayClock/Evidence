@@ -1,7 +1,10 @@
-import { defineTool, type ToolDefinition } from '@earendil-works/pi-coding-agent';
+import {
+  defineTool,
+  type ToolDefinition,
+} from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { createReadOnlyWorktreeTools } from './capabilities/read-only-worktree/tools';
-import type { ShowcaseReviewerEvent } from './showcase-reviewer-protocol';
+import { createReadOnlyWorktreeTools } from '../../capabilities/read-only-worktree/tools';
+import type { ShowcaseReviewerEvent } from './reviewer-protocol';
 
 export type ShowcaseReviewDetails = Extract<
   ShowcaseReviewerEvent,

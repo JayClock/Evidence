@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { RecordShowcaseQ2ObservationInput } from '@evidence/api-client';
-import { ShowcaseApiClient } from './showcase-api-client';
+import { ShowcaseApiClient } from './api-client';
 
 const sha256 = `sha256:${'a'.repeat(64)}`;
 

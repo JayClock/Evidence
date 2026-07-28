@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createShowcaseReviewerTools,
   type ShowcaseReviewerToolState,
-} from './showcase-reviewer-tools';
+} from './reviewer-tools';
 
 const temporaryPaths: string[] = [];
 

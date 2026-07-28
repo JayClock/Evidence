@@ -112,11 +112,11 @@ import {
   type RespondLearnerEvent,
   type RespondLearnerRuntimeRequest,
 } from './respond-learner-protocol';
-import { ShowcaseApiClient } from './showcase-api-client';
+import { ShowcaseApiClient } from './loops/showcase/api-client';
 import {
   ShowcaseController,
   type ShowcaseControllerEvent,
-} from './showcase-controller';
+} from './loops/showcase/controller';
 import {
   CANCEL_SHOWCASE_CHANNEL,
   parseRunShowcaseRequest,
@@ -125,12 +125,12 @@ import {
   RUN_SHOWCASE_CHECKS_CHANNEL,
   RUN_SHOWCASE_REVIEWER_CHANNEL,
   SHOWCASE_EVENT_CHANNEL,
-} from './showcase-ipc-protocol';
+} from './loops/showcase/ipc-protocol';
 import {
   parseShowcaseReviewerEvent,
   type ShowcaseReviewerEvent,
   type ShowcaseReviewerRuntimeRequest,
-} from './showcase-reviewer-protocol';
+} from './loops/showcase/reviewer-protocol';
 import {
   resolveApiAuthorization,
   resolveApiBaseUrl,

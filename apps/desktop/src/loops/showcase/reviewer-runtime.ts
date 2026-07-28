@@ -9,11 +9,11 @@ import {
   parseShowcaseReviewerRuntimeRequest,
   type ShowcaseReviewerEvent,
   type ShowcaseReviewerRuntimeRequest,
-} from './showcase-reviewer-protocol';
+} from './reviewer-protocol';
 import {
   createShowcaseReviewerTools,
   type ShowcaseReviewerToolState,
-} from './showcase-reviewer-tools';
+} from './reviewer-tools';
 
 const PI_SDK_MODULE_NAME = '@earendil-works/pi-coding-agent';
 const SYSTEM_PROMPT = `You are the independent Evidence Showcase Reviewer for exactly one approved Story increment.

@@ -58,7 +58,7 @@ const configurations = [
       ),
       'showcase-reviewer-runtime': resolve(
         workspaceRoot,
-        'apps/desktop/src/showcase-reviewer-runtime.ts',
+        'apps/desktop/src/loops/showcase/reviewer-runtime.ts',
       ),
       'respond-learner-runtime': resolve(
         workspaceRoot,

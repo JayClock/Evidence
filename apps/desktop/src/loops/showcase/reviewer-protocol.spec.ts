@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   parseShowcaseReviewerEvent,
   parseShowcaseReviewerRuntimeRequest,
-} from './showcase-reviewer-protocol';
+} from './reviewer-protocol';
 
 const sha256 = `sha256:${'a'.repeat(64)}`;
 
