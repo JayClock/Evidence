@@ -173,7 +173,7 @@ export function InboxCollectionView({
   };
 
   return (
-    <EvidencePage className="m-1 h-[calc(100%-0.5rem)]">
+    <EvidencePage className="relative m-1 h-[calc(100%-0.5rem)]">
       <PageHeader>
         <PageHeaderCopy>
           <PageEyebrow>
@@ -281,7 +281,11 @@ export function InboxCollectionView({
       </div>
 
       {selectedItems.size > 0 ? (
-        <div className="shrink-0 border-t p-2">
+        <div
+          aria-label="来源提取托盘"
+          className="pointer-events-none absolute right-0 bottom-4 left-0 flex justify-center px-4 xl:left-[20.625rem]"
+          role="region"
+        >
           <InboxExtractionControls
             collectionState={collectionState}
             selectedSources={[...selectedItems.values()]}

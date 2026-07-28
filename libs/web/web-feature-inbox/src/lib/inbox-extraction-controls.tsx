@@ -5,14 +5,8 @@ import type {
   InboxItemCollectionResource,
   State,
 } from '@evidence/api-client';
-import {
-  Alert,
-  AlertDescription,
-  Badge,
-  Button,
-  Card,
-  CardContent,
-} from '@evidence/ui';
+import { Badge, Button, Card, CardContent } from '@evidence/ui';
+import { LockIcon, SparklesIcon } from 'lucide-react';
 import type { InboxSourceSelection } from './inbox-source-browser';
 
 export function InboxExtractionControls({
@@ -69,61 +63,71 @@ export function InboxExtractionControls({
     }
   };
 
+  const desktopUnavailable = !bridge?.runInboxAnalyst;
+  const detail =
+    error ??
+    progress ??
+    (desktopUnavailable
+      ? '需要已绑定本地仓库的 Evidence Desktop'
+      : '冻结精确最新修订，不读取后续变化');
+
   return (
-    <Card className="shrink-0 border-primary/20 py-3">
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge>{selectedSources.length} / 5</Badge>
-            <p className="font-medium">个 active 来源已选</p>
-            <span className="text-xs text-muted-foreground">
-              下一步将冻结精确 Revision，不会读取后续 live 变化。
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {selectedSources.map((source) => (
-              <Badge
-                key={source.id}
-                title={source.latestRevisionSha256}
-                variant="outline"
-              >
-                {source.title}
-              </Badge>
-            ))}
-          </div>
-          {!bridge?.runInboxAnalyst ? (
-            <p className="text-xs text-muted-foreground">
-              请在已绑定本地仓库的 Evidence Desktop 中运行 Inbox Analyst。
-            </p>
-          ) : null}
-          {progress ? (
-            <p aria-live="polite" className="text-xs text-muted-foreground">
-              {progress}
-            </p>
-          ) : null}
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button
-            disabled={pending}
-            type="button"
-            variant="outline"
-            onClick={onClear}
+    <Card className="pointer-events-auto h-14 w-full max-w-[49.25rem] shrink-0 border-primary/20 py-0 shadow-lg">
+      <CardContent className="flex h-full items-center gap-3 px-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <SparklesIcon aria-hidden className="size-4" />
+        </span>
+        <div className="flex w-48 min-w-0 shrink-0 flex-col gap-0.5">
+          <p className="truncate text-[0.6875rem] font-semibold">
+            {selectedSources.length} / 5 个活跃来源已选
+          </p>
+          <p
+            aria-live={progress || error ? 'polite' : undefined}
+            className="truncate text-[0.625rem] text-muted-foreground data-[error=true]:text-destructive"
+            data-error={Boolean(error)}
           >
-            清空
-          </Button>
-          <Button
-            disabled={pending || !selectionIsValid || !bridge?.runInboxAnalyst}
-            type="button"
-            onClick={() => void extract()}
-          >
-            {pending ? '分析中…' : '冻结修订并分析'}
-          </Button>
+            {detail}
+          </p>
         </div>
+        <div className="flex min-w-0 flex-1 gap-1.5 overflow-hidden">
+          {selectedSources.map((source) => (
+            <Badge
+              className="max-w-32 shrink truncate"
+              key={source.id}
+              title={source.latestRevisionSha256}
+              variant="outline"
+            >
+              {source.title}
+            </Badge>
+          ))}
+        </div>
+        <Button
+          disabled={pending}
+          onClick={onClear}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          清除选择
+        </Button>
+        <Button
+          aria-describedby={
+            desktopUnavailable ? 'inbox-desktop-requirement' : undefined
+          }
+          disabled={pending || !selectionIsValid || desktopUnavailable}
+          onClick={() => void extract()}
+          size="sm"
+          title={desktopUnavailable ? detail : undefined}
+          type="button"
+        >
+          <LockIcon aria-hidden data-icon="inline-start" />
+          {pending ? '分析中…' : '冻结并分析'}
+        </Button>
+        {desktopUnavailable ? (
+          <span className="sr-only" id="inbox-desktop-requirement">
+            请在已绑定本地仓库的 Evidence Desktop 中运行 Inbox Analyst。
+          </span>
+        ) : null}
       </CardContent>
     </Card>
   );

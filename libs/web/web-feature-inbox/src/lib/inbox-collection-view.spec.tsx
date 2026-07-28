@@ -315,7 +315,7 @@ describe('InboxCollectionView', () => {
       (await screen.findAllByText('Second page source')).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText('第 2 页，共 2 页')).toBeTruthy();
-    expect(screen.getByText('1 / 5')).toBeTruthy();
+    expect(screen.getByText('1 / 5 个活跃来源已选')).toBeTruthy();
     expect(screen.getAllByText('Customer interview').length).toBeGreaterThan(0);
   });
 
@@ -372,7 +372,7 @@ describe('InboxCollectionView', () => {
       );
     }
 
-    expect(screen.getByText('5 / 5')).toBeTruthy();
+    expect(screen.getByText('5 / 5 个活跃来源已选')).toBeTruthy();
     expect(
       (
         screen.getByRole('checkbox', {
@@ -422,7 +422,7 @@ describe('InboxCollectionView', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: '选择来源 Customer interview' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: '冻结修订并分析' }));
+    fireEvent.click(screen.getByRole('button', { name: '冻结并分析' }));
 
     await waitFor(() =>
       expect(extractionPost).toHaveBeenCalledWith({
@@ -459,7 +459,7 @@ describe('InboxCollectionView', () => {
     expect(
       (
         screen.getByRole('button', {
-          name: '冻结修订并分析',
+          name: '冻结并分析',
         }) as HTMLButtonElement
       ).disabled,
     ).toBe(true);
