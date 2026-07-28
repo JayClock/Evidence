@@ -73,6 +73,12 @@ describe('LogicalEntityCollectionView', () => {
       </MemoryRouter>,
     );
 
+    const workspace = screen.getByRole('region', {
+      name: '逻辑实体工作区',
+    }) as unknown as { getAttribute: (name: string) => string | null };
+    expect(workspace.getAttribute('class')).toContain(
+      'lg:grid-cols-[minmax(0,1fr)_19.75rem]',
+    );
     expect(screen.getByRole('table')).toBeTruthy();
     expect(screen.getAllByText('Contract').length).toBeGreaterThan(0);
     expect(screen.getAllByText('contract').length).toBeGreaterThan(0);

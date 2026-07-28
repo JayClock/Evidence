@@ -128,7 +128,7 @@ export function LogicalEntityCollectionView({
 
   return (
     <EvidenceCanvas>
-      <PageHeader>
+      <PageHeader className="border-b-0 px-6 pt-6 pb-4">
         <PageHeaderCopy>
           <PageEyebrow>
             权威模型 · {collectionState.data.page.totalElements} 个实体
@@ -146,7 +146,7 @@ export function LogicalEntityCollectionView({
         </PageActions>
       </PageHeader>
 
-      <PageToolbar>
+      <PageToolbar className="min-h-0 gap-3 border-b-0 px-6 py-3">
         <Input
           aria-label="搜索逻辑实体"
           className="max-w-md"
@@ -179,8 +179,13 @@ export function LogicalEntityCollectionView({
         </span>
       </PageToolbar>
 
-      <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="min-h-0 overflow-auto bg-card">
+      <div
+        aria-label="逻辑实体工作区"
+        className="grid min-h-0 flex-1 gap-4 overflow-hidden px-6 pb-6 lg:grid-cols-[minmax(0,1fr)_19.75rem]"
+        data-slot="logical-entity-workspace"
+        role="region"
+      >
+        <div className="min-h-0 overflow-auto rounded-lg border bg-card">
           <Table>
             <TableHeader className="sticky top-0 z-[1] bg-secondary">
               <TableRow>
@@ -246,7 +251,7 @@ export function LogicalEntityCollectionView({
             </TableBody>
           </Table>
         </div>
-        <Inspector>
+        <Inspector className="max-h-full self-start rounded-lg border bg-card lg:border-t">
           {selectedEntity ? (
             <EntityInspector logicalEntity={selectedEntity} />
           ) : (
