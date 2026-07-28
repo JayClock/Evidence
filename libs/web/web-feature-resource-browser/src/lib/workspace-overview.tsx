@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   InboxItemCollectionResource,
-  LogicalEntityCollectionResource,
   State,
   StoryCandidateCollectionResource,
   StoryCollectionResource,
@@ -20,7 +19,6 @@ import {
   CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
   Empty,
@@ -28,7 +26,6 @@ import {
   EmptyHeader,
   EmptyTitle,
   EvidenceCanvas,
-  PageActions,
   PageDescription,
   PageEyebrow,
   PageHeader,
@@ -59,46 +56,29 @@ export function WorkspaceOverviewView({
   const inbox = useResource<InboxItemCollectionResource>(
     useMemo(() => resourceState.follow('inbox-items'), [resourceState]),
   );
-  const entities = useResource<LogicalEntityCollectionResource>(
-    useMemo(() => resourceState.follow('logical-entities'), [resourceState]),
-  );
-
   const storyState = stories.resourceState;
   const summary = storyState?.data.summary;
   const boardHref = resourceState.getLink('stories')?.href;
-  const inboxHref = resourceState.getLink('inbox-items')?.href;
-  const diagramHref = resourceState.getLink('diagram')?.href;
-  const entitiesHref = resourceState.getLink('logical-entities')?.href;
-  const errors = [stories.error, candidates.error, inbox.error, entities.error]
+  const errors = [stories.error, candidates.error, inbox.error]
     .filter((error): error is Error => Boolean(error))
     .map((error) => error.message);
 
   return (
-    <EvidenceCanvas>
-      <PageHeader>
+    <EvidenceCanvas className="px-5 pt-[1.125rem] pb-6">
+      <PageHeader className="px-4 pt-3.5 pb-[0.6875rem]">
         <PageHeaderCopy>
           <PageEyebrow>工作区总览 · EVD-002 至 EVD-005</PageEyebrow>
-          <PageTitle>{resourceState.data.title}</PageTitle>
+          <PageTitle className="leading-7">
+            {resourceState.data.title}
+          </PageTitle>
           <PageDescription>
             {resourceState.data.description?.trim() ||
               '集中查看 Inbox、Understand、Tasking 到 Pair 审批的权威交付压力与下一项动作。'}
           </PageDescription>
         </PageHeaderCopy>
-        <PageActions>
-          {inboxHref ? (
-            <Button asChild size="sm" variant="outline">
-              <Link to={inboxHref}>采集来源</Link>
-            </Button>
-          ) : null}
-          {boardHref ? (
-            <Button asChild size="sm">
-              <Link to={boardHref}>打开故事看板</Link>
-            </Button>
-          ) : null}
-        </PageActions>
       </PageHeader>
 
-      <div className="flex flex-col gap-4 p-5 pt-3">
+      <div className="flex flex-col gap-[0.6875rem] pt-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">托管 API 已连接</Badge>
           <Badge variant="secondary">Authority projection 已同步</Badge>
@@ -160,8 +140,8 @@ export function WorkspaceOverviewView({
           </div>
         </section>
 
-        <Card className="gap-0 py-0">
-          <CardHeader className="border-b py-3">
+        <Card className="h-[10.75rem] gap-0 py-0">
+          <CardHeader className="h-[2.875rem] justify-center border-b py-2 !pb-2">
             <CardTitle aria-level={2} role="heading">
               交付权威流程
             </CardTitle>
@@ -169,7 +149,7 @@ export function WorkspaceOverviewView({
               Approved Plan 是 Pair 唯一入口；完整 Diff 仅在 Desktop 审查。
             </CardDescription>
           </CardHeader>
-          <CardContent className="overflow-x-auto p-4">
+          <CardContent className="min-h-0 flex-1 overflow-x-auto p-4">
             <ol className="grid min-w-[48rem] grid-cols-6">
               <FlowStage
                 count={inbox.resourceState?.data.page.totalElements}
@@ -208,19 +188,11 @@ export function WorkspaceOverviewView({
           </CardContent>
         </Card>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(18rem,0.55fr)]">
-          <ActiveIterations
-            boardHref={boardHref}
-            loading={stories.loading}
-            storyStates={storyState?.collection ?? []}
-          />
-          <ModelSnapshot
-            diagramHref={diagramHref}
-            entitiesHref={entitiesHref}
-            entityCount={entities.resourceState?.data.page.totalElements}
-            loading={entities.loading}
-          />
-        </div>
+        <ActiveIterations
+          boardHref={boardHref}
+          loading={stories.loading}
+          storyStates={storyState?.collection ?? []}
+        />
       </div>
     </EvidenceCanvas>
   );
@@ -238,10 +210,10 @@ function AttentionCard({
   href: string | null;
 }) {
   return (
-    <Card size="sm">
+    <Card className="h-20 gap-1 py-2" size="sm">
       <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="font-mono text-xl tabular-nums">
+        <CardDescription className="text-xs">{label}</CardDescription>
+        <CardTitle className="font-mono text-base tabular-nums">
           {count}
         </CardTitle>
         {href ? (
@@ -252,7 +224,7 @@ function AttentionCard({
           </CardAction>
         ) : null}
       </CardHeader>
-      <CardContent className="text-xs text-muted-foreground">
+      <CardContent className="truncate text-[0.6875rem] text-muted-foreground">
         {detail}
       </CardContent>
     </Card>
@@ -271,7 +243,7 @@ function FlowStage({
   state?: 'done' | 'attention' | 'pending';
 }) {
   return (
-    <li className="group relative flex min-w-0 flex-col gap-3 pr-3 last:pr-0">
+    <li className="group relative flex min-w-0 flex-col gap-2 pr-3 last:pr-0">
       <div className="flex items-center">
         <span
           className="relative z-10 flex size-7 items-center justify-center rounded-full border bg-card font-mono text-[0.6875rem] font-semibold data-[state=attention]:border-ev-amber data-[state=attention]:bg-ev-amber-soft data-[state=done]:border-ev-brand data-[state=done]:bg-ev-brand-strong data-[state=done]:text-primary-foreground"
@@ -304,8 +276,8 @@ function ActiveIterations({
   boardHref?: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="border-b">
+    <Card className="min-h-0 flex-1" size="sm">
+      <CardHeader className="border-b !pb-3">
         <CardTitle aria-level={2} role="heading">
           活跃 Iteration
         </CardTitle>
@@ -381,47 +353,6 @@ function IterationRow({
       </div>
       {divider ? <Separator /> : null}
     </div>
-  );
-}
-
-function ModelSnapshot({
-  entityCount,
-  loading,
-  diagramHref,
-  entitiesHref,
-}: {
-  entityCount?: number;
-  loading: boolean;
-  diagramHref?: string;
-  entitiesHref?: string;
-}) {
-  return (
-    <Card>
-      <CardHeader className="border-b">
-        <CardTitle aria-level={2} role="heading">
-          模型快照
-        </CardTitle>
-        <CardDescription>当前工作区权威模型投影。</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-xs text-muted-foreground">逻辑实体</p>
-        <p className="mt-2 font-mono text-3xl font-medium tabular-nums">
-          {loading ? '…' : (entityCount ?? 0)}
-        </p>
-      </CardContent>
-      <CardFooter className="flex-wrap justify-end gap-2">
-        {entitiesHref ? (
-          <Button asChild size="sm" variant="outline">
-            <Link to={entitiesHref}>逻辑实体</Link>
-          </Button>
-        ) : null}
-        {diagramHref ? (
-          <Button asChild size="sm">
-            <Link to={diagramHref}>打开模型图</Link>
-          </Button>
-        ) : null}
-      </CardFooter>
-    </Card>
   );
 }
 

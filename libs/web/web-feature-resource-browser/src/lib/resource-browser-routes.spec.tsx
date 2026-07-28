@@ -535,6 +535,10 @@ describe('ResourceBrowserRoutes', () => {
       await screen.findByRole('heading', { name: 'Default Workspace' }),
     ).toBeTruthy();
     expect(screen.getByText('交付权威流程')).toBeTruthy();
+    expect(screen.getByText('活跃 Iteration')).toBeTruthy();
+    expect(screen.queryByText('模型快照')).toBeNull();
+    expect(screen.queryByRole('link', { name: '采集来源' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '打开故事看板' })).toBeNull();
   });
 
   it.each([
