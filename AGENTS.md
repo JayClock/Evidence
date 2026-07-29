@@ -209,6 +209,6 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 4. `libs/server/domain/src/domain/index.ts`
 5. `libs/server/api/src/api/api.module.ts`
 6. `libs/server/persistent/src/persistent/{prisma,filesystem}/`
-7. `apps/desktop/src/{main,runtime-config,coding-controller}.ts`
+7. `apps/desktop/src/{main,preload}.ts` 与 `apps/desktop/src/{electron,iteration,loops,capabilities,adapters}/`
 8. `apps/desktop/electron-builder.yml`
 9. `engineering/evidence-orchestrator/runtime-contexts.json`

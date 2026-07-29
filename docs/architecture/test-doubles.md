@@ -5,7 +5,7 @@
 | Real | 真实对象快速、确定且能提高信心       | Domain value/entity、React composition、filesystem temp dir、最终 Q2 |
 | Fake | 需要保持有意义行为但替代昂贵基础设施 | memory repository、fake remote API、Git command runner               |
 | Stub | 下游只需返回固定结果                 | domain port、Electron renderer/child 响应                            |
-| Spy  | 需要验证重要协作是否发生             | Agent 取消、CodingRun command、导航或外部 port 调用                  |
+| Spy  | 需要验证重要协作是否发生             | Agent 取消、Pair command observation、导航或外部 port 调用           |
 | Mock | 交互协议本身就是行为且断言价值高     | Prisma client、HTTP transport 或严格边界；避免过度 mock              |
 
 ## 选择规则

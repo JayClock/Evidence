@@ -56,7 +56,7 @@ graph TD
 - `AppModule`：唯一 Server 入口，注入 Prisma/PostgreSQL registry。
 - `ApiModule`、Domain 与 filesystem model store 只由该 Server 组合根装配；Server 不加载 Pi SDK。
 - PostgreSQL Workspace row 以私有 `modelRoot` 定位 Server 自有 `.evidence`；公开 metadata 不包含绝对路径，Diagram 为模型的单一投影。
-- Electron 通过 `EVIDENCE_API_BASE_URL` 选择 API endpoint，在 main process 以 API + Workspace 保存本地 repository binding，并为 CodingRun 创建隔离 branch/worktree、运行受限 Pi 工具与固定质量门。
+- Electron 通过 `EVIDENCE_API_BASE_URL` 选择 API endpoint，在 main process 以 API + Workspace 保存本地 repository binding，为每张活动 Story provision 隔离 worktree，并按 Server `nextAction` 运行受限 Analyst、Pair、Showcase 与 Respond 角色。
 - `EVIDENCE_API_AUTHORIZATION` 只向配置 API 的请求注入，不通过 preload 暴露；Server 的非 loopback 监听缺少该配置时拒绝启动。
 
 ## 架构变更规则
