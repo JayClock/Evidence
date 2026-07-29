@@ -1209,7 +1209,7 @@
             Respond。
           </p>
           <div class="story-meta">
-            <span class="pill">US-014 · Desktop 本地 Coding</span>
+            <span class="pill">US-014 · Desktop 本地 Pair</span>
             <span class="pill">3 个确认 Scenario</span>
             <span class="pill">Git baseline · 7c1a42e</span>
             <span class="status pass"
@@ -1280,7 +1280,7 @@
             >
               <span class="scenario-index">01</span>
               <span>
-                <strong>隔离运行本地 Agent</strong>
+                <strong>隔离运行本地 Pair</strong>
                 <small>观察已记录</small>
               </span>
             </button>
@@ -1304,7 +1304,7 @@
             >
               <span class="scenario-index">03</span>
               <span>
-                <strong>失败后保持权威状态</strong>
+                <strong>异常后保持权威状态</strong>
                 <small>观察已记录</small>
               </span>
             </button>
@@ -1390,7 +1390,7 @@
               <div>
                 <h3>自动化 Q2 · 已按批准计划重新运行</h3>
                 <p>
-                  desktop packaged coding lifecycle · exit 0 · 42.8s · baseline
+                  desktop packaged Pair lifecycle · exit 0 · 42.8s · baseline
                   7c1a42e
                 </p>
               </div>
@@ -1401,7 +1401,7 @@
               <header class="scenario-header">
                 <div>
                   <small id="scenario-id">SC-001</small>
-                  <h3 id="scenario-title">隔离运行本地 Agent</h3>
+                  <h3 id="scenario-title">隔离运行本地 Pair</h3>
                 </div>
                 <span class="status pass" id="scenario-status">
                   <span class="dot"></span>Observed
@@ -1412,20 +1412,21 @@
                 <div class="gwt-block">
                   <strong>Given</strong>
                   <p id="scenario-given">
-                    Workspace 已绑定本地 Git repository，Story Revision 已确认。
+                    Workspace 已绑定本地 Git repository，Tasking Plan 已通过人工
+                    Desk Check。
                   </p>
                 </div>
                 <div class="gwt-block">
                   <strong>When</strong>
                   <p id="scenario-when">
-                    用户从 Story 页面启动本地 CodingRun。
+                    用户从已批准的 Tasking 页面启动本地 Pair。
                   </p>
                 </div>
                 <div class="gwt-block">
                   <strong>Then</strong>
                   <p id="scenario-then">
-                    Agent 在独立 worktree 中运行，主工作树不变，Server
-                    不收到绝对路径。
+                    短生命周期 Driver 在隔离 worktree
+                    中运行，主工作树不变，Server 不收到绝对路径。
                   </p>
                 </div>
               </div>
@@ -1437,7 +1438,7 @@
                     <span>发生了什么，不要写“测试通过”</span>
                   </label>
                   <textarea id="observation">
-从打包后的 Desktop 启动 CodingRun 后，活动流显示 Agent 在独立分支运行；主 checkout 的 git status 保持干净，Web 资源中只显示项目名和 commit 摘要。</textarea
+从打包后的 Desktop 启动 Pair 后，活动流显示短生命周期 Driver 在隔离 worktree 运行；主 checkout 的 git status 保持干净，Web 资源中只显示相对路径、状态和哈希摘要。</textarea
                   >
                 </div>
                 <div class="field">
@@ -1558,7 +1559,7 @@ evidence:
 security: required / passed
 reliability: required / passed
 performance: not_required
-reason: CodingRun 是人工触发的有界后台活动，没有用户确认的延迟目标。</pre
+reason: Pair 是人工触发且预算受限的后台活动，没有用户确认的延迟目标。</pre
                   >
                 </details>
               </article>
@@ -1598,14 +1599,14 @@ reason: CodingRun 是人工触发的有界后台活动，没有用户确认的�
                 <h3>Product / domain feedback</h3>
                 <ul>
                   <li>本地执行与 Server 协作知识的职责边界对用户可见。</li>
-                  <li>“Coding accepted”应继续与“Story value accepted”分开。</li>
+                  <li>“Pair approved”应继续与“Story value accepted”分开。</li>
                 </ul>
               </article>
               <article class="review-block">
                 <h3>Technical quality feedback</h3>
                 <ul>
                   <li>绝对路径仅存在于 Electron main 与本地 store。</li>
-                  <li>Server CodingRun 只保存摘要、状态和哈希。</li>
+                  <li>Server PairRun 只保存 bounded evidence、状态和哈希。</li>
                 </ul>
               </article>
               <article class="review-block">
@@ -1744,34 +1745,35 @@ reason: CodingRun 是人工触发的有界后台活动，没有用户确认的�
     <script>
       const scenarios = {
         'SC-001': {
-          title: '隔离运行本地 Agent',
-          given: 'Workspace 已绑定本地 Git repository，Story Revision 已确认。',
-          when: '用户从 Story 页面启动本地 CodingRun。',
-          then: 'Agent 在独立 worktree 中运行，主工作树不变，Server 不收到绝对路径。',
+          title: '隔离运行本地 Pair',
+          given:
+            'Workspace 已绑定本地 Git repository，Tasking Plan 已通过人工 Desk Check。',
+          when: '用户从已批准的 Tasking 页面启动本地 Pair。',
+          then: '短生命周期 Driver 在隔离 worktree 中运行，主工作树不变，Server 不收到绝对路径。',
           observation:
-            '从打包后的 Desktop 启动 CodingRun 后，活动流显示 Agent 在独立分支运行；主 checkout 的 git status 保持干净，Web 资源中只显示项目名和 commit 摘要。',
+            '从打包后的 Desktop 启动 Pair 后，活动流显示短生命周期 Driver 在隔离 worktree 运行；主 checkout 的 git status 保持干净，Web 资源中只显示相对路径、状态和哈希摘要。',
           value:
             '开发者可以把本地代码和凭据留在设备上，同时让团队通过 Server 共享 Story 与审批状态；这满足了本地执行与协作知识分离的目标。',
           evidence: 'demo://screen-recording/SC-001',
         },
         'SC-002': {
           title: '批准前不创建提交',
-          given: 'CodingRun 已完成质量门并产生稳定 diff hash。',
-          when: '用户打开本地完整 diff，但尚未点击 Accept。',
-          then: 'Server 显示 review_required，本地分支没有新 commit，也没有 merge 或 push。',
+          given: 'Pair 已完成质量门并产生锁定的 Manifest 与稳定 diff hash。',
+          when: '用户打开本地完整 diff，但尚未批准 Pair 编码。',
+          then: 'Pair 保持 quality_gates_passed，本地分支没有新 commit，也没有 merge 或 push。',
           observation:
-            '在审查页切换文件并重新打开应用后，diff 仍可恢复；运行状态保持 review_required，分支 HEAD 仍等于 base commit。',
+            '在审查页切换文件并重新打开应用后，diff 仍可恢复；本地摘要保持 approval_required，分支 HEAD 仍等于 base commit。',
           value:
             '用户可以在任何不可逆 Git 动作前完成完整审查，降低 AI 修改被静默提交或发布的风险。',
           evidence: 'demo://git-observation/SC-002',
         },
         'SC-003': {
-          title: '失败后保持权威状态',
-          given: '本地 Agent 运行中途退出，且质量门没有完成。',
-          when: 'Desktop controller 检测到不完整执行或应用重启。',
-          then: 'Server Run 被标记 failed，Story Revision 不变，临时 worktree 被安全清理。',
+          title: '异常后保持权威状态',
+          given: '短生命周期 Driver 中途退出，且当前动作没有完成。',
+          when: 'Desktop controller 记录异常或应用重启。',
+          then: 'Pair 进入 exception，Story Revision 与 Approved Tasking Plan 不变，隔离 worktree 为显式恢复保留。',
           observation:
-            '终止 Agent child 后重新启动 Desktop，运行记录显示 desktop-restarted；Story 最新 Revision 和其他 CodingRun 没有变化。',
+            '终止 Driver child 后重新启动 Desktop，Pair 仍显示 exception 和允许的人工路由；其他 PairRun 没有变化。',
           value:
             '团队不会把本地进程崩溃误解为成功交付，也不需要人工修复 Server 上的悬挂状态。',
           evidence: 'demo://recovery-check/SC-003',
