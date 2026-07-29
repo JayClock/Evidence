@@ -30,6 +30,63 @@ describe('PrismaUsers', () => {
     });
   });
 
+  it('loads a user by its external issuer and subject', async () => {
+    const store = mockPrismaStore();
+    store.userIdentity.findUnique.mockResolvedValue({ user: userRow() });
+    const users = new PrismaUsers(asPrismaService(store));
+
+    const user = await users.findByExternalIdentity({
+      issuer: 'https://identity.example.com',
+      subject: 'provider-user-1',
+    });
+
+    expect(user?.identity()).toBe('user-1');
+    expect(store.userIdentity.findUnique).toHaveBeenCalledWith({
+      where: {
+        issuer_subject: {
+          issuer: 'https://identity.example.com',
+          subject: 'provider-user-1',
+        },
+      },
+      include: { user: true },
+    });
+  });
+
+  it('provisions a stable internal user for a new external identity', async () => {
+    const store = mockPrismaStore();
+    store.user.create.mockResolvedValue(
+      userRow({ name: 'Ada Lovelace', email: 'ada@example.com' }),
+    );
+    const users = new PrismaUsers(asPrismaService(store));
+
+    const user = await users.provisionExternalIdentity({
+      issuer: 'https://identity.example.com',
+      subject: 'provider-user-1',
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+    });
+
+    expect(user.description()).toEqual({
+      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+    });
+    expect(store.user.create).toHaveBeenCalledWith({
+      data: {
+        id: expect.any(String),
+        name: 'Ada Lovelace',
+        email: 'ada@example.com',
+        identities: {
+          create: {
+            id: expect.any(String),
+            issuer: 'https://identity.example.com',
+            subject: 'provider-user-1',
+            createdAt: expect.any(Date),
+          },
+        },
+      },
+    });
+  });
+
   it('exposes canonical workspaces and user membership projections', () => {
     const store = mockPrismaStore();
     const users = new PrismaUsers(asPrismaService(store));

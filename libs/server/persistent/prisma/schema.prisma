@@ -10,6 +10,7 @@ model User {
   id                          String                       @id
   name                        String
   email                       String?
+  identities                  UserIdentity[]
   members                     WorkspaceMember[]
   createdStoryRevisions       StoryRevision[]              @relation("StoryRevisionAuthor")
   requestedExtractions        InboxExtraction[]            @relation("InboxExtractionRequester")
@@ -30,6 +31,19 @@ model User {
   respondDecisions            RespondDecision[]            @relation("RespondDecisionActor")
 
   @@map("users")
+}
+
+model UserIdentity {
+  id        String   @id
+  userId    String   @map("user_id")
+  issuer    String
+  subject   String
+  createdAt DateTime @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issuer, subject])
+  @@index([userId])
+  @@map("user_identities")
 }
 
 model Workspace {

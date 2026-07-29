@@ -18,6 +18,7 @@ export type MockFn = ReturnType<typeof vi.fn>;
 
 export interface MockPrismaStore {
   user: Record<string, MockFn>;
+  userIdentity: Record<string, MockFn>;
   workspace: Record<string, MockFn>;
   workspaceMember: Record<string, MockFn>;
   diagram: Record<string, MockFn>;
@@ -76,7 +77,8 @@ export function asStore(store: MockPrismaStore): PrismaStore {
 
 export function mockPrismaStore(): MockPrismaStore {
   const store = {
-    user: delegate(['findUnique', 'upsert']),
+    user: delegate(['findUnique', 'create', 'upsert']),
+    userIdentity: delegate(['findUnique']),
     workspace: delegate(['findMany', 'findFirst', 'count', 'create', 'update']),
     workspaceMember: delegate([
       'findMany',
