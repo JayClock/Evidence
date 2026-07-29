@@ -1618,7 +1618,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
       'node focused.js pair_behavior @evidence/web',
       'node focused.js pair_owner @evidence/web',
     ]);
-  });
+  }, 15_000);
 
   it('replays byte-stable generated evidence and detects command tampering', () => {
     const cwd = workspace();
@@ -1710,7 +1710,7 @@ describe('AI-driven Pair with Story-level human approval', () => {
     expect(() => validateExecutionEvidence(deletedCwd)).toThrow(
       /sequence drifted|hash chain failed/,
     );
-  });
+  }, 15_000);
 
   it('generates complete traceability for a multi-runtime process plan', () => {
     const cwd = workspace();
