@@ -10,6 +10,7 @@ describe('piRuntimeEnvironment', () => {
       CUSTOM_MODEL_TOKEN: 'custom-secret',
       DATABASE_URL: 'postgresql://database-secret',
       EVIDENCE_API_AUTHORIZATION: 'Bearer server-secret',
+      EVIDENCE_CODING_AGENT_TIMEOUT_MS: '1800000',
       UNRELATED_SECRET: 'must-not-pass',
     });
 

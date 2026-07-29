@@ -1,7 +1,7 @@
 {
   "name": "@evidence/desktop",
   "version": "0.1.0",
-  "description": "Electron desktop shell for Evidence",
+  "description": "Secure Electron host for Evidence Web, local agents, and delivery loops",
   "license": "MIT",
   "private": true,
   "main": "dist/main.js",

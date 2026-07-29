@@ -145,7 +145,7 @@ const SMOKE_TEST = process.env.EVIDENCE_DESKTOP_SMOKE_TEST === '1';
 const userDataPath = resolveUserDataPath();
 if (userDataPath) app.setPath('userData', userDataPath);
 
-let localAgent: LocalAgentProcess<
+let diagramAgent: LocalAgentProcess<
   AgentRuntimeRequest,
   DiagramAgentEvent
 > | null = null;
@@ -228,7 +228,7 @@ function assertTrustedIpcSender(event: IpcMainInvokeEvent): void {
 
 function registerDesktopBridge(
   apiBaseUrl: string,
-  agent: LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent>,
+  diagramAgent: LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent>,
   bindings: WorkspaceBindingStore,
   inbox: LocalAgentProcess<InboxAnalystRuntimeRequest, AnalystEvent>,
   kickoff: LocalAgentProcess<KickoffAnalystRuntimeRequest, AnalystEvent>,
@@ -514,7 +514,7 @@ function registerDesktopBridge(
   ipcMain.handle(RUN_DIAGRAM_AGENT_CHANNEL, async (event, input: unknown) => {
     assertTrustedIpcSender(event);
     const request = parseDiagramAgentRequest(input);
-    await agent.run({ ...request, apiBaseUrl }, (agentEvent) => {
+    await diagramAgent.run({ ...request, apiBaseUrl }, (agentEvent) => {
       if (!event.sender.isDestroyed()) {
         event.sender.send(DIAGRAM_AGENT_EVENT_CHANNEL, agentEvent);
       }
@@ -525,7 +525,7 @@ function registerDesktopBridge(
     if (typeof id !== 'string') {
       throw new Error('Agent request id is required.');
     }
-    await agent.cancel(id);
+    await diagramAgent.cancel(id);
   });
 }
 
@@ -552,7 +552,7 @@ function registerRendererApiAuthorization(
   );
 }
 
-function createLocalAgent(
+function createDiagramAgent(
   authorization: string | undefined,
 ): LocalAgentProcess<AgentRuntimeRequest, DiagramAgentEvent> {
   return new LocalAgentProcess({
@@ -765,7 +765,7 @@ void app.whenReady().then(async () => {
     const apiBaseUrl = await connectRemoteApi();
     const authorization = resolveApiAuthorization();
     registerRendererApiAuthorization(apiBaseUrl, authorization);
-    localAgent = createLocalAgent(authorization);
+    diagramAgent = createDiagramAgent(authorization);
     inboxAnalyst = createAnalystAgent<InboxAnalystRuntimeRequest>(
       'inbox-analyst-runtime.mjs',
       authorization,
@@ -835,7 +835,7 @@ void app.whenReady().then(async () => {
     });
     registerDesktopBridge(
       apiBaseUrl,
-      localAgent,
+      diagramAgent,
       bindings,
       inboxAnalyst,
       kickoffAnalyst,
@@ -873,7 +873,7 @@ void app.whenReady().then(async () => {
 app.on('before-quit', (event) => {
   if (
     !allowQuit &&
-    (localAgent ||
+    (diagramAgent ||
       inboxAnalyst ||
       kickoffAnalyst ||
       understandingAnalyst ||
@@ -890,7 +890,7 @@ app.on('before-quit', (event) => {
       pairController?.stop() ?? Promise.resolve(),
       Promise.resolve(showcaseController?.stop()),
       Promise.resolve(respondController?.stop()),
-      localAgent?.stop() ?? Promise.resolve(),
+      diagramAgent?.stop() ?? Promise.resolve(),
       inboxAnalyst?.stop() ?? Promise.resolve(),
       kickoffAnalyst?.stop() ?? Promise.resolve(),
       understandingAnalyst?.stop() ?? Promise.resolve(),

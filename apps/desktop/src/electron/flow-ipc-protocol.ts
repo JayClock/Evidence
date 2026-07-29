@@ -13,7 +13,7 @@ export const CANCEL_UNDERSTANDING_ANALYST_CHANNEL =
   'evidence:cancel-understanding-analyst';
 export const RUN_TASKING_ANALYST_CHANNEL = 'evidence:run-tasking-analyst';
 export const CANCEL_TASKING_ANALYST_CHANNEL = 'evidence:cancel-tasking-analyst';
-export const ANALYST_EVENT_CHANNEL = 'evidence:intake-agent-event';
+export const ANALYST_EVENT_CHANNEL = 'evidence:analyst-event';
 export const START_ITERATION_CHANNEL = 'evidence:start-iteration';
 
 const ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9:._-]{0,199}$/;
