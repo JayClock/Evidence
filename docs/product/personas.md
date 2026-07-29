@@ -34,8 +34,8 @@
 
 - **目标**：把已确认的 Story Scenario Set 安全地转化为可审查的本地代码变更。
 - **痛点**：Agent 可能修改错误仓库、绕过测试或在审查前提交；远程系统也不应收集完整源码和 diff。
-- **关键活动**：细化 Scenario、启动 CodingRun、检查质量门和本地 diff、明确接受或拒绝。
-- **成功标准**：每个 Run 锁定精确 Revision 并隔离执行；只有人工接受才创建本地 commit，且不自动 merge/push。
+- **关键活动**：细化并确认 Scenario 与模型处置、Desk Check Tasking Plan、启动或恢复 Pair、检查执行证据和本地 diff、批准编码或路由修复，并在 Showcase 中确认实际产品价值。
+- **成功标准**：Pair 精确引用人工批准的 Plan 并隔离执行；只有人工批准且 diff hash 一致才创建本地 commit，Showcase 接受前不提升知识，且始终不自动 merge/push。
 
 ## 桌面建模用户
 
