@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CurrentPrincipal } from './current-principal';
 import type {
   User,
   UserMemberships,
@@ -27,10 +28,12 @@ function fixture() {
     memberships: vi.fn(() => memberships),
     workspaces: vi.fn(() => workspaces),
   } as unknown as Users;
+  const principal = new CurrentPrincipal();
+  principal.establish({ userId: 'desktop-user', authentication: 'local' });
   return {
     currentUser,
     memberships,
-    resolver: new ResourceResolver(users),
+    resolver: new ResourceResolver(users, principal),
     users,
     workspace,
     workspaces,

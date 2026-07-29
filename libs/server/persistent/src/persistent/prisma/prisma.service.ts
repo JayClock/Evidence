@@ -20,7 +20,7 @@ export class PrismaService
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
-    await this.seedDefaults();
+    if (localAuthenticationEnabled()) await this.seedDefaults();
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -82,4 +82,8 @@ export class PrismaService
       },
     });
   }
+}
+
+function localAuthenticationEnabled(): boolean {
+  return process.env.EVIDENCE_AUTH_MODE?.trim().toLowerCase() !== 'oidc';
 }

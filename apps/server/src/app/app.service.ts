@@ -3,12 +3,12 @@ import { parse } from 'yaml';
 import openapiYaml from '@evidence/server-api/openapi.yaml?raw';
 import {
   apiHref,
+  CurrentPrincipal,
   healthHref,
   link,
   Link,
   userHref,
 } from '@evidence/server-api';
-import { currentUserId } from './api-authorization.guard';
 
 const openapiDocument = parse(openapiYaml) as Record<string, unknown>;
 
@@ -24,12 +24,14 @@ export interface HealthResource {
 
 @Injectable()
 export class AppService {
+  constructor(private readonly principal: CurrentPrincipal) {}
+
   root(): RootResource {
     return {
       _links: {
         self: link(apiHref()),
         health: link(healthHref()),
-        'current-user': link(userHref(currentUserId())),
+        'current-user': link(userHref(this.principal.require().userId)),
       },
     };
   }

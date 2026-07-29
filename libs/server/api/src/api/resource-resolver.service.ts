@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DomainError, USERS } from '@evidence/server-domain';
+import { CurrentPrincipal } from './current-principal';
 import type {
   Diagram,
   DiagramEdge,
@@ -20,7 +21,10 @@ import type {
 
 @Injectable()
 export class ResourceResolver {
-  constructor(@Inject(USERS) private readonly users: Users) {}
+  constructor(
+    @Inject(USERS) private readonly users: Users,
+    private readonly principal: CurrentPrincipal,
+  ) {}
 
   async requireUser(userId: string): Promise<User> {
     if (userId !== this.currentUserId()) {
@@ -34,7 +38,7 @@ export class ResourceResolver {
   }
 
   currentUserId(): string {
-    return process.env.EVIDENCE_USER_ID?.trim() || 'desktop-user';
+    return this.principal.require().userId;
   }
 
   async requireCurrentUser(): Promise<User> {
