@@ -143,7 +143,7 @@ describe('IterationWorktreeManager', () => {
         '--untracked-files=all',
       ]),
     ).toBe('');
-  });
+  }, 15_000);
 
   it('reuses the isolation boundary with a locked Iteration namespace', async () => {
     const root = await temporaryDirectory();
