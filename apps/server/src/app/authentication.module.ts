@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { CurrentPrincipal } from '@evidence/server-api';
 import { ApiAuthorizationGuard } from './api-authorization.guard';
 import { OidcTokenVerifier } from './oidc-token-verifier';
+import { WorkspaceAuthorizationGuard } from './workspace-authorization.guard';
 
 @Global()
 @Module({
@@ -12,6 +13,10 @@ import { OidcTokenVerifier } from './oidc-token-verifier';
     {
       provide: APP_GUARD,
       useClass: ApiAuthorizationGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: WorkspaceAuthorizationGuard,
     },
   ],
   exports: [CurrentPrincipal],

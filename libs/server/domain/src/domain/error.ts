@@ -1,5 +1,6 @@
 export type DomainErrorKind =
   | 'notFound'
+  | 'forbidden'
   | 'conflict'
   | 'validation'
   | 'internal';
@@ -15,6 +16,10 @@ export class DomainError extends Error {
 
   static notFound(message: string): DomainError {
     return new DomainError('notFound', message);
+  }
+
+  static forbidden(message: string): DomainError {
+    return new DomainError('forbidden', message);
   }
 
   static conflict(message: string): DomainError {

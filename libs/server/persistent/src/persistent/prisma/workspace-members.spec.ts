@@ -83,18 +83,29 @@ describe('PrismaWorkspaceMembers', () => {
       memberRow({ id: 'member-1', role: 'member' }),
     );
     store.workspaceMember.update.mockResolvedValue(
-      memberRow({ id: 'member-1', role: 'admin' }),
+      memberRow({ id: 'member-1', role: 'viewer' }),
     );
     const members = new PrismaWorkspaceMembers(asStore(store), 'workspace-1');
 
     await expect(
-      members.updateMember('member-1', ' admin '),
+      members.updateMember('member-1', ' VIEWER '),
     ).resolves.toMatchObject({ identity: expect.any(Function) });
 
     expect(store.workspaceMember.update).toHaveBeenCalledWith({
       where: { id: 'member-1' },
-      data: { role: 'admin', updatedAt: expect.any(Date) },
+      data: { role: 'viewer', updatedAt: expect.any(Date) },
     });
+  });
+
+  it('rejects unsupported member roles', async () => {
+    const store = mockPrismaStore();
+    store.workspaceMember.findFirst.mockResolvedValue(memberRow());
+    const members = new PrismaWorkspaceMembers(asStore(store), 'workspace-1');
+
+    await expect(
+      members.updateMember('member-1', 'admin'),
+    ).rejects.toMatchObject({ kind: 'validation' });
+    expect(store.workspaceMember.update).not.toHaveBeenCalled();
   });
 
   it('removes a member by canonical member id', async () => {

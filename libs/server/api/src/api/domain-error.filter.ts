@@ -24,6 +24,8 @@ function statusFor(error: DomainError): number {
   switch (error.kind) {
     case 'notFound':
       return HttpStatus.NOT_FOUND;
+    case 'forbidden':
+      return HttpStatus.FORBIDDEN;
     case 'conflict':
       return HttpStatus.CONFLICT;
     case 'validation':

@@ -4,11 +4,12 @@ import {
   Member,
   MemberDescription,
   WorkspaceMembers,
+  workspaceRole,
 } from '@evidence/server-domain';
 import { EntityList } from '../database';
 import { assembleMember } from './mappers';
 import type { PrismaStore } from './types';
-import { defaultIfBlank, isUniqueConflict, now } from './utils';
+import { isUniqueConflict, now } from './utils';
 
 export class PrismaWorkspaceMembers
   extends EntityList<Member>
@@ -76,7 +77,7 @@ export class PrismaWorkspaceMembers
           id: randomUUID(),
           workspaceId: this.workspaceId,
           userId,
-          role: defaultIfBlank(desc.role, 'member'),
+          role: workspaceRole(desc.role, 'member'),
           createdAt: timestamp,
           updatedAt: timestamp,
         },
@@ -94,10 +95,7 @@ export class PrismaWorkspaceMembers
 
   async updateMember(memberId: string, role: string): Promise<Member> {
     const row = await this.requireMember(memberId);
-    const normalizedRole = defaultIfBlank(role, '');
-    if (!normalizedRole) {
-      throw DomainError.validation('workspace member role must not be empty');
-    }
+    const normalizedRole = workspaceRole(role);
     await this.assertOwnerRemains(row.role, normalizedRole);
     const updated = await this.store.workspaceMember.update({
       where: { id: row.id },
