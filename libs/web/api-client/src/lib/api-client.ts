@@ -16,7 +16,7 @@ type DiagramAgentEvent = {
   data: string;
 };
 
-export type IntakeAgentEvent = {
+export type AnalystEvent = {
   id: string;
   event: 'progress' | 'tool-start' | 'tool-end' | 'complete' | 'error';
   data: string;
@@ -162,7 +162,7 @@ type EvidenceDesktopBridge = {
   fetchInboxGitHubIssues?(workspaceId: string): Promise<InboxSourceCapture[]>;
   runInboxAnalyst?(
     request: { id: string; workspaceId: string; extractionId: string },
-    onEvent: (event: IntakeAgentEvent) => void,
+    onEvent: (event: AnalystEvent) => void,
   ): Promise<void>;
   cancelInboxAnalyst?(id: string): Promise<void>;
   startIteration?(
@@ -170,17 +170,17 @@ type EvidenceDesktopBridge = {
   ): Promise<IterationProvisioningSummary>;
   runKickoffAnalyst?(
     request: { id: string; workspaceId: string; iterationId: string },
-    onEvent: (event: IntakeAgentEvent) => void,
+    onEvent: (event: AnalystEvent) => void,
   ): Promise<void>;
   cancelKickoffAnalyst?(id: string): Promise<void>;
   runUnderstandingAnalyst?(
     request: { id: string; workspaceId: string; iterationId: string },
-    onEvent: (event: IntakeAgentEvent) => void,
+    onEvent: (event: AnalystEvent) => void,
   ): Promise<void>;
   cancelUnderstandingAnalyst?(id: string): Promise<void>;
   runTaskingAnalyst?(
     request: { id: string; workspaceId: string; iterationId: string },
-    onEvent: (event: IntakeAgentEvent) => void,
+    onEvent: (event: AnalystEvent) => void,
   ): Promise<void>;
   cancelTaskingAnalyst?(id: string): Promise<void>;
   startPair?(

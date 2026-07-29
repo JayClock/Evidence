@@ -12,7 +12,7 @@ import {
   type InboxItemResource,
   type InboxRevisionCollectionResource,
   type InboxRevisionResource,
-  type IntakeAgentEvent,
+  type AnalystEvent,
   type State,
 } from '@evidence/api-client';
 import type { Mock } from 'vitest';
@@ -403,7 +403,7 @@ describe('InboxCollectionView', () => {
     };
     const extractionPost = vi.fn().mockResolvedValue(extractionState);
     const runInboxAnalyst = vi.fn(
-      async (_request: unknown, onEvent: (event: IntakeAgentEvent) => void) => {
+      async (_request: unknown, onEvent: (event: AnalystEvent) => void) => {
         onEvent({ id: 'inbox:1', event: 'complete', data: '' });
       },
     );

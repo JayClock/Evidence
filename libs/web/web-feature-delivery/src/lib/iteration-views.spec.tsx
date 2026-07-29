@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import type {
-  IntakeAgentEvent,
+  AnalystEvent,
   IterationResource,
   KickoffDecisionResultResource,
   KickoffResource,
@@ -347,7 +347,7 @@ describe('Iteration and Kickoff views', () => {
     const post = vi.fn().mockResolvedValue(decisionResult('revise'));
     const refresh = vi.fn().mockResolvedValue(replacement);
     const runKickoffAnalyst = vi.fn(
-      async (_request: unknown, onEvent: (event: IntakeAgentEvent) => void) => {
+      async (_request: unknown, onEvent: (event: AnalystEvent) => void) => {
         onEvent({ id: 'kickoff:1', event: 'complete', data: '' });
       },
     );
