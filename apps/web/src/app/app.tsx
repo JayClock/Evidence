@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import {
+  browserAuthentication,
   getRootResource,
   useResource,
   type RootResource,
@@ -54,7 +55,14 @@ function UserBootstrap({ rootState }: { rootState: State<RootResource> }) {
   }
 
   return (
-    <WebShell userState={resourceState}>
+    <WebShell
+      onSignOut={
+        browserAuthentication.canSignOut()
+          ? () => void browserAuthentication.signOut()
+          : undefined
+      }
+      userState={resourceState}
+    >
       <ResourceBrowserRoutes rootState={rootState} userState={resourceState} />
     </WebShell>
   );

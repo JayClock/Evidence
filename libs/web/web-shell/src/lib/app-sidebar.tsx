@@ -68,6 +68,7 @@ export function AppSidebar({
   activeWorkspace,
   onSelectWorkspace,
   onCreateWorkspace,
+  onSignOut,
 }: {
   userState: State<UserResource>;
   navigation: ShellNavigationSection[];
@@ -80,6 +81,7 @@ export function AppSidebar({
   onCreateWorkspace: (
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;
+  onSignOut?: () => void;
 }) {
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -131,7 +133,7 @@ export function AppSidebar({
 
       <SidebarFooter>
         <AgentConnection />
-        <SidebarUserMenu userState={userState} />
+        <SidebarUserMenu onSignOut={onSignOut} userState={userState} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
@@ -171,7 +173,13 @@ function AgentConnection() {
   );
 }
 
-function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
+function SidebarUserMenu({
+  userState,
+  onSignOut,
+}: {
+  userState: State<UserResource>;
+  onSignOut?: () => void;
+}) {
   const user = userState.data;
   const selfHref =
     userState.links.getAll().find((link: HalLink) => link.rel === 'self')
@@ -205,6 +213,11 @@ function SidebarUserMenu({ userState }: { userState: State<UserResource> }) {
               <DropdownMenuItem asChild>
                 <Link to={selfHref}>用户资源</Link>
               </DropdownMenuItem>
+              {onSignOut ? (
+                <DropdownMenuItem onSelect={onSignOut}>
+                  退出登录
+                </DropdownMenuItem>
+              ) : null}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

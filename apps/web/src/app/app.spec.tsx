@@ -6,6 +6,10 @@ import type { Mock } from 'vitest';
 import App from './app';
 
 vi.mock('@evidence/api-client', () => ({
+  browserAuthentication: {
+    canSignOut: () => false,
+    signOut: vi.fn(),
+  },
   apiClient: {
     go: (path: string) => ({ kind: 'dynamic', path }),
   },

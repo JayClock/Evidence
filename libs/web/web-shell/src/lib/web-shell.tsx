@@ -24,9 +24,11 @@ import { workspaceHref, type WorkspaceInput } from './workspace-switcher';
 
 export function WebShell({
   userState,
+  onSignOut,
   children,
 }: {
   userState: State<UserResource>;
+  onSignOut?: () => void;
   children: ReactNode;
 }) {
   const location = useLocation();
@@ -124,6 +126,7 @@ export function WebShell({
           workspacesLoading={memberships.loading}
           onCreateWorkspace={createWorkspace}
           onSelectWorkspace={selectWorkspace}
+          onSignOut={onSignOut}
         />
         <SidebarInset className="h-svh min-w-0 overflow-hidden">
           <AppTopbar navigation={navigation} />
