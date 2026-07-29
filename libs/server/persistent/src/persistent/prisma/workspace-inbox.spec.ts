@@ -7,7 +7,7 @@ import { PrismaWorkspaceInbox } from './workspace-inbox';
 const source: InboxSourceInput = {
   sourceKind: 'manual_text',
   externalKey: 'capture-1',
-  title: 'Desktop coding agent',
+  title: 'Desktop Pair delivery',
   body: 'Run Pi locally.',
   contentType: 'text/markdown',
   providerMetadata: { channel: 'product' },

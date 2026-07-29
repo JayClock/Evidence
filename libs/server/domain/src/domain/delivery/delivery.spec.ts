@@ -12,7 +12,7 @@ const hash = `sha256:${'a'.repeat(64)}`;
 
 function candidateInput() {
   return {
-    title: ' Local coding agent ',
+    title: ' Local Pair delivery ',
     problem: ' Sources are reviewed remotely.\r\nLocal execution is separate. ',
     role: ' Workspace maintainer ',
     goal: 'Run coding work in an isolated repository.',
@@ -52,7 +52,7 @@ function revisionInput() {
 describe('Story content validation', () => {
   it('normalizes source-cited Story content', () => {
     expect(normalizeStoryContentInput(candidateInput())).toEqual({
-      title: 'Local coding agent',
+      title: 'Local Pair delivery',
       problem: 'Sources are reviewed remotely.\nLocal execution is separate.',
       role: 'Workspace maintainer',
       goal: 'Run coding work in an isolated repository.',
@@ -179,7 +179,7 @@ describe('Story workflow authority', () => {
 describe('Story Revision validation', () => {
   it('normalizes one complete ordered Scenario Set', () => {
     expect(normalizeStoryRevisionInput(revisionInput())).toMatchObject({
-      title: 'Local coding agent',
+      title: 'Local Pair delivery',
       scenarios: [
         {
           title: 'Isolate the coding worktree',

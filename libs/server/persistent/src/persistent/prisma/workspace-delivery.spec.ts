@@ -7,7 +7,7 @@ import { PrismaWorkspaceDelivery } from './workspace-delivery';
 const inboxHash = `sha256:${'a'.repeat(64)}`;
 const baselineHash = `sha256:${'b'.repeat(64)}`;
 const revisionInput: StoryRevisionInput = {
-  title: 'Local coding agent',
+  title: 'Local Pair delivery',
   problem: 'Hosted services must not receive local source code.',
   role: 'Workspace maintainer',
   goal: 'Run coding work in an isolated local worktree.',
@@ -40,7 +40,7 @@ function inboxRevisionRow(overrides: Record<string, unknown> = {}) {
     id: 'inbox-revision-1',
     inboxItemId: 'inbox-1',
     revisionNumber: 3,
-    title: 'Local coding agent',
+    title: 'Local Pair delivery',
     body: 'Run Pi locally.',
     contentType: 'text/markdown',
     uri: null,

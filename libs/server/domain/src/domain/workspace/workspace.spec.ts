@@ -52,7 +52,7 @@ const memberDescription: MemberDescription = {
 const inboxSource: InboxSourceInput = {
   sourceKind: 'manual_text',
   externalKey: 'capture-1',
-  title: 'Local coding agent',
+  title: 'Local Pair delivery',
   body: 'Run Pi in the desktop app.',
   contentType: 'text/markdown',
 };

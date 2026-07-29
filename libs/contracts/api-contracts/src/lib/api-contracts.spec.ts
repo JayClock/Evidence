@@ -275,7 +275,7 @@ describeContracts('Evidence API contract vertical slice', () => {
         body: JSON.stringify({
           sourceKind: 'manual_text',
           externalKey,
-          title: 'Desktop coding agent',
+          title: 'Desktop Pair delivery',
           body: 'Run Pi locally.',
           contentType: 'text/markdown',
           providerMetadata: { channel: 'contracts' },
@@ -301,7 +301,7 @@ describeContracts('Evidence API contract vertical slice', () => {
         body: JSON.stringify({
           sourceKind: 'manual_text',
           externalKey,
-          title: 'Desktop coding agent',
+          title: 'Desktop Pair delivery',
           body: 'Run Pi locally.',
           contentType: 'text/markdown',
           providerMetadata: { channel: 'contracts' },
@@ -316,7 +316,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     });
 
     const listed = await apiRequest(
-      `/api/workspaces/${workspaceId}/inbox-items?status=active&q=coding&page=1&pageSize=20`,
+      `/api/workspaces/${workspaceId}/inbox-items?status=active&q=pair&page=1&pageSize=20`,
     );
     expect(listed.status).toBe(200);
     expectHalCollection(listed, mediaTypes.inboxItems, 'inboxItems');
@@ -331,7 +331,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          title: 'Desktop coding agent',
+          title: 'Desktop Pair delivery',
           body: 'Run Pi locally.',
           contentType: 'text/markdown',
           expectedLatestRevisionSha256: created.body.latestRevisionSha256,
@@ -347,7 +347,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          title: 'Desktop coding agent',
+          title: 'Desktop Pair delivery',
           body: 'Run Pi in an isolated worktree.',
           contentType: 'text/markdown',
           uri: 'https://example.com/issues/1',
@@ -371,7 +371,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       {
         method: 'POST',
         body: JSON.stringify({
-          title: 'Desktop coding agent',
+          title: 'Desktop Pair delivery',
           body: 'Run Pi locally.',
           contentType: 'text/markdown',
           uri: null,

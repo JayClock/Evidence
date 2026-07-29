@@ -31,8 +31,8 @@ function story() {
     iterationLoop: 'understand',
     iterationStage: 'tqa',
     reference: 'US-001',
-    title: 'Local coding agent',
-    goal: 'Run coding work locally.',
+    title: 'Local Pair delivery',
+    goal: 'Deliver approved Story changes locally.',
     latestRevision: new Ref('story-revision-1'),
     latestRevisionNumber: 1,
     latestScenarioCount: 0,
@@ -63,10 +63,10 @@ function storyRevision(
   return new StoryRevision(id, {
     story: new Ref('story-1'),
     revisionNumber,
-    title: 'Local coding agent',
+    title: 'Local Pair delivery',
     problem: 'Hosted services must not receive source code.',
     role: 'Workspace maintainer',
-    goal: 'Run coding work locally.',
+    goal: 'Deliver approved Story changes locally.',
     value: 'Credentials remain local.',
     cognitiveMode: 'complicated',
     citations: [citation()],
@@ -131,8 +131,8 @@ describe('StoriesController', () => {
       iterationLoop: 'understand',
       iterationStage: 'tqa',
       reference: 'US-001',
-      title: 'Local coding agent',
-      goal: 'Run coding work locally.',
+      title: 'Local Pair delivery',
+      goal: 'Deliver approved Story changes locally.',
       latestRevisionNumber: 1,
       latestScenarioCount: 0,
       latestCitationCount: 1,
@@ -159,7 +159,7 @@ describe('StoriesController', () => {
     expect(revisions._embedded.storyRevisions[0]).toMatchObject({
       id: 'story-revision-1',
       revisionNumber: 1,
-      title: 'Local coding agent',
+      title: 'Local Pair delivery',
       scenarios: [],
     });
   });

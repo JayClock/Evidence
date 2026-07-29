@@ -15,7 +15,7 @@ function item(overrides: Record<string, unknown> = {}): InboxItem {
     workspace: new Ref('workspace-1'),
     sourceKind: 'manual_text',
     externalKey: 'capture-1',
-    title: 'Desktop coding agent',
+    title: 'Desktop Pair delivery',
     status: 'active',
     latestRevisionId: 'revision-1',
     latestRevisionSha256: `sha256:${'a'.repeat(64)}`,
@@ -31,7 +31,7 @@ function revision(overrides: Record<string, unknown> = {}): InboxRevision {
   return new InboxRevision('revision-1', {
     item: new Ref('inbox-1'),
     revisionNumber: 1,
-    title: 'Desktop coding agent',
+    title: 'Desktop Pair delivery',
     body: 'Run Pi locally.',
     contentType: 'text/markdown',
     uri: null,
@@ -92,7 +92,7 @@ describe('InboxController', () => {
       '10',
       'active',
       'manual_text',
-      'coding agent',
+      'pair delivery',
     );
 
     expect(workspace.listInboxItems).toHaveBeenCalledWith({
@@ -100,11 +100,11 @@ describe('InboxController', () => {
       pageSize: 10,
       status: 'active',
       sourceKind: 'manual_text',
-      query: 'coding agent',
+      query: 'pair delivery',
     });
     expect(result._links).toMatchObject({
       self: {
-        href: '/api/workspaces/workspace-1/inbox-items?page=2&pageSize=10&status=active&sourceKind=manual_text&q=coding+agent',
+        href: '/api/workspaces/workspace-1/inbox-items?page=2&pageSize=10&status=active&sourceKind=manual_text&q=pair+delivery',
       },
       prev: expect.anything(),
       next: expect.anything(),
@@ -124,7 +124,7 @@ describe('InboxController', () => {
     const result = await controller.captureInboxItem('workspace-1', {
       sourceKind: 'manual_text',
       externalKey: 'capture-1',
-      title: ' Desktop coding agent ',
+      title: ' Desktop Pair delivery ',
       body: 'Run Pi locally.\n',
       contentType: 'text/markdown',
       providerMetadata: { channel: 'product' },
@@ -133,7 +133,7 @@ describe('InboxController', () => {
     expect(workspace.captureInboxSource).toHaveBeenCalledWith({
       sourceKind: 'manual_text',
       externalKey: 'capture-1',
-      title: 'Desktop coding agent',
+      title: 'Desktop Pair delivery',
       body: 'Run Pi locally.\n',
       contentType: 'text/markdown',
       uri: null,
@@ -153,7 +153,7 @@ describe('InboxController', () => {
       'workspace-1',
       'inbox-1',
       {
-        title: 'Updated coding agent',
+        title: 'Updated Pair delivery',
         body: 'Run Pi in a worktree.',
         contentType: 'text/markdown',
         expectedLatestRevisionSha256: expectedHash,
@@ -165,7 +165,7 @@ describe('InboxController', () => {
       {
         sourceKind: 'manual_text',
         externalKey: 'capture-1',
-        title: 'Updated coding agent',
+        title: 'Updated Pair delivery',
         body: 'Run Pi in a worktree.',
         contentType: 'text/markdown',
         uri: null,
@@ -193,7 +193,7 @@ describe('InboxController', () => {
       {
         sourceKind: 'manual_text',
         externalKey: 'capture-1',
-        title: 'Desktop coding agent',
+        title: 'Desktop Pair delivery',
         body: 'Run Pi locally.',
         contentType: 'text/markdown',
         uri: 'https://example.com/issues/1',
