@@ -50,7 +50,7 @@ Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具�
 - LogicalRelationship 的端点必须属于同一 Workspace。
 - Pair Driver 不能自行宣告命令成功或提交代码；Showcase Reviewer 与 Respond Learner 都是独立只读 session，不能作人工决定。
 - Nest 是唯一 Server runtime；Electron main/preload 不实现 Server domain。
-- Hosted API 必须认证部署 principal，所有 Workspace 访问必须通过其 membership。
+- Hosted API 必须验证每个请求的 OIDC principal；所有 Workspace 访问必须通过该 User 的 membership，并按 `owner`、`member`、`viewer` role 授权。
 - 同一 Inbox source identity 幂等；同一 Item 内每个 content SHA-256 只有一个 Revision。
 - Candidate 不具权威；selection 使用 Candidate hash 与事务锁，原子创建 Iteration/Frozen Intake，但不创建 Story。
 - Kickoff 人工决定使用 Proposal hash 与 Iteration version；一个 Iteration 最多创建一张 Story。

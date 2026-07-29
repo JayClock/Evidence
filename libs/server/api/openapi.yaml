@@ -2947,10 +2947,10 @@ paths:
 components:
   securitySchemes:
     evidenceAuthorization:
-      type: apiKey
-      in: header
-      name: Authorization
-      description: Exact authorization value configured by the Evidence Server.
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: OIDC JWT access token in hosted mode; local mode may use the configured development bearer value.
   parameters:
     PairLeaseHeader:
       name: X-Evidence-Pair-Lease

@@ -20,7 +20,7 @@ Server 只使用 PostgreSQL 与工作空间 `.evidence` YAML；Desktop 不包含
 4. **单一前端**：Web 与 Desktop 共享 `apps/web` 和 `libs/web/*`，业务 API 不经 Electron IPC 复制。
 5. **契约优先**：Nest 拥有 OpenAPI source，发布副本、Web client 和 black-box contract runner 必须同步。
 6. **Desktop 安全**：Electron 只连接经过健康检查的 API；非 loopback endpoint 必须使用 HTTPS，Authorization 只由 main 注入目标 API。
-7. **Hosted 安全**：Server 默认只监听 loopback；远程监听必须认证部署 principal，Workspace 查询必须经过 membership。
+7. **Hosted 安全**：Server 默认只监听 loopback；远程多用户部署通过 OIDC JWT 建立请求 principal，Workspace 访问必须经过 membership 与 role 授权。
 8. **可测试性驱动**：架构边界映射到 Q1/Q2、明确测试替身和可执行 Nx project gates。
 9. **统一知识 + 迭代证据**：稳定知识统一维护；iteration 只保存输入、增量、决策和执行证据。
 
@@ -57,7 +57,7 @@ graph TD
 - `ApiModule`、Domain 与 filesystem model store 只由该 Server 组合根装配；Server 不加载 Pi SDK。
 - PostgreSQL Workspace row 以私有 `modelRoot` 定位 Server 自有 `.evidence`；公开 metadata 不包含绝对路径，Diagram 为模型的单一投影。
 - Electron 通过 `EVIDENCE_API_BASE_URL` 选择 API endpoint，在 main process 以 API + Workspace 保存本地 repository binding，为每张活动 Story provision 隔离 worktree，并按 Server `nextAction` 运行受限 Analyst、Pair、Showcase 与 Respond 角色。
-- `EVIDENCE_API_AUTHORIZATION` 只向配置 API 的请求注入，不通过 preload 暴露；Server 的非 loopback 监听缺少该配置时拒绝启动。
+- `local` 模式的 `EVIDENCE_API_AUTHORIZATION` 只向配置 API 的请求注入，不通过 preload 暴露；Hosted Browser 使用 OIDC Authorization Code + PKCE，Server 以 `(issuer, subject)` 映射内部 User，并按 Workspace membership role 授权。
 
 ## 架构变更规则
 

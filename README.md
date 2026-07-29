@@ -267,8 +267,34 @@ pnpm dev:desktop:remote
 ```
 
 远程 endpoint 必须使用 HTTPS；只有 loopback endpoint 允许 HTTP。Desktop 主进程只向配置的
-API origin/path 注入 `EVIDENCE_API_AUTHORIZATION`，不会通过 preload 把凭据交给 renderer。Browser
-部署可用 `VITE_API_AUTHORIZATION` 配置其自身的短期访问凭据。
+API origin/path 注入 `EVIDENCE_API_AUTHORIZATION`，不会通过 preload 把凭据交给 renderer。
+该静态凭据用于本地或受管 Desktop 兼容模式；Browser Hosted 部署使用下面的 OIDC 流程。
+
+### Hosted 多用户 OIDC
+
+Server 验证面向 Evidence API 的 JWT Access Token，并以 OIDC `(issuer, subject)` 映射稳定的内部
+`User.id`。首次登录默认创建内部 User；设为 `EVIDENCE_OIDC_AUTO_PROVISION=false` 可要求管理员先建立映射。
+
+```sh
+EVIDENCE_AUTH_MODE=oidc \
+EVIDENCE_OIDC_ISSUER=https://identity.example.com \
+EVIDENCE_OIDC_AUDIENCE=evidence-api \
+EVIDENCE_HOST=0.0.0.0 \
+pnpm dev:server
+```
+
+Web 使用 Authorization Code + PKCE；身份提供商需要登记同源回调
+`https://app.example.com/auth/callback`：
+
+```sh
+VITE_OIDC_AUTHORITY=https://identity.example.com \
+VITE_OIDC_CLIENT_ID=evidence-web \
+VITE_API_BASE_URL=https://api.example.com/api \
+pnpm dev:web
+```
+
+Access Token 保存在 `sessionStorage`，不会写入 `localStorage`；API client 在每次请求时读取当前 Token。
+Workspace 访问先验证 membership，再按 `owner`、`member`、`viewer` 执行管理、读写或只读授权。
 
 打包与 unpacked smoke：
 
@@ -281,25 +307,35 @@ pnpm nx run @evidence/desktop:package
 
 ### 运行时环境变量
 
-| 变量                              | 默认值                   | 说明                                                                           |
-| :-------------------------------- | :----------------------- | :----------------------------------------------------------------------------- |
-| `DATABASE_URL`                    | Prisma 本地 fallback     | Server 运行时 PostgreSQL 连接字符串                                            |
-| `DIRECT_URL`                      | `DATABASE_URL`           | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
-| `EVIDENCE_MIGRATION_DATABASE_URL` | 未设置                   | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL              |
-| `PORT`                            | `3000`                   | Nest 监听端口                                                                  |
-| `EVIDENCE_HOST`                   | `127.0.0.1`              | Server 监听 host；非 loopback 时必须同时配置 API Authorization                 |
-| `EVIDENCE_API_AUTHORIZATION`      | 未设置                   | 非 loopback Server 必需；请求必须携带完全一致的 `Authorization` header         |
-| `EVIDENCE_CORS_ORIGINS`           | 本地 Web 与 Desktop      | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
-| `EVIDENCE_USER_ID`                | `desktop-user`           | 当前单用户部署 principal；只可访问其 Workspace membership                      |
-| `EVIDENCE_USER_NAME`              | `Desktop User`           | 首次创建部署 principal 时使用的名称                                            |
-| `EVIDENCE_USER_EMAIL`             | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                            |
-| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录                 | 仅用于内置默认 Workspace 的 Server 模型根                                      |
-| `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models`   | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                |
-| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`            | Desktop Pi SDK 的模型、认证与全局设置目录                                      |
-| `EVIDENCE_USER_DATA_PATH`         | Electron 默认 userData   | Desktop 本地状态目录的绝对路径覆盖；主要用于隔离测试或受管部署                 |
-| `VITE_API_BASE_URL`               | `/api`                   | Browser API 根                                                                 |
-| `VITE_API_AUTHORIZATION`          | 未设置                   | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供        |
-| `EVIDENCE_API_BASE_URL`           | Electron 必填            | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
+| 变量                                 | 默认值                   | 说明                                                                           |
+| :----------------------------------- | :----------------------- | :----------------------------------------------------------------------------- |
+| `DATABASE_URL`                       | Prisma 本地 fallback     | Server 运行时 PostgreSQL 连接字符串                                            |
+| `DIRECT_URL`                         | `DATABASE_URL`           | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
+| `EVIDENCE_MIGRATION_DATABASE_URL`    | 未设置                   | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL              |
+| `PORT`                               | `3000`                   | Nest 监听端口                                                                  |
+| `EVIDENCE_HOST`                      | `127.0.0.1`              | Server 监听 host；非 loopback 必须使用 OIDC 或配置本地模式 Authorization       |
+| `EVIDENCE_AUTH_MODE`                 | `local`                  | `local` 单用户兼容模式或 `oidc` 多用户模式                                     |
+| `EVIDENCE_API_AUTHORIZATION`         | 未设置                   | `local` 模式的可选静态 Authorization；非 loopback 时必需                       |
+| `EVIDENCE_OIDC_ISSUER`               | 未设置                   | `oidc` 模式必需；Access Token 的精确 HTTPS issuer                              |
+| `EVIDENCE_OIDC_AUDIENCE`             | 未设置                   | `oidc` 模式必需；Evidence API audience                                         |
+| `EVIDENCE_OIDC_JWKS_URI`             | Discovery                | 可选显式 JWKS URL；默认读取 issuer 的 OIDC discovery                           |
+| `EVIDENCE_OIDC_AUTO_PROVISION`       | `true`                   | 是否在可信 issuer 的用户首次登录时创建内部 User                                |
+| `EVIDENCE_CORS_ORIGINS`              | 本地 Web 与 Desktop      | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
+| `EVIDENCE_USER_ID`                   | `desktop-user`           | 仅 `local` 模式使用的部署 principal                                            |
+| `EVIDENCE_USER_NAME`                 | `Desktop User`           | `local` 模式首次创建 principal 时使用的名称                                    |
+| `EVIDENCE_USER_EMAIL`                | `desktop@evidence.local` | `local` 模式首次创建 principal 时使用的邮箱                                    |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH`    | 当前目录                 | 仅用于内置默认 Workspace 的 Server 模型根                                      |
+| `EVIDENCE_WORKSPACE_STORAGE_ROOT`    | `tmp/workspace-models`   | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                |
+| `PI_CODING_AGENT_DIR`                | `~/.pi/agent`            | Desktop Pi SDK 的模型、认证与全局设置目录                                      |
+| `EVIDENCE_USER_DATA_PATH`            | Electron 默认 userData   | Desktop 本地状态目录的绝对路径覆盖；主要用于隔离测试或受管部署                 |
+| `VITE_API_BASE_URL`                  | `/api`                   | Browser API 根                                                                 |
+| `VITE_API_AUTHORIZATION`             | 未设置                   | Browser `local` 兼容模式的静态 Authorization                                   |
+| `VITE_OIDC_AUTHORITY`                | 未设置                   | Browser OIDC authority；与 client id 同时设置                                  |
+| `VITE_OIDC_CLIENT_ID`                | 未设置                   | Browser 公共 PKCE client id                                                    |
+| `VITE_OIDC_SCOPE`                    | `openid profile email`   | Browser OIDC scopes；必须包含 `openid`                                         |
+| `VITE_OIDC_REDIRECT_URI`             | 同源 `/auth/callback`    | 身份提供商登记的绝对同源回调 URL                                               |
+| `VITE_OIDC_POST_LOGOUT_REDIRECT_URI` | 应用 origin              | 身份提供商登记的绝对同源退出回调 URL                                           |
+| `EVIDENCE_API_BASE_URL`              | Electron 必填            | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
 
 ## 常用命令
 

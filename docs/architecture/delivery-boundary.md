@@ -58,4 +58,4 @@ Dogfooding 只允许内部工具读取产品知识来辅助开发，不允许产
 - 每轮 Pair 复用 Iteration 的隔离 branch/worktree；只有人工编码批准后才能 commit，不自动 merge/push。
 - Showcase Q2 与两个只读 Agent 都由 Desktop 在 approved commit 上执行；Server 只保存 bounded evidence 与哈希，产品观察、价值接受和 Respond 批准只能由人提交。
 - Repository selection id 必须短期、一次性并绑定 IPC sender；只有 Desktop main process 可以把它解析为绝对路径并写入 binding store。
-- Workspace access 先经过当前部署 principal 的 membership；Hosted API 必须配置 Authorization。
+- Workspace access 先经过当前请求 principal 的 membership 与 role；Hosted API 必须验证面向 Evidence API 的 OIDC JWT。
