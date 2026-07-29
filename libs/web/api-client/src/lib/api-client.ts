@@ -245,17 +245,25 @@ declare global {
   }
 }
 
-function createEvidenceClient(apiRootUrl: string, authorization?: string) {
+type ApiAuthorization = string | (() => string | undefined);
+
+function createEvidenceClient(
+  apiRootUrl: string,
+  authorization?: ApiAuthorization,
+) {
   const client = createClient({
     baseURL: apiRootUrl,
     schemaPlugin: zodActionSchemaPlugin,
     sendUserAgent: false,
   });
-  const normalizedAuthorization = authorization?.trim();
-  if (normalizedAuthorization) {
+  if (authorization) {
     client.use((request, next) => {
       const headers = new Headers(request.headers);
-      headers.set('Authorization', normalizedAuthorization);
+      const value =
+        typeof authorization === 'function' ? authorization() : authorization;
+      const current = value?.trim() ?? '';
+      if (current) headers.set('Authorization', current);
+      else headers.delete('Authorization');
       return next(new Request(request, { headers }));
     }, apiOrigin(apiRootUrl));
   }
@@ -281,10 +289,13 @@ export function getRootResource() {
   return apiClient.go<RootResource>();
 }
 
-export async function initializeApiClient(): Promise<void> {
+export async function initializeApiClient(
+  authorizationOverride?: ApiAuthorization,
+): Promise<void> {
   const apiRootUrl = await getApiBaseUrl();
-  const authorization = (import.meta as EvidenceImportMeta).env
-    ?.VITE_API_AUTHORIZATION;
+  const authorization =
+    authorizationOverride ??
+    (import.meta as EvidenceImportMeta).env?.VITE_API_AUTHORIZATION;
   apiClient = createEvidenceClient(apiRootUrl, authorization);
   rootResource = getRootResource();
 }
