@@ -17,10 +17,11 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 1. **工作空间协作**：用户通过成员关系进入隔离的建模空间。
 2. **Work Intake**：保存 Inbox Item、不可变来源 Revision，并由人类选择 1–5 个来源冻结 Extraction。
 3. **Iteration / Kickoff**：本地 Inbox Analyst 提案后由人类 admission；Server 冻结 Intake，Desktop provision worktree，人工 Kickoff confirm 才创建 `US-001`。
-4. **逻辑模型与图投影**：定义 `LogicalEntity` / `LogicalRelationship`，由单一当前 `Diagram` 展示模型。
-5. **本地 AI 辅助**：Desktop 嵌入 Pi SDK，通过受限工具和 Server REST API 辅助建模与 CodingRun。
-6. **人工代码审查**：每个 CodingRun 使用隔离 Git worktree；接受后才创建本地 commit，不自动 merge/push。
-7. **Web / Desktop 一致体验**：Electron 复用唯一的 React 前端和 REST/HAL 语义。
+4. **Understand / Tasking**：通过 TQA 确认 Scenario Set 与模型处置，再由人工 Desk Check 批准精确测试和任务计划。
+5. **本地 AI 辅助建模**：Desktop 嵌入 Pi SDK，通过受限工具和 Server REST API 读取、修改逻辑模型。
+6. **Pair 编码与人工批准**：Desktop 在隔离 worktree 中运行短生命周期 Driver、独立 Red Review、锁定命令和质量门；人工批准完整 Story diff 后才创建本地 commit。
+7. **Showcase / Respond**：重新执行全部 Q2、记录实际产品观察并独立 Review；人工接受价值后才提出知识响应和 next Probe。
+8. **Web / Desktop 一致体验**：Electron 复用唯一的 React 前端和 REST/HAL 语义。
 
 ## 产品架构
 
@@ -37,7 +38,7 @@ Browser
 Electron
   └─ apps/desktop                            secure main/preload
        ├─ packaged apps/web renderer
-       ├─ embedded Pi SDK agent
+       ├─ embedded Pi SDK role runtimes
        └─ REST / HAL → configured Server API
 ```
 
@@ -64,22 +65,24 @@ Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协�
 
 ### 领域模型
 
-| 聚合 / 概念                    | 说明                                                  |
-| :----------------------------- | :---------------------------------------------------- |
-| `User`                         | 用户身份以及可访问的工作空间                          |
-| `Workspace`                    | 成员、逻辑模型、当前图与本地 `.evidence` 的协作边界   |
-| `Member`                       | 用户到工作空间的成员关系与角色                        |
-| `LogicalEntity`                | Evidence、Participant、Role 或 Context 类型的业务概念 |
-| `LogicalRelationship`          | 同一工作区内两个逻辑实体之间的业务关系                |
-| `Diagram`                      | 工作区逻辑模型的单一当前投影，固定 id 为 `model`      |
-| `DiagramNode` / `DiagramEdge`  | 从实体及关联 YAML 投影出的图元素                      |
-| `InboxItem` / `InboxRevision`  | 来源身份、状态与不可变内容快照                        |
-| `InboxExtraction`              | 人工选择的 1–5 个精确 latest Revision                 |
-| `InboxStoryCandidate`          | 无 Story ID、引用精确 Revision SHA 的 AI 提案         |
-| `Iteration` / `Frozen Intake`  | Candidate claim、WIP、隔离 branch 与自包含快照        |
-| `KickoffProposal` / `Decision` | Agent 替代提案与 append-only 人工权威                 |
-| `Story` / `StoryRevision`      | Kickoff confirm 后的 `US-001`、不可变内容与 Scenario  |
-| `CodingRun`                    | 锁定精确 Story Revision 的本地编码执行与人工决定      |
+| 聚合 / 概念                            | 说明                                                  |
+| :------------------------------------- | :---------------------------------------------------- |
+| `User`                                 | 用户身份以及可访问的工作空间                          |
+| `Workspace`                            | 成员、逻辑模型、当前图与本地 `.evidence` 的协作边界   |
+| `Member`                               | 用户到工作空间的成员关系与角色                        |
+| `LogicalEntity`                        | Evidence、Participant、Role 或 Context 类型的业务概念 |
+| `LogicalRelationship`                  | 同一工作区内两个逻辑实体之间的业务关系                |
+| `Diagram`                              | 工作区逻辑模型的单一当前投影，固定 id 为 `model`      |
+| `DiagramNode` / `DiagramEdge`          | 从实体及关联 YAML 投影出的图元素                      |
+| `InboxItem` / `InboxRevision`          | 来源身份、状态与不可变内容快照                        |
+| `InboxExtraction`                      | 人工选择的 1–5 个精确 latest Revision                 |
+| `InboxStoryCandidate`                  | 无 Story ID、引用精确 Revision SHA 的 AI 提案         |
+| `Iteration` / `Frozen Intake`          | Candidate claim、WIP、隔离 branch 与自包含快照        |
+| `KickoffProposal` / `Decision`         | Agent 替代提案与 append-only 人工权威                 |
+| `Story` / `StoryRevision`              | Kickoff confirm 后的 `US-001`、不可变内容与 Scenario  |
+| `ApprovedTaskingPlan` / `PairRun`      | Desk Check 锁定计划、逐 TEST 执行与人工编码批准       |
+| `ShowcaseRun` / `ShowcaseDecision`     | fresh Q2、产品观察、独立 Review 与人工价值决定        |
+| `RespondCandidate` / `RespondDecision` | 经验证知识响应、next Probe 与人工确认                 |
 
 逻辑实体类型：
 
@@ -96,43 +99,50 @@ Domain 不依赖 HTTP、Nest、Prisma、Electron 或 UI。Controller 只做协�
 - LogicalRelationship 的 source/target 必须引用同一工作区内存在的 LogicalEntity。
 - Diagram 是文件模型的投影，不拥有第二套可变实体/关系集合。
 - Candidate 不具权威且 selection 不创建 Story；只有人工 Kickoff `confirm` 可创建每轮唯一 `US-001`。
-- CodingRun 必须锁定 latest 且至少含一个 Scenario 的 Story Revision；baseline Revision 不可编码。
-- Coding Pi 不能自行接受变更、commit、merge 或 push；完整 diff 和本地路径不进入 Server。
+- Pair 只能从人工 Desk Check 批准的精确 Tasking Plan 启动；baseline Story Revision 不可编码。
+- Pair Driver 和 Controller 不能自行接受变更、commit、merge 或 push；完整 diff、源码和本地路径不进入 Server。
+- Pair 人工批准后才创建 Showcase；只有人工接受 Showcase 才进入 Respond。
 
 ### REST API 与契约
 
 API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。
 
-| 方法                   | 路径                                                                                   | 用途                                   |
-| :--------------------- | :------------------------------------------------------------------------------------- | :------------------------------------- |
-| GET                    | `/api`、`/health`、`/api/openapi.json`                                                 | API 根、健康检查与 OpenAPI             |
-| GET                    | `/api/users/{userId}`、`/api/users/{userId}/sidebar`                                   | 用户与工作区导航                       |
-| GET, POST              | `/api/users/{userId}/workspaces`                                                       | 查询/创建工作区                        |
-| GET, PUT, DELETE       | `/api/users/{userId}/workspaces/{workspaceId}`                                         | 工作区 CRUD                            |
-| GET, POST, DELETE      | `/api/users/{userId}/workspaces/{workspaceId}/members[/{memberId}]`                    | 成员管理                               |
-| GET                    | `/api/workspaces/{workspaceId}/diagram[/nodes][/edges]`                                | 当前图投影                             |
-| GET, POST, PATCH       | `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                                 | Inbox 捕获、查询和状态                 |
-| POST, GET              | `/api/workspaces/{workspaceId}/inbox-extractions[/{extractionId}]`                     | 冻结所选 Inbox Revision                |
-| POST                   | `/api/workspaces/{workspaceId}/inbox-extractions/{extractionId}/candidates`            | Inbox Analyst 一次性提案               |
-| GET                    | `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`                       | Candidate 查询                         |
-| POST                   | `/api/workspaces/{workspaceId}/story-candidates/{candidateId}/{defer,reject,select}`   | 人工决定与 Iteration admission         |
-| GET, POST              | `/api/workspaces/{workspaceId}/iterations/{iterationId}/…`                             | Frozen Intake、provisioning 与 Kickoff |
-| GET, POST              | `/api/workspaces/{workspaceId}/stories[/{storyId}]/revisions[/{revisionId}]`           | `US-001` 与不可变 Revision             |
-| GET, POST              | `/api/workspaces/{workspaceId}/stories/{storyId}/coding-runs`                          | CodingRun 查询与创建                   |
-| POST                   | `/api/workspaces/{workspaceId}/coding-runs/{runId}/{review,fail,cancel,accept,reject}` | CodingRun 显式状态命令                 |
-| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`                          | 逻辑实体 CRUD                          |
-| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]`               | 逻辑关系 CRUD                          |
+| 方法                   | 路径                                                                                  | 用途                                 |
+| :--------------------- | :------------------------------------------------------------------------------------ | :----------------------------------- |
+| GET                    | `/api`、`/health`、`/api/openapi.json`                                                | API 根、健康检查与 OpenAPI           |
+| GET                    | `/api/users/{userId}`、`/api/users/{userId}/sidebar`                                  | 用户与工作区导航                     |
+| GET, POST              | `/api/users/{userId}/workspaces`                                                      | 查询/创建工作区                      |
+| GET, PUT, DELETE       | `/api/users/{userId}/workspaces/{workspaceId}`                                        | 工作区 CRUD                          |
+| GET, POST, DELETE      | `/api/users/{userId}/workspaces/{workspaceId}/members[/{memberId}]`                   | 成员管理                             |
+| GET                    | `/api/workspaces/{workspaceId}/diagram[/nodes][/edges]`                               | 当前图投影                           |
+| GET, POST, PATCH       | `/api/workspaces/{workspaceId}/inbox-items[/{itemId}]`                                | Inbox 捕获、查询和状态               |
+| POST, GET              | `/api/workspaces/{workspaceId}/inbox-extractions[/{extractionId}]`                    | 冻结所选 Inbox Revision              |
+| POST                   | `/api/workspaces/{workspaceId}/inbox-extractions/{extractionId}/candidates`           | Inbox Analyst 一次性提案             |
+| GET                    | `/api/workspaces/{workspaceId}/story-candidates[/{candidateId}]`                      | Candidate 查询                       |
+| POST                   | `/api/workspaces/{workspaceId}/story-candidates/{candidateId}/{defer,reject,select}`  | 人工决定与 Iteration admission       |
+| GET                    | `/api/workspaces/{workspaceId}/iterations/{iterationId}[/{intake,kickoff}]`           | Iteration、Frozen Intake 与 Kickoff  |
+| POST                   | `/api/workspaces/{workspaceId}/iterations/{iterationId}/provisioning/{complete,fail}` | Desktop provisioning 结果            |
+| GET, POST              | `/api/workspaces/{workspaceId}/iterations/{iterationId}/understanding[...]`           | TQA、Scenario 与模型处置             |
+| GET, POST              | `/api/workspaces/{workspaceId}/iterations/{iterationId}/tasking[...]`                 | Tasking、Desk Check 与 Approved Plan |
+| GET, POST              | `/api/workspaces/{workspaceId}/iterations/{iterationId}/pair[...]`                    | Pair nextAction、证据、异常与审批    |
+| GET, POST              | `/api/workspaces/{workspaceId}/iterations/{iterationId}/showcase[...]`                | Q2、产品观察、Review 与价值决定      |
+| GET, POST              | `/api/workspaces/{workspaceId}/iterations/{iterationId}/respond[...]`                 | 知识响应 Candidate 与人工决定        |
+| GET                    | `/api/workspaces/{workspaceId}/stories[/{storyId}]`                                   | 权威 `US-001` Story                  |
+| GET                    | `/api/workspaces/{workspaceId}/stories/{storyId}/revisions[/{revisionId}]`            | 不可变 Story Revision                |
+| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`                         | 逻辑实体 CRUD                        |
+| GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]`              | 逻辑关系 CRUD                        |
 
 Nest 拥有的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api/openapi.yaml)。`pnpm api:generate` 直接重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止源码、客户端与运行时漂移。
 
 ### Desktop 安全与打包
 
 - `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
-- preload 只暴露 API URL、目录选择、Workspace binding、本地建模/Inbox/Kickoff Agent、Iteration provisioner 和 CodingRun controller 的受限能力，且 main 校验 sender。
+- preload 只暴露 API URL、目录选择、Workspace binding，以及 Diagram、Inbox、Iteration 和各 Delivery Loop 所需的最小本地能力；main 对每次 IPC 调用校验 sender。
 - Electron 启动前健康检查 `EVIDENCE_API_BASE_URL`；非 loopback endpoint 必须使用 HTTPS。
-- 每个 CodingRun 创建独立 branch/worktree；完整 diff 只留本地，人工接受后创建单个 Conventional Commit。
+- Candidate selection 为该 Story provision 独立 branch/worktree；Pair、Showcase 与 Respond 复用这一隔离边界。
+- 完整源码、diff、命令输出、Prompt、Pi 消息和绝对路径只留本地；人工编码批准会重新校验 diff hash 后创建单个 Conventional Commit，不自动 merge/push。
 - Web renderer、运行依赖和 Pi SDK 进入 electron-builder 包；Server 与数据库不会进入 Desktop 包，Server 也不加载 Pi SDK。
-- package E2E 使用临时 PostgreSQL 与受控 fake Pi provider 验证完整 Inbox → revise → Kickoff confirm 生命周期及本地 CodingRun，且断言凭据和绝对路径不进入 Provider/Server。
+- package smoke 验证 packaged renderer、受限 preload、嵌入 Pi SDK 和远程 API readiness。
 
 ## 数据库 Schema
 
@@ -260,40 +270,36 @@ pnpm dev:desktop:remote
 API origin/path 注入 `EVIDENCE_API_AUTHORIZATION`，不会通过 preload 把凭据交给 renderer。Browser
 部署可用 `VITE_API_AUTHORIZATION` 配置其自身的短期访问凭据。
 
-打包、smoke 与 deterministic Fake Provider E2E：
+打包与 unpacked smoke：
 
 ```sh
 pnpm nx run @evidence/desktop:package-smoke
-pnpm nx run @evidence/desktop:package-e2e
 pnpm nx run @evidence/desktop:package
 ```
 
-`package-e2e` 会启动真实 Server、一次性 PostgreSQL（未设置 `DATABASE_URL` 时通过 Docker
-创建）和 OpenAI-compatible Fake Provider，并驱动 unpacked Desktop 验证接受、重启恢复、拒绝、
-Provider 失败与超时流程。显式设置的数据库默认必须是 loopback 地址。
+`package-smoke` 构建 Web 与 Desktop、生成 unpacked Electron 包，并通过受控 fake API 验证 packaged renderer、受限 preload、嵌入 Pi SDK 和 API readiness。
 
-### Server 环境变量
+### 运行时环境变量
 
-| 变量                               | 默认值                   | 说明                                                                           |
-| :--------------------------------- | :----------------------- | :----------------------------------------------------------------------------- |
-| `DATABASE_URL`                     | Prisma 本地 fallback     | Server 运行时 PostgreSQL 连接字符串                                            |
-| `DIRECT_URL`                       | `DATABASE_URL`           | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
-| `EVIDENCE_MIGRATION_DATABASE_URL`  | 未设置                   | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL              |
-| `PORT`                             | `3000`                   | Nest 监听端口                                                                  |
-| `EVIDENCE_HOST`                    | `127.0.0.1`              | Server 监听 host；非 loopback 时必须同时配置 API Authorization                 |
-| `EVIDENCE_API_AUTHORIZATION`       | 未设置                   | 非 loopback Server 必需；请求必须携带完全一致的 `Authorization` header         |
-| `EVIDENCE_CORS_ORIGINS`            | 本地 Web 与 Desktop      | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
-| `EVIDENCE_USER_ID`                 | `desktop-user`           | 当前单用户部署 principal；只可访问其 Workspace membership                      |
-| `EVIDENCE_USER_NAME`               | `Desktop User`           | 首次创建部署 principal 时使用的名称                                            |
-| `EVIDENCE_USER_EMAIL`              | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                            |
-| `EVIDENCE_DEFAULT_WORKSPACE_PATH`  | 当前目录                 | 仅用于内置默认 Workspace 的 Server 模型根                                      |
-| `EVIDENCE_WORKSPACE_STORAGE_ROOT`  | `tmp/workspace-models`   | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                |
-| `PI_CODING_AGENT_DIR`              | `~/.pi/agent`            | Desktop Pi SDK 的模型、认证与全局设置目录                                      |
-| `EVIDENCE_CODING_AGENT_TIMEOUT_MS` | `1800000`                | Desktop Coding Agent 超时；允许 `100`–`3600000` 毫秒                           |
-| `EVIDENCE_USER_DATA_PATH`          | Electron 默认 userData   | Desktop 本地状态目录的绝对路径覆盖；主要用于隔离测试或受管部署                 |
-| `VITE_API_BASE_URL`                | `/api`                   | Browser API 根                                                                 |
-| `VITE_API_AUTHORIZATION`           | 未设置                   | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供        |
-| `EVIDENCE_API_BASE_URL`            | Electron 必填            | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
+| 变量                              | 默认值                   | 说明                                                                           |
+| :-------------------------------- | :----------------------- | :----------------------------------------------------------------------------- |
+| `DATABASE_URL`                    | Prisma 本地 fallback     | Server 运行时 PostgreSQL 连接字符串                                            |
+| `DIRECT_URL`                      | `DATABASE_URL`           | Prisma migration 的 session/direct 地址；运行时使用 transaction pooler 时设置  |
+| `EVIDENCE_MIGRATION_DATABASE_URL` | 未设置                   | `pnpm prisma:migrate:deploy` 的显式单次目标，优先于其他数据库 URL              |
+| `PORT`                            | `3000`                   | Nest 监听端口                                                                  |
+| `EVIDENCE_HOST`                   | `127.0.0.1`              | Server 监听 host；非 loopback 时必须同时配置 API Authorization                 |
+| `EVIDENCE_API_AUTHORIZATION`      | 未设置                   | 非 loopback Server 必需；请求必须携带完全一致的 `Authorization` header         |
+| `EVIDENCE_CORS_ORIGINS`           | 本地 Web 与 Desktop      | Server 允许的逗号分隔 origin；仅显式 `*` 才允许所有                            |
+| `EVIDENCE_USER_ID`                | `desktop-user`           | 当前单用户部署 principal；只可访问其 Workspace membership                      |
+| `EVIDENCE_USER_NAME`              | `Desktop User`           | 首次创建部署 principal 时使用的名称                                            |
+| `EVIDENCE_USER_EMAIL`             | `desktop@evidence.local` | 首次创建部署 principal 时使用的邮箱                                            |
+| `EVIDENCE_DEFAULT_WORKSPACE_PATH` | 当前目录                 | 仅用于内置默认 Workspace 的 Server 模型根                                      |
+| `EVIDENCE_WORKSPACE_STORAGE_ROOT` | `tmp/workspace-models`   | Server 为新 Workspace 分配模型目录的私有根；不接收 Desktop 路径                |
+| `PI_CODING_AGENT_DIR`             | `~/.pi/agent`            | Desktop Pi SDK 的模型、认证与全局设置目录                                      |
+| `EVIDENCE_USER_DATA_PATH`         | Electron 默认 userData   | Desktop 本地状态目录的绝对路径覆盖；主要用于隔离测试或受管部署                 |
+| `VITE_API_BASE_URL`               | `/api`                   | Browser API 根                                                                 |
+| `VITE_API_AUTHORIZATION`          | 未设置                   | Browser 自身的 Authorization；仅用于受控部署，不由 Desktop preload 提供        |
+| `EVIDENCE_API_BASE_URL`           | Electron 必填            | Electron API 根；`dev:desktop` 自动设置本地值，非 loopback endpoint 必须 HTTPS |
 
 ## 常用命令
 
@@ -314,7 +320,6 @@ pnpm nx test @evidence/server-persistent --run
 # Desktop
 pnpm nx test @evidence/desktop --run
 pnpm nx run @evidence/desktop:package-smoke
-pnpm nx run @evidence/desktop:package-e2e
 
 # API
 pnpm api:check
@@ -339,7 +344,7 @@ pnpm orchestrator:validate
 | `libs/server/api/`                          | Nest controllers、HAL 与 OpenAPI source                     |
 | `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                               |
 | `libs/server/persistent/`                   | Prisma schema/migrations、PostgreSQL 与 filesystem adapters |
-| `apps/desktop/`                             | Electron、local agents、CodingRun controller 与打包         |
+| `apps/desktop/`                             | Electron、local agents、Delivery Loop controllers 与打包    |
 | `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                              |
 | `docs/product/`                             | 跨迭代统一产品知识                                          |
 | `.evidence/`                                | Evidence 平台权威领域模型                                   |
