@@ -23,7 +23,7 @@ import type {
 export class ResourceResolver {
   constructor(
     @Inject(USERS) private readonly users: Users,
-    private readonly principal: CurrentPrincipal,
+    @Inject(CurrentPrincipal) private readonly principal: CurrentPrincipal,
   ) {}
 
   async requireUser(userId: string): Promise<User> {

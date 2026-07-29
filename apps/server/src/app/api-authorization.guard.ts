@@ -4,6 +4,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  Scope,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CurrentPrincipal } from '@evidence/server-api';
@@ -20,12 +21,12 @@ import {
 } from './authentication-config';
 import { OidcTokenVerifier } from './oidc-token-verifier';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class ApiAuthorizationGuard implements CanActivate {
   constructor(
     @Inject(USERS) private readonly users: Users,
-    private readonly principal: CurrentPrincipal,
-    private readonly oidcTokens: OidcTokenVerifier,
+    @Inject(CurrentPrincipal) private readonly principal: CurrentPrincipal,
+    @Inject(OidcTokenVerifier) private readonly oidcTokens: OidcTokenVerifier,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

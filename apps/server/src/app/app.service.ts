@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { parse } from 'yaml';
 import openapiYaml from '@evidence/server-api/openapi.yaml?raw';
 import {
@@ -24,7 +24,9 @@ export interface HealthResource {
 
 @Injectable()
 export class AppService {
-  constructor(private readonly principal: CurrentPrincipal) {}
+  constructor(
+    @Inject(CurrentPrincipal) private readonly principal: CurrentPrincipal,
+  ) {}
 
   root(): RootResource {
     return {

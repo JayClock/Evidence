@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Inject,
   Injectable,
+  Scope,
 } from '@nestjs/common';
 import { CurrentPrincipal } from '@evidence/server-api';
 import {
@@ -15,11 +16,11 @@ import {
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class WorkspaceAuthorizationGuard implements CanActivate {
   constructor(
     @Inject(USERS) private readonly users: Users,
-    private readonly principal: CurrentPrincipal,
+    @Inject(CurrentPrincipal) private readonly principal: CurrentPrincipal,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
