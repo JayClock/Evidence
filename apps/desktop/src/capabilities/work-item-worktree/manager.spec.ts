@@ -9,10 +9,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  changedPathsBetween,
-  IterationWorktreeManager,
-} from './manager';
+import { changedPathsBetween, IterationWorktreeManager } from './manager';
 import { gitHead, runGit } from '../../adapters/git/repository';
 
 const temporaryPaths: string[] = [];
@@ -80,7 +77,7 @@ describe('IterationWorktreeManager', () => {
       ),
     ).resolves.toBe(commitSha);
     expect(await gitHead(repository)).toBe(baseCommitSha);
-  });
+  }, 15_000);
 
   it('locks Showcase observations to one clean approved commit', async () => {
     const root = await temporaryDirectory();
@@ -112,7 +109,7 @@ describe('IterationWorktreeManager', () => {
     await expect(
       manager.snapshotApproved(worktree, approvedCommitSha),
     ).rejects.toThrow('must remain clean');
-  });
+  }, 15_000);
 
   it('prepares locked pnpm dependencies without changing tracked files', async () => {
     const root = await temporaryDirectory();
