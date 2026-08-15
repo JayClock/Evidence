@@ -15,7 +15,8 @@ public record EvidenceSecuritySettings(
     List<String> corsOrigins,
     String oidcIssuer,
     String oidcAudience,
-    String oidcJwksUri) {
+    String oidcJwksUri,
+    boolean oidcAutoProvision) {
   private static final Set<String> LOOPBACK_HOSTS =
       Set.of("127.0.0.1", "localhost", "::1", "[::1]");
   private static final Pattern USER_ID = Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]*$");
@@ -48,7 +49,8 @@ public record EvidenceSecuritySettings(
         corsOrigins(environment),
         oidc.issuer(),
         oidc.audience(),
-        oidc.jwksUri());
+        oidc.jwksUri(),
+        booleanSetting(environment, "evidence.oidc.auto-provision", true));
   }
 
   private static OidcSettings oidcSettings(AuthenticationMode mode, Environment environment) {
@@ -63,6 +65,15 @@ public record EvidenceSecuritySettings(
     String jwksUri =
         configuredJwks == null ? null : endpoint(configuredJwks, "EVIDENCE_OIDC_JWKS_URI");
     return new OidcSettings(issuer, audience, jwksUri);
+  }
+
+  private static boolean booleanSetting(
+      Environment environment, String property, boolean fallback) {
+    String configured = trimToNull(environment.getProperty(property));
+    if (configured == null) return fallback;
+    if ("true".equalsIgnoreCase(configured)) return true;
+    if ("false".equalsIgnoreCase(configured)) return false;
+    throw new IllegalStateException("EVIDENCE_OIDC_AUTO_PROVISION must be true or false.");
   }
 
   private static void validateAuthorization(String authorization) {

@@ -17,11 +17,13 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import reengineering.ddd.evidence.application.WorkspaceService;
 
 @Configuration
 public class SecurityConfig {
@@ -39,7 +41,8 @@ public class SecurityConfig {
   SecurityFilterChain securityFilterChain(
       HttpSecurity http,
       EvidenceSecuritySettings settings,
-      ApiAuthenticationEntryPoint authenticationEntryPoint)
+      ApiAuthenticationEntryPoint authenticationEntryPoint,
+      WorkspaceService workspaceService)
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource(settings)))
@@ -66,6 +69,9 @@ public class SecurityConfig {
               resourceServer
                   .authenticationEntryPoint(authenticationEntryPoint)
                   .jwt(jwt -> jwt.decoder(jwtDecoder(settings))));
+      http.addFilterAfter(
+          new OidcUserProvisioningFilter(settings, workspaceService, authenticationEntryPoint),
+          BearerTokenAuthenticationFilter.class);
     }
     return http.build();
   }

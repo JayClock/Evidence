@@ -18,6 +18,7 @@ class EvidenceSecuritySettingsTest {
     assertThat(settings.authMode()).isEqualTo(EvidenceSecuritySettings.AuthenticationMode.LOCAL);
     assertThat(settings.userId()).isEqualTo("desktop-user");
     assertThat(settings.expectedAuthorization()).isNull();
+    assertThat(settings.oidcAutoProvision()).isTrue();
     assertThat(settings.corsOrigins())
         .containsExactly("http://localhost:4200", "http://127.0.0.1:4200", "evidence://app");
   }
@@ -29,6 +30,17 @@ class EvidenceSecuritySettingsTest {
     assertThatThrownBy(() -> EvidenceSecuritySettings.from(environment))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("EVIDENCE_API_AUTHORIZATION is required");
+  }
+
+  @Test
+  void validatesOidcAutoProvisionSetting() {
+    MockEnvironment environment =
+        new MockEnvironment().withProperty("evidence.oidc.auto-provision", "false");
+    assertThat(EvidenceSecuritySettings.from(environment).oidcAutoProvision()).isFalse();
+
+    environment.setProperty("evidence.oidc.auto-provision", "sometimes");
+    assertThatThrownBy(() -> EvidenceSecuritySettings.from(environment))
+        .hasMessageContaining("EVIDENCE_OIDC_AUTO_PROVISION");
   }
 
   @Test
