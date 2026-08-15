@@ -314,6 +314,14 @@ public final class InboxModels {
             ApiTemplates.workspaceIterationChild(uriInfo, workspaceId, id, "provisioning/fail"),
             "fail-provisioning");
       }
+      if (activeStoryId != null) {
+        addRelation(ApiTemplates.workspaceStory(uriInfo, workspaceId, activeStoryId), "story");
+        addRelation(
+            ApiTemplates.workspaceIterationChild(uriInfo, workspaceId, id, "understanding"),
+            "understanding");
+        addRelation(
+            ApiTemplates.workspaceIterationChild(uriInfo, workspaceId, id, "tasking"), "tasking");
+      }
     }
   }
 

@@ -9,10 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.MemberDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
+import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.Inbox;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
+import reengineering.ddd.evidence.domain.model.IterationWorkflow;
 import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.model.Tasking;
+import reengineering.ddd.evidence.domain.model.Understanding;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.domain.model.Workspace;
@@ -252,6 +256,189 @@ public class WorkspaceService {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
         .inboxWorkflow()
         .selectCandidate(input, actorUserId);
+  }
+
+  public Iteration requireIteration(String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .iterations()
+        .findIteration(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Iteration " + iterationId + " not found"));
+  }
+
+  public IterationWorkflow.Intake requireIterationIntake(
+      String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .iterations()
+        .findIntake(iterationId)
+        .orElseThrow(
+            () -> DomainException.notFound("Iteration Intake " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public Iteration completeIterationProvisioning(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      IterationWorkflow.CompleteProvisioningInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .iterations()
+        .completeProvisioning(iterationId, input);
+  }
+
+  @Transactional
+  public Iteration failIterationProvisioning(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      IterationWorkflow.FailProvisioningInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .iterations()
+        .failProvisioning(iterationId, input);
+  }
+
+  public IterationWorkflow.KickoffView requireKickoff(
+      String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .iterations()
+        .findKickoff(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Iteration " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public IterationWorkflow.KickoffProposal proposeKickoffReplacement(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      int expectedVersion,
+      InboxWorkflow.CandidateInput proposal) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .iterations()
+        .proposeKickoffReplacement(iterationId, expectedVersion, proposal);
+  }
+
+  @Transactional
+  public IterationWorkflow.KickoffDecisionResult decideKickoff(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      IterationWorkflow.KickoffDecisionInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .iterations()
+        .decideKickoff(iterationId, input, actorUserId);
+  }
+
+  public Understanding.View requireUnderstanding(
+      String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .understanding()
+        .findUnderstanding(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Understanding " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public Understanding.Clarification askClarification(
+      String actorUserId, String workspaceId, String iterationId, Understanding.AskInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .understanding()
+        .askClarification(iterationId, input);
+  }
+
+  @Transactional
+  public Understanding.AnswerResult answerClarification(
+      String actorUserId, String workspaceId, String iterationId, Understanding.AnswerInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .understanding()
+        .answerClarification(iterationId, input, actorUserId);
+  }
+
+  @Transactional
+  public Understanding.ScenarioProposal proposeScenarios(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      Understanding.ProposeScenariosInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .understanding()
+        .proposeScenarioSet(iterationId, input);
+  }
+
+  @Transactional
+  public Understanding.DecisionResult decideUnderstanding(
+      String actorUserId, String workspaceId, String iterationId, Understanding.DecideInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .understanding()
+        .decideUnderstanding(iterationId, input, actorUserId);
+  }
+
+  public Tasking.View requireTasking(String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .tasking()
+        .findTasking(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Tasking " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public Tasking.NoModelImpact recordNoModelImpact(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      Tasking.RecordNoModelImpactInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .tasking()
+        .recordNoModelImpact(iterationId, input, actorUserId);
+  }
+
+  @Transactional
+  public Tasking.Candidate proposeTasking(
+      String actorUserId, String workspaceId, String iterationId, Tasking.ProposeInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .tasking()
+        .proposeTasking(iterationId, input);
+  }
+
+  @Transactional
+  public Tasking.DecisionResult decideTasking(
+      String actorUserId, String workspaceId, String iterationId, Tasking.DecideInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .tasking()
+        .decideTasking(iterationId, input, actorUserId);
+  }
+
+  public Delivery.Page<Delivery.Story> stories(
+      String actorUserId, String workspaceId, int page, int pageSize) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .delivery()
+        .listStories(page, pageSize);
+  }
+
+  public Delivery.PortfolioSummary storySummary(String actorUserId, String workspaceId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .delivery()
+        .summarizeStories();
+  }
+
+  public Delivery.Story requireStory(String actorUserId, String workspaceId, String storyId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .delivery()
+        .findStory(storyId)
+        .orElseThrow(() -> DomainException.notFound("Story " + storyId + " not found"));
+  }
+
+  public Delivery.Page<Delivery.StoryRevision> storyRevisions(
+      String actorUserId, String workspaceId, String storyId, int page, int pageSize) {
+    requireStory(actorUserId, workspaceId, storyId);
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .delivery()
+        .listStoryRevisions(storyId, page, pageSize);
+  }
+
+  public Delivery.StoryRevision requireStoryRevision(
+      String actorUserId, String workspaceId, String storyId, String revisionId) {
+    requireStory(actorUserId, workspaceId, storyId);
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .delivery()
+        .findStoryRevision(storyId, revisionId)
+        .orElseThrow(() -> DomainException.notFound("Story Revision " + revisionId + " not found"));
   }
 
   @Transactional

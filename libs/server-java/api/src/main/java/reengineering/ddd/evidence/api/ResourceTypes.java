@@ -29,6 +29,28 @@ public final class ResourceTypes {
   public static final String STORY_CANDIDATES = "application/vnd.evidence.story-candidates+json";
   public static final String STORY_CANDIDATE = "application/vnd.evidence.story-candidate+json";
   public static final String ITERATION = "application/vnd.evidence.iteration+json";
+  public static final String ITERATION_INTAKE = "application/vnd.evidence.iteration-intake+json";
+  public static final String KICKOFF = "application/vnd.evidence.kickoff+json";
+  public static final String KICKOFF_PROPOSAL = "application/vnd.evidence.kickoff-proposal+json";
+  public static final String KICKOFF_DECISION_RESULT =
+      "application/vnd.evidence.kickoff-decision-result+json";
+  public static final String UNDERSTANDING = "application/vnd.evidence.understanding+json";
+  public static final String CLARIFICATION = "application/vnd.evidence.clarification+json";
+  public static final String CLARIFICATION_ANSWER_RESULT =
+      "application/vnd.evidence.clarification-answer-result+json";
+  public static final String SCENARIO_PROPOSAL = "application/vnd.evidence.scenario-proposal+json";
+  public static final String UNDERSTANDING_DECISION_RESULT =
+      "application/vnd.evidence.understanding-decision-result+json";
+  public static final String TASKING = "application/vnd.evidence.tasking+json";
+  public static final String NO_MODEL_IMPACT_DECISION =
+      "application/vnd.evidence.no-model-impact-decision+json";
+  public static final String TASKING_CANDIDATE = "application/vnd.evidence.tasking-candidate+json";
+  public static final String DESK_CHECK_DECISION_RESULT =
+      "application/vnd.evidence.desk-check-decision-result+json";
+  public static final String STORIES = "application/vnd.evidence.stories+json";
+  public static final String STORY = "application/vnd.evidence.story+json";
+  public static final String STORY_REVISIONS = "application/vnd.evidence.story-revisions+json";
+  public static final String STORY_REVISION = "application/vnd.evidence.story-revision+json";
 
   private ResourceTypes() {}
 }

@@ -92,6 +92,18 @@ public class WorkspaceApi {
         new StoryCandidatesApi(actorUserId, workspace.getIdentity(), workspaceService));
   }
 
+  @Path("iterations")
+  public IterationsApi iterations() {
+    return resourceContext.initResource(
+        new IterationsApi(actorUserId, workspace.getIdentity(), workspaceService));
+  }
+
+  @Path("stories")
+  public StoriesApi stories() {
+    return resourceContext.initResource(
+        new StoriesApi(actorUserId, workspace.getIdentity(), workspaceService));
+  }
+
   @Path("logical-entities")
   public LogicalEntitiesApi logicalEntities() {
     return resourceContext.initResource(

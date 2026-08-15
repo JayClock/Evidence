@@ -189,6 +189,61 @@ public final class ApiTemplates {
         .build();
   }
 
+  public static URI workspaceKickoffProposal(
+      UriInfo uriInfo, String workspaceId, String iterationId, String proposalId) {
+    return UriBuilder.fromUri(
+            workspaceIterationChild(uriInfo, workspaceId, iterationId, "kickoff/proposals"))
+        .path("{proposalId}")
+        .build(proposalId);
+  }
+
+  public static URI workspaceKickoffDecision(
+      UriInfo uriInfo, String workspaceId, String iterationId, String decisionId) {
+    return UriBuilder.fromUri(
+            workspaceIterationChild(uriInfo, workspaceId, iterationId, "kickoff/decisions"))
+        .path("{decisionId}")
+        .build(decisionId);
+  }
+
+  public static URI workspaceStories(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "stories");
+  }
+
+  public static URI workspaceStoriesPage(
+      UriInfo uriInfo, String workspaceId, int page, int pageSize) {
+    return UriBuilder.fromUri(workspaceStories(uriInfo, workspaceId))
+        .queryParam("page", page)
+        .queryParam("pageSize", pageSize)
+        .build();
+  }
+
+  public static URI workspaceStory(UriInfo uriInfo, String workspaceId, String storyId) {
+    return UriBuilder.fromUri(workspaceStories(uriInfo, workspaceId))
+        .path("{storyId}")
+        .build(storyId);
+  }
+
+  public static URI workspaceStoryRevisions(UriInfo uriInfo, String workspaceId, String storyId) {
+    return UriBuilder.fromUri(workspaceStory(uriInfo, workspaceId, storyId))
+        .path("revisions")
+        .build();
+  }
+
+  public static URI workspaceStoryRevisionsPage(
+      UriInfo uriInfo, String workspaceId, String storyId, int page, int pageSize) {
+    return UriBuilder.fromUri(workspaceStoryRevisions(uriInfo, workspaceId, storyId))
+        .queryParam("page", page)
+        .queryParam("pageSize", pageSize)
+        .build();
+  }
+
+  public static URI workspaceStoryRevision(
+      UriInfo uriInfo, String workspaceId, String storyId, String revisionId) {
+    return UriBuilder.fromUri(workspaceStoryRevisions(uriInfo, workspaceId, storyId))
+        .path("{revisionId}")
+        .build(revisionId);
+  }
+
   public static URI workspaceDiagram(UriInfo uriInfo, String workspaceId) {
     return workspaceChild(uriInfo, workspaceId, "diagram");
   }
