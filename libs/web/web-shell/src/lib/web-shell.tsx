@@ -128,10 +128,10 @@ export function WebShell({
           onSelectWorkspace={selectWorkspace}
           onSignOut={onSignOut}
         />
-        <SidebarInset className="h-svh min-w-0 overflow-hidden">
+        <SidebarInset className="h-svh min-w-0 overflow-hidden bg-background">
           <AppTopbar navigation={navigation} />
           <div
-            className="min-h-0 w-full flex-1 overflow-hidden p-2.5"
+            className="min-h-0 w-full flex-1 overflow-hidden p-2"
             id="main-content"
             tabIndex={-1}
           >

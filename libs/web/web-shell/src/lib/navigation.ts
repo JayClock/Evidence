@@ -24,30 +24,36 @@ export interface ShellNavigationSection {
 
 const sectionOrder = [
   {
-    key: 'workspace',
-    title: '工作区',
-    itemKeys: ['workspace-overview', 'inbox-items'],
+    key: 'scope',
+    title: '范围',
+    itemKeys: ['workspace-overview'],
   },
   {
     key: 'delivery',
-    title: '交付',
-    itemKeys: ['story-candidates', 'stories', 'tasking-queue', 'pair-queue'],
+    title: '知识交付',
+    itemKeys: [
+      'inbox-items',
+      'story-candidates',
+      'stories',
+      'tasking-queue',
+      'pair-queue',
+    ],
   },
   {
     key: 'model',
-    title: '模型',
+    title: '领域知识',
     itemKeys: ['diagram', 'logical-entities'],
   },
 ] as const;
 
 const labels: Record<string, string> = {
-  'workspace-overview': '总览',
-  'inbox-items': '收件箱',
-  'story-candidates': '故事候选',
-  stories: '故事看板',
-  'tasking-queue': '交付计划',
-  'pair-queue': 'Pair 工作台',
-  diagram: '模型图',
+  'workspace-overview': 'Overall Delivery',
+  'inbox-items': 'Problem 与 Intake',
+  'story-candidates': 'Candidate 提案',
+  stories: '交付位置',
+  'tasking-queue': 'Tasking',
+  'pair-queue': 'Pair',
+  diagram: 'Scenario 与 Model',
   'logical-entities': '逻辑实体',
 };
 

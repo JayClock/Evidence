@@ -42,6 +42,9 @@ vi.mock('@evidence/ui', () => {
   const Textarea = (props: ComponentProps<'textarea'>) => (
     <textarea {...props} />
   );
+  const EvidenceStatusBadge = ({ label }: { label?: string }) => (
+    <span>{label}</span>
+  );
 
   return {
     Alert: Div,
@@ -87,6 +90,7 @@ vi.mock('@evidence/ui', () => {
     DropdownMenuRadioItem: Div,
     DropdownMenuSeparator: () => <hr />,
     DropdownMenuTrigger: Fragment,
+    EvidenceStatusBadge,
     Field: Div,
     FieldDescription: Div,
     FieldError: Div,
@@ -326,11 +330,13 @@ describe('WebShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Evidence 平台')).toBeTruthy();
+    expect(screen.getAllByText('Evidence').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Default Workspace').length).toBeGreaterThan(0);
     expect(screen.queryByText('Workspaces')).toBeNull();
     expect(screen.queryByText('Diagram')).toBeNull();
-    expect(screen.getByRole('link', { name: '收件箱' })).toHaveProperty(
+    expect(
+      screen.getByRole('link', { name: 'Problem 与 Intake' }),
+    ).toHaveProperty(
       'pathname',
       '/api/workspaces/default-workspace/inbox-items',
     );
@@ -352,7 +358,7 @@ describe('WebShell', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getAllByText('Pair 工作台').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Pair').length).toBeGreaterThan(0);
     expect(screen.getByText('Story 级编码审批')).toBeTruthy();
     expect(screen.queryByText('iteration-uuid')).toBeNull();
     expect(screen.getByText('Web · 查看模式')).toBeTruthy();
@@ -398,9 +404,9 @@ describe('WebShell', () => {
           getAttribute(attribute: string): string | null;
         }
       ).getAttribute('aria-current');
-    expect(currentValue('Pair 工作台')).toBe('page');
-    expect(currentValue('故事看板')).toBeNull();
-    expect(currentValue('总览')).toBeNull();
+    expect(currentValue('Pair')).toBe('page');
+    expect(currentValue('交付位置')).toBeNull();
+    expect(currentValue('Overall Delivery')).toBeNull();
   });
 
   it('binds a Desktop repository without sending its path to the Server', async () => {

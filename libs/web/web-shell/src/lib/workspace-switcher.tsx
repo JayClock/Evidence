@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import type {
   MembershipWorkspace,
   RepositorySelectionSummary,
@@ -106,17 +106,15 @@ export function WorkspaceSwitcher({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuButton
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 size="lg"
                 tooltip={activeTitle}
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
               >
-                <span className="flex size-8 items-center justify-center rounded-[0.625rem] bg-sidebar-accent text-sidebar-accent-foreground">
+                <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
                   <HexagonIcon aria-hidden />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
-                  <span className="truncate text-sm font-medium">
-                    Evidence 平台
-                  </span>
+                  <span className="truncate text-sm font-semibold">Evidence</span>
                   <span className="truncate text-xs text-sidebar-foreground/70">
                     {activeTitle}
                   </span>
@@ -240,7 +238,7 @@ function CreateWorkspaceDialog({
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitted(true);
 
@@ -415,7 +413,7 @@ function electronRepositoryPicker():
   return electronWindow.evidenceDesktop?.chooseRepository ?? null;
 }
 
-export function workspaceSourceName(workspace: MembershipWorkspace) {
+function workspaceSourceName(workspace: MembershipWorkspace) {
   return workspace.description?.trim() || `${workspace.status} 工作区`;
 }
 

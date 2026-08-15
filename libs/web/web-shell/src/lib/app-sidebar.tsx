@@ -32,13 +32,15 @@ import {
 import {
   BotIcon,
   BoxesIcon,
-  Columns3Icon,
+  CircleCheckIcon,
+  CircleOffIcon,
   HouseIcon,
   InboxIcon,
   ListChecksIcon,
   NetworkIcon,
   SparklesIcon,
   TerminalIcon,
+  WorkflowIcon,
 } from 'lucide-react';
 
 import type { ShellNavigationSection } from './navigation';
@@ -51,7 +53,7 @@ const navigationIcons: Record<
   'workspace-overview': HouseIcon,
   'inbox-items': InboxIcon,
   'story-candidates': SparklesIcon,
-  stories: Columns3Icon,
+  stories: WorkflowIcon,
   'tasking-queue': ListChecksIcon,
   'pair-queue': TerminalIcon,
   diagram: NetworkIcon,
@@ -155,6 +157,8 @@ function SidebarLoading() {
 function AgentConnection() {
   const desktopConnected =
     typeof window !== 'undefined' && Boolean(window.evidenceDesktop);
+  const StatusIcon = desktopConnected ? CircleCheckIcon : CircleOffIcon;
+
   return (
     <div className="flex items-center gap-2 rounded-md px-2 py-2 text-sidebar-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
       <BotIcon aria-hidden className="size-4 shrink-0" />
@@ -164,10 +168,13 @@ function AgentConnection() {
           {desktopConnected ? 'Desktop · 已连接' : 'Browser · 查看模式'}
         </span>
       </span>
-      <span
+      <StatusIcon
         aria-label={desktopConnected ? 'Desktop 已连接' : 'Desktop 未连接'}
-        className="size-1.5 rounded-full bg-sidebar-foreground/35 data-[connected=true]:bg-sidebar-primary"
-        data-connected={desktopConnected}
+        className={
+          desktopConnected
+            ? 'size-3.5 text-status-verified'
+            : 'size-3.5 text-status-locked'
+        }
       />
     </div>
   );

@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Badge,
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -17,6 +16,7 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
+  EvidenceStatusBadge,
   Separator,
   SidebarTrigger,
 } from '@evidence/ui';
@@ -57,7 +57,7 @@ export function AppTopbar({
 
   return (
     <>
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-card px-3.5">
+      <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-card px-3">
         <SidebarTrigger className="lg:hidden" />
         <Separator orientation="vertical" className="h-5 lg:hidden" />
         <Breadcrumb className="min-w-0">
@@ -88,14 +88,14 @@ export function AppTopbar({
         <div className="min-w-0 flex-1" />
         <Button
           aria-label="搜索工作区或执行命令"
-          className="hidden w-[15.625rem] justify-start text-muted-foreground lg:flex"
+          className="hidden w-72 justify-start text-muted-foreground lg:flex"
           onClick={() => setCommandOpen(true)}
           type="button"
           variant="outline"
         >
           <SearchIcon aria-hidden data-icon="inline-start" />
-          <span className="truncate">搜索工作区或执行命令</span>
-          <kbd className="ml-auto font-mono text-[0.625rem]">⌘K</kbd>
+          <span className="truncate">搜索或跳转</span>
+          <kbd className="ml-auto font-mono text-[0.6875rem]">⌘K</kbd>
         </Button>
         <Button
           aria-label="搜索工作区或执行命令"
@@ -108,9 +108,10 @@ export function AppTopbar({
           <SearchIcon aria-hidden />
         </Button>
         {requiresDesktopStatus(location.pathname) ? (
-          <Badge variant="secondary">
-            {desktopConnected ? 'Desktop · 已连接' : 'Web · 查看模式'}
-          </Badge>
+          <EvidenceStatusBadge
+            label={desktopConnected ? 'Desktop · 已连接' : 'Web · 查看模式'}
+            status={desktopConnected ? 'verified' : 'locked'}
+          />
         ) : null}
         <ThemeToggle />
       </header>
@@ -220,8 +221,8 @@ function breadcrumbEntries(pathname: string): BreadcrumbEntry[] {
     return collectionBreadcrumb(
       base,
       first,
-      '工作区',
-      '收件箱',
+      '知识交付',
+      'Problem 与 Intake',
       tail,
       '来源详情',
     );
@@ -230,17 +231,17 @@ function breadcrumbEntries(pathname: string): BreadcrumbEntry[] {
     return collectionBreadcrumb(
       base,
       first,
-      '交付',
-      '故事候选',
+      'Problem 与 Intake',
+      'Candidate 提案',
       tail,
       'Candidate',
     );
   }
   if (first === 'stories') {
     return tail.length === 1
-      ? [{ label: '交付' }, { label: '故事看板' }]
+      ? [{ label: '知识交付' }, { label: '交付位置' }]
       : [
-          { href: `${base}/stories`, label: '故事看板' },
+          { href: `${base}/stories`, label: '交付位置' },
           { label: tail.includes('revisions') ? 'Story Revision' : 'Story' },
         ];
   }
@@ -248,7 +249,7 @@ function breadcrumbEntries(pathname: string): BreadcrumbEntry[] {
     return iterationBreadcrumb(base, tail[2]);
   }
   if (first === 'diagram') {
-    return [{ label: '模型' }, { label: '模型图' }];
+    return [{ label: '领域知识' }, { label: 'Scenario 与 Model' }];
   }
   if (first === 'logical-entities') {
     return collectionBreadcrumb(
@@ -284,15 +285,19 @@ function iterationBreadcrumb(
   activity?: string,
 ): BreadcrumbEntry[] {
   const labels: Record<string, [string, string]> = {
-    kickoff: ['交付', 'Kickoff'],
-    intake: ['交付', 'Frozen Intake'],
-    understanding: ['故事看板', 'Understand / TQA'],
-    tasking: ['交付计划', 'Tasking / Desk Check'],
-    pair: ['Pair 工作台', 'Story 级编码审批'],
+    kickoff: ['Problem 与 Intake', 'Kickoff'],
+    intake: ['Problem 与 Intake', 'Frozen Intake'],
+    understanding: ['Scenario 与 Model', 'Understand / TQA'],
+    tasking: ['Tasking', 'Desk Check'],
+    pair: ['Pair', 'Story 级编码审批'],
+    showcase: ['Showcase', '价值验证'],
+    respond: ['Run 与 Respond', '知识响应'],
   };
-  const [parent, current] = labels[activity ?? ''] ?? ['交付', 'Iteration'];
+  const [parent, current] = labels[activity ?? ''] ?? ['知识交付', 'Iteration'];
   const parentHref =
-    activity === 'understanding'
+    activity === 'understanding' ||
+    activity === 'showcase' ||
+    activity === 'respond'
       ? `${base}/stories`
       : activity === 'tasking'
         ? `${base}/stories?filter=tasking`
@@ -308,6 +313,8 @@ function requiresDesktopStatus(pathname: string): boolean {
     appPath.endsWith('/understanding') ||
     appPath.endsWith('/tasking') ||
     appPath.endsWith('/pair') ||
+    appPath.endsWith('/showcase') ||
+    appPath.endsWith('/respond') ||
     /\/workspaces\/[^/]+\/stories\/?$/.test(appPath)
   );
 }
