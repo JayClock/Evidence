@@ -114,7 +114,9 @@ export function WorkspaceSwitcher({
                   <HexagonIcon aria-hidden />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
-                  <span className="truncate text-sm font-semibold">Evidence</span>
+                  <span className="truncate text-sm font-semibold">
+                    Evidence
+                  </span>
                   <span className="truncate text-xs text-sidebar-foreground/70">
                     {activeTitle}
                   </span>
