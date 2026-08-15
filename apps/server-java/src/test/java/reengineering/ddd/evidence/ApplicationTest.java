@@ -234,6 +234,152 @@ class ApplicationTest {
   }
 
   @Test
+  void persistsAndProjectsWorkspaceModelFiles() throws Exception {
+    ResponseEntity<String> createdWorkspace =
+        authorized(
+            HttpMethod.POST, "/api/workspaces", "{\"title\":\"Java Filesystem Model Workspace\"}");
+    String workspaceId = objectMapper.readTree(createdWorkspace.getBody()).path("id").asText();
+    String workspacePath = "/api/workspaces/" + workspaceId;
+
+    ResponseEntity<String> diagram = authorized(HttpMethod.GET, workspacePath + "/diagram", null);
+    assertThat(diagram.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertContentType(diagram, "application/vnd.evidence.diagram+json");
+    JsonNode diagramBody = objectMapper.readTree(diagram.getBody());
+    assertThat(diagramBody.path("id").asText()).isEqualTo("model");
+    assertThat(diagramBody.path("_links").path("nodes").path("href").asText())
+        .isEqualTo(workspacePath + "/diagram/nodes");
+
+    JsonNode source =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    workspacePath + "/logical-entities",
+                    """
+                    {
+                      "type":"EVIDENCE",
+                      "subType":"EVIDENCE:other_evidence",
+                      "name":"Order Evidence",
+                      "label":"Order",
+                      "description":"Source evidence",
+                      "attributes":[]
+                    }
+                    """)
+                .getBody());
+    JsonNode target =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    workspacePath + "/logical-entities",
+                    """
+                    {
+                      "type":"PARTICIPANT",
+                      "subType":"PARTICIPANT:party",
+                      "name":"Customer",
+                      "attributes":[]
+                    }
+                    """)
+                .getBody());
+    String sourceId = source.path("id").asText();
+    String targetId = target.path("id").asText();
+    assertThat(source.path("subType").asText()).isEqualTo("EVIDENCE:other_evidence");
+    assertThat(
+            Files.isRegularFile(
+                TEST_ROOT
+                    .resolve("workspace-models")
+                    .resolve(workspaceId)
+                    .resolve(".evidence/entities")
+                    .resolve(sourceId + ".yaml")))
+        .isTrue();
+
+    ResponseEntity<String> listedEntities =
+        authorized(HttpMethod.GET, workspacePath + "/logical-entities?page=1&pageSize=50", null);
+    assertContentType(listedEntities, "application/vnd.evidence.logical-entities+json");
+    JsonNode entitiesBody = objectMapper.readTree(listedEntities.getBody());
+    assertThat(entitiesBody.path("page").path("totalElements").asInt()).isEqualTo(2);
+    assertThat(entitiesBody.path("_embedded").path("logicalEntities").size()).isEqualTo(2);
+
+    ResponseEntity<String> updatedEntity =
+        authorized(
+            HttpMethod.PUT,
+            workspacePath + "/logical-entities/" + sourceId,
+            "{\"label\":\"Submitted Order\"}");
+    assertThat(updatedEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertContentType(updatedEntity, "application/vnd.evidence.logical-entity+json");
+    assertThat(objectMapper.readTree(updatedEntity.getBody()).path("label").asText())
+        .isEqualTo("Submitted Order");
+
+    ResponseEntity<String> nodes =
+        authorized(HttpMethod.GET, workspacePath + "/diagram/nodes", null);
+    assertContentType(nodes, "application/vnd.evidence.nodes+json");
+    JsonNode projectedNode =
+        findById(objectMapper.readTree(nodes.getBody()).path("_embedded").path("nodes"), sourceId);
+    assertThat(projectedNode.path("_embedded").path("logical-entity").path("id").asText())
+        .isEqualTo(sourceId);
+    ResponseEntity<String> node =
+        authorized(HttpMethod.GET, workspacePath + "/diagram/nodes/" + sourceId, null);
+    assertContentType(node, "application/vnd.evidence.node+json");
+
+    ResponseEntity<String> invalidRelationship =
+        authorized(
+            HttpMethod.POST,
+            workspacePath + "/logical-relationships",
+            "{\"source\":{\"id\":\"" + sourceId + "\"},\"target\":{\"id\":\"missing\"}}");
+    assertThat(invalidRelationship.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+
+    ResponseEntity<String> createdRelationship =
+        authorized(
+            HttpMethod.POST,
+            workspacePath + "/logical-relationships",
+            "{\"source\":{\"id\":\""
+                + sourceId
+                + "\"},\"target\":{\"id\":\""
+                + targetId
+                + "\"},\"label\":\"belongs to\"}");
+    assertThat(createdRelationship.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(createdRelationship, "application/vnd.evidence.logical-relationships+json");
+    String relationshipId =
+        objectMapper.readTree(createdRelationship.getBody()).path("id").asText();
+    assertThat(
+            Files.isRegularFile(
+                TEST_ROOT
+                    .resolve("workspace-models")
+                    .resolve(workspaceId)
+                    .resolve(".evidence/associations")
+                    .resolve(relationshipId + ".yaml")))
+        .isTrue();
+
+    ResponseEntity<String> updatedRelationship =
+        authorized(
+            HttpMethod.PUT,
+            workspacePath + "/logical-relationships/" + relationshipId,
+            "{\"label\":\"submitted by\"}");
+    assertContentType(updatedRelationship, "application/vnd.evidence.logical-relationship+json");
+    assertThat(objectMapper.readTree(updatedRelationship.getBody()).path("label").asText())
+        .isEqualTo("submitted by");
+
+    ResponseEntity<String> edges =
+        authorized(HttpMethod.GET, workspacePath + "/diagram/edges", null);
+    assertContentType(edges, "application/vnd.evidence.edges+json");
+    JsonNode projectedEdge =
+        findById(
+            objectMapper.readTree(edges.getBody()).path("_embedded").path("edges"), relationshipId);
+    assertThat(projectedEdge.path("logicalRelationship").path("id").asText())
+        .isEqualTo(relationshipId);
+    ResponseEntity<String> edge =
+        authorized(HttpMethod.GET, workspacePath + "/diagram/edges/" + relationshipId, null);
+    assertContentType(edge, "application/vnd.evidence.edge+json");
+
+    ResponseEntity<String> deletedRelationship =
+        authorized(
+            HttpMethod.DELETE, workspacePath + "/logical-relationships/" + relationshipId, null);
+    assertThat(objectMapper.readTree(deletedRelationship.getBody()).path("deleted").asBoolean())
+        .isTrue();
+    ResponseEntity<String> deletedEntity =
+        authorized(HttpMethod.DELETE, workspacePath + "/logical-entities/" + sourceId, null);
+    assertThat(objectMapper.readTree(deletedEntity.getBody()).path("deleted").asBoolean()).isTrue();
+  }
+
+  @Test
   void rejectsDesktopRepositoryPathsInWorkspacePayloads() {
     ResponseEntity<String> directPath =
         authorized(
@@ -248,6 +394,13 @@ class ApplicationTest {
             "/api/workspaces",
             "{\"title\":\"Invalid\",\"metadata\":{\"repositoryRoot\":\"/desktop/repository\"}}");
     assertThat(metadataPath.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+  }
+
+  private static JsonNode findById(JsonNode values, String id) {
+    for (JsonNode value : values) {
+      if (id.equals(value.path("id").asText())) return value;
+    }
+    throw new AssertionError("Resource " + id + " not found");
   }
 
   private ResponseEntity<String> authorized(HttpMethod method, String path, String body) {
