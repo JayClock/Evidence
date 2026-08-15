@@ -26,6 +26,7 @@ import {
   EmptyHeader,
   EmptyTitle,
   EvidenceCanvas,
+  EvidenceStatusBadge,
   PageDescription,
   PageEyebrow,
   PageHeader,
@@ -65,7 +66,7 @@ export function WorkspaceOverviewView({
 
   return (
     <EvidenceCanvas className="px-5 pt-[1.125rem] pb-6">
-      <PageHeader className="px-4 pt-3.5 pb-[0.6875rem]">
+      <PageHeader>
         <PageHeaderCopy>
           <PageEyebrow>工作区总览 · EVD-002 至 EVD-005</PageEyebrow>
           <PageTitle className="leading-7">
@@ -73,15 +74,18 @@ export function WorkspaceOverviewView({
           </PageTitle>
           <PageDescription>
             {resourceState.data.description?.trim() ||
-              '集中查看 Inbox、Understand、Tasking 到 Pair 审批的权威交付压力与下一项动作。'}
+              '集中查看从 Problem 与 Intake 到 Run 与 Respond 的权威交付压力、证据和下一项动作。'}
           </PageDescription>
         </PageHeaderCopy>
       </PageHeader>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex h-[2.125rem] shrink-0 flex-wrap items-center gap-1.5">
-          <Badge variant="outline">托管 API 已连接</Badge>
-          <Badge variant="secondary">Authority projection 已同步</Badge>
+        <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-1.5">
+          <EvidenceStatusBadge label="托管 API 已连接" status="verified" />
+          <EvidenceStatusBadge
+            label="Authority projection 已锁定"
+            status="locked"
+          />
         </div>
 
         {errors.length > 0 ? (
@@ -129,33 +133,31 @@ export function WorkspaceOverviewView({
           </div>
         </section>
 
-        <Card className="h-48 gap-0 py-0 lg:h-[11.625rem] xl:h-[10.75rem]">
-          <CardHeader className="h-[2.875rem] justify-center border-b py-2 !pb-2">
+        <Card className="h-56 gap-0 py-0">
+          <CardHeader className="justify-center border-b py-3 !pb-3">
             <CardTitle aria-level={2} role="heading">
-              交付权威流程
+              六个知识位置
             </CardTitle>
             <CardDescription>
-              Approved Plan 是 Pair 唯一入口；完整 Diff 仅在 Desktop 审查。
+              TQA、Desk Check 与编码审批是位置内部 Gate；Approved Plan 仍是 Pair
+              唯一入口。
             </CardDescription>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-x-auto p-4">
-            <ol className="grid min-w-[48rem] grid-cols-6">
+            <ol className="grid min-w-[60rem] grid-cols-6">
               <FlowStage
-                count={inbox.resourceState?.data.page.totalElements}
-                detail="来源与修订已冻结"
-                label="Inbox"
-                state="done"
-              />
-              <FlowStage
-                count={candidates.resourceState?.data.page.totalElements}
-                detail="人工确认 Story authority"
-                label="Kickoff"
-                state="attention"
+                count={
+                  (inbox.resourceState?.data.page.totalElements ?? 0) +
+                  (candidates.resourceState?.data.page.totalElements ?? 0)
+                }
+                detail="来源、Revision、Extraction 与 Candidate"
+                label="Problem and Intake"
               />
               <FlowStage
                 count={stageCount(summary, 'understand')}
-                detail="TQA 与 Scenario 审查"
-                label="Understand"
+                detail="TQA、Scenario 审查与模型处置"
+                label="Scenario and Model"
+                state="attention"
               />
               <FlowStage
                 count={stageCount(summary, 'tasking')}
@@ -164,14 +166,19 @@ export function WorkspaceOverviewView({
               />
               <FlowStage
                 count={stageCount(summary, 'pair')}
-                detail="逐 TEST、Refactor 与质量门"
+                detail="逐 TEST、质量门与编码审批"
                 label="Pair"
               />
               <FlowStage
-                count={summary?.approved}
-                detail="本地 commit 后停止"
-                label="Approved"
-                state="done"
+                count={stageCount(summary, 'showcase')}
+                detail="Q2、观察、风险、Review 与决定"
+                label="Showcase"
+              />
+              <FlowStage
+                count={stageCount(summary, 'respond')}
+                detail="知识响应、next Probe 与人工确认"
+                label="Run and Respond"
+                state={summary?.approved ? 'done' : 'pending'}
               />
             </ol>
           </CardContent>
@@ -201,11 +208,16 @@ function AttentionCard({
   href: string | null;
 }) {
   const content = (
-    <div className="flex h-20 items-center gap-2.5 rounded-lg border bg-card p-3 shadow-xs">
-      <Badge className="font-mono text-[0.8125rem] tabular-nums">{count}</Badge>
+    <div className="flex h-20 items-center gap-2.5 rounded-lg border bg-card p-3">
+      <Badge
+        className="font-mono text-[0.8125rem] tabular-nums"
+        variant="decision"
+      >
+        {count}
+      </Badge>
       <span className="min-w-0 flex-1">
-        <span className="block text-[0.625rem] font-semibold">{label}</span>
-        <span className="mt-0.5 block truncate text-[0.5rem] text-muted-foreground">
+        <span className="block text-xs font-semibold">{label}</span>
+        <span className="mt-0.5 block truncate text-[0.6875rem] text-muted-foreground">
           {detail}
         </span>
       </span>
@@ -239,7 +251,10 @@ function FlowStage({
     <li className="group relative flex min-w-0 flex-col gap-2 pr-3 last:pr-0">
       <div className="flex items-center">
         <span
-          className="relative z-10 flex size-7 items-center justify-center rounded-full border bg-card font-mono text-[0.6875rem] font-semibold data-[state=attention]:border-ev-amber data-[state=attention]:bg-ev-amber-soft data-[state=done]:border-ev-brand data-[state=done]:bg-ev-brand-strong data-[state=done]:text-primary-foreground"
+          aria-label={
+            state === 'done' ? `${label} 已完成` : `${label} ${count ?? 0} 项`
+          }
+          className="relative z-10 flex size-7 items-center justify-center rounded-full border bg-card font-mono text-[0.6875rem] font-semibold data-[state=attention]:border-status-decision data-[state=attention]:bg-status-decision-soft data-[state=attention]:text-status-decision data-[state=done]:border-status-verified data-[state=done]:bg-status-verified-soft data-[state=done]:text-status-verified"
           data-state={state}
         >
           {state === 'done' ? '✓' : String(count ?? 0).padStart(2, '0')}
@@ -278,7 +293,9 @@ function ActiveIterations({
         {boardHref ? (
           <CardAction>
             <Button asChild size="sm" variant="outline">
-              <Link to={withFilter(boardHref, 'human') ?? boardHref}>看板</Link>
+              <Link to={withFilter(boardHref, 'human') ?? boardHref}>
+                交付位置
+              </Link>
             </Button>
           </CardAction>
         ) : null}

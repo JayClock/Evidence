@@ -534,7 +534,7 @@ describe('ResourceBrowserRoutes', () => {
     expect(
       await screen.findByRole('heading', { name: 'Default Workspace' }),
     ).toBeTruthy();
-    expect(screen.getByText('交付权威流程')).toBeTruthy();
+    expect(screen.getByText('六个知识位置')).toBeTruthy();
     expect(screen.getByText('活跃 Iteration')).toBeTruthy();
     expect(screen.queryByText('模型快照')).toBeNull();
     expect(screen.queryByRole('link', { name: '采集来源' })).toBeNull();

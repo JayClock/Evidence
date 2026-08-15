@@ -16,6 +16,7 @@ import {
   EmptyHeader,
   EmptyTitle,
   EvidenceCanvas,
+  EvidenceStatusBadge,
   Input,
   PageDescription,
   PageEyebrow,
@@ -32,105 +33,93 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@evidence/ui';
+import {
+  FileInputIcon,
+  ListChecksIcon,
+  NetworkIcon,
+  PresentationIcon,
+  RefreshCwIcon,
+  TerminalIcon,
+  type LucideIcon,
+} from 'lucide-react';
 import { DeliveryPagination } from './delivery-pagination';
 
 type StoryState = State<StoryResource>;
 type StoryData = StoryResource['data'];
 type StoryAction = StoryData['authority']['nextAction'];
 type BoardFilter = 'all' | 'human' | 'accepted';
-type BoardColumnKey =
-  | 'tqa'
-  | 'scenario'
-  | 'modeling'
+type BoardScope = 'overall' | 'iteration' | 'construction';
+type DeliveryPositionKey =
+  | 'problem-intake'
+  | 'scenario-model'
   | 'tasking'
-  | 'desk-check'
-  | 'plan-ready'
   | 'pair'
-  | 'approval'
   | 'showcase'
-  | 'respond'
-  | 'complete';
+  | 'run-respond';
 
-interface BoardColumnDefinition {
-  key: BoardColumnKey;
-  title: string;
+interface DeliveryPositionDefinition {
+  empty: string;
+  icon: LucideIcon;
+  key: DeliveryPositionKey;
   rule: string;
-  dotClassName: string;
+  title: string;
 }
 
-const BOARD_COLUMNS: BoardColumnDefinition[] = [
+const DELIVERY_POSITIONS: DeliveryPositionDefinition[] = [
   {
-    key: 'tqa',
-    title: 'TQA 澄清',
-    rule: '一个 pending question 或下一轮 Analyst',
-    dotClassName: 'bg-ev-blue',
+    key: 'problem-intake',
+    title: 'Problem and Intake',
+    rule: '来源、Revision、Extraction 与 Candidate 在 Story 创建前建立问题权威。',
+    empty: 'Intake 与 Candidate 在独立权威资源中维护。',
+    icon: FileInputIcon,
   },
   {
-    key: 'scenario',
-    title: 'Scenario 审查',
-    rule: '完整的 1–5 个 Draft 等待人工决定',
-    dotClassName: 'bg-ev-blue',
-  },
-  {
-    key: 'modeling',
-    title: '模型影响',
-    rule: '显式记录模型决定后才可进入 Tasking',
-    dotClassName: 'bg-ev-violet',
+    key: 'scenario-model',
+    title: 'Scenario and Model',
+    rule: 'TQA、Scenario 审查与模型处置是这个知识位置中的内部 Gate。',
+    empty: '没有 Story 正在澄清 Scenario 或模型影响。',
+    icon: NetworkIcon,
   },
   {
     key: 'tasking',
     title: 'Tasking',
-    rule: 'Desktop Analyst 生成完整 Candidate',
-    dotClassName: 'bg-ev-blue',
-  },
-  {
-    key: 'desk-check',
-    title: 'Desk Check',
-    rule: '人工审查 exact Candidate 与追踪链',
-    dotClassName: 'bg-ev-blue',
-  },
-  {
-    key: 'plan-ready',
-    title: 'Pair 待启动',
-    rule: 'Approved Plan 是唯一入口',
-    dotClassName: 'bg-ev-blue',
+    rule: 'Tasking Candidate 与 Desk Check 留在同一个知识位置。',
+    empty: '没有 Story 等待 Tasking 或 Desk Check。',
+    icon: ListChecksIcon,
   },
   {
     key: 'pair',
-    title: 'Pair 执行',
-    rule: 'Server 发布唯一 nextAction',
-    dotClassName: 'bg-ev-blue',
-  },
-  {
-    key: 'approval',
-    title: '编码审批',
-    rule: '完整本地 Diff 与 bounded evidence',
-    dotClassName: 'bg-ev-amber',
+    title: 'Pair',
+    rule: '逐 TEST 执行、质量门与编码审批共享一个 Pair 权威位置。',
+    empty: '没有 Story 正在 Pair 或等待编码审批。',
+    icon: TerminalIcon,
   },
   {
     key: 'showcase',
     title: 'Showcase',
-    rule: 'Q2 重跑、产品观察、风险评价与独立建议',
-    dotClassName: 'bg-ev-violet',
+    rule: 'fresh Q2、产品观察、风险证据、独立 Review 与价值决定。',
+    empty: '没有 Story 正在进行 Showcase 价值验证。',
+    icon: PresentationIcon,
   },
   {
-    key: 'respond',
-    title: 'Respond',
-    rule: '起草并确认交付响应',
-    dotClassName: 'bg-ev-blue',
-  },
-  {
-    key: 'complete',
-    title: '已接受',
-    rule: '人工价值决定与响应均已完成',
-    dotClassName: 'bg-ev-brand',
+    key: 'run-respond',
+    title: 'Run and Respond',
+    rule: 'Accepted Showcase 的知识响应、next Probe 与人工确认。',
+    empty: '没有 Story 等待知识响应或已经完成本轮。',
+    icon: RefreshCwIcon,
   },
 ];
 
 const FILTER_LABELS: Array<{ value: BoardFilter; label: string }> = [
-  { value: 'all', label: '全部' },
+  { value: 'all', label: '全部状态' },
   { value: 'human', label: '待人工' },
   { value: 'accepted', label: '已接受' },
+];
+
+const SCOPE_LABELS: Array<{ value: BoardScope; label: string }> = [
+  { value: 'overall', label: 'Overall Delivery' },
+  { value: 'iteration', label: 'Current Iteration' },
+  { value: 'construction', label: 'Software Construction' },
 ];
 
 export function StoryCollectionView({
@@ -148,16 +137,32 @@ export function StoryCollectionView({
   const [filter, setFilter] = useState<BoardFilter>(() =>
     parseFilter(initialQuery.get('filter')),
   );
+  const [scope, setScope] = useState<BoardScope>(() =>
+    parseScope(initialQuery.get('scope')),
+  );
   const [selectedStory, setSelectedStory] = useState<StoryState | null>(null);
   const [pagePending, setPagePending] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
+  const focusedIterationReference =
+    collectionState.collection.find(
+      (storyState) => storyState.data.iterationLifecycle === 'active',
+    )?.data.iterationReference ??
+    collectionState.collection[0]?.data.iterationReference;
   const stories = useMemo(
     () =>
-      collectionState.collection.filter((storyState) =>
-        storyMatches(storyState.data, deferredQuery, filter),
+      collectionState.collection.filter(
+        (storyState) =>
+          scopeMatches(storyState.data, scope, focusedIterationReference) &&
+          storyMatches(storyState.data, deferredQuery, filter),
       ),
-    [collectionState.collection, deferredQuery, filter],
+    [
+      collectionState.collection,
+      deferredQuery,
+      filter,
+      focusedIterationReference,
+      scope,
+    ],
   );
 
   const navigatePage = async (relation: 'prev' | 'next') => {
@@ -176,21 +181,21 @@ export function StoryCollectionView({
 
   return (
     <EvidenceCanvas className="overflow-hidden">
-      <PageHeader className="h-[5.875rem] px-4 pt-3.5 pb-[0.6875rem]">
+      <PageHeader>
         <PageHeaderCopy>
           <PageEyebrow>
-            交付组合 · {collectionState.data.page.totalElements} 个已确认 Story
+            权威交付 · {collectionState.data.page.totalElements} 个已确认 Story
           </PageEyebrow>
-          <PageTitle>故事交付看板</PageTitle>
+          <PageTitle>交付知识位置</PageTitle>
           <PageDescription>
-            列位置由 Iteration loop / stage 自动推导，禁止拖拽。唯一 Pair
-            入口是人工批准的精确 Tasking Plan。
+            六个位置投影同一套 Server authority。TQA、Desk Check
+            与编码审批是位置内部 Gate，不再成为独立看板列。
           </PageDescription>
         </PageHeaderCopy>
       </PageHeader>
 
-      <PageToolbar className="h-[3.625rem] gap-2 px-5 pt-2 pb-2.5">
-        <label className="w-[19.375rem] shrink-0">
+      <PageToolbar className="flex-wrap gap-2">
+        <label className="w-72 shrink-0">
           <span className="sr-only">搜索 Story</span>
           <Input
             onChange={(event) => setQuery(event.target.value)}
@@ -200,7 +205,25 @@ export function StoryCollectionView({
           />
         </label>
         <ToggleGroup
-          aria-label="看板筛选"
+          aria-label="范围视角"
+          className="max-w-full flex-wrap justify-start"
+          onValueChange={(value) => {
+            if (value) setScope(value as BoardScope);
+          }}
+          size="sm"
+          spacing={0}
+          type="single"
+          value={scope}
+          variant="outline"
+        >
+          {SCOPE_LABELS.map((item) => (
+            <ToggleGroupItem key={item.value} value={item.value}>
+              {item.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <ToggleGroup
+          aria-label="权威状态筛选"
           className="max-w-full flex-wrap justify-start"
           onValueChange={(value) => {
             if (value) setFilter(value as BoardFilter);
@@ -217,7 +240,7 @@ export function StoryCollectionView({
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <Badge variant="secondary">状态自动推导 · 禁止拖拽</Badge>
+        <EvidenceStatusBadge label="Server authority" status="locked" />
       </PageToolbar>
 
       {pageError ? (
@@ -286,38 +309,52 @@ function StoryBoard({
   const grouped = useMemo(() => groupStories(stories), [stories]);
 
   return (
-    <div aria-label="故事交付看板" className="h-full overflow-x-auto">
-      <div className="grid h-full min-w-[86rem] grid-cols-11 gap-2.5 bg-background px-5 pt-3 pb-[1.125rem]">
-        {BOARD_COLUMNS.map((column) => {
-          const columnStories = grouped.get(column.key) ?? [];
+    <div
+      aria-label="交付知识位置"
+      className="h-full overflow-x-auto bg-background p-3"
+    >
+      <div className="grid h-full min-w-[72rem] grid-cols-6 gap-px overflow-hidden rounded-lg border bg-border">
+        {DELIVERY_POSITIONS.map((position, index) => {
+          const positionStories = grouped.get(position.key) ?? [];
+          const Icon = position.icon;
           return (
             <section
-              aria-labelledby={`story-column-${column.key}`}
-              className="flex min-w-0 flex-col gap-2 rounded-lg border bg-secondary p-2"
-              key={column.key}
+              aria-labelledby={`delivery-position-${position.key}`}
+              className="flex min-w-0 flex-col gap-3 bg-card p-3"
+              key={position.key}
             >
-              <header className="flex h-[2.375rem] shrink-0 items-center gap-2 border-b">
-                <span
-                  aria-hidden="true"
-                  className={`size-2 shrink-0 rounded-full ${column.dotClassName}`}
-                />
-                <h2
-                  className="min-w-0 truncate text-xs font-semibold"
-                  id={`story-column-${column.key}`}
-                  title={column.rule}
-                >
-                  {column.title}
-                </h2>
-                <Badge variant="outline">{columnStories.length}</Badge>
+              <header className="flex min-h-14 shrink-0 items-start gap-2 border-b pb-3">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-muted-foreground">
+                  <Icon aria-hidden className="size-3.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-mono text-[0.6875rem] text-muted-foreground">
+                    {String(index + 1).padStart(2, '0')}
+                  </span>
+                  <h2
+                    className="truncate text-xs font-semibold"
+                    id={`delivery-position-${position.key}`}
+                    title={position.rule}
+                  >
+                    {position.title}
+                  </h2>
+                </span>
+                <Badge variant="outline">{positionStories.length}</Badge>
               </header>
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-                {columnStories.map((storyState) => (
-                  <StoryCard
-                    key={storyState.data.id}
-                    onInspect={onInspect}
-                    storyState={storyState}
-                  />
-                ))}
+                {positionStories.length === 0 ? (
+                  <p className="rounded-md border border-dashed p-3 text-[0.6875rem] leading-4 text-muted-foreground">
+                    {position.empty}
+                  </p>
+                ) : (
+                  positionStories.map((storyState) => (
+                    <StoryCard
+                      key={storyState.data.id}
+                      onInspect={onInspect}
+                      storyState={storyState}
+                    />
+                  ))
+                )}
               </div>
             </section>
           );
@@ -339,19 +376,20 @@ function StoryCard({
   return (
     <button
       aria-label={`快速查看 ${story.title}`}
-      className="flex w-full flex-col gap-1.5 rounded-lg border bg-card px-[0.5625rem] py-2 text-left shadow-xs outline-none transition-colors hover:border-ev-line-strong focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      className="flex w-full flex-col gap-1.5 rounded-md border bg-card p-2.5 text-left outline-none transition-colors hover:border-ev-line-strong hover:bg-secondary/50 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
       onClick={() => onInspect(storyState)}
       type="button"
     >
-      <span className="font-mono text-[0.625rem] text-muted-foreground">
+      <span className="font-mono text-[0.6875rem] text-muted-foreground">
         {story.reference} · {story.iterationReference}
       </span>
       <span className="line-clamp-3 text-xs font-bold">{story.title}</span>
-      <Badge variant={ownerBadgeVariant(story.authority.owner)}>
-        {storyOwnerLabel(story.authority.owner)}
-      </Badge>
-      <span className="text-[0.625rem] text-muted-foreground">
-        当前阶段 · {storyColumnTitle(story)}
+      <EvidenceStatusBadge
+        label={storyOwnerLabel(story.authority.owner)}
+        status={ownerEvidenceStatus(story.authority.owner)}
+      />
+      <span className="text-[0.6875rem] text-muted-foreground">
+        当前位置 · {storyPositionTitle(story)}
       </span>
     </button>
   );
@@ -382,10 +420,11 @@ function StoryQuickView({
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           <Alert>
-            <AlertTitle>列位置不是可拖拽状态</AlertTitle>
+            <AlertTitle>知识位置由权威状态推导</AlertTitle>
             <AlertDescription>
-              看板只投影 Server 权威 Iteration loop / stage；动作仍受当前 HAL
-              relation 与 optimistic version 约束。
+              此视图只投影 Server 权威 Iteration loop /
+              stage；位置不可拖拽，动作仍受当前 HAL relation 与 optimistic
+              version 约束。
             </AlertDescription>
           </Alert>
 
@@ -466,44 +505,28 @@ function QuickFact({
 }
 
 function groupStories(stories: StoryState[]) {
-  const grouped = new Map<BoardColumnKey, StoryState[]>();
+  const grouped = new Map<DeliveryPositionKey, StoryState[]>();
   for (const story of stories) {
-    const key = storyColumn(story.data);
+    const key = storyPosition(story.data);
     grouped.set(key, [...(grouped.get(key) ?? []), story]);
   }
   return grouped;
 }
 
-function storyColumn(story: StoryData): BoardColumnKey {
-  if (story.iterationLoop === 'understand') {
-    if (story.iterationStage === 'scenario_review') return 'scenario';
-    if (story.iterationStage === 'modeling') return 'modeling';
-    return 'tqa';
-  }
-  if (story.iterationLoop === 'tasking') {
-    if (story.iterationStage === 'desk_check') return 'desk-check';
-    if (story.iterationStage === 'approved') return 'plan-ready';
-    return 'tasking';
-  }
-  if (story.iterationLoop === 'pair') {
-    if (
-      story.iterationStage === 'quality_gates_passed' ||
-      story.iterationStage === 'approved'
-    ) {
-      return 'approval';
-    }
-    return 'pair';
-  }
+function storyPosition(story: StoryData): DeliveryPositionKey {
+  if (story.iterationLoop === 'understand') return 'scenario-model';
+  if (story.iterationLoop === 'tasking') return 'tasking';
+  if (story.iterationLoop === 'pair') return 'pair';
   if (story.iterationLoop === 'showcase') return 'showcase';
-  if (story.iterationLoop === 'respond') {
-    return story.iterationStage === 'accepted' ? 'complete' : 'respond';
-  }
-  return 'tqa';
+  if (story.iterationLoop === 'respond') return 'run-respond';
+  return 'problem-intake';
 }
 
-function storyColumnTitle(story: StoryData): string {
-  const key = storyColumn(story);
-  return BOARD_COLUMNS.find((column) => column.key === key)?.title ?? key;
+function storyPositionTitle(story: StoryData): string {
+  const key = storyPosition(story);
+  return (
+    DELIVERY_POSITIONS.find((position) => position.key === key)?.title ?? key
+  );
 }
 
 function storyMatches(
@@ -536,10 +559,28 @@ function storyMatches(
   return true;
 }
 
+function scopeMatches(
+  story: StoryData,
+  scope: BoardScope,
+  focusedIterationReference: string | undefined,
+): boolean {
+  if (scope === 'overall') return true;
+  if (scope === 'iteration') {
+    return story.iterationReference === focusedIterationReference;
+  }
+  return story.iterationLoop === 'tasking' || story.iterationLoop === 'pair';
+}
+
 function parseFilter(value: string | null): BoardFilter {
   return FILTER_LABELS.some((item) => item.value === value)
     ? (value as BoardFilter)
     : 'all';
+}
+
+function parseScope(value: string | null): BoardScope {
+  return SCOPE_LABELS.some((item) => item.value === value)
+    ? (value as BoardScope)
+    : 'overall';
 }
 
 export function storyAuthorityHref(storyState: StoryState): string | null {
@@ -644,12 +685,12 @@ function storyOwnerLabel(owner: StoryData['authority']['owner']): string {
   );
 }
 
-function ownerBadgeVariant(
+function ownerEvidenceStatus(
   owner: StoryData['authority']['owner'],
-): 'default' | 'secondary' | 'outline' {
-  if (owner === 'human') return 'secondary';
-  if (owner === 'agent') return 'outline';
-  return 'default';
+): 'decision' | 'proposed' | 'verified' {
+  if (owner === 'human') return 'decision';
+  if (owner === 'agent') return 'proposed';
+  return 'verified';
 }
 
 function errorMessage(error: unknown, fallback: string): string {

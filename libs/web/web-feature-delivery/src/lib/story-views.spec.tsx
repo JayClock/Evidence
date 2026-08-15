@@ -191,11 +191,14 @@ describe('Story views', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: '故事交付看板' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: '交付知识位置' })).toBeTruthy();
     expect(screen.getByText('本地编码智能体')).toBeTruthy();
     expect(screen.getByText('US-001 · ITER-0001')).toBeTruthy();
-    expect(screen.getByText('TQA 澄清')).toBeTruthy();
-    expect(screen.getByText('当前阶段 · TQA 澄清')).toBeTruthy();
+    expect(
+      screen.getByRole('heading', { name: 'Scenario and Model' }),
+    ).toBeTruthy();
+    expect(screen.getByText('当前位置 · Scenario and Model')).toBeTruthy();
+    expect(screen.queryByText('TQA 澄清')).toBeNull();
     fireEvent.click(
       screen.getByRole('button', { name: '快速查看 本地编码智能体' }),
     );
@@ -250,7 +253,7 @@ describe('Story views', () => {
     fireEvent.click(
       screen.getByRole('button', { name: '快速查看 保护本地交付隐私' }),
     );
-    expect(screen.getByText('列位置不是可拖拽状态')).toBeTruthy();
+    expect(screen.getByText('知识位置由权威状态推导')).toBeTruthy();
     expect(screen.getByText('精确 Approved Plan')).toBeTruthy();
   });
 

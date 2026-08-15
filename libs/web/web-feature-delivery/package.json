@@ -14,6 +14,7 @@
   "dependencies": {
     "@evidence/api-client": "workspace:*",
     "@evidence/ui": "workspace:*",
+    "lucide-react": "^1.16.0",
     "react-router-dom": "6.30.3"
   }
 }
