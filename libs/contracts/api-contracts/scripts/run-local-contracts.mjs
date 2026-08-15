@@ -22,6 +22,10 @@ const server = spawn(process.execPath, [serverEntry], {
     ...process.env,
     DATABASE_URL: databaseUrl,
     EVIDENCE_API_AUTHORIZATION: authorization,
+    EVIDENCE_AUTH_MODE: 'local',
+    EVIDENCE_USER_ID: 'desktop-user',
+    EVIDENCE_USER_NAME: 'Desktop User',
+    EVIDENCE_USER_EMAIL: 'desktop@evidence.local',
     EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
     EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
     EVIDENCE_HOST: '127.0.0.1',
@@ -108,7 +112,8 @@ async function waitForHealth(url, child) {
       throw new Error(`Nest contract server exited with ${child.exitCode}.`);
     }
     try {
-      if ((await fetch(url)).ok) return;
+      const response = await fetch(url);
+      if (response.ok) return;
     } catch {
       // The server is not listening yet.
     }

@@ -17,6 +17,7 @@
     "api:generate": "node apps/server/scripts/export-openapi.mjs --write",
     "api:contracts": "nx run @evidence/api-contracts:contract-local",
     "api:contracts:remote": "nx run @evidence/api-contracts:contract",
+    "compatibility:check": "nx run @evidence/api-contracts:test --run src/lib/compatibility-baseline.spec.ts && nx run @evidence/server-persistent:test --run src/persistent/workflow-content.spec.ts",
     "prisma:generate": "pnpm --filter @evidence/server exec prisma generate",
     "prisma:migrate:deploy": "node apps/server/scripts/deploy-prisma-migrations.mjs",
     "ui:shadcn": "pnpm --filter @evidence/ui exec shadcn",

@@ -41,6 +41,17 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位；低价值�
 - Web client 由 OpenAPI 生成；类型检查不能替代运行时 contract test。
 - Electron package smoke 使用受控 fake API 验证内嵌 Pi SDK、packaged renderer 和远程 API readiness。
 
+## Server replacement 兼容性基线
+
+`libs/contracts/api-contracts/baseline/` 保存替换 Nest runtime 时必须跨语言复现的 `nest-compatibility-v1`：
+
+- `compatibility-v1.json` 固定 OpenAPI source、Prisma schema、已有 migration chain，以及迁移后 PostgreSQL 的逐表 columns、constraints、indexes 摘要；新增 migration 只能追加在基线版本之后，历史 migration 不得改写。
+- `hal-goldens.json` 固定认证失败、HAL resource、HAL collection、分页、模板、领域错误和 `204` 的代表性 wire response；只规范化随机 Workspace ID 与 RFC 3339 时间戳。
+- `hash-vectors.json` 固定 canonical JSON 和 Candidate、Intake、Kickoff 权威内容 hash，供当前 TypeScript 与未来 Java 实现共同消费。
+- `database-catalog.sql` 是语言无关的 PostgreSQL catalog 投影；忽略 Prisma/Flyway 自身的 migration bookkeeping table。
+
+静态基线运行 `pnpm compatibility:check`。运行时 HAL 与 database catalog 基线包含在 `pnpm api:contracts` 中，必须连接已迁移的 disposable PostgreSQL。协议、schema 或 hash 语义有意变化时，必须先审查兼容性影响，再显式发布下一版基线；不得用覆盖 golden 的方式掩盖意外漂移。
+
 ## 执行原则
 
 - 先运行最小聚焦测试，再运行工序声明的完整质量门禁。

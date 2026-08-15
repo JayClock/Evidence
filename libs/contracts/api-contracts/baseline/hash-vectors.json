@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "algorithm": "sha256(UTF-8(JSON.stringify(recursive-key-sorted-value))) with sha256: prefix",
+  "canonicalJson": [
+    {
+      "name": "canonical-1",
+      "value": null,
+      "sha256": "sha256:74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "name": "canonical-2",
+      "value": true,
+      "sha256": "sha256:b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "name": "canonical-3",
+      "value": 42,
+      "sha256": "sha256:73475cb40a568e8da8a045ced110137e159f890ac4da883b6b17dc651b3a8049"
+    },
+    {
+      "name": "canonical-4",
+      "value": "Evidence π 证据",
+      "sha256": "sha256:c79c03bd291a702d619dc33940e784a305af303cfe4dea80507cd7a167d2a4c8"
+    },
+    {
+      "name": "canonical-5",
+      "value": {
+        "second": 2,
+        "first": 1
+      },
+      "sha256": "sha256:14d74bcde1082123d818f0c5bd142db6d482a7cda25d9ee43163ee3f79e8e7db"
+    },
+    {
+      "name": "canonical-6",
+      "value": {
+        "z": [
+          {
+            "beta": null,
+            "alpha": "first"
+          },
+          3
+        ],
+        "a": {
+          "nested": true
+        }
+      },
+      "sha256": "sha256:b78ed9e427dea08249dbfa59af5b6a2f9b0250f31035b8346ee1f849502bfa8d"
+    },
+    {
+      "name": "canonical-7",
+      "value": ["b", "a"],
+      "sha256": "sha256:02d8bc3008a9bb0dcc4b86d7fd3428ced792355c733c19756bec5a56dc61b2c5"
+    }
+  ],
+  "workflows": {
+    "inboxCandidate": {
+      "input": {
+        "title": " One Story ",
+        "problem": "The intake must remain frozen.",
+        "role": "Workspace maintainer",
+        "goal": "Start one bounded iteration.",
+        "value": "Changes remain traceable.",
+        "cognitiveMode": "complicated",
+        "citations": [
+          {
+            "inboxItemId": "INBOX-0001",
+            "revisionSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "locator": "whole-source"
+          }
+        ]
+      },
+      "normalized": {
+        "title": "One Story",
+        "problem": "The intake must remain frozen.",
+        "role": "Workspace maintainer",
+        "goal": "Start one bounded iteration.",
+        "value": "Changes remain traceable.",
+        "cognitiveMode": "complicated",
+        "citations": [
+          {
+            "inboxItemId": "INBOX-0001",
+            "revisionSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "locator": "whole-source"
+          }
+        ]
+      },
+      "sha256": "sha256:2c80f6eabbd76afd6f9bba32a01ff600a10ef8e3deff03d6c41f6792174030e3"
+    },
+    "candidateDecision": {
+      "input": {
+        "candidateId": "candidate-1",
+        "candidateSha256": "sha256:2c80f6eabbd76afd6f9bba32a01ff600a10ef8e3deff03d6c41f6792174030e3",
+        "action": "defer",
+        "reason": " Not now. ",
+        "decidedByUserId": "user-1",
+        "decidedAt": "2026-01-01T00:00:00.000Z"
+      },
+      "output": {
+        "reason": "Not now.",
+        "contentSha256": "sha256:2bed57979dcc1a1d55d0c85ae50225bfb4b261481ecdb08702cae2ab8eea55b4"
+      }
+    },
+    "iterationIntake": {
+      "input": {
+        "candidateSnapshot": {
+          "id": "candidate-1",
+          "title": "One Story"
+        },
+        "sourceSnapshots": [
+          {
+            "id": "revision-1",
+            "body": "Requirement"
+          }
+        ],
+        "requirementsProjection": "# One Story",
+        "frozenAt": "2026-01-01T00:00:00.000Z"
+      },
+      "sha256": "sha256:97e1e4080901f51265e594bcee866f9d35f2d374a79744af4fbf4e949100e567"
+    },
+    "kickoffProposal": {
+      "input": {
+        "proposal": {
+          "title": " One Story ",
+          "problem": "The intake must remain frozen.",
+          "role": "Workspace maintainer",
+          "goal": "Start one bounded iteration.",
+          "value": "Changes remain traceable.",
+          "cognitiveMode": "complicated",
+          "citations": [
+            {
+              "inboxItemId": "INBOX-0001",
+              "revisionSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "locator": "whole-source"
+            }
+          ]
+        },
+        "origin": "inbox_candidate",
+        "sequence": 1
+      },
+      "normalized": {
+        "title": "One Story",
+        "problem": "The intake must remain frozen.",
+        "role": "Workspace maintainer",
+        "goal": "Start one bounded iteration.",
+        "value": "Changes remain traceable.",
+        "cognitiveMode": "complicated",
+        "citations": [
+          {
+            "inboxItemId": "INBOX-0001",
+            "revisionSha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "locator": "whole-source"
+          }
+        ]
+      },
+      "sha256": "sha256:d5f3b76354c9160d3e1afb6a1a89cfa98b9c97e38ca314d701b3fc5910b10d2b"
+    },
+    "kickoffDecision": {
+      "input": {
+        "iterationId": "iteration-1",
+        "proposalId": "proposal-1",
+        "proposalSha256": "sha256:d5f3b76354c9160d3e1afb6a1a89cfa98b9c97e38ca314d701b3fc5910b10d2b",
+        "expectedIterationVersion": 2,
+        "action": "confirm",
+        "decidedByUserId": "user-1",
+        "decidedAt": "2026-01-01T00:00:00.000Z"
+      },
+      "output": {
+        "decision": {
+          "proposalId": "proposal-1",
+          "proposalSha256": "sha256:d5f3b76354c9160d3e1afb6a1a89cfa98b9c97e38ca314d701b3fc5910b10d2b",
+          "expectedIterationVersion": 2,
+          "action": "confirm",
+          "reason": null
+        },
+        "contentSha256": "sha256:2ba806439d3e3fa8bde9b950c97885d50f61e948e53c398b86148f4931531acc"
+      }
+    }
+  }
+}

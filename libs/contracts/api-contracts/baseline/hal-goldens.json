@@ -1,0 +1,191 @@
+{
+  "unauthorizedRoot": {
+    "status": 401,
+    "contentType": "application/json",
+    "location": null,
+    "body": {
+      "message": "Evidence API authentication failed.",
+      "error": "Unauthorized",
+      "statusCode": 401
+    }
+  },
+  "root": {
+    "status": 200,
+    "contentType": "application/vnd.evidence.root+json",
+    "location": null,
+    "body": {
+      "_links": {
+        "self": {
+          "href": "/api"
+        },
+        "health": {
+          "href": "/health"
+        },
+        "current-user": {
+          "href": "/api/users/desktop-user"
+        }
+      }
+    }
+  },
+  "health": {
+    "status": 200,
+    "contentType": "application/vnd.evidence.health+json",
+    "location": null,
+    "body": {
+      "_links": {
+        "self": {
+          "href": "/health"
+        }
+      },
+      "status": "ok",
+      "service": "evidence-server"
+    }
+  },
+  "user": {
+    "status": 200,
+    "contentType": "application/vnd.evidence.user+json",
+    "location": null,
+    "body": {
+      "_links": {
+        "self": {
+          "href": "/api/users/desktop-user"
+        },
+        "memberships": {
+          "href": "/api/users/desktop-user/memberships"
+        },
+        "create-workspace": {
+          "href": "/api/workspaces"
+        },
+        "sidebar": {
+          "href": "/api/users/desktop-user/sidebar"
+        }
+      },
+      "id": "desktop-user",
+      "name": "Desktop User",
+      "email": "desktop@evidence.local"
+    }
+  },
+  "workspace": {
+    "status": 201,
+    "contentType": "application/vnd.evidence.workspace+json",
+    "location": "/api/workspaces/<workspace-id>",
+    "body": {
+      "_links": {
+        "self": {
+          "href": "/api/workspaces/<workspace-id>"
+        },
+        "members": {
+          "href": "/api/workspaces/<workspace-id>/members"
+        },
+        "diagram": {
+          "href": "/api/workspaces/<workspace-id>/diagram"
+        },
+        "inbox-items": {
+          "href": "/api/workspaces/<workspace-id>/inbox-items"
+        },
+        "inbox-extractions": {
+          "href": "/api/workspaces/<workspace-id>/inbox-extractions"
+        },
+        "story-candidates": {
+          "href": "/api/workspaces/<workspace-id>/story-candidates"
+        },
+        "iterations": {
+          "href": "/api/workspaces/<workspace-id>/iterations"
+        },
+        "stories": {
+          "href": "/api/workspaces/<workspace-id>/stories"
+        },
+        "logical-entities": {
+          "href": "/api/workspaces/<workspace-id>/logical-entities"
+        },
+        "logical-relationships": {
+          "href": "/api/workspaces/<workspace-id>/logical-relationships"
+        }
+      },
+      "id": "<workspace-id>",
+      "title": "Java Compatibility Baseline",
+      "description": "Frozen HAL resource shape",
+      "status": "active",
+      "metadata": {
+        "source": "compatibility-baseline"
+      },
+      "createdAt": "<timestamp>",
+      "updatedAt": "<timestamp>"
+    }
+  },
+  "logicalEntities": {
+    "status": 200,
+    "contentType": "application/vnd.evidence.logical-entities+json",
+    "location": null,
+    "body": {
+      "_links": {
+        "self": {
+          "href": "/api/workspaces/<workspace-id>/logical-entities?page=1&pageSize=20"
+        },
+        "workspace": {
+          "href": "/api/workspaces/<workspace-id>"
+        }
+      },
+      "_embedded": {
+        "logicalEntities": []
+      },
+      "page": {
+        "number": 1,
+        "size": 20,
+        "totalElements": 0,
+        "totalPages": 0
+      }
+    }
+  },
+  "diagram": {
+    "status": 200,
+    "contentType": "application/vnd.evidence.diagram+json",
+    "location": null,
+    "body": {
+      "_links": {
+        "self": {
+          "href": "/api/workspaces/<workspace-id>/diagram"
+        },
+        "workspace": {
+          "href": "/api/workspaces/<workspace-id>"
+        },
+        "nodes": {
+          "href": "/api/workspaces/<workspace-id>/diagram/nodes"
+        },
+        "edges": {
+          "href": "/api/workspaces/<workspace-id>/diagram/edges"
+        },
+        "logical-entities": {
+          "href": "/api/workspaces/<workspace-id>/logical-entities"
+        },
+        "logical-relationships": {
+          "href": "/api/workspaces/<workspace-id>/logical-relationships"
+        }
+      },
+      "_templates": {},
+      "id": "model",
+      "title": "Model",
+      "viewport": {
+        "x": 0,
+        "y": 0,
+        "zoom": 1
+      },
+      "createdAt": "<timestamp>",
+      "updatedAt": "<timestamp>"
+    }
+  },
+  "missing": {
+    "status": 404,
+    "contentType": "application/vnd.evidence.logical-entity+json",
+    "location": null,
+    "body": {
+      "error": "logical entity missing-entity not found"
+    }
+  },
+  "deleted": {
+    "status": 204,
+    "contentType": null,
+    "location": null,
+    "body": null
+  }
+}

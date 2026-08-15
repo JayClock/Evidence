@@ -1,4 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import type { JsonValue } from '@evidence/server-domain';
 import {
   hashCanonicalJson,
   hashInboxCandidateDecision,
@@ -25,7 +28,72 @@ const proposal = {
   ],
 };
 
+type HashVectors = {
+  canonicalJson: Array<{ value: JsonValue; sha256: string }>;
+  workflows: {
+    inboxCandidate: {
+      input: Parameters<typeof hashInboxCandidateInput>[0];
+      normalized: ReturnType<typeof hashInboxCandidateInput>['candidate'];
+      sha256: string;
+    };
+    candidateDecision: {
+      input: Parameters<typeof hashInboxCandidateDecision>[0];
+      output: ReturnType<typeof hashInboxCandidateDecision>;
+    };
+    iterationIntake: {
+      input: Parameters<typeof hashIterationIntake>[0];
+      sha256: string;
+    };
+    kickoffProposal: {
+      input: Parameters<typeof hashKickoffProposal>[0];
+      normalized: ReturnType<typeof hashKickoffProposal>['candidate'];
+      sha256: string;
+    };
+    kickoffDecision: {
+      input: Parameters<typeof hashKickoffDecision>[0];
+      output: ReturnType<typeof hashKickoffDecision>;
+    };
+  };
+};
+
+const repositoryRoot = process.cwd().endsWith('libs/server/persistent')
+  ? resolve(process.cwd(), '../../..')
+  : process.cwd();
+const hashVectors = JSON.parse(
+  readFileSync(
+    resolve(
+      repositoryRoot,
+      'libs/contracts/api-contracts/baseline/hash-vectors.json',
+    ),
+    'utf8',
+  ),
+) as HashVectors;
+
 describe('workflow content hashing', () => {
+  it('matches the language-neutral replacement vectors', () => {
+    for (const vector of hashVectors.canonicalJson) {
+      expect(hashCanonicalJson(vector.value)).toBe(vector.sha256);
+    }
+
+    const workflows = hashVectors.workflows;
+    expect(hashInboxCandidateInput(workflows.inboxCandidate.input)).toEqual({
+      candidate: workflows.inboxCandidate.normalized,
+      contentSha256: workflows.inboxCandidate.sha256,
+    });
+    expect(
+      hashInboxCandidateDecision(workflows.candidateDecision.input),
+    ).toEqual(workflows.candidateDecision.output);
+    expect(hashIterationIntake(workflows.iterationIntake.input)).toBe(
+      workflows.iterationIntake.sha256,
+    );
+    expect(hashKickoffProposal(workflows.kickoffProposal.input)).toEqual({
+      candidate: workflows.kickoffProposal.normalized,
+      contentSha256: workflows.kickoffProposal.sha256,
+    });
+    expect(hashKickoffDecision(workflows.kickoffDecision.input)).toEqual(
+      workflows.kickoffDecision.output,
+    );
+  });
   it('canonicalizes object keys without reordering evidence arrays', () => {
     expect(hashCanonicalJson({ second: 2, first: 1 })).toBe(
       hashCanonicalJson({ first: 1, second: 2 }),

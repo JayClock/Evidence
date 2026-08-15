@@ -13,5 +13,8 @@
     },
     "./package.json": "./package.json"
   },
-  "dependencies": {}
+  "devDependencies": {
+    "@types/pg": "^8.21.0",
+    "pg": "^8.23.0"
+  }
 }

@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "id": "nest-compatibility-v1",
+  "description": "Wire, content-hash, and PostgreSQL compatibility baseline for replacing the Nest server.",
+  "openapi": {
+    "path": "libs/server/api/openapi.yaml",
+    "sha256": "sha256:e02cf32611c0497c8010634ab43aa435c77c47de4d68e9b9b9bcde66b4e9cd6e",
+    "pathCount": 69,
+    "operationCount": 83
+  },
+  "database": {
+    "prismaSchema": {
+      "path": "libs/server/persistent/prisma/schema.prisma",
+      "sha256": "sha256:7b35309af84957f478385bd135d341739c2308d64531592019f9ceb8cad917c5",
+      "modelCount": 52
+    },
+    "migrationLock": {
+      "path": "libs/server/persistent/prisma/migrations/migration_lock.toml",
+      "sha256": "sha256:1db17a8d051aa136110736752c5e1f8b7ed92b6ea8e803112fbbe2497047c210"
+    },
+    "migrationChainSha256": "sha256:456a4b7d812c5c677fc1601b2c67d8685ec5f2cc4307aced3e2655412b2959b8",
+    "migrations": [
+      {
+        "version": "20260720000000_baseline",
+        "sha256": "sha256:de0419f3c7873dfbd3ec07e7caab85f19ffeaec246a15346349cc824961b3c1b"
+      },
+      {
+        "version": "20260721000000_add_workspace_inbox",
+        "sha256": "sha256:910878dcf89077cdeaa50c02bf7ef535bcb2e7c4237225fcb319d3edcf8923d1"
+      },
+      {
+        "version": "20260722000000_isolate_workspace_model_roots",
+        "sha256": "sha256:4c6566b408b36af729e2049a50c38b6f2e171c70bb9711a2336f610e693490cf"
+      },
+      {
+        "version": "20260723000000_deduplicate_inbox_revisions",
+        "sha256": "sha256:8b32a88565aa4febf114cc061fa89b22268378da38d5c66464a36ce7b73755fc"
+      },
+      {
+        "version": "20260724000000_add_delivery_knowledge",
+        "sha256": "sha256:2e01cbe6a5ec97248cac932c142de594569cd701d804a4a8278f187fe406a744"
+      },
+      {
+        "version": "20260725000000_add_story_scenarios",
+        "sha256": "sha256:ecbcbfd0cb1667081237077603f580127235c6b5aa1d4e09deb84f67cb445813"
+      },
+      {
+        "version": "20260726000000_add_coding_runs",
+        "sha256": "sha256:baf56bc73273e98dd54ba3b3dbd633a1c64ce53cf63156005642a01f5147f1e9"
+      },
+      {
+        "version": "20260727000000_add_inbox_kickoff_authority",
+        "sha256": "sha256:d7c631fa81648ad5840f8154bae6320b5e255de623082fa76641ad03a5b361b8"
+      },
+      {
+        "version": "20260728000000_record_iteration_provisioning_failure",
+        "sha256": "sha256:782b02a5ce8cc83e5c6f088418ed43999f0e74334c3e94acc6fc1aeb8d352854"
+      },
+      {
+        "version": "20260729000000_remove_legacy_story_candidates",
+        "sha256": "sha256:5eea66346f47229d45601a8c9728eaa148039eaa766cd11ce19cb9c28bdde23a"
+      },
+      {
+        "version": "20260730000000_reset_inbox_delivery_workflow",
+        "sha256": "sha256:0f82c53504547a80f8c137ccd01215c55e0c4384da6b533d9c36ec3518066e3b"
+      },
+      {
+        "version": "20260731000000_add_understand_tqa_authority",
+        "sha256": "sha256:017868037a153652725359b548d213354bc711b8d9d57624acea5c5ddb106ccd"
+      },
+      {
+        "version": "20260731000000_require_story_reference",
+        "sha256": "sha256:cde003c2682e18455920c26864c65f19976d23d8a692b3b1469b18f92ca4d309"
+      },
+      {
+        "version": "20260801000000_add_tasking_desk_check",
+        "sha256": "sha256:efa8e0d1e1c9a8965a7493223f2cd5f59defe92f23a80eacc15b709db0fc4377"
+      },
+      {
+        "version": "20260801010000_drop_direct_coding_runs",
+        "sha256": "sha256:f2d5b8abec074f253eaad1fe3bc489c0c57f016dd56cfb95150f99d6f08c7c24"
+      },
+      {
+        "version": "20260802000000_reset_tasking_for_pair",
+        "sha256": "sha256:e8b24afbb189c1edd8fe79c3aae509a1a7d41d9e1ecaef16baaf7f60959c7d37"
+      },
+      {
+        "version": "20260802010000_add_pair_authority",
+        "sha256": "sha256:84e0c64741800b3a222974a6989ac93358cea53cb4abae8a7ecbfc22a5bb5ada"
+      },
+      {
+        "version": "20260802020000_allow_pair_manifest_revisions",
+        "sha256": "sha256:c1c8be1d96dd07fd2579d19d295b73952778ee1d0af22d6ceb28998a18c0d5f4"
+      },
+      {
+        "version": "20260803000000_add_showcase_authority",
+        "sha256": "sha256:4cbea56838f89b1503a9b5ec476dfc224c0d1c7a99ba227928ac658a488260af"
+      },
+      {
+        "version": "20260804000000_add_respond_authority",
+        "sha256": "sha256:f4a1ee89dbf3c649169e15a409161cb42e91d9b7f4b9199ebf28cf0b641efd28"
+      },
+      {
+        "version": "20260805000000_add_user_identities",
+        "sha256": "sha256:2bb2e5725f6fe4d128480c42e085e689b7c1555631d9b5c1722b172fb69139a5"
+      }
+    ],
+    "catalog": {
+      "tableCount": 52,
+      "sha256": "sha256:1b84928339e0b2a1c1100a238c7a43ce27d36cf8692048c715b0bf856c0b2160",
+      "tables": {
+        "activity_runs": "sha256:c1e3633ceb9b69fb2471e76fefd1493cbfcac50403b9ecb7c1533fbceaf2596b",
+        "approved_tasking_plans": "sha256:cc98ed1d7f7ff367373e4fb5bc76156ee94a3a8a49a9d5ca62a87784cf90166b",
+        "desk_check_decisions": "sha256:92bd52fe9f2bdb457bea77a06d0e9cc7cefb72ec29880518938d56f049ad65da",
+        "diagram_edges": "sha256:3cc90d9cc034ec897aade36268d23e30080d00771565058839fe6743249fdeb5",
+        "diagram_nodes": "sha256:2278aaabea8a05b4ae94e77e091e868d61fc0344da9ec5ec56f211b38db3d0ce",
+        "diagrams": "sha256:8d869922e3b155dcc2ba4d91bc84173c3eb76e6965e4ccfed106bfc3f48d793c",
+        "inbox_candidate_decisions": "sha256:3d018653c258cb5f88649a359845cdbe460d74e0f486cb1ccfa2561a942d7a1d",
+        "inbox_extraction_sources": "sha256:1dff5ac8567fa07824663e9329dc734bf90ca72252315404685247180ca1249f",
+        "inbox_extractions": "sha256:c5ae62cf6f40e408a5ded6ea3594539807f31305c46701ec477aa526cefda11f",
+        "inbox_items": "sha256:9f7936ce674122e1b91c5c3acf4b3b0e275dbbac90e4dee1dc2fa1ab5f53fa90",
+        "inbox_revisions": "sha256:661112d3d69d1b2ad7b9a6be8c500f7b7cdcd1189e0f27e83499c96d26d2444e",
+        "inbox_story_candidates": "sha256:c3fc2c4642a631977176c64513cc9b124de6aefd47ebb9edf8a9d1f9e4c6ab88",
+        "inbox_story_citations": "sha256:bbfa9d7f7d4aa1467f040804424d52fbc4f0e49ce925cf5ab99bf2262d7c9e93",
+        "iteration_intakes": "sha256:beb7709f86191bc97109f5399f0ef444c5704ae7d1d829eb727f5974a5c6e7a4",
+        "iterations": "sha256:e4a4967224014e3f39715f1f71bb3fe3f8b13c1937573bea54d3ef37dd8f9596",
+        "kickoff_decisions": "sha256:345d0cf0461e74119c68ed845dbe6c621d29fa10f64434e0e3fde33c1786f074",
+        "kickoff_proposals": "sha256:f213cf4b0502662dae92d33fb4f8342e368ad4fd6265e5c3ad0409fdc41099aa",
+        "logical_entities": "sha256:e615b19412efcd8d1b73b481f97443146172fc77ff63bf0d1cf793dc18dcfc4a",
+        "logical_relationships": "sha256:fcc77bbcbabfbd93cf82d755fa05025517e180fc42d0074882828f492b42235f",
+        "no_model_impact_decisions": "sha256:686c07b886f8a29c795e49c974742cbc70c759194ec3f166c8d400c532ea6479",
+        "pair_automation_exceptions": "sha256:5d269bf76b526aa37dbee25e6a8165e66fa046d06ed20557046240ad7483a1cd",
+        "pair_coding_decisions": "sha256:ff6912c126362a5881c4b755a2d9b0703749061553e4b95ae43f1e99d85fe8f7",
+        "pair_command_observations": "sha256:af6b6772bdd01f05d8a4a2216b08a82d26925ae2ea3ab92d3186a41adcc6f553",
+        "pair_driver_attempts": "sha256:051a34ebcdd7d2a8a02a03dfcf183fdbab28e05ee75304bc3f23af191e5eb146",
+        "pair_execution_manifests": "sha256:b49dd5440f1b97a16929e9a8965fc4fd3f2d8b1810165b8c726628364acc2577",
+        "pair_red_reviews": "sha256:37afb1cf3220669331fe0e397659401e8b41b45e0b4c25cd3121b5e23d791b7e",
+        "pair_runs": "sha256:c1be1d262e3a80d0a96dd746ab08e71e0c7c6b03b169192fdeb1bd44349d68f4",
+        "problem_statement_revisions": "sha256:907317372c7f02eeb008cc487619ff83676f6c049323953f23c795befe0104c3",
+        "respond_candidates": "sha256:3185f59ad28b928400d077ec66ff4bcf70b025b250cac102858967db48ad674e",
+        "respond_decisions": "sha256:7aaac26cef5b865945ad7b3a2a1c44806523669666ca2d004e3ddd2216b04045",
+        "scenario_drafts": "sha256:c97af4a7d18a4ac92899edceaa615b71f6eb5fb993c21258a10d356daa0df1d6",
+        "scenario_set_proposals": "sha256:23e8a8dfe9cbddf768e8d3038f9fb430ea94c90ce25ea23f420b0840870f02eb",
+        "showcase_decisions": "sha256:cac8ea0e925d8d4b7c67db77825cbf9d9ebcde81f14faebbf00dbfa003297556",
+        "showcase_evaluations": "sha256:07d3c3e0e251a820c8d9b6cd419b24a9110345e647e5f5accf418e25ecfc0bf0",
+        "showcase_product_observations": "sha256:fc88046073213c40f8440da607f89d8d6b3decfd33d5620dc2c84ea9e2c16c60",
+        "showcase_q2_observations": "sha256:a9a317fdd7b9efed076fdaeca2d3461e417031d0897fd82a3a1a3eb8d2018cfc",
+        "showcase_reviews": "sha256:bcee135d38c8ce69e8f6850fcde673726a1c34743cb701fbfed774752dffcbe1",
+        "showcase_risk_decisions": "sha256:51048efdbc83a88f66f3895f09920eecfbe206bbb63e4fd18522fac84b2edadc",
+        "showcase_runs": "sha256:c6a3ebb50deb782fbd42b64b76c3547397e8382e29b574edadb5d29a663c0d6a",
+        "stories": "sha256:60ce2c6c0cdf03f78bc615a14b7a40379f94141f17cccd4e95f23ecd93dc3ee5",
+        "story_card_revisions": "sha256:49ba76a321a0c18a77de8e146f67aabbad1561707a18c19cea13b0addd54401e",
+        "story_clarifications": "sha256:2440ad73d88a8b600d83638001a700af713239da86e28db1626ed34a2fc35519",
+        "story_revision_citations": "sha256:21a3bc8b69cf7cfd2be0db91cdf854a7ec4cd9eba0872ada61618897d9914719",
+        "story_revisions": "sha256:42d461bcd79a78a197622da5802ff4b2118e283e8f1db338fcf6e722de961f97",
+        "story_scenarios": "sha256:b2865d212be40580078dcf751eaf99b3d54f0df2e9b9dbb5ff783c90b3426d88",
+        "tasking_candidates": "sha256:8d5124afe0f8483d383f36fea5c282f28f5e710a6d54f95f4665e5513056066b",
+        "understanding_decisions": "sha256:9121fc5d850e48e3faa98ac2fbcd571b373806cee4543aab9a5a0cd955cdc7a2",
+        "user_identities": "sha256:2e6e29d479d2ce33b611a920cf7cad447a99226afa54cf7e04baf94acffcc979",
+        "users": "sha256:b88cbd2046782412e4e0b77958037fb4ff0564bf0e45e9a7d20882d4d9f035c2",
+        "workspace_members": "sha256:5105e9f8ad1a5ff4f965932d915cd012bd7663f9c0bfa8c2b0e02a4d5ddbdd27",
+        "workspace_sequences": "sha256:1038c5afa7fd2f1e64bf06569dae612526e6da82775a2cfc2b223066f6b95b70",
+        "workspaces": "sha256:cec05d38f181c6c3ce93c080e73e0b151e2d17e1cea99fbe5a12f5e915646377"
+      }
+    }
+  }
+}
