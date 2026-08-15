@@ -1,0 +1,26 @@
+---
+spring:
+  application:
+    name: evidence-server
+  main:
+    banner-mode: 'off'
+  jersey:
+    application-path: /
+    type: filter
+
+server:
+  address: ${EVIDENCE_HOST:127.0.0.1}
+  port: ${PORT:3000}
+  max-http-request-header-size: 20KB
+  tomcat:
+    max-swallow-size: 1280KB
+
+evidence:
+  auth-mode: ${EVIDENCE_AUTH_MODE:local}
+  api-authorization: ${EVIDENCE_API_AUTHORIZATION:}
+  user-id: ${EVIDENCE_USER_ID:desktop-user}
+  cors-origins: ${EVIDENCE_CORS_ORIGINS:}
+  oidc:
+    issuer: ${EVIDENCE_OIDC_ISSUER:}
+    audience: ${EVIDENCE_OIDC_AUDIENCE:}
+    jwks-uri: ${EVIDENCE_OIDC_JWKS_URI:}
