@@ -406,6 +406,7 @@ class ApplicationTest {
   private ResponseEntity<String> authorized(HttpMethod method, String path, String body) {
     HttpHeaders headers = new HttpHeaders();
     headers.set("Authorization", "Bearer java-skeleton-test");
+    headers.setAccept(java.util.List.of(MediaType.parseMediaType("application/*+json")));
     if (body != null) headers.setContentType(MediaType.APPLICATION_JSON);
     return restTemplate.exchange(url(path), method, new HttpEntity<>(body, headers), String.class);
   }

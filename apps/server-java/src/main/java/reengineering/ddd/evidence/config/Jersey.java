@@ -10,5 +10,6 @@ public class Jersey extends ResourceConfig {
   public Jersey() {
     register(RootApi.class);
     register(DomainExceptionMapper.class);
+    register(VendorJsonAcceptFilter.class);
   }
 }
