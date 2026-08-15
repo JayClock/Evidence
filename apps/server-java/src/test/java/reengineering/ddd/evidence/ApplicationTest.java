@@ -612,6 +612,264 @@ class ApplicationTest {
   }
 
   @Test
+  void confirmsKickoffUnderstandingAndTaskingAuthority() throws Exception {
+    JsonNode workspace =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    "/api/workspaces",
+                    "{\"title\":\"Java Iteration Workflow Workspace\"}")
+                .getBody());
+    String workspaceId = workspace.path("id").asText();
+    String workspacePath = "/api/workspaces/" + workspaceId;
+    JsonNode source =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    workspacePath + "/inbox-items",
+                    """
+                    {
+                      "sourceKind":"manual_text",
+                      "externalKey":"phase-six",
+                      "title":"Approve one Java Tasking plan",
+                      "body":"Preserve the complete Java workflow authority.",
+                      "contentType":"text/markdown"
+                    }
+                    """)
+                .getBody());
+    JsonNode extraction =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    workspacePath + "/inbox-extractions",
+                    "{\"inboxItemIds\":[\"" + source.path("id").asText() + "\"]}")
+                .getBody());
+    JsonNode candidates =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    workspacePath
+                        + "/inbox-extractions/"
+                        + extraction.path("id").asText()
+                        + "/candidates",
+                    """
+                    {
+                      "expectedVersion":1,
+                      "candidates":[{
+                        "title":"Approve one Java Tasking plan",
+                        "problem":"Coding lacks explicit Java workflow authority.",
+                        "role":"Delivery lead",
+                        "goal":"Approve one complete Tasking plan.",
+                        "value":"Pair starts only from reviewed authority.",
+                        "cognitiveMode":"complicated",
+                        "citations":[{
+                          "inboxItemId":"%s",
+                          "revisionSha256":"%s",
+                          "locator":"whole-source"
+                        }]
+                      }]
+                    }
+                    """
+                        .formatted(
+                            source.path("id").asText(),
+                            source.path("latestRevisionSha256").asText()))
+                .getBody());
+    JsonNode candidate = candidates.path("_embedded").path("storyCandidates").get(0);
+    String baseCommitSha = "a".repeat(40);
+    JsonNode selected =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    workspacePath
+                        + "/story-candidates/"
+                        + candidate.path("id").asText()
+                        + "/select",
+                    """
+                    {"candidateSha256":"%s","baseCommitSha":"%s"}
+                    """
+                        .formatted(candidate.path("contentSha256").asText(), baseCommitSha))
+                .getBody());
+    String iterationId = selected.path("id").asText();
+    String iterationPath = workspacePath + "/iterations/" + iterationId;
+
+    ResponseEntity<String> intake = authorized(HttpMethod.GET, iterationPath + "/intake", null);
+    assertContentType(intake, "application/vnd.evidence.iteration-intake+json");
+    assertThat(
+            objectMapper.readTree(intake.getBody()).path("candidate").path("candidateId").asText())
+        .isEqualTo(candidate.path("id").asText());
+
+    JsonNode provisioned =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    iterationPath + "/provisioning/complete",
+                    """
+                    {"expectedVersion":1,"baseCommitSha":"%s","branchName":"evidence/iter-%s"}
+                    """
+                        .formatted(baseCommitSha, iterationId))
+                .getBody());
+    assertThat(provisioned.path("version").asInt()).isEqualTo(2);
+
+    JsonNode kickoff =
+        objectMapper.readTree(
+            authorized(HttpMethod.GET, iterationPath + "/kickoff", null).getBody());
+    JsonNode proposal = kickoff.path("currentProposal");
+    ResponseEntity<String> confirmedResponse =
+        authorized(
+            HttpMethod.POST,
+            iterationPath + "/kickoff/decisions",
+            """
+            {
+              "proposalId":"%s",
+              "proposalSha256":"%s",
+              "expectedIterationVersion":2,
+              "action":"confirm"
+            }
+            """
+                .formatted(proposal.path("id").asText(), proposal.path("contentSha256").asText()));
+    assertContentType(confirmedResponse, "application/vnd.evidence.kickoff-decision-result+json");
+    JsonNode confirmed = objectMapper.readTree(confirmedResponse.getBody());
+    String storyId = confirmed.path("storyCard").path("storyId").asText();
+    assertThat(confirmed.path("iteration").path("stage").asText()).isEqualTo("tqa");
+
+    JsonNode story =
+        objectMapper.readTree(
+            authorized(HttpMethod.GET, workspacePath + "/stories/" + storyId, null).getBody());
+    assertThat(story.path("authority").path("nextAction").asText())
+        .isEqualTo("run_understanding_analyst");
+    ResponseEntity<String> stories =
+        authorized(HttpMethod.GET, workspacePath + "/stories?page=1&pageSize=20", null);
+    assertContentType(stories, "application/vnd.evidence.stories+json");
+    assertThat(
+            objectMapper.readTree(stories.getBody()).path("summary").path("agentAttention").asInt())
+        .isEqualTo(1);
+
+    JsonNode understanding =
+        objectMapper.readTree(
+            authorized(HttpMethod.GET, iterationPath + "/understanding", null).getBody());
+    JsonNode scenarioProposal =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    iterationPath + "/understanding/scenario-proposals",
+                    """
+                    {
+                      "expectedIterationVersion":3,
+                      "storyId":"%s",
+                      "storyRevisionId":"%s",
+                      "scenarios":[{
+                        "title":"Review one complete Tasking Candidate",
+                        "given":["A confirmed Story Revision is active."],
+                        "when":"The delivery lead reviews the Tasking plan.",
+                        "then":["A complete Tasking Candidate awaits human Desk Check."],
+                        "businessData":["Story Revision v2","TASKING-001"]
+                      }]
+                    }
+                    """
+                        .formatted(
+                            storyId, understanding.path("storyRevision").path("id").asText()))
+                .getBody());
+    JsonNode scenarioDecision =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    iterationPath + "/understanding/decisions",
+                    """
+                    {
+                      "expectedIterationVersion":4,
+                      "action":"confirm",
+                      "proposalId":"%s",
+                      "proposalSha256":"%s",
+                      "selectedDraftIds":["%s"]
+                    }
+                    """
+                        .formatted(
+                            scenarioProposal.path("id").asText(),
+                            scenarioProposal.path("contentSha256").asText(),
+                            scenarioProposal.path("drafts").get(0).path("id").asText()))
+                .getBody());
+    JsonNode storyRevision = scenarioDecision.path("storyRevision");
+    assertThat(storyRevision.path("revisionNumber").asInt()).isEqualTo(2);
+    assertThat(scenarioDecision.path("iteration").path("stage").asText()).isEqualTo("modeling");
+
+    JsonNode noModelImpact =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    iterationPath + "/tasking/no-model-impact",
+                    """
+                    {
+                      "expectedIterationVersion":5,
+                      "storyId":"%s",
+                      "storyRevisionId":"%s",
+                      "storyRevisionSha256":"%s",
+                      "reason":"This Story changes only local workflow glue."
+                    }
+                    """
+                        .formatted(
+                            storyId,
+                            storyRevision.path("id").asText(),
+                            storyRevision.path("contentSha256").asText()))
+                .getBody());
+    assertThat(noModelImpact.path("modelChangeRequired").asBoolean()).isFalse();
+
+    ResponseEntity<String> candidateResponse =
+        authorized(
+            HttpMethod.POST,
+            iterationPath + "/tasking/candidates",
+            """
+            {
+              "expectedIterationVersion":6,
+              "storyId":"%s",
+              "storyRevisionId":"%s",
+              "noModelImpactDecisionId":"%s",
+              "noModelImpactDecisionSha256":"%s",
+              "projectCatalog":{"projects":[
+                {"id":"@evidence/server-domain","root":"libs/server/domain","targets":["lint","test","typecheck"]},
+                {"id":"@evidence/server-persistent","root":"libs/server/persistent","targets":["lint","test","typecheck"]},
+                {"id":"@evidence/server-api","root":"libs/server/api","targets":["lint","test","typecheck"]}
+              ]},
+              "runtimes":[{
+                "id":"RUNTIME-001","runtime":"typescript",
+                "functionalContexts":["delivery"],"technicalBoundaries":["nest-domain"],
+                "projectIds":["@evidence/server-domain","@evidence/server-persistent","@evidence/server-api"]
+              }],
+              "tests":[
+                {"id":"TEST-001","quadrant":"Q1","intent":"Domain authority.","runtimePlanId":"RUNTIME-001","stepId":"nest-domain-q1","projectId":"@evidence/server-domain","testFilter":"tasking-domain","supportedBy":[],"scenarioIds":["SC-001"],"businessData":["Story Revision v2"],"modelRefs":{"entities":[],"associations":[]}},
+                {"id":"TEST-002","quadrant":"Q1","intent":"Persistence authority.","runtimePlanId":"RUNTIME-001","stepId":"nest-persistent-q1","projectId":"@evidence/server-persistent","testFilter":"tasking-persistent","supportedBy":[],"scenarioIds":["SC-001"],"businessData":["TASKING-001"],"modelRefs":{"entities":[],"associations":[]}},
+                {"id":"TEST-003","quadrant":"Q2","intent":"Desk Check authority.","runtimePlanId":"RUNTIME-001","stepId":"nest-api-q2","projectId":"@evidence/server-api","testFilter":"tasking-desk-check","supportedBy":["TEST-001","TEST-002"],"scenarioIds":["SC-001"],"scenarioOutcome":"A complete Tasking Candidate awaits human Desk Check.","businessData":["TASKING-001"],"modelRefs":{"entities":[],"associations":[]}}
+              ],
+              "tasks":[{"id":"TASK-001","description":"Drive the authority chain.","testIds":["TEST-001","TEST-002","TEST-003"],"dependsOn":[]}]
+            }
+            """
+                .formatted(
+                    storyId,
+                    storyRevision.path("id").asText(),
+                    noModelImpact.path("id").asText(),
+                    noModelImpact.path("contentSha256").asText()));
+    assertThat(candidateResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(candidateResponse, "application/vnd.evidence.tasking-candidate+json");
+    JsonNode taskingCandidate = objectMapper.readTree(candidateResponse.getBody());
+    assertThat(taskingCandidate.path("tests").get(2).path("processId").asText())
+        .isEqualTo("typescript-nest-feature");
+
+    ResponseEntity<String> approvedResponse =
+        authorized(
+            HttpMethod.POST,
+            iterationPath + "/tasking/decisions",
+            """
+            {"expectedIterationVersion":7,"candidateId":"%s","candidateSha256":"%s","action":"approve"}
+            """
+                .formatted(
+                    taskingCandidate.path("id").asText(),
+                    taskingCandidate.path("contentSha256").asText()));
+    assertContentType(approvedResponse, "application/vnd.evidence.desk-check-decision-result+json");
+    JsonNode approved = objectMapper.readTree(approvedResponse.getBody());
+    assertThat(approved.path("iteration").path("stage").asText()).isEqualTo("approved");
+    assertThat(approved.path("approvedPlan").path("plan").path("planVersion").asInt()).isEqualTo(2);
+  }
+
+  @Test
   void rejectsDesktopRepositoryPathsInWorkspacePayloads() {
     ResponseEntity<String> directPath =
         authorized(
