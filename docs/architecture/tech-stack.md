@@ -2,19 +2,18 @@
 
 版本事实以 `pnpm-lock.yaml`、package manifests 和项目配置为准；本文件只记录技术选择及使用边界。
 
-| 区域          | 技术                                                        | 约束                                                  |
-| ------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
-| Monorepo      | Nx、pnpm、TypeScript                                        | 使用项目 target 和 `workspace:*`，不绕过依赖边界      |
-| Web           | React、Vite、TypeScript、React Router                       | 组合根在 `apps/web`，功能位于 `libs/web/*`            |
-| UI            | Tailwind CSS、shadcn/ui、AI Elements                        | UI 组件不承载领域规则                                 |
-| Server        | NestJS、TypeScript、RxJS                                    | 唯一 Server runtime；controller 保持轻量              |
-| Persistence   | Prisma、PostgreSQL、filesystem YAML                         | schema 通过受版本控制的 Prisma migrations 演进        |
-| Desktop       | Electron、electron-builder                                  | 安全 main/preload；复用 Web；连接配置的 Server API    |
-| Local agents  | Desktop embedded Pi SDK `AgentSession`、受限 IPC events     | Server 不加载 Pi；会话支持取消，工具受本地边界约束    |
-| Delivery VCS  | Git branch/worktree                                         | 每张活动 Story 隔离；Pair 人工批准后才创建本地 commit |
-| Contract      | OpenAPI YAML、openapi-typescript                            | Nest 拥有 source；发布副本和生成类型不可手改          |
-| Test          | Vitest、Testing Library、black-box contracts、package smoke | Q1/Q2 和替身遵循统一测试策略                          |
-| 内部 Workflow | Pi extension、Skills、GitHub/Markdown/JSON evidence         | 只辅助本仓库研发，不属于产品 runtime                  |
+| 区域         | 技术                                                        | 约束                                                  |
+| ------------ | ----------------------------------------------------------- | ----------------------------------------------------- |
+| Monorepo     | Nx、pnpm、TypeScript                                        | 使用项目 target 和 `workspace:*`，不绕过依赖边界      |
+| Web          | React、Vite、TypeScript、React Router                       | 组合根在 `apps/web`，功能位于 `libs/web/*`            |
+| UI           | Tailwind CSS、shadcn/ui、AI Elements                        | UI 组件不承载领域规则                                 |
+| Server       | NestJS、TypeScript、RxJS                                    | 唯一 Server runtime；controller 保持轻量              |
+| Persistence  | Prisma、PostgreSQL、filesystem YAML                         | schema 通过受版本控制的 Prisma migrations 演进        |
+| Desktop      | Electron、electron-builder                                  | 安全 main/preload；复用 Web；连接配置的 Server API    |
+| Local agents | Desktop embedded Pi SDK `AgentSession`、受限 IPC events     | Server 不加载 Pi；会话支持取消，工具受本地边界约束    |
+| Delivery VCS | Git branch/worktree                                         | 每张活动 Story 隔离；Pair 人工批准后才创建本地 commit |
+| Contract     | OpenAPI YAML、openapi-typescript                            | Nest 拥有 source；发布副本和生成类型不可手改          |
+| Test         | Vitest、Testing Library、black-box contracts、package smoke | Q1/Q2 和替身遵循统一测试策略                          |
 
 ## Runtime 约束
 

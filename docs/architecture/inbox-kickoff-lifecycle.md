@@ -6,7 +6,7 @@
 
 ## 决定
 
-Evidence 产品采用与项目本地 Evidence Orchestrator 一致的 Inbox 与 Kickoff 语义，但通过产品自身的 Domain、PostgreSQL、REST/HAL 和 Desktop Pi SDK 实现，不导入 `.pi/` Runtime 代码或工件。
+Evidence 产品通过自身的 Domain、PostgreSQL、REST/HAL 和 Desktop Pi SDK 实现 Inbox 与 Kickoff 权威生命周期。
 
 ```text
 Capture / Sync Source

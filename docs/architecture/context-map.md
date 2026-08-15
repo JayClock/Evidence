@@ -39,11 +39,7 @@
 - `.evidence` YAML 是工作空间逻辑模型的持久化语言；Diagram 是其投影，不是第二份领域模型。
 - Electron IPC 仅用于取得 API URL、以短期 opaque id 选择并绑定本地目录，以及控制本地 Agent；renderer 只接收项目名与 Git 摘要，不接收绝对路径；产品业务 command/query 仍走 REST。
 - Server Workspace 使用私有 `modelRoot` 访问自身 `.evidence`，HAL metadata 不发布 Server 或 Desktop 绝对路径。
-- Work Intake 的 Candidate 只能经显式 selection 冻结为 Iteration Intake；只有 Kickoff 人工 confirm 可以创建 Story。内部 Orchestrator 工件不能冒充这些产品记录。
-
-## 内部研发工具边界
-
-Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具，不是产品 bounded context、运行时能力或对外集成方，因此不出现在产品关系中。它可以读取产品知识和 `.evidence` 模型验证开发场景，但 dogfooding 不构成产品依赖或用户能力。
+- Work Intake 的 Candidate 只能经显式 selection 冻结为 Iteration Intake；只有 Kickoff 人工 confirm 可以创建 Story。
 
 ## 边界规则
 
@@ -54,4 +50,3 @@ Evidence Orchestrator 是当前仓库开发 Evidence 的项目本地 Pi 工具�
 - 同一 Inbox source identity 幂等；同一 Item 内每个 content SHA-256 只有一个 Revision。
 - Candidate 不具权威；selection 使用 Candidate hash 与事务锁，原子创建 Iteration/Frozen Intake，但不创建 Story。
 - Kickoff 人工决定使用 Proposal hash 与 Iteration version；一个 Iteration 最多创建一张 Story。
-- `.evidence/` 只描述 Evidence 建模平台领域，不承载 Orchestrator 交付状态；`artifacts/iterations` 是研发审计证据，不是产品数据。

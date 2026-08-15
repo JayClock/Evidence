@@ -48,5 +48,4 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位；低价值�
 - Story iteration 使用受控执行工具记录命令、退出码和工作树哈希。
 - Showcase 必须重新执行已选 Q2，并由人类把实际产品观察映射回确认的 Given/When/Then、业务数据和价值反馈；命令全绿不等于价值已验证。
 - PostgreSQL、Desktop Pi 或平台 package gate 无法运行时必须明确风险，不能用 fake 结果冒充真实边界证明。
-- 质量命令由 `engineering/evidence-orchestrator/test-processes/*.json` 管理；当前产品工序只选择 TypeScript Web、Nest 或 Electron 路线。
-- 历史 iteration 和兼容性 fixture 可以保留旧 runtime 字段，但不得作为新 Story 的 owning process。
+- 质量命令由 workspace package scripts 与 Nx targets 管理；按变更边界选择 Web、Nest、Electron、PostgreSQL 或契约门禁。

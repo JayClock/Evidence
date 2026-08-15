@@ -6,7 +6,7 @@
 
 ## 决定
 
-Evidence 产品采用与项目本地 Evidence Orchestrator 一致的单 Story TQA 与 Scenario Set 语义，但通过产品自身的 Domain、PostgreSQL、REST/HAL、Web 和 Desktop Pi SDK 实现，不导入 `.pi/` Runtime、Skill、Prompt、状态或工件。
+Evidence 产品通过自身的 Domain、PostgreSQL、REST/HAL、Web 和 Desktop Pi SDK 实现单 Story TQA 与 Scenario Set 权威生命周期。
 
 ```text
 kickoff/confirm

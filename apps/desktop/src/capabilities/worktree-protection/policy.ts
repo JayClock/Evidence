@@ -3,8 +3,6 @@ export const WORKTREE_PROTECTED_ROOTS = [
   '.pi',
   '.evidence',
   'node_modules',
-  'engineering/evidence-orchestrator',
-  'artifacts/iterations',
 ];
 
 export const WORKTREE_PROTECTED_NAMES = new Set([

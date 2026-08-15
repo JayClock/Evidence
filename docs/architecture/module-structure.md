@@ -64,7 +64,7 @@ apps/desktop/src/
 - Capability 与 Adapter 不依赖产品 Feature、Iteration 或 Loop；两个以上所有者复用的机制先提升为 Capability。
 - `Intake` 只表示领域中的 Frozen Intake，不作为 Desktop 技术目录或共享文件前缀。
 - Source runtime 可以移动，但 `scripts/build.mjs` 必须显式保持受打包配置引用的 `dist/*.mjs` 名称稳定。
-- `validation/source-boundaries.spec.ts` 锁定以上规则；Desktop 产品源码仍不得导入 `.pi/` 内部 Orchestrator。
+- `validation/source-boundaries.spec.ts` 锁定以上规则。
 
 ## 禁止依赖
 
@@ -72,30 +72,5 @@ apps/desktop/src/
 - Web feature → Server 内部类型或数据库 schema。
 - Desktop → 第二套 React 业务页面或 IPC 业务 API。
 - Hosted-only adapter → Desktop renderer。
-- Runtime code → `artifacts/iterations`、`.pi` 或内部 Orchestrator state。
 - Server Workspace metadata → Desktop repositoryRoot；Server 只持有私有 modelRoot。
 - 未经人工接受的 Desktop coding worktree → merge 或 push。
-
-## 内部 Orchestrator 与知识结构
-
-```text
-.pi/extensions/evidence-orchestrator/
-├── iteration/                          repository Board and Story state
-├── loops/{kickoff,understand,tasking,pair,showcase,respond}/
-├── capabilities/                       shared deterministic mechanisms
-├── adapters/{pi,github,node}/          external hosts and processes
-├── validation/                         source/evidence validators
-└── test-support/                       integration fixtures and mocks
-
-.pi/agents/                             isolated activity roles
-.pi/skills/ and .pi/prompts/            internal Working Knowledge
-.evidence/                              canonical product domain model
-docs/product/                           canonical product knowledge
-docs/architecture/                      canonical technical solution
-engineering/evidence-orchestrator/      contexts, processes and DoD
-.git/evidence-orchestrator/              local Board, locks and leases
-.worktrees/evidence/ITER-xxxx/           isolated Story worktrees
-artifacts/iterations/                    immutable per-Story evidence
-```
-
-Orchestrator 内部依赖方向为 `adapters → loops → capabilities/iteration`。以上模块都是当前仓库的内部研发工具链，不属于 `apps/*` / `libs/*` 产品 runtime；产品代码不得依赖它们。历史 iteration 即使记录旧 runtime 也保持不可变。

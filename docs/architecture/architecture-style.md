@@ -10,7 +10,7 @@ Evidence 是一个 Nx/pnpm 管理的模块化 TypeScript monorepo：
 - `apps/server`：唯一 NestJS Server 组合根，API、Domain、Persistent 位于 `libs/server/*`。
 - `apps/desktop`：Electron main/preload 壳，复用 Web renderer，并连接经过健康检查的 Server API。
 
-Server 只使用 PostgreSQL 与工作空间 `.evidence` YAML；Desktop 不包含第二个 Server 或数据库。项目本地 Evidence Orchestrator 只辅助研发，不属于产品运行时或产品依赖图。
+Server 只使用 PostgreSQL 与工作空间 `.evidence` YAML；Desktop 不包含第二个 Server 或数据库。
 
 ## 核心原则
 
@@ -49,7 +49,6 @@ graph TD
 - Domain → Nest、HTTP、Prisma、Electron 或 React。
 - Web feature → Server 内部类型、Prisma schema 或数据库 adapter。
 - Electron main/preload → 第二套业务 API 或 React 页面。
-- Runtime code → `.pi/`、`engineering/evidence-orchestrator/` 或 `artifacts/iterations/`。
 
 ## 运行时组合
 

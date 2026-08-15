@@ -6,8 +6,6 @@ Evidence 是一个领域建模与证据映射平台，具有三个产品运行�
 - **Server**：`apps/server/` 中的 NestJS 组合根，实现在 `libs/server/{api,domain,persistent}`。
 - **Desktop**：`apps/desktop/` 中的 Electron 壳；复用同一个 Web renderer，并连接经过健康检查的 Server API。
 
-项目本地的 Evidence Orchestrator 位于 `.pi/` 与 `engineering/evidence-orchestrator/`。它只用于开发本仓库，不属于产品运行时。
-
 ## 运行时拓扑
 
 ```text
@@ -158,7 +156,6 @@ pnpm test
 pnpm build
 pnpm api:check
 pnpm api:contracts
-pnpm orchestrator:validate
 ```
 
 聚焦门禁：
@@ -176,22 +173,19 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                        |
-| ------------------------------------------- | ----------------------------------------------------------- |
-| `apps/web/`                                 | React + Vite 前端组合根                                     |
-| `libs/web/*`                                | Web shell、features、UI、HAL API client                     |
-| `apps/server/`                              | NestJS/PostgreSQL 组合根与 Prisma 部署入口                  |
-| `libs/server/api/`                          | Nest controllers、HAL 和 OpenAPI source                     |
-| `libs/server/domain/`                       | 纯领域模型与 ports                                          |
-| `libs/server/persistent/`                   | Prisma schema/migrations、PostgreSQL 和 filesystem adapters |
-| `apps/desktop/`                             | Electron main/preload、remote API bridge 和 packaging       |
-| `libs/contracts/api-contracts/`             | 本地/远程 black-box API contracts                           |
-| `docs/product/`                             | 统一产品上下文、画像和旅程                                  |
-| `.evidence/`                                | Evidence 产品权威领域模型                                   |
-| `docs/architecture/`                        | 统一架构和测试策略                                          |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、工序与 DoD                           |
-| `.pi/extensions/evidence-orchestrator/`     | 内部六循环编排器                                            |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源和迭代证据；历史内容不得改写                      |
+| 路径                            | 用途                                                        |
+| ------------------------------- | ----------------------------------------------------------- |
+| `apps/web/`                     | React + Vite 前端组合根                                     |
+| `libs/web/*`                    | Web shell、features、UI、HAL API client                     |
+| `apps/server/`                  | NestJS/PostgreSQL 组合根与 Prisma 部署入口                  |
+| `libs/server/api/`              | Nest controllers、HAL 和 OpenAPI source                     |
+| `libs/server/domain/`           | 纯领域模型与 ports                                          |
+| `libs/server/persistent/`       | Prisma schema/migrations、PostgreSQL 和 filesystem adapters |
+| `apps/desktop/`                 | Electron main/preload、remote API bridge 和 packaging       |
+| `libs/contracts/api-contracts/` | 本地/远程 black-box API contracts                           |
+| `docs/product/`                 | 统一产品上下文、画像和旅程                                  |
+| `.evidence/`                    | Evidence 产品权威领域模型                                   |
+| `docs/architecture/`            | 统一架构和测试策略                                          |
 
 ## Git 纪律
 
@@ -211,4 +205,3 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 6. `libs/server/persistent/src/persistent/{prisma,filesystem}/`
 7. `apps/desktop/src/{main,preload}.ts` 与 `apps/desktop/src/{electron,iteration,loops,capabilities,adapters}/`
 8. `apps/desktop/electron-builder.yml`
-9. `engineering/evidence-orchestrator/runtime-contexts.json`

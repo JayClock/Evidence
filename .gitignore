@@ -48,8 +48,6 @@ Thumbs.db
 .nx/cache
 .nx/workspace-data
 .claude/worktrees
-/.worktrees/evidence/
-/.evidence-iteration-state.json
 .claude/settings.local.json
 
 vite.config.*.timestamp*

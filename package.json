@@ -10,7 +10,7 @@
     "build": "nx run-many -t build --exclude=@evidence/source",
     "pretypecheck": "pnpm prisma:generate",
     "typecheck": "nx run-many -t typecheck --exclude=@evidence/source",
-    "lint": "nx run-many -t lint",
+    "lint": "nx run-many -t lint --exclude=@evidence/source",
     "test": "nx run-many -t test",
     "api:export": "node apps/server/scripts/export-openapi.mjs",
     "api:check": "node apps/server/scripts/export-openapi.mjs --check",
@@ -21,9 +21,6 @@
     "prisma:migrate:deploy": "node apps/server/scripts/deploy-prisma-migrations.mjs",
     "ui:shadcn": "pnpm --filter @evidence/ui exec shadcn",
     "ui:ai-elements": "pnpm --filter @evidence/ui exec elements add",
-    "orchestrator:typecheck": "tsc -p tsconfig.orchestrator.json --noEmit",
-    "orchestrator:test": "vitest run --config .pi/extensions/evidence-orchestrator/vitest.config.ts",
-    "orchestrator:validate": "node -r @swc-node/register .pi/extensions/evidence-orchestrator/validation/workflow-validator.ts",
     "format": "nx format:write",
     "format:check": "nx format:check",
     "lint:staged": "lint-staged",
@@ -31,17 +28,6 @@
     "prepare": "husky"
   },
   "private": true,
-  "nx": {
-    "targets": {
-      "lint": {
-        "command": "eslint '.pi/extensions/evidence-orchestrator/**/*.ts' --no-warn-ignored"
-      },
-      "test": {
-        "command": "pnpm orchestrator:test",
-        "dependsOn": []
-      }
-    }
-  },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
@@ -58,9 +44,6 @@
     "@babel/preset-react": "^7.14.5",
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
-    "@earendil-works/pi-ai": "0.80.10",
-    "@earendil-works/pi-coding-agent": "0.80.10",
-    "@earendil-works/pi-tui": "0.80.10",
     "@eslint/js": "^9.8.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",

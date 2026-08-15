@@ -69,13 +69,7 @@ import { inputJson, now } from './utils';
 const ITERATION_INCLUDE = iterationInclude();
 const LEASE_MS = 30_000;
 const OPEN_STATUSES = ['running', 'approval_required', 'exception'];
-const PROTECTED_PATHS = [
-  '.git',
-  '.pi',
-  '.evidence',
-  'engineering/evidence-orchestrator',
-  'artifacts/iterations',
-];
+const PROTECTED_PATHS = ['.git', '.pi', '.evidence'];
 const CONFIG_NAMES = new Set([
   'package.json',
   'pnpm-lock.yaml',

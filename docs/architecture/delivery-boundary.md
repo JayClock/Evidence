@@ -6,7 +6,7 @@
 
 ## 决定
 
-Evidence 产品增加三个彼此衔接、但不依赖内部研发编排器 Runtime 的上下文：
+Evidence 产品包含三个彼此衔接的上下文：
 
 1. **Work Intake**：在 Workspace 内保存来源身份、Inbox Item、不可变 Revision、显式 Extraction 和非权威 Story Candidate。
 2. **Iteration & Kickoff**：人类选择精确 Candidate 后冻结 Intake、占用 WIP，并通过 Kickoff 决定创建本 Iteration 唯一的 Story。
@@ -15,17 +15,6 @@ Evidence 产品增加三个彼此衔接、但不依赖内部研发编排器 Runt
 Inbox 与 Kickoff 由 [Inbox → Kickoff 权威生命周期](./inbox-kickoff-lifecycle.md) 定义；单 Story 澄清与 Scenario authority 由 [Understand / TQA 权威生命周期](./understand-tqa-lifecycle.md) 定义；无模型影响出口、Tasking Candidate 与人工 Desk Check 由 [No Model Impact 与 Tasking / Desk Check 权威生命周期](./tasking-desk-check-lifecycle.md) 定义；逐 TEST Red/Green、Refactor、质量门和 Story 级编码审批由 [Approved Tasking Plan 与 Pair 权威生命周期](./pair-lifecycle.md) 定义；Q2 重跑、人工价值决定、知识响应与 next Probe 由 [Showcase 与 Respond 权威生命周期](./showcase-respond-lifecycle.md) 定义。
 
 Server 是两个上下文的权威知识来源。Desktop 是本地执行边界：它以 `API base URL + workspaceId` 绑定本地 repository，在隔离 worktree 中运行 Pi 和测试。Desktop main process 通过系统选择器接收并验证绝对路径；renderer 只取得短期、不透明、绑定到 IPC sender 的 selection id，以及项目名和 Git HEAD 摘要。Renderer 与 Server 都不接收 Desktop 绝对路径；Server 也不接收 Pi 凭据、完整源码、完整 diff 或 stdout。
-
-## 与内部 Evidence Orchestrator 的关系
-
-`.pi/extensions/evidence-orchestrator/`、`engineering/evidence-orchestrator/` 和 `artifacts/iterations/` 仍是开发本仓库的内部工具。产品 Work Intake/Delivery：
-
-- 不导入现有 Inbox 或 Iteration 工件；
-- 不依赖内部 extension、agent、skill、prompt 或状态仓库；
-- 复用经过确认的 Inbox、Iteration、Kickoff 与 `US-xxx` **语义**，但不复用内部文件格式、代码、状态仓库或审批工件；
-- 只通过产品 Domain、PostgreSQL persistence 和 REST/HAL contract 独立实现这些语义。
-
-Dogfooding 只允许内部工具读取产品知识来辅助开发，不允许产品 Runtime 反向读取内部工件。
 
 ## 权威数据与本地数据
 

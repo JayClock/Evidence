@@ -1,5 +1,5 @@
 {
   "version": 1,
   "project_name": "Evidence",
-  "purpose": "描述 Evidence 建模平台面向用户的产品领域；不包含项目本地 Orchestrator 的研发流程语义。"
+  "purpose": "描述 Evidence 建模平台面向用户的产品领域。"
 }

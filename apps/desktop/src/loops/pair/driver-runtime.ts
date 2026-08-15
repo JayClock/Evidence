@@ -115,7 +115,7 @@ function systemPrompt(request: PairDriverRuntimeRequest): string {
 Hard rules:
 - Treat the supplied Story Revision, Approved Tasking Plan hash, TASK, TEST, process step, path policy, and current worktree as authority.
 - Use only the provided read/edit/write/search/list/completion tools. There is no shell or command tool. Never attempt to run tests, gates, package managers, Git commands, commits, merge, or push.
-- Stay inside the allowed write roots. Never modify .git, .pi, .evidence, engineering/evidence-orchestrator, artifacts/iterations, node_modules, package manifests, lockfiles, Nx/project config, or tsconfig.
+- Stay inside the allowed write roots. Never modify .git, .pi, .evidence, node_modules, package manifests, lockfiles, Nx/project config, or tsconfig.
 - Do not weaken, delete, skip, focus, or rewrite already frozen tests.
 - Make the smallest change for this one checkpoint. Do not perform future TASKs or unrelated cleanup.
 - Call evidence_complete_pair_driver exactly once with a factual bounded summary, then stop. The local Controller independently validates paths, diff, Git HEAD, and commands; your completion grants no authority.`;

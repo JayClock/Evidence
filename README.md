@@ -8,9 +8,7 @@ Evidence 是一个领域建模与证据映射平台，帮助领域专家和业�
 - **Server**：NestJS + TypeScript，Hosted 模式默认使用 PostgreSQL；
 - **Desktop**：Electron 壳，复用 Web renderer，并连接经过健康检查的 Server API。
 
-仓库还包含项目本地的 **Evidence Orchestrator**，仅用于辅助当前仓库开发 Evidence。它不是面向用户的产品能力；边界决定见 [`engineering/evidence-orchestrator/product-boundary.md`](./engineering/evidence-orchestrator/product-boundary.md)。
-
-[产品能力](#产品能力) · [产品架构](#产品架构) · [数据库-schema](#数据库-schema) · [Evidence Orchestrator](#evidence-orchestrator) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
+[产品能力](#产品能力) · [产品架构](#产品架构) · [数据库-schema](#数据库-schema) · [快速开始](#快速开始) · [仓库地图](#仓库地图) · [AGENTS.md](./AGENTS.md)
 
 ## 产品能力
 
@@ -158,57 +156,6 @@ pnpm prisma:migrate:deploy
 
 生产部署只使用受版本控制的 `prisma migrate deploy`，不提供旧数据库格式的数据导入路径。
 
-## Evidence Orchestrator
-
-> **内部工具边界**：本节说明贡献者如何开发 Evidence，不属于产品能力、画像、旅程或 `.evidence` 产品领域模型。
-
-Evidence Orchestrator 位于 `.pi/extensions/evidence-orchestrator/`。Extension 负责确定性状态、执行、路径保护和审计；`.pi/agents/` 定义隔离角色；`.pi/skills/` 承载 Complicated/Complex 方法；`.pi/prompts/` 承载 Clear 固定任务。人类始终担任 Navigator。
-
-```mermaid
-flowchart LR
-  I[Inbox] --> C[Story candidates]
-  C --> K[Frozen Intake / Kickoff]
-  K --> U[Understand]
-  U --> T[Tasking]
-  T --> P[Pair]
-  P --> S[Showcase]
-  S --> R[Respond]
-  R --> D[Complete]
-
-  S -. product/domain gap .-> U
-  S -. architecture/process gap .-> T
-  S -. test/implementation gap .-> P
-  U -. problem gap .-> K
-```
-
-Inbox 保存来源 revision 和未经确认的 Story 候选；每个 `ITER-xxxx` worktree 只处理一张人工确认 Story 及其完整 Scenario Set。稳定产品、模型、架构和工序统一维护，iteration 只保存输入、增量、决策与 append-only 执行证据。历史 iteration 不得重写。
-
-常用 Pi 命令：
-
-```text
-/evidence-inbox
-/evidence-inbox add github [owner/repository#123]
-/evidence-inbox add text
-/evidence-inbox add file <project-markdown-path>
-/evidence-inbox extract INBOX-xxxx[,INBOX-yyyy]
-/evidence-new CAND-xxxx
-/evidence-flow list | pull ITER-xxxx | recover ITER-xxxx <reason> | archive ITER-xxxx <reason>
-/evidence-status [ITER-xxxx [artifacts [cursor]]]
-/evidence-answer ITER-xxxx Q-xxx <answer>
-/evidence-run ITER-xxxx [--dry-run]
-/evidence-kickoff ITER-xxxx confirm|revise|split|defer <reason>
-/evidence-scenario ITER-xxxx confirm <DRAFT-xxx> <reason>
-/evidence-modeling-profile ITER-xxxx confirm|revise <reason>
-/evidence-model ITER-xxxx confirm|revise|scenario-gap|method-gap <reason>
-/evidence-desk-check ITER-xxxx approve|revise|scenario-gap|architecture-gap|process-gap <reason>
-/evidence-pair ITER-xxxx approve|back-test|back-implementation|back-tasking|retry-quality <reason>
-/evidence-explain-diff ITER-xxxx
-/evidence-showcase ITER-xxxx accept|revise|reject <reason>
-/evidence-respond ITER-xxxx approve|revise <reason>
-```
-
-维护细节见 [`.pi/extensions/evidence-orchestrator/README.md`](./.pi/extensions/evidence-orchestrator/README.md)。
-
 ## 快速开始
 
 ### 环境要求
@@ -217,7 +164,6 @@ Inbox 保存来源 revision 和未经确认的 Story 候选；每个 `ITER-xxxx`
 - pnpm 10+
 - Hosted 模式：PostgreSQL
 - Desktop 打包：目标平台所需的 electron-builder 工具
-- Orchestrator：Pi；GitHub source adapter 另需已认证的 `gh`
 
 ### 安装
 
@@ -364,31 +310,24 @@ pnpm api:generate
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence pnpm api:contracts
 # 仅对明确的一次性远程测试库允许覆盖保护：
 # EVIDENCE_ALLOW_REMOTE_CONTRACT_DATABASE=1 DATABASE_URL=... pnpm api:contracts
-
-# Internal Orchestrator
-pnpm orchestrator:test
-pnpm orchestrator:validate
 ```
 
 ## 仓库地图
 
-| 路径                                        | 用途                                                        |
-| :------------------------------------------ | :---------------------------------------------------------- |
-| `apps/web/`                                 | React + Vite 前端组合根                                     |
-| `libs/web/*`                                | Web shell、features、UI 与 HAL API client                   |
-| `apps/server/`                              | Nest/PostgreSQL 组合根与 Prisma 部署入口                    |
-| `libs/server/api/`                          | Nest controllers、HAL 与 OpenAPI source                     |
-| `libs/server/domain/`                       | 纯 TypeScript domain 与 ports                               |
-| `libs/server/persistent/`                   | Prisma schema/migrations、PostgreSQL 与 filesystem adapters |
-| `apps/desktop/`                             | Electron、local agents、Delivery Loop controllers 与打包    |
-| `libs/contracts/api-contracts/`             | 可执行 black-box API contracts                              |
-| `docs/product/`                             | 跨迭代统一产品知识                                          |
-| `.evidence/`                                | Evidence 平台权威领域模型                                   |
-| `docs/architecture/`                        | 跨迭代统一架构与测试策略                                    |
-| `engineering/evidence-orchestrator/`        | 内部 runtime contexts、测试工序与 DoD                       |
-| `.pi/extensions/evidence-orchestrator/`     | 内部知识循环、状态保护与执行证据                            |
-| `artifacts/inbox/`、`artifacts/iterations/` | 不可变来源及迭代证据                                        |
-| `AGENTS.md`                                 | 架构边界、编码规范、验证与 Git 纪律                         |
+| 路径                            | 用途                                                        |
+| :------------------------------ | :---------------------------------------------------------- |
+| `apps/web/`                     | React + Vite 前端组合根                                     |
+| `libs/web/*`                    | Web shell、features、UI 与 HAL API client                   |
+| `apps/server/`                  | Nest/PostgreSQL 组合根与 Prisma 部署入口                    |
+| `libs/server/api/`              | Nest controllers、HAL 与 OpenAPI source                     |
+| `libs/server/domain/`           | 纯 TypeScript domain 与 ports                               |
+| `libs/server/persistent/`       | Prisma schema/migrations、PostgreSQL 与 filesystem adapters |
+| `apps/desktop/`                 | Electron、local agents、Delivery Loop controllers 与打包    |
+| `libs/contracts/api-contracts/` | 可执行 black-box API contracts                              |
+| `docs/product/`                 | 跨迭代统一产品知识                                          |
+| `.evidence/`                    | Evidence 平台权威领域模型                                   |
+| `docs/architecture/`            | 跨迭代统一架构与测试策略                                    |
+| `AGENTS.md`                     | 架构边界、编码规范、验证与 Git 纪律                         |
 
 ## 开发约定
 
