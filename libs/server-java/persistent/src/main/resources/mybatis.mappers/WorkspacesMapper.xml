@@ -19,6 +19,18 @@
                  javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceMembers">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
+    <association property="diagram"
+                 javaType="reengineering.ddd.evidence.persistent.filesystem.WorkspaceDiagram">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
+    <association property="logicalEntities"
+                 javaType="reengineering.ddd.evidence.persistent.filesystem.WorkspaceLogicalEntities">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
+    <association property="logicalRelationships"
+                 javaType="reengineering.ddd.evidence.persistent.filesystem.WorkspaceLogicalRelationships">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
   </resultMap>
 
   <sql id="workspaceColumns">
@@ -27,6 +39,12 @@
 
   <select id="findByIdentity" resultMap="workspace">
     SELECT <include refid="workspaceColumns"/>
+    FROM workspaces
+    WHERE id = #{id} AND deleted_at IS NULL
+  </select>
+
+  <select id="findModelRoot" resultType="string">
+    SELECT model_root
     FROM workspaces
     WHERE id = #{id} AND deleted_at IS NULL
   </select>

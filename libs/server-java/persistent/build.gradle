@@ -9,6 +9,7 @@ dependencies {
     implementation project(':server-java:application')
     implementation project(':server-java:domain')
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     implementation 'com.zaxxer:HikariCP'
     implementation 'jakarta.inject:jakarta.inject-api'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'

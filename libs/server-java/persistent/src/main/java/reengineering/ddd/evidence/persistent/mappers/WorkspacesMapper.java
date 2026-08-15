@@ -11,6 +11,8 @@ import reengineering.ddd.evidence.domain.model.Workspace;
 public interface WorkspacesMapper {
   Workspace findByIdentity(@Param("id") String id);
 
+  String findModelRoot(@Param("id") String id);
+
   List<Workspace> findAll(@Param("from") int from, @Param("size") int size);
 
   int countAll();
