@@ -14,6 +14,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   private DiagramAssociation diagram;
   private LogicalEntities logicalEntities;
   private LogicalRelationships logicalRelationships;
+  private InboxAssociation inbox;
 
   public Workspace(
       String identity,
@@ -21,13 +22,15 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
       Members members,
       DiagramAssociation diagram,
       LogicalEntities logicalEntities,
-      LogicalRelationships logicalRelationships) {
+      LogicalRelationships logicalRelationships,
+      InboxAssociation inbox) {
     this.identity = identity;
     this.description = description;
     this.members = members;
     this.diagram = diagram;
     this.logicalEntities = logicalEntities;
     this.logicalRelationships = logicalRelationships;
+    this.inbox = inbox;
   }
 
   private Workspace() {}
@@ -103,6 +106,14 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return logicalRelationships.list(page, pageSize);
   }
 
+  public Inbox.Association inbox() {
+    return inbox;
+  }
+
+  public InboxWorkflow.Association inboxWorkflow() {
+    return inbox;
+  }
+
   public interface Members extends HasMany<String, Member> {
     Member add(MemberDescription description);
 
@@ -132,6 +143,8 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
 
     Page<LogicalRelationship> list(int page, int pageSize);
   }
+
+  public interface InboxAssociation extends Inbox.Association, InboxWorkflow.Association {}
 
   public record Page<E>(List<E> items, int total) {
     public Page {

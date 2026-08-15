@@ -9,6 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.MemberDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
+import reengineering.ddd.evidence.domain.model.Inbox;
+import reengineering.ddd.evidence.domain.model.InboxWorkflow;
+import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.Member;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
@@ -126,6 +129,129 @@ public class WorkspaceService {
     Workspace workspace = requireWorkspace(actorUserId, workspaceId, Permission.MANAGE);
     requireMember(actorUserId, workspaceId, memberId);
     workspace.removeMember(memberId);
+  }
+
+  public Inbox.Page<Inbox.Item> inboxItems(
+      String actorUserId, String workspaceId, Inbox.ListQuery query) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ).inbox().list(query);
+  }
+
+  public Inbox.Item requireInboxItem(String actorUserId, String workspaceId, String itemId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .inbox()
+        .findByIdentity(itemId)
+        .orElseThrow(() -> DomainException.notFound("Inbox item " + itemId + " not found"));
+  }
+
+  @Transactional
+  public Inbox.Captured captureInboxItem(
+      String actorUserId, String workspaceId, Inbox.SourceInput source) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE).inbox().capture(source);
+  }
+
+  @Transactional
+  public Inbox.Item changeInboxStatus(
+      String actorUserId,
+      String workspaceId,
+      String itemId,
+      Inbox.ItemStatus status,
+      int expectedVersion) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .inbox()
+        .changeStatus(itemId, status, expectedVersion);
+  }
+
+  public Inbox.Page<Inbox.Revision> inboxRevisions(
+      String actorUserId, String workspaceId, String itemId, int page, int pageSize) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .inbox()
+        .listRevisions(itemId, page, pageSize);
+  }
+
+  public Inbox.Revision requireInboxRevision(
+      String actorUserId, String workspaceId, String itemId, String revisionId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .inbox()
+        .findRevision(itemId, revisionId)
+        .orElseThrow(() -> DomainException.notFound("Inbox revision " + revisionId + " not found"));
+  }
+
+  @Transactional
+  public Inbox.Captured appendInboxRevision(
+      String actorUserId,
+      String workspaceId,
+      String itemId,
+      Inbox.SourceInput source,
+      String expectedLatestRevisionSha256) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .inbox()
+        .appendRevision(itemId, source, expectedLatestRevisionSha256);
+  }
+
+  @Transactional
+  public InboxWorkflow.Extraction createInboxExtraction(
+      String actorUserId, String workspaceId, List<String> inboxItemIds) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .inboxWorkflow()
+        .createExtraction(inboxItemIds, actorUserId);
+  }
+
+  public InboxWorkflow.Extraction requireInboxExtraction(
+      String actorUserId, String workspaceId, String extractionId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .inboxWorkflow()
+        .findExtraction(extractionId)
+        .orElseThrow(
+            () -> DomainException.notFound("Inbox Extraction " + extractionId + " not found"));
+  }
+
+  @Transactional
+  public InboxWorkflow.ProposedCandidates proposeInboxCandidates(
+      String actorUserId,
+      String workspaceId,
+      String extractionId,
+      int expectedVersion,
+      List<InboxWorkflow.CandidateInput> candidates) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .inboxWorkflow()
+        .proposeCandidates(extractionId, expectedVersion, candidates);
+  }
+
+  public InboxWorkflow.CandidatePage inboxCandidates(
+      String actorUserId, String workspaceId, InboxWorkflow.CandidateListQuery query) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .inboxWorkflow()
+        .listCandidates(query);
+  }
+
+  public InboxWorkflow.Candidate requireInboxCandidate(
+      String actorUserId, String workspaceId, String candidateId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .inboxWorkflow()
+        .findCandidate(candidateId)
+        .orElseThrow(
+            () -> DomainException.notFound("Inbox Candidate " + candidateId + " not found"));
+  }
+
+  @Transactional
+  public InboxWorkflow.CandidateDecision decideInboxCandidate(
+      String actorUserId,
+      String workspaceId,
+      String candidateId,
+      String candidateSha256,
+      InboxWorkflow.DecisionAction action,
+      String reason) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .inboxWorkflow()
+        .decideCandidate(candidateId, candidateSha256, action, reason, actorUserId);
+  }
+
+  @Transactional
+  public Iteration selectInboxCandidate(
+      String actorUserId, String workspaceId, InboxWorkflow.SelectCandidateInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .inboxWorkflow()
+        .selectCandidate(input, actorUserId);
   }
 
   @Transactional
