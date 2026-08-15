@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper">
+  <resultMap id="workspace" type="reengineering.ddd.evidence.domain.model.Workspace">
+    <id property="identity" column="id" jdbcType="VARCHAR" javaType="String"/>
+    <association property="description"
+                 javaType="reengineering.ddd.evidence.domain.description.WorkspaceDescription">
+      <constructor>
+        <arg column="title" jdbcType="VARCHAR" javaType="String"/>
+        <arg column="description" jdbcType="VARCHAR" javaType="String"/>
+        <arg column="status" jdbcType="VARCHAR" javaType="String"/>
+        <arg column="metadata" jdbcType="OTHER" javaType="java.util.Map"
+             typeHandler="reengineering.ddd.evidence.persistent.typehandler.StringMapJsonHandler"/>
+        <arg column="created_at" jdbcType="TIMESTAMP" javaType="java.time.Instant"/>
+        <arg column="updated_at" jdbcType="TIMESTAMP" javaType="java.time.Instant"/>
+      </constructor>
+    </association>
+    <association property="members"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceMembers">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
+  </resultMap>
+
+  <sql id="workspaceColumns">
+    id, title, description, status, metadata, model_root, created_at, updated_at
+  </sql>
+
+  <select id="findByIdentity" resultMap="workspace">
+    SELECT <include refid="workspaceColumns"/>
+    FROM workspaces
+    WHERE id = #{id} AND deleted_at IS NULL
+  </select>
+
+  <select id="findAll" resultMap="workspace">
+    SELECT <include refid="workspaceColumns"/>
+    FROM workspaces
+    WHERE deleted_at IS NULL
+    ORDER BY updated_at DESC
+    LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="countAll" resultType="int">
+    SELECT COUNT(*) FROM workspaces WHERE deleted_at IS NULL
+  </select>
+
+  <insert id="insert">
+    INSERT INTO workspaces
+      (id, title, description, status, metadata, model_root, created_at, updated_at, deleted_at)
+    VALUES
+      (#{id}, #{description.title}, #{description.description}, #{description.status},
+       #{description.metadata,typeHandler=reengineering.ddd.evidence.persistent.typehandler.StringMapJsonHandler},
+       #{modelRoot}, #{timestamp}, #{timestamp}, NULL)
+  </insert>
+
+  <update id="update">
+    UPDATE workspaces
+    SET title = #{description.title},
+        description = #{description.description},
+        status = #{description.status},
+        metadata = #{description.metadata,typeHandler=reengineering.ddd.evidence.persistent.typehandler.StringMapJsonHandler},
+        updated_at = #{updatedAt}
+    WHERE id = #{id} AND deleted_at IS NULL
+  </update>
+
+  <update id="softDelete">
+    UPDATE workspaces
+    SET deleted_at = #{deletedAt}, updated_at = #{deletedAt}
+    WHERE id = #{id} AND deleted_at IS NULL
+  </update>
+
+  <insert id="ensureDefault">
+    INSERT INTO workspaces
+      (id, title, description, status, metadata, model_root, created_at, updated_at, deleted_at)
+    VALUES
+      (#{id}, #{title}, #{description}, 'active', '{}'::jsonb,
+       #{modelRoot}, #{timestamp}, #{timestamp}, NULL)
+    ON CONFLICT (id) DO NOTHING
+  </insert>
+</mapper>

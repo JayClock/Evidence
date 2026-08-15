@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.UserMembershipsMapper">
+  <resultMap id="membership"
+             type="reengineering.ddd.evidence.persistent.mappers.MembershipProjection">
+    <association property="member"
+                 resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembersMapper.member"
+                 columnPrefix="member_"/>
+    <association property="workspace"
+                 resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper.workspace"
+                 columnPrefix="workspace_"/>
+  </resultMap>
+
+  <sql id="membershipColumns">
+    wm.id AS member_id,
+    wm.workspace_id AS member_workspace_id,
+    wm.user_id AS member_user_id,
+    wm.role AS member_role,
+    wm.created_at AS member_created_at,
+    wm.updated_at AS member_updated_at,
+    w.id AS workspace_id,
+    w.title AS workspace_title,
+    w.description AS workspace_description,
+    w.status AS workspace_status,
+    w.metadata AS workspace_metadata,
+    w.model_root AS workspace_model_root,
+    w.created_at AS workspace_created_at,
+    w.updated_at AS workspace_updated_at
+  </sql>
+
+  <select id="findAll" resultMap="membership">
+    SELECT <include refid="membershipColumns"/>
+    FROM workspace_members wm
+    JOIN workspaces w ON w.id = wm.workspace_id
+    WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
+    ORDER BY wm.created_at ASC
+    LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="countAll" resultType="int">
+    SELECT COUNT(*)
+    FROM workspace_members wm
+    JOIN workspaces w ON w.id = wm.workspace_id
+    WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
+  </select>
+
+  <select id="findByWorkspaceIdentity" resultMap="membership">
+    SELECT <include refid="membershipColumns"/>
+    FROM workspace_members wm
+    JOIN workspaces w ON w.id = wm.workspace_id
+    WHERE wm.user_id = #{userId}
+      AND wm.workspace_id = #{workspaceId}
+      AND w.deleted_at IS NULL
+  </select>
+</mapper>

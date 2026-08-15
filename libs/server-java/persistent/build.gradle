@@ -4,10 +4,15 @@ plugins {
 
 dependencies {
     implementation platform("${smartDomainGroup}:smart-domain-bom:${smartDomainVersion}")
+    implementation "${smartDomainGroup}:smart-domain-mybatis"
     implementation "${smartDomainGroup}:smart-domain-mybatis-spring-boot-starter"
     implementation project(':server-java:application')
     implementation project(':server-java:domain')
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.zaxxer:HikariCP'
+    implementation 'jakarta.inject:jakarta.inject-api'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
+    implementation 'org.springframework:spring-jdbc'
     implementation 'org.flywaydb:flyway-core'
     implementation 'org.flywaydb:flyway-database-postgresql'
     runtimeOnly 'org.postgresql:postgresql'
@@ -16,4 +21,18 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+def prismaMigrationRoot = file('../../server/persistent/prisma/migrations')
+def prismaMigrations = prismaMigrationRoot.listFiles()
+    .findAll { it.isDirectory() }
+    .sort { left, right -> left.name <=> right.name }
+
+tasks.named('processResources').configure {
+    prismaMigrations.eachWithIndex { migration, index ->
+        from(new File(migration, 'migration.sql')) {
+            into 'db/migration'
+            rename { "V${String.format('%03d', index + 1)}__${migration.name}.sql" }
+        }
+    }
 }

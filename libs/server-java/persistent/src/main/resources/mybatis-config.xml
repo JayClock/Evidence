@@ -1,0 +1,12 @@
+<!DOCTYPE configuration
+    PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+  <settings>
+    <setting name="cacheEnabled" value="false"/>
+  </settings>
+  <typeHandlers>
+    <typeHandler handler="reengineering.ddd.evidence.persistent.typehandler.StringMapJsonHandler"/>
+  </typeHandlers>
+  <objectFactory type="io.github.jayclock.smartdomain.mybatis.support.InjectableObjectFactory"/>
+</configuration>

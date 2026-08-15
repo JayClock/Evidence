@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.UsersMapper">
+  <resultMap id="user" type="reengineering.ddd.evidence.domain.model.User">
+    <id property="identity" column="id" jdbcType="VARCHAR" javaType="String"/>
+    <association property="description"
+                 javaType="reengineering.ddd.evidence.domain.description.UserDescription">
+      <constructor>
+        <arg column="name" jdbcType="VARCHAR" javaType="String"/>
+        <arg column="email" jdbcType="VARCHAR" javaType="String"/>
+      </constructor>
+    </association>
+  </resultMap>
+
+  <select id="findByIdentity" resultMap="user">
+    SELECT id, name, email
+    FROM users
+    WHERE id = #{id}
+  </select>
+
+  <select id="findByExternalIdentity" resultMap="user">
+    SELECT u.id, u.name, u.email
+    FROM user_identities identity
+    JOIN users u ON u.id = identity.user_id
+    WHERE identity.issuer = #{issuer} AND identity.subject = #{subject}
+  </select>
+
+  <select id="lockExternalIdentity" resultType="long">
+    SELECT hashtextextended(#{issuer} || chr(31) || #{subject}, 0)
+    FROM (
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(#{issuer} || chr(31) || #{subject}, 0)
+      )
+    ) AS locked
+  </select>
+
+  <insert id="insertUser">
+    INSERT INTO users (id, name, email)
+    VALUES (#{id}, #{description.name}, #{description.email})
+  </insert>
+
+  <insert id="insertIdentity">
+    INSERT INTO user_identities (id, user_id, issuer, subject, created_at)
+    VALUES (#{id}, #{userId}, #{issuer}, #{subject}, #{createdAt})
+  </insert>
+
+  <insert id="ensureUser">
+    INSERT INTO users (id, name, email)
+    VALUES (#{id}, #{description.name}, #{description.email})
+    ON CONFLICT (id) DO NOTHING
+  </insert>
+</mapper>
