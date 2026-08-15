@@ -380,6 +380,238 @@ class ApplicationTest {
   }
 
   @Test
+  void capturesInboxEvidenceAndAdmitsOneCandidateIteration() throws Exception {
+    JsonNode workspace =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.POST,
+                    "/api/workspaces",
+                    "{\"title\":\"Java Inbox Workflow Workspace\"}")
+                .getBody());
+    String workspaceId = workspace.path("id").asText();
+    String workspacePath = "/api/workspaces/" + workspaceId;
+    String inboxPath = workspacePath + "/inbox-items";
+    String source =
+        """
+        {
+          "sourceKind":"manual_text",
+          "externalKey":"capture-1",
+          "title":"Java Inbox migration",
+          "body":"Preserve exact Inbox evidence.",
+          "contentType":"text/markdown",
+          "providerMetadata":{"channel":"product"}
+        }
+        """;
+
+    ResponseEntity<String> capturedResponse = authorized(HttpMethod.POST, inboxPath, source);
+    assertThat(capturedResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(capturedResponse, "application/vnd.evidence.inbox-item+json");
+    JsonNode captured = objectMapper.readTree(capturedResponse.getBody());
+    String itemId = captured.path("id").asText();
+    String firstRevisionHash = captured.path("latestRevisionSha256").asText();
+    assertThat(captured.path("revisionCount").asInt()).isEqualTo(1);
+
+    JsonNode replayed =
+        objectMapper.readTree(authorized(HttpMethod.POST, inboxPath, source).getBody());
+    assertThat(replayed.path("id").asText()).isEqualTo(itemId);
+    assertThat(replayed.path("revisionCount").asInt()).isEqualTo(1);
+    JsonNode listedInbox =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.GET,
+                    inboxPath
+                        + "?page=1&pageSize=20&status=active&sourceKind=manual_text&q=Inbox+migration",
+                    null)
+                .getBody());
+    assertThat(listedInbox.path("page").path("totalElements").asInt()).isEqualTo(1);
+    assertThat(listedInbox.path("_links").path("self").path("href").asText())
+        .isEqualTo(
+            inboxPath
+                + "?page=1&pageSize=20&status=active&sourceKind=manual_text&q=Inbox+migration");
+
+    ResponseEntity<String> appendedResponse =
+        authorized(
+            HttpMethod.POST,
+            inboxPath + "/" + itemId + "/revisions",
+            """
+            {
+              "body":"Preserve exact Inbox evidence and candidate authority.",
+              "uri":"https://example.com/issues/1",
+              "providerMetadata":{"channel":"product","state":"open"},
+              "sourceUpdatedAt":"2026-07-21T12:00:00.000Z",
+              "expectedLatestRevisionSha256":"%s"
+            }
+            """
+                .formatted(firstRevisionHash));
+    assertThat(appendedResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertContentType(appendedResponse, "application/vnd.evidence.inbox-revision+json");
+    JsonNode appended = objectMapper.readTree(appendedResponse.getBody());
+    String revisionHash = appended.path("contentSha256").asText();
+    assertThat(revisionHash).isNotEqualTo(firstRevisionHash);
+    assertThat(appended.path("uri").asText()).isEqualTo("https://example.com/issues/1");
+    assertThat(appended.path("sourceUpdatedAt").asText()).isEqualTo("2026-07-21T12:00:00.000Z");
+
+    ResponseEntity<String> revisions =
+        authorized(
+            HttpMethod.GET, inboxPath + "/" + itemId + "/revisions?page=1&pageSize=20", null);
+    assertContentType(revisions, "application/vnd.evidence.inbox-revisions+json");
+    assertThat(
+            objectMapper.readTree(revisions.getBody()).path("page").path("totalElements").asInt())
+        .isEqualTo(2);
+
+    String extractionsPath = workspacePath + "/inbox-extractions";
+    ResponseEntity<String> extractionResponse =
+        authorized(HttpMethod.POST, extractionsPath, "{\"inboxItemIds\":[\"" + itemId + "\"]}");
+    assertThat(extractionResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(extractionResponse, "application/vnd.evidence.inbox-extraction+json");
+    JsonNode extraction = objectMapper.readTree(extractionResponse.getBody());
+    String extractionId = extraction.path("id").asText();
+    assertThat(extraction.path("reference").asText()).isEqualTo("EXTRACT-0001");
+    assertThat(extraction.path("sources").get(0).path("contentSha256").asText())
+        .isEqualTo(revisionHash);
+    assertThat(extractionResponse.getHeaders().getFirst(HttpHeaders.LOCATION))
+        .isEqualTo(extractionsPath + "/" + extractionId);
+
+    ResponseEntity<String> proposedResponse =
+        authorized(
+            HttpMethod.POST,
+            extractionsPath + "/" + extractionId + "/candidates",
+            """
+            {
+              "expectedVersion":1,
+              "candidates":[
+                {
+                  "title":"Defer this candidate",
+                  "problem":"The migration needs a bounded candidate.",
+                  "role":"Workspace maintainer",
+                  "goal":"Defer one alternative.",
+                  "value":"Authority stays explicit.",
+                  "cognitiveMode":"complicated",
+                  "citations":[{"inboxItemId":"%s","revisionSha256":"%s","locator":"whole-source"}]
+                },
+                {
+                  "title":"Select this candidate",
+                  "problem":"The migration needs a bounded candidate.",
+                  "role":"Workspace maintainer",
+                  "goal":"Start one iteration.",
+                  "value":"Authority stays traceable.",
+                  "cognitiveMode":"complicated",
+                  "citations":[{"inboxItemId":"%s","revisionSha256":"%s","locator":"whole-source"}]
+                }
+              ]
+            }
+            """
+                .formatted(itemId, revisionHash, itemId, revisionHash));
+    assertThat(proposedResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(proposedResponse, "application/vnd.evidence.inbox-candidate-set+json");
+    JsonNode proposed = objectMapper.readTree(proposedResponse.getBody());
+    assertThat(proposed.path("extraction").path("status").asText()).isEqualTo("completed");
+    JsonNode candidates = proposed.path("_embedded").path("storyCandidates");
+    assertThat(candidates).hasSize(2);
+    JsonNode deferredCandidate = candidates.get(0);
+    JsonNode selectedCandidate = candidates.get(1);
+
+    String candidatesPath = workspacePath + "/story-candidates";
+    ResponseEntity<String> deferredResponse =
+        authorized(
+            HttpMethod.POST,
+            candidatesPath + "/" + deferredCandidate.path("id").asText() + "/defer",
+            """
+            {"candidateSha256":"%s","reason":"Not this alternative."}
+            """
+                .formatted(deferredCandidate.path("contentSha256").asText()));
+    assertThat(deferredResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertContentType(deferredResponse, "application/vnd.evidence.story-candidate+json");
+    assertThat(objectMapper.readTree(deferredResponse.getBody()).path("status").asText())
+        .isEqualTo("deferred");
+
+    ResponseEntity<String> selectedResponse =
+        authorized(
+            HttpMethod.POST,
+            candidatesPath + "/" + selectedCandidate.path("id").asText() + "/select",
+            """
+            {"candidateSha256":"%s","baseCommitSha":"cccccccccccccccccccccccccccccccccccccccc"}
+            """
+                .formatted(selectedCandidate.path("contentSha256").asText()));
+    assertThat(selectedResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(selectedResponse, "application/vnd.evidence.iteration+json");
+    JsonNode iteration = objectMapper.readTree(selectedResponse.getBody());
+    assertThat(iteration.path("lifecycle").asText()).isEqualTo("provisioning");
+    assertThat(iteration.path("stage").asText()).isEqualTo("candidate_review");
+    assertThat(iteration.path("activeStoryId").isNull()).isTrue();
+    assertThat(selectedResponse.getHeaders().getFirst(HttpHeaders.LOCATION))
+        .isEqualTo(workspacePath + "/iterations/" + iteration.path("id").asText());
+
+    ResponseEntity<String> deferredList =
+        authorized(
+            HttpMethod.GET,
+            candidatesPath + "?page=1&pageSize=20&status=deferred&extractionId=" + extractionId,
+            null);
+    assertContentType(deferredList, "application/vnd.evidence.story-candidates+json");
+    JsonNode deferredListBody = objectMapper.readTree(deferredList.getBody());
+    assertThat(deferredListBody.path("page").path("totalElements").asInt()).isEqualTo(1);
+    assertThat(
+            deferredListBody
+                .path("_embedded")
+                .path("storyCandidates")
+                .get(0)
+                .path("status")
+                .asText())
+        .isEqualTo("deferred");
+
+    JsonNode selectedState =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.GET,
+                    candidatesPath + "/" + selectedCandidate.path("id").asText(),
+                    null)
+                .getBody());
+    assertThat(selectedState.path("status").asText()).isEqualTo("selected");
+    assertThat(selectedState.path("_links").path("iteration").path("href").asText())
+        .isEqualTo(workspacePath + "/iterations/" + iteration.path("id").asText());
+
+    ResponseEntity<String> revertedResponse =
+        authorized(
+            HttpMethod.POST,
+            inboxPath + "/" + itemId + "/revisions",
+            """
+            {
+              "title":"Java Inbox migration",
+              "body":"Preserve exact Inbox evidence.",
+              "contentType":"text/markdown",
+              "uri":null,
+              "providerMetadata":{"channel":"product"},
+              "sourceUpdatedAt":null,
+              "expectedLatestRevisionSha256":"%s"
+            }
+            """
+                .formatted(revisionHash));
+    JsonNode reverted = objectMapper.readTree(revertedResponse.getBody());
+    assertThat(reverted.path("id").asText()).isEqualTo(captured.path("latestRevisionId").asText());
+    JsonNode revertedItem =
+        objectMapper.readTree(authorized(HttpMethod.GET, inboxPath + "/" + itemId, null).getBody());
+    assertThat(revertedItem.path("revisionCount").asInt()).isEqualTo(2);
+    assertThat(revertedItem.path("version").asInt()).isEqualTo(3);
+
+    JsonNode deferredItem =
+        objectMapper.readTree(
+            authorized(
+                    HttpMethod.PATCH,
+                    inboxPath + "/" + itemId,
+                    "{\"status\":\"deferred\",\"expectedVersion\":3}")
+                .getBody());
+    assertThat(deferredItem.path("status").asText()).isEqualTo("deferred");
+    assertThat(deferredItem.path("version").asInt()).isEqualTo(4);
+    assertThat(
+            authorized(
+                    HttpMethod.PATCH,
+                    inboxPath + "/" + itemId,
+                    "{\"status\":\"closed\",\"expectedVersion\":3}")
+                .getStatusCode())
+        .isEqualTo(HttpStatus.CONFLICT);
+  }
+
+  @Test
   void rejectsDesktopRepositoryPathsInWorkspacePayloads() {
     ResponseEntity<String> directPath =
         authorized(
