@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.container.ResourceContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.SecurityContext;
@@ -14,15 +15,20 @@ import java.security.Principal;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.api.representation.HealthModel;
 import reengineering.ddd.evidence.api.representation.RootModel;
+import reengineering.ddd.evidence.application.WorkspaceService;
 
 @Component
 @Path("/")
 public class RootApi {
   private final OpenApiDocument openApiDocument;
+  private final WorkspaceService workspaceService;
+
+  @Context private ResourceContext resourceContext;
 
   @Inject
-  public RootApi(OpenApiDocument openApiDocument) {
+  public RootApi(OpenApiDocument openApiDocument, WorkspaceService workspaceService) {
     this.openApiDocument = openApiDocument;
+    this.workspaceService = workspaceService;
   }
 
   @GET
@@ -43,6 +49,16 @@ public class RootApi {
   @VendorMediaType(ResourceTypes.HEALTH)
   public HealthModel health(@Context UriInfo uriInfo) {
     return HealthModel.of(uriInfo);
+  }
+
+  @Path("api/users")
+  public UsersApi users() {
+    return resourceContext.initResource(new UsersApi(workspaceService));
+  }
+
+  @Path("api/workspaces")
+  public WorkspacesApi workspaces() {
+    return resourceContext.initResource(new WorkspacesApi(workspaceService));
   }
 
   @GET
