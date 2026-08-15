@@ -617,7 +617,7 @@ function ScenarioProposal({
         <div className="flex items-center gap-2">
           <Badge>{proposal.reference}</Badge>
           <Badge variant="outline">{proposal.drafts.length} 个 Draft</Badge>
-          <code className="hidden text-[0.625rem] text-muted-foreground xl:block">
+          <code className="hidden text-[0.6875rem] text-muted-foreground xl:block">
             {shortHash(proposal.contentSha256)}
           </code>
         </div>
@@ -675,7 +675,7 @@ function ScenarioDraftRow({
           {outcome}
         </FieldDescription>
         {draft.businessData.length > 0 ? (
-          <p className="truncate font-mono text-[0.625rem] text-muted-foreground">
+          <p className="truncate font-mono text-[0.6875rem] text-muted-foreground">
             {draft.businessData.join(' · ')}
           </p>
         ) : null}

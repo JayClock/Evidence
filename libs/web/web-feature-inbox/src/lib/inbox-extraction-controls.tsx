@@ -83,7 +83,7 @@ export function InboxExtractionControls({
           </p>
           <p
             aria-live={progress || error ? 'polite' : undefined}
-            className="truncate text-[0.625rem] text-muted-foreground data-[error=true]:text-destructive"
+            className="truncate text-[0.6875rem] text-muted-foreground data-[error=true]:text-destructive"
             data-error={Boolean(error)}
           >
             {detail}

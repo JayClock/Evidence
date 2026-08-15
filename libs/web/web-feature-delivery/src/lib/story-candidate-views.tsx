@@ -571,7 +571,7 @@ function CandidateHash({ value }: { value: string }) {
         <CardDescription>Candidate SHA-256</CardDescription>
       </CardHeader>
       <CardContent>
-        <code className="break-all text-[0.625rem]">{value}</code>
+        <code className="break-all text-[0.6875rem]">{value}</code>
       </CardContent>
     </Card>
   );

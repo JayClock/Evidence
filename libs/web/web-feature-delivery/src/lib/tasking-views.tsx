@@ -462,7 +462,7 @@ function TaskingTestsCard({
                 </TableCell>
                 <TableCell className="min-w-44 whitespace-normal text-xs">
                   <p>{test.scenarioIds.join(', ') || '公共 Q1'}</p>
-                  <code className="text-[0.625rem] text-muted-foreground">
+                  <code className="text-[0.6875rem] text-muted-foreground">
                     {test.projectId ?? test.processId}
                   </code>
                 </TableCell>
@@ -503,12 +503,12 @@ function ProcessPlanCard({ plan }: { plan: CandidatePlan }) {
                   <p className="text-xs font-medium">
                     {process.processId} · v{process.processVersion}
                   </p>
-                  <code className="text-[0.625rem] text-muted-foreground">
+                  <code className="text-[0.6875rem] text-muted-foreground">
                     {shortHash(process.definitionSha256)}
                   </code>
                 </TableCell>
                 <TableCell className="min-w-72 whitespace-normal">
-                  <div className="flex flex-col gap-1 font-mono text-[0.625rem]">
+                  <div className="flex flex-col gap-1 font-mono text-[0.6875rem]">
                     {process.focusedCommands.map(({ command }) => (
                       <code className="break-all" key={command}>
                         {command}

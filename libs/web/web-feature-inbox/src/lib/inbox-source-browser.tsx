@@ -178,7 +178,7 @@ function SourceList({
                         {sourceKindLabel(item.sourceKind)} ·{' '}
                         {item.revisionCount} 个修订
                       </span>
-                      <span className="flex flex-wrap items-center justify-between gap-2 font-mono text-[0.625rem] text-muted-foreground">
+                      <span className="flex flex-wrap items-center justify-between gap-2 font-mono text-[0.6875rem] text-muted-foreground">
                         <span>{shortIdentifier(item.id)}</span>
                         <time dateTime={item.updatedAt}>
                           {formatDateTime(item.updatedAt)}
@@ -416,7 +416,7 @@ function SourceRevisionHistory({
               <div className="flex items-center justify-between gap-2">
                 <Badge variant="secondary">#{revision.revisionNumber}</Badge>
                 <time
-                  className="font-mono text-[0.625rem] text-muted-foreground"
+                  className="font-mono text-[0.6875rem] text-muted-foreground"
                   dateTime={revision.capturedAt}
                 >
                   {formatDateTime(revision.capturedAt)}
@@ -557,7 +557,7 @@ function SourceFacts({
                   {recentState.data.title}
                 </p>
                 <time
-                  className="mt-1 block font-mono text-[0.625rem] text-muted-foreground"
+                  className="mt-1 block font-mono text-[0.6875rem] text-muted-foreground"
                   dateTime={recentState.data.capturedAt}
                 >
                   {formatDateTime(recentState.data.capturedAt)}
@@ -575,7 +575,7 @@ function SourceFacts({
           <p className="text-xs text-muted-foreground">
             Candidate 必须锁定精确 Revision、hash 和定位信息。
           </p>
-          <code className="break-all text-[0.625rem]">{citation}</code>
+          <code className="break-all text-[0.6875rem]">{citation}</code>
           <Button
             onClick={() => void window.navigator.clipboard?.writeText(citation)}
             size="xs"

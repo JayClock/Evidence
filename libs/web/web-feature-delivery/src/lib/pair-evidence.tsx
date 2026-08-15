@@ -128,10 +128,10 @@ export function PairRunNavigation({ pair }: { pair: PairResource['data'] }) {
                 data-done={done}
                 key={test.id}
               >
-                <code className="shrink-0 text-[0.625rem] font-semibold">
+                <code className="shrink-0 text-[0.6875rem] font-semibold">
                   {test.id}
                 </code>
-                <p className="min-w-0 flex-1 truncate text-[0.625rem] text-muted-foreground">
+                <p className="min-w-0 flex-1 truncate text-[0.6875rem] text-muted-foreground">
                   {test.intent}
                 </p>
                 <Badge variant={done ? 'default' : 'outline'}>
@@ -396,11 +396,11 @@ export function PairReviewWorkspace({
       <div className="h-[7.25rem] shrink-0 border-t bg-secondary">
         <div className="flex h-8 items-center justify-between border-b px-2.5">
           <h3 className="text-xs font-semibold">验证输出</h3>
-          <span className="font-mono text-[0.625rem] text-muted-foreground">
+          <span className="font-mono text-[0.6875rem] text-muted-foreground">
             {validation.length} observations
           </span>
         </div>
-        <div className="flex h-[5.25rem] flex-col gap-1 overflow-y-auto px-2.5 py-2 font-mono text-[0.625rem]">
+        <div className="flex h-[5.25rem] flex-col gap-1 overflow-y-auto px-2.5 py-2 font-mono text-[0.6875rem]">
           {validation.length ? (
             validation.map((observation) => (
               <p className="truncate" key={observation.id}>
