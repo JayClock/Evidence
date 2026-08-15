@@ -1,5 +1,6 @@
 import { Node as AiNode, NodeContent } from '@evidence/ui/ai-elements/node';
 import type { NodeProps } from '@xyflow/react';
+import { StickyNoteIcon } from 'lucide-react';
 
 import type { DiagramCanvasNode } from '../diagram-types';
 
@@ -19,12 +20,16 @@ export function StickyNoteNode({
   return (
     <AiNode
       handles={{ source: true, target: true }}
-      className={`h-full w-full min-w-[150px] rounded-r border-l-4 border-yellow-400 bg-yellow-100 shadow-md ${
-        selected ? 'ring-primary/50 ring-4' : ''
+      className={`h-full w-full min-w-[150px] rounded-lg border border-l-4 border-l-status-locked bg-card ${
+        selected ? 'ring-2 ring-ring/40' : ''
       }`}
     >
-      <NodeContent className="p-3">
-        <div className="whitespace-pre-wrap text-sm text-gray-800">
+      <NodeContent className="flex gap-2 p-3">
+        <StickyNoteIcon
+          aria-hidden
+          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+        />
+        <div className="whitespace-pre-wrap text-sm leading-5 text-foreground">
           {content}
         </div>
       </NodeContent>

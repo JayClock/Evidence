@@ -34,6 +34,14 @@ import {
   EmptyDescription,
   EmptyHeader,
   EmptyTitle,
+  EvidencePage,
+  EvidenceStatusBadge,
+  PageActions,
+  PageDescription,
+  PageEyebrow,
+  PageHeader,
+  PageHeaderCopy,
+  PageTitle,
   Skeleton,
 } from '@evidence/ui';
 import { Canvas } from '@evidence/ui/ai-elements/canvas';
@@ -140,9 +148,20 @@ export function DiagramDetailView({
   }, [edges.resource, nodes.resource]);
 
   return (
-    <section className="flex min-h-0 h-full flex-1 flex-col gap-4">
-      <h2 className="sr-only">{resourceState.data.title}</h2>
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
+    <EvidencePage>
+      <PageHeader>
+        <PageHeaderCopy>
+          <PageEyebrow>当前领域模型 · 只读权威投影</PageEyebrow>
+          <PageTitle>{resourceState.data.title}</PageTitle>
+          <PageDescription>
+            中性节点、类型图标与关系标签表达模型；AI 只能提出非权威变更提案。
+          </PageDescription>
+        </PageHeaderCopy>
+        <PageActions>
+          <EvidenceStatusBadge label="Server projection" status="locked" />
+        </PageActions>
+      </PageHeader>
+      <div className="grid min-h-0 flex-1 gap-3 bg-background p-3 xl:grid-cols-[minmax(0,1fr)_23rem]">
         <div className="flex min-h-0 min-w-0 flex-col">
           {loading ? <DiagramLoading /> : null}
           {error ? (
@@ -158,7 +177,7 @@ export function DiagramDetailView({
           resourceState={resourceState}
         />
       </div>
-    </section>
+    </EvidencePage>
   );
 }
 
@@ -241,11 +260,11 @@ function DiagramCanvas({ graph }: { graph: DiagramGraph }) {
   }
 
   return (
-    <Card className="min-h-0 flex-1">
+    <Card className="min-h-0 flex-1 py-0">
       <CardContent className="flex min-h-0 flex-1 p-0">
         <div
           aria-label="Diagram canvas"
-          className="min-h-0 flex-1 overflow-hidden rounded-b-xl bg-muted/20"
+          className="min-h-0 flex-1 overflow-hidden rounded-lg bg-secondary/40"
         >
           <Canvas<DiagramCanvasNode, DiagramCanvasEdge>
             nodes={nodes}

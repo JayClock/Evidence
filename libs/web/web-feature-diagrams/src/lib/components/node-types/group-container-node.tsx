@@ -1,50 +1,33 @@
 import { Node as AiNode, NodeContent } from '@evidence/ui/ai-elements/node';
 import type { NodeProps } from '@xyflow/react';
+import { FrameIcon } from 'lucide-react';
 
 import type { DiagramCanvasNode } from '../diagram-types';
 
 type GroupContainerNodeType = DiagramCanvasNode & { type: 'group-container' };
 
-function groupStyle(subType: unknown): {
-  className: string;
-  labelClassName: string;
-} {
-  if (subType === 'fulfillment_lane') {
-    return {
-      className: 'border-violet-300 bg-violet-50/45',
-      labelClassName: 'text-violet-700',
-    };
-  }
-
-  if (subType === 'shared_participant_pool') {
-    return {
-      className: 'border-emerald-300 bg-emerald-50/45',
-      labelClassName: 'text-emerald-700',
-    };
-  }
-
-  return {
-    className: 'border-blue-400 bg-blue-50/30',
-    labelClassName: 'text-blue-600',
-  };
-}
-
 export function GroupContainerNode({
   data,
   selected,
 }: NodeProps<GroupContainerNodeType>) {
-  const style = groupStyle(data.subType);
-
   return (
     <AiNode
       handles={{ source: true, target: true }}
-      className={`box-border h-full w-full rounded-lg border-2 border-dashed ${style.className} ${
-        selected ? 'ring-primary/50 ring-4' : ''
+      className={`box-border h-full w-full rounded-lg border border-dashed bg-secondary/35 ${
+        selected ? 'ring-2 ring-ring/40' : ''
       }`}
     >
-      <NodeContent className="p-3">
-        <div className={`text-xs font-medium ${style.labelClassName}`}>
-          {data.label}
+      <NodeContent className="flex items-center gap-2 p-3 text-muted-foreground">
+        <FrameIcon aria-hidden className="size-4 shrink-0" />
+        <div className="min-w-0">
+          <div className="truncate text-xs font-medium text-foreground">
+            {data.label}
+          </div>
+          {data.subType ? (
+            <div className="truncate font-mono text-[0.6875rem]">
+              {String(data.subType)}
+            </div>
+          ) : null}
         </div>
       </NodeContent>
     </AiNode>

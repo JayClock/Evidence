@@ -19,6 +19,7 @@
     "ai": "^6.0.191",
     "date-fns": "^4.4.0",
     "elkjs": "^0.11.1",
+    "lucide-react": "^1.16.0",
     "react-router-dom": "6.30.3"
   }
 }

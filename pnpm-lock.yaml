@@ -475,6 +475,9 @@ importers:
       elkjs:
         specifier: ^0.11.1
         version: 0.11.1
+      lucide-react:
+        specifier: ^1.16.0
+        version: 1.16.0(react@19.2.6)
       react-router-dom:
         specifier: 6.30.3
         version: 6.30.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)

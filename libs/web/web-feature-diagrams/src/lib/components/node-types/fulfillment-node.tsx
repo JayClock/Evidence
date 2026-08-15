@@ -1,3 +1,4 @@
+import { Badge } from '@evidence/ui';
 import { Node as AiNode, NodeContent } from '@evidence/ui/ai-elements/node';
 import {
   Handle,
@@ -6,6 +7,22 @@ import {
   useEdges,
   useNodes,
 } from '@xyflow/react';
+import {
+  BadgeCheckIcon,
+  BoxIcon,
+  BoxesIcon,
+  FileInputIcon,
+  FileTextIcon,
+  MapPinIcon,
+  MegaphoneIcon,
+  MonitorCogIcon,
+  ScrollTextIcon,
+  SendIcon,
+  SparklesIcon,
+  UserRoundCogIcon,
+  UsersRoundIcon,
+  type LucideIcon,
+} from 'lucide-react';
 import { useMemo } from 'react';
 
 import {
@@ -22,8 +39,8 @@ import { resolveEvidencePartyRoleName } from '../resolve-evidence-party-role-nam
 type FulfillmentNodeType = DiagramCanvasNode & { type: 'fulfillment-node' };
 
 type NodePalette = {
-  className: string;
-  icon: string;
+  accentClassName: string;
+  icon: LucideIcon;
 };
 
 function normalized(value: unknown): string {
@@ -129,26 +146,26 @@ function getNodePalette(type: unknown, subType: unknown): NodePalette {
     fulfillmentType.includes('fulfillment-confirmation')
   ) {
     return {
-      className: 'bg-pink-100 border-pink-300',
+      accentClassName: 'border-l-status-info',
       icon:
         fulfillmentType === 'rfp'
-          ? '📣'
+          ? MegaphoneIcon
           : fulfillmentType === 'proposal'
-            ? '📝'
+            ? SparklesIcon
             : fulfillmentType === 'contract'
-              ? '📜'
+              ? ScrollTextIcon
               : fulfillmentType.includes('request')
-                ? '📬'
+                ? SendIcon
                 : fulfillmentType.includes('confirmation')
-                  ? '✅'
-                  : '📄',
+                  ? BadgeCheckIcon
+                  : FileTextIcon,
     };
   }
 
   if (semanticType === 'role') {
     return {
-      className: 'bg-yellow-100 border-yellow-300',
-      icon: '🎭',
+      accentClassName: 'border-l-status-locked',
+      icon: UserRoundCogIcon,
     };
   }
 
@@ -163,30 +180,30 @@ function getNodePalette(type: unknown, subType: unknown): NodePalette {
     semanticType === '3rd-system'
   ) {
     return {
-      className: 'bg-green-100 border-green-300',
+      accentClassName: 'border-l-ev-line-strong',
       icon: semanticSubType.includes('place')
-        ? '📍'
+        ? MapPinIcon
         : semanticSubType.includes('domain')
-          ? '🧭'
+          ? BoxesIcon
           : semanticSubType.includes('thing')
-            ? '📦'
+            ? BoxIcon
             : semanticSubType.includes('third') ||
                 semanticSubType.includes('3rd')
-              ? '🖥️'
-              : '👤',
+              ? MonitorCogIcon
+              : UsersRoundIcon,
     };
   }
 
   if (semanticType === 'context') {
     return {
-      className: 'bg-blue-100 border-blue-300',
-      icon: '📦',
+      accentClassName: 'border-l-status-info',
+      icon: BoxesIcon,
     };
   }
 
   return {
-    className: 'bg-card border-border',
-    icon: '📌',
+    accentClassName: 'border-l-ev-line-strong',
+    icon: FileInputIcon,
   };
 }
 
@@ -245,6 +262,7 @@ export function FulfillmentNode({
   const entityLabel = data.label;
   const entitySubType = data.subType;
   const palette = getNodePalette(entityType, entitySubType);
+  const Icon = palette.icon;
   const fields = fieldNames(data);
   const nodes = useNodes<DiagramCanvasNode>();
   const edges = useEdges();
@@ -272,8 +290,8 @@ export function FulfillmentNode({
   return (
     <AiNode
       handles={{ source: true, target: true }}
-      className={`h-full w-full overflow-visible rounded-lg border-2 shadow-md ${palette.className} ${
-        selected ? 'ring-primary/60 ring-4' : ''
+      className={`h-full w-full overflow-visible rounded-lg border border-l-4 bg-card ${palette.accentClassName} ${
+        selected ? 'ring-2 ring-ring/40' : ''
       }`}
     >
       {isPrimaryFulfillment ? (
@@ -323,30 +341,31 @@ export function FulfillmentNode({
         />
       ) : null}
       {showPartyRoleName ? (
-        <div className="absolute top-0 right-0 z-10 max-w-[75%] translate-x-1/2 -translate-y-1/2 truncate rounded border border-yellow-300 bg-yellow-100 px-1.5 py-0.5 text-right text-[10px] text-yellow-900">
+        <Badge
+          className="absolute top-0 right-0 z-10 max-w-[75%] translate-x-1/2 -translate-y-1/2"
+          variant="locked"
+        >
           {partyRoleName}
-        </div>
+        </Badge>
       ) : null}
       <NodeContent className="flex h-full min-w-0 flex-col gap-1 overflow-hidden px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="shrink-0 text-lg">{palette.icon}</span>
+          <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 truncate text-sm font-semibold">
             {entityLabel}
           </div>
-          {isReference ? (
-            <span className="shrink-0 rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-              Ref
-            </span>
-          ) : null}
+          {isReference ? <Badge variant="locked">Ref</Badge> : null}
         </div>
         {entitySubType ? (
-          <div className="truncate text-xs text-gray-500">{entitySubType}</div>
+          <div className="truncate text-xs text-muted-foreground">
+            {entitySubType}
+          </div>
         ) : null}
         {fields.length > 0 ? (
           <div className="mt-auto flex flex-wrap gap-1 pt-1">
             {fields.map((field) => (
               <span
-                className="rounded bg-white/65 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+                className="rounded-sm bg-secondary px-1.5 py-0.5 font-mono text-[0.6875rem] text-muted-foreground"
                 key={field}
               >
                 {field}
