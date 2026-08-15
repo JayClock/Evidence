@@ -15,6 +15,7 @@ import java.security.Principal;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.api.representation.HealthModel;
 import reengineering.ddd.evidence.api.representation.RootModel;
+import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
 
 @Component
@@ -22,13 +23,18 @@ import reengineering.ddd.evidence.application.WorkspaceService;
 public class RootApi {
   private final OpenApiDocument openApiDocument;
   private final WorkspaceService workspaceService;
+  private final WorkspaceModelService workspaceModelService;
 
   @Context private ResourceContext resourceContext;
 
   @Inject
-  public RootApi(OpenApiDocument openApiDocument, WorkspaceService workspaceService) {
+  public RootApi(
+      OpenApiDocument openApiDocument,
+      WorkspaceService workspaceService,
+      WorkspaceModelService workspaceModelService) {
     this.openApiDocument = openApiDocument;
     this.workspaceService = workspaceService;
+    this.workspaceModelService = workspaceModelService;
   }
 
   @GET
@@ -58,7 +64,7 @@ public class RootApi {
 
   @Path("api/workspaces")
   public WorkspacesApi workspaces() {
-    return resourceContext.initResource(new WorkspacesApi(workspaceService));
+    return resourceContext.initResource(new WorkspacesApi(workspaceService, workspaceModelService));
   }
 
   @GET

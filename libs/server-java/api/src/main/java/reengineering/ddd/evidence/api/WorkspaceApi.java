@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import reengineering.ddd.evidence.api.representation.WorkspaceModel;
+import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.model.Workspace;
@@ -21,13 +22,19 @@ public class WorkspaceApi {
   private final String actorUserId;
   private final Workspace workspace;
   private final WorkspaceService workspaceService;
+  private final WorkspaceModelService workspaceModelService;
 
   @Context private ResourceContext resourceContext;
 
-  public WorkspaceApi(String actorUserId, Workspace workspace, WorkspaceService workspaceService) {
+  public WorkspaceApi(
+      String actorUserId,
+      Workspace workspace,
+      WorkspaceService workspaceService,
+      WorkspaceModelService workspaceModelService) {
     this.actorUserId = actorUserId;
     this.workspace = workspace;
     this.workspaceService = workspaceService;
+    this.workspaceModelService = workspaceModelService;
   }
 
   @GET
@@ -59,5 +66,23 @@ public class WorkspaceApi {
   public WorkspaceMembersApi members() {
     return resourceContext.initResource(
         new WorkspaceMembersApi(actorUserId, workspace.getIdentity(), workspaceService));
+  }
+
+  @Path("diagram")
+  public DiagramApi diagram() {
+    return resourceContext.initResource(
+        new DiagramApi(actorUserId, workspace.getIdentity(), workspaceModelService));
+  }
+
+  @Path("logical-entities")
+  public LogicalEntitiesApi logicalEntities() {
+    return resourceContext.initResource(
+        new LogicalEntitiesApi(actorUserId, workspace.getIdentity(), workspaceModelService));
+  }
+
+  @Path("logical-relationships")
+  public LogicalRelationshipsApi logicalRelationships() {
+    return resourceContext.initResource(
+        new LogicalRelationshipsApi(actorUserId, workspace.getIdentity(), workspaceModelService));
   }
 }

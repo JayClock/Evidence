@@ -10,7 +10,11 @@ final class Pagination {
   }
 
   static int pageSize(String value) {
-    return Math.min(positive(value, 20, "pageSize"), 100);
+    return pageSize(value, 20);
+  }
+
+  static int pageSize(String value, int fallback) {
+    return Math.min(positive(value, fallback, "pageSize"), 100);
   }
 
   private static int positive(String value, int fallback, String name) {

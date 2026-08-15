@@ -70,6 +70,67 @@ public final class ApiTemplates {
     return workspaceBuilder(uriInfo).path(child).build(workspaceId);
   }
 
+  public static URI workspaceDiagram(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "diagram");
+  }
+
+  public static URI workspaceDiagramNodes(UriInfo uriInfo, String workspaceId) {
+    return UriBuilder.fromUri(workspaceDiagram(uriInfo, workspaceId)).path("nodes").build();
+  }
+
+  public static URI workspaceDiagramNode(UriInfo uriInfo, String workspaceId, String nodeId) {
+    return UriBuilder.fromUri(workspaceDiagramNodes(uriInfo, workspaceId))
+        .path("{nodeId}")
+        .build(nodeId);
+  }
+
+  public static URI workspaceDiagramEdges(UriInfo uriInfo, String workspaceId) {
+    return UriBuilder.fromUri(workspaceDiagram(uriInfo, workspaceId)).path("edges").build();
+  }
+
+  public static URI workspaceDiagramEdge(UriInfo uriInfo, String workspaceId, String edgeId) {
+    return UriBuilder.fromUri(workspaceDiagramEdges(uriInfo, workspaceId))
+        .path("{edgeId}")
+        .build(edgeId);
+  }
+
+  public static URI workspaceLogicalEntities(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "logical-entities");
+  }
+
+  public static URI workspaceLogicalEntitiesPage(
+      UriInfo uriInfo, String workspaceId, int page, int pageSize) {
+    return UriBuilder.fromUri(workspaceLogicalEntities(uriInfo, workspaceId))
+        .queryParam("page", page)
+        .queryParam("pageSize", pageSize)
+        .build();
+  }
+
+  public static URI workspaceLogicalEntity(UriInfo uriInfo, String workspaceId, String entityId) {
+    return UriBuilder.fromUri(workspaceLogicalEntities(uriInfo, workspaceId))
+        .path("{entityId}")
+        .build(entityId);
+  }
+
+  public static URI workspaceLogicalRelationships(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "logical-relationships");
+  }
+
+  public static URI workspaceLogicalRelationshipsPage(
+      UriInfo uriInfo, String workspaceId, int page, int pageSize) {
+    return UriBuilder.fromUri(workspaceLogicalRelationships(uriInfo, workspaceId))
+        .queryParam("page", page)
+        .queryParam("pageSize", pageSize)
+        .build();
+  }
+
+  public static URI workspaceLogicalRelationship(
+      UriInfo uriInfo, String workspaceId, String relationshipId) {
+    return UriBuilder.fromUri(workspaceLogicalRelationships(uriInfo, workspaceId))
+        .path("{relationshipId}")
+        .build(relationshipId);
+  }
+
   public static URI workspaceMembersPage(
       UriInfo uriInfo, String workspaceId, int page, int pageSize) {
     return UriBuilder.fromUri(workspaceMembers(uriInfo, workspaceId))

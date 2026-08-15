@@ -14,6 +14,7 @@ import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 import reengineering.ddd.evidence.api.representation.WorkspaceModel;
+import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.model.Workspace;
@@ -21,11 +22,14 @@ import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Permission;
 
 public class WorkspacesApi {
   private final WorkspaceService workspaceService;
+  private final WorkspaceModelService workspaceModelService;
 
   @Context private ResourceContext resourceContext;
 
-  public WorkspacesApi(WorkspaceService workspaceService) {
+  public WorkspacesApi(
+      WorkspaceService workspaceService, WorkspaceModelService workspaceModelService) {
     this.workspaceService = workspaceService;
+    this.workspaceModelService = workspaceModelService;
   }
 
   @POST
@@ -54,6 +58,7 @@ public class WorkspacesApi {
     String actorUserId = UsersApi.actor(securityContext);
     Workspace workspace =
         workspaceService.requireWorkspace(actorUserId, workspaceId, Permission.READ);
-    return resourceContext.initResource(new WorkspaceApi(actorUserId, workspace, workspaceService));
+    return resourceContext.initResource(
+        new WorkspaceApi(actorUserId, workspace, workspaceService, workspaceModelService));
   }
 }
