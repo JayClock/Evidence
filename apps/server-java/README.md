@@ -1,4 +1,4 @@
-# Evidence Java Server Skeleton
+# Evidence Java Server
 
 This unshipped Spring Boot application is the Java replacement boundary for the
 current NestJS server. It follows the Smart Domain/Jersey layout used by
@@ -12,11 +12,17 @@ current NestJS server. It follows the Smart Domain/Jersey layout used by
   `libs/server/api/openapi.yaml`.
 - Local exact-header authentication, OIDC JWT verification, CORS, host safety,
   and vendor media types are configured.
+- User, Workspace, membership, and Workspace Member resources use the existing
+  PostgreSQL schema through Smart Domain association objects and MyBatis XML
+  mappers.
+- Local startup provisions the configured user and `default-workspace`.
+- Workspace creation atomically creates its owner membership and initializes a
+  private `.evidence/{entities,associations}` model root.
 
-The PostgreSQL and filesystem adapters are intentionally not wired into the
-application yet. Their Gradle modules are placeholders for the next vertical
-slice. OIDC validates issuer and audience, but its subject-to-internal-user
-mapping and auto-provisioning remain part of that persistence slice.
+The implementation follows the `JayClock/team-ai` Java conventions: immutable
+Description records, model-owned wide association interfaces, lazy MyBatis
+association adapters, JAX-RS subresources, `ApiTemplates`, and zero-copy HAL
+representation wrappers.
 
 ## Modules
 
@@ -39,4 +45,6 @@ pnpm nx run :apps:server-java:build
 
 The server listens on `127.0.0.1:3000` by default. It accepts the existing
 `EVIDENCE_HOST`, `PORT`, `EVIDENCE_AUTH_MODE`, `EVIDENCE_API_AUTHORIZATION`,
-`EVIDENCE_USER_ID`, `EVIDENCE_CORS_ORIGINS`, and `EVIDENCE_OIDC_*` variables.
+`EVIDENCE_USER_ID`, `EVIDENCE_CORS_ORIGINS`, `DATABASE_URL`,
+`EVIDENCE_DEFAULT_WORKSPACE_PATH`, `EVIDENCE_WORKSPACE_STORAGE_ROOT`, and
+`EVIDENCE_OIDC_*` variables.

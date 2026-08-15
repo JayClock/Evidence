@@ -5,12 +5,17 @@ plugins {
 dependencies {
     implementation platform("${smartDomainGroup}:smart-domain-bom:${smartDomainVersion}")
     implementation "${smartDomainGroup}:smart-domain-api-spring-boot-starter"
+    implementation project(':server-java:application')
     implementation project(':server-java:api')
     implementation project(':server-java:infrastructure:security')
+    implementation project(':server-java:persistent')
     implementation 'org.springframework.boot:spring-boot-starter'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
     testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

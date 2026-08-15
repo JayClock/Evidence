@@ -4,9 +4,20 @@ spring:
     name: evidence-server
   main:
     banner-mode: 'off'
+  jackson:
+    time-zone: UTC
   jersey:
     application-path: /
     type: filter
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 21
+    baseline-description: Prisma compatibility baseline
+    validate-migration-naming: true
+
+mybatis:
+  mapper-locations: classpath:mybatis.mappers/**/*.xml
+  config-location: classpath:mybatis-config.xml
 
 server:
   address: ${EVIDENCE_HOST:127.0.0.1}
@@ -19,8 +30,18 @@ evidence:
   auth-mode: ${EVIDENCE_AUTH_MODE:local}
   api-authorization: ${EVIDENCE_API_AUTHORIZATION:}
   user-id: ${EVIDENCE_USER_ID:desktop-user}
+  user-name: ${EVIDENCE_USER_NAME:Desktop User}
+  user-email: ${EVIDENCE_USER_EMAIL:desktop@evidence.local}
   cors-origins: ${EVIDENCE_CORS_ORIGINS:}
+  database-url: >-
+    ${DATABASE_URL:postgresql://postgres:postgres@localhost:5432/evidence}
+  database-username: ${EVIDENCE_DATABASE_USERNAME:}
+  database-password: ${EVIDENCE_DATABASE_PASSWORD:}
+  default-workspace-path: ${EVIDENCE_DEFAULT_WORKSPACE_PATH:${user.dir}}
+  workspace-storage-root: >-
+    ${EVIDENCE_WORKSPACE_STORAGE_ROOT:${user.dir}/tmp/workspace-models}
   oidc:
     issuer: ${EVIDENCE_OIDC_ISSUER:}
     audience: ${EVIDENCE_OIDC_AUDIENCE:}
     jwks-uri: ${EVIDENCE_OIDC_JWKS_URI:}
+    auto-provision: ${EVIDENCE_OIDC_AUTO_PROVISION:true}
