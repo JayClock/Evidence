@@ -2,17 +2,12 @@ import type { IterationResourceData } from '@evidence/api-client';
 import { Badge } from '@evidence/ui';
 
 const steps = [
-  { label: 'Kickoff', detail: 'Story 已创建' },
-  { label: 'TQA', detail: '业务澄清' },
-  { label: 'Scenario 审查', detail: '人工确认' },
-  { label: '模型判断', detail: '显式处置' },
-  { label: 'Tasking', detail: '候选计划' },
-  { label: 'Desk Check', detail: '人工评审' },
-  { label: 'Plan 已批准', detail: 'Pair 唯一入口' },
-  { label: 'Pair', detail: '逐 TEST 与质量门' },
-  { label: '编码审批', detail: '本地 Diff 与 commit' },
-  { label: 'Showcase', detail: '价值验证与人工决定' },
-  { label: 'Respond', detail: '发布响应' },
+  { label: 'Problem and Intake', detail: 'Intake 与 Kickoff authority' },
+  { label: 'Scenario and Model', detail: 'TQA、Scenario 与模型处置' },
+  { label: 'Tasking', detail: 'Candidate 与 Desk Check' },
+  { label: 'Pair', detail: '逐 TEST、质量门与编码审批' },
+  { label: 'Showcase', detail: 'Q2、观察、Review 与决定' },
+  { label: 'Run and Respond', detail: '知识响应与 next Probe' },
 ] as const;
 
 type AuthorityStepState = 'done' | 'current' | 'upcoming';
@@ -27,14 +22,14 @@ export function DeliveryAuthorityProgress({
   return (
     <div className="h-[3.625rem] shrink-0 overflow-x-auto px-4 pb-[0.6875rem]">
       <ol
-        aria-label="Iteration 交付阶段"
-        className="grid h-[2.9375rem] min-w-[85rem] grid-cols-11 overflow-hidden rounded-lg border bg-card"
+        aria-label="Iteration 知识位置"
+        className="grid h-[2.9375rem] min-w-[60rem] grid-cols-6 overflow-hidden rounded-lg border bg-card"
       >
         {steps.map((step, index) => {
           const state = stepState(index, currentIndex);
           return (
             <li
-              className="flex min-w-0 items-center gap-2 border-r px-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
+              className="flex min-w-0 items-center gap-2 border-r px-2 last:border-r-0 data-[state=current]:bg-status-info-soft data-[state=done]:bg-status-verified-soft"
               data-state={state}
               key={step.label}
             >
@@ -77,24 +72,12 @@ function authorityStepIndex(
   iteration: Pick<IterationResourceData, 'loop' | 'stage'>,
 ): number {
   if (iteration.loop === 'kickoff') return 0;
-  if (iteration.loop === 'understand') {
-    if (iteration.stage === 'scenario_review') return 2;
-    if (iteration.stage === 'modeling') return 3;
-    return 1;
-  }
-  if (iteration.loop === 'tasking') {
-    if (iteration.stage === 'desk_check') return 5;
-    if (iteration.stage === 'approved') return 6;
-    return 4;
-  }
-  if (iteration.loop === 'pair') {
-    if (iteration.stage === 'quality_gates_passed') return 8;
-    if (iteration.stage === 'approved') return 8;
-    return 7;
-  }
-  if (iteration.loop === 'showcase') return 9;
+  if (iteration.loop === 'understand') return 1;
+  if (iteration.loop === 'tasking') return 2;
+  if (iteration.loop === 'pair') return 3;
+  if (iteration.loop === 'showcase') return 4;
   if (iteration.loop === 'respond') {
-    return iteration.stage === 'accepted' ? steps.length : 10;
+    return iteration.stage === 'accepted' ? steps.length : 5;
   }
   return steps.length;
 }
@@ -106,8 +89,8 @@ function stepState(index: number, currentIndex: number): AuthorityStepState {
 }
 
 function stepBadgeVariant(state: AuthorityStepState) {
-  if (state === 'current') return 'default' as const;
-  if (state === 'done') return 'secondary' as const;
+  if (state === 'current') return 'info' as const;
+  if (state === 'done') return 'verified' as const;
   return 'outline' as const;
 }
 

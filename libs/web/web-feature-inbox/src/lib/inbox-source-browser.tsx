@@ -148,7 +148,7 @@ function SourceList({
                 const selectable = item.status === 'active';
                 return (
                   <li
-                    className="flex items-start gap-2 rounded-md border border-transparent px-2.5 py-2.5 transition-colors data-[focused=true]:border-border data-[focused=true]:bg-card data-[selected=true]:border-primary/30 data-[selected=true]:bg-ev-brand-soft"
+                    className="flex items-start gap-2 rounded-md border border-transparent px-2.5 py-2.5 transition-colors data-[focused=true]:border-border data-[focused=true]:bg-card data-[selected=true]:border-status-info/30 data-[selected=true]:bg-status-info-soft"
                     data-focused={focusedItemId === item.id}
                     data-selected={selected}
                     key={item.id}
@@ -366,7 +366,7 @@ function SourceDocument({
       <Separator />
       {revision.body.trim() ? (
         revision.contentType === 'text/markdown' ? (
-          <MessageResponse className="text-sm text-foreground [&>*+*]:mt-3 [&_a]:font-medium [&_a]:text-primary [&_blockquote]:border-l-2 [&_blockquote]:border-ev-brand [&_blockquote]:bg-ev-brand-soft [&_blockquote]:py-2 [&_blockquote]:pr-3 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0">
+          <MessageResponse className="text-sm text-foreground [&>*+*]:mt-3 [&_a]:font-medium [&_a]:text-status-info [&_blockquote]:border-l-2 [&_blockquote]:border-status-locked [&_blockquote]:bg-secondary [&_blockquote]:py-2 [&_blockquote]:pr-3 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:p-0">
             {revision.body}
           </MessageResponse>
         ) : (

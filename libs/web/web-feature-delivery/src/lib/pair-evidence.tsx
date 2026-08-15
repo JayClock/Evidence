@@ -60,16 +60,16 @@ export function PairAuthorityProgress({
                 : 'upcoming';
           return (
             <li
-              className="flex min-w-0 items-center gap-2 border-r px-2 last:border-r-0 data-[state=current]:bg-ev-brand-soft data-[state=done]:bg-secondary"
+              className="flex min-w-0 items-center gap-2 border-r px-2 last:border-r-0 data-[state=current]:bg-status-info-soft data-[state=done]:bg-status-verified-soft"
               data-state={state}
               key={label}
             >
               <Badge
                 variant={
                   state === 'current'
-                    ? 'default'
+                    ? 'info'
                     : state === 'done'
-                      ? 'secondary'
+                      ? 'verified'
                       : 'outline'
                 }
               >
@@ -124,7 +124,7 @@ export function PairRunNavigation({ pair }: { pair: PairResource['data'] }) {
             const done = completed.has(test.id);
             return (
               <li
-                className="flex h-[2.625rem] items-center gap-2 rounded-md border bg-card px-2 data-[done=true]:border-ev-brand data-[done=true]:bg-ev-brand-soft"
+                className="flex h-[2.625rem] items-center gap-2 rounded-md border bg-card px-2 data-[done=true]:border-status-verified/30 data-[done=true]:bg-status-verified-soft"
                 data-done={done}
                 key={test.id}
               >
@@ -134,7 +134,7 @@ export function PairRunNavigation({ pair }: { pair: PairResource['data'] }) {
                 <p className="min-w-0 flex-1 truncate text-[0.6875rem] text-muted-foreground">
                   {test.intent}
                 </p>
-                <Badge variant={done ? 'default' : 'outline'}>
+                <Badge variant={done ? 'verified' : 'outline'}>
                   {done ? '完成' : '等待'}
                 </Badge>
               </li>

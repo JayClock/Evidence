@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type {
   State,
@@ -30,6 +30,7 @@ import {
   EmptyHeader,
   EmptyTitle,
   EvidencePage,
+  EvidenceStatusBadge,
   Field,
   FieldGroup,
   FieldLabel,
@@ -113,7 +114,7 @@ export function StoryCandidateCollectionView({
     }
   };
 
-  const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+  const applyFilters = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selfHref) return;
     navigate(candidateCollectionHref(selfHref, query, status));
@@ -534,8 +535,12 @@ function CandidateReviewPanel({
                   <DetailItem label="价值" value={candidate.value} />
                 </div>
 
-                <Card className="bg-ev-brand-soft">
+                <Card className="border-status-proposal/20 bg-status-proposal-soft">
                   <CardHeader>
+                    <EvidenceStatusBadge
+                      label="AI Proposal · 非权威"
+                      status="proposed"
+                    />
                     <CardDescription>候选 Lean Story 表述</CardDescription>
                     <CardTitle>
                       作为{candidate.role}，我希望{candidate.goal}，从而
@@ -663,7 +668,7 @@ function CandidateDecisionDialog({
   const [error, setError] = useState<string | null>(null);
   const actionLabel = candidateDecisionLabel(action);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!reason.trim() || disabled) return;
     setError(null);
