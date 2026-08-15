@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.InboxMapper">
+  <resultMap id="itemRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$ItemRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="workspaceId" column="workspace_id" javaType="String"/>
+      <arg name="sourceKind" column="source_kind" javaType="String"/>
+      <arg name="externalKey" column="external_key" javaType="String"/>
+      <arg name="title" column="title" javaType="String"/>
+      <arg name="status" column="status" javaType="String"/>
+      <arg name="latestRevisionId" column="latest_revision_id" javaType="String"/>
+      <arg name="latestRevisionSha256" column="latest_revision_sha256" javaType="String"/>
+      <arg name="revisionCount" column="revision_count" javaType="_int"/>
+      <arg name="version" column="version" javaType="_int"/>
+      <arg name="createdAt" column="created_at" javaType="java.time.Instant"/>
+      <arg name="updatedAt" column="updated_at" javaType="java.time.Instant"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="revisionRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$RevisionRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="inboxItemId" column="inbox_item_id" javaType="String"/>
+      <arg name="revisionNumber" column="revision_number" javaType="_int"/>
+      <arg name="title" column="title" javaType="String"/>
+      <arg name="body" column="body" javaType="String"/>
+      <arg name="contentType" column="content_type" javaType="String"/>
+      <arg name="uri" column="uri" javaType="String"/>
+      <arg name="providerMetadata" column="provider_metadata" javaType="String"/>
+      <arg name="sourceUpdatedAt" column="source_updated_at" javaType="java.time.Instant"/>
+      <arg name="capturedAt" column="captured_at" javaType="java.time.Instant"/>
+      <arg name="contentSha256" column="content_sha256" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="extractionRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$ExtractionRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="reference" column="reference" javaType="String"/>
+      <arg name="workspaceId" column="workspace_id" javaType="String"/>
+      <arg name="status" column="status" javaType="String"/>
+      <arg name="version" column="version" javaType="_int"/>
+      <arg name="requestedByUserId" column="requested_by_user_id" javaType="String"/>
+      <arg name="requestedAt" column="requested_at" javaType="java.time.Instant"/>
+      <arg name="completedAt" column="completed_at" javaType="java.time.Instant"/>
+      <arg name="failureSummary" column="failure_summary" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="extractionSourceRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$ExtractionSourceRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="extractionId" column="extraction_id" javaType="String"/>
+      <arg name="inboxItemId" column="inbox_item_id" javaType="String"/>
+      <arg name="inboxRevisionId" column="inbox_revision_id" javaType="String"/>
+      <arg name="position" column="position" javaType="_int"/>
+      <arg name="revisionNumber" column="revision_number" javaType="_int"/>
+      <arg name="sourceKind" column="source_kind" javaType="String"/>
+      <arg name="externalKey" column="external_key" javaType="String"/>
+      <arg name="itemStatus" column="item_status" javaType="String"/>
+      <arg name="title" column="title" javaType="String"/>
+      <arg name="body" column="body" javaType="String"/>
+      <arg name="contentType" column="content_type" javaType="String"/>
+      <arg name="uri" column="uri" javaType="String"/>
+      <arg name="providerMetadata" column="provider_metadata" javaType="String"/>
+      <arg name="sourceUpdatedAt" column="source_updated_at" javaType="java.time.Instant"/>
+      <arg name="capturedAt" column="captured_at" javaType="java.time.Instant"/>
+      <arg name="contentSha256" column="content_sha256" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="candidateRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$CandidateRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="reference" column="reference" javaType="String"/>
+      <arg name="workspaceId" column="workspace_id" javaType="String"/>
+      <arg name="extractionId" column="extraction_id" javaType="String"/>
+      <arg name="title" column="title" javaType="String"/>
+      <arg name="problem" column="problem" javaType="String"/>
+      <arg name="role" column="role" javaType="String"/>
+      <arg name="goal" column="goal" javaType="String"/>
+      <arg name="value" column="value" javaType="String"/>
+      <arg name="cognitiveMode" column="cognitive_mode" javaType="String"/>
+      <arg name="contentSha256" column="content_sha256" javaType="String"/>
+      <arg name="proposedAt" column="proposed_at" javaType="java.time.Instant"/>
+      <arg name="decisionId" column="decision_id" javaType="String"/>
+      <arg name="decisionAction" column="decision_action" javaType="String"/>
+      <arg name="selectedIterationId" column="selected_iteration_id" javaType="String"/>
+      <arg name="stale" column="stale" javaType="_boolean"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="citationRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$CitationRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="candidateId" column="candidate_id" javaType="String"/>
+      <arg name="inboxItemId" column="inbox_item_id" javaType="String"/>
+      <arg name="inboxRevisionId" column="inbox_revision_id" javaType="String"/>
+      <arg name="position" column="position" javaType="_int"/>
+      <arg name="revisionNumber" column="revision_number" javaType="_int"/>
+      <arg name="revisionSha256" column="revision_sha256" javaType="String"/>
+      <arg name="locator" column="locator" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="decisionRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$DecisionRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="reference" column="reference" javaType="String"/>
+      <arg name="workspaceId" column="workspace_id" javaType="String"/>
+      <arg name="candidateId" column="candidate_id" javaType="String"/>
+      <arg name="candidateSha256" column="candidate_sha256" javaType="String"/>
+      <arg name="action" column="action" javaType="String"/>
+      <arg name="reason" column="reason" javaType="String"/>
+      <arg name="decidedByUserId" column="decided_by_user_id" javaType="String"/>
+      <arg name="decidedAt" column="decided_at" javaType="java.time.Instant"/>
+      <arg name="contentSha256" column="content_sha256" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="iterationRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$IterationRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="reference" column="reference" javaType="String"/>
+      <arg name="workspaceId" column="workspace_id" javaType="String"/>
+      <arg name="sourceCandidateId" column="source_candidate_id" javaType="String"/>
+      <arg name="sourceCandidateSha256" column="source_candidate_sha256" javaType="String"/>
+      <arg name="lifecycle" column="lifecycle" javaType="String"/>
+      <arg name="loop" column="loop" javaType="String"/>
+      <arg name="stage" column="stage" javaType="String"/>
+      <arg name="lane" column="lane" javaType="String"/>
+      <arg name="version" column="version" javaType="_int"/>
+      <arg name="baseCommitSha" column="base_commit_sha" javaType="String"/>
+      <arg name="branchName" column="branch_name" javaType="String"/>
+      <arg name="provisioningFailureSummary" column="provisioning_failure_summary" javaType="String"/>
+      <arg name="activeStoryId" column="active_story_id" javaType="String"/>
+      <arg name="admittedByUserId" column="admitted_by_user_id" javaType="String"/>
+      <arg name="admittedAt" column="admitted_at" javaType="java.time.Instant"/>
+      <arg name="updatedAt" column="updated_at" javaType="java.time.Instant"/>
+    </constructor>
+  </resultMap>
+
+  <sql id="itemColumns">
+    item.id, item.workspace_id, item.source_kind, item.external_key, item.title, item.status,
+    item.latest_revision_id, latest.content_sha256 AS latest_revision_sha256,
+    (SELECT COUNT(*) FROM inbox_revisions counted WHERE counted.inbox_item_id = item.id) AS revision_count,
+    item.version, item.created_at, item.updated_at
+  </sql>
+
+  <sql id="itemFilters">
+    item.workspace_id = #{workspaceId}
+    <if test="status != null">AND item.status = #{status}</if>
+    <if test="sourceKind != null">AND item.source_kind = #{sourceKind}</if>
+    <if test="query != null">
+      AND (item.title ILIKE CONCAT('%', #{query}, '%')
+           OR item.external_key ILIKE CONCAT('%', #{query}, '%'))
+    </if>
+  </sql>
+
+  <select id="findItems" resultMap="itemRow">
+    SELECT <include refid="itemColumns"/>
+    FROM inbox_items item
+    JOIN inbox_revisions latest ON latest.id = item.latest_revision_id
+    WHERE <include refid="itemFilters"/>
+    ORDER BY item.updated_at DESC
+    LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="countItems" resultType="int">
+    SELECT COUNT(*) FROM inbox_items item WHERE <include refid="itemFilters"/>
+  </select>
+
+  <select id="findItem" resultMap="itemRow">
+    SELECT <include refid="itemColumns"/>
+    FROM inbox_items item
+    JOIN inbox_revisions latest ON latest.id = item.latest_revision_id
+    WHERE item.workspace_id = #{workspaceId} AND item.id = #{itemId}
+  </select>
+
+  <select id="findSourceItem" resultMap="itemRow">
+    SELECT <include refid="itemColumns"/>
+    FROM inbox_items item
+    JOIN inbox_revisions latest ON latest.id = item.latest_revision_id
+    WHERE item.workspace_id = #{workspaceId}
+      AND item.source_kind = #{sourceKind}
+      AND item.external_key = #{externalKey}
+  </select>
+
+  <select id="lockItem" resultMap="itemRow">
+    SELECT <include refid="itemColumns"/>
+    FROM inbox_items item
+    JOIN inbox_revisions latest ON latest.id = item.latest_revision_id
+    WHERE item.workspace_id = #{workspaceId} AND item.id = #{itemId}
+    FOR UPDATE OF item
+  </select>
+
+  <select id="lockSource" resultType="long">
+    SELECT hashtextextended(#{workspaceId} || chr(31) || #{sourceKind} || chr(31) || #{externalKey}, 0)
+    FROM (SELECT pg_advisory_xact_lock(hashtextextended(#{workspaceId} || chr(31) || #{sourceKind} || chr(31) || #{externalKey}, 0))) locked
+  </select>
+
+  <insert id="insertItem">
+    INSERT INTO inbox_items
+      (id, workspace_id, source_kind, external_key, title, status, latest_revision_id,
+       version, created_at, updated_at)
+    VALUES
+      (#{id}, #{workspaceId}, #{source.sourceKind}, #{source.externalKey}, #{source.title},
+       'active', NULL, 1, #{timestamp}, #{timestamp})
+  </insert>
+
+  <update id="setInitialLatestRevision">
+    UPDATE inbox_items SET latest_revision_id = #{revisionId}
+    WHERE workspace_id = #{workspaceId} AND id = #{itemId} AND latest_revision_id IS NULL
+  </update>
+
+  <update id="updateLatestRevision">
+    UPDATE inbox_items
+    SET title = #{title}, latest_revision_id = #{revisionId}, version = version + 1,
+        updated_at = #{timestamp}
+    WHERE workspace_id = #{workspaceId} AND id = #{itemId} AND version = #{expectedVersion}
+  </update>
+
+  <update id="updateItemStatus">
+    UPDATE inbox_items
+    SET status = #{status}, version = version + 1, updated_at = #{timestamp}
+    WHERE workspace_id = #{workspaceId} AND id = #{itemId} AND version = #{expectedVersion}
+  </update>
+
+  <insert id="insertRevision">
+    INSERT INTO inbox_revisions
+      (id, inbox_item_id, revision_number, title, body, content_type, uri, provider_metadata,
+       source_updated_at, captured_at, content_sha256)
+    VALUES
+      (#{id}, #{itemId}, #{revisionNumber}, #{source.title}, #{source.body},
+       #{source.contentType.wireValue}, #{source.uri}, CAST(#{providerMetadata} AS jsonb),
+       #{source.sourceUpdatedAt}, #{capturedAt}, #{contentSha256})
+  </insert>
+
+  <sql id="revisionColumns">
+    revision.id, revision.inbox_item_id, revision.revision_number, revision.title, revision.body,
+    revision.content_type, revision.uri, revision.provider_metadata::text AS provider_metadata,
+    revision.source_updated_at, revision.captured_at, revision.content_sha256
+  </sql>
+
+  <select id="findRevision" resultMap="revisionRow">
+    SELECT <include refid="revisionColumns"/>
+    FROM inbox_revisions revision
+    JOIN inbox_items item ON item.id = revision.inbox_item_id
+    WHERE item.workspace_id = #{workspaceId}
+      AND revision.inbox_item_id = #{itemId}
+      AND revision.id = #{revisionId}
+  </select>
+
+  <select id="findRevisionByHash" resultMap="revisionRow">
+    SELECT <include refid="revisionColumns"/>
+    FROM inbox_revisions revision
+    WHERE revision.inbox_item_id = #{itemId} AND revision.content_sha256 = #{contentSha256}
+  </select>
+
+  <select id="findRevisions" resultMap="revisionRow">
+    SELECT <include refid="revisionColumns"/>
+    FROM inbox_revisions revision
+    WHERE revision.inbox_item_id = #{itemId}
+    ORDER BY revision.revision_number DESC
+    LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="countRevisions" resultType="int">
+    SELECT COUNT(*) FROM inbox_revisions WHERE inbox_item_id = #{itemId}
+  </select>
+
+  <select id="findSelectedItems" resultMap="itemRow">
+    SELECT <include refid="itemColumns"/>
+    FROM inbox_items item
+    JOIN inbox_revisions latest ON latest.id = item.latest_revision_id
+    WHERE item.workspace_id = #{workspaceId}
+      AND item.id IN
+      <foreach collection="itemIds" item="itemId" open="(" separator="," close=")">
+        #{itemId}
+      </foreach>
+    FOR SHARE OF item
+  </select>
+
+  <insert id="insertExtraction">
+    INSERT INTO inbox_extractions
+      (id, reference, workspace_id, status, version, requested_by_user_id, requested_at,
+       completed_at, failure_summary)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, 'awaiting_agent', 1, #{requestedByUserId},
+       #{requestedAt}, NULL, NULL)
+  </insert>
+
+  <insert id="insertExtractionSource">
+    INSERT INTO inbox_extraction_sources
+      (id, extraction_id, inbox_item_id, inbox_revision_id, position, revision_number,
+       source_kind, external_key, item_status, title, body, content_type, uri,
+       provider_metadata, source_updated_at, captured_at, content_sha256)
+    VALUES
+      (#{id}, #{extractionId}, #{item.id}, #{revision.id}, #{position}, #{revision.revisionNumber},
+       #{item.sourceKind}, #{item.externalKey}, #{item.status}, #{revision.title}, #{revision.body},
+       #{revision.contentType}, #{revision.uri}, CAST(#{revision.providerMetadata} AS jsonb),
+       #{revision.sourceUpdatedAt}, #{revision.capturedAt}, #{revision.contentSha256})
+  </insert>
+
+  <select id="findExtraction" resultMap="extractionRow">
+    SELECT id, reference, workspace_id, status, version, requested_by_user_id, requested_at,
+           completed_at, failure_summary
+    FROM inbox_extractions
+    WHERE workspace_id = #{workspaceId} AND id = #{extractionId}
+  </select>
+
+  <select id="lockExtraction" resultMap="extractionRow">
+    SELECT id, reference, workspace_id, status, version, requested_by_user_id, requested_at,
+           completed_at, failure_summary
+    FROM inbox_extractions
+    WHERE workspace_id = #{workspaceId} AND id = #{extractionId}
+    FOR UPDATE
+  </select>
+
+  <select id="findExtractionSources" resultMap="extractionSourceRow">
+    SELECT id, extraction_id, inbox_item_id, inbox_revision_id, position, revision_number,
+           source_kind, external_key, item_status, title, body, content_type, uri,
+           provider_metadata::text AS provider_metadata, source_updated_at, captured_at, content_sha256
+    FROM inbox_extraction_sources
+    WHERE extraction_id = #{extractionId}
+    ORDER BY position ASC
+  </select>
+
+  <update id="completeExtraction">
+    UPDATE inbox_extractions
+    SET status = 'completed', version = version + 1, completed_at = #{completedAt}
+    WHERE workspace_id = #{workspaceId} AND id = #{extractionId}
+      AND status = 'awaiting_agent' AND version = #{expectedVersion}
+  </update>
+
+  <insert id="insertCandidate">
+    INSERT INTO inbox_story_candidates
+      (id, reference, workspace_id, extraction_id, title, problem, role, goal, value,
+       cognitive_mode, content_sha256, proposed_at)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{extractionId}, #{candidate.title},
+       #{candidate.problem}, #{candidate.role}, #{candidate.goal}, #{candidate.value},
+       #{candidate.cognitiveMode.wireValue}, #{contentSha256}, #{proposedAt})
+  </insert>
+
+  <insert id="insertCitation">
+    INSERT INTO inbox_story_citations
+      (id, candidate_id, inbox_item_id, inbox_revision_id, position, locator, revision_sha256)
+    VALUES
+      (#{id}, #{candidateId}, #{source.inboxItemId}, #{source.inboxRevisionId}, #{position},
+       #{locator}, #{revisionSha256})
+  </insert>
+
+  <sql id="candidateColumns">
+    candidate.id, candidate.reference, candidate.workspace_id, candidate.extraction_id,
+    candidate.title, candidate.problem, candidate.role, candidate.goal, candidate.value,
+    candidate.cognitive_mode, candidate.content_sha256, candidate.proposed_at,
+    decision.id AS decision_id, decision.action AS decision_action,
+    iteration.id AS selected_iteration_id,
+    EXISTS (
+      SELECT 1
+      FROM inbox_story_citations citation
+      JOIN inbox_items item ON item.id = citation.inbox_item_id
+      WHERE citation.candidate_id = candidate.id
+        AND item.latest_revision_id &lt;&gt; citation.inbox_revision_id
+    ) AS stale
+  </sql>
+
+  <select id="findCandidates" resultMap="candidateRow">
+    SELECT <include refid="candidateColumns"/>
+    FROM inbox_story_candidates candidate
+    LEFT JOIN inbox_candidate_decisions decision ON decision.candidate_id = candidate.id
+    LEFT JOIN iterations iteration ON iteration.source_candidate_id = candidate.id
+    WHERE candidate.workspace_id = #{workspaceId}
+    <if test="extractionId != null">AND candidate.extraction_id = #{extractionId}</if>
+    <if test="query != null">
+      AND (candidate.title ILIKE CONCAT('%', #{query}, '%')
+        OR candidate.problem ILIKE CONCAT('%', #{query}, '%')
+        OR candidate.role ILIKE CONCAT('%', #{query}, '%')
+        OR candidate.goal ILIKE CONCAT('%', #{query}, '%')
+        OR candidate.value ILIKE CONCAT('%', #{query}, '%'))
+    </if>
+    ORDER BY candidate.proposed_at DESC
+  </select>
+
+  <select id="findCandidate" resultMap="candidateRow">
+    SELECT <include refid="candidateColumns"/>
+    FROM inbox_story_candidates candidate
+    LEFT JOIN inbox_candidate_decisions decision ON decision.candidate_id = candidate.id
+    LEFT JOIN iterations iteration ON iteration.source_candidate_id = candidate.id
+    WHERE candidate.workspace_id = #{workspaceId} AND candidate.id = #{candidateId}
+  </select>
+
+  <select id="lockCandidate" resultType="string">
+    SELECT id FROM inbox_story_candidates
+    WHERE workspace_id = #{workspaceId} AND id = #{candidateId}
+    FOR UPDATE
+  </select>
+
+  <select id="findCitations" resultMap="citationRow">
+    SELECT citation.id, citation.candidate_id, citation.inbox_item_id, citation.inbox_revision_id,
+           citation.position, revision.revision_number, citation.revision_sha256, citation.locator
+    FROM inbox_story_citations citation
+    JOIN inbox_revisions revision ON revision.id = citation.inbox_revision_id
+    WHERE citation.candidate_id = #{candidateId}
+    ORDER BY citation.position ASC
+  </select>
+
+  <select id="findDecision" resultMap="decisionRow">
+    SELECT id, reference, workspace_id, candidate_id, candidate_sha256, action, reason,
+           decided_by_user_id, decided_at, content_sha256
+    FROM inbox_candidate_decisions WHERE candidate_id = #{candidateId}
+  </select>
+
+  <insert id="insertDecision">
+    INSERT INTO inbox_candidate_decisions
+      (id, reference, workspace_id, candidate_id, candidate_sha256, action, reason,
+       decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{candidateId}, #{candidateSha256}, #{action},
+       #{reason}, #{decidedByUserId}, #{decidedAt}, #{contentSha256})
+  </insert>
+
+  <select id="countDiscoveryWip" resultType="int">
+    SELECT COUNT(*) FROM iterations
+    WHERE workspace_id = #{workspaceId} AND lane = 'discovery'
+      AND lifecycle IN ('provisioning', 'active', 'provisioning_failed')
+  </select>
+
+  <insert id="insertIteration">
+    INSERT INTO iterations
+      (id, reference, workspace_id, source_candidate_id, source_candidate_sha256, lifecycle,
+       loop, stage, lane, version, base_commit_sha, branch_name, provisioning_failure_summary,
+       admitted_by_user_id, admitted_at, updated_at)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{candidate.id}, #{candidate.contentSha256},
+       'provisioning', 'kickoff', 'candidate_review', 'discovery', 1, #{baseCommitSha},
+       NULL, NULL, #{selectedByUserId}, #{admittedAt}, #{admittedAt})
+  </insert>
+
+  <insert id="insertIterationIntake">
+    INSERT INTO iteration_intakes
+      (iteration_id, candidate_snapshot, source_snapshots, requirements_projection,
+       content_sha256, frozen_at)
+    VALUES
+      (#{iterationId}, CAST(#{candidateSnapshot} AS jsonb), CAST(#{sourceSnapshots} AS jsonb),
+       #{requirementsProjection}, #{contentSha256}, #{frozenAt})
+  </insert>
+
+  <insert id="insertKickoffProposal">
+    INSERT INTO kickoff_proposals
+      (id, reference, iteration_id, sequence, origin, title, problem, role, goal, value,
+       cognitive_mode, citations, content_sha256, proposed_at)
+    VALUES
+      (#{id}, #{reference}, #{iterationId}, 1, 'inbox_candidate', #{candidate.title},
+       #{candidate.problem}, #{candidate.role}, #{candidate.goal}, #{candidate.value},
+       #{candidate.cognitiveMode.wireValue}, CAST(#{citations} AS jsonb),
+       #{contentSha256}, #{proposedAt})
+  </insert>
+
+  <select id="findIteration" resultMap="iterationRow">
+    SELECT iteration.id, iteration.reference, iteration.workspace_id, iteration.source_candidate_id,
+           iteration.source_candidate_sha256, iteration.lifecycle, iteration.loop, iteration.stage,
+           iteration.lane, iteration.version, iteration.base_commit_sha, iteration.branch_name,
+           iteration.provisioning_failure_summary, story.id AS active_story_id,
+           iteration.admitted_by_user_id, iteration.admitted_at, iteration.updated_at
+    FROM iterations iteration
+    LEFT JOIN stories story ON story.iteration_id = iteration.id
+    WHERE iteration.workspace_id = #{workspaceId} AND iteration.id = #{iterationId}
+  </select>
+
+  <select id="allocateExtractionNumber" resultType="int">
+    INSERT INTO workspace_sequences
+      (workspace_id, next_extraction_number, next_candidate_number, next_decision_number,
+       next_iteration_number, next_kickoff_number, updated_at)
+    VALUES (#{workspaceId}, 2, 1, 1, 1, 1, #{timestamp})
+    ON CONFLICT (workspace_id) DO UPDATE
+      SET next_extraction_number = workspace_sequences.next_extraction_number + 1,
+          updated_at = EXCLUDED.updated_at
+    RETURNING next_extraction_number - 1
+  </select>
+
+  <select id="allocateCandidateNumber" resultType="int">
+    INSERT INTO workspace_sequences
+      (workspace_id, next_extraction_number, next_candidate_number, next_decision_number,
+       next_iteration_number, next_kickoff_number, updated_at)
+    VALUES (#{workspaceId}, 1, 2, 1, 1, 1, #{timestamp})
+    ON CONFLICT (workspace_id) DO UPDATE
+      SET next_candidate_number = workspace_sequences.next_candidate_number + 1,
+          updated_at = EXCLUDED.updated_at
+    RETURNING next_candidate_number - 1
+  </select>
+
+  <select id="allocateDecisionNumber" resultType="int">
+    INSERT INTO workspace_sequences
+      (workspace_id, next_extraction_number, next_candidate_number, next_decision_number,
+       next_iteration_number, next_kickoff_number, updated_at)
+    VALUES (#{workspaceId}, 1, 1, 2, 1, 1, #{timestamp})
+    ON CONFLICT (workspace_id) DO UPDATE
+      SET next_decision_number = workspace_sequences.next_decision_number + 1,
+          updated_at = EXCLUDED.updated_at
+    RETURNING next_decision_number - 1
+  </select>
+
+  <select id="allocateIterationNumber" resultType="int">
+    INSERT INTO workspace_sequences
+      (workspace_id, next_extraction_number, next_candidate_number, next_decision_number,
+       next_iteration_number, next_kickoff_number, updated_at)
+    VALUES (#{workspaceId}, 1, 1, 1, 2, 1, #{timestamp})
+    ON CONFLICT (workspace_id) DO UPDATE
+      SET next_iteration_number = workspace_sequences.next_iteration_number + 1,
+          updated_at = EXCLUDED.updated_at
+    RETURNING next_iteration_number - 1
+  </select>
+
+  <select id="allocateKickoffNumber" resultType="int">
+    INSERT INTO workspace_sequences
+      (workspace_id, next_extraction_number, next_candidate_number, next_decision_number,
+       next_iteration_number, next_kickoff_number, updated_at)
+    VALUES (#{workspaceId}, 1, 1, 1, 1, 2, #{timestamp})
+    ON CONFLICT (workspace_id) DO UPDATE
+      SET next_kickoff_number = workspace_sequences.next_kickoff_number + 1,
+          updated_at = EXCLUDED.updated_at
+    RETURNING next_kickoff_number - 1
+  </select>
+</mapper>
