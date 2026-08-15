@@ -4,12 +4,26 @@ import {
   CircleDotIcon,
   CircleXIcon,
   Clock3Icon,
+  FileInputIcon,
+  ListChecksIcon,
   LockKeyholeIcon,
+  NetworkIcon,
+  PresentationIcon,
+  RefreshCwIcon,
   SparklesIcon,
+  TerminalIcon,
   type LucideIcon,
 } from 'lucide-react';
 
 import { Badge } from './ui/badge';
+
+type EvidenceKnowledgePosition =
+  | 'pair'
+  | 'problem-intake'
+  | 'run-respond'
+  | 'scenario-model'
+  | 'showcase'
+  | 'tasking';
 
 type EvidenceStatus =
   | 'decision'
@@ -29,6 +43,15 @@ type StatusDefinition = {
     | 'locked'
     | 'proposal'
     | 'verified';
+};
+
+const positionIcons: Record<EvidenceKnowledgePosition, LucideIcon> = {
+  'problem-intake': FileInputIcon,
+  'scenario-model': NetworkIcon,
+  tasking: ListChecksIcon,
+  pair: TerminalIcon,
+  showcase: PresentationIcon,
+  'run-respond': RefreshCwIcon,
 };
 
 const statusDefinitions: Record<EvidenceStatus, StatusDefinition> = {
@@ -64,6 +87,16 @@ const statusDefinitions: Record<EvidenceStatus, StatusDefinition> = {
   },
 };
 
+function EvidencePositionIcon({
+  position,
+  ...props
+}: Omit<ComponentProps<typeof FileInputIcon>, 'children'> & {
+  position: EvidenceKnowledgePosition;
+}) {
+  const Icon = positionIcons[position];
+  return <Icon aria-hidden {...props} />;
+}
+
 function EvidenceStatusBadge({
   label,
   status,
@@ -83,5 +116,5 @@ function EvidenceStatusBadge({
   );
 }
 
-export { EvidenceStatusBadge };
-export type { EvidenceStatus };
+export { EvidencePositionIcon, EvidenceStatusBadge };
+export type { EvidenceKnowledgePosition, EvidenceStatus };

@@ -16,6 +16,7 @@ import {
   EmptyHeader,
   EmptyTitle,
   EvidenceCanvas,
+  EvidencePositionIcon,
   EvidenceStatusBadge,
   Input,
   PageDescription,
@@ -33,15 +34,6 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from '@evidence/ui';
-import {
-  FileInputIcon,
-  ListChecksIcon,
-  NetworkIcon,
-  PresentationIcon,
-  RefreshCwIcon,
-  TerminalIcon,
-  type LucideIcon,
-} from 'lucide-react';
 import { DeliveryPagination } from './delivery-pagination';
 
 type StoryState = State<StoryResource>;
@@ -59,7 +51,6 @@ type DeliveryPositionKey =
 
 interface DeliveryPositionDefinition {
   empty: string;
-  icon: LucideIcon;
   key: DeliveryPositionKey;
   rule: string;
   title: string;
@@ -71,42 +62,36 @@ const DELIVERY_POSITIONS: DeliveryPositionDefinition[] = [
     title: 'Problem and Intake',
     rule: '来源、Revision、Extraction 与 Candidate 在 Story 创建前建立问题权威。',
     empty: 'Intake 与 Candidate 在独立权威资源中维护。',
-    icon: FileInputIcon,
   },
   {
     key: 'scenario-model',
     title: 'Scenario and Model',
     rule: 'TQA、Scenario 审查与模型处置是这个知识位置中的内部 Gate。',
     empty: '没有 Story 正在澄清 Scenario 或模型影响。',
-    icon: NetworkIcon,
   },
   {
     key: 'tasking',
     title: 'Tasking',
     rule: 'Tasking Candidate 与 Desk Check 留在同一个知识位置。',
     empty: '没有 Story 等待 Tasking 或 Desk Check。',
-    icon: ListChecksIcon,
   },
   {
     key: 'pair',
     title: 'Pair',
     rule: '逐 TEST 执行、质量门与编码审批共享一个 Pair 权威位置。',
     empty: '没有 Story 正在 Pair 或等待编码审批。',
-    icon: TerminalIcon,
   },
   {
     key: 'showcase',
     title: 'Showcase',
     rule: 'fresh Q2、产品观察、风险证据、独立 Review 与价值决定。',
     empty: '没有 Story 正在进行 Showcase 价值验证。',
-    icon: PresentationIcon,
   },
   {
     key: 'run-respond',
     title: 'Run and Respond',
     rule: 'Accepted Showcase 的知识响应、next Probe 与人工确认。',
     empty: '没有 Story 等待知识响应或已经完成本轮。',
-    icon: RefreshCwIcon,
   },
 ];
 
@@ -316,7 +301,6 @@ function StoryBoard({
       <div className="grid h-full min-w-[72rem] grid-cols-6 gap-px overflow-hidden rounded-lg border bg-border">
         {DELIVERY_POSITIONS.map((position, index) => {
           const positionStories = grouped.get(position.key) ?? [];
-          const Icon = position.icon;
           return (
             <section
               aria-labelledby={`delivery-position-${position.key}`}
@@ -325,7 +309,10 @@ function StoryBoard({
             >
               <header className="flex min-h-14 shrink-0 items-start gap-2 border-b pb-3">
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-muted-foreground">
-                  <Icon aria-hidden className="size-3.5" />
+                  <EvidencePositionIcon
+                    className="size-3.5"
+                    position={position.key}
+                  />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-mono text-[0.6875rem] text-muted-foreground">
