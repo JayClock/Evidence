@@ -7,6 +7,11 @@ tmp
 out-tsc
 *.tsbuildinfo
 /target
+**/build/
+
+# Gradle
+/.gradle/
+**/.gradle/
 
 # dependencies
 node_modules
