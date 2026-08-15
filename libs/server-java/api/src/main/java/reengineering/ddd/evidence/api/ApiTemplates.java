@@ -70,6 +70,125 @@ public final class ApiTemplates {
     return workspaceBuilder(uriInfo).path(child).build(workspaceId);
   }
 
+  public static URI workspaceInboxItems(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "inbox-items");
+  }
+
+  public static URI workspaceInboxItemsPage(
+      UriInfo uriInfo,
+      String workspaceId,
+      int page,
+      int pageSize,
+      String status,
+      String sourceKind,
+      String query) {
+    UriBuilder builder =
+        UriBuilder.fromUri(workspaceInboxItems(uriInfo, workspaceId))
+            .queryParam("page", page)
+            .queryParam("pageSize", pageSize);
+    if (status != null) builder.queryParam("status", status);
+    if (sourceKind != null) builder.queryParam("sourceKind", sourceKind);
+    if (query != null) builder.queryParam("q", query);
+    return builder.build();
+  }
+
+  public static URI workspaceInboxItem(UriInfo uriInfo, String workspaceId, String itemId) {
+    return UriBuilder.fromUri(workspaceInboxItems(uriInfo, workspaceId))
+        .path("{itemId}")
+        .build(itemId);
+  }
+
+  public static URI workspaceInboxRevisions(UriInfo uriInfo, String workspaceId, String itemId) {
+    return UriBuilder.fromUri(workspaceInboxItem(uriInfo, workspaceId, itemId))
+        .path("revisions")
+        .build();
+  }
+
+  public static URI workspaceInboxRevision(
+      UriInfo uriInfo, String workspaceId, String itemId, String revisionId) {
+    return UriBuilder.fromUri(workspaceInboxRevisions(uriInfo, workspaceId, itemId))
+        .path("{revisionId}")
+        .build(revisionId);
+  }
+
+  public static URI workspaceInboxExtractions(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "inbox-extractions");
+  }
+
+  public static URI workspaceInboxExtraction(
+      UriInfo uriInfo, String workspaceId, String extractionId) {
+    return UriBuilder.fromUri(workspaceInboxExtractions(uriInfo, workspaceId))
+        .path("{extractionId}")
+        .build(extractionId);
+  }
+
+  public static URI workspaceInboxExtractionCandidates(
+      UriInfo uriInfo, String workspaceId, String extractionId) {
+    return UriBuilder.fromUri(workspaceInboxExtraction(uriInfo, workspaceId, extractionId))
+        .path("candidates")
+        .build();
+  }
+
+  public static URI workspaceStoryCandidates(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "story-candidates");
+  }
+
+  public static URI workspaceStoryCandidatesPage(
+      UriInfo uriInfo,
+      String workspaceId,
+      int page,
+      int pageSize,
+      String status,
+      String extractionId,
+      String query) {
+    UriBuilder builder =
+        UriBuilder.fromUri(workspaceStoryCandidates(uriInfo, workspaceId))
+            .queryParam("page", page)
+            .queryParam("pageSize", pageSize);
+    if (status != null) builder.queryParam("status", status);
+    if (extractionId != null) builder.queryParam("extractionId", extractionId);
+    if (query != null) builder.queryParam("q", query);
+    return builder.build();
+  }
+
+  public static URI workspaceExtractionStoryCandidates(
+      UriInfo uriInfo, String workspaceId, String extractionId) {
+    return UriBuilder.fromUri(workspaceStoryCandidates(uriInfo, workspaceId))
+        .queryParam("extractionId", extractionId)
+        .build();
+  }
+
+  public static URI workspaceStoryCandidate(
+      UriInfo uriInfo, String workspaceId, String candidateId) {
+    return UriBuilder.fromUri(workspaceStoryCandidates(uriInfo, workspaceId))
+        .path("{candidateId}")
+        .build(candidateId);
+  }
+
+  public static URI workspaceStoryCandidateAction(
+      UriInfo uriInfo, String workspaceId, String candidateId, String action) {
+    return UriBuilder.fromUri(workspaceStoryCandidate(uriInfo, workspaceId, candidateId))
+        .path(action)
+        .build();
+  }
+
+  public static URI workspaceIterations(UriInfo uriInfo, String workspaceId) {
+    return workspaceChild(uriInfo, workspaceId, "iterations");
+  }
+
+  public static URI workspaceIteration(UriInfo uriInfo, String workspaceId, String iterationId) {
+    return UriBuilder.fromUri(workspaceIterations(uriInfo, workspaceId))
+        .path("{iterationId}")
+        .build(iterationId);
+  }
+
+  public static URI workspaceIterationChild(
+      UriInfo uriInfo, String workspaceId, String iterationId, String child) {
+    return UriBuilder.fromUri(workspaceIteration(uriInfo, workspaceId, iterationId))
+        .path(child)
+        .build();
+  }
+
   public static URI workspaceDiagram(UriInfo uriInfo, String workspaceId) {
     return workspaceChild(uriInfo, workspaceId, "diagram");
   }

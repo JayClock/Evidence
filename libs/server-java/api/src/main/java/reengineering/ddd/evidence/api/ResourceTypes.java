@@ -19,6 +19,16 @@ public final class ResourceTypes {
       "application/vnd.evidence.logical-relationships+json";
   public static final String LOGICAL_RELATIONSHIP =
       "application/vnd.evidence.logical-relationship+json";
+  public static final String INBOX_ITEMS = "application/vnd.evidence.inbox-items+json";
+  public static final String INBOX_ITEM = "application/vnd.evidence.inbox-item+json";
+  public static final String INBOX_REVISIONS = "application/vnd.evidence.inbox-revisions+json";
+  public static final String INBOX_REVISION = "application/vnd.evidence.inbox-revision+json";
+  public static final String INBOX_EXTRACTION = "application/vnd.evidence.inbox-extraction+json";
+  public static final String INBOX_CANDIDATE_SET =
+      "application/vnd.evidence.inbox-candidate-set+json";
+  public static final String STORY_CANDIDATES = "application/vnd.evidence.story-candidates+json";
+  public static final String STORY_CANDIDATE = "application/vnd.evidence.story-candidate+json";
+  public static final String ITERATION = "application/vnd.evidence.iteration+json";
 
   private ResourceTypes() {}
 }

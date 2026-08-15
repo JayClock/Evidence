@@ -74,6 +74,24 @@ public class WorkspaceApi {
         new DiagramApi(actorUserId, workspace.getIdentity(), workspaceModelService));
   }
 
+  @Path("inbox-items")
+  public InboxItemsApi inboxItems() {
+    return resourceContext.initResource(
+        new InboxItemsApi(actorUserId, workspace.getIdentity(), workspaceService));
+  }
+
+  @Path("inbox-extractions")
+  public InboxExtractionsApi inboxExtractions() {
+    return resourceContext.initResource(
+        new InboxExtractionsApi(actorUserId, workspace.getIdentity(), workspaceService));
+  }
+
+  @Path("story-candidates")
+  public StoryCandidatesApi storyCandidates() {
+    return resourceContext.initResource(
+        new StoryCandidatesApi(actorUserId, workspace.getIdentity(), workspaceService));
+  }
+
   @Path("logical-entities")
   public LogicalEntitiesApi logicalEntities() {
     return resourceContext.initResource(

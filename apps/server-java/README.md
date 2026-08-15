@@ -18,6 +18,11 @@ current NestJS server. It follows the Smart Domain/Jersey layout used by
 - Local startup provisions the configured user and `default-workspace`.
 - Workspace creation atomically creates its owner membership and initializes a
   private `.evidence/{entities,associations}` model root.
+- Diagram, Logical Entity, and Logical Relationship resources project and update
+  the Workspace model files.
+- Inbox capture, immutable revisions, frozen Extractions, Candidate proposals,
+  terminal decisions, and Candidate admission use the existing PostgreSQL
+  authority tables and cross-language SHA-256 content hashes.
 
 The implementation follows the `JayClock/team-ai` Java conventions: immutable
 Description records, model-owned wide association interfaces, lazy MyBatis
