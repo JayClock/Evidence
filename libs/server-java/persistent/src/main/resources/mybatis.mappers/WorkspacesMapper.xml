@@ -35,6 +35,10 @@
                  javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceInbox">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
+    <association property="workflow"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceWorkflow">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
   </resultMap>
 
   <sql id="workspaceColumns">

@@ -1,0 +1,540 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.WorkflowMapper">
+  <resultMap id="iterationRow" type="reengineering.ddd.evidence.persistent.mappers.InboxRows$IterationRow">
+    <constructor>
+      <arg name="id" column="id" javaType="String"/>
+      <arg name="reference" column="reference" javaType="String"/>
+      <arg name="workspaceId" column="workspace_id" javaType="String"/>
+      <arg name="sourceCandidateId" column="source_candidate_id" javaType="String"/>
+      <arg name="sourceCandidateSha256" column="source_candidate_sha256" javaType="String"/>
+      <arg name="lifecycle" column="lifecycle" javaType="String"/>
+      <arg name="loop" column="loop" javaType="String"/>
+      <arg name="stage" column="stage" javaType="String"/>
+      <arg name="lane" column="lane" javaType="String"/>
+      <arg name="version" column="version" javaType="_int"/>
+      <arg name="baseCommitSha" column="base_commit_sha" javaType="String"/>
+      <arg name="branchName" column="branch_name" javaType="String"/>
+      <arg name="provisioningFailureSummary" column="provisioning_failure_summary" javaType="String"/>
+      <arg name="activeStoryId" column="active_story_id" javaType="String"/>
+      <arg name="admittedByUserId" column="admitted_by_user_id" javaType="String"/>
+      <arg name="admittedAt" column="admitted_at" javaType="java.time.Instant"/>
+      <arg name="updatedAt" column="updated_at" javaType="java.time.Instant"/>
+    </constructor>
+  </resultMap>
+
+  <sql id="iterationColumns">
+    iteration.id, iteration.reference, iteration.workspace_id, iteration.source_candidate_id,
+    iteration.source_candidate_sha256, iteration.lifecycle, iteration.loop, iteration.stage,
+    iteration.lane, iteration.version, iteration.base_commit_sha, iteration.branch_name,
+    iteration.provisioning_failure_summary, story.id AS active_story_id,
+    iteration.admitted_by_user_id, iteration.admitted_at, iteration.updated_at
+  </sql>
+
+  <select id="findIteration" resultMap="iterationRow">
+    SELECT <include refid="iterationColumns"/>
+    FROM iterations iteration LEFT JOIN stories story ON story.iteration_id = iteration.id
+    WHERE iteration.workspace_id = #{workspaceId} AND iteration.id = #{iterationId}
+  </select>
+
+  <select id="lockIteration" resultMap="iterationRow">
+    SELECT <include refid="iterationColumns"/>
+    FROM iterations iteration LEFT JOIN stories story ON story.iteration_id = iteration.id
+    WHERE iteration.workspace_id = #{workspaceId} AND iteration.id = #{iterationId}
+    FOR UPDATE OF iteration
+  </select>
+
+  <select id="findIntake" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$IntakeRow">
+    SELECT iteration_id AS "iterationId", candidate_snapshot::text AS "candidateSnapshot",
+           source_snapshots::text AS "sourceSnapshots", requirements_projection AS "requirementsProjection",
+           content_sha256 AS "contentSha256", frozen_at AS "frozenAt"
+    FROM iteration_intakes WHERE iteration_id = #{iterationId}
+  </select>
+
+  <update id="completeProvisioning">
+    UPDATE iterations SET lifecycle = 'active', branch_name = #{branchName},
+      provisioning_failure_summary = NULL, version = version + 1, updated_at = #{timestamp}
+    WHERE workspace_id = #{workspaceId} AND id = #{iterationId}
+      AND lifecycle = 'provisioning' AND version = #{expectedVersion}
+      AND base_commit_sha = #{baseCommitSha}
+  </update>
+
+  <update id="failProvisioning">
+    UPDATE iterations SET lifecycle = 'provisioning_failed',
+      provisioning_failure_summary = #{reason}, version = version + 1, updated_at = #{timestamp}
+    WHERE workspace_id = #{workspaceId} AND id = #{iterationId}
+      AND lifecycle = 'provisioning' AND version = #{expectedVersion}
+  </update>
+
+  <update id="claimIteration">
+    UPDATE iterations
+    SET version = version + 1, updated_at = #{timestamp}
+      <if test="newLifecycle != null">, lifecycle = #{newLifecycle}</if>
+      <if test="newLoop != null">, loop = #{newLoop}</if>
+      <if test="newStage != null">, stage = #{newStage}</if>
+    WHERE workspace_id = #{workspaceId} AND id = #{iterationId}
+      AND lifecycle = 'active' AND loop = #{loop} AND version = #{expectedVersion}
+      AND stage IN
+      <foreach collection="stages" item="stage" open="(" separator="," close=")">#{stage}</foreach>
+  </update>
+
+  <update id="updateIterationStage">
+    UPDATE iterations SET stage = #{stage}, updated_at = #{timestamp}
+    WHERE workspace_id = #{workspaceId} AND id = #{iterationId}
+  </update>
+
+  <sql id="kickoffProposalColumns">
+    proposal.id, proposal.reference, proposal.iteration_id AS "iterationId", proposal.sequence,
+    proposal.origin, proposal.title, proposal.problem, proposal.role, proposal.goal, proposal.value,
+    proposal.cognitive_mode AS "cognitiveMode", proposal.citations::text AS citations,
+    proposal.content_sha256 AS "contentSha256", proposal.proposed_at AS "proposedAt",
+    decision.id AS "decisionId"
+  </sql>
+
+  <select id="findKickoffProposals" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$KickoffProposalRow">
+    SELECT <include refid="kickoffProposalColumns"/>
+    FROM kickoff_proposals proposal LEFT JOIN kickoff_decisions decision ON decision.proposal_id = proposal.id
+    WHERE proposal.iteration_id = #{iterationId} ORDER BY proposal.sequence ASC
+  </select>
+
+  <select id="findKickoffProposal" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$KickoffProposalRow">
+    SELECT <include refid="kickoffProposalColumns"/>
+    FROM kickoff_proposals proposal LEFT JOIN kickoff_decisions decision ON decision.proposal_id = proposal.id
+    WHERE proposal.iteration_id = #{iterationId} AND proposal.id = #{proposalId}
+  </select>
+
+  <select id="countKickoffProposals" resultType="int">
+    SELECT COUNT(*) FROM kickoff_proposals WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertKickoffProposal">
+    INSERT INTO kickoff_proposals
+      (id, reference, iteration_id, sequence, origin, title, problem, role, goal, value,
+       cognitive_mode, citations, content_sha256, proposed_at)
+    VALUES
+      (#{id}, #{reference}, #{iterationId}, #{sequence}, #{origin}, #{title}, #{problem}, #{role},
+       #{goal}, #{value}, #{cognitiveMode}, CAST(#{citations} AS jsonb), #{contentSha256}, #{proposedAt})
+  </insert>
+
+  <select id="findKickoffDecisions" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$KickoffDecisionRow">
+    SELECT id, reference, iteration_id AS "iterationId", proposal_id AS "proposalId",
+      proposal_sha256 AS "proposalSha256", action, reason, decided_by_user_id AS "decidedByUserId",
+      decided_at AS "decidedAt", content_sha256 AS "contentSha256"
+    FROM kickoff_decisions WHERE iteration_id = #{iterationId} ORDER BY decided_at ASC
+  </select>
+
+  <insert id="insertKickoffDecision">
+    INSERT INTO kickoff_decisions
+      (id, reference, iteration_id, proposal_id, proposal_sha256, action, reason,
+       decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{iterationId}, #{proposalId}, #{proposalSha256}, #{action}, #{reason},
+       #{decidedByUserId}, #{decidedAt}, #{contentSha256})
+  </insert>
+
+  <insert id="insertStory">
+    INSERT INTO stories
+      (id, workspace_id, iteration_id, reference, latest_revision_id, version, created_at, updated_at)
+    VALUES (#{id}, #{workspaceId}, #{iterationId}, 'US-001', NULL, 1, #{timestamp}, #{timestamp})
+  </insert>
+
+  <insert id="insertStoryRevision">
+    INSERT INTO story_revisions
+      (id, story_id, revision_number, title, problem, role, goal, value, cognitive_mode,
+       content_sha256, created_by_user_id, created_at, understanding_decision_id)
+    VALUES
+      (#{id}, #{storyId}, #{revisionNumber}, #{title}, #{problem}, #{role}, #{goal}, #{value},
+       #{cognitiveMode}, #{contentSha256}, #{createdByUserId}, #{createdAt}, #{understandingDecisionId})
+  </insert>
+
+  <insert id="insertStoryCitation">
+    INSERT INTO story_revision_citations
+      (id, story_revision_id, inbox_revision_id, position, locator)
+    VALUES (#{id}, #{storyRevisionId}, #{inboxRevisionId}, #{position}, #{locator})
+  </insert>
+
+  <update id="initializeStoryRevision">
+    UPDATE stories SET latest_revision_id = #{revisionId}
+    WHERE id = #{storyId} AND latest_revision_id IS NULL
+  </update>
+
+  <update id="setLatestStoryRevision">
+    UPDATE stories SET latest_revision_id = #{revisionId}, version = version + 1, updated_at = #{timestamp}
+    WHERE workspace_id = #{workspaceId} AND id = #{storyId} AND version = #{expectedVersion}
+    <if test="expectedRevisionId == null">AND latest_revision_id IS NULL</if>
+    <if test="expectedRevisionId != null">AND latest_revision_id = #{expectedRevisionId}</if>
+  </update>
+
+  <insert id="insertProblemStatement">
+    INSERT INTO problem_statement_revisions
+      (id, story_id, iteration_id, revision_number, title, problem, cognitive_mode,
+       citations, content_sha256, created_at)
+    VALUES
+      (#{id}, #{storyId}, #{iterationId}, 1, #{title}, #{problem}, #{cognitiveMode},
+       CAST(#{citations} AS jsonb), #{contentSha256}, #{createdAt})
+  </insert>
+
+  <insert id="insertStoryCard">
+    INSERT INTO story_card_revisions
+      (id, story_id, iteration_id, problem_statement_id, revision_number, title, role, goal, value,
+       content_sha256, created_at)
+    VALUES
+      (#{id}, #{storyId}, #{iterationId}, #{problemStatementId}, 1, #{title}, #{role}, #{goal},
+       #{value}, #{contentSha256}, #{createdAt})
+  </insert>
+
+  <select id="findProblemStatement" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ProblemStatementRow">
+    SELECT id, story_id AS "storyId", iteration_id AS "iterationId", revision_number AS "revisionNumber",
+      title, problem, cognitive_mode AS "cognitiveMode", citations::text AS citations,
+      content_sha256 AS "contentSha256", created_at AS "createdAt"
+    FROM problem_statement_revisions WHERE id = #{id}
+  </select>
+
+  <select id="findStoryCard" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryCardRow">
+    SELECT id, story_id AS "storyId", iteration_id AS "iterationId",
+      problem_statement_id AS "problemStatementId", revision_number AS "revisionNumber",
+      title, role, goal, value, content_sha256 AS "contentSha256", created_at AS "createdAt"
+    FROM story_card_revisions WHERE id = #{id}
+  </select>
+
+  <sql id="storyColumns">
+    story.id, story.workspace_id AS "workspaceId", story.iteration_id AS "iterationId",
+    iteration.reference AS "iterationReference", iteration.lifecycle AS "iterationLifecycle",
+    iteration.loop AS "iterationLoop", iteration.stage AS "iterationStage",
+    story.latest_revision_id AS "latestRevisionId", latest.title, latest.goal,
+    latest.revision_number AS "latestRevisionNumber",
+    (SELECT COUNT(*) FROM story_scenarios scenario WHERE scenario.story_revision_id = latest.id) AS "latestScenarioCount",
+    (SELECT COUNT(*) FROM story_revision_citations citation WHERE citation.story_revision_id = latest.id) AS "latestCitationCount",
+    (SELECT clarification.reference FROM story_clarifications clarification
+      WHERE clarification.story_id = story.id AND clarification.status = 'pending'
+      ORDER BY clarification.asked_at DESC LIMIT 1) AS "pendingClarificationReference",
+    (SELECT COUNT(*) FROM story_revisions counted WHERE counted.story_id = story.id) AS "revisionCount",
+    story.version, story.created_at AS "createdAt", story.updated_at AS "updatedAt"
+  </sql>
+
+  <select id="findStory" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRow">
+    SELECT <include refid="storyColumns"/> FROM stories story
+    JOIN iterations iteration ON iteration.id = story.iteration_id
+    JOIN story_revisions latest ON latest.id = story.latest_revision_id
+    WHERE story.workspace_id = #{workspaceId} AND story.id = #{storyId}
+  </select>
+
+  <select id="findStories" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRow">
+    SELECT <include refid="storyColumns"/> FROM stories story
+    JOIN iterations iteration ON iteration.id = story.iteration_id
+    JOIN story_revisions latest ON latest.id = story.latest_revision_id
+    WHERE story.workspace_id = #{workspaceId}
+    ORDER BY story.updated_at DESC LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="findAllStories" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRow">
+    SELECT <include refid="storyColumns"/> FROM stories story
+    JOIN iterations iteration ON iteration.id = story.iteration_id
+    JOIN story_revisions latest ON latest.id = story.latest_revision_id
+    WHERE story.workspace_id = #{workspaceId}
+  </select>
+
+  <select id="countStories" resultType="int">
+    SELECT COUNT(*) FROM stories WHERE workspace_id = #{workspaceId}
+  </select>
+
+  <sql id="storyRevisionColumns">
+    revision.id, revision.story_id AS "storyId", revision.revision_number AS "revisionNumber",
+    revision.title, revision.problem, revision.role, revision.goal, revision.value,
+    revision.cognitive_mode AS "cognitiveMode", revision.content_sha256 AS "contentSha256",
+    revision.created_by_user_id AS "createdByUserId", revision.created_at AS "createdAt"
+  </sql>
+
+  <select id="findStoryRevision" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRevisionRow">
+    SELECT <include refid="storyRevisionColumns"/> FROM story_revisions revision
+    JOIN stories story ON story.id = revision.story_id
+    WHERE story.workspace_id = #{workspaceId} AND story.id = #{storyId} AND revision.id = #{revisionId}
+  </select>
+
+  <select id="findStoryRevisions" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRevisionRow">
+    SELECT <include refid="storyRevisionColumns"/> FROM story_revisions revision
+    JOIN stories story ON story.id = revision.story_id
+    WHERE story.workspace_id = #{workspaceId} AND story.id = #{storyId}
+    ORDER BY revision.revision_number DESC LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="countStoryRevisions" resultType="int">
+    SELECT COUNT(*) FROM story_revisions revision JOIN stories story ON story.id = revision.story_id
+    WHERE story.workspace_id = #{workspaceId} AND story.id = #{storyId}
+  </select>
+
+  <select id="findStoryCitations" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryCitationRow">
+    SELECT citation.id, citation.story_revision_id AS "storyRevisionId",
+      revision.inbox_item_id AS "inboxItemId", citation.inbox_revision_id AS "inboxRevisionId",
+      revision.revision_number AS "inboxRevisionNumber", citation.position,
+      revision.content_sha256 AS "contentSha256", citation.locator
+    FROM story_revision_citations citation
+    JOIN inbox_revisions revision ON revision.id = citation.inbox_revision_id
+    WHERE citation.story_revision_id = #{storyRevisionId} ORDER BY citation.position ASC
+  </select>
+
+  <select id="findStoryScenarios" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryScenarioRow">
+    SELECT id, reference, story_revision_id AS "storyRevisionId", source_draft_id AS "sourceDraftId",
+      understanding_decision_id AS "understandingDecisionId", position, title,
+      given_steps::text AS "givenSteps", when_step AS "whenStep", then_steps::text AS "thenSteps",
+      business_data::text AS "businessData", confirmed_at AS "confirmedAt"
+    FROM story_scenarios WHERE story_revision_id = #{storyRevisionId} ORDER BY position ASC
+  </select>
+
+  <select id="findClarifications" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ClarificationRow">
+    SELECT id, reference, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+      story_id AS "storyId", story_revision_id AS "storyRevisionId", sequence, target, question,
+      status, asked_at AS "askedAt", answer, answered_by_user_id AS "answeredByUserId",
+      answered_at AS "answeredAt", waived_reason AS "waivedReason",
+      waived_by_user_id AS "waivedByUserId", waived_at AS "waivedAt",
+      content_sha256 AS "contentSha256"
+    FROM story_clarifications WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+    ORDER BY sequence ASC
+  </select>
+
+  <select id="findPendingClarification" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ClarificationRow">
+    SELECT id, reference, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+      story_id AS "storyId", story_revision_id AS "storyRevisionId", sequence, target, question,
+      status, asked_at AS "askedAt", answer, answered_by_user_id AS "answeredByUserId",
+      answered_at AS "answeredAt", waived_reason AS "waivedReason",
+      waived_by_user_id AS "waivedByUserId", waived_at AS "waivedAt",
+      content_sha256 AS "contentSha256"
+    FROM story_clarifications WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+      AND status = 'pending'
+    <if test="clarificationId != null">AND id = #{clarificationId}</if>
+    ORDER BY sequence ASC LIMIT 1
+  </select>
+
+  <select id="countClarifications" resultType="int">
+    SELECT COUNT(*) FROM story_clarifications WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertClarification">
+    INSERT INTO story_clarifications
+      (id, reference, workspace_id, iteration_id, story_id, story_revision_id, sequence,
+       target, question, status, asked_at, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{iterationId}, #{storyId}, #{storyRevisionId},
+       #{sequence}, #{target}, #{question}, 'pending', #{askedAt}, #{contentSha256})
+  </insert>
+
+  <update id="answerClarification">
+    UPDATE story_clarifications SET status = 'answered', answer = #{answer},
+      answered_by_user_id = #{answeredByUserId}, answered_at = #{answeredAt}, content_sha256 = #{contentSha256}
+    WHERE id = #{id} AND status = 'pending'
+  </update>
+
+  <update id="waiveClarifications">
+    UPDATE story_clarifications SET status = 'waived', waived_reason = #{reason},
+      waived_by_user_id = #{waivedByUserId}, waived_at = #{waivedAt}
+    WHERE iteration_id = #{iterationId} AND status = 'pending'
+  </update>
+
+  <sql id="scenarioProposalColumns">
+    proposal.id, proposal.reference, proposal.workspace_id AS "workspaceId",
+    proposal.iteration_id AS "iterationId", proposal.story_id AS "storyId",
+    proposal.story_revision_id AS "storyRevisionId", proposal.sequence,
+    proposal.content_sha256 AS "contentSha256", proposal.proposed_at AS "proposedAt",
+    decision.id AS "decisionId"
+  </sql>
+
+  <select id="findCurrentScenarioProposal" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ScenarioProposalRow">
+    SELECT <include refid="scenarioProposalColumns"/> FROM scenario_set_proposals proposal
+    LEFT JOIN understanding_decisions decision ON decision.proposal_id = proposal.id
+    WHERE proposal.workspace_id = #{workspaceId} AND proposal.iteration_id = #{iterationId}
+      AND decision.id IS NULL ORDER BY proposal.sequence DESC LIMIT 1
+  </select>
+
+  <select id="findScenarioProposal" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ScenarioProposalRow">
+    SELECT <include refid="scenarioProposalColumns"/> FROM scenario_set_proposals proposal
+    LEFT JOIN understanding_decisions decision ON decision.proposal_id = proposal.id
+    WHERE proposal.workspace_id = #{workspaceId} AND proposal.iteration_id = #{iterationId}
+      AND proposal.id = #{proposalId}
+  </select>
+
+  <select id="countScenarioProposals" resultType="int">
+    SELECT COUNT(*) FROM scenario_set_proposals WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertScenarioProposal">
+    INSERT INTO scenario_set_proposals
+      (id, reference, workspace_id, iteration_id, story_id, story_revision_id,
+       sequence, content_sha256, proposed_at)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{iterationId}, #{storyId}, #{storyRevisionId},
+       #{sequence}, #{contentSha256}, #{proposedAt})
+  </insert>
+
+  <insert id="insertScenarioDraft">
+    INSERT INTO scenario_drafts
+      (id, reference, proposal_id, position, title, given_steps, when_step, then_steps,
+       business_data, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{proposalId}, #{position}, #{title}, CAST(#{givenSteps} AS jsonb),
+       #{whenStep}, CAST(#{thenSteps} AS jsonb), CAST(#{businessData} AS jsonb), #{contentSha256})
+  </insert>
+
+  <select id="findScenarioDrafts" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ScenarioDraftRow">
+    SELECT id, reference, proposal_id AS "proposalId", position, title,
+      given_steps::text AS "givenSteps", when_step AS "whenStep", then_steps::text AS "thenSteps",
+      business_data::text AS "businessData", content_sha256 AS "contentSha256"
+    FROM scenario_drafts WHERE proposal_id = #{proposalId} ORDER BY position ASC
+  </select>
+
+  <select id="findUnderstandingDecisions" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$UnderstandingDecisionRow">
+    SELECT id, reference, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+      story_id AS "storyId", story_revision_id AS "storyRevisionId", proposal_id AS "proposalId",
+      proposal_sha256 AS "proposalSha256", action, reason,
+      selected_draft_ids::text AS "selectedDraftIds", confirmed_scenario_ids::text AS "confirmedScenarioIds",
+      decided_by_user_id AS "decidedByUserId", decided_at AS "decidedAt", content_sha256 AS "contentSha256"
+    FROM understanding_decisions WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+    ORDER BY decided_at ASC
+  </select>
+
+  <select id="countUnderstandingDecisions" resultType="int">
+    SELECT COUNT(*) FROM understanding_decisions WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertUnderstandingDecision">
+    INSERT INTO understanding_decisions
+      (id, reference, workspace_id, iteration_id, story_id, story_revision_id, proposal_id,
+       proposal_sha256, action, reason, selected_draft_ids, confirmed_scenario_ids,
+       decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{iterationId}, #{storyId}, #{storyRevisionId},
+       #{proposalId}, #{proposalSha256}, #{action}, #{reason}, CAST(#{selectedDraftIds} AS jsonb),
+       CAST(#{confirmedScenarioIds} AS jsonb), #{decidedByUserId}, #{decidedAt}, #{contentSha256})
+  </insert>
+
+  <select id="countStoryScenarios" resultType="int">
+    SELECT COUNT(*) FROM story_scenarios scenario
+    JOIN story_revisions revision ON revision.id = scenario.story_revision_id
+    WHERE revision.story_id = #{storyId}
+  </select>
+
+  <insert id="insertStoryScenario">
+    INSERT INTO story_scenarios
+      (id, reference, story_revision_id, source_draft_id, understanding_decision_id,
+       position, title, given_steps, when_step, then_steps, business_data, confirmed_at)
+    VALUES
+      (#{id}, #{reference}, #{storyRevisionId}, #{sourceDraftId}, #{understandingDecisionId},
+       #{position}, #{title}, CAST(#{givenSteps} AS jsonb), #{whenStep}, CAST(#{thenSteps} AS jsonb),
+       CAST(#{businessData} AS jsonb), #{confirmedAt})
+  </insert>
+
+  <sql id="noModelImpactColumns">
+    id, reference, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+    story_id AS "storyId", story_revision_id AS "storyRevisionId",
+    story_revision_sha256 AS "storyRevisionSha256", reason,
+    decided_by_user_id AS "decidedByUserId", decided_at AS "decidedAt",
+    content_sha256 AS "contentSha256"
+  </sql>
+
+  <select id="findNoModelImpact" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$NoModelImpactRow">
+    SELECT <include refid="noModelImpactColumns"/> FROM no_model_impact_decisions
+    WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+      AND story_revision_id = #{storyRevisionId} ORDER BY decided_at DESC LIMIT 1
+  </select>
+
+  <select id="findNoModelImpactByRevision" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$NoModelImpactRow">
+    SELECT <include refid="noModelImpactColumns"/> FROM no_model_impact_decisions
+    WHERE story_revision_id = #{storyRevisionId}
+  </select>
+
+  <select id="countNoModelImpact" resultType="int">
+    SELECT COUNT(*) FROM no_model_impact_decisions WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertNoModelImpact">
+    INSERT INTO no_model_impact_decisions
+      (id, reference, workspace_id, iteration_id, story_id, story_revision_id,
+       story_revision_sha256, reason, decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{iterationId}, #{storyId}, #{storyRevisionId},
+       #{storyRevisionSha256}, #{reason}, #{decidedByUserId}, #{decidedAt}, #{contentSha256})
+  </insert>
+
+  <sql id="taskingCandidateColumns">
+    candidate.id, candidate.reference, candidate.workspace_id AS "workspaceId",
+    candidate.iteration_id AS "iterationId", candidate.story_id AS "storyId",
+    candidate.story_revision_id AS "storyRevisionId",
+    candidate.story_revision_sha256 AS "storyRevisionSha256",
+    candidate.base_commit_sha AS "baseCommitSha",
+    candidate.no_model_impact_decision_id AS "noModelImpactDecisionId",
+    candidate.no_model_impact_decision_sha256 AS "noModelImpactDecisionSha256",
+    candidate.sequence, candidate.project_catalog_sha256 AS "projectCatalogSha256",
+    candidate.payload::text AS payload, candidate.content_sha256 AS "contentSha256",
+    candidate.proposed_at AS "proposedAt", decision.id AS "decisionId"
+  </sql>
+
+  <select id="findCurrentTaskingCandidate" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$TaskingCandidateRow">
+    SELECT <include refid="taskingCandidateColumns"/> FROM tasking_candidates candidate
+    LEFT JOIN desk_check_decisions decision ON decision.candidate_id = candidate.id
+    WHERE candidate.workspace_id = #{workspaceId} AND candidate.iteration_id = #{iterationId}
+      AND decision.id IS NULL ORDER BY candidate.sequence DESC LIMIT 1
+  </select>
+
+  <select id="findTaskingCandidate" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$TaskingCandidateRow">
+    SELECT <include refid="taskingCandidateColumns"/> FROM tasking_candidates candidate
+    LEFT JOIN desk_check_decisions decision ON decision.candidate_id = candidate.id
+    WHERE candidate.workspace_id = #{workspaceId} AND candidate.iteration_id = #{iterationId}
+      AND candidate.id = #{candidateId}
+  </select>
+
+  <select id="countTaskingCandidates" resultType="int">
+    SELECT COUNT(*) FROM tasking_candidates WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertTaskingCandidate">
+    INSERT INTO tasking_candidates
+      (id, reference, workspace_id, iteration_id, story_id, story_revision_id,
+       story_revision_sha256, base_commit_sha, no_model_impact_decision_id,
+       no_model_impact_decision_sha256, sequence, project_catalog_sha256, payload,
+       content_sha256, proposed_at)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{iterationId}, #{storyId}, #{storyRevisionId},
+       #{storyRevisionSha256}, #{baseCommitSha}, #{noModelImpactDecisionId},
+       #{noModelImpactDecisionSha256}, #{sequence}, #{projectCatalogSha256}, CAST(#{payload} AS jsonb),
+       #{contentSha256}, #{proposedAt})
+  </insert>
+
+  <select id="findDeskCheckDecisions" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$DeskCheckDecisionRow">
+    SELECT id, reference, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+      candidate_id AS "candidateId", candidate_sha256 AS "candidateSha256", action, reason,
+      decided_by_user_id AS "decidedByUserId", decided_at AS "decidedAt", content_sha256 AS "contentSha256"
+    FROM desk_check_decisions WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+    ORDER BY decided_at ASC
+  </select>
+
+  <select id="countDeskCheckDecisions" resultType="int">
+    SELECT COUNT(*) FROM desk_check_decisions WHERE iteration_id = #{iterationId}
+  </select>
+
+  <insert id="insertDeskCheckDecision">
+    INSERT INTO desk_check_decisions
+      (id, reference, workspace_id, iteration_id, candidate_id, candidate_sha256,
+       action, reason, decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{id}, #{reference}, #{workspaceId}, #{iterationId}, #{candidateId}, #{candidateSha256},
+       #{action}, #{reason}, #{decidedByUserId}, #{decidedAt}, #{contentSha256})
+  </insert>
+
+  <select id="findApprovedPlan" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$ApprovedPlanRow">
+    SELECT id, workspace_id AS "workspaceId", iteration_id AS "iterationId", story_id AS "storyId",
+      story_revision_id AS "storyRevisionId", tasking_candidate_id AS "taskingCandidateId",
+      desk_check_decision_id AS "deskCheckDecisionId", payload::text AS payload,
+      content_sha256 AS "contentSha256", approved_by_user_id AS "approvedByUserId",
+      approved_at AS "approvedAt"
+    FROM approved_tasking_plans WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+    ORDER BY approved_at DESC LIMIT 1
+  </select>
+
+  <insert id="insertApprovedPlan">
+    INSERT INTO approved_tasking_plans
+      (id, workspace_id, iteration_id, story_id, story_revision_id, tasking_candidate_id,
+       desk_check_decision_id, payload, content_sha256, approved_by_user_id, approved_at)
+    VALUES
+      (#{id}, #{workspaceId}, #{iterationId}, #{storyId}, #{storyRevisionId}, #{taskingCandidateId},
+       #{deskCheckDecisionId}, CAST(#{payload} AS jsonb), #{contentSha256}, #{approvedByUserId}, #{approvedAt})
+  </insert>
+</mapper>
