@@ -5,6 +5,7 @@
   "scripts": {
     "dev:web": "nx dev @evidence/web",
     "dev:server": "nx serve @evidence/server",
+    "dev:server:java": "nx run :apps:server-java:bootRun",
     "dev:desktop": "nx dev @evidence/desktop",
     "dev:desktop:remote": "nx run @evidence/desktop:dev-remote",
     "build": "nx run-many -t build --exclude=@evidence/source",
@@ -50,6 +51,7 @@
     "@nestjs/testing": "^11.0.0",
     "@nx/eslint": "22.7.3",
     "@nx/eslint-plugin": "22.7.3",
+    "@nx/gradle": "22.7.3",
     "@nx/js": "22.7.3",
     "@nx/nest": "22.7.3",
     "@nx/node": "22.7.3",
