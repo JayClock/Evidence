@@ -1,0 +1,17 @@
+rootProject.name = 'evidence'
+
+include 'server-java:domain'
+include 'server-java:application'
+include 'server-java:api'
+include 'server-java:persistent'
+include 'server-java:infrastructure:security'
+include 'apps:server-java'
+
+project(':server-java').projectDir = file('libs/server-java')
+project(':server-java:infrastructure').projectDir = file('libs/server-java/infrastructure')
+project(':server-java:domain').projectDir = file('libs/server-java/domain')
+project(':server-java:application').projectDir = file('libs/server-java/application')
+project(':server-java:api').projectDir = file('libs/server-java/api')
+project(':server-java:persistent').projectDir = file('libs/server-java/persistent')
+project(':server-java:infrastructure:security').projectDir = file('libs/server-java/infrastructure/security')
+project(':apps:server-java').projectDir = file('apps/server-java')

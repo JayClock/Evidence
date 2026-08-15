@@ -1,0 +1,23 @@
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation platform("${smartDomainGroup}:smart-domain-bom:${smartDomainVersion}")
+    implementation "${smartDomainGroup}:smart-domain-api-spring-boot-starter"
+    implementation project(':server-java:api')
+    implementation project(':server-java:infrastructure:security')
+    implementation 'org.springframework.boot:spring-boot-starter'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+springBoot {
+    buildInfo()
+}
+
+tasks.named('bootJar').configure {
+    archiveFileName = 'evidence-server-java.jar'
+}

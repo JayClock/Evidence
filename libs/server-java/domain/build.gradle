@@ -1,0 +1,11 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api platform("${smartDomainGroup}:smart-domain-bom:${smartDomainVersion}")
+    api "${smartDomainGroup}:smart-domain-core"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
