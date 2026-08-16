@@ -2,29 +2,30 @@
 
 ## Product Character
 
-Evidence is a neutral, precise, and evidence-first knowledge delivery workbench.
-It should feel trustworthy, calm, and operational rather than playful,
-decorative, or project-management-heavy.
+Evidence is a neutral, precise, and evidence-first desktop knowledge delivery
+workbench. It should feel trustworthy, fast, dense, and directly operable
+rather than playful, decorative, or marketing-led.
 
-The primary visual reference is Attio. Evidence and execution components borrow
-functional patterns from GitHub Primer. Keyboard interaction follows
-Superhuman principles. Pair workbenches may use Cursor-style split views and
-Retool-style inspectors without making the rest of the product feel like an
-IDE or an internal administration tool.
+The primary interaction reference is Multica, interpreted through Linear's
+desktop shell and Trello's direct board manipulation. Evidence and execution
+components borrow functional patterns from GitHub Primer. Pair workbenches may
+use Cursor-style split views and Attio-style inspectors. These references define
+layout and interaction, not Evidence's brand or authority model.
 
 ## Design Priorities
 
 Use the references in this order:
 
-1. **Attio** — application shell, navigation, compact records, tables, and
-   object details.
-2. **GitHub Primer** — evidence, checks, diffs, immutable references, timelines,
+1. **Multica** — full-height workspace, compact issue board, view controls,
+   inline properties, contextual actions, and Human + Agent activity.
+2. **Linear** — desktop shell, list density, selection, keyboard navigation,
+   saved views, and immediate feedback.
+3. **Trello** — fixed-width board columns, horizontal navigation, card focus,
+   and direct manipulation where the Server exposes a legal transition.
+4. **GitHub Primer** — evidence, checks, diffs, immutable references, timelines,
    and status semantics.
-3. **Superhuman** — command palette, keyboard-first navigation, visible focus,
-   and rapid human-decision processing.
-4. **Cursor and Retool** — Pair and other complex operational workbenches only.
-5. **Notion** — long-form knowledge content such as Problem Statements, Story
-   Revisions, model explanations, and decision records.
+5. **Cursor** — Pair and other complex operational split-pane workbenches.
+6. **Attio and Notion** — inspectors and long-form knowledge content.
 
 Do not combine the products' brand treatments. Evidence has one neutral visual
 foundation and borrows only task-appropriate interaction patterns.
@@ -107,12 +108,16 @@ keyboard focus.
 
 ## Application Shell
 
-- Left navigation: `240–256px`.
-- Top command bar: `48px`.
-- Contextual authority rail: `340–380px`.
-- Main content consumes the remaining width.
-- On narrow screens, the navigation and authority rail become sheets rather
-  than squeezing the work surface below its usable width.
+- The workspace fills `100dvh`; the shell, work surface, and inspector own
+  independent scroll regions. Avoid document-level scrolling in the product.
+- Left navigation: `224–240px`, collapsible to an icon rail.
+- Top command bar: `44–48px`.
+- Collection view bar / toolbar: `40–48px`.
+- Contextual authority inspector: `340–400px`, collapsible and independently
+  scrollable.
+- Main content consumes the remaining width inside a bordered inset canvas.
+- On narrow screens, navigation and the authority inspector become sheets
+  rather than squeezing the work surface below its usable width.
 
 The top command bar provides breadcrumbs, global command access, context status,
 and theme controls. `Cmd/Ctrl + K` opens the command palette from anywhere.
@@ -184,7 +189,8 @@ invalidated/rejected label and preserve the prior evidence trail.
 
 Prefer:
 
-- compact object tables;
+- compact object tables and fixed-width board columns;
+- persistent collection context with a selectable record inspector;
 - split-pane record details;
 - evidence timelines;
 - authority panels;
@@ -194,6 +200,8 @@ Prefer:
 - feedback route history;
 - command palette;
 - contextual inspectors;
+- single-row view bars with overflow menus;
+- contextual menus and safe inline property controls;
 - bordered tabs and compact status badges.
 
 Avoid:
@@ -207,6 +215,24 @@ Avoid:
 - emoji as domain icons;
 - rainbow-colored model nodes;
 - AI purple applied to the entire application.
+
+## Board Workspaces
+
+- A board column is `272–304px` wide and owns its vertical scrolling. The board
+  scrolls horizontally and may support dragging its empty background to pan.
+- Column headers remain visible and contain position identity, item count, and
+  contextual controls. Long process explanations belong in help text or an
+  inspector, not in every column.
+- Cards target `88–128px` height, show at most two title lines, and prioritize
+  identity, internal Gate, responsible actor, evidence count, and recency.
+- Selection is persistent and opens the authority inspector without losing the
+  board's scroll position. Hover reveals secondary actions; it must not reveal
+  the only path to an essential action.
+- A drag expresses intent, not authority. Only a Server-advertised HAL action
+  may change a derived knowledge position. Invalid drops return to origin and
+  explain why; Proposal, TQA, Desk Check, Coding Approval, and human decisions
+  can never be bypassed by client-side movement.
+- Keyboard and pointer users receive equivalent selection and action paths.
 
 ## Tables and Records
 
