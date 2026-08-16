@@ -40,7 +40,7 @@ public final class ApiTemplates {
   }
 
   public static URI userSidebar(UriInfo uriInfo, String userId) {
-    return userBuilder(uriInfo).path("sidebar").build(userId);
+    return userBuilder(uriInfo).path(UserApi.class, "sidebar").build(userId);
   }
 
   public static URI workspaces(UriInfo uriInfo) {

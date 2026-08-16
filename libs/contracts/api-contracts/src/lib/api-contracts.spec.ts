@@ -13,6 +13,7 @@ const mediaTypes = {
   root: 'application/vnd.evidence.root+json',
   health: 'application/vnd.evidence.health+json',
   user: 'application/vnd.evidence.user+json',
+  sidebar: 'application/vnd.evidence.sidebar+json',
   workspace: 'application/vnd.evidence.workspace+json',
   memberships: 'application/vnd.evidence.memberships+json',
   inboxItem: 'application/vnd.evidence.inbox-item+json',
@@ -77,7 +78,7 @@ function contractSha(value: number): string {
 describeContracts('Evidence API contract vertical slice', () => {
   const userId = 'desktop-user';
 
-  it('exposes root, health, user, and seeded workspace resources as HAL-style resources', async () => {
+  it('exposes root, health, user, sidebar, and seeded workspace resources as HAL-style resources', async () => {
     if (!apiBaseUrl) throw new Error('API_BASE_URL is required');
     const unauthorized = await fetch(`${apiBaseUrl}/api`);
     expect(unauthorized.status).toBe(401);
@@ -109,6 +110,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(openapi.body.paths).toHaveProperty(
       '/api/users/{userId}/memberships',
     );
+    expect(openapi.body.paths).toHaveProperty('/api/users/{userId}/sidebar');
     expect(openapi.body.paths).toHaveProperty('/api/workspaces');
     expect(openapi.body.paths).toHaveProperty(
       '/api/workspaces/{workspaceId}/inbox-items',
@@ -163,7 +165,58 @@ describeContracts('Evidence API contract vertical slice', () => {
       self: { href: `/api/users/${userId}` },
       memberships: { href: `/api/users/${userId}/memberships` },
       'create-workspace': { href: '/api/workspaces' },
+      sidebar: { href: `/api/users/${userId}/sidebar` },
     });
+
+    const sidebar = await apiRequest(`/api/users/${userId}/sidebar`);
+    expect(sidebar.status).toBe(200);
+    expectHalResource(sidebar, mediaTypes.sidebar);
+    expect(sidebar.body._links).toMatchObject({
+      self: { href: `/api/users/${userId}/sidebar` },
+      user: { href: `/api/users/${userId}` },
+    });
+    expect(sidebar.body.sections).toMatchObject([
+      {
+        key: 'workspace',
+        title: '工作区',
+        items: [
+          {
+            key: 'workspace-overview',
+            label: '工作区总览',
+            href: '/api/workspaces/{workspaceId}',
+          },
+        ],
+      },
+      {
+        key: 'source',
+        title: '来源',
+        items: [{ key: 'inbox-items', label: 'Inbox' }],
+      },
+      {
+        key: 'delivery',
+        title: '交付',
+        items: [
+          { key: 'story-candidates' },
+          { key: 'stories', label: '故事看板' },
+          {
+            key: 'tasking-queue',
+            href: '/api/workspaces/{workspaceId}/stories?filter=tasking',
+          },
+          {
+            key: 'pair-queue',
+            href: '/api/workspaces/{workspaceId}/stories?filter=pair',
+          },
+        ],
+      },
+      {
+        key: 'model',
+        title: '模型',
+        items: [
+          { key: 'diagram', label: '模型图' },
+          { key: 'logical-entities', label: '逻辑实体' },
+        ],
+      },
+    ]);
 
     const memberships = await apiRequest(
       `/api/users/${userId}/memberships?page=1&pageSize=20`,

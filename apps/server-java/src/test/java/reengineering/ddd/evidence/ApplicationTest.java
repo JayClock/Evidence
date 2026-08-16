@@ -115,7 +115,7 @@ class ApplicationTest {
   }
 
   @Test
-  void exposesTheLocalUserAndDefaultWorkspaceMembership() throws Exception {
+  void exposesTheLocalUserSidebarAndDefaultWorkspaceMembership() throws Exception {
     ResponseEntity<String> user = authorized(HttpMethod.GET, "/api/users/java-user", null);
     assertThat(user.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertContentType(user, "application/vnd.evidence.user+json");
@@ -124,6 +124,33 @@ class ApplicationTest {
     assertThat(userBody.path("name").asText()).isEqualTo("Desktop User");
     assertThat(userBody.path("_links").path("memberships").path("href").asText())
         .isEqualTo("/api/users/java-user/memberships");
+    assertThat(userBody.path("_links").path("sidebar").path("href").asText())
+        .isEqualTo("/api/users/java-user/sidebar");
+
+    ResponseEntity<String> sidebar =
+        authorized(HttpMethod.GET, "/api/users/java-user/sidebar", null);
+    assertThat(sidebar.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertContentType(sidebar, "application/vnd.evidence.sidebar+json");
+    JsonNode sidebarBody = objectMapper.readTree(sidebar.getBody());
+    assertThat(sidebarBody.path("_links").path("self").path("href").asText())
+        .isEqualTo("/api/users/java-user/sidebar");
+    assertThat(sidebarBody.path("_links").path("user").path("href").asText())
+        .isEqualTo("/api/users/java-user");
+    JsonNode sections = sidebarBody.path("sections");
+    assertThat(sections.size()).isEqualTo(4);
+    assertThat(sections.get(0).path("key").asText()).isEqualTo("workspace");
+    assertThat(sections.get(0).path("items").get(0).path("href").asText())
+        .isEqualTo("/api/workspaces/{workspaceId}");
+    assertThat(sections.get(1).path("key").asText()).isEqualTo("source");
+    assertThat(sections.get(1).path("items").get(0).path("key").asText()).isEqualTo("inbox-items");
+    assertThat(sections.get(2).path("key").asText()).isEqualTo("delivery");
+    assertThat(sections.get(2).path("items").get(2).path("href").asText())
+        .isEqualTo("/api/workspaces/{workspaceId}/stories?filter=tasking");
+    assertThat(sections.get(2).path("items").get(3).path("href").asText())
+        .isEqualTo("/api/workspaces/{workspaceId}/stories?filter=pair");
+    assertThat(sections.get(3).path("key").asText()).isEqualTo("model");
+    assertThat(sections.get(3).path("items").get(1).path("key").asText())
+        .isEqualTo("logical-entities");
 
     ResponseEntity<String> memberships =
         authorized(HttpMethod.GET, "/api/users/java-user/memberships?page=1&pageSize=20", null);
