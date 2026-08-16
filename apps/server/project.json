@@ -1,9 +1,9 @@
 {
-  "name": "@evidence/server",
+  "name": "@evidence/server-nest",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/server/src",
   "projectType": "application",
-  "tags": ["scope:server", "type:nest"],
+  "tags": ["scope:server", "type:legacy-nest"],
   "targets": {
     "build": {
       "executor": "@nx/vite:build",
@@ -54,7 +54,7 @@
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
-        "buildTarget": "@evidence/server:build",
+        "buildTarget": "@evidence/server-nest:build",
         "buildTargetOptions": {
           "outputFileName": "main.js"
         },
@@ -62,10 +62,10 @@
       },
       "configurations": {
         "development": {
-          "buildTarget": "@evidence/server:build:development"
+          "buildTarget": "@evidence/server-nest:build:development"
         },
         "production": {
-          "buildTarget": "@evidence/server:build:production"
+          "buildTarget": "@evidence/server-nest:build:production"
         }
       }
     }

@@ -1,14 +1,30 @@
 {
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "name": ":apps:server-java",
+  "name": "@evidence/server",
   "projectType": "application",
   "tags": ["scope:server", "type:spring-boot"],
   "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": [],
+      "parallelism": false,
+      "outputs": ["{projectRoot}/build"],
+      "options": {
+        "command": "node apps/server-java/scripts/run-gradle.mjs :apps:server-java:build"
+      }
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node apps/server-java/scripts/run-gradle.mjs :apps:server-java:bootRun"
+      }
+    },
     "contract-boot-jar": {
-      "executor": "@nx/gradle:gradle",
+      "executor": "nx:run-commands",
       "cache": false,
       "options": {
-        "taskName": ":apps:server-java:bootJar"
+        "command": "node apps/server-java/scripts/run-gradle.mjs :apps:server-java:bootJar"
       }
     }
   }

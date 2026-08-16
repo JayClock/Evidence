@@ -19,15 +19,11 @@
       "dependsOn": [
         {
           "projects": "@evidence/server",
-          "target": "build"
-        },
-        {
-          "projects": ":apps:server-java",
           "target": "contract-boot-jar"
         }
       ],
       "options": {
-        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=all"
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=java"
       }
     },
     "contract-local-nest": {
@@ -35,7 +31,7 @@
       "cache": false,
       "dependsOn": [
         {
-          "projects": "@evidence/server",
+          "projects": "@evidence/server-nest",
           "target": "build"
         }
       ],
@@ -48,12 +44,29 @@
       "cache": false,
       "dependsOn": [
         {
-          "projects": ":apps:server-java",
+          "projects": "@evidence/server",
           "target": "contract-boot-jar"
         }
       ],
       "options": {
         "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=java"
+      }
+    },
+    "contract-local-parity": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": "@evidence/server",
+          "target": "contract-boot-jar"
+        },
+        {
+          "projects": "@evidence/server-nest",
+          "target": "build"
+        }
+      ],
+      "options": {
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=all"
       }
     }
   }

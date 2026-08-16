@@ -90,7 +90,7 @@ function parseRuntime(args) {
   const inline = args.find((argument) => argument.startsWith('--runtime='));
   const optionIndex = args.indexOf('--runtime');
   const runtime =
-    inline?.slice('--runtime='.length) ?? args[optionIndex + 1] ?? 'all';
+    inline?.slice('--runtime='.length) ?? args[optionIndex + 1] ?? 'java';
   if (!['all', 'nest', 'java'].includes(runtime)) {
     throw new Error(
       `Unknown contract runtime ${JSON.stringify(runtime)}; expected all, nest, or java.`,
@@ -109,10 +109,7 @@ function serverLaunch(runtime) {
   }
   return {
     command: 'java',
-    args: [
-      '-jar',
-      resolve('apps/server-java/build/libs/evidence-server-java.jar'),
-    ],
+    args: ['-jar', resolve('apps/server-java/build/libs/evidence-server.jar')],
     label: 'Java',
   };
 }
