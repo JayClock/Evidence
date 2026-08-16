@@ -46,6 +46,8 @@ libs/server-java/infrastructure/security Spring Security adapter
 pnpm dev:server:java
 pnpm nx run :apps:server-java:test
 pnpm nx run :apps:server-java:build
+pnpm api:contracts:java
+pnpm api:contracts # runs the same suite against Nest, then Java
 ```
 
 The server listens on `127.0.0.1:3000` by default. It accepts the existing

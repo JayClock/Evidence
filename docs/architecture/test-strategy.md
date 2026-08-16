@@ -24,20 +24,21 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位；低价值�
 
 ## Runtime 策略
 
-| Runtime / 边界 | 主要 Q1                                      | 主要 Q2                                               |
-| -------------- | -------------------------------------------- | ----------------------------------------------------- |
-| Web            | component/hook/resource tests                | rendered route/feature scenario                       |
-| Nest Server    | domain、controller、repository/adapter tests | composed module 或 black-box REST contract            |
-| Electron       | main/preload/lifecycle/security tests        | packaged renderer + configured API smoke              |
-| PostgreSQL     | mapper/repository tests                      | migrated temporary database contracts                 |
-| Filesystem     | temporary directory adapter tests            | Workspace model projection scenarios                  |
-| Pi integration | Desktop session、受限工具与 controller tests | packaged Desktop smoke 或有配置的真实本地 Agent probe |
+| Runtime / 边界 | 主要 Q1                                              | 主要 Q2                                               |
+| -------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| Web            | component/hook/resource tests                        | rendered route/feature scenario                       |
+| Server         | Java/Nest domain、resource/controller、adapter tests | 同一套 black-box REST contract（迁移期双运行时）      |
+| Electron       | main/preload/lifecycle/security tests                | packaged renderer + configured API smoke              |
+| PostgreSQL     | mapper/repository tests                              | migrated temporary database contracts                 |
+| Filesystem     | temporary directory adapter tests                    | Workspace model projection scenarios                  |
+| Pi integration | Desktop session、受限工具与 controller tests         | packaged Desktop smoke 或有配置的真实本地 Agent probe |
 
 ## Contract gates
 
 - `libs/server/api/openapi.yaml` 是唯一 OpenAPI source；生成的 Web schema 必须与其同步。
-- contract runner 连接已迁移的临时 PostgreSQL 并启动唯一 Nest Server，黑盒验证 Workspace、Member、Inbox Extraction、Candidate 决定/selection、Frozen Intake、Kickoff、Understand、Tasking、Pair、Showcase、Respond、Diagram、Relationship、错误与 media type；Server contract 不启动 Pi provider。
-- PostgreSQL CI 先运行 `prisma migrate deploy`，再运行 migration/contract gates。
+- contract runner 连接已迁移的 disposable PostgreSQL，依次启动 Nest 与 Java Server，并对两个运行时执行完全相同的 TypeScript 黑盒套件；覆盖 Workspace、Member、Inbox Extraction、Candidate 决定/selection、Frozen Intake、Kickoff、Understand、Tasking、Pair、Showcase、Respond、Diagram、Relationship、错误与 media type；Server contract 不启动 Pi provider。
+- `pnpm api:contracts:nest` 与 `pnpm api:contracts:java` 可聚焦单一运行时；`pnpm api:contracts` 是迁移期双运行时门禁。
+- PostgreSQL CI 先运行 `prisma migrate deploy`，再按 Nest → Java 的顺序运行 contract gate；两个运行时不得并行写入同一 contract database。
 - Web client 由 OpenAPI 生成；类型检查不能替代运行时 contract test。
 - Electron package smoke 使用受控 fake API 验证内嵌 Pi SDK、packaged renderer 和远程 API readiness。
 

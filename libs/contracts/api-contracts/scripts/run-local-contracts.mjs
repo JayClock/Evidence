@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
   throw new Error(
@@ -11,60 +12,109 @@ if (!databaseUrl) {
 }
 assertDisposableDatabase(databaseUrl);
 
-const testRoot = await mkdtemp(join(tmpdir(), 'evidence-contracts-'));
-const port = await reservePort();
-const origin = `http://127.0.0.1:${port}`;
-const authorization = 'Bearer evidence-contract-test';
-const serverEntry = resolve('apps/server/dist/main.js');
-const server = spawn(process.execPath, [serverEntry], {
-  cwd: testRoot,
-  env: {
-    ...process.env,
-    DATABASE_URL: databaseUrl,
-    EVIDENCE_API_AUTHORIZATION: authorization,
-    EVIDENCE_AUTH_MODE: 'local',
-    EVIDENCE_USER_ID: 'desktop-user',
-    EVIDENCE_USER_NAME: 'Desktop User',
-    EVIDENCE_USER_EMAIL: 'desktop@evidence.local',
-    EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
-    EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
-    EVIDENCE_HOST: '127.0.0.1',
-    PORT: String(port),
-  },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let serverOutput = '';
-server.stdout.on('data', (chunk) => (serverOutput += chunk.toString()));
-server.stderr.on('data', (chunk) => (serverOutput += chunk.toString()));
+const requestedRuntime = parseRuntime(process.argv.slice(2));
+const runtimes =
+  requestedRuntime === 'all' ? ['nest', 'java'] : [requestedRuntime];
+for (const runtime of runtimes) {
+  await runContracts(runtime, databaseUrl);
+}
 
-try {
-  await waitForHealth(`${origin}/health`, server);
-  const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-  const result = await run(
-    packageManager,
-    [
-      'exec',
-      'vitest',
-      'run',
-      '--config',
-      'libs/contracts/api-contracts/vitest.config.mts',
-    ],
-    { API_AUTHORIZATION: authorization, API_BASE_URL: origin },
+async function runContracts(runtime, databaseUrl) {
+  const testRoot = await mkdtemp(
+    join(tmpdir(), `evidence-contracts-${runtime}-`),
   );
-  if (result !== 0) {
-    throw new Error(`API contracts exited with status ${String(result)}`);
+  const port = await reservePort();
+  const origin = `http://127.0.0.1:${port}`;
+  const authorization = 'Bearer evidence-contract-test';
+  const launch = serverLaunch(runtime);
+  const server = spawn(launch.command, launch.args, {
+    cwd: testRoot,
+    env: {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+      EVIDENCE_API_AUTHORIZATION: authorization,
+      EVIDENCE_AUTH_MODE: 'local',
+      EVIDENCE_USER_ID: 'desktop-user',
+      EVIDENCE_USER_NAME: 'Desktop User',
+      EVIDENCE_USER_EMAIL: 'desktop@evidence.local',
+      EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
+      EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
+      EVIDENCE_HOST: '127.0.0.1',
+      PORT: String(port),
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let serverOutput = '';
+  server.stdout.on('data', (chunk) => (serverOutput += chunk.toString()));
+  server.stderr.on('data', (chunk) => (serverOutput += chunk.toString()));
+
+  process.stdout.write(`Running API contracts against ${launch.label}\n`);
+  try {
+    await waitForHealth(`${origin}/health`, server, launch.label);
+    const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
+    const result = await run(
+      packageManager,
+      [
+        'exec',
+        'vitest',
+        'run',
+        '--config',
+        'libs/contracts/api-contracts/vitest.config.mts',
+      ],
+      {
+        API_AUTHORIZATION: authorization,
+        API_BASE_URL: origin,
+        CONTRACT_RUNTIME: runtime,
+      },
+    );
+    if (result !== 0) {
+      throw new Error(
+        `${launch.label} API contracts exited with status ${String(result)}`,
+      );
+    }
+  } catch (error) {
+    process.stderr.write(serverOutput);
+    throw error;
+  } finally {
+    server.kill('SIGTERM');
+    await Promise.race([
+      new Promise((resolveExit) => server.once('exit', resolveExit)),
+      new Promise((resolveTimeout) => setTimeout(resolveTimeout, 2_000)),
+    ]);
+    if (server.exitCode === null) server.kill('SIGKILL');
+    await rm(testRoot, { recursive: true, force: true });
   }
-} catch (error) {
-  process.stderr.write(serverOutput);
-  throw error;
-} finally {
-  server.kill('SIGTERM');
-  await Promise.race([
-    new Promise((resolveExit) => server.once('exit', resolveExit)),
-    new Promise((resolveTimeout) => setTimeout(resolveTimeout, 2_000)),
-  ]);
-  if (server.exitCode === null) server.kill('SIGKILL');
-  await rm(testRoot, { recursive: true, force: true });
+}
+
+function parseRuntime(args) {
+  const inline = args.find((argument) => argument.startsWith('--runtime='));
+  const optionIndex = args.indexOf('--runtime');
+  const runtime =
+    inline?.slice('--runtime='.length) ?? args[optionIndex + 1] ?? 'all';
+  if (!['all', 'nest', 'java'].includes(runtime)) {
+    throw new Error(
+      `Unknown contract runtime ${JSON.stringify(runtime)}; expected all, nest, or java.`,
+    );
+  }
+  return runtime;
+}
+
+function serverLaunch(runtime) {
+  if (runtime === 'nest') {
+    return {
+      command: process.execPath,
+      args: [resolve('apps/server/dist/main.js')],
+      label: 'Nest',
+    };
+  }
+  return {
+    command: 'java',
+    args: [
+      '-jar',
+      resolve('apps/server-java/build/libs/evidence-server-java.jar'),
+    ],
+    label: 'Java',
+  };
 }
 
 function assertDisposableDatabase(value) {
@@ -105,11 +155,13 @@ function reservePort() {
   });
 }
 
-async function waitForHealth(url, child) {
-  const deadline = Date.now() + 15_000;
+async function waitForHealth(url, child, runtimeLabel) {
+  const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
-      throw new Error(`Nest contract server exited with ${child.exitCode}.`);
+      throw new Error(
+        `${runtimeLabel} contract server exited with ${child.exitCode}.`,
+      );
     }
     try {
       const response = await fetch(url);
@@ -119,7 +171,7 @@ async function waitForHealth(url, child) {
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
   }
-  throw new Error('Timed out waiting for the Nest contract server.');
+  throw new Error(`Timed out waiting for the ${runtimeLabel} contract server.`);
 }
 
 function run(command, args, environment) {

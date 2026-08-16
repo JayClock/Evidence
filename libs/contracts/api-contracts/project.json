@@ -20,10 +20,40 @@
         {
           "projects": "@evidence/server",
           "target": "build"
+        },
+        {
+          "projects": ":apps:server-java",
+          "target": "contract-boot-jar"
         }
       ],
       "options": {
-        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs"
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=all"
+      }
+    },
+    "contract-local-nest": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": "@evidence/server",
+          "target": "build"
+        }
+      ],
+      "options": {
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=nest"
+      }
+    },
+    "contract-local-java": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": [
+        {
+          "projects": ":apps:server-java",
+          "target": "contract-boot-jar"
+        }
+      ],
+      "options": {
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=java"
       }
     }
   }

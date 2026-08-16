@@ -2,5 +2,14 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "name": ":apps:server-java",
   "projectType": "application",
-  "tags": ["scope:server", "type:spring-boot"]
+  "tags": ["scope:server", "type:spring-boot"],
+  "targets": {
+    "contract-boot-jar": {
+      "executor": "@nx/gradle:gradle",
+      "cache": false,
+      "options": {
+        "taskName": ":apps:server-java:bootJar"
+      }
+    }
+  }
 }

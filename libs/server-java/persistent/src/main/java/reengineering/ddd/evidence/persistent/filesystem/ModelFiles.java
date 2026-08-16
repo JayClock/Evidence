@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -83,7 +84,7 @@ final class ModelFiles {
 
   static Instant timestamp(Path path) {
     try {
-      return Files.getLastModifiedTime(path).toInstant();
+      return Files.getLastModifiedTime(path).toInstant().truncatedTo(ChronoUnit.MILLIS);
     } catch (IOException ignored) {
       return Instant.EPOCH;
     }
