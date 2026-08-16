@@ -51,7 +51,7 @@ class CanonicalJsonTest {
   }
 
   @Test
-  void hashesNormalizedInboxSourcesLikeTheNestServer() {
+  void hashesNormalizedInboxSourcesDeterministically() {
     Inbox.HashedSource source =
         Inbox.normalizeAndHash(
             new Inbox.SourceInput(
@@ -70,7 +70,7 @@ class CanonicalJsonTest {
   }
 
   @Test
-  void hashesNormalizedInboxCandidatesLikeTheNestServer() {
+  void hashesNormalizedInboxCandidatesAndDecisionsDeterministically() {
     InboxWorkflow.CandidateData candidate =
         InboxWorkflow.normalizeCandidate(
             new InboxWorkflow.CandidateInput(

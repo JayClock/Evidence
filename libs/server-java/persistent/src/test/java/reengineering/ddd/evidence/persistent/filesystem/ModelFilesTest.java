@@ -12,8 +12,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class ModelFilesTest {
   @Test
-  void truncatesFileTimestampsToNestCompatibleMilliseconds(@TempDir Path directory)
-      throws Exception {
+  void truncatesFileTimestampsToMilliseconds(@TempDir Path directory) throws Exception {
     Path modelRoot = Files.createDirectory(directory.resolve(".evidence"));
     Files.setLastModifiedTime(
         modelRoot, FileTime.from(Instant.parse("2026-08-16T00:46:11.782558575Z")));

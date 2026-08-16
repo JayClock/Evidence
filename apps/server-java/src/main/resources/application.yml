@@ -10,9 +10,6 @@ spring:
     application-path: /
     type: filter
   flyway:
-    baseline-on-migrate: true
-    baseline-version: 21
-    baseline-description: pre-Flyway compatibility baseline
     validate-migration-naming: true
 
 mybatis:

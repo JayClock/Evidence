@@ -39,16 +39,12 @@ Q2 失败时，应至少有一个更细粒度 Q1 测试帮助定位。
 - Web client 由 OpenAPI 生成；类型检查不能替代运行时 contract test。
 - Electron package smoke 使用受控 fake API 验证 packaged renderer、受限 preload、嵌入 Pi SDK 和远程 API readiness。
 
-## 兼容性基线
+## Java Server 回归门禁
 
-`libs/contracts/api-contracts/baseline/` 保存 `server-compatibility-v1`：
-
-- `compatibility-v1.json` 固定 OpenAPI source、既有 Flyway migration chain，以及迁移后 PostgreSQL 的逐表 columns、constraints、indexes 摘要；migration 只能追加。
-- `hal-goldens.json` 固定认证失败、HAL resource/collection、分页、领域错误和 `204` 的代表性 wire response。
-- `hash-vectors.json` 固定 canonical JSON 和 Candidate、Intake、Kickoff 权威内容 hash。
-- `database-catalog.sql` 是语言无关的 PostgreSQL catalog 投影，并忽略 migration bookkeeping table。
-
-静态基线运行 `pnpm compatibility:check`。运行时 HAL 与 database catalog 基线包含在 `pnpm api:contracts` 中。协议、schema 或 hash 语义有意变化时，必须先审查兼容性影响，再显式发布下一版基线。
+- Flyway 从 `V001__initial_schema.sql` 建立全新 PostgreSQL；后续 schema 变更只能追加 migration。
+- REST/HAL 的状态码、vendor media type、链接、分页和错误响应由 `pnpm api:contracts` 验证。
+- canonical JSON 与权威内容 hash 由 Java Domain 测试固定，持久化层不得定义第二套 hash 算法。
+- PostgreSQL 行为使用 Testcontainers 验证，不维护旧服务端或旧数据库实现的兼容分支。
 
 ## 执行原则
 
