@@ -86,8 +86,8 @@ export function AppSidebar({
   onSignOut?: () => void;
 }) {
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader className="pt-2">
         <WorkspaceSwitcher
           loading={workspacesLoading}
           error={workspacesError}
@@ -133,7 +133,7 @@ export function AppSidebar({
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="pb-2">
         <AgentConnection />
         <SidebarUserMenu onSignOut={onSignOut} userState={userState} />
       </SidebarFooter>

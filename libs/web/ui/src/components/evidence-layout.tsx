@@ -10,7 +10,7 @@ function EvidencePage({
     <section
       data-slot="evidence-page"
       className={cn(
-        'flex h-full min-h-0 flex-col overflow-hidden rounded-lg border bg-card text-card-foreground',
+        'flex h-full min-h-0 flex-col overflow-hidden bg-card text-card-foreground',
         className,
       )}
       {...props}
@@ -26,7 +26,7 @@ function EvidenceCanvas({
     <section
       data-slot="evidence-canvas"
       className={cn(
-        'flex h-full min-h-0 flex-col overflow-y-auto bg-background text-foreground',
+        'flex h-full min-h-0 flex-col overflow-y-auto bg-card text-foreground',
         className,
       )}
       {...props}
@@ -39,7 +39,7 @@ function PageHeader({ className, ...props }: React.ComponentProps<'header'>) {
     <header
       data-slot="page-header"
       className={cn(
-        'flex shrink-0 flex-col gap-4 border-b px-5 py-4 lg:flex-row lg:items-start lg:justify-between',
+        'flex min-h-12 shrink-0 flex-col gap-2 border-b px-4 py-2 lg:flex-row lg:items-center lg:justify-between',
         className,
       )}
       {...props}
@@ -51,7 +51,7 @@ function PageHeaderCopy({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       data-slot="page-header-copy"
-      className={cn('flex min-w-0 max-w-4xl flex-col gap-1.5', className)}
+      className={cn('flex min-w-0 max-w-4xl flex-col gap-0.5', className)}
       {...props}
     />
   );
@@ -79,7 +79,7 @@ function PageTitle({
     <h1
       data-slot="page-title"
       className={cn(
-        'font-heading text-2xl leading-8 font-semibold tracking-[-0.025em]',
+        'font-heading text-lg leading-6 font-semibold tracking-[-0.015em]',
         className,
       )}
       {...props}
@@ -94,7 +94,7 @@ function PageDescription({ className, ...props }: React.ComponentProps<'p'>) {
     <p
       data-slot="page-description"
       className={cn(
-        'max-w-4xl text-sm leading-5 text-muted-foreground',
+        'max-w-4xl text-xs leading-4 text-muted-foreground',
         className,
       )}
       {...props}
@@ -117,7 +117,7 @@ function PageToolbar({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="page-toolbar"
       className={cn(
-        'flex min-h-12 shrink-0 flex-col gap-2 border-b px-5 py-2 lg:flex-row lg:items-center',
+        'flex min-h-11 shrink-0 flex-col gap-2 border-b px-4 py-1.5 lg:flex-row lg:items-center',
         className,
       )}
       {...props}
@@ -130,7 +130,7 @@ function Workbench({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="workbench"
       className={cn(
-        'grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_22rem] xl:grid-cols-[minmax(0,1fr)_23rem]',
+        'grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_21rem] xl:grid-cols-[minmax(0,1fr)_24rem]',
         className,
       )}
       {...props}

@@ -57,7 +57,7 @@ export function AppTopbar({
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b bg-card px-3">
+      <header className="flex h-11 shrink-0 items-center gap-2 border-b bg-card px-3">
         <SidebarTrigger className="lg:hidden" />
         <Separator orientation="vertical" className="h-5 lg:hidden" />
         <Breadcrumb className="min-w-0">
@@ -88,8 +88,9 @@ export function AppTopbar({
         <div className="min-w-0 flex-1" />
         <Button
           aria-label="搜索工作区或执行命令"
-          className="hidden w-72 justify-start text-muted-foreground lg:flex"
+          className="hidden w-64 justify-start text-muted-foreground lg:flex"
           onClick={() => setCommandOpen(true)}
+          size="sm"
           type="button"
           variant="outline"
         >
@@ -101,7 +102,7 @@ export function AppTopbar({
           aria-label="搜索工作区或执行命令"
           className="lg:hidden"
           onClick={() => setCommandOpen(true)}
-          size="icon"
+          size="icon-sm"
           type="button"
           variant="outline"
         >

@@ -139,6 +139,8 @@
   --ev-violet-soft: #f2eefe;
   --ev-green: #1a7f37;
   --ev-green-soft: #dafbe1;
+  --scrollbar-thumb: rgb(26 26 26 / 14%);
+  --scrollbar-thumb-hover: rgb(26 26 26 / 24%);
 }
 
 .dark {
@@ -200,19 +202,41 @@
   --ev-violet-soft: #2f2346;
   --ev-green: #56d364;
   --ev-green-soft: #173923;
+  --scrollbar-thumb: rgb(230 237 243 / 14%);
+  --scrollbar-thumb-hover: rgb(230 237 243 / 24%);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+    scrollbar-width: thin;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
   }
 
   html {
-    @apply font-sans;
+    @apply h-full font-sans;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply h-full overflow-hidden bg-background text-foreground antialiased;
+  }
+
+  #root {
+    height: 100%;
   }
 
   ::selection {
