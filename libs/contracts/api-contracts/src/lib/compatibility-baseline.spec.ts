@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync, type Dirent } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Pool } from 'pg';
 import { apiAuthorization, apiBaseUrl } from './api-contracts.js';
@@ -7,8 +7,6 @@ import { apiAuthorization, apiBaseUrl } from './api-contracts.js';
 interface CompatibilityManifest {
   openapi: FileBaseline & { pathCount: number; operationCount: number };
   database: {
-    prismaSchema: FileBaseline & { modelCount: number };
-    migrationLock: FileBaseline;
     migrationChainSha256: string;
     migrations: Array<{ version: string; sha256: string }>;
     catalog: CatalogBaseline;
@@ -61,7 +59,7 @@ function repositoryFile(path: string): string {
   return resolve(repositoryRoot, path);
 }
 
-describe('Nest replacement static compatibility baseline', () => {
+describe('Server static compatibility baseline', () => {
   it('freezes the OpenAPI source bytes and operation surface', () => {
     const source = readFileSync(repositoryFile(manifest.openapi.path));
     const text = source.toString('utf8');
@@ -76,62 +74,47 @@ describe('Nest replacement static compatibility baseline', () => {
     ).toHaveLength(manifest.openapi.operationCount);
   });
 
-  it('freezes the Prisma model and all pre-replacement migrations', () => {
-    const schema = readFileSync(
-      repositoryFile(manifest.database.prismaSchema.path),
-    );
-    const schemaText = schema.toString('utf8');
-    const migrationLock = readFileSync(
-      repositoryFile(manifest.database.migrationLock.path),
-    );
+  it('freezes the Flyway migrations that established the compatibility baseline', () => {
     const migrationRoot = repositoryFile(
-      'libs/server/persistent/prisma/migrations',
+      'libs/server-java/persistent/src/main/resources/db/migration',
     );
-    const actualVersions = readdirSync(migrationRoot, {
-      withFileTypes: true,
-    })
-      .filter((entry: Dirent) => entry.isDirectory())
-      .map((entry: Dirent) => entry.name)
-      .sort((left: string, right: string) => left.localeCompare(right));
-    const baselineVersions = manifest.database.migrations.map(
-      ({ version }) => version,
+    const baselineFiles = manifest.database.migrations.map(
+      ({ version }, index) =>
+        `V${String(index + 1).padStart(3, '0')}__${version}.sql`,
     );
+    const actualFiles = readdirSync(migrationRoot)
+      .filter((fileName) => fileName.endsWith('.sql'))
+      .sort((left, right) => left.localeCompare(right));
 
-    expect(sha256(schema)).toBe(manifest.database.prismaSchema.sha256);
-    expect(schemaText.match(/^model /gm) ?? []).toHaveLength(
-      manifest.database.prismaSchema.modelCount,
-    );
-    expect(sha256(migrationLock)).toBe(manifest.database.migrationLock.sha256);
-    expect(actualVersions).toEqual(expect.arrayContaining(baselineVersions));
+    expect(actualFiles.slice(0, baselineFiles.length)).toEqual(baselineFiles);
 
     const chain = createHash('sha256');
-    for (const migration of manifest.database.migrations) {
-      const source = readFileSync(
-        resolve(migrationRoot, migration.version, 'migration.sql'),
-      );
+    manifest.database.migrations.forEach((migration, index) => {
+      const source = readFileSync(resolve(migrationRoot, baselineFiles[index]));
       expect(sha256(source), migration.version).toBe(migration.sha256);
       chain.update(migration.version);
       chain.update('\0');
       chain.update(source);
       chain.update('\0');
-    }
+    });
     expect(`sha256:${chain.digest('hex')}`).toBe(
       manifest.database.migrationChainSha256,
     );
 
-    const lastBaselineVersion = baselineVersions.at(-1);
-    expect(lastBaselineVersion).toBeDefined();
     expect(
-      actualVersions.filter(
-        (version) =>
-          !baselineVersions.includes(version) &&
-          version.localeCompare(lastBaselineVersion ?? '') <= 0,
-      ),
+      actualFiles.filter((fileName) => {
+        const sequence = /^V(\d+)__/.exec(fileName)?.[1];
+        return (
+          !baselineFiles.includes(fileName) &&
+          sequence !== undefined &&
+          Number(sequence) <= baselineFiles.length
+        );
+      }),
     ).toEqual([]);
   });
 });
 
-describeDatabase('Nest replacement PostgreSQL catalog baseline', () => {
+describeDatabase('Server PostgreSQL catalog baseline', () => {
   it('matches migrated columns, constraints, and indexes table by table', async () => {
     const pool = new Pool({ connectionString: process.env.DATABASE_URL });
     try {
@@ -160,7 +143,7 @@ describeDatabase('Nest replacement PostgreSQL catalog baseline', () => {
   });
 });
 
-describeHal('Nest replacement HAL wire goldens', () => {
+describeHal('Server HAL wire goldens', () => {
   it('matches representative authentication, resource, collection, error, and empty responses', async () => {
     let workspaceId: string | undefined;
     let deleted = false;

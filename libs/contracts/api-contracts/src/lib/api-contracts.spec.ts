@@ -894,19 +894,19 @@ describeContracts('Evidence API contract vertical slice', () => {
     const projectCatalog = {
       projects: [
         {
-          id: '@evidence/server-domain',
-          root: 'libs/server/domain',
-          targets: ['lint', 'test', 'typecheck'],
+          id: ':server-java:domain',
+          root: 'libs/server-java/domain',
+          targets: ['build', 'spotlessCheck', 'test'],
         },
         {
-          id: '@evidence/server-persistent',
-          root: 'libs/server/persistent',
-          targets: ['lint', 'test', 'typecheck'],
+          id: ':server-java:persistent',
+          root: 'libs/server-java/persistent',
+          targets: ['build', 'spotlessCheck', 'test'],
         },
         {
-          id: '@evidence/server-api',
-          root: 'libs/server/api',
-          targets: ['lint', 'test', 'typecheck'],
+          id: '@evidence/server',
+          root: 'apps/server-java',
+          targets: ['build', 'spotlessCheck', 'test'],
         },
       ],
     };
@@ -917,9 +917,9 @@ describeContracts('Evidence API contract vertical slice', () => {
         quadrant: 'Q1',
         intent: 'The Tasking domain preserves the approval boundary.',
         runtimePlanId: 'RUNTIME-001',
-        stepId: 'nest-domain-q1',
-        projectId: '@evidence/server-domain',
-        testFilter: 'tasking-domain',
+        stepId: 'java-domain-q1',
+        projectId: ':server-java:domain',
+        testFilter: 'reengineering.ddd.evidence.domain.TaskingTest',
         supportedBy: [],
         scenarioIds: ['SC-001'],
         businessData: ['Story Revision v2'],
@@ -930,9 +930,10 @@ describeContracts('Evidence API contract vertical slice', () => {
         quadrant: 'Q1',
         intent: 'Tasking authority remains immutable in persistence.',
         runtimePlanId: 'RUNTIME-001',
-        stepId: 'nest-persistent-q1',
-        projectId: '@evidence/server-persistent',
-        testFilter: 'tasking-persistent',
+        stepId: 'java-persistent-q1',
+        projectId: ':server-java:persistent',
+        testFilter:
+          'reengineering.ddd.evidence.persistent.TaskingPersistenceTest',
         supportedBy: [],
         scenarioIds: ['SC-001'],
         businessData: ['TASKING-001'],
@@ -943,9 +944,9 @@ describeContracts('Evidence API contract vertical slice', () => {
         quadrant: 'Q2',
         intent: 'The confirmed Scenario reaches human Desk Check.',
         runtimePlanId: 'RUNTIME-001',
-        stepId: 'nest-api-q2',
-        projectId: '@evidence/server-api',
-        testFilter: 'tasking-desk-check',
+        stepId: 'java-api-q2',
+        projectId: '@evidence/server',
+        testFilter: 'reengineering.ddd.evidence.ApplicationTest',
         supportedBy: ['TEST-001', 'TEST-002'],
         scenarioIds: ['SC-001'],
         scenarioOutcome:
@@ -968,9 +969,9 @@ describeContracts('Evidence API contract vertical slice', () => {
           runtimes: [
             {
               id: 'RUNTIME-001',
-              runtime: 'typescript',
+              runtime: 'java',
               functionalContexts: ['delivery'],
-              technicalBoundaries: ['nest-domain'],
+              technicalBoundaries: ['java-domain'],
               projectIds: projectCatalog.projects.map(({ id }) => id),
             },
           ],
@@ -995,7 +996,7 @@ describeContracts('Evidence API contract vertical slice', () => {
       tests: expect.arrayContaining([
         expect.objectContaining({
           id: 'TEST-003',
-          processId: 'typescript-nest-feature',
+          processId: 'java-server-feature',
           modelRefs: emptyModelRefs,
         }),
       ]),

@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       tagName:
-        description: 'Release tag to publish, for example v0.1.0 or desktop-v0.1.0'
+        description: >-
+          Release tag to publish, for example v0.1.0 or desktop-v0.1.0
         required: true
         type: string
       releaseName:
@@ -65,7 +66,6 @@ jobs:
             xvfb
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm prisma:generate
       - run: pnpm nx sync:check
       - run: pnpm nx run @evidence/desktop:test
       - run: pnpm nx run @evidence/desktop:typecheck
@@ -109,7 +109,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tagName || github.ref_name }}
-          name: ${{ inputs.releaseName || format('Evidence Desktop {0}', inputs.tagName || github.ref_name) }}
+          name: >-
+            ${{ inputs.releaseName || format('Evidence Desktop {0}',
+            inputs.tagName || github.ref_name) }}
           draft: true
           prerelease: ${{ contains(inputs.tagName || github.ref_name, '-') }}
           files: release-assets/**

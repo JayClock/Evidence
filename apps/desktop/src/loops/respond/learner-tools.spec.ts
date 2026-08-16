@@ -89,10 +89,12 @@ async function worktreeFixture(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), 'evidence-respond-learner-'));
   temporaryPaths.push(root);
   const worktree = join(root, 'worktree');
-  await mkdir(join(worktree, 'libs/server/domain/src'), { recursive: true });
+  await mkdir(join(worktree, 'libs/server-java/domain/src/main/java'), {
+    recursive: true,
+  });
   await writeFile(
-    join(worktree, 'libs/server/domain/src/respond.ts'),
-    'export const respond = true;\n',
+    join(worktree, 'libs/server-java/domain/src/main/java/Respond.java'),
+    'final class Respond {}\n',
   );
   return worktree;
 }

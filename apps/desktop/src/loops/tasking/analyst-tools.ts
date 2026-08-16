@@ -3,11 +3,11 @@ import {
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import {
+import type {
   FlowApiClient,
-  type RemoteTasking,
-  type TaskingDraftInput,
-  type TaskingProjectCatalogInput,
+  RemoteTasking,
+  TaskingDraftInput,
+  TaskingProjectCatalogInput,
 } from '../../adapters/server-api/flow-client';
 
 export interface TaskingAnalystToolState {
@@ -29,9 +29,9 @@ const technicalBoundary = Type.Union([
   Type.Literal('react-feature'),
   Type.Literal('rest-client'),
   Type.Literal('http-server'),
-  Type.Literal('nest-api'),
-  Type.Literal('nest-domain'),
-  Type.Literal('prisma-store'),
+  Type.Literal('jaxrs-api'),
+  Type.Literal('java-domain'),
+  Type.Literal('mybatis-store'),
   Type.Literal('electron-main'),
   Type.Literal('electron-preload'),
   Type.Literal('desktop-binding-store'),
@@ -55,7 +55,10 @@ export function createTaskingAnalystTools(
         runtimes: Type.Array(
           Type.Object({
             id: Type.String({ pattern: '^RUNTIME-[0-9]{3,}$' }),
-            runtime: Type.Literal('typescript'),
+            runtime: Type.Union([
+              Type.Literal('java'),
+              Type.Literal('typescript'),
+            ]),
             functionalContexts: Type.Array(functionalContext, {
               minItems: 1,
               maxItems: 6,

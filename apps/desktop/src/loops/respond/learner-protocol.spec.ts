@@ -15,14 +15,14 @@ describe('Respond Learner protocol', () => {
         worktreeRoot: '/tmp/worktree',
         authoritySha256: sha('a'),
         approvedCommitSha: 'c'.repeat(40),
-        changedPaths: ['libs/server/domain/src/respond.ts'],
+        changedPaths: ['libs/server-java/domain/src/main/java/Respond.java'],
         evidence: { storyRevision: { id: 'revision-1' } },
       }),
     ).toEqual(
       expect.objectContaining({
         id: 'respond:iteration-1:30',
         authoritySha256: sha('a'),
-        changedPaths: ['libs/server/domain/src/respond.ts'],
+        changedPaths: ['libs/server-java/domain/src/main/java/Respond.java'],
       }),
     );
   });

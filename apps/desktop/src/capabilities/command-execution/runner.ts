@@ -127,20 +127,32 @@ export function parseLockedPairCommand(value: string): LockedPairCommand {
   }
   const nxCommand = tokens[2];
   if (nxCommand === 'test') {
-    if (
-      (tokens.length !== 5 && tokens.length !== 6) ||
-      !tokens[3] ||
-      tokens[4] !== '--run' ||
-      (tokens[5] !== undefined && !tokens[5].startsWith('--testNamePattern='))
-    ) {
+    const project = tokens[3];
+    const option = tokens[4];
+    const filter = tokens[5];
+    const fullJavaGate = tokens.length === 4 && project;
+    const focusedJavaTest =
+      tokens.length === 5 &&
+      project &&
+      option?.startsWith('--testClassName=') &&
+      option !== '--testClassName=';
+    const typescriptTest =
+      (tokens.length === 5 || tokens.length === 6) &&
+      project &&
+      option === '--run' &&
+      (filter === undefined ||
+        (filter.startsWith('--testNamePattern=') &&
+          filter !== '--testNamePattern='));
+    if (!fullJavaGate && !focusedJavaTest && !typescriptTest) {
       throw new Error('Pair test command does not match the approved grammar.');
-    }
-    if (tokens[5] === '--testNamePattern=') {
-      throw new Error('Pair test filter must not be empty.');
     }
     return locked(command, tokens.slice(1));
   }
-  if (nxCommand === 'typecheck' || nxCommand === 'lint') {
+  if (
+    nxCommand === 'build' ||
+    nxCommand === 'typecheck' ||
+    nxCommand === 'lint'
+  ) {
     if (tokens.length !== 4 || !tokens[3]) {
       throw new Error('Pair project gate does not match the approved grammar.');
     }
@@ -149,7 +161,8 @@ export function parseLockedPairCommand(value: string): LockedPairCommand {
   if (
     nxCommand === 'run' &&
     tokens.length === 4 &&
-    tokens[3] === '@evidence/desktop:package-smoke'
+    (tokens[3] === '@evidence/desktop:package-smoke' ||
+      tokens[3]?.endsWith(':spotlessCheck'))
   ) {
     return locked(command, tokens.slice(1));
   }

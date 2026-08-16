@@ -24,7 +24,7 @@ describe('RespondController', () => {
         id: 'respond:iteration-1:30',
         authoritySha256: sha('a'),
         approvedCommitSha: 'c'.repeat(40),
-        changedPaths: ['libs/server/domain/src/respond.ts'],
+        changedPaths: ['libs/server-java/domain/src/main/java/Respond.java'],
       }),
       expect.any(Function),
     );
@@ -200,7 +200,7 @@ function showcaseResource(): RemoteShowcase {
       branchName: 'evidence/iter-iteration-1',
     },
     pairManifest: {
-      changedPaths: ['libs/server/domain/src/respond.ts'],
+      changedPaths: ['libs/server-java/domain/src/main/java/Respond.java'],
     },
   } as unknown as ShowcaseResourceData;
   return { data, links: {}, raw: data as unknown as Record<string, unknown> };

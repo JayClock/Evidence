@@ -87,7 +87,7 @@ function relativeRoot(cwd: string, value: unknown, id: string): string {
 }
 
 function projectId(value: string): string {
-  if (!/^[A-Za-z0-9@][A-Za-z0-9@/_.-]{0,199}$/.test(value)) {
+  if (!/^:?[A-Za-z0-9@][A-Za-z0-9@/_.:-]{0,199}$/.test(value)) {
     throw new Error('Nx project id contains unsupported characters.');
   }
   return value;

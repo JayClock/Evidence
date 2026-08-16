@@ -20,7 +20,7 @@ dependencies {
 }
 
 tasks.named('processResources').configure {
-    from(file('../../server/api/openapi.yaml')) {
+    from(file('../../contracts/evidence.openapi')) {
         into 'openapi'
         rename { 'evidence-openapi.yaml' }
     }

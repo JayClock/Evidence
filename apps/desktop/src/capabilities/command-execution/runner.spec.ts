@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  PairCommandRunner,
-  parseLockedPairCommand,
-} from './runner';
+import { PairCommandRunner, parseLockedPairCommand } from './runner';
 
 describe('PairCommandRunner', () => {
   it.each([
@@ -17,12 +14,22 @@ describe('PairCommandRunner', () => {
       ],
     ],
     [
-      'pnpm nx test @evidence/server-domain --run',
-      ['nx', 'test', '@evidence/server-domain', '--run'],
+      'pnpm nx test :server-java:domain --testClassName=example.TaskingTest',
+      [
+        'nx',
+        'test',
+        ':server-java:domain',
+        '--testClassName=example.TaskingTest',
+      ],
     ],
     [
-      'pnpm nx typecheck @evidence/server-api',
-      ['nx', 'typecheck', '@evidence/server-api'],
+      'pnpm nx test :server-java:persistent',
+      ['nx', 'test', ':server-java:persistent'],
+    ],
+    ['pnpm nx build :server-java:api', ['nx', 'build', ':server-java:api']],
+    [
+      'pnpm nx run :server-java:domain:spotlessCheck',
+      ['nx', 'run', ':server-java:domain:spotlessCheck'],
     ],
     [
       'pnpm nx lint @evidence/web-feature-delivery',
@@ -39,9 +46,10 @@ describe('PairCommandRunner', () => {
   it.each([
     'pnpm nx test app --run; rm -rf .',
     'pnpm  nx test app --run',
-    'pnpm nx build app',
+    'pnpm nx build app --configuration=unsafe',
     'npm run test',
     'pnpm nx run app:arbitrary',
+    'pnpm nx test app --testClassName=',
     'pnpm nx test app --run --testNamePattern=',
     ' pnpm nx test app --run',
   ])('rejects a command outside the locked grammar: %s', (command) => {

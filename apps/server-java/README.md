@@ -1,15 +1,15 @@
 # Evidence Java Server
 
 This Spring Boot application is the canonical Evidence Server runtime. It
-follows the Smart Domain/Jersey layout while preserving the existing Evidence
-HTTP contract. The old NestJS runtime is rollback/parity-only until removal.
+follows the Smart Domain/Jersey layout while preserving the Evidence HTTP
+contract. It is the repository's only Server runtime.
 
 ## Implemented boundary
 
 - `GET /health` is public.
 - `GET /api` exposes the authenticated HAL root resource.
-- `GET /api/openapi.json` serves the existing contract source from
-  `libs/server/api/openapi.yaml`.
+- `GET /api/openapi.json` serves the language-neutral contract source from
+  `libs/contracts/evidence.openapi`.
 - Local exact-header authentication, OIDC JWT verification, CORS, host safety,
   and vendor media types are configured.
 - User, Workspace, membership, and Workspace Member resources use the existing
@@ -24,7 +24,7 @@ HTTP contract. The old NestJS runtime is rollback/parity-only until removal.
   terminal decisions, and Candidate admission use the existing PostgreSQL
   authority tables and cross-language SHA-256 content hashes.
 
-The implementation follows the `JayClock/team-ai` Java conventions: immutable
+The implementation follows the `JayClock/smart-domain` Java conventions: immutable
 Description records, model-owned wide association interfaces, lazy MyBatis
 association adapters, JAX-RS subresources, `ApiTemplates`, and zero-copy HAL
 representation wrappers.
@@ -47,7 +47,6 @@ pnpm dev:server
 pnpm nx run @evidence/server:test
 pnpm nx run @evidence/server:build
 pnpm api:contracts
-pnpm api:contracts:parity # optional Nest rollback comparison
 ```
 
 The server listens on `127.0.0.1:3000` by default. It accepts the existing

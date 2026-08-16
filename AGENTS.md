@@ -25,7 +25,7 @@ Electron
 ```
 
 - Web 与 Desktop 必须共享 REST/HAL 和领域语义；不得通过 Electron IPC 复制业务 API。
-- Java Server 是唯一生产 Server 组合根；`apps/server/` 与 `libs/server/*` 仅在退役前用于 Nest rollback/parity，不得接收新能力或默认流量。
+- Java Server 是唯一 Server 组合根；仓库不得引入第二套服务端运行时。
 - Server 使用 PostgreSQL registry 和 Server 私有 `.evidence` 文件模型；不存在 Desktop 专用数据库或第二个生产组合根。
 - Electron 必须设置 `EVIDENCE_API_BASE_URL`，并在启动时健康检查远程 HTTPS API；开发时允许 loopback HTTP。
 - Desktop renderer 只通过受限 preload 取得 API URL、目录选择/Workspace binding 和本地 Agent 能力；业务 command/query 始终走 Server API。
@@ -77,7 +77,7 @@ Candidate selection 只能原子创建一轮 `Iteration + Frozen Intake`，不�
 
 API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。
 
-- 语言无关的 OpenAPI 源文件：`libs/server/api/openapi.yaml`；该路径在 Nest 退役前保持稳定。
+- 语言无关的 OpenAPI 源文件：`libs/contracts/evidence.openapi`。
 - 生成的 Web 类型：`libs/web/api-client/src/lib/openapi-schema.ts`。
 - 修改 API 时必须同步实现、OpenAPI、black-box contract tests 和生成客户端。
 
@@ -122,7 +122,7 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 - `apps/web` 是唯一 React 组合根；可复用 shell、feature、UI 和 API client 放入 `libs/web/*`。
 - Gradle/Nx、Vite/Vitest targets 由插件推断时不要在 `project.json` 重复声明。
 - Java 测试放在 owning module 的 `src/test/java`；TypeScript 测试使用 `{src,tests}/**/*.{test,spec}.*`。
-- 不手改生成的 Prisma Client 或 OpenAPI Web 类型；通过 `pnpm prisma:generate`、`pnpm api:generate` 更新。
+- 不手改生成的 OpenAPI Web 类型；通过 `pnpm api:generate` 更新。
 - Java 格式化使用 Spotless/Google Java Format；时间戳输出使用 RFC 3339 / ISO 8601。
 - 所有查询和文件投影必须遵守软删除及工作空间边界。
 
@@ -133,7 +133,7 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 1. 先在 `libs/server-java/domain` 或 `libs/server-java/application` 定义或收窄 port 与领域行为。
 2. 在 `libs/server-java/persistent` 实现 PostgreSQL 或 filesystem adapter；不要把 storage 分支放进 JAX-RS resource。
 3. 为 fake 与生产 adapter 维护等价行为测试；PostgreSQL 差异使用 Testcontainers 专门验证。
-4. 迁移期继续在 `libs/server/persistent/prisma/migrations` 维护版本化 SQL；Java build 将其打包为 Flyway migrations，生产 Java Server 通过 Flyway 校验和升级。不得使用 Hibernate 自动建表。
+4. 在 `libs/server-java/persistent/src/main/resources/db/migration` 维护版本化 Flyway SQL；Java Server 通过 Flyway 校验和升级。不得使用 Hibernate 自动建表。
 5. `.evidence` YAML 写入应保持路径安全、原子替换和已有文件保护。
 
 ## Electron 规范
@@ -171,25 +171,25 @@ pnpm nx test @evidence/desktop --run
 pnpm nx run @evidence/desktop:package-smoke
 ```
 
-Nest rollback parity 仅在明确需要时运行 `pnpm api:contracts:parity`。PostgreSQL 行为必须由 Java/Testcontainers 或指向已迁移临时 PostgreSQL 的 black-box contracts 验证。检查失败必须修复并重跑，不得跳过。
+PostgreSQL 行为必须由 Java/Testcontainers 或指向可丢弃临时 PostgreSQL 的 black-box contracts 验证。检查失败必须修复并重跑，不得跳过。
 
 ## 仓库地图
 
-| 路径                            | 用途                                                  |
-| ------------------------------- | ----------------------------------------------------- |
-| `apps/web/`                     | React + Vite 前端组合根                               |
-| `libs/web/*`                    | Web shell、features、UI、HAL API client               |
-| `apps/server-java/`             | 生产 Spring Boot/Jersey 组合根                        |
-| `libs/server-java/domain/`      | Smart Domain 领域模型与 ports                         |
-| `libs/server-java/application/` | Use cases、事务与授权编排                             |
-| `libs/server-java/api/`         | JAX-RS、HAL 和 HTTP adapter                           |
-| `libs/server-java/persistent/`  | MyBatis/PostgreSQL、Flyway 和 filesystem adapters     |
-| `apps/server/`、`libs/server/*` | 退役前保留的 Nest rollback/parity 实现                |
-| `apps/desktop/`                 | Electron main/preload、remote API bridge 和 packaging |
-| `libs/contracts/api-contracts/` | 本地/远程 black-box API contracts                     |
-| `docs/product/`                 | 统一产品上下文、画像和旅程                            |
-| `.evidence/`                    | Evidence 产品权威领域模型                             |
-| `docs/architecture/`            | 统一架构和测试策略                                    |
+| 路径                              | 用途                                                  |
+| --------------------------------- | ----------------------------------------------------- |
+| `apps/web/`                       | React + Vite 前端组合根                               |
+| `libs/web/*`                      | Web shell、features、UI、HAL API client               |
+| `apps/server-java/`               | 生产 Spring Boot/Jersey 组合根                        |
+| `libs/server-java/domain/`        | Smart Domain 领域模型与 ports                         |
+| `libs/server-java/application/`   | Use cases、事务与授权编排                             |
+| `libs/server-java/api/`           | JAX-RS、HAL 和 HTTP adapter                           |
+| `libs/server-java/persistent/`    | MyBatis/PostgreSQL、Flyway 和 filesystem adapters     |
+| `libs/contracts/evidence.openapi` | 语言无关的 REST/OpenAPI 契约                          |
+| `apps/desktop/`                   | Electron main/preload、remote API bridge 和 packaging |
+| `libs/contracts/api-contracts/`   | 本地/远程 black-box API contracts                     |
+| `docs/product/`                   | 统一产品上下文、画像和旅程                            |
+| `.evidence/`                      | Evidence 产品权威领域模型                             |
+| `docs/architecture/`              | 统一架构和测试策略                                    |
 
 ## Git 纪律
 

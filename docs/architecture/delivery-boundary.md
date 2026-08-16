@@ -30,7 +30,7 @@ Server 是两个上下文的权威知识来源。Desktop 是本地执行边界�
 - Work Intake 的 provider-neutral source adapter、Inbox/Revision、1–5 项 Extraction、一次性 Inbox Analyst、Candidate 状态/决定、HAL/OpenAPI、Web 页面和 PostgreSQL migration 已落地。
 - Candidate selection 原子 claim WIP 并创建 Iteration/Frozen Intake；Desktop 从当前 HEAD provision `evidence/iter-*` 隔离 worktree，只回报 bounded facts。
 - Kickoff Frozen Proposal review、append-only 人工 confirm/revise/split/defer/stop、本地 replacement Analyst 和每轮唯一 `US-001` 已落地；Agent 不持有人工决定能力。
-- 旧 direct Candidate confirm API、领域 port、Prisma 表/列与客户端 contract 已删除；destructive migration 不 backfill 旧 Inbox/Story/CodingRun workflow 数据。
+- 旧 direct Candidate confirm API、领域 port、数据库表/列与客户端 contract 已删除；destructive migration 不 backfill 旧 Inbox/Story/CodingRun workflow 数据。
 - Understand / TQA 以 baseline Story Revision 为边界记录单问题 Clarification、完整 Scenario Proposal 和人工 Scenario Set 决定；确认后进入 `understand/modeling`。
 - EVD-004 以显式人工 `tool/none/false` 决定替代本轮完整 Modeling Profile，并在无模型影响证据后生成可供人工 Desk Check 的 Tasking Candidate。
 - EVD-004 已删除直接 CodingRun admission；EVD-005 以 Approved Tasking Plan 为唯一入口实现逐 TEST Pair，并以人工本地 commit 后的 `pair/approved` 结束 Pair。
@@ -38,7 +38,7 @@ Server 是两个上下文的权威知识来源。Desktop 是本地执行边界�
 
 ## 后果
 
-- 新 Delivery 行为必须先进入 `libs/server/domain`，再由 Prisma adapter 和 API 暴露。
+- 新 Delivery 行为必须先进入 `libs/server-java/domain` 或 `application`，再由 MyBatis/filesystem adapter 和 JAX-RS API 暴露。
 - Story Candidate 没有人类权威；Candidate selection 只能原子创建 Iteration 与 Frozen Intake，不能创建 Story。
 - Kickoff confirm 按 Proposal hash 与 Iteration version 原子创建 Story；revise/split/defer/stop 不能创建 Story。
 - Story、Problem Statement、Story Card 和后续 Scenario 修订不可改写；并发决定只能有一个改变当前 Iteration 状态。

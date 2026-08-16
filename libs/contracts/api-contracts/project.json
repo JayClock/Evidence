@@ -23,20 +23,7 @@
         }
       ],
       "options": {
-        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=java"
-      }
-    },
-    "contract-local-nest": {
-      "executor": "nx:run-commands",
-      "cache": false,
-      "dependsOn": [
-        {
-          "projects": "@evidence/server-nest",
-          "target": "build"
-        }
-      ],
-      "options": {
-        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=nest"
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs"
       }
     },
     "contract-local-java": {
@@ -49,24 +36,7 @@
         }
       ],
       "options": {
-        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=java"
-      }
-    },
-    "contract-local-parity": {
-      "executor": "nx:run-commands",
-      "cache": false,
-      "dependsOn": [
-        {
-          "projects": "@evidence/server",
-          "target": "contract-boot-jar"
-        },
-        {
-          "projects": "@evidence/server-nest",
-          "target": "build"
-        }
-      ],
-      "options": {
-        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs --runtime=all"
+        "command": "node libs/contracts/api-contracts/scripts/run-local-contracts.mjs"
       }
     }
   }

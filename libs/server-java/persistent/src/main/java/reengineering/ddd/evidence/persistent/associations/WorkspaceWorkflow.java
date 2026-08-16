@@ -1253,6 +1253,18 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     if (payload.planVersion() != 2) {
       throw DomainException.conflict("Tasking Candidate is not a v2 Pair plan");
     }
+    Map<String, TaskingCatalog.Process> processDefinitions = new HashMap<>();
+    for (Tasking.ProcessSelection process : payload.processes()) {
+      TaskingCatalog.Process definition =
+          TaskingCatalog.PROCESSES.stream()
+              .filter(value -> value.id().equals(process.processId()))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      DomainException.conflict(
+                          "Tasking process " + process.processId() + " is no longer available"));
+      processDefinitions.put(process.runtimePlanId(), definition);
+    }
     List<Tasking.AuthorityScenario> scenarios =
         revision.getDescription().scenarios().stream()
             .map(
@@ -1278,7 +1290,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
                     process ->
                         new Tasking.RuntimeInput(
                             process.runtimePlanId(),
-                            "typescript",
+                            processDefinitions.get(process.runtimePlanId()).runtime(),
                             process.functionalContexts(),
                             process.technicalBoundaries(),
                             process.projectIds()))
@@ -1322,13 +1334,8 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
       throw DomainException.conflict("Tasking Pair execution budget has changed");
     }
     for (Tasking.ProcessSelection process : payload.processes()) {
-      TaskingCatalog.Process definition =
-          TaskingCatalog.PROCESSES.stream()
-              .filter(value -> value.id().equals(process.processId()))
-              .findFirst()
-              .orElse(null);
-      if (definition == null
-          || !CanonicalJson.hash(jsonValue(definition)).equals(process.definitionSha256())) {
+      TaskingCatalog.Process definition = processDefinitions.get(process.runtimePlanId());
+      if (!CanonicalJson.hash(jsonValue(definition)).equals(process.definitionSha256())) {
         throw DomainException.conflict(
             "Tasking process " + process.processId() + " definition has changed");
       }

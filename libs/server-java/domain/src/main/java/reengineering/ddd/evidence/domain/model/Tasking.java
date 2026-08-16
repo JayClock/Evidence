@@ -26,7 +26,7 @@ public final class Tasking {
   private static final Pattern TASK_ID = Pattern.compile("^TASK-\\d{3,}$");
   private static final Pattern SAFE_TOKEN = Pattern.compile("^[A-Za-z0-9_@./:-]+$");
   private static final Pattern PROJECT_ID =
-      Pattern.compile("^[A-Za-z0-9@][A-Za-z0-9@/_.-]{0,199}$");
+      Pattern.compile("^:?[A-Za-z0-9@][A-Za-z0-9@/_.:-]{0,199}$");
   private static final Pattern RELATIVE_ROOT =
       Pattern.compile(
           "^(?!/)(?![A-Za-z]:[\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$))[A-Za-z0-9@._/-]+$");
@@ -556,7 +556,7 @@ public final class Tasking {
     List<ValidatedRuntime> runtimes = new ArrayList<>();
     for (RuntimeInput raw : inputs) {
       String id = pattern(raw.id(), RUNTIME_ID, "Runtime plan id");
-      if (!"typescript".equals(raw.runtime())) {
+      if (!List.of("java", "typescript").contains(raw.runtime())) {
         throw DomainException.validation("unsupported Tasking runtime: " + raw.runtime());
       }
       RuntimeInput input =

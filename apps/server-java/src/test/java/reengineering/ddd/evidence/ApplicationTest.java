@@ -825,19 +825,19 @@ class ApplicationTest {
               "noModelImpactDecisionId":"%s",
               "noModelImpactDecisionSha256":"%s",
               "projectCatalog":{"projects":[
-                {"id":"@evidence/server-domain","root":"libs/server/domain","targets":["lint","test","typecheck"]},
-                {"id":"@evidence/server-persistent","root":"libs/server/persistent","targets":["lint","test","typecheck"]},
-                {"id":"@evidence/server-api","root":"libs/server/api","targets":["lint","test","typecheck"]}
+                {"id":":server-java:domain","root":"libs/server-java/domain","targets":["build","spotlessCheck","test"]},
+                {"id":":server-java:persistent","root":"libs/server-java/persistent","targets":["build","spotlessCheck","test"]},
+                {"id":"@evidence/server","root":"apps/server-java","targets":["build","spotlessCheck","test"]}
               ]},
               "runtimes":[{
-                "id":"RUNTIME-001","runtime":"typescript",
-                "functionalContexts":["delivery"],"technicalBoundaries":["nest-domain"],
-                "projectIds":["@evidence/server-domain","@evidence/server-persistent","@evidence/server-api"]
+                "id":"RUNTIME-001","runtime":"java",
+                "functionalContexts":["delivery"],"technicalBoundaries":["java-domain"],
+                "projectIds":[":server-java:domain",":server-java:persistent","@evidence/server"]
               }],
               "tests":[
-                {"id":"TEST-001","quadrant":"Q1","intent":"Domain authority.","runtimePlanId":"RUNTIME-001","stepId":"nest-domain-q1","projectId":"@evidence/server-domain","testFilter":"tasking-domain","supportedBy":[],"scenarioIds":["SC-001"],"businessData":["Story Revision v2"],"modelRefs":{"entities":[],"associations":[]}},
-                {"id":"TEST-002","quadrant":"Q1","intent":"Persistence authority.","runtimePlanId":"RUNTIME-001","stepId":"nest-persistent-q1","projectId":"@evidence/server-persistent","testFilter":"tasking-persistent","supportedBy":[],"scenarioIds":["SC-001"],"businessData":["TASKING-001"],"modelRefs":{"entities":[],"associations":[]}},
-                {"id":"TEST-003","quadrant":"Q2","intent":"Desk Check authority.","runtimePlanId":"RUNTIME-001","stepId":"nest-api-q2","projectId":"@evidence/server-api","testFilter":"tasking-desk-check","supportedBy":["TEST-001","TEST-002"],"scenarioIds":["SC-001"],"scenarioOutcome":"A complete Tasking Candidate awaits human Desk Check.","businessData":["TASKING-001"],"modelRefs":{"entities":[],"associations":[]}}
+                {"id":"TEST-001","quadrant":"Q1","intent":"Domain authority.","runtimePlanId":"RUNTIME-001","stepId":"java-domain-q1","projectId":":server-java:domain","testFilter":"reengineering.ddd.evidence.domain.TaskingTest","supportedBy":[],"scenarioIds":["SC-001"],"businessData":["Story Revision v2"],"modelRefs":{"entities":[],"associations":[]}},
+                {"id":"TEST-002","quadrant":"Q1","intent":"Persistence authority.","runtimePlanId":"RUNTIME-001","stepId":"java-persistent-q1","projectId":":server-java:persistent","testFilter":"reengineering.ddd.evidence.persistent.TaskingPersistenceTest","supportedBy":[],"scenarioIds":["SC-001"],"businessData":["TASKING-001"],"modelRefs":{"entities":[],"associations":[]}},
+                {"id":"TEST-003","quadrant":"Q2","intent":"Desk Check authority.","runtimePlanId":"RUNTIME-001","stepId":"java-api-q2","projectId":"@evidence/server","testFilter":"reengineering.ddd.evidence.ApplicationTest","supportedBy":["TEST-001","TEST-002"],"scenarioIds":["SC-001"],"scenarioOutcome":"A complete Tasking Candidate awaits human Desk Check.","businessData":["TASKING-001"],"modelRefs":{"entities":[],"associations":[]}}
               ],
               "tasks":[{"id":"TASK-001","description":"Drive the authority chain.","testIds":["TEST-001","TEST-002","TEST-003"],"dependsOn":[]}]
             }
@@ -851,7 +851,7 @@ class ApplicationTest {
     assertContentType(candidateResponse, "application/vnd.evidence.tasking-candidate+json");
     JsonNode taskingCandidate = objectMapper.readTree(candidateResponse.getBody());
     assertThat(taskingCandidate.path("tests").get(2).path("processId").asText())
-        .isEqualTo("typescript-nest-feature");
+        .isEqualTo("java-server-feature");
 
     ResponseEntity<String> approvedResponse =
         authorized(

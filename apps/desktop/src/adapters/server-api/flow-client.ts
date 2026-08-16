@@ -91,7 +91,7 @@ export interface TaskingProjectCatalogInput {
 export interface TaskingDraftInput {
   runtimes: Array<{
     id: string;
-    runtime: 'typescript';
+    runtime: 'java' | 'typescript';
     functionalContexts: string[];
     technicalBoundaries: string[];
     projectIds: string[];

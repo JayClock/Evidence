@@ -62,7 +62,7 @@ describe('Pair Driver tools', () => {
     ).rejects.toThrow('non-test path');
     await expect(
       execute(requiredTool(tools, 'write'), {
-        path: 'libs/server/domain/src/pair.spec.ts',
+        path: 'libs/server-java/domain/src/test/java/PairTest.java',
         content: 'export {};\n',
       }),
     ).rejects.toThrow('non-test path');

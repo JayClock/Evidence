@@ -1,23 +1,14 @@
 {
   "version": 1,
-  "id": "nest-compatibility-v1",
-  "description": "Wire, content-hash, and PostgreSQL compatibility baseline for replacing the Nest server.",
+  "id": "server-compatibility-v1",
+  "description": "Wire, content-hash, Flyway, and PostgreSQL compatibility baseline for the Java server.",
   "openapi": {
-    "path": "libs/server/api/openapi.yaml",
-    "sha256": "sha256:e02cf32611c0497c8010634ab43aa435c77c47de4d68e9b9b9bcde66b4e9cd6e",
+    "path": "libs/contracts/evidence.openapi",
+    "sha256": "sha256:92df6365005afa107a702c64a3a4c1c06b6cb9a67d3c0fc9ebf6ada7f18c3727",
     "pathCount": 69,
     "operationCount": 83
   },
   "database": {
-    "prismaSchema": {
-      "path": "libs/server/persistent/prisma/schema.prisma",
-      "sha256": "sha256:7b35309af84957f478385bd135d341739c2308d64531592019f9ceb8cad917c5",
-      "modelCount": 52
-    },
-    "migrationLock": {
-      "path": "libs/server/persistent/prisma/migrations/migration_lock.toml",
-      "sha256": "sha256:1db17a8d051aa136110736752c5e1f8b7ed92b6ea8e803112fbbe2497047c210"
-    },
     "migrationChainSha256": "sha256:456a4b7d812c5c677fc1601b2c67d8685ec5f2cc4307aced3e2655412b2959b8",
     "migrations": [
       {

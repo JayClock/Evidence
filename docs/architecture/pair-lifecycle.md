@@ -67,7 +67,7 @@ stdout/stderr 正文、源码、完整 diff、绝对路径、Pi Prompt、消息�
 
 不提供旧 Coding 流程兼容：
 
-- 不恢复 CodingRun Domain、Prisma 表、Story admission、REST route 或 HAL relation；
+- 不恢复 CodingRun Domain、旧数据库表、Story admission、REST route 或 HAL relation；
 - 不读取旧 Approved Tasking Plan payload，也不 backfill、双读或双写；
 - 删除一次性全 Story Coding Agent、旧 gate runner、旧 IPC 和 package runtime；
 - Pair 的唯一入口是 `tasking/approved` 的 v2 Approved Tasking Plan。

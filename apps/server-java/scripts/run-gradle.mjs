@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const repositoryRoot = resolve(import.meta.dirname, '../../..');
 const task = process.argv[2] ?? ':apps:server-java:bootRun';
 if (task === ':apps:server-java:bootRun') {
-  const environmentFile = resolve(repositoryRoot, 'apps/server/.env');
+  const environmentFile = resolve(repositoryRoot, 'apps/server-java/.env');
   if (existsSync(environmentFile)) {
     process.loadEnvFile(environmentFile);
   }

@@ -84,62 +84,69 @@ public final class TaskingCatalog {
           new QualityGate("planned_projects", "typecheck", "pnpm nx typecheck {{project}}"),
           new QualityGate("planned_projects", "lint", "pnpm nx lint {{project}}"));
 
-  public static final List<Process> PROCESSES =
-      List.of(nestProcess(), webProcess(), electronProcess());
+  private static final List<QualityGate> JAVA_GATES =
+      List.of(
+          new QualityGate("test_projects", "test", "pnpm nx test {{project}}"),
+          new QualityGate("planned_projects", "build", "pnpm nx build {{project}}"),
+          new QualityGate(
+              "planned_projects", "spotlessCheck", "pnpm nx run {{project}}:spotlessCheck"));
 
-  private static Process nestProcess() {
+  public static final List<Process> PROCESSES =
+      List.of(javaServerProcess(), webProcess(), electronProcess());
+
+  private static Process javaServerProcess() {
     return new Process(
         3,
-        "typescript-nest-feature",
+        "java-server-feature",
         "server-platform",
-        "typescript",
+        "java",
         FUNCTIONAL_CONTEXTS,
-        List.of("nest-domain", "prisma-store", "nest-api"),
-        "The Scenario changes the canonical Nest domain, PostgreSQL persistence, or REST/HAL API.",
+        List.of("java-domain", "mybatis-store", "jaxrs-api"),
+        "The Scenario changes the canonical Java domain, PostgreSQL persistence, or REST/HAL API.",
         List.of(
             new ProcessStep(
-                "nest-domain-q1",
+                "java-domain-q1",
                 "Q1",
-                "Drive the business rule through the isolated domain module.",
+                "Drive the business rule through the isolated Java domain module.",
                 red(
                     "The focused domain test reaches its assertion and fails because the planned business behavior is absent."),
                 "The focused domain test passes with the minimum business behavior.",
                 "The domain behavior is clear without changing the confirmed test outcome.",
                 FUNCTIONAL_CONTEXTS,
-                List.of("nest-domain"),
+                List.of("java-domain"),
                 List.of(),
-                List.of("libs/server/domain/src"),
-                "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
+                List.of("libs/server-java/domain/src"),
+                "pnpm nx test {{project}} --testClassName={{test_filter}}",
                 true),
             new ProcessStep(
-                "nest-persistent-q1",
+                "java-persistent-q1",
                 "Q1",
-                "Drive repository behavior behind the persistence boundary.",
+                "Drive repository behavior behind the MyBatis persistence boundary.",
                 red(
                     "The focused persistence test reaches its repository assertion and fails because the planned behavior is absent."),
                 "The focused persistence test passes through the approved repository boundary.",
                 "The repository change is minimal and preserves the confirmed behavior.",
                 FUNCTIONAL_CONTEXTS,
-                List.of("nest-domain"),
-                List.of(new ReplacedBoundary("prisma-store", "fake")),
-                List.of("libs/server/persistent/src"),
-                "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
+                List.of("java-domain"),
+                List.of(new ReplacedBoundary("mybatis-store", "fake")),
+                List.of("libs/server-java/persistent/src"),
+                "pnpm nx test {{project}} --testClassName={{test_filter}}",
                 true),
             new ProcessStep(
-                "nest-api-q2",
+                "java-api-q2",
                 "Q2",
-                "Confirm the Scenario through the composed Nest API.",
+                "Confirm the Scenario through the composed Spring Boot/Jersey API.",
                 red(
                     "The focused API test reaches its observable response assertion and fails because the Scenario outcome is absent."),
                 "The focused API test observes the confirmed Scenario outcome.",
                 "The composed API path remains minimal and preserves the confirmed response.",
                 FUNCTIONAL_CONTEXTS,
-                List.of("nest-api", "nest-domain"),
-                List.of(new ReplacedBoundary("prisma-store", "fake")),
-                List.of("apps/server/src", "libs/server/api/src"),
-                "pnpm nx test {{project}} --run --testNamePattern={{test_filter}}",
+                List.of("jaxrs-api", "java-domain"),
+                List.of(new ReplacedBoundary("mybatis-store", "fake")),
+                List.of("apps/server-java/src", "libs/server-java/api/src"),
+                "pnpm nx test {{project}} --testClassName={{test_filter}}",
                 true)),
-        PROJECT_GATES);
+        JAVA_GATES);
   }
 
   private static Process webProcess() {

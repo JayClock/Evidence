@@ -2066,6 +2066,9 @@ export interface components {
       | 'react-feature'
       | 'rest-client'
       | 'http-server'
+      | 'jaxrs-api'
+      | 'java-domain'
+      | 'mybatis-store'
       | 'nest-api'
       | 'nest-domain'
       | 'prisma-store'
@@ -2085,7 +2088,7 @@ export interface components {
     TaskingRuntimeInput: {
       id: string;
       /** @enum {string} */
-      runtime: 'typescript';
+      runtime: 'java' | 'typescript';
       functionalContexts: components['schemas']['TaskingFunctionalContext'][];
       technicalBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
       projectIds: string[];
@@ -2281,7 +2284,7 @@ export interface components {
       id: string;
       owner: string;
       /** @enum {string} */
-      runtime: 'typescript';
+      runtime: 'java' | 'typescript';
       functionalContexts: components['schemas']['TaskingFunctionalContext'][];
       technicalBoundaries: components['schemas']['TaskingTechnicalBoundary'][];
       appliesWhen: string;

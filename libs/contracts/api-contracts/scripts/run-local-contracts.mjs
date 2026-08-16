@@ -7,50 +7,46 @@ import { join, resolve } from 'node:path';
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
   throw new Error(
-    'DATABASE_URL must point to a migrated disposable PostgreSQL database.',
+    'DATABASE_URL must point to a disposable PostgreSQL database.',
   );
 }
 assertDisposableDatabase(databaseUrl);
 
-const requestedRuntime = parseRuntime(process.argv.slice(2));
-const runtimes =
-  requestedRuntime === 'all' ? ['nest', 'java'] : [requestedRuntime];
-for (const runtime of runtimes) {
-  await runContracts(runtime, databaseUrl);
-}
+await runContracts(databaseUrl);
 
-async function runContracts(runtime, databaseUrl) {
-  const testRoot = await mkdtemp(
-    join(tmpdir(), `evidence-contracts-${runtime}-`),
-  );
+async function runContracts(databaseUrl) {
+  const testRoot = await mkdtemp(join(tmpdir(), 'evidence-contracts-java-'));
   const port = await reservePort();
   const origin = `http://127.0.0.1:${port}`;
   const authorization = 'Bearer evidence-contract-test';
-  const launch = serverLaunch(runtime);
-  const server = spawn(launch.command, launch.args, {
-    cwd: testRoot,
-    env: {
-      ...process.env,
-      DATABASE_URL: databaseUrl,
-      EVIDENCE_API_AUTHORIZATION: authorization,
-      EVIDENCE_AUTH_MODE: 'local',
-      EVIDENCE_USER_ID: 'desktop-user',
-      EVIDENCE_USER_NAME: 'Desktop User',
-      EVIDENCE_USER_EMAIL: 'desktop@evidence.local',
-      EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
-      EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
-      EVIDENCE_HOST: '127.0.0.1',
-      PORT: String(port),
+  const server = spawn(
+    'java',
+    ['-jar', resolve('apps/server-java/build/libs/evidence-server.jar')],
+    {
+      cwd: testRoot,
+      env: {
+        ...process.env,
+        DATABASE_URL: databaseUrl,
+        EVIDENCE_API_AUTHORIZATION: authorization,
+        EVIDENCE_AUTH_MODE: 'local',
+        EVIDENCE_USER_ID: 'desktop-user',
+        EVIDENCE_USER_NAME: 'Desktop User',
+        EVIDENCE_USER_EMAIL: 'desktop@evidence.local',
+        EVIDENCE_DEFAULT_WORKSPACE_PATH: join(testRoot, 'default-workspace'),
+        EVIDENCE_WORKSPACE_STORAGE_ROOT: join(testRoot, 'workspace-models'),
+        EVIDENCE_HOST: '127.0.0.1',
+        PORT: String(port),
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  );
   let serverOutput = '';
   server.stdout.on('data', (chunk) => (serverOutput += chunk.toString()));
   server.stderr.on('data', (chunk) => (serverOutput += chunk.toString()));
 
-  process.stdout.write(`Running API contracts against ${launch.label}\n`);
+  process.stdout.write('Running API contracts against Java Server\n');
   try {
-    await waitForHealth(`${origin}/health`, server, launch.label);
+    await waitForHealth(`${origin}/health`, server);
     const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
     const result = await run(
       packageManager,
@@ -64,12 +60,11 @@ async function runContracts(runtime, databaseUrl) {
       {
         API_AUTHORIZATION: authorization,
         API_BASE_URL: origin,
-        CONTRACT_RUNTIME: runtime,
       },
     );
     if (result !== 0) {
       throw new Error(
-        `${launch.label} API contracts exited with status ${String(result)}`,
+        `Java Server API contracts exited with status ${String(result)}`,
       );
     }
   } catch (error) {
@@ -84,34 +79,6 @@ async function runContracts(runtime, databaseUrl) {
     if (server.exitCode === null) server.kill('SIGKILL');
     await rm(testRoot, { recursive: true, force: true });
   }
-}
-
-function parseRuntime(args) {
-  const inline = args.find((argument) => argument.startsWith('--runtime='));
-  const optionIndex = args.indexOf('--runtime');
-  const runtime =
-    inline?.slice('--runtime='.length) ?? args[optionIndex + 1] ?? 'java';
-  if (!['all', 'nest', 'java'].includes(runtime)) {
-    throw new Error(
-      `Unknown contract runtime ${JSON.stringify(runtime)}; expected all, nest, or java.`,
-    );
-  }
-  return runtime;
-}
-
-function serverLaunch(runtime) {
-  if (runtime === 'nest') {
-    return {
-      command: process.execPath,
-      args: [resolve('apps/server/dist/main.js')],
-      label: 'Nest',
-    };
-  }
-  return {
-    command: 'java',
-    args: ['-jar', resolve('apps/server-java/build/libs/evidence-server.jar')],
-    label: 'Java',
-  };
 }
 
 function assertDisposableDatabase(value) {
@@ -152,13 +119,11 @@ function reservePort() {
   });
 }
 
-async function waitForHealth(url, child, runtimeLabel) {
+async function waitForHealth(url, child) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
-      throw new Error(
-        `${runtimeLabel} contract server exited with ${child.exitCode}.`,
-      );
+      throw new Error(`Java contract server exited with ${child.exitCode}.`);
     }
     try {
       const response = await fetch(url);
@@ -168,7 +133,7 @@ async function waitForHealth(url, child, runtimeLabel) {
     }
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
   }
-  throw new Error(`Timed out waiting for the ${runtimeLabel} contract server.`);
+  throw new Error('Timed out waiting for the Java contract server.');
 }
 
 function run(command, args, environment) {

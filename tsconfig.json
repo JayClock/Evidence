@@ -28,19 +28,7 @@
       "path": "./libs/contracts/api-contracts"
     },
     {
-      "path": "./apps/server"
-    },
-    {
       "path": "./apps/desktop"
-    },
-    {
-      "path": "./libs/server/domain"
-    },
-    {
-      "path": "./libs/server/persistent"
-    },
-    {
-      "path": "./libs/server/api"
     },
     {
       "path": "./libs/web/web-feature-inbox"

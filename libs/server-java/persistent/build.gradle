@@ -23,17 +23,3 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-
-def prismaMigrationRoot = file('../../server/persistent/prisma/migrations')
-def prismaMigrations = prismaMigrationRoot.listFiles()
-    .findAll { it.isDirectory() }
-    .sort { left, right -> left.name <=> right.name }
-
-tasks.named('processResources').configure {
-    prismaMigrations.eachWithIndex { migration, index ->
-        from(new File(migration, 'migration.sql')) {
-            into 'db/migration'
-            rename { "V${String.format('%03d', index + 1)}__${migration.name}.sql" }
-        }
-    }
-}

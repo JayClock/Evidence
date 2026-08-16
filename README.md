@@ -42,7 +42,7 @@ Electron
 ```
 
 - `apps/web` 是唯一前端组合根，功能与 API client 位于 `libs/web/*`。
-- Java Server 是唯一生产 Server 组合根；Nest 仅在退役前用于 rollback/parity，不接收默认流量。
+- Java Server 是唯一 Server 组合根；仓库不再包含第二套服务端运行时。
 - Server 使用 PostgreSQL registry；Desktop 不打包第二个 Server 或数据库。
 - Web 与 Electron renderer 都消费 REST/HAL；Electron IPC 不复制业务 API。
 - 打包 renderer 使用受保护的 `evidence://app/` 协议。开发 renderer 默认使用 `http://127.0.0.1:4200`。
@@ -133,7 +133,7 @@ API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embed
 | GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`                         | 逻辑实体 CRUD                        |
 | GET, POST, PUT, DELETE | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]`              | 逻辑关系 CRUD                        |
 
-语言无关的 OpenAPI 源是 [`libs/server/api/openapi.yaml`](./libs/server/api/openapi.yaml)，该路径在 Nest 退役前保持稳定。`pnpm api:generate` 直接重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止源码、客户端与 Java 运行时漂移。
+语言无关的 OpenAPI 源是 [`libs/contracts/evidence.openapi`](./libs/contracts/evidence.openapi)。`pnpm api:generate` 直接重新生成 Web client 类型；`pnpm api:check` 和本地 black-box contract runner 防止源码、客户端与 Java 运行时漂移。
 
 ### Desktop 安全与打包
 
@@ -147,7 +147,7 @@ API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embed
 
 ## 数据库 Schema
 
-迁移期 PostgreSQL contract 继续由 [`libs/server/persistent/prisma/schema.prisma`](./libs/server/persistent/prisma/schema.prisma) 和同目录的版本化 SQL migrations 记录。Java persistence build 将这些 SQL 打包为 Flyway migrations；Java Server 启动时执行校验和升级。Nest rollback 仍可使用受保护的 `pnpm prisma:migrate:deploy`，不得运行未受版本控制的 schema push。
+PostgreSQL schema 由 [`libs/server-java/persistent/src/main/resources/db/migration`](./libs/server-java/persistent/src/main/resources/db/migration) 中的 Flyway SQL migrations 演进。Java Server 启动时校验并应用 migration；不得使用 Hibernate 自动建表或未受版本控制的 schema push。
 
 ## 快速开始
 
@@ -163,11 +163,10 @@ API 使用 HAL 风格 JSON：资源通过 `_links` 导航，集合使用 `_embed
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm prisma:generate
-cp apps/server/.env.example apps/server/.env
+cp apps/server-java/.env.example apps/server-java/.env
 ```
 
-迁移窗口内 `pnpm dev:server` 会读取已被 Git 忽略的 `apps/server/.env`，并将其中的 `DATABASE_URL` 传给 Java Server；部署环境应直接提供环境变量。若 rollback migration 使用 transaction-mode 连接池，可用 `DIRECT_URL` 提供 session/direct 地址。一次性旧迁移仍只通过 `pnpm prisma:migrate:deploy` 执行；Java Server 自身使用打包后的 Flyway migrations。
+`pnpm dev:server` 会读取已被 Git 忽略的 `apps/server-java/.env`，并将其中的 `DATABASE_URL` 传给 Java Server；部署环境应直接提供环境变量。Java Server 使用打包后的 Flyway migrations，Hosted 部署应提供允许 migration 的 session/direct PostgreSQL 连接。
 
 ### Browser + Hosted Server
 
@@ -190,7 +189,7 @@ pnpm dev:desktop
 ```
 
 Nx 会联动启动 Server、Web renderer 与 Electron，并为 Electron 设置本地 API 地址
-`http://127.0.0.1:3000/api`。Server 从 `apps/server/.env` 读取数据库连接；Electron 会等待
+`http://127.0.0.1:3000/api`。Server 从 `apps/server-java/.env` 读取数据库连接；Electron 会等待
 Web 与 Server 健康检查通过后再启动。
 
 连接已运行的远程 Server 时，使用：
@@ -245,8 +244,6 @@ pnpm nx run @evidence/desktop:package
 | 变量                                 | 默认值                   | 说明                                                                           |
 | :----------------------------------- | :----------------------- | :----------------------------------------------------------------------------- |
 | `DATABASE_URL`                       | 本地 PostgreSQL fallback | Java Server 运行时 PostgreSQL 连接字符串                                       |
-| `DIRECT_URL`                         | `DATABASE_URL`           | 仅供退役前 Prisma rollback migration 使用的 session/direct 地址                |
-| `EVIDENCE_MIGRATION_DATABASE_URL`    | 未设置                   | 退役前 `pnpm prisma:migrate:deploy` 的显式单次目标                             |
 | `PORT`                               | `3000`                   | Java Server 监听端口                                                           |
 | `EVIDENCE_HOST`                      | `127.0.0.1`              | Server 监听 host；非 loopback 必须使用 OIDC 或配置本地模式 Authorization       |
 | `EVIDENCE_AUTH_MODE`                 | `local`                  | `local` 单用户兼容模式或 `oidc` 多用户模式                                     |
@@ -293,32 +290,30 @@ pnpm nx run @evidence/desktop:package-smoke
 # API
 pnpm api:check
 pnpm api:generate
-# DATABASE_URL 必须指向已迁移的 loopback 临时 PostgreSQL
+# DATABASE_URL 必须指向可丢弃的 loopback PostgreSQL；Java Server 会运行 Flyway
 DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/evidence pnpm api:contracts
-# 退役前显式验证 Java/Nest rollback parity：
-# DATABASE_URL=... pnpm api:contracts:parity
 # 仅对明确的一次性远程测试库允许覆盖保护：
 # EVIDENCE_ALLOW_REMOTE_CONTRACT_DATABASE=1 DATABASE_URL=... pnpm api:contracts
 ```
 
 ## 仓库地图
 
-| 路径                            | 用途                                                     |
-| :------------------------------ | :------------------------------------------------------- |
-| `apps/web/`                     | React + Vite 前端组合根                                  |
-| `libs/web/*`                    | Web shell、features、UI 与 HAL API client                |
-| `apps/server-java/`             | 生产 Spring Boot/Jersey 组合根                           |
-| `libs/server-java/domain/`      | Smart Domain 领域模型与 ports                            |
-| `libs/server-java/application/` | Use cases、事务与授权编排                                |
-| `libs/server-java/api/`         | JAX-RS、HAL 和 HTTP adapter                              |
-| `libs/server-java/persistent/`  | MyBatis/PostgreSQL、Flyway 和 filesystem adapters        |
-| `apps/server/`、`libs/server/*` | 退役前保留的 Nest rollback/parity 实现                   |
-| `apps/desktop/`                 | Electron、local agents、Delivery Loop controllers 与打包 |
-| `libs/contracts/api-contracts/` | 可执行 black-box API contracts                           |
-| `docs/product/`                 | 跨迭代统一产品知识                                       |
-| `.evidence/`                    | Evidence 平台权威领域模型                                |
-| `docs/architecture/`            | 跨迭代统一架构与测试策略                                 |
-| `AGENTS.md`                     | 架构边界、编码规范、验证与 Git 纪律                      |
+| 路径                              | 用途                                                     |
+| :-------------------------------- | :------------------------------------------------------- |
+| `apps/web/`                       | React + Vite 前端组合根                                  |
+| `libs/web/*`                      | Web shell、features、UI 与 HAL API client                |
+| `apps/server-java/`               | 生产 Spring Boot/Jersey 组合根                           |
+| `libs/server-java/domain/`        | Smart Domain 领域模型与 ports                            |
+| `libs/server-java/application/`   | Use cases、事务与授权编排                                |
+| `libs/server-java/api/`           | JAX-RS、HAL 和 HTTP adapter                              |
+| `libs/server-java/persistent/`    | MyBatis/PostgreSQL、Flyway 和 filesystem adapters        |
+| `libs/contracts/evidence.openapi` | 语言无关的 REST/OpenAPI 契约                             |
+| `apps/desktop/`                   | Electron、local agents、Delivery Loop controllers 与打包 |
+| `libs/contracts/api-contracts/`   | 可执行 black-box API contracts                           |
+| `docs/product/`                   | 跨迭代统一产品知识                                       |
+| `.evidence/`                      | Evidence 平台权威领域模型                                |
+| `docs/architecture/`              | 跨迭代统一架构与测试策略                                 |
+| `AGENTS.md`                       | 架构边界、编码规范、验证与 Git 纪律                      |
 
 ## 开发约定
 

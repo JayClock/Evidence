@@ -78,4 +78,4 @@ Story-target 回答不得直接改写 Story Card。Kickoff 人工重新确认 re
 - 删除“latest Revision 含 Scenario 即可直接启动 CodingRun”的 admission；
 - Scenario authority 只能由 Understand human confirmation 创建；
 - 迁移可以清除现有 Iteration、Kickoff、Story、Scenario 与 CodingRun workflow 数据，不 backfill、不双读、不保留旧 DTO、HAL relation 或 fallback reader；
-- 已有 Prisma migration 历史不得改写。
+- 已有 Flyway migration 历史不得改写。

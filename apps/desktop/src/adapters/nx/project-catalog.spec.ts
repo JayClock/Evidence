@@ -14,10 +14,10 @@ describe('readNxProjectCatalog', () => {
                 sourceRoot: '/private/source/path',
               },
             },
-            '@evidence/server-domain': {
+            ':server-java:domain': {
               data: {
-                root: 'libs/server/domain',
-                targets: { typecheck: {}, lint: {}, test: {} },
+                root: 'libs/server-java/domain',
+                targets: { build: {}, spotlessCheck: {}, test: {} },
               },
             },
           },
@@ -34,9 +34,9 @@ describe('readNxProjectCatalog', () => {
     expect(catalog).toEqual({
       projects: [
         {
-          id: '@evidence/server-domain',
-          root: 'libs/server/domain',
-          targets: ['lint', 'test', 'typecheck'],
+          id: ':server-java:domain',
+          root: 'libs/server-java/domain',
+          targets: ['build', 'spotlessCheck', 'test'],
         },
         {
           id: '@evidence/web',
