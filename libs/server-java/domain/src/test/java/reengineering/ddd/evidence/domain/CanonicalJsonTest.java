@@ -40,6 +40,17 @@ class CanonicalJsonTest {
   }
 
   @Test
+  void canonicalizesRecordsUsedByExecutionAuthority() {
+    record Authority(String action, int version, List<String> evidenceRefs) {}
+
+    Authority authority = new Authority("approve", 3, List.of("pair:manifest"));
+    assertEquals(
+        CanonicalJson.hash(
+            Map.of("action", "approve", "version", 3, "evidenceRefs", List.of("pair:manifest"))),
+        CanonicalJson.hash(authority));
+  }
+
+  @Test
   void hashesNormalizedInboxSourcesLikeTheNestServer() {
     Inbox.HashedSource source =
         Inbox.normalizeAndHash(

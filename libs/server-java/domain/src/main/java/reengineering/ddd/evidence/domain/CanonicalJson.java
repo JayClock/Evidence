@@ -1,5 +1,7 @@
 package reengineering.ddd.evidence.domain;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.RecordComponent;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -95,8 +97,25 @@ public final class CanonicalJson {
       appendObject(json, map);
     } else if (value instanceof Iterable<?> iterable) {
       appendArray(json, iterable);
+    } else if (value instanceof Record record) {
+      appendObject(json, recordValues(record));
+    } else if (value instanceof Enum<?> enumeration) {
+      appendString(json, enumeration.name());
     } else {
       throw new IllegalArgumentException("Unsupported canonical JSON value: " + value.getClass());
+    }
+  }
+
+  private static Map<String, Object> recordValues(Record record) {
+    LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+    try {
+      for (RecordComponent component : record.getClass().getRecordComponents()) {
+        values.put(component.getName(), component.getAccessor().invoke(record));
+      }
+      return values;
+    } catch (IllegalAccessException | InvocationTargetException error) {
+      throw new IllegalArgumentException(
+          "Could not read canonical JSON record " + record.getClass().getName(), error);
     }
   }
 

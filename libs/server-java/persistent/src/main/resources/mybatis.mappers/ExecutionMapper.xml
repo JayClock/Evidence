@@ -1,0 +1,465 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.ExecutionMapper">
+  <sql id="pairRunColumns">
+    id, reference, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+    story_id AS "storyId", story_revision_id AS "storyRevisionId",
+    story_revision_sha256 AS "storyRevisionSha256",
+    approved_tasking_plan_id AS "approvedTaskingPlanId",
+    approved_tasking_plan_sha256 AS "approvedTaskingPlanSha256",
+    base_commit_sha AS "baseCommitSha", branch_name AS "branchName", status, checkpoint, version,
+    cursor::text AS cursor, completed_test_ids::text AS "completedTestIds",
+    completed_step_keys::text AS "completedStepKeys", execution_budget::text AS "executionBudget",
+    budget_usage::text AS "budgetUsage", lease_owner_id AS "leaseOwnerId",
+    lease_token_sha256 AS "leaseTokenSha256", lease_expires_at AS "leaseExpiresAt",
+    current_diff_sha256 AS "currentDiffSha256", final_manifest_sha256 AS "finalManifestSha256",
+    approved_commit_sha AS "approvedCommitSha", started_at AS "startedAt",
+    updated_at AS "updatedAt", completed_at AS "completedAt"
+  </sql>
+
+  <select id="findLatestPair" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairRunRow">
+    SELECT <include refid="pairRunColumns"/> FROM pair_runs
+    WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+    ORDER BY started_at DESC LIMIT 1
+  </select>
+  <select id="countOpenPairs" resultType="int">
+    SELECT COUNT(*) FROM pair_runs WHERE workspace_id = #{workspaceId}
+      AND status IN ('running', 'approval_required', 'exception')
+  </select>
+  <select id="countPairRuns" resultType="int">
+    SELECT COUNT(*) FROM pair_runs WHERE workspace_id = #{workspaceId}
+  </select>
+  <insert id="insertPairRun">
+    INSERT INTO pair_runs
+      (id, reference, workspace_id, iteration_id, story_id, story_revision_id,
+       story_revision_sha256, approved_tasking_plan_id, approved_tasking_plan_sha256,
+       base_commit_sha, branch_name, status, checkpoint, version, cursor, completed_test_ids,
+       completed_step_keys, execution_budget, budget_usage, lease_owner_id, lease_token_sha256,
+       lease_expires_at, current_diff_sha256, final_manifest_sha256, approved_commit_sha,
+       started_at, updated_at, completed_at)
+    VALUES
+      (#{row.id}, #{row.reference}, #{row.workspaceId}, #{row.iterationId}, #{row.storyId},
+       #{row.storyRevisionId}, #{row.storyRevisionSha256}, #{row.approvedTaskingPlanId},
+       #{row.approvedTaskingPlanSha256}, #{row.baseCommitSha}, #{row.branchName}, #{row.status},
+       #{row.checkpoint}, #{row.version}, CAST(#{row.cursor} AS jsonb),
+       CAST(#{row.completedTestIds} AS jsonb), CAST(#{row.completedStepKeys} AS jsonb),
+       CAST(#{row.executionBudget} AS jsonb), CAST(#{row.budgetUsage} AS jsonb),
+       #{row.leaseOwnerId}, #{row.leaseTokenSha256}, #{row.leaseExpiresAt},
+       #{row.currentDiffSha256}, #{row.finalManifestSha256}, #{row.approvedCommitSha},
+       #{row.startedAt}, #{row.updatedAt}, #{row.completedAt})
+  </insert>
+  <update id="updatePairRun">
+    UPDATE pair_runs SET status = #{row.status}, checkpoint = #{row.checkpoint}, version = #{row.version},
+      cursor = CAST(#{row.cursor} AS jsonb), completed_test_ids = CAST(#{row.completedTestIds} AS jsonb),
+      completed_step_keys = CAST(#{row.completedStepKeys} AS jsonb),
+      budget_usage = CAST(#{row.budgetUsage} AS jsonb), lease_owner_id = #{row.leaseOwnerId},
+      lease_token_sha256 = #{row.leaseTokenSha256}, lease_expires_at = #{row.leaseExpiresAt},
+      current_diff_sha256 = #{row.currentDiffSha256}, final_manifest_sha256 = #{row.finalManifestSha256},
+      approved_commit_sha = #{row.approvedCommitSha}, updated_at = #{row.updatedAt},
+      completed_at = #{row.completedAt}
+    WHERE id = #{row.id} AND workspace_id = #{row.workspaceId} AND version = #{expectedVersion}
+  </update>
+  <update id="claimPairLease">
+    UPDATE pair_runs SET lease_owner_id = #{ownerId}, lease_token_sha256 = #{tokenSha256},
+      lease_expires_at = #{expiresAt}, updated_at = #{timestamp}
+    WHERE id = #{id} AND version = #{expectedVersion} AND status = 'running'
+      AND (lease_expires_at IS NULL OR lease_expires_at &lt;= #{timestamp})
+  </update>
+  <update id="heartbeatPairLease">
+    UPDATE pair_runs SET lease_expires_at = #{expiresAt}, updated_at = #{timestamp}
+    WHERE id = #{id} AND version = #{expectedVersion} AND status = 'running'
+      AND lease_token_sha256 = #{tokenSha256} AND lease_expires_at &gt; #{timestamp}
+  </update>
+
+  <sql id="pairAttemptColumns">
+    id, pair_run_id AS "pairRunId", action_id AS "actionId", sequence, role, mode,
+    task_id AS "taskId", test_id AS "testId", process_id AS "processId", step_id AS "stepId",
+    summary, changed_paths::text AS "changedPaths", before_worktree_sha256 AS "beforeWorktreeSha256",
+    after_worktree_sha256 AS "afterWorktreeSha256", diff_sha256 AS "diffSha256",
+    agent_call_count AS "agentCallCount", input_tokens AS "inputTokens", output_tokens AS "outputTokens",
+    completed_at AS "completedAt", record_sha256 AS "recordSha256"
+  </sql>
+  <select id="findPairDriverAttempts" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairDriverAttemptRow">
+    SELECT <include refid="pairAttemptColumns"/> FROM pair_driver_attempts
+    WHERE pair_run_id = #{pairRunId} ORDER BY sequence ASC
+  </select>
+  <select id="findPairDriverAttemptByAction" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairDriverAttemptRow">
+    SELECT <include refid="pairAttemptColumns"/> FROM pair_driver_attempts
+    WHERE pair_run_id = #{pairRunId} AND action_id = #{actionId}
+  </select>
+  <insert id="insertPairDriverAttempt">
+    INSERT INTO pair_driver_attempts
+      (id, pair_run_id, action_id, sequence, role, mode, task_id, test_id, process_id, step_id,
+       summary, changed_paths, before_worktree_sha256, after_worktree_sha256, diff_sha256,
+       agent_call_count, input_tokens, output_tokens, completed_at, record_sha256)
+    VALUES
+      (#{row.id}, #{row.pairRunId}, #{row.actionId}, #{row.sequence}, #{row.role}, #{row.mode},
+       #{row.taskId}, #{row.testId}, #{row.processId}, #{row.stepId}, #{row.summary},
+       CAST(#{row.changedPaths} AS jsonb), #{row.beforeWorktreeSha256}, #{row.afterWorktreeSha256},
+       #{row.diffSha256}, #{row.agentCallCount}, #{row.inputTokens}, #{row.outputTokens},
+       #{row.completedAt}, #{row.recordSha256})
+  </insert>
+
+  <sql id="pairObservationColumns">
+    id, pair_run_id AS "pairRunId", action_id AS "actionId", sequence, stage,
+    task_id AS "taskId", test_id AS "testId", process_id AS "processId", step_id AS "stepId",
+    command, termination, exit_code AS "exitCode", signal, duration_ms AS "durationMs",
+    stdout_sha256 AS "stdoutSha256", stdout_bytes AS "stdoutBytes", stdout_lines AS "stdoutLines",
+    stderr_sha256 AS "stderrSha256", stderr_bytes AS "stderrBytes", stderr_lines AS "stderrLines",
+    worktree_sha256 AS "worktreeSha256", diff_sha256 AS "diffSha256",
+    failure_fingerprint AS "failureFingerprint", observed_at AS "observedAt",
+    previous_record_sha256 AS "previousRecordSha256", record_sha256 AS "recordSha256"
+  </sql>
+  <select id="findPairCommandObservations" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairCommandObservationRow">
+    SELECT <include refid="pairObservationColumns"/> FROM pair_command_observations
+    WHERE pair_run_id = #{pairRunId} ORDER BY sequence ASC
+  </select>
+  <select id="findPairCommandObservationByAction" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairCommandObservationRow">
+    SELECT <include refid="pairObservationColumns"/> FROM pair_command_observations
+    WHERE pair_run_id = #{pairRunId} AND action_id = #{actionId}
+  </select>
+  <insert id="insertPairCommandObservation">
+    INSERT INTO pair_command_observations
+      (id, pair_run_id, action_id, sequence, stage, task_id, test_id, process_id, step_id,
+       command, termination, exit_code, signal, duration_ms, stdout_sha256, stdout_bytes,
+       stdout_lines, stderr_sha256, stderr_bytes, stderr_lines, worktree_sha256, diff_sha256,
+       failure_fingerprint, observed_at, previous_record_sha256, record_sha256)
+    VALUES
+      (#{row.id}, #{row.pairRunId}, #{row.actionId}, #{row.sequence}, #{row.stage}, #{row.taskId},
+       #{row.testId}, #{row.processId}, #{row.stepId}, #{row.command}, #{row.termination},
+       #{row.exitCode}, #{row.signal}, #{row.durationMs}, #{row.stdoutSha256}, #{row.stdoutBytes},
+       #{row.stdoutLines}, #{row.stderrSha256}, #{row.stderrBytes}, #{row.stderrLines},
+       #{row.worktreeSha256}, #{row.diffSha256}, #{row.failureFingerprint}, #{row.observedAt},
+       #{row.previousRecordSha256}, #{row.recordSha256})
+  </insert>
+
+  <sql id="pairRedColumns">
+    id, pair_run_id AS "pairRunId", action_id AS "actionId", observation_id AS "observationId",
+    classification, accepted, reason, reviewed_at AS "reviewedAt", record_sha256 AS "recordSha256"
+  </sql>
+  <select id="findPairRedReviews" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairRedReviewRow">
+    SELECT <include refid="pairRedColumns"/> FROM pair_red_reviews
+    WHERE pair_run_id = #{pairRunId} ORDER BY reviewed_at ASC
+  </select>
+  <select id="findPairRedReviewByAction" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairRedReviewRow">
+    SELECT <include refid="pairRedColumns"/> FROM pair_red_reviews
+    WHERE pair_run_id = #{pairRunId} AND action_id = #{actionId}
+  </select>
+  <insert id="insertPairRedReview">
+    INSERT INTO pair_red_reviews
+      (id, pair_run_id, action_id, observation_id, classification, accepted, reason, reviewed_at, record_sha256)
+    VALUES
+      (#{row.id}, #{row.pairRunId}, #{row.actionId}, #{row.observationId}, #{row.classification},
+       #{row.accepted}, #{row.reason}, #{row.reviewedAt}, #{row.recordSha256})
+  </insert>
+
+  <sql id="pairExceptionColumns">
+    id, pair_run_id AS "pairRunId", action_id AS "actionId", kind, summary,
+    failure_fingerprint AS "failureFingerprint", allowed_routes::text AS "allowedRoutes",
+    raised_at AS "raisedAt", resolved_at AS "resolvedAt", record_sha256 AS "recordSha256"
+  </sql>
+  <select id="findCurrentPairException" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairExceptionRow">
+    SELECT <include refid="pairExceptionColumns"/> FROM pair_automation_exceptions
+    WHERE pair_run_id = #{pairRunId} AND resolved_at IS NULL ORDER BY raised_at DESC LIMIT 1
+  </select>
+  <select id="findPairExceptionByAction" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairExceptionRow">
+    SELECT <include refid="pairExceptionColumns"/> FROM pair_automation_exceptions
+    WHERE pair_run_id = #{pairRunId} AND action_id = #{actionId} AND resolved_at IS NULL
+    ORDER BY raised_at DESC LIMIT 1
+  </select>
+  <insert id="insertPairException">
+    INSERT INTO pair_automation_exceptions
+      (id, pair_run_id, action_id, kind, summary, failure_fingerprint, allowed_routes,
+       raised_at, resolved_at, record_sha256)
+    VALUES
+      (#{row.id}, #{row.pairRunId}, #{row.actionId}, #{row.kind}, #{row.summary},
+       #{row.failureFingerprint}, CAST(#{row.allowedRoutes} AS jsonb), #{row.raisedAt},
+       #{row.resolvedAt}, #{row.recordSha256})
+  </insert>
+  <update id="resolvePairExceptions">
+    UPDATE pair_automation_exceptions SET resolved_at = #{resolvedAt}
+    WHERE pair_run_id = #{pairRunId} AND resolved_at IS NULL
+  </update>
+
+  <sql id="pairManifestColumns">
+    id, pair_run_id AS "pairRunId", approved_tasking_plan_sha256 AS "approvedTaskingPlanSha256",
+    story_revision_sha256 AS "storyRevisionSha256", base_commit_sha AS "baseCommitSha",
+    completed_test_ids::text AS "completedTestIds", completed_step_keys::text AS "completedStepKeys",
+    driver_attempt_ids::text AS "driverAttemptIds", command_observation_ids::text AS "commandObservationIds",
+    red_review_ids::text AS "redReviewIds", changed_paths::text AS "changedPaths",
+    final_diff_sha256 AS "finalDiffSha256", evidence_chain_sha256 AS "evidenceChainSha256",
+    generated_at AS "generatedAt", content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findLatestPairManifest" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairManifestRow">
+    SELECT <include refid="pairManifestColumns"/> FROM pair_execution_manifests
+    WHERE pair_run_id = #{pairRunId} ORDER BY generated_at DESC LIMIT 1
+  </select>
+  <insert id="insertPairManifest">
+    INSERT INTO pair_execution_manifests
+      (id, pair_run_id, approved_tasking_plan_sha256, story_revision_sha256, base_commit_sha,
+       completed_test_ids, completed_step_keys, driver_attempt_ids, command_observation_ids,
+       red_review_ids, changed_paths, final_diff_sha256, evidence_chain_sha256, generated_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.pairRunId}, #{row.approvedTaskingPlanSha256}, #{row.storyRevisionSha256},
+       #{row.baseCommitSha}, CAST(#{row.completedTestIds} AS jsonb), CAST(#{row.completedStepKeys} AS jsonb),
+       CAST(#{row.driverAttemptIds} AS jsonb), CAST(#{row.commandObservationIds} AS jsonb),
+       CAST(#{row.redReviewIds} AS jsonb), CAST(#{row.changedPaths} AS jsonb), #{row.finalDiffSha256},
+       #{row.evidenceChainSha256}, #{row.generatedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="pairDecisionColumns">
+    id, pair_run_id AS "pairRunId", sequence, action, reason,
+    manifest_sha256 AS "manifestSha256", diff_sha256 AS "diffSha256", commit_sha AS "commitSha",
+    decided_by_user_id AS "decidedByUserId", decided_at AS "decidedAt", content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findPairDecisions" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$PairDecisionRow">
+    SELECT <include refid="pairDecisionColumns"/> FROM pair_coding_decisions
+    WHERE pair_run_id = #{pairRunId} ORDER BY sequence ASC
+  </select>
+  <insert id="insertPairDecision">
+    INSERT INTO pair_coding_decisions
+      (id, pair_run_id, sequence, action, reason, manifest_sha256, diff_sha256,
+       commit_sha, decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.pairRunId}, #{row.sequence}, #{row.action}, #{row.reason},
+       #{row.manifestSha256}, #{row.diffSha256}, #{row.commitSha}, #{row.decidedByUserId},
+       #{row.decidedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="showcaseRunColumns">
+    id, reference, attempt, workspace_id AS "workspaceId", iteration_id AS "iterationId",
+    story_id AS "storyId", story_revision_id AS "storyRevisionId",
+    story_revision_sha256 AS "storyRevisionSha256",
+    approved_tasking_plan_id AS "approvedTaskingPlanId",
+    approved_tasking_plan_sha256 AS "approvedTaskingPlanSha256", pair_run_id AS "pairRunId",
+    pair_manifest_id AS "pairManifestId", pair_manifest_sha256 AS "pairManifestSha256",
+    approved_commit_sha AS "approvedCommitSha", stage, version,
+    evidence_bundle_sha256 AS "evidenceBundleSha256", started_at AS "startedAt",
+    updated_at AS "updatedAt", completed_at AS "completedAt"
+  </sql>
+  <select id="findLatestShowcase" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseRunRow">
+    SELECT <include refid="showcaseRunColumns"/> FROM showcase_runs
+    WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId}
+    ORDER BY attempt DESC LIMIT 1
+  </select>
+  <select id="countShowcaseRuns" resultType="int">
+    SELECT COUNT(*) FROM showcase_runs WHERE workspace_id = #{workspaceId}
+  </select>
+  <select id="countIterationShowcases" resultType="int">
+    SELECT COUNT(*) FROM showcase_runs WHERE iteration_id = #{iterationId}
+  </select>
+  <insert id="insertShowcaseRun">
+    INSERT INTO showcase_runs
+      (id, reference, attempt, workspace_id, iteration_id, story_id, story_revision_id,
+       story_revision_sha256, approved_tasking_plan_id, approved_tasking_plan_sha256,
+       pair_run_id, pair_manifest_id, pair_manifest_sha256, approved_commit_sha, stage,
+       version, evidence_bundle_sha256, started_at, updated_at, completed_at)
+    VALUES
+      (#{row.id}, #{row.reference}, #{row.attempt}, #{row.workspaceId}, #{row.iterationId},
+       #{row.storyId}, #{row.storyRevisionId}, #{row.storyRevisionSha256},
+       #{row.approvedTaskingPlanId}, #{row.approvedTaskingPlanSha256}, #{row.pairRunId},
+       #{row.pairManifestId}, #{row.pairManifestSha256}, #{row.approvedCommitSha}, #{row.stage},
+       #{row.version}, #{row.evidenceBundleSha256}, #{row.startedAt}, #{row.updatedAt}, #{row.completedAt})
+  </insert>
+  <update id="updateShowcaseRun">
+    UPDATE showcase_runs SET stage = #{row.stage}, version = #{row.version},
+      evidence_bundle_sha256 = #{row.evidenceBundleSha256}, updated_at = #{row.updatedAt},
+      completed_at = #{row.completedAt}
+    WHERE id = #{row.id} AND workspace_id = #{row.workspaceId} AND version = #{expectedVersion}
+  </update>
+
+  <sql id="showcaseQ2Columns">
+    id, showcase_run_id AS "showcaseRunId", action_id AS "actionId", sequence,
+    test_id AS "testId", scenario_ids::text AS "scenarioIds", process_id AS "processId",
+    step_id AS "stepId", project_id AS "projectId", command, termination,
+    exit_code AS "exitCode", signal, duration_ms AS "durationMs", stdout_sha256 AS "stdoutSha256",
+    stdout_bytes AS "stdoutBytes", stdout_lines AS "stdoutLines", stderr_sha256 AS "stderrSha256",
+    stderr_bytes AS "stderrBytes", stderr_lines AS "stderrLines", approved_commit_sha AS "approvedCommitSha",
+    worktree_sha256 AS "worktreeSha256", observed_at AS "observedAt",
+    previous_record_sha256 AS "previousRecordSha256", record_sha256 AS "recordSha256"
+  </sql>
+  <select id="findShowcaseQ2" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseQ2Row">
+    SELECT <include refid="showcaseQ2Columns"/> FROM showcase_q2_observations
+    WHERE showcase_run_id = #{runId} ORDER BY sequence ASC
+  </select>
+  <select id="findShowcaseQ2ByAction" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseQ2Row">
+    SELECT <include refid="showcaseQ2Columns"/> FROM showcase_q2_observations
+    WHERE showcase_run_id = #{runId} AND action_id = #{actionId}
+  </select>
+  <insert id="insertShowcaseQ2">
+    INSERT INTO showcase_q2_observations
+      (id, showcase_run_id, action_id, sequence, test_id, scenario_ids, process_id, step_id,
+       project_id, command, termination, exit_code, signal, duration_ms, stdout_sha256,
+       stdout_bytes, stdout_lines, stderr_sha256, stderr_bytes, stderr_lines, approved_commit_sha,
+       worktree_sha256, observed_at, previous_record_sha256, record_sha256)
+    VALUES
+      (#{row.id}, #{row.showcaseRunId}, #{row.actionId}, #{row.sequence}, #{row.testId},
+       CAST(#{row.scenarioIds} AS jsonb), #{row.processId}, #{row.stepId}, #{row.projectId},
+       #{row.command}, #{row.termination}, #{row.exitCode}, #{row.signal}, #{row.durationMs},
+       #{row.stdoutSha256}, #{row.stdoutBytes}, #{row.stdoutLines}, #{row.stderrSha256},
+       #{row.stderrBytes}, #{row.stderrLines}, #{row.approvedCommitSha}, #{row.worktreeSha256},
+       #{row.observedAt}, #{row.previousRecordSha256}, #{row.recordSha256})
+  </insert>
+
+  <sql id="showcaseProductColumns">
+    id, showcase_run_id AS "showcaseRunId", scenario_id AS "scenarioId",
+    scenario_reference AS "scenarioReference", given_steps::text AS "givenSteps",
+    when_step AS "whenStep", expected_then_steps::text AS "expectedThenSteps",
+    business_data::text AS "businessData", observed_outcomes::text AS "observedOutcomes",
+    observation, value_feedback AS "valueFeedback", evidence_refs::text AS "evidenceRefs",
+    observed_by_user_id AS "observedByUserId", observed_at AS "observedAt",
+    content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findShowcaseProducts" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseProductRow">
+    SELECT <include refid="showcaseProductColumns"/> FROM showcase_product_observations
+    WHERE showcase_run_id = #{runId} ORDER BY observed_at ASC
+  </select>
+  <insert id="insertShowcaseProduct">
+    INSERT INTO showcase_product_observations
+      (id, showcase_run_id, scenario_id, scenario_reference, given_steps, when_step,
+       expected_then_steps, business_data, observed_outcomes, observation, value_feedback,
+       evidence_refs, observed_by_user_id, observed_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.showcaseRunId}, #{row.scenarioId}, #{row.scenarioReference},
+       CAST(#{row.givenSteps} AS jsonb), #{row.whenStep}, CAST(#{row.expectedThenSteps} AS jsonb),
+       CAST(#{row.businessData} AS jsonb), CAST(#{row.observedOutcomes} AS jsonb),
+       #{row.observation}, #{row.valueFeedback}, CAST(#{row.evidenceRefs} AS jsonb),
+       #{row.observedByUserId}, #{row.observedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="showcaseRiskColumns">
+    id, showcase_run_id AS "showcaseRunId", quadrant, disposition, activities::text AS activities,
+    reason, decided_by_user_id AS "decidedByUserId", decided_at AS "decidedAt",
+    content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findShowcaseRisks" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseRiskRow">
+    SELECT <include refid="showcaseRiskColumns"/> FROM showcase_risk_decisions
+    WHERE showcase_run_id = #{runId} ORDER BY decided_at ASC
+  </select>
+  <insert id="insertShowcaseRisk">
+    INSERT INTO showcase_risk_decisions
+      (id, showcase_run_id, quadrant, disposition, activities, reason,
+       decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.showcaseRunId}, #{row.quadrant}, #{row.disposition},
+       CAST(#{row.activities} AS jsonb), #{row.reason}, #{row.decidedByUserId},
+       #{row.decidedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="showcaseEvaluationColumns">
+    id, showcase_run_id AS "showcaseRunId", sequence, quadrant, activity, outcome, finding,
+    evidence_refs::text AS "evidenceRefs", observed_by_user_id AS "observedByUserId",
+    observed_at AS "observedAt", content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findShowcaseEvaluations" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseEvaluationRow">
+    SELECT <include refid="showcaseEvaluationColumns"/> FROM showcase_evaluations
+    WHERE showcase_run_id = #{runId} ORDER BY sequence ASC
+  </select>
+  <insert id="insertShowcaseEvaluation">
+    INSERT INTO showcase_evaluations
+      (id, showcase_run_id, sequence, quadrant, activity, outcome, finding,
+       evidence_refs, observed_by_user_id, observed_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.showcaseRunId}, #{row.sequence}, #{row.quadrant}, #{row.activity},
+       #{row.outcome}, #{row.finding}, CAST(#{row.evidenceRefs} AS jsonb),
+       #{row.observedByUserId}, #{row.observedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="showcaseReviewColumns">
+    id, showcase_run_id AS "showcaseRunId", evidence_bundle_sha256 AS "evidenceBundleSha256",
+    observed_facts::text AS "observedFacts", product_domain_feedback::text AS "productDomainFeedback",
+    technical_quality_feedback::text AS "technicalQualityFeedback",
+    unresolved_assumptions::text AS "unresolvedAssumptions", recommendation,
+    reviewed_at AS "reviewedAt", content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findShowcaseReview" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseReviewRow">
+    SELECT <include refid="showcaseReviewColumns"/> FROM showcase_reviews WHERE showcase_run_id = #{runId}
+  </select>
+  <insert id="insertShowcaseReview">
+    INSERT INTO showcase_reviews
+      (id, showcase_run_id, evidence_bundle_sha256, observed_facts, product_domain_feedback,
+       technical_quality_feedback, unresolved_assumptions, recommendation, reviewed_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.showcaseRunId}, #{row.evidenceBundleSha256}, CAST(#{row.observedFacts} AS jsonb),
+       CAST(#{row.productDomainFeedback} AS jsonb), CAST(#{row.technicalQualityFeedback} AS jsonb),
+       CAST(#{row.unresolvedAssumptions} AS jsonb), #{row.recommendation}, #{row.reviewedAt},
+       #{row.contentSha256})
+  </insert>
+
+  <sql id="showcaseDecisionColumns">
+    id, showcase_run_id AS "showcaseRunId", action, reason, feedback_target AS "feedbackTarget",
+    evidence_bundle_sha256 AS "evidenceBundleSha256", review_id AS "reviewId",
+    decided_by_user_id AS "decidedByUserId", decided_at AS "decidedAt",
+    content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findShowcaseDecision" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$ShowcaseDecisionRow">
+    SELECT <include refid="showcaseDecisionColumns"/> FROM showcase_decisions WHERE showcase_run_id = #{runId}
+  </select>
+  <insert id="insertShowcaseDecision">
+    INSERT INTO showcase_decisions
+      (id, showcase_run_id, action, reason, feedback_target, evidence_bundle_sha256,
+       review_id, decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.showcaseRunId}, #{row.action}, #{row.reason}, #{row.feedbackTarget},
+       #{row.evidenceBundleSha256}, #{row.reviewId}, #{row.decidedByUserId},
+       #{row.decidedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="respondCandidateColumns">
+    id, reference, sequence, action_id AS "actionId", workspace_id AS "workspaceId",
+    iteration_id AS "iterationId", story_id AS "storyId", story_revision_id AS "storyRevisionId",
+    showcase_run_id AS "showcaseRunId", showcase_decision_id AS "showcaseDecisionId",
+    authority::text AS authority, authority_sha256 AS "authoritySha256", promotions::text AS promotions,
+    no_promotion_reason AS "noPromotionReason", observed_outcomes::text AS "observedOutcomes",
+    residual_risks::text AS "residualRisks", next_probe::text AS "nextProbe",
+    proposed_at AS "proposedAt", content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findRespondCandidates" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$RespondCandidateRow">
+    SELECT <include refid="respondCandidateColumns"/> FROM respond_candidates
+    WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId} ORDER BY sequence ASC
+  </select>
+  <select id="findRespondCandidateByAction" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$RespondCandidateRow">
+    SELECT <include refid="respondCandidateColumns"/> FROM respond_candidates
+    WHERE workspace_id = #{workspaceId} AND iteration_id = #{iterationId} AND action_id = #{actionId}
+  </select>
+  <select id="countRespondCandidates" resultType="int">
+    SELECT COUNT(*) FROM respond_candidates WHERE workspace_id = #{workspaceId}
+  </select>
+  <insert id="insertRespondCandidate">
+    INSERT INTO respond_candidates
+      (id, reference, sequence, action_id, workspace_id, iteration_id, story_id, story_revision_id,
+       showcase_run_id, showcase_decision_id, authority, authority_sha256, promotions,
+       no_promotion_reason, observed_outcomes, residual_risks, next_probe, proposed_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.reference}, #{row.sequence}, #{row.actionId}, #{row.workspaceId},
+       #{row.iterationId}, #{row.storyId}, #{row.storyRevisionId}, #{row.showcaseRunId},
+       #{row.showcaseDecisionId}, CAST(#{row.authority} AS jsonb), #{row.authoritySha256},
+       CAST(#{row.promotions} AS jsonb), #{row.noPromotionReason}, CAST(#{row.observedOutcomes} AS jsonb),
+       CAST(#{row.residualRisks} AS jsonb), CAST(#{row.nextProbe} AS jsonb),
+       #{row.proposedAt}, #{row.contentSha256})
+  </insert>
+
+  <sql id="respondDecisionColumns">
+    decision.id, decision.candidate_id AS "candidateId", decision.action, decision.reason,
+    decision.candidate_sha256 AS "candidateSha256", decision.authority_sha256 AS "authoritySha256",
+    decision.decided_by_user_id AS "decidedByUserId", decision.decided_at AS "decidedAt",
+    decision.content_sha256 AS "contentSha256"
+  </sql>
+  <select id="findRespondDecisions" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$RespondDecisionRow">
+    SELECT <include refid="respondDecisionColumns"/> FROM respond_decisions decision
+    JOIN respond_candidates candidate ON candidate.id = decision.candidate_id
+    WHERE candidate.iteration_id = #{iterationId} ORDER BY decision.decided_at ASC
+  </select>
+  <select id="findRespondDecisionByCandidate" resultType="reengineering.ddd.evidence.persistent.mappers.ExecutionRows$RespondDecisionRow">
+    SELECT <include refid="respondDecisionColumns"/> FROM respond_decisions decision
+    WHERE decision.candidate_id = #{candidateId}
+  </select>
+  <insert id="insertRespondDecision">
+    INSERT INTO respond_decisions
+      (id, candidate_id, action, reason, candidate_sha256, authority_sha256,
+       decided_by_user_id, decided_at, content_sha256)
+    VALUES
+      (#{row.id}, #{row.candidateId}, #{row.action}, #{row.reason}, #{row.candidateSha256},
+       #{row.authoritySha256}, #{row.decidedByUserId}, #{row.decidedAt}, #{row.contentSha256})
+  </insert>
+</mapper>

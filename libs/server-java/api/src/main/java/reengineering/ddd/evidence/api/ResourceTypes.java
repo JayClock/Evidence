@@ -47,6 +47,16 @@ public final class ResourceTypes {
   public static final String TASKING_CANDIDATE = "application/vnd.evidence.tasking-candidate+json";
   public static final String DESK_CHECK_DECISION_RESULT =
       "application/vnd.evidence.desk-check-decision-result+json";
+  public static final String PAIR = "application/vnd.evidence.pair+json";
+  public static final String PAIR_START_RESULT = "application/vnd.evidence.pair-start-result+json";
+  public static final String PAIR_ACTION_RESULT =
+      "application/vnd.evidence.pair-action-result+json";
+  public static final String SHOWCASE = "application/vnd.evidence.showcase+json";
+  public static final String SHOWCASE_ACTION_RESULT =
+      "application/vnd.evidence.showcase-action-result+json";
+  public static final String RESPOND = "application/vnd.evidence.respond+json";
+  public static final String RESPOND_ACTION_RESULT =
+      "application/vnd.evidence.respond-action-result+json";
   public static final String STORIES = "application/vnd.evidence.stories+json";
   public static final String STORY = "application/vnd.evidence.story+json";
   public static final String STORY_REVISIONS = "application/vnd.evidence.story-revisions+json";

@@ -867,6 +867,297 @@ class ApplicationTest {
     JsonNode approved = objectMapper.readTree(approvedResponse.getBody());
     assertThat(approved.path("iteration").path("stage").asText()).isEqualTo("approved");
     assertThat(approved.path("approvedPlan").path("plan").path("planVersion").asInt()).isEqualTo(2);
+
+    confirmsPairShowcaseAndRespond(workspacePath, iterationPath, storyId, approved);
+  }
+
+  private void confirmsPairShowcaseAndRespond(
+      String workspacePath, String iterationPath, String storyId, JsonNode approved)
+      throws Exception {
+    String pairPath = iterationPath + "/pair";
+    ResponseEntity<String> startResponse =
+        authorized(
+            HttpMethod.POST,
+            pairPath + "/runs",
+            """
+            {
+              "expectedIterationVersion":8,
+              "approvedTaskingPlanId":"%s",
+              "approvedTaskingPlanSha256":"%s",
+              "executorId":"java-integration-test"
+            }
+            """
+                .formatted(
+                    approved.path("approvedPlan").path("id").asText(),
+                    approved.path("approvedPlan").path("contentSha256").asText()));
+    if (startResponse.getStatusCode() != HttpStatus.CREATED) {
+      throw new AssertionError("Pair start failed: " + startResponse.getBody());
+    }
+    assertContentType(startResponse, "application/vnd.evidence.pair-start-result+json");
+    JsonNode start = objectMapper.readTree(startResponse.getBody());
+    JsonNode pair = start.path("pair");
+    String leaseToken = start.path("leaseToken").asText();
+    String worktreeSha256 = integrationSha(1);
+    String diffSha256 = integrationSha(2);
+    int evidenceSequence = 3;
+
+    for (int step = 0; step < 100; step++) {
+      JsonNode action = pair.path("nextAction");
+      String kind = action.path("kind").asText();
+      if ("await_human".equals(kind)) break;
+      com.fasterxml.jackson.databind.node.ObjectNode body = objectMapper.createObjectNode();
+      body.put("pairRunId", pair.path("run").path("id").asText());
+      body.put("actionId", action.path("actionId").asText());
+      body.put("expectedPairVersion", action.path("expectedPairVersion").asInt());
+      String suffix;
+      if ("run_driver".equals(kind)) {
+        suffix = "/driver-attempts";
+        String role = action.path("role").asText();
+        body.put("role", role);
+        body.put("mode", action.path("mode").asText());
+        body.put("summary", "Java integration Driver completed.");
+        var changedPaths = body.putArray("changedPaths");
+        String before = worktreeSha256;
+        if (!"refactor".equals(role)) {
+          JsonNode roots =
+              "test".equals(role)
+                  ? action.path("allowedTestRoots")
+                  : action.path("allowedProductionRoots");
+          changedPaths.add(
+              roots.get(0).asText()
+                  + "/java-pair-integration-"
+                  + evidenceSequence
+                  + ("test".equals(role) ? ".spec.ts" : ".ts"));
+          worktreeSha256 = integrationSha(evidenceSequence++);
+          diffSha256 = integrationSha(evidenceSequence++);
+        }
+        body.put("beforeWorktreeSha256", before);
+        body.put("afterWorktreeSha256", worktreeSha256);
+        body.put("diffSha256", diffSha256);
+        body.put("agentCallCount", 1);
+        body.putNull("inputTokens");
+        body.putNull("outputTokens");
+      } else if ("execute_command".equals(kind)) {
+        suffix = "/command-observations";
+        String stage = action.path("stage").asText();
+        body.put("stage", stage);
+        body.put("command", action.path("command").asText());
+        body.put("termination", "exited");
+        body.put("exitCode", "red".equals(stage) ? 1 : 0);
+        body.putNull("signal");
+        body.put("durationMs", 25);
+        body.put("stdoutSha256", integrationSha(evidenceSequence++));
+        body.put("stdoutBytes", 16);
+        body.put("stdoutLines", 1);
+        body.put("stderrSha256", integrationSha(evidenceSequence++));
+        body.put("stderrBytes", "red".equals(stage) ? 8 : 0);
+        body.put("stderrLines", "red".equals(stage) ? 1 : 0);
+        body.put("worktreeSha256", worktreeSha256);
+        body.put("diffSha256", diffSha256);
+      } else if ("review_red".equals(kind)) {
+        suffix = "/red-reviews";
+        body.put("observationId", action.path("observationId").asText());
+        body.put("classification", "behavior");
+        body.put("reason", "The approved behavior assertion was reached and failed.");
+      } else {
+        throw new AssertionError("Unexpected Pair action " + kind);
+      }
+      ResponseEntity<String> evidence =
+          authorizedWithLease(HttpMethod.POST, pairPath + suffix, body.toString(), leaseToken);
+      assertThat(evidence.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+      assertContentType(evidence, "application/vnd.evidence.pair-action-result+json");
+      pair = objectMapper.readTree(evidence.getBody()).path("pair");
+    }
+    assertThat(pair.path("run").path("status").asText()).isEqualTo("approval_required");
+    JsonNode manifest = pair.path("manifest");
+    ResponseEntity<String> pairDecision =
+        authorized(
+            HttpMethod.POST,
+            pairPath + "/decisions",
+            """
+            {
+              "expectedPairVersion":%d,
+              "action":"approve",
+              "reason":"Reviewed the complete Java Story diff.",
+              "manifestSha256":"%s",
+              "diffSha256":"%s",
+              "commitSha":"%s"
+            }
+            """
+                .formatted(
+                    pair.path("run").path("version").asInt(),
+                    manifest.path("contentSha256").asText(),
+                    manifest.path("finalDiffSha256").asText(),
+                    "c".repeat(40)));
+    assertThat(pairDecision.getStatusCode()).isEqualTo(HttpStatus.OK);
+    pair = objectMapper.readTree(pairDecision.getBody()).path("pair");
+    assertThat(pair.path("run").path("status").asText()).isEqualTo("approved");
+
+    String showcasePath = iterationPath + "/showcase";
+    ResponseEntity<String> showcaseResponse = authorized(HttpMethod.GET, showcasePath, null);
+    assertContentType(showcaseResponse, "application/vnd.evidence.showcase+json");
+    JsonNode showcase = objectMapper.readTree(showcaseResponse.getBody());
+    JsonNode q2 = showcase.path("nextAction");
+    ResponseEntity<String> q2Response =
+        authorized(
+            HttpMethod.POST,
+            showcasePath + "/q2-observations",
+            """
+            {
+              "showcaseRunId":"%s","actionId":"%s","expectedShowcaseVersion":%d,
+              "command":"%s","termination":"exited","exitCode":0,"signal":null,
+              "durationMs":25,"stdoutSha256":"%s","stdoutBytes":16,"stdoutLines":1,
+              "stderrSha256":"%s","stderrBytes":0,"stderrLines":0,
+              "approvedCommitSha":"%s","worktreeSha256":"%s"
+            }
+            """
+                .formatted(
+                    showcase.path("run").path("id").asText(),
+                    q2.path("actionId").asText(),
+                    q2.path("expectedShowcaseVersion").asInt(),
+                    q2.path("command").asText().replace("\\", "\\\\").replace("\"", "\\\""),
+                    integrationSha(evidenceSequence++),
+                    integrationSha(evidenceSequence++),
+                    "c".repeat(40),
+                    worktreeSha256));
+    assertThat(q2Response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    showcase = objectMapper.readTree(q2Response.getBody()).path("showcase");
+
+    JsonNode observe = showcase.path("nextAction");
+    ResponseEntity<String> productResponse =
+        authorized(
+            HttpMethod.POST,
+            showcasePath + "/product-observations",
+            """
+            {
+              "expectedShowcaseVersion":%d,"scenarioId":"%s",
+              "observedOutcomes":["A complete Tasking Candidate awaits human Desk Check."],
+              "observation":"The product surface preserves human authority.",
+              "valueFeedback":"The confirmed Scenario value remains visible.",
+              "evidenceRefs":["java:showcase-product-observation"]
+            }
+            """
+                .formatted(
+                    observe.path("expectedShowcaseVersion").asInt(),
+                    observe.path("scenarioId").asText()));
+    assertThat(productResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    showcase = objectMapper.readTree(productResponse.getBody()).path("showcase");
+
+    for (String quadrant : java.util.List.of("Q3", "Q4")) {
+      JsonNode risk = showcase.path("nextAction");
+      assertThat(risk.path("quadrant").asText()).isEqualTo(quadrant);
+      ResponseEntity<String> riskResponse =
+          authorized(
+              HttpMethod.POST,
+              showcasePath + "/risk-decisions",
+              """
+              {
+                "expectedShowcaseVersion":%d,"quadrant":"%s",
+                "disposition":"not_required","activities":[],
+                "reason":"No further %s activity is required for this Java slice."
+              }
+              """
+                  .formatted(risk.path("expectedShowcaseVersion").asInt(), quadrant, quadrant));
+      if (riskResponse.getStatusCode() != HttpStatus.CREATED) {
+        throw new AssertionError("Showcase risk failed: " + riskResponse.getBody());
+      }
+      showcase = objectMapper.readTree(riskResponse.getBody()).path("showcase");
+    }
+    JsonNode reviewer = showcase.path("nextAction");
+    assertThat(reviewer.path("kind").asText()).isEqualTo("run_reviewer");
+    ResponseEntity<String> reviewResponse =
+        authorized(
+            HttpMethod.POST,
+            showcasePath + "/reviews",
+            """
+            {
+              "expectedShowcaseVersion":%d,"evidenceBundleSha256":"%s",
+              "observedFacts":["Fresh Q2 and product evidence cover the Scenario."],
+              "productDomainFeedback":[],"technicalQualityFeedback":[],
+              "unresolvedAssumptions":[],"recommendation":"accept"
+            }
+            """
+                .formatted(
+                    reviewer.path("expectedShowcaseVersion").asInt(),
+                    reviewer.path("evidenceBundleSha256").asText()));
+    assertThat(reviewResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    showcase = objectMapper.readTree(reviewResponse.getBody()).path("showcase");
+    JsonNode awaitHuman = showcase.path("nextAction");
+    ResponseEntity<String> showcaseDecision =
+        authorized(
+            HttpMethod.POST,
+            showcasePath + "/decisions",
+            """
+            {
+              "expectedShowcaseVersion":%d,"action":"accept",
+              "reason":"The domain expert accepts the observed value.",
+              "evidenceBundleSha256":"%s","reviewSha256":"%s"
+            }
+            """
+                .formatted(
+                    awaitHuman.path("expectedShowcaseVersion").asInt(),
+                    showcase.path("run").path("evidenceBundleSha256").asText(),
+                    showcase.path("review").path("contentSha256").asText()));
+    assertThat(showcaseDecision.getStatusCode()).isEqualTo(HttpStatus.OK);
+    showcase = objectMapper.readTree(showcaseDecision.getBody()).path("showcase");
+    assertThat(showcase.path("run").path("stage").asText()).isEqualTo("accepted");
+
+    String respondPath = iterationPath + "/respond";
+    ResponseEntity<String> respondResponse = authorized(HttpMethod.GET, respondPath, null);
+    assertContentType(respondResponse, "application/vnd.evidence.respond+json");
+    JsonNode respond = objectMapper.readTree(respondResponse.getBody());
+    JsonNode learner = respond.path("nextAction");
+    ResponseEntity<String> candidateResponse =
+        authorized(
+            HttpMethod.POST,
+            respondPath + "/candidates",
+            """
+            {
+              "actionId":"%s","expectedIterationVersion":%d,"authoritySha256":"%s",
+              "promotions":[],"noPromotionReason":"No reusable knowledge exceeds existing authority.",
+              "observedOutcomes":["The Scenario and value were accepted by a human."],
+              "residualRisks":[],
+              "nextProbe":{"question":"Which product risk should the next Story validate?",
+                "whyNow":"The current Story is complete.","evidenceRefs":["showcase:accepted"],
+                "firstAction":"A human decides whether to capture the Probe."}
+            }
+            """
+                .formatted(
+                    learner.path("actionId").asText(),
+                    learner.path("expectedIterationVersion").asInt(),
+                    learner.path("authoritySha256").asText()));
+    assertThat(candidateResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    assertContentType(candidateResponse, "application/vnd.evidence.respond-action-result+json");
+    respond = objectMapper.readTree(candidateResponse.getBody()).path("respond");
+    JsonNode decision = respond.path("nextAction");
+    ResponseEntity<String> respondDecision =
+        authorized(
+            HttpMethod.POST,
+            respondPath + "/decisions",
+            """
+            {
+              "expectedIterationVersion":%d,"candidateId":"%s",
+              "candidateSha256":"%s","authoritySha256":"%s","action":"approve",
+              "reason":"The domain expert approves the knowledge response and next Probe."
+            }
+            """
+                .formatted(
+                    decision.path("expectedIterationVersion").asInt(),
+                    decision.path("candidateId").asText(),
+                    decision.path("candidateSha256").asText(),
+                    decision.path("authoritySha256").asText()));
+    assertThat(respondDecision.getStatusCode()).isEqualTo(HttpStatus.OK);
+    respond = objectMapper.readTree(respondDecision.getBody()).path("respond");
+    assertThat(respond.path("iteration").path("stage").asText()).isEqualTo("accepted");
+    assertThat(
+            objectMapper
+                .readTree(
+                    authorized(HttpMethod.GET, workspacePath + "/stories/" + storyId, null)
+                        .getBody())
+                .path("authority")
+                .path("nextAction")
+                .asText())
+        .isEqualTo("none");
   }
 
   @Test
@@ -894,11 +1185,26 @@ class ApplicationTest {
   }
 
   private ResponseEntity<String> authorized(HttpMethod method, String path, String body) {
+    return authorized(method, path, body, null);
+  }
+
+  private ResponseEntity<String> authorizedWithLease(
+      HttpMethod method, String path, String body, String leaseToken) {
+    return authorized(method, path, body, leaseToken);
+  }
+
+  private ResponseEntity<String> authorized(
+      HttpMethod method, String path, String body, String leaseToken) {
     HttpHeaders headers = new HttpHeaders();
     headers.set("Authorization", "Bearer java-skeleton-test");
+    if (leaseToken != null) headers.set("X-Evidence-Pair-Lease", leaseToken);
     headers.setAccept(java.util.List.of(MediaType.parseMediaType("application/*+json")));
     if (body != null) headers.setContentType(MediaType.APPLICATION_JSON);
     return restTemplate.exchange(url(path), method, new HttpEntity<>(body, headers), String.class);
+  }
+
+  private static String integrationSha(int value) {
+    return "sha256:" + String.format("%064x", value);
   }
 
   private static void assertContentType(ResponseEntity<String> response, String expected) {

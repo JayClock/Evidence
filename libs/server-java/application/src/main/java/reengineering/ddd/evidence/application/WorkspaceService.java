@@ -15,6 +15,9 @@ import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
 import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.model.Pair;
+import reengineering.ddd.evidence.domain.model.Respond;
+import reengineering.ddd.evidence.domain.model.Showcase;
 import reengineering.ddd.evidence.domain.model.Tasking;
 import reengineering.ddd.evidence.domain.model.Understanding;
 import reengineering.ddd.evidence.domain.model.User;
@@ -402,6 +405,167 @@ public class WorkspaceService {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
         .tasking()
         .decideTasking(iterationId, input, actorUserId);
+  }
+
+  public Pair.View requirePair(String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .pair()
+        .findPair(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Pair " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public Pair.StartResult startPair(
+      String actorUserId, String workspaceId, String iterationId, Pair.StartInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .startPair(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.ClaimLeaseResult claimPairLease(
+      String actorUserId, String workspaceId, String iterationId, Pair.ClaimLeaseInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .claimPairLease(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.Run heartbeatPairLease(
+      String actorUserId, String workspaceId, String iterationId, Pair.HeartbeatLeaseInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .heartbeatPairLease(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.ActionResult recordPairDriverAttempt(
+      String actorUserId, String workspaceId, String iterationId, Pair.DriverAttemptInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .recordPairDriverAttempt(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.ActionResult recordPairCommandObservation(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      Pair.CommandObservationInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .recordPairCommandObservation(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.ActionResult recordPairRedReview(
+      String actorUserId, String workspaceId, String iterationId, Pair.RedReviewInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .recordPairRedReview(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.ActionResult recordPairException(
+      String actorUserId, String workspaceId, String iterationId, Pair.ExceptionInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .recordPairException(iterationId, input);
+  }
+
+  @Transactional
+  public Pair.ActionResult decidePair(
+      String actorUserId, String workspaceId, String iterationId, Pair.DecideInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .pair()
+        .decidePair(iterationId, input, actorUserId);
+  }
+
+  public Showcase.View requireShowcase(String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .showcase()
+        .findShowcase(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Showcase " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public Showcase.ActionResult recordShowcaseQ2(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      Showcase.Q2ObservationInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .showcase()
+        .recordQ2Observation(iterationId, input);
+  }
+
+  @Transactional
+  public Showcase.ActionResult recordShowcaseProduct(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      Showcase.ProductObservationInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .showcase()
+        .recordProductObservation(iterationId, input, actorUserId);
+  }
+
+  @Transactional
+  public Showcase.ActionResult recordShowcaseRisk(
+      String actorUserId,
+      String workspaceId,
+      String iterationId,
+      Showcase.RiskDecisionInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .showcase()
+        .recordRiskDecision(iterationId, input, actorUserId);
+  }
+
+  @Transactional
+  public Showcase.ActionResult recordShowcaseEvaluation(
+      String actorUserId, String workspaceId, String iterationId, Showcase.EvaluationInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .showcase()
+        .recordEvaluation(iterationId, input, actorUserId);
+  }
+
+  @Transactional
+  public Showcase.ActionResult recordShowcaseReview(
+      String actorUserId, String workspaceId, String iterationId, Showcase.ReviewInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .showcase()
+        .recordReview(iterationId, input);
+  }
+
+  @Transactional
+  public Showcase.ActionResult decideShowcase(
+      String actorUserId, String workspaceId, String iterationId, Showcase.DecideInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .showcase()
+        .decideShowcase(iterationId, input, actorUserId);
+  }
+
+  public Respond.View requireRespond(String actorUserId, String workspaceId, String iterationId) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+        .respond()
+        .findRespond(iterationId)
+        .orElseThrow(() -> DomainException.notFound("Respond " + iterationId + " not found"));
+  }
+
+  @Transactional
+  public Respond.ActionResult proposeRespondCandidate(
+      String actorUserId, String workspaceId, String iterationId, Respond.ProposeInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .respond()
+        .proposeRespondCandidate(iterationId, input);
+  }
+
+  @Transactional
+  public Respond.ActionResult decideRespond(
+      String actorUserId, String workspaceId, String iterationId, Respond.DecideInput input) {
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
+        .respond()
+        .decideRespond(iterationId, input, actorUserId);
   }
 
   public Delivery.Page<Delivery.Story> stories(

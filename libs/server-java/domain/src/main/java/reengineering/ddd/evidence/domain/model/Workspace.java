@@ -16,6 +16,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   private LogicalRelationships logicalRelationships;
   private InboxAssociation inbox;
   private WorkflowAssociation workflow;
+  private ExecutionAssociation execution;
 
   public Workspace(
       String identity,
@@ -25,7 +26,8 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
       LogicalEntities logicalEntities,
       LogicalRelationships logicalRelationships,
       InboxAssociation inbox,
-      WorkflowAssociation workflow) {
+      WorkflowAssociation workflow,
+      ExecutionAssociation execution) {
     this.identity = identity;
     this.description = description;
     this.members = members;
@@ -34,6 +36,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     this.logicalRelationships = logicalRelationships;
     this.inbox = inbox;
     this.workflow = workflow;
+    this.execution = execution;
   }
 
   private Workspace() {}
@@ -133,6 +136,18 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return workflow;
   }
 
+  public Pair.Association pair() {
+    return execution;
+  }
+
+  public Showcase.Association showcase() {
+    return execution;
+  }
+
+  public Respond.Association respond() {
+    return execution;
+  }
+
   public interface Members extends HasMany<String, Member> {
     Member add(MemberDescription description);
 
@@ -170,6 +185,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
           Understanding.Association,
           Tasking.Association,
           Delivery.Association {}
+
+  public interface ExecutionAssociation
+      extends Pair.Association, Showcase.Association, Respond.Association {}
 
   public record Page<E>(List<E> items, int total) {
     public Page {

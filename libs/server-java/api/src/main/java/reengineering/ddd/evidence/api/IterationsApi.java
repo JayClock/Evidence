@@ -8,6 +8,7 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.container.ResourceContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -23,6 +24,8 @@ public final class IterationsApi {
   private final String actorUserId;
   private final String workspaceId;
   private final WorkspaceService workspaces;
+
+  @Context private ResourceContext resourceContext;
 
   public IterationsApi(String actorUserId, String workspaceId, WorkspaceService workspaces) {
     this.actorUserId = actorUserId;
@@ -338,5 +341,23 @@ public final class IterationsApi {
                 Tasking.DeskCheckAction.parse(WorkflowRequests.text(body.get("action"), "action")),
                 WorkflowRequests.optional(body.get("reason"), "reason"))),
         uriInfo);
+  }
+
+  @Path("{iterationId}/pair")
+  public PairApi pair(@PathParam("iterationId") String iterationId) {
+    return resourceContext.initResource(
+        new PairApi(actorUserId, workspaceId, iterationId, workspaces));
+  }
+
+  @Path("{iterationId}/showcase")
+  public ShowcaseApi showcase(@PathParam("iterationId") String iterationId) {
+    return resourceContext.initResource(
+        new ShowcaseApi(actorUserId, workspaceId, iterationId, workspaces));
+  }
+
+  @Path("{iterationId}/respond")
+  public RespondApi respond(@PathParam("iterationId") String iterationId) {
+    return resourceContext.initResource(
+        new RespondApi(actorUserId, workspaceId, iterationId, workspaces));
   }
 }

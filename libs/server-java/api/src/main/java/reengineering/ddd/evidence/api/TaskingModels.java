@@ -251,7 +251,7 @@ public final class TaskingModels {
     @JsonProperty private final String approvedByUserId;
     @JsonProperty private final String approvedAt;
 
-    private ApprovedPlanModel(String workspaceId, Tasking.ApprovedPlan approved, UriInfo uriInfo) {
+    public ApprovedPlanModel(String workspaceId, Tasking.ApprovedPlan approved, UriInfo uriInfo) {
       Tasking.ApprovedPlanDescription value = approved.getDescription();
       String iterationId = value.iteration().id();
       id = approved.getIdentity();
