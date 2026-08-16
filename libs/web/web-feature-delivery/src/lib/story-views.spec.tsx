@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import {
   useResource,
   type State,
@@ -157,6 +157,10 @@ const revisionCollectionState = {
 
 const useResourceMock = useResource as unknown as Mock;
 
+function LocationSearch() {
+  return <output data-testid="location-search">{useLocation().search}</output>;
+}
+
 describe('Story views', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -255,6 +259,67 @@ describe('Story views', () => {
     );
     expect(screen.getByText('知识位置由权威状态推导')).toBeTruthy();
     expect(screen.getByText('精确 Approved Plan')).toBeTruthy();
+  });
+
+  it('persists board search and supports keyboard inspection', () => {
+    const pairStory = storyState({
+      id: 'story-47',
+      iterationId: 'iteration-47',
+      iterationReference: 'ITER-0047',
+      iterationLoop: 'pair',
+      iterationStage: 'quality_gates_passed',
+      title: '保护本地交付隐私',
+      authority: { owner: 'human', nextAction: 'review_pair_change' },
+    });
+    const collection = {
+      data: {
+        page: { number: 1, size: 20, totalElements: 2, totalPages: 1 },
+        summary: {
+          humanAttention: 2,
+          agentAttention: 0,
+          approved: 0,
+          stages: [],
+          actions: [],
+        },
+      },
+      collection: [storyState(), pairStory],
+      getLink: () => undefined,
+    } as unknown as State<StoryCollectionResource>;
+
+    render(
+      <MemoryRouter>
+        <StoryCollectionView resourceState={collection} />
+        <LocationSearch />
+      </MemoryRouter>,
+    );
+
+    const board = screen.getByRole('region', { name: '交付知识位置' });
+    fireEvent.keyDown(board, { key: 'j' });
+    expect(
+      screen
+        .getByRole('button', { name: '快速查看 本地编码智能体' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+    expect(
+      screen.getByRole('button', { name: '关闭 Story Inspector' }),
+    ).toBeTruthy();
+
+    fireEvent.keyDown(board, { key: 'j' });
+    expect(
+      screen
+        .getByRole('button', { name: '快速查看 保护本地交付隐私' })
+        .getAttribute('aria-pressed'),
+    ).toBe('true');
+
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜索 Story' }), {
+      target: { value: 'ITER-0001' },
+    });
+    expect(screen.getByTestId('location-search').textContent).toBe(
+      '?q=ITER-0001',
+    );
+    expect(
+      screen.queryByRole('button', { name: '关闭 Story Inspector' }),
+    ).toBeNull();
   });
 
   it('routes a baseline Story to Understand instead of direct coding', () => {
