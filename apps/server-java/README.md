@@ -1,8 +1,8 @@
 # Evidence Java Server
 
-This unshipped Spring Boot application is the Java replacement boundary for the
-current NestJS server. It follows the Smart Domain/Jersey layout used by
-`JayClock/team-ai` while preserving the existing Evidence HTTP contract.
+This Spring Boot application is the canonical Evidence Server runtime. It
+follows the Smart Domain/Jersey layout while preserving the existing Evidence
+HTTP contract. The old NestJS runtime is rollback/parity-only until removal.
 
 ## Implemented boundary
 
@@ -43,11 +43,11 @@ libs/server-java/infrastructure/security Spring Security adapter
 ## Commands
 
 ```sh
-pnpm dev:server:java
-pnpm nx run :apps:server-java:test
-pnpm nx run :apps:server-java:build
-pnpm api:contracts:java
-pnpm api:contracts # runs the same suite against Nest, then Java
+pnpm dev:server
+pnpm nx run @evidence/server:test
+pnpm nx run @evidence/server:build
+pnpm api:contracts
+pnpm api:contracts:parity # optional Nest rollback comparison
 ```
 
 The server listens on `127.0.0.1:3000` by default. It accepts the existing

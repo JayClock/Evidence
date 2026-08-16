@@ -3,42 +3,45 @@
 Evidence 是一个领域建模与证据映射平台，具有三个产品运行时界面：
 
 - **Web**：`apps/web/` 中的 React + Vite SPA，复用 `libs/web/*`。
-- **Server**：`apps/server/` 中的 NestJS 组合根，实现在 `libs/server/{api,domain,persistent}`。
+- **Server**：`apps/server-java/` 中的 Spring Boot 组合根，实现在 `libs/server-java/*`。
 - **Desktop**：`apps/desktop/` 中的 Electron 壳；复用同一个 Web renderer，并连接经过健康检查的 Server API。
 
 ## 运行时拓扑
 
 ```text
 Browser
-  └─ apps/web + libs/web/*              React/Vite :4200
+  └─ apps/web + libs/web/*                  React/Vite :4200
        └─ REST/HAL
-            └─ apps/server              NestJS :3000
-                 ├─ Prisma → PostgreSQL（默认 hosted 模式）
+            └─ apps/server-java             Spring Boot/Jersey :3000
+                 ├─ MyBatis + Flyway → PostgreSQL
                  ├─ workspace registry
                  └─ workspace/.evidence YAML model
 
 Electron
-  └─ apps/desktop                       main + restricted preload
+  └─ apps/desktop                           main + restricted preload
        ├─ packaged apps/web renderer
        ├─ embedded Pi SDK agent
        └─ REST/HAL → configured Server API
 ```
 
 - Web 与 Desktop 必须共享 REST/HAL 和领域语义；不得通过 Electron IPC 复制业务 API。
-- Server 只使用 Prisma/PostgreSQL registry；不存在 Desktop 专用数据库或第二个 Server 组合根。
+- Java Server 是唯一生产 Server 组合根；`apps/server/` 与 `libs/server/*` 仅在退役前用于 Nest rollback/parity，不得接收新能力或默认流量。
+- Server 使用 PostgreSQL registry 和 Server 私有 `.evidence` 文件模型；不存在 Desktop 专用数据库或第二个生产组合根。
 - Electron 必须设置 `EVIDENCE_API_BASE_URL`，并在启动时健康检查远程 HTTPS API；开发时允许 loopback HTTP。
 - Desktop renderer 只通过受限 preload 取得 API URL、目录选择/Workspace binding 和本地 Agent 能力；业务 command/query 始终走 Server API。
 
 ## 服务端分层
 
-| 层               | 路径                                     | 职责                                                                     |
-| ---------------- | ---------------------------------------- | ------------------------------------------------------------------------ |
-| Composition root | `apps/server/src/`                       | Nest bootstrap、runtime config 与 PostgreSQL adapter wiring              |
-| API              | `libs/server/api/src/api/`               | Controller、请求解析、HAL 序列化与 vendor media type                     |
-| Domain           | `libs/server/domain/src/domain/`         | 纯 TypeScript 领域对象、port 与规则；不依赖 Nest、Prisma、HTTP、Electron |
-| Persistence      | `libs/server/persistent/src/persistent/` | Prisma/PostgreSQL registry 与 `.evidence` 文件模型 adapter               |
+| 层               | 路径                                                      | 职责                                                    |
+| ---------------- | --------------------------------------------------------- | ------------------------------------------------------- |
+| Composition root | `apps/server-java/src/main/java/`                         | Spring Boot bootstrap、runtime config 与 adapter wiring |
+| API              | `libs/server-java/api/src/main/java/`                     | JAX-RS、请求解析、HAL 序列化与 vendor media type        |
+| Application      | `libs/server-java/application/src/main/java/`             | Use case、事务边界与授权编排                            |
+| Domain           | `libs/server-java/domain/src/main/java/`                  | 纯 Java 领域对象、port 与规则                           |
+| Persistence      | `libs/server-java/persistent/src/main/java/`              | MyBatis/PostgreSQL 与 `.evidence` 文件 adapter          |
+| Security         | `libs/server-java/infrastructure/security/src/main/java/` | local/OIDC authentication adapter                       |
 
-依赖方向必须保持：composition/API/persistence 可以依赖 domain，domain 不得反向依赖框架或 adapter。Controller 只负责协议转换与委托；业务规则进入 domain 或明确的 domain port 实现。
+依赖方向必须保持：API → application → domain，persistence/security 实现内层 port，composition root 负责组装。Domain 不得依赖 Spring、MyBatis、Jackson、HTTP 或 Electron。JAX-RS resource 只负责协议转换与委托；事务和工作流编排进入 application，业务规则进入 domain。
 
 ### 核心领域抽象
 
@@ -74,7 +77,7 @@ Candidate selection 只能原子创建一轮 `Iteration + Frozen Intake`，不�
 
 API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，分页使用 `page` 与 `pageSize`。
 
-- Nest 拥有的 OpenAPI 源文件：`libs/server/api/openapi.yaml`。
+- 语言无关的 OpenAPI 源文件：`libs/server/api/openapi.yaml`；该路径在 Nest 退役前保持稳定。
 - 生成的 Web 类型：`libs/web/api-client/src/lib/openapi-schema.ts`。
 - 修改 API 时必须同步实现、OpenAPI、black-box contract tests 和生成客户端。
 
@@ -111,31 +114,31 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 | `/api/workspaces/{workspaceId}/logical-entities[/{entityId}]`                 | GET、POST、PUT、DELETE | 逻辑实体 CRUD                       |
 | `/api/workspaces/{workspaceId}/logical-relationships[/{relationshipId}]`      | GET、POST、PUT、DELETE | 逻辑关系 CRUD                       |
 
-## TypeScript 与 Nx 规范
+## Java、TypeScript 与 Nx 规范
 
-- Node.js 22+、pnpm 10+；使用 workspace 根脚本和 Nx targets。
-- 新建 app/lib 必须先使用 Nx generator，不能手工伪造项目结构。
-- sibling package 依赖必须通过 pnpm workspace 命令建立，并在 manifest 中保持 `workspace:*`；不得用 tsconfig path 绕过 package linking。
+- Java 17+、Node.js 22+、pnpm 10+；使用 Gradle wrapper、workspace 根脚本和 Nx targets。
+- 新建 app/lib 必须先使用适用的 Nx generator，不能手工伪造项目结构。
+- Java 模块依赖通过 Gradle project dependency 建立；TypeScript sibling package 通过 pnpm workspace 命令建立并保持 `workspace:*`，不得用 tsconfig path 绕过链接。
 - `apps/web` 是唯一 React 组合根；可复用 shell、feature、UI 和 API client 放入 `libs/web/*`。
-- Vite/Vitest targets 由 Nx 插件推断时不要在 `project.json` 重复声明。
-- 测试文件使用 `{src,tests}/**/*.{test,spec}.*`，优先放在 owning module 附近。
-- 不手改 Prisma Client 或 OpenAPI 生成文件；通过 `pnpm prisma:generate`、`pnpm api:generate` 更新。
-- 时间戳输出使用 RFC 3339 / ISO 8601。
+- Gradle/Nx、Vite/Vitest targets 由插件推断时不要在 `project.json` 重复声明。
+- Java 测试放在 owning module 的 `src/test/java`；TypeScript 测试使用 `{src,tests}/**/*.{test,spec}.*`。
+- 不手改生成的 Prisma Client 或 OpenAPI Web 类型；通过 `pnpm prisma:generate`、`pnpm api:generate` 更新。
+- Java 格式化使用 Spotless/Google Java Format；时间戳输出使用 RFC 3339 / ISO 8601。
 - 所有查询和文件投影必须遵守软删除及工作空间边界。
 
 ### 持久化变更
 
 新增持久化行为时：
 
-1. 先在 `libs/server/domain` 定义或收窄 port/领域行为。
-2. 在 `libs/server/persistent` 实现 PostgreSQL 或 filesystem adapter；不要把 storage 分支放进 controller。
-3. 为 memory/fake 与生产 adapter 维护等价行为测试；数据库差异必须有专门测试。
-4. PostgreSQL schema 通过 `libs/server/persistent/prisma/schema.prisma` 和同目录下受版本控制的 Prisma migration 演进，生产使用 `prisma migrate deploy`。
+1. 先在 `libs/server-java/domain` 或 `libs/server-java/application` 定义或收窄 port 与领域行为。
+2. 在 `libs/server-java/persistent` 实现 PostgreSQL 或 filesystem adapter；不要把 storage 分支放进 JAX-RS resource。
+3. 为 fake 与生产 adapter 维护等价行为测试；PostgreSQL 差异使用 Testcontainers 专门验证。
+4. 迁移期继续在 `libs/server/persistent/prisma/migrations` 维护版本化 SQL；Java build 将其打包为 Flyway migrations，生产 Java Server 通过 Flyway 校验和升级。不得使用 Hibernate 自动建表。
 5. `.evidence` YAML 写入应保持路径安全、原子替换和已有文件保护。
 
 ## Electron 规范
 
-- `apps/desktop/src/main.ts` 是 Desktop composition root；不得打包或启动 Nest 子进程。
+- `apps/desktop/src/main.ts` 是 Desktop composition root；不得打包或启动任何 Server 子进程。
 - 保持 `contextIsolation: true`、`nodeIntegration: false`、`sandbox: true`。
 - preload bridge 只暴露 API URL、目录选择/Workspace binding 与本地 Agent 的最小能力；新增能力必须有 sender validation 和最小权限测试。
 - 打包 renderer 使用 `evidence://app/`，必须保留 SPA fallback、路径穿越防护和外部导航拦截。
@@ -161,31 +164,32 @@ pnpm api:contracts
 聚焦门禁：
 
 ```sh
-pnpm nx test @evidence/server --run
-pnpm nx test @evidence/server-api --run
-pnpm nx test @evidence/server-domain --run
-pnpm nx test @evidence/server-persistent --run
+pnpm nx run @evidence/server:test
+pnpm nx run @evidence/server:build
+pnpm api:contracts
 pnpm nx test @evidence/desktop --run
 pnpm nx run @evidence/desktop:package-smoke
 ```
 
-PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，再运行相应契约或黑盒测试。检查失败必须修复并重跑，不得跳过。
+Nest rollback parity 仅在明确需要时运行 `pnpm api:contracts:parity`。PostgreSQL 行为必须由 Java/Testcontainers 或指向已迁移临时 PostgreSQL 的 black-box contracts 验证。检查失败必须修复并重跑，不得跳过。
 
 ## 仓库地图
 
-| 路径                            | 用途                                                        |
-| ------------------------------- | ----------------------------------------------------------- |
-| `apps/web/`                     | React + Vite 前端组合根                                     |
-| `libs/web/*`                    | Web shell、features、UI、HAL API client                     |
-| `apps/server/`                  | NestJS/PostgreSQL 组合根与 Prisma 部署入口                  |
-| `libs/server/api/`              | Nest controllers、HAL 和 OpenAPI source                     |
-| `libs/server/domain/`           | 纯领域模型与 ports                                          |
-| `libs/server/persistent/`       | Prisma schema/migrations、PostgreSQL 和 filesystem adapters |
-| `apps/desktop/`                 | Electron main/preload、remote API bridge 和 packaging       |
-| `libs/contracts/api-contracts/` | 本地/远程 black-box API contracts                           |
-| `docs/product/`                 | 统一产品上下文、画像和旅程                                  |
-| `.evidence/`                    | Evidence 产品权威领域模型                                   |
-| `docs/architecture/`            | 统一架构和测试策略                                          |
+| 路径                            | 用途                                                  |
+| ------------------------------- | ----------------------------------------------------- |
+| `apps/web/`                     | React + Vite 前端组合根                               |
+| `libs/web/*`                    | Web shell、features、UI、HAL API client               |
+| `apps/server-java/`             | 生产 Spring Boot/Jersey 组合根                        |
+| `libs/server-java/domain/`      | Smart Domain 领域模型与 ports                         |
+| `libs/server-java/application/` | Use cases、事务与授权编排                             |
+| `libs/server-java/api/`         | JAX-RS、HAL 和 HTTP adapter                           |
+| `libs/server-java/persistent/`  | MyBatis/PostgreSQL、Flyway 和 filesystem adapters     |
+| `apps/server/`、`libs/server/*` | 退役前保留的 Nest rollback/parity 实现                |
+| `apps/desktop/`                 | Electron main/preload、remote API bridge 和 packaging |
+| `libs/contracts/api-contracts/` | 本地/远程 black-box API contracts                     |
+| `docs/product/`                 | 统一产品上下文、画像和旅程                            |
+| `.evidence/`                    | Evidence 产品权威领域模型                             |
+| `docs/architecture/`            | 统一架构和测试策略                                    |
 
 ## Git 纪律
 
@@ -198,10 +202,10 @@ PostgreSQL 行为需在临时 PostgreSQL 上先执行 `prisma migrate deploy`，
 ## 建议阅读顺序
 
 1. `AGENTS.md`
-2. `apps/server/src/bootstrap.ts`
-3. `apps/server/src/app/{app.module,persistence.module}.ts`
-4. `libs/server/domain/src/domain/index.ts`
-5. `libs/server/api/src/api/api.module.ts`
-6. `libs/server/persistent/src/persistent/{prisma,filesystem}/`
+2. `apps/server-java/src/main/java/reengineering/ddd/evidence/Application.java`
+3. `libs/server-java/domain/src/main/java/`
+4. `libs/server-java/application/src/main/java/`
+5. `libs/server-java/api/src/main/java/`
+6. `libs/server-java/persistent/src/main/java/`
 7. `apps/desktop/src/{main,preload}.ts` 与 `apps/desktop/src/{electron,iteration,loops,capabilities,adapters}/`
 8. `apps/desktop/electron-builder.yml`
