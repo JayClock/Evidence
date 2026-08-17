@@ -1,6 +1,5 @@
 package reengineering.ddd.evidence.domain.model;
 
-import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.Ref;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -45,7 +44,7 @@ public final class InboxWorkflow {
       try {
         return valueOf(value.toUpperCase(Locale.ROOT));
       } catch (RuntimeException error) {
-        throw DomainException.internal("unsupported Inbox Extraction status: " + value);
+        throw DomainException.internal("unsupported Inbox InboxExtraction status: " + value);
       }
     }
   }
@@ -65,7 +64,7 @@ public final class InboxWorkflow {
       try {
         return valueOf(requiredLine(value, "status").toUpperCase(Locale.ROOT));
       } catch (IllegalArgumentException error) {
-        throw DomainException.validation("unsupported Inbox Candidate status: " + value);
+        throw DomainException.validation("unsupported Inbox InboxStoryCandidate status: " + value);
       }
     }
   }
@@ -87,7 +86,8 @@ public final class InboxWorkflow {
       try {
         return valueOf(requiredLine(value, "cognitive mode").toUpperCase(Locale.ROOT));
       } catch (IllegalArgumentException error) {
-        throw DomainException.validation("unsupported Inbox Candidate cognitive mode: " + value);
+        throw DomainException.validation(
+            "unsupported Inbox InboxStoryCandidate cognitive mode: " + value);
       }
     }
 
@@ -95,7 +95,7 @@ public final class InboxWorkflow {
       try {
         return valueOf(value.toUpperCase(Locale.ROOT));
       } catch (RuntimeException error) {
-        throw DomainException.internal("unsupported Inbox Candidate mode: " + value);
+        throw DomainException.internal("unsupported Inbox InboxStoryCandidate mode: " + value);
       }
     }
   }
@@ -112,7 +112,8 @@ public final class InboxWorkflow {
       try {
         return valueOf(requiredLine(value, "decision").toUpperCase(Locale.ROOT));
       } catch (IllegalArgumentException error) {
-        throw DomainException.validation("unsupported Inbox Candidate decision: " + value);
+        throw DomainException.validation(
+            "unsupported Inbox InboxStoryCandidate decision: " + value);
       }
     }
 
@@ -120,7 +121,7 @@ public final class InboxWorkflow {
       try {
         return valueOf(value.toUpperCase(Locale.ROOT));
       } catch (RuntimeException error) {
-        throw DomainException.internal("unsupported Inbox Candidate decision: " + value);
+        throw DomainException.internal("unsupported Inbox InboxStoryCandidate decision: " + value);
       }
     }
   }
@@ -141,41 +142,6 @@ public final class InboxWorkflow {
       Instant sourceUpdatedAt,
       Instant capturedAt,
       String contentSha256) {}
-
-  public record ExtractionDescription(
-      String reference,
-      Ref<String> workspace,
-      ExtractionStatus status,
-      List<ExtractionSource> sources,
-      int version,
-      Ref<String> requestedBy,
-      Instant requestedAt,
-      Instant completedAt,
-      String failureSummary) {
-    public ExtractionDescription {
-      sources = List.copyOf(sources);
-    }
-  }
-
-  public static final class Extraction implements Entity<String, ExtractionDescription> {
-    private final String identity;
-    private final ExtractionDescription description;
-
-    public Extraction(String identity, ExtractionDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ExtractionDescription getDescription() {
-      return description;
-    }
-  }
 
   public record CitationInput(String inboxItemId, String revisionSha256, String locator) {}
 
@@ -208,110 +174,39 @@ public final class InboxWorkflow {
       String revisionSha256,
       String locator) {}
 
-  public record CandidateDescription(
-      String reference,
-      Ref<String> workspace,
-      Ref<String> extraction,
-      String title,
-      String problem,
-      String role,
-      String goal,
-      String value,
-      CognitiveMode cognitiveMode,
-      List<CandidateCitation> citations,
-      String contentSha256,
-      CandidateStatus status,
-      String proposedBy,
-      Instant proposedAt,
-      Ref<String> terminalDecision,
-      Ref<String> selectedIteration) {
-    public CandidateDescription {
-      citations = List.copyOf(citations);
-    }
-  }
-
-  public static final class Candidate implements Entity<String, CandidateDescription> {
-    private final String identity;
-    private final CandidateDescription description;
-
-    public Candidate(String identity, CandidateDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public CandidateDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record DecisionDescription(
-      String reference,
-      Ref<String> workspace,
-      Ref<String> candidate,
-      String candidateSha256,
-      DecisionAction action,
-      String reason,
-      Ref<String> decidedBy,
-      Instant decidedAt,
-      String contentSha256) {}
-
-  public static final class Decision implements Entity<String, DecisionDescription> {
-    private final String identity;
-    private final DecisionDescription description;
-
-    public Decision(String identity, DecisionDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public DecisionDescription getDescription() {
-      return description;
-    }
-  }
-
   public record CandidateListQuery(
       int page, int pageSize, CandidateStatus status, String extractionId, String query) {}
 
-  public record CandidatePage(List<Candidate> items, int total) {
+  public record CandidatePage(List<InboxStoryCandidate> items, int total) {
     public CandidatePage {
       items = List.copyOf(items);
     }
   }
 
-  public record ProposedCandidates(Extraction extraction, List<Candidate> candidates) {
+  public record ProposedCandidates(
+      InboxExtraction extraction, List<InboxStoryCandidate> candidates) {
     public ProposedCandidates {
       candidates = List.copyOf(candidates);
     }
   }
 
-  public record CandidateDecision(Candidate candidate, Decision decision) {}
+  public record CandidateDecision(
+      InboxStoryCandidate candidate, InboxStoryCandidateDecision decision) {}
 
   public record SelectCandidateInput(
       String candidateId, String candidateSha256, String baseCommitSha) {}
 
   public interface Association {
-    Extraction createExtraction(List<String> inboxItemIds, String requestedByUserId);
+    InboxExtraction createExtraction(List<String> inboxItemIds, String requestedByUserId);
 
-    Optional<Extraction> findExtraction(String extractionId);
+    Optional<InboxExtraction> findExtraction(String extractionId);
 
     ProposedCandidates proposeCandidates(
         String extractionId, int expectedVersion, List<CandidateInput> candidates);
 
     CandidatePage listCandidates(CandidateListQuery query);
 
-    Optional<Candidate> findCandidate(String candidateId);
+    Optional<InboxStoryCandidate> findCandidate(String candidateId);
 
     CandidateDecision decideCandidate(
         String candidateId,
@@ -329,12 +224,12 @@ public final class InboxWorkflow {
 
   public static List<String> normalizeExtractionSources(List<String> values) {
     if (values == null || values.size() < MIN_SOURCES || values.size() > MAX_SOURCES) {
-      throw DomainException.validation("Inbox Extraction must select 1 to 5 sources");
+      throw DomainException.validation("Inbox InboxExtraction must select 1 to 5 sources");
     }
     List<String> normalized =
         values.stream().map(value -> requiredLine(value, "Inbox Item id")).toList();
     if (new HashSet<>(normalized).size() != normalized.size()) {
-      throw DomainException.validation("Inbox Extraction must not select duplicate sources");
+      throw DomainException.validation("Inbox InboxExtraction must not select duplicate sources");
     }
     return normalized;
   }
@@ -352,35 +247,40 @@ public final class InboxWorkflow {
       for (CitationInput citation : candidate.citations()) {
         if (!selected.contains(citation.inboxItemId())) {
           throw DomainException.validation(
-              "Inbox Candidate citation references unselected source " + citation.inboxItemId());
+              "Inbox InboxStoryCandidate citation references unselected source "
+                  + citation.inboxItemId());
         }
         covered.add(citation.inboxItemId());
       }
     }
     for (String itemId : selected) {
       if (!covered.contains(itemId)) {
-        throw DomainException.validation("Inbox Candidate set must cite selected source " + itemId);
+        throw DomainException.validation(
+            "Inbox InboxStoryCandidate set must cite selected source " + itemId);
       }
     }
     return candidates;
   }
 
   public static CandidateData normalizeCandidate(CandidateInput input) {
-    if (input == null) throw DomainException.validation("Inbox Story Candidate is required");
+    if (input == null)
+      throw DomainException.validation("Inbox Story InboxStoryCandidate is required");
     List<CitationInput> values = input.citations();
     if (values == null || values.isEmpty()) {
       throw DomainException.validation(
-          "Inbox Story Candidate must cite at least one selected Revision");
+          "Inbox Story InboxStoryCandidate must cite at least one selected Revision");
     }
     if (values.size() > MAX_CITATIONS) {
       throw DomainException.validation(
-          "Inbox Story Candidate must not cite more than " + MAX_CITATIONS + " Revisions");
+          "Inbox Story InboxStoryCandidate must not cite more than "
+              + MAX_CITATIONS
+              + " Revisions");
     }
     Set<String> seen = new HashSet<>();
     List<CitationInput> citations = new ArrayList<>();
     for (CitationInput citation : values) {
       if (citation == null) {
-        throw DomainException.validation("Inbox Story Candidate citation is required");
+        throw DomainException.validation("Inbox Story InboxStoryCandidate citation is required");
       }
       CitationInput normalized =
           new CitationInput(
@@ -395,7 +295,7 @@ public final class InboxWorkflow {
               + normalized.locator();
       if (!seen.add(key)) {
         throw DomainException.validation(
-            "Inbox Story Candidate must not contain duplicate citations");
+            "Inbox Story InboxStoryCandidate must not contain duplicate citations");
       }
       citations.add(normalized);
     }
@@ -452,14 +352,15 @@ public final class InboxWorkflow {
   }
 
   public static SelectCandidateInput normalizeSelection(SelectCandidateInput input) {
-    if (input == null) throw DomainException.validation("Candidate selection input is required");
+    if (input == null)
+      throw DomainException.validation("InboxStoryCandidate selection input is required");
     String baseCommitSha =
         requiredLine(input.baseCommitSha(), "base commit SHA").toLowerCase(Locale.ROOT);
     if (!GIT_SHA.matcher(baseCommitSha).matches()) {
       throw DomainException.validation("Iteration base commit SHA is invalid");
     }
     return new SelectCandidateInput(
-        requiredLine(input.candidateId(), "Candidate id"),
+        requiredLine(input.candidateId(), "InboxStoryCandidate id"),
         normalizeSha256(input.candidateSha256()),
         baseCommitSha);
   }
@@ -467,7 +368,7 @@ public final class InboxWorkflow {
   public static void validateCandidatePage(int page, int pageSize) {
     if (page <= 0 || pageSize <= 0 || pageSize > 100) {
       throw DomainException.validation(
-          "Inbox Candidate page and pageSize must be positive and pageSize at most 100");
+          "Inbox InboxStoryCandidate page and pageSize must be positive and pageSize at most 100");
     }
   }
 
@@ -496,15 +397,15 @@ public final class InboxWorkflow {
 
   private static String limitedText(String value, int maximum, String label) {
     if (value == null) {
-      throw DomainException.validation("Inbox Candidate " + label + " must not be empty");
+      throw DomainException.validation("Inbox InboxStoryCandidate " + label + " must not be empty");
     }
     String normalized = value.replace("\r\n", "\n").replace('\r', '\n').trim();
     if (normalized.isEmpty()) {
-      throw DomainException.validation("Inbox Candidate " + label + " must not be empty");
+      throw DomainException.validation("Inbox InboxStoryCandidate " + label + " must not be empty");
     }
     if (normalized.length() > maximum) {
       throw DomainException.validation(
-          "Inbox Candidate " + label + " must not exceed " + maximum + " characters");
+          "Inbox InboxStoryCandidate " + label + " must not exceed " + maximum + " characters");
     }
     return normalized;
   }
@@ -513,18 +414,19 @@ public final class InboxWorkflow {
     String normalized = requiredLine(value, label);
     if (normalized.length() > maximum) {
       throw DomainException.validation(
-          "Inbox Candidate " + label + " must not exceed " + maximum + " characters");
+          "Inbox InboxStoryCandidate " + label + " must not exceed " + maximum + " characters");
     }
     return normalized;
   }
 
   private static String requiredLine(String value, String label) {
     if (value == null || value.trim().isEmpty()) {
-      throw DomainException.validation("Inbox Candidate " + label + " must not be empty");
+      throw DomainException.validation("Inbox InboxStoryCandidate " + label + " must not be empty");
     }
     String normalized = value.trim();
     if (normalized.indexOf('\r') >= 0 || normalized.indexOf('\n') >= 0) {
-      throw DomainException.validation("Inbox Candidate " + label + " must be a single line");
+      throw DomainException.validation(
+          "Inbox InboxStoryCandidate " + label + " must be a single line");
     }
     return normalized;
   }

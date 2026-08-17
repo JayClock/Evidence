@@ -6,7 +6,15 @@ import java.util.List;
 import reengineering.ddd.evidence.api.InboxModels.IterationModel;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.domain.CanonicalJson;
+import reengineering.ddd.evidence.domain.description.ClarificationDescription;
+import reengineering.ddd.evidence.domain.description.ScenarioDraftDescription;
+import reengineering.ddd.evidence.domain.description.ScenarioProposalDescription;
+import reengineering.ddd.evidence.domain.description.UnderstandingDecisionDescription;
+import reengineering.ddd.evidence.domain.model.Clarification;
+import reengineering.ddd.evidence.domain.model.ScenarioDraft;
+import reengineering.ddd.evidence.domain.model.ScenarioProposal;
 import reengineering.ddd.evidence.domain.model.Understanding;
+import reengineering.ddd.evidence.domain.model.UnderstandingDecision;
 
 public final class UnderstandingModels {
   private UnderstandingModels() {}
@@ -28,8 +36,8 @@ public final class UnderstandingModels {
     @JsonProperty private final String waivedAt;
     @JsonProperty private final String contentSha256;
 
-    public ClarificationModel(Understanding.Clarification clarification) {
-      Understanding.ClarificationDescription value = clarification.getDescription();
+    public ClarificationModel(Clarification clarification) {
+      ClarificationDescription value = clarification.getDescription();
       id = clarification.getIdentity();
       reference = value.reference();
       storyId = value.story().id();
@@ -59,8 +67,8 @@ public final class UnderstandingModels {
     @JsonProperty private final List<String> businessData;
     @JsonProperty private final String contentSha256;
 
-    private ScenarioDraftModel(Understanding.ScenarioDraft draft) {
-      Understanding.ScenarioDraftDescription value = draft.getDescription();
+    private ScenarioDraftModel(ScenarioDraft draft) {
+      ScenarioDraftDescription value = draft.getDescription();
       id = draft.getIdentity();
       reference = value.reference();
       position = value.position();
@@ -83,8 +91,8 @@ public final class UnderstandingModels {
     @JsonProperty private final String proposedAt;
     @JsonProperty private final String contentSha256;
 
-    public ScenarioProposalModel(Understanding.ScenarioProposal proposal) {
-      Understanding.ScenarioProposalDescription value = proposal.getDescription();
+    public ScenarioProposalModel(ScenarioProposal proposal) {
+      ScenarioProposalDescription value = proposal.getDescription();
       id = proposal.getIdentity();
       reference = value.reference();
       storyId = value.story().id();
@@ -108,8 +116,8 @@ public final class UnderstandingModels {
     @JsonProperty private final String decidedAt;
     @JsonProperty private final String contentSha256;
 
-    private DecisionModel(Understanding.Decision decision) {
-      Understanding.DecisionDescription value = decision.getDescription();
+    private DecisionModel(UnderstandingDecision decision) {
+      UnderstandingDecisionDescription value = decision.getDescription();
       id = decision.getIdentity();
       reference = value.reference();
       proposalId = value.proposal() == null ? null : value.proposal().id();

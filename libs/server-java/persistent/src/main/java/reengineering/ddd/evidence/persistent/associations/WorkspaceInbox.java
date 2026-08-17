@@ -16,7 +16,13 @@ import java.util.Optional;
 import java.util.UUID;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.InboxItemDescription;
+import reengineering.ddd.evidence.domain.description.InboxRevisionDescription;
 import reengineering.ddd.evidence.domain.model.Inbox;
+import reengineering.ddd.evidence.domain.model.InboxExtraction;
+import reengineering.ddd.evidence.domain.model.InboxItem;
+import reengineering.ddd.evidence.domain.model.InboxRevision;
+import reengineering.ddd.evidence.domain.model.InboxStoryCandidate;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.Workspace;
@@ -24,7 +30,7 @@ import reengineering.ddd.evidence.persistent.mappers.InboxMapper;
 import reengineering.ddd.evidence.persistent.mappers.InboxRows;
 
 @AssociationMapping(entity = Workspace.class, field = "inbox", parentIdField = "workspaceId")
-public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
+public final class WorkspaceInbox extends EntityList<String, InboxItem>
     implements Workspace.InboxAssociation {
   private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {};
 
@@ -35,14 +41,14 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   @Inject private Clock clock;
 
   @Override
-  protected List<Inbox.Item> findEntities(int from, int to) {
+  protected List<InboxItem> findEntities(int from, int to) {
     return mapper.findItems(workspaceId, null, null, null, from, Math.max(to - from, 0)).stream()
         .map(this::item)
         .toList();
   }
 
   @Override
-  protected Inbox.Item findEntity(String id) {
+  protected InboxItem findEntity(String id) {
     InboxRows.ItemRow row = mapper.findItem(workspaceId, id);
     return row == null ? null : item(row);
   }
@@ -53,7 +59,7 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   }
 
   @Override
-  public Inbox.Page<Inbox.Item> list(Inbox.ListQuery query) {
+  public Inbox.Page<InboxItem> list(Inbox.ListQuery query) {
     Inbox.validatePage(query.page(), query.pageSize());
     String sourceKind = optionalQuery(query.sourceKind());
     String search = optionalQuery(query.query());
@@ -140,7 +146,7 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   }
 
   @Override
-  public Inbox.Item changeStatus(String itemId, Inbox.ItemStatus status, int expectedVersion) {
+  public InboxItem changeStatus(String itemId, Inbox.ItemStatus status, int expectedVersion) {
     Inbox.requireVersion(expectedVersion);
     requireItem(itemId);
     if (mapper.updateItemStatus(
@@ -152,7 +158,7 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   }
 
   @Override
-  public Inbox.Page<Inbox.Revision> listRevisions(String itemId, int page, int pageSize) {
+  public Inbox.Page<InboxRevision> listRevisions(String itemId, int page, int pageSize) {
     Inbox.validatePage(page, pageSize);
     requireItem(itemId);
     return new Inbox.Page<>(
@@ -163,19 +169,18 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   }
 
   @Override
-  public Optional<Inbox.Revision> findRevision(String itemId, String revisionId) {
+  public Optional<InboxRevision> findRevision(String itemId, String revisionId) {
     InboxRows.RevisionRow row = mapper.findRevision(workspaceId, itemId, revisionId);
     return Optional.ofNullable(row).map(this::revision);
   }
 
   @Override
-  public InboxWorkflow.Extraction createExtraction(
-      List<String> inboxItemIds, String requestedByUserId) {
+  public InboxExtraction createExtraction(List<String> inboxItemIds, String requestedByUserId) {
     return workflow.createExtraction(workspaceId, inboxItemIds, requestedByUserId);
   }
 
   @Override
-  public Optional<InboxWorkflow.Extraction> findExtraction(String extractionId) {
+  public Optional<InboxExtraction> findExtraction(String extractionId) {
     return workflow.findExtraction(workspaceId, extractionId);
   }
 
@@ -191,7 +196,7 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   }
 
   @Override
-  public Optional<InboxWorkflow.Candidate> findCandidate(String candidateId) {
+  public Optional<InboxStoryCandidate> findCandidate(String candidateId) {
     return workflow.findCandidate(workspaceId, candidateId);
   }
 
@@ -222,26 +227,26 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
   }
 
   private Inbox.Captured captureResult(String itemId, String revisionId, boolean revisionCreated) {
-    Inbox.Item item = requireItem(itemId);
-    Inbox.Revision revision =
+    InboxItem item = requireItem(itemId);
+    InboxRevision revision =
         findRevision(itemId, revisionId)
             .orElseThrow(
                 () -> DomainException.internal("Inbox item " + itemId + " was not persisted"));
     return new Inbox.Captured(item, revision, revisionCreated);
   }
 
-  private Inbox.Item requireItem(String itemId) {
+  private InboxItem requireItem(String itemId) {
     return findByIdentity(itemId)
         .orElseThrow(() -> DomainException.notFound("Inbox item " + itemId + " not found"));
   }
 
-  private Inbox.Item item(InboxRows.ItemRow row) {
+  private InboxItem item(InboxRows.ItemRow row) {
     if (row.latestRevisionId() == null || row.latestRevisionSha256() == null) {
       throw DomainException.internal("Inbox item " + row.id() + " has no latest revision");
     }
-    return new Inbox.Item(
+    return new InboxItem(
         row.id(),
-        new Inbox.ItemDescription(
+        new InboxItemDescription(
             new Ref<>(row.workspaceId()),
             row.sourceKind(),
             row.externalKey(),
@@ -255,10 +260,10 @@ public final class WorkspaceInbox extends EntityList<String, Inbox.Item>
             row.updatedAt()));
   }
 
-  private Inbox.Revision revision(InboxRows.RevisionRow row) {
-    return new Inbox.Revision(
+  private InboxRevision revision(InboxRows.RevisionRow row) {
+    return new InboxRevision(
         row.id(),
-        new Inbox.RevisionDescription(
+        new InboxRevisionDescription(
             new Ref<>(row.inboxItemId()),
             row.revisionNumber(),
             row.title(),

@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
 
 /** Fresh-Q2, product observation, independent review, and human Showcase authority. */
 public final class Showcase {
@@ -181,9 +182,9 @@ public final class Showcase {
 
   public record View(
       Iteration iteration,
-      Delivery.Story story,
-      Delivery.StoryRevision storyRevision,
-      Tasking.ApprovedPlan approvedPlan,
+      Story story,
+      StoryRevision storyRevision,
+      ApprovedTaskingPlan approvedPlan,
       Pair.Run pairRun,
       Pair.Manifest pairManifest,
       Run run,
@@ -387,7 +388,7 @@ public final class Showcase {
         target);
   }
 
-  public static List<Q2Check> q2Checks(Tasking.CandidateDescription plan) {
+  public static List<Q2Check> q2Checks(TaskingPlanCandidateDescription plan) {
     List<Q2Check> checks = new ArrayList<>();
     for (Tasking.TestDescription test : plan.tests()) {
       if (!"Q2".equals(test.quadrant())) continue;

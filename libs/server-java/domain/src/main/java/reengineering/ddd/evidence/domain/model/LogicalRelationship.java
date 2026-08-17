@@ -1,13 +1,13 @@
 package reengineering.ddd.evidence.domain.model;
 
 import io.github.jayclock.smartdomain.core.Entity;
-import io.github.jayclock.smartdomain.core.Ref;
+import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 
-public final class LogicalRelationship implements Entity<String, LogicalRelationship.Description> {
+public final class LogicalRelationship implements Entity<String, LogicalRelationshipDescription> {
   private final String identity;
-  private final Description description;
+  private final LogicalRelationshipDescription description;
 
-  public LogicalRelationship(String identity, Description description) {
+  public LogicalRelationship(String identity, LogicalRelationshipDescription description) {
     this.identity = identity;
     this.description = description;
   }
@@ -18,10 +18,7 @@ public final class LogicalRelationship implements Entity<String, LogicalRelation
   }
 
   @Override
-  public Description getDescription() {
+  public LogicalRelationshipDescription getDescription() {
     return description;
   }
-
-  public record Description(
-      Ref<String> workspace, Ref<String> source, Ref<String> target, String label) {}
 }

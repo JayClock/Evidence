@@ -19,14 +19,45 @@ import java.util.UUID;
 import java.util.function.IntSupplier;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.ApprovedTaskingPlanDescription;
+import reengineering.ddd.evidence.domain.description.ClarificationDescription;
+import reengineering.ddd.evidence.domain.description.DeskCheckDecisionDescription;
+import reengineering.ddd.evidence.domain.description.IterationDescription;
+import reengineering.ddd.evidence.domain.description.IterationIntakeDescription;
+import reengineering.ddd.evidence.domain.description.KickoffDecisionDescription;
+import reengineering.ddd.evidence.domain.description.KickoffProposalDescription;
+import reengineering.ddd.evidence.domain.description.NoModelImpactDescription;
+import reengineering.ddd.evidence.domain.description.ProblemStatementDescription;
+import reengineering.ddd.evidence.domain.description.ScenarioDraftDescription;
+import reengineering.ddd.evidence.domain.description.ScenarioProposalDescription;
+import reengineering.ddd.evidence.domain.description.StoryCardDescription;
+import reengineering.ddd.evidence.domain.description.StoryDescription;
+import reengineering.ddd.evidence.domain.description.StoryRevisionDescription;
+import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
+import reengineering.ddd.evidence.domain.description.UnderstandingDecisionDescription;
+import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
+import reengineering.ddd.evidence.domain.model.Clarification;
 import reengineering.ddd.evidence.domain.model.Delivery;
+import reengineering.ddd.evidence.domain.model.DeskCheckDecision;
 import reengineering.ddd.evidence.domain.model.Inbox;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
+import reengineering.ddd.evidence.domain.model.IterationIntake;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
+import reengineering.ddd.evidence.domain.model.KickoffDecision;
+import reengineering.ddd.evidence.domain.model.KickoffProposal;
+import reengineering.ddd.evidence.domain.model.NoModelImpact;
+import reengineering.ddd.evidence.domain.model.ProblemStatement;
+import reengineering.ddd.evidence.domain.model.ScenarioDraft;
+import reengineering.ddd.evidence.domain.model.ScenarioProposal;
+import reengineering.ddd.evidence.domain.model.Story;
+import reengineering.ddd.evidence.domain.model.StoryCard;
+import reengineering.ddd.evidence.domain.model.StoryRevision;
 import reengineering.ddd.evidence.domain.model.Tasking;
 import reengineering.ddd.evidence.domain.model.TaskingCatalog;
+import reengineering.ddd.evidence.domain.model.TaskingPlanCandidate;
 import reengineering.ddd.evidence.domain.model.Understanding;
+import reengineering.ddd.evidence.domain.model.UnderstandingDecision;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.InboxMapper;
 import reengineering.ddd.evidence.persistent.mappers.InboxRows;
@@ -51,7 +82,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Optional<IterationWorkflow.Intake> findIntake(String iterationId) {
+  public Optional<IterationIntake> findIntake(String iterationId) {
     requireIteration(iterationId);
     return Optional.ofNullable(mapper.findIntake(iterationId)).map(this::intake);
   }
@@ -102,7 +133,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     if (intake == null)
       throw DomainException.internal("Iteration " + iterationId + " lost its Intake");
     List<WorkflowRows.KickoffProposalRow> proposals = mapper.findKickoffProposals(iterationId);
-    IterationWorkflow.KickoffProposal current = null;
+    KickoffProposal current = null;
     if ("kickoff".equals(row.loop()) && "candidate_review".equals(row.stage())) {
       for (int index = proposals.size() - 1; index >= 0; index--) {
         WorkflowRows.KickoffProposalRow proposal = proposals.get(index);
@@ -121,7 +152,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public IterationWorkflow.KickoffProposal proposeKickoffReplacement(
+  public KickoffProposal proposeKickoffReplacement(
       String iterationId, int expectedIterationVersion, InboxWorkflow.CandidateInput rawProposal) {
     if (expectedIterationVersion <= 0) {
       throw DomainException.validation("Iteration expected version must be positive");
@@ -369,10 +400,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   public Optional<Understanding.View> findUnderstanding(String iterationId) {
     InboxRows.IterationRow iteration = mapper.findIteration(workspaceId, iterationId);
     if (iteration == null || iteration.activeStoryId() == null) return Optional.empty();
-    Delivery.Story story = requireStory(iteration.activeStoryId());
-    Delivery.StoryRevision revision =
+    Story story = requireStory(iteration.activeStoryId());
+    StoryRevision revision =
         requireStoryRevision(story.getIdentity(), story.getDescription().latestRevision().id());
-    List<Understanding.Clarification> clarifications =
+    List<Clarification> clarifications =
         mapper.findClarifications(workspaceId, iterationId).stream()
             .map(this::clarification)
             .toList();
@@ -398,8 +429,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Understanding.Clarification askClarification(
-      String iterationId, Understanding.AskInput rawInput) {
+  public Clarification askClarification(String iterationId, Understanding.AskInput rawInput) {
     Understanding.AskInput input = Understanding.normalize(rawInput);
     Context context = requireContext(iterationId, "Understanding");
     requireTqa(context, input.storyId(), input.storyRevisionId());
@@ -486,7 +516,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Understanding.ScenarioProposal proposeScenarioSet(
+  public ScenarioProposal proposeScenarioSet(
       String iterationId, Understanding.ProposeScenariosInput rawInput) {
     Understanding.ProposeScenariosInput input = Understanding.normalize(rawInput);
     Context context = requireContext(iterationId, "Understanding");
@@ -673,9 +703,9 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
         decidedAt,
         decisionHash);
 
-    Delivery.StoryRevision createdRevision = null;
+    StoryRevision createdRevision = null;
     if (input.action() == Understanding.DecisionAction.CONFIRM) {
-      Delivery.StoryRevisionDescription current = context.revision().getDescription();
+      StoryRevisionDescription current = context.revision().getDescription();
       String revisionId = UUID.randomUUID().toString();
       int revisionNumber = current.revisionNumber() + 1;
       List<Map<String, Object>> revisionCitations =
@@ -775,8 +805,8 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   public Optional<Tasking.View> findTasking(String iterationId) {
     InboxRows.IterationRow iteration = mapper.findIteration(workspaceId, iterationId);
     if (iteration == null || iteration.activeStoryId() == null) return Optional.empty();
-    Delivery.Story story = requireStory(iteration.activeStoryId());
-    Delivery.StoryRevision revision =
+    Story story = requireStory(iteration.activeStoryId());
+    StoryRevision revision =
         requireStoryRevision(story.getIdentity(), story.getDescription().latestRevision().id());
     WorkflowRows.NoModelImpactRow noModel =
         mapper.findNoModelImpact(workspaceId, iterationId, revision.getIdentity());
@@ -798,7 +828,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Tasking.NoModelImpact recordNoModelImpact(
+  public NoModelImpact recordNoModelImpact(
       String iterationId, Tasking.RecordNoModelImpactInput rawInput, String decidedByUserId) {
     Tasking.RecordNoModelImpactInput input = Tasking.normalize(rawInput);
     Context context = requireContext(iterationId, "Tasking");
@@ -867,7 +897,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Tasking.Candidate proposeTasking(String iterationId, Tasking.ProposeInput rawInput) {
+  public TaskingPlanCandidate proposeTasking(String iterationId, Tasking.ProposeInput rawInput) {
     Context context = requireContext(iterationId, "Tasking");
     WorkflowRows.NoModelImpactRow noModel =
         mapper.findNoModelImpact(workspaceId, iterationId, context.revision().getIdentity());
@@ -1058,7 +1088,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
         decidedByUserId,
         decidedAt,
         decisionHash);
-    Tasking.ApprovedPlan plan = null;
+    ApprovedTaskingPlan plan = null;
     if (input.action() == Tasking.DeskCheckAction.APPROVE) {
       StoredTaskingPayload candidatePayload = read(candidate.payload(), StoredTaskingPayload.class);
       StoredApprovedPayload approvedPayload =
@@ -1115,7 +1145,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Delivery.Page<Delivery.Story> listStories(int page, int pageSize) {
+  public Delivery.Page<Story> listStories(int page, int pageSize) {
     validatePage(page, pageSize);
     return new Delivery.Page<>(
         mapper.findStories(workspaceId, (page - 1) * pageSize, pageSize).stream()
@@ -1163,13 +1193,12 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Optional<Delivery.Story> findStory(String storyId) {
+  public Optional<Story> findStory(String storyId) {
     return Optional.ofNullable(mapper.findStory(workspaceId, storyId)).map(this::story);
   }
 
   @Override
-  public Delivery.Page<Delivery.StoryRevision> listStoryRevisions(
-      String storyId, int page, int pageSize) {
+  public Delivery.Page<StoryRevision> listStoryRevisions(String storyId, int page, int pageSize) {
     validatePage(page, pageSize);
     requireStory(storyId);
     return new Delivery.Page<>(
@@ -1180,7 +1209,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Optional<Delivery.StoryRevision> findStoryRevision(String storyId, String revisionId) {
+  public Optional<StoryRevision> findStoryRevision(String storyId, String revisionId) {
     return Optional.ofNullable(mapper.findStoryRevision(workspaceId, storyId, revisionId))
         .map(this::storyRevision);
   }
@@ -1190,8 +1219,8 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     if (iteration == null || iteration.activeStoryId() == null) {
       throw DomainException.notFound(label + " " + iterationId + " not found");
     }
-    Delivery.Story story = requireStory(iteration.activeStoryId());
-    Delivery.StoryRevision revision =
+    Story story = requireStory(iteration.activeStoryId());
+    StoryRevision revision =
         requireStoryRevision(story.getIdentity(), story.getDescription().latestRevision().id());
     return new Context(iteration, story, revision);
   }
@@ -1247,8 +1276,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     }
   }
 
-  private void revalidate(
-      WorkflowRows.TaskingCandidateRow candidate, Delivery.StoryRevision revision) {
+  private void revalidate(WorkflowRows.TaskingCandidateRow candidate, StoryRevision revision) {
     StoredTaskingPayload payload = read(candidate.payload(), StoredTaskingPayload.class);
     if (payload.planVersion() != 2) {
       throw DomainException.conflict("Tasking Candidate is not a v2 Pair plan");
@@ -1350,7 +1378,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   private Iteration iteration(InboxRows.IterationRow row) {
     return new Iteration(
         row.id(),
-        new Iteration.Description(
+        new IterationDescription(
             row.reference(),
             new Ref<>(row.workspaceId()),
             new Ref<>(row.sourceCandidateId()),
@@ -1369,11 +1397,11 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.updatedAt()));
   }
 
-  private IterationWorkflow.Intake intake(WorkflowRows.IntakeRow row) {
+  private IterationIntake intake(WorkflowRows.IntakeRow row) {
     Map<String, Object> candidate = readObject(row.candidateSnapshot());
-    return new IterationWorkflow.Intake(
+    return new IterationIntake(
         row.iterationId(),
-        new IterationWorkflow.IntakeDescription(
+        new IterationIntakeDescription(
             new Ref<>(row.iterationId()),
             frozenCandidate(candidate),
             readObjects(row.sourceSnapshots()).stream().map(this::frozenSource).toList(),
@@ -1426,10 +1454,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
         string(value, "locator"));
   }
 
-  private IterationWorkflow.KickoffProposal kickoffProposal(WorkflowRows.KickoffProposalRow row) {
-    return new IterationWorkflow.KickoffProposal(
+  private KickoffProposal kickoffProposal(WorkflowRows.KickoffProposalRow row) {
+    return new KickoffProposal(
         row.id(),
-        new IterationWorkflow.KickoffProposalDescription(
+        new KickoffProposalDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             row.sequence(),
@@ -1445,10 +1473,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.proposedAt()));
   }
 
-  private IterationWorkflow.KickoffDecision kickoffDecision(WorkflowRows.KickoffDecisionRow row) {
-    return new IterationWorkflow.KickoffDecision(
+  private KickoffDecision kickoffDecision(WorkflowRows.KickoffDecisionRow row) {
+    return new KickoffDecision(
         row.id(),
-        new IterationWorkflow.KickoffDecisionDescription(
+        new KickoffDecisionDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             new Ref<>(row.proposalId()),
@@ -1460,11 +1488,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private IterationWorkflow.ProblemStatement problemStatement(
-      WorkflowRows.ProblemStatementRow row) {
-    return new IterationWorkflow.ProblemStatement(
+  private ProblemStatement problemStatement(WorkflowRows.ProblemStatementRow row) {
+    return new ProblemStatement(
         row.id(),
-        new IterationWorkflow.ProblemStatementDescription(
+        new ProblemStatementDescription(
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
             row.revisionNumber(),
@@ -1476,10 +1503,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.createdAt()));
   }
 
-  private IterationWorkflow.StoryCard storyCard(WorkflowRows.StoryCardRow row) {
-    return new IterationWorkflow.StoryCard(
+  private StoryCard storyCard(WorkflowRows.StoryCardRow row) {
+    return new StoryCard(
         row.id(),
-        new IterationWorkflow.StoryCardDescription(
+        new StoryCardDescription(
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
             row.revisionNumber(),
@@ -1492,16 +1519,16 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.createdAt()));
   }
 
-  private Delivery.Story story(WorkflowRows.StoryRow row) {
+  private Story story(WorkflowRows.StoryRow row) {
     Delivery.Authority authority =
         Delivery.authority(
             row.iterationLifecycle(),
             row.iterationLoop(),
             row.iterationStage(),
             row.pendingClarificationReference() != null);
-    return new Delivery.Story(
+    return new Story(
         row.id(),
-        new Delivery.StoryDescription(
+        new StoryDescription(
             new Ref<>(row.workspaceId()),
             new Ref<>(row.iterationId()),
             row.iterationReference(),
@@ -1522,10 +1549,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.updatedAt()));
   }
 
-  private Delivery.StoryRevision storyRevision(WorkflowRows.StoryRevisionRow row) {
-    return new Delivery.StoryRevision(
+  private StoryRevision storyRevision(WorkflowRows.StoryRevisionRow row) {
+    return new StoryRevision(
         row.id(),
-        new Delivery.StoryRevisionDescription(
+        new StoryRevisionDescription(
             new Ref<>(row.storyId()),
             row.revisionNumber(),
             row.title(),
@@ -1562,10 +1589,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.createdAt()));
   }
 
-  private Understanding.Clarification clarification(WorkflowRows.ClarificationRow row) {
-    return new Understanding.Clarification(
+  private Clarification clarification(WorkflowRows.ClarificationRow row) {
+    return new Clarification(
         row.id(),
-        new Understanding.ClarificationDescription(
+        new ClarificationDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
@@ -1584,10 +1611,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private Understanding.ScenarioProposal scenarioProposal(WorkflowRows.ScenarioProposalRow row) {
-    return new Understanding.ScenarioProposal(
+  private ScenarioProposal scenarioProposal(WorkflowRows.ScenarioProposalRow row) {
+    return new ScenarioProposal(
         row.id(),
-        new Understanding.ScenarioProposalDescription(
+        new ScenarioProposalDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
@@ -1598,10 +1625,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private Understanding.ScenarioDraft scenarioDraft(WorkflowRows.ScenarioDraftRow row) {
-    return new Understanding.ScenarioDraft(
+  private ScenarioDraft scenarioDraft(WorkflowRows.ScenarioDraftRow row) {
+    return new ScenarioDraft(
         row.id(),
-        new Understanding.ScenarioDraftDescription(
+        new ScenarioDraftDescription(
             row.reference(),
             row.position(),
             new Ref<>(row.proposalId()),
@@ -1613,10 +1640,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private Understanding.Decision understandingDecision(WorkflowRows.UnderstandingDecisionRow row) {
-    return new Understanding.Decision(
+  private UnderstandingDecision understandingDecision(WorkflowRows.UnderstandingDecisionRow row) {
+    return new UnderstandingDecision(
         row.id(),
-        new Understanding.DecisionDescription(
+        new UnderstandingDecisionDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
@@ -1632,10 +1659,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private Tasking.NoModelImpact noModelImpact(WorkflowRows.NoModelImpactRow row) {
-    return new Tasking.NoModelImpact(
+  private NoModelImpact noModelImpact(WorkflowRows.NoModelImpactRow row) {
+    return new NoModelImpact(
         row.id(),
-        new Tasking.NoModelImpactDescription(
+        new NoModelImpactDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
@@ -1647,9 +1674,9 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private Tasking.Candidate taskingCandidate(WorkflowRows.TaskingCandidateRow row) {
+  private TaskingPlanCandidate taskingCandidate(WorkflowRows.TaskingCandidateRow row) {
     StoredTaskingPayload payload = read(row.payload(), StoredTaskingPayload.class);
-    return new Tasking.Candidate(
+    return new TaskingPlanCandidate(
         row.id(),
         candidateDescription(
             row.reference(),
@@ -1667,10 +1694,10 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.proposedAt()));
   }
 
-  private Tasking.Decision deskDecision(WorkflowRows.DeskCheckDecisionRow row) {
-    return new Tasking.Decision(
+  private DeskCheckDecision deskDecision(WorkflowRows.DeskCheckDecisionRow row) {
+    return new DeskCheckDecision(
         row.id(),
-        new Tasking.DecisionDescription(
+        new DeskCheckDecisionDescription(
             row.reference(),
             new Ref<>(row.iterationId()),
             new Ref<>(row.candidateId()),
@@ -1682,7 +1709,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.contentSha256()));
   }
 
-  private Tasking.ApprovedPlan approvedPlan(WorkflowRows.ApprovedPlanRow row) {
+  private ApprovedTaskingPlan approvedPlan(WorkflowRows.ApprovedPlanRow row) {
     StoredApprovedPayload payload = read(row.payload(), StoredApprovedPayload.class);
     StoredTaskingPayload planPayload =
         new StoredTaskingPayload(
@@ -1692,7 +1719,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             payload.tasks(),
             payload.processes(),
             payload.executionBudget());
-    Tasking.CandidateDescription plan =
+    TaskingPlanCandidateDescription plan =
         candidateDescription(
             payload.reference(),
             row.iterationId(),
@@ -1707,9 +1734,9 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             planPayload,
             payload.candidateContentSha256(),
             Instant.parse(payload.proposedAt()));
-    return new Tasking.ApprovedPlan(
+    return new ApprovedTaskingPlan(
         row.id(),
-        new Tasking.ApprovedPlanDescription(
+        new ApprovedTaskingPlanDescription(
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
             new Ref<>(row.storyRevisionId()),
@@ -1721,7 +1748,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.approvedAt()));
   }
 
-  private Tasking.CandidateDescription candidateDescription(
+  private TaskingPlanCandidateDescription candidateDescription(
       String reference,
       String iterationId,
       String storyId,
@@ -1735,7 +1762,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
       StoredTaskingPayload payload,
       String contentHash,
       Instant proposedAt) {
-    return new Tasking.CandidateDescription(
+    return new TaskingPlanCandidateDescription(
         payload.planVersion(),
         reference,
         new Ref<>(iterationId),
@@ -1756,12 +1783,12 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
         proposedAt);
   }
 
-  private Delivery.Story requireStory(String storyId) {
+  private Story requireStory(String storyId) {
     return findStory(storyId)
         .orElseThrow(() -> DomainException.notFound("Story " + storyId + " not found"));
   }
 
-  private Delivery.StoryRevision requireStoryRevision(String storyId, String revisionId) {
+  private StoryRevision requireStoryRevision(String storyId, String revisionId) {
     return findStoryRevision(storyId, revisionId)
         .orElseThrow(() -> DomainException.notFound("Story Revision " + revisionId + " not found"));
   }
@@ -1978,8 +2005,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     throw DomainException.conflict("Iteration " + iterationId + " has changed");
   }
 
-  private record Context(
-      InboxRows.IterationRow iteration, Delivery.Story story, Delivery.StoryRevision revision) {}
+  private record Context(InboxRows.IterationRow iteration, Story story, StoryRevision revision) {}
 
   private record DraftValue(
       String id,

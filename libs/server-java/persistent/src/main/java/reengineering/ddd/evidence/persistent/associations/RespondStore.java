@@ -12,11 +12,12 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
-import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.Pair;
 import reengineering.ddd.evidence.domain.model.Respond;
 import reengineering.ddd.evidence.domain.model.Showcase;
+import reengineering.ddd.evidence.domain.model.Story;
+import reengineering.ddd.evidence.domain.model.StoryRevision;
 import reengineering.ddd.evidence.persistent.mappers.ExecutionMapper;
 import reengineering.ddd.evidence.persistent.mappers.ExecutionRows;
 import reengineering.ddd.evidence.persistent.mappers.InboxRows;
@@ -166,8 +167,8 @@ final class RespondStore {
       String workspaceId, String iterationId, ExecutionRows.ShowcaseRunRow showcaseRow) {
     InboxRows.IterationRow iterationRow = pairStore.requireIteration(workspaceId, iterationId);
     Iteration iteration = pairStore.iteration(iterationRow);
-    Delivery.Story story = pairStore.story(workspaceId, showcaseRow.storyId());
-    Delivery.StoryRevision revision =
+    Story story = pairStore.story(workspaceId, showcaseRow.storyId());
+    StoryRevision revision =
         pairStore.storyRevision(workspaceId, showcaseRow.storyId(), showcaseRow.storyRevisionId());
     ExecutionRows.ShowcaseDecisionRow decisionRow = mapper.findShowcaseDecision(showcaseRow.id());
     ExecutionRows.ShowcaseReviewRow reviewRow = mapper.findShowcaseReview(showcaseRow.id());

@@ -23,7 +23,10 @@ import reengineering.ddd.evidence.api.InboxModels.RevisionModel;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.api.representation.PageModel;
 import reengineering.ddd.evidence.application.WorkspaceService;
+import reengineering.ddd.evidence.domain.description.InboxRevisionDescription;
 import reengineering.ddd.evidence.domain.model.Inbox;
+import reengineering.ddd.evidence.domain.model.InboxItem;
+import reengineering.ddd.evidence.domain.model.InboxRevision;
 
 public final class InboxItemsApi {
   private final String actorUserId;
@@ -132,11 +135,11 @@ public final class InboxItemsApi {
   public RevisionModel appendRevision(
       @PathParam("itemId") String itemId, JsonNode input, @Context UriInfo uriInfo) {
     InboxRequests.requireObject(input, "request body is required");
-    Inbox.Item item = workspaces.requireInboxItem(actorUserId, workspaceId, itemId);
-    Inbox.Revision latest =
+    InboxItem item = workspaces.requireInboxItem(actorUserId, workspaceId, itemId);
+    InboxRevision latest =
         workspaces.requireInboxRevision(
             actorUserId, workspaceId, itemId, item.getDescription().latestRevisionId());
-    Inbox.RevisionDescription previous = latest.getDescription();
+    InboxRevisionDescription previous = latest.getDescription();
     Inbox.SourceInput source =
         new Inbox.SourceInput(
             item.getDescription().sourceKind(),
@@ -195,7 +198,7 @@ public final class InboxItemsApi {
 
     private ItemCollectionModel(
         String workspaceId,
-        Inbox.Page<Inbox.Item> items,
+        Inbox.Page<InboxItem> items,
         int pageNumber,
         int pageSize,
         String status,
@@ -238,7 +241,7 @@ public final class InboxItemsApi {
     private RevisionCollectionModel(
         String workspaceId,
         String itemId,
-        Inbox.Page<Inbox.Revision> revisions,
+        Inbox.Page<InboxRevision> revisions,
         int pageNumber,
         int pageSize,
         UriInfo uriInfo) {

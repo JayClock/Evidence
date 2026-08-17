@@ -10,11 +10,13 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
 import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.Pair;
 import reengineering.ddd.evidence.domain.model.Showcase;
-import reengineering.ddd.evidence.domain.model.Tasking;
+import reengineering.ddd.evidence.domain.model.Story;
+import reengineering.ddd.evidence.domain.model.StoryRevision;
 import reengineering.ddd.evidence.persistent.mappers.ExecutionMapper;
 import reengineering.ddd.evidence.persistent.mappers.ExecutionRows;
 import reengineering.ddd.evidence.persistent.mappers.InboxRows;
@@ -423,10 +425,10 @@ final class ShowcaseStore {
       String workspaceId, ExecutionRows.ShowcaseRunRow row, boolean includeNextAction) {
     Iteration iteration =
         pairStore.iteration(pairStore.requireIteration(workspaceId, row.iterationId()));
-    Delivery.Story story = pairStore.story(workspaceId, row.storyId());
-    Delivery.StoryRevision revision =
+    Story story = pairStore.story(workspaceId, row.storyId());
+    StoryRevision revision =
         pairStore.storyRevision(workspaceId, row.storyId(), row.storyRevisionId());
-    Tasking.ApprovedPlan plan = pairStore.approvedPlan(workspaceId, row.iterationId());
+    ApprovedTaskingPlan plan = pairStore.approvedPlan(workspaceId, row.iterationId());
     ExecutionRows.PairRunRow pairRow = mapper.findLatestPair(workspaceId, row.iterationId());
     if (pairRow == null) {
       throw DomainException.internal("Showcase Run " + row.id() + " lost Pair authority");

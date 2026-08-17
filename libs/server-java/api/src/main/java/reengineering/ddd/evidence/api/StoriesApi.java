@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.model.Delivery;
+import reengineering.ddd.evidence.domain.model.Story;
 
 public final class StoriesApi {
   private final String actorUserId;
@@ -32,8 +33,7 @@ public final class StoriesApi {
       @Context UriInfo uriInfo) {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
-    Delivery.Page<Delivery.Story> stories =
-        workspaces.stories(actorUserId, workspaceId, page, pageSize);
+    Delivery.Page<Story> stories = workspaces.stories(actorUserId, workspaceId, page, pageSize);
     return new DeliveryModels.StoryCollectionModel(
         workspaceId,
         stories,

@@ -18,6 +18,7 @@ import reengineering.ddd.evidence.api.InboxModels.CandidateModel;
 import reengineering.ddd.evidence.api.InboxModels.ExtractionModel;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.application.WorkspaceService;
+import reengineering.ddd.evidence.domain.model.InboxExtraction;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 
 public final class InboxExtractionsApi {
@@ -37,7 +38,7 @@ public final class InboxExtractionsApi {
   @VendorMediaType(ResourceTypes.INBOX_EXTRACTION)
   public Response create(JsonNode input, @Context UriInfo uriInfo) {
     InboxRequests.requireObject(input, "request body is required");
-    InboxWorkflow.Extraction extraction =
+    InboxExtraction extraction =
         workspaces.createInboxExtraction(
             actorUserId,
             workspaceId,

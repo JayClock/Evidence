@@ -22,10 +22,18 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.ApprovedTaskingPlanDescription;
+import reengineering.ddd.evidence.domain.description.IterationDescription;
+import reengineering.ddd.evidence.domain.description.StoryDescription;
+import reengineering.ddd.evidence.domain.description.StoryRevisionDescription;
+import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
+import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
 import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.Pair;
+import reengineering.ddd.evidence.domain.model.Story;
+import reengineering.ddd.evidence.domain.model.StoryRevision;
 import reengineering.ddd.evidence.domain.model.Tasking;
 import reengineering.ddd.evidence.persistent.mappers.ExecutionMapper;
 import reengineering.ddd.evidence.persistent.mappers.ExecutionRows;
@@ -53,7 +61,7 @@ final class PairStore {
       throw DomainException.conflict(
           "Iteration " + iterationId + " is not at the approved Pair entry");
     }
-    Tasking.ApprovedPlan approved = approvedPlan(workspaceId, iterationId);
+    ApprovedTaskingPlan approved = approvedPlan(workspaceId, iterationId);
     if (!approved.getIdentity().equals(input.approvedTaskingPlanId())) {
       throw DomainException.notFound(
           "Approved Tasking Plan " + input.approvedTaskingPlanId() + " not found");
@@ -62,8 +70,8 @@ final class PairStore {
       throw DomainException.conflict("Approved Tasking Plan content has changed");
     }
     Pair.materializeExecutionPlan(approved.getDescription().plan());
-    Delivery.Story story = story(workspaceId, approved.getDescription().story().id());
-    Delivery.StoryRevision revision =
+    Story story = story(workspaceId, approved.getDescription().story().id());
+    StoryRevision revision =
         storyRevision(
             workspaceId,
             approved.getDescription().story().id(),
@@ -659,10 +667,9 @@ final class PairStore {
 
   Pair.View load(String workspaceId, ExecutionRows.PairRunRow row) {
     Iteration iteration = iteration(requireIteration(workspaceId, row.iterationId()));
-    Delivery.Story story = story(workspaceId, row.storyId());
-    Delivery.StoryRevision revision =
-        storyRevision(workspaceId, row.storyId(), row.storyRevisionId());
-    Tasking.ApprovedPlan plan = approvedPlan(workspaceId, row.iterationId());
+    Story story = story(workspaceId, row.storyId());
+    StoryRevision revision = storyRevision(workspaceId, row.storyId(), row.storyRevisionId());
+    ApprovedTaskingPlan plan = approvedPlan(workspaceId, row.iterationId());
     Pair.Run run = pairRun(row);
     List<Pair.DriverAttempt> attempts =
         mapper.findPairDriverAttempts(row.id()).stream().map(this::driverAttempt).toList();
@@ -751,12 +758,12 @@ final class PairStore {
         row.contentSha256());
   }
 
-  Tasking.ApprovedPlan approvedPlan(String workspaceId, String iterationId) {
+  ApprovedTaskingPlan approvedPlan(String workspaceId, String iterationId) {
     WorkflowRows.ApprovedPlanRow row = workflow.findApprovedPlan(workspaceId, iterationId);
     if (row == null) throw DomainException.notFound("Approved Tasking Plan not found");
     StoredApprovedPayload payload = read(row.payload(), StoredApprovedPayload.class);
-    Tasking.CandidateDescription plan =
-        new Tasking.CandidateDescription(
+    TaskingPlanCandidateDescription plan =
+        new TaskingPlanCandidateDescription(
             payload.planVersion(),
             payload.reference(),
             new Ref<>(row.iterationId()),
@@ -775,9 +782,9 @@ final class PairStore {
             payload.executionBudget(),
             payload.candidateContentSha256(),
             Instant.parse(payload.proposedAt()));
-    return new Tasking.ApprovedPlan(
+    return new ApprovedTaskingPlan(
         row.id(),
-        new Tasking.ApprovedPlanDescription(
+        new ApprovedTaskingPlanDescription(
             new Ref<>(row.iterationId()),
             new Ref<>(row.storyId()),
             new Ref<>(row.storyRevisionId()),
@@ -792,7 +799,7 @@ final class PairStore {
   Iteration iteration(InboxRows.IterationRow row) {
     return new Iteration(
         row.id(),
-        new Iteration.Description(
+        new IterationDescription(
             row.reference(),
             new Ref<>(row.workspaceId()),
             new Ref<>(row.sourceCandidateId()),
@@ -811,13 +818,13 @@ final class PairStore {
             row.updatedAt()));
   }
 
-  Delivery.Story story(String workspaceId, String storyId) {
+  Story story(String workspaceId, String storyId) {
     WorkflowRows.StoryRow row = workflow.findStory(workspaceId, storyId);
     if (row == null) throw DomainException.notFound("Story " + storyId + " not found");
     boolean pending = row.pendingClarificationReference() != null;
-    return new Delivery.Story(
+    return new Story(
         row.id(),
-        new Delivery.StoryDescription(
+        new StoryDescription(
             new Ref<>(row.workspaceId()),
             new Ref<>(row.iterationId()),
             row.iterationReference(),
@@ -839,7 +846,7 @@ final class PairStore {
             row.updatedAt()));
   }
 
-  Delivery.StoryRevision storyRevision(String workspaceId, String storyId, String revisionId) {
+  StoryRevision storyRevision(String workspaceId, String storyId, String revisionId) {
     WorkflowRows.StoryRevisionRow row =
         workflow.findStoryRevision(workspaceId, storyId, revisionId);
     if (row == null) throw DomainException.notFound("Story Revision " + revisionId + " not found");
@@ -868,9 +875,9 @@ final class PairStore {
                         strings(value.thenSteps()),
                         strings(value.businessData())))
             .toList();
-    return new Delivery.StoryRevision(
+    return new StoryRevision(
         row.id(),
-        new Delivery.StoryRevisionDescription(
+        new StoryRevisionDescription(
             new Ref<>(row.storyId()),
             row.revisionNumber(),
             row.title(),

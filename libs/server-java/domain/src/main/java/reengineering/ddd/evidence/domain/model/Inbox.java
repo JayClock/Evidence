@@ -1,8 +1,6 @@
 package reengineering.ddd.evidence.domain.model;
 
-import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.HasMany;
-import io.github.jayclock.smartdomain.core.Ref;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -85,71 +83,6 @@ public final class Inbox {
 
   public record HashedSource(Source source, String contentSha256) {}
 
-  public record ItemDescription(
-      Ref<String> workspace,
-      String sourceKind,
-      String externalKey,
-      String title,
-      ItemStatus status,
-      String latestRevisionId,
-      String latestRevisionSha256,
-      int revisionCount,
-      int version,
-      Instant createdAt,
-      Instant updatedAt) {}
-
-  public static final class Item implements Entity<String, ItemDescription> {
-    private final String identity;
-    private final ItemDescription description;
-
-    public Item(String identity, ItemDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ItemDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record RevisionDescription(
-      Ref<String> item,
-      int revisionNumber,
-      String title,
-      String body,
-      ContentType contentType,
-      String uri,
-      Map<String, Object> providerMetadata,
-      Instant sourceUpdatedAt,
-      Instant capturedAt,
-      String contentSha256) {}
-
-  public static final class Revision implements Entity<String, RevisionDescription> {
-    private final String identity;
-    private final RevisionDescription description;
-
-    public Revision(String identity, RevisionDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public RevisionDescription getDescription() {
-      return description;
-    }
-  }
-
   public record ListQuery(
       int page, int pageSize, ItemStatus status, String sourceKind, String query) {}
 
@@ -159,20 +92,20 @@ public final class Inbox {
     }
   }
 
-  public record Captured(Item item, Revision revision, boolean revisionCreated) {}
+  public record Captured(InboxItem item, InboxRevision revision, boolean revisionCreated) {}
 
-  public interface Association extends HasMany<String, Item> {
-    Page<Item> list(ListQuery query);
+  public interface Association extends HasMany<String, InboxItem> {
+    Page<InboxItem> list(ListQuery query);
 
     Captured capture(SourceInput source);
 
     Captured appendRevision(String itemId, SourceInput source, String expectedLatestRevisionSha256);
 
-    Item changeStatus(String itemId, ItemStatus status, int expectedVersion);
+    InboxItem changeStatus(String itemId, ItemStatus status, int expectedVersion);
 
-    Page<Revision> listRevisions(String itemId, int page, int pageSize);
+    Page<InboxRevision> listRevisions(String itemId, int page, int pageSize);
 
-    java.util.Optional<Revision> findRevision(String itemId, String revisionId);
+    java.util.Optional<InboxRevision> findRevision(String itemId, String revisionId);
   }
 
   public static HashedSource normalizeAndHash(SourceInput input) {

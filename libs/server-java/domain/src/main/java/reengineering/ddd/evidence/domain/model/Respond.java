@@ -96,8 +96,8 @@ public final class Respond {
 
   public record View(
       Iteration iteration,
-      Delivery.Story story,
-      Delivery.StoryRevision storyRevision,
+      Story story,
+      StoryRevision storyRevision,
       Showcase.Run showcaseRun,
       Showcase.Decision showcaseDecision,
       Authority authority,

@@ -4,6 +4,8 @@ import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.HasMany;
 import io.github.jayclock.smartdomain.core.HasOne;
 import java.util.List;
+import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
+import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.description.MemberDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
 
@@ -75,11 +77,11 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return logicalEntities;
   }
 
-  public LogicalEntity addLogicalEntity(LogicalEntity.Description description) {
+  public LogicalEntity addLogicalEntity(LogicalEntityDescription description) {
     return logicalEntities.add(description);
   }
 
-  public LogicalEntity updateLogicalEntity(String entityId, LogicalEntity.Description description) {
+  public LogicalEntity updateLogicalEntity(String entityId, LogicalEntityDescription description) {
     return logicalEntities.update(entityId, description);
   }
 
@@ -95,12 +97,12 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return logicalRelationships;
   }
 
-  public LogicalRelationship addLogicalRelationship(LogicalRelationship.Description description) {
+  public LogicalRelationship addLogicalRelationship(LogicalRelationshipDescription description) {
     return logicalRelationships.add(description);
   }
 
   public LogicalRelationship updateLogicalRelationship(
-      String relationshipId, LogicalRelationship.Description description) {
+      String relationshipId, LogicalRelationshipDescription description) {
     return logicalRelationships.update(relationshipId, description);
   }
 
@@ -159,9 +161,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   public interface DiagramAssociation extends HasOne<Diagram> {}
 
   public interface LogicalEntities extends HasMany<String, LogicalEntity> {
-    LogicalEntity add(LogicalEntity.Description description);
+    LogicalEntity add(LogicalEntityDescription description);
 
-    LogicalEntity update(String entityId, LogicalEntity.Description description);
+    LogicalEntity update(String entityId, LogicalEntityDescription description);
 
     void remove(String entityId);
 
@@ -169,9 +171,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   }
 
   public interface LogicalRelationships extends HasMany<String, LogicalRelationship> {
-    LogicalRelationship add(LogicalRelationship.Description description);
+    LogicalRelationship add(LogicalRelationshipDescription description);
 
-    LogicalRelationship update(String relationshipId, LogicalRelationship.Description description);
+    LogicalRelationship update(String relationshipId, LogicalRelationshipDescription description);
 
     void remove(String relationshipId);
 

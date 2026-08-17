@@ -16,8 +16,13 @@ import jakarta.ws.rs.core.UriInfo;
 import java.util.List;
 import reengineering.ddd.evidence.api.InboxModels.IterationModel;
 import reengineering.ddd.evidence.application.WorkspaceService;
+import reengineering.ddd.evidence.domain.model.Clarification;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
+import reengineering.ddd.evidence.domain.model.KickoffProposal;
+import reengineering.ddd.evidence.domain.model.NoModelImpact;
+import reengineering.ddd.evidence.domain.model.ScenarioProposal;
 import reengineering.ddd.evidence.domain.model.Tasking;
+import reengineering.ddd.evidence.domain.model.TaskingPlanCandidate;
 import reengineering.ddd.evidence.domain.model.Understanding;
 
 public final class IterationsApi {
@@ -112,7 +117,7 @@ public final class IterationsApi {
   public Response proposeKickoff(
       @PathParam("iterationId") String iterationId, JsonNode body, @Context UriInfo uriInfo) {
     InboxRequests.requireObject(body, "request body is required");
-    IterationWorkflow.KickoffProposal proposal =
+    KickoffProposal proposal =
         workspaces.proposeKickoffReplacement(
             actorUserId,
             workspaceId,
@@ -173,7 +178,7 @@ public final class IterationsApi {
   @VendorMediaType(ResourceTypes.CLARIFICATION)
   public Response askClarification(@PathParam("iterationId") String iterationId, JsonNode body) {
     InboxRequests.requireObject(body, "body must be an object");
-    Understanding.Clarification clarification =
+    Clarification clarification =
         workspaces.askClarification(
             actorUserId,
             workspaceId,
@@ -223,7 +228,7 @@ public final class IterationsApi {
   @VendorMediaType(ResourceTypes.SCENARIO_PROPOSAL)
   public Response proposeScenarios(@PathParam("iterationId") String iterationId, JsonNode body) {
     InboxRequests.requireObject(body, "body must be an object");
-    Understanding.ScenarioProposal proposal =
+    ScenarioProposal proposal =
         workspaces.proposeScenarios(
             actorUserId,
             workspaceId,
@@ -287,7 +292,7 @@ public final class IterationsApi {
   public Response noModelImpact(
       @PathParam("iterationId") String iterationId, JsonNode body, @Context UriInfo uriInfo) {
     InboxRequests.requireObject(body, "body must be an object");
-    Tasking.NoModelImpact decision =
+    NoModelImpact decision =
         workspaces.recordNoModelImpact(
             actorUserId,
             workspaceId,
@@ -311,7 +316,7 @@ public final class IterationsApi {
   @VendorMediaType(ResourceTypes.TASKING_CANDIDATE)
   public Response proposeTasking(
       @PathParam("iterationId") String iterationId, JsonNode body, @Context UriInfo uriInfo) {
-    Tasking.Candidate candidate =
+    TaskingPlanCandidate candidate =
         workspaces.proposeTasking(
             actorUserId, workspaceId, iterationId, WorkflowRequests.tasking(body));
     return Response.status(Response.Status.CREATED)

@@ -1,8 +1,5 @@
 package reengineering.ddd.evidence.domain.model;
 
-import io.github.jayclock.smartdomain.core.Entity;
-import io.github.jayclock.smartdomain.core.Ref;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -59,37 +56,6 @@ public final class Tasking {
       } catch (RuntimeException error) {
         throw DomainException.internal("unsupported Desk Check action: " + value);
       }
-    }
-  }
-
-  public record NoModelImpactDescription(
-      String reference,
-      Ref<String> iteration,
-      Ref<String> story,
-      Ref<String> storyRevision,
-      String storyRevisionSha256,
-      String reason,
-      Ref<String> decidedBy,
-      Instant decidedAt,
-      String contentSha256) {}
-
-  public static final class NoModelImpact implements Entity<String, NoModelImpactDescription> {
-    private final String identity;
-    private final NoModelImpactDescription description;
-
-    public NoModelImpact(String identity, NoModelImpactDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public NoModelImpactDescription getDescription() {
-      return description;
     }
   }
 
@@ -249,122 +215,14 @@ public final class Tasking {
       int maxRetriesPerFingerprint,
       int maxNoProgressCheckpoints) {}
 
-  public record CandidateDescription(
-      int planVersion,
-      String reference,
-      Ref<String> iteration,
-      Ref<String> story,
-      Ref<String> storyRevision,
-      String storyRevisionSha256,
-      String baseCommitSha,
-      Ref<String> noModelImpactDecision,
-      String noModelImpactDecisionSha256,
-      int sequence,
-      ProjectCatalog projectCatalog,
-      String projectCatalogSha256,
-      List<TestDescription> tests,
-      List<TaskDescription> tasks,
-      List<ProcessSelection> processes,
-      ExecutionBudget executionBudget,
-      String contentSha256,
-      Instant proposedAt) {
-    public CandidateDescription {
-      tests = List.copyOf(tests);
-      tasks = List.copyOf(tasks);
-      processes = List.copyOf(processes);
-    }
-  }
-
-  public static final class Candidate implements Entity<String, CandidateDescription> {
-    private final String identity;
-    private final CandidateDescription description;
-
-    public Candidate(String identity, CandidateDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public CandidateDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record DecisionDescription(
-      String reference,
-      Ref<String> iteration,
-      Ref<String> candidate,
-      String candidateSha256,
-      DeskCheckAction action,
-      String reason,
-      Ref<String> decidedBy,
-      Instant decidedAt,
-      String contentSha256) {}
-
-  public static final class Decision implements Entity<String, DecisionDescription> {
-    private final String identity;
-    private final DecisionDescription description;
-
-    public Decision(String identity, DecisionDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public DecisionDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record ApprovedPlanDescription(
-      Ref<String> iteration,
-      Ref<String> story,
-      Ref<String> storyRevision,
-      Ref<String> taskingCandidate,
-      Ref<String> deskCheckDecision,
-      CandidateDescription plan,
-      String contentSha256,
-      Ref<String> approvedBy,
-      Instant approvedAt) {}
-
-  public static final class ApprovedPlan implements Entity<String, ApprovedPlanDescription> {
-    private final String identity;
-    private final ApprovedPlanDescription description;
-
-    public ApprovedPlan(String identity, ApprovedPlanDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ApprovedPlanDescription getDescription() {
-      return description;
-    }
-  }
-
   public record View(
       Iteration iteration,
-      Delivery.Story story,
-      Delivery.StoryRevision storyRevision,
+      Story story,
+      StoryRevision storyRevision,
       NoModelImpact noModelImpactDecision,
-      Candidate currentCandidate,
-      List<Decision> decisions,
-      ApprovedPlan approvedPlan,
+      TaskingPlanCandidate currentCandidate,
+      List<DeskCheckDecision> decisions,
+      ApprovedTaskingPlan approvedPlan,
       List<TaskingCatalog.Process> processCatalog) {
     public View {
       decisions = List.copyOf(decisions);
@@ -379,7 +237,8 @@ public final class Tasking {
       DeskCheckAction action,
       String reason) {}
 
-  public record DecisionResult(Iteration iteration, Decision decision, ApprovedPlan approvedPlan) {}
+  public record DecisionResult(
+      Iteration iteration, DeskCheckDecision decision, ApprovedTaskingPlan approvedPlan) {}
 
   public record AuthorityScenario(
       String id,
@@ -409,7 +268,7 @@ public final class Tasking {
     NoModelImpact recordNoModelImpact(
         String iterationId, RecordNoModelImpactInput input, String decidedByUserId);
 
-    Candidate proposeTasking(String iterationId, ProposeInput input);
+    TaskingPlanCandidate proposeTasking(String iterationId, ProposeInput input);
 
     DecisionResult decideTasking(String iterationId, DecideInput input, String decidedByUserId);
   }
@@ -436,14 +295,15 @@ public final class Tasking {
     }
     return new DecideInput(
         positive(input.expectedIterationVersion(), "Iteration version"),
-        identifier(input.candidateId(), "Tasking Candidate id"),
-        sha(input.candidateSha256(), "Tasking Candidate SHA-256"),
+        identifier(input.candidateId(), "Tasking TaskingPlanCandidate id"),
+        sha(input.candidateSha256(), "Tasking TaskingPlanCandidate SHA-256"),
         input.action(),
         reason);
   }
 
   public static ValidatedDraft validate(ProposeInput raw, List<AuthorityScenario> scenarios) {
-    if (raw == null) throw DomainException.validation("Tasking Candidate input is required");
+    if (raw == null)
+      throw DomainException.validation("Tasking TaskingPlanCandidate input is required");
     if (scenarios == null || scenarios.isEmpty()) {
       throw DomainException.conflict("Tasking requires confirmed Scenarios");
     }
@@ -458,8 +318,8 @@ public final class Tasking {
             positive(raw.expectedIterationVersion(), "Iteration version"),
             identifier(raw.storyId(), "Story id"),
             identifier(raw.storyRevisionId(), "Story Revision id"),
-            identifier(raw.noModelImpactDecisionId(), "No Model Impact Decision id"),
-            sha(raw.noModelImpactDecisionSha256(), "No Model Impact Decision SHA-256"),
+            identifier(raw.noModelImpactDecisionId(), "No Model Impact DeskCheckDecision id"),
+            sha(raw.noModelImpactDecisionSha256(), "No Model Impact DeskCheckDecision SHA-256"),
             catalog,
             runtimes.stream().map(ValidatedRuntime::input).toList(),
             raw.tests(),

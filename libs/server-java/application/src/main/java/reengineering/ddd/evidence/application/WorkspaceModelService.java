@@ -4,7 +4,11 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
+import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.model.Diagram;
+import reengineering.ddd.evidence.domain.model.DiagramEdge;
+import reengineering.ddd.evidence.domain.model.DiagramNode;
 import reengineering.ddd.evidence.domain.model.LogicalEntity;
 import reengineering.ddd.evidence.domain.model.LogicalRelationship;
 import reengineering.ddd.evidence.domain.model.Workspace;
@@ -22,22 +26,22 @@ public class WorkspaceModelService {
     return readableWorkspace(actorUserId, workspaceId).diagram().get();
   }
 
-  public List<Diagram.Node> nodes(String actorUserId, String workspaceId) {
+  public List<DiagramNode> nodes(String actorUserId, String workspaceId) {
     return diagram(actorUserId, workspaceId).nodes().findAll().stream().toList();
   }
 
-  public Diagram.Node requireNode(String actorUserId, String workspaceId, String nodeId) {
+  public DiagramNode requireNode(String actorUserId, String workspaceId, String nodeId) {
     return diagram(actorUserId, workspaceId)
         .nodes()
         .findByIdentity(nodeId)
         .orElseThrow(() -> DomainException.notFound("diagram node " + nodeId + " not found"));
   }
 
-  public List<Diagram.Edge> edges(String actorUserId, String workspaceId) {
+  public List<DiagramEdge> edges(String actorUserId, String workspaceId) {
     return diagram(actorUserId, workspaceId).edges().findAll().stream().toList();
   }
 
-  public Diagram.Edge requireEdge(String actorUserId, String workspaceId, String edgeId) {
+  public DiagramEdge requireEdge(String actorUserId, String workspaceId, String edgeId) {
     return diagram(actorUserId, workspaceId)
         .edges()
         .findByIdentity(edgeId)
@@ -61,7 +65,7 @@ public class WorkspaceModelService {
   }
 
   public LogicalEntity createLogicalEntity(
-      String actorUserId, String workspaceId, LogicalEntity.Description description) {
+      String actorUserId, String workspaceId, LogicalEntityDescription description) {
     return managedWorkspace(actorUserId, workspaceId).addLogicalEntity(description);
   }
 
@@ -69,7 +73,7 @@ public class WorkspaceModelService {
       String actorUserId,
       String workspaceId,
       String entityId,
-      LogicalEntity.Description description) {
+      LogicalEntityDescription description) {
     return managedWorkspace(actorUserId, workspaceId).updateLogicalEntity(entityId, description);
   }
 
@@ -93,7 +97,7 @@ public class WorkspaceModelService {
   }
 
   public LogicalRelationship createLogicalRelationship(
-      String actorUserId, String workspaceId, LogicalRelationship.Description description) {
+      String actorUserId, String workspaceId, LogicalRelationshipDescription description) {
     return managedWorkspace(actorUserId, workspaceId).addLogicalRelationship(description);
   }
 
@@ -101,7 +105,7 @@ public class WorkspaceModelService {
       String actorUserId,
       String workspaceId,
       String relationshipId,
-      LogicalRelationship.Description description) {
+      LogicalRelationshipDescription description) {
     return managedWorkspace(actorUserId, workspaceId)
         .updateLogicalRelationship(relationshipId, description);
   }

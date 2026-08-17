@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.model.LogicalRelationship;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
@@ -46,7 +47,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
   }
 
   @Override
-  public LogicalRelationship add(LogicalRelationship.Description description) {
+  public LogicalRelationship add(LogicalRelationshipDescription description) {
     validateDescription(description);
     String id = availableId(description);
     return write(
@@ -55,7 +56,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
 
   @Override
   public LogicalRelationship update(
-      String relationshipId, LogicalRelationship.Description description) {
+      String relationshipId, LogicalRelationshipDescription description) {
     RelationshipRecord current = findRecord(relationshipId);
     if (current == null) {
       throw DomainException.notFound("logical relationship " + relationshipId + " not found");
@@ -119,7 +120,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
         path,
         new LogicalRelationship(
             id,
-            new LogicalRelationship.Description(
+            new LogicalRelationshipDescription(
                 new Ref<>(workspaceId),
                 new Ref<>(source),
                 new Ref<>(target),
@@ -135,7 +136,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
     return read(path).relationship();
   }
 
-  private void validateDescription(LogicalRelationship.Description description) {
+  private void validateDescription(LogicalRelationshipDescription description) {
     if (!workspaceId.equals(description.workspace().id())) {
       throw DomainException.validation(
           "logical relationship workspace "
@@ -161,7 +162,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
     }
   }
 
-  private String availableId(LogicalRelationship.Description description) {
+  private String availableId(LogicalRelationshipDescription description) {
     String requested =
         description.label() == null
             ? description.source().id() + "_" + description.target().id()
@@ -177,7 +178,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
   }
 
   private Map<String, Object> relationshipDocument(
-      String id, LogicalRelationship.Description description) {
+      String id, LogicalRelationshipDescription description) {
     Map<String, Object> document = new LinkedHashMap<>();
     document.put("id", id);
     document.put("kind", "association");

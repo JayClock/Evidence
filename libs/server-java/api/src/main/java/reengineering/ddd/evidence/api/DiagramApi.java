@@ -16,7 +16,12 @@ import java.util.List;
 import java.util.Map;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
+import reengineering.ddd.evidence.domain.description.DiagramDescription;
+import reengineering.ddd.evidence.domain.description.DiagramEdgeDescription;
+import reengineering.ddd.evidence.domain.description.DiagramNodeDescription;
 import reengineering.ddd.evidence.domain.model.Diagram;
+import reengineering.ddd.evidence.domain.model.DiagramEdge;
+import reengineering.ddd.evidence.domain.model.DiagramNode;
 import reengineering.ddd.evidence.domain.model.LogicalEntity;
 
 public final class DiagramApi {
@@ -78,7 +83,7 @@ public final class DiagramApi {
         workspaceId, workspaceModels.requireEdge(actorUserId, workspaceId, edgeId), uriInfo);
   }
 
-  private NodeModel nodeModel(Diagram.Node node, UriInfo uriInfo) {
+  private NodeModel nodeModel(DiagramNode node, UriInfo uriInfo) {
     Ref<String> reference = node.getDescription().logicalEntity();
     LogicalEntity logicalEntity =
         reference == null
@@ -95,12 +100,12 @@ public final class DiagramApi {
 
     @JsonProperty private final String id;
     @JsonProperty private final String title;
-    @JsonProperty private final Diagram.Viewport viewport;
+    @JsonProperty private final DiagramDescription.Viewport viewport;
     @JsonProperty private final Instant createdAt;
     @JsonProperty private final Instant updatedAt;
 
     private DiagramModel(Diagram diagram, UriInfo uriInfo) {
-      Diagram.Description description = diagram.getDescription();
+      DiagramDescription description = diagram.getDescription();
       String workspaceId = description.workspace().id();
       id = diagram.getIdentity();
       title = description.title();
@@ -147,8 +152,8 @@ public final class DiagramApi {
     @JsonProperty private final Instant updatedAt;
 
     private NodeModel(
-        String workspaceId, Diagram.Node node, LogicalEntity logicalEntity, UriInfo uriInfo) {
-      Diagram.Node.Description description = node.getDescription();
+        String workspaceId, DiagramNode node, LogicalEntity logicalEntity, UriInfo uriInfo) {
+      DiagramNodeDescription description = node.getDescription();
       id = node.getIdentity();
       kind = description.kind();
       parent = description.parent();
@@ -208,8 +213,8 @@ public final class DiagramApi {
     @JsonProperty private final Instant createdAt;
     @JsonProperty private final Instant updatedAt;
 
-    private EdgeModel(String workspaceId, Diagram.Edge edge, UriInfo uriInfo) {
-      Diagram.Edge.Description description = edge.getDescription();
+    private EdgeModel(String workspaceId, DiagramEdge edge, UriInfo uriInfo) {
+      DiagramEdgeDescription description = edge.getDescription();
       id = edge.getIdentity();
       source = description.source();
       target = description.target();

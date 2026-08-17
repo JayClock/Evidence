@@ -18,7 +18,14 @@ import java.util.function.IntSupplier;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.InboxExtractionDescription;
+import reengineering.ddd.evidence.domain.description.InboxStoryCandidateDecisionDescription;
+import reengineering.ddd.evidence.domain.description.InboxStoryCandidateDescription;
+import reengineering.ddd.evidence.domain.description.IterationDescription;
 import reengineering.ddd.evidence.domain.model.Inbox;
+import reengineering.ddd.evidence.domain.model.InboxExtraction;
+import reengineering.ddd.evidence.domain.model.InboxStoryCandidate;
+import reengineering.ddd.evidence.domain.model.InboxStoryCandidateDecision;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.persistent.mappers.InboxMapper;
@@ -40,7 +47,7 @@ final class InboxWorkflowStore {
     this.clock = clock;
   }
 
-  InboxWorkflow.Extraction createExtraction(
+  InboxExtraction createExtraction(
       String workspaceId, List<String> inboxItemIds, String requestedByUserId) {
     List<String> selectedIds = InboxWorkflow.normalizeExtractionSources(inboxItemIds);
     Map<String, InboxRows.ItemRow> items = new LinkedHashMap<>();
@@ -78,7 +85,7 @@ final class InboxWorkflowStore {
     return requireExtraction(workspaceId, extractionId);
   }
 
-  Optional<InboxWorkflow.Extraction> findExtraction(String workspaceId, String extractionId) {
+  Optional<InboxExtraction> findExtraction(String workspaceId, String extractionId) {
     InboxRows.ExtractionRow row = mapper.findExtraction(workspaceId, extractionId);
     return Optional.ofNullable(row).map(this::extraction);
   }
@@ -157,7 +164,7 @@ final class InboxWorkflowStore {
     InboxWorkflow.validateCandidatePage(query.page(), query.pageSize());
     String extractionId = optionalQuery(query.extractionId());
     String search = optionalQuery(query.query());
-    List<InboxWorkflow.Candidate> candidates =
+    List<InboxStoryCandidate> candidates =
         mapper.findCandidates(workspaceId, extractionId, search).stream()
             .map(this::candidate)
             .filter(
@@ -169,7 +176,7 @@ final class InboxWorkflowStore {
     return new InboxWorkflow.CandidatePage(candidates.subList(from, to), candidates.size());
   }
 
-  Optional<InboxWorkflow.Candidate> findCandidate(String workspaceId, String candidateId) {
+  Optional<InboxStoryCandidate> findCandidate(String workspaceId, String candidateId) {
     InboxRows.CandidateRow row = mapper.findCandidate(workspaceId, candidateId);
     return Optional.ofNullable(row).map(this::candidate);
   }
@@ -299,13 +306,13 @@ final class InboxWorkflowStore {
     return iteration(row);
   }
 
-  private InboxWorkflow.Extraction requireExtraction(String workspaceId, String extractionId) {
+  private InboxExtraction requireExtraction(String workspaceId, String extractionId) {
     return findExtraction(workspaceId, extractionId)
         .orElseThrow(
             () -> DomainException.notFound("Inbox Extraction " + extractionId + " not found"));
   }
 
-  private InboxWorkflow.Candidate requireCandidate(String workspaceId, String candidateId) {
+  private InboxStoryCandidate requireCandidate(String workspaceId, String candidateId) {
     return findCandidate(workspaceId, candidateId)
         .orElseThrow(
             () -> DomainException.notFound("Inbox Candidate " + candidateId + " not found"));
@@ -318,10 +325,10 @@ final class InboxWorkflowStore {
     return row;
   }
 
-  private InboxWorkflow.Extraction extraction(InboxRows.ExtractionRow row) {
-    return new InboxWorkflow.Extraction(
+  private InboxExtraction extraction(InboxRows.ExtractionRow row) {
+    return new InboxExtraction(
         row.id(),
-        new InboxWorkflow.ExtractionDescription(
+        new InboxExtractionDescription(
             row.reference(),
             new Ref<>(row.workspaceId()),
             InboxWorkflow.ExtractionStatus.parseStored(row.status()),
@@ -352,10 +359,10 @@ final class InboxWorkflowStore {
         row.contentSha256());
   }
 
-  private InboxWorkflow.Candidate candidate(InboxRows.CandidateRow row) {
-    return new InboxWorkflow.Candidate(
+  private InboxStoryCandidate candidate(InboxRows.CandidateRow row) {
+    return new InboxStoryCandidate(
         row.id(),
-        new InboxWorkflow.CandidateDescription(
+        new InboxStoryCandidateDescription(
             row.reference(),
             new Ref<>(row.workspaceId()),
             new Ref<>(row.extractionId()),
@@ -383,10 +390,10 @@ final class InboxWorkflowStore {
         row.locator());
   }
 
-  private InboxWorkflow.Decision decision(InboxRows.DecisionRow row) {
-    return new InboxWorkflow.Decision(
+  private InboxStoryCandidateDecision decision(InboxRows.DecisionRow row) {
+    return new InboxStoryCandidateDecision(
         row.id(),
-        new InboxWorkflow.DecisionDescription(
+        new InboxStoryCandidateDecisionDescription(
             row.reference(),
             new Ref<>(row.workspaceId()),
             new Ref<>(row.candidateId()),
@@ -508,7 +515,7 @@ final class InboxWorkflowStore {
   private Iteration iteration(InboxRows.IterationRow row) {
     return new Iteration(
         row.id(),
-        new Iteration.Description(
+        new IterationDescription(
             row.reference(),
             new Ref<>(row.workspaceId()),
             new Ref<>(row.sourceCandidateId()),

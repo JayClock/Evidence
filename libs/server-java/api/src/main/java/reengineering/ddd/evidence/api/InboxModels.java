@@ -8,7 +8,15 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.hateoas.Link;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
-import reengineering.ddd.evidence.domain.model.Inbox;
+import reengineering.ddd.evidence.domain.description.InboxExtractionDescription;
+import reengineering.ddd.evidence.domain.description.InboxItemDescription;
+import reengineering.ddd.evidence.domain.description.InboxRevisionDescription;
+import reengineering.ddd.evidence.domain.description.InboxStoryCandidateDescription;
+import reengineering.ddd.evidence.domain.description.IterationDescription;
+import reengineering.ddd.evidence.domain.model.InboxExtraction;
+import reengineering.ddd.evidence.domain.model.InboxItem;
+import reengineering.ddd.evidence.domain.model.InboxRevision;
+import reengineering.ddd.evidence.domain.model.InboxStoryCandidate;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
 
@@ -28,8 +36,8 @@ public final class InboxModels {
     @JsonProperty private final String createdAt;
     @JsonProperty private final String updatedAt;
 
-    public ItemModel(Inbox.Item item, UriInfo uriInfo) {
-      Inbox.ItemDescription value = item.getDescription();
+    public ItemModel(InboxItem item, UriInfo uriInfo) {
+      InboxItemDescription value = item.getDescription();
       String workspaceId = value.workspace().id();
       id = item.getIdentity();
       sourceKind = value.sourceKind();
@@ -67,8 +75,8 @@ public final class InboxModels {
     @JsonProperty private final String capturedAt;
     @JsonProperty private final String contentSha256;
 
-    public RevisionModel(String workspaceId, Inbox.Revision revision, UriInfo uriInfo) {
-      Inbox.RevisionDescription value = revision.getDescription();
+    public RevisionModel(String workspaceId, InboxRevision revision, UriInfo uriInfo) {
+      InboxRevisionDescription value = revision.getDescription();
       String itemId = value.item().id();
       id = revision.getIdentity();
       revisionNumber = value.revisionNumber();
@@ -99,8 +107,8 @@ public final class InboxModels {
     @JsonProperty private final String completedAt;
     @JsonProperty private final String failureSummary;
 
-    public ExtractionModel(InboxWorkflow.Extraction extraction, UriInfo uriInfo) {
-      InboxWorkflow.ExtractionDescription value = extraction.getDescription();
+    public ExtractionModel(InboxExtraction extraction, UriInfo uriInfo) {
+      InboxExtractionDescription value = extraction.getDescription();
       String workspaceId = value.workspace().id();
       id = extraction.getIdentity();
       reference = value.reference();
@@ -189,8 +197,8 @@ public final class InboxModels {
     @JsonProperty private final String terminalDecisionId;
     @JsonProperty private final String selectedIterationId;
 
-    public CandidateModel(InboxWorkflow.Candidate candidate, UriInfo uriInfo) {
-      InboxWorkflow.CandidateDescription value = candidate.getDescription();
+    public CandidateModel(InboxStoryCandidate candidate, UriInfo uriInfo) {
+      InboxStoryCandidateDescription value = candidate.getDescription();
       String workspaceId = value.workspace().id();
       id = candidate.getIdentity();
       reference = value.reference();
@@ -278,7 +286,7 @@ public final class InboxModels {
     @JsonProperty private final String updatedAt;
 
     public IterationModel(Iteration iteration, UriInfo uriInfo) {
-      Iteration.Description value = iteration.getDescription();
+      IterationDescription value = iteration.getDescription();
       String workspaceId = value.workspace().id();
       id = iteration.getIdentity();
       reference = value.reference();

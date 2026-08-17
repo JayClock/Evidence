@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
 
 /** Pair execution authority and immutable evidence projections. */
 public final class Pair {
@@ -216,9 +217,9 @@ public final class Pair {
 
   public record View(
       Iteration iteration,
-      Delivery.Story story,
-      Delivery.StoryRevision storyRevision,
-      Tasking.ApprovedPlan approvedPlan,
+      Story story,
+      StoryRevision storyRevision,
+      ApprovedTaskingPlan approvedPlan,
       Run run,
       List<DriverAttempt> driverAttempts,
       List<CommandObservation> commandObservations,
@@ -480,7 +481,7 @@ public final class Pair {
         commitSha);
   }
 
-  public static ExecutionPlan materializeExecutionPlan(Tasking.CandidateDescription plan) {
+  public static ExecutionPlan materializeExecutionPlan(TaskingPlanCandidateDescription plan) {
     if (plan.planVersion() != 2) {
       throw DomainException.conflict("Pair requires an Approved Tasking Plan v2");
     }

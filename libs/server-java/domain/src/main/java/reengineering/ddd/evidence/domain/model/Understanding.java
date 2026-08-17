@@ -1,9 +1,6 @@
 package reengineering.ddd.evidence.domain.model;
 
-import io.github.jayclock.smartdomain.core.Entity;
-import io.github.jayclock.smartdomain.core.Ref;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -86,44 +83,6 @@ public final class Understanding {
     }
   }
 
-  public record ClarificationDescription(
-      String reference,
-      Ref<String> iteration,
-      Ref<String> story,
-      Ref<String> storyRevision,
-      int sequence,
-      ClarificationTarget target,
-      String question,
-      ClarificationStatus status,
-      Instant askedAt,
-      String answer,
-      Ref<String> answeredBy,
-      Instant answeredAt,
-      String waivedReason,
-      Ref<String> waivedBy,
-      Instant waivedAt,
-      String contentSha256) {}
-
-  public static final class Clarification implements Entity<String, ClarificationDescription> {
-    private final String identity;
-    private final ClarificationDescription description;
-
-    public Clarification(String identity, ClarificationDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ClarificationDescription getDescription() {
-      return description;
-    }
-  }
-
   public record ScenarioInput(
       String title, List<String> given, String when, List<String> then, List<String> businessData) {
     public ScenarioInput {
@@ -133,126 +92,14 @@ public final class Understanding {
     }
   }
 
-  public record ScenarioDraftDescription(
-      String reference,
-      int position,
-      Ref<String> proposal,
-      String title,
-      List<String> given,
-      String when,
-      List<String> then,
-      List<String> businessData,
-      String contentSha256) {
-    public ScenarioDraftDescription {
-      given = List.copyOf(given);
-      then = List.copyOf(then);
-      businessData = List.copyOf(businessData);
-    }
-  }
-
-  public static final class ScenarioDraft implements Entity<String, ScenarioDraftDescription> {
-    private final String identity;
-    private final ScenarioDraftDescription description;
-
-    public ScenarioDraft(String identity, ScenarioDraftDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ScenarioDraftDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record ScenarioProposalDescription(
-      String reference,
-      Ref<String> iteration,
-      Ref<String> story,
-      Ref<String> storyRevision,
-      int sequence,
-      List<ScenarioDraft> drafts,
-      Instant proposedAt,
-      String contentSha256) {
-    public ScenarioProposalDescription {
-      drafts = List.copyOf(drafts);
-    }
-  }
-
-  public static final class ScenarioProposal
-      implements Entity<String, ScenarioProposalDescription> {
-    private final String identity;
-    private final ScenarioProposalDescription description;
-
-    public ScenarioProposal(String identity, ScenarioProposalDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ScenarioProposalDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record DecisionDescription(
-      String reference,
-      Ref<String> iteration,
-      Ref<String> story,
-      Ref<String> storyRevision,
-      Ref<String> proposal,
-      String proposalSha256,
-      DecisionAction action,
-      String reason,
-      List<Ref<String>> selectedDrafts,
-      List<Ref<String>> confirmedScenarios,
-      Ref<String> decidedBy,
-      Instant decidedAt,
-      String contentSha256) {
-    public DecisionDescription {
-      selectedDrafts = List.copyOf(selectedDrafts);
-      confirmedScenarios = List.copyOf(confirmedScenarios);
-    }
-  }
-
-  public static final class Decision implements Entity<String, DecisionDescription> {
-    private final String identity;
-    private final DecisionDescription description;
-
-    public Decision(String identity, DecisionDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public DecisionDescription getDescription() {
-      return description;
-    }
-  }
-
   public record View(
       Iteration iteration,
-      Delivery.Story story,
-      Delivery.StoryRevision storyRevision,
+      Story story,
+      StoryRevision storyRevision,
       Clarification pendingClarification,
       List<Clarification> clarifications,
       ScenarioProposal currentScenarioProposal,
-      List<Decision> decisions) {
+      List<UnderstandingDecision> decisions) {
     public View {
       clarifications = List.copyOf(clarifications);
       decisions = List.copyOf(decisions);
@@ -293,7 +140,7 @@ public final class Understanding {
   public record AnswerResult(Iteration iteration, Clarification clarification) {}
 
   public record DecisionResult(
-      Iteration iteration, Decision decision, Delivery.StoryRevision storyRevision) {}
+      Iteration iteration, UnderstandingDecision decision, StoryRevision storyRevision) {}
 
   public interface Association {
     Optional<View> findUnderstanding(String iterationId);

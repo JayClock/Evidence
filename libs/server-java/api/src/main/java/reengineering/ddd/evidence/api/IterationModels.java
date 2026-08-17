@@ -7,7 +7,17 @@ import java.util.Map;
 import reengineering.ddd.evidence.api.InboxModels.IterationModel;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.domain.CanonicalJson;
+import reengineering.ddd.evidence.domain.description.IterationIntakeDescription;
+import reengineering.ddd.evidence.domain.description.KickoffDecisionDescription;
+import reengineering.ddd.evidence.domain.description.KickoffProposalDescription;
+import reengineering.ddd.evidence.domain.description.ProblemStatementDescription;
+import reengineering.ddd.evidence.domain.description.StoryCardDescription;
+import reengineering.ddd.evidence.domain.model.IterationIntake;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
+import reengineering.ddd.evidence.domain.model.KickoffDecision;
+import reengineering.ddd.evidence.domain.model.KickoffProposal;
+import reengineering.ddd.evidence.domain.model.ProblemStatement;
+import reengineering.ddd.evidence.domain.model.StoryCard;
 
 public final class IterationModels {
   private IterationModels() {}
@@ -20,8 +30,8 @@ public final class IterationModels {
     @JsonProperty private final String contentSha256;
     @JsonProperty private final String frozenAt;
 
-    public IntakeModel(String workspaceId, IterationWorkflow.Intake intake, UriInfo uriInfo) {
-      IterationWorkflow.IntakeDescription value = intake.getDescription();
+    public IntakeModel(String workspaceId, IterationIntake intake, UriInfo uriInfo) {
+      IterationIntakeDescription value = intake.getDescription();
       iterationId = value.iteration().id();
       candidate = new CandidateSnapshot(workspaceId, value.candidate(), uriInfo);
       sources =
@@ -153,9 +163,8 @@ public final class IterationModels {
     @JsonProperty private final String contentSha256;
     @JsonProperty private final String proposedAt;
 
-    public KickoffProposalModel(
-        String workspaceId, IterationWorkflow.KickoffProposal proposal, UriInfo uriInfo) {
-      IterationWorkflow.KickoffProposalDescription value = proposal.getDescription();
+    public KickoffProposalModel(String workspaceId, KickoffProposal proposal, UriInfo uriInfo) {
+      KickoffProposalDescription value = proposal.getDescription();
       String iterationId = value.iteration().id();
       id = proposal.getIdentity();
       reference = value.reference();
@@ -193,9 +202,8 @@ public final class IterationModels {
     @JsonProperty private final String decidedAt;
     @JsonProperty private final String contentSha256;
 
-    public KickoffDecisionModel(
-        String workspaceId, IterationWorkflow.KickoffDecision decision, UriInfo uriInfo) {
-      IterationWorkflow.KickoffDecisionDescription value = decision.getDescription();
+    public KickoffDecisionModel(String workspaceId, KickoffDecision decision, UriInfo uriInfo) {
+      KickoffDecisionDescription value = decision.getDescription();
       String iterationId = value.iteration().id();
       id = decision.getIdentity();
       reference = value.reference();
@@ -262,9 +270,8 @@ public final class IterationModels {
     @JsonProperty private final String contentSha256;
     @JsonProperty private final String createdAt;
 
-    private ProblemStatementModel(
-        String workspaceId, IterationWorkflow.ProblemStatement value, UriInfo uriInfo) {
-      IterationWorkflow.ProblemStatementDescription description = value.getDescription();
+    private ProblemStatementModel(String workspaceId, ProblemStatement value, UriInfo uriInfo) {
+      ProblemStatementDescription description = value.getDescription();
       id = value.getIdentity();
       storyId = description.story().id();
       revisionNumber = description.revisionNumber();
@@ -293,8 +300,8 @@ public final class IterationModels {
     @JsonProperty private final String contentSha256;
     @JsonProperty private final String createdAt;
 
-    private StoryCardModel(IterationWorkflow.StoryCard value) {
-      IterationWorkflow.StoryCardDescription description = value.getDescription();
+    private StoryCardModel(StoryCard value) {
+      StoryCardDescription description = value.getDescription();
       id = value.getIdentity();
       storyId = description.story().id();
       revisionNumber = description.revisionNumber();

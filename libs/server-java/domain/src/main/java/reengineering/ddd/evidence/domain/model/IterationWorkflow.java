@@ -1,6 +1,5 @@
 package reengineering.ddd.evidence.domain.model;
 
-import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.Ref;
 import java.time.Instant;
 import java.util.List;
@@ -104,176 +103,6 @@ public final class IterationWorkflow {
       Instant capturedAt,
       String contentSha256) {}
 
-  public record IntakeDescription(
-      Ref<String> iteration,
-      FrozenCandidate candidate,
-      List<FrozenSource> sources,
-      String requirementsProjection,
-      String contentSha256,
-      Instant frozenAt) {
-    public IntakeDescription {
-      sources = List.copyOf(sources);
-    }
-  }
-
-  public static final class Intake implements Entity<String, IntakeDescription> {
-    private final String identity;
-    private final IntakeDescription description;
-
-    public Intake(String identity, IntakeDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public IntakeDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record KickoffProposalDescription(
-      String reference,
-      Ref<String> iteration,
-      int sequence,
-      ProposalOrigin origin,
-      String title,
-      String problem,
-      String role,
-      String goal,
-      String value,
-      InboxWorkflow.CognitiveMode cognitiveMode,
-      List<FrozenCitation> citations,
-      String contentSha256,
-      Instant proposedAt) {
-    public KickoffProposalDescription {
-      citations = List.copyOf(citations);
-    }
-  }
-
-  public static final class KickoffProposal implements Entity<String, KickoffProposalDescription> {
-    private final String identity;
-    private final KickoffProposalDescription description;
-
-    public KickoffProposal(String identity, KickoffProposalDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public KickoffProposalDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record KickoffDecisionDescription(
-      String reference,
-      Ref<String> iteration,
-      Ref<String> proposal,
-      String proposalSha256,
-      KickoffAction action,
-      String reason,
-      Ref<String> decidedBy,
-      Instant decidedAt,
-      String contentSha256) {}
-
-  public static final class KickoffDecision implements Entity<String, KickoffDecisionDescription> {
-    private final String identity;
-    private final KickoffDecisionDescription description;
-
-    public KickoffDecision(String identity, KickoffDecisionDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public KickoffDecisionDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record ProblemStatementDescription(
-      Ref<String> iteration,
-      Ref<String> story,
-      int revisionNumber,
-      String title,
-      String problem,
-      InboxWorkflow.CognitiveMode cognitiveMode,
-      List<FrozenCitation> citations,
-      String contentSha256,
-      Instant createdAt) {
-    public ProblemStatementDescription {
-      citations = List.copyOf(citations);
-    }
-  }
-
-  public static final class ProblemStatement
-      implements Entity<String, ProblemStatementDescription> {
-    private final String identity;
-    private final ProblemStatementDescription description;
-
-    public ProblemStatement(String identity, ProblemStatementDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public ProblemStatementDescription getDescription() {
-      return description;
-    }
-  }
-
-  public record StoryCardDescription(
-      Ref<String> iteration,
-      Ref<String> story,
-      int revisionNumber,
-      String title,
-      String role,
-      String goal,
-      String value,
-      Ref<String> problemStatement,
-      String contentSha256,
-      Instant createdAt) {}
-
-  public static final class StoryCard implements Entity<String, StoryCardDescription> {
-    private final String identity;
-    private final StoryCardDescription description;
-
-    public StoryCard(String identity, StoryCardDescription description) {
-      this.identity = identity;
-      this.description = description;
-    }
-
-    @Override
-    public String getIdentity() {
-      return identity;
-    }
-
-    @Override
-    public StoryCardDescription getDescription() {
-      return description;
-    }
-  }
-
   public record CompleteProvisioningInput(
       int expectedVersion, String baseCommitSha, String branchName) {}
 
@@ -288,7 +117,7 @@ public final class IterationWorkflow {
 
   public record KickoffView(
       Iteration iteration,
-      Intake intake,
+      IterationIntake intake,
       KickoffProposal currentProposal,
       List<KickoffDecision> decisions) {
     public KickoffView {
@@ -305,7 +134,7 @@ public final class IterationWorkflow {
   public interface Association {
     Optional<Iteration> findIteration(String iterationId);
 
-    Optional<Intake> findIntake(String iterationId);
+    Optional<IterationIntake> findIntake(String iterationId);
 
     Iteration completeProvisioning(String iterationId, CompleteProvisioningInput input);
 

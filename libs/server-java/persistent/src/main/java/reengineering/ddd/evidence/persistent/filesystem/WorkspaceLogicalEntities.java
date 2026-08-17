@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
 import reengineering.ddd.evidence.domain.model.LogicalEntity;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
@@ -53,7 +54,7 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
   }
 
   @Override
-  public LogicalEntity add(LogicalEntity.Description description) {
+  public LogicalEntity add(LogicalEntityDescription description) {
     validateWorkspace(description.workspace().id());
     String name = normalizeName(description.name());
     String id = availableId(name);
@@ -62,7 +63,7 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
   }
 
   @Override
-  public LogicalEntity update(String entityId, LogicalEntity.Description description) {
+  public LogicalEntity update(String entityId, LogicalEntityDescription description) {
     validateWorkspace(description.workspace().id());
     EntityRecord current = findRecord(entityId);
     if (current == null) {
@@ -115,7 +116,7 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
     Map<String, Object> document = ModelFiles.readYaml(path, "logical entity");
     String id = ModelFiles.requiredString(document, "id", path, "logical entity");
     String name = ModelFiles.requiredString(document, "name", path, "logical entity");
-    LogicalEntity.Type type =
+    LogicalEntityDescription.Type type =
         LogicalEntity.parseType(
             ModelFiles.requiredString(document, "type", path, "logical entity"));
     String subType =
@@ -134,7 +135,7 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
     return new EntityRecord(
         new LogicalEntity(
             id,
-            new LogicalEntity.Description(
+            new LogicalEntityDescription(
                 new Ref<>(workspaceId),
                 type,
                 subType,
@@ -149,7 +150,7 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
   }
 
   private LogicalEntity write(
-      Path path, String id, LogicalEntity.Description description, String parent, boolean create) {
+      Path path, String id, LogicalEntityDescription description, String parent, boolean create) {
     String subType = LogicalEntity.normalizeSubType(description.type(), description.subType());
     Map<String, Object> document = new LinkedHashMap<>();
     document.put("id", id);
@@ -201,9 +202,9 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
     }
   }
 
-  private static LogicalEntity.Description copyWithName(
-      LogicalEntity.Description description, String name) {
-    return new LogicalEntity.Description(
+  private static LogicalEntityDescription copyWithName(
+      LogicalEntityDescription description, String name) {
+    return new LogicalEntityDescription(
         description.workspace(),
         description.type(),
         description.subType(),
@@ -232,16 +233,16 @@ public final class WorkspaceLogicalEntities extends EntityList<String, LogicalEn
     return normalized.isEmpty() ? null : normalized;
   }
 
-  private static List<LogicalEntity.Attribute> attributes(Object value) {
+  private static List<LogicalEntityDescription.Attribute> attributes(Object value) {
     if (!(value instanceof List<?> input)) return List.of();
-    List<LogicalEntity.Attribute> attributes = new ArrayList<>();
+    List<LogicalEntityDescription.Attribute> attributes = new ArrayList<>();
     for (Object item : input) {
       if (!(item instanceof Map<?, ?> attribute)) continue;
       String id = ModelFiles.optionalString(attribute.get("id"));
       String name = ModelFiles.optionalString(attribute.get("name"));
       if (id == null || name == null) continue;
       attributes.add(
-          new LogicalEntity.Attribute(
+          new LogicalEntityDescription.Attribute(
               id,
               name,
               ModelFiles.optionalString(attribute.get("label")),

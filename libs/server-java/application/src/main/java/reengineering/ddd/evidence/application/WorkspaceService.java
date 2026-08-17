@@ -9,16 +9,28 @@ import org.springframework.transaction.annotation.Transactional;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.MemberDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
+import reengineering.ddd.evidence.domain.model.Clarification;
 import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.Inbox;
+import reengineering.ddd.evidence.domain.model.InboxExtraction;
+import reengineering.ddd.evidence.domain.model.InboxItem;
+import reengineering.ddd.evidence.domain.model.InboxRevision;
+import reengineering.ddd.evidence.domain.model.InboxStoryCandidate;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
+import reengineering.ddd.evidence.domain.model.IterationIntake;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
+import reengineering.ddd.evidence.domain.model.KickoffProposal;
 import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.model.NoModelImpact;
 import reengineering.ddd.evidence.domain.model.Pair;
 import reengineering.ddd.evidence.domain.model.Respond;
+import reengineering.ddd.evidence.domain.model.ScenarioProposal;
 import reengineering.ddd.evidence.domain.model.Showcase;
+import reengineering.ddd.evidence.domain.model.Story;
+import reengineering.ddd.evidence.domain.model.StoryRevision;
 import reengineering.ddd.evidence.domain.model.Tasking;
+import reengineering.ddd.evidence.domain.model.TaskingPlanCandidate;
 import reengineering.ddd.evidence.domain.model.Understanding;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
@@ -138,12 +150,12 @@ public class WorkspaceService {
     workspace.removeMember(memberId);
   }
 
-  public Inbox.Page<Inbox.Item> inboxItems(
+  public Inbox.Page<InboxItem> inboxItems(
       String actorUserId, String workspaceId, Inbox.ListQuery query) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ).inbox().list(query);
   }
 
-  public Inbox.Item requireInboxItem(String actorUserId, String workspaceId, String itemId) {
+  public InboxItem requireInboxItem(String actorUserId, String workspaceId, String itemId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .inbox()
         .findByIdentity(itemId)
@@ -157,7 +169,7 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public Inbox.Item changeInboxStatus(
+  public InboxItem changeInboxStatus(
       String actorUserId,
       String workspaceId,
       String itemId,
@@ -168,14 +180,14 @@ public class WorkspaceService {
         .changeStatus(itemId, status, expectedVersion);
   }
 
-  public Inbox.Page<Inbox.Revision> inboxRevisions(
+  public Inbox.Page<InboxRevision> inboxRevisions(
       String actorUserId, String workspaceId, String itemId, int page, int pageSize) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .inbox()
         .listRevisions(itemId, page, pageSize);
   }
 
-  public Inbox.Revision requireInboxRevision(
+  public InboxRevision requireInboxRevision(
       String actorUserId, String workspaceId, String itemId, String revisionId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .inbox()
@@ -196,14 +208,14 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public InboxWorkflow.Extraction createInboxExtraction(
+  public InboxExtraction createInboxExtraction(
       String actorUserId, String workspaceId, List<String> inboxItemIds) {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
         .inboxWorkflow()
         .createExtraction(inboxItemIds, actorUserId);
   }
 
-  public InboxWorkflow.Extraction requireInboxExtraction(
+  public InboxExtraction requireInboxExtraction(
       String actorUserId, String workspaceId, String extractionId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .inboxWorkflow()
@@ -231,7 +243,7 @@ public class WorkspaceService {
         .listCandidates(query);
   }
 
-  public InboxWorkflow.Candidate requireInboxCandidate(
+  public InboxStoryCandidate requireInboxCandidate(
       String actorUserId, String workspaceId, String candidateId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .inboxWorkflow()
@@ -268,7 +280,7 @@ public class WorkspaceService {
         .orElseThrow(() -> DomainException.notFound("Iteration " + iterationId + " not found"));
   }
 
-  public IterationWorkflow.Intake requireIterationIntake(
+  public IterationIntake requireIterationIntake(
       String actorUserId, String workspaceId, String iterationId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .iterations()
@@ -308,7 +320,7 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public IterationWorkflow.KickoffProposal proposeKickoffReplacement(
+  public KickoffProposal proposeKickoffReplacement(
       String actorUserId,
       String workspaceId,
       String iterationId,
@@ -339,7 +351,7 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public Understanding.Clarification askClarification(
+  public Clarification askClarification(
       String actorUserId, String workspaceId, String iterationId, Understanding.AskInput input) {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
         .understanding()
@@ -355,7 +367,7 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public Understanding.ScenarioProposal proposeScenarios(
+  public ScenarioProposal proposeScenarios(
       String actorUserId,
       String workspaceId,
       String iterationId,
@@ -381,7 +393,7 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public Tasking.NoModelImpact recordNoModelImpact(
+  public NoModelImpact recordNoModelImpact(
       String actorUserId,
       String workspaceId,
       String iterationId,
@@ -392,7 +404,7 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public Tasking.Candidate proposeTasking(
+  public TaskingPlanCandidate proposeTasking(
       String actorUserId, String workspaceId, String iterationId, Tasking.ProposeInput input) {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
         .tasking()
@@ -568,7 +580,7 @@ public class WorkspaceService {
         .decideRespond(iterationId, input, actorUserId);
   }
 
-  public Delivery.Page<Delivery.Story> stories(
+  public Delivery.Page<Story> stories(
       String actorUserId, String workspaceId, int page, int pageSize) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .delivery()
@@ -581,14 +593,14 @@ public class WorkspaceService {
         .summarizeStories();
   }
 
-  public Delivery.Story requireStory(String actorUserId, String workspaceId, String storyId) {
+  public Story requireStory(String actorUserId, String workspaceId, String storyId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
         .delivery()
         .findStory(storyId)
         .orElseThrow(() -> DomainException.notFound("Story " + storyId + " not found"));
   }
 
-  public Delivery.Page<Delivery.StoryRevision> storyRevisions(
+  public Delivery.Page<StoryRevision> storyRevisions(
       String actorUserId, String workspaceId, String storyId, int page, int pageSize) {
     requireStory(actorUserId, workspaceId, storyId);
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
@@ -596,7 +608,7 @@ public class WorkspaceService {
         .listStoryRevisions(storyId, page, pageSize);
   }
 
-  public Delivery.StoryRevision requireStoryRevision(
+  public StoryRevision requireStoryRevision(
       String actorUserId, String workspaceId, String storyId, String revisionId) {
     requireStory(actorUserId, workspaceId, storyId);
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)

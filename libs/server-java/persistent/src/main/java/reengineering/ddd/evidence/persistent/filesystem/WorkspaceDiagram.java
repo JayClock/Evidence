@@ -11,7 +11,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.DiagramDescription;
+import reengineering.ddd.evidence.domain.description.DiagramEdgeDescription;
+import reengineering.ddd.evidence.domain.description.DiagramNodeDescription;
 import reengineering.ddd.evidence.domain.model.Diagram;
+import reengineering.ddd.evidence.domain.model.DiagramEdge;
+import reengineering.ddd.evidence.domain.model.DiagramNode;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
 
@@ -31,10 +36,10 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     var timestamp = ModelFiles.timestamp(root);
     return new Diagram(
         DIAGRAM_ID,
-        new Diagram.Description(
+        new DiagramDescription(
             new Ref<>(workspaceId),
             DIAGRAM_TITLE,
-            Diagram.Viewport.defaultViewport(),
+            DiagramDescription.Viewport.defaultViewport(),
             timestamp,
             timestamp),
         new Nodes(DIAGRAM_ID, root),
@@ -49,7 +54,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     return Path.of(root).toAbsolutePath().normalize();
   }
 
-  private static final class Nodes extends EntityList<String, Diagram.Node> {
+  private static final class Nodes extends EntityList<String, DiagramNode> {
     private final String diagramId;
     private final Path directory;
 
@@ -59,7 +64,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     }
 
     @Override
-    protected List<Diagram.Node> findEntities(int from, int to) {
+    protected List<DiagramNode> findEntities(int from, int to) {
       List<NodeRecord> records = load();
       return records.subList(Math.min(from, records.size()), Math.min(to, records.size())).stream()
           .map(NodeRecord::node)
@@ -67,7 +72,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     }
 
     @Override
-    protected Diagram.Node findEntity(String id) {
+    protected DiagramNode findEntity(String id) {
       return load().stream()
           .filter(record -> record.node().getIdentity().equals(id))
           .map(NodeRecord::node)
@@ -91,13 +96,13 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
       List<NodeRecord> positioned = new ArrayList<>(records.size());
       for (int index = 0; index < records.size(); index++) {
         NodeRecord record = records.get(index);
-        Diagram.Node.Description description = record.node().getDescription();
+        DiagramNodeDescription description = record.node().getDescription();
         positioned.add(
             new NodeRecord(
                 record.sortName(),
-                new Diagram.Node(
+                new DiagramNode(
                     record.node().getIdentity(),
-                    new Diagram.Node.Description(
+                    new DiagramNodeDescription(
                         description.diagram(),
                         description.kind(),
                         description.logicalEntity(),
@@ -139,9 +144,9 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
       var timestamp = ModelFiles.timestamp(path);
       return new NodeRecord(
           label == null ? name : label,
-          new Diagram.Node(
+          new DiagramNode(
               id,
-              new Diagram.Node.Description(
+              new DiagramNodeDescription(
                   new Ref<>(diagramId),
                   entityType.equalsIgnoreCase("CONTEXT") ? "group-container" : "fulfillment-node",
                   new Ref<>(id),
@@ -160,7 +165,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     }
   }
 
-  private static final class Edges extends EntityList<String, Diagram.Edge> {
+  private static final class Edges extends EntityList<String, DiagramEdge> {
     private final String diagramId;
     private final Path directory;
 
@@ -170,7 +175,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     }
 
     @Override
-    protected List<Diagram.Edge> findEntities(int from, int to) {
+    protected List<DiagramEdge> findEntities(int from, int to) {
       List<EdgeRecord> records = load();
       return records.subList(Math.min(from, records.size()), Math.min(to, records.size())).stream()
           .map(EdgeRecord::edge)
@@ -178,7 +183,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     }
 
     @Override
-    protected Diagram.Edge findEntity(String id) {
+    protected DiagramEdge findEntity(String id) {
       return load().stream()
           .filter(record -> record.edge().getIdentity().equals(id))
           .map(EdgeRecord::edge)
@@ -224,9 +229,9 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
       var timestamp = ModelFiles.timestamp(path);
       return new EdgeRecord(
           label == null ? name : label,
-          new Diagram.Edge(
+          new DiagramEdge(
               id,
-              new Diagram.Edge.Description(
+              new DiagramEdgeDescription(
                   new Ref<>(diagramId),
                   new Ref<>(source),
                   new Ref<>(target),
@@ -256,7 +261,7 @@ public final class WorkspaceDiagram implements Workspace.DiagramAssociation {
     }
   }
 
-  private record NodeRecord(String sortName, Diagram.Node node) {}
+  private record NodeRecord(String sortName, DiagramNode node) {}
 
-  private record EdgeRecord(String sortName, Diagram.Edge edge) {}
+  private record EdgeRecord(String sortName, DiagramEdge edge) {}
 }

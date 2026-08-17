@@ -25,6 +25,7 @@ import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.api.representation.PageModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
 import reengineering.ddd.evidence.domain.model.LogicalEntity;
 import reengineering.ddd.evidence.domain.model.Workspace;
 
@@ -103,10 +104,10 @@ public final class LogicalEntitiesApi {
     return Map.of("deleted", true);
   }
 
-  private static LogicalEntity.Description createDescription(String workspaceId, JsonNode input) {
+  private static LogicalEntityDescription createDescription(String workspaceId, JsonNode input) {
     requireObject(input);
-    LogicalEntity.Type type = LogicalEntity.parseType(requiredText(input, "type"));
-    return new LogicalEntity.Description(
+    LogicalEntityDescription.Type type = LogicalEntity.parseType(requiredText(input, "type"));
+    return new LogicalEntityDescription(
         new Ref<>(workspaceId),
         type,
         nullableText(input, "subType"),
@@ -118,10 +119,10 @@ public final class LogicalEntitiesApi {
         Instant.EPOCH);
   }
 
-  private static LogicalEntity.Description updateDescription(
-      LogicalEntity.Description current, JsonNode input) {
+  private static LogicalEntityDescription updateDescription(
+      LogicalEntityDescription current, JsonNode input) {
     requireObject(input);
-    LogicalEntity.Type type = current.type();
+    LogicalEntityDescription.Type type = current.type();
     if (input.hasNonNull("type")) {
       String requestedType = text(input.get("type"), "type");
       if (!requestedType.isEmpty()) type = LogicalEntity.parseType(requestedType);
@@ -129,7 +130,7 @@ public final class LogicalEntitiesApi {
     String subType = input.has("subType") ? nullableText(input, "subType") : current.subType();
     String name = input.hasNonNull("name") ? text(input.get("name"), "name") : current.name();
     String label = input.has("label") ? nullableText(input, "label") : current.label();
-    return new LogicalEntity.Description(
+    return new LogicalEntityDescription(
         current.workspace(),
         type,
         subType,
@@ -147,18 +148,18 @@ public final class LogicalEntitiesApi {
     return fallback;
   }
 
-  private static List<LogicalEntity.Attribute> attributes(
-      JsonNode input, List<LogicalEntity.Attribute> fallback) {
+  private static List<LogicalEntityDescription.Attribute> attributes(
+      JsonNode input, List<LogicalEntityDescription.Attribute> fallback) {
     if (!input.has("attributes") || input.get("attributes").isNull()) return fallback;
     JsonNode values = input.get("attributes");
     if (!values.isArray()) {
       throw DomainException.validation("attributes must be an array");
     }
-    List<LogicalEntity.Attribute> attributes = new ArrayList<>();
+    List<LogicalEntityDescription.Attribute> attributes = new ArrayList<>();
     for (JsonNode value : values) {
       requireObject(value);
       attributes.add(
-          new LogicalEntity.Attribute(
+          new LogicalEntityDescription.Attribute(
               requiredText(value, "id"),
               requiredText(value, "name"),
               nullableText(value, "label"),
@@ -235,17 +236,17 @@ public final class LogicalEntitiesApi {
 
   public static final class LogicalEntityModel extends EvidenceModel<LogicalEntityModel> {
     @JsonProperty private final String id;
-    @JsonProperty private final LogicalEntity.Type type;
+    @JsonProperty private final LogicalEntityDescription.Type type;
     @JsonProperty private final String subType;
     @JsonProperty private final String name;
     @JsonProperty private final String label;
     @JsonProperty private final String description;
-    @JsonProperty private final List<LogicalEntity.Attribute> attributes;
+    @JsonProperty private final List<LogicalEntityDescription.Attribute> attributes;
     @JsonProperty private final Instant createdAt;
     @JsonProperty private final Instant updatedAt;
 
     public LogicalEntityModel(LogicalEntity entity, UriInfo uriInfo) {
-      LogicalEntity.Description value = entity.getDescription();
+      LogicalEntityDescription value = entity.getDescription();
       String workspaceId = value.workspace().id();
       id = entity.getIdentity();
       type = value.type();

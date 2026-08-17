@@ -5,7 +5,11 @@ import jakarta.ws.rs.core.UriInfo;
 import java.util.List;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.domain.CanonicalJson;
+import reengineering.ddd.evidence.domain.description.StoryDescription;
+import reengineering.ddd.evidence.domain.description.StoryRevisionDescription;
 import reengineering.ddd.evidence.domain.model.Delivery;
+import reengineering.ddd.evidence.domain.model.Story;
+import reengineering.ddd.evidence.domain.model.StoryRevision;
 
 public final class DeliveryModels {
   private DeliveryModels() {}
@@ -31,8 +35,8 @@ public final class DeliveryModels {
     @JsonProperty private final String createdAt;
     @JsonProperty private final String updatedAt;
 
-    public StoryModel(Delivery.Story story, UriInfo uriInfo) {
-      Delivery.StoryDescription value = story.getDescription();
+    public StoryModel(Story story, UriInfo uriInfo) {
+      StoryDescription value = story.getDescription();
       String workspaceId = value.workspace().id();
       id = story.getIdentity();
       iterationId = value.iteration().id();
@@ -91,9 +95,8 @@ public final class DeliveryModels {
     @JsonProperty private final String createdByUserId;
     @JsonProperty private final String createdAt;
 
-    public StoryRevisionModel(
-        String workspaceId, Delivery.StoryRevision revision, UriInfo uriInfo) {
-      Delivery.StoryRevisionDescription value = revision.getDescription();
+    public StoryRevisionModel(String workspaceId, StoryRevision revision, UriInfo uriInfo) {
+      StoryRevisionDescription value = revision.getDescription();
       String storyId = value.story().id();
       id = revision.getIdentity();
       revisionNumber = value.revisionNumber();
@@ -149,7 +152,7 @@ public final class DeliveryModels {
 
     public StoryCollectionModel(
         String workspaceId,
-        Delivery.Page<Delivery.Story> stories,
+        Delivery.Page<Story> stories,
         Delivery.PortfolioSummary summary,
         int pageNumber,
         int pageSize,
@@ -187,7 +190,7 @@ public final class DeliveryModels {
     public RevisionCollectionModel(
         String workspaceId,
         String storyId,
-        Delivery.Page<Delivery.StoryRevision> revisions,
+        Delivery.Page<StoryRevision> revisions,
         int pageNumber,
         int pageSize,
         UriInfo uriInfo) {

@@ -7,8 +7,16 @@ import java.util.List;
 import reengineering.ddd.evidence.api.InboxModels.IterationModel;
 import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.domain.CanonicalJson;
+import reengineering.ddd.evidence.domain.description.ApprovedTaskingPlanDescription;
+import reengineering.ddd.evidence.domain.description.DeskCheckDecisionDescription;
+import reengineering.ddd.evidence.domain.description.NoModelImpactDescription;
+import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
+import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
+import reengineering.ddd.evidence.domain.model.DeskCheckDecision;
+import reengineering.ddd.evidence.domain.model.NoModelImpact;
 import reengineering.ddd.evidence.domain.model.Tasking;
 import reengineering.ddd.evidence.domain.model.TaskingCatalog;
+import reengineering.ddd.evidence.domain.model.TaskingPlanCandidate;
 
 public final class TaskingModels {
   private TaskingModels() {}
@@ -27,8 +35,8 @@ public final class TaskingModels {
     @JsonProperty private final String decidedAt;
     @JsonProperty private final String contentSha256;
 
-    public NoModelImpactModel(String workspaceId, Tasking.NoModelImpact decision, UriInfo uriInfo) {
-      Tasking.NoModelImpactDescription value = decision.getDescription();
+    public NoModelImpactModel(String workspaceId, NoModelImpact decision, UriInfo uriInfo) {
+      NoModelImpactDescription value = decision.getDescription();
       String iterationId = value.iteration().id();
       id = decision.getIdentity();
       reference = value.reference();
@@ -73,7 +81,7 @@ public final class TaskingModels {
     @JsonProperty private final String proposedBy = "tasking-analyst";
     @JsonProperty private final String proposedAt;
 
-    protected TaskingSnapshot(Tasking.CandidateDescription value) {
+    protected TaskingSnapshot(TaskingPlanCandidateDescription value) {
       planVersion = value.planVersion();
       reference = value.reference();
       storyId = value.story().id();
@@ -98,8 +106,8 @@ public final class TaskingModels {
     @JsonProperty private final String id;
     @JsonIgnore private final TaskingSnapshot snapshot;
 
-    public CandidateModel(String workspaceId, Tasking.Candidate candidate, UriInfo uriInfo) {
-      Tasking.CandidateDescription value = candidate.getDescription();
+    public CandidateModel(String workspaceId, TaskingPlanCandidate candidate, UriInfo uriInfo) {
+      TaskingPlanCandidateDescription value = candidate.getDescription();
       String iterationId = value.iteration().id();
       id = candidate.getIdentity();
       snapshot = new TaskingSnapshot(value);
@@ -218,8 +226,8 @@ public final class TaskingModels {
     @JsonProperty private final String decidedAt;
     @JsonProperty private final String contentSha256;
 
-    private DecisionModel(String workspaceId, Tasking.Decision decision, UriInfo uriInfo) {
-      Tasking.DecisionDescription value = decision.getDescription();
+    private DecisionModel(String workspaceId, DeskCheckDecision decision, UriInfo uriInfo) {
+      DeskCheckDecisionDescription value = decision.getDescription();
       String iterationId = value.iteration().id();
       id = decision.getIdentity();
       reference = value.reference();
@@ -251,8 +259,8 @@ public final class TaskingModels {
     @JsonProperty private final String approvedByUserId;
     @JsonProperty private final String approvedAt;
 
-    public ApprovedPlanModel(String workspaceId, Tasking.ApprovedPlan approved, UriInfo uriInfo) {
-      Tasking.ApprovedPlanDescription value = approved.getDescription();
+    public ApprovedPlanModel(String workspaceId, ApprovedTaskingPlan approved, UriInfo uriInfo) {
+      ApprovedTaskingPlanDescription value = approved.getDescription();
       String iterationId = value.iteration().id();
       id = approved.getIdentity();
       storyId = value.story().id();

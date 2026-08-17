@@ -23,6 +23,7 @@ import reengineering.ddd.evidence.api.representation.EvidenceModel;
 import reengineering.ddd.evidence.api.representation.PageModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.model.LogicalRelationship;
 import reengineering.ddd.evidence.domain.model.Workspace;
 
@@ -108,20 +109,20 @@ public final class LogicalRelationshipsApi {
     return Map.of("deleted", true);
   }
 
-  private static LogicalRelationship.Description createDescription(
+  private static LogicalRelationshipDescription createDescription(
       String workspaceId, JsonNode input) {
     requireObject(input);
-    return new LogicalRelationship.Description(
+    return new LogicalRelationshipDescription(
         new Ref<>(workspaceId),
         reference(input, "source", null),
         reference(input, "target", null),
         nullableText(input, "label"));
   }
 
-  private static LogicalRelationship.Description updateDescription(
-      LogicalRelationship.Description current, JsonNode input) {
+  private static LogicalRelationshipDescription updateDescription(
+      LogicalRelationshipDescription current, JsonNode input) {
     requireObject(input);
-    return new LogicalRelationship.Description(
+    return new LogicalRelationshipDescription(
         current.workspace(),
         reference(input, "source", current.source()),
         reference(input, "target", current.target()),
@@ -203,7 +204,7 @@ public final class LogicalRelationshipsApi {
     @JsonProperty private final String label;
 
     private LogicalRelationshipModel(LogicalRelationship relationship, UriInfo uriInfo) {
-      LogicalRelationship.Description value = relationship.getDescription();
+      LogicalRelationshipDescription value = relationship.getDescription();
       String workspaceId = value.workspace().id();
       id = relationship.getIdentity();
       source = value.source();

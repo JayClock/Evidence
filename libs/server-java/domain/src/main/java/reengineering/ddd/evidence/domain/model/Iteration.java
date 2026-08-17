@@ -1,14 +1,13 @@
 package reengineering.ddd.evidence.domain.model;
 
 import io.github.jayclock.smartdomain.core.Entity;
-import io.github.jayclock.smartdomain.core.Ref;
-import java.time.Instant;
+import reengineering.ddd.evidence.domain.description.IterationDescription;
 
-public final class Iteration implements Entity<String, Iteration.Description> {
+public final class Iteration implements Entity<String, IterationDescription> {
   private final String identity;
-  private final Description description;
+  private final IterationDescription description;
 
-  public Iteration(String identity, Description description) {
+  public Iteration(String identity, IterationDescription description) {
     this.identity = identity;
     this.description = description;
   }
@@ -19,25 +18,7 @@ public final class Iteration implements Entity<String, Iteration.Description> {
   }
 
   @Override
-  public Description getDescription() {
+  public IterationDescription getDescription() {
     return description;
   }
-
-  public record Description(
-      String reference,
-      Ref<String> workspace,
-      Ref<String> sourceCandidate,
-      String sourceCandidateSha256,
-      String lifecycle,
-      String loop,
-      String stage,
-      String lane,
-      int version,
-      String baseCommitSha,
-      String branchName,
-      String provisioningFailureSummary,
-      Ref<String> activeStory,
-      Ref<String> admittedBy,
-      Instant admittedAt,
-      Instant updatedAt) {}
 }
