@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.MembershipDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
@@ -50,6 +51,7 @@ public class Workspaces implements reengineering.ddd.evidence.domain.model.Works
   }
 
   @Override
+  @Transactional
   public Workspace create(String ownerUserId, WorkspaceDescription description) {
     String id = UUID.randomUUID().toString();
     Instant timestamp = timestamp();

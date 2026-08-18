@@ -59,12 +59,6 @@ public class WorkspaceService {
         .orElseThrow(() -> DomainException.notFound("user " + actorUserId + " not found"));
   }
 
-  @Transactional
-  public Workspace createWorkspace(String actorUserId, WorkspaceDescription description) {
-    User owner = requireActor(actorUserId);
-    return workspaces.create(owner.getIdentity(), description);
-  }
-
   public Workspace requireWorkspace(String actorUserId, String workspaceId, Permission permission) {
     User actor = requireActor(actorUserId);
     Membership membership =

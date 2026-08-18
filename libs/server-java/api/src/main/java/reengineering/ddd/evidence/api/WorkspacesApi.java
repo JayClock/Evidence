@@ -75,7 +75,7 @@ public class WorkspacesApi {
       throw DomainException.validation("request body is required");
     }
     Workspace workspace =
-        workspaceService.createWorkspace(UsersApi.actor(securityContext), request.toDescription());
+        workspaces.create(UsersApi.actor(securityContext), request.toDescription());
     URI location = ApiTemplates.workspace(uriInfo, workspace.getIdentity());
     return Response.status(Response.Status.CREATED)
         .header("Location", location.getPath())

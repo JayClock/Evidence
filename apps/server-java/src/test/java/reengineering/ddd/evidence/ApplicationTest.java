@@ -32,6 +32,7 @@ import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.domain.model.Workspace;
+import reengineering.ddd.evidence.domain.model.Workspaces;
 
 @Testcontainers
 @SpringBootTest(
@@ -56,6 +57,7 @@ class ApplicationTest {
   @Autowired private TestRestTemplate restTemplate;
   @Autowired private ObjectMapper objectMapper;
   @Autowired private WorkspaceService workspaceService;
+  @Autowired private Workspaces workspaces;
 
   @DynamicPropertySource
   static void databaseProperties(DynamicPropertyRegistry registry) {
@@ -201,7 +203,7 @@ class ApplicationTest {
                 true)
             .orElseThrow();
     Workspace inaccessible =
-        workspaceService.createWorkspace(
+        workspaces.create(
             otherUser.getIdentity(),
             new WorkspaceDescription(
                 "Other User Workspace", null, "active", Map.of(), Instant.EPOCH, Instant.EPOCH));
