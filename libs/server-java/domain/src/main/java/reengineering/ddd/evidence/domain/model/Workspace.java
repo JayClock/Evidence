@@ -4,10 +4,12 @@ import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.HasMany;
 import io.github.jayclock.smartdomain.core.HasOne;
 import java.util.List;
+import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
 import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.description.MembershipDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
+import reengineering.ddd.evidence.domain.validation.WorkspaceAccess;
 
 public class Workspace implements Entity<String, WorkspaceDescription> {
   private String identity;
@@ -68,11 +70,34 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   }
 
   public Membership updateMembership(String membershipId, String role) {
-    return memberships.update(membershipId, role);
+    Membership current = requireMembership(membershipId);
+    String normalizedRole = WorkspaceAccess.role(role, null);
+    assertOwnerRemains(current, normalizedRole);
+    return memberships.update(membershipId, normalizedRole);
   }
 
   public void removeMembership(String membershipId) {
+    Membership current = requireMembership(membershipId);
+    assertOwnerRemains(current, null);
     memberships.remove(membershipId);
+  }
+
+  private Membership requireMembership(String membershipId) {
+    return memberships
+        .findByIdentity(membershipId)
+        .orElseThrow(
+            () -> DomainException.notFound("workspace membership " + membershipId + " not found"));
+  }
+
+  private void assertOwnerRemains(Membership current, String nextRole) {
+    if (!"owner".equals(current.getDescription().role()) || "owner".equals(nextRole)) return;
+    long owners =
+        memberships.findAll().stream()
+            .filter(membership -> "owner".equals(membership.getDescription().role()))
+            .count();
+    if (owners <= 1) {
+      throw DomainException.conflict("workspace must retain at least one owner");
+    }
   }
 
   public HasOne<Diagram> diagram() {
