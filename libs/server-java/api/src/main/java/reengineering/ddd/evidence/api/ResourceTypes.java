@@ -6,9 +6,8 @@ public final class ResourceTypes {
   public static final String USER = "application/vnd.evidence.user+json";
   public static final String SIDEBAR = "application/vnd.evidence.sidebar+json";
   public static final String MEMBERSHIPS = "application/vnd.evidence.memberships+json";
+  public static final String MEMBERSHIP = "application/vnd.evidence.membership+json";
   public static final String WORKSPACE = "application/vnd.evidence.workspace+json";
-  public static final String MEMBERS = "application/vnd.evidence.members+json";
-  public static final String MEMBER = "application/vnd.evidence.member+json";
   public static final String DIAGRAM = "application/vnd.evidence.diagram+json";
   public static final String NODES = "application/vnd.evidence.nodes+json";
   public static final String NODE = "application/vnd.evidence.node+json";

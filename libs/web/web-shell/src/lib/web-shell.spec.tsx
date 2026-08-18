@@ -252,7 +252,7 @@ const membershipCollectionState = {
   collection: [
     {
       data: {
-        id: 'default-workspace-owner',
+        id: 'default-workspace-owner-membership',
         workspace,
         role: 'owner',
       },

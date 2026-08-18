@@ -749,7 +749,7 @@ CREATE TABLE public.users (
     email text
 );
 
-CREATE TABLE public.workspace_members (
+CREATE TABLE public.workspace_memberships (
     id text NOT NULL,
     workspace_id text NOT NULL,
     user_id text NOT NULL,
@@ -927,8 +927,8 @@ ALTER TABLE ONLY public.user_identities
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.workspace_memberships
+    ADD CONSTRAINT workspace_memberships_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public.workspace_sequences
     ADD CONSTRAINT workspace_sequences_pkey PRIMARY KEY (workspace_id);
@@ -1176,9 +1176,9 @@ CREATE UNIQUE INDEX user_identities_issuer_subject_key ON public.user_identities
 
 CREATE INDEX user_identities_user_id_idx ON public.user_identities USING btree (user_id);
 
-CREATE INDEX workspace_members_user_id_idx ON public.workspace_members USING btree (user_id);
+CREATE INDEX workspace_memberships_user_id_idx ON public.workspace_memberships USING btree (user_id);
 
-CREATE UNIQUE INDEX workspace_members_workspace_id_user_id_key ON public.workspace_members USING btree (workspace_id, user_id);
+CREATE UNIQUE INDEX workspace_memberships_workspace_id_user_id_key ON public.workspace_memberships USING btree (workspace_id, user_id);
 
 CREATE INDEX workspaces_deleted_at_idx ON public.workspaces USING btree (deleted_at);
 
@@ -1551,11 +1551,11 @@ ALTER TABLE ONLY public.understanding_decisions
 ALTER TABLE ONLY public.user_identities
     ADD CONSTRAINT user_identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public.workspace_memberships
+    ADD CONSTRAINT workspace_memberships_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.workspace_members
-    ADD CONSTRAINT workspace_members_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public.workspace_memberships
+    ADD CONSTRAINT workspace_memberships_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.workspace_sequences
     ADD CONSTRAINT workspace_sequences_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;

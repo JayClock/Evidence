@@ -38,7 +38,7 @@ public interface Users {
     }
   }
 
-  record MembershipView(Member member, Workspace workspace) {}
+  record MembershipView(Membership membership, Workspace workspace) {}
 
   record MembershipPage(List<MembershipView> items, int total) {
     public MembershipPage {

@@ -2,7 +2,7 @@ import type { Entity } from '@hateoas-ts/resource';
 
 import type { components } from './openapi-schema.js';
 
-import type { MembershipCollectionResource } from './member-resource.js';
+import type { MembershipCollectionResource } from './membership-resource.js';
 import type { SidebarResource } from './sidebar-resource.js';
 import type { WorkspaceResource } from './workspace-resource.js';
 

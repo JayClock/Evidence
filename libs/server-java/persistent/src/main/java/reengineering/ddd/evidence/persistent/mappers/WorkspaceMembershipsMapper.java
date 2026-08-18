@@ -4,15 +4,15 @@ import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import reengineering.ddd.evidence.domain.description.MemberDescription;
-import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.description.MembershipDescription;
+import reengineering.ddd.evidence.domain.model.Membership;
 
 @Mapper
-public interface WorkspaceMembersMapper {
-  Member findByIdentity(
-      @Param("workspaceId") String workspaceId, @Param("memberId") String memberId);
+public interface WorkspaceMembershipsMapper {
+  Membership findByIdentity(
+      @Param("workspaceId") String workspaceId, @Param("membershipId") String membershipId);
 
-  List<Member> findAll(
+  List<Membership> findAll(
       @Param("workspaceId") String workspaceId, @Param("from") int from, @Param("size") int size);
 
   int countAll(@Param("workspaceId") String workspaceId);
@@ -22,16 +22,16 @@ public interface WorkspaceMembersMapper {
   int insert(
       @Param("id") String id,
       @Param("workspaceId") String workspaceId,
-      @Param("description") MemberDescription description,
+      @Param("description") MembershipDescription description,
       @Param("timestamp") Instant timestamp);
 
   int update(
       @Param("workspaceId") String workspaceId,
-      @Param("memberId") String memberId,
+      @Param("membershipId") String membershipId,
       @Param("role") String role,
       @Param("updatedAt") Instant updatedAt);
 
-  int delete(@Param("workspaceId") String workspaceId, @Param("memberId") String memberId);
+  int delete(@Param("workspaceId") String workspaceId, @Param("membershipId") String membershipId);
 
   int ensureOwner(
       @Param("id") String id,

@@ -11,29 +11,29 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.DomainException;
-import reengineering.ddd.evidence.domain.description.MemberDescription;
+import reengineering.ddd.evidence.domain.description.MembershipDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.WorkspaceModelRoot;
-import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembersMapper;
+import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
 
 @Component
 public class Workspaces extends EntityList<String, Workspace>
     implements reengineering.ddd.evidence.domain.model.Users.Workspaces {
   private final WorkspacesMapper mapper;
-  private final WorkspaceMembersMapper membersMapper;
+  private final WorkspaceMembershipsMapper membershipsMapper;
   private final WorkspaceModelRoot modelRoots;
   private final Clock clock;
 
   @Inject
   public Workspaces(
       WorkspacesMapper mapper,
-      WorkspaceMembersMapper membersMapper,
+      WorkspaceMembershipsMapper membershipsMapper,
       WorkspaceModelRoot modelRoots,
       Clock clock) {
     this.mapper = mapper;
-    this.membersMapper = membersMapper;
+    this.membershipsMapper = membershipsMapper;
     this.modelRoots = modelRoots;
     this.clock = clock;
   }
@@ -59,10 +59,11 @@ public class Workspaces extends EntityList<String, Workspace>
     Instant timestamp = timestamp();
     WorkspaceDescription normalized = normalize(description, null, timestamp);
     mapper.insert(id, normalized, modelRoots.initializeWorkspace(id), timestamp);
-    membersMapper.insert(
+    membershipsMapper.insert(
         UUID.randomUUID().toString(),
         id,
-        new MemberDescription(new Ref<>(id), new Ref<>(ownerUserId), "owner", timestamp, timestamp),
+        new MembershipDescription(
+            new Ref<>(id), new Ref<>(ownerUserId), "owner", timestamp, timestamp),
         timestamp);
     return require(id);
   }

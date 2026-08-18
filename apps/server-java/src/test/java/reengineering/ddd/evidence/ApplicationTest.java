@@ -218,26 +218,28 @@ class ApplicationTest {
                     .resolve(".evidence/associations")))
         .isTrue();
 
-    ResponseEntity<String> members =
-        authorized(HttpMethod.GET, "/api/workspaces/" + workspaceId + "/members", null);
-    assertThat(members.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertContentType(members, "application/vnd.evidence.members+json");
-    JsonNode membersBody = objectMapper.readTree(members.getBody());
-    JsonNode owner = membersBody.path("_embedded").path("members").get(0);
+    ResponseEntity<String> memberships =
+        authorized(HttpMethod.GET, "/api/workspaces/" + workspaceId + "/memberships", null);
+    assertThat(memberships.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertContentType(memberships, "application/vnd.evidence.memberships+json");
+    JsonNode membershipsBody = objectMapper.readTree(memberships.getBody());
+    JsonNode owner = membershipsBody.path("_embedded").path("memberships").get(0);
     assertThat(owner.path("role").asText()).isEqualTo("owner");
     assertThat(owner.path("user").path("id").asText()).isEqualTo("java-user");
 
     ResponseEntity<String> duplicate =
         authorized(
             HttpMethod.POST,
-            "/api/workspaces/" + workspaceId + "/members",
+            "/api/workspaces/" + workspaceId + "/memberships",
             "{\"user\":{\"id\":\"java-user\"},\"role\":\"member\"}");
     assertThat(duplicate.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
-    String memberPath = "/api/workspaces/" + workspaceId + "/members/" + owner.path("id").asText();
-    assertThat(authorized(HttpMethod.PATCH, memberPath, "{\"role\":\"member\"}").getStatusCode())
+    String membershipPath =
+        "/api/workspaces/" + workspaceId + "/memberships/" + owner.path("id").asText();
+    assertThat(
+            authorized(HttpMethod.PATCH, membershipPath, "{\"role\":\"member\"}").getStatusCode())
         .isEqualTo(HttpStatus.CONFLICT);
-    assertThat(authorized(HttpMethod.DELETE, memberPath, null).getStatusCode())
+    assertThat(authorized(HttpMethod.DELETE, membershipPath, null).getStatusCode())
         .isEqualTo(HttpStatus.CONFLICT);
 
     ResponseEntity<String> updated =

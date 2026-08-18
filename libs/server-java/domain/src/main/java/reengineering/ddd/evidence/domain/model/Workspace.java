@@ -6,13 +6,13 @@ import io.github.jayclock.smartdomain.core.HasOne;
 import java.util.List;
 import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
 import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
-import reengineering.ddd.evidence.domain.description.MemberDescription;
+import reengineering.ddd.evidence.domain.description.MembershipDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
 
 public class Workspace implements Entity<String, WorkspaceDescription> {
   private String identity;
   private WorkspaceDescription description;
-  private Members members;
+  private Memberships memberships;
   private DiagramAssociation diagram;
   private LogicalEntities logicalEntities;
   private LogicalRelationships logicalRelationships;
@@ -23,7 +23,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   public Workspace(
       String identity,
       WorkspaceDescription description,
-      Members members,
+      Memberships memberships,
       DiagramAssociation diagram,
       LogicalEntities logicalEntities,
       LogicalRelationships logicalRelationships,
@@ -32,7 +32,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
       ExecutionAssociation execution) {
     this.identity = identity;
     this.description = description;
-    this.members = members;
+    this.memberships = memberships;
     this.diagram = diagram;
     this.logicalEntities = logicalEntities;
     this.logicalRelationships = logicalRelationships;
@@ -53,20 +53,20 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return description;
   }
 
-  public HasMany<String, Member> members() {
-    return members;
+  public HasMany<String, Membership> memberships() {
+    return memberships;
   }
 
-  public Member addMember(MemberDescription description) {
-    return members.add(description);
+  public Membership addMembership(MembershipDescription description) {
+    return memberships.add(description);
   }
 
-  public Member updateMember(String memberId, String role) {
-    return members.update(memberId, role);
+  public Membership updateMembership(String membershipId, String role) {
+    return memberships.update(membershipId, role);
   }
 
-  public void removeMember(String memberId) {
-    members.remove(memberId);
+  public void removeMembership(String membershipId) {
+    memberships.remove(membershipId);
   }
 
   public HasOne<Diagram> diagram() {
@@ -150,12 +150,12 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return execution;
   }
 
-  public interface Members extends HasMany<String, Member> {
-    Member add(MemberDescription description);
+  public interface Memberships extends HasMany<String, Membership> {
+    Membership add(MembershipDescription description);
 
-    Member update(String memberId, String role);
+    Membership update(String membershipId, String role);
 
-    void remove(String memberId);
+    void remove(String membershipId);
   }
 
   public interface DiagramAssociation extends HasOne<Diagram> {}

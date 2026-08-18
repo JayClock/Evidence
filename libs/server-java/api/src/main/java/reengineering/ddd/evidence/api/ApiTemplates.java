@@ -55,15 +55,15 @@ public final class ApiTemplates {
     return workspaceBuilder(uriInfo).build(workspaceId);
   }
 
-  public static URI workspaceMembers(UriInfo uriInfo, String workspaceId) {
-    return workspaceBuilder(uriInfo).path(WorkspaceApi.class, "members").build(workspaceId);
+  public static URI workspaceMemberships(UriInfo uriInfo, String workspaceId) {
+    return workspaceBuilder(uriInfo).path(WorkspaceApi.class, "memberships").build(workspaceId);
   }
 
-  public static URI workspaceMember(UriInfo uriInfo, String workspaceId, String memberId) {
+  public static URI workspaceMembership(UriInfo uriInfo, String workspaceId, String membershipId) {
     return workspaceBuilder(uriInfo)
-        .path(WorkspaceApi.class, "members")
-        .path(WorkspaceMembersApi.class, "findById")
-        .build(workspaceId, memberId);
+        .path(WorkspaceApi.class, "memberships")
+        .path(WorkspaceMembershipsApi.class, "findById")
+        .build(workspaceId, membershipId);
   }
 
   public static URI workspaceChild(UriInfo uriInfo, String workspaceId, String child) {
@@ -305,9 +305,9 @@ public final class ApiTemplates {
         .build(relationshipId);
   }
 
-  public static URI workspaceMembersPage(
+  public static URI workspaceMembershipsPage(
       UriInfo uriInfo, String workspaceId, int page, int pageSize) {
-    return UriBuilder.fromUri(workspaceMembers(uriInfo, workspaceId))
+    return UriBuilder.fromUri(workspaceMemberships(uriInfo, workspaceId))
         .queryParam("page", page)
         .queryParam("pageSize", pageSize)
         .build();

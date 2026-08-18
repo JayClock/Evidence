@@ -13,20 +13,20 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-import reengineering.ddd.evidence.api.representation.MemberCollectionModel;
-import reengineering.ddd.evidence.api.representation.MemberModel;
+import reengineering.ddd.evidence.api.representation.WorkspaceMembershipCollectionModel;
+import reengineering.ddd.evidence.api.representation.WorkspaceMembershipModel;
 import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.DomainException;
-import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.model.Membership;
 
-public class WorkspaceMembersApi {
+public class WorkspaceMembershipsApi {
   private final String actorUserId;
   private final String workspaceId;
   private final WorkspaceService workspaceService;
 
   @Context private ResourceContext resourceContext;
 
-  public WorkspaceMembersApi(
+  public WorkspaceMembershipsApi(
       String actorUserId, String workspaceId, WorkspaceService workspaceService) {
     this.actorUserId = actorUserId;
     this.workspaceId = workspaceId;
@@ -35,41 +35,44 @@ public class WorkspaceMembersApi {
 
   @GET
   @Produces(MediaType.APPLICATION_JSON)
-  @VendorMediaType(ResourceTypes.MEMBERS)
-  public MemberCollectionModel findAll(
+  @VendorMediaType(ResourceTypes.MEMBERSHIPS)
+  public WorkspaceMembershipCollectionModel findAll(
       @QueryParam("page") String pageInput,
       @QueryParam("pageSize") String pageSizeInput,
       @Context UriInfo uriInfo) {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
-    WorkspaceService.MemberPage members =
-        workspaceService.members(actorUserId, workspaceId, page, pageSize);
-    return new MemberCollectionModel(workspaceId, members, page, pageSize, uriInfo);
+    WorkspaceService.MembershipPage memberships =
+        workspaceService.workspaceMemberships(actorUserId, workspaceId, page, pageSize);
+    return new WorkspaceMembershipCollectionModel(
+        workspaceId, memberships, page, pageSize, uriInfo);
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
-  @VendorMediaType(ResourceTypes.MEMBER)
-  public Response add(AddMemberRequest request, @Context UriInfo uriInfo) {
+  @VendorMediaType(ResourceTypes.MEMBERSHIP)
+  public Response add(AddMembershipRequest request, @Context UriInfo uriInfo) {
     if (request == null || request.user() == null || request.user().id() == null) {
-      throw DomainException.validation("member user is required");
+      throw DomainException.validation("membership user is required");
     }
-    Member member =
-        workspaceService.addMember(actorUserId, workspaceId, request.user().id(), request.role());
+    Membership membership =
+        workspaceService.addMembership(
+            actorUserId, workspaceId, request.user().id(), request.role());
     return Response.status(Response.Status.CREATED)
-        .entity(new MemberModel(member, uriInfo))
+        .entity(new WorkspaceMembershipModel(membership, uriInfo))
         .build();
   }
 
-  @Path("{memberId}")
-  public WorkspaceMemberApi findById(@PathParam("memberId") String memberId) {
-    Member member = workspaceService.requireMember(actorUserId, workspaceId, memberId);
+  @Path("{membershipId}")
+  public WorkspaceMembershipApi findById(@PathParam("membershipId") String membershipId) {
+    Membership membership =
+        workspaceService.requireMembership(actorUserId, workspaceId, membershipId);
     return resourceContext.initResource(
-        new WorkspaceMemberApi(actorUserId, workspaceId, member, workspaceService));
+        new WorkspaceMembershipApi(actorUserId, workspaceId, membership, workspaceService));
   }
 
-  public record AddMemberRequest(UserReference user, String role) {}
+  public record AddMembershipRequest(UserReference user, String role) {}
 
   public record UserReference(String id) {}
 }

@@ -9,7 +9,7 @@ import reengineering.ddd.evidence.application.LocalInstallation;
 import reengineering.ddd.evidence.domain.description.UserDescription;
 import reengineering.ddd.evidence.persistent.WorkspaceModelRoot;
 import reengineering.ddd.evidence.persistent.mappers.UsersMapper;
-import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembersMapper;
+import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
 
 @Component
@@ -18,7 +18,7 @@ public class LocalInstallationAdapter implements LocalInstallation {
 
   private final UsersMapper users;
   private final WorkspacesMapper workspaces;
-  private final WorkspaceMembersMapper members;
+  private final WorkspaceMembershipsMapper memberships;
   private final WorkspaceModelRoot modelRoots;
   private final Clock clock;
 
@@ -26,12 +26,12 @@ public class LocalInstallationAdapter implements LocalInstallation {
   public LocalInstallationAdapter(
       UsersMapper users,
       WorkspacesMapper workspaces,
-      WorkspaceMembersMapper members,
+      WorkspaceMembershipsMapper memberships,
       WorkspaceModelRoot modelRoots,
       Clock clock) {
     this.users = users;
     this.workspaces = workspaces;
-    this.members = members;
+    this.memberships = memberships;
     this.modelRoots = modelRoots;
     this.clock = clock;
   }
@@ -47,10 +47,10 @@ public class LocalInstallationAdapter implements LocalInstallation {
         "Seed workspace for local desktop usage",
         modelRoots.initializeDefaultWorkspace(),
         timestamp);
-    String memberId =
+    String membershipId =
         "desktop-user".equals(description.userId())
-            ? "default-workspace-owner"
-            : "default-workspace-owner-" + description.userId();
-    members.ensureOwner(memberId, DEFAULT_WORKSPACE_ID, description.userId(), timestamp);
+            ? "default-workspace-owner-membership"
+            : "default-workspace-owner-membership-" + description.userId();
+    memberships.ensureOwner(membershipId, DEFAULT_WORKSPACE_ID, description.userId(), timestamp);
   }
 }

@@ -1049,36 +1049,36 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/members': {
+  '/api/workspaces/{workspaceId}/memberships': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get: operations['list_workspace_members'];
+    get: operations['list_workspace_memberships'];
     put?: never;
-    post: operations['add_workspace_member'];
+    post: operations['add_workspace_membership'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/api/workspaces/{workspaceId}/members/{memberId}': {
+  '/api/workspaces/{workspaceId}/memberships/{membershipId}': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get: operations['get_workspace_member'];
+    get: operations['get_workspace_membership'];
     put?: never;
     post?: never;
-    delete: operations['remove_workspace_member'];
+    delete: operations['remove_workspace_membership'];
     options?: never;
     head?: never;
-    patch: operations['update_workspace_member'];
+    patch: operations['update_workspace_membership'];
     trace?: never;
   };
   '/api/workspaces/{workspaceId}/diagram': {
@@ -1229,11 +1229,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    AddMemberInput: {
+    AddMembershipInput: {
       role?: string | null;
       user: components['schemas']['RefModel'];
     };
-    UpdateMemberInput: {
+    UpdateMembershipInput: {
       role: string;
     };
     BTreeMap: {
@@ -1768,23 +1768,6 @@ export interface components {
       source: components['schemas']['RefModel'];
       target: components['schemas']['RefModel'];
     };
-    MemberCollectionEmbedded: {
-      members: components['schemas']['MemberResource'][];
-    };
-    MemberCollectionResource: {
-      _embedded: components['schemas']['MemberCollectionEmbedded'];
-      _links: components['schemas']['BTreeMap'];
-      page: components['schemas']['PageModel'];
-    };
-    MemberResource: {
-      _links: components['schemas']['BTreeMap'];
-      createdAt: string;
-      id: string;
-      role: string;
-      updatedAt: string;
-      user: components['schemas']['LinkedRefModel'];
-      workspace: components['schemas']['LinkedRefModel'];
-    };
     MembershipCollectionEmbedded: {
       memberships: components['schemas']['MembershipResource'][];
     };
@@ -1801,6 +1784,23 @@ export interface components {
       updatedAt: string;
       user: components['schemas']['LinkedRefModel'];
       workspace: components['schemas']['WorkspaceResource'];
+    };
+    WorkspaceMembershipCollectionEmbedded: {
+      memberships: components['schemas']['WorkspaceMembershipResource'][];
+    };
+    WorkspaceMembershipCollectionResource: {
+      _embedded: components['schemas']['WorkspaceMembershipCollectionEmbedded'];
+      _links: components['schemas']['BTreeMap'];
+      page: components['schemas']['PageModel'];
+    };
+    WorkspaceMembershipResource: {
+      _links: components['schemas']['BTreeMap'];
+      createdAt: string;
+      id: string;
+      role: string;
+      updatedAt: string;
+      user: components['schemas']['LinkedRefModel'];
+      workspace: components['schemas']['LinkedRefModel'];
     };
     NodeCollectionEmbedded: {
       nodes: components['schemas']['NodeResource'][];
@@ -5601,7 +5601,7 @@ export interface operations {
       500: components['responses']['InternalError'];
     };
   };
-  list_workspace_members: {
+  list_workspace_memberships: {
     parameters: {
       query?: {
         /** @description Page number */
@@ -5617,13 +5617,13 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Workspace member collection */
+      /** @description Workspace membership collection */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.members+json': components['schemas']['MemberCollectionResource'];
+          'application/vnd.evidence.memberships+json': components['schemas']['WorkspaceMembershipCollectionResource'];
         };
       };
       /** @description Validation error */
@@ -5655,7 +5655,7 @@ export interface operations {
       };
     };
   };
-  add_workspace_member: {
+  add_workspace_membership: {
     parameters: {
       query?: never;
       header?: never;
@@ -5666,17 +5666,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AddMemberInput'];
+        'application/json': components['schemas']['AddMembershipInput'];
       };
     };
     responses: {
-      /** @description Added workspace member */
+      /** @description Added workspace membership */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.member+json': components['schemas']['MemberResource'];
+          'application/vnd.evidence.membership+json': components['schemas']['WorkspaceMembershipResource'];
         };
       };
       /** @description Validation error */
@@ -5717,25 +5717,25 @@ export interface operations {
       };
     };
   };
-  get_workspace_member: {
+  get_workspace_membership: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        memberId: string;
+        membershipId: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Workspace member resource */
+      /** @description Workspace membership resource */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.member+json': components['schemas']['MemberResource'];
+          'application/vnd.evidence.membership+json': components['schemas']['WorkspaceMembershipResource'];
         };
       };
       /** @description Resource not found */
@@ -5758,19 +5758,19 @@ export interface operations {
       };
     };
   };
-  remove_workspace_member: {
+  remove_workspace_membership: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        memberId: string;
+        membershipId: string;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Removed workspace member */
+      /** @description Removed workspace membership */
       204: {
         headers: {
           [name: string]: unknown;
@@ -5806,29 +5806,29 @@ export interface operations {
       };
     };
   };
-  update_workspace_member: {
+  update_workspace_membership: {
     parameters: {
       query?: never;
       header?: never;
       path: {
         workspaceId: string;
-        memberId: string;
+        membershipId: string;
       };
       cookie?: never;
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateMemberInput'];
+        'application/json': components['schemas']['UpdateMembershipInput'];
       };
     };
     responses: {
-      /** @description Updated workspace member */
+      /** @description Updated workspace membership */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/vnd.evidence.member+json': components['schemas']['MemberResource'];
+          'application/vnd.evidence.membership+json': components['schemas']['WorkspaceMembershipResource'];
         };
       };
       /** @description Validation error */

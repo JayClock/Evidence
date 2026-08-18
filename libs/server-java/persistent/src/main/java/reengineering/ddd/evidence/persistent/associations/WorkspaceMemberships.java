@@ -10,30 +10,31 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import reengineering.ddd.evidence.domain.DomainException;
-import reengineering.ddd.evidence.domain.description.MemberDescription;
-import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.description.MembershipDescription;
+import reengineering.ddd.evidence.domain.model.Membership;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.domain.validation.WorkspaceAccess;
 import reengineering.ddd.evidence.persistent.mappers.UsersMapper;
-import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembersMapper;
+import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
 
-@AssociationMapping(entity = Workspace.class, field = "members", parentIdField = "workspaceId")
-public class WorkspaceMembers extends EntityList<String, Member> implements Workspace.Members {
+@AssociationMapping(entity = Workspace.class, field = "memberships", parentIdField = "workspaceId")
+public class WorkspaceMemberships extends EntityList<String, Membership>
+    implements Workspace.Memberships {
   private String workspaceId;
 
-  @Inject private WorkspaceMembersMapper mapper;
+  @Inject private WorkspaceMembershipsMapper mapper;
   @Inject private UsersMapper users;
   @Inject private WorkspacesMapper workspaces;
   @Inject private Clock clock;
 
   @Override
-  protected List<Member> findEntities(int from, int to) {
+  protected List<Membership> findEntities(int from, int to) {
     return mapper.findAll(workspaceId, from, Math.max(to - from, 0));
   }
 
   @Override
-  protected Member findEntity(String id) {
+  protected Membership findEntity(String id) {
     return mapper.findByIdentity(workspaceId, id);
   }
 
@@ -43,10 +44,10 @@ public class WorkspaceMembers extends EntityList<String, Member> implements Work
   }
 
   @Override
-  public Member add(MemberDescription description) {
+  public Membership add(MembershipDescription description) {
     if (!workspaceId.equals(description.workspace().id())) {
       throw DomainException.validation(
-          "member workspace "
+          "membership workspace "
               + description.workspace().id()
               + " does not match scoped workspace "
               + workspaceId);
@@ -58,12 +59,12 @@ public class WorkspaceMembers extends EntityList<String, Member> implements Work
     if (workspaces.findByIdentity(workspaceId) == null) {
       throw DomainException.notFound("workspace " + workspaceId + " not found");
     }
-    String memberId = UUID.randomUUID().toString();
+    String membershipId = UUID.randomUUID().toString();
     try {
       mapper.insert(
-          memberId,
+          membershipId,
           workspaceId,
-          new MemberDescription(
+          new MembershipDescription(
               description.workspace(),
               description.user(),
               WorkspaceAccess.role(description.role(), WorkspaceAccess.Role.MEMBER),
@@ -71,32 +72,33 @@ public class WorkspaceMembers extends EntityList<String, Member> implements Work
               description.updatedAt()),
           timestamp());
     } catch (DuplicateKeyException error) {
-      throw DomainException.conflict("user " + userId + " is already a workspace member");
+      throw DomainException.conflict("user " + userId + " is already a workspace membership");
     }
-    return require(memberId);
+    return require(membershipId);
   }
 
   @Override
-  public Member update(String memberId, String role) {
-    Member current = require(memberId);
+  public Membership update(String membershipId, String role) {
+    Membership current = require(membershipId);
     String normalizedRole = WorkspaceAccess.role(role, null);
     assertOwnerRemains(current.getDescription().role(), normalizedRole);
-    mapper.update(workspaceId, memberId, normalizedRole, timestamp());
-    return require(memberId);
+    mapper.update(workspaceId, membershipId, normalizedRole, timestamp());
+    return require(membershipId);
   }
 
   @Override
-  public void remove(String memberId) {
-    Member current = require(memberId);
+  public void remove(String membershipId) {
+    Membership current = require(membershipId);
     assertOwnerRemains(current.getDescription().role(), null);
-    if (mapper.delete(workspaceId, memberId) != 1) {
-      throw DomainException.notFound("workspace member " + memberId + " not found");
+    if (mapper.delete(workspaceId, membershipId) != 1) {
+      throw DomainException.notFound("workspace membership " + membershipId + " not found");
     }
   }
 
-  private Member require(String memberId) {
-    return findByIdentity(memberId)
-        .orElseThrow(() -> DomainException.notFound("workspace member " + memberId + " not found"));
+  private Membership require(String membershipId) {
+    return findByIdentity(membershipId)
+        .orElseThrow(
+            () -> DomainException.notFound("workspace membership " + membershipId + " not found"));
   }
 
   private void assertOwnerRemains(String currentRole, String nextRole) {

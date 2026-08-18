@@ -12,9 +12,8 @@ contract. It is the repository's only Server runtime.
   `libs/contracts/evidence.openapi`.
 - Local exact-header authentication, OIDC JWT verification, CORS, host safety,
   and vendor media types are configured.
-- User, Workspace, membership, and Workspace Member resources use the existing
-  PostgreSQL schema through Smart Domain association objects and MyBatis XML
-  mappers.
+- User, Workspace, and Membership resources use PostgreSQL through Smart Domain
+  association objects and MyBatis XML mappers.
 - Local startup provisions the configured user and `default-workspace`.
 - Workspace creation atomically creates its owner membership and initializes a
   private `.evidence/{entities,associations}` model root.

@@ -14,7 +14,7 @@ import type {
 import type { IterationResource } from './iteration-resource.js';
 import type { LogicalEntityCollectionResource } from './logical-entity-resource.js';
 import type { LogicalRelationshipCollectionResource } from './logical-relationship-resource.js';
-import type { MemberCollectionResource } from './member-resource.js';
+import type { WorkspaceMembershipCollectionResource } from './membership-resource.js';
 
 type WorkspaceResourceSchema = components['schemas']['WorkspaceResource'];
 
@@ -24,7 +24,7 @@ export type WorkspaceResource = Entity<
   WorkspaceResourceData,
   {
     self: WorkspaceResource;
-    members: MemberCollectionResource;
+    memberships: WorkspaceMembershipCollectionResource;
     diagram: DiagramResource;
     'inbox-items': InboxItemCollectionResource;
     'inbox-extractions': InboxExtractionResource;

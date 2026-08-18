@@ -52,24 +52,24 @@ Electron
 
 ### 领域聚合
 
-| 聚合 / 概念                            | 说明                                                  |
-| -------------------------------------- | ----------------------------------------------------- |
-| `User`                                 | 用户身份及可访问工作空间                              |
-| `Workspace`                            | 成员、当前图、逻辑模型和 `.evidence` 根的协作边界     |
-| `Member`                               | 用户到工作空间的成员关系与角色                        |
-| `LogicalEntity`                        | Evidence、Participant、Role 或 Context 类型的业务概念 |
-| `LogicalRelationship`                  | 同一工作空间内两个逻辑实体之间的关系                  |
-| `Diagram`                              | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`    |
-| `DiagramNode` / `DiagramEdge`          | 从 `.evidence` 实体和关联投影出的图元素               |
-| `InboxItem` / `InboxRevision`          | 来源身份、处理状态和不可变内容快照                    |
-| `InboxExtraction`                      | 人工选择的 1–5 个精确 latest Revision                 |
-| `InboxStoryCandidate`                  | Inbox Analyst 提出的精确引用、无 Story ID 的提案      |
-| `Iteration` / `IterationIntake`        | Candidate claim、WIP 与自包含 Frozen Intake           |
-| `KickoffProposal` / `KickoffDecision`  | 替代提案与 append-only 人工权威决定                   |
-| `Story` / `StoryRevision`              | Kickoff confirm 后的 US-001 与不可变权威修订          |
-| `ApprovedTaskingPlan` / `PairRun`      | Desk Check 锁定计划、逐 TEST 执行及人工编码审批       |
-| `ShowcaseRun` / `ShowcaseDecision`     | fresh Q2、产品观察、风险评价、独立 Review 与价值决定  |
-| `RespondCandidate` / `RespondDecision` | accepted Showcase 的知识响应、next Probe 与人工确认   |
+| 聚合 / 概念                            | 说明                                                    |
+| -------------------------------------- | ------------------------------------------------------- |
+| `User`                                 | 用户身份及可访问工作空间                                |
+| `Workspace`                            | Membership、当前图、逻辑模型和 `.evidence` 根的协作边界 |
+| `Membership`                           | 用户参与工作空间的关系及角色，属于 Workspace 聚合       |
+| `LogicalEntity`                        | Evidence、Participant、Role 或 Context 类型的业务概念   |
+| `LogicalRelationship`                  | 同一工作空间内两个逻辑实体之间的关系                    |
+| `Diagram`                              | 工作空间逻辑模型的单一当前投影，固定 id 为 `model`      |
+| `DiagramNode` / `DiagramEdge`          | 从 `.evidence` 实体和关联投影出的图元素                 |
+| `InboxItem` / `InboxRevision`          | 来源身份、处理状态和不可变内容快照                      |
+| `InboxExtraction`                      | 人工选择的 1–5 个精确 latest Revision                   |
+| `InboxStoryCandidate`                  | Inbox Analyst 提出的精确引用、无 Story ID 的提案        |
+| `Iteration` / `IterationIntake`        | Candidate claim、WIP 与自包含 Frozen Intake             |
+| `KickoffProposal` / `KickoffDecision`  | 替代提案与 append-only 人工权威决定                     |
+| `Story` / `StoryRevision`              | Kickoff confirm 后的 US-001 与不可变权威修订            |
+| `ApprovedTaskingPlan` / `PairRun`      | Desk Check 锁定计划、逐 TEST 执行及人工编码审批         |
+| `ShowcaseRun` / `ShowcaseDecision`     | fresh Q2、产品观察、风险评价、独立 Review 与价值决定    |
+| `RespondCandidate` / `RespondDecision` | accepted Showcase 的知识响应、next Probe 与人工确认     |
 
 Candidate selection 只能原子创建一轮 `Iteration + Frozen Intake`，不能创建 Story。只有该 Iteration 的人工 Kickoff `confirm` 可以创建唯一 `US-001`、Problem Statement、Lean Story Card 和不可编码的 baseline Story Revision；确认 Scenario 后仍须完成模型处置与人工 Desk Check，只有 Approved Tasking Plan 可以启动 Pair。Pair 人工批准原子创建 Showcase Attempt；只有人工 Showcase accept 可以进入 Respond，只有人工批准精确 Respond Candidate 才完成本轮。`revise` 只能按 Server 定义的知识缺口路由并保留旧证据；`split/defer/stop` 不得创建 Story。Workspace 创建或导入时必须初始化 Server 私有 `modelRoot/.evidence/{entities,associations}`；HAL metadata 不得包含 Server 或 Desktop 绝对路径。Desktop repositoryRoot 只保存在以 API + Workspace 为键的本地 binding store。逻辑关系的 source/target 必须属于同一工作空间且均存在。
 
@@ -90,8 +90,9 @@ API 使用 HAL 风格 JSON：资源包含 `_links`，集合使用 `_embedded`，
 | `/api/users/{userId}/sidebar`                                                 | GET                    | 工作空间导航投影                    |
 | `/api/users/{userId}/workspaces`                                              | GET、POST              | 查询/创建工作空间                   |
 | `/api/users/{userId}/workspaces/{workspaceId}`                                | GET、PUT、DELETE       | 工作空间 CRUD                       |
-| `/api/users/{userId}/workspaces/{workspaceId}/members`                        | GET、POST              | 查询/添加成员                       |
-| `/api/users/{userId}/workspaces/{workspaceId}/members/{memberId}`             | DELETE                 | 移除成员                            |
+| `/api/users/{userId}/memberships`                                             | GET                    | 查询用户的工作空间 Membership 投影  |
+| `/api/workspaces/{workspaceId}/memberships`                                   | GET、POST              | 查询/添加 Membership                |
+| `/api/workspaces/{workspaceId}/memberships/{membershipId}`                    | GET、PATCH、DELETE     | 查询、更新或移除 Membership         |
 | `/api/workspaces/{workspaceId}/diagram`                                       | GET                    | 单一当前图                          |
 | `/api/workspaces/{workspaceId}/diagram/nodes[/{nodeId}]`                      | GET                    | 图节点投影                          |
 | `/api/workspaces/{workspaceId}/diagram/edges[/{edgeId}]`                      | GET                    | 图边投影                            |

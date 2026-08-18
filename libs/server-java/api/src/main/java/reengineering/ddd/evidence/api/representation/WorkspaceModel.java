@@ -15,7 +15,7 @@ public final class WorkspaceModel extends EvidenceModel<WorkspaceModel> {
     id = workspace.getIdentity();
     description = workspace.getDescription();
     addSelf(ApiTemplates.workspace(uriInfo, id));
-    addRelation(ApiTemplates.workspaceMembers(uriInfo, id), "members");
+    addRelation(ApiTemplates.workspaceMemberships(uriInfo, id), "memberships");
     addRelation(ApiTemplates.workspaceChild(uriInfo, id, "diagram"), "diagram");
     addRelation(ApiTemplates.workspaceChild(uriInfo, id, "inbox-items"), "inbox-items");
     addRelation(ApiTemplates.workspaceChild(uriInfo, id, "inbox-extractions"), "inbox-extractions");

@@ -32,7 +32,7 @@ public class UserMembershipsApi {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
     Users.MembershipPage memberships =
-        workspaceService.memberships(actorUserId, userId, page, pageSize);
+        workspaceService.userMemberships(actorUserId, userId, page, pageSize);
     return new MembershipCollectionModel(userId, memberships, page, pageSize, uriInfo);
   }
 }

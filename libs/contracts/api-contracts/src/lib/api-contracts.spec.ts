@@ -53,8 +53,7 @@ const mediaTypes = {
   logicalEntities: 'application/vnd.evidence.logical-entities+json',
   logicalRelationship: 'application/vnd.evidence.logical-relationship+json',
   logicalRelationships: 'application/vnd.evidence.logical-relationships+json',
-  member: 'application/vnd.evidence.member+json',
-  members: 'application/vnd.evidence.members+json',
+  membership: 'application/vnd.evidence.membership+json',
   diagram: 'application/vnd.evidence.diagram+json',
   nodes: 'application/vnd.evidence.nodes+json',
   edges: 'application/vnd.evidence.edges+json',
@@ -229,7 +228,7 @@ describeContracts('Evidence API contract vertical slice', () => {
         expect.objectContaining({
           _links: expect.objectContaining({
             self: {
-              href: '/api/workspaces/default-workspace/members/default-workspace-owner',
+              href: '/api/workspaces/default-workspace/memberships/default-workspace-owner-membership',
             },
           }),
           role: 'owner',
@@ -1671,20 +1670,24 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(deleted.body).toEqual({ deleted: true });
   });
 
-  it('enforces member uniqueness and preserves the workspace owner', async () => {
-    const workspace = await createContractWorkspace('Member Diagram Workspace');
+  it('enforces membership uniqueness and preserves the workspace owner', async () => {
+    const workspace = await createContractWorkspace(
+      'Membership Diagram Workspace',
+    );
     const workspaceId = workspace.body.id as string;
 
-    const members = await apiRequest(`/api/workspaces/${workspaceId}/members`);
-    expect(members.status).toBe(200);
-    expectHalResource(members, mediaTypes.members);
-    expect(members.body.page).toMatchObject({ number: 1, size: 20 });
-    expect(members.body._embedded.members).toHaveLength(1);
-    const owner = members.body._embedded.members[0];
+    const memberships = await apiRequest(
+      `/api/workspaces/${workspaceId}/memberships`,
+    );
+    expect(memberships.status).toBe(200);
+    expectHalResource(memberships, mediaTypes.memberships);
+    expect(memberships.body.page).toMatchObject({ number: 1, size: 20 });
+    expect(memberships.body._embedded.memberships).toHaveLength(1);
+    const owner = memberships.body._embedded.memberships[0];
     expect(owner).toMatchObject({ role: 'owner', user: { id: userId } });
 
     const duplicate = await apiRequest(
-      `/api/workspaces/${workspaceId}/members`,
+      `/api/workspaces/${workspaceId}/memberships`,
       {
         method: 'POST',
         body: JSON.stringify({ user: { id: userId }, role: 'member' }),
@@ -1693,14 +1696,14 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(duplicate.status).toBe(409);
     expect(duplicate.body.error).toMatch(/already/i);
 
-    const member = await apiRequest(
-      `/api/workspaces/${workspaceId}/members/${owner.id}`,
+    const membership = await apiRequest(
+      `/api/workspaces/${workspaceId}/memberships/${owner.id}`,
     );
-    expect(member.status).toBe(200);
-    expectHalResource(member, mediaTypes.member);
+    expect(membership.status).toBe(200);
+    expectHalResource(membership, mediaTypes.membership);
 
     const demoted = await apiRequest(
-      `/api/workspaces/${workspaceId}/members/${owner.id}`,
+      `/api/workspaces/${workspaceId}/memberships/${owner.id}`,
       {
         method: 'PATCH',
         body: JSON.stringify({ role: 'member' }),
@@ -1709,7 +1712,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(demoted.status).toBe(409);
 
     const removed = await apiRequest(
-      `/api/workspaces/${workspaceId}/members/${owner.id}`,
+      `/api/workspaces/${workspaceId}/memberships/${owner.id}`,
       { method: 'DELETE' },
     );
     expect(removed.status).toBe(409);

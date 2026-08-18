@@ -181,7 +181,7 @@ const workspaceState = {
   }),
   links: links(
     'self',
-    'members',
+    'memberships',
     'diagram',
     'inbox-items',
     'story-candidates',
@@ -194,7 +194,7 @@ const workspaceState = {
 
 const membershipState = {
   data: {
-    id: 'default-workspace-owner',
+    id: 'default-workspace-owner-membership',
     role: 'owner',
     workspace: {
       ...workspaceState.data,

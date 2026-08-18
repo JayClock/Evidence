@@ -62,10 +62,10 @@ public class WorkspaceApi {
     return Response.noContent().build();
   }
 
-  @Path("members")
-  public WorkspaceMembersApi members() {
+  @Path("memberships")
+  public WorkspaceMembershipsApi memberships() {
     return resourceContext.initResource(
-        new WorkspaceMembersApi(actorUserId, workspace.getIdentity(), workspaceService));
+        new WorkspaceMembershipsApi(actorUserId, workspace.getIdentity(), workspaceService));
   }
 
   @Path("diagram")

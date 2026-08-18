@@ -2025,10 +2025,10 @@ paths:
           $ref: '#/components/responses/ResourceNotFound'
         '500':
           $ref: '#/components/responses/InternalError'
-  /api/workspaces/{workspaceId}/members:
+  /api/workspaces/{workspaceId}/memberships:
     get:
       tags: []
-      operationId: list_workspace_members
+      operationId: list_workspace_memberships
       parameters:
         - name: workspaceId
           in: path
@@ -2054,11 +2054,11 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Workspace member collection
+          description: Workspace membership collection
           content:
-            application/vnd.evidence.members+json:
+            application/vnd.evidence.memberships+json:
               schema:
-                $ref: '#/components/schemas/MemberCollectionResource'
+                $ref: '#/components/schemas/WorkspaceMembershipCollectionResource'
         '400':
           description: Validation error
           content:
@@ -2079,7 +2079,7 @@ paths:
                 $ref: '#/components/schemas/ErrorBody'
     post:
       tags: []
-      operationId: add_workspace_member
+      operationId: add_workspace_membership
       parameters:
         - name: workspaceId
           in: path
@@ -2090,15 +2090,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddMemberInput'
+              $ref: '#/components/schemas/AddMembershipInput'
         required: true
       responses:
         '201':
-          description: Added workspace member
+          description: Added workspace membership
           content:
-            application/vnd.evidence.member+json:
+            application/vnd.evidence.membership+json:
               schema:
-                $ref: '#/components/schemas/MemberResource'
+                $ref: '#/components/schemas/WorkspaceMembershipResource'
         '400':
           description: Validation error
           content:
@@ -2123,28 +2123,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
-  /api/workspaces/{workspaceId}/members/{memberId}:
+  /api/workspaces/{workspaceId}/memberships/{membershipId}:
     get:
       tags: []
-      operationId: get_workspace_member
+      operationId: get_workspace_membership
       parameters:
         - name: workspaceId
           in: path
           required: true
           schema:
             type: string
-        - name: memberId
+        - name: membershipId
           in: path
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Workspace member resource
+          description: Workspace membership resource
           content:
-            application/vnd.evidence.member+json:
+            application/vnd.evidence.membership+json:
               schema:
-                $ref: '#/components/schemas/MemberResource'
+                $ref: '#/components/schemas/WorkspaceMembershipResource'
         '404':
           description: Resource not found
           content:
@@ -2159,14 +2159,14 @@ paths:
                 $ref: '#/components/schemas/ErrorBody'
     patch:
       tags: []
-      operationId: update_workspace_member
+      operationId: update_workspace_membership
       parameters:
         - name: workspaceId
           in: path
           required: true
           schema:
             type: string
-        - name: memberId
+        - name: membershipId
           in: path
           required: true
           schema:
@@ -2175,15 +2175,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateMemberInput'
+              $ref: '#/components/schemas/UpdateMembershipInput'
         required: true
       responses:
         '200':
-          description: Updated workspace member
+          description: Updated workspace membership
           content:
-            application/vnd.evidence.member+json:
+            application/vnd.evidence.membership+json:
               schema:
-                $ref: '#/components/schemas/MemberResource'
+                $ref: '#/components/schemas/WorkspaceMembershipResource'
         '400':
           description: Validation error
           content:
@@ -2210,21 +2210,21 @@ paths:
                 $ref: '#/components/schemas/ErrorBody'
     delete:
       tags: []
-      operationId: remove_workspace_member
+      operationId: remove_workspace_membership
       parameters:
         - name: workspaceId
           in: path
           required: true
           schema:
             type: string
-        - name: memberId
+        - name: membershipId
           in: path
           required: true
           schema:
             type: string
       responses:
         '204':
-          description: Removed workspace member
+          description: Removed workspace membership
         '404':
           description: Resource not found
           content:
@@ -2984,7 +2984,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorBody'
   schemas:
-    AddMemberInput:
+    AddMembershipInput:
       type: object
       required:
         - user
@@ -2995,7 +2995,7 @@ components:
             - 'null'
         user:
           $ref: '#/components/schemas/RefModel'
-    UpdateMemberInput:
+    UpdateMembershipInput:
       type: object
       required:
         - role
@@ -4368,53 +4368,6 @@ components:
           $ref: '#/components/schemas/RefModel'
         target:
           $ref: '#/components/schemas/RefModel'
-    MemberCollectionEmbedded:
-      type: object
-      required:
-        - members
-      properties:
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/MemberResource'
-    MemberCollectionResource:
-      type: object
-      required:
-        - _links
-        - _embedded
-        - page
-      properties:
-        _embedded:
-          $ref: '#/components/schemas/MemberCollectionEmbedded'
-        _links:
-          $ref: '#/components/schemas/BTreeMap'
-        page:
-          $ref: '#/components/schemas/PageModel'
-    MemberResource:
-      type: object
-      required:
-        - _links
-        - id
-        - workspace
-        - user
-        - role
-        - createdAt
-        - updatedAt
-      properties:
-        _links:
-          $ref: '#/components/schemas/BTreeMap'
-        createdAt:
-          type: string
-        id:
-          type: string
-        role:
-          type: string
-        updatedAt:
-          type: string
-        user:
-          $ref: '#/components/schemas/LinkedRefModel'
-        workspace:
-          $ref: '#/components/schemas/LinkedRefModel'
     MembershipCollectionEmbedded:
       type: object
       required:
@@ -4462,6 +4415,53 @@ components:
           $ref: '#/components/schemas/LinkedRefModel'
         workspace:
           $ref: '#/components/schemas/WorkspaceResource'
+    WorkspaceMembershipCollectionEmbedded:
+      type: object
+      required:
+        - memberships
+      properties:
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceMembershipResource'
+    WorkspaceMembershipCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _embedded:
+          $ref: '#/components/schemas/WorkspaceMembershipCollectionEmbedded'
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        page:
+          $ref: '#/components/schemas/PageModel'
+    WorkspaceMembershipResource:
+      type: object
+      required:
+        - _links
+        - id
+        - workspace
+        - user
+        - role
+        - createdAt
+        - updatedAt
+      properties:
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        createdAt:
+          type: string
+        id:
+          type: string
+        role:
+          type: string
+        updatedAt:
+          type: string
+        user:
+          $ref: '#/components/schemas/LinkedRefModel'
+        workspace:
+          $ref: '#/components/schemas/LinkedRefModel'
     NodeCollectionEmbedded:
       type: object
       required:

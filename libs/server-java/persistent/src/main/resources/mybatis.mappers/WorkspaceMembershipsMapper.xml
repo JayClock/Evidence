@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembersMapper">
-  <resultMap id="member" type="reengineering.ddd.evidence.domain.model.Member">
+<mapper namespace="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper">
+  <resultMap id="membership" type="reengineering.ddd.evidence.domain.model.Membership">
     <id property="identity" column="id" jdbcType="VARCHAR" javaType="String"/>
     <association property="description"
-                 javaType="reengineering.ddd.evidence.domain.description.MemberDescription">
+                 javaType="reengineering.ddd.evidence.domain.description.MembershipDescription">
       <constructor>
         <arg column="workspace_id" jdbcType="VARCHAR"
              javaType="io.github.jayclock.smartdomain.core.Ref"
@@ -19,49 +19,49 @@
     </association>
   </resultMap>
 
-  <select id="findByIdentity" resultMap="member">
+  <select id="findByIdentity" resultMap="membership">
     SELECT id, workspace_id, user_id, role, created_at, updated_at
-    FROM workspace_members
-    WHERE workspace_id = #{workspaceId} AND id = #{memberId}
+    FROM workspace_memberships
+    WHERE workspace_id = #{workspaceId} AND id = #{membershipId}
   </select>
 
-  <select id="findAll" resultMap="member">
+  <select id="findAll" resultMap="membership">
     SELECT id, workspace_id, user_id, role, created_at, updated_at
-    FROM workspace_members
+    FROM workspace_memberships
     WHERE workspace_id = #{workspaceId}
     ORDER BY created_at ASC
     LIMIT #{size} OFFSET #{from}
   </select>
 
   <select id="countAll" resultType="int">
-    SELECT COUNT(*) FROM workspace_members WHERE workspace_id = #{workspaceId}
+    SELECT COUNT(*) FROM workspace_memberships WHERE workspace_id = #{workspaceId}
   </select>
 
   <select id="countOwners" resultType="int">
     SELECT COUNT(*)
-    FROM workspace_members
+    FROM workspace_memberships
     WHERE workspace_id = #{workspaceId} AND role = 'owner'
   </select>
 
   <insert id="insert">
-    INSERT INTO workspace_members (id, workspace_id, user_id, role, created_at, updated_at)
+    INSERT INTO workspace_memberships (id, workspace_id, user_id, role, created_at, updated_at)
     VALUES (#{id}, #{workspaceId}, #{description.user.id}, #{description.role},
             #{timestamp}, #{timestamp})
   </insert>
 
   <update id="update">
-    UPDATE workspace_members
+    UPDATE workspace_memberships
     SET role = #{role}, updated_at = #{updatedAt}
-    WHERE workspace_id = #{workspaceId} AND id = #{memberId}
+    WHERE workspace_id = #{workspaceId} AND id = #{membershipId}
   </update>
 
   <delete id="delete">
-    DELETE FROM workspace_members
-    WHERE workspace_id = #{workspaceId} AND id = #{memberId}
+    DELETE FROM workspace_memberships
+    WHERE workspace_id = #{workspaceId} AND id = #{membershipId}
   </delete>
 
   <insert id="ensureOwner">
-    INSERT INTO workspace_members (id, workspace_id, user_id, role, created_at, updated_at)
+    INSERT INTO workspace_memberships (id, workspace_id, user_id, role, created_at, updated_at)
     VALUES (#{id}, #{workspaceId}, #{userId}, 'owner', #{timestamp}, #{timestamp})
     ON CONFLICT (workspace_id, user_id) DO NOTHING
   </insert>

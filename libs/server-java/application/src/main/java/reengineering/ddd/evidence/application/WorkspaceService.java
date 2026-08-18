@@ -7,7 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reengineering.ddd.evidence.domain.DomainException;
-import reengineering.ddd.evidence.domain.description.MemberDescription;
+import reengineering.ddd.evidence.domain.description.MembershipDescription;
 import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
 import reengineering.ddd.evidence.domain.model.Clarification;
 import reengineering.ddd.evidence.domain.model.Delivery;
@@ -21,7 +21,7 @@ import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.IterationIntake;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
 import reengineering.ddd.evidence.domain.model.KickoffProposal;
-import reengineering.ddd.evidence.domain.model.Member;
+import reengineering.ddd.evidence.domain.model.Membership;
 import reengineering.ddd.evidence.domain.model.NoModelImpact;
 import reengineering.ddd.evidence.domain.model.Pair;
 import reengineering.ddd.evidence.domain.model.Respond;
@@ -59,7 +59,7 @@ public class WorkspaceService {
         .orElseThrow(() -> DomainException.notFound("user " + requestedUserId + " not found"));
   }
 
-  public Users.MembershipPage memberships(
+  public Users.MembershipPage userMemberships(
       String actorUserId, String requestedUserId, int page, int pageSize) {
     requireUser(actorUserId, requestedUserId);
     validatePage(page, pageSize);
@@ -79,7 +79,7 @@ public class WorkspaceService {
             .memberships(actorUserId)
             .findByWorkspaceIdentity(workspaceId)
             .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
-    if (!WorkspaceAccess.allows(membership.member().getDescription().role(), permission)) {
+    if (!WorkspaceAccess.allows(membership.membership().getDescription().role(), permission)) {
       throw DomainException.forbidden(
           "workspace "
               + workspaceId
@@ -103,32 +103,35 @@ public class WorkspaceService {
     users.workspaces().delete(workspaceId);
   }
 
-  public MemberPage members(String actorUserId, String workspaceId, int page, int pageSize) {
+  public MembershipPage workspaceMemberships(
+      String actorUserId, String workspaceId, int page, int pageSize) {
     validatePage(page, pageSize);
     Workspace workspace = requireWorkspace(actorUserId, workspaceId, Permission.READ);
-    int total = workspace.members().findAll().size();
+    int total = workspace.memberships().findAll().size();
     int from = (page - 1) * pageSize;
     int to = Math.min(from + pageSize, total);
-    List<Member> members =
+    List<Membership> memberships =
         from >= total
             ? List.of()
-            : workspace.members().findAll().subCollection(from, to).stream().toList();
-    return new MemberPage(workspace, members, total);
+            : workspace.memberships().findAll().subCollection(from, to).stream().toList();
+    return new MembershipPage(workspace, memberships, total);
   }
 
-  public Member requireMember(String actorUserId, String workspaceId, String memberId) {
+  public Membership requireMembership(String actorUserId, String workspaceId, String membershipId) {
     Workspace workspace = requireWorkspace(actorUserId, workspaceId, Permission.READ);
     return workspace
-        .members()
-        .findByIdentity(memberId)
-        .orElseThrow(() -> DomainException.notFound("workspace member " + memberId + " not found"));
+        .memberships()
+        .findByIdentity(membershipId)
+        .orElseThrow(
+            () -> DomainException.notFound("workspace membership " + membershipId + " not found"));
   }
 
   @Transactional
-  public Member addMember(String actorUserId, String workspaceId, String userId, String role) {
+  public Membership addMembership(
+      String actorUserId, String workspaceId, String userId, String role) {
     Workspace workspace = requireWorkspace(actorUserId, workspaceId, Permission.MANAGE);
-    return workspace.addMember(
-        new MemberDescription(
+    return workspace.addMembership(
+        new MembershipDescription(
             new Ref<>(workspaceId),
             new Ref<>(userId),
             WorkspaceAccess.role(role, Role.MEMBER),
@@ -137,17 +140,18 @@ public class WorkspaceService {
   }
 
   @Transactional
-  public Member updateMember(String actorUserId, String workspaceId, String memberId, String role) {
+  public Membership updateMembership(
+      String actorUserId, String workspaceId, String membershipId, String role) {
     Workspace workspace = requireWorkspace(actorUserId, workspaceId, Permission.MANAGE);
-    requireMember(actorUserId, workspaceId, memberId);
-    return workspace.updateMember(memberId, role);
+    requireMembership(actorUserId, workspaceId, membershipId);
+    return workspace.updateMembership(membershipId, role);
   }
 
   @Transactional
-  public void removeMember(String actorUserId, String workspaceId, String memberId) {
+  public void removeMembership(String actorUserId, String workspaceId, String membershipId) {
     Workspace workspace = requireWorkspace(actorUserId, workspaceId, Permission.MANAGE);
-    requireMember(actorUserId, workspaceId, memberId);
-    workspace.removeMember(memberId);
+    requireMembership(actorUserId, workspaceId, membershipId);
+    workspace.removeMembership(membershipId);
   }
 
   public Inbox.Page<InboxItem> inboxItems(
@@ -636,8 +640,8 @@ public class WorkspaceService {
     }
   }
 
-  public record MemberPage(Workspace workspace, List<Member> items, int total) {
-    public MemberPage {
+  public record MembershipPage(Workspace workspace, List<Membership> items, int total) {
+    public MembershipPage {
       items = List.copyOf(items);
     }
   }

@@ -5,7 +5,7 @@ export * from './inbox-resource.js';
 export * from './iteration-resource.js';
 export * from './logical-entity-resource.js';
 export * from './logical-relationship-resource.js';
-export * from './member-resource.js';
+export * from './membership-resource.js';
 export * from './pair-resource.js';
 export * from './root-resource.js';
 export * from './respond-resource.js';

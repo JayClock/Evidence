@@ -15,8 +15,8 @@
         <arg column="updated_at" jdbcType="TIMESTAMP" javaType="java.time.Instant"/>
       </constructor>
     </association>
-    <association property="members"
-                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceMembers">
+    <association property="memberships"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceMemberships">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
     <association property="diagram"

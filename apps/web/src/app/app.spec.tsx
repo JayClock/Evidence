@@ -84,7 +84,7 @@ const sidebarState = {
 const workspace = {
   _links: {
     self: { href: '/api/workspaces/default-workspace' },
-    members: { href: '/api/workspaces/default-workspace/members' },
+    memberships: { href: '/api/workspaces/default-workspace/memberships' },
     diagram: { href: '/api/workspaces/default-workspace/diagram' },
     'logical-entities': {
       href: '/api/workspaces/default-workspace/logical-entities',
@@ -108,7 +108,7 @@ const membershipCollectionState = {
   collection: [
     {
       data: {
-        id: 'default-workspace-owner',
+        id: 'default-workspace-owner-membership',
         workspace,
         role: 'owner',
       },
