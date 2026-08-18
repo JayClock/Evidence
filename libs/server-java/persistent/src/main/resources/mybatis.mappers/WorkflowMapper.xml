@@ -263,6 +263,21 @@
     WHERE story.workspace_id = #{workspaceId} AND story.id = #{storyId}
   </select>
 
+  <select id="findStoryRevisionByStory" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRevisionRow">
+    SELECT <include refid="storyRevisionColumns"/> FROM story_revisions revision
+    WHERE revision.story_id = #{storyId} AND revision.id = #{revisionId}
+  </select>
+
+  <select id="findStoryRevisionsByStory" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryRevisionRow">
+    SELECT <include refid="storyRevisionColumns"/> FROM story_revisions revision
+    WHERE revision.story_id = #{storyId}
+    ORDER BY revision.revision_number DESC LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="countStoryRevisionsByStory" resultType="int">
+    SELECT COUNT(*) FROM story_revisions WHERE story_id = #{storyId}
+  </select>
+
   <select id="findStoryCitations" resultType="reengineering.ddd.evidence.persistent.mappers.WorkflowRows$StoryCitationRow">
     SELECT citation.id, citation.story_revision_id AS "storyRevisionId",
       revision.inbox_item_id AS "inboxItemId", citation.inbox_revision_id AS "inboxRevisionId",

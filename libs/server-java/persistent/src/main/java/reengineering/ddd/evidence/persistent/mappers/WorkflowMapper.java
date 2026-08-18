@@ -176,6 +176,14 @@ public interface WorkflowMapper {
   int countStoryRevisions(
       @Param("workspaceId") String workspaceId, @Param("storyId") String storyId);
 
+  WorkflowRows.StoryRevisionRow findStoryRevisionByStory(
+      @Param("storyId") String storyId, @Param("revisionId") String revisionId);
+
+  List<WorkflowRows.StoryRevisionRow> findStoryRevisionsByStory(
+      @Param("storyId") String storyId, @Param("from") int from, @Param("size") int size);
+
+  int countStoryRevisionsByStory(@Param("storyId") String storyId);
+
   List<WorkflowRows.StoryCitationRow> findStoryCitations(
       @Param("storyRevisionId") String storyRevisionId);
 
