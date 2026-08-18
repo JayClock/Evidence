@@ -20,7 +20,7 @@ final class StoryEntities {
 
   private StoryEntities() {}
 
-  static Story story(WorkflowRows.StoryRow row) {
+  static Story story(WorkflowRows.StoryRow row, Story.Revisions revisions) {
     Delivery.Authority authority =
         Delivery.authority(
             row.iterationLifecycle(),
@@ -47,7 +47,8 @@ final class StoryEntities {
             row.revisionCount(),
             row.version(),
             row.createdAt(),
-            row.updatedAt()));
+            row.updatedAt()),
+        revisions);
   }
 
   static StoryRevision revision(

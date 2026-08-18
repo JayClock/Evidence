@@ -24,7 +24,6 @@ import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.ApprovedTaskingPlanDescription;
 import reengineering.ddd.evidence.domain.description.IterationDescription;
-import reengineering.ddd.evidence.domain.description.StoryDescription;
 import reengineering.ddd.evidence.domain.description.StoryRevisionDescription;
 import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
 import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
@@ -821,29 +820,7 @@ final class PairStore {
   Story story(String workspaceId, String storyId) {
     WorkflowRows.StoryRow row = workflow.findStory(workspaceId, storyId);
     if (row == null) throw DomainException.notFound("Story " + storyId + " not found");
-    boolean pending = row.pendingClarificationReference() != null;
-    return new Story(
-        row.id(),
-        new StoryDescription(
-            new Ref<>(row.workspaceId()),
-            new Ref<>(row.iterationId()),
-            row.iterationReference(),
-            row.iterationLifecycle(),
-            row.iterationLoop(),
-            row.iterationStage(),
-            row.title(),
-            row.goal(),
-            new Ref<>(row.latestRevisionId()),
-            row.latestRevisionNumber(),
-            row.latestScenarioCount(),
-            row.latestCitationCount(),
-            row.pendingClarificationReference(),
-            Delivery.authority(
-                row.iterationLifecycle(), row.iterationLoop(), row.iterationStage(), pending),
-            row.revisionCount(),
-            row.version(),
-            row.createdAt(),
-            row.updatedAt()));
+    return StoryEntities.story(row, new StoryRevisions(row.id(), workflow, objectMapper));
   }
 
   StoryRevision storyRevision(String workspaceId, String storyId, String revisionId) {

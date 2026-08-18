@@ -1644,13 +1644,14 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
 
   private Story requireStory(String storyId) {
     return Optional.ofNullable(mapper.findStory(workspaceId, storyId))
-        .map(StoryEntities::story)
+        .map(row -> StoryEntities.story(row, new StoryRevisions(row.id(), mapper, objectMapper)))
         .orElseThrow(() -> DomainException.notFound("Story " + storyId + " not found"));
   }
 
   private StoryRevision requireStoryRevision(String storyId, String revisionId) {
-    return Optional.ofNullable(mapper.findStoryRevision(workspaceId, storyId, revisionId))
-        .map(row -> StoryEntities.revision(row, mapper, objectMapper))
+    return requireStory(storyId)
+        .revisions()
+        .findByIdentity(revisionId)
         .orElseThrow(() -> DomainException.notFound("Story Revision " + revisionId + " not found"));
   }
 

@@ -60,10 +60,6 @@ public final class Delivery {
     PortfolioSummary summarizeStories();
 
     java.util.Optional<Story> findStory(String storyId);
-
-    Page<StoryRevision> listStoryRevisions(String storyId, int page, int pageSize);
-
-    java.util.Optional<StoryRevision> findStoryRevision(String storyId, String revisionId);
   }
 
   public static Authority authority(

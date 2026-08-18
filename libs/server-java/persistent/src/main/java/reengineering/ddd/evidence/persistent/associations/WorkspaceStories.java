@@ -10,7 +10,6 @@ import java.util.Map;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.Story;
-import reengineering.ddd.evidence.domain.model.StoryRevision;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.WorkflowMapper;
 import reengineering.ddd.evidence.persistent.mappers.WorkflowRows;
@@ -26,14 +25,14 @@ public final class WorkspaceStories extends EntityList<String, Story> implements
   @Override
   protected List<Story> findEntities(int from, int to) {
     return mapper.findStories(workspaceId, from, Math.max(to - from, 0)).stream()
-        .map(StoryEntities::story)
+        .map(this::story)
         .toList();
   }
 
   @Override
   protected Story findEntity(String storyId) {
     WorkflowRows.StoryRow row = mapper.findStory(workspaceId, storyId);
-    return row == null ? null : StoryEntities.story(row);
+    return row == null ? null : story(row);
   }
 
   @Override
@@ -46,7 +45,7 @@ public final class WorkspaceStories extends EntityList<String, Story> implements
     validatePage(page, pageSize);
     return new Delivery.Page<>(
         mapper.findStories(workspaceId, (page - 1) * pageSize, pageSize).stream()
-            .map(StoryEntities::story)
+            .map(this::story)
             .toList(),
         size());
   }
@@ -95,28 +94,8 @@ public final class WorkspaceStories extends EntityList<String, Story> implements
     return findByIdentity(storyId);
   }
 
-  @Override
-  public Delivery.Page<StoryRevision> listStoryRevisions(String storyId, int page, int pageSize) {
-    validatePage(page, pageSize);
-    requireStory(storyId);
-    return new Delivery.Page<>(
-        mapper.findStoryRevisions(workspaceId, storyId, (page - 1) * pageSize, pageSize).stream()
-            .map(row -> StoryEntities.revision(row, mapper, objectMapper))
-            .toList(),
-        mapper.countStoryRevisions(workspaceId, storyId));
-  }
-
-  @Override
-  public java.util.Optional<StoryRevision> findStoryRevision(String storyId, String revisionId) {
-    WorkflowRows.StoryRevisionRow row = mapper.findStoryRevision(workspaceId, storyId, revisionId);
-    return java.util.Optional.ofNullable(row)
-        .map(value -> StoryEntities.revision(value, mapper, objectMapper));
-  }
-
-  private void requireStory(String storyId) {
-    if (findByIdentity(storyId).isEmpty()) {
-      throw DomainException.notFound("Story " + storyId + " not found");
-    }
+  private Story story(WorkflowRows.StoryRow row) {
+    return StoryEntities.story(row, new StoryRevisions(row.id(), mapper, objectMapper));
   }
 
   private static void validatePage(int page, int pageSize) {

@@ -643,18 +643,19 @@ public class WorkspaceService {
 
   public Delivery.Page<StoryRevision> storyRevisions(
       String actorUserId, String workspaceId, String storyId, int page, int pageSize) {
-    requireStory(actorUserId, workspaceId, storyId);
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .delivery()
-        .listStoryRevisions(storyId, page, pageSize);
+    validatePage(page, pageSize);
+    var revisions = requireStory(actorUserId, workspaceId, storyId).revisions().findAll();
+    int total = revisions.size();
+    int from = Math.min((page - 1) * pageSize, total);
+    int to = Math.min(from + pageSize, total);
+    return new Delivery.Page<>(revisions.subCollection(from, to).stream().toList(), total);
   }
 
   public StoryRevision requireStoryRevision(
       String actorUserId, String workspaceId, String storyId, String revisionId) {
-    requireStory(actorUserId, workspaceId, storyId);
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .delivery()
-        .findStoryRevision(storyId, revisionId)
+    return requireStory(actorUserId, workspaceId, storyId)
+        .revisions()
+        .findByIdentity(revisionId)
         .orElseThrow(() -> DomainException.notFound("Story Revision " + revisionId + " not found"));
   }
 
