@@ -77,44 +77,6 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   @Override
-  public Iteration completeProvisioning(
-      String iterationId, IterationWorkflow.CompleteProvisioningInput rawInput) {
-    IterationWorkflow.CompleteProvisioningInput input = IterationWorkflow.normalize(rawInput);
-    InboxRows.IterationRow current = requireIterationRow(iterationId);
-    if (!"provisioning".equals(current.lifecycle())) {
-      throw DomainException.conflict("Iteration " + iterationId + " is not awaiting provisioning");
-    }
-    if (!current.baseCommitSha().equals(input.baseCommitSha())) {
-      throw DomainException.conflict(
-          "Iteration " + iterationId + " base commit does not match its frozen admission");
-    }
-    if (mapper.completeProvisioning(
-            workspaceId,
-            iterationId,
-            input.expectedVersion(),
-            input.baseCommitSha(),
-            input.branchName(),
-            timestamp())
-        != 1) {
-      changed(iterationId);
-    }
-    return requireIteration(iterationId);
-  }
-
-  @Override
-  public Iteration failProvisioning(
-      String iterationId, IterationWorkflow.FailProvisioningInput rawInput) {
-    IterationWorkflow.FailProvisioningInput input = IterationWorkflow.normalize(rawInput);
-    if (mapper.failProvisioning(
-            workspaceId, iterationId, input.expectedVersion(), input.reason(), timestamp())
-        != 1) {
-      throw DomainException.conflict(
-          "Iteration " + iterationId + " is not awaiting provisioning or has changed");
-    }
-    return requireIteration(iterationId);
-  }
-
-  @Override
   public Optional<IterationWorkflow.KickoffView> findKickoff(String iterationId) {
     InboxRows.IterationRow row = mapper.findIteration(workspaceId, iterationId);
     if (row == null) return Optional.empty();
@@ -1294,7 +1256,9 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
 
   private Iteration iteration(InboxRows.IterationRow row) {
     return IterationEntities.iteration(
-        row, new IterationIntakeAssociation(row.id(), mapper, objectMapper));
+        row,
+        new IterationIntakeAssociation(row.id(), mapper, objectMapper),
+        new IterationProvisioning(row.id(), mapper, objectMapper, clock));
   }
 
   private IterationWorkflow.FrozenCitation frozenCitation(Map<String, Object> value) {

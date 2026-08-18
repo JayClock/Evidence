@@ -24,7 +24,8 @@ final class IterationEntities {
 
   private IterationEntities() {}
 
-  static Iteration iteration(InboxRows.IterationRow row, Iteration.Intake intake) {
+  static Iteration iteration(
+      InboxRows.IterationRow row, Iteration.Intake intake, Iteration.Provisioning provisioning) {
     return new Iteration(
         row.id(),
         new IterationDescription(
@@ -44,7 +45,8 @@ final class IterationEntities {
             new Ref<>(row.admittedByUserId()),
             row.admittedAt(),
             row.updatedAt()),
-        intake);
+        intake,
+        provisioning);
   }
 
   static IterationIntake intake(WorkflowRows.IntakeRow row, ObjectMapper objectMapper) {

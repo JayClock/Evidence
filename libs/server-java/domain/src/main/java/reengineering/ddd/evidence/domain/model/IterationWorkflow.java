@@ -134,10 +134,6 @@ public final class IterationWorkflow {
   public interface Association {
     Optional<Iteration> findIteration(String iterationId);
 
-    Iteration completeProvisioning(String iterationId, CompleteProvisioningInput input);
-
-    Iteration failProvisioning(String iterationId, FailProvisioningInput input);
-
     Optional<KickoffView> findKickoff(String iterationId);
 
     KickoffProposal proposeKickoffReplacement(

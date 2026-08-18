@@ -517,7 +517,9 @@ final class InboxWorkflowStore {
 
   private Iteration iteration(InboxRows.IterationRow row) {
     return IterationEntities.iteration(
-        row, new IterationIntakeAssociation(row.id(), workflowMapper, objectMapper));
+        row,
+        new IterationIntakeAssociation(row.id(), workflowMapper, objectMapper),
+        new IterationProvisioning(row.id(), workflowMapper, objectMapper, clock));
   }
 
   private Map<String, Object> metadata(String json) {

@@ -796,7 +796,9 @@ final class PairStore {
 
   Iteration iteration(InboxRows.IterationRow row) {
     return IterationEntities.iteration(
-        row, new IterationIntakeAssociation(row.id(), workflow, objectMapper));
+        row,
+        new IterationIntakeAssociation(row.id(), workflow, objectMapper),
+        new IterationProvisioning(row.id(), workflow, objectMapper, clock));
   }
 
   Story story(String workspaceId, String storyId) {

@@ -32,10 +32,23 @@ class IterationTest {
             now);
 
     IterationIntake intake = new IterationIntake("iteration-1", null);
-    Iteration iteration = new Iteration("iteration-1", description, () -> intake);
+    Iteration iteration =
+        new Iteration("iteration-1", description, () -> intake, new UnsupportedProvisioning());
 
     assertEquals("iteration-1", iteration.getIdentity());
     assertSame(description, iteration.getDescription());
     assertSame(intake, iteration.intake().get());
+  }
+
+  private static final class UnsupportedProvisioning implements Iteration.Provisioning {
+    @Override
+    public Iteration complete(IterationWorkflow.CompleteProvisioningInput input) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Iteration fail(IterationWorkflow.FailProvisioningInput input) {
+      throw new UnsupportedOperationException();
+    }
   }
 }

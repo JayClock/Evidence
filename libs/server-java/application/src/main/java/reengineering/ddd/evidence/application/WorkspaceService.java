@@ -315,7 +315,12 @@ public class WorkspaceService {
   }
 
   public Iteration requireIteration(String actorUserId, String workspaceId, String iterationId) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
+    return requireIteration(actorUserId, workspaceId, iterationId, Permission.READ);
+  }
+
+  private Iteration requireIteration(
+      String actorUserId, String workspaceId, String iterationId, Permission permission) {
+    return requireWorkspace(actorUserId, workspaceId, permission)
         .iterations()
         .findIteration(iterationId)
         .orElseThrow(() -> DomainException.notFound("Iteration " + iterationId + " not found"));
@@ -332,9 +337,8 @@ public class WorkspaceService {
       String workspaceId,
       String iterationId,
       IterationWorkflow.CompleteProvisioningInput input) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
-        .iterations()
-        .completeProvisioning(iterationId, input);
+    return requireIteration(actorUserId, workspaceId, iterationId, Permission.WRITE)
+        .completeProvisioning(input);
   }
 
   @Transactional
@@ -343,9 +347,8 @@ public class WorkspaceService {
       String workspaceId,
       String iterationId,
       IterationWorkflow.FailProvisioningInput input) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
-        .iterations()
-        .failProvisioning(iterationId, input);
+    return requireIteration(actorUserId, workspaceId, iterationId, Permission.WRITE)
+        .failProvisioning(input);
   }
 
   public IterationWorkflow.KickoffView requireKickoff(

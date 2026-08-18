@@ -8,11 +8,14 @@ public final class Iteration implements Entity<String, IterationDescription> {
   private String identity;
   private IterationDescription description;
   private Intake intake;
+  private Provisioning provisioning;
 
-  public Iteration(String identity, IterationDescription description, Intake intake) {
+  public Iteration(
+      String identity, IterationDescription description, Intake intake, Provisioning provisioning) {
     this.identity = identity;
     this.description = description;
     this.intake = intake;
+    this.provisioning = provisioning;
   }
 
   private Iteration() {}
@@ -31,5 +34,19 @@ public final class Iteration implements Entity<String, IterationDescription> {
     return intake;
   }
 
+  public Iteration completeProvisioning(IterationWorkflow.CompleteProvisioningInput input) {
+    return provisioning.complete(IterationWorkflow.normalize(input));
+  }
+
+  public Iteration failProvisioning(IterationWorkflow.FailProvisioningInput input) {
+    return provisioning.fail(IterationWorkflow.normalize(input));
+  }
+
   public interface Intake extends HasOne<IterationIntake> {}
+
+  public interface Provisioning {
+    Iteration complete(IterationWorkflow.CompleteProvisioningInput input);
+
+    Iteration fail(IterationWorkflow.FailProvisioningInput input);
+  }
 }
