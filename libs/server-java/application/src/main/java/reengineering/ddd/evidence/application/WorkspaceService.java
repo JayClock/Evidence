@@ -192,12 +192,12 @@ public class WorkspaceService {
 
   public Inbox.Page<InboxItem> inboxItems(
       String actorUserId, String workspaceId, Inbox.ListQuery query) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ).inbox().list(query);
+    return requireWorkspace(actorUserId, workspaceId, Permission.READ).listInboxItems(query);
   }
 
   public InboxItem requireInboxItem(String actorUserId, String workspaceId, String itemId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .inbox()
+        .inboxItems()
         .findByIdentity(itemId)
         .orElseThrow(() -> DomainException.notFound("Inbox item " + itemId + " not found"));
   }
@@ -205,7 +205,7 @@ public class WorkspaceService {
   @Transactional
   public Inbox.Captured captureInboxItem(
       String actorUserId, String workspaceId, Inbox.SourceInput source) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE).inbox().capture(source);
+    return requireWorkspace(actorUserId, workspaceId, Permission.WRITE).captureInboxItem(source);
   }
 
   @Transactional
@@ -216,22 +216,19 @@ public class WorkspaceService {
       Inbox.ItemStatus status,
       int expectedVersion) {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
-        .inbox()
-        .changeStatus(itemId, status, expectedVersion);
+        .changeInboxItemStatus(itemId, status, expectedVersion);
   }
 
   public Inbox.Page<InboxRevision> inboxRevisions(
       String actorUserId, String workspaceId, String itemId, int page, int pageSize) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .inbox()
-        .listRevisions(itemId, page, pageSize);
+        .listInboxRevisions(itemId, page, pageSize);
   }
 
   public InboxRevision requireInboxRevision(
       String actorUserId, String workspaceId, String itemId, String revisionId) {
     return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .inbox()
-        .findRevision(itemId, revisionId)
+        .findInboxRevision(itemId, revisionId)
         .orElseThrow(() -> DomainException.notFound("Inbox revision " + revisionId + " not found"));
   }
 
@@ -243,8 +240,7 @@ public class WorkspaceService {
       Inbox.SourceInput source,
       String expectedLatestRevisionSha256) {
     return requireWorkspace(actorUserId, workspaceId, Permission.WRITE)
-        .inbox()
-        .appendRevision(itemId, source, expectedLatestRevisionSha256);
+        .appendInboxRevision(itemId, source, expectedLatestRevisionSha256);
   }
 
   @Transactional

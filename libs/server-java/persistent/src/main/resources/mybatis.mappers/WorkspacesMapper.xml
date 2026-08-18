@@ -31,8 +31,12 @@
                  javaType="reengineering.ddd.evidence.persistent.filesystem.WorkspaceLogicalRelationships">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
-    <association property="inbox"
-                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceInbox">
+    <association property="inboxItems"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceInboxItems">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
+    <association property="inboxWorkflow"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceInboxWorkflow">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
     <association property="workflow"

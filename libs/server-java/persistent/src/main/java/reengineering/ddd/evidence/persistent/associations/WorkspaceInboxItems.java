@@ -19,24 +19,19 @@ import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.InboxItemDescription;
 import reengineering.ddd.evidence.domain.description.InboxRevisionDescription;
 import reengineering.ddd.evidence.domain.model.Inbox;
-import reengineering.ddd.evidence.domain.model.InboxExtraction;
 import reengineering.ddd.evidence.domain.model.InboxItem;
 import reengineering.ddd.evidence.domain.model.InboxRevision;
-import reengineering.ddd.evidence.domain.model.InboxStoryCandidate;
-import reengineering.ddd.evidence.domain.model.InboxWorkflow;
-import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.InboxMapper;
 import reengineering.ddd.evidence.persistent.mappers.InboxRows;
 
-@AssociationMapping(entity = Workspace.class, field = "inbox", parentIdField = "workspaceId")
-public final class WorkspaceInbox extends EntityList<String, InboxItem>
-    implements Workspace.InboxAssociation {
+@AssociationMapping(entity = Workspace.class, field = "inboxItems", parentIdField = "workspaceId")
+public final class WorkspaceInboxItems extends EntityList<String, InboxItem>
+    implements Workspace.InboxItems {
   private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {};
 
   private String workspaceId;
   @Inject private InboxMapper mapper;
-  @Inject private InboxWorkflowStore workflow;
   @Inject private ObjectMapper objectMapper;
   @Inject private Clock clock;
 
@@ -172,49 +167,6 @@ public final class WorkspaceInbox extends EntityList<String, InboxItem>
   public Optional<InboxRevision> findRevision(String itemId, String revisionId) {
     InboxRows.RevisionRow row = mapper.findRevision(workspaceId, itemId, revisionId);
     return Optional.ofNullable(row).map(this::revision);
-  }
-
-  @Override
-  public InboxExtraction createExtraction(List<String> inboxItemIds, String requestedByUserId) {
-    return workflow.createExtraction(workspaceId, inboxItemIds, requestedByUserId);
-  }
-
-  @Override
-  public Optional<InboxExtraction> findExtraction(String extractionId) {
-    return workflow.findExtraction(workspaceId, extractionId);
-  }
-
-  @Override
-  public InboxWorkflow.ProposedCandidates proposeCandidates(
-      String extractionId, int expectedVersion, List<InboxWorkflow.CandidateInput> candidates) {
-    return workflow.proposeCandidates(workspaceId, extractionId, expectedVersion, candidates);
-  }
-
-  @Override
-  public InboxWorkflow.CandidatePage listCandidates(InboxWorkflow.CandidateListQuery query) {
-    return workflow.listCandidates(workspaceId, query);
-  }
-
-  @Override
-  public Optional<InboxStoryCandidate> findCandidate(String candidateId) {
-    return workflow.findCandidate(workspaceId, candidateId);
-  }
-
-  @Override
-  public InboxWorkflow.CandidateDecision decideCandidate(
-      String candidateId,
-      String candidateSha256,
-      InboxWorkflow.DecisionAction action,
-      String reason,
-      String decidedByUserId) {
-    return workflow.decideCandidate(
-        workspaceId, candidateId, candidateSha256, action, reason, decidedByUserId);
-  }
-
-  @Override
-  public Iteration selectCandidate(
-      InboxWorkflow.SelectCandidateInput input, String selectedByUserId) {
-    return workflow.selectCandidate(workspaceId, input, selectedByUserId);
   }
 
   private void updateLatest(

@@ -94,7 +94,7 @@ public final class Inbox {
 
   public record Captured(InboxItem item, InboxRevision revision, boolean revisionCreated) {}
 
-  public interface Association extends HasMany<String, InboxItem> {
+  public interface Items extends HasMany<String, InboxItem> {
     Page<InboxItem> list(ListQuery query);
 
     Captured capture(SourceInput source);

@@ -4,6 +4,7 @@ import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.HasMany;
 import io.github.jayclock.smartdomain.core.HasOne;
 import java.util.List;
+import java.util.Optional;
 import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
 import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.description.MembershipDescription;
@@ -16,7 +17,8 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   private DiagramAssociation diagram;
   private LogicalEntities logicalEntities;
   private LogicalRelationships logicalRelationships;
-  private InboxAssociation inbox;
+  private InboxItems inboxItems;
+  private InboxWorkflowAssociation inboxWorkflow;
   private WorkflowAssociation workflow;
   private ExecutionAssociation execution;
 
@@ -27,7 +29,8 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
       DiagramAssociation diagram,
       LogicalEntities logicalEntities,
       LogicalRelationships logicalRelationships,
-      InboxAssociation inbox,
+      InboxItems inboxItems,
+      InboxWorkflowAssociation inboxWorkflow,
       WorkflowAssociation workflow,
       ExecutionAssociation execution) {
     this.identity = identity;
@@ -36,7 +39,8 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     this.diagram = diagram;
     this.logicalEntities = logicalEntities;
     this.logicalRelationships = logicalRelationships;
-    this.inbox = inbox;
+    this.inboxItems = inboxItems;
+    this.inboxWorkflow = inboxWorkflow;
     this.workflow = workflow;
     this.execution = execution;
   }
@@ -114,12 +118,38 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     return logicalRelationships.list(page, pageSize);
   }
 
-  public Inbox.Association inbox() {
-    return inbox;
+  public HasMany<String, InboxItem> inboxItems() {
+    return inboxItems;
+  }
+
+  public Inbox.Page<InboxItem> listInboxItems(Inbox.ListQuery query) {
+    return inboxItems.list(query);
+  }
+
+  public Inbox.Captured captureInboxItem(Inbox.SourceInput source) {
+    return inboxItems.capture(source);
+  }
+
+  public Inbox.Captured appendInboxRevision(
+      String itemId, Inbox.SourceInput source, String expectedLatestRevisionSha256) {
+    return inboxItems.appendRevision(itemId, source, expectedLatestRevisionSha256);
+  }
+
+  public InboxItem changeInboxItemStatus(
+      String itemId, Inbox.ItemStatus status, int expectedVersion) {
+    return inboxItems.changeStatus(itemId, status, expectedVersion);
+  }
+
+  public Inbox.Page<InboxRevision> listInboxRevisions(String itemId, int page, int pageSize) {
+    return inboxItems.listRevisions(itemId, page, pageSize);
+  }
+
+  public Optional<InboxRevision> findInboxRevision(String itemId, String revisionId) {
+    return inboxItems.findRevision(itemId, revisionId);
   }
 
   public InboxWorkflow.Association inboxWorkflow() {
-    return inbox;
+    return inboxWorkflow;
   }
 
   public IterationWorkflow.Association iterations() {
@@ -180,7 +210,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     Page<LogicalRelationship> list(int page, int pageSize);
   }
 
-  public interface InboxAssociation extends Inbox.Association, InboxWorkflow.Association {}
+  public interface InboxItems extends Inbox.Items {}
+
+  public interface InboxWorkflowAssociation extends InboxWorkflow.Association {}
 
   public interface WorkflowAssociation
       extends IterationWorkflow.Association,
