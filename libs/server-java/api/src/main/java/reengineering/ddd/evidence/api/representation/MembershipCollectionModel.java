@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.List;
 import reengineering.ddd.evidence.api.ApiTemplates;
-import reengineering.ddd.evidence.domain.model.Users;
+import reengineering.ddd.evidence.application.WorkspaceService.UserMembershipPage;
 
 public final class MembershipCollectionModel extends EvidenceModel<MembershipCollectionModel> {
   @JsonProperty("_embedded")
@@ -14,7 +14,7 @@ public final class MembershipCollectionModel extends EvidenceModel<MembershipCol
 
   public MembershipCollectionModel(
       String userId,
-      Users.MembershipPage memberships,
+      UserMembershipPage memberships,
       int pageNumber,
       int pageSize,
       UriInfo uriInfo) {

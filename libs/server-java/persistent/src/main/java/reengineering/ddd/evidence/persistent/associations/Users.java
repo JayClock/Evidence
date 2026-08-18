@@ -10,27 +10,17 @@ import reengineering.ddd.evidence.domain.description.UserDescription;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users.ExternalIdentity;
 import reengineering.ddd.evidence.domain.model.Users.ExternalIdentityKey;
-import reengineering.ddd.evidence.domain.model.Users.UserMemberships;
-import reengineering.ddd.evidence.persistent.mappers.UserMembershipsMapper;
 import reengineering.ddd.evidence.persistent.mappers.UsersMapper;
 
 @Component
 public class Users implements reengineering.ddd.evidence.domain.model.Users {
   private final UsersMapper mapper;
-  private final UserMembershipsMapper membershipsMapper;
   private final Clock clock;
 
   @Inject
-  public Users(UsersMapper mapper, UserMembershipsMapper membershipsMapper, Clock clock) {
+  public Users(UsersMapper mapper, Clock clock) {
     this.mapper = mapper;
-    this.membershipsMapper = membershipsMapper;
     this.clock = clock;
-  }
-
-  @Override
-  public UserMemberships memberships(String userId) {
-    return new reengineering.ddd.evidence.persistent.associations.UserMemberships(
-        membershipsMapper, userId);
   }
 
   @Override

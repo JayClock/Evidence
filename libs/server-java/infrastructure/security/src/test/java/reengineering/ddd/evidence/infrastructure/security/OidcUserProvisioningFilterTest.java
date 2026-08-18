@@ -49,7 +49,12 @@ class OidcUserProvisioningFilterTest {
     JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt());
     SecurityContextHolder.getContext().setAuthentication(authentication);
     when(workspaceService.resolveExternalIdentity(any(), anyBoolean()))
-        .thenReturn(Optional.of(new User("user-1", new UserDescription("OIDC User", null))));
+        .thenReturn(
+            Optional.of(
+                new User(
+                    "user-1",
+                    new UserDescription("OIDC User", null),
+                    mock(User.Memberships.class))));
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api");
     MockHttpServletResponse response = new MockHttpServletResponse();
     FilterChain chain = mock(FilterChain.class);

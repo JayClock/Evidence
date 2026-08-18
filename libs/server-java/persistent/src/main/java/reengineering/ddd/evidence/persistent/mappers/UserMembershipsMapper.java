@@ -16,6 +16,9 @@ public interface UserMembershipsMapper {
 
   int countAll(@Param("userId") String userId);
 
+  Membership findByIdentity(
+      @Param("userId") String userId, @Param("membershipId") String membershipId);
+
   Membership findByWorkspaceIdentity(
       @Param("userId") String userId, @Param("workspaceId") String workspaceId);
 }

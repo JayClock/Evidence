@@ -62,17 +62,24 @@ public class WorkspaceService {
         .orElseThrow(() -> DomainException.notFound("user " + requestedUserId + " not found"));
   }
 
-  public Users.MembershipPage userMemberships(
+  public UserMembershipPage userMemberships(
       String actorUserId, String requestedUserId, int page, int pageSize) {
-    requireUser(actorUserId, requestedUserId);
+    User user = requireUser(actorUserId, requestedUserId);
     validatePage(page, pageSize);
-    return users.memberships(requestedUserId).list(page, pageSize);
+    int total = user.memberships().findAll().size();
+    int from = (page - 1) * pageSize;
+    int to = Math.min(from + pageSize, total);
+    List<Membership> memberships =
+        from >= total
+            ? List.of()
+            : user.memberships().findAll().subCollection(from, to).stream().toList();
+    return new UserMembershipPage(memberships, total);
   }
 
   public Users.WorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
-    requireUser(actorUserId, actorUserId);
+    User user = requireUser(actorUserId, actorUserId);
     validatePage(page, pageSize);
-    return users.memberships(actorUserId).listWorkspaces(page, pageSize);
+    return user.memberships().listWorkspaces(page, pageSize);
   }
 
   @Transactional
@@ -82,10 +89,10 @@ public class WorkspaceService {
   }
 
   public Workspace requireWorkspace(String actorUserId, String workspaceId, Permission permission) {
-    requireUser(actorUserId, actorUserId);
+    User actor = requireUser(actorUserId, actorUserId);
     Membership membership =
-        users
-            .memberships(actorUserId)
+        actor
+            .memberships()
             .findByWorkspaceIdentity(workspaceId)
             .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
     if (!WorkspaceAccess.allows(membership.getDescription().role(), permission)) {
@@ -653,6 +660,12 @@ public class WorkspaceService {
 
   public record MembershipPage(Workspace workspace, List<Membership> items, int total) {
     public MembershipPage {
+      items = List.copyOf(items);
+    }
+  }
+
+  public record UserMembershipPage(List<Membership> items, int total) {
+    public UserMembershipPage {
       items = List.copyOf(items);
     }
   }

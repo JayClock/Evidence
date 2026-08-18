@@ -10,6 +10,10 @@
         <arg column="email" jdbcType="VARCHAR" javaType="String"/>
       </constructor>
     </association>
+    <association property="memberships"
+                 javaType="reengineering.ddd.evidence.persistent.associations.UserMemberships">
+      <result column="id" property="userId" javaType="String"/>
+    </association>
   </resultMap>
 
   <select id="findByIdentity" resultMap="user">

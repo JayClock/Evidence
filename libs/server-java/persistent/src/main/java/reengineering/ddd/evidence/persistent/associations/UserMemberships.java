@@ -1,27 +1,36 @@
 package reengineering.ddd.evidence.persistent.associations;
 
+import io.github.jayclock.smartdomain.mybatis.AssociationMapping;
+import io.github.jayclock.smartdomain.mybatis.database.EntityList;
+import jakarta.inject.Inject;
+import java.util.List;
 import java.util.Optional;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.model.Membership;
+import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.persistent.mappers.UserMembershipsMapper;
 
-final class UserMemberships implements Users.UserMemberships {
-  private final UserMembershipsMapper mapper;
-  private final String userId;
+@AssociationMapping(entity = User.class, field = "memberships", parentIdField = "userId")
+public final class UserMemberships extends EntityList<String, Membership>
+    implements User.Memberships {
+  private String userId;
 
-  UserMemberships(UserMembershipsMapper mapper, String userId) {
-    this.mapper = mapper;
-    this.userId = userId;
+  @Inject private UserMembershipsMapper mapper;
+
+  @Override
+  protected List<Membership> findEntities(int from, int to) {
+    return mapper.findAll(userId, from, Math.max(to - from, 0));
   }
 
   @Override
-  public Users.MembershipPage list(int page, int pageSize) {
-    if (page < 1 || pageSize < 1) {
-      throw DomainException.validation("page and pageSize must be positive integers");
-    }
-    return new Users.MembershipPage(
-        mapper.findAll(userId, (page - 1) * pageSize, pageSize), mapper.countAll(userId));
+  protected Membership findEntity(String id) {
+    return mapper.findByIdentity(userId, id);
+  }
+
+  @Override
+  public int size() {
+    return mapper.countAll(userId);
   }
 
   @Override

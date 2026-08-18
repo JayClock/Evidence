@@ -9,7 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import reengineering.ddd.evidence.api.representation.MembershipCollectionModel;
 import reengineering.ddd.evidence.application.WorkspaceService;
-import reengineering.ddd.evidence.domain.model.Users;
+import reengineering.ddd.evidence.application.WorkspaceService.UserMembershipPage;
 
 public class UserMembershipsApi {
   private final String actorUserId;
@@ -31,7 +31,7 @@ public class UserMembershipsApi {
       @Context UriInfo uriInfo) {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
-    Users.MembershipPage memberships =
+    UserMembershipPage memberships =
         workspaceService.userMemberships(actorUserId, userId, page, pageSize);
     return new MembershipCollectionModel(userId, memberships, page, pageSize, uriInfo);
   }

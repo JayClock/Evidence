@@ -48,6 +48,16 @@
     WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
   </select>
 
+  <select id="findByIdentity"
+          resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper.membership">
+    SELECT <include refid="membershipColumns"/>
+    FROM workspace_memberships wm
+    JOIN workspaces w ON w.id = wm.workspace_id
+    WHERE wm.user_id = #{userId}
+      AND wm.id = #{membershipId}
+      AND w.deleted_at IS NULL
+  </select>
+
   <select id="findByWorkspaceIdentity"
           resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper.membership">
     SELECT <include refid="membershipColumns"/>
