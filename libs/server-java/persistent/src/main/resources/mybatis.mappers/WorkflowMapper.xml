@@ -37,6 +37,12 @@
     WHERE iteration.workspace_id = #{workspaceId} AND iteration.id = #{iterationId}
   </select>
 
+  <select id="findIterationByIdentity" resultMap="iterationRow">
+    SELECT <include refid="iterationColumns"/>
+    FROM iterations iteration LEFT JOIN stories story ON story.iteration_id = iteration.id
+    WHERE iteration.id = #{iterationId}
+  </select>
+
   <select id="lockIteration" resultMap="iterationRow">
     SELECT <include refid="iterationColumns"/>
     FROM iterations iteration LEFT JOIN stories story ON story.iteration_id = iteration.id

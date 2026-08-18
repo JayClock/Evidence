@@ -10,6 +10,8 @@ public interface WorkflowMapper {
   InboxRows.IterationRow findIteration(
       @Param("workspaceId") String workspaceId, @Param("iterationId") String iterationId);
 
+  InboxRows.IterationRow findIterationByIdentity(@Param("iterationId") String iterationId);
+
   InboxRows.IterationRow lockIteration(
       @Param("workspaceId") String workspaceId, @Param("iterationId") String iterationId);
 
