@@ -2,13 +2,12 @@ import { useCallback, useMemo, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   useResource,
-  type MembershipCollectionResource,
-  type MembershipResource,
-  type MembershipWorkspace,
   type SidebarResource,
   type State,
   type UserResource,
+  type WorkspaceCollectionResource,
   type WorkspaceResource,
+  type WorkspaceState,
 } from '@evidence/api-client';
 import {
   SidebarInset,
@@ -37,8 +36,8 @@ export function WebShell({
     () => userState.follow('sidebar'),
     [userState],
   );
-  const membershipsResource = useMemo(
-    () => userState.follow('memberships'),
+  const workspacesResource = useMemo(
+    () => userState.follow('workspaces'),
     [userState],
   );
   const createWorkspaceResource = useMemo(
@@ -46,17 +45,15 @@ export function WebShell({
     [userState],
   );
   const sidebar = useResource<SidebarResource>(sidebarResource);
-  const memberships =
-    useResource<MembershipCollectionResource>(membershipsResource);
-  const workspaces: MembershipWorkspace[] =
-    memberships.resourceState?.collection.map(
-      (membershipState: State<MembershipResource>) =>
-        membershipState.data.workspace,
-    ) ?? [];
+  const workspaces =
+    useResource<WorkspaceCollectionResource>(workspacesResource);
+  const workspaceStates: WorkspaceState[] =
+    workspaces.resourceState?.collection ?? [];
   const routeWorkspaceId = workspaceIdFromPath(location.pathname);
   const activeWorkspace =
-    workspaces.find((workspace) => workspace.id === routeWorkspaceId) ??
-    workspaces[0];
+    workspaceStates.find(
+      (workspace) => workspace.data.id === routeWorkspaceId,
+    ) ?? workspaceStates[0];
   const currentLocation = `${location.pathname}${location.search}`;
   const navigation = createShellNavigation(
     sidebar.resourceState,
@@ -65,7 +62,7 @@ export function WebShell({
   );
 
   const selectWorkspace = useCallback(
-    (workspace: MembershipWorkspace) => {
+    (workspace: WorkspaceState) => {
       const href = workspaceHref(workspace);
       if (href) navigate(href);
     },
@@ -98,12 +95,12 @@ export function WebShell({
         throw error;
       }
 
-      await memberships.resource.refresh();
+      await workspaces.resource.refresh();
       const href = createdWorkspace.getLink('self')?.href;
       if (href) navigate(href);
       return createdWorkspace;
     },
-    [createWorkspaceResource, memberships.resource, navigate],
+    [createWorkspaceResource, workspaces.resource, navigate],
   );
 
   return (
@@ -121,9 +118,9 @@ export function WebShell({
           navigation={navigation}
           navigationLoading={sidebar.loading}
           userState={userState}
-          workspaces={workspaces}
-          workspacesError={memberships.error}
-          workspacesLoading={memberships.loading}
+          workspaces={workspaceStates}
+          workspacesError={workspaces.error}
+          workspacesLoading={workspaces.loading}
           onCreateWorkspace={createWorkspace}
           onSelectWorkspace={selectWorkspace}
           onSignOut={onSignOut}

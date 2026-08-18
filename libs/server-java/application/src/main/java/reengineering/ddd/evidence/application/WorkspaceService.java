@@ -69,6 +69,13 @@ public class WorkspaceService {
     return users.memberships(requestedUserId).list(page, pageSize);
   }
 
+  public Users.WorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
+    Users.MembershipPage memberships = userMemberships(actorUserId, actorUserId, page, pageSize);
+    return new Users.WorkspacePage(
+        memberships.items().stream().map(Users.MembershipView::workspace).toList(),
+        memberships.total());
+  }
+
   @Transactional
   public Workspace createWorkspace(String actorUserId, WorkspaceDescription description) {
     User owner = requireUser(actorUserId, actorUserId);

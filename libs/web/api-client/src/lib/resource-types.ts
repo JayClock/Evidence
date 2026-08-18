@@ -5,6 +5,7 @@ export const resourceContentTypes = {
   health: `${VENDOR_PREFIX}.health+json`,
   user: `${VENDOR_PREFIX}.user+json`,
   sidebar: `${VENDOR_PREFIX}.sidebar+json`,
+  workspaces: `${VENDOR_PREFIX}.workspaces+json`,
   workspace: `${VENDOR_PREFIX}.workspace+json`,
   membership: `${VENDOR_PREFIX}.membership+json`,
   memberships: `${VENDOR_PREFIX}.memberships+json`,

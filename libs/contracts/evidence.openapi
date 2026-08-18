@@ -173,6 +173,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorBody'
   /api/workspaces:
+    get:
+      tags: []
+      operationId: list_workspaces
+      parameters:
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: Page size
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Workspaces accessible to the current user
+          content:
+            application/vnd.evidence.workspaces+json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceCollectionResource'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '404':
+          description: Resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
     post:
       tags: []
       operationId: create_workspace
@@ -7580,6 +7626,28 @@ components:
         zoom:
           type: number
           format: double
+    WorkspaceCollectionEmbedded:
+      type: object
+      required:
+        - workspaces
+      properties:
+        workspaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceResource'
+    WorkspaceCollectionResource:
+      type: object
+      required:
+        - _links
+        - _embedded
+        - page
+      properties:
+        _embedded:
+          $ref: '#/components/schemas/WorkspaceCollectionEmbedded'
+        _links:
+          $ref: '#/components/schemas/BTreeMap'
+        page:
+          $ref: '#/components/schemas/PageModel'
     WorkspaceInput:
       type: object
       properties:

@@ -16,6 +16,7 @@ public final class UserModel extends EvidenceModel<UserModel> {
     description = user.getDescription();
     addSelf(ApiTemplates.user(uriInfo, id));
     addRelation(ApiTemplates.userMemberships(uriInfo, id), "memberships");
+    addRelation(ApiTemplates.workspaces(uriInfo), "workspaces");
     addRelation(ApiTemplates.workspaces(uriInfo), "create-workspace");
     addRelation(ApiTemplates.userSidebar(uriInfo, id), "sidebar");
   }

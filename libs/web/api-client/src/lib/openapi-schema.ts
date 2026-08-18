@@ -91,7 +91,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    get: operations['list_workspaces'];
     put?: never;
     post: operations['create_workspace'];
     delete?: never;
@@ -3352,6 +3352,14 @@ export interface components {
       /** Format: double */
       zoom: number;
     };
+    WorkspaceCollectionEmbedded: {
+      workspaces: components['schemas']['WorkspaceResource'][];
+    };
+    WorkspaceCollectionResource: {
+      _embedded: components['schemas']['WorkspaceCollectionEmbedded'];
+      _links: components['schemas']['BTreeMap'];
+      page: components['schemas']['PageModel'];
+    };
     WorkspaceInput: {
       description?: string | null;
       metadata?: {
@@ -3603,6 +3611,58 @@ export interface operations {
         };
         content: {
           'application/vnd.evidence.memberships+json': components['schemas']['MembershipCollectionResource'];
+        };
+      };
+      /** @description Validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Resource not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ErrorBody'];
+        };
+      };
+    };
+  };
+  list_workspaces: {
+    parameters: {
+      query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        pageSize?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Workspaces accessible to the current user */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/vnd.evidence.workspaces+json': components['schemas']['WorkspaceCollectionResource'];
         };
       };
       /** @description Validation error */

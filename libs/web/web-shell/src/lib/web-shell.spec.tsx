@@ -136,7 +136,13 @@ const userState = {
     name: 'Desktop User',
     email: 'desktop@evidence.local',
   },
-  links: links('self', 'memberships', 'create-workspace', 'sidebar'),
+  links: links(
+    'self',
+    'memberships',
+    'workspaces',
+    'create-workspace',
+    'sidebar',
+  ),
   follow: (rel: string) => ({
     kind: rel,
     ...(rel === 'create-workspace' ? { post: createWorkspacePost } : {}),
@@ -240,7 +246,15 @@ const workspace = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
-const membershipCollectionState = {
+const workspaceState = {
+  data: workspace,
+  getLink: (rel: string) => {
+    const link = workspace._links[rel as keyof typeof workspace._links];
+    return link ? { rel, ...link } : undefined;
+  },
+};
+
+const workspaceCollectionState = {
   data: {
     page: {
       size: 20,
@@ -249,15 +263,7 @@ const membershipCollectionState = {
       number: 1,
     },
   },
-  collection: [
-    {
-      data: {
-        id: 'default-workspace-owner-membership',
-        workspace,
-        role: 'owner',
-      },
-    },
-  ],
+  collection: [workspaceState],
   links: links('self'),
 };
 
@@ -295,7 +301,7 @@ describe('WebShell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createWorkspacePost.mockResolvedValue(createdWorkspaceState);
-    workspaceResource.refresh.mockResolvedValue(membershipCollectionState);
+    workspaceResource.refresh.mockResolvedValue(workspaceCollectionState);
     Object.defineProperty(globalThis, 'evidenceDesktop', {
       configurable: true,
       value: undefined,
@@ -304,11 +310,11 @@ describe('WebShell', () => {
     browser.document.documentElement.classList.remove('dark');
     browser.document.documentElement.style.colorScheme = '';
     useResourceMock.mockImplementation((resourceLike: { kind: string }) => {
-      if (resourceLike.kind === 'memberships') {
+      if (resourceLike.kind === 'workspaces') {
         return {
           loading: false,
           error: null,
-          resourceState: membershipCollectionState,
+          resourceState: workspaceCollectionState,
           resource: workspaceResource,
         };
       }

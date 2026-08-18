@@ -18,7 +18,6 @@ import {
   type InboxRevisionResource,
   type LogicalEntityCollectionResource,
   type LogicalEntityResource,
-  type MembershipCollectionResource,
   type PairResource,
   type RespondResource,
   type RootResource,
@@ -33,6 +32,7 @@ import {
   type TaskingResource,
   type UnderstandingResource,
   type UserResource,
+  type WorkspaceCollectionResource,
   type WorkspaceResource,
 } from '@evidence/api-client';
 import {
@@ -97,29 +97,29 @@ export function ResourceBrowserRoutes({
 }
 
 function Overview({ userState }: { userState: State<UserResource> }) {
-  const membershipsResource = useMemo(
-    () => userState.follow('memberships'),
+  const workspacesResource = useMemo(
+    () => userState.follow('workspaces'),
     [userState],
   );
-  const memberships =
-    useResource<MembershipCollectionResource>(membershipsResource);
+  const workspaces =
+    useResource<WorkspaceCollectionResource>(workspacesResource);
 
-  if (memberships.loading) {
+  if (workspaces.loading) {
     return (
       <LoadingCard
         title="正在打开工作区"
-        detail="读取当前用户的 Workspace membership…"
+        detail="读取当前用户可访问的 Workspace…"
       />
     );
   }
-  if (memberships.error) {
+  if (workspaces.error) {
     return (
-      <ErrorAlert title="无法读取工作区" detail={memberships.error.message} />
+      <ErrorAlert title="无法读取工作区" detail={workspaces.error.message} />
     );
   }
 
-  const firstMembership = memberships.resourceState?.collection[0];
-  if (!firstMembership) {
+  const firstWorkspace = workspaces.resourceState?.collection[0];
+  if (!firstWorkspace) {
     return (
       <StatusCard
         title="尚无工作区"
@@ -127,12 +127,12 @@ function Overview({ userState }: { userState: State<UserResource> }) {
       />
     );
   }
-  const workspaceHref = firstMembership.getLink('workspace')?.href;
+  const workspaceHref = firstWorkspace.getLink('self')?.href;
   if (!workspaceHref) {
     return (
       <ErrorAlert
         title="工作区关系不可用"
-        detail="Membership 未发布 rel=workspace。"
+        detail="Workspace 未发布 rel=self。"
       />
     );
   }

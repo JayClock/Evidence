@@ -33,4 +33,10 @@ public interface Users {
       items = List.copyOf(items);
     }
   }
+
+  record WorkspacePage(List<Workspace> items, int total) {
+    public WorkspacePage {
+      items = List.copyOf(items);
+    }
+  }
 }

@@ -51,6 +51,13 @@ public final class ApiTemplates {
         .build();
   }
 
+  public static URI workspacesPage(UriInfo uriInfo, int page, int pageSize) {
+    return UriBuilder.fromUri(workspaces(uriInfo))
+        .queryParam("page", page)
+        .queryParam("pageSize", pageSize)
+        .build();
+  }
+
   public static URI workspace(UriInfo uriInfo, String workspaceId) {
     return workspaceBuilder(uriInfo).build(workspaceId);
   }

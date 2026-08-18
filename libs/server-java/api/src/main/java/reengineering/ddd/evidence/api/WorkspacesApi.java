@@ -2,10 +2,12 @@ package reengineering.ddd.evidence.api;
 
 import io.github.jayclock.smartdomain.api.hateoas.media.VendorMediaType;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.container.ResourceContext;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
@@ -13,10 +15,12 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
+import reengineering.ddd.evidence.api.representation.WorkspaceCollectionModel;
 import reengineering.ddd.evidence.api.representation.WorkspaceModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.DomainException;
+import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Permission;
 
@@ -30,6 +34,21 @@ public class WorkspacesApi {
       WorkspaceService workspaceService, WorkspaceModelService workspaceModelService) {
     this.workspaceService = workspaceService;
     this.workspaceModelService = workspaceModelService;
+  }
+
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  @VendorMediaType(ResourceTypes.WORKSPACES)
+  public WorkspaceCollectionModel findAll(
+      @QueryParam("page") String pageInput,
+      @QueryParam("pageSize") String pageSizeInput,
+      @Context SecurityContext securityContext,
+      @Context UriInfo uriInfo) {
+    int page = Pagination.page(pageInput);
+    int pageSize = Pagination.pageSize(pageSizeInput);
+    String actorUserId = UsersApi.actor(securityContext);
+    Users.WorkspacePage workspaces = workspaceService.userWorkspaces(actorUserId, page, pageSize);
+    return new WorkspaceCollectionModel(actorUserId, workspaces, page, pageSize, uriInfo);
   }
 
   @POST

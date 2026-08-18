@@ -92,6 +92,7 @@ type ResourceMarker =
       kind:
         | 'health'
         | 'memberships'
+        | 'workspaces'
         | 'diagram'
         | 'diagram-nodes'
         | 'diagram-edges'
@@ -123,8 +124,10 @@ const userState = {
     name: 'Desktop User',
     email: 'desktop@evidence.local',
   },
-  links: links('self', 'memberships', 'sidebar'),
-  follow: (): ResourceMarker => ({ kind: 'memberships' }),
+  links: links('self', 'memberships', 'workspaces', 'sidebar'),
+  follow: (rel: string): ResourceMarker => ({
+    kind: rel === 'workspaces' ? 'workspaces' : 'memberships',
+  }),
 };
 
 const workspaceLinkMap: Record<string, { rel: string; href: string }> = {
@@ -220,6 +223,19 @@ const membershipCollectionState = {
   contentHeaders: () =>
     new Headers({
       'content-type': 'application/vnd.evidence.memberships+json',
+    }),
+};
+
+const workspaceCollectionState = {
+  data: {
+    page: {
+      totalElements: 1,
+    },
+  },
+  collection: [workspaceState],
+  contentHeaders: () =>
+    new Headers({
+      'content-type': 'application/vnd.evidence.workspaces+json',
     }),
 };
 
@@ -445,6 +461,12 @@ describe('ResourceBrowserRoutes', () => {
             loading: false,
             error: null,
             resourceState: membershipCollectionState,
+          };
+        case 'workspaces':
+          return {
+            loading: false,
+            error: null,
+            resourceState: workspaceCollectionState,
           };
         case 'diagram':
           return {

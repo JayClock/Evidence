@@ -1,9 +1,9 @@
 import type {
-  MembershipWorkspace,
   SidebarItem,
   SidebarResource,
   State,
   WorkspaceResource,
+  WorkspaceState,
 } from '@evidence/api-client';
 
 import { workspaceHref } from './workspace-switcher';
@@ -59,7 +59,7 @@ const labels: Record<string, string> = {
 
 export function createShellNavigation(
   sidebarState: State<SidebarResource> | undefined,
-  activeWorkspace: MembershipWorkspace | undefined,
+  activeWorkspace: WorkspaceState | undefined,
   currentLocation: string,
 ): ShellNavigationSection[] {
   if (!sidebarState) return [];
@@ -101,14 +101,17 @@ export function workspaceIdFromPath(pathname: string): string | null {
 
 function sidebarItemResourcePath(
   item: SidebarItem,
-  activeWorkspace?: MembershipWorkspace,
+  activeWorkspace?: WorkspaceState,
 ): string {
   const template = item.href ?? item.path ?? '#';
   if (activeWorkspace && isWorkspaceScoped(item)) {
     const relation = item.key as keyof WorkspaceResource['links'];
     return (
       workspaceHref(activeWorkspace, relation) ??
-      template.replace('{workspaceId}', encodeURIComponent(activeWorkspace.id))
+      template.replace(
+        '{workspaceId}',
+        encodeURIComponent(activeWorkspace.data.id),
+      )
     );
   }
 

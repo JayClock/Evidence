@@ -2,10 +2,10 @@ import type { ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import type {
   Link as HalLink,
-  MembershipWorkspace,
   State,
   UserResource,
   WorkspaceResource,
+  WorkspaceState,
 } from '@evidence/api-client';
 import {
   Avatar,
@@ -75,11 +75,11 @@ export function AppSidebar({
   userState: State<UserResource>;
   navigation: ShellNavigationSection[];
   navigationLoading: boolean;
-  workspaces: MembershipWorkspace[];
+  workspaces: WorkspaceState[];
   workspacesLoading: boolean;
   workspacesError: Error | null;
-  activeWorkspace?: MembershipWorkspace;
-  onSelectWorkspace: (workspace: MembershipWorkspace) => void;
+  activeWorkspace?: WorkspaceState;
+  onSelectWorkspace: (workspace: WorkspaceState) => void;
   onCreateWorkspace: (
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;

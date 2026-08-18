@@ -14,6 +14,7 @@ const mediaTypes = {
   health: 'application/vnd.evidence.health+json',
   user: 'application/vnd.evidence.user+json',
   sidebar: 'application/vnd.evidence.sidebar+json',
+  workspaces: 'application/vnd.evidence.workspaces+json',
   workspace: 'application/vnd.evidence.workspace+json',
   memberships: 'application/vnd.evidence.memberships+json',
   inboxItem: 'application/vnd.evidence.inbox-item+json',
@@ -163,6 +164,7 @@ describeContracts('Evidence API contract vertical slice', () => {
     expect(user.body._links).toMatchObject({
       self: { href: `/api/users/${userId}` },
       memberships: { href: `/api/users/${userId}/memberships` },
+      workspaces: { href: '/api/workspaces' },
       'create-workspace': { href: '/api/workspaces' },
       sidebar: { href: `/api/users/${userId}/sidebar` },
     });
@@ -216,6 +218,26 @@ describeContracts('Evidence API contract vertical slice', () => {
         ],
       },
     ]);
+
+    const workspaces = await apiRequest('/api/workspaces?page=1&pageSize=20');
+    expect(workspaces.status).toBe(200);
+    expectHalCollection(workspaces, mediaTypes.workspaces, 'workspaces');
+    expect(workspaces.body.page).toMatchObject({ number: 1, size: 20 });
+    expect(workspaces.body._links).toMatchObject({
+      self: { href: '/api/workspaces?page=1&pageSize=20' },
+      user: { href: `/api/users/${userId}` },
+    });
+    expect(workspaces.body._embedded.workspaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'default-workspace',
+          title: 'Default Workspace',
+          _links: expect.objectContaining({
+            self: { href: '/api/workspaces/default-workspace' },
+          }),
+        }),
+      ]),
+    );
 
     const memberships = await apiRequest(
       `/api/users/${userId}/memberships?page=1&pageSize=20`,

@@ -1,9 +1,9 @@
 import { useState, type SubmitEvent } from 'react';
 import type {
-  MembershipWorkspace,
   RepositorySelectionSummary,
   State,
   WorkspaceResource,
+  WorkspaceState,
 } from '@evidence/api-client';
 import { ChevronsUpDownIcon, HexagonIcon, PlusIcon } from 'lucide-react';
 import {
@@ -74,15 +74,15 @@ export function WorkspaceSwitcher({
 }: {
   loading: boolean;
   error: Error | null;
-  workspaces: MembershipWorkspace[];
-  activeWorkspace?: MembershipWorkspace;
-  onSelectWorkspace: (workspace: MembershipWorkspace) => void;
+  workspaces: WorkspaceState[];
+  activeWorkspace?: WorkspaceState;
+  onSelectWorkspace: (workspace: WorkspaceState) => void;
   onCreateWorkspace: (
     input: WorkspaceInput,
   ) => Promise<State<WorkspaceResource>>;
 }) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const activeWorkspaceId = activeWorkspace?.id ?? '';
+  const activeWorkspaceId = activeWorkspace?.data.id ?? '';
 
   if (loading) {
     return (
@@ -94,7 +94,7 @@ export function WorkspaceSwitcher({
     );
   }
 
-  const activeTitle = activeWorkspace?.title ?? '尚无工作区';
+  const activeTitle = activeWorkspace?.data.title ?? '尚无工作区';
   const activeSource = activeWorkspace
     ? workspaceSourceName(activeWorkspace)
     : '创建本地工作区';
@@ -136,7 +136,7 @@ export function WorkspaceSwitcher({
                     value={activeWorkspaceId}
                     onValueChange={(workspaceId) => {
                       const workspace = workspaces.find(
-                        (candidate) => candidate.id === workspaceId,
+                        (candidate) => candidate.data.id === workspaceId,
                       );
                       if (workspace) {
                         onSelectWorkspace(workspace);
@@ -145,11 +145,13 @@ export function WorkspaceSwitcher({
                   >
                     {workspaces.map((workspace) => (
                       <DropdownMenuRadioItem
-                        key={workspace.id}
-                        value={workspace.id}
+                        key={workspace.data.id}
+                        value={workspace.data.id}
                       >
                         <span className="flex min-w-0 flex-col gap-0.5">
-                          <span className="truncate">{workspace.title}</span>
+                          <span className="truncate">
+                            {workspace.data.title}
+                          </span>
                           <span className="truncate text-xs text-muted-foreground">
                             {workspaceSourceName(workspace)}
                           </span>
@@ -415,15 +417,17 @@ function electronRepositoryPicker():
   return electronWindow.evidenceDesktop?.chooseRepository ?? null;
 }
 
-function workspaceSourceName(workspace: MembershipWorkspace) {
-  return workspace.description?.trim() || `${workspace.status} 工作区`;
+function workspaceSourceName(workspace: WorkspaceState) {
+  return (
+    workspace.data.description?.trim() || `${workspace.data.status} 工作区`
+  );
 }
 
 export function workspaceHref(
-  workspace: MembershipWorkspace,
+  workspace: WorkspaceState,
   rel: keyof WorkspaceResource['links'] = 'self',
 ) {
-  return workspace._links[rel]?.href;
+  return workspace.getLink(rel)?.href;
 }
 
 function titleFromProjectName(name: string) {
