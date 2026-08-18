@@ -1,7 +1,5 @@
 package reengineering.ddd.evidence.persistent.associations;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jayclock.smartdomain.core.Ref;
 import io.github.jayclock.smartdomain.mybatis.AssociationMapping;
@@ -11,13 +9,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.InboxItemDescription;
-import reengineering.ddd.evidence.domain.description.InboxRevisionDescription;
 import reengineering.ddd.evidence.domain.model.Inbox;
 import reengineering.ddd.evidence.domain.model.InboxItem;
 import reengineering.ddd.evidence.domain.model.InboxRevision;
@@ -28,8 +23,6 @@ import reengineering.ddd.evidence.persistent.mappers.InboxRows;
 @AssociationMapping(entity = Workspace.class, field = "inboxItems", parentIdField = "workspaceId")
 public final class WorkspaceInboxItems extends EntityList<String, InboxItem>
     implements Workspace.InboxItems {
-  private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {};
-
   private String workspaceId;
   @Inject private InboxMapper mapper;
   @Inject private ObjectMapper objectMapper;
@@ -152,23 +145,6 @@ public final class WorkspaceInboxItems extends EntityList<String, InboxItem>
     return requireItem(itemId);
   }
 
-  @Override
-  public Inbox.Page<InboxRevision> listRevisions(String itemId, int page, int pageSize) {
-    Inbox.validatePage(page, pageSize);
-    requireItem(itemId);
-    return new Inbox.Page<>(
-        mapper.findRevisions(itemId, (page - 1) * pageSize, pageSize).stream()
-            .map(this::revision)
-            .toList(),
-        mapper.countRevisions(itemId));
-  }
-
-  @Override
-  public Optional<InboxRevision> findRevision(String itemId, String revisionId) {
-    InboxRows.RevisionRow row = mapper.findRevision(workspaceId, itemId, revisionId);
-    return Optional.ofNullable(row).map(this::revision);
-  }
-
   private void updateLatest(
       InboxRows.ItemRow current, String title, String revisionId, Instant timestamp) {
     if (mapper.updateLatestRevision(
@@ -181,7 +157,8 @@ public final class WorkspaceInboxItems extends EntityList<String, InboxItem>
   private Inbox.Captured captureResult(String itemId, String revisionId, boolean revisionCreated) {
     InboxItem item = requireItem(itemId);
     InboxRevision revision =
-        findRevision(itemId, revisionId)
+        item.revisions()
+            .findByIdentity(revisionId)
             .orElseThrow(
                 () -> DomainException.internal("Inbox item " + itemId + " was not persisted"));
     return new Inbox.Captured(item, revision, revisionCreated);
@@ -209,32 +186,8 @@ public final class WorkspaceInboxItems extends EntityList<String, InboxItem>
             row.revisionCount(),
             row.version(),
             row.createdAt(),
-            row.updatedAt()));
-  }
-
-  private InboxRevision revision(InboxRows.RevisionRow row) {
-    return new InboxRevision(
-        row.id(),
-        new InboxRevisionDescription(
-            new Ref<>(row.inboxItemId()),
-            row.revisionNumber(),
-            row.title(),
-            row.body(),
-            Inbox.ContentType.parse(row.contentType()),
-            row.uri(),
-            metadata(row.providerMetadata()),
-            row.sourceUpdatedAt(),
-            row.capturedAt(),
-            row.contentSha256()));
-  }
-
-  private Map<String, Object> metadata(String json) {
-    try {
-      return CanonicalJson.normalizeObject(
-          objectMapper.readValue(json, JSON_OBJECT), "provider metadata");
-    } catch (JsonProcessingException error) {
-      throw DomainException.internal("Inbox provider metadata could not be read");
-    }
+            row.updatedAt()),
+        new InboxItemRevisions(row.id(), mapper, objectMapper));
   }
 
   private Instant timestamp() {

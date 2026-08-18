@@ -221,14 +221,19 @@ public class WorkspaceService {
 
   public Inbox.Page<InboxRevision> inboxRevisions(
       String actorUserId, String workspaceId, String itemId, int page, int pageSize) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .listInboxRevisions(itemId, page, pageSize);
+    Inbox.validatePage(page, pageSize);
+    var revisions = requireInboxItem(actorUserId, workspaceId, itemId).revisions().findAll();
+    int total = revisions.size();
+    int from = Math.min((page - 1) * pageSize, total);
+    int to = Math.min(from + pageSize, total);
+    return new Inbox.Page<>(revisions.subCollection(from, to).stream().toList(), total);
   }
 
   public InboxRevision requireInboxRevision(
       String actorUserId, String workspaceId, String itemId, String revisionId) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .findInboxRevision(itemId, revisionId)
+    return requireInboxItem(actorUserId, workspaceId, itemId)
+        .revisions()
+        .findByIdentity(revisionId)
         .orElseThrow(() -> DomainException.notFound("Inbox revision " + revisionId + " not found"));
   }
 

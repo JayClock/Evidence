@@ -252,6 +252,12 @@
       AND revision.id = #{revisionId}
   </select>
 
+  <select id="findItemRevision" resultMap="revisionRow">
+    SELECT <include refid="revisionColumns"/>
+    FROM inbox_revisions revision
+    WHERE revision.inbox_item_id = #{itemId} AND revision.id = #{revisionId}
+  </select>
+
   <select id="findRevisionByHash" resultMap="revisionRow">
     SELECT <include refid="revisionColumns"/>
     FROM inbox_revisions revision

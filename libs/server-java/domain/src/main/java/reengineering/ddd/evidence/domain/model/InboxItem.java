@@ -1,16 +1,21 @@
 package reengineering.ddd.evidence.domain.model;
 
 import io.github.jayclock.smartdomain.core.Entity;
+import io.github.jayclock.smartdomain.core.HasMany;
 import reengineering.ddd.evidence.domain.description.InboxItemDescription;
 
 public final class InboxItem implements Entity<String, InboxItemDescription> {
-  private final String identity;
-  private final InboxItemDescription description;
+  private String identity;
+  private InboxItemDescription description;
+  private Revisions revisions;
 
-  public InboxItem(String identity, InboxItemDescription description) {
+  public InboxItem(String identity, InboxItemDescription description, Revisions revisions) {
     this.identity = identity;
     this.description = description;
+    this.revisions = revisions;
   }
+
+  private InboxItem() {}
 
   @Override
   public String getIdentity() {
@@ -21,4 +26,10 @@ public final class InboxItem implements Entity<String, InboxItemDescription> {
   public InboxItemDescription getDescription() {
     return description;
   }
+
+  public HasMany<String, InboxRevision> revisions() {
+    return revisions;
+  }
+
+  public interface Revisions extends HasMany<String, InboxRevision> {}
 }

@@ -79,6 +79,9 @@ public interface InboxMapper {
       @Param("itemId") String itemId,
       @Param("revisionId") String revisionId);
 
+  InboxRows.RevisionRow findItemRevision(
+      @Param("itemId") String itemId, @Param("revisionId") String revisionId);
+
   InboxRows.RevisionRow findRevisionByHash(
       @Param("itemId") String itemId, @Param("contentSha256") String contentSha256);
 

@@ -102,10 +102,6 @@ public final class Inbox {
     Captured appendRevision(String itemId, SourceInput source, String expectedLatestRevisionSha256);
 
     InboxItem changeStatus(String itemId, ItemStatus status, int expectedVersion);
-
-    Page<InboxRevision> listRevisions(String itemId, int page, int pageSize);
-
-    java.util.Optional<InboxRevision> findRevision(String itemId, String revisionId);
   }
 
   public static HashedSource normalizeAndHash(SourceInput input) {

@@ -4,7 +4,6 @@ import io.github.jayclock.smartdomain.core.Entity;
 import io.github.jayclock.smartdomain.core.HasMany;
 import io.github.jayclock.smartdomain.core.HasOne;
 import java.util.List;
-import java.util.Optional;
 import reengineering.ddd.evidence.domain.description.LogicalEntityDescription;
 import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
 import reengineering.ddd.evidence.domain.description.MembershipDescription;
@@ -138,14 +137,6 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   public InboxItem changeInboxItemStatus(
       String itemId, Inbox.ItemStatus status, int expectedVersion) {
     return inboxItems.changeStatus(itemId, status, expectedVersion);
-  }
-
-  public Inbox.Page<InboxRevision> listInboxRevisions(String itemId, int page, int pageSize) {
-    return inboxItems.listRevisions(itemId, page, pageSize);
-  }
-
-  public Optional<InboxRevision> findInboxRevision(String itemId, String revisionId) {
-    return inboxItems.findRevision(itemId, revisionId);
   }
 
   public InboxWorkflow.Association inboxWorkflow() {
