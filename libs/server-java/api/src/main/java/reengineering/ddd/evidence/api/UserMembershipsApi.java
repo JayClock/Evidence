@@ -8,18 +8,13 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import reengineering.ddd.evidence.api.representation.MembershipCollectionModel;
-import reengineering.ddd.evidence.application.WorkspaceService;
-import reengineering.ddd.evidence.application.WorkspaceService.UserMembershipPage;
+import reengineering.ddd.evidence.domain.model.User;
 
 public class UserMembershipsApi {
-  private final String actorUserId;
-  private final String userId;
-  private final WorkspaceService workspaceService;
+  private final User user;
 
-  public UserMembershipsApi(String actorUserId, String userId, WorkspaceService workspaceService) {
-    this.actorUserId = actorUserId;
-    this.userId = userId;
-    this.workspaceService = workspaceService;
+  public UserMembershipsApi(User user) {
+    this.user = user;
   }
 
   @GET
@@ -31,8 +26,16 @@ public class UserMembershipsApi {
       @Context UriInfo uriInfo) {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
-    UserMembershipPage memberships =
-        workspaceService.userMemberships(actorUserId, userId, page, pageSize);
-    return new MembershipCollectionModel(userId, memberships, page, pageSize, uriInfo);
+    var memberships = user.memberships().findAll();
+    int total = memberships.size();
+    int from = (int) Math.min((long) (page - 1) * pageSize, total);
+    int to = Math.min(from + pageSize, total);
+    return new MembershipCollectionModel(
+        user.getIdentity(),
+        memberships.subCollection(from, to).stream().toList(),
+        total,
+        page,
+        pageSize,
+        uriInfo);
   }
 }

@@ -53,31 +53,14 @@ public class WorkspaceService {
     this.localInstallation = localInstallation;
   }
 
-  public User requireUser(String actorUserId, String requestedUserId) {
-    if (!actorUserId.equals(requestedUserId)) {
-      throw DomainException.notFound("user " + requestedUserId + " not found");
-    }
+  private User requireActor(String actorUserId) {
     return users
-        .findByIdentity(requestedUserId)
-        .orElseThrow(() -> DomainException.notFound("user " + requestedUserId + " not found"));
-  }
-
-  public UserMembershipPage userMemberships(
-      String actorUserId, String requestedUserId, int page, int pageSize) {
-    User user = requireUser(actorUserId, requestedUserId);
-    validatePage(page, pageSize);
-    int total = user.memberships().findAll().size();
-    int from = (page - 1) * pageSize;
-    int to = Math.min(from + pageSize, total);
-    List<Membership> memberships =
-        from >= total
-            ? List.of()
-            : user.memberships().findAll().subCollection(from, to).stream().toList();
-    return new UserMembershipPage(memberships, total);
+        .findByIdentity(actorUserId)
+        .orElseThrow(() -> DomainException.notFound("user " + actorUserId + " not found"));
   }
 
   public UserWorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
-    User user = requireUser(actorUserId, actorUserId);
+    User user = requireActor(actorUserId);
     validatePage(page, pageSize);
     int total = user.memberships().findAll().size();
     int from = (page - 1) * pageSize;
@@ -102,12 +85,12 @@ public class WorkspaceService {
 
   @Transactional
   public Workspace createWorkspace(String actorUserId, WorkspaceDescription description) {
-    User owner = requireUser(actorUserId, actorUserId);
+    User owner = requireActor(actorUserId);
     return workspaces.create(owner.getIdentity(), description);
   }
 
   public Workspace requireWorkspace(String actorUserId, String workspaceId, Permission permission) {
-    User actor = requireUser(actorUserId, actorUserId);
+    User actor = requireActor(actorUserId);
     Membership membership =
         actor
             .memberships()
@@ -679,12 +662,6 @@ public class WorkspaceService {
 
   public record MembershipPage(Workspace workspace, List<Membership> items, int total) {
     public MembershipPage {
-      items = List.copyOf(items);
-    }
-  }
-
-  public record UserMembershipPage(List<Membership> items, int total) {
-    public UserMembershipPage {
       items = List.copyOf(items);
     }
   }

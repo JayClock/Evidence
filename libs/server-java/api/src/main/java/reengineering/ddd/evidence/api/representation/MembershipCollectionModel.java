@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.List;
 import reengineering.ddd.evidence.api.ApiTemplates;
-import reengineering.ddd.evidence.application.WorkspaceService.UserMembershipPage;
+import reengineering.ddd.evidence.domain.model.Membership;
 
 public final class MembershipCollectionModel extends EvidenceModel<MembershipCollectionModel> {
   @JsonProperty("_embedded")
@@ -14,16 +14,17 @@ public final class MembershipCollectionModel extends EvidenceModel<MembershipCol
 
   public MembershipCollectionModel(
       String userId,
-      UserMembershipPage memberships,
+      List<Membership> memberships,
+      int total,
       int pageNumber,
       int pageSize,
       UriInfo uriInfo) {
     embedded =
         new Embedded(
-            memberships.items().stream()
+            memberships.stream()
                 .map(membership -> new MembershipModel(membership, uriInfo))
                 .toList());
-    page = PageModel.of(pageNumber, pageSize, memberships.total());
+    page = PageModel.of(pageNumber, pageSize, total);
     addSelf(ApiTemplates.userMembershipsPage(uriInfo, userId, pageNumber, pageSize));
     addRelation(ApiTemplates.user(uriInfo, userId), "user");
     if (pageNumber > 1) {

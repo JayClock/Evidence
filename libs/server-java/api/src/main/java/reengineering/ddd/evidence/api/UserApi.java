@@ -10,20 +10,15 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.UriInfo;
 import reengineering.ddd.evidence.api.representation.SidebarModel;
 import reengineering.ddd.evidence.api.representation.UserModel;
-import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.model.User;
 
 public class UserApi {
-  private final String actorUserId;
   private final User user;
-  private final WorkspaceService workspaceService;
 
   @Context private ResourceContext resourceContext;
 
-  public UserApi(String actorUserId, User user, WorkspaceService workspaceService) {
-    this.actorUserId = actorUserId;
+  public UserApi(User user) {
     this.user = user;
-    this.workspaceService = workspaceService;
   }
 
   @GET
@@ -43,7 +38,6 @@ public class UserApi {
 
   @Path("memberships")
   public UserMembershipsApi memberships() {
-    return resourceContext.initResource(
-        new UserMembershipsApi(actorUserId, user.getIdentity(), workspaceService));
+    return resourceContext.initResource(new UserMembershipsApi(user));
   }
 }
