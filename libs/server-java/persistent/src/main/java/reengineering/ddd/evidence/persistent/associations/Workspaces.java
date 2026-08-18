@@ -1,5 +1,6 @@
 package reengineering.ddd.evidence.persistent.associations;
 
+import io.github.jayclock.smartdomain.core.Many;
 import io.github.jayclock.smartdomain.core.Ref;
 import io.github.jayclock.smartdomain.mybatis.database.EntityList;
 import jakarta.inject.Inject;
@@ -8,6 +9,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.DomainException;
@@ -19,8 +21,7 @@ import reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
 
 @Component
-public class Workspaces extends EntityList<String, Workspace>
-    implements reengineering.ddd.evidence.domain.model.Workspaces {
+public class Workspaces implements reengineering.ddd.evidence.domain.model.Workspaces {
   private final WorkspacesMapper mapper;
   private final WorkspaceMembershipsMapper membershipsMapper;
   private final WorkspaceModelRoot modelRoots;
@@ -39,18 +40,13 @@ public class Workspaces extends EntityList<String, Workspace>
   }
 
   @Override
-  protected List<Workspace> findEntities(int from, int to) {
-    return mapper.findAll(from, Math.max(to - from, 0));
+  public Many<Workspace> findAll(String userId) {
+    return new AccessibleWorkspaces(userId, mapper);
   }
 
   @Override
-  protected Workspace findEntity(String id) {
-    return mapper.findByIdentity(id);
-  }
-
-  @Override
-  public int size() {
-    return mapper.countAll();
+  public Optional<Workspace> findByIdentity(String userId, String workspaceId) {
+    return Optional.ofNullable(mapper.findAccessibleByIdentity(userId, workspaceId));
   }
 
   @Override
@@ -87,7 +83,7 @@ public class Workspaces extends EntityList<String, Workspace>
   }
 
   private Workspace require(String workspaceId) {
-    return findByIdentity(workspaceId)
+    return Optional.ofNullable(mapper.findByIdentity(workspaceId))
         .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
   }
 
@@ -112,5 +108,30 @@ public class Workspaces extends EntityList<String, Workspace>
 
   private Instant timestamp() {
     return clock.instant().truncatedTo(ChronoUnit.MILLIS);
+  }
+
+  private static final class AccessibleWorkspaces extends EntityList<String, Workspace> {
+    private final String userId;
+    private final WorkspacesMapper mapper;
+
+    private AccessibleWorkspaces(String userId, WorkspacesMapper mapper) {
+      this.userId = userId;
+      this.mapper = mapper;
+    }
+
+    @Override
+    protected List<Workspace> findEntities(int from, int to) {
+      return mapper.findAllAccessible(userId, from, Math.max(to - from, 0));
+    }
+
+    @Override
+    protected Workspace findEntity(String workspaceId) {
+      return mapper.findAccessibleByIdentity(userId, workspaceId);
+    }
+
+    @Override
+    public int size() {
+      return mapper.countAllAccessible(userId);
+    }
   }
 }

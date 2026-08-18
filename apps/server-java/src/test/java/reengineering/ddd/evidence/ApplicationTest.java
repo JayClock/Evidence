@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -26,8 +28,10 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reengineering.ddd.evidence.application.WorkspaceService;
+import reengineering.ddd.evidence.domain.description.WorkspaceDescription;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
+import reengineering.ddd.evidence.domain.model.Workspace;
 
 @Testcontainers
 @SpringBootTest(
@@ -182,6 +186,38 @@ class ApplicationTest {
 
     assertThat(replayed.getIdentity()).isEqualTo(created.getIdentity());
     assertThat(replayed.getDescription().name()).isEqualTo("OIDC User");
+  }
+
+  @Test
+  void listsOnlyWorkspacesAccessibleToTheAuthenticatedUser() throws Exception {
+    User otherUser =
+        workspaceService
+            .resolveExternalIdentity(
+                new Users.ExternalIdentity(
+                    "https://identity.example.test",
+                    "workspace-list-other-user",
+                    "Other User",
+                    "other@example.test"),
+                true)
+            .orElseThrow();
+    Workspace inaccessible =
+        workspaceService.createWorkspace(
+            otherUser.getIdentity(),
+            new WorkspaceDescription(
+                "Other User Workspace", null, "active", Map.of(), Instant.EPOCH, Instant.EPOCH));
+
+    ResponseEntity<String> listed =
+        authorized(HttpMethod.GET, "/api/workspaces?page=1&pageSize=100", null);
+    assertThat(listed.getStatusCode()).isEqualTo(HttpStatus.OK);
+    JsonNode listedWorkspaces =
+        objectMapper.readTree(listed.getBody()).path("_embedded").path("workspaces");
+    for (JsonNode workspace : listedWorkspaces) {
+      assertThat(workspace.path("id").asText()).isNotEqualTo(inaccessible.getIdentity());
+    }
+    assertThat(
+            authorized(HttpMethod.GET, "/api/workspaces/" + inaccessible.getIdentity(), null)
+                .getStatusCode())
+        .isEqualTo(HttpStatus.NOT_FOUND);
   }
 
   @Test

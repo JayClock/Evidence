@@ -65,10 +65,30 @@
     id, title, description, status, metadata, model_root, created_at, updated_at
   </sql>
 
+  <sql id="accessibleWorkspaceColumns">
+    w.id AS id,
+    w.title AS title,
+    w.description AS description,
+    w.status AS status,
+    w.metadata AS metadata,
+    w.model_root AS model_root,
+    w.created_at AS created_at,
+    w.updated_at AS updated_at
+  </sql>
+
   <select id="findByIdentity" resultMap="workspace">
     SELECT <include refid="workspaceColumns"/>
     FROM workspaces
     WHERE id = #{id} AND deleted_at IS NULL
+  </select>
+
+  <select id="findAccessibleByIdentity" resultMap="workspace">
+    SELECT <include refid="accessibleWorkspaceColumns"/>
+    FROM workspaces w
+    JOIN workspace_memberships wm ON wm.workspace_id = w.id
+    WHERE wm.user_id = #{userId}
+      AND w.id = #{id}
+      AND w.deleted_at IS NULL
   </select>
 
   <select id="findModelRoot" resultType="string">
@@ -77,16 +97,22 @@
     WHERE id = #{id} AND deleted_at IS NULL
   </select>
 
-  <select id="findAll" resultMap="workspace">
-    SELECT <include refid="workspaceColumns"/>
-    FROM workspaces
-    WHERE deleted_at IS NULL
-    ORDER BY updated_at DESC
+  <select id="findAllAccessible" resultMap="workspace">
+    SELECT <include refid="accessibleWorkspaceColumns"/>
+    FROM workspaces w
+    JOIN workspace_memberships wm ON wm.workspace_id = w.id
+    WHERE wm.user_id = #{userId}
+      AND w.deleted_at IS NULL
+    ORDER BY w.updated_at DESC, w.id ASC
     LIMIT #{size} OFFSET #{from}
   </select>
 
-  <select id="countAll" resultType="int">
-    SELECT COUNT(*) FROM workspaces WHERE deleted_at IS NULL
+  <select id="countAllAccessible" resultType="int">
+    SELECT COUNT(*)
+    FROM workspaces w
+    JOIN workspace_memberships wm ON wm.workspace_id = w.id
+    WHERE wm.user_id = #{userId}
+      AND w.deleted_at IS NULL
   </select>
 
   <insert id="insert">

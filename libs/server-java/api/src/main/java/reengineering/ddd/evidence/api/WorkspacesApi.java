@@ -19,19 +19,22 @@ import reengineering.ddd.evidence.api.representation.WorkspaceCollectionModel;
 import reengineering.ddd.evidence.api.representation.WorkspaceModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
-import reengineering.ddd.evidence.application.WorkspaceService.UserWorkspacePage;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.model.Workspace;
-import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Permission;
+import reengineering.ddd.evidence.domain.model.Workspaces;
 
 public class WorkspacesApi {
+  private final Workspaces workspaces;
   private final WorkspaceService workspaceService;
   private final WorkspaceModelService workspaceModelService;
 
   @Context private ResourceContext resourceContext;
 
   public WorkspacesApi(
-      WorkspaceService workspaceService, WorkspaceModelService workspaceModelService) {
+      Workspaces workspaces,
+      WorkspaceService workspaceService,
+      WorkspaceModelService workspaceModelService) {
+    this.workspaces = workspaces;
     this.workspaceService = workspaceService;
     this.workspaceModelService = workspaceModelService;
   }
@@ -47,8 +50,17 @@ public class WorkspacesApi {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
     String actorUserId = UsersApi.actor(securityContext);
-    UserWorkspacePage workspaces = workspaceService.userWorkspaces(actorUserId, page, pageSize);
-    return new WorkspaceCollectionModel(actorUserId, workspaces, page, pageSize, uriInfo);
+    var accessible = workspaces.findAll(actorUserId);
+    int total = accessible.size();
+    int from = (int) Math.min((long) (page - 1) * pageSize, total);
+    int to = Math.min(from + pageSize, total);
+    return new WorkspaceCollectionModel(
+        actorUserId,
+        accessible.subCollection(from, to).stream().toList(),
+        total,
+        page,
+        pageSize,
+        uriInfo);
   }
 
   @POST
@@ -76,7 +88,9 @@ public class WorkspacesApi {
       @PathParam("workspaceId") String workspaceId, @Context SecurityContext securityContext) {
     String actorUserId = UsersApi.actor(securityContext);
     Workspace workspace =
-        workspaceService.requireWorkspace(actorUserId, workspaceId, Permission.READ);
+        workspaces
+            .findByIdentity(actorUserId, workspaceId)
+            .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
     return resourceContext.initResource(
         new WorkspaceApi(actorUserId, workspace, workspaceService, workspaceModelService));
   }

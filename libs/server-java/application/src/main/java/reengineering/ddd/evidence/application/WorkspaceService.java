@@ -59,30 +59,6 @@ public class WorkspaceService {
         .orElseThrow(() -> DomainException.notFound("user " + actorUserId + " not found"));
   }
 
-  public UserWorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
-    User user = requireActor(actorUserId);
-    validatePage(page, pageSize);
-    int total = user.memberships().findAll().size();
-    int from = (page - 1) * pageSize;
-    int to = Math.min(from + pageSize, total);
-    List<Workspace> userWorkspaces =
-        from >= total
-            ? List.of()
-            : user.memberships().findAll().subCollection(from, to).stream()
-                .map(
-                    membership ->
-                        workspaces
-                            .findByIdentity(membership.getDescription().workspace().id())
-                            .orElseThrow(
-                                () ->
-                                    DomainException.notFound(
-                                        "workspace "
-                                            + membership.getDescription().workspace().id()
-                                            + " not found")))
-                .toList();
-    return new UserWorkspacePage(userWorkspaces, total);
-  }
-
   @Transactional
   public Workspace createWorkspace(String actorUserId, WorkspaceDescription description) {
     User owner = requireActor(actorUserId);
@@ -105,7 +81,7 @@ public class WorkspaceService {
               + " access");
     }
     return workspaces
-        .findByIdentity(workspaceId)
+        .findByIdentity(actorUserId, workspaceId)
         .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
   }
 
@@ -662,12 +638,6 @@ public class WorkspaceService {
 
   public record MembershipPage(Workspace workspace, List<Membership> items, int total) {
     public MembershipPage {
-      items = List.copyOf(items);
-    }
-  }
-
-  public record UserWorkspacePage(List<Workspace> items, int total) {
-    public UserWorkspacePage {
       items = List.copyOf(items);
     }
   }

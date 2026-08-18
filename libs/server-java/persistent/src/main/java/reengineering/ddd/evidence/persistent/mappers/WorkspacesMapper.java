@@ -11,11 +11,14 @@ import reengineering.ddd.evidence.domain.model.Workspace;
 public interface WorkspacesMapper {
   Workspace findByIdentity(@Param("id") String id);
 
+  Workspace findAccessibleByIdentity(@Param("userId") String userId, @Param("id") String id);
+
   String findModelRoot(@Param("id") String id);
 
-  List<Workspace> findAll(@Param("from") int from, @Param("size") int size);
+  List<Workspace> findAllAccessible(
+      @Param("userId") String userId, @Param("from") int from, @Param("size") int size);
 
-  int countAll();
+  int countAllAccessible(@Param("userId") String userId);
 
   int insert(
       @Param("id") String id,

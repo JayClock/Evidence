@@ -18,12 +18,14 @@ import reengineering.ddd.evidence.api.representation.RootModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
 import reengineering.ddd.evidence.domain.model.Users;
+import reengineering.ddd.evidence.domain.model.Workspaces;
 
 @Component
 @Path("/")
 public class RootApi {
   private final OpenApiDocument openApiDocument;
   private final Users users;
+  private final Workspaces workspaces;
   private final WorkspaceService workspaceService;
   private final WorkspaceModelService workspaceModelService;
 
@@ -33,10 +35,12 @@ public class RootApi {
   public RootApi(
       OpenApiDocument openApiDocument,
       Users users,
+      Workspaces workspaces,
       WorkspaceService workspaceService,
       WorkspaceModelService workspaceModelService) {
     this.openApiDocument = openApiDocument;
     this.users = users;
+    this.workspaces = workspaces;
     this.workspaceService = workspaceService;
     this.workspaceModelService = workspaceModelService;
   }
@@ -68,7 +72,8 @@ public class RootApi {
 
   @Path("api/workspaces")
   public WorkspacesApi workspaces() {
-    return resourceContext.initResource(new WorkspacesApi(workspaceService, workspaceModelService));
+    return resourceContext.initResource(
+        new WorkspacesApi(workspaces, workspaceService, workspaceModelService));
   }
 
   @GET
