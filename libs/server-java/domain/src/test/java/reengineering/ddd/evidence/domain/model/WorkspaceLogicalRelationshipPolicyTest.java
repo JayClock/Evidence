@@ -68,6 +68,8 @@ class WorkspaceLogicalRelationshipPolicyTest {
         null,
         null,
         null,
+        null,
+        null,
         null);
   }
 

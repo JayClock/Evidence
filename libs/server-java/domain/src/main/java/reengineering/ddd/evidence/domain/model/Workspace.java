@@ -22,7 +22,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   private InboxWorkflowAssociation inboxWorkflow;
   private WorkflowAssociation workflow;
   private Stories stories;
-  private ExecutionAssociation execution;
+  private PairAssociation pair;
+  private ShowcaseAssociation showcase;
+  private RespondAssociation respond;
 
   public Workspace(
       String identity,
@@ -35,7 +37,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
       InboxWorkflowAssociation inboxWorkflow,
       WorkflowAssociation workflow,
       Stories stories,
-      ExecutionAssociation execution) {
+      PairAssociation pair,
+      ShowcaseAssociation showcase,
+      RespondAssociation respond) {
     this.identity = identity;
     this.description = description;
     this.memberships = memberships;
@@ -46,7 +50,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     this.inboxWorkflow = inboxWorkflow;
     this.workflow = workflow;
     this.stories = stories;
-    this.execution = execution;
+    this.pair = pair;
+    this.showcase = showcase;
+    this.respond = respond;
   }
 
   private Workspace() {}
@@ -219,15 +225,15 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   }
 
   public Pair.Association pair() {
-    return execution;
+    return pair;
   }
 
   public Showcase.Association showcase() {
-    return execution;
+    return showcase;
   }
 
   public Respond.Association respond() {
-    return execution;
+    return respond;
   }
 
   public interface Memberships extends HasMany<String, Membership> {
@@ -269,8 +275,11 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
 
   public interface Stories extends Delivery.Association, HasMany<String, Story> {}
 
-  public interface ExecutionAssociation
-      extends Pair.Association, Showcase.Association, Respond.Association {}
+  public interface PairAssociation extends Pair.Association {}
+
+  public interface ShowcaseAssociation extends Showcase.Association {}
+
+  public interface RespondAssociation extends Respond.Association {}
 
   public record Page<E>(List<E> items, int total) {
     public Page {

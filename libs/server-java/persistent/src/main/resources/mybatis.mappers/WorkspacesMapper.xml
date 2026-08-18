@@ -47,8 +47,16 @@
                  javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceStories">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
-    <association property="execution"
-                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceExecution">
+    <association property="pair"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspacePair">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
+    <association property="showcase"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceShowcase">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
+    <association property="respond"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceRespond">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
   </resultMap>

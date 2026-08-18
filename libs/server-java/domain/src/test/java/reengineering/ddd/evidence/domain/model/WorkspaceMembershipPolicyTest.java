@@ -57,7 +57,19 @@ class WorkspaceMembershipPolicyTest {
 
   private static Workspace workspace(Workspace.Memberships memberships) {
     return new Workspace(
-        "workspace-1", null, memberships, null, null, null, null, null, null, null, null);
+        "workspace-1",
+        null,
+        memberships,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 
   private static Membership membership(String id, String role) {

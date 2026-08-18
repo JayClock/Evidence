@@ -17,7 +17,19 @@ class WorkspaceTest {
 
     Workspace workspace =
         new Workspace(
-            "workspace-1", description, null, null, null, null, null, null, null, null, null);
+            "workspace-1",
+            description,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
 
     assertEquals("workspace-1", workspace.getIdentity());
     assertSame(description, workspace.getDescription());
