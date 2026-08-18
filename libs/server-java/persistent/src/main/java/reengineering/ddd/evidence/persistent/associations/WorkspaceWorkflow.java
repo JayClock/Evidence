@@ -31,7 +31,6 @@ import reengineering.ddd.evidence.domain.description.ProblemStatementDescription
 import reengineering.ddd.evidence.domain.description.ScenarioDraftDescription;
 import reengineering.ddd.evidence.domain.description.ScenarioProposalDescription;
 import reengineering.ddd.evidence.domain.description.StoryCardDescription;
-import reengineering.ddd.evidence.domain.description.StoryDescription;
 import reengineering.ddd.evidence.domain.description.StoryRevisionDescription;
 import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
 import reengineering.ddd.evidence.domain.description.UnderstandingDecisionDescription;
@@ -1144,76 +1143,6 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     return new Tasking.DecisionResult(requireIteration(iterationId), deskDecision(decision), plan);
   }
 
-  @Override
-  public Delivery.Page<Story> listStories(int page, int pageSize) {
-    validatePage(page, pageSize);
-    return new Delivery.Page<>(
-        mapper.findStories(workspaceId, (page - 1) * pageSize, pageSize).stream()
-            .map(this::story)
-            .toList(),
-        mapper.countStories(workspaceId));
-  }
-
-  @Override
-  public Delivery.PortfolioSummary summarizeStories() {
-    Map<String, Integer> stages = new HashMap<>();
-    Map<String, Integer> actions = new HashMap<>();
-    int human = 0;
-    int agent = 0;
-    int approved = 0;
-    for (WorkflowRows.StoryRow row : mapper.findAllStories(workspaceId)) {
-      Delivery.Authority authority =
-          Delivery.authority(
-              row.iterationLifecycle(),
-              row.iterationLoop(),
-              row.iterationStage(),
-              row.pendingClarificationReference() != null);
-      stages.merge(row.iterationLoop() + "/" + row.iterationStage(), 1, Integer::sum);
-      actions.merge(authority.nextAction(), 1, Integer::sum);
-      if ("human".equals(authority.owner())) human++;
-      if ("agent".equals(authority.owner())) agent++;
-      if ("respond".equals(row.iterationLoop()) && "accepted".equals(row.iterationStage()))
-        approved++;
-    }
-    List<Delivery.StageCount> stageCounts =
-        stages.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey())
-            .map(
-                entry -> {
-                  String[] parts = entry.getKey().split("/", 2);
-                  return new Delivery.StageCount(parts[0], parts[1], entry.getValue());
-                })
-            .toList();
-    List<Delivery.ActionCount> actionCounts =
-        actions.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey())
-            .map(entry -> new Delivery.ActionCount(entry.getKey(), entry.getValue()))
-            .toList();
-    return new Delivery.PortfolioSummary(human, agent, approved, stageCounts, actionCounts);
-  }
-
-  @Override
-  public Optional<Story> findStory(String storyId) {
-    return Optional.ofNullable(mapper.findStory(workspaceId, storyId)).map(this::story);
-  }
-
-  @Override
-  public Delivery.Page<StoryRevision> listStoryRevisions(String storyId, int page, int pageSize) {
-    validatePage(page, pageSize);
-    requireStory(storyId);
-    return new Delivery.Page<>(
-        mapper.findStoryRevisions(workspaceId, storyId, (page - 1) * pageSize, pageSize).stream()
-            .map(this::storyRevision)
-            .toList(),
-        mapper.countStoryRevisions(workspaceId, storyId));
-  }
-
-  @Override
-  public Optional<StoryRevision> findStoryRevision(String storyId, String revisionId) {
-    return Optional.ofNullable(mapper.findStoryRevision(workspaceId, storyId, revisionId))
-        .map(this::storyRevision);
-  }
-
   private Context requireContext(String iterationId, String label) {
     InboxRows.IterationRow iteration = mapper.findIteration(workspaceId, iterationId);
     if (iteration == null || iteration.activeStoryId() == null) {
@@ -1519,76 +1448,6 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
             row.createdAt()));
   }
 
-  private Story story(WorkflowRows.StoryRow row) {
-    Delivery.Authority authority =
-        Delivery.authority(
-            row.iterationLifecycle(),
-            row.iterationLoop(),
-            row.iterationStage(),
-            row.pendingClarificationReference() != null);
-    return new Story(
-        row.id(),
-        new StoryDescription(
-            new Ref<>(row.workspaceId()),
-            new Ref<>(row.iterationId()),
-            row.iterationReference(),
-            row.iterationLifecycle(),
-            row.iterationLoop(),
-            row.iterationStage(),
-            row.title(),
-            row.goal(),
-            new Ref<>(row.latestRevisionId()),
-            row.latestRevisionNumber(),
-            row.latestScenarioCount(),
-            row.latestCitationCount(),
-            row.pendingClarificationReference(),
-            authority,
-            row.revisionCount(),
-            row.version(),
-            row.createdAt(),
-            row.updatedAt()));
-  }
-
-  private StoryRevision storyRevision(WorkflowRows.StoryRevisionRow row) {
-    return new StoryRevision(
-        row.id(),
-        new StoryRevisionDescription(
-            new Ref<>(row.storyId()),
-            row.revisionNumber(),
-            row.title(),
-            row.problem(),
-            row.role(),
-            row.goal(),
-            row.value(),
-            InboxWorkflow.CognitiveMode.parseStored(row.cognitiveMode()),
-            mapper.findStoryCitations(row.id()).stream()
-                .map(
-                    citation ->
-                        new Delivery.Citation(
-                            new Ref<>(citation.inboxItemId()),
-                            new Ref<>(citation.inboxRevisionId()),
-                            citation.inboxRevisionNumber(),
-                            citation.contentSha256(),
-                            citation.locator()))
-                .toList(),
-            mapper.findStoryScenarios(row.id()).stream()
-                .map(
-                    scenario ->
-                        new Delivery.Scenario(
-                            scenario.id(),
-                            scenario.reference(),
-                            scenario.sourceDraftId(),
-                            scenario.title(),
-                            readStrings(scenario.givenSteps()),
-                            scenario.whenStep(),
-                            readStrings(scenario.thenSteps()),
-                            readStrings(scenario.businessData())))
-                .toList(),
-            row.contentSha256(),
-            new Ref<>(row.createdByUserId()),
-            row.createdAt()));
-  }
-
   private Clarification clarification(WorkflowRows.ClarificationRow row) {
     return new Clarification(
         row.id(),
@@ -1784,12 +1643,14 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   private Story requireStory(String storyId) {
-    return findStory(storyId)
+    return Optional.ofNullable(mapper.findStory(workspaceId, storyId))
+        .map(StoryEntities::story)
         .orElseThrow(() -> DomainException.notFound("Story " + storyId + " not found"));
   }
 
   private StoryRevision requireStoryRevision(String storyId, String revisionId) {
-    return findStoryRevision(storyId, revisionId)
+    return Optional.ofNullable(mapper.findStoryRevision(workspaceId, storyId, revisionId))
+        .map(row -> StoryEntities.revision(row, mapper, objectMapper))
         .orElseThrow(() -> DomainException.notFound("Story Revision " + revisionId + " not found"));
   }
 

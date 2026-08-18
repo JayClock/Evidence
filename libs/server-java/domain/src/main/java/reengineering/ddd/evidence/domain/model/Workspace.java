@@ -19,6 +19,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   private InboxItems inboxItems;
   private InboxWorkflowAssociation inboxWorkflow;
   private WorkflowAssociation workflow;
+  private Stories stories;
   private ExecutionAssociation execution;
 
   public Workspace(
@@ -31,6 +32,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
       InboxItems inboxItems,
       InboxWorkflowAssociation inboxWorkflow,
       WorkflowAssociation workflow,
+      Stories stories,
       ExecutionAssociation execution) {
     this.identity = identity;
     this.description = description;
@@ -41,6 +43,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
     this.inboxItems = inboxItems;
     this.inboxWorkflow = inboxWorkflow;
     this.workflow = workflow;
+    this.stories = stories;
     this.execution = execution;
   }
 
@@ -156,7 +159,7 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   }
 
   public Delivery.Association delivery() {
-    return workflow;
+    return stories;
   }
 
   public Pair.Association pair() {
@@ -206,10 +209,9 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   public interface InboxWorkflowAssociation extends InboxWorkflow.Association {}
 
   public interface WorkflowAssociation
-      extends IterationWorkflow.Association,
-          Understanding.Association,
-          Tasking.Association,
-          Delivery.Association {}
+      extends IterationWorkflow.Association, Understanding.Association, Tasking.Association {}
+
+  public interface Stories extends Delivery.Association, HasMany<String, Story> {}
 
   public interface ExecutionAssociation
       extends Pair.Association, Showcase.Association, Respond.Association {}

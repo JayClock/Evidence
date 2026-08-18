@@ -43,6 +43,10 @@
                  javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceWorkflow">
       <result column="id" property="workspaceId" javaType="String"/>
     </association>
+    <association property="stories"
+                 javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceStories">
+      <result column="id" property="workspaceId" javaType="String"/>
+    </association>
     <association property="execution"
                  javaType="reengineering.ddd.evidence.persistent.associations.WorkspaceExecution">
       <result column="id" property="workspaceId" javaType="String"/>
