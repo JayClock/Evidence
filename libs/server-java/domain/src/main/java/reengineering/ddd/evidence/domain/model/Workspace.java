@@ -129,12 +129,43 @@ public class Workspace implements Entity<String, WorkspaceDescription> {
   }
 
   public LogicalRelationship addLogicalRelationship(LogicalRelationshipDescription description) {
+    validateLogicalRelationship(description);
     return logicalRelationships.add(description);
   }
 
   public LogicalRelationship updateLogicalRelationship(
       String relationshipId, LogicalRelationshipDescription description) {
+    logicalRelationships
+        .findByIdentity(relationshipId)
+        .orElseThrow(
+            () ->
+                DomainException.notFound("logical relationship " + relationshipId + " not found"));
+    validateLogicalRelationship(description);
     return logicalRelationships.update(relationshipId, description);
+  }
+
+  private void validateLogicalRelationship(LogicalRelationshipDescription description) {
+    if (!identity.equals(description.workspace().id())) {
+      throw DomainException.validation(
+          "logical relationship workspace "
+              + description.workspace().id()
+              + " does not match scoped workspace "
+              + identity);
+    }
+    requireLogicalEndpoint("source", description.source().id());
+    requireLogicalEndpoint("target", description.target().id());
+  }
+
+  private void requireLogicalEndpoint(String label, String endpointId) {
+    if (logicalEntities.findByIdentity(endpointId).isEmpty()) {
+      throw DomainException.validation(
+          "logical relationship "
+              + label
+              + " endpoint "
+              + endpointId
+              + " not found in workspace "
+              + identity);
+    }
   }
 
   public void deleteLogicalRelationship(String relationshipId) {
