@@ -323,11 +323,7 @@ public class WorkspaceService {
 
   public IterationIntake requireIterationIntake(
       String actorUserId, String workspaceId, String iterationId) {
-    return requireWorkspace(actorUserId, workspaceId, Permission.READ)
-        .iterations()
-        .findIntake(iterationId)
-        .orElseThrow(
-            () -> DomainException.notFound("Iteration Intake " + iterationId + " not found"));
+    return requireIteration(actorUserId, workspaceId, iterationId).intake().get();
   }
 
   @Transactional

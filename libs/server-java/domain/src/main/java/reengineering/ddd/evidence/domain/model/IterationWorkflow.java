@@ -134,8 +134,6 @@ public final class IterationWorkflow {
   public interface Association {
     Optional<Iteration> findIteration(String iterationId);
 
-    Optional<IterationIntake> findIntake(String iterationId);
-
     Iteration completeProvisioning(String iterationId, CompleteProvisioningInput input);
 
     Iteration failProvisioning(String iterationId, FailProvisioningInput input);

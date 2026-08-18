@@ -31,9 +31,11 @@ class IterationTest {
             now,
             now);
 
-    Iteration iteration = new Iteration("iteration-1", description);
+    IterationIntake intake = new IterationIntake("iteration-1", null);
+    Iteration iteration = new Iteration("iteration-1", description, () -> intake);
 
     assertEquals("iteration-1", iteration.getIdentity());
     assertSame(description, iteration.getDescription());
+    assertSame(intake, iteration.intake().get());
   }
 }

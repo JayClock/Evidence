@@ -29,6 +29,7 @@ import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
 import reengineering.ddd.evidence.persistent.mappers.InboxMapper;
 import reengineering.ddd.evidence.persistent.mappers.InboxRows;
+import reengineering.ddd.evidence.persistent.mappers.WorkflowMapper;
 
 @Component
 final class InboxWorkflowStore {
@@ -36,12 +37,15 @@ final class InboxWorkflowStore {
   private static final TypeReference<Map<String, Object>> JSON_OBJECT = new TypeReference<>() {};
 
   private final InboxMapper mapper;
+  private final WorkflowMapper workflowMapper;
   private final ObjectMapper objectMapper;
   private final Clock clock;
 
   @Inject
-  InboxWorkflowStore(InboxMapper mapper, ObjectMapper objectMapper, Clock clock) {
+  InboxWorkflowStore(
+      InboxMapper mapper, WorkflowMapper workflowMapper, ObjectMapper objectMapper, Clock clock) {
     this.mapper = mapper;
+    this.workflowMapper = workflowMapper;
     this.objectMapper = objectMapper;
     this.clock = clock;
   }
@@ -512,7 +516,8 @@ final class InboxWorkflowStore {
   }
 
   private Iteration iteration(InboxRows.IterationRow row) {
-    return IterationEntities.iteration(row);
+    return IterationEntities.iteration(
+        row, new IterationIntakeAssociation(row.id(), workflowMapper, objectMapper));
   }
 
   private Map<String, Object> metadata(String json) {

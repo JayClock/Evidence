@@ -22,7 +22,6 @@ import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.ApprovedTaskingPlanDescription;
 import reengineering.ddd.evidence.domain.description.ClarificationDescription;
 import reengineering.ddd.evidence.domain.description.DeskCheckDecisionDescription;
-import reengineering.ddd.evidence.domain.description.IterationIntakeDescription;
 import reengineering.ddd.evidence.domain.description.KickoffDecisionDescription;
 import reengineering.ddd.evidence.domain.description.KickoffProposalDescription;
 import reengineering.ddd.evidence.domain.description.NoModelImpactDescription;
@@ -37,10 +36,8 @@ import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
 import reengineering.ddd.evidence.domain.model.Clarification;
 import reengineering.ddd.evidence.domain.model.Delivery;
 import reengineering.ddd.evidence.domain.model.DeskCheckDecision;
-import reengineering.ddd.evidence.domain.model.Inbox;
 import reengineering.ddd.evidence.domain.model.InboxWorkflow;
 import reengineering.ddd.evidence.domain.model.Iteration;
-import reengineering.ddd.evidence.domain.model.IterationIntake;
 import reengineering.ddd.evidence.domain.model.IterationWorkflow;
 import reengineering.ddd.evidence.domain.model.KickoffDecision;
 import reengineering.ddd.evidence.domain.model.KickoffProposal;
@@ -77,12 +74,6 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   @Override
   public Optional<Iteration> findIteration(String iterationId) {
     return Optional.ofNullable(mapper.findIteration(workspaceId, iterationId)).map(this::iteration);
-  }
-
-  @Override
-  public Optional<IterationIntake> findIntake(String iterationId) {
-    requireIteration(iterationId);
-    return Optional.ofNullable(mapper.findIntake(iterationId)).map(this::intake);
   }
 
   @Override
@@ -127,9 +118,7 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   public Optional<IterationWorkflow.KickoffView> findKickoff(String iterationId) {
     InboxRows.IterationRow row = mapper.findIteration(workspaceId, iterationId);
     if (row == null) return Optional.empty();
-    WorkflowRows.IntakeRow intake = mapper.findIntake(iterationId);
-    if (intake == null)
-      throw DomainException.internal("Iteration " + iterationId + " lost its Intake");
+    Iteration domainIteration = iteration(row);
     List<WorkflowRows.KickoffProposalRow> proposals = mapper.findKickoffProposals(iterationId);
     KickoffProposal current = null;
     if ("kickoff".equals(row.loop()) && "candidate_review".equals(row.stage())) {
@@ -143,8 +132,8 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
     }
     return Optional.of(
         new IterationWorkflow.KickoffView(
-            iteration(row),
-            intake(intake),
+            domainIteration,
+            domainIteration.intake().get(),
             current,
             mapper.findKickoffDecisions(iterationId).stream().map(this::kickoffDecision).toList()));
   }
@@ -1304,55 +1293,8 @@ public final class WorkspaceWorkflow implements Workspace.WorkflowAssociation {
   }
 
   private Iteration iteration(InboxRows.IterationRow row) {
-    return IterationEntities.iteration(row);
-  }
-
-  private IterationIntake intake(WorkflowRows.IntakeRow row) {
-    Map<String, Object> candidate = readObject(row.candidateSnapshot());
-    return new IterationIntake(
-        row.iterationId(),
-        new IterationIntakeDescription(
-            new Ref<>(row.iterationId()),
-            frozenCandidate(candidate),
-            readObjects(row.sourceSnapshots()).stream().map(this::frozenSource).toList(),
-            row.requirementsProjection(),
-            row.contentSha256(),
-            row.frozenAt()));
-  }
-
-  private IterationWorkflow.FrozenCandidate frozenCandidate(Map<String, Object> value) {
-    return new IterationWorkflow.FrozenCandidate(
-        string(value, "candidateId"),
-        string(value, "candidateReference"),
-        string(value, "extractionId"),
-        string(value, "title"),
-        string(value, "problem"),
-        string(value, "role"),
-        string(value, "goal"),
-        string(value, "value"),
-        InboxWorkflow.CognitiveMode.parseStored(string(value, "cognitiveMode")),
-        objects(value, "citations").stream().map(this::frozenCitation).toList(),
-        string(value, "contentSha256"),
-        Instant.parse(string(value, "proposedAt")));
-  }
-
-  private IterationWorkflow.FrozenSource frozenSource(Map<String, Object> value) {
-    return new IterationWorkflow.FrozenSource(
-        integer(value, "position"),
-        new Ref<>(string(value, "inboxItemId")),
-        new Ref<>(string(value, "inboxRevisionId")),
-        integer(value, "revisionNumber"),
-        string(value, "sourceKind"),
-        string(value, "externalKey"),
-        Inbox.ItemStatus.parse(string(value, "itemStatus")),
-        string(value, "title"),
-        string(value, "body"),
-        Inbox.ContentType.parse(string(value, "contentType")),
-        optionalString(value.get("uri")),
-        object(value, "providerMetadata"),
-        optionalInstant(value.get("sourceUpdatedAt")),
-        Instant.parse(string(value, "capturedAt")),
-        string(value, "contentSha256"));
+    return IterationEntities.iteration(
+        row, new IterationIntakeAssociation(row.id(), mapper, objectMapper));
   }
 
   private IterationWorkflow.FrozenCitation frozenCitation(Map<String, Object> value) {
