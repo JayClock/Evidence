@@ -14,9 +14,14 @@ class LogicalRelationshipTest {
         new LogicalRelationshipDescription(
             new Ref<>("workspace-1"), new Ref<>("source-1"), new Ref<>("target-1"), "fulfills");
 
-    LogicalRelationship relationship = new LogicalRelationship("relationship-1", description);
+    LogicalEntity source = new LogicalEntity("source-1", null);
+    LogicalEntity target = new LogicalEntity("target-1", null);
+    LogicalRelationship relationship =
+        new LogicalRelationship("relationship-1", description, () -> source, () -> target);
 
     assertEquals("relationship-1", relationship.getIdentity());
     assertSame(description, relationship.getDescription());
+    assertSame(source, relationship.source());
+    assertSame(target, relationship.target());
   }
 }

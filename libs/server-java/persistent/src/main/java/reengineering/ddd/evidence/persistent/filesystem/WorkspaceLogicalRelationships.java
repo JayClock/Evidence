@@ -3,6 +3,7 @@ package reengineering.ddd.evidence.persistent.filesystem;
 import io.github.jayclock.smartdomain.core.Ref;
 import io.github.jayclock.smartdomain.mybatis.AssociationMapping;
 import io.github.jayclock.smartdomain.mybatis.database.EntityList;
+import io.github.jayclock.smartdomain.mybatis.memory.Reference;
 import jakarta.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.LogicalRelationshipDescription;
+import reengineering.ddd.evidence.domain.model.LogicalEntity;
 import reengineering.ddd.evidence.domain.model.LogicalRelationship;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
@@ -96,8 +98,9 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
   }
 
   private List<RelationshipRecord> load() {
+    Map<String, LogicalEntity> entities = logicalEntityIndex();
     return ModelFiles.listYamlFiles(associationsDirectory()).stream()
-        .map(this::read)
+        .map(path -> read(path, entities))
         .sorted(java.util.Comparator.comparing(record -> record.relationship().getIdentity()))
         .toList();
   }
@@ -110,11 +113,17 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
   }
 
   private RelationshipRecord read(Path path) {
+    return read(path, logicalEntityIndex());
+  }
+
+  private RelationshipRecord read(Path path, Map<String, LogicalEntity> entities) {
     Map<String, Object> document = ModelFiles.readYaml(path, "logical relationship");
     String id = ModelFiles.requiredString(document, "id", path, "logical relationship");
     ModelFiles.requiredString(document, "name", path, "logical relationship");
-    String source = ModelFiles.requiredString(document, "source", path, "logical relationship");
-    String target = ModelFiles.requiredString(document, "target", path, "logical relationship");
+    String sourceId = ModelFiles.requiredString(document, "source", path, "logical relationship");
+    String targetId = ModelFiles.requiredString(document, "target", path, "logical relationship");
+    LogicalEntity source = requireEndpoint("source", sourceId, entities);
+    LogicalEntity target = requireEndpoint("target", targetId, entities);
     return new RelationshipRecord(
         document,
         path,
@@ -122,9 +131,11 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
             id,
             new LogicalRelationshipDescription(
                 new Ref<>(workspaceId),
-                new Ref<>(source),
-                new Ref<>(target),
-                ModelFiles.optionalString(document.get("label")))));
+                new Ref<>(sourceId),
+                new Ref<>(targetId),
+                ModelFiles.optionalString(document.get("label"))),
+            new Reference<>(source),
+            new Reference<>(target)));
   }
 
   private LogicalRelationship write(Path path, Map<String, Object> document, boolean create) {
@@ -144,14 +155,22 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
               + " does not match scoped workspace "
               + workspaceId);
     }
-    WorkspaceLogicalEntities entities = new WorkspaceLogicalEntities(workspaceId, workspaces);
-    validateEndpoint("source", description.source().id(), entities);
-    validateEndpoint("target", description.target().id(), entities);
+    Map<String, LogicalEntity> entities = logicalEntityIndex();
+    requireEndpoint("source", description.source().id(), entities);
+    requireEndpoint("target", description.target().id(), entities);
   }
 
-  private void validateEndpoint(
-      String label, String endpointId, WorkspaceLogicalEntities entities) {
-    if (entities.findByIdentity(endpointId).isEmpty()) {
+  private Map<String, LogicalEntity> logicalEntityIndex() {
+    WorkspaceLogicalEntities entities = new WorkspaceLogicalEntities(workspaceId, workspaces);
+    return entities.findAll().stream()
+        .collect(
+            java.util.stream.Collectors.toUnmodifiableMap(LogicalEntity::getIdentity, it -> it));
+  }
+
+  private LogicalEntity requireEndpoint(
+      String label, String endpointId, Map<String, LogicalEntity> entities) {
+    LogicalEntity endpoint = entities.get(endpointId);
+    if (endpoint == null) {
       throw DomainException.validation(
           "logical relationship "
               + label
@@ -160,6 +179,7 @@ public final class WorkspaceLogicalRelationships extends EntityList<String, Logi
               + " not found in workspace "
               + workspaceId);
     }
+    return endpoint;
   }
 
   private String availableId(LogicalRelationshipDescription description) {
