@@ -5,10 +5,8 @@ import io.github.jayclock.smartdomain.mybatis.database.EntityList;
 import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Optional;
-import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.model.Membership;
 import reengineering.ddd.evidence.domain.model.User;
-import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.persistent.mappers.UserMembershipsMapper;
 
 @AssociationMapping(entity = User.class, field = "memberships", parentIdField = "userId")
@@ -31,15 +29,6 @@ public final class UserMemberships extends EntityList<String, Membership>
   @Override
   public int size() {
     return mapper.countAll(userId);
-  }
-
-  @Override
-  public Users.WorkspacePage listWorkspaces(int page, int pageSize) {
-    if (page < 1 || pageSize < 1) {
-      throw DomainException.validation("page and pageSize must be positive integers");
-    }
-    return new Users.WorkspacePage(
-        mapper.findWorkspaces(userId, (page - 1) * pageSize, pageSize), mapper.countAll(userId));
   }
 
   @Override

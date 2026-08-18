@@ -10,30 +10,9 @@
     wm.updated_at AS updated_at
   </sql>
 
-  <sql id="workspaceColumns">
-    w.id AS id,
-    w.title AS title,
-    w.description AS description,
-    w.status AS status,
-    w.metadata AS metadata,
-    w.model_root AS model_root,
-    w.created_at AS created_at,
-    w.updated_at AS updated_at
-  </sql>
-
   <select id="findAll"
           resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper.membership">
     SELECT <include refid="membershipColumns"/>
-    FROM workspace_memberships wm
-    JOIN workspaces w ON w.id = wm.workspace_id
-    WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
-    ORDER BY wm.created_at ASC
-    LIMIT #{size} OFFSET #{from}
-  </select>
-
-  <select id="findWorkspaces"
-          resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper.workspace">
-    SELECT <include refid="workspaceColumns"/>
     FROM workspace_memberships wm
     JOIN workspaces w ON w.id = wm.workspace_id
     WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL

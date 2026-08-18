@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.ws.rs.core.UriInfo;
 import java.util.List;
 import reengineering.ddd.evidence.api.ApiTemplates;
-import reengineering.ddd.evidence.domain.model.Users;
+import reengineering.ddd.evidence.application.WorkspaceService.UserWorkspacePage;
 
 public final class WorkspaceCollectionModel extends EvidenceModel<WorkspaceCollectionModel> {
   @JsonProperty("_embedded")
@@ -13,11 +13,7 @@ public final class WorkspaceCollectionModel extends EvidenceModel<WorkspaceColle
   @JsonProperty private final PageModel page;
 
   public WorkspaceCollectionModel(
-      String userId,
-      Users.WorkspacePage workspaces,
-      int pageNumber,
-      int pageSize,
-      UriInfo uriInfo) {
+      String userId, UserWorkspacePage workspaces, int pageNumber, int pageSize, UriInfo uriInfo) {
     embedded =
         new Embedded(
             workspaces.items().stream()

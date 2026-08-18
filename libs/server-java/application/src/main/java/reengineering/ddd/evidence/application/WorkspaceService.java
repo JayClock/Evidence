@@ -76,10 +76,28 @@ public class WorkspaceService {
     return new UserMembershipPage(memberships, total);
   }
 
-  public Users.WorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
+  public UserWorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
     User user = requireUser(actorUserId, actorUserId);
     validatePage(page, pageSize);
-    return user.memberships().listWorkspaces(page, pageSize);
+    int total = user.memberships().findAll().size();
+    int from = (page - 1) * pageSize;
+    int to = Math.min(from + pageSize, total);
+    List<Workspace> userWorkspaces =
+        from >= total
+            ? List.of()
+            : user.memberships().findAll().subCollection(from, to).stream()
+                .map(
+                    membership ->
+                        workspaces
+                            .findByIdentity(membership.getDescription().workspace().id())
+                            .orElseThrow(
+                                () ->
+                                    DomainException.notFound(
+                                        "workspace "
+                                            + membership.getDescription().workspace().id()
+                                            + " not found")))
+                .toList();
+    return new UserWorkspacePage(userWorkspaces, total);
   }
 
   @Transactional
@@ -666,6 +684,12 @@ public class WorkspaceService {
 
   public record UserMembershipPage(List<Membership> items, int total) {
     public UserMembershipPage {
+      items = List.copyOf(items);
+    }
+  }
+
+  public record UserWorkspacePage(List<Workspace> items, int total) {
+    public UserWorkspacePage {
       items = List.copyOf(items);
     }
   }

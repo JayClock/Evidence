@@ -33,8 +33,6 @@ public class User implements Entity<String, UserDescription> {
   }
 
   public interface Memberships extends HasMany<String, Membership> {
-    Users.WorkspacePage listWorkspaces(int page, int pageSize);
-
     Optional<Membership> findByWorkspaceIdentity(String workspaceId);
   }
 }

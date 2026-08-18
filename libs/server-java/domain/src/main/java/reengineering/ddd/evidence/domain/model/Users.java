@@ -1,6 +1,5 @@
 package reengineering.ddd.evidence.domain.model;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface Users {
@@ -15,12 +14,6 @@ public interface Users {
   record ExternalIdentity(String issuer, String subject, String name, String email) {
     public ExternalIdentityKey key() {
       return new ExternalIdentityKey(issuer, subject);
-    }
-  }
-
-  record WorkspacePage(List<Workspace> items, int total) {
-    public WorkspacePage {
-      items = List.copyOf(items);
     }
   }
 }

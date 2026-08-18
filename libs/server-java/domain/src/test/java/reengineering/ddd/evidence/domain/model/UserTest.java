@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 import io.github.jayclock.smartdomain.core.Many;
-import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import reengineering.ddd.evidence.domain.description.UserDescription;
@@ -31,11 +30,6 @@ class UserTest {
     @Override
     public Optional<Membership> findByIdentity(String membershipId) {
       return Optional.empty();
-    }
-
-    @Override
-    public Users.WorkspacePage listWorkspaces(int page, int pageSize) {
-      return new Users.WorkspacePage(List.of(), 0);
     }
 
     @Override

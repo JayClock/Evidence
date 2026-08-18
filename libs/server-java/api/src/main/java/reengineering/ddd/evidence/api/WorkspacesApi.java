@@ -19,8 +19,8 @@ import reengineering.ddd.evidence.api.representation.WorkspaceCollectionModel;
 import reengineering.ddd.evidence.api.representation.WorkspaceModel;
 import reengineering.ddd.evidence.application.WorkspaceModelService;
 import reengineering.ddd.evidence.application.WorkspaceService;
+import reengineering.ddd.evidence.application.WorkspaceService.UserWorkspacePage;
 import reengineering.ddd.evidence.domain.DomainException;
-import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.domain.model.Workspace;
 import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Permission;
 
@@ -47,7 +47,7 @@ public class WorkspacesApi {
     int page = Pagination.page(pageInput);
     int pageSize = Pagination.pageSize(pageSizeInput);
     String actorUserId = UsersApi.actor(securityContext);
-    Users.WorkspacePage workspaces = workspaceService.userWorkspaces(actorUserId, page, pageSize);
+    UserWorkspacePage workspaces = workspaceService.userWorkspaces(actorUserId, page, pageSize);
     return new WorkspaceCollectionModel(actorUserId, workspaces, page, pageSize, uriInfo);
   }
 
