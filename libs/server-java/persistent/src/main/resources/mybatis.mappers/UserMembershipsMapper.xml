@@ -1,35 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="reengineering.ddd.evidence.persistent.mappers.UserMembershipsMapper">
-  <resultMap id="membership"
-             type="reengineering.ddd.evidence.persistent.mappers.MembershipProjection">
-    <association property="membership"
-                 resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper.membership"
-                 columnPrefix="membership_"/>
-    <association property="workspace"
-                 resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper.workspace"
-                 columnPrefix="workspace_"/>
-  </resultMap>
-
   <sql id="membershipColumns">
-    wm.id AS membership_id,
-    wm.workspace_id AS membership_workspace_id,
-    wm.user_id AS membership_user_id,
-    wm.role AS membership_role,
-    wm.created_at AS membership_created_at,
-    wm.updated_at AS membership_updated_at,
-    w.id AS workspace_id,
-    w.title AS workspace_title,
-    w.description AS workspace_description,
-    w.status AS workspace_status,
-    w.metadata AS workspace_metadata,
-    w.model_root AS workspace_model_root,
-    w.created_at AS workspace_created_at,
-    w.updated_at AS workspace_updated_at
+    wm.id AS id,
+    wm.workspace_id AS workspace_id,
+    wm.user_id AS user_id,
+    wm.role AS role,
+    wm.created_at AS created_at,
+    wm.updated_at AS updated_at
   </sql>
 
-  <select id="findAll" resultMap="membership">
+  <sql id="workspaceColumns">
+    w.id AS id,
+    w.title AS title,
+    w.description AS description,
+    w.status AS status,
+    w.metadata AS metadata,
+    w.model_root AS model_root,
+    w.created_at AS created_at,
+    w.updated_at AS updated_at
+  </sql>
+
+  <select id="findAll"
+          resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper.membership">
     SELECT <include refid="membershipColumns"/>
+    FROM workspace_memberships wm
+    JOIN workspaces w ON w.id = wm.workspace_id
+    WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
+    ORDER BY wm.created_at ASC
+    LIMIT #{size} OFFSET #{from}
+  </select>
+
+  <select id="findWorkspaces"
+          resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper.workspace">
+    SELECT <include refid="workspaceColumns"/>
     FROM workspace_memberships wm
     JOIN workspaces w ON w.id = wm.workspace_id
     WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
@@ -44,7 +48,8 @@
     WHERE wm.user_id = #{userId} AND w.deleted_at IS NULL
   </select>
 
-  <select id="findByWorkspaceIdentity" resultMap="membership">
+  <select id="findByWorkspaceIdentity"
+          resultMap="reengineering.ddd.evidence.persistent.mappers.WorkspaceMembershipsMapper.membership">
     SELECT <include refid="membershipColumns"/>
     FROM workspace_memberships wm
     JOIN workspaces w ON w.id = wm.workspace_id

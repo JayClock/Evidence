@@ -252,15 +252,9 @@ describeContracts('Evidence API contract vertical slice', () => {
             self: {
               href: '/api/workspaces/default-workspace/memberships/default-workspace-owner-membership',
             },
+            workspace: { href: '/api/workspaces/default-workspace' },
           }),
           role: 'owner',
-          workspace: expect.objectContaining({
-            id: 'default-workspace',
-            title: 'Default Workspace',
-            _links: expect.objectContaining({
-              self: { href: '/api/workspaces/default-workspace' },
-            }),
-          }),
         }),
       ]),
     );

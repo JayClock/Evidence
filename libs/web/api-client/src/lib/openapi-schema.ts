@@ -1783,7 +1783,6 @@ export interface components {
       role: string;
       updatedAt: string;
       user: components['schemas']['LinkedRefModel'];
-      workspace: components['schemas']['WorkspaceResource'];
     };
     WorkspaceMembershipCollectionEmbedded: {
       memberships: components['schemas']['WorkspaceMembershipResource'][];

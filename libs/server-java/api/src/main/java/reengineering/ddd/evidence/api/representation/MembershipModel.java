@@ -6,23 +6,19 @@ import java.time.Instant;
 import reengineering.ddd.evidence.api.ApiTemplates;
 import reengineering.ddd.evidence.domain.description.MembershipDescription;
 import reengineering.ddd.evidence.domain.model.Membership;
-import reengineering.ddd.evidence.domain.model.Users;
 
 public final class MembershipModel extends EvidenceModel<MembershipModel> {
   @JsonProperty private final String id;
-  @JsonProperty private final WorkspaceModel workspace;
   @JsonProperty private final WorkspaceMembershipModel.RefModel user;
   @JsonProperty private final String role;
   @JsonProperty private final Instant createdAt;
   @JsonProperty private final Instant updatedAt;
 
-  public MembershipModel(Users.MembershipView membershipView, UriInfo uriInfo) {
-    Membership membership = membershipView.membership();
+  public MembershipModel(Membership membership, UriInfo uriInfo) {
     MembershipDescription description = membership.getDescription();
     String workspaceId = description.workspace().id();
     String userId = description.user().id();
     id = membership.getIdentity();
-    workspace = new WorkspaceModel(membershipView.workspace(), uriInfo);
     user = WorkspaceMembershipModel.RefModel.user(userId, uriInfo);
     role = description.role();
     createdAt = description.createdAt();

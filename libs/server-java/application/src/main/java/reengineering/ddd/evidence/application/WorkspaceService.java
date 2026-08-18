@@ -70,10 +70,9 @@ public class WorkspaceService {
   }
 
   public Users.WorkspacePage userWorkspaces(String actorUserId, int page, int pageSize) {
-    Users.MembershipPage memberships = userMemberships(actorUserId, actorUserId, page, pageSize);
-    return new Users.WorkspacePage(
-        memberships.items().stream().map(Users.MembershipView::workspace).toList(),
-        memberships.total());
+    requireUser(actorUserId, actorUserId);
+    validatePage(page, pageSize);
+    return users.memberships(actorUserId).listWorkspaces(page, pageSize);
   }
 
   @Transactional
@@ -84,12 +83,12 @@ public class WorkspaceService {
 
   public Workspace requireWorkspace(String actorUserId, String workspaceId, Permission permission) {
     requireUser(actorUserId, actorUserId);
-    Users.MembershipView membership =
+    Membership membership =
         users
             .memberships(actorUserId)
             .findByWorkspaceIdentity(workspaceId)
             .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
-    if (!WorkspaceAccess.allows(membership.membership().getDescription().role(), permission)) {
+    if (!WorkspaceAccess.allows(membership.getDescription().role(), permission)) {
       throw DomainException.forbidden(
           "workspace "
               + workspaceId
@@ -97,7 +96,9 @@ public class WorkspaceService {
               + permission.name().toLowerCase()
               + " access");
     }
-    return membership.workspace();
+    return workspaces
+        .findByIdentity(workspaceId)
+        .orElseThrow(() -> DomainException.notFound("workspace " + workspaceId + " not found"));
   }
 
   @Transactional

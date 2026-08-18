@@ -4441,7 +4441,6 @@ components:
       required:
         - _links
         - id
-        - workspace
         - user
         - role
         - createdAt
@@ -4459,8 +4458,6 @@ components:
           type: string
         user:
           $ref: '#/components/schemas/LinkedRefModel'
-        workspace:
-          $ref: '#/components/schemas/WorkspaceResource'
     WorkspaceMembershipCollectionEmbedded:
       type: object
       required:

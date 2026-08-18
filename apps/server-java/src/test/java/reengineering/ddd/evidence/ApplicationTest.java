@@ -160,13 +160,15 @@ class ApplicationTest {
     assertThat(body.path("page").path("number").asInt()).isEqualTo(1);
     JsonNode defaultMembership = null;
     for (JsonNode membership : body.path("_embedded").path("memberships")) {
-      if ("default-workspace".equals(membership.path("workspace").path("id").asText())) {
+      if ("/api/workspaces/default-workspace"
+          .equals(membership.path("_links").path("workspace").path("href").asText())) {
         defaultMembership = membership;
         break;
       }
     }
     assertThat(defaultMembership).isNotNull();
-    assertThat(Objects.requireNonNull(defaultMembership).path("role").asText()).isEqualTo("owner");
+    assertThat(Objects.requireNonNull(defaultMembership).has("workspace")).isFalse();
+    assertThat(defaultMembership.path("role").asText()).isEqualTo("owner");
   }
 
   @Test

@@ -15,7 +15,9 @@ public interface Users {
   interface UserMemberships {
     MembershipPage list(int page, int pageSize);
 
-    Optional<MembershipView> findByWorkspaceIdentity(String workspaceId);
+    WorkspacePage listWorkspaces(int page, int pageSize);
+
+    Optional<Membership> findByWorkspaceIdentity(String workspaceId);
   }
 
   record ExternalIdentityKey(String issuer, String subject) {}
@@ -26,9 +28,7 @@ public interface Users {
     }
   }
 
-  record MembershipView(Membership membership, Workspace workspace) {}
-
-  record MembershipPage(List<MembershipView> items, int total) {
+  record MembershipPage(List<Membership> items, int total) {
     public MembershipPage {
       items = List.copyOf(items);
     }

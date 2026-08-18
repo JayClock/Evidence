@@ -47,8 +47,6 @@ export type WorkspaceMembershipResource = Entity<
   }
 >;
 
-export type MembershipWorkspace = MembershipResourceData['workspace'];
-
 export type MembershipCollectionResource = Collection<MembershipResource> &
   Entity<
     MembershipCollectionResourceData,

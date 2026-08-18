@@ -3,14 +3,19 @@ package reengineering.ddd.evidence.persistent.mappers;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import reengineering.ddd.evidence.domain.model.Membership;
+import reengineering.ddd.evidence.domain.model.Workspace;
 
 @Mapper
 public interface UserMembershipsMapper {
-  List<MembershipProjection> findAll(
+  List<Membership> findAll(
+      @Param("userId") String userId, @Param("from") int from, @Param("size") int size);
+
+  List<Workspace> findWorkspaces(
       @Param("userId") String userId, @Param("from") int from, @Param("size") int size);
 
   int countAll(@Param("userId") String userId);
 
-  MembershipProjection findByWorkspaceIdentity(
+  Membership findByWorkspaceIdentity(
       @Param("userId") String userId, @Param("workspaceId") String workspaceId);
 }

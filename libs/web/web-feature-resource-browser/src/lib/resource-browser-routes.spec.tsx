@@ -199,15 +199,6 @@ const membershipState = {
   data: {
     id: 'default-workspace-owner-membership',
     role: 'owner',
-    workspace: {
-      ...workspaceState.data,
-      _links: Object.fromEntries(
-        Object.entries(workspaceLinkMap).map(([key, value]) => [
-          key,
-          { href: value.href },
-        ]),
-      ),
-    },
   },
   getLink: (rel: string) =>
     rel === 'workspace' ? workspaceLinkMap.self : undefined,
