@@ -21,7 +21,6 @@ import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.InboxExtractionDescription;
 import reengineering.ddd.evidence.domain.description.InboxStoryCandidateDecisionDescription;
 import reengineering.ddd.evidence.domain.description.InboxStoryCandidateDescription;
-import reengineering.ddd.evidence.domain.description.IterationDescription;
 import reengineering.ddd.evidence.domain.model.Inbox;
 import reengineering.ddd.evidence.domain.model.InboxExtraction;
 import reengineering.ddd.evidence.domain.model.InboxStoryCandidate;
@@ -513,25 +512,7 @@ final class InboxWorkflowStore {
   }
 
   private Iteration iteration(InboxRows.IterationRow row) {
-    return new Iteration(
-        row.id(),
-        new IterationDescription(
-            row.reference(),
-            new Ref<>(row.workspaceId()),
-            new Ref<>(row.sourceCandidateId()),
-            row.sourceCandidateSha256(),
-            row.lifecycle(),
-            row.loop(),
-            row.stage(),
-            row.lane(),
-            row.version(),
-            row.baseCommitSha(),
-            row.branchName(),
-            row.provisioningFailureSummary(),
-            row.activeStoryId() == null ? null : new Ref<>(row.activeStoryId()),
-            new Ref<>(row.admittedByUserId()),
-            row.admittedAt(),
-            row.updatedAt()));
+    return IterationEntities.iteration(row);
   }
 
   private Map<String, Object> metadata(String json) {

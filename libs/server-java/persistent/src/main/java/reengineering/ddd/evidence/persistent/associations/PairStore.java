@@ -23,7 +23,6 @@ import org.springframework.stereotype.Component;
 import reengineering.ddd.evidence.domain.CanonicalJson;
 import reengineering.ddd.evidence.domain.DomainException;
 import reengineering.ddd.evidence.domain.description.ApprovedTaskingPlanDescription;
-import reengineering.ddd.evidence.domain.description.IterationDescription;
 import reengineering.ddd.evidence.domain.description.StoryRevisionDescription;
 import reengineering.ddd.evidence.domain.description.TaskingPlanCandidateDescription;
 import reengineering.ddd.evidence.domain.model.ApprovedTaskingPlan;
@@ -796,25 +795,7 @@ final class PairStore {
   }
 
   Iteration iteration(InboxRows.IterationRow row) {
-    return new Iteration(
-        row.id(),
-        new IterationDescription(
-            row.reference(),
-            new Ref<>(row.workspaceId()),
-            new Ref<>(row.sourceCandidateId()),
-            row.sourceCandidateSha256(),
-            row.lifecycle(),
-            row.loop(),
-            row.stage(),
-            row.lane(),
-            row.version(),
-            row.baseCommitSha(),
-            row.branchName(),
-            row.provisioningFailureSummary(),
-            row.activeStoryId() == null ? null : new Ref<>(row.activeStoryId()),
-            new Ref<>(row.admittedByUserId()),
-            row.admittedAt(),
-            row.updatedAt()));
+    return IterationEntities.iteration(row);
   }
 
   Story story(String workspaceId, String storyId) {
