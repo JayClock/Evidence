@@ -35,6 +35,7 @@ import reengineering.ddd.evidence.domain.model.Understanding;
 import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users;
 import reengineering.ddd.evidence.domain.model.Workspace;
+import reengineering.ddd.evidence.domain.model.Workspaces;
 import reengineering.ddd.evidence.domain.validation.WorkspaceAccess;
 import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Permission;
 import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Role;
@@ -43,10 +44,12 @@ import reengineering.ddd.evidence.domain.validation.WorkspaceAccess.Role;
 @Transactional(readOnly = true)
 public class WorkspaceService {
   private final Users users;
+  private final Workspaces workspaces;
   private final LocalInstallation localInstallation;
 
-  public WorkspaceService(Users users, LocalInstallation localInstallation) {
+  public WorkspaceService(Users users, Workspaces workspaces, LocalInstallation localInstallation) {
     this.users = users;
+    this.workspaces = workspaces;
     this.localInstallation = localInstallation;
   }
 
@@ -69,7 +72,7 @@ public class WorkspaceService {
   @Transactional
   public Workspace createWorkspace(String actorUserId, WorkspaceDescription description) {
     User owner = requireUser(actorUserId, actorUserId);
-    return users.workspaces().create(owner.getIdentity(), description);
+    return workspaces.create(owner.getIdentity(), description);
   }
 
   public Workspace requireWorkspace(String actorUserId, String workspaceId, Permission permission) {
@@ -94,13 +97,13 @@ public class WorkspaceService {
   public Workspace updateWorkspace(
       String actorUserId, String workspaceId, WorkspaceDescription description) {
     requireWorkspace(actorUserId, workspaceId, Permission.MANAGE);
-    return users.workspaces().update(workspaceId, description);
+    return workspaces.update(workspaceId, description);
   }
 
   @Transactional
   public void deleteWorkspace(String actorUserId, String workspaceId) {
     requireWorkspace(actorUserId, workspaceId, Permission.MANAGE);
-    users.workspaces().delete(workspaceId);
+    workspaces.delete(workspaceId);
   }
 
   public MembershipPage workspaceMemberships(

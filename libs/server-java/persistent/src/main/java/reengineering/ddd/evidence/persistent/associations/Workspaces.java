@@ -20,7 +20,7 @@ import reengineering.ddd.evidence.persistent.mappers.WorkspacesMapper;
 
 @Component
 public class Workspaces extends EntityList<String, Workspace>
-    implements reengineering.ddd.evidence.domain.model.Users.Workspaces {
+    implements reengineering.ddd.evidence.domain.model.Workspaces {
   private final WorkspacesMapper mapper;
   private final WorkspaceMembershipsMapper membershipsMapper;
   private final WorkspaceModelRoot modelRoots;

@@ -11,32 +11,20 @@ import reengineering.ddd.evidence.domain.model.User;
 import reengineering.ddd.evidence.domain.model.Users.ExternalIdentity;
 import reengineering.ddd.evidence.domain.model.Users.ExternalIdentityKey;
 import reengineering.ddd.evidence.domain.model.Users.UserMemberships;
-import reengineering.ddd.evidence.domain.model.Users.Workspaces;
 import reengineering.ddd.evidence.persistent.mappers.UserMembershipsMapper;
 import reengineering.ddd.evidence.persistent.mappers.UsersMapper;
 
 @Component
 public class Users implements reengineering.ddd.evidence.domain.model.Users {
   private final UsersMapper mapper;
-  private final reengineering.ddd.evidence.persistent.associations.Workspaces workspaces;
   private final UserMembershipsMapper membershipsMapper;
   private final Clock clock;
 
   @Inject
-  public Users(
-      UsersMapper mapper,
-      reengineering.ddd.evidence.persistent.associations.Workspaces workspaces,
-      UserMembershipsMapper membershipsMapper,
-      Clock clock) {
+  public Users(UsersMapper mapper, UserMembershipsMapper membershipsMapper, Clock clock) {
     this.mapper = mapper;
-    this.workspaces = workspaces;
     this.membershipsMapper = membershipsMapper;
     this.clock = clock;
-  }
-
-  @Override
-  public Workspaces workspaces() {
-    return workspaces;
   }
 
   @Override
