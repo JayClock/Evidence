@@ -16,6 +16,20 @@ repository. A new workspace library goes under `libs/`, never under `apps/`.
 thin adapters; the legacy `evidence-api` binary is owned by `evidence-acceptance`
 because it includes diff and acceptance export commands.
 
+## Desktop canvas and playback
+
+The desktop renderer uses one canvas layout: the business journey. The
+framework-free `evidence-canvas-interaction` package places nodes and routes
+relationships in lifecycle swimlanes. The desktop canvas feature renders that
+geometry; the story feature adds step highlighting and camera focus without
+changing it. The editor owns the canvas/ledger switch and the independent
+playback action in the top canvas bar.
+
+Delivery service topology (`topology.json`) still comes from
+`evidence-api`. It describes the exported contract's service boundaries,
+not a desktop canvas layout. See the [desktop navigation guide](../apps/desktop/README.md#editor-navigation)
+for the current controls.
+
 ## Dependency declarations
 
 - A runtime dependency is declared in the `package.json` of the project that

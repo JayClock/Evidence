@@ -11,7 +11,7 @@ const playback = useStoryPlayback({
   api: desktopApi.story,
   rootPath,
   document,
-  enabled: viewMode === 'walkthrough',
+  enabled: storyOpen && surface === 'canvas',
 });
 ```
 

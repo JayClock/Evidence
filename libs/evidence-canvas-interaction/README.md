@@ -1,7 +1,9 @@
 # evidence-canvas-interaction
 
-Framework-free maths for the desktop modeling canvas: viewport transforms and
-ruler ticks, unit tested without React or the DOM.
+Framework-free geometry for the business journey canvas, tested without React
+or the DOM. `computeSwimlaneLayout(graph, density)` is the single layout entry
+point: it places entities in lifecycle stages and responsibility lanes, retains
+nested Context geometry, and routes modeled relationships and fulfillment pairs.
 
 | Module       | Responsibility                                                                    |
 | ------------ | --------------------------------------------------------------------------------- |

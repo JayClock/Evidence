@@ -24,16 +24,19 @@ nx make desktop         # installers in apps/desktop/out/make
 
 ## Editor navigation
 
-- Select **总台账** in the left sidebar (Cmd/Ctrl+1) to replace the canvas with
-  the read-only entity ledger. Filter by category, entity, context, or CEL
-  invariant; **导出 CSV** downloads every matching entity, not just the visible
-  rows. **定位画布**, or selecting **总台账** again, returns to the previous canvas
-  layout. Use the inspector to edit fields or rules.
-- Use **Cmd/Ctrl+K** to search for business objects and jump to them.
-- **业务流放映** runs on the canvas. Open **剧情详情** for narration, scene details
-  and What-If questions without adding a second viewport. The upper-left canvas
-  toolbar controls zoom, fit and density; its **更多画布工具** contains the grid
-  and scenario actions.
+- **业务旅程** is the only canvas layout. **总台账** in the left sidebar
+  (Cmd/Ctrl+1) replaces it with the read-only entity ledger. Filter by category,
+  entity, context, or CEL invariant; **导出 CSV** downloads all matching rows.
+  Return with **定位画布**, **总台账** again, or **Alt+1**. Use the inspector to
+  edit fields or rules.
+- Use **Cmd/Ctrl+Shift+K** to search for commands or jump to business objects.
+- Use **放映业务流** at the right of the top canvas bar to walk through a declared
+  scenario on the same canvas. **剧情详情** opens narration, sample documents and
+  What-If questions. **退出放映** or **Esc** closes playback without clearing the
+  selection; if scene details are open, the first **Esc** closes those details.
+  Opening the ledger also stops playback; returning does not resume it.
+- The canvas HUD controls zoom, fit and density; its **更多画布工具** contains
+  grid and scenario actions.
 - Use **实体属性检查** in the right pane to edit the selected object. **返回画布**
   returns keyboard focus without dropping the selection. **Alt+L** opens the
   selected entity’s field ledger. Applying an edited CEL invariant updates the
@@ -147,7 +150,7 @@ a library's `/browser` entry whenever a Node-only adapter exists.
       └──────── project:save ──────  ModelSession (renderer)
                                             │ dispatch(command)
                                             ▼
-                                    DomainGraph → createGraphLayout → canvas
+                                    DomainGraph → computeSwimlaneLayout → canvas
 ```
 
 - Every edit is a command with an inverse, so `Cmd/Ctrl+Z` and the canvas never
