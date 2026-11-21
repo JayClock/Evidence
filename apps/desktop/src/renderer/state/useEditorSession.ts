@@ -12,7 +12,6 @@ import {
   type ValidationResult,
 } from '@evidence-poc/evidence-schema';
 import {
-  type CanvasLayoutMode,
   type CanvasViewMode,
   type DomainGraphLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
@@ -27,7 +26,6 @@ export interface EditorSessionState {
   document: DomainModelDocument;
   graph: DomainGraph;
   layout: DomainGraphLayout;
-  layoutPending: boolean;
   layoutError: string | null;
   selection: ModelSelection;
   canUndo: boolean;
@@ -58,7 +56,7 @@ const readState = (
     externalChangeAt: string | null;
     dirty: boolean;
   },
-): Omit<EditorSessionState, 'layout' | 'layoutPending' | 'layoutError'> => {
+): Omit<EditorSessionState, 'layout' | 'layoutError'> => {
   const document = session.getDocument();
   const graph = session.getGraph();
 
@@ -86,7 +84,6 @@ export const useEditorSession = (
   project: EvidenceProjectSummary,
   initialDocument: DomainModelDocument,
   viewMode: CanvasViewMode = 'simplified',
-  layoutMode: CanvasLayoutMode = 'topology',
 ): EditorSessionController => {
   const sessionRef = useRef<ModelSession | null>(null);
 
@@ -135,7 +132,7 @@ export const useEditorSession = (
       dirty,
     });
   }, [project, session, version, savedAt, saveError, externalChangeAt, dirty]);
-  const placement = useGraphLayout(state.graph, viewMode, layoutMode);
+  const placement = useGraphLayout(state.graph, viewMode);
 
   const save = useCallback(async () => {
     const document = session.getDocument();

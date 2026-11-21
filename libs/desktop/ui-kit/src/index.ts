@@ -5,10 +5,6 @@ export {
 } from './Resizable.js';
 export type { ResizableHandleProps } from './Resizable.js';
 export { cn } from './utils.js';
-export {
-  ViewModeSegmentedControl,
-  type GraphViewMode,
-} from './ViewModeSegmentedControl.js';
 
 // Design-system primitives. Every desktop surface composes these instead of
 // growing its own button, popover or toast, so density and focus rings stay one

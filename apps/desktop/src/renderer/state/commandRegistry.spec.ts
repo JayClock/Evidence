@@ -14,7 +14,7 @@ const capabilities = (
 ): CommandCapabilities => ({
   canUndo: true,
   canRedo: false,
-  viewMode: 'topology',
+  viewMode: 'journey',
   hasSelection: false,
   ...overrides,
 });
@@ -23,7 +23,7 @@ const handlers = (): CommandHandlers => ({
   save: vi.fn(),
   undo: vi.fn(),
   redo: vi.fn(),
-  setViewMode: vi.fn(),
+  returnToGraph: vi.fn(),
   zoomToSelection: vi.fn(),
   openDelivery: vi.fn(),
   rerunSensors: vi.fn(),
@@ -79,8 +79,9 @@ describe('buildCommands', () => {
   it('greys out history and view rows that would not change anything', () => {
     expect(find('model.redo')?.disabled).toBe(true);
     expect(find('model.undo')?.disabled).toBe(false);
-    expect(find('view.graph')?.disabled).toBe(true);
-    expect(find('view.journey')?.disabled).toBe(false);
+    expect(find('view.graph')).toBeUndefined();
+    expect(find('view.journey')?.disabled).toBe(true);
+    expect(find('view.journey', { viewMode: 'table' })?.disabled).toBe(false);
   });
 
   it('leaves the ledger to the sidebar and omits removed commands', () => {

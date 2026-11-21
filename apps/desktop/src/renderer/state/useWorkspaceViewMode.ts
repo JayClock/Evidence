@@ -1,78 +1,41 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import type { GraphViewMode } from '@evidence-poc/desktop-ui-kit';
+export type WorkspaceViewMode = 'journey' | 'table' | 'story';
 
-export type WorkspaceViewMode = GraphViewMode | 'table' | 'story';
-
-/** The ledger replaces the canvas without forgetting its last editing layout. */
 export const useWorkspaceViewMode = () => {
-  const [{ mode, lastGraphMode }, setView] = useState<{
-    mode: WorkspaceViewMode;
-    lastGraphMode: GraphViewMode;
-  }>({ mode: 'journey', lastGraphMode: 'journey' });
-
-  const setMode = useCallback((next: GraphViewMode | 'story') => {
-    setView((current) =>
-      current.mode === next
-        ? current
-        : {
-            mode: next,
-            lastGraphMode: next === 'story' ? current.lastGraphMode : next,
-          },
-    );
-  }, []);
+  const [mode, setMode] = useState<WorkspaceViewMode>('journey');
 
   const toggleLedger = useCallback(() => {
-    setView((current) => ({
-      ...current,
-      mode: current.mode === 'table' ? current.lastGraphMode : 'table',
-    }));
+    setMode((current) => (current === 'table' ? 'journey' : 'table'));
   }, []);
 
-  const returnToGraph = useCallback(() => {
-    setView((current) =>
-      current.mode === current.lastGraphMode
-        ? current
-        : { ...current, mode: current.lastGraphMode },
-    );
-  }, []);
+  const returnToGraph = useCallback(() => setMode('journey'), []);
 
   useEffect(() => {
+    if (mode !== 'table') return;
     const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target;
       if (
         event.defaultPrevented ||
+        event.isComposing ||
         !event.altKey ||
         event.metaKey ||
         event.ctrlKey ||
-        event.shiftKey
-      ) {
+        event.shiftKey ||
+        event.code !== 'Digit1' ||
+        (target instanceof Element &&
+          target.closest(
+            'input, textarea, select, [contenteditable], [role="dialog"]',
+          ))
+      )
         return;
-      }
-
-      // Read the physical key: macOS produces `™` for Alt+2.
-      const target =
-        event.code === 'Digit1'
-          ? 'journey'
-          : event.code === 'Digit2'
-            ? 'topology'
-            : undefined;
-
-      if (target !== undefined) {
-        event.preventDefault();
-        setMode(target);
-      }
+      event.preventDefault();
+      returnToGraph();
     };
 
     window.addEventListener('keydown', onKeyDown);
-
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [setMode]);
+  }, [mode, returnToGraph]);
 
-  return {
-    mode,
-    graphMode: mode === 'story' ? 'journey' : lastGraphMode,
-    setMode,
-    toggleLedger,
-    returnToGraph,
-  } as const;
+  return { mode, setMode, toggleLedger, returnToGraph } as const;
 };

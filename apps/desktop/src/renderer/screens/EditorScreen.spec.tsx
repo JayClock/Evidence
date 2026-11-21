@@ -38,14 +38,11 @@ const readyProject = () =>
 
 const readyCanvas = async () => {
   const title = await screen.findByText('桌面端夹具（Desktop Fixture）');
-  await waitFor(() =>
-    expect(screen.queryByText('正在计算画布布局…')).toBeNull(),
-  );
   return title;
 };
 
 describe('EditorScreen', () => {
-  it('defaults to journey and retains the selected object and camera across topology and ledger switches', async () => {
+  it('keeps journey geometry, selection and camera when toggling the ledger', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('prefers-reduced-motion'),
       addListener: () => undefined,
@@ -66,16 +63,7 @@ describe('EditorScreen', () => {
     fireEvent.click(
       container.querySelector('[data-node-id="evidence.request"]')!,
     );
-    fireEvent.keyDown(window, { code: 'Digit2', altKey: true });
-    await waitFor(() =>
-      expect(
-        container.querySelector('[data-milestone-stage="rfp"]'),
-      ).toBeNull(),
-    );
-    expect(screen.getByRole('button', { name: /拓扑图/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.queryByRole('button', { name: /拓扑图/ })).toBeNull();
     await waitFor(() =>
       expect(
         container.querySelector('[data-node-id="evidence.request"]'),
@@ -87,10 +75,9 @@ describe('EditorScreen', () => {
     await screen.findByLabelText('领域模型总台账');
     fireEvent.click(ledger);
     await waitFor(() => expect(world().style.transform).toContain('scale(1)'));
-    expect(screen.getByRole('button', { name: /拓扑图/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      container.querySelector('[data-milestone-stage="rfp"]'),
+    ).not.toBeNull();
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).toHaveClass('ring-2');
@@ -177,7 +164,7 @@ describe('EditorScreen', () => {
     expect(input).toHaveFocus();
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(screen.queryByLabelText('业务场景')).toBeNull();
-    expect(container.querySelector('[aria-busy][tabindex="-1"]')).toHaveFocus();
+    expect(container.querySelector('[data-region="canvas-stage"]')).toHaveFocus();
     expect(api.calls.prompt).toEqual([]);
   });
 
@@ -644,7 +631,7 @@ describe('EditorScreen', () => {
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
   });
 
-  it('reads pending disk changes before starting a walkthrough from topology mode', async () => {
+  it('reads pending disk changes before starting a walkthrough', async () => {
     const api = readyProject();
     let changed: Parameters<typeof api.projects.onChanged>[0] = () => undefined;
     api.projects.onChanged = (listener) => {
@@ -671,7 +658,6 @@ describe('EditorScreen', () => {
         changedAt: '2026-11-11T09:00:00Z',
       }),
     );
-    fireEvent.keyDown(window, { code: 'Digit2', altKey: true });
     fireEvent.click(screen.getByRole('button', { name: /业务流放映/ }));
     await waitFor(() => expect(api.story.project).toHaveBeenCalledOnce());
     expect(api.story.project).toHaveBeenCalledWith(
@@ -1211,19 +1197,14 @@ describe('EditorScreen sensors', () => {
     ).toBeInTheDocument();
   });
 
-  it('runs the view commands from the hub without a header button', async () => {
+  it('returns from the ledger using the journey command', async () => {
     readyProject();
-
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
-
+    fireEvent.click(screen.getByRole('button', { name: '总台账' }));
     fireEvent.keyDown(window, { key: 'K', metaKey: true, shiftKey: true });
-    fireEvent.click(await screen.findByRole('option', { name: /拓扑图/ }));
-
-    expect(screen.getByRole('button', { name: /拓扑图/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    fireEvent.click(await screen.findByRole('option', { name: /业务旅程/ }));
+    expect(screen.queryByLabelText('领域模型总台账')).toBeNull();
   });
 });
 

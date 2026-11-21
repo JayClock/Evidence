@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { DomainGraph } from '@evidence-poc/evidence-model-core';
 import {
-  computeGraphLayout,
   computeSwimlaneLayout,
   EMPTY_GRAPH_LAYOUT,
-  type CanvasLayoutMode,
   type CanvasViewMode,
   type DomainGraphLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
@@ -18,70 +16,18 @@ const EMPTY_LAYOUT: DomainGraphLayout = {
   edgeById: new Map(),
 };
 
-/** Only publish geometry belonging to the current document and density. */
-export const useGraphLayout = (
-  graph: DomainGraph,
-  viewMode: CanvasViewMode,
-  layoutMode: CanvasLayoutMode = 'topology',
-) => {
-  const [result, setResult] = useState<{
-    graph: DomainGraph;
-    viewMode: CanvasViewMode;
-    layoutMode: CanvasLayoutMode;
-    layout: DomainGraphLayout;
-    error: string | null;
-  } | null>(null);
-  const lifecycle = useMemo(() => {
-    if (layoutMode !== 'swimlane') return null;
+/** Selection and playback updates must not recompute journey geometry. */
+export const useGraphLayout = (graph: DomainGraph, viewMode: CanvasViewMode) =>
+  useMemo(() => {
     try {
-      return { layout: computeSwimlaneLayout(graph, viewMode), error: null };
+      return {
+        layout: computeSwimlaneLayout(graph, viewMode),
+        layoutError: null,
+      };
     } catch (error) {
       return {
         layout: EMPTY_LAYOUT,
-        error: error instanceof Error ? error.message : String(error),
+        layoutError: error instanceof Error ? error.message : String(error),
       };
     }
-  }, [graph, viewMode, layoutMode]);
-
-  useEffect(() => {
-    if (layoutMode !== 'topology') return;
-    let cancelled = false;
-    void computeGraphLayout(graph, { viewMode, layoutMode }).then(
-      (layout) => {
-        if (!cancelled)
-          setResult({ graph, viewMode, layoutMode, layout, error: null });
-      },
-      (error: unknown) => {
-        if (!cancelled)
-          setResult({
-            graph,
-            viewMode,
-            layoutMode,
-            layout: EMPTY_LAYOUT,
-            error: error instanceof Error ? error.message : String(error),
-          });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [graph, viewMode, layoutMode]);
-  if (lifecycle !== null)
-    return {
-      layout: lifecycle.layout,
-      layoutPending: false,
-      layoutError: lifecycle.error,
-    };
-
-  const current =
-    result?.graph === graph &&
-    result.viewMode === viewMode &&
-    result.layoutMode === layoutMode
-      ? result
-      : null;
-  return {
-    layout: current?.layout ?? EMPTY_LAYOUT,
-    layoutPending: current === null,
-    layoutError: current?.error ?? null,
-  };
-};
+  }, [graph, viewMode]);

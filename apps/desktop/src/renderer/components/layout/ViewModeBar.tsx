@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Clapperboard, Compass, Network } from 'lucide-react';
+import { Clapperboard, Compass } from 'lucide-react';
 
 import { Button, cn } from '@evidence-poc/desktop-ui-kit';
 
@@ -7,7 +7,7 @@ import type { WorkspaceViewMode } from '../../state/useWorkspaceViewMode';
 
 interface ViewModeBarProps {
   mode: WorkspaceViewMode;
-  onChange: (mode: 'journey' | 'topology' | 'story') => void;
+  onChange: (mode: 'journey' | 'story') => void;
   storyControls?: ReactNode;
 }
 
@@ -54,17 +54,6 @@ export const ViewModeBar = ({
           type="button"
           variant="ghost"
           size="xs"
-          className={segmentClass}
-          aria-pressed={mode === 'topology'}
-          onClick={() => onChange('topology')}
-        >
-          <Network aria-hidden="true" className="size-3.5" />
-          拓扑图
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="xs"
           className={
             mode === 'story'
               ? 'rounded-sm bg-evidence-accent px-2.5 text-white hover:bg-evidence-accent-hover hover:text-white'
@@ -81,7 +70,6 @@ export const ViewModeBar = ({
         storyControls
       ) : (
         <p className="ml-auto text-[11px] text-workbench-muted">
-          <kbd>Alt+1</kbd> 旅程 / <kbd>Alt+2</kbd> 拓扑全景 /{' '}
           <kbd>{ledgerChord}</kbd> 总台账
         </p>
       )}

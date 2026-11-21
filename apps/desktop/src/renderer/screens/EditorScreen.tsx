@@ -166,8 +166,6 @@ const EditorWorkspace = ({
   const [viewMode, setViewMode] = useState<CanvasViewMode>('standard');
   const canvasMemory = useRef<CanvasViewportMemory['current']>(null);
   const workspaceView = useWorkspaceViewMode();
-  const layoutMode =
-    workspaceView.graphMode === 'topology' ? 'topology' : 'swimlane';
   const ledgerActive = workspaceView.mode === 'table';
   const storyActive = workspaceView.mode === 'story';
   const rightRail = useRef<ImperativePanelHandle>(null);
@@ -201,7 +199,7 @@ const EditorWorkspace = ({
     reloadFromDisk,
     reloadFromDiskIfClean,
     dismissExternalChange,
-  } = useEditorSession(project, initialDocument, viewMode, layoutMode);
+  } = useEditorSession(project, initialDocument, viewMode);
   const story = useStoryPlayback({
     api: window.evidenceAPI.story,
     rootPath: project.rootPath,
@@ -240,7 +238,7 @@ const EditorWorkspace = ({
   // Deletion/undo and selection from inspectors, sensors or MCP must never
   // leave the editor inspecting an invisible, non-interactive object.
   useEffect(() => {
-    if (state.layoutPending || state.layoutError !== null) return;
+    if (state.layoutError !== null) return;
     if (
       selectedScope !== null &&
       (scope === null ||
@@ -248,13 +246,7 @@ const EditorWorkspace = ({
           !scope.nodeIds.has(state.selection.nodeId)))
     )
       setSelectedScope(null);
-  }, [
-    selectedScope,
-    scope,
-    state.selection.nodeId,
-    state.layoutPending,
-    state.layoutError,
-  ]);
+  }, [selectedScope, scope, state.selection.nodeId, state.layoutError]);
   // The palette replaces a row of header buttons with one chord; every action
   // it runs is the same handler the header used to call.
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -599,7 +591,7 @@ const EditorWorkspace = ({
       redo: () => {
         state.session.redo();
       },
-      setViewMode: workspaceView.setMode,
+      returnToGraph: workspaceView.returnToGraph,
       zoomToSelection: () => requestZoom('selection'),
       openDelivery: layout.openDelivery,
       rerunSensors: () => void sensors.refresh(),
@@ -616,7 +608,7 @@ const EditorWorkspace = ({
       save,
       sensors.refresh,
       state.session,
-      workspaceView.setMode,
+      workspaceView.returnToGraph,
     ],
   );
 
@@ -752,18 +744,16 @@ const EditorWorkspace = ({
   const graphStage = (
     <div
       ref={canvasStageRef}
+      data-region="canvas-stage"
       tabIndex={-1}
       className="relative flex h-full min-h-0 flex-1"
-      aria-busy={state.layoutPending}
     >
-      {state.layoutPending || state.layoutError ? (
+      {state.layoutError !== null ? (
         <div
-          role={state.layoutError ? 'alert' : 'status'}
+          role="alert"
           className="absolute top-24 left-5 z-40 rounded bg-white px-3 py-2 text-sm shadow"
         >
-          {state.layoutError
-            ? `画布布局失败：${state.layoutError}`
-            : '正在计算画布布局…'}
+          画布布局失败：{state.layoutError}
         </div>
       ) : null}
       <CanvasViewport

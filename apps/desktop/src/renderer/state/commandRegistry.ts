@@ -11,8 +11,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import type { GraphViewMode } from '@evidence-poc/desktop-ui-kit';
-
 import { RAIL_TAB_CHORDS } from './useWorkspaceLayoutState';
 import type { WorkspaceViewMode } from './useWorkspaceViewMode';
 
@@ -73,7 +71,6 @@ export const CHORDS = {
   palette: '⌘+Shift+K',
   storming: '⌘+K',
   journey: '⌥+1',
-  graph: '⌥+2',
   zoomSelection: '⇧+2',
   delivery: '⌥+D',
   rerunSensors: '⌘+Shift+R',
@@ -92,7 +89,7 @@ export interface CommandHandlers {
   save: () => void;
   undo: () => void;
   redo: () => void;
-  setViewMode: (mode: GraphViewMode) => void;
+  returnToGraph: () => void;
   /** Frames the selected object. */
   zoomToSelection: () => void;
   openDelivery: () => void;
@@ -151,19 +148,8 @@ export const buildCommands = (
       shortcut: CHORDS.journey,
       icon: Workflow,
       keywords: ['journey', 'swimlane', '旅程', '泳道'],
-      disabled: capabilities.viewMode === 'journey',
-      perform: () => handlers.setViewMode('journey'),
-    },
-    {
-      id: 'view.graph',
-      title: '拓扑图',
-      subtitle: 'ELK 因果拓扑与技术分析',
-      category: 'view',
-      shortcut: CHORDS.graph,
-      icon: Workflow,
-      keywords: ['graph', 'canvas', '拓扑'],
-      disabled: capabilities.viewMode === 'topology',
-      perform: () => handlers.setViewMode('topology'),
+      disabled: capabilities.viewMode !== 'table',
+      perform: handlers.returnToGraph,
     },
     {
       id: 'view.zoom-selection',
