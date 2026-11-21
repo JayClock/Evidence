@@ -36,6 +36,7 @@ export const EvidenceInquiryPopover = ({
   children: ReactNode;
 }) => {
   const panelId = useId();
+  const titleId = useId();
   const trigger = useRef<HTMLButtonElement | null>(null);
   const active = inquiry.target?.nodeId === nodeId ? inquiry.target.kind : null;
   const action = (kind: EvidenceInquiryKind, title: string) => (
@@ -71,7 +72,7 @@ export const EvidenceInquiryPopover = ({
             data-evidence-capture-hide=""
             className="nodrag nopan absolute right-2 bottom-1 flex gap-1"
           >
-            {action('trace', '溯源')}
+            {action('trace', '查依据')}
             {inquiry.pairedNodeIds.has(nodeId)
               ? action('what-if', 'What-If')
               : null}
@@ -81,7 +82,7 @@ export const EvidenceInquiryPopover = ({
       {active !== null ? (
         <PopoverContent
           id={panelId}
-          aria-label={`${active === 'trace' ? '关键数据溯源' : 'What-If 异常履约'}：${label}`}
+          aria-labelledby={titleId}
           side="right"
           sideOffset={12}
           collisionPadding={12}
@@ -133,8 +134,8 @@ export const EvidenceInquiryPopover = ({
           }}
         >
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-workbench-border px-3 py-1.5">
-            <span className="truncate text-xs font-semibold">
-              {active === 'trace' ? '关键数据溯源' : 'What-If 异常履约'} ·{' '}
+            <span id={titleId} className="truncate text-xs font-semibold">
+              {active === 'trace' ? '核心要素依据' : 'What-If 异常履约'}：
               {label}
             </span>
             <PopoverClose asChild>

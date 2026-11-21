@@ -32,9 +32,9 @@ describe('RightInspector', () => {
         gateReport={{ blockCount: 2, warnCount: 3, isStageGateReady: false }}
       />,
     );
-    const ledger = screen.getByRole('region', { name: '关键数据台账' });
-    expect(ledger).toHaveTextContent('来源待决');
-    expect(ledger).toHaveTextContent('绑定派生规则');
+    const ledger = screen.getByRole('region', { name: '核心要素台账' });
+    expect(ledger).toHaveTextContent('依据待确认');
+    expect(ledger).toHaveTextContent('按公式计算');
     expect(
       screen.getByRole('region', { name: '门禁健康度' }),
     ).toHaveTextContent('未就绪 · 阻塞 2 · 警告 3');
@@ -58,7 +58,7 @@ describe('RightInspector', () => {
       screen.getByRole('region', { name: '模型属性' }),
     ).toBeInTheDocument();
     expect(screen.getByText('evidence.request')).toBeInTheDocument();
-    expect(screen.getAllByText('关键数据').length).toBeGreaterThan(0);
+    expect(screen.getByRole('columnheader', { name: '要素' })).toBeVisible();
   });
 
   it('commits a renamed label through the session and undoes it', () => {
@@ -92,7 +92,12 @@ describe('RightInspector', () => {
     const { session, renderInspector } = setup('evidence.contract');
     renderInspector();
 
-    const checkbox = screen.getByLabelText('signed_at 关键数据');
+    const checkbox = screen.getByRole('checkbox', {
+      name: '签署时间：标为核心要素',
+    });
+    expect(checkbox).toHaveAccessibleDescription(
+      expect.stringContaining('影响结算、履约判断或 KPI 核对'),
+    );
 
     fireEvent.click(checkbox);
 
@@ -220,20 +225,20 @@ describe('RightInspector', () => {
   it('opens the wide ledger sheet from the attribute grid', () => {
     setup('evidence.contract').renderInspector();
 
-    fireEvent.click(screen.getByText('⛶ 台账'));
+    fireEvent.click(screen.getByRole('button', { name: /^⛶ 要素台账$/ }));
 
     expect(
-      screen.getByRole('dialog', { name: '关键数据台账工作台' }),
+      screen.getByRole('dialog', { name: /^核心要素台账 · 采购协议/ }),
     ).toBeInTheDocument();
   });
 
   it('opens the ledger sheet from the inspector footer', () => {
     setup('evidence.contract').renderInspector();
 
-    fireEvent.click(screen.getByText(/展开数据台账与 CEL 规则/));
+    fireEvent.click(screen.getByRole('button', { name: /查看核心要素台账/ }));
 
     expect(
-      screen.getByRole('dialog', { name: '关键数据台账工作台' }),
+      screen.getByRole('dialog', { name: /^核心要素台账 · 采购协议/ }),
     ).toBeInTheDocument();
   });
 
@@ -249,7 +254,7 @@ describe('RightInspector', () => {
     fireEvent.keyDown(window, { key: 'l', altKey: true, code: 'KeyL' });
 
     expect(
-      screen.getByRole('dialog', { name: '关键数据台账工作台' }),
+      screen.getByRole('dialog', { name: /^核心要素台账 · 采购协议/ }),
     ).toBeInTheDocument();
   });
 

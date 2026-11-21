@@ -213,12 +213,12 @@ describe('EditorScreen', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     const trace = await screen.findByRole('button', {
-      name: /^溯源：交付请求/,
+      name: /^查依据：交付请求/,
     });
     trace.focus();
     fireEvent.click(trace);
     const dialog = await screen.findByRole('dialog', {
-      name: /^关键数据溯源：交付请求/,
+      name: /^核心要素依据：交付请求/,
     });
     expect(trace).toHaveAttribute('aria-expanded', 'true');
     expect(within(dialog).getByLabelText('访谈内容')).toHaveFocus();
@@ -389,7 +389,9 @@ describe('EditorScreen', () => {
     expect(inspector).not.toContainElement(scenario);
     fireEvent.change(scenario, { target: { value: example } });
     fireEvent.keyDown(scenario, { key: 'Enter' });
-    const trace = await screen.findByRole('button', { name: '溯源：付款凭证' });
+    const trace = await screen.findByRole('button', {
+      name: '查依据：付款凭证',
+    });
     expect(
       screen.queryByRole('button', { name: 'What-If：付款凭证' }),
     ).toBeNull();
@@ -398,8 +400,8 @@ describe('EditorScreen', () => {
     await waitFor(() => expect(screen.queryByLabelText('业务场景')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: '应用' }));
     expect(
-      within(inspector).getByRole('region', { name: '关键数据台账' }),
-    ).toHaveTextContent('来源待决');
+      within(inspector).getByRole('region', { name: '核心要素台账' }),
+    ).toHaveTextContent('依据待确认');
     const positionedX = (id: string) =>
       Number(
         (
@@ -418,7 +420,7 @@ describe('EditorScreen', () => {
 
     fireEvent.click(trace);
     const sourcing = await screen.findByRole('dialog', {
-      name: '关键数据溯源：付款凭证',
+      name: '核心要素依据：付款凭证',
     });
     expect(
       await within(sourcing).findByText('实付金额', { selector: 'strong' }),
@@ -435,7 +437,7 @@ describe('EditorScreen', () => {
     await answer(sourcing, sourcedFromRequest);
 
     const request = await screen.findByRole('button', {
-      name: '溯源：付款申请',
+      name: '查依据：付款申请',
     });
     expect(request).toBeInTheDocument();
     expect(positionedX('request.payment')).toBeLessThan(
@@ -459,14 +461,16 @@ describe('EditorScreen', () => {
     const whatIf = await screen.findByRole('dialog', {
       name: 'What-If 异常履约：付款凭证',
     });
-    expect(screen.queryByRole('button', { name: '溯源：退款确认' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: '查依据：退款确认' }),
+    ).toBeNull();
     expect(
       await within(whatIf).findByText('如果买方超时未付款怎么办？'),
     ).toBeVisible();
     await answer(whatIf, remedyCondition);
 
     expect(
-      await screen.findByRole('button', { name: '溯源：退款确认' }),
+      await screen.findByRole('button', { name: '查依据：退款确认' }),
     ).toBeInTheDocument();
     expect(
       container.querySelector('[data-corridor-kind="remedy_corridor"]'),

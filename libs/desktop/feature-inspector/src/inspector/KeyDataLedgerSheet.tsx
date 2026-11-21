@@ -113,16 +113,14 @@ export const KeyDataLedgerSheet = ({
       <SheetContent
         side="right"
         showClose={false}
-        aria-label="关键数据台账工作台"
         data-region="ledger-sheet"
         className="w-[55vw] min-w-[480px] max-w-none gap-0 p-0"
       >
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-evidence-line bg-[#f6f8fa] px-4">
-          <SheetTitle className="sr-only">关键数据台账工作台</SheetTitle>
           <div className="flex min-w-0 items-center gap-2 text-[13px]">
-            <span className="truncate font-semibold text-evidence-ink">
-              {entity.label}
-            </span>
+            <SheetTitle className="truncate font-semibold">
+              核心要素台账 · {entity.label}
+            </SheetTitle>
             <code className="rounded bg-[#eef2f7] px-1.5 py-0.5 font-mono text-[10px] font-normal text-evidence-muted">
               {entity.id}
             </code>
@@ -131,16 +129,18 @@ export const KeyDataLedgerSheet = ({
             </span>
             {decisionOwed.length > 0 ? (
               <span className="rounded-full bg-[#fdeef2] px-2 py-0.5 text-[10px] font-medium text-evidence-evidence">
-                {decisionOwed.length} 项台账待决
+                {decisionOwed.length} 项依据待确认
               </span>
             ) : (
-              <span className="rounded-full bg-[#eaf3ee] px-2 py-0.5 text-[10px] font-medium text-evidence-participant">
-                台账已闭合
+              <span className="text-[10px] text-evidence-muted">
+                {entriesForEntity.length === 0
+                  ? '未标记核心要素'
+                  : '无待确认项'}
               </span>
             )}
           </div>
           <SheetDescription className="sr-only">
-            在宽屏台账中逐字段编辑数据类型、必填约束与 CEL 派生规则。
+            查看哪些属性是核心要素，编辑数据类型、必填设置和计算公式。
           </SheetDescription>
 
           <button
@@ -182,8 +182,8 @@ export const KeyDataLedgerSheet = ({
                 <th className="w-52 px-3 py-2 font-normal">业务名称</th>
                 <th className="w-28 px-3 py-2 font-normal">数据类型</th>
                 <th className="w-16 px-3 py-2 font-normal">必填</th>
-                <th className="w-28 px-3 py-2 font-normal">关键数据</th>
-                <th className="px-3 py-2 font-normal">派生规则</th>
+                <th className="w-28 px-3 py-2 font-normal">核心要素</th>
+                <th className="px-3 py-2 font-normal">计算公式</th>
               </tr>
             </thead>
             <tbody>
@@ -295,10 +295,10 @@ const LedgerRow = ({
       <td className="px-3 py-2">
         {attribute.keyData === true ? (
           <span className="rounded bg-[#eaf3ee] px-1.5 py-0.5 text-[10px] font-medium text-evidence-participant">
-            关键数据
+            核心要素
           </span>
         ) : (
-          <span className="text-[10px] text-[#8c959f]">普通</span>
+          <span className="text-[10px] text-[#8c959f]">普通属性</span>
         )}
       </td>
       <td className="px-3 py-2 font-mono text-[10px]">

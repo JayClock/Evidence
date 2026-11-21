@@ -418,7 +418,7 @@ export const NodeCard = ({
                 <span className="truncate font-mono">
                   {field.name}
                   {detail === undefined ? '' : `: ${detail}`}
-                  {field.key ? ' · Key' : ''}
+                  {field.key ? ' · 核心要素' : ''}
                 </span>
                 {field.source === undefined ? null : (
                   <span
@@ -465,7 +465,7 @@ export const NodeCard = ({
               </div>
             ))}
           <div className="flex justify-between gap-1">
-            <span>关键数据 {summary.keyDataCount}</span>
+            <span>核心要素 {summary.keyDataCount}</span>
             {summary.rules.length ? (
               <span
                 className="rounded bg-[#fff8e8] px-1 text-[#8d6200]"

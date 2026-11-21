@@ -112,14 +112,14 @@ const InspectorOverview = ({
   return (
     <>
       <p>选择画布上的业务对象查看属性。</p>
-      <section aria-label="关键数据台账" className="flex flex-col gap-2">
-        <h3 className="font-semibold">关键数据台账</h3>
+      <section aria-label="核心要素台账" className="flex flex-col gap-2">
+        <h3 className="font-semibold">核心要素台账</h3>
         <dl className="grid grid-cols-[1fr_auto] gap-1">
-          <dt>关键数据项</dt>
+          <dt>核心要素</dt>
           <dd>{ledger.entries.length}</dd>
-          <dt>来源待决</dt>
+          <dt>依据待确认</dt>
           <dd>{ledger.decisionOwed.length}</dd>
-          <dt>绑定派生规则</dt>
+          <dt>按公式计算</dt>
           <dd>{ledger.derived.length}</dd>
         </dl>
       </section>
@@ -188,7 +188,7 @@ const SelectedInspector = ({
               className="w-full justify-between"
               onClick={() => setStudioOpen(true)}
             >
-              <span className="truncate">展开数据台账与 CEL 规则</span>
+              <span className="truncate">查看核心要素台账</span>
               <kbd className="shrink-0 text-[10px] text-workbench-muted">
                 Alt+L
               </kbd>
@@ -323,7 +323,7 @@ const InspectorBody = ({
       ) ? (
         <section aria-label="模型属性" className="flex flex-col gap-2">
           <h3 className="text-[11px] font-semibold text-workbench-label">
-            业务属性与关键数据（{entity.attributes?.length ?? 0} 个字段）
+            业务属性与核心要素（{entity.attributes?.length ?? 0} 个字段）
           </h3>
           <AttributeDataGrid
             entity={entity}
@@ -478,7 +478,7 @@ const PropertyRow = ({
     case 'cel-editor':
       return (
         <span className="text-[10px] text-evidence-muted">
-          在属性台账中编辑。
+          在核心要素台账中编辑。
         </span>
       );
     default:

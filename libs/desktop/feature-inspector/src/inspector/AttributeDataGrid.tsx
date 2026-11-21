@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Trash2 } from 'lucide-react';
 
 import {
@@ -11,6 +11,7 @@ import {
 } from '@tanstack/react-table';
 
 import {
+  INSPECTOR_KEY_DATA_HELPER,
   VALUE_TYPES,
   type AttributeAST,
   type EntityAST,
@@ -77,6 +78,7 @@ export const AttributeDataGrid = ({
   onOpenStudio,
   selectedAttribute = null,
 }: AttributeDataGridProps) => {
+  const keyDataHelpId = useId();
   const selectedRow = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     selectedRow.current?.scrollIntoView?.({ block: 'nearest' });
@@ -130,7 +132,7 @@ export const AttributeDataGrid = ({
                 aria-expanded={open}
                 onClick={info.row.getToggleExpandedHandler()}
                 className="mt-0.5 shrink-0 text-[9px] text-[#8c959f] hover:text-evidence-ink"
-                title="展开提供方决策与派生规则"
+                title="查看要素来源与公式"
               >
                 {open ? '▼' : '▶'}
               </button>
@@ -205,25 +207,24 @@ export const AttributeDataGrid = ({
       }),
       columnHelper.display({
         id: 'keyData',
-        header: '关键',
+        header: '要素',
         cell: (info) => {
           const attribute = info.row.original;
           const keyData = attribute.keyData === true;
 
           return (
-            <label
-              className="flex cursor-pointer items-center justify-center py-0.5"
-              title={keyData ? '关键数据' : '普通字段'}
-            >
+            <label className="flex cursor-pointer items-center justify-center py-0.5">
               <input
                 type="checkbox"
-                aria-label={`${attribute.name} 关键数据`}
+                aria-describedby={keyDataHelpId}
                 checked={keyData}
                 onChange={(event) =>
                   patchAttribute(attribute, { keyData: event.target.checked })
                 }
               />
-              <span className="sr-only">{keyData ? '关键数据' : '普通'}</span>
+              <span className="sr-only">
+                {attribute.label || attribute.name}：标为核心要素
+              </span>
             </label>
           );
         },
@@ -256,7 +257,7 @@ export const AttributeDataGrid = ({
         },
       }),
     ],
-    [entity.id, graph, session],
+    [entity.id, graph, keyDataHelpId, session],
   );
 
   const table = useReactTable({
@@ -276,21 +277,27 @@ export const AttributeDataGrid = ({
         <span>属性清单</span>
         <div className="flex items-center gap-1.5">
           <span data-ledger-summary={entity.id}>
-            关键数据 {entriesForEntity.length} 项
-            {decisionOwed.length > 0 ? ` · 待决 ${decisionOwed.length} 项` : ''}
+            核心要素 {entriesForEntity.length} 项
+            {decisionOwed.length > 0
+              ? ` · ${decisionOwed.length} 项依据待确认`
+              : ''}
           </span>
           {onOpenStudio === undefined ? null : (
             <button
               type="button"
               onClick={onOpenStudio}
               className="shrink-0 rounded border border-evidence-line px-1.5 py-0.5 text-[9px] text-evidence-muted hover:border-evidence-accent hover:text-evidence-ink"
-              title="在宽屏台账中编辑全部字段（Alt+L）"
+              title="在核心要素台账中编辑全部属性（Alt+L）"
             >
-              ⛶ 台账
+              ⛶ 要素台账
             </button>
           )}
         </div>
       </div>
+
+      <p id={keyDataHelpId} className="text-[10px] text-workbench-label">
+        {INSPECTOR_KEY_DATA_HELPER}
+      </p>
 
       <div className="overflow-hidden rounded border border-evidence-line bg-white">
         <table className="w-full table-fixed border-collapse text-left text-[10px]">

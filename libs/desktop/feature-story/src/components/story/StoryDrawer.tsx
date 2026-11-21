@@ -125,7 +125,7 @@ const SceneSheet = ({
                 {field.label}
                 {field.keyData ? (
                   <span className="ml-1 text-[9px] text-amber-800">
-                    关键数据
+                    核心要素
                   </span>
                 ) : null}
               </dt>

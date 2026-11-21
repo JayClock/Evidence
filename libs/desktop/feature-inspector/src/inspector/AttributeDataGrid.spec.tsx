@@ -155,9 +155,11 @@ describe('AttributeDataGrid', () => {
     expect(
       document.querySelector('[data-ledger-summary="evidence.request"]')
         ?.textContent,
-    ).toContain('待决 2 项');
+    ).toContain('2 项依据待确认');
 
-    fireEvent.click(screen.getByLabelText('expired_at 关键数据'));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: '截止时间：标为核心要素' }),
+    );
 
     expect(
       session.getGraph().attribute('evidence.request', 'expired_at')?.keyData,
@@ -165,7 +167,7 @@ describe('AttributeDataGrid', () => {
     expect(
       document.querySelector('[data-ledger-summary="evidence.request"]')
         ?.textContent,
-    ).toContain('关键数据 2 项 · 待决 1 项');
+    ).toContain('核心要素 2 项 · 1 项依据待确认');
   });
 
   it('opens the provider decision underneath the row it belongs to', () => {
@@ -253,7 +255,9 @@ describe('AttributeDataGrid', () => {
 
     expand('penalty_amount');
     fireEvent.click(
-      within(provenanceFor('penalty_amount')).getByText('并非关键数据'),
+      within(provenanceFor('penalty_amount')).getByRole('button', {
+        name: '取消核心要素标记',
+      }),
     );
 
     expect(

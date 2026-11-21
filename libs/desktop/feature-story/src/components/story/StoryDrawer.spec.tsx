@@ -56,7 +56,7 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
       '采购协议',
     );
-    expect(screen.getByText('关键数据')).toBeInTheDocument();
+    expect(screen.getByText('核心要素')).toBeInTheDocument();
     expect(screen.getByText('500')).toBeInTheDocument();
     expect(screen.getByRole('article', { name: '剧情旁白' })).toHaveTextContent(
       '采购方办理采购协议。',

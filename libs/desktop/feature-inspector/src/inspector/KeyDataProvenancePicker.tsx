@@ -106,9 +106,9 @@ export const KeyDataProvenancePicker = ({
               type="button"
               onClick={onClearKeyData}
               className="rounded border border-evidence-line px-1.5 py-0.5 text-[9px] text-evidence-muted hover:border-evidence-accent"
-              title="仅当该字段确实不是金额、期限、数量或时间差时使用。"
+              title="仅在这项信息不影响结算、履约判断或 KPI 核对时取消标记。"
             >
-              并非关键数据
+              取消核心要素标记
             </button>
           </div>
         </div>

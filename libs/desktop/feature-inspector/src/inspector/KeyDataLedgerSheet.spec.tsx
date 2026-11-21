@@ -77,11 +77,11 @@ const setup = (
 };
 
 describe('KeyDataLedgerSheet', () => {
-  it('lists every field and closes the ledger once nothing is owed', () => {
+  it('lists every field and reports when there are no outstanding decisions', () => {
     setup();
 
     expect(
-      screen.getByRole('dialog', { name: '关键数据台账工作台' }),
+      screen.getByRole('dialog', { name: /^核心要素台账 · 采购协议/ }),
     ).toBeInTheDocument();
     expect(
       document.querySelector('[data-ledger-row="signed_at"]'),
@@ -89,7 +89,7 @@ describe('KeyDataLedgerSheet', () => {
     expect(
       document.querySelector('[data-ledger-row="total_amount"]'),
     ).not.toBeNull();
-    expect(screen.getByText('台账已闭合')).toBeInTheDocument();
+    expect(screen.getByText('无待确认项')).toBeInTheDocument();
   });
 
   it('states how many decisions a request still owes', () => {
@@ -97,7 +97,14 @@ describe('KeyDataLedgerSheet', () => {
 
     // `started_at` is a request formation input; `expired_at` still owes its
     // provider, and the header must say so before anyone reads a single row.
-    expect(screen.getByText('1 项台账待决')).toBeInTheDocument();
+    expect(screen.getByText('1 项依据待确认')).toBeInTheDocument();
+  });
+
+  it('distinguishes an unmarked ledger from a reviewed one', () => {
+    setup('context.catalog');
+
+    expect(screen.getByText('未标记核心要素')).toBeVisible();
+    expect(screen.queryByText('无待确认项')).not.toBeInTheDocument();
   });
 
   it('edits the selected rule from the formula bar', () => {

@@ -9,7 +9,7 @@ import { vocabularyIds, vocabularyLabels } from '../vocabulary.js';
 export const INSPECTOR_GROUP_DEFINITIONS = {
   general: { label: '基础信息' },
   responsibility: { label: '责任锚定' },
-  attributes: { label: '业务属性与关键数据' },
+  attributes: { label: '业务属性与核心要素' },
   fulfillment: { label: '履约结构' },
   rules: { label: '规则与计算' },
 } as const satisfies Record<string, { readonly label: string }>;

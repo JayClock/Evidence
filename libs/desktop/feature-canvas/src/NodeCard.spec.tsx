@@ -190,7 +190,9 @@ describe('NodeCard modes', () => {
         summary={summaries.get('evidence.request')!}
       />,
     );
-    expect(screen.getByText('started_at: timestamp · Key')).toBeInTheDocument();
+    expect(
+      screen.getByText('started_at: timestamp · 核心要素'),
+    ).toBeInTheDocument();
     expect(screen.getByText('权利方主张')).toHaveAttribute(
       'title',
       expect.stringContaining('主张方：供应方企业'),

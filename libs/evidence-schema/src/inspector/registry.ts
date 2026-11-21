@@ -103,11 +103,14 @@ const contextPicker = (
   helper,
 });
 
+export const INSPECTOR_KEY_DATA_HELPER =
+  '把影响结算、履约判断或 KPI 核对的金额、时间、数量等标为核心要素，并说明它们从哪里来或怎么算。';
+
 const ATTRIBUTES_PROPERTY: InspectorPropertyDefinition = {
   field: 'attributes',
   label: '属性清单',
   editor: 'attribute-table',
-  helper: '金额、期限、数量与时间差标记为关键数据，必须给出提供方或派生规则。',
+  helper: INSPECTOR_KEY_DATA_HELPER,
 };
 
 const GROUPS: Record<EntityCategory, InspectorGroupDefinition[]> = {
@@ -272,9 +275,9 @@ export const INSPECTOR_ATTRIBUTE_FIELDS: readonly InspectorPropertyDefinition[] 
     { field: 'required', label: '必填', editor: 'boolean' },
     {
       field: 'keyData',
-      label: '关键数据',
+      label: '核心要素',
       editor: 'boolean',
-      helper: '金额、期限、数量、时间差必须标记为关键数据。',
+      helper: INSPECTOR_KEY_DATA_HELPER,
     },
     { field: 'meaning', label: '业务含义', editor: 'text' },
     {
