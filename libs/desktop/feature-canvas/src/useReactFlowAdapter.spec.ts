@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   computeContextScope,
-  computeGraphLayout,
+  computeSwimlaneLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
@@ -12,7 +12,7 @@ import { boundsOf, convertLayoutToReactFlow } from './useReactFlowAdapter';
 
 const document = createDesktopFixture();
 const graph = createDomainGraph(document);
-const layout = await computeGraphLayout(graph, { viewMode: 'standard' });
+const layout = computeSwimlaneLayout(graph, 'standard');
 const summaries = summarizeCards(document);
 
 const convert = (
@@ -35,7 +35,7 @@ const convert = (
   });
 
 describe('convertLayoutToReactFlow', () => {
-  it('adopts nested Contexts and binds relationships whose endpoint is a Context', async () => {
+  it('adopts nested Contexts and binds relationships whose endpoint is a Context', () => {
     const nestedDocument = createDesktopFixture();
     const context = nestedDocument.entities.find(
       (entity) => entity.id === 'context.catalog',
@@ -51,7 +51,7 @@ describe('convertLayoutToReactFlow', () => {
       sourceRef: 'context.catalog',
       targetRef: 'evidence.contract',
     });
-    const nestedLayout = await computeGraphLayout(
+    const nestedLayout = computeSwimlaneLayout(
       createDomainGraph(nestedDocument),
     );
     const result = convert({ document: nestedDocument, layout: nestedLayout });
@@ -82,7 +82,7 @@ describe('convertLayoutToReactFlow', () => {
     );
   });
 
-  it('uses ELK local positions directly and keeps free nodes absolute', () => {
+  it('uses journey local positions directly and keeps free nodes absolute', () => {
     const { nodes } = convert();
     const placed = layout.nodeById.get('evidence.contract')!;
     const node = nodes.find(

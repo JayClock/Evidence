@@ -341,11 +341,7 @@ const CanvasSurface = ({
     if (!viewportInitialized || !viewportSized || layout.bounds.width === 0)
       return;
     const scopeId = scope?.contextId ?? null;
-    const key = JSON.stringify([
-      scopeId,
-      viewMode,
-      Boolean(layout.journeyMilestones),
-    ]);
+    const key = JSON.stringify([scopeId, viewMode]);
     const previous = previousFit.current;
     previousFit.current = { key, scopeId, layout };
     if (previous?.key === key) {

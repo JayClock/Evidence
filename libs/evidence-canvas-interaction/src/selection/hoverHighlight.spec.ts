@@ -7,7 +7,7 @@ import {
 } from '../index.js';
 import { createFixtureModel } from '../../tests/support/fixtureModel.js';
 
-const { graph, layout } = await createFixtureModel();
+const { graph, layout } = createFixtureModel();
 
 describe('computeHighlight', () => {
   it('returns an empty, undimmed result without a target', () => {

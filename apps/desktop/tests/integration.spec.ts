@@ -14,7 +14,7 @@ import {
 } from '@evidence-poc/evidence-model-io';
 import {
   computeHighlight,
-  computeGraphLayout,
+  computeSwimlaneLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
 import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
 
@@ -58,7 +58,7 @@ describe('product-procurement end to end', () => {
     const parsed = await readModelDirectory(FIXTURE_ROOT);
     const session = createModelSession({ document: parsed.document });
     const graph = session.getGraph();
-    const layout = await computeGraphLayout(graph);
+    const layout = computeSwimlaneLayout(graph);
     const contextCount = parsed.document.entities.filter(
       (entity) => entity.category === 'context',
     ).length;
@@ -85,7 +85,7 @@ describe('product-procurement end to end', () => {
     const parsed = await readModelDirectory(FIXTURE_ROOT);
     const session = createModelSession({ document: parsed.document });
     const graph = session.getGraph();
-    const layout = await computeGraphLayout(graph);
+    const layout = computeSwimlaneLayout(graph);
     const requestId = layout.fulfillmentPairs[0]!.requestId;
     const highlight = computeHighlight({
       graph,

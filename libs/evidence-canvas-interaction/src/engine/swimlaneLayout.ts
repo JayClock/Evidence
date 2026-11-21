@@ -1,4 +1,3 @@
-import type { ElkNode } from 'elkjs';
 import type { DomainGraph } from '@evidence-poc/evidence-model-core';
 import {
   LIFECYCLE_STAGE_LABELS,
@@ -7,11 +6,12 @@ import {
   type EntityAST,
 } from '@evidence-poc/evidence-schema';
 import {
-  transformDomainGraphToElk,
+  buildLayoutTree,
   measureNodeSize,
   relationshipEdgeId,
-} from '../adapter/domainToElk.js';
-import { extractElkResultToLayout } from '../adapter/elkToLayout.js';
+} from '../adapter/domainToLayoutTree.js';
+import type { LayoutTreeNode } from '../adapter/layoutTree.js';
+import { layoutTreeToGraph } from '../adapter/layoutTreeToGraph.js';
 import type { Point, Rect } from '../geometry.js';
 import type {
   CanvasViewMode,
@@ -69,7 +69,7 @@ export const computeSwimlaneLayout = (
   graph: DomainGraph,
   viewMode: CanvasViewMode = 'standard',
 ): DomainGraphLayout => {
-  const root = transformDomainGraphToElk(graph, viewMode);
+  const root = buildLayoutTree(graph, viewMode);
   const placements = inferJourneyPlacements(graph);
   const ranks = causalRanks(graph);
   const size = measureNodeSize(viewMode);
@@ -129,7 +129,7 @@ export const computeSwimlaneLayout = (
     const phase = phaseOf(entity);
     widths[phase] = Math.max(widths[phase]!, (slot + 1) * pitch);
   }
-  const depthOf = (node: ElkNode): number =>
+  const depthOf = (node: LayoutTreeNode): number =>
     1 +
     Math.max(
       0,
@@ -149,7 +149,7 @@ export const computeSwimlaneLayout = (
     width: widths[order]!,
   }));
   const stageSpanByContext = new Map<string, { first: number; last: number }>();
-  const stageSpan = (node: ElkNode) => {
+  const stageSpan = (node: LayoutTreeNode) => {
     const entity = graph.getEntity(node.id)!;
     let first = phaseOf(entity);
     let last = first;
@@ -171,7 +171,11 @@ export const computeSwimlaneLayout = (
   };
   for (const child of root.children ?? []) stageSpan(child);
 
-  const place = (container: ElkNode, originX: number, originY: number) => {
+  const place = (
+    container: LayoutTreeNode,
+    originX: number,
+    originY: number,
+  ) => {
     const span = stageSpanByContext.get(container.id);
     const right = span
       ? phaseX[span.last]! + widths[span.last]! - 32
@@ -268,7 +272,7 @@ export const computeSwimlaneLayout = (
   if (!root.children?.length) root.height = 240;
 
   const boxes = new Map<string, Rect>();
-  const walk = (node: ElkNode, x: number, y: number) => {
+  const walk = (node: LayoutTreeNode, x: number, y: number) => {
     const box = {
       x: x + (node.x ?? 0),
       y: y + (node.y ?? 0),
@@ -294,14 +298,14 @@ export const computeSwimlaneLayout = (
   for (const edge of [...(root.edges ?? [])].sort((a, b) =>
     a.id.localeCompare(b.id),
   )) {
-    const from = boxes.get(edge.sources[0]!)!;
-    const to = boxes.get(edge.targets[0]!)!;
+    const from = boxes.get(edge.sourceId)!;
+    const to = boxes.get(edge.targetId)!;
     const start = { x: from.x + from.width, y: from.y + from.height / 2 };
     const end = { x: to.x + to.width, y: to.y + to.height / 2 };
     const remedy =
       (flowByEdge.has(edge.id) && flowByEdge.get(edge.id) !== 'primary') ||
       (!flowByEdge.has(edge.id) &&
-        placements.get(edge.sources[0]!)?.corridor === 'remedy_corridor');
+        placements.get(edge.sourceId)?.corridor === 'remedy_corridor');
     // Non-primary trunks run below *all* Contexts. The two boundary connectors
     // necessarily reach primary facts; they stay inside empty vertical gutters.
     const corridor = remedy
@@ -321,14 +325,7 @@ export const computeSwimlaneLayout = (
       )
     )
       throw new Error(`Journey route crosses a card: ${edge.id}`);
-    edge.sections = [
-      {
-        id: `${edge.id}:route`,
-        startPoint: start,
-        endPoint: end,
-        bendPoints: bends,
-      },
-    ];
+    edge.points = points;
   }
   if (remedyIndex)
     regions.push({
@@ -345,7 +342,7 @@ export const computeSwimlaneLayout = (
       },
     });
   root.height = routeTop + remedyIndex * 12 + 32 + LIFECYCLE_FOOTER_HEIGHT;
-  const layout = extractElkResultToLayout(root, graph);
+  const layout = layoutTreeToGraph(root, graph);
   const nodes = layout.nodes.map((node) => ({
     ...node,
     journey: placements.get(node.nodeId)!,

@@ -57,7 +57,7 @@ describe('EditorScreen with product-procurement', () => {
     expect(screen.getByText(/履约连线/)).toBeInTheDocument();
   });
 
-  it('opens the real model with compound Contexts and ELK pair routes', async () => {
+  it('opens the real model with nested Contexts and journey pair routes', async () => {
     installDesktopApi({
       openResult: {
         success: true,

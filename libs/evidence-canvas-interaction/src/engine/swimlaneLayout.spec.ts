@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import {
-  computeGraphLayout,
+  computeSwimlaneLayout,
   rectContainsRect,
   type Point,
   type Rect,
@@ -21,12 +21,12 @@ const crosses = (a: Point, b: Point, box: Rect) =>
       Math.min(a.x, b.x) < box.x + box.width;
 
 describe('responsibility swimlanes', () => {
-  it('keeps every entity and local/world ownership without modifying the model', async () => {
+  it('keeps every entity and local/world ownership without modifying the model', () => {
     const model = createFixtureDocument();
     const before = JSON.stringify(model);
     const graph = createDomainGraph(model);
-    const a = await computeGraphLayout(graph, { layoutMode: 'swimlane' });
-    const b = await computeGraphLayout(graph, { layoutMode: 'swimlane' });
+    const a = computeSwimlaneLayout(graph);
+    const b = computeSwimlaneLayout(graph);
     expect(a).toEqual(b);
     expect(JSON.stringify(model)).toBe(before);
     expect(a.nodes.length + a.contextGroups.length).toBe(model.entities.length);
@@ -63,7 +63,7 @@ describe('responsibility swimlanes', () => {
   });
   it.each(['simplified', 'standard', 'expanded'] as const)(
     'aligns four lifecycle stages and isolates remedy trunks at %s density',
-    async (viewMode) => {
+    (viewMode) => {
       const model = JSON.parse(
         readFileSync(
           new URL(
@@ -74,10 +74,7 @@ describe('responsibility swimlanes', () => {
         ),
       ) as DomainModelDocument;
       const graph = createDomainGraph(model);
-      const layout = await computeGraphLayout(graph, {
-        layoutMode: 'swimlane',
-        viewMode,
-      });
+      const layout = computeSwimlaneLayout(graph, viewMode);
       expect(layout.journeyMilestones?.map((m) => m.stage)).toEqual([
         'rfp',
         'proposal',
@@ -147,10 +144,10 @@ describe('responsibility swimlanes', () => {
       const reordered = structuredClone(model);
       reordered.entities.reverse();
       reordered.relationships.reverse();
-      const other = await computeGraphLayout(createDomainGraph(reordered), {
-        layoutMode: 'swimlane',
+      const other = computeSwimlaneLayout(
+        createDomainGraph(reordered),
         viewMode,
-      });
+      );
       for (const node of layout.nodes)
         expect(other.nodeById.get(node.nodeId)?.worldBox).toEqual(
           node.worldBox,
@@ -162,7 +159,7 @@ describe('responsibility swimlanes', () => {
     },
   );
 
-  it('frames channel, contract and domain contexts in their lifecycle regions', async () => {
+  it('frames channel, contract and domain contexts in their lifecycle regions', () => {
     const model = createFixtureDocument();
     const contract = model.entities.find(
       (entity) => entity.id === 'context.product-procurement',
@@ -170,9 +167,7 @@ describe('responsibility swimlanes', () => {
     if (contract?.category !== 'context')
       throw new Error('Missing contract context');
     delete contract.parentContextRef;
-    const layout = await computeGraphLayout(createDomainGraph(model), {
-      layoutMode: 'swimlane',
-    });
+    const layout = computeSwimlaneLayout(createDomainGraph(model));
     const frame = (ref: string) => layout.contextGroupById.get(ref)!.worldBox;
     const column = (stage: string) =>
       layout.journeyMilestones!.find((item) => item.stage === stage)!;
@@ -188,7 +183,7 @@ describe('responsibility swimlanes', () => {
     expect(domain.x).toBeGreaterThan(column('contract').x);
   });
 
-  it('keeps anonymous requests and confirmations in the fulfillment stage in causal order', async () => {
+  it('keeps anonymous requests and confirmations in the fulfillment stage in causal order', () => {
     const model = createFixtureDocument();
     const request = model.entities.find(
       (e) => e.id === 'evidence.delivery-request',
@@ -210,9 +205,7 @@ describe('responsibility swimlanes', () => {
       targetRef: confirmation.id,
       label: '',
     });
-    const layout = await computeGraphLayout(createDomainGraph(model), {
-      layoutMode: 'swimlane',
-    });
+    const layout = computeSwimlaneLayout(createDomainGraph(model));
     expect(layout.nodeById.get(request.id)?.journey?.stage).toBe('fulfillment');
     expect(layout.nodeById.get(second.id)?.journey?.stage).toBe('fulfillment');
     expect(layout.nodeById.get(request.id)!.worldBox.x).toBeLessThan(
@@ -220,20 +213,77 @@ describe('responsibility swimlanes', () => {
     );
   });
 
-  it('handles empty models and preserves cycle rejection', async () => {
+  it('retains empty contexts and skips dangling relationships in a draft', () => {
+    const model = createFixtureDocument();
+    model.entities = model.entities.filter(
+      (entity) => entity.category !== 'context',
+    );
+    model.entities.push({
+      type: 'entity',
+      category: 'context',
+      id: 'empty',
+      kind: 'domain',
+      label: '空上下文',
+    });
+    model.relationships.push({
+      type: 'relationship',
+      id: 'dangling',
+      kind: 'references',
+      label: '',
+      sourceRef: 'missing',
+      targetRef: 'also-missing',
+    });
+    const layout = computeSwimlaneLayout(createDomainGraph(model));
+    expect(layout.nodes.every((node) => node.contextId === null)).toBe(true);
+    expect(layout.contextGroups.map((group) => group.contextId)).toEqual([
+      'empty',
+    ]);
+    expect(layout.edgeById.has('dangling')).toBe(false);
+  });
+
+  it('places a shared confirmation once and routes each fulfillment link', () => {
+    const model = createFixtureDocument();
+    const request = model.entities.find(
+      ({ id }) => id === 'evidence.delivery-request',
+    )!;
+    model.entities.push({ ...request, id: 'evidence.second-request' });
+    model.relationships.push({
+      type: 'relationship',
+      id: 'relation.shared-result',
+      kind: 'references',
+      label: 'shared confirmation',
+      sourceRef: 'evidence.delivery-confirmation',
+      targetRef: 'evidence.second-request',
+    });
+    const layout = computeSwimlaneLayout(createDomainGraph(model));
+    expect(
+      layout.nodes.filter(
+        ({ nodeId }) => nodeId === 'evidence.delivery-confirmation',
+      ),
+    ).toHaveLength(1);
+    const pairs = layout.fulfillmentPairs.filter(
+      ({ confirmationId }) =>
+        confirmationId === 'evidence.delivery-confirmation',
+    );
+    expect(pairs.map(({ requestId }) => requestId)).toEqual([
+      'evidence.delivery-request',
+      'evidence.second-request',
+    ]);
+    expect(pairs.every(({ points }) => points.length >= 2)).toBe(true);
+  });
+
+  it('handles empty models and preserves cycle rejection', () => {
     const model = createFixtureDocument();
     model.entities = [];
     model.relationships = [];
-    const empty = await computeGraphLayout(createDomainGraph(model), {
-      layoutMode: 'swimlane',
-    });
+    const empty = computeSwimlaneLayout(createDomainGraph(model));
     expect(empty.bounds.width).toBeGreaterThan(0);
     expect(empty.journeyMilestones).toHaveLength(4);
     const cyclic = createFixtureDocument();
     const context = cyclic.entities.find((e) => e.category === 'context')!;
     if (context.category === 'context') context.parentContextRef = context.id;
-    await expect(
-      computeGraphLayout(createDomainGraph(cyclic), { layoutMode: 'swimlane' }),
-    ).rejects.toThrow('Cyclic Context');
+    expect(() => computeSwimlaneLayout(createDomainGraph(cyclic))).toThrow(
+      'Cyclic Context',
+    );
   });
 });

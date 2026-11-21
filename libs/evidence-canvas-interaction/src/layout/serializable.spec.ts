@@ -2,11 +2,11 @@ import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createFixtureDocument } from '../../tests/support/fixtureModel.js';
 import {
   EMPTY_GRAPH_LAYOUT,
-  computeGraphLayout,
+  computeSwimlaneLayout,
   toSerializableLayout,
 } from '../index.js';
 
-const computed = await computeGraphLayout(
+const computed = computeSwimlaneLayout(
   createDomainGraph(createFixtureDocument()),
 );
 

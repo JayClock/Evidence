@@ -1,6 +1,6 @@
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import {
-  computeGraphLayout,
+  computeSwimlaneLayout,
   rectContainsRect,
   type Point,
   type Rect,
@@ -26,14 +26,11 @@ const crosses = (a: Point, b: Point, box: Rect) =>
 describe('business journey geometric acceptance', () => {
   it.each(['standard', 'expanded'] as const)(
     'has zero AABB collisions, correct responsibility lanes and unobstructed routes (%s)',
-    async (viewMode) => {
+    (viewMode) => {
       const model = fullSpectrumModel();
       const before = JSON.stringify(model);
       const graph = createDomainGraph(model);
-      const layout = await computeGraphLayout(graph, {
-        viewMode,
-        layoutMode: 'swimlane',
-      });
+      const layout = computeSwimlaneLayout(graph, viewMode);
       expect(layout.nodes.length).toBeGreaterThanOrEqual(30);
       expect(layout.nodes.length + layout.contextGroups.length).toBe(
         model.entities.length,
@@ -152,17 +149,4 @@ describe('business journey geometric acceptance', () => {
       expect(JSON.stringify(model)).toBe(before);
     },
   );
-
-  it('still opens the same golden model in the ELK technical fallback', async () => {
-    const model = fullSpectrumModel();
-    const layout = await computeGraphLayout(createDomainGraph(model), {
-      layoutMode: 'topology',
-    });
-    expect(layout.nodes.length + layout.contextGroups.length).toBe(
-      model.entities.length,
-    );
-    expect(layout.edges.length).toBe(model.relationships.length);
-    expect(layout.swimlaneRegions).toBeUndefined();
-    expect(layout.bounds.width).toBeGreaterThan(0);
-  });
 });

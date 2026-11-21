@@ -105,7 +105,7 @@ export interface ConvertLayoutInput {
  *
  * Kept a pure function with one input object: the mapping is the part worth
  * testing — parent organisation, world coordinates, edge binding — and a hook
- * ELK's local positions map directly to parentId; routes stay in world space.
+ * Local journey positions map directly to parentId; routes stay in world space.
  */
 export const convertLayoutToReactFlow = ({
   layout,

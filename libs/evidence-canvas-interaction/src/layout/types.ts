@@ -69,8 +69,6 @@ export interface ResponsibilityLink {
   kind: 'contract_party' | 'responsibility';
 }
 
-export type CanvasLayoutMode = 'topology' | 'swimlane';
-
 export interface JourneyMilestone {
   readonly id: string;
   readonly stage: LifecycleStage;

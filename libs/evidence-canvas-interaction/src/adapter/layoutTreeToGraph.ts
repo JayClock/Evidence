@@ -1,4 +1,3 @@
-import type { ElkExtendedEdge, ElkNode } from 'elkjs';
 import type { DomainGraph } from '@evidence-poc/evidence-model-core';
 import { rect, type Point } from '../geometry.js';
 import type {
@@ -7,19 +6,19 @@ import type {
   LayoutNode,
   ResponsibilityLink,
 } from '../layout/types.js';
-import { pairEdgeId, relationshipEdgeId } from './domainToElk.js';
+import { pairEdgeId, relationshipEdgeId } from './domainToLayoutTree.js';
+import type { LayoutTreeNode } from './layoutTree.js';
 
-/** Convert nested ELK coordinates once. All routes remain in world space. */
-export const extractElkResultToLayout = (
-  root: ElkNode,
+/** Flatten the journey tree while retaining local boxes for nested rendering. */
+export const layoutTreeToGraph = (
+  root: LayoutTreeNode,
   graph: DomainGraph,
 ): DomainGraphLayout => {
   const nodes: LayoutNode[] = [];
   const contextGroups: ContextLayoutGroup[] = [];
-  const origins = new Map<string, Point>();
-  const routed: { edge: ElkExtendedEdge; owner: string }[] = [];
+  const routes = new Map<string, Point[]>();
   const walk = (
-    node: ElkNode,
+    node: LayoutTreeNode,
     parent: Point,
     parentContextId: string | null,
     depth: number,
@@ -31,8 +30,18 @@ export const extractElkResultToLayout = (
       node.height ?? 0,
     );
     const worldBox = { ...box, x: parent.x + box.x, y: parent.y + box.y };
-    origins.set(node.id, worldBox);
-    for (const edge of node.edges ?? []) routed.push({ edge, owner: node.id });
+    for (const edge of node.edges ?? []) {
+      if (!edge.points || edge.points.length < 2)
+        throw new Error(`Journey route is missing: ${edge.id}`);
+      const points: Point[] = [];
+      for (const point of edge.points) {
+        const world = { x: point.x + worldBox.x, y: point.y + worldBox.y };
+        const previous = points.at(-1);
+        if (previous?.x !== world.x || previous?.y !== world.y)
+          points.push(world);
+      }
+      routes.set(edge.id, points);
+    }
     const entity = graph.getEntity(node.id);
     if (entity?.category === 'context') {
       contextGroups.push({
@@ -70,37 +79,6 @@ export const extractElkResultToLayout = (
   };
   walk(root, { x: 0, y: 0 }, null, 0);
 
-  const routes = new Map<string, Point[]>();
-  for (const { edge, owner } of routed) {
-    const offset = origins.get(edge.container ?? owner);
-    if (offset === undefined)
-      throw new Error(`Unknown ELK edge container: ${edge.id}`);
-    const sections = edge.sections ?? [];
-    if (sections.length === 0)
-      throw new Error(`ELK returned no route: ${edge.id}`);
-    const byId = new Map(sections.map((section) => [section.id, section]));
-    let section = sections.find((item) => !item.incomingSections?.length);
-    const visited = new Set<string>();
-    const points: Point[] = [];
-    while (section !== undefined && !visited.has(section.id)) {
-      visited.add(section.id);
-      const segment = [
-        section.startPoint,
-        ...(section.bendPoints ?? []),
-        section.endPoint,
-      ];
-      for (const point of segment) {
-        const world = { x: point.x + offset.x, y: point.y + offset.y };
-        const previous = points.at(-1);
-        if (previous?.x !== world.x || previous?.y !== world.y)
-          points.push(world);
-      }
-      section = byId.get(section.outgoingSections?.[0] ?? '');
-    }
-    if (visited.size !== sections.length)
-      throw new Error(`Disconnected ELK route: ${edge.id}`);
-    routes.set(edge.id, points);
-  }
   const nodeById = new Map(nodes.map((node) => [node.nodeId, node]));
   const contextGroupById = new Map(
     contextGroups.map((group) => [group.contextId, group]),

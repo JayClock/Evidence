@@ -2,7 +2,7 @@ import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { describe, expect, it } from 'vitest';
 import {
   computeContextScope,
-  computeGraphLayout,
+  computeSwimlaneLayout,
   rectContainsRect,
   toSerializableLayout,
 } from '../index.js';
@@ -11,7 +11,7 @@ import {
   createFixtureModel,
 } from '../../tests/support/fixtureModel.js';
 
-const { layout } = await createFixtureModel();
+const { layout } = createFixtureModel();
 
 describe('computeContextScope', () => {
   it('includes descendants and one-hop neighbours without mutating the layout', () => {
@@ -38,7 +38,7 @@ describe('computeContextScope', () => {
     expect(scope.subtreeContextIds.has('context.product-sourcing')).toBe(false);
     expect(scope.nodeIds.has('evidence.rfp')).toBe(false);
   });
-  it('includes responsibility-only neighbours without inventing edges', async () => {
+  it('includes responsibility-only neighbours without inventing edges', () => {
     const document = createFixtureDocument();
     const request = document.entities.find(
       (entity) => entity.id === 'evidence.delivery-request',
@@ -46,13 +46,13 @@ describe('computeContextScope', () => {
     if (request.category === 'evidence')
       request.responsibleRoleRef = 'role.inventory';
     const scope = computeContextScope(
-      await computeGraphLayout(createDomainGraph(document)),
+      computeSwimlaneLayout(createDomainGraph(document)),
       'context.product-procurement',
     )!;
     expect(scope.nodeIds.has('role.inventory')).toBe(true);
     expect(scope.edgeIds.size).toBe(document.relationships.length);
   });
-  it('excludes unrelated edges between neighbours', async () => {
+  it('excludes unrelated edges between neighbours', () => {
     const document = createFixtureDocument();
     document.relationships.push({
       type: 'relationship',
@@ -63,7 +63,7 @@ describe('computeContextScope', () => {
       label: '外部关系',
     });
     const scope = computeContextScope(
-      await computeGraphLayout(createDomainGraph(document)),
+      computeSwimlaneLayout(createDomainGraph(document)),
       'context.product-procurement',
     )!;
     expect(scope.edgeIds.has('unrelated')).toBe(false);

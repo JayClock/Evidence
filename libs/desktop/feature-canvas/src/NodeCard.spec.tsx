@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  computeGraphLayout,
+  computeSwimlaneLayout,
   toSerializableLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
@@ -118,7 +118,7 @@ describe('business card summaries', () => {
 });
 
 describe('NodeCard modes', () => {
-  it('shows a standalone brainstormed proof, its authored moment, and an unresolved field', async () => {
+  it('shows a standalone brainstormed proof, its authored moment, and an unresolved field', () => {
     const document = createDesktopFixture();
     const proof = {
       type: 'entity',
@@ -145,9 +145,7 @@ describe('NodeCard modes', () => {
     document.entities.push(
       structuredClone({ ...proof, attributes: [...proof.attributes] }),
     );
-    const layout = await computeGraphLayout(createDomainGraph(document), {
-      layoutMode: 'swimlane',
-    });
+    const layout = computeSwimlaneLayout(createDomainGraph(document));
     render(
       <NodeCard
         node={layout.nodeById.get(proof.id)!}
@@ -169,11 +167,9 @@ describe('NodeCard modes', () => {
       'needs-decision',
     );
   });
-  it('distinguishes a rights window from a fixed confirmation stamp and exposes CEL guards', async () => {
+  it('distinguishes a rights window from a fixed confirmation stamp and exposes CEL guards', () => {
     const document = createDesktopFixture();
-    const layout = await computeGraphLayout(createDomainGraph(document), {
-      layoutMode: 'swimlane',
-    });
+    const layout = computeSwimlaneLayout(createDomainGraph(document));
     const summaries = summarizeCards(document);
     const props = {
       selected: false,
@@ -223,7 +219,7 @@ describe('NodeCard modes', () => {
     });
   });
 
-  it('renders compact domain capabilities with modeled parameters, without choosing a conflicting sample', async () => {
+  it('renders compact domain capabilities with modeled parameters, without choosing a conflicting sample', () => {
     const document = createDesktopFixture();
     document.entities.push({
       type: 'entity',
@@ -242,7 +238,7 @@ describe('NodeCard modes', () => {
       ],
       examples: [{ label: '标准', value: { daily_rate: 0.0005 } }],
     });
-    const layout = await computeGraphLayout(createDomainGraph(document));
+    const layout = computeSwimlaneLayout(createDomainGraph(document));
     const node = layout.nodeById.get('calculator')!;
     const props = {
       node,
@@ -270,10 +266,10 @@ describe('NodeCard modes', () => {
     ).toHaveTextContent('日罚息');
   });
 
-  it('shows projected routes, distinguishes internal operations and hides stale bindings', async () => {
+  it('shows projected routes, distinguishes internal operations and hides stale bindings', () => {
     const document = createDesktopFixture();
-    const node = (
-      await computeGraphLayout(createDomainGraph(document))
+    const node = computeSwimlaneLayout(
+      createDomainGraph(document),
     ).nodeById.get('evidence.request')!;
     const props = {
       node,
@@ -317,14 +313,12 @@ describe('NodeCard modes', () => {
     );
     expect(screen.getByText('No API Exposure')).toBeInTheDocument();
   });
-  it('keeps an accessible responsibility in bounds and hides detail only in simplified mode', async () => {
+  it('keeps an accessible responsibility in bounds and hides detail only in simplified mode', () => {
     const document = createDesktopFixture();
     const graph = createDomainGraph(document);
-    const node = (
-      await computeGraphLayout(graph, {
-        viewMode: 'standard',
-      })
-    ).nodeById.get('evidence.request')!;
+    const node = computeSwimlaneLayout(graph, 'standard').nodeById.get(
+      'evidence.request',
+    )!;
     const props = {
       node,
       selected: false,
@@ -355,11 +349,9 @@ describe('NodeCard modes', () => {
     fireEvent.keyDown(card, { key: ' ' });
     expect(props.onSelect).toHaveBeenCalledWith(node.nodeId);
 
-    const compact = (
-      await computeGraphLayout(graph, {
-        viewMode: 'simplified',
-      })
-    ).nodeById.get(node.nodeId)!;
+    const compact = computeSwimlaneLayout(graph, 'simplified').nodeById.get(
+      node.nodeId,
+    )!;
     rerender(<NodeCard {...props} node={compact} viewMode="simplified" />);
     expect(screen.queryByText('规则 1')).toBeNull();
     expect(
@@ -372,7 +364,7 @@ describe('NodeCard modes', () => {
     expect(card).toHaveStyle({ height: '82px' });
     expect(
       toSerializableLayout(
-        await computeGraphLayout(graph, { viewMode: 'simplified' }),
+        computeSwimlaneLayout(graph, 'simplified'),
       ).nodes.find((placed) => placed.nodeId === node.nodeId)!.box,
     ).toEqual(compact.box);
   });

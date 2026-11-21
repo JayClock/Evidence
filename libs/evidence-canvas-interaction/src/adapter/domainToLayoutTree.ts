@@ -1,21 +1,8 @@
-import type { ElkNode, LayoutOptions } from 'elkjs';
 import type { DomainGraph } from '@evidence-poc/evidence-model-core';
 import type { CanvasViewMode } from '../layout/types.js';
+import type { LayoutTreeNode } from './layoutTree.js';
 
-const OPTIONS: LayoutOptions = {
-  'elk.algorithm': 'layered',
-  'elk.direction': 'RIGHT',
-  'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
-  'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
-  'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '64',
-  'elk.spacing.nodeNode': '36',
-  'elk.padding': '[top=60,left=24,bottom=24,right=24]',
-  'elk.randomSeed': '1',
-};
-
-/** Match the card's density; ELK owns spacing, not card content measurement. */
+/** Match the card's density without measuring UI content. */
 export const measureNodeSize = (mode: CanvasViewMode) => ({
   width: mode === 'expanded' ? 240 : 220,
   height: mode === 'simplified' ? 82 : mode === 'expanded' ? 200 : 156,
@@ -27,14 +14,14 @@ export const pairEdgeId = (request: string, result: string) =>
   `pair:${JSON.stringify([request, result])}`;
 
 /** Construct a fresh compound tree without changing the document or indexes. */
-export const transformDomainGraphToElk = (
+export const buildLayoutTree = (
   graph: DomainGraph,
   viewMode: CanvasViewMode = 'standard',
-): ElkNode => {
+): LayoutTreeNode => {
   const contexts = graph
     .entities()
     .filter((entity) => entity.category === 'context');
-  const nodes = new Map<string, ElkNode>();
+  const nodes = new Map<string, LayoutTreeNode>();
   for (const entity of graph.entities()) {
     nodes.set(
       entity.id,
@@ -45,7 +32,6 @@ export const transformDomainGraphToElk = (
             // Empty Contexts are still meaningful boundaries.
             width: 260,
             height: 84,
-            layoutOptions: OPTIONS,
           }
         : { id: entity.id, ...measureNodeSize(viewMode) },
     );
@@ -63,7 +49,7 @@ export const transformDomainGraphToElk = (
       parentOf.set(entity.id, parent);
   }
   // Imported drafts can contain cycles. Reject them explicitly rather than
-  // handing ELK a cyclic object tree or silently dropping the entire component.
+  // building a cyclic object tree or silently dropping the entire component.
   for (const context of contexts) {
     const seen = new Set<string>([context.id]);
     let parent = parentOf.get(context.id);
@@ -74,9 +60,8 @@ export const transformDomainGraphToElk = (
       parent = parentOf.get(parent);
     }
   }
-  const root: ElkNode = {
+  const root: LayoutTreeNode = {
     id: '__evidence_layout_root__',
-    layoutOptions: OPTIONS,
     children: [],
     edges: [],
   };
@@ -92,7 +77,7 @@ export const transformDomainGraphToElk = (
     // Invalid references are reported by schema validation; they must not
     // prevent the valid part of a draft from being drawn.
     if (!nodes.has(source) || !nodes.has(target)) return;
-    root.edges!.push({ id, sources: [source], targets: [target] });
+    root.edges!.push({ id, sourceId: source, targetId: target });
   };
   for (const relationship of graph.relationships()) {
     addEdge(

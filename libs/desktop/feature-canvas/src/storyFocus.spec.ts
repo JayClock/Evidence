@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeGraphLayout } from '@evidence-poc/evidence-canvas-interaction';
+import { computeSwimlaneLayout } from '@evidence-poc/evidence-canvas-interaction';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
@@ -11,7 +11,7 @@ import { convertLayoutToReactFlow } from './useReactFlowAdapter';
 import { applyStoryFocus, type CanvasStoryFocus } from './storyFocus';
 
 const document = createDesktopFixture();
-const layout = await computeGraphLayout(createDomainGraph(document));
+const layout = computeSwimlaneLayout(createDomainGraph(document));
 const canvas = convertLayoutToReactFlow({
   layout,
   document,
@@ -98,11 +98,9 @@ describe('story canvas projection', () => {
     ).not.toBe(true);
   });
 
-  it('activates compensation capabilities and collateral roles without leaking the opposite branch', async () => {
+  it('activates compensation capabilities and collateral roles without leaking the opposite branch', () => {
     const model = JSON.parse(modelText) as DomainModelDocument;
-    const journey = await computeGraphLayout(createDomainGraph(model), {
-      layoutMode: 'swimlane',
-    });
+    const journey = computeSwimlaneLayout(createDomainGraph(model));
     const original = convertLayoutToReactFlow({
       layout: journey,
       document: model,
@@ -173,7 +171,7 @@ describe('story canvas projection', () => {
     );
   });
 
-  it('does not mutate the topology projection and is a no-op when inactive or the entity disappeared', () => {
+  it('does not mutate journey geometry and is a no-op when inactive or the entity disappeared', () => {
     const original = structuredClone(canvas);
     applyStoryFocus(canvas, focus);
     expect(canvas).toEqual(original);

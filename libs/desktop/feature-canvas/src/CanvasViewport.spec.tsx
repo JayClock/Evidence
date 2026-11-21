@@ -9,7 +9,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   computeContextScope,
-  computeGraphLayout,
+  computeSwimlaneLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
 import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
@@ -18,7 +18,7 @@ import { createDiagnosticIndex } from './diagnosticIndex';
 
 const document = createDesktopFixture();
 const graph = createDomainGraph(document);
-const layout = await computeGraphLayout(graph, { viewMode: 'standard' });
+const layout = computeSwimlaneLayout(graph, 'standard');
 
 const setup = (
   overrides: Partial<React.ComponentProps<typeof CanvasViewport>> = {},
@@ -91,22 +91,22 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('CanvasViewport', () => {
-  it('refits and draws responsibility regions when layout mode changes at the same density', async () => {
-    const swimlane = await computeGraphLayout(graph, {
-      viewMode: 'standard',
-      layoutMode: 'swimlane',
-    });
+  it('temporarily shows the whole journey for playback without fitting again', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const scope = computeContextScope(layout, 'context.catalog');
     const Harness = () => {
-      const [lanes, setLanes] = useState(false);
+      const [playing, setPlaying] = useState(false);
       return (
         <>
-          <button type="button" onClick={() => setLanes(true)}>
-            切换泳道布局
+          <button type="button" onClick={() => setPlaying(!playing)}>
+            切换放映
           </button>
           <CanvasViewport
             document={document}
             graph={graph}
-            layout={lanes ? swimlane : layout}
+            layout={layout}
+            scope={scope}
+            storyActive={playing}
             viewMode="standard"
             selection={{ nodeId: null, attributeName: null }}
             focusRequest={null}
@@ -124,8 +124,16 @@ describe('CanvasViewport', () => {
       ),
     );
     const before = viewportTransform(container);
-    fireEvent.click(screen.getByRole('button', { name: '切换泳道布局' }));
-    await waitFor(() => expect(viewportTransform(container)).not.toBe(before));
+    const request = () =>
+      container.querySelector('[data-node-id="evidence.request"]');
+    const toggle = screen.getByRole('button', { name: '切换放映' });
+    expect(request()).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(toggle);
+    expect(request()).not.toHaveAttribute('aria-disabled');
+    expect(viewportTransform(container)).toBe(before);
+    fireEvent.click(toggle);
+    expect(request()).toHaveAttribute('aria-disabled', 'true');
+    expect(viewportTransform(container)).toBe(before);
     expect(
       container.querySelector('[data-milestone-stage="rfp"]'),
     ).not.toBeNull();
@@ -153,15 +161,13 @@ describe('CanvasViewport', () => {
       '6 4',
     );
   });
-  it('lights the remedy corridor and renders the active scenario timestamp without changing geometry', async () => {
+  it('lights the remedy corridor and renders the active scenario timestamp without changing geometry', () => {
     const model = structuredClone(document);
     model.relationships.find(
       (r) => r.sourceRef === 'evidence.confirmation' && r.kind === 'references',
     )!.flowKind = 'breach_compensation';
     const journeyGraph = createDomainGraph(model);
-    const journey = await computeGraphLayout(journeyGraph, {
-      layoutMode: 'swimlane',
-    });
+    const journey = computeSwimlaneLayout(journeyGraph);
     const before = JSON.stringify(journey.nodes);
     const { container } = setup({
       document: model,

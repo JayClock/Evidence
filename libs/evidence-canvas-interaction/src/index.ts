@@ -29,10 +29,6 @@ export type {
   RulerTickLevel,
   RulerTickOptions,
 } from './ruler/types.js';
-export {
-  computeGraphLayout,
-  type ComputeLayoutOptions,
-} from './engine/layoutEngine.js';
 export { computeSwimlaneLayout } from './engine/swimlaneLayout.js';
 export {
   EMPTY_GRAPH_LAYOUT,
@@ -42,7 +38,6 @@ export {
   type SerializableGraphLayout,
 } from './layout/serializable.js';
 export type {
-  CanvasLayoutMode,
   JourneyMilestone,
   JourneyNodePlacement,
   SwimlaneCorridor,

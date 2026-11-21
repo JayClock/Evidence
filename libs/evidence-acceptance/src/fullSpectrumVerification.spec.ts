@@ -6,7 +6,7 @@ import {
   parseModelBundleText,
   serializeModelBundle,
 } from '@evidence-poc/evidence-model-core';
-import { computeGraphLayout } from '@evidence-poc/evidence-canvas-interaction';
+import { computeSwimlaneLayout } from '@evidence-poc/evidence-canvas-interaction';
 import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
 import { renderDeliverables } from './renderDeliverables.js';
 import { fullSpectrumModel } from '../tests/support/fullSpectrumModel.js';
@@ -86,12 +86,12 @@ describe('full-spectrum model lifecycle acceptance', () => {
     }
   });
 
-  it('does not create history or lose selection when layouts switch, including undo and redo', async () => {
+  it('does not create history or lose selection when changing density, including undo and redo', () => {
     const session = createModelSession({ document: fullSpectrumModel() });
     session.select('req-equipment-delivery');
     const before = session.getDocument();
-    for (const layoutMode of ['swimlane', 'topology', 'swimlane'] as const) {
-      await computeGraphLayout(session.getGraph(), { layoutMode });
+    for (const density of ['simplified', 'standard', 'expanded'] as const) {
+      computeSwimlaneLayout(session.getGraph(), density);
       expect(session.canUndo()).toBe(false);
       expect(session.getDocument()).toBe(before);
       expect(session.getSelection().nodeId).toBe('req-equipment-delivery');
@@ -105,23 +105,18 @@ describe('full-spectrum model lifecycle acceptance', () => {
     expect(session.getDocument()).toEqual(before);
     expect(session.redo()).toBe(true);
     expect(session.getDocument()).toEqual(changed);
-    const layout = await computeGraphLayout(session.getGraph(), {
-      layoutMode: 'swimlane',
-    });
+    const layout = computeSwimlaneLayout(session.getGraph());
     expect(layout.nodeById.get('req-equipment-delivery')?.entity.label).toBe(
       '经评审的交付窗口',
     );
     expect(session.getSelection().nodeId).toBe('req-equipment-delivery');
   });
 
-  it('exports a deterministic OpenAPI contract before and after both presentation modes', async () => {
+  it('exports a deterministic OpenAPI contract before and after laying out the journey', async () => {
     const model = fullSpectrumModel();
     const options = { openapi: true, tests: false };
     const before = await renderDeliverables(model, options);
-    await computeGraphLayout(
-      createModelSession({ document: model }).getGraph(),
-      { layoutMode: 'swimlane' },
-    );
+    computeSwimlaneLayout(createModelSession({ document: model }).getGraph());
     const after = await renderDeliverables(model, options);
     expect(after).toEqual(before);
     expect(after.endpointCount).toBeGreaterThan(0);
