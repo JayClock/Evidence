@@ -169,7 +169,11 @@ export const useEditorShortcuts = (handlers: ShortcutHandlers): void => {
         return;
       }
 
-      if (event.key === 'Escape' && handlers.closeStory !== undefined) {
+      if (
+        event.key === 'Escape' &&
+        dialog === null &&
+        handlers.closeStory !== undefined
+      ) {
         event.preventDefault();
         handlers.closeStory();
         return;
@@ -192,7 +196,7 @@ export const useEditorShortcuts = (handlers: ShortcutHandlers): void => {
         return;
       }
 
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && dialog === null) {
         handlers.clearSelection();
         return;
       }

@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type WorkspaceViewMode = 'journey' | 'table' | 'story';
+export type WorkspaceSurface = 'canvas' | 'table';
 
 export const useWorkspaceViewMode = () => {
-  const [mode, setMode] = useState<WorkspaceViewMode>('journey');
+  const [surface, setSurface] = useState<WorkspaceSurface>('canvas');
 
   const toggleLedger = useCallback(() => {
-    setMode((current) => (current === 'table' ? 'journey' : 'table'));
+    setSurface((current) => (current === 'table' ? 'canvas' : 'table'));
   }, []);
 
-  const returnToGraph = useCallback(() => setMode('journey'), []);
+  const returnToGraph = useCallback(() => setSurface('canvas'), []);
 
   useEffect(() => {
-    if (mode !== 'table') return;
+    if (surface !== 'table') return;
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target;
       if (
@@ -35,7 +35,7 @@ export const useWorkspaceViewMode = () => {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [mode, returnToGraph]);
+  }, [surface, returnToGraph]);
 
-  return { mode, setMode, toggleLedger, returnToGraph } as const;
+  return { surface, toggleLedger, returnToGraph } as const;
 };

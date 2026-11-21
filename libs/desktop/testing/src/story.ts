@@ -1,5 +1,6 @@
 import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
 import type { StoryProjectResult } from '@evidence-poc/desktop-contracts/story';
+import { createDesktopFixture } from './modelFixture.js';
 
 export const storyFlow = (flowId = '采购履约流'): FlowScenarioTrace => ({
   flowId,
@@ -27,6 +28,29 @@ export const storyFlow = (flowId = '采购履约流'): FlowScenarioTrace => ({
     }),
   ),
 });
+
+export const createDesktopStoryFixture = () => {
+  const document = createDesktopFixture();
+  const flow = storyFlow();
+  for (const entity of document.entities) {
+    const step = flow.steps.find(({ entityId }) => entityId === entity.id);
+    if (step === undefined) continue;
+    entity.examples = [
+      {
+        label: step.exampleLabel,
+        value: step.values,
+        test: {
+          flow: flow.flowId,
+          actingRoleRef:
+            entity.id === 'evidence.request' ? 'role.supplier' : 'role.buyer',
+          asOf: step.asOf,
+          basedOn: [...step.basedOn],
+        },
+      },
+    ];
+  }
+  return document;
+};
 
 export const storyResult = (flow = storyFlow()): StoryProjectResult => ({
   flow,

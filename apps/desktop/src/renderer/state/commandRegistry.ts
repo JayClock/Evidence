@@ -1,5 +1,6 @@
 import {
   Activity,
+  Clapperboard,
   Network,
   Redo2,
   Save,
@@ -12,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import { RAIL_TAB_CHORDS } from './useWorkspaceLayoutState';
-import type { WorkspaceViewMode } from './useWorkspaceViewMode';
+import type { WorkspaceSurface } from './useWorkspaceViewMode';
 
 /**
  * One keyboard-first action.
@@ -80,7 +81,9 @@ export const CHORDS = {
 export interface CommandCapabilities {
   canUndo: boolean;
   canRedo: boolean;
-  viewMode: WorkspaceViewMode;
+  surface: WorkspaceSurface;
+  storyActive: boolean;
+  canPlayStory: boolean;
   /** Whether anything is selected, so "zoom to selection" can be honest. */
   hasSelection: boolean;
 }
@@ -90,6 +93,8 @@ export interface CommandHandlers {
   undo: () => void;
   redo: () => void;
   returnToGraph: () => void;
+  openStory: () => void;
+  closeStory: () => void;
   /** Frames the selected object. */
   zoomToSelection: () => void;
   openDelivery: () => void;
@@ -148,8 +153,30 @@ export const buildCommands = (
       shortcut: CHORDS.journey,
       icon: Workflow,
       keywords: ['journey', 'swimlane', '旅程', '泳道'],
-      disabled: capabilities.viewMode !== 'table',
+      disabled: capabilities.surface !== 'table',
       perform: handlers.returnToGraph,
+    },
+    {
+      id: 'story.start',
+      title: '放映业务流',
+      subtitle: '在业务旅程画布上逐步查看已声明的场景',
+      category: 'view',
+      icon: Clapperboard,
+      keywords: ['story', 'playback', '场景'],
+      disabled:
+        !capabilities.canPlayStory ||
+        capabilities.storyActive ||
+        capabilities.surface !== 'canvas',
+      perform: handlers.openStory,
+    },
+    {
+      id: 'story.close',
+      title: '退出放映',
+      category: 'view',
+      shortcut: 'Esc',
+      icon: Clapperboard,
+      disabled: !capabilities.storyActive,
+      perform: handlers.closeStory,
     },
     {
       id: 'view.zoom-selection',

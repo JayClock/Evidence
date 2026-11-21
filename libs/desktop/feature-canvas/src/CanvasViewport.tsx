@@ -104,6 +104,8 @@ interface CanvasViewportProps {
    * the viewport only hands it the zoom maths it owns.
    */
   hud?: (controls: CanvasHudControls) => ReactNode;
+  /** Temporarily show all contexts without changing the fitted editing scope. */
+  storyActive?: boolean;
   /** A declared story step takes precedence over hover and selection focus. */
   storyFocus?: CanvasStoryFocus | null;
   /** Rings the objects a pending agent patch touches. */
@@ -222,6 +224,7 @@ const CanvasSurface = ({
   focusRequest = null,
   zoomCommand = null,
   hud,
+  storyActive = false,
   storyFocus = null,
   viewportMemory,
   overlay = null,
@@ -261,6 +264,7 @@ const CanvasSurface = ({
   // furniture, and furniture should not take the corner by default.
   const [minimapOpen, setMinimapOpen] = useState(false);
 
+  const displayedScope = storyActive ? null : scope;
   const summaries = useMemo(() => summarizeCards(document), [document]);
 
   const highlight = useMemo<HighlightResult>(
@@ -294,7 +298,7 @@ const CanvasSurface = ({
           highlightedEdgeIds: selectedHighlight.edgeIds,
           highlightedContextIds: selectedHighlight.contextIds,
           dimmed: selectedHighlight.dimmed,
-          scope,
+          scope: displayedScope,
           overlay,
           summaries,
           hoveredEdgeId,
@@ -308,7 +312,7 @@ const CanvasSurface = ({
       document,
       selection,
       selectedHighlight,
-      scope,
+      displayedScope,
       overlay,
       summaries,
       hoveredEdgeId,
@@ -320,11 +324,11 @@ const CanvasSurface = ({
 
   const fitToContent = useCallback(() => {
     if (!viewportSized) return;
-    void fitBounds(boundsOf(layout, scope), {
+    void fitBounds(boundsOf(layout, displayedScope), {
       padding: 0.08,
       duration: reducedMotion() ? 0 : 180,
     });
-  }, [fitBounds, layout, scope, viewportSized]);
+  }, [fitBounds, layout, displayedScope, viewportSized]);
 
   // A scope change is a new stage: the fit follows it, and so do the hover
   // marks, because the object under the pointer may no longer be on screen.
@@ -707,7 +711,7 @@ const CanvasSurface = ({
                 <DiagnosticMarkers
                   index={diagnostics}
                   layout={layout}
-                  scope={scope}
+                  scope={displayedScope}
                   onOpen={onOpenIssues}
                 />
               ) : null}

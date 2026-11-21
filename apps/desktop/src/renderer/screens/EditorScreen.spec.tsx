@@ -8,7 +8,11 @@ import {
 } from '@testing-library/react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { StoryInvalidatedEvent } from '@evidence-poc/desktop-contracts/story';
-import { storyFlow, storyResult } from '@evidence-poc/desktop-testing/story';
+import {
+  createDesktopStoryFixture,
+  storyFlow,
+  storyResult,
+} from '@evidence-poc/desktop-testing/story';
 
 import {
   applyModelPatches,
@@ -26,20 +30,17 @@ import {
 } from '@evidence-poc/desktop-testing/desktopApi';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 
-const readyProject = () =>
+const readyProject = (document = createDesktopFixture()) =>
   installDesktopApi({
     openResult: {
       success: true,
       project: projectSummary({ name: '桌面端夹具（Desktop Fixture）' }),
-      document: createDesktopFixture(),
+      document,
       issues: [],
     },
   });
 
-const readyCanvas = async () => {
-  const title = await screen.findByText('桌面端夹具（Desktop Fixture）');
-  return title;
-};
+const readyCanvas = () => screen.findByText('业务旅程画布');
 
 describe('EditorScreen', () => {
   it('keeps journey geometry, selection and camera when toggling the ledger', async () => {
@@ -99,10 +100,7 @@ describe('EditorScreen', () => {
       <EditorScreen rootPath="/models/procurement" />,
     );
     await readyCanvas();
-    expect(screen.getByRole('button', { name: '业务旅程' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByText('业务旅程画布')).toBeInTheDocument();
     await waitFor(() =>
       expect(
         container.querySelector('[data-swimlane-kind="lane"]'),
@@ -164,7 +162,9 @@ describe('EditorScreen', () => {
     expect(input).toHaveFocus();
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(screen.queryByLabelText('业务场景')).toBeNull();
-    expect(container.querySelector('[data-region="canvas-stage"]')).toHaveFocus();
+    expect(
+      container.querySelector('[data-region="canvas-stage"]'),
+    ).toHaveFocus();
     expect(api.calls.prompt).toEqual([]);
   });
 
@@ -549,8 +549,8 @@ describe('EditorScreen', () => {
     expect(screen.getByText('上下文 2')).toBeInTheDocument();
   });
 
-  it('plays the walkthrough on the canvas and silently refreshes clean models', async () => {
-    const api = readyProject();
+  it('plays the walkthrough on the same canvas and silently refreshes clean models', async () => {
+    const api = readyProject(createDesktopStoryFixture());
     api.story.listFlows = vi.fn(async () => [storyFlow()]);
     api.story.project = vi.fn(async () => storyResult());
     let invalidate: (event: StoryInvalidatedEvent) => void = () => undefined;
@@ -567,15 +567,13 @@ describe('EditorScreen', () => {
     fireEvent.change(screen.getByLabelText('聚焦范围'), {
       target: { value: 'context.catalog' },
     });
-    const modes = within(screen.getByRole('group', { name: '画布放映模式' }));
-    expect(modes.getByRole('button', { name: '业务旅程' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    fireEvent.click(modes.getByRole('button', { name: '业务流放映' }));
-    expect(modes.getByRole('button', { name: '业务流放映' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
+    const canvas = container.querySelector('[data-region="canvas-viewport"]');
+    const launch = screen.getByRole('button', { name: '放映业务流' });
+    expect(launch).not.toHaveAttribute('aria-pressed');
+    fireEvent.click(launch);
+    expect(screen.getByText('业务旅程画布')).toBeInTheDocument();
+    expect(container.querySelector('[data-region="canvas-viewport"]')).toBe(
+      canvas,
     );
     expect(screen.queryByLabelText('副视口')).toBeNull();
     expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
@@ -589,7 +587,7 @@ describe('EditorScreen', () => {
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).not.toHaveAttribute('aria-disabled');
-    const document = createDesktopFixture();
+    const document = createDesktopStoryFixture();
     document.entities.find(({ id }) => id === 'evidence.contract')!.label =
       '外部更新采购协议';
     api.projects.open = vi.fn(async () => ({
@@ -623,7 +621,16 @@ describe('EditorScreen', () => {
     expect(
       screen.getByRole('progressbar', { name: '放映进度' }),
     ).toHaveAttribute('value', '2');
+    const camera = container.querySelector<HTMLElement>(
+      '.react-flow__viewport',
+    )!;
+    const transform = camera.style.transform;
     fireEvent.click(screen.getByRole('button', { name: '退出放映' }));
+    expect(camera.style.transform).toBe(transform);
+    expect(container.querySelector('[data-region="canvas-viewport"]')).toBe(
+      canvas,
+    );
+    expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
     expect(screen.queryByRole('region', { name: '业务故事' })).toBeNull();
     expect(unsubscribe).toHaveBeenCalled();
@@ -642,7 +649,7 @@ describe('EditorScreen', () => {
     api.story.project = vi.fn(async () => storyResult());
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
-    const document = createDesktopFixture();
+    const document = createDesktopStoryFixture();
     document.entities.find(({ id }) => id === 'evidence.contract')!.label =
       '进入前的外部修改';
     api.projects.open = vi.fn(async () => ({
@@ -658,11 +665,62 @@ describe('EditorScreen', () => {
         changedAt: '2026-11-11T09:00:00Z',
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: /业务流放映/ }));
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
     await waitFor(() => expect(api.story.project).toHaveBeenCalledOnce());
     expect(api.story.project).toHaveBeenCalledWith(
       expect.objectContaining({ document }),
     );
+  });
+
+  it('explains why playback is unavailable without a declared flow', async () => {
+    const api = readyProject();
+    api.story.listFlows = vi.fn();
+    render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    expect(screen.getByRole('button', { name: '放映业务流' })).toBeDisabled();
+    expect(screen.getByText('当前模型暂无已声明的业务流')).toBeVisible();
+    expect(api.story.listFlows).not.toHaveBeenCalled();
+  });
+
+  it('starts from the command palette and exits with Escape without clearing selection', async () => {
+    const api = readyProject(createDesktopStoryFixture());
+    api.story.listFlows = vi.fn(async () => [storyFlow()]);
+    api.story.project = vi.fn(async () => storyResult());
+    const { container } = render(
+      <EditorScreen rootPath="/models/procurement" />,
+    );
+    await readyCanvas();
+    const node = container.querySelector('[data-node-id="evidence.contract"]')!;
+    fireEvent.click(node);
+    fireEvent.click(screen.getByRole('button', { name: '打开快速命令' }));
+    fireEvent.click(await screen.findByRole('option', { name: /放映业务流/ }));
+    await screen.findByRole('progressbar', { name: '放映进度' });
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
+    expect(node).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '放映业务流' })).toHaveFocus();
+    expect(api.calls.save).toEqual([]);
+  });
+
+  it('stops automatic playback when entering the ledger and does not resume on return', async () => {
+    const api = readyProject(createDesktopStoryFixture());
+    api.story.listFlows = vi.fn(async () => [storyFlow()]);
+    api.story.project = vi.fn(async () => storyResult());
+    const unsubscribe = vi.fn();
+    api.story.onInvalidated = () => unsubscribe;
+    render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+    await screen.findByRole('progressbar', { name: '放映进度' });
+    fireEvent.click(screen.getByRole('button', { name: '自动播放' }));
+    expect(screen.getByRole('button', { name: '暂停放映' })).toBeVisible();
+    fireEvent.keyDown(window, { key: '1', metaKey: true });
+    expect(screen.getByLabelText('领域模型总台账')).toBeVisible();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
+    expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
+    expect(screen.getByRole('button', { name: '放映业务流' })).toBeEnabled();
+    expect(api.story.project).toHaveBeenCalledOnce();
   });
 
   it('slides the problems panel over the canvas with Alt+X', async () => {
@@ -969,10 +1027,7 @@ describe('EditorScreen', () => {
     fireEvent.click(
       within(reopened).getByRole('button', { name: '返回工作台' }),
     );
-    expect(screen.getByRole('button', { name: '业务旅程' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByText('业务旅程画布')).toBeInTheDocument();
   });
 
   it('shows a save failure without claiming success', async () => {
@@ -1203,7 +1258,7 @@ describe('EditorScreen sensors', () => {
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '总台账' }));
     fireEvent.keyDown(window, { key: 'K', metaKey: true, shiftKey: true });
-    fireEvent.click(await screen.findByRole('option', { name: /业务旅程/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /^业务旅程/ }));
     expect(screen.queryByLabelText('领域模型总台账')).toBeNull();
   });
 });
@@ -1392,10 +1447,7 @@ describe('EditorScreen stage navigation', () => {
         container.querySelector('[data-region="canvas-viewport"]'),
       ).not.toBeNull(),
     );
-    expect(screen.getByRole('button', { name: '业务旅程' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByText('业务旅程画布')).toBeInTheDocument();
     // The breadcrumb names the object the table was reading.
     expect(
       screen.getAllByText('采购协议（Procurement Contract）').length,

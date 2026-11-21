@@ -166,8 +166,14 @@ const EditorWorkspace = ({
   const [viewMode, setViewMode] = useState<CanvasViewMode>('standard');
   const canvasMemory = useRef<CanvasViewportMemory['current']>(null);
   const workspaceView = useWorkspaceViewMode();
-  const ledgerActive = workspaceView.mode === 'table';
-  const storyActive = workspaceView.mode === 'story';
+  const ledgerActive = workspaceView.surface === 'table';
+  const [storyOpen, setStoryOpen] = useState(false);
+  const storyActive = storyOpen && !ledgerActive;
+  const closeStory = useCallback(() => setStoryOpen(false), []);
+  const toggleLedger = useCallback(() => {
+    closeStory();
+    workspaceView.toggleLedger();
+  }, [closeStory, workspaceView.toggleLedger]);
   const rightRail = useRef<ImperativePanelHandle>(null);
   const canvasStageRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -189,7 +195,7 @@ const EditorWorkspace = ({
   const toggleRightRail = useCallback(() => {
     if (!expandRightRail()) rightRail.current?.collapse();
   }, [expandRightRail]);
-  const layout = useWorkspaceLayoutState(workspaceView.toggleLedger, {
+  const layout = useWorkspaceLayoutState(toggleLedger, {
     active: ledgerActive,
     returnToGraph: workspaceView.returnToGraph,
   });
@@ -200,6 +206,19 @@ const EditorWorkspace = ({
     reloadFromDiskIfClean,
     dismissExternalChange,
   } = useEditorSession(project, initialDocument, viewMode);
+  const hasDeclaredFlows = useMemo(
+    () =>
+      state.document.entities.some((entity) =>
+        entity.examples?.some((example) => Boolean(example.test?.flow)),
+      ),
+    [state.document],
+  );
+  // A pending clean reload may bring in the first flow from disk.
+  const canPlayStory =
+    hasDeclaredFlows || (!state.dirty && state.externalChangeAt !== null);
+  const openStory = useCallback(() => {
+    if (!ledgerActive && canPlayStory) setStoryOpen(true);
+  }, [ledgerActive, canPlayStory]);
   const story = useStoryPlayback({
     api: window.evidenceAPI.story,
     rootPath: project.rootPath,
@@ -344,19 +363,19 @@ const EditorWorkspace = ({
 
   // The table and the graph share one selection, so leaving the ledger lands on
   // the object that was being read instead of the fit-to-content corner.
-  const previousWorkspaceView = useRef(workspaceView.mode);
+  const wasLedgerActive = useRef(ledgerActive);
   useEffect(() => {
-    const previous = previousWorkspaceView.current;
-    previousWorkspaceView.current = workspaceView.mode;
+    const previous = wasLedgerActive.current;
+    wasLedgerActive.current = ledgerActive;
 
-    if (previous !== 'table' || workspaceView.mode === 'table') return;
+    if (!previous || ledgerActive) return;
 
     const nodeId = state.selection.nodeId;
     if (nodeId === null) return;
 
     tokenRef.current += 1;
     setFocusRequest({ nodeId, token: tokenRef.current });
-  }, [workspaceView.mode, state.selection.nodeId]);
+  }, [ledgerActive, state.selection.nodeId]);
 
   const focusNode = useCallback(
     (nodeId: string) => {
@@ -431,10 +450,11 @@ const EditorWorkspace = ({
       stormingReturnFocus.current = active;
     }
     setInquiry(null);
-    workspaceView.setMode('journey');
+    closeStory();
+    workspaceView.returnToGraph();
     setStormingOpen(true);
     setStormingFocus((token) => token + 1);
-  }, [workspaceView.setMode]);
+  }, [closeStory, workspaceView.returnToGraph]);
 
   const closeStorming = useCallback(() => {
     setStormingOpen(false);
@@ -465,7 +485,8 @@ const EditorWorkspace = ({
     setStormingBusy(true);
     setStormingError(null);
     setSelectedScope(null);
-    workspaceView.setMode('journey');
+    closeStory();
+    workspaceView.returnToGraph();
     const result = await agent.submit(
       '请从以下业务场景提取有依据的业务记录，按邀请投标、投标、签约、履约归类，使用 batch_add_evidence_stubs 批量铺设凭证。引用原文，提取已知的关键数据与时标语义，未知的留空，不强行补齐阶段。\n\n业务场景：\n' +
         text,
@@ -570,7 +591,9 @@ const EditorWorkspace = ({
     () => ({
       canUndo: !agent.running && state.canUndo,
       canRedo: !agent.running && state.canRedo,
-      viewMode: workspaceView.mode,
+      surface: workspaceView.surface,
+      storyActive,
+      canPlayStory,
       hasSelection: state.selection.nodeId !== null,
     }),
     [
@@ -578,7 +601,9 @@ const EditorWorkspace = ({
       state.canUndo,
       state.canRedo,
       state.selection.nodeId,
-      workspaceView.mode,
+      workspaceView.surface,
+      storyActive,
+      canPlayStory,
     ],
   );
 
@@ -592,6 +617,8 @@ const EditorWorkspace = ({
         state.session.redo();
       },
       returnToGraph: workspaceView.returnToGraph,
+      openStory,
+      closeStory,
       zoomToSelection: () => requestZoom('selection'),
       openDelivery: layout.openDelivery,
       rerunSensors: () => void sensors.refresh(),
@@ -600,6 +627,8 @@ const EditorWorkspace = ({
       toggleProblems: layout.toggleProblemsPanel,
     }),
     [
+      openStory,
+      closeStory,
       startStorming,
       layout.openDelivery,
       layout.openProblemsPanel,
@@ -658,7 +687,7 @@ const EditorWorkspace = ({
       zoomToSelection: () => requestZoom('selection'),
       toggleRightRail,
       toggleProblems: layout.toggleProblemsPanel,
-      ...(storyActive ? { closeStory: workspaceView.returnToGraph } : {}),
+      ...(storyActive ? { closeStory } : {}),
       ...(patchReview.review === null ? {} : { acceptPatch, revertPatch }),
     }),
     [
@@ -676,7 +705,7 @@ const EditorWorkspace = ({
       state.session,
       storyActive,
       toggleRightRail,
-      workspaceView.returnToGraph,
+      closeStory,
     ],
   );
 
@@ -767,6 +796,7 @@ const EditorWorkspace = ({
         viewportMemory={canvasMemory}
         frameRequest={stormingFrame}
         onFrameComplete={clearStormingFrame}
+        storyActive={storyActive}
         storyFocus={story.canvasFocus}
         hud={(controls) => (
           <CanvasFloatingHud
@@ -831,7 +861,7 @@ const EditorWorkspace = ({
           focusIssue(issues[0]);
         }}
         overlay={patchReview.review?.overlay ?? null}
-        scope={storyActive ? null : scope}
+        scope={scope}
         onScopeChange={storyActive ? undefined : changeScope}
         onSelect={(nodeId) => state.session.select(nodeId)}
         onClearSelection={() => state.session.clearSelection()}
@@ -853,17 +883,6 @@ const EditorWorkspace = ({
           selection={state.selection}
           onSave={() => void save()}
           onOpenCommandPalette={() => setPaletteOpen(true)}
-          storyHeader={
-            storyActive
-              ? {
-                  title:
-                    story.ready && story.projection
-                      ? `业务流放映：${story.projection.storyTitle}（${story.stepNumber}/${story.stepCount}）`
-                      : '业务流放映',
-                  onExit: workspaceView.returnToGraph,
-                }
-              : undefined
-          }
           ledgerExport={
             ledgerActive
               ? {
@@ -882,63 +901,69 @@ const EditorWorkspace = ({
 
         {!ledgerActive ? (
           <ViewModeBar
-            mode={workspaceView.mode}
-            onChange={workspaceView.setMode}
-            storyControls={
-              storyActive ? (
-                <>
-                  <StoryPlayerBar
-                    playback={story}
-                    aiConfigured={ai?.aiConfigured}
-                    onConfigureAi={ai?.openSettings}
-                  />
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="default">
-                        剧情详情
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="end"
-                      aria-label="剧情详情"
-                      onInteractOutside={(event) => {
-                        if (
-                          event.target instanceof Element &&
-                          event.target.closest('[data-story-toolbar]')
-                        ) {
-                          // Let readers step through scenes with details open.
-                          event.preventDefault();
-                        }
-                      }}
-                      collisionPadding={12}
-                      className="flex h-[min(720px,var(--radix-popover-content-available-height))] w-[min(360px,var(--radix-popover-content-available-width))] flex-col rounded-xl p-0"
-                    >
-                      <div className="flex shrink-0 items-center justify-between border-b border-workbench-border px-4 py-2">
-                        <h2 className="text-sm font-semibold">剧情详情</h2>
-                        <PopoverClose asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            aria-label="关闭剧情详情"
-                          >
-                            ×
-                          </Button>
-                        </PopoverClose>
-                      </div>
-                      <StoryDrawer
+            {...(storyActive
+              ? {
+                  storyActive: true,
+                  onCloseStory: closeStory,
+                  storyControls: (
+                    <>
+                      <StoryPlayerBar
+                        playback={story}
                         aiConfigured={ai?.aiConfigured}
                         onConfigureAi={ai?.openSettings}
-                        playback={story}
-                        dirty={state.dirty}
-                        externalConflict={
-                          state.dirty && state.externalChangeAt !== null
-                        }
                       />
-                    </PopoverContent>
-                  </Popover>
-                </>
-              ) : null
-            }
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button type="button" variant="default">
+                            剧情详情
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          align="end"
+                          aria-label="剧情详情"
+                          onInteractOutside={(event) => {
+                            if (
+                              event.target instanceof Element &&
+                              event.target.closest('[data-story-toolbar]')
+                            ) {
+                              // Let readers step through scenes with details open.
+                              event.preventDefault();
+                            }
+                          }}
+                          collisionPadding={12}
+                          className="flex h-[min(720px,var(--radix-popover-content-available-height))] w-[min(360px,var(--radix-popover-content-available-width))] flex-col rounded-xl p-0"
+                        >
+                          <div className="flex shrink-0 items-center justify-between border-b border-workbench-border px-4 py-2">
+                            <h2 className="text-sm font-semibold">剧情详情</h2>
+                            <PopoverClose asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                aria-label="关闭剧情详情"
+                              >
+                                ×
+                              </Button>
+                            </PopoverClose>
+                          </div>
+                          <StoryDrawer
+                            aiConfigured={ai?.aiConfigured}
+                            onConfigureAi={ai?.openSettings}
+                            playback={story}
+                            dirty={state.dirty}
+                            externalConflict={
+                              state.dirty && state.externalChangeAt !== null
+                            }
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </>
+                  ),
+                }
+              : {
+                  storyActive: false,
+                  canPlay: canPlayStory,
+                  onOpenStory: openStory,
+                })}
           />
         ) : null}
 
@@ -1119,7 +1144,8 @@ const EditorWorkspace = ({
             onPlay={(flow) => {
               story.selectFlow(flow);
               story.setSkipAi(true);
-              workspaceView.setMode('story');
+              workspaceView.returnToGraph();
+              setStoryOpen(true);
               setScenarioOpen(false);
             }}
           />

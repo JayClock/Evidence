@@ -10,8 +10,11 @@ import {
   installDesktopApi,
   projectSummary,
 } from '@evidence-poc/desktop-testing/desktopApi';
-import { storyFlow, storyResult } from '@evidence-poc/desktop-testing/story';
-import { createDesktopFixture } from '@evidence-poc/desktop-testing';
+import {
+  createDesktopStoryFixture,
+  storyFlow,
+  storyResult,
+} from '@evidence-poc/desktop-testing/story';
 import type { AiConfigStatus } from '@evidence-poc/desktop-contracts/aiConfig';
 import { AiConfigurationProvider } from './AiConfiguration';
 import { EditorScreen } from '../screens/EditorScreen';
@@ -21,7 +24,7 @@ const setup = async () => {
     openResult: {
       success: true,
       project: projectSummary(),
-      document: createDesktopFixture(),
+      document: createDesktopStoryFixture(),
       issues: [],
     },
   });
@@ -46,9 +49,6 @@ const setup = async () => {
     </AiConfigurationProvider>,
   );
   await screen.findByRole('button', { name: '配置大模型' });
-  await waitFor(() =>
-    expect(screen.queryByText('正在计算画布布局…')).toBeNull(),
-  );
   return { api, publishStatus };
 };
 
@@ -89,7 +89,7 @@ describe('Pi model onboarding integration', () => {
     const { api } = await setup();
     api.story.listFlows = async () => [storyFlow()];
     api.story.project = vi.fn(async () => storyResult());
-    fireEvent.click(screen.getByRole('button', { name: /业务流放映/ }));
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
     await waitFor(() =>
       expect(api.story.project).toHaveBeenCalledWith(
         expect.objectContaining({ skipAi: true }),

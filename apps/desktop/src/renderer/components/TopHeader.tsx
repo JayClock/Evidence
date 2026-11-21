@@ -28,7 +28,6 @@ interface TopHeaderProps {
   /** Opens the command hub for editor actions and navigation. */
   onOpenCommandPalette: () => void;
   ledgerExport?: { enabled: boolean; onExport: () => void } | undefined;
-  storyHeader?: { title: string; onExit: () => void } | undefined;
 }
 
 /**
@@ -46,12 +45,9 @@ export const TopHeader = ({
   onSave,
   onOpenCommandPalette,
   ledgerExport,
-  storyHeader,
 }: TopHeaderProps) => {
   const ledgerActive = ledgerExport !== undefined;
-  const storyTitle = storyHeader?.title;
   const breadcrumb = useMemo(() => {
-    if (storyTitle !== undefined) return { trail: [], name: storyTitle };
     if (ledgerActive) {
       return { trail: [], name: '领域总台账 (Domain Model Ledger)' };
     }
@@ -74,7 +70,7 @@ export const TopHeader = ({
       trail: path.map((context) => context.label),
       name: `${entity.label} (${ENTITY_CATEGORY_LABELS[entity.category]})`,
     };
-  }, [graph, ledgerActive, selection.nodeId, storyTitle]);
+  }, [graph, ledgerActive, selection.nodeId]);
 
   return (
     <header
@@ -126,20 +122,11 @@ export const TopHeader = ({
           导出 CSV
         </Button>
       ) : null}
-      {storyHeader ? (
-        <Button
-          className="evidence-no-drag"
-          onClick={storyHeader.onExit}
-          aria-keyshortcuts="Escape"
-        >
-          退出放映 <kbd aria-hidden="true">Esc</kbd>
-        </Button>
-      ) : null}
       <div
-        hidden={ledgerActive || storyHeader !== undefined}
+        hidden={ledgerActive}
         className={cn(
           'evidence-no-drag shrink-0 items-center gap-2',
-          !ledgerActive && !storyHeader && 'flex',
+          !ledgerActive && 'flex',
         )}
       >
         <TooltipProvider>
