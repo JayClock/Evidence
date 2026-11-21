@@ -1,32 +1,32 @@
 // Upstream registry source: https://r.assistant-ui.com/thread.json
-"use client";
+'use client';
 
 import {
   ComposerAddAttachment,
   ComposerAttachments,
   UserMessageAttachments,
-} from "./attachment.aui";
-import { File, getFileHref } from "./file";
-import { ThreadFollowupSuggestions } from "./follow-up-suggestions.aui";
-import { Image } from "./image";
-import { MarkdownText } from "./markdown-text";
+} from './attachment.aui';
+import { File, getFileHref } from './file';
+import { ThreadFollowupSuggestions } from './follow-up-suggestions.aui';
+import { Image } from './image';
+import { MarkdownText } from './markdown-text';
 import {
   Reasoning,
   ReasoningContent,
   ReasoningRoot,
   ReasoningText,
   ReasoningTrigger,
-} from "./reasoning.aui";
-import { ToolFallback } from "./tool-fallback.aui";
+} from './reasoning.aui';
+import { ToolFallback } from './tool-fallback.aui';
 import {
   ToolGroupContent,
   ToolGroupRoot,
   ToolGroupTrigger,
-} from "./tool-group.aui";
-import { TooltipIconButton } from "./tooltip-icon-button";
-import { Button } from "@evidence-poc/desktop-ui-kit";
-import { Skeleton } from "../ui/skeleton";
-import { cn } from "@evidence-poc/desktop-ui-kit";
+} from './tool-group.aui';
+import { TooltipIconButton } from './tooltip-icon-button';
+import { Button } from '@evidence-poc/desktop-ui-kit';
+import { Skeleton } from '../ui/skeleton';
+import { cn } from '@evidence-poc/desktop-ui-kit';
 import {
   ActionBarMorePrimitive,
   ActionBarPrimitive,
@@ -44,7 +44,7 @@ import {
   type TextMessagePartComponent,
   type ToolCallMessagePartComponent,
   useAuiState,
-} from "@assistant-ui/react";
+} from '@assistant-ui/react';
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -65,7 +65,7 @@ import {
   PlayIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   createContext,
   useContext,
@@ -75,7 +75,7 @@ import {
   type ComponentType,
   type FC,
   type PropsWithChildren,
-} from "react";
+} from 'react';
 
 export type ThreadGroupPart = MessagePrimitive.GroupedParts.GroupPart;
 
@@ -93,7 +93,7 @@ const DefaultToolGroup: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
     >
       <ToolGroupTrigger
         count={group.indices.length}
-        active={group.status.type === "running"}
+        active={group.status.type === 'running'}
       />
       <ToolGroupContent>{children}</ToolGroupContent>
     </ToolGroupRoot>
@@ -101,9 +101,9 @@ const DefaultToolGroup: FC<PropsWithChildren<{ group: ThreadGroupPart }>> = ({
 };
 
 const shouldShowComposerResume = (s: AssistantState) =>
-  !!s.thread.canResume && s.composer.type === "thread" && s.composer.isEmpty;
+  !!s.thread.canResume && s.composer.type === 'thread' && s.composer.isEmpty;
 
-const reasoningDuration = (timing: ThreadGroupPart["timing"]) =>
+const reasoningDuration = (timing: ThreadGroupPart['timing']) =>
   timing?.completedAt === undefined
     ? undefined
     : Math.round((timing.completedAt - timing.startedAt) / 1000);
@@ -134,20 +134,20 @@ export type ThreadComponents = {
 };
 
 const messageGroupBy = groupPartByType({
-  reasoning: ["group-chainOfThought", "group-reasoning"],
-  "tool-call": ["group-chainOfThought", "group-tool"],
-  "standalone-tool-call": [],
+  reasoning: ['group-chainOfThought', 'group-reasoning'],
+  'tool-call': ['group-chainOfThought', 'group-tool'],
+  'standalone-tool-call': [],
 });
 
 type ThreadGroupKey =
-  | "group-chainOfThought"
-  | "group-reasoning"
-  | "group-tool"
-  | "group-task";
+  | 'group-chainOfThought'
+  | 'group-reasoning'
+  | 'group-tool'
+  | 'group-task';
 
 const TASK_GROUP_PATH: readonly ThreadGroupKey[] = [
-  "group-chainOfThought",
-  "group-task",
+  'group-chainOfThought',
+  'group-task',
 ];
 
 const taskAwareGroupBy = (
@@ -155,7 +155,7 @@ const taskAwareGroupBy = (
   context?: Parameters<typeof messageGroupBy>[1],
 ): readonly ThreadGroupKey[] => {
   const path = messageGroupBy(part, context);
-  return part.type === "tool-call" &&
+  return part.type === 'tool-call' &&
     part.messages !== undefined &&
     path.length > 0 &&
     !context?.toolUIs?.[part.toolName]?.length
@@ -228,24 +228,24 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({
 
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root bg-background @container flex h-full flex-col"
+      className="aui-root aui-thread-root bg-background @container flex min-h-0 flex-1 flex-col"
       style={{
-        ["--thread-max-width" as string]: "44rem",
-        ["--composer-bg" as string]:
-          "color-mix(in oklab, var(--color-muted) 30%, transparent)",
-        ["--composer-radius" as string]: "1rem",
-        ["--composer-padding" as string]: "8px",
+        ['--thread-max-width' as string]: '44rem',
+        ['--composer-bg' as string]:
+          'color-mix(in oklab, var(--color-muted) 30%, transparent)',
+        ['--composer-radius' as string]: '1rem',
+        ['--composer-padding' as string]: '8px',
       }}
     >
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
+        className="relative flex min-h-0 flex-1 flex-col overflow-auto overscroll-contain scroll-smooth"
       >
         <div
           className={cn(
-            "mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4",
-            isEmpty && "justify-center",
+            'mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4',
+            isEmpty && 'justify-center',
           )}
         >
           <AuiIf condition={isNewChatView}>
@@ -268,9 +268,9 @@ const ThreadRoot: FC<{ isEmpty: boolean; autoFocus: boolean }> = ({
 
           <ThreadPrimitive.ViewportFooter
             className={cn(
-              "aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6",
+              'aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6',
               !isEmpty &&
-                "sticky bottom-0 mt-auto rounded-t-(--composer-radius)",
+                'sticky bottom-0 mt-auto rounded-t-(--composer-radius)',
             )}
           >
             <ThreadScrollToBottom />
@@ -291,24 +291,24 @@ const ThreadMessage: FC = () => {
     useContext(ThreadComponentsContext);
   const role = useAuiState((s) => s.message.role);
   const isEditing = useAuiState((s) => s.message.composer.isEditing);
-  const isSpoken = useAuiState((s) => s.message.metadata.modality === "voice");
+  const isSpoken = useAuiState((s) => s.message.metadata.modality === 'voice');
 
   if (isEditing) return <EditComposer />;
   if (isSpoken) return <SpokenMessage />;
-  if (role === "user") return <UserMessage />;
+  if (role === 'user') return <UserMessage />;
   return <AssistantMessageComponent />;
 };
 
-type VoiceRunPosition = "single" | "start" | "middle" | "end";
+type VoiceRunPosition = 'single' | 'start' | 'middle' | 'end';
 
 const useVoiceRunPosition = (): VoiceRunPosition =>
   useAuiState((s) => {
     const before =
-      s.thread.messages[s.message.index - 1]?.metadata.modality === "voice";
+      s.thread.messages[s.message.index - 1]?.metadata.modality === 'voice';
     const after =
-      s.thread.messages[s.message.index + 1]?.metadata.modality === "voice";
-    if (before) return after ? "middle" : "end";
-    return after ? "start" : "single";
+      s.thread.messages[s.message.index + 1]?.metadata.modality === 'voice';
+    if (before) return after ? 'middle' : 'end';
+    return after ? 'start' : 'single';
   });
 
 const SpokenText: TextMessagePartComponent = ({ text }) => (
@@ -320,9 +320,9 @@ const SpokenMessage: FC = () => {
   const position = useVoiceRunPosition();
   const isSpeaking = useAuiState(
     (s) =>
-      s.message.role === "assistant" && s.message.status?.type === "running",
+      s.message.role === 'assistant' && s.message.status?.type === 'running',
   );
-  const opensExchange = position === "start" || position === "single";
+  const opensExchange = position === 'start' || position === 'single';
 
   return (
     <MessagePrimitive.Root
@@ -330,11 +330,11 @@ const SpokenMessage: FC = () => {
       data-role={role}
       data-voice-run={position}
       className={cn(
-        "aui-spoken-message bg-muted/40 mx-2 px-3 py-1.5 [contain-intrinsic-size:auto_48px] [content-visibility:auto]",
-        position === "single" && "rounded-xl py-2",
-        position === "start" && "rounded-t-xl pt-2",
-        position === "middle" && "-mt-6",
-        position === "end" && "-mt-6 rounded-b-xl pb-2",
+        'aui-spoken-message bg-muted/40 mx-2 px-3 py-1.5 [contain-intrinsic-size:auto_48px] [content-visibility:auto]',
+        position === 'single' && 'rounded-xl py-2',
+        position === 'start' && 'rounded-t-xl pt-2',
+        position === 'middle' && '-mt-6',
+        position === 'end' && '-mt-6 rounded-b-xl pb-2',
       )}
     >
       {opensExchange && (
@@ -351,14 +351,14 @@ const SpokenMessage: FC = () => {
         className="text-foreground flex items-start gap-2 text-sm leading-relaxed"
       >
         <span className="text-muted-foreground mt-1 shrink-0" aria-hidden>
-          {role === "user" ? (
+          {role === 'user' ? (
             <MicIcon className="size-3.5" />
           ) : (
             <AudioLinesIcon className="size-3.5" />
           )}
         </span>
         <span className="sr-only">
-          {role === "user" ? "You said" : "Assistant said"}
+          {role === 'user' ? 'You said' : 'Assistant said'}
         </span>
         <div className="min-w-0 flex-1 wrap-break-word">
           <MessagePrimitive.Parts components={{ Text: SpokenText }} />
@@ -446,7 +446,7 @@ const ThreadLoadEarlier: FC = () => {
       }}
     >
       <span role="status" className="sr-only">
-        {loading ? "Loading earlier messages" : ""}
+        {loading ? 'Loading earlier messages' : ''}
       </span>
       {visible && (
         <ThreadPrimitive.LoadEarlier asChild>
@@ -457,9 +457,9 @@ const ThreadLoadEarlier: FC = () => {
             className="aui-thread-load-earlier text-muted-foreground mb-6 self-center rounded-full"
           >
             <span
-              className={cn(loading && "shimmer motion-reduce:animate-none")}
+              className={cn(loading && 'shimmer motion-reduce:animate-none')}
             >
-              {loading ? "Loading earlier messages" : "Load earlier messages"}
+              {loading ? 'Loading earlier messages' : 'Load earlier messages'}
             </span>
           </Button>
         </ThreadPrimitive.LoadEarlier>
@@ -514,10 +514,10 @@ const ThreadSuggestionItem: FC = () => {
             aria-hidden
             className="text-muted-foreground/60 group-hover:text-foreground font-mono text-xs transition-colors motion-reduce:transition-none"
           >
-            {">"}
+            {'>'}
           </span>
           <span className="min-w-0 flex-1 truncate">
-            <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1 text-foreground" />{" "}
+            <SuggestionPrimitive.Title className="aui-thread-welcome-suggestion-text-1 text-foreground" />{' '}
             <SuggestionPrimitive.Description className="aui-thread-welcome-suggestion-text-2 text-muted-foreground empty:hidden" />
           </span>
         </button>
@@ -652,7 +652,7 @@ const ComposerAction: FC = () => {
               variant="default"
               size="icon"
               className="aui-composer-cancel size-7 rounded-full"
-              aria-label={isSending ? "取消发送" : "停止"}
+              aria-label={isSending ? '取消发送' : '停止'}
             >
               <SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" />
             </Button>
@@ -704,7 +704,7 @@ const AssistantMessage: FC = () => {
   } = useContext(ThreadComponentsContext);
   const groupBy = TaskGroupComponent ? taskAwareGroupBy : messageGroupBy;
 
-  const ACTION_BAR_PT = "pt-1.5";
+  const ACTION_BAR_PT = 'pt-1.5';
   // Keep the action bar inside the contained root's paint box, then cancel its reserved space in flow.
   const ACTION_BAR_HEIGHT = `min-h-7.5 ${ACTION_BAR_PT}`;
 
@@ -721,28 +721,28 @@ const AssistantMessage: FC = () => {
         <MessagePrimitive.GroupedParts groupBy={groupBy}>
           {({ part, children }) => {
             switch (part.type) {
-              case "group-chainOfThought":
+              case 'group-chainOfThought':
                 return <div data-slot="aui_chain-of-thought">{children}</div>;
-              case "group-task":
+              case 'group-task':
                 return TaskGroupComponent ? (
                   <TaskGroupComponent group={part} />
                 ) : null;
-              case "group-tool":
+              case 'group-tool':
                 if (ToolGroup) {
                   return <ToolGroup group={part}>{children}</ToolGroup>;
                 }
                 return (
                   <DefaultToolGroup group={part}>{children}</DefaultToolGroup>
                 );
-              case "group-reasoning": {
+              case 'group-reasoning': {
                 if (ReasoningGroup) {
                   return (
                     <ReasoningGroup group={part}>{children}</ReasoningGroup>
                   );
                 }
-                const running = part.status.type === "running";
+                const running = part.status.type === 'running';
                 return (
-                  <ReasoningRoot streaming={running}>
+                  <ReasoningRoot variant="ghost" streaming={running}>
                     <ReasoningTrigger
                       active={running}
                       duration={reasoningDuration(part.timing)}
@@ -753,34 +753,34 @@ const AssistantMessage: FC = () => {
                   </ReasoningRoot>
                 );
               }
-              case "text":
+              case 'text':
                 return <MarkdownText />;
-              case "reasoning":
+              case 'reasoning':
                 return <Reasoning {...part} />;
-              case "tool-call":
+              case 'tool-call':
                 return part.toolUI ?? <ToolFallbackComponent {...part} />;
-              case "data":
+              case 'data':
                 return part.dataRendererUI;
-              case "file":
+              case 'file':
                 return (
                   <div data-slot="aui_assistant-message-file" className="py-1">
                     <MessageFile {...part} />
                   </div>
                 );
-              case "image":
+              case 'image':
                 return (
                   <div data-slot="aui_assistant-message-image" className="py-1">
                     <Image {...part} />
                   </div>
                 );
-              case "indicator":
+              case 'indicator':
                 return (
                   <span
                     data-slot="aui_assistant-message-indicator"
                     className="animate-pulse font-sans"
                     aria-label="Assistant is working"
                   >
-                    {"●"}
+                    {'●'}
                   </span>
                 );
               default:
@@ -793,7 +793,7 @@ const AssistantMessage: FC = () => {
 
       <div
         data-slot="aui_assistant-message-footer"
-        className={cn("ms-2 flex items-center", ACTION_BAR_HEIGHT)}
+        className={cn('ms-2 flex items-center', ACTION_BAR_HEIGHT)}
       >
         <BranchPicker />
         <AssistantActionBar />
@@ -871,9 +871,9 @@ const AssistantActionBar: FC = () => {
 
 const MessageFile: FileMessagePartComponent = (part) => {
   const image =
-    typeof part.mimeType === "string" &&
-    typeof part.data === "string" &&
-    part.mimeType.toLowerCase().startsWith("image/")
+    typeof part.mimeType === 'string' &&
+    typeof part.data === 'string' &&
+    part.mimeType.toLowerCase().startsWith('image/')
       ? getFileHref(part.data, part.mimeType, part.sourceType)
       : null;
   if (!image) return <File {...part} />;
@@ -882,7 +882,7 @@ const MessageFile: FileMessagePartComponent = (part) => {
       type="image"
       image={image}
       status={part.status}
-      {...(typeof part.filename === "string" && { filename: part.filename })}
+      {...(typeof part.filename === 'string' && { filename: part.filename })}
     />
   );
 };
@@ -979,7 +979,7 @@ const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
     <BranchPickerPrimitive.Root
       hideWhenSingleBranch
       className={cn(
-        "aui-branch-picker-root text-muted-foreground -ms-2 me-2 inline-flex items-center text-xs",
+        'aui-branch-picker-root text-muted-foreground -ms-2 me-2 inline-flex items-center text-xs',
         className,
       )}
       {...rest}

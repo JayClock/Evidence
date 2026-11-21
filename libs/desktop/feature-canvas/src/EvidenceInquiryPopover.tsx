@@ -143,7 +143,7 @@ export const EvidenceInquiryPopover = ({
               </Button>
             </PopoverClose>
           </div>
-          <div className="min-h-0 flex-1">{inquiry.content}</div>
+          <div className="flex min-h-0 flex-1 flex-col">{inquiry.content}</div>
         </PopoverContent>
       ) : null}
     </Popover>

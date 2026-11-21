@@ -57,7 +57,13 @@ describe('EvidenceAgentThread', () => {
     expect(screen.getByText('网页')).not.toHaveAttribute('href');
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(view.container.querySelector('mark')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Reasoning/ }));
+    const reasoning = screen.getByRole('button', { name: /Reasoning/ });
+    expect(reasoning.closest('[data-slot="reasoning-root"]')).toHaveAttribute(
+      'data-variant',
+      'ghost',
+    );
+    expect(reasoning).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(reasoning);
     expect(await screen.findByText('对照台账')).toBeVisible();
     const toolGroup = view.container.querySelector<HTMLElement>(
       '[data-slot="tool-group-trigger"]',
