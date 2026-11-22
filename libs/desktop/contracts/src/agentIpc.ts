@@ -35,13 +35,16 @@ export interface AgentProjectInput {
   rootPath: string;
 }
 
+/** Inquiry kind for in-place co-creation turns. */
+export type AgentInquiryKind = 'trace' | 'what-if';
+
 /** An explicit null node starts a canvas-wide turn without inheriting selection. */
 export type AgentTurnFocus =
   | { nodeId: null; inquiry?: never }
   | {
       nodeId: string;
-      /** Opening a sourcing or What-If question is a read-only turn. */
-      inquiry?: 'trace' | 'what-if';
+      /** Opening a sourcing clarification or What-If question pins the turn to the node. */
+      inquiry?: AgentInquiryKind;
     };
 
 export interface AgentSteerInput extends AgentProjectInput {
@@ -78,6 +81,7 @@ export interface PatchTransaction {
   readonly commands: readonly string[];
   readonly patches: readonly JsonPatchOperation[];
   readonly inversePatches: readonly JsonPatchOperation[];
+  readonly focusNodeId?: string;
 }
 
 export interface PatchCommittedPayload {
