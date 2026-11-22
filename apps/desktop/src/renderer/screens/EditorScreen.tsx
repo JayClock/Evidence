@@ -488,7 +488,7 @@ const EditorWorkspace = ({
     closeStory();
     workspaceView.returnToGraph();
     const result = await agent.submit(
-      '请从以下业务场景提取有依据的业务记录，按邀请投标、投标、签约、履约归类，使用 batch_add_evidence_stubs 批量铺设凭证。引用原文，提取已知的关键数据与时标语义，未知的留空，不强行补齐阶段。\n\n业务场景：\n' +
+      '请从以下业务场景提取有依据的业务记录，按邀请投标、投标、签约、履约归类，使用 batch_add_evidence_stubs 批量铺设凭证。只写业务事实，不记录资料出处和摘录；未知留空，不强行补齐阶段。\n\n业务场景：\n' +
         text,
       { nodeId: null },
     );
@@ -559,7 +559,7 @@ const EditorWorkspace = ({
     if (ai?.aiConfigured === false) return;
     const question =
       kind === 'trace'
-        ? '先问我这张凭证最关键的待决数据项从哪里来；有来源的不要重复问。若没有关键数据项，先问这张凭证记录了哪些关键事实。'
+        ? '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题。优先确认这张凭证回应了什么、谁向谁主张什么或什么算交付；不要重复问已知信息。'
         : '针对这张凭证关联的履约对，提出一个与现有约定最相关的 What-If 问题（例如超时、拒绝或中止）。如果有多个请求，先问我推演哪一项。不要假定补偿措施。';
     void agent.submit(question, { nodeId, inquiry: kind });
   };

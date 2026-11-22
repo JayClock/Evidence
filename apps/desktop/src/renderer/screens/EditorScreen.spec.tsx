@@ -43,7 +43,12 @@ const readyProject = (document = createDesktopFixture()) =>
 const readyCanvas = () => screen.findByText('业务旅程画布');
 
 describe('EditorScreen', () => {
-  it('keeps journey geometry, selection and camera when toggling the ledger', async () => {
+  it('keeps journey geometry, selection and camera when toggling the ledger', async ({
+    onTestFinished,
+  }) => {
+    onTestFinished(() => {
+      vi.unstubAllGlobals();
+    });
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query.includes('prefers-reduced-motion'),
       addListener: () => undefined,
@@ -83,7 +88,6 @@ describe('EditorScreen', () => {
       container.querySelector('[data-node-id="evidence.request"]'),
     ).toHaveClass('ring-2');
     expect(api.calls.save).toEqual([]);
-    vi.unstubAllGlobals();
   });
 
   it('opens swimlanes and saves a scenario into the story pipeline', async () => {
@@ -197,7 +201,7 @@ describe('EditorScreen', () => {
     expect(contract).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('opens a read-only sourcing turn beside the exact evidence card', async () => {
+  it('opens a read-only clarification turn beside the exact evidence card', async () => {
     const api = readyProject();
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
@@ -215,7 +219,7 @@ describe('EditorScreen', () => {
       expect(api.calls.prompt).toEqual([
         expect.objectContaining({
           focus: { nodeId: 'evidence.request', inquiry: 'trace' },
-          text: expect.stringContaining('待决数据项'),
+          text: expect.stringContaining('谁向谁主张什么'),
         }),
       ]),
     );
@@ -292,13 +296,15 @@ describe('EditorScreen', () => {
     };
     const example =
       '买家发出询价，摊主报价 20 元，双方订立口头合同，买家完成付款。';
-    const sourcedFromRequest = '金额由买方在付款申请中填写。';
+    const confirmedPayment =
+      '卖方向买方发起付款主张，到账回执确认完成。确认金额沿用请求上的金额，请补齐这项履约。';
     const remedyCondition = '超时之后按约定启动退款。';
     const prompt = api.agent.prompt;
     api.agent.prompt = async (input) => {
       const result = prompt(input);
       if (input.focus?.nodeId === null) {
         expect(input.text).toContain('batch_add_evidence_stubs');
+        expect(input.text).toContain('不记录资料出处和摘录');
         expect(input.text).toContain(example);
         apply('头脑风暴', (draft) =>
           batchAddEvidenceMutator(draft, {
@@ -331,9 +337,10 @@ describe('EditorScreen', () => {
           }),
         );
       } else if (input.focus?.inquiry === 'trace') {
+        expect(input.text).toContain('谁向谁主张什么');
         api.agentMock.emitEvent({
           type: 'assistant-message',
-          parts: [{ type: 'text', text: '**实付金额**来自哪里？' }],
+          parts: [{ type: 'text', text: '**谁向谁主张付款**？' }],
           done: true,
         });
       } else if (input.focus?.inquiry === 'what-if') {
@@ -342,8 +349,8 @@ describe('EditorScreen', () => {
           parts: [{ type: 'text', text: '如果买方超时未付款怎么办？' }],
           done: true,
         });
-      } else if (input.text === sourcedFromRequest) {
-        apply('溯源并配对', (draft) =>
+      } else if (input.text === confirmedPayment) {
+        apply('澄清并配对', (draft) =>
           splitEvidenceToPairMutator(draft, {
             evidenceRef: 'evidence.payment',
             request: {
@@ -415,7 +422,9 @@ describe('EditorScreen', () => {
       name: '核心要素依据：付款凭证',
     });
     expect(
-      await within(sourcing).findByText('实付金额', { selector: 'strong' }),
+      await within(sourcing).findByText('谁向谁主张付款', {
+        selector: 'strong',
+      }),
     ).toBeVisible();
     const answer = async (dialog: HTMLElement, text: string) => {
       const panel = within(dialog);
@@ -426,7 +435,7 @@ describe('EditorScreen', () => {
       await waitFor(() => expect(send).toBeEnabled());
       fireEvent.click(send);
     };
-    await answer(sourcing, sourcedFromRequest);
+    await answer(sourcing, confirmedPayment);
 
     const request = await screen.findByRole('button', {
       name: '查依据：付款申请',

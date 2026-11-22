@@ -552,7 +552,7 @@ describe('agent patch transport', () => {
           '【凭证焦点：evidence.confirmation】',
         );
         expect(fake.prompts[0]).toContain(
-          inquiry === 'trace' ? '只读节点溯源' : '只读异常探问',
+          inquiry === 'trace' ? '只读节点澄清' : '只读异常探问',
         );
         expect(patches).toEqual([]);
         await runtime.prompt('确认更改', { nodeId: 'evidence.confirmation' });

@@ -325,7 +325,7 @@ export const createAgentRuntime = ({
         const prefix = nodeId === null ? '' : `【凭证焦点：${nodeId}】\n`;
         const inquiry =
           focus?.inquiry === 'trace'
-            ? '本轮任务：只读节点溯源。'
+            ? '本轮任务：只读节点澄清。'
             : focus?.inquiry === 'what-if'
               ? '本轮任务：只读异常探问。'
               : '';
