@@ -747,6 +747,33 @@ const validateRelationships = (
     const evidenceToThing =
       source.category === 'evidence' &&
       signatureOf(target) === 'participant.thing';
+    const proposalAnswersRfp =
+      signatureOf(source) === 'evidence.proposal' &&
+      signatureOf(target) === 'evidence.rfp';
+    if (proposalAnswersRfp) {
+      if (sourceContext !== targetContext) {
+        addIssue(
+          ctx,
+          'relationship.references.crossContext',
+          path,
+          'Proposal and RFP must share one Pre-contract Context or both be unassigned.',
+          relationship.id,
+        );
+      }
+      if (
+        relationship.flowKind !== undefined &&
+        relationship.flowKind !== 'primary'
+      ) {
+        addIssue(
+          ctx,
+          'relationship.references.endpoints',
+          path,
+          'A Proposal can answer an RFP, but is not a breach response.',
+          relationship.id,
+        );
+      }
+      continue;
+    }
     const sameContractRequired =
       (signatureOf(source) === 'evidence.fulfillment_confirmation' &&
         signatureOf(target) === 'evidence.fulfillment_request') ||
