@@ -11,7 +11,6 @@ export type EvidenceInquiryKind = 'trace' | 'what-if';
 
 export interface CanvasEvidenceInquiry {
   target: { nodeId: string; kind: EvidenceInquiryKind } | null;
-  pairedNodeIds: ReadonlySet<string>;
   busy: boolean;
   onOpen: (nodeId: string, kind: EvidenceInquiryKind) => void;
   onClose: (nodeId: string) => void;
@@ -72,10 +71,8 @@ export const EvidenceInquiryPopover = ({
             data-evidence-capture-hide=""
             className="nodrag nopan absolute right-2 bottom-1 flex gap-1"
           >
-            {action('trace', '查依据')}
-            {inquiry.pairedNodeIds.has(nodeId)
-              ? action('what-if', 'What-If')
-              : null}
+            {action('trace', '澄清权责')}
+            {action('what-if', '推演异常')}
           </div>
         </div>
       </PopoverAnchor>
@@ -135,7 +132,7 @@ export const EvidenceInquiryPopover = ({
         >
           <div className="flex shrink-0 items-center justify-between gap-2 border-b border-workbench-border px-3 py-1.5">
             <span id={titleId} className="truncate text-xs font-semibold">
-              {active === 'trace' ? '核心要素依据' : 'What-If 异常履约'}：
+              {active === 'trace' ? '权责与交付澄清' : 'What-If 异常推演'}：
               {label}
             </span>
             <PopoverClose asChild>

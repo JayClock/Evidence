@@ -8,6 +8,8 @@ const mount = (messages: PiConversation['messages']) => {
   const view = render(
     <EvidenceAgentThread
       nodeId="evidence.payment"
+      inquiry="trace"
+      canExploreVariation
       conversation={{
         messages,
         running: false,
@@ -81,6 +83,16 @@ describe('EvidenceAgentThread', () => {
     fireEvent.click(screen.getByRole('button', { name: '发送' }));
     expect(submit).toHaveBeenCalledExactlyOnceWith('业务问题', {
       nodeId: 'evidence.payment',
+      inquiry: 'trace',
     });
+  });
+
+  it('opens a focused conversation about a variation without requesting a write', () => {
+    const { submit } = mount([]);
+    fireEvent.click(screen.getByRole('button', { name: '识别变化点' }));
+    expect(submit).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('不创建角色或修改模型'),
+      { nodeId: 'evidence.payment', inquiry: 'trace' },
+    );
   });
 });

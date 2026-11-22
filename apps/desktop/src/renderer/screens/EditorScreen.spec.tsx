@@ -201,17 +201,17 @@ describe('EditorScreen', () => {
     expect(contract).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('opens a read-only clarification turn beside the exact evidence card', async () => {
+  it('opens a clarification question beside the exact evidence card', async () => {
     const api = readyProject();
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     const trace = await screen.findByRole('button', {
-      name: /^查依据：交付请求/,
+      name: /^澄清权责：交付请求/,
     });
     trace.focus();
     fireEvent.click(trace);
     const dialog = await screen.findByRole('dialog', {
-      name: /^核心要素依据：交付请求/,
+      name: /^权责与交付澄清：交付请求/,
     });
     expect(trace).toHaveAttribute('aria-expanded', 'true');
     expect(within(dialog).getByLabelText('访谈内容')).toHaveFocus();
@@ -228,26 +228,31 @@ describe('EditorScreen', () => {
     expect(api.calls.save).toEqual([]);
   });
 
-  it('offers What-If only for a paired card and pins the follow-up to that evidence', async () => {
-    const api = readyProject();
+  it('opens What-If from an unpaired card and pins the follow-up to that evidence', async () => {
+    const document = createDesktopFixture();
+    document.entities.push({
+      type: 'entity',
+      category: 'evidence',
+      kind: 'other_evidence',
+      id: 'evidence.unpaired',
+      label: '到货记录',
+    });
+    const api = readyProject(document);
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
-    expect(
-      screen.queryByRole('button', { name: /^What-If：采购协议/ }),
-    ).toBeNull();
     fireEvent.click(
-      await screen.findByRole('button', { name: /^What-If：交付确认/ }),
+      await screen.findByRole('button', { name: '推演异常：到货记录' }),
     );
     const dialog = within(
-      await screen.findByRole('dialog', {
-        name: /^What-If 异常履约：交付确认/,
-      }),
+      await screen.findByRole('dialog', { name: 'What-If 异常推演：到货记录' }),
     );
     await waitFor(() =>
-      expect(api.calls.prompt[0]?.focus).toEqual({
-        nodeId: 'evidence.confirmation',
-        inquiry: 'what-if',
-      }),
+      expect(api.calls.prompt[0]).toEqual(
+        expect.objectContaining({
+          focus: { nodeId: 'evidence.unpaired', inquiry: 'what-if' },
+          text: expect.stringContaining('尚未识别请求'),
+        }),
+      ),
     );
     fireEvent.change(dialog.getByLabelText('访谈内容'), {
       target: { value: '超时则通知采购方。' },
@@ -258,7 +263,8 @@ describe('EditorScreen', () => {
     fireEvent.click(dialog.getByRole('button', { name: '发送' }));
     await waitFor(() =>
       expect(api.calls.prompt[1]?.focus).toEqual({
-        nodeId: 'evidence.confirmation',
+        nodeId: 'evidence.unpaired',
+        inquiry: 'what-if',
       }),
     );
     expect(api.calls.save).toEqual([]);
@@ -336,14 +342,20 @@ describe('EditorScreen', () => {
             ],
           }),
         );
-      } else if (input.focus?.inquiry === 'trace') {
+      } else if (
+        input.focus?.inquiry === 'trace' &&
+        input.text !== confirmedPayment
+      ) {
         expect(input.text).toContain('谁向谁主张什么');
         api.agentMock.emitEvent({
           type: 'assistant-message',
           parts: [{ type: 'text', text: '**谁向谁主张付款**？' }],
           done: true,
         });
-      } else if (input.focus?.inquiry === 'what-if') {
+      } else if (
+        input.focus?.inquiry === 'what-if' &&
+        input.text !== remedyCondition
+      ) {
         api.agentMock.emitEvent({
           type: 'assistant-message',
           parts: [{ type: 'text', text: '如果买方超时未付款怎么办？' }],
@@ -389,11 +401,11 @@ describe('EditorScreen', () => {
     fireEvent.change(scenario, { target: { value: example } });
     fireEvent.keyDown(scenario, { key: 'Enter' });
     const trace = await screen.findByRole('button', {
-      name: '查依据：付款凭证',
+      name: '澄清权责：付款凭证',
     });
     expect(
-      screen.queryByRole('button', { name: 'What-If：付款凭证' }),
-    ).toBeNull();
+      screen.getByRole('button', { name: '推演异常：付款凭证' }),
+    ).toBeInTheDocument();
     expect(api.calls.prompt).toHaveLength(1);
     expect(api.calls.save).toEqual([]);
     await waitFor(() => expect(screen.queryByLabelText('业务场景')).toBeNull());
@@ -419,7 +431,7 @@ describe('EditorScreen', () => {
 
     fireEvent.click(trace);
     const sourcing = await screen.findByRole('dialog', {
-      name: '核心要素依据：付款凭证',
+      name: '权责与交付澄清：付款凭证',
     });
     expect(
       await within(sourcing).findByText('谁向谁主张付款', {
@@ -438,7 +450,7 @@ describe('EditorScreen', () => {
     await answer(sourcing, confirmedPayment);
 
     const request = await screen.findByRole('button', {
-      name: '查依据：付款申请',
+      name: '澄清权责：付款申请',
     });
     expect(request).toBeInTheDocument();
     expect(positionedX('request.payment')).toBeLessThan(
@@ -460,12 +472,12 @@ describe('EditorScreen', () => {
     expect(within(sourcing).queryByLabelText('AI 补丁复核')).toBeNull();
     fireEvent.click(within(sourcing).getByRole('button', { name: '关闭' }));
 
-    fireEvent.click(screen.getByRole('button', { name: 'What-If：付款凭证' }));
+    fireEvent.click(screen.getByRole('button', { name: '推演异常：付款凭证' }));
     const whatIf = await screen.findByRole('dialog', {
-      name: 'What-If 异常履约：付款凭证',
+      name: 'What-If 异常推演：付款凭证',
     });
     expect(
-      screen.queryByRole('button', { name: '查依据：退款确认' }),
+      screen.queryByRole('button', { name: '澄清权责：退款确认' }),
     ).toBeNull();
     expect(
       await within(whatIf).findByText('如果买方超时未付款怎么办？'),
@@ -473,7 +485,7 @@ describe('EditorScreen', () => {
     await answer(whatIf, remedyCondition);
 
     expect(
-      await screen.findByRole('button', { name: '查依据：退款确认' }),
+      await screen.findByRole('button', { name: '澄清权责：退款确认' }),
     ).toBeInTheDocument();
     expect(
       container.querySelector('[data-corridor-kind="remedy_corridor"]'),
@@ -489,9 +501,9 @@ describe('EditorScreen', () => {
     expect(api.calls.prompt.map(({ focus }) => focus)).toEqual([
       { nodeId: null },
       { nodeId: 'evidence.payment', inquiry: 'trace' },
-      { nodeId: 'evidence.payment' },
+      { nodeId: 'evidence.payment', inquiry: 'trace' },
       { nodeId: 'evidence.payment', inquiry: 'what-if' },
-      { nodeId: 'evidence.payment' },
+      { nodeId: 'evidence.payment', inquiry: 'what-if' },
     ]);
     expect(api.calls.save).toEqual([]);
     expect(within(whatIf).getByLabelText('AI 补丁复核')).toBeInTheDocument();

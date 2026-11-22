@@ -518,15 +518,6 @@ const EditorWorkspace = ({
     return true;
   };
 
-  const pairedNodeIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const { request, confirmations } of state.graph.fulfillmentPairs()) {
-      if (confirmations.length === 0) continue;
-      ids.add(request.id);
-      for (const confirmation of confirmations) ids.add(confirmation.id);
-    }
-    return ids;
-  }, [state.graph]);
   const inquiryTarget =
     !storyActive &&
     !ledgerActive &&
@@ -545,12 +536,7 @@ const EditorWorkspace = ({
   }, []);
 
   const openInquiry = (nodeId: string, kind: EvidenceInquiryKind) => {
-    if (
-      agent.running ||
-      patchReview.review !== null ||
-      (kind === 'what-if' && !pairedNodeIds.has(nodeId))
-    )
-      return;
+    if (agent.running || patchReview.review !== null) return;
     if (!isEvidenceEntity(state.graph.getEntity(nodeId))) return;
     state.session.select(nodeId);
     setStormingOpen(false);
@@ -559,8 +545,8 @@ const EditorWorkspace = ({
     if (ai?.aiConfigured === false) return;
     const question =
       kind === 'trace'
-        ? '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题。优先确认这张凭证回应了什么、谁向谁主张什么或什么算交付；不要重复问已知信息。'
-        : '针对这张凭证关联的履约对，提出一个与现有约定最相关的 What-If 问题（例如超时、拒绝或中止）。如果有多个请求，先问我推演哪一项。不要假定补偿措施。';
+        ? '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。'
+        : '请先读这张凭证，提出一个与现有约定最相关的异常问题。若有多个请求，先问我推演哪一项；若尚未识别请求，先问哪项交付没有发生、何时算未按约发生。合同前只探问渠道响应，不假定违约或补偿。本轮只提问，不修改模型。';
     void agent.submit(question, { nodeId, inquiry: kind });
   };
 
@@ -832,7 +818,6 @@ const EditorWorkspace = ({
             ? undefined
             : {
                 target: inquiryTarget,
-                pairedNodeIds,
                 busy: agent.running || patchReview.review !== null,
                 onAcceptPatch:
                   patchReview.review === null ? undefined : acceptPatch,
@@ -846,6 +831,11 @@ const EditorWorkspace = ({
                     <EvidenceAgentThread
                       key={`${inquiryTarget.nodeId}:${inquiryTarget.kind}`}
                       nodeId={inquiryTarget.nodeId}
+                      inquiry={inquiryTarget.kind}
+                      canExploreVariation={
+                        state.graph.getEntity(inquiryTarget.nodeId)?.kind ===
+                        'fulfillment_confirmation'
+                      }
                       conversation={agent}
                       patchReview={patchReview}
                       onFocusEntity={revealOnGraph}

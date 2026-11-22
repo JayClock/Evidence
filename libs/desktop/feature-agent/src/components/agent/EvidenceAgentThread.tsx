@@ -6,6 +6,7 @@ import {
   type ExternalStoreAdapter,
   type ThreadMessageLike,
 } from '@assistant-ui/react';
+import type { AgentInquiryKind } from '@evidence-poc/desktop-contracts/agentIpc';
 import { Button } from '@evidence-poc/desktop-ui-kit';
 import { Thread } from '../../assistant-ui/elements/thread.aui';
 import type { PatchReviewController } from '../../state/usePatchReview';
@@ -44,6 +45,8 @@ const threadComponents = { Welcome: () => null };
 /** The official Thread owns chat rendering; Evidence supplies scope and actions. */
 export const EvidenceAgentThread = ({
   nodeId,
+  inquiry,
+  canExploreVariation = false,
   conversation,
   patchReview,
   onFocusEntity,
@@ -51,6 +54,8 @@ export const EvidenceAgentThread = ({
   onConfigureAi,
 }: {
   nodeId: string;
+  inquiry: AgentInquiryKind;
+  canExploreVariation?: boolean;
   conversation: PiConversation;
   patchReview: PatchReviewController;
   onFocusEntity: (id: string) => void;
@@ -78,9 +83,9 @@ export const EvidenceAgentThread = ({
       const text = content
         .map((part) => (part.type === 'text' ? part.text : ''))
         .join('');
-      await submit(text, { nodeId });
+      await submit(text, { nodeId, inquiry });
     },
-    [aiConfigured, hasReview, nodeId, submit],
+    [aiConfigured, hasReview, inquiry, nodeId, submit],
   );
   const runtime = useExternalStoreRuntime({
     messages: visibleMessages,
@@ -95,7 +100,7 @@ export const EvidenceAgentThread = ({
     <div className="flex min-h-0 flex-1 flex-col" data-evidence-agent-thread="">
       {!aiConfigured && (
         <div className="flex shrink-0 flex-col items-start gap-2 p-3 text-xs">
-          <p>请先配置大模型，再追溯数据来源或推演履约异常。</p>
+          <p>请先配置大模型，再澄清权责或推演异常。</p>
           <Button
             type="button"
             variant="outline"
@@ -103,6 +108,24 @@ export const EvidenceAgentThread = ({
             onClick={onConfigureAi}
           >
             配置 Pi 模型
+          </Button>
+        </div>
+      )}
+      {aiConfigured && inquiry === 'trace' && canExploreVariation && (
+        <div className="shrink-0 px-3 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            disabled={running || hasReview}
+            onClick={() => {
+              void submit(
+                '请帮我识别这项履约是否存在真实的跨合同协作或可替换的确认方式。先问一个问题，不创建角色或修改模型。',
+                { nodeId, inquiry },
+              );
+            }}
+          >
+            识别变化点
           </Button>
         </div>
       )}
