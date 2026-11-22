@@ -45,12 +45,13 @@ const dedupe = (messages: readonly string[]): string[] => [
 export const buildFmCheckReport = (request: FmCheckRequest): FmCheckOutcome => {
   const { model, scopeRefs } = request;
   const digest = request.modelDigest ?? digestOf(model);
+  const traceability = analyzeTraceability(model);
   const staticErrors = dedupe([
     ...(request.sourceIssues ?? []),
     ...strictValidateDomainModel(model).issues.map(
       (issue) => `${issue.path}: ${issue.message}`,
     ),
-    ...analyzeTraceability(model).errors,
+    ...traceability.errors,
   ]);
   const modelValidated = staticErrors.length === 0;
   let selected: DomainModelDocument | null = null;
@@ -98,7 +99,10 @@ export const buildFmCheckReport = (request: FmCheckRequest): FmCheckOutcome => {
         0,
       ),
       errors,
-      advisories: auditDomainComponentNaming(model),
+      advisories: [
+        ...auditDomainComponentNaming(model),
+        ...traceability.advisories,
+      ],
     },
     selected,
   };

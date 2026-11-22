@@ -11,7 +11,9 @@ import {
  * shortcut in a board a business person has to review. The check report keeps
  * them apart from `errors` so a consistent model can still carry advice.
  */
-export type ModelAdvisoryCode = 'ROLE_DOMAIN_NAME_NOT_ANTHROPOMORPHIC';
+export type ModelAdvisoryCode =
+  | 'ROLE_DOMAIN_NAME_NOT_ANTHROPOMORPHIC'
+  | 'ATTRIBUTE_SOURCE_UNVERIFIED';
 
 export interface ModelAdvisory {
   code: ModelAdvisoryCode;
@@ -19,7 +21,7 @@ export interface ModelAdvisory {
   entityId: string;
   message: string;
   /** A name shape the modeler can adopt without losing meaning. */
-  suggestion: string;
+  suggestion?: string;
 }
 
 /**
@@ -75,7 +77,8 @@ const IMPLEMENTATION_SUFFIXES: readonly {
 const stemOf = (label: string): string => {
   const trimmed = label.trim();
   const suffix = ANTHROPOMORPHIC_SUFFIXES.find(
-    (candidate) => candidate.length < trimmed.length && trimmed.endsWith(candidate),
+    (candidate) =>
+      candidate.length < trimmed.length && trimmed.endsWith(candidate),
   );
 
   return suffix === undefined ? trimmed : trimmed.slice(0, -suffix.length);

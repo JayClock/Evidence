@@ -7,6 +7,7 @@ import {
   isAttributeSourceReference,
   isKeyDataDecisionOwed,
 } from '@evidence-poc/evidence-schema';
+import { inspectAttributeSources } from './attributeSources.js';
 
 /** One modeled input that provides a derived value. */
 export interface KeyDataProvider {
@@ -88,6 +89,7 @@ export const buildKeyDataLedger = (
   document: DomainModelDocument,
 ): KeyDataLedger => {
   const ruleById = new Map(document.rules.map((rule) => [rule.id, rule]));
+  const warnings = inspectAttributeSources(document);
   const counts = emptyCounts();
   const entries: KeyDataEntry[] = [];
 
@@ -97,12 +99,15 @@ export const buildKeyDataLedger = (
         continue;
       }
 
-      const source = classifyKeyDataSource(entity, attribute);
+      const unverified = warnings.has(`${entity.id}#${attribute.name}`);
+      const source = unverified
+        ? 'needs-decision'
+        : classifyKeyDataSource(entity, attribute);
       const rule =
-        attribute.derivedByRuleRef === undefined
+        unverified || attribute.derivedByRuleRef === undefined
           ? undefined
           : ruleById.get(attribute.derivedByRuleRef);
-      const declared = attribute.source;
+      const declared = unverified ? undefined : attribute.source;
       const providers: KeyDataProvider[] =
         rule !== undefined
           ? bindingProviders(rule.bindings)

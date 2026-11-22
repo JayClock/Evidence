@@ -131,20 +131,70 @@ describe('evidence-first authoring', () => {
         }),
       ),
     ).toThrow(/still referenced/);
-    expect(() =>
-      session.mutate((draft) =>
-        updateAttributeMutator(draft, paymentRequest.id, amount.name, {
-          source: {
-            kind: 'preceding-evidence',
-            entityRef: receipt.id,
-            attribute: amount.name,
-          },
+    session.mutate((draft) =>
+      updateAttributeMutator(draft, paymentRequest.id, amount.name, {
+        source: {
+          kind: 'preceding-evidence',
+          entityRef: receipt.id,
+          attribute: amount.name,
+        },
+      }),
+    );
+    const cyclic = session.getDocument();
+    for (const parsed of reload(cyclic)) expect(parsed.issues).toEqual([]);
+    expect(analyzeTraceability(cyclic).document.edges).toEqual([]);
+    expect(buildKeyDataLedger(cyclic).decisionOwed).toHaveLength(2);
+    expect(buildFmCheckReport({ model: cyclic }).report).toMatchObject({
+      consistent: true,
+      advisories: [
+        expect.objectContaining({
+          code: 'ATTRIBUTE_SOURCE_UNVERIFIED',
+          message: expect.stringContaining('cycle'),
         }),
-      ),
-    ).toThrow();
-    expect(session.getDocument()).toBe(after);
+        expect.objectContaining({
+          code: 'ATTRIBUTE_SOURCE_UNVERIFIED',
+          message: expect.stringContaining('cycle'),
+        }),
+      ],
+    });
+    expect(session.undo()).toBe(true);
+    expect(session.getDocument()).toEqual(after);
     expect(session.undo()).toBe(true);
     expect(session.getDocument()).toEqual(before);
+  });
+
+  it('saves an unresolved provider but keeps the key data item pending', () => {
+    const model = createEmptyDomainModel();
+    model.entities.push({
+      ...receipt,
+      attributes: [
+        {
+          name: 'amount',
+          label: '金额',
+          meaning: '实付金额',
+          keyData: true,
+          source: {
+            kind: 'contract-term',
+            entityRef: 'contract.pending',
+            attribute: 'price',
+          },
+        },
+      ],
+    });
+    for (const parsed of reload(model)) expect(parsed.issues).toEqual([]);
+    expect(buildKeyDataLedger(model).decisionOwed[0]).toMatchObject({
+      attribute: 'amount',
+      providers: [],
+    });
+    expect(buildFmCheckReport({ model }).report).toMatchObject({
+      consistent: true,
+      advisories: [
+        expect.objectContaining({
+          code: 'ATTRIBUTE_SOURCE_UNVERIFIED',
+          entityId: receipt.id,
+        }),
+      ],
+    });
   });
 
   it('reports malformed source declarations as errors rather than tracing them', () => {

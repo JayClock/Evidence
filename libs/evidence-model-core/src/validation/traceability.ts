@@ -9,6 +9,8 @@ import {
 import { ParseError, type ASTNode } from '@marcbachmann/cel-js';
 
 import { compileCelExpression } from '../cel/celEvaluator.js';
+import { inspectAttributeSources } from '../keyData/attributeSources.js';
+import type { ModelAdvisory } from './lintRules.js';
 import {
   CEL_COLLECTION_MACROS,
   resolveCelReference,
@@ -245,7 +247,12 @@ const lineageCycleErrors = (edges: readonly TraceabilityEdge[]): string[] => {
  */
 export const analyzeTraceability = (
   model: DomainModelDocument,
-): { document: TraceabilityDocument; errors: readonly string[] } => {
+): {
+  document: TraceabilityDocument;
+  errors: readonly string[];
+  advisories: readonly ModelAdvisory[];
+} => {
+  const sourceWarnings = inspectAttributeSources(model);
   const entities = new Map(
     model.entities.map((entity) => [entity.id, entity] as const),
   );
@@ -354,8 +361,7 @@ export const analyzeTraceability = (
       if (!isAttributeSourceReference(source)) continue;
       const sourcePath = attributePath(source.entityRef, source.attribute);
       const target = attributePath(entity.id, attribute.name);
-      if (!attributesOf(entities.get(source.entityRef)).has(source.attribute))
-        continue;
+      if (sourceWarnings.has(target)) continue;
       accessedPaths.add(sourcePath);
       accessedPaths.add(target);
       edges.push({ source: sourcePath, target, sourceKind: source.kind });
@@ -444,6 +450,7 @@ export const analyzeTraceability = (
   errors.push(...lineageCycleErrors(edges));
 
   return {
+    advisories: [...sourceWarnings.values()],
     document: {
       schemaVersion: '6.0',
       modelId: model.manifest.id,
