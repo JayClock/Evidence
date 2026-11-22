@@ -291,20 +291,12 @@ const InspectorBody = ({
           />
         </section>
       ) : null}
-      <InvariantRulesSection
-        entityId={entity.id}
-        graph={graph}
-        session={session}
-      />
+      <InvariantRulesSection entityId={entity.id} graph={graph} />
       {groups.filter((group) => group.id !== 'general').map(renderGroup)}
       <RelationshipFlowSection entityId={entity.id} graph={graph} />
       {entity.category === 'evidence' &&
       entity.kind === 'fulfillment_request' ? (
-        <FulfillmentPairSection
-          entity={entity}
-          graph={graph}
-          session={session}
-        />
+        <FulfillmentPairSection entity={entity} graph={graph} />
       ) : null}
     </div>
   );
