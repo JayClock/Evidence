@@ -293,6 +293,83 @@ describe('CanvasViewport', () => {
     await waitFor(() => expect(viewportTransform(container)).not.toBe(scoped));
   });
 
+  it.each([
+    { gesture: 'left drag', button: 0 },
+    { gesture: 'middle drag', button: 1 },
+    { gesture: 'right drag', button: 2 },
+    {
+      gesture: 'Shift + left drag',
+      button: 0,
+      key: 'Shift',
+      code: 'ShiftLeft',
+    },
+    { gesture: 'Space + left drag', button: 0, key: ' ', code: 'Space' },
+  ])('pans without selecting on $gesture', async ({ button, key, code }) => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    const { container, onSelect, onClearSelection } = setup({
+      selection: { nodeId: 'evidence.contract', attributeName: null },
+    });
+    const pane = container.querySelector('.react-flow__pane')!;
+    const before = viewportTransform(container);
+    const view = pane.ownerDocument.defaultView!;
+    const mouse = (type: string, clientX: number, clientY: number) => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        button,
+        clientX,
+        clientY,
+        shiftKey: key === 'Shift',
+      });
+      // d3 listens on the event's view; jsdom rejects it in MouseEventInit.
+      Object.defineProperty(event, 'view', { value: view });
+      fireEvent(pane, event);
+    };
+
+    if (key) fireEvent.keyDown(window.document.body, { key, code });
+    mouse('mousedown', 30, 40);
+    mouse('mousemove', 90, 75);
+    const after = viewportTransform(container);
+    const selectionBox = container.querySelector('.react-flow__selection');
+    const selectionModeActive = pane.classList.contains('selection');
+    mouse('mouseup', 90, 75);
+    if (key) fireEvent.keyUp(window.document.body, { key, code });
+
+    // A drag must not clear selection via the background click. Let d3
+    // release its temporary click blocker before the next test uses the pane.
+    if (button === 0) mouse('click', 90, 75);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(after).not.toBe(before);
+    expect(selectionBox).toBeNull();
+    expect(selectionModeActive).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onClearSelection).not.toHaveBeenCalled();
+    expect(
+      container.querySelector('[data-node-id="evidence.contract"]'),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('selects only the activated card and clears selection on empty paper', () => {
+    const { container, onSelect, onClearSelection } = setup();
+    const card = container.querySelector('[data-node-id="evidence.contract"]')!;
+
+    fireEvent.click(card);
+    expect(onSelect).toHaveBeenCalledExactlyOnceWith('evidence.contract');
+    expect(onClearSelection).not.toHaveBeenCalled();
+
+    for (const key of ['Enter', ' ']) {
+      onSelect.mockClear();
+      fireEvent.keyDown(card, { key });
+      expect(onSelect).toHaveBeenCalledExactlyOnceWith('evidence.contract');
+    }
+
+    fireEvent.click(container.querySelector('.react-flow__pane')!);
+    expect(onClearSelection).toHaveBeenCalledOnce();
+    fireEvent.click(container.querySelector('.react-flow__node-contextGroup')!);
+    expect(onClearSelection).toHaveBeenCalledTimes(2);
+  });
+
   it('does not clear the selection when the modeler presses canvas furniture', () => {
     const { onClearSelection } = setup();
 
