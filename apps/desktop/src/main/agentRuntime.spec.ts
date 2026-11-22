@@ -568,6 +568,70 @@ describe('agent patch transport', () => {
     },
   );
 
+  it('correctly tracks focusNodeId and applies inverse patches to revert an inquiry turn', async () => {
+    const { transport, patches } = createTransport();
+    const fake = createFakeSession();
+    const runtime = runtimeWith({ transport, fake });
+    const document = createDesktopFixture();
+    runtime.notifyModelChanged({
+      rootPath: runtime.rootPath,
+      revision: 1,
+      document,
+      baseDocument: document,
+    });
+    const modelPatch = {
+      rationale: '澄清修改模型名称',
+      patches: [{ op: 'replace', path: '/manifest/name', value: '临时名称' }],
+    };
+    fake.session.prompt = async () => {
+      const apply = registeredTool('apply_model_patch');
+      expect((await apply.execute('write', modelPatch)).isError).toBeUndefined();
+    };
+    try {
+      const committed: PatchTransaction[] = [];
+      await runtime.prompt(
+        '修改名称',
+        { nodeId: 'evidence.confirmation', inquiry: 'trace' },
+        1,
+        committed,
+      );
+      expect(committed).toHaveLength(1);
+      const tx = committed[0]!;
+      expect(tx.focusNodeId).toBe('evidence.confirmation');
+      expect(tx.inversePatches).toEqual([
+        { op: 'replace', path: '/manifest/name', value: document.manifest.name },
+      ]);
+      expect(patches).toHaveLength(1);
+      expect(patches[0]!.patches).toEqual(modelPatch.patches);
+
+      fake.session.prompt = async () => {
+        const apply = registeredTool('apply_model_patch');
+        expect(
+          (
+            await apply.execute('write', {
+              rationale: '撤回本次修改',
+              patches: tx.inversePatches,
+            })
+          ).isError,
+        ).toBeUndefined();
+      };
+      const revertCommitted: PatchTransaction[] = [];
+      await runtime.prompt(
+        '撤回更改',
+        { nodeId: 'evidence.confirmation', inquiry: 'trace' },
+        2,
+        revertCommitted,
+      );
+      expect(revertCommitted).toHaveLength(1);
+      expect(revertCommitted[0]!.patches).toEqual(tx.inversePatches);
+      expect(revertCommitted[0]!.focusNodeId).toBe('evidence.confirmation');
+      expect(patches).toHaveLength(2);
+      expect(patches[1]!.revision).toBe(3);
+    } finally {
+      runtime.dispose();
+    }
+  });
+
   it('commits against main revisions with no renderer acknowledgement and publishes only real changes', async () => {
     const { transport, patches } = createTransport();
     const fake = createFakeSession();
