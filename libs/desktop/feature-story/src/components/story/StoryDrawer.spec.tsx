@@ -179,6 +179,21 @@ describe('StoryDrawer', () => {
     expect(api.story.whatIf).not.toHaveBeenCalled();
   });
 
+  it('can enter the local rehearsal after an AI narration failure', async () => {
+    const { api } = await setup({ failure: true });
+    expect(screen.getByText('AI 未配置')).toBeVisible();
+    fireEvent.change(screen.getByRole('combobox', { name: '选择业务流' }), {
+      target: { value: '' },
+    });
+    expect(screen.queryByText('AI 未配置')).toBeNull();
+    fireEvent.change(
+      screen.getByRole('spinbutton', { name: '假设窗口（小时）' }),
+      { target: { value: '24' } },
+    );
+    expect(screen.getByRole('slider', { name: '业务时间' })).toBeEnabled();
+    expect(api.story.project).toHaveBeenCalledOnce();
+  });
+
   it('explains missing examples and AI failures with a retry path', async () => {
     const empty = await setup({ empty: true });
     expect(screen.getByText(/请为实体的业务示例声明/)).toBeInTheDocument();

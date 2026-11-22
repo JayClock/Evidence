@@ -116,12 +116,13 @@ export const useStoryPlayback = ({
     () => document.entities.filter(isFulfillmentRequest),
     [document],
   );
+  const manualRehearsal = preferRehearsal && requestOptions.length > 0;
   const rehearsing =
     enabled &&
-    !loading &&
-    !error &&
-    requestOptions.length > 0 &&
-    (preferRehearsal || flows.length === 0);
+    !invalidating &&
+    !invalidationError &&
+    (manualRehearsal ||
+      (!loading && !error && requestOptions.length > 0 && flows.length === 0));
   const selectedRequest =
     requestOptions.find(
       ({ id }) =>
@@ -159,12 +160,13 @@ export const useStoryPlayback = ({
   const timeline = rehearsing ? rehearsalTimeline : exampleTimeline;
   const seekTime =
     timeline && cursor?.timeline === timeline ? cursor.time : undefined;
+  const keyframe = flow?.steps[index];
   const currentTime =
     seekTime ??
     (rehearsing
       ? timeline?.start
-      : timeline && flow
-        ? Date.parse(flow.steps[index]!.asOf)
+      : timeline && keyframe
+        ? Date.parse(keyframe.asOf)
         : undefined);
   const keyframeIndex =
     !rehearsing && seekTime === undefined ? index : undefined;
@@ -175,18 +177,17 @@ export const useStoryPlayback = ({
         : [],
     [timeline, currentTime, keyframeIndex],
   );
-  const step =
-    rehearsing || seekTime !== undefined ? undefined : flow?.steps[index];
+  const step = rehearsing || seekTime !== undefined ? undefined : keyframe;
   const scene =
     step &&
     projection?.scenes.find(({ stepIndex }) => stepIndex === step.sequence);
   const ready =
     enabled &&
-    !loading &&
-    !error &&
     (rehearsing
       ? timeline !== null
-      : !stale &&
+      : !loading &&
+        !error &&
+        !stale &&
         flow !== undefined &&
         (step !== undefined || seekTime !== undefined));
   const nextIndex =
@@ -264,7 +265,8 @@ export const useStoryPlayback = ({
 
   const projectedFlowId = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!enabled || invalidating || invalidationError) return;
+    if (!enabled || invalidating || invalidationError || manualRehearsal)
+      return;
     let active = true;
     setIsPlaying(false);
     setStatus({ key: requestKey, loading: true });
@@ -319,6 +321,7 @@ export const useStoryPlayback = ({
     skipAi,
     invalidating,
     invalidationError,
+    manualRehearsal,
   ]);
 
   useEffect(() => {
@@ -418,6 +421,7 @@ export const useStoryPlayback = ({
       setIsPlaying(false);
       setCursor(undefined);
       setAssumption(undefined);
+      setPreferRehearsal(false);
     }
   }, [enabled]);
 
@@ -533,9 +537,9 @@ export const useStoryPlayback = ({
     scene,
     canvasFocus,
     journeyPreview,
-    projection,
-    loading,
-    error,
+    projection: rehearsing ? undefined : projection,
+    loading: !rehearsing && loading,
+    error: rehearsing ? undefined : error,
     stale,
     ready,
     skipAi,
