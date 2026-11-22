@@ -270,10 +270,13 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.recordBreachOutcome,
       TOOL_NAMES.roleifyAndInvertDependency,
       TOOL_NAMES.isolateDomainCalculator,
+      TOOL_NAMES.scanModelHealth,
       TOOL_NAMES.deliveryTopology,
       TOOL_NAMES.openApiContract,
     ]);
-    expect(createEvidenceTools(createClient())).toHaveLength(20);
+    expect(createEvidenceTools(createClient())).toHaveLength(
+      evidenceToolNames.length,
+    );
   });
 
   it('hands an outside agent the delivery boundaries and the contract', async () => {

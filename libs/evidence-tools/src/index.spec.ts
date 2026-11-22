@@ -52,16 +52,60 @@ const setup = () => {
 };
 
 describe('shared model tool registry', () => {
-  it('exposes one tool list with a read-only What-If', () => {
+  it('shares read-only What-If and health inspection', () => {
     const { tools, tool } = setup();
     expect(tools.map(({ name }) => name)).toEqual(Object.values(names));
-    expect(tool(names.simulateWhatIfChallenge).annotations).toMatchObject({
-      readOnlyHint: true,
-      destructiveHint: false,
-    });
+    for (const name of [names.simulateWhatIfChallenge, names.scanModelHealth])
+      expect(tool(name).annotations).toMatchObject({
+        readOnlyHint: true,
+        destructiveHint: false,
+      });
     expect(
       tools.filter(({ annotations }) => annotations.readOnlyHint),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
+  });
+
+  it('scans the current model read-only and can recheck one finding', async () => {
+    const { session, tool, applyModelPatch } = setup();
+    const scan = tool(names.scanModelHealth);
+    const id = 'request.payment';
+    session.applyPatchBatch(
+      [
+        {
+          op: 'add',
+          path: '/entities/-',
+          value: {
+            type: 'entity',
+            category: 'evidence',
+            kind: 'fulfillment_request',
+            id,
+            label: '付款请求',
+          },
+        },
+      ],
+      '建立付款请求',
+    );
+    const result = await scan.run({ limit: 1 });
+    expect(result.value).toMatchObject({
+      totalIssueCount: 2,
+      matchedIssueCount: 2,
+      issues: [{ id: `vacant_responsibility:${id}`, targetNodeId: id }],
+    });
+    expect(
+      (await scan.run({ issueId: `temporal_semantic_mismatch:${id}` })).value,
+    ).toMatchObject({
+      matchedIssueCount: 1,
+      issues: [{ code: 'temporal_semantic_mismatch' }],
+    });
+    session.undo();
+    expect(
+      (await scan.run({ issueId: `vacant_responsibility:${id}` })).value,
+    ).toMatchObject({
+      matchedIssueCount: 0,
+      overallScore: null,
+      issues: [],
+    });
+    expect(applyModelPatch).not.toHaveBeenCalled();
   });
 
   it('rejects malformed inputs before any host operation', async () => {

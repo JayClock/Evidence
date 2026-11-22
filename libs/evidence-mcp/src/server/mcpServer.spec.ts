@@ -106,7 +106,11 @@ describe('createEvidenceMcpServer', () => {
     const { tools } = await mcp.listTools();
 
     expect(tools.map((tool) => tool.name)).toContain(TOOL_NAMES.appState);
-    expect(tools).toHaveLength(20);
+    expect(tools).toHaveLength(21);
+    expect(
+      tools.find(({ name }) => name === TOOL_NAMES.scanModelHealth)
+        ?.annotations,
+    ).toMatchObject({ readOnlyHint: true });
     expect(
       tools.find((tool) => tool.name === TOOL_NAMES.applyModelPatch)
         ?.annotations,

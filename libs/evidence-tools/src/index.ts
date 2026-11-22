@@ -25,6 +25,7 @@ import {
   createDomainGraph,
   createModelPatch,
   identifySubjectMatterMutator,
+  inspectModelHealth,
   isolateDomainCalculatorMutator,
   linkProposalToRfpMutator,
   recordBreachOutcomeMutator,
@@ -46,6 +47,7 @@ export const MODEL_TOOL_NAMES = {
   recordBreachOutcome: 'record_breach_outcome',
   roleifyAndInvertDependency: 'roleify_and_invert_dependency',
   isolateDomainCalculator: 'isolate_domain_calculator',
+  scanModelHealth: 'scan_model_health',
 } as const;
 
 /** Mutations are not idempotent; neither adapter may advertise them as reads. */
@@ -106,7 +108,7 @@ const define = <Schema extends z.AnyZodObject>(
   };
 };
 
-/** A single registry of domain mutations; no Pi, MCP, Node or renderer imports. */
+/** A shared registry of model operations; no Pi, MCP, Node or renderer imports. */
 export const createModelTools = (
   ports: ModelToolPorts,
 ): readonly ModelTool[] => {
@@ -344,6 +346,35 @@ export const createModelTools = (
         runOperator(`抽出领域计算：${intent.calculator.label}`, (document) =>
           isolateDomainCalculatorMutator(document, intent),
         ),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.scanModelHealth,
+      label: '8X Flow 模型体检',
+      description:
+        '只读检查当前模型中的权责、异常处置、标的物和跨合同协作。发现项是待澄清的线索，不是合同结论，也不阻塞保存或交付。传入 issueId 可复核指定发现项；未找到表示当前模型已无该提示。',
+      parameters: z
+        .object({
+          issueId: z.string().trim().min(1).optional(),
+          limit: z.number().int().min(1).max(100).optional(),
+        })
+        .strict(),
+      readOnly: true,
+      run: async ({ issueId, limit = 20 }) => {
+        const report = inspectModelHealth(
+          createDomainGraph(await ports.loadDocument()),
+        );
+        const matches =
+          issueId === undefined
+            ? report.issues
+            : report.issues.filter(({ id }) => id === issueId);
+        const value = {
+          ...report,
+          totalIssueCount: report.issues.length,
+          matchedIssueCount: matches.length,
+          issues: matches.slice(0, limit),
+        };
+        return { text: JSON.stringify(value), value };
+      },
     }),
   ];
 };
