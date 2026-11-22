@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { createModelSession } from '@evidence-poc/evidence-model-core';
@@ -12,7 +12,6 @@ const setup = (nodeId: string | null) => {
     render(
       <RightInspector
         graph={session.getGraph()}
-        session={session}
         selection={{ nodeId, attributeName: null }}
       />,
     );
@@ -26,7 +25,6 @@ describe('RightInspector', () => {
     const { rerender } = render(
       <RightInspector
         graph={session.getGraph()}
-        session={session}
         selection={{ nodeId: null, attributeName: null }}
         gateReport={{ blockCount: 2, warnCount: 3, isStageGateReady: false }}
       />,
@@ -40,7 +38,6 @@ describe('RightInspector', () => {
     rerender(
       <RightInspector
         graph={session.getGraph()}
-        session={session}
         selection={{ nodeId: 'evidence.request', attributeName: null }}
       />,
     );
@@ -112,7 +109,6 @@ describe('RightInspector', () => {
     render(
       <RightInspector
         graph={session.getGraph()}
-        session={session}
         selection={{ nodeId: 'evidence.contract', attributeName: null }}
       />,
     );

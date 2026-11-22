@@ -25,10 +25,7 @@
     ]
   },
   "dependencies": {
-    "@codemirror/autocomplete": "^6.20.4",
-    "@codemirror/commands": "^6.11.1",
     "@codemirror/language": "^6.13.1",
-    "@codemirror/lint": "^6.9.7",
     "@codemirror/state": "^6.7.6",
     "@codemirror/view": "^6.43.15",
     "@evidence-poc/desktop-ui-kit": "workspace:*",
@@ -36,7 +33,6 @@
     "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",
     "@lezer/highlight": "^1.2.5",
-    "lucide-react": "^1.72.0",
     "react": "^19.2.8",
     "tslib": "^2.3.0"
   }

@@ -181,7 +181,7 @@ describe('EditorScreen', () => {
     contract.focus();
     fireEvent.keyDown(contract, { key: 'k', ctrlKey: true });
     const input = screen.getByLabelText('业务场景');
-    const inspector = screen.getByRole('region', { name: '实体属性检查' });
+    const inspector = screen.getByRole('region', { name: '实体属性检视' });
     expect(
       within(inspector).getByText('采购协议（Procurement Contract）', {
         selector: 'dd',
@@ -372,7 +372,7 @@ describe('EditorScreen', () => {
       return result;
     };
 
-    const inspector = screen.getByRole('region', { name: '实体属性检查' });
+    const inspector = screen.getByRole('region', { name: '实体属性检视' });
     const scenario = screen.getByLabelText('业务场景');
     expect(scenario.closest('[data-region="canvas-viewport"]')).not.toBeNull();
     expect(inspector).not.toContainElement(scenario);
@@ -742,7 +742,7 @@ describe('EditorScreen', () => {
       await screen.findByLabelText('门禁问题面板'),
     );
     expect(
-      screen.getByRole('region', { name: '实体属性检查' }),
+      screen.getByRole('region', { name: '实体属性检视' }),
     ).not.toContainElement(screen.getByLabelText('门禁问题面板'));
     fireEvent.keyDown(window, { code: 'KeyX', altKey: true });
     expect(screen.queryByLabelText('门禁问题面板')).toBeNull();
@@ -753,9 +753,9 @@ describe('EditorScreen', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
 
-    const pane = screen.getByRole('region', { name: '实体属性检查' });
+    const pane = screen.getByRole('region', { name: '实体属性检视' });
     expect(
-      within(pane).getByRole('heading', { name: '实体属性检查' }),
+      within(pane).getByRole('heading', { name: '实体属性检视' }),
     ).toBeVisible();
 
     fireEvent.keyDown(window, { key: 'i', metaKey: true });
@@ -763,6 +763,43 @@ describe('EditorScreen', () => {
     fireEvent.keyDown(window, { key: 'i', metaKey: true });
     expect(pane).not.toHaveAttribute('inert');
     expect(pane).toHaveTextContent('选择画布上的业务对象查看属性。');
+  });
+
+  it('opens the read-only ledger through Alt+L without dirtying the model or losing selection', async () => {
+    const api = readyProject();
+    const { container } = render(
+      <EditorScreen rootPath="/models/procurement" />,
+    );
+    await readyCanvas();
+    const node = container.querySelector<HTMLElement>(
+      '[data-node-id="evidence.contract"]',
+    )!;
+    fireEvent.click(node);
+    act(() => node.focus());
+    const inspector = screen.getByRole('region', { name: '实体属性检视' });
+    expect(within(inspector).getByText('只读')).toBeVisible();
+    expect(
+      inspector.querySelector(
+        'input, textarea, select, [contenteditable="true"]',
+      ),
+    ).toBeNull();
+
+    fireEvent.keyDown(node, { key: 'l', code: 'KeyL', altKey: true });
+    const ledger = screen.getByRole('dialog', {
+      name: /核心要素台账 · 采购协议/,
+    });
+    const attribute = within(ledger).getByRole('button', { name: 'signed_at' });
+    fireEvent.click(attribute);
+    expect(attribute).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      ledger.querySelector('input, textarea, select, [contenteditable="true"]'),
+    ).toBeNull();
+    fireEvent.keyDown(attribute, { key: 'Escape' });
+    await waitFor(() => expect(ledger).not.toBeInTheDocument());
+    await waitFor(() => expect(node).toHaveFocus());
+    expect(node).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByTitle('有未保存修改')).toBeNull();
+    expect(api.calls.save).toHaveLength(0);
   });
 
   it('returns keyboard focus to the selected node without clearing selection', async () => {
@@ -775,7 +812,7 @@ describe('EditorScreen', () => {
       '[data-node-id="evidence.contract"]',
     )!;
     fireEvent.click(node);
-    const pane = screen.getByRole('region', { name: '实体属性检查' });
+    const pane = screen.getByRole('region', { name: '实体属性检视' });
     const back = within(pane).getByRole('button', { name: '返回画布' });
     back.focus();
     fireEvent.keyDown(back, { key: 'Escape' });

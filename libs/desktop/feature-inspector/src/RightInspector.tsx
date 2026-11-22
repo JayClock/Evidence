@@ -10,7 +10,6 @@ import {
   buildKeyDataLedger,
   type DomainGraph,
   type ModelSelection,
-  type ModelSession,
 } from '@evidence-poc/evidence-model-core';
 
 import { RelationshipFlowSection } from './inspector/RelationshipFlowSection';
@@ -29,7 +28,6 @@ interface RightInspectorProps {
     isStageGateReady: boolean;
   } | null;
   graph: DomainGraph;
-  session: ModelSession;
   selection: ModelSelection;
 }
 
@@ -42,7 +40,6 @@ export const RightInspector = ({
   active = true,
   gateReport = null,
   graph,
-  session,
   selection,
 }: RightInspectorProps) => {
   const entity =
@@ -58,7 +55,6 @@ export const RightInspector = ({
       showHeading={showHeading}
       active={active}
       graph={graph}
-      session={session}
       selection={selection}
     />
   );
@@ -106,7 +102,6 @@ const SelectedInspector = ({
   showHeading,
   active,
   graph,
-  session,
   selection,
 }: RightInspectorProps & {
   entity: EntityAST;
@@ -190,7 +185,6 @@ const SelectedInspector = ({
         <KeyDataLedgerSheet
           entity={entity}
           graph={graph}
-          session={session}
           initialAttribute={selection.attributeName}
           onClose={() => setStudioOpen(false)}
         />

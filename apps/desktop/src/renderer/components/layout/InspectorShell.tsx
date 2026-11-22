@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { Button } from '@evidence-poc/desktop-ui-kit';
@@ -7,7 +7,6 @@ interface InspectorShellProps {
   collapsed: boolean;
   onReturnToCanvas: () => void;
   returnOnEscape?: boolean;
-  editingLocked?: boolean;
   children: ReactNode;
 }
 
@@ -15,12 +14,12 @@ export const InspectorShell = ({
   collapsed,
   onReturnToCanvas,
   returnOnEscape = true,
-  editingLocked = false,
   children,
 }: InspectorShellProps) => {
+  const title = useId();
   return (
     <section
-      aria-label="实体属性检查"
+      aria-labelledby={title}
       inert={collapsed}
       onKeyDown={(event) => {
         if (
@@ -43,7 +42,14 @@ export const InspectorShell = ({
         data-workbench-chrome=""
         className="flex h-11 shrink-0 items-center justify-between gap-2 border-b border-workbench-border bg-workbench-background px-3"
       >
-        <h2 className="truncate text-xs font-semibold">实体属性检查</h2>
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 id={title} className="truncate text-xs font-semibold">
+            实体属性检视
+          </h2>
+          <span className="shrink-0 text-[10px] text-workbench-muted">
+            只读
+          </span>
+        </div>
         <Button
           type="button"
           size="icon"
@@ -55,14 +61,7 @@ export const InspectorShell = ({
           <ArrowLeft aria-hidden="true" />
         </Button>
       </header>
-      {editingLocked ? (
-        <p role="status" className="px-3 py-2 text-xs text-workbench-muted">
-          AI 访谈期间暂停属性编辑
-        </p>
-      ) : null}
-      <div className="min-h-0 flex-1 inert:opacity-50" inert={editingLocked}>
-        {children}
-      </div>
+      <div className="min-h-0 flex-1">{children}</div>
     </section>
   );
 };

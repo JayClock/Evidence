@@ -41,7 +41,6 @@ const setup = () => {
   const inspector = (nodeId = 'evidence.contract') => (
     <RightInspector
       graph={session.getGraph()}
-      session={session}
       selection={{ nodeId, attributeName: null }}
     />
   );

@@ -1051,7 +1051,6 @@ const EditorWorkspace = ({
                   <InspectorShell
                     collapsed={rightRailCollapsed}
                     onReturnToCanvas={returnToCanvas}
-                    editingLocked={agent.running}
                     returnOnEscape={
                       !storyActive &&
                       patchReview.review === null &&
@@ -1060,7 +1059,6 @@ const EditorWorkspace = ({
                   >
                     <RightInspector
                       graph={state.graph}
-                      session={state.session}
                       selection={state.selection}
                       showHeading={false}
                       active={!rightRailCollapsed}

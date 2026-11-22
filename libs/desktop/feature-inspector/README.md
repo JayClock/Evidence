@@ -1,9 +1,12 @@
 # desktop-feature-inspector
 
-The right-hand inspector the studio opens on a selected entity: the attribute
-grid, the CEL editor and formula bar, the derived-rule and fulfillment-pair
-sections, and the key-data ledger studio with its provenance picker.
+Read-only review of the selected entity. The right pane shows modeled fields,
+responsibility, provenance, and fulfillment structure. `Alt+L` or the pane's
+ledger button opens the wide, read-only key-data ledger. Its field buttons
+select a formula to inspect, and CodeMirror provides selectable, highlighted
+CEL source without editing, completion, or submit handlers.
 
-It renders and edits a `DomainModelDocument` through the model session API; it
-holds no IPC and no window state, so a web review surface can reuse it with the
-same props the desktop passes today.
+The inspector takes a `DomainGraph` and a selection, not a `ModelSession` or a
+write callback. To change node information in the workbench, use the existing
+AI modeling and patch review flow; the inspector reflects the updated graph.
+This change does not remove model mutation APIs or change the saved FM format.

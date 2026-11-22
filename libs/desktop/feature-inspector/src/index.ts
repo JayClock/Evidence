@@ -11,18 +11,9 @@ export {
   type KeyDataLedgerSheetProps,
 } from './inspector/KeyDataLedgerSheet.js';
 export { KeyDataProvenanceView } from './inspector/KeyDataProvenanceView.js';
-export { useCelCompletion } from './inspector/useCelCompletion.js';
-export {
-  CelCodeMirrorEditor,
-  type CelCodeMirrorEditorProps,
-} from './inspector/cel/CelCodeMirrorEditor.js';
+export { CelCodeMirrorViewer } from './inspector/cel/CelCodeMirrorViewer.js';
 export {
   CelFormulaBar,
   type CelFormulaBarProps,
 } from './inspector/cel/CelFormulaBar.js';
-export {
-  computeCelCompletions,
-  type CelCompletionOption,
-  type CelCompletionResult,
-} from './inspector/cel/celCompletion.js';
 export { celHighlighting, celLanguage } from './inspector/cel/celLanguage.js';

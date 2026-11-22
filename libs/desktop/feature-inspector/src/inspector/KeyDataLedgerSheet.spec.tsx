@@ -1,15 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-import { createModelSession } from '@evidence-poc/evidence-model-core';
+import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import {
-  blurEditor,
-  readExpression,
-  typeExpression,
-} from '../testing/codeEditor';
 import { KeyDataLedgerSheet } from './KeyDataLedgerSheet';
 
 /** The contract with one derived amount and one field whose provider is owed. */
@@ -61,19 +56,18 @@ const setup = (
   entityId = 'evidence.contract',
   initialAttribute: string | null = null,
 ) => {
-  const session = createModelSession({ document: createFixture() });
+  const graph = createDomainGraph(createFixture());
   const onClose = vi.fn();
-  const view = render(
+  render(
     <KeyDataLedgerSheet
-      entity={session.getGraph().getEntity(entityId)!}
-      graph={session.getGraph()}
-      session={session}
+      entity={graph.getEntity(entityId)!}
+      graph={graph}
       initialAttribute={initialAttribute}
       onClose={onClose}
     />,
   );
 
-  return { session, onClose, view };
+  return { onClose };
 };
 
 describe('KeyDataLedgerSheet', () => {
@@ -107,20 +101,19 @@ describe('KeyDataLedgerSheet', () => {
     expect(screen.queryByText('无待确认项')).not.toBeInTheDocument();
   });
 
-  it('edits the selected rule from the formula bar', () => {
-    const { session } = setup('evidence.contract', 'total_amount');
+  it('changes the formula preview without offering source or business edits', () => {
+    setup();
+    const derived = screen.getByRole('button', { name: 'total_amount' });
+    fireEvent.click(derived);
+    expect(derived).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'CEL 源码' }));
-
-    expect(readExpression('total_amount 公式栏')).toBe(
-      'contract.quantity * 100',
-    );
-
-    typeExpression('total_amount 公式栏', 'contract.quantity * 120');
-    blurEditor('total_amount 公式栏');
-
-    expect(session.getGraph().getRule('rule.contract-total')?.expression).toBe(
-      'contract.quantity * 120',
-    );
+    const viewer = screen.getByRole('textbox', { name: 'total_amount 公式栏' });
+    expect(viewer).toHaveTextContent('contract.quantity * 100');
+    expect(viewer).toHaveAttribute('contenteditable', 'false');
+    expect(viewer).toHaveAttribute('aria-readonly', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'signed_at' }));
+    expect(screen.getByText('未声明派生规则。')).toBeVisible();
+    expect(screen.queryByRole('textbox')).toBeNull();
   });
 
   it('opens on the attribute the modeler was inspecting', () => {
@@ -134,32 +127,16 @@ describe('KeyDataLedgerSheet', () => {
     ).toHaveAttribute('data-selected', 'false');
   });
 
-  it('says so when the selected field is not derived', () => {
+  it('renders the type, required flag, and key-data status as static cells', () => {
     setup();
-
-    fireEvent.click(document.querySelector('[data-ledger-row="signed_at"]')!);
-
-    expect(
-      screen.getByText(/是普通输入字段；需要派生计算时/),
-    ).toBeInTheDocument();
-  });
-
-  it('toggles a required constraint through one undo step', () => {
-    const { session } = setup();
-
-    fireEvent.click(screen.getByLabelText('signed_at 必填'));
-
-    expect(
-      session.getGraph().attribute('evidence.contract', 'signed_at')?.required,
-    ).toBeUndefined();
-
-    act(() => {
-      session.undo();
-    });
-
-    expect(
-      session.getGraph().attribute('evidence.contract', 'signed_at')?.required,
-    ).toBe(true);
+    const row = within(
+      screen.getByRole('button', { name: 'signed_at' }).closest('tr')!,
+    );
+    expect(row.getByRole('cell', { name: 'timestamp' })).toBeVisible();
+    expect(row.getByRole('cell', { name: '是' })).toBeVisible();
+    expect(row.getByRole('cell', { name: '核心要素' })).toBeVisible();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 
   it('slides in from the right instead of replacing the workspace', () => {
@@ -174,7 +151,9 @@ describe('KeyDataLedgerSheet', () => {
   it('closes on Escape', () => {
     const { onClose } = setup();
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('button', { name: /返回属性面板/ }), {
+      key: 'Escape',
+    });
 
     expect(onClose).toHaveBeenCalled();
   });

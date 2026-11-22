@@ -1,7 +1,7 @@
 import type { RuleAST } from '@evidence-poc/evidence-schema';
 import type { DomainGraph } from '@evidence-poc/evidence-model-core';
 import { CelCodeMirrorViewer } from './cel/CelCodeMirrorViewer';
-import { useCelCompletion } from './useCelCompletion';
+import { useCelRuleCandidates } from './useCelRuleCandidates';
 
 export const CelRuleDetails = ({
   graph,
@@ -14,7 +14,11 @@ export const CelRuleDetails = ({
   rule: RuleAST;
   ariaLabel?: string;
 }) => {
-  const candidates = useCelCompletion({ graph, entityRef, ruleId: rule.id });
+  const candidates = useCelRuleCandidates({
+    graph,
+    entityRef,
+    ruleId: rule.id,
+  });
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <div className="wrap-anywhere text-workbench-body">
