@@ -3,8 +3,13 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/evidence-mcp',
+  resolve: { conditions: ['@evidence-poc/source', 'node', 'import', 'default'] },
+  ssr: {
+    resolve: { conditions: ['@evidence-poc/source', 'node', 'import', 'default'] },
+  },
   test: {
     name: '@evidence-poc/evidence-mcp',
+    server: { deps: { inline: [/@evidence-poc\//] } },
     watch: false,
     globals: true,
     environment: 'node',

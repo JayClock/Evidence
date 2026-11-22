@@ -10,7 +10,10 @@ for:
 - `apply_model_patch`
 - `batch_add_evidence_stubs`
 - `split_evidence_to_pair`
-- `bind_key_data_source`
+- `link_proposal_to_rfp`
+- `identify_subject_matter`
+- `bind_party_role`
+- `bind_key_data_source` (optional enrichment)
 - `assign_fulfillment_context`
 - `simulate_what_if_challenge` (read-only)
 - `record_breach_outcome`

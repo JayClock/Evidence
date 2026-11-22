@@ -64,9 +64,6 @@ export const batchAddEvidenceMutator = (
       id: item.id,
       label: item.label,
       stage: item.stage,
-      ...(item.sourceSnippet === undefined
-        ? {}
-        : { sourceSnippet: { text: item.sourceSnippet } }),
       attributes: [
         ...(item.times ?? []).map(timestamp),
         ...(item.keyData ?? []).map((data) => ({ ...data, keyData: true })),

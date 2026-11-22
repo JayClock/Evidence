@@ -59,9 +59,6 @@ export const BatchAddEvidenceInputSchema = z
           .extend({
             stage: EvidenceStageSchema,
             label: named.shape.label,
-            sourceSnippet: condition
-              .describe('材料原句或用户确认的事实依据，不填推断。')
-              .optional(),
             times: z.array(time).max(2).optional(),
             keyData: z.array(keyData).optional(),
           })

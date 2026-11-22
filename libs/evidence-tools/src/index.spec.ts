@@ -72,6 +72,86 @@ describe('shared model tool registry', () => {
     expect(applyModelPatch).not.toHaveBeenCalled();
   });
 
+  it('rejects material metadata in a storming batch before reading or writing', async () => {
+    const { tool, loadDocument, applyModelPatch } = setup();
+    await expect(
+      tool(names.batchAddEvidence).run({
+        evidences: [{ ...payment, sourceSnippet: '示例摘录' }],
+      }),
+    ).rejects.toThrow();
+    expect(loadDocument).not.toHaveBeenCalled();
+    expect(applyModelPatch).not.toHaveBeenCalled();
+  });
+
+  it('records channel responses and subject/party links through the shared registry', async () => {
+    const { tool, session, applyModelPatch } = setup();
+    session.mutate((draft) => {
+      draft.entities.push(
+        {
+          type: 'entity',
+          category: 'context',
+          kind: 'contract',
+          id: 'context.sale',
+          label: '买卖',
+        },
+        {
+          type: 'entity',
+          category: 'context',
+          kind: 'domain',
+          id: 'context.catalog',
+          label: '目录',
+        },
+        {
+          type: 'entity',
+          category: 'participant',
+          kind: 'party',
+          id: 'party.buyer',
+          label: '买家',
+        },
+      );
+    }, '准备上下文');
+    const run = async (name: string, input: unknown) =>
+      expect((await tool(name).run(input)).isError).toBeUndefined();
+    await run(names.batchAddEvidence, {
+      evidences: [
+        { id: 'rfp.sale', stage: 'rfp', label: '询价' },
+        { id: 'proposal.sale', stage: 'proposal', label: '报价' },
+      ],
+    });
+    await run(names.linkProposalToRfp, {
+      proposalRef: 'proposal.sale',
+      rfpRef: 'rfp.sale',
+    });
+    await run(names.identifySubjectMatter, {
+      evidenceRefs: ['proposal.sale'],
+      subjectMatter: {
+        mode: 'create',
+        id: 'thing.item',
+        label: '商品',
+        domainContextRef: 'context.catalog',
+      },
+    });
+    await run(names.bindPartyRole, {
+      contextRef: 'context.sale',
+      partyRole: { mode: 'create', id: 'role.buyer', label: '买方' },
+      participantRef: 'party.buyer',
+    });
+    const graph = createDomainGraph(session.getDocument());
+    expect(graph.preContractPairs()[0]?.proposals[0]?.id).toBe('proposal.sale');
+    expect(graph.fulfillmentPairs()).toEqual([]);
+    expect(graph.subjectMattersOf('proposal.sale')[0]?.contextRef).toBe(
+      'context.catalog',
+    );
+    expect(graph.outgoing('party.buyer')).toMatchObject([
+      { kind: 'plays_role', targetRef: 'role.buyer' },
+    ]);
+    expect(applyModelPatch).toHaveBeenCalledTimes(4);
+    expect(session.undo()).toBe(true);
+    expect(
+      session.getDocument().entities.some(({ id }) => id === 'role.buyer'),
+    ).toBe(false);
+  });
+
   it('grows the same graph through storming, source decisions, pairing and confirmed compensation', async () => {
     const { tool, session, applyModelPatch } = setup();
     const run = async (name: string, input: unknown) =>
@@ -171,12 +251,62 @@ describe('shared model tool registry', () => {
         targetRef: 'request.payment',
       }),
     );
+    const afterRemedy = session.getDocument();
+    const probe = await tool(names.simulateWhatIfChallenge).run({
+      requestRef: 'request.payment',
+    });
+    expect(probe.value).toMatchObject({
+      breachChain: [
+        {
+          requestRef: 'request.payment',
+          branches: [
+            { kind: 'compensation_pair', requestRef: 'request.refund' },
+          ],
+        },
+        {
+          requestRef: 'request.refund',
+          branches: [
+            {
+              kind: 'terminal_escalation',
+              remedyKind: 'arbitration',
+              handoffRef: 'evidence.handoff',
+            },
+          ],
+        },
+      ],
+    });
+    expect(session.getDocument()).toBe(afterRemedy);
+    expect(applyModelPatch).toHaveBeenCalledTimes(5);
     expect(session.undo()).toBe(true);
     expect(
       createDomainGraph(session.getDocument()).getEntity('evidence.handoff'),
     ).toBeUndefined();
     expect(session.undo()).toBe(true);
     expect(session.getDocument()).toEqual(beforeProbe);
+  });
+
+  it('can explore a known request before a confirmation is modeled', async () => {
+    const { tool, session, applyModelPatch } = setup();
+    session.mutate((draft) => {
+      draft.entities.push({
+        type: 'entity',
+        category: 'evidence',
+        kind: 'fulfillment_request',
+        id: 'request.delivery',
+        label: '交货请求',
+      });
+    }, '已有请求');
+    const probe = tool(names.simulateWhatIfChallenge);
+    expect(await probe.run({ requestRef: 'request.delivery' })).toMatchObject({
+      value: {
+        confirmations: [],
+        breachChain: [{ requestRef: 'request.delivery', branches: [] }],
+      },
+    });
+    expect(await probe.run({ requestRef: 'request.missing' })).toMatchObject({
+      isError: true,
+    });
+    expect(applyModelPatch).not.toHaveBeenCalled();
   });
 
   it('does not write a partially invalid batch or overwrite a stale host snapshot', async () => {

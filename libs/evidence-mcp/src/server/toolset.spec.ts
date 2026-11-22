@@ -261,6 +261,9 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.applyModelPatch,
       TOOL_NAMES.batchAddEvidence,
       TOOL_NAMES.splitEvidenceToPair,
+      TOOL_NAMES.linkProposalToRfp,
+      TOOL_NAMES.identifySubjectMatter,
+      TOOL_NAMES.bindPartyRole,
       TOOL_NAMES.bindKeyDataSource,
       TOOL_NAMES.assignFulfillmentContext,
       TOOL_NAMES.simulateWhatIfChallenge,
@@ -270,7 +273,7 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.deliveryTopology,
       TOOL_NAMES.openApiContract,
     ]);
-    expect(createEvidenceTools(createClient())).toHaveLength(17);
+    expect(createEvidenceTools(createClient())).toHaveLength(20);
   });
 
   it('hands an outside agent the delivery boundaries and the contract', async () => {
@@ -305,6 +308,9 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.applyModelPatch,
       TOOL_NAMES.batchAddEvidence,
       TOOL_NAMES.splitEvidenceToPair,
+      TOOL_NAMES.linkProposalToRfp,
+      TOOL_NAMES.identifySubjectMatter,
+      TOOL_NAMES.bindPartyRole,
       TOOL_NAMES.bindKeyDataSource,
       TOOL_NAMES.assignFulfillmentContext,
       TOOL_NAMES.recordBreachOutcome,

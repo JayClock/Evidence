@@ -3,11 +3,14 @@ import {
   AssignFulfillmentContextInputSchema,
   BatchAddEvidenceInputSchema,
   BindKeyDataSourceInputSchema,
+  BindPartyRoleInputSchema,
   DomainCalculatorIntentSchema,
   DomainIdSchema,
   DomainModelDocumentSchema,
-  RecordBreachOutcomeInputSchema,
+  IdentifySubjectMatterInputSchema,
+  LinkProposalToRfpInputSchema,
   ModelPatchRequestSchema,
+  RecordBreachOutcomeInputSchema,
   RoleifyConfirmationIntentSchema,
   SplitEvidenceToPairInputSchema,
   timeAttributeOf,
@@ -18,10 +21,13 @@ import {
   assignFulfillmentContextMutator,
   batchAddEvidenceMutator,
   bindKeyDataSourceMutator,
+  bindPartyRoleMutator,
   createDomainGraph,
   createModelPatch,
-  recordBreachOutcomeMutator,
+  identifySubjectMatterMutator,
   isolateDomainCalculatorMutator,
+  linkProposalToRfpMutator,
+  recordBreachOutcomeMutator,
   roleifyConfirmationMutator,
   splitEvidenceToPairMutator,
   type OperatorResult,
@@ -31,6 +37,9 @@ export const MODEL_TOOL_NAMES = {
   applyModelPatch: 'apply_model_patch',
   batchAddEvidence: 'batch_add_evidence_stubs',
   splitEvidenceToPair: 'split_evidence_to_pair',
+  linkProposalToRfp: 'link_proposal_to_rfp',
+  identifySubjectMatter: 'identify_subject_matter',
+  bindPartyRole: 'bind_party_role',
   bindKeyDataSource: 'bind_key_data_source',
   assignFulfillmentContext: 'assign_fulfillment_context',
   simulateWhatIfChallenge: 'simulate_what_if_challenge',
@@ -181,10 +190,43 @@ export const createModelTools = (
         ),
     }),
     define({
-      name: MODEL_TOOL_NAMES.bindKeyDataSource,
-      label: '绑定关键数据来源',
+      name: MODEL_TOOL_NAMES.linkProposalToRfp,
+      label: '关联报价与询价',
       description:
-        '绑定一个凭证字段的来源：本身产出、申请输入、合同参数、领域属性、前序凭证或带真实绑定的 CEL 规则。不清楚时可撤销来源而保留字段。',
+        '记录已确认的报价响应哪张询价；两者须同属一个前期上下文或都没有归属，不产生履约或违约项。',
+      parameters: LinkProposalToRfpInputSchema,
+      run: (input) =>
+        runOperator(`关联报价与询价：${input.proposalRef}`, (draft) =>
+          linkProposalToRfpMutator(draft, input),
+        ),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.identifySubjectMatter,
+      label: '关联标的物',
+      description:
+        '记录凭证涉及的已确认标的物。复用已有标的物，或在已存在的领域上下文中创建；不把标的物当作当事人。',
+      parameters: IdentifySubjectMatterInputSchema,
+      run: (input) =>
+        runOperator('关联凭证与标的物', (draft) =>
+          identifySubjectMatterMutator(draft, input),
+        ),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.bindPartyRole,
+      label: '绑定合同当事人角色',
+      description:
+        '在已存在的合同上下文中创建或复用已知的当事人角色，可关联已有参与方和本合同中由其负责的凭证。不推断或覆盖已有责任。',
+      parameters: BindPartyRoleInputSchema,
+      run: (input) =>
+        runOperator(`绑定合同当事人：${input.contextRef}`, (draft) =>
+          bindPartyRoleMutator(draft, input),
+        ),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.bindKeyDataSource,
+      label: '补充关键数据来源',
+      description:
+        '按需补充已确认的业务字段来源：本身产出、申请输入、合同参数、领域属性、前序凭证或可验证的 CEL 规则。不是节点澄清的默认起点；来源未知不妨碍继续建模。',
       parameters: BindKeyDataSourceInputSchema,
       run: (input) =>
         runOperator(`追溯 ${input.evidenceRef}#${input.attribute}`, (draft) =>
@@ -206,14 +248,15 @@ export const createModelTools = (
       name: MODEL_TOOL_NAMES.simulateWhatIfChallenge,
       label: '查看履约的 What-If 问题',
       description:
-        '只读检查指定履约请求、截止时标、确认和已经记录的补偿，给出待确认的超时、拒收与中断假设。不写入，不执行后端。',
+        '只读查看履约请求（可尚未配对）、时限、已建确认和多级处置分支；假设不是已确认事实，不写入也不执行后端。',
       readOnly: true,
       parameters: z.object({ requestRef: DomainIdSchema }).strict(),
       run: async ({ requestRef }) => {
         const model = await ports.loadDocument();
-        const pair = createDomainGraph(model).fulfillmentPair(requestRef);
-        if (pair === undefined || pair.confirmations.length === 0) {
-          const error = '没有找到该请求所对应的履约对。';
+        const graph = createDomainGraph(model);
+        const pair = graph.fulfillmentPair(requestRef);
+        if (pair === undefined) {
+          const error = '没有找到该履约请求。';
           return { text: error, value: { error }, isError: true };
         }
         const deadline = timeAttributeOf(pair.request, 'deadline');
@@ -226,12 +269,26 @@ export const createModelTools = (
             id,
             label,
           })),
-          existingResponses: model.relationships.filter(
-            (edge) =>
-              edge.targetRef === requestRef &&
-              (edge.flowKind === 'breach_compensation' ||
-                edge.flowKind === 'escalation'),
-          ),
+          breachChain: graph.breachChainsOf(requestRef).map((node) => ({
+            requestRef: node.requestId,
+            branches: node.branches.map((branch) => {
+              const condition = branch.edge.notes;
+              return branch.kind === 'compensation_pair'
+                ? {
+                    kind: branch.kind,
+                    condition,
+                    requestRef: branch.compensation.request.id,
+                    label: branch.compensation.request.label,
+                  }
+                : {
+                    kind: branch.kind,
+                    condition,
+                    remedyKind: branch.remedyKind,
+                    handoffRef: branch.handoff.id,
+                    label: branch.handoff.label,
+                  };
+            }),
+          })),
           breachRules: pair.breachRules,
           hypotheses: [
             {
