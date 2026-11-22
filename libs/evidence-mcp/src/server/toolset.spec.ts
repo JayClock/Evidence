@@ -264,7 +264,7 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.bindKeyDataSource,
       TOOL_NAMES.assignFulfillmentContext,
       TOOL_NAMES.simulateWhatIfChallenge,
-      TOOL_NAMES.growBreachCompensation,
+      TOOL_NAMES.recordBreachOutcome,
       TOOL_NAMES.roleifyAndInvertDependency,
       TOOL_NAMES.isolateDomainCalculator,
       TOOL_NAMES.deliveryTopology,
@@ -307,7 +307,7 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.splitEvidenceToPair,
       TOOL_NAMES.bindKeyDataSource,
       TOOL_NAMES.assignFulfillmentContext,
-      TOOL_NAMES.growBreachCompensation,
+      TOOL_NAMES.recordBreachOutcome,
       TOOL_NAMES.roleifyAndInvertDependency,
       TOOL_NAMES.isolateDomainCalculator,
     ]);
@@ -416,25 +416,28 @@ describe('createEvidenceTools', () => {
       })),
     });
     const tool = createEvidenceTools(client).find(
-      (candidate) => candidate.name === TOOL_NAMES.growBreachCompensation,
+      (candidate) => candidate.name === TOOL_NAMES.recordBreachOutcome,
     )!;
     const result = await tool.run({
       requestRef: 'request.unknown',
       condition: '根本不存在',
-      request: {
-        id: 'request.penalty',
-        label: '违约金申请',
-        responsibleRoleRef: 'role.seller',
-      },
-      confirmation: {
-        id: 'confirmation.penalty',
-        label: '违约金确认',
-        responsibleRoleRef: 'role.buyer',
+      outcome: {
+        kind: 'compensation_pair',
+        request: {
+          id: 'request.penalty',
+          label: '违约金申请',
+          responsibleRoleRef: 'role.seller',
+        },
+        confirmation: {
+          id: 'confirmation.penalty',
+          label: '违约金确认',
+          responsibleRoleRef: 'role.buyer',
+        },
       },
     });
 
     expect(result.isError).toBe(true);
-    expect(result.text).toContain('已配对');
+    expect(result.text).toContain('request.unknown');
     expect(client.applyModelPatch).not.toHaveBeenCalled();
   });
 });

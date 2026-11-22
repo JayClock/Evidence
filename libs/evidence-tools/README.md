@@ -13,7 +13,7 @@ for:
 - `bind_key_data_source`
 - `assign_fulfillment_context`
 - `simulate_what_if_challenge` (read-only)
-- `grow_breach_compensation`
+- `record_breach_outcome`
 - `roleify_and_invert_dependency`
 - `isolate_domain_calculator`
 

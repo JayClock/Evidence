@@ -17,6 +17,9 @@
     "flowKind": {
       "enum": ["primary", "breach_compensation", "escalation"]
     },
+    "terminalRemedyKind": {
+      "enum": ["lawsuit", "arbitration", "contract_termination"]
+    },
     "sourceRef": {
       "$ref": "#/$defs/id"
     },
@@ -39,6 +42,14 @@
     }
   },
   "additionalProperties": false,
+  "if": { "required": ["terminalRemedyKind"] },
+  "then": {
+    "required": ["flowKind"],
+    "properties": {
+      "kind": { "const": "references" },
+      "flowKind": { "const": "escalation" }
+    }
+  },
   "$defs": {
     "cardinality": {
       "type": "object",

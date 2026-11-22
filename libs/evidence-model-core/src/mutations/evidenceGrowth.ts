@@ -10,7 +10,7 @@ import {
   type BindKeyDataSourceInput,
   type DomainModelDocument,
   type EvidenceEntityAST,
-  type GrowBreachCompensationInput,
+  type RecordBreachOutcomeInput,
   type SplitEvidenceToPairInput,
   type TimeRole,
 } from '@evidence-poc/evidence-schema';
@@ -334,73 +334,100 @@ export const bindKeyDataSourceMutator = (
   return { createdIds: [] };
 };
 
-export const growBreachCompensationMutator = (
+export const recordBreachOutcomeMutator = (
   draft: DomainModelDocument,
-  input: GrowBreachCompensationInput,
+  { requestRef, condition, outcome, breachRule }: RecordBreachOutcomeInput,
 ): OperatorResult => {
-  const original = createDomainGraph(draft).fulfillmentPair(input.requestRef);
-  if (original === undefined || original.confirmations.length === 0) {
-    throw new Error('请选择已配对的原履约请求。');
-  }
-  const { contextRef } = original.request;
+  const original = requireEntity(draft, requestRef);
+  if (!isFulfillmentRequest(original)) throw new Error('请选择原履约请求。');
+  const { contextRef } = original;
   if (
     draft.relationships.some(
       (edge) =>
-        edge.flowKind === 'breach_compensation' &&
-        edge.targetRef === input.requestRef &&
-        edge.notes === input.condition,
+        (edge.flowKind === 'breach_compensation' ||
+          edge.terminalRemedyKind !== undefined) &&
+        edge.targetRef === requestRef &&
+        edge.notes === condition,
     )
   ) {
-    throw new Error('这个触发条件已有补偿分支，请在现有分支继续澄清。');
+    throw new Error('这个触发条件已有处理分支，请在现有分支继续澄清。');
   }
-  const request = addRequest(draft, input.request, contextRef);
+  const ruleIds =
+    breachRule === undefined
+      ? []
+      : [
+          bindBreachRuleMutator(draft, {
+            requestRef,
+            rule: { ...breachRule, resultType: 'bool' },
+          }).id,
+        ];
+  if (outcome.kind === 'terminal_escalation') {
+    const { handoff } = outcome;
+    const evidence: EvidenceEntityAST = {
+      type: 'entity',
+      category: 'evidence',
+      kind: 'other_evidence',
+      id: handoff.id,
+      label: handoff.label,
+      ...(contextRef === undefined ? {} : { contextRef }),
+    };
+    setRole(draft, evidence, handoff.responsibleRoleRef);
+    createEntityMutator(draft, evidence);
+    const edge = createRelationshipMutator(draft, {
+      type: 'relationship',
+      id: `relation.${handoff.id}-escalates-${requestRef}`,
+      kind: 'references',
+      flowKind: 'escalation',
+      terminalRemedyKind: outcome.remedyKind,
+      sourceRef: handoff.id,
+      targetRef: requestRef,
+      label: '移交争议处理',
+      notes: condition,
+    });
+    return { createdIds: [...ruleIds, evidence.id, edge.id] };
+  }
+  const request = addRequest(draft, outcome.request, contextRef);
   const confirmation: EvidenceEntityAST = {
     type: 'entity',
     category: 'evidence',
     kind: 'fulfillment_confirmation',
     stage: 'fulfillment',
-    id: input.confirmation.id,
-    label: input.confirmation.label,
+    id: outcome.confirmation.id,
+    label: outcome.confirmation.label,
     ...(contextRef === undefined ? {} : { contextRef }),
     attributes: [
-      ...(input.confirmation.occurrence === undefined
+      ...(outcome.confirmation.occurrence === undefined
         ? []
         : [
             {
               ...timestamp({
-                ...input.confirmation.occurrence,
+                ...outcome.confirmation.occurrence,
                 timeRole: 'occurrence',
               }),
               source: { kind: 'result-fact' as const },
             },
           ]),
-      ...(input.confirmation.keyData ?? []).map((field) => ({
+      ...(outcome.confirmation.keyData ?? []).map((field) => ({
         ...field,
         keyData: true,
       })),
     ],
   };
-  setRole(draft, confirmation, input.confirmation.responsibleRoleRef);
+  setRole(draft, confirmation, outcome.confirmation.responsibleRoleRef);
   createEntityMutator(draft, confirmation);
   pairEvidence(draft, request, confirmation);
   addCompletionIfKnown(draft, request);
-  if (input.breachRule !== undefined) {
-    bindBreachRuleMutator(draft, {
-      requestRef: original.request.id,
-      rule: { ...input.breachRule, resultType: 'bool' },
-    });
-  }
   const edge = createRelationshipMutator(draft, {
     type: 'relationship',
-    id: `relation.${request.id}-compensates-${original.request.id}`,
+    id: `relation.${request.id}-compensates-${requestRef}`,
     kind: 'references',
     flowKind: 'breach_compensation',
     sourceRef: request.id,
-    targetRef: original.request.id,
+    targetRef: requestRef,
     label: '补偿原履约请求',
-    notes: input.condition,
+    notes: condition,
   });
-  return { createdIds: [request.id, confirmation.id, edge.id] };
+  return { createdIds: [...ruleIds, request.id, confirmation.id, edge.id] };
 };
 
 export const assignFulfillmentContextMutator = (
@@ -422,10 +449,12 @@ export const assignFulfillmentContextMutator = (
     const target = entities.get(edge.targetRef);
     if (
       !isFulfillmentRequest(target) ||
+      source === undefined ||
       !(
         isFulfillmentConfirmation(source) ||
         (isFulfillmentRequest(source) &&
-          edge.flowKind === 'breach_compensation')
+          edge.flowKind === 'breach_compensation') ||
+        edge.terminalRemedyKind !== undefined
       )
     )
       continue;

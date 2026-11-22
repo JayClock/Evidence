@@ -741,6 +741,31 @@ const validateRelationships = (
 
     const sourceContext = ownerContextOf(source);
     const targetContext = ownerContextOf(target);
+    if (relationship.terminalRemedyKind !== undefined) {
+      if (
+        signatureOf(target) !== 'evidence.fulfillment_request' ||
+        source.category !== 'evidence' ||
+        source.kind !== 'other_evidence' ||
+        (source.stage !== undefined && source.stage !== 'fulfillment')
+      ) {
+        addIssue(
+          ctx,
+          'relationship.references.endpoints',
+          path,
+          'A terminal remedy must link hand-off Evidence to the breached Fulfillment Request.',
+          relationship.id,
+        );
+      } else if (sourceContext !== targetContext) {
+        addIssue(
+          ctx,
+          'relationship.references.crossContext',
+          path,
+          'Terminal hand-off and breached request must share one Contract Context or both be unassigned.',
+          relationship.id,
+        );
+      }
+      continue;
+    }
     const contractToProposal =
       signatureOf(source) === 'evidence.contract' &&
       signatureOf(target) === 'evidence.proposal';

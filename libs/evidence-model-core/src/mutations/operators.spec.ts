@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
 
 import {
-  addBreachCompensationMutator,
   introduceFulfillmentPairMutator,
   isolateDomainCalculatorMutator,
   roleifyAndInvertDependencyMutator,
@@ -151,104 +150,6 @@ describe('introduceFulfillmentPair', () => {
         introduceFulfillmentPairMutator(draft, pairIntent()),
       ),
     ).toThrow(/requires exactly one root Contract/);
-  });
-});
-
-describe('addBreachCompensation', () => {
-  it('declares the breach and the compensation pair that answers it', () => {
-    const model = createProcurementModel();
-    const patch = runMutation(model, (draft) =>
-      addBreachCompensationMutator(draft, {
-        requestRef: 'request.payment',
-        confirmationRef: 'confirmation.payment',
-        condition: '超过约定窗口仍未到账',
-        request: {
-          id: 'request.penalty',
-          label: '逾期违约金申请',
-          responsibleRoleRef: 'role.seller',
-          window: '5 个工作日',
-        },
-        confirmation: {
-          id: 'confirmation.penalty',
-          label: '违约金到账确认',
-          responsibleRoleRef: 'role.buyer',
-        },
-      }),
-    );
-    const { document } = patch;
-
-    expect(patch.result.createdIds[0]).toBe('rule.request.payment-breached');
-    expect(document.relationships).toContainEqual(
-      expect.objectContaining({
-        kind: 'references',
-        flowKind: 'breach_compensation',
-        sourceRef: 'request.penalty',
-        targetRef: 'request.payment',
-      }),
-    );
-    expect(
-      document.rules.find(
-        (rule) => rule.id === 'rule.request.payment-breached',
-      ),
-    ).toMatchObject({
-      kind: 'breach',
-      description: '超过约定窗口仍未到账',
-    });
-    expect(
-      document.entities.some((entity) => entity.id === 'request.penalty'),
-    ).toBe(true);
-    expect(
-      document.entities.some((entity) => entity.id === 'confirmation.penalty'),
-    ).toBe(true);
-  });
-
-  it('keeps the model free of hidden retries: the breach is a rule, not an undo', () => {
-    const patch = runMutation(createProcurementModel(), (draft) =>
-      addBreachCompensationMutator(draft, {
-        requestRef: 'request.payment',
-        confirmationRef: 'confirmation.payment',
-        condition: '超过约定窗口仍未到账',
-        request: {
-          id: 'request.penalty',
-          label: '逾期违约金申请',
-          responsibleRoleRef: 'role.seller',
-        },
-        confirmation: {
-          id: 'confirmation.penalty',
-          label: '违约金到账确认',
-          responsibleRoleRef: 'role.buyer',
-        },
-      }),
-    );
-    expect(
-      patch.document.rules.find((rule) => rule.kind === 'breach')?.expression,
-    ).toContain('now > request.expired_at');
-    expect(
-      patch.document.entities.some((entity) => entity.id === 'request.penalty'),
-    ).toBe(true);
-    expect(patch.undo()).toStrictEqual(createProcurementModel());
-  });
-
-  it('rejects a request that does not exist', () => {
-    expect(() =>
-      runMutation(createProcurementModel(), (draft) =>
-        addBreachCompensationMutator(draft, {
-          requestRef: 'request.ghost',
-          confirmationRef: 'confirmation.payment',
-          condition: '不存在',
-          request: {
-            id: 'request.penalty',
-            label: '违约金申请',
-            responsibleRoleRef: 'role.seller',
-          },
-          confirmation: {
-            id: 'confirmation.penalty',
-            label: '违约金确认',
-            responsibleRoleRef: 'role.buyer',
-          },
-        }),
-      ),
-    ).toThrow("'request.ghost' 不是履约请求");
   });
 });
 

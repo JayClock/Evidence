@@ -127,12 +127,40 @@ describe('shared model tool registry', () => {
     });
     expect(session.getDocument()).toBe(beforeProbe);
     expect(applyModelPatch).toHaveBeenCalledTimes(3);
-    await run(names.growBreachCompensation, {
+    await run(names.recordBreachOutcome, {
       requestRef: 'request.payment',
       condition: '超时后启动退款',
-      request: { id: 'request.refund', label: '退款请求' },
-      confirmation: { id: 'confirmation.refund', label: '退款确认' },
+      outcome: {
+        kind: 'compensation_pair',
+        request: { id: 'request.refund', label: '退款请求' },
+        confirmation: { id: 'confirmation.refund', label: '退款确认' },
+      },
     });
+    await run(names.recordBreachOutcome, {
+      requestRef: 'request.refund',
+      condition: '退款仍未按约处理',
+      outcome: {
+        kind: 'terminal_escalation',
+        remedyKind: 'arbitration',
+        handoff: { id: 'evidence.handoff', label: '移交仲裁' },
+      },
+    });
+    expect(session.getDocument().relationships).toContainEqual(
+      expect.objectContaining({
+        flowKind: 'escalation',
+        terminalRemedyKind: 'arbitration',
+        sourceRef: 'evidence.handoff',
+        targetRef: 'request.refund',
+      }),
+    );
+    expect(
+      createDomainGraph(session.getDocument()).fulfillmentPair(
+        'evidence.handoff',
+      ),
+    ).toBeUndefined();
+    expect(
+      session.getDocument().rules.filter(({ kind }) => kind === 'breach'),
+    ).toEqual([]);
     expect(
       createDomainGraph(session.getDocument()).fulfillmentPair('request.refund')
         ?.confirmations[0]?.id,
@@ -143,6 +171,10 @@ describe('shared model tool registry', () => {
         targetRef: 'request.payment',
       }),
     );
+    expect(session.undo()).toBe(true);
+    expect(
+      createDomainGraph(session.getDocument()).getEntity('evidence.handoff'),
+    ).toBeUndefined();
     expect(session.undo()).toBe(true);
     expect(session.getDocument()).toEqual(beforeProbe);
   });

@@ -5,6 +5,7 @@ import {
   TimeRoleSchema,
 } from '../ast/entity.js';
 import { AttributeNameSchema, DomainIdSchema } from '../ast/id.js';
+import { TerminalRemedyKindSchema } from '../ast/relationship.js';
 import { RuleBindingSchema } from '../ast/rule.js';
 import { ValueTypeSchema } from '../ast/values.js';
 
@@ -110,12 +111,24 @@ export const BindKeyDataSourceInputSchema = z
   })
   .strict();
 
-export const GrowBreachCompensationInputSchema = z
+export const RecordBreachOutcomeInputSchema = z
   .object({
-    requestRef: DomainIdSchema,
+    requestRef: DomainIdSchema.describe('原履约请求，也可以是既有补偿请求。'),
     condition: condition.describe('经业务确认的违约触发条件。'),
-    request,
-    confirmation,
+    outcome: z.discriminatedUnion('kind', [
+      z
+        .object({ kind: z.literal('compensation_pair'), request, confirmation })
+        .strict(),
+      z
+        .object({
+          kind: z.literal('terminal_escalation'),
+          remedyKind: TerminalRemedyKindSchema,
+          handoff: named
+            .extend({ responsibleRoleRef: DomainIdSchema.optional() })
+            .strict(),
+        })
+        .strict(),
+    ]),
     breachRule: rule.optional(),
   })
   .strict();
@@ -134,8 +147,8 @@ export type SplitEvidenceToPairInput = z.infer<
 export type BindKeyDataSourceInput = z.infer<
   typeof BindKeyDataSourceInputSchema
 >;
-export type GrowBreachCompensationInput = z.infer<
-  typeof GrowBreachCompensationInputSchema
+export type RecordBreachOutcomeInput = z.infer<
+  typeof RecordBreachOutcomeInputSchema
 >;
 export type AssignFulfillmentContextInput = z.infer<
   typeof AssignFulfillmentContextInputSchema

@@ -11,7 +11,7 @@ import {
   assignFulfillmentContextMutator,
   batchAddEvidenceMutator,
   bindKeyDataSourceMutator,
-  growBreachCompensationMutator,
+  recordBreachOutcomeMutator,
   splitEvidenceToPairMutator,
 } from './evidenceGrowth.js';
 
@@ -151,11 +151,14 @@ describe('evidence growth', () => {
   it('anchors the entire pair and its compensation together without inventing an executable breach rule', () => {
     const model = seed();
     splitEvidenceToPairMutator(model, pairIntent());
-    growBreachCompensationMutator(model, {
+    recordBreachOutcomeMutator(model, {
       requestRef: split.request.id,
       condition: '资金未能按约到账',
-      request: { id: 'request.refund', label: '退款申请' },
-      confirmation: { id: 'evidence.refund', label: '退款确认' },
+      outcome: {
+        kind: 'compensation_pair',
+        request: { id: 'request.refund', label: '退款申请' },
+        confirmation: { id: 'evidence.refund', label: '退款确认' },
+      },
     });
     expect(model.rules).toEqual([]);
     expect(model.relationships).toContainEqual(
@@ -193,12 +196,15 @@ describe('evidence growth', () => {
       createDomainGraph(model).attribute(payment.id, 'amount')?.source,
     ).toBeUndefined();
     expect(() =>
-      growBreachCompensationMutator(model, {
+      recordBreachOutcomeMutator(model, {
         requestRef: 'request.unseen',
         condition: '超时',
-        request: { id: 'request.refund', label: '退款' },
-        confirmation: { id: 'evidence.refund', label: '退款确认' },
+        outcome: {
+          kind: 'compensation_pair',
+          request: { id: 'request.refund', label: '退款' },
+          confirmation: { id: 'evidence.refund', label: '退款确认' },
+        },
       }),
-    ).toThrow('已配对');
+    ).toThrow('request.unseen');
   });
 });

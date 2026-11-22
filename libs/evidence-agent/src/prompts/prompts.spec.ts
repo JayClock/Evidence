@@ -21,10 +21,7 @@ describe('evidence modeling instructions', () => {
           'assign_fulfillment_context',
         ],
       ],
-      [
-        WHAT_IF_PROMPT,
-        ['simulate_what_if_challenge', 'grow_breach_compensation'],
-      ],
+      [WHAT_IF_PROMPT, ['simulate_what_if_challenge', 'record_breach_outcome']],
     ] as const) {
       for (const name of names) {
         expect(prompt).toContain(name);

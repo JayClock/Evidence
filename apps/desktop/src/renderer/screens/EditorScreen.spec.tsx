@@ -19,7 +19,7 @@ import {
   batchAddEvidenceMutator,
   collectFlowScenarios,
   createModelPatch,
-  growBreachCompensationMutator,
+  recordBreachOutcomeMutator,
   splitEvidenceToPairMutator,
 } from '@evidence-poc/evidence-model-core';
 import { EditorScreen } from './EditorScreen';
@@ -361,11 +361,14 @@ describe('EditorScreen', () => {
         );
       } else if (input.text === remedyCondition) {
         apply('生长补偿', (draft) =>
-          growBreachCompensationMutator(draft, {
+          recordBreachOutcomeMutator(draft, {
             requestRef: 'request.payment',
             condition: remedyCondition,
-            request: { id: 'request.refund', label: '退款请求' },
-            confirmation: { id: 'evidence.refund', label: '退款确认' },
+            outcome: {
+              kind: 'compensation_pair',
+              request: { id: 'request.refund', label: '退款请求' },
+              confirmation: { id: 'evidence.refund', label: '退款确认' },
+            },
           }),
         );
       }

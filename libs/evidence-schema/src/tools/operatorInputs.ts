@@ -44,22 +44,6 @@ export const FulfillmentPairIntentSchema = z
   .strict();
 export type FulfillmentPairIntent = z.infer<typeof FulfillmentPairIntentSchema>;
 
-export const BreachCompensationIntentSchema = FulfillmentPairIntentSchema.omit({
-  contextRef: true,
-})
-  .extend({
-    requestRef: DomainIdSchema.describe('被违反的履约请求 ID。'),
-    confirmationRef: DomainIdSchema.describe('本应关闭该请求的履约确认 ID。'),
-    condition: z
-      .string()
-      .min(1)
-      .describe('违约的业务描述，例如超过约定窗口仍未到账。'),
-  })
-  .strict();
-export type BreachCompensationIntent = z.infer<
-  typeof BreachCompensationIntentSchema
->;
-
 export const RoleInversionIntentSchema = z
   .object({
     targetConfirmationRef: DomainIdSchema,

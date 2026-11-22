@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BreachCompensationIntentSchema,
   DomainCalculatorIntentSchema,
   FulfillmentPairIntentSchema,
   RoleInversionIntentSchema,
@@ -51,29 +50,6 @@ describe('shared operator schemas', () => {
   it('preserves optional fields without adding defaults', () => {
     expect(FulfillmentPairIntentSchema.parse(pair)).toEqual(pair);
     expect(DomainCalculatorIntentSchema.parse(calculator)).toEqual(calculator);
-  });
-  it('derives the compensation pair from the same moment contract', () => {
-    const moments = {
-      request: pair.request,
-      confirmation: pair.confirmation,
-      proof: pair.proof,
-    };
-    expect(
-      BreachCompensationIntentSchema.safeParse({
-        ...moments,
-        requestRef: 'request.payment',
-        confirmationRef: 'confirmation.payment',
-        condition: 'missed deadline',
-      }).success,
-    ).toBe(true);
-    expect(
-      BreachCompensationIntentSchema.safeParse({
-        ...pair,
-        requestRef: 'request.payment',
-        confirmationRef: 'confirmation.payment',
-        condition: 'missed deadline',
-      }).success,
-    ).toBe(false);
   });
   it.each([
     {

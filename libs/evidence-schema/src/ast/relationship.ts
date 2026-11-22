@@ -40,6 +40,14 @@ export const RelationshipFlowKindSchema = z.enum(
   ],
 );
 
+export const TERMINAL_REMEDY_KINDS = [
+  'lawsuit',
+  'arbitration',
+  'contract_termination',
+] as const;
+export const TerminalRemedyKindSchema = z.enum(TERMINAL_REMEDY_KINDS);
+export type TerminalRemedyKind = z.infer<typeof TerminalRemedyKindSchema>;
+
 export const CardinalityASTSchema = z
   .object({
     min: z.number().int().nonnegative(),
@@ -64,6 +72,7 @@ export const RelationshipASTSchema = z
     kind: RelationshipKindSchema,
     // Absence means primary at read time, never materialize a default on disk.
     flowKind: RelationshipFlowKindSchema.optional(),
+    terminalRemedyKind: TerminalRemedyKindSchema.optional(),
     sourceRef: DomainIdSchema,
     targetRef: DomainIdSchema,
     label: z.string().min(1),
@@ -71,7 +80,16 @@ export const RelationshipASTSchema = z
     targetCardinality: CardinalityASTSchema.optional(),
     notes: z.string().min(1).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (edge) =>
+      edge.terminalRemedyKind === undefined ||
+      (edge.kind === 'references' && edge.flowKind === 'escalation'),
+    {
+      path: ['terminalRemedyKind'],
+      message: 'A terminal remedy requires an escalation reference.',
+    },
+  );
 export type RelationshipAST = z.infer<typeof RelationshipASTSchema>;
 
 export function isRelationshipKind(value: unknown): value is RelationshipKind {

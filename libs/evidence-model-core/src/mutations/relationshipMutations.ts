@@ -103,6 +103,7 @@ export const setRelationshipFlowMutator = (
   }
   if (flowKind === 'primary') delete edge.flowKind;
   else edge.flowKind = flowKind;
+  if (flowKind !== 'escalation') delete edge.terminalRemedyKind;
 };
 
 export const deleteRelationshipMutator = (

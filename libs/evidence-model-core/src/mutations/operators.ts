@@ -4,20 +4,16 @@ import type {
   EvidenceEntityAST,
   RoleEntityAST,
   FulfillmentPairIntent,
-  BreachCompensationIntent,
   RoleInversionIntent,
   DomainCalculatorIntent,
 } from '@evidence-poc/evidence-schema';
 
 export type {
   FulfillmentPairIntent,
-  BreachCompensationIntent,
   RoleInversionIntent,
   DomainCalculatorIntent,
 } from '@evidence-poc/evidence-schema';
 
-import { createDomainGraph } from '../model/graph.js';
-import { timeoutExpressionFor } from '../model/fulfillmentTime.js';
 import type { CreateFulfillmentPairInput } from './fulfillmentMutations.js';
 import { createFulfillmentPairMutator } from './fulfillmentMutations.js';
 import {
@@ -25,7 +21,6 @@ import {
   createContractMutator,
 } from './entityMutations.js';
 import { createRelationshipMutator } from './relationshipMutations.js';
-import { bindBreachRuleMutator } from './fulfillmentPairMutations.js';
 import { addAttributeMutator } from './attributeMutations.js';
 import { bindDerivedRuleMutator } from './derivationMutations.js';
 
@@ -203,84 +198,6 @@ export const introduceFulfillmentPairMutator = (
       ...(intent.proof === undefined ? [] : [intent.proof.id]),
       intent.request.id,
       intent.confirmation.id,
-    ],
-  };
-};
-
-export const addBreachCompensationMutator = (
-  document: DomainModelDocument,
-  intent: BreachCompensationIntent,
-): OperatorResult => {
-  const breaching = document.entities.find(
-    (entity) => entity.id === intent.requestRef,
-  );
-
-  if (
-    breaching === undefined ||
-    breaching.category !== 'evidence' ||
-    breaching.kind !== 'fulfillment_request'
-  ) {
-    throw new Error(`'${intent.requestRef}' 不是履约请求，无法声明违约补偿。`);
-  }
-
-  if (breaching.contextRef === undefined) {
-    throw new Error('请先确定原履约请求所属的合同上下文。');
-  }
-  const pair = createDomainGraph(document).fulfillmentPair(breaching.id);
-  const confirmation = pair?.confirmations.find(
-    ({ id }) => id === intent.confirmationRef,
-  );
-  if (confirmation === undefined)
-    throw new Error('所选凭证尚未关联到被违反的履约请求。');
-  const expression =
-    confirmation?.category === 'evidence' &&
-    confirmation.kind === 'fulfillment_confirmation'
-      ? timeoutExpressionFor(breaching, confirmation)
-      : undefined;
-  if (expression === undefined)
-    throw new Error('请先确定原履约截止时间和确认时刻。');
-  bindBreachRuleMutator(document, {
-    requestRef: intent.requestRef,
-    rule: {
-      id: `rule.${intent.requestRef}-breached`,
-      label: '未按期履约判断',
-      description: intent.condition,
-      bindings: {
-        request: { ref: intent.requestRef },
-        confirmations: {
-          ref: intent.confirmationRef,
-          cardinality: 'many',
-        },
-        now: { type: 'timestamp' },
-      },
-      // A window that closed with no confirmation inside it: the request
-      // is breached, and the compensation below is what the model offers
-      // instead of an implicit retry.
-      expression,
-      resultType: 'bool',
-    },
-  });
-  const compensation = introduceFulfillmentPairMutator(document, {
-    contextRef: breaching.contextRef,
-    request: intent.request,
-    confirmation: intent.confirmation,
-    ...(intent.proof === undefined ? {} : { proof: intent.proof }),
-  });
-  const edge = createRelationshipMutator(document, {
-    type: 'relationship',
-    id: `relation.${intent.request.id}-compensates-${breaching.id}`,
-    kind: 'references',
-    flowKind: 'breach_compensation',
-    sourceRef: intent.request.id,
-    targetRef: breaching.id,
-    label: '补偿原履约请求',
-    notes: intent.condition,
-  });
-  return {
-    createdIds: [
-      `rule.${intent.requestRef}-breached`,
-      ...compensation.createdIds,
-      edge.id,
     ],
   };
 };

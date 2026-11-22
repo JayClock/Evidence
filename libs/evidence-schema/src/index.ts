@@ -157,6 +157,9 @@ export {
 
 export {
   CardinalityASTSchema,
+  TERMINAL_REMEDY_KINDS,
+  TerminalRemedyKindSchema,
+  type TerminalRemedyKind,
   RelationshipASTSchema,
   RELATIONSHIP_FLOW_DEFINITIONS,
   RELATIONSHIP_FLOW_KINDS,
@@ -197,11 +200,9 @@ export {
 
 export {
   FulfillmentPairIntentSchema,
-  BreachCompensationIntentSchema,
   RoleInversionIntentSchema,
   DomainCalculatorIntentSchema,
   type FulfillmentPairIntent,
-  type BreachCompensationIntent,
   type RoleInversionIntent,
   type DomainCalculatorIntent,
 } from './tools/operatorInputs.js';

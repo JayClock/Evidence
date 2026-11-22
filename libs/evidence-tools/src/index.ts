@@ -6,7 +6,7 @@ import {
   DomainCalculatorIntentSchema,
   DomainIdSchema,
   DomainModelDocumentSchema,
-  GrowBreachCompensationInputSchema,
+  RecordBreachOutcomeInputSchema,
   ModelPatchRequestSchema,
   RoleInversionIntentSchema,
   SplitEvidenceToPairInputSchema,
@@ -20,7 +20,7 @@ import {
   bindKeyDataSourceMutator,
   createDomainGraph,
   createModelPatch,
-  growBreachCompensationMutator,
+  recordBreachOutcomeMutator,
   isolateDomainCalculatorMutator,
   roleifyAndInvertDependencyMutator,
   splitEvidenceToPairMutator,
@@ -34,7 +34,7 @@ export const MODEL_TOOL_NAMES = {
   bindKeyDataSource: 'bind_key_data_source',
   assignFulfillmentContext: 'assign_fulfillment_context',
   simulateWhatIfChallenge: 'simulate_what_if_challenge',
-  growBreachCompensation: 'grow_breach_compensation',
+  recordBreachOutcome: 'record_breach_outcome',
   roleifyAndInvertDependency: 'roleify_and_invert_dependency',
   isolateDomainCalculator: 'isolate_domain_calculator',
 } as const;
@@ -255,14 +255,14 @@ export const createModelTools = (
       },
     }),
     define({
-      name: MODEL_TOOL_NAMES.growBreachCompensation,
-      label: '生长违约补偿分支',
+      name: MODEL_TOOL_NAMES.recordBreachOutcome,
+      label: '记录违约处理',
       description:
-        '仅将已确认的违约触发条件与补偿动作写成同合同的独立履约对。假设不写入；没有可执行规则时不要补造 CEL。',
-      parameters: GrowBreachCompensationInputSchema,
+        '为已确认的触发条件记录补偿履约对或争议移交边界。原请求也可以是补偿请求；不写入假设或杜撰 CEL。',
+      parameters: RecordBreachOutcomeInputSchema,
       run: (input) =>
-        runOperator(`违约补偿：${input.condition}`, (draft) =>
-          growBreachCompensationMutator(draft, input),
+        runOperator(`违约处理：${input.condition}`, (draft) =>
+          recordBreachOutcomeMutator(draft, input),
         ),
     }),
     define({
