@@ -61,31 +61,12 @@ describe('RightInspector', () => {
     expect(screen.getByRole('columnheader', { name: '要素' })).toBeVisible();
   });
 
-  it('commits a renamed label through the session and undoes it', () => {
-    const { session, renderInspector } = setup('evidence.contract');
-    const view = renderInspector();
-    const labels = screen.getAllByDisplayValue(
-      '采购协议（Procurement Contract）',
-    );
-    const input = labels[0]!;
-
-    fireEvent.change(input, {
-      target: { value: '采购合同（Procurement Contract）' },
-    });
-    fireEvent.blur(input);
-
-    expect(session.getGraph().getEntity('evidence.contract')?.label).toBe(
-      '采购合同（Procurement Contract）',
-    );
-    expect(session.canUndo()).toBe(true);
-
-    session.undo();
-
-    expect(session.getGraph().getEntity('evidence.contract')?.label).toBe(
-      '采购协议（Procurement Contract）',
-    );
-
-    view.unmount();
+  it('shows the entity name as text, not a writable field', () => {
+    setup('evidence.contract').renderInspector();
+    expect(
+      screen.getByText('采购协议（Procurement Contract）', { selector: 'dd' }),
+    ).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: '业务名称' })).toBeNull();
   });
 
   it('marks an attribute as key data from the table', () => {
@@ -202,17 +183,13 @@ describe('RightInspector', () => {
     ).toBeUndefined();
   });
 
-  it('lets a role be re-bound to a different context', () => {
-    const { session, renderInspector } = setup('role.buyer');
-    renderInspector();
-
-    const picker = screen.getByLabelText('所属上下文');
-
-    fireEvent.change(picker, { target: { value: 'context.catalog' } });
-
-    expect(session.getGraph().getEntity('role.buyer')).toMatchObject({
-      contextRef: 'context.catalog',
-    });
+  it('shows only the declared context for a role', () => {
+    setup('role.buyer').renderInspector();
+    expect(screen.getByText('所属上下文').parentElement).toHaveTextContent(
+      'context.procurement',
+    );
+    expect(screen.queryByText('context.catalog')).toBeNull();
+    expect(screen.queryByRole('combobox', { name: '所属上下文' })).toBeNull();
   });
 
   it('omits responsibility fields for roles', () => {
@@ -245,11 +222,14 @@ describe('RightInspector', () => {
   it('opens the ledger sheet with Alt+L', () => {
     setup('evidence.contract').renderInspector();
 
-    fireEvent.keyDown(screen.getByRole('textbox', { name: '业务名称' }), {
-      key: 'l',
-      altKey: true,
-      code: 'KeyL',
-    });
+    fireEvent.keyDown(
+      screen.getByRole('region', { name: '模型属性' }).querySelector('select')!,
+      {
+        key: 'l',
+        altKey: true,
+        code: 'KeyL',
+      },
+    );
     expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.keyDown(window, { key: 'l', altKey: true, code: 'KeyL' });
 

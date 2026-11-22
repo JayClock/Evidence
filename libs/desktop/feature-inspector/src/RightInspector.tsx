@@ -4,13 +4,10 @@ import { Button } from '@evidence-poc/desktop-ui-kit';
 import {
   type EntityAST,
   type InspectorPropertyDefinition,
-  type InspectorReferenceConstraint,
   getInspectorGroups,
-  getReferenceConstraint,
 } from '@evidence-poc/evidence-schema';
 import {
   buildKeyDataLedger,
-  updateEntityMutator,
   type DomainGraph,
   type ModelSelection,
   type ModelSession,
@@ -39,41 +36,7 @@ interface RightInspectorProps {
 const fieldValue = (entity: EntityAST, field: string): unknown =>
   (entity as unknown as Record<string, unknown>)[field];
 
-const referenceOptions = (
-  graph: DomainGraph,
-  entity: EntityAST,
-  constraint: InspectorReferenceConstraint | undefined,
-): readonly EntityAST[] => {
-  if (constraint === undefined) {
-    return [];
-  }
-
-  return graph.entities().filter((candidate) => {
-    if (!constraint.categories.includes(candidate.category)) {
-      return false;
-    }
-
-    if (
-      constraint.kinds !== undefined &&
-      !constraint.kinds.includes(candidate.kind)
-    ) {
-      return false;
-    }
-
-    if (constraint.sameContext === true) {
-      const candidateContext =
-        'contextRef' in candidate ? candidate.contextRef : undefined;
-      const entityContext =
-        'contextRef' in entity ? entity.contextRef : undefined;
-
-      return candidateContext === entityContext;
-    }
-
-    return true;
-  });
-};
-
-/** Schema-driven entity editor inside the workbench's existing right pane. */
+/** Schema-driven entity inspection inside the workbench’s right pane. */
 export const RightInspector = ({
   showHeading = true,
   active = true,
@@ -280,12 +243,6 @@ const InspectorBody = ({
     () => getInspectorGroups(entity.category),
     [entity.category],
   );
-  const patch = (fields: Readonly<Partial<EntityAST>>) => {
-    session.mutate(
-      (draft) => updateEntityMutator(draft, entity.id, fields),
-      'update-entity',
-    );
-  };
 
   const renderGroup = (group: (typeof groups)[number]) => {
     const properties = group.properties.filter(
@@ -299,16 +256,16 @@ const InspectorBody = ({
         <h3 className="text-[11px] font-semibold text-workbench-label">
           {group.label}
         </h3>
-        {properties.map((property) => (
-          <PropertyRow
-            key={property.field}
-            graph={graph}
-            entity={entity}
-            property={property}
-            constraint={getReferenceConstraint(entity.category, property.field)}
-            onPatch={patch}
-          />
-        ))}
+        <dl className="flex flex-col gap-2">
+          {properties.map((property) => (
+            <PropertyRow
+              key={property.field}
+              graph={graph}
+              entity={entity}
+              property={property}
+            />
+          ))}
+        </dl>
       </section>
     );
   };
@@ -340,11 +297,7 @@ const InspectorBody = ({
         session={session}
       />
       {groups.filter((group) => group.id !== 'general').map(renderGroup)}
-      <RelationshipFlowSection
-        entityId={entity.id}
-        graph={graph}
-        session={session}
-      />
+      <RelationshipFlowSection entityId={entity.id} graph={graph} />
       {entity.category === 'evidence' &&
       entity.kind === 'fulfillment_request' ? (
         <FulfillmentPairSection
@@ -357,180 +310,78 @@ const InspectorBody = ({
   );
 };
 
-interface PropertyRowProps {
-  graph: DomainGraph;
-  entity: EntityAST;
-  property: InspectorPropertyDefinition;
-  constraint: InspectorReferenceConstraint | undefined;
-  onPatch: (fields: Readonly<Partial<EntityAST>>) => void;
-}
+const ReferenceValue = ({ graph, id }: { graph: DomainGraph; id: string }) => {
+  const target = graph.getEntity(id);
+  return (
+    <span>
+      {target ? <>{target.label} · </> : <span>引用未解析 · </span>}
+      <code>{id}</code>
+    </span>
+  );
+};
 
 const PropertyRow = ({
   graph,
   entity,
   property,
-  constraint,
-  onPatch,
-}: PropertyRowProps) => {
+}: {
+  graph: DomainGraph;
+  entity: EntityAST;
+  property: InspectorPropertyDefinition;
+}) => {
   const value = fieldValue(entity, property.field);
+  let content: React.ReactNode = '未声明';
 
   switch (property.editor) {
     case 'text':
-      return (
-        <Labeled label={property.label} helper={property.helper}>
-          <TextInput
-            key={String(value ?? '')}
-            label={property.label}
-            value={typeof value === 'string' ? value : ''}
-            onCommit={(next) => onPatch({ [property.field]: next })}
-          />
-        </Labeled>
-      );
+      if (typeof value === 'string' && value.trim() !== '') content = value;
+      break;
     case 'select':
-      return (
-        <Labeled label={property.label} helper={property.helper}>
-          <select
-            aria-label={property.label}
-            value={typeof value === 'string' ? value : ''}
-            onChange={(event) =>
-              onPatch({ [property.field]: event.target.value })
-            }
-            className="w-full rounded border border-evidence-line bg-white px-1.5 py-1 text-[11px]"
-          >
-            {(property.options ?? []).map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </Labeled>
-      );
+      if (typeof value === 'string') {
+        content =
+          property.options?.find((option) => option.value === value)?.label ??
+          value;
+      }
+      break;
     case 'boolean':
-      return (
-        <label className="flex items-center gap-2 text-[11px] text-[#414751]">
-          <input
-            type="checkbox"
-            checked={value === true}
-            onChange={(event) =>
-              onPatch({ [property.field]: event.target.checked })
-            }
-          />
-          {property.label}
-        </label>
-      );
+      if (typeof value === 'boolean') content = value ? '是' : '否';
+      break;
     case 'reference-picker':
-      return (
-        <Labeled label={property.label} helper={property.helper}>
-          <select
-            aria-label={property.label}
-            value={typeof value === 'string' ? value : ''}
-            onChange={(event) =>
-              onPatch({
-                [property.field]:
-                  event.target.value === '' ? undefined : event.target.value,
-              })
-            }
-            className="w-full rounded border border-evidence-line bg-white px-1.5 py-1 text-[11px]"
-          >
-            <option value="">未声明</option>
-            {referenceOptions(graph, entity, constraint).map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
+      if (typeof value === 'string' && value !== '')
+        content = <ReferenceValue graph={graph} id={value} />;
+      break;
+    case 'reference-list': {
+      const ids = Array.isArray(value)
+        ? value.filter((id): id is string => typeof id === 'string')
+        : [];
+      if (ids.length > 0) {
+        content = (
+          <ul className="list-disc pl-4">
+            {ids.map((id) => (
+              <li key={id}>
+                <ReferenceValue graph={graph} id={id} />
+              </li>
             ))}
-          </select>
-        </Labeled>
-      );
-    case 'reference-list':
-      return (
-        <Labeled label={property.label} helper={property.helper}>
-          <div className="flex flex-wrap gap-1">
-            {referenceOptions(graph, entity, constraint).map((option) => {
-              const list = Array.isArray(value) ? (value as string[]) : [];
-              const active = list.includes(option.id);
-
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() =>
-                    onPatch({
-                      [property.field]: active
-                        ? list.filter((item) => item !== option.id)
-                        : [...list, option.id],
-                    })
-                  }
-                  className={[
-                    'rounded border px-1.5 py-0.5 text-[10px]',
-                    active
-                      ? 'border-evidence-accent bg-[#e8eef6] text-evidence-ink'
-                      : 'border-evidence-line text-evidence-muted hover:border-evidence-accent',
-                  ].join(' ')}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-        </Labeled>
-      );
-    case 'cel-editor':
-      return (
-        <span className="text-[10px] text-evidence-muted">
-          在核心要素台账中编辑。
-        </span>
-      );
+          </ul>
+        );
+      }
+      break;
+    }
     default:
       return null;
   }
-};
-
-const Labeled = ({
-  label,
-  helper,
-  children,
-}: {
-  label: string;
-  helper?: string;
-  children: React.ReactNode;
-}) => (
-  <div>
-    <p className="text-[10px] text-[#5b6270]">{label}</p>
-    {children}
-    {helper !== undefined ? (
-      <p className="mt-0.5 text-[9px] leading-snug text-[#9aa1ac]">{helper}</p>
-    ) : null}
-  </div>
-);
-
-const TextInput = ({
-  label,
-  value,
-  onCommit,
-}: {
-  label: string;
-  value: string;
-  onCommit: (next: string) => void;
-}) => {
-  const [draft, setDraft] = useState(value);
 
   return (
-    <input
-      aria-label={label}
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => {
-        if (draft !== value) {
-          onCommit(draft);
-        }
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-          event.currentTarget.blur();
-        }
-      }}
-      className="w-full rounded border border-evidence-line bg-white px-1.5 py-1 text-[11px]"
-    />
+    <div>
+      <dt className="text-[10px] text-workbench-label">{property.label}</dt>
+      <dd className="wrap-anywhere whitespace-pre-wrap text-workbench-body">
+        {content}
+      </dd>
+      {property.helper === undefined ? null : (
+        <dd className="mt-0.5 text-[9px] leading-snug text-workbench-muted">
+          {property.helper}
+        </dd>
+      )}
+    </div>
   );
 };
