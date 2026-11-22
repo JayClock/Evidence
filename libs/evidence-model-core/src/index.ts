@@ -28,6 +28,13 @@ export {
   type FulfillmentPair,
   type PreContractPair,
 } from './model/graph.js';
+export {
+  HEALTH_DIMENSIONS,
+  inspectModelHealth,
+  type HealthDimensionSummary,
+  type ModelHealthIssue,
+  type ModelHealthReport,
+} from './model/modelHealth.js';
 
 export * from './mutations/index.js';
 export {
