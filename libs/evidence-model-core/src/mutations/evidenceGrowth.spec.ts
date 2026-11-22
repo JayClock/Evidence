@@ -180,6 +180,139 @@ describe('evidence growth', () => {
     expect(DomainModelDocumentSchema.safeParse(model).success).toBe(true);
   });
 
+  it('promotes a fulfillment fact without supplying an unknown deadline or confirmation time', () => {
+    const model = seed();
+    batchAddEvidenceMutator(model, {
+      evidences: [
+        { id: 'evidence.delivery', label: '交货回执', stage: 'fulfillment' },
+        { id: 'evidence.quote', label: '报价', stage: 'proposal' },
+      ],
+    });
+    const session = createModelSession({
+      document: model,
+      validateOnDispatch: true,
+    });
+    const request = {
+      mode: 'create' as const,
+      id: 'request.delivery',
+      label: '请求交货',
+    };
+    const before = session.getDocument();
+    expect(() =>
+      session.mutate(
+        (draft) =>
+          splitEvidenceToPairMutator(draft, {
+            evidenceRef: 'evidence.quote',
+            request,
+          }),
+        'invalid promotion',
+      ),
+    ).toThrow('履约阶段');
+    expect(session.getDocument()).toBe(before);
+    session.mutate(
+      (draft) =>
+        splitEvidenceToPairMutator(draft, {
+          evidenceRef: 'evidence.delivery',
+          request,
+        }),
+      'delivery pair',
+    );
+    const graph = createDomainGraph(session.getDocument());
+    expect(graph.fulfillmentPair(request.id)?.confirmations).toEqual([
+      expect.objectContaining({
+        id: 'evidence.delivery',
+        kind: 'fulfillment_confirmation',
+        attributes: [],
+      }),
+    ]);
+    expect(graph.attribute(request.id, 'expired_at')).toBeUndefined();
+    expect(session.getDocument().rules).toEqual([]);
+  });
+
+  it('extends compensation one step at a time and closes a branch with a hand-off', () => {
+    const model = seed();
+    splitEvidenceToPairMutator(model, pairIntent());
+    const session = createModelSession({
+      document: model,
+      validateOnDispatch: true,
+    });
+    session.mutate(
+      (draft) =>
+        recordBreachOutcomeMutator(draft, {
+          requestRef: split.request.id,
+          condition: '未按期到账',
+          outcome: {
+            kind: 'compensation_pair',
+            request: { id: 'request.refund', label: '请求退款' },
+            confirmation: { id: 'evidence.refund', label: '退款确认' },
+          },
+        }),
+      'refund',
+    );
+    const escalation = {
+      requestRef: 'request.refund',
+      condition: '退款逾期',
+      outcome: {
+        kind: 'terminal_escalation' as const,
+        remedyKind: 'arbitration' as const,
+        handoff: { id: 'evidence.dispute', label: '移交仲裁' },
+      },
+    };
+    const beforeEscalation = session.getDocument();
+    session.mutate(
+      (draft) => recordBreachOutcomeMutator(draft, escalation),
+      'escalate',
+    );
+    const afterEscalation = session.getDocument();
+    expect(afterEscalation.relationships).toContainEqual(
+      expect.objectContaining({
+        sourceRef: escalation.outcome.handoff.id,
+        targetRef: escalation.requestRef,
+        flowKind: 'escalation',
+        terminalRemedyKind: 'arbitration',
+      }),
+    );
+    expect(afterEscalation.rules).toEqual([]);
+    expect(() =>
+      session.mutate(
+        (draft) =>
+          recordBreachOutcomeMutator(draft, {
+            ...escalation,
+            condition: ' 退款逾期 ',
+          }),
+        'duplicate outcome',
+      ),
+    ).toThrow('已有处理分支');
+    expect(() =>
+      session.mutate(
+        (draft) =>
+          splitEvidenceToPairMutator(draft, {
+            evidenceRef: escalation.outcome.handoff.id,
+            request: { mode: 'reuse', ref: escalation.requestRef },
+          }),
+        'invalid hand-off promotion',
+      ),
+    ).toThrow('争议移交');
+    expect(session.getDocument()).toBe(afterEscalation);
+    session.mutate(
+      (draft) =>
+        assignFulfillmentContextMutator(draft, {
+          requestRef: 'request.refund',
+          contextRef: contractContext.id,
+        }),
+      'anchor branch',
+    );
+    expect(
+      session
+        .getDocument()
+        .entities.filter(isEvidenceEntity)
+        .map(({ contextRef }) => contextRef),
+    ).toEqual(Array(5).fill(contractContext.id));
+    session.undo();
+    session.undo();
+    expect(session.getDocument()).toEqual(beforeEscalation);
+  });
+
   it('leaves missing sources undecided and does not treat a hypothesis as a fact', () => {
     const model = seed();
     bindKeyDataSourceMutator(model, {

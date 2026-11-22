@@ -73,16 +73,47 @@ const requirePairMembers = (
   return { request, confirmation, contextRef: request.contextRef };
 };
 
-const existingReference = (
-  document: DomainModelDocument,
-  requestRef: string,
-  confirmationRef: string,
-): RelationshipAST | undefined =>
-  document.relationships.find(
-    (relationship) =>
-      relationship.sourceRef === confirmationRef &&
-      relationship.targetRef === requestRef,
-  );
+/** Links the result to its request without implying a completion rule. */
+export const linkFulfillmentConfirmationMutator = (
+  draft: DomainModelDocument,
+  request: EvidenceEntityAST,
+  confirmation: EvidenceEntityAST,
+  options?: { referenceId?: string; singleton?: boolean },
+): RelationshipAST | null => {
+  if (
+    !isFulfillmentRequest(request) ||
+    !isFulfillmentConfirmation(confirmation) ||
+    request.contextRef !== confirmation.contextRef
+  )
+    fail(
+      'context.responsibility',
+      '履约请求和确认必须同属一个合同上下文，或同时尚无归属。',
+    );
+  if (request.contextRef !== undefined)
+    requireContractContext(draft, request.contextRef);
+  if (
+    draft.relationships.some(
+      (edge) =>
+        edge.kind === 'references' &&
+        (edge.flowKind === undefined || edge.flowKind === 'primary') &&
+        edge.sourceRef === confirmation.id &&
+        edge.targetRef === request.id,
+    )
+  )
+    return null;
+  return createRelationshipMutator(draft, {
+    type: 'relationship',
+    id:
+      options?.referenceId ??
+      `relation.${confirmation.id}-references-${request.id}`,
+    kind: 'references',
+    sourceRef: confirmation.id,
+    targetRef: request.id,
+    label: '确认引用所属请求',
+    ...(options?.singleton ? { sourceCardinality: { min: 1, max: 1 } } : {}),
+    targetCardinality: { min: 1, max: 1 },
+  });
+};
 
 /** True when a rule already decides this request's completion. */
 export const completionRuleOf = (
@@ -115,8 +146,6 @@ export const pairFulfillmentMutator = (
     );
   }
 
-  const reference =
-    existingReference(draft, request.id, confirmation.id) ?? null;
   const expression =
     input.expression ?? completionExpressionFor(request, confirmation);
   if (expression === undefined)
@@ -140,26 +169,19 @@ export const pairFulfillmentMutator = (
     expression,
     resultType: 'bool',
   };
-  const createdReference: RelationshipAST = {
-    type: 'relationship',
-    id:
-      input.referenceId ??
-      `relation.${confirmation.id}-references-${request.id}`,
-    kind: 'references',
-    sourceRef: confirmation.id,
-    targetRef: request.id,
-    label: '确认引用所属请求',
-    sourceCardinality: { min: 1, max: 1 },
-    targetCardinality: { min: 1, max: 1 },
-  };
-  if (reference === null) createRelationshipMutator(draft, createdReference);
-  createRuleMutator(draft, rule);
-  return {
+  const reference = linkFulfillmentConfirmationMutator(
+    draft,
     request,
     confirmation,
-    rule,
-    reference: reference === null ? createdReference : null,
-  };
+    {
+      singleton: true,
+      ...(input.referenceId === undefined
+        ? {}
+        : { referenceId: input.referenceId }),
+    },
+  );
+  createRuleMutator(draft, rule);
+  return { request, confirmation, rule, reference };
 };
 export interface BindBreachRuleInput {
   requestRef: string;

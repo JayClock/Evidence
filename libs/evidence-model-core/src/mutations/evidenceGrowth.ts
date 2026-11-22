@@ -1,5 +1,8 @@
 import {
   BatchAddEvidenceInputSchema,
+  RecordBreachOutcomeInputSchema,
+  SplitEvidenceToPairInputSchema,
+  evidenceStageOf,
   isContractEntity,
   isEvidenceEntity,
   isFulfillmentConfirmation,
@@ -23,6 +26,7 @@ import { createEntityMutator } from './entityMutations.js';
 import {
   bindBreachRuleMutator,
   completionRuleOf,
+  linkFulfillmentConfirmationMutator,
   pairFulfillmentMutator,
 } from './fulfillmentPairMutations.js';
 import {
@@ -165,33 +169,6 @@ const attachRootContract = (
   });
 };
 
-const pairEvidence = (
-  draft: DomainModelDocument,
-  request: EvidenceEntityAST,
-  confirmation: EvidenceEntityAST,
-) => {
-  if (request.contextRef !== confirmation.contextRef) {
-    throw new Error('履约请求和确认必须同属一个合同上下文，或同时尚无归属。');
-  }
-  const edge = draft.relationships.find(
-    (item) =>
-      item.kind === 'references' &&
-      item.sourceRef === confirmation.id &&
-      item.targetRef === request.id,
-  );
-  if (edge === undefined) {
-    createRelationshipMutator(draft, {
-      type: 'relationship',
-      id: `relation.${confirmation.id}-references-${request.id}`,
-      kind: 'references',
-      sourceRef: confirmation.id,
-      targetRef: request.id,
-      label: '确认引用所属请求',
-      targetCardinality: { min: 1, max: 1 },
-    });
-  }
-};
-
 const addCompletionIfKnown = (
   draft: DomainModelDocument,
   request: EvidenceEntityAST,
@@ -213,17 +190,26 @@ const addCompletionIfKnown = (
 
 export const splitEvidenceToPairMutator = (
   draft: DomainModelDocument,
-  input: SplitEvidenceToPairInput,
+  candidate: SplitEvidenceToPairInput,
 ): OperatorResult => {
+  const input = SplitEvidenceToPairInputSchema.parse(candidate);
   const confirmation = requireEntity(draft, input.evidenceRef);
   if (
     !isEvidenceEntity(confirmation) ||
     (confirmation.kind !== 'fulfillment_confirmation' &&
       confirmation.kind !== 'other_evidence') ||
-    (confirmation.stage !== undefined && confirmation.stage !== 'fulfillment')
+    evidenceStageOf(confirmation) !== 'fulfillment'
   ) {
     throw new Error('请选择履约阶段的事实凭证或履约确认。');
   }
+  if (
+    draft.relationships.some(
+      (edge) =>
+        edge.sourceRef === confirmation.id &&
+        edge.terminalRemedyKind !== undefined,
+    )
+  )
+    throw new Error('争议移交凭证不能作为履约确认。');
   if (confirmation.contextRef !== undefined)
     requireContractContext(draft, confirmation.contextRef);
   const request =
@@ -238,6 +224,7 @@ export const splitEvidenceToPairMutator = (
     draft.relationships.some(
       (edge) =>
         edge.kind === 'references' &&
+        (edge.flowKind === undefined || edge.flowKind === 'primary') &&
         edge.sourceRef === confirmation.id &&
         edge.targetRef !== request.id &&
         isFulfillmentRequest(
@@ -303,7 +290,7 @@ export const splitEvidenceToPairMutator = (
     result.source = source;
     result.keyData = true;
   }
-  pairEvidence(draft, request, confirmation);
+  linkFulfillmentConfirmationMutator(draft, request, confirmation);
   attachRootContract(draft, request);
   addCompletionIfKnown(draft, request);
   return { createdIds: input.request.mode === 'create' ? [request.id] : [] };
@@ -336,8 +323,10 @@ export const bindKeyDataSourceMutator = (
 
 export const recordBreachOutcomeMutator = (
   draft: DomainModelDocument,
-  { requestRef, condition, outcome, breachRule }: RecordBreachOutcomeInput,
+  input: RecordBreachOutcomeInput,
 ): OperatorResult => {
+  const { requestRef, condition, outcome, breachRule } =
+    RecordBreachOutcomeInputSchema.parse(input);
   const original = requireEntity(draft, requestRef);
   if (!isFulfillmentRequest(original)) throw new Error('请选择原履约请求。');
   const { contextRef } = original;
@@ -347,7 +336,7 @@ export const recordBreachOutcomeMutator = (
         (edge.flowKind === 'breach_compensation' ||
           edge.terminalRemedyKind !== undefined) &&
         edge.targetRef === requestRef &&
-        edge.notes === condition,
+        edge.notes?.trim() === condition,
     )
   ) {
     throw new Error('这个触发条件已有处理分支，请在现有分支继续澄清。');
@@ -415,7 +404,7 @@ export const recordBreachOutcomeMutator = (
   };
   setRole(draft, confirmation, outcome.confirmation.responsibleRoleRef);
   createEntityMutator(draft, confirmation);
-  pairEvidence(draft, request, confirmation);
+  linkFulfillmentConfirmationMutator(draft, request, confirmation);
   addCompletionIfKnown(draft, request);
   const edge = createRelationshipMutator(draft, {
     type: 'relationship',
@@ -451,7 +440,8 @@ export const assignFulfillmentContextMutator = (
       !isFulfillmentRequest(target) ||
       source === undefined ||
       !(
-        isFulfillmentConfirmation(source) ||
+        (isFulfillmentConfirmation(source) &&
+          (edge.flowKind === undefined || edge.flowKind === 'primary')) ||
         (isFulfillmentRequest(source) &&
           edge.flowKind === 'breach_compensation') ||
         edge.terminalRemedyKind !== undefined
@@ -477,8 +467,8 @@ export const assignFulfillmentContextMutator = (
     ) {
       throw new Error(`凭证 ${entity.id} 已归属另一份合同，不能单边迁移。`);
     }
-    entity.contextRef = input.contextRef;
   }
+  for (const ref of related) entities.get(ref)!.contextRef = input.contextRef;
   for (const ref of related) {
     const entity = entities.get(ref)!;
     if (!isFulfillmentRequest(entity)) continue;
