@@ -1,4 +1,7 @@
-import type { EntityAST } from '@evidence-poc/evidence-schema';
+import type {
+  EntityAST,
+  TerminalRemedyKind,
+} from '@evidence-poc/evidence-schema';
 import {
   CONTEXT_KIND_LABELS,
   EVIDENCE_KIND_LABELS,
@@ -37,6 +40,12 @@ export const FLOW_EDGE_STYLES = {
   breach_compensation: { stroke: '#d97706', width: 2, dash: '6 4' },
   escalation: { stroke: '#7e22ce', width: 6 },
 } as const;
+
+export const TERMINAL_REMEDY_LABELS = {
+  lawsuit: '诉讼',
+  arbitration: '仲裁',
+  contract_termination: '解除合同',
+} as const satisfies Record<TerminalRemedyKind, string>;
 
 export const CATEGORY_COLORS = {
   evidence: '#b43656',

@@ -2,7 +2,11 @@ import { RELATIONSHIP_FLOW_LABELS } from '@evidence-poc/evidence-schema';
 import type { EdgeProps } from '@xyflow/react';
 
 import { useCanvasInteraction } from './CanvasInteractionContext';
-import { EDGE_STYLES, FLOW_EDGE_STYLES } from './colors';
+import {
+  EDGE_STYLES,
+  FLOW_EDGE_STYLES,
+  TERMINAL_REMEDY_LABELS,
+} from './colors';
 import { pointOnRoute } from './edgeLabels';
 import type {
   FulfillmentFlowEdge,
@@ -42,6 +46,7 @@ export const FulfillmentEdge = ({ data }: EdgeProps<FulfillmentFlowEdge>) => {
     outOfScope,
     muted,
     diagnosticSeverity,
+    terminalRemedyKind,
   } = data;
 
   const relationship = edge;
@@ -51,6 +56,12 @@ export const FulfillmentEdge = ({ data }: EdgeProps<FulfillmentFlowEdge>) => {
     .join(' ');
   const flowKind = relationship.flowKind ?? 'primary';
   const breach = flowKind !== 'primary';
+  const terminal = flowKind === 'escalation' ? terminalRemedyKind : undefined;
+  const flowLabel =
+    terminal === undefined
+      ? RELATIONSHIP_FLOW_LABELS[flowKind]
+      : `救济终点 · ${TERMINAL_REMEDY_LABELS[terminal]}`;
+  const badgeWidth = terminal === undefined ? 68 : 106;
   const flowColor = FLOW_EDGE_STYLES[flowKind].stroke;
   const primary = relationship.kind === 'references' && !breach;
   const stroke =
@@ -79,25 +90,26 @@ export const FulfillmentEdge = ({ data }: EdgeProps<FulfillmentFlowEdge>) => {
     <g
       data-edge-id={relationship.relationshipId}
       data-flow-kind={flowKind}
+      data-terminal-remedy={terminal}
       opacity={opacity}
     >
-      <title>{`${RELATIONSHIP_FLOW_LABELS[flowKind]}：${label}`}</title>
+      <title>{`${flowLabel}：${label}`}</title>
       {breach ? (
         <g
           transform={`translate(${midpoint.x}, ${midpoint.y - 14})`}
           style={{ pointerEvents: 'none' }}
         >
           <rect
-            x={-34}
+            x={-badgeWidth / 2}
             y={-10}
-            width={68}
+            width={badgeWidth}
             height={18}
-            rx={4}
-            fill="white"
+            rx={terminal === undefined ? 4 : 9}
+            fill="var(--color-workbench-background, white)"
             stroke={flowColor}
           />
           <text textAnchor="middle" y={2} fontSize={10} fill={flowColor}>
-            {RELATIONSHIP_FLOW_LABELS[flowKind]}
+            {flowLabel}
           </text>
         </g>
       ) : null}

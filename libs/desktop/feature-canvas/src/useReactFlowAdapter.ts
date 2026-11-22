@@ -11,6 +11,7 @@ import type { ModelSelection } from '@evidence-poc/evidence-model-core';
 import type {
   ContextKind,
   DomainModelDocument,
+  TerminalRemedyKind,
 } from '@evidence-poc/evidence-schema';
 import type { SensorSeverity } from '@evidence-poc/evidence-agent/browser';
 
@@ -54,6 +55,7 @@ export interface FulfillmentEdgeData
     StoryEdgeAnimation {
   edge: LayoutEdge;
   label: string;
+  terminalRemedyKind?: TerminalRemedyKind;
   cardinality: {
     source?: { min: number; max: number | 'many' };
     target?: { min: number; max: number | 'many' };
@@ -205,6 +207,10 @@ export const convertLayoutToReactFlow = ({
             keyDataCount: 0,
             rules: [],
             partyBadge: null,
+            subjectMatters: [],
+            compensation: false,
+            terminalRemedies: [],
+            evidenceSocket: false,
             responsibility: null,
             responsibilityRef: null,
           },
@@ -249,6 +255,7 @@ export const convertLayoutToReactFlow = ({
       data: {
         edge,
         label: relationship?.label ?? edge.label,
+        terminalRemedyKind: relationship?.terminalRemedyKind,
         cardinality: {
           ...(relationship?.sourceCardinality === undefined
             ? {}

@@ -1,8 +1,10 @@
+import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import {
   classifyKeyDataSource,
   type DomainModelDocument,
   type EntityAST,
   type KeyDataSourceKind,
+  type TerminalRemedyKind,
 } from '@evidence-poc/evidence-schema';
 
 export interface CardSummary {
@@ -10,6 +12,10 @@ export interface CardSummary {
   responsibilityRef: string | null;
   /** The concrete party that signs or stamps this evidence, if one is known. */
   partyBadge: PartyBadge | null;
+  subjectMatters: readonly { id: string; label: string }[];
+  compensation: boolean;
+  terminalRemedies: readonly TerminalRemedyKind[];
+  evidenceSocket: boolean;
   attributes: readonly {
     name: string;
     label: string;
@@ -105,6 +111,7 @@ const buildPartyBadges = (
 /** A view of explicit model facts, not another source of editable metadata. */
 export const summarizeCards = (
   document: DomainModelDocument,
+  graph = createDomainGraph(document),
 ): ReadonlyMap<string, CardSummary> => {
   const entities = new Map(
     document.entities.map((entity) => [entity.id, entity]),
@@ -125,6 +132,22 @@ export const summarizeCards = (
   }
   const rules = new Map(document.rules.map((rule) => [rule.id, rule]));
   const partyBadges = buildPartyBadges(document, entities);
+  const compensationIds = new Set<string>();
+  const terminalRemedies = new Map<string, Set<TerminalRemedyKind>>();
+  for (const { request } of graph.fulfillmentPairs()) {
+    for (const outcome of graph.breachOutcomesOf(request.id)) {
+      if (outcome.kind === 'compensation_pair') {
+        compensationIds.add(outcome.compensation.request.id);
+        for (const confirmation of outcome.compensation.confirmations) {
+          compensationIds.add(confirmation.id);
+        }
+      } else {
+        const kinds = terminalRemedies.get(outcome.handoff.id) ?? new Set();
+        kinds.add(outcome.remedyKind);
+        terminalRemedies.set(outcome.handoff.id, kinds);
+      }
+    }
+  }
 
   return new Map(
     document.entities.map((entity: EntityAST) => {
@@ -148,6 +171,13 @@ export const summarizeCards = (
             ref === null ? null : (entities.get(ref)?.label ?? ref),
           responsibilityRef: ref,
           partyBadge: partyBadges.get(entity.id) ?? null,
+          subjectMatters: graph
+            .subjectMattersOf(entity.id)
+            .map(({ id, label }) => ({ id, label })),
+          compensation: compensationIds.has(entity.id),
+          terminalRemedies: [...(terminalRemedies.get(entity.id) ?? [])],
+          evidenceSocket:
+            entity.category === 'role' && entity.kind === 'evidence',
           attributes: attributes.slice(0, 3).map((attribute) => ({
             name: attribute.name,
             label: attribute.label,

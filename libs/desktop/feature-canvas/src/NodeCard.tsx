@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { Badge } from '@evidence-poc/desktop-ui-kit';
 
 import { useLiveApi } from './LiveApiContext';
 import {
@@ -21,6 +22,7 @@ import {
   entityRadius,
   entityShape,
   formatBusinessTimeWindow,
+  TERMINAL_REMEDY_LABELS,
 } from './colors';
 
 interface NodeCardProps {
@@ -205,7 +207,15 @@ export const NodeCard = ({
   const time = businessTime(entity, storyValues);
   const shape = entityShape(entity);
   const standard = viewMode !== 'simplified';
-  const fields = summary.attributes.slice(0, viewMode === 'expanded' ? 3 : 1);
+  const expanded = viewMode === 'expanded';
+  const fields = summary.attributes.slice(0, expanded ? 3 : 1);
+  const formulas = (summary.ruleFormulas ?? []).filter(
+    (rule) => expanded || triggeredRuleIds?.includes(rule.id),
+  );
+  const [firstSubject, ...otherSubjects] = summary.subjectMatters;
+  const remedies = summary.terminalRemedies.map(
+    (kind) => TERMINAL_REMEDY_LABELS[kind],
+  );
   const remaining =
     summary.remainingAttributes + summary.attributes.length - fields.length;
   const storyLabel =
@@ -296,6 +306,39 @@ export const NodeCard = ({
       </header>
       <div className="flex min-h-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden px-2 text-[9px] leading-tight">
         <div className="flex min-w-0 items-center gap-1 empty:hidden">
+          {summary.compensation && (
+            <Badge variant="role" data-flow-badge="breach_compensation">
+              违约补偿
+            </Badge>
+          )}
+          {remedies.length > 0 && (
+            <Badge
+              variant="outline"
+              data-flow-badge="terminal-remedy"
+              title={remedies.join('、')}
+            >
+              救济终点 · {remedies[0]}
+              {remedies.length > 1 ? ` +${remedies.length - 1}` : ''}
+            </Badge>
+          )}
+          {summary.evidenceSocket && (
+            <Badge variant="role" data-evidence-socket="">
+              履约能力插槽
+            </Badge>
+          )}
+          {firstSubject && (
+            <Badge
+              variant="participant"
+              data-subject-matter={firstSubject.id}
+              title={summary.subjectMatters
+                .map(({ label }) => label)
+                .join('、')}
+              className="min-w-0 shrink"
+            >
+              <span className="truncate">标的：{firstSubject.label}</span>
+              {otherSubjects.length > 0 && <span>+{otherSubjects.length}</span>}
+            </Badge>
+          )}
           {entity.category === 'evidence' &&
           entity.kind === 'fulfillment_request' ? (
             <span
@@ -420,7 +463,7 @@ export const NodeCard = ({
                   {detail === undefined ? '' : `: ${detail}`}
                   {field.key ? ' · 核心要素' : ''}
                 </span>
-                {field.source === undefined ? null : (
+                {!expanded || field.source === undefined ? null : (
                   <span
                     data-key-data-source={field.source}
                     title={KEY_DATA_SOURCE_LABELS[field.source]}
@@ -438,13 +481,13 @@ export const NodeCard = ({
           })}
           {fields.length === 0 ? <span>无属性</span> : null}
           {remaining > 0 ? <span>另有 {remaining} 个字段</span> : null}
-          {[...(summary.ruleFormulas ?? [])]
+          {formulas
             .sort(
               (a, b) =>
                 Number(triggeredRuleIds?.includes(b.id)) -
                 Number(triggeredRuleIds?.includes(a.id)),
             )
-            .slice(0, viewMode === 'expanded' ? 2 : 1)
+            .slice(0, expanded ? 2 : 1)
             .map((rule) => (
               <div
                 key={rule.id}

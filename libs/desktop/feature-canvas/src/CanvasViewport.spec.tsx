@@ -11,7 +11,11 @@ import {
   computeContextScope,
   computeSwimlaneLayout,
 } from '@evidence-poc/evidence-canvas-interaction';
-import { createDomainGraph } from '@evidence-poc/evidence-model-core';
+import {
+  createDomainGraph,
+  identifySubjectMatterMutator,
+  recordBreachOutcomeMutator,
+} from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { CanvasViewport } from './CanvasViewport';
 import { createDiagnosticIndex } from './diagnosticIndex';
@@ -191,6 +195,76 @@ describe('CanvasViewport', () => {
       screen.getByLabelText('盖章确认：2026-02-12T09:00:00Z'),
     ).toBeInTheDocument();
     expect(JSON.stringify(journey.nodes)).toBe(before);
+  });
+
+  it('shows explicit subjects, compensation and only the typed handoff as a remedy endpoint', () => {
+    const model = createDesktopFixture();
+    for (const [id, label] of [
+      ['thing.goods', '采购商品'],
+      ['thing.parts', '备件'],
+    ] as const) {
+      identifySubjectMatterMutator(model, {
+        evidenceRefs: ['evidence.confirmation'],
+        subjectMatter: {
+          mode: 'create',
+          id,
+          label,
+          domainContextRef: 'context.catalog',
+        },
+      });
+    }
+    model.entities.push({
+      type: 'entity',
+      category: 'role',
+      kind: 'evidence',
+      id: 'role.delivery-socket',
+      label: '到货凭证能力',
+      contextRef: 'context.procurement',
+    });
+    recordBreachOutcomeMutator(model, {
+      requestRef: 'evidence.request',
+      condition: '逾期未交付',
+      outcome: {
+        kind: 'compensation_pair',
+        request: { id: 'request.refund', label: '退款要求' },
+        confirmation: { id: 'evidence.refund', label: '退款确认' },
+      },
+    });
+    recordBreachOutcomeMutator(model, {
+      requestRef: 'request.refund',
+      condition: '逾期未退款',
+      outcome: {
+        kind: 'terminal_escalation',
+        remedyKind: 'arbitration',
+        handoff: { id: 'evidence.dispute', label: '移交仲裁' },
+      },
+    });
+    const modelGraph = createDomainGraph(model);
+    const { container } = setup({
+      document: model,
+      graph: modelGraph,
+      layout: computeSwimlaneLayout(modelGraph, 'standard'),
+    });
+    const card = (id: string) =>
+      container.querySelector(`[data-node-id="${id}"]`)!;
+    expect(
+      card('evidence.confirmation').querySelector('[data-subject-matter]'),
+    ).toHaveAttribute('title', '采购商品、备件');
+    expect(card('role.delivery-socket')).toHaveTextContent('履约能力插槽');
+    expect(card('request.refund')).toHaveTextContent('违约补偿');
+    expect(card('evidence.refund')).toHaveTextContent('违约补偿');
+    expect(
+      card('request.refund').querySelector(
+        '[data-flow-badge="terminal-remedy"]',
+      ),
+    ).toBeNull();
+    expect(
+      card('evidence.request').querySelector('[data-flow-badge]'),
+    ).toBeNull();
+    expect(card('evidence.dispute')).toHaveTextContent('救济终点 · 仲裁');
+    expect(
+      container.querySelector('[data-terminal-remedy="arbitration"]'),
+    ).toHaveTextContent('救济终点 · 仲裁');
   });
 
   it('draws primary green progression and escalation as independent purple rails', () => {

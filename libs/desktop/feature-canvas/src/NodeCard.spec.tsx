@@ -118,7 +118,7 @@ describe('business card summaries', () => {
 });
 
 describe('NodeCard modes', () => {
-  it('shows a standalone brainstormed proof, its authored moment, and an unresolved field', () => {
+  it('shows the authored moment while reserving unresolved field details for expanded cards', () => {
     const document = createDesktopFixture();
     const proof = {
       type: 'entity',
@@ -146,22 +146,22 @@ describe('NodeCard modes', () => {
       structuredClone({ ...proof, attributes: [...proof.attributes] }),
     );
     const layout = computeSwimlaneLayout(createDomainGraph(document));
-    render(
-      <NodeCard
-        node={layout.nodeById.get(proof.id)!}
-        summary={summarizeCards(document).get(proof.id)!}
-        selected={false}
-        dimmed={false}
-        highlighted={false}
-        viewMode="standard"
-        onHover={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
+    const props = {
+      node: layout.nodeById.get(proof.id)!,
+      summary: summarizeCards(document).get(proof.id)!,
+      selected: false,
+      dimmed: false,
+      highlighted: false,
+      onHover: vi.fn(),
+      onSelect: vi.fn(),
+    };
+    const { rerender } = render(<NodeCard {...props} viewMode="standard" />);
     expect(screen.getByLabelText(/^凭证时刻：/)).toHaveAttribute(
       'data-time-attribute',
       'paid_at',
     );
+    expect(screen.queryByText('待决')).toBeNull();
+    rerender(<NodeCard {...props} viewMode="expanded" />);
     expect(screen.getByText('待决')).toHaveAttribute(
       'data-key-data-source',
       'needs-decision',
@@ -198,6 +198,15 @@ describe('NodeCard modes', () => {
         '[data-start-attribute="started_at"][data-end-attribute="expired_at"]',
       ),
     ).not.toBeNull();
+    expect(container.querySelector('[data-card-rule]')).toBeNull();
+    rerender(
+      <NodeCard
+        {...props}
+        viewMode="expanded"
+        node={layout.nodeById.get('evidence.request')!}
+        summary={summaries.get('evidence.request')!}
+      />,
+    );
     expect(container.querySelector('[data-card-rule]')).toHaveAttribute(
       'title',
       expect.stringContaining('confirmation.confirmed_at'),

@@ -267,7 +267,10 @@ const CanvasSurface = ({
   const [minimapOpen, setMinimapOpen] = useState(false);
 
   const displayedScope = storyActive ? null : scope;
-  const summaries = useMemo(() => summarizeCards(document), [document]);
+  const summaries = useMemo(
+    () => summarizeCards(document, graph),
+    [document, graph],
+  );
 
   const highlight = useMemo<HighlightResult>(
     () =>
