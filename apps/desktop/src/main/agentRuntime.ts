@@ -127,7 +127,8 @@ export const createAgentRuntime = ({
 
   let activeTurn: {
     canvas: CanvasContext;
-    readOnly: boolean;
+    focusNodeId: string | null;
+    inquiryKind?: 'trace' | 'what-if';
     cancelled: boolean;
     committed: PatchTransaction[];
   } | null = null;
@@ -143,8 +144,6 @@ export const createAgentRuntime = ({
       activeTurn.cancelled
     )
       return { success: false, error: '访谈已结束，未提交模型变更。' };
-    if (activeTurn.readOnly)
-      return { success: false, error: '本轮只读探问，不提交模型变更。' };
     if (!live)
       return { success: false, error: '当前画布尚未同步，未提交模型变更。' };
     try {
@@ -161,6 +160,9 @@ export const createAgentRuntime = ({
         commands,
         patches: prepared.patches,
         inversePatches: prepared.inversePatches,
+        ...(activeTurn.focusNodeId !== null
+          ? { focusNodeId: activeTurn.focusNodeId }
+          : {}),
       };
       live = {
         ...live,
@@ -314,7 +316,8 @@ export const createAgentRuntime = ({
                 modelId: canvasContext.modelId,
                 selection: { nodeId, attributeName: null },
               },
-        readOnly: focus?.inquiry !== undefined,
+        focusNodeId: nodeId,
+        inquiryKind: focus?.inquiry,
         cancelled: false,
         committed,
       };
@@ -325,9 +328,9 @@ export const createAgentRuntime = ({
         const prefix = nodeId === null ? '' : `【凭证焦点：${nodeId}】\n`;
         const inquiry =
           focus?.inquiry === 'trace'
-            ? '本轮任务：只读节点澄清。'
+            ? '本轮任务：节点澄清与权责确认。达成共识后可调用算子工具更新模型。'
             : focus?.inquiry === 'what-if'
-              ? '本轮任务：只读异常探问。'
+              ? '本轮任务：异常推演与违约分析。达成共识后可调用算子工具更新模型。'
               : '';
         await active.prompt(
           prefix + (inquiry === '' ? '' : `${inquiry}\n`) + text,

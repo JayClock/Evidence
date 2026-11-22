@@ -489,7 +489,7 @@ describe('agent patch transport', () => {
   });
 
   it.each(['trace', 'what-if'] as const)(
-    'pins focus and refuses all patch writes during a %s inquiry',
+    'pins focus and enables live patch writes and operator execution during a %s inquiry',
     async (inquiry) => {
       const { transport, patches } = createTransport();
       const fake = createFakeSession();
@@ -503,60 +503,65 @@ describe('agent patch transport', () => {
       });
       const modelPatch = {
         rationale: '补齐付款',
-        patches: [{ op: 'replace', path: '/manifest/name', value: '不要写入' }],
+        patches: [{ op: 'replace', path: '/manifest/name', value: '采购模型-已澄清' }],
       };
       fake.session.prompt = async (text) => {
         fake.prompts.push(text);
         const apply = registeredTool('apply_model_patch');
-        if (fake.prompts.length === 1) {
-          runtime.setCanvasContext({
-            projectRoot: runtime.rootPath,
-            selection: { nodeId: 'evidence.contract', attributeName: null },
-          });
-          const focus = await registeredTool(
-            'get_focused_node_context',
-          ).execute('read', {});
-          expect(focus.isError).toBeUndefined();
-          expect(focus.details).toMatchObject({
-            entity: { id: 'evidence.confirmation' },
-          });
-          expect((await apply.execute('write', modelPatch)).isError).toBe(true);
-          expect(
-            (
-              await registeredTool('batch_add_evidence_stubs').execute(
-                'operator',
-                {
-                  evidences: [
-                    {
-                      id: 'evidence.refund',
-                      label: '退款确认',
-                      stage: 'fulfillment',
-                    },
-                  ],
-                },
-              )
-            ).isError,
-          ).toBe(true);
-        } else {
-          expect(
-            (await apply.execute('write', modelPatch)).isError,
-          ).toBeUndefined();
-        }
+        runtime.setCanvasContext({
+          projectRoot: runtime.rootPath,
+          selection: { nodeId: 'evidence.contract', attributeName: null },
+        });
+        const focus = await registeredTool(
+          'get_focused_node_context',
+        ).execute('read', {});
+        expect(focus.isError).toBeUndefined();
+        expect(focus.details).toMatchObject({
+          entity: { id: 'evidence.confirmation' },
+        });
+        expect((await apply.execute('write', modelPatch)).isError).toBeUndefined();
+        expect(
+          (
+            await registeredTool('batch_add_evidence_stubs').execute(
+              'operator',
+              {
+                evidences: [
+                  {
+                    id: 'evidence.refund',
+                    label: '退款确认',
+                    stage: 'fulfillment',
+                  },
+                ],
+              },
+            )
+          ).isError,
+        ).toBeUndefined();
       };
       try {
-        await runtime.prompt('打开凭证', {
-          nodeId: 'evidence.confirmation',
-          inquiry,
-        });
+        const committed: PatchTransaction[] = [];
+        await runtime.prompt(
+          '打开凭证',
+          {
+            nodeId: 'evidence.confirmation',
+            inquiry,
+          },
+          1,
+          committed,
+        );
         expect(fake.prompts[0]).toContain(
           '【凭证焦点：evidence.confirmation】',
         );
         expect(fake.prompts[0]).toContain(
-          inquiry === 'trace' ? '只读节点澄清' : '只读异常探问',
+          inquiry === 'trace' ? '节点澄清与权责确认' : '异常推演与违约分析',
         );
-        expect(patches).toEqual([]);
-        await runtime.prompt('确认更改', { nodeId: 'evidence.confirmation' });
-        expect(patches).toHaveLength(1);
+        expect(patches).toHaveLength(2);
+        expect(committed).toHaveLength(2);
+        expect(patches[0].focusNodeId).toBe('evidence.confirmation');
+        expect(patches[1].focusNodeId).toBe('evidence.confirmation');
+        expect(patches[0].baseRevision).toBe(1);
+        expect(patches[0].revision).toBe(2);
+        expect(patches[1].baseRevision).toBe(2);
+        expect(patches[1].revision).toBe(3);
       } finally {
         runtime.dispose();
       }
