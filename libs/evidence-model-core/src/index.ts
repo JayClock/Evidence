@@ -21,9 +21,12 @@ export {
 export { timeoutExpressionFor } from './model/fulfillmentTime.js';
 export {
   createDomainGraph,
+  type BreachChainNode,
+  type BreachOutcomeBranch,
   type ClassifiedConfirmation,
   type DomainGraph,
   type FulfillmentPair,
+  type PreContractPair,
 } from './model/graph.js';
 
 export * from './mutations/index.js';

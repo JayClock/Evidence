@@ -4,14 +4,19 @@ import {
   type DomainModelDocument,
   type EntityAST,
   type EvidenceEntityAST,
+  type ParticipantEntityAST,
   type RelationshipAST,
+  type RoleEntityAST,
   type RuleAST,
+  type TerminalRemedyKind,
   findAttribute,
   isContextEntity,
   isContractEntity,
   isEvidenceEntity,
   isFulfillmentConfirmation,
   isFulfillmentRequest,
+  isParticipantEntity,
+  isRoleEntity,
 } from '@evidence-poc/evidence-schema';
 
 /** One request paired with the results and rules that decide its fulfillment. */
@@ -25,6 +30,29 @@ export interface FulfillmentPair {
   readonly proofs: readonly EvidenceEntityAST[];
   readonly completionRules: readonly RuleAST[];
   readonly breachRules: readonly RuleAST[];
+}
+
+export interface PreContractPair {
+  readonly rfp: EvidenceEntityAST;
+  readonly proposals: readonly EvidenceEntityAST[];
+}
+
+export type BreachOutcomeBranch =
+  | {
+      readonly kind: 'compensation_pair';
+      readonly edge: RelationshipAST;
+      readonly compensation: FulfillmentPair;
+    }
+  | {
+      readonly kind: 'terminal_escalation';
+      readonly edge: RelationshipAST;
+      readonly handoff: EvidenceEntityAST;
+      readonly remedyKind: TerminalRemedyKind;
+    };
+
+export interface BreachChainNode {
+  readonly requestId: string;
+  readonly branches: readonly BreachOutcomeBranch[];
 }
 
 export interface ClassifiedConfirmation {
@@ -70,6 +98,13 @@ export interface DomainGraph {
   fulfillmentPairs(): readonly FulfillmentPair[];
   fulfillmentPair(requestId: string): FulfillmentPair | undefined;
   fulfillmentConfirmations(): readonly ClassifiedConfirmation[];
+  preContractPairs(): readonly PreContractPair[];
+  subjectMattersOf(evidenceId: string): readonly ParticipantEntityAST[];
+  socketRolesInContext(contextId: string): readonly RoleEntityAST[];
+  /** Direct, explicitly modeled outcomes; an untyped escalation is not terminal. */
+  breachOutcomesOf(requestId: string): readonly BreachOutcomeBranch[];
+  /** Breadth-first, with each reachable request emitted once even in invalid drafts. */
+  breachChainsOf(requestId: string): readonly BreachChainNode[];
 }
 
 const groupBy = <TItem>(
@@ -102,6 +137,10 @@ const rulesBinding = (rule: RuleAST, objectId: string): boolean =>
     (binding) => 'ref' in binding && binding.ref === objectId,
   );
 
+const isPrimaryReference = (edge: RelationshipAST): boolean =>
+  edge.kind === 'references' &&
+  (edge.flowKind === undefined || edge.flowKind === 'primary');
+
 export function createDomainGraph(document: DomainModelDocument): DomainGraph {
   const entityById = new Map(
     document.entities.map((entity) => [entity.id, entity]),
@@ -132,6 +171,7 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
   let pairs: readonly FulfillmentPair[] | undefined;
   let pairsByRequest: Map<string, FulfillmentPair> | undefined;
   let confirmations: readonly ClassifiedConfirmation[] | undefined;
+  let channelPairs: readonly PreContractPair[] | undefined;
 
   const rootContractOf = (contextId: string): EvidenceEntityAST | undefined => {
     const context = entityById.get(contextId);
@@ -151,7 +191,7 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
     [
       ...new Set(
         (incoming.get(objectId) ?? [])
-          .filter((relationship) => relationship.kind === 'references')
+          .filter(isPrimaryReference)
           .map((relationship) => relationship.sourceRef),
       ),
     ]
@@ -163,7 +203,7 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
   ): ClassifiedConfirmation => {
     const requestEdges = (outgoing.get(entity.id) ?? []).filter(
       (edge) =>
-        edge.kind === 'references' &&
+        isPrimaryReference(edge) &&
         isFulfillmentRequest(entityById.get(edge.targetRef)),
     );
     const incomingRequests = [
@@ -236,6 +276,39 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
     return pairs;
   };
 
+  const fulfillmentPair = (requestId: string): FulfillmentPair | undefined => {
+    ensurePairs();
+    return pairsByRequest?.get(requestId);
+  };
+
+  const breachOutcomesOf = (
+    requestId: string,
+  ): readonly BreachOutcomeBranch[] => {
+    if (!isFulfillmentRequest(entityById.get(requestId))) return [];
+    const branches: BreachOutcomeBranch[] = [];
+    for (const edge of incoming.get(requestId) ?? []) {
+      if (edge.kind !== 'references') continue;
+      if (edge.flowKind === 'breach_compensation') {
+        const compensation = fulfillmentPair(edge.sourceRef);
+        if (compensation !== undefined)
+          branches.push({ kind: 'compensation_pair', edge, compensation });
+      } else if (
+        edge.flowKind === 'escalation' &&
+        edge.terminalRemedyKind !== undefined
+      ) {
+        const handoff = entityById.get(edge.sourceRef);
+        if (isEvidenceEntity(handoff) && handoff.kind === 'other_evidence')
+          branches.push({
+            kind: 'terminal_escalation',
+            edge,
+            handoff,
+            remedyKind: edge.terminalRemedyKind,
+          });
+      }
+    }
+    return branches;
+  };
+
   return {
     document,
     getEntity: (entityId) => entityById.get(entityId),
@@ -305,10 +378,52 @@ export function createDomainGraph(document: DomainModelDocument): DomainGraph {
       (confirmations ??= document.entities
         .filter(isFulfillmentConfirmation)
         .map(classifyConfirmation)),
-    fulfillmentPair: (requestId) => {
-      ensurePairs();
-
-      return pairsByRequest?.get(requestId);
+    fulfillmentPair,
+    preContractPairs: () =>
+      (channelPairs ??= document.entities.flatMap((rfp) => {
+        if (!isEvidenceEntity(rfp) || rfp.kind !== 'rfp') return [];
+        const proposals = referencesTo(rfp.id).filter(
+          (entity): entity is EvidenceEntityAST =>
+            isEvidenceEntity(entity) &&
+            entity.kind === 'proposal' &&
+            entity.contextRef === rfp.contextRef,
+        );
+        return proposals.length > 0 ? [{ rfp, proposals }] : [];
+      })),
+    subjectMattersOf: (evidenceId) => {
+      if (!isEvidenceEntity(entityById.get(evidenceId))) return [];
+      return [
+        ...new Set(
+          (outgoing.get(evidenceId) ?? [])
+            .filter(isPrimaryReference)
+            .map((edge) => edge.targetRef),
+        ),
+      ]
+        .map((id) => entityById.get(id))
+        .filter(
+          (entity): entity is ParticipantEntityAST =>
+            isParticipantEntity(entity) && entity.kind === 'thing',
+        );
+    },
+    socketRolesInContext: (contextId) =>
+      (inContext.get(contextId) ?? []).filter(
+        (entity): entity is RoleEntityAST =>
+          isRoleEntity(entity) && entity.kind === 'evidence',
+      ),
+    breachOutcomesOf,
+    breachChainsOf: (requestId) => {
+      if (!isFulfillmentRequest(entityById.get(requestId))) return [];
+      const seen = new Set([requestId]);
+      const nodes: BreachChainNode[] = [];
+      for (const id of seen) {
+        const branches = breachOutcomesOf(id);
+        nodes.push({ requestId: id, branches });
+        for (const branch of branches) {
+          if (branch.kind === 'compensation_pair')
+            seen.add(branch.compensation.request.id);
+        }
+      }
+      return nodes;
     },
   };
 }

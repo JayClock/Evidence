@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
 
-import { createDomainGraph } from '../index.js';
+import {
+  createDomainGraph,
+  identifySubjectMatterMutator,
+  linkProposalToRfpMutator,
+  recordBreachOutcomeMutator,
+} from '../index.js';
 import { createProcurementModel } from '../testing/modelFixture.js';
 
 const graph = () => createDomainGraph(createProcurementModel());
@@ -74,6 +79,140 @@ describe('relationship index', () => {
       'evidence.bank-slip',
     ]);
     expect(subject.relatedIds('role.seller')).toEqual([]);
+  });
+});
+
+describe('business topology', () => {
+  it('keeps channel responses, subject matters and fulfillment pairs distinct', () => {
+    const model = createProcurementModel();
+    model.entities.push(
+      {
+        type: 'entity',
+        id: 'rfp.purchase',
+        category: 'evidence',
+        kind: 'rfp',
+        label: '询价',
+      },
+      {
+        type: 'entity',
+        id: 'rfp.open',
+        category: 'evidence',
+        kind: 'rfp',
+        label: '待答复询价',
+      },
+      ...['proposal.first', 'proposal.second'].map((id) => ({
+        type: 'entity' as const,
+        id,
+        category: 'evidence' as const,
+        kind: 'proposal' as const,
+        label: '报价',
+      })),
+      {
+        type: 'entity',
+        id: 'role.payment-capability',
+        category: 'role',
+        kind: 'evidence',
+        label: '付款能力',
+        contextRef: 'context.procurement',
+      },
+    );
+    for (const proposalRef of ['proposal.first', 'proposal.second']) {
+      linkProposalToRfpMutator(model, { proposalRef, rfpRef: 'rfp.purchase' });
+    }
+    identifySubjectMatterMutator(model, {
+      evidenceRefs: ['request.payment', 'proposal.first'],
+      subjectMatter: { mode: 'reuse', ref: 'thing.product' },
+    });
+    expect(strictValidateDomainModel(model).issues).toEqual([]);
+    const subject = createDomainGraph(model);
+    expect(
+      subject
+        .preContractPairs()
+        .map(({ rfp, proposals }) => [rfp.id, proposals.map(({ id }) => id)]),
+    ).toEqual([['rfp.purchase', ['proposal.first', 'proposal.second']]]);
+    expect(subject.fulfillmentPair('rfp.purchase')).toBeUndefined();
+    expect(
+      subject.subjectMattersOf('proposal.first').map(({ id }) => id),
+    ).toEqual(['thing.product']);
+    expect(
+      subject.subjectMattersOf('request.payment').map(({ id }) => id),
+    ).toEqual(['thing.product']);
+    expect(
+      subject.socketRolesInContext('context.procurement').map(({ id }) => id),
+    ).toEqual(['role.payment-capability']);
+  });
+
+  it('walks compensation to an explicit terminal outcome without counting hand-off as proof', () => {
+    const model = createProcurementModel();
+    recordBreachOutcomeMutator(model, {
+      requestRef: 'request.payment',
+      condition: '未按期付款',
+      outcome: {
+        kind: 'compensation_pair',
+        request: { id: 'request.fee', label: '支付滞纳金' },
+        confirmation: { id: 'confirmation.fee', label: '滞纳金到账' },
+      },
+    });
+    recordBreachOutcomeMutator(model, {
+      requestRef: 'request.fee',
+      condition: '滞纳金逾期',
+      outcome: {
+        kind: 'terminal_escalation',
+        remedyKind: 'lawsuit',
+        handoff: { id: 'evidence.handoff', label: '移交诉讼' },
+      },
+    });
+    expect(strictValidateDomainModel(model).issues).toEqual([]);
+    const subject = createDomainGraph(model);
+    expect(subject.breachChainsOf('request.payment')).toEqual([
+      {
+        requestId: 'request.payment',
+        branches: [
+          expect.objectContaining({
+            kind: 'compensation_pair',
+            compensation: expect.objectContaining({
+              request: expect.objectContaining({ id: 'request.fee' }),
+              confirmations: [
+                expect.objectContaining({ id: 'confirmation.fee' }),
+              ],
+              proofs: [],
+            }),
+          }),
+        ],
+      },
+      {
+        requestId: 'request.fee',
+        branches: [
+          expect.objectContaining({
+            kind: 'terminal_escalation',
+            remedyKind: 'lawsuit',
+            handoff: expect.objectContaining({ id: 'evidence.handoff' }),
+          }),
+        ],
+      },
+    ]);
+    expect(subject.breachChainsOf('evidence.handoff')).toEqual([]);
+
+    const cyclic = createDomainGraph({
+      ...model,
+      relationships: [
+        ...model.relationships,
+        {
+          type: 'relationship',
+          id: 'relation.cyclic-compensation',
+          kind: 'references',
+          flowKind: 'breach_compensation',
+          sourceRef: 'request.payment',
+          targetRef: 'request.fee',
+          label: '循环补偿',
+        },
+      ],
+    });
+    expect(
+      cyclic
+        .breachChainsOf('request.payment')
+        .map(({ requestId }) => requestId),
+    ).toEqual(['request.payment', 'request.fee']);
   });
 });
 
