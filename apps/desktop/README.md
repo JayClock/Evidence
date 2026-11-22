@@ -176,8 +176,12 @@ a library's `/browser` entry whenever a Node-only adapter exists.
   emphasises its subtree and only the edges fully inside it.
 - Edges are dashed across Context boundaries and arrowed only for
   `plays_role`; cardinality appears in standard mode.
-- Wheel pans, Ctrl/Cmd+wheel zooms at the pointer, space+drag pans, dragging the
-  background draws a marquee selection.
+- Drag empty canvas with the left, middle or right mouse button to pan. Left
+  drag needs no modifier; Space+left drag also works. Wheel or two-finger scroll
+  pans; pinch or Ctrl/Cmd+wheel zooms at the pointer.
+- Click a card to select it, or click empty canvas to clear the selection.
+  There is no box selection, including with Shift, and cards stay in the
+  automatic layout.
 
 Type a business example on an empty canvas or press **Cmd/Ctrl+K** to open
 **业务场景头脑风暴** on an existing canvas. The agent places evidence cards in

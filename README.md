@@ -217,7 +217,7 @@ pnpm evidence export --model b2b-escrow.evidence.json --out generated/ --verify
 │   ├── evidence-schema/                 # 领域模型 AST 定义与严格语法校验基石
 │   ├── evidence-model-core/             # 纯内存图引擎、命令总线 (Undo/Redo)、CEL 仿真执行器 (Universal)
 │   ├── evidence-model-io/               # 领域模型文件与便携 Bundle 序列化适配 (Node.js I/O)
-│   ├── evidence-canvas-interaction/     # 纯数学画布交互计算（视口变换、泳道布局、框选）
+│   ├── evidence-canvas-interaction/     # 纯数学画布计算（泳道布局、关系路由、聚焦与高亮）
 │   ├── evidence-tools/                  # Universal 模型工具注册表：统一 Pi/MCP 算子与受控补丁入口
 │   ├── evidence-agent/                  # AI Agent 运行时：会话、提示词、治理闭环、原生传感器与 Tool 扩展
 │   ├── evidence-mcp/                    # Model Context Protocol (MCP) 工具与桥接协议
