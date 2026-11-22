@@ -135,6 +135,14 @@ export type {
   FlowStepTrace,
   StepFingerprintInput,
 } from './trace/types.js';
+export {
+  createRequestRehearsal,
+  createScenarioTimeline,
+  MAX_REHEARSAL_HOURS,
+  type StoryTimeline,
+  type StoryTimelineMark,
+  type TimelineObligation,
+} from './trace/storyTimeline.js';
 
 export {
   compiledDocument,
