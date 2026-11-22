@@ -13,6 +13,7 @@ import {
 import type { EvidenceProjectSummary } from '@evidence-poc/desktop-contracts/projects';
 import { BottomStatusBar } from '../components/BottomStatusBar';
 import { ProblemsPanel } from '../components/console/ProblemsPanel';
+import { ModelHealthRadar } from '../components/console/ModelHealthRadar';
 import {
   CommandPalette,
   type CommandTarget,
@@ -534,7 +535,11 @@ const EditorWorkspace = ({
     setInquiry((current) => (current?.nodeId === nodeId ? null : current));
   }, []);
 
-  const openInquiry = (nodeId: string, kind: EvidenceInquiryKind) => {
+  const openInquiry = (
+    nodeId: string,
+    kind: EvidenceInquiryKind,
+    issueId?: string,
+  ) => {
     if (agent.running || patchReview.review !== null) return;
     if (!isEvidenceEntity(state.graph.getEntity(nodeId))) return;
     state.session.select(nodeId);
@@ -543,10 +548,16 @@ const EditorWorkspace = ({
     agent.reset();
     if (ai?.aiConfigured === false) return;
     const question =
-      kind === 'trace'
-        ? '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。'
-        : '请先读这张凭证，提出一个与现有约定最相关的异常问题。若有多个请求，先问我推演哪一项；若尚未识别请求，先问哪项交付没有发生、何时算未按约发生。合同前只探问渠道响应，不假定违约或补偿。本轮只提问，不修改模型。';
-    void agent.submit(question, { nodeId, inquiry: kind });
+      issueId !== undefined
+        ? `请用 scan_model_health 复核体检发现项 ${issueId}。若它仍存在，针对这项发现问我一个澄清问题；若已消失则停止。本轮不修改模型。`
+        : kind === 'trace'
+          ? '请先读这张凭证，按它所在的业务阶段，问我一个最关键的澄清问题：这张凭证回应了什么、谁向谁主张什么、交付什么或什么算完成？不要重复问已知信息，本轮只提问，不修改模型。'
+          : '请先读这张凭证，提出一个与现有约定最相关的异常问题。若有多个请求，先问我推演哪一项；若尚未识别请求，先问哪项交付没有发生、何时算未按约发生。合同前只探问渠道响应，不假定违约或补偿。本轮只提问，不修改模型。';
+    void agent.submit(question, {
+      nodeId,
+      inquiry: kind,
+      ...(issueId === undefined ? {} : { readOnly: true }),
+    });
   };
 
   const clearStormingFrame = useCallback(() => setStormingFrame(null), []);
@@ -874,6 +885,35 @@ const EditorWorkspace = ({
           selection={state.selection}
           onSave={() => void save()}
           onOpenCommandPalette={() => setPaletteOpen(true)}
+          healthControl={
+            !storyActive && !ledgerActive ? (
+              <ModelHealthRadar
+                graph={state.graph}
+                canLocate={(nodeId) => state.layout.nodeById.has(nodeId)}
+                inquiryBusy={agent.running || patchReview.review !== null}
+                onAction={(kind, issue) => {
+                  const target =
+                    kind === 'locate'
+                      ? issue.targetNodeId
+                      : issue.inquiry?.nodeId;
+                  if (!target || !state.layout.nodeById.has(target))
+                    return false;
+                  if (
+                    kind === 'guide' &&
+                    (agent.running ||
+                      patchReview.review !== null ||
+                      !issue.inquiry)
+                  )
+                    return false;
+                  canvasStageRef.current?.focus();
+                  revealOnGraph(target);
+                  if (kind === 'guide' && issue.inquiry)
+                    openInquiry(target, issue.inquiry.kind, issue.id);
+                  return true;
+                }}
+              />
+            ) : null
+          }
           ledgerExport={
             ledgerActive
               ? {

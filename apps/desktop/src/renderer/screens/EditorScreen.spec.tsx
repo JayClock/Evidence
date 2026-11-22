@@ -228,6 +228,107 @@ describe('EditorScreen', () => {
     expect(api.calls.save).toEqual([]);
   });
 
+  it('locates a radar finding and starts a focused read-only clarification only on request', async () => {
+    const document = createDesktopFixture();
+    document.entities.push({
+      type: 'entity',
+      category: 'evidence',
+      kind: 'fulfillment_request',
+      id: 'request.radar',
+      label: '待澄清的稿件交付',
+      attributes: [
+        {
+          name: 'due_at',
+          label: '交稿期限',
+          meaning: '最后交稿时刻',
+          timeRole: 'deadline',
+          valueType: 'timestamp',
+        },
+      ],
+    });
+    const api = readyProject(document);
+    const answer = '按约定，逾期未交稿则移交仲裁，请记录。';
+    const patch = createModelPatch(document, (draft) =>
+      recordBreachOutcomeMutator(draft, {
+        requestRef: 'request.radar',
+        condition: '逾期未交稿',
+        outcome: {
+          kind: 'terminal_escalation',
+          remedyKind: 'arbitration',
+          handoff: { id: 'evidence.arbitration', label: '仲裁移交' },
+        },
+      }),
+    );
+    const submit = api.agent.prompt;
+    api.agent.prompt = async (input) => {
+      const result = submit(input);
+      if (input.text === answer)
+        api.agentMock.commitPatch(
+          { rationale: '记录仲裁移交', patches: patch.patches },
+          input.focus?.nodeId ?? undefined,
+        );
+      return result;
+    };
+    const { container } = render(
+      <EditorScreen rootPath="/models/procurement" />,
+    );
+    await readyCanvas();
+    const trigger = screen.getByRole('button', { name: /^体检 \d+ 分/ });
+    const initialSummary = trigger.textContent;
+    const radar = async () => {
+      fireEvent.click(trigger);
+      return within(
+        await screen.findByRole('dialog', { name: '8X Flow 模型体检' }),
+      );
+    };
+    let drawer = await radar();
+    fireEvent.click(drawer.getByRole('button', { name: '履约与异常处置' }));
+    expect(drawer.queryByText(/待澄清的稿件交付.*责任角色/)).toBeNull();
+    fireEvent.click(
+      drawer.getByRole('button', { name: /定位.*稿件交付.*异常处置/ }),
+    );
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-node-id="request.radar"]'),
+      ).toHaveAttribute('aria-pressed', 'true'),
+    );
+    expect(api.calls.prompt).toEqual([]);
+    drawer = await radar();
+    fireEvent.click(
+      drawer.getByRole('button', { name: /引导澄清.*稿件交付.*异常处置/ }),
+    );
+    const inquiry = within(
+      await screen.findByRole('dialog', {
+        name: 'What-If 异常推演：待澄清的稿件交付',
+      }),
+    );
+    await waitFor(() =>
+      expect(api.calls.prompt[0]).toMatchObject({
+        focus: { nodeId: 'request.radar', inquiry: 'what-if', readOnly: true },
+        text: expect.stringContaining('dead_end_request:request.radar'),
+      }),
+    );
+    fireEvent.change(inquiry.getByLabelText('访谈内容'), {
+      target: { value: answer },
+    });
+    await waitFor(() =>
+      expect(inquiry.getByRole('button', { name: '发送' })).toBeEnabled(),
+    );
+    fireEvent.click(inquiry.getByRole('button', { name: '发送' }));
+    await waitFor(() =>
+      expect(api.calls.prompt[1]?.focus).toEqual({
+        nodeId: 'request.radar',
+        inquiry: 'what-if',
+      }),
+    );
+    const undo = await inquiry.findByRole('button', { name: '撤销补丁' });
+    await waitFor(() => expect(undo).toBeEnabled());
+    expect(trigger.textContent).not.toBe(initialSummary);
+    fireEvent.click(undo);
+    await waitFor(() => expect(trigger.textContent).toBe(initialSummary));
+    expect(api.calls.save).toEqual([]);
+  });
+
   it('opens What-If from an unpaired card and pins the follow-up to that evidence', async () => {
     const document = createDesktopFixture();
     document.entities.push({

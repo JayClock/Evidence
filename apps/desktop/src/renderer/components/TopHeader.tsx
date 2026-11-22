@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
 import { Search } from 'lucide-react';
 
@@ -28,6 +28,7 @@ interface TopHeaderProps {
   /** Opens the command hub for editor actions and navigation. */
   onOpenCommandPalette: () => void;
   ledgerExport?: { enabled: boolean; onExport: () => void } | undefined;
+  healthControl?: ReactNode;
 }
 
 /**
@@ -45,6 +46,7 @@ export const TopHeader = ({
   onSave,
   onOpenCommandPalette,
   ledgerExport,
+  healthControl,
 }: TopHeaderProps) => {
   const ledgerActive = ledgerExport !== undefined;
   const breadcrumb = useMemo(() => {
@@ -148,6 +150,7 @@ export const TopHeader = ({
           </Tooltip>
         </TooltipProvider>
 
+        {healthControl}
         <AiModelStatusPill />
         <McpStatusPill />
 
