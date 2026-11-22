@@ -181,7 +181,6 @@ const SelectedInspector = ({
         )}
         <InspectorBody
           graph={graph}
-          session={session}
           entity={entity}
           selectedAttribute={selection.attributeName}
           onOpenStudio={() => setStudioOpen(true)}
@@ -228,13 +227,11 @@ const InspectorShell = ({
 
 const InspectorBody = ({
   graph,
-  session,
   entity,
   selectedAttribute,
   onOpenStudio,
 }: {
   graph: DomainGraph;
-  session: ModelSession;
   entity: EntityAST;
   selectedAttribute: string | null;
   onOpenStudio: () => void;
@@ -285,7 +282,6 @@ const InspectorBody = ({
           <AttributeDataGrid
             entity={entity}
             graph={graph}
-            session={session}
             selectedAttribute={selectedAttribute}
             onOpenStudio={onOpenStudio}
           />

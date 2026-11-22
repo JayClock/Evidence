@@ -10,7 +10,7 @@ export {
   KeyDataLedgerSheet,
   type KeyDataLedgerSheetProps,
 } from './inspector/KeyDataLedgerSheet.js';
-export { KeyDataProvenancePicker } from './inspector/KeyDataProvenancePicker.js';
+export { KeyDataProvenanceView } from './inspector/KeyDataProvenanceView.js';
 export { useCelCompletion } from './inspector/useCelCompletion.js';
 export {
   CelCodeMirrorEditor,

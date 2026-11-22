@@ -183,7 +183,9 @@ describe('EditorScreen', () => {
     const input = screen.getByLabelText('业务场景');
     const inspector = screen.getByRole('region', { name: '实体属性检查' });
     expect(
-      within(inspector).getByDisplayValue('采购协议（Procurement Contract）'),
+      within(inspector).getByText('采购协议（Procurement Contract）', {
+        selector: 'dd',
+      }),
     ).toBeVisible();
     fireEvent.change(input, { target: { value: '追补一份交接记录' } });
     fireEvent.click(screen.getByRole('button', { name: /发起发散/ }));
@@ -433,7 +435,9 @@ describe('EditorScreen', () => {
     expect(trace).toHaveAttribute('aria-expanded', 'true');
     expect(sourcing).toBeInTheDocument();
     expect(container.querySelector('[data-pair-link]')).not.toBeNull();
-    expect(inspector).toContainElement(screen.getByDisplayValue('付款凭证'));
+    expect(
+      within(inspector).getByText('付款凭证', { selector: 'dd' }),
+    ).toBeVisible();
     expect(within(inspector).getByText('发生时刻')).toBeVisible();
     expect(within(inspector).queryByLabelText('访谈内容')).toBeNull();
     expect(within(sourcing).getByLabelText('AI 补丁复核')).toBeInTheDocument();
@@ -910,7 +914,7 @@ describe('EditorScreen', () => {
       container.querySelector('[data-node-id="evidence.request"]'),
     ).not.toHaveAttribute('aria-disabled');
     expect(
-      screen.getByDisplayValue('交付请求（Delivery Request）'),
+      screen.getByText('交付请求（Delivery Request）', { selector: 'dd' }),
     ).toBeInTheDocument();
   });
 
@@ -1105,13 +1109,16 @@ describe('EditorScreen sensors', () => {
     );
 
     expect(
-      await screen.findByDisplayValue('采购协议（Procurement Contract）'),
+      await screen.findByText('采购协议（Procurement Contract）', {
+        selector: 'dd',
+      }),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('领域模型总台账')).toBeNull();
-    expect(screen.getByDisplayValue('签署时间').closest('tr')).toHaveAttribute(
-      'aria-current',
-      'true',
-    );
+    expect(
+      within(screen.getByRole('region', { name: '模型属性' }))
+        .getByText('签署时间', { selector: 'p' })
+        .closest('tr'),
+    ).toHaveAttribute('aria-current', 'true');
   });
 
   it('tells the main process when the model changes', async () => {
@@ -1248,7 +1255,9 @@ describe('EditorScreen sensors', () => {
 
     // Selecting a target moves the shared selection, which the inspector reads.
     expect(
-      await screen.findByDisplayValue('采购协议（Procurement Contract）'),
+      await screen.findByText('采购协议（Procurement Contract）', {
+        selector: 'dd',
+      }),
     ).toBeInTheDocument();
   });
 

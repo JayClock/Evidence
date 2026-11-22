@@ -8,13 +8,11 @@ import type {
   KeyDataEntry,
 } from '@evidence-poc/evidence-model-core';
 
-interface KeyDataProvenancePickerProps {
+interface KeyDataProvenanceViewProps {
   entity: EntityAST;
   attribute: AttributeAST;
   graph: DomainGraph;
   entry: KeyDataEntry | undefined;
-  onBindDerivation: () => void;
-  onClearKeyData: () => void;
 }
 
 const providerLabel = (
@@ -40,14 +38,12 @@ const providerLabel = (
  * The verdict comes from the same classification the pinned checker uses, so a
  * green badge means the ledger recognises the declared provider.
  */
-export const KeyDataProvenancePicker = ({
+export const KeyDataProvenanceView = ({
   entity,
   attribute,
   graph,
   entry,
-  onBindDerivation,
-  onClearKeyData,
-}: KeyDataProvenancePickerProps) => {
+}: KeyDataProvenanceViewProps) => {
   if (attribute.keyData !== true) {
     return null;
   }
@@ -79,7 +75,7 @@ export const KeyDataProvenancePicker = ({
           {entry.providers.map((provider) => (
             <li
               key={`${attribute.name}-${provider.alias}`}
-              className="truncate font-mono text-[8px] text-[#6b7280]"
+              className="wrap-anywhere font-mono text-[8px] text-[#6b7280]"
             >
               {providerLabel(graph, provider)}
             </li>
@@ -88,30 +84,10 @@ export const KeyDataProvenancePicker = ({
       ) : null}
 
       {entry === undefined || entry.decisionOwed ? (
-        <div className="mt-1 space-y-1">
-          <p className="text-[8px] leading-snug text-evidence-evidence">
-            {entity.label}.{attribute.name}{' '}
-            仍待决策：金额、期限、数量与时间差必须有
-            合同参数、前序凭证属性、派生规则或结果事实作为提供方。
-          </p>
-          <div className="flex flex-wrap gap-1">
-            <button
-              type="button"
-              onClick={onBindDerivation}
-              className="rounded border border-evidence-line px-1.5 py-0.5 text-[9px] text-evidence-accent hover:border-evidence-accent"
-            >
-              绑定派生规则
-            </button>
-            <button
-              type="button"
-              onClick={onClearKeyData}
-              className="rounded border border-evidence-line px-1.5 py-0.5 text-[9px] text-evidence-muted hover:border-evidence-accent"
-              title="仅在这项信息不影响结算、履约判断或 KPI 核对时取消标记。"
-            >
-              取消核心要素标记
-            </button>
-          </div>
-        </div>
+        <p className="mt-1 wrap-anywhere text-[10px] leading-snug text-evidence-evidence">
+          {entity.label}.{attribute.name}{' '}
+          仍待决策：金额、期限、数量与时间差需要有合同参数、前序凭证属性、派生规则或结果事实作为提供方。
+        </p>
       ) : null}
     </div>
   );

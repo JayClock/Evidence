@@ -1,458 +1,201 @@
-import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Trash2 } from 'lucide-react';
-
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import type { EntityAST, TimeRole } from '@evidence-poc/evidence-schema';
 import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  useReactTable,
-  type ExpandedState,
-} from '@tanstack/react-table';
-
-import {
-  INSPECTOR_KEY_DATA_HELPER,
-  VALUE_TYPES,
-  type AttributeAST,
-  type EntityAST,
-  type TimeRole,
-  type ValueType,
-} from '@evidence-poc/evidence-schema';
-import {
-  addAttributeMutator,
-  removeAttributeMutator,
-  updateAttributeMutator,
   buildKeyDataLedger,
   type DomainGraph,
-  type ModelSession,
 } from '@evidence-poc/evidence-model-core';
-
+import { cn } from '@evidence-poc/desktop-ui-kit';
 import { ApiFieldBadge } from './ApiFieldBadge';
 import { DerivedRuleSection } from './DerivedRuleSection';
-import { KeyDataProvenancePicker } from './KeyDataProvenancePicker';
-import { cn } from '@evidence-poc/desktop-ui-kit';
+import { KeyDataProvenanceView } from './KeyDataProvenanceView';
 
 interface AttributeDataGridProps {
   entity: EntityAST;
   graph: DomainGraph;
-  session: ModelSession;
-  /** Opens the wide ledger studio; the compact grid stays for the rail. */
   onOpenStudio?: () => void;
   selectedAttribute?: string | null;
 }
 
-const columnHelper = createColumnHelper<AttributeAST>();
 const TIME_ROLE_LABELS: Record<TimeRole, string> = {
   start: '开始时间',
   deadline: '截止时间',
   occurrence: '发生时刻',
 };
 
-const nextAttributeName = (
-  attributes: readonly AttributeAST[],
-): { name: string; index: number } => {
-  let index = attributes.length + 1;
-  let name = `attribute_${index}`;
-
-  while (attributes.some((attribute) => attribute.name === name)) {
-    index += 1;
-    name = `attribute_${index}`;
-  }
-
-  return { name, index };
-};
-
-/**
- * The key data ledger of one entity, as a grid with expandable rows.
- *
- * Provenance and the derivation rule belong to their attribute, so they open
- * underneath it instead of piling up as a second list nobody can match back to a
- * row. Editing always goes through a command, so every committed change is one
- * undo step and the badge beside it is derived from the document, not a flag
- * someone could forget to clear.
- */
+/** A compact attribute table with expandable source and rule details. */
 export const AttributeDataGrid = ({
-  entity: selected,
+  entity,
   graph,
-  session,
   onOpenStudio,
   selectedAttribute = null,
 }: AttributeDataGridProps) => {
-  const keyDataHelpId = useId();
   const selectedRow = useRef<HTMLTableRowElement>(null);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   useEffect(() => {
     selectedRow.current?.scrollIntoView?.({ block: 'nearest' });
   }, [selectedAttribute]);
-  const [expanded, setExpanded] = useState<ExpandedState>({});
-  const [bindingAttribute, setBindingAttribute] = useState<string | null>(null);
 
-  // The parent re-reads the session on every document change, so the graph is
-  // the freshest view of this object; the id keeps it stable across edits.
-  const entity = graph.getEntity(selected.id) ?? selected;
-  const attributes = useMemo(
-    () => entity.attributes ?? [],
-    [entity.attributes],
+  const entries = useMemo(
+    () =>
+      buildKeyDataLedger(graph.document).entries.filter(
+        (entry) => entry.entityRef === entity.id,
+      ),
+    [graph.document, entity.id],
   );
-
-  const ledger = useMemo(
-    () => buildKeyDataLedger(session.getDocument()),
-    // The document identity changes on every dispatch, which is exactly when the
-    // ledger has to be recomputed.
-    [session, session.getDocument()],
+  const decisionOwed = entries.filter((entry) => entry.decisionOwed).length;
+  const entryByAttribute = useMemo(
+    () => new Map(entries.map((entry) => [entry.attribute, entry])),
+    [entries],
   );
-  const entriesForEntity = ledger.entries.filter(
-    (entry) => entry.entityRef === entity.id,
-  );
-  const decisionOwed = entriesForEntity.filter((entry) => entry.decisionOwed);
-
-  const patchAttribute = (
-    attribute: AttributeAST,
-    patch: Readonly<Partial<AttributeAST>>,
-  ) => {
-    session.mutate(
-      (draft) =>
-        updateAttributeMutator(draft, entity.id, attribute.name, patch),
-      'update-attribute',
-    );
-  };
-
-  const columns = useMemo(
-    () => [
-      columnHelper.accessor('name', {
-        header: '属性名',
-        cell: (info) => {
-          const attribute = info.row.original;
-          const open = info.row.getIsExpanded();
-
-          return (
-            <div className="flex items-start gap-1 py-0.5">
-              <button
-                type="button"
-                aria-label={`${attribute.name} 展开`}
-                aria-expanded={open}
-                onClick={info.row.getToggleExpandedHandler()}
-                className="mt-0.5 shrink-0 text-[9px] text-[#8c959f] hover:text-evidence-ink"
-                title="查看要素来源与公式"
-              >
-                {open ? '▼' : '▶'}
-              </button>
-              <div className="min-w-0 flex-1">
-                <code className="block truncate font-mono text-[10px] font-medium text-evidence-ink">
-                  {attribute.name}
-                  {attribute.required === true ? (
-                    <span
-                      aria-label="必填"
-                      className="ml-0.5 text-evidence-evidence"
-                    >
-                      *
-                    </span>
-                  ) : null}
-                </code>
-                <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                  <ApiFieldBadge
-                    attribute={attribute}
-                    entityRef={entity.id}
-                    graph={graph}
-                  />
-                  {attribute.timeRole === undefined ? null : (
-                    <span className="rounded bg-workbench-subtle px-1 text-[9px] text-workbench-label">
-                      {TIME_ROLE_LABELS[attribute.timeRole]}
-                    </span>
-                  )}
-                  {attribute.derivedByRuleRef !== undefined ? (
-                    <span className="rounded bg-[#eef2f7] px-1 text-[8px] text-evidence-accent">
-                      派生
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          );
-        },
-      }),
-      columnHelper.accessor('label', {
-        header: '业务名称 / 类型',
-        cell: (info) => {
-          const attribute = info.row.original;
-
-          return (
-            <div className="space-y-0.5 py-0.5">
-              <CommitInput
-                ariaLabel={`${attribute.name} 业务名称`}
-                value={attribute.label}
-                onCommit={(label) => patchAttribute(attribute, { label })}
-              />
-              <label className="block">
-                <span className="sr-only">{`${attribute.name} 数据类型`}</span>
-                <select
-                  aria-label={`${attribute.name} 数据类型`}
-                  value={attribute.valueType ?? 'string'}
-                  onChange={(event) =>
-                    patchAttribute(attribute, {
-                      valueType: event.target.value as ValueType,
-                    })
-                  }
-                  className="w-full rounded border border-evidence-line bg-[#fbfbfc] px-1 py-0.5 text-[9px] text-[#57606a]"
-                >
-                  {VALUE_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'keyData',
-        header: '要素',
-        cell: (info) => {
-          const attribute = info.row.original;
-          const keyData = attribute.keyData === true;
-
-          return (
-            <label className="flex cursor-pointer items-center justify-center py-0.5">
-              <input
-                type="checkbox"
-                aria-describedby={keyDataHelpId}
-                checked={keyData}
-                onChange={(event) =>
-                  patchAttribute(attribute, { keyData: event.target.checked })
-                }
-              />
-              <span className="sr-only">
-                {attribute.label || attribute.name}：标为核心要素
-              </span>
-            </label>
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'actions',
-        header: '操作',
-        cell: (info) => {
-          const attribute = info.row.original;
-
-          return (
-            <button
-              type="button"
-              aria-label={`删除属性 ${attribute.name}`}
-              onClick={() =>
-                session.mutate(
-                  (draft) =>
-                    removeAttributeMutator(draft, entity.id, attribute.name, {
-                      cascade: true,
-                    }),
-                  'remove-attribute',
-                )
-              }
-              title="删除属性"
-              className="mx-auto flex size-5 items-center justify-center rounded text-workbench-muted hover:bg-workbench-subtle hover:text-evidence-evidence focus-visible:ring-2 focus-visible:ring-evidence-accent"
-            >
-              <Trash2 aria-hidden="true" className="size-3" />
-            </button>
-          );
-        },
-      }),
-    ],
-    [entity.id, graph, keyDataHelpId, session],
-  );
-
-  const table = useReactTable({
-    data: attributes,
-    columns,
-    state: { expanded },
-    onExpandedChange: setExpanded,
-    getRowId: (row) => row.name,
-    getRowCanExpand: () => true,
-    getCoreRowModel: getCoreRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-  });
+  const attributes = entity.attributes ?? [];
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-1 text-[9px] text-[#8a929e]">
-        <span>属性清单</span>
-        <div className="flex items-center gap-1.5">
-          <span data-ledger-summary={entity.id}>
-            核心要素 {entriesForEntity.length} 项
-            {decisionOwed.length > 0
-              ? ` · ${decisionOwed.length} 项依据待确认`
-              : ''}
-          </span>
-          {onOpenStudio === undefined ? null : (
-            <button
-              type="button"
-              onClick={onOpenStudio}
-              className="shrink-0 rounded border border-evidence-line px-1.5 py-0.5 text-[9px] text-evidence-muted hover:border-evidence-accent hover:text-evidence-ink"
-              title="在核心要素台账中编辑全部属性（Alt+L）"
-            >
-              ⛶ 要素台账
-            </button>
-          )}
-        </div>
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-workbench-muted">
+        <span data-ledger-summary={entity.id}>
+          核心要素 {entries.length} 项
+          {decisionOwed > 0 ? ` · ${decisionOwed} 项依据待确认` : ''}
+        </span>
+        {onOpenStudio !== undefined && attributes.length > 0 ? (
+          <button
+            type="button"
+            onClick={onOpenStudio}
+            className="rounded border border-evidence-line px-1.5 py-0.5 hover:border-evidence-accent hover:text-evidence-ink"
+            title="查看核心要素台账（Alt+L）"
+          >
+            ⛶ 要素台账
+          </button>
+        ) : null}
       </div>
-
-      <p id={keyDataHelpId} className="text-[10px] text-workbench-label">
-        {INSPECTOR_KEY_DATA_HELPER}
-      </p>
-
-      <div className="overflow-hidden rounded border border-evidence-line bg-white">
-        <table className="w-full table-fixed border-collapse text-left text-[10px]">
-          <thead className="bg-[#f6f8fa] text-[9px] text-[#59606c]">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className={cn(
-                      'border-b border-evidence-line px-1.5 py-1 font-normal',
-                      header.column.id === 'name' && 'w-[37%]',
-                      (header.column.id === 'keyData' ||
-                        header.column.id === 'actions') &&
-                        'w-8 text-center whitespace-nowrap',
-                    )}
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                  </th>
-                ))}
+      {attributes.length === 0 ? (
+        <p className="text-workbench-muted">未声明业务属性</p>
+      ) : (
+        <div className="overflow-hidden rounded border border-evidence-line bg-white">
+          <table className="w-full table-fixed border-collapse text-left text-[10px]">
+            <caption className="sr-only">{entity.label}的属性清单</caption>
+            <thead className="bg-workbench-background text-workbench-label">
+              <tr>
+                <th scope="col" className="w-[42%] px-1.5 py-1 font-medium">
+                  属性名
+                </th>
+                <th scope="col" className="px-1.5 py-1 font-medium">
+                  业务名称 / 类型
+                </th>
+                <th scope="col" className="w-10 px-1.5 py-1 font-medium">
+                  要素
+                </th>
               </tr>
-            ))}
-          </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row) => {
-              const attribute = row.original;
-              const open = row.getIsExpanded();
-
-              return (
-                <Fragment key={row.id}>
-                  <tr
-                    data-attribute-name={attribute.name}
-                    ref={
-                      selectedAttribute === attribute.name
-                        ? selectedRow
-                        : undefined
-                    }
-                    aria-current={
-                      selectedAttribute === attribute.name || undefined
-                    }
-                    className={cn(
-                      'border-t border-evidence-line/70 align-top',
-                      selectedAttribute === attribute.name
-                        ? 'bg-evidence-active'
-                        : open && 'bg-workbench-background',
-                    )}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-1.5 py-1">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                  {open ? (
-                    <tr>
-                      <td
-                        colSpan={row.getVisibleCells().length}
-                        className="border-t border-evidence-line bg-[#fbfbfc] px-2 py-1.5"
-                      >
-                        <div className="space-y-1">
-                          <KeyDataProvenancePicker
-                            entity={entity}
+            </thead>
+            <tbody>
+              {attributes.map((attribute) => {
+                const {
+                  name,
+                  label,
+                  required,
+                  timeRole,
+                  derivedByRuleRef,
+                  keyData,
+                  meaning,
+                  valueType,
+                } = attribute;
+                const open = expanded.has(name);
+                const selected = name === selectedAttribute;
+                return (
+                  <Fragment key={name}>
+                    <tr
+                      data-attribute-name={name}
+                      ref={selected ? selectedRow : undefined}
+                      aria-current={selected || undefined}
+                      className={cn(
+                        'border-t border-evidence-line/70 align-top',
+                        selected
+                          ? 'bg-evidence-active'
+                          : open && 'bg-workbench-background',
+                      )}
+                    >
+                      <th scope="row" className="px-1.5 py-1 font-normal">
+                        <button
+                          type="button"
+                          aria-label={`${name} ${open ? '收起' : '展开'}`}
+                          aria-expanded={open}
+                          onClick={() =>
+                            setExpanded((current) => {
+                              const next = new Set(current);
+                              if (next.has(name)) next.delete(name);
+                              else next.add(name);
+                              return next;
+                            })
+                          }
+                          className="flex min-h-6 w-full items-center gap-1 text-left text-evidence-ink hover:text-evidence-accent"
+                        >
+                          <span aria-hidden="true" className="shrink-0">
+                            {open ? '▼' : '▶'}
+                          </span>
+                          <code className="wrap-anywhere">{name}</code>
+                        </button>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <ApiFieldBadge
                             attribute={attribute}
+                            entityRef={entity.id}
                             graph={graph}
-                            entry={entriesForEntity.find(
-                              (entry) => entry.attribute === attribute.name,
-                            )}
-                            onBindDerivation={() =>
-                              setBindingAttribute(attribute.name)
-                            }
-                            onClearKeyData={() =>
-                              patchAttribute(attribute, { keyData: false })
-                            }
                           />
-                          <DerivedRuleSection
-                            entity={entity}
-                            graph={graph}
-                            session={session}
-                            attribute={attribute}
-                            forceBinding={bindingAttribute === attribute.name}
-                            onBindingClose={() => setBindingAttribute(null)}
-                          />
+                          {timeRole !== undefined ? (
+                            <span className="text-workbench-label">
+                              {TIME_ROLE_LABELS[timeRole]}
+                            </span>
+                          ) : null}
+                          {derivedByRuleRef !== undefined ? (
+                            <span className="text-evidence-accent">派生</span>
+                          ) : null}
                         </div>
+                      </th>
+                      <td className="px-1.5 py-1">
+                        <p className="wrap-anywhere text-workbench-body">
+                          {label}
+                        </p>
+                        <p className="wrap-anywhere text-workbench-muted">
+                          <code>{valueType ?? 'string'}</code>
+                          {required === true ? ' · 必填' : ''}
+                        </p>
+                      </td>
+                      <td className="px-1.5 py-1 text-workbench-label">
+                        {keyData === true ? '核心' : '—'}
                       </td>
                     </tr>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => {
-          const next = nextAttributeName(attributes);
-
-          session.mutate(
-            (draft) =>
-              addAttributeMutator(draft, entity.id, {
-                name: next.name,
-                label: `新属性（New Attribute ${next.index}）`,
-                meaning: '待补充提供方与算法。',
-                valueType: 'string',
-              }),
-            'add-attribute',
-          );
-        }}
-        className="w-full rounded border border-dashed border-evidence-line py-1 text-[10px] text-evidence-muted hover:border-evidence-accent hover:text-evidence-ink"
-      >
-        添加属性
-      </button>
+                    {open ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="border-t border-evidence-line bg-workbench-background px-2 py-1.5"
+                        >
+                          <div className="flex flex-col gap-1">
+                            <p className="wrap-anywhere whitespace-pre-wrap text-workbench-body">
+                              {meaning}
+                            </p>
+                            <KeyDataProvenanceView
+                              entity={entity}
+                              attribute={attribute}
+                              graph={graph}
+                              entry={entryByAttribute.get(name)}
+                            />
+                            <DerivedRuleSection
+                              entity={entity}
+                              graph={graph}
+                              attribute={attribute}
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  );
-};
-
-const CommitInput = ({
-  value,
-  ariaLabel,
-  onCommit,
-}: {
-  value: string;
-  ariaLabel: string;
-  onCommit: (next: string) => void;
-}) => {
-  const [draft, setDraft] = useState(value);
-
-  return (
-    <input
-      aria-label={ariaLabel}
-      value={draft}
-      onChange={(event) => setDraft(event.target.value)}
-      onFocus={() => setDraft(value)}
-      onBlur={() => {
-        if (draft !== value) {
-          onCommit(draft);
-        }
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          event.currentTarget.blur();
-        }
-        if (event.key === 'Escape') {
-          setDraft(value);
-          event.currentTarget.blur();
-        }
-      }}
-      className="w-full rounded border border-evidence-line bg-white px-1.5 py-1 text-[11px]"
-    />
   );
 };

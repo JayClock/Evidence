@@ -1,19 +1,8 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
-import { useEffect, useState } from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-import {
-  createModelSession,
-  type ModelSession,
-} from '@evidence-poc/evidence-model-core';
-
+import { createDomainGraph } from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import {
-  blurEditor,
-  readExpression,
-  typeExpression,
-} from '../testing/codeEditor';
 import { AttributeDataGrid } from './AttributeDataGrid';
 
 /**
@@ -63,215 +52,54 @@ const createFixture = (): DomainModelDocument => {
   };
 };
 
-/** Mirrors `useEditorSession`: re-reads the graph after every session event. */
-const Harness = ({
-  entityId,
-  session,
-}: {
-  entityId: string;
-  session: ModelSession;
-}) => {
-  const [, forceRender] = useState(0);
-
-  useEffect(
-    () =>
-      session.subscribe(() => {
-        forceRender((version) => version + 1);
-      }),
-    [session],
-  );
-
-  return (
-    <AttributeDataGrid
-      entity={session.getGraph().getEntity(entityId)!}
-      graph={session.getGraph()}
-      session={session}
-    />
-  );
-};
-
 const setup = (entityId: string) => {
-  const session = createModelSession({ document: createFixture() });
-  const view = render(<Harness entityId={entityId} session={session} />);
-
-  return { session, view };
+  const graph = createDomainGraph(createFixture());
+  render(
+    <AttributeDataGrid entity={graph.getEntity(entityId)!} graph={graph} />,
+  );
 };
 
-const provenanceFor = (attribute: string): HTMLElement =>
-  document.querySelector(`[data-provenance-for="${attribute}"]`) as HTMLElement;
-
-const expand = (attribute: string): void => {
-  fireEvent.click(screen.getByLabelText(`${attribute} 展开`));
+const expand = (attribute: string) => {
+  fireEvent.click(screen.getByRole('button', { name: `${attribute} 展开` }));
 };
 
 describe('AttributeDataGrid', () => {
-  it('adds and removes an attribute through commands', () => {
-    const { session } = setup('evidence.contract');
-
-    fireEvent.click(screen.getByText('添加属性'));
-
-    const added = session
-      .getGraph()
-      .attributesOf('evidence.contract')
-      .map((attribute) => attribute.name);
-
-    expect(added).toHaveLength(3);
-    const created = added[2]!;
-
-    fireEvent.click(screen.getByLabelText(`删除属性 ${created}`));
-
-    expect(
-      session
-        .getGraph()
-        .attributesOf('evidence.contract')
-        .map((item) => item.name),
-    ).toEqual(['signed_at', 'quantity']);
-    expect(session.canUndo()).toBe(true);
-  });
-
-  it('patches the label through the update command and undoes it', () => {
-    const { session } = setup('evidence.contract');
-    const input = screen.getByLabelText('signed_at 业务名称');
-
-    fireEvent.change(input, { target: { value: '签署日期（Signed At）' } });
-    fireEvent.blur(input);
-
-    expect(
-      session.getGraph().attribute('evidence.contract', 'signed_at')?.label,
-    ).toBe('签署日期（Signed At）');
-
-    act(() => {
-      session.undo();
-    });
-
-    expect(
-      session.getGraph().attribute('evidence.contract', 'signed_at')?.label,
-    ).toBe('签署时间');
-  });
-
-  it('keeps the ledger summary honest without expanding a row', () => {
-    const { session } = setup('evidence.request');
-
-    expect(
-      document.querySelector('[data-ledger-summary="evidence.request"]')
-        ?.textContent,
-    ).toContain('2 项依据待确认');
-
-    fireEvent.click(
-      screen.getByRole('checkbox', { name: '截止时间：标为核心要素' }),
-    );
-
-    expect(
-      session.getGraph().attribute('evidence.request', 'expired_at')?.keyData,
-    ).toBe(false);
-    expect(
-      document.querySelector('[data-ledger-summary="evidence.request"]')
-        ?.textContent,
-    ).toContain('核心要素 2 项 · 1 项依据待确认');
-  });
-
-  it('opens the provider decision underneath the row it belongs to', () => {
+  it('shows attribute types and constraints without add, remove, or edit controls', () => {
     setup('evidence.contract');
+    const row = within(screen.getByText('签署时间').closest('tr')!);
+    expect(row.getByText('timestamp')).toBeVisible();
+    expect(row.getByText(/必填/)).toBeVisible();
+    expect(row.getByText('核心')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /添加属性|删除属性/ }),
+    ).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
 
-    expect(document.querySelector('[data-provenance-for]')).toBeNull();
+  it('summarizes outstanding decisions without expanding a row', () => {
+    setup('evidence.request');
+    expect(screen.getByText('核心要素 3 项 · 2 项依据待确认')).toBeVisible();
+  });
 
+  it('shows a declared provider beneath the corresponding attribute', () => {
+    setup('evidence.contract');
+    expect(screen.queryByText('合同参数（Contract Term）')).toBeNull();
     expand('signed_at');
-
+    expect(screen.getByText('合同参数（Contract Term）')).toBeVisible();
     expect(
-      within(provenanceFor('signed_at')).getByText('合同参数（Contract Term）'),
-    ).toBeInTheDocument();
-    expect(
-      within(provenanceFor('signed_at')).queryByText(/仍待决策/),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'signed_at 收起' }),
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('offers to bind a derivation rule when the decision is still owed', () => {
-    const { session } = setup('evidence.request');
-
+  it('shows an unresolved provider without offering to bind or clear it', () => {
+    setup('evidence.request');
     expand('penalty_amount');
-
-    const picker = provenanceFor('penalty_amount');
-
-    expect(within(picker).getByText(/仍待决策/)).toBeInTheDocument();
-
-    fireEvent.click(within(picker).getByText('绑定派生规则'));
-
-    expect(screen.getByLabelText('派生规则 ID')).toHaveValue(
-      'rule.evidence.request.penalty-amount',
-    );
-
-    typeExpression('派生规则表达式', 'contract.quantity');
-    blurEditor('派生规则表达式');
-    fireEvent.click(screen.getByText('保存'));
-
-    const attribute = session
-      .getGraph()
-      .attribute('evidence.request', 'penalty_amount');
-
-    expect(attribute?.derivedByRuleRef).toBe(
-      'rule.evidence.request.penalty-amount',
-    );
+    expect(screen.getByText(/penalty_amount.*仍待决策/)).toBeVisible();
+    expect(screen.getByText('未声明派生规则')).toBeVisible();
     expect(
-      within(provenanceFor('penalty_amount')).getByText('派生规则（Derived）'),
-    ).toBeInTheDocument();
-  });
-
-  it('edits a bound rule in the code editor and undoes it', () => {
-    const { session } = setup('evidence.request');
-
-    expand('penalty_amount');
-    fireEvent.click(
-      within(provenanceFor('penalty_amount')).getByText('绑定派生规则'),
-    );
-
-    typeExpression('派生规则表达式', 'contract.quantity');
-    blurEditor('派生规则表达式');
-    fireEvent.click(screen.getByText('保存'));
-
-    typeExpression('penalty_amount CEL 表达式', 'contract.quantity * 2');
-    blurEditor('penalty_amount CEL 表达式');
-
-    const attribute = session
-      .getGraph()
-      .attribute('evidence.request', 'penalty_amount');
-    const rule = session.getGraph().getRule(attribute!.derivedByRuleRef!);
-
-    expect(rule?.expression).toBe('contract.quantity * 2');
-    expect(readExpression('penalty_amount CEL 表达式')).toBe(
-      'contract.quantity * 2',
-    );
-
-    act(() => {
-      session.undo();
-    });
-
-    expect(
-      session.getGraph().getRule(attribute!.derivedByRuleRef!)?.expression,
-    ).toBe('contract.quantity');
-  });
-
-  it('lets a key data claim be withdrawn with one undo step', () => {
-    const { session } = setup('evidence.request');
-
-    expand('penalty_amount');
-    fireEvent.click(
-      within(provenanceFor('penalty_amount')).getByRole('button', {
-        name: '取消核心要素标记',
-      }),
-    );
-
-    expect(
-      session.getGraph().attribute('evidence.request', 'penalty_amount')
-        ?.keyData,
-    ).toBe(false);
-
-    act(() => {
-      session.undo();
-    });
-
-    expect(
-      session.getGraph().attribute('evidence.request', 'penalty_amount')
-        ?.keyData,
-    ).toBe(true);
+      screen.queryByRole('button', { name: /绑定派生规则|取消核心要素标记/ }),
+    ).toBeNull();
   });
 });
