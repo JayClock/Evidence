@@ -31,13 +31,13 @@ export type {
 
 // ─── Agent session and prompts ───────────────────────────────────────────
 export {
+  CLARIFICATION_PROMPT,
   EVIDENCE_INSTRUCTIONS,
   EVIDENCE_SYSTEM_PROMPT,
   INGESTION_EXAMPLES,
   INGESTION_PROMPT,
   MODELING_PROMPT,
   ROLE_PROMPT,
-  SOURCING_PROMPT,
   STORMING_PROMPT,
   WHAT_IF_PROMPT,
   WORKFLOW_PROMPT,
