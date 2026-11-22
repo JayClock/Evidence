@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DomainCalculatorIntentSchema,
   FulfillmentPairIntentSchema,
-  RoleInversionIntentSchema,
+  RoleifyConfirmationIntentSchema,
 } from '../index.js';
 
 const pair = {
@@ -75,25 +75,30 @@ describe('shared operator schemas', () => {
   ])('rejects values outside the shared AST vocabulary', (input) => {
     expect(DomainCalculatorIntentSchema.safeParse(input).success).toBe(false);
   });
-  it('keeps nested role inversion input strict', () => {
-    const named = { id: 'sample', label: 'Sample' };
-    const intent = {
+  it('uses an existing confirmation and a new or existing socket', () => {
+    const base = {
       targetConfirmationRef: 'confirmation.payment',
-      socket: named,
-      supporting: {
-        context: named,
-        contract: named,
-        provider: named,
-        consumer: named,
-        request: named,
-        confirmation: named,
-      },
+      providerConfirmationRef: 'confirmation.wallet',
     };
-    expect(RoleInversionIntentSchema.safeParse(intent).success).toBe(true);
+    for (const socket of [
+      { mode: 'create', id: 'role.payment', label: '付款能力' },
+      { mode: 'reuse', ref: 'role.payment' },
+    ]) {
+      expect(
+        RoleifyConfirmationIntentSchema.parse({ ...base, socket }),
+      ).toEqual({ ...base, socket });
+      expect(
+        RoleifyConfirmationIntentSchema.safeParse({
+          ...base,
+          socket,
+          supporting: {},
+        }).success,
+      ).toBe(false);
+    }
     expect(
-      RoleInversionIntentSchema.safeParse({
-        ...intent,
-        socket: { ...named, extra: true },
+      RoleifyConfirmationIntentSchema.safeParse({
+        ...base,
+        socket: { mode: 'reuse', label: '付款能力' },
       }).success,
     ).toBe(false);
   });

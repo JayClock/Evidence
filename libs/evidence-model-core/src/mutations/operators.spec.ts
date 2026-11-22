@@ -154,140 +154,125 @@ describe('introduceFulfillmentPair', () => {
 });
 
 describe('roleifyAndInvertDependency', () => {
-  it('moves the capability into its own contract and lets the confirmation play the role', () => {
+  const setup = () => {
     const model = createProcurementModel();
+    for (const name of ['wallet', 'credit']) {
+      const contextRef = `context.${name}`;
+      model.entities.push(
+        {
+          type: 'entity',
+          category: 'context',
+          kind: 'contract',
+          id: contextRef,
+          label: name,
+        },
+        {
+          type: 'entity',
+          category: 'evidence',
+          kind: 'fulfillment_confirmation',
+          id: `confirmation.${name}`,
+          label: name,
+          contextRef,
+        },
+      );
+      model.relationships.push({
+        type: 'relationship',
+        kind: 'references',
+        id: `relation.payment-uses-${name}`,
+        sourceRef: 'confirmation.payment',
+        targetRef: `confirmation.${name}`,
+        label: name,
+      });
+    }
+    return model;
+  };
+  const targetConfirmationRef = 'confirmation.payment';
+  const roleId = 'role.payment-capability';
+  const createSocket = {
+    mode: 'create',
+    id: roleId,
+    label: '付款能力',
+  } as const;
+
+  it('replaces only the chosen direct reference and reuses the provider confirmation', () => {
+    const model = setup();
     const patch = runMutation(model, (draft) =>
       roleifyAndInvertDependencyMutator(draft, {
-        targetConfirmationRef: 'confirmation.payment',
-        socket: { id: 'role.payment-capability', label: '付款能力' },
-        supporting: {
-          context: { id: 'context.wallet', label: '钱包支付服务' },
-          contract: { id: 'contract.wallet', label: '钱包支付服务协议' },
-          provider: { id: 'role.wallet-provider', label: '钱包服务商' },
-          consumer: { id: 'role.wallet-user', label: '付款用户' },
-          request: { id: 'request.wallet-charge', label: '钱包扣款请求' },
-          confirmation: {
-            id: 'confirmation.wallet-charge',
-            label: '钱包扣款确认',
-          },
-        },
+        targetConfirmationRef,
+        providerConfirmationRef: 'confirmation.wallet',
+        socket: createSocket,
       }),
     );
-    const { document } = patch;
-
-    expect(patch.result.createdIds).toEqual([
-      'role.payment-capability',
-      'context.wallet',
-      'role.wallet-provider',
-      'role.wallet-user',
-      'contract.wallet',
-      'request.wallet-charge',
-      'confirmation.wallet-charge',
-    ]);
+    expect(patch.document.entities).toHaveLength(model.entities.length + 1);
     expect(
-      document.entities.find(
-        (entity) => entity.id === 'role.payment-capability',
-      ),
+      patch.document.entities.find(({ id }) => id === roleId),
     ).toMatchObject({
       category: 'role',
       kind: 'evidence',
       contextRef: 'context.procurement',
     });
+    expect(patch.document.relationships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'references',
+          sourceRef: targetConfirmationRef,
+          targetRef: roleId,
+        }),
+        expect.objectContaining({
+          kind: 'plays_role',
+          sourceRef: 'confirmation.wallet',
+          targetRef: roleId,
+        }),
+        expect.objectContaining({ id: 'relation.payment-uses-credit' }),
+      ]),
+    );
     expect(
-      document.entities.find((entity) => entity.id === 'context.wallet'),
-    ).toMatchObject({ kind: 'contract', rootRefs: ['contract.wallet'] });
-    expect(
-      document.relationships.find(
-        (relationship) =>
-          relationship.sourceRef === 'confirmation.payment' &&
-          relationship.targetRef === 'role.payment-capability',
+      patch.document.relationships.some(
+        ({ id }) => id === 'relation.payment-uses-wallet',
       ),
-    ).toMatchObject({ kind: 'references' });
-    expect(
-      document.relationships.find(
-        (relationship) =>
-          relationship.sourceRef === 'confirmation.wallet-charge' &&
-          relationship.targetRef === 'role.payment-capability',
-      ),
-    ).toMatchObject({ kind: 'plays_role' });
+    ).toBe(false);
+    expect(strictValidateDomainModel(patch.document).issues).toEqual([]);
+    expect(patch.undo()).toStrictEqual(model);
   });
 
-  it('leaves the core contract independent of the provider parties', () => {
-    const model = createProcurementModel();
-    const patch = runMutation(model, (draft) =>
+  it('adds a second confirmed provider to the same socket without duplicating the consumer link', () => {
+    const patch = runMutation(setup(), (draft) => {
       roleifyAndInvertDependencyMutator(draft, {
-        targetConfirmationRef: 'confirmation.payment',
-        socket: { id: 'role.payment-capability', label: '付款能力' },
-        supporting: {
-          context: { id: 'context.wallet', label: '钱包支付服务' },
-          contract: { id: 'contract.wallet', label: '钱包支付服务协议' },
-          provider: { id: 'role.wallet-provider', label: '钱包服务商' },
-          consumer: { id: 'role.wallet-user', label: '付款用户' },
-          request: { id: 'request.wallet-charge', label: '钱包扣款请求' },
-          confirmation: {
-            id: 'confirmation.wallet-charge',
-            label: '钱包扣款确认',
-          },
-        },
-      }),
-    );
-    const { document } = patch;
-    const coreContract = document.entities.find(
-      (entity) => entity.id === 'contract.procurement',
-    );
-
-    expect(coreContract).toMatchObject({
-      roleRefs: ['role.buyer', 'role.seller'],
+        targetConfirmationRef,
+        providerConfirmationRef: 'confirmation.wallet',
+        socket: createSocket,
+      });
+      return roleifyAndInvertDependencyMutator(draft, {
+        targetConfirmationRef,
+        providerConfirmationRef: 'confirmation.credit',
+        socket: { mode: 'reuse', ref: roleId },
+      });
     });
-    expect(
-      document.entities.some((entity) => entity.id === 'role.wallet-provider'),
-    ).toBe(true);
-  });
-
-  it('keeps the resulting model free of static FM issues', () => {
-    const model = createProcurementModel();
-    const patch = runMutation(model, (draft) =>
-      roleifyAndInvertDependencyMutator(draft, {
-        targetConfirmationRef: 'confirmation.payment',
-        socket: { id: 'role.payment-capability', label: '付款能力' },
-        supporting: {
-          context: { id: 'context.wallet', label: '钱包支付服务' },
-          contract: { id: 'contract.wallet', label: '钱包支付服务协议' },
-          provider: { id: 'role.wallet-provider', label: '钱包服务商' },
-          consumer: { id: 'role.wallet-user', label: '付款用户' },
-          request: { id: 'request.wallet-charge', label: '钱包扣款请求' },
-          confirmation: {
-            id: 'confirmation.wallet-charge',
-            label: '钱包扣款确认',
-          },
-        },
-      }),
+    const links = patch.document.relationships.filter(
+      ({ targetRef }) => targetRef === roleId,
     );
-    const { document } = patch;
-
-    expect(strictValidateDomainModel(document).issues).toEqual([]);
+    expect(links.filter(({ kind }) => kind === 'references')).toHaveLength(1);
+    expect(
+      links
+        .filter(({ kind }) => kind === 'plays_role')
+        .map(({ sourceRef }) => sourceRef),
+    ).toEqual(['confirmation.wallet', 'confirmation.credit']);
   });
 
-  it('rejects a target that is not a fulfillment confirmation', () => {
+  it.each([
+    ['request.payment', '需要两张真实的履约确认'],
+    ['confirmation.payment', '不同的合同上下文'],
+    ['confirmation.absent', 'confirmation.absent'],
+  ])('rejects an invalid provider (%s)', (providerConfirmationRef, message) => {
     expect(() =>
-      runMutation(createProcurementModel(), (draft) =>
+      runMutation(setup(), (draft) =>
         roleifyAndInvertDependencyMutator(draft, {
-          targetConfirmationRef: 'request.payment',
-          socket: { id: 'role.payment-capability', label: '付款能力' },
-          supporting: {
-            context: { id: 'context.wallet', label: '钱包支付服务' },
-            contract: { id: 'contract.wallet', label: '钱包支付服务协议' },
-            provider: { id: 'role.wallet-provider', label: '钱包服务商' },
-            consumer: { id: 'role.wallet-user', label: '付款用户' },
-            request: { id: 'request.wallet-charge', label: '钱包扣款请求' },
-            confirmation: {
-              id: 'confirmation.wallet-charge',
-              label: '钱包扣款确认',
-            },
-          },
+          targetConfirmationRef,
+          providerConfirmationRef,
+          socket: createSocket,
         }),
       ),
-    ).toThrow('是时段凭证');
+    ).toThrow(message);
   });
 });
 

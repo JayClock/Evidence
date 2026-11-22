@@ -8,7 +8,7 @@ import {
   DomainModelDocumentSchema,
   RecordBreachOutcomeInputSchema,
   ModelPatchRequestSchema,
-  RoleInversionIntentSchema,
+  RoleifyConfirmationIntentSchema,
   SplitEvidenceToPairInputSchema,
   timeAttributeOf,
   type DomainModelDocument,
@@ -269,11 +269,11 @@ export const createModelTools = (
       name: MODEL_TOOL_NAMES.roleifyAndInvertDependency,
       label: '反转依赖并隔离变化点',
       description:
-        '把核心合同依赖的履约确认抽象为能力角色，并新增独立的支撑合同上下文，让外部履约确认扮演该角色。用于引入支付渠道、物流或其它第三方能力时隔离变化点。',
-      parameters: RoleInversionIntentSchema,
+        '为核心确认建立或复用能力角色，让另一合同中已有的确认扮演该角色，替换两者之间直接的普通引用。不创建支撑合同或填造履约凭证。',
+      parameters: RoleifyConfirmationIntentSchema,
       run: (intent) =>
         runOperator(
-          `反转依赖：${intent.socket.label} 交由 ${intent.supporting.contract.label} 履约`,
+          `反转依赖：${intent.targetConfirmationRef} ⇢ ${intent.providerConfirmationRef}`,
           (document) => roleifyAndInvertDependencyMutator(document, intent),
         ),
     }),

@@ -92,6 +92,42 @@ export const SplitEvidenceToPairInputSchema = z
   })
   .strict();
 
+const reuse = z
+  .object({ mode: z.literal('reuse'), ref: DomainIdSchema })
+  .strict();
+
+export const LinkProposalToRfpInputSchema = z
+  .object({ proposalRef: DomainIdSchema, rfpRef: DomainIdSchema })
+  .strict();
+
+export const IdentifySubjectMatterInputSchema = z
+  .object({
+    evidenceRefs: z.array(DomainIdSchema).min(1),
+    subjectMatter: z.discriminatedUnion('mode', [
+      named
+        .extend({ mode: z.literal('create'), domainContextRef: DomainIdSchema })
+        .strict(),
+      reuse,
+    ]),
+  })
+  .strict();
+
+export const BindPartyRoleInputSchema = z
+  .object({
+    contextRef: DomainIdSchema.describe('合同上下文。'),
+    partyRole: z.discriminatedUnion('mode', [
+      named.extend({ mode: z.literal('create') }).strict(),
+      reuse,
+    ]),
+    participantRef:
+      DomainIdSchema.optional().describe('扮演该角色的现有参与方。'),
+    responsibleEvidenceRefs: z
+      .array(DomainIdSchema)
+      .optional()
+      .describe('由此角色发起请求或承担确认责任的凭证。'),
+  })
+  .strict();
+
 export const BindKeyDataSourceInputSchema = z
   .object({
     evidenceRef: DomainIdSchema,
@@ -144,6 +180,13 @@ export type BatchAddEvidenceInput = z.infer<typeof BatchAddEvidenceInputSchema>;
 export type SplitEvidenceToPairInput = z.infer<
   typeof SplitEvidenceToPairInputSchema
 >;
+export type LinkProposalToRfpInput = z.infer<
+  typeof LinkProposalToRfpInputSchema
+>;
+export type IdentifySubjectMatterInput = z.infer<
+  typeof IdentifySubjectMatterInputSchema
+>;
+export type BindPartyRoleInput = z.infer<typeof BindPartyRoleInputSchema>;
 export type BindKeyDataSourceInput = z.infer<
   typeof BindKeyDataSourceInputSchema
 >;

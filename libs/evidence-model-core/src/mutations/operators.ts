@@ -1,28 +1,26 @@
-import type {
-  AttributeAST,
-  DomainModelDocument,
-  EvidenceEntityAST,
-  RoleEntityAST,
-  FulfillmentPairIntent,
-  RoleInversionIntent,
-  DomainCalculatorIntent,
+import {
+  isFulfillmentConfirmation,
+  type AttributeAST,
+  type DomainModelDocument,
+  type EvidenceEntityAST,
+  type DomainCalculatorIntent,
+  type FulfillmentPairIntent,
+  type RoleifyConfirmationIntent,
 } from '@evidence-poc/evidence-schema';
 
 export type {
-  FulfillmentPairIntent,
-  RoleInversionIntent,
   DomainCalculatorIntent,
+  FulfillmentPairIntent,
+  RoleifyConfirmationIntent,
 } from '@evidence-poc/evidence-schema';
 
 import type { CreateFulfillmentPairInput } from './fulfillmentMutations.js';
 import { createFulfillmentPairMutator } from './fulfillmentMutations.js';
-import {
-  createEntityMutator,
-  createContractMutator,
-} from './entityMutations.js';
+import { createEntityMutator } from './entityMutations.js';
 import { createRelationshipMutator } from './relationshipMutations.js';
 import { addAttributeMutator } from './attributeMutations.js';
 import { bindDerivedRuleMutator } from './derivationMutations.js';
+import { requireContractContext, requireEntity } from './guards.js';
 
 export interface OperatorResult {
   createdIds: readonly string[];
@@ -77,14 +75,6 @@ const createdAt = (label: string): AttributeAST =>
     'created_at',
     '形成时间',
     `${label}形成时的业务时间。`,
-  );
-
-const signedAt = (meaning: string | undefined): AttributeAST =>
-  timestamp(
-    'occurrence',
-    'signed_at',
-    '签署时间',
-    meaning ?? '当事双方签订该协议的业务时间。',
   );
 
 const pairInput = ({
@@ -204,135 +194,86 @@ export const introduceFulfillmentPairMutator = (
 
 export const roleifyAndInvertDependencyMutator = (
   document: DomainModelDocument,
-  intent: RoleInversionIntent,
+  {
+    targetConfirmationRef,
+    providerConfirmationRef,
+    socket,
+  }: RoleifyConfirmationIntent,
 ): OperatorResult => {
-  const target = document.entities.find(
-    (entity) => entity.id === intent.targetConfirmationRef,
-  );
-
+  const target = requireEntity(document, targetConfirmationRef);
+  const provider = requireEntity(document, providerConfirmationRef);
   if (
-    target === undefined ||
-    target.category !== 'evidence' ||
-    target.kind !== 'fulfillment_confirmation'
-  ) {
-    const interval =
-      target !== undefined &&
-      target.category === 'evidence' &&
-      target.kind !== 'fulfillment_confirmation';
+    !isFulfillmentConfirmation(target) ||
+    !isFulfillmentConfirmation(provider)
+  )
+    throw new Error('能力角色需要两张真实的履约确认。');
+  if (
+    target.contextRef === undefined ||
+    provider.contextRef === undefined ||
+    target.contextRef === provider.contextRef
+  )
+    throw new Error('核心确认和提供方确认必须属于不同的合同上下文。');
+  requireContractContext(document, target.contextRef);
+  requireContractContext(document, provider.contextRef);
 
-    throw new Error(
-      interval
-        ? `'${intent.targetConfirmationRef}' 是时段凭证（${target.kind}），只表示尚未落定的履约窗口，不能扮演能力角色；请先为它补上对应的履约确认，再抽象该确认。`
-        : `'${intent.targetConfirmationRef}' 不是履约确认，无法抽象为能力角色。`,
-    );
+  const socketId = socket.mode === 'create' ? socket.id : socket.ref;
+  const createdIds: string[] = [];
+  if (socket.mode === 'create') {
+    createEntityMutator(document, {
+      type: 'entity',
+      category: 'role',
+      kind: 'evidence',
+      id: socket.id,
+      label: socket.label,
+      contextRef: target.contextRef,
+    });
+    createdIds.push(socketId);
+  } else {
+    const role = requireEntity(document, socketId);
+    if (
+      role.category !== 'role' ||
+      role.kind !== 'evidence' ||
+      role.contextRef !== target.contextRef
+    )
+      throw new Error('只能复用核心合同内的凭证角色。');
   }
 
-  if (target.contextRef === undefined) {
-    throw new Error('请先确定履约确认所属的合同上下文。');
-  }
-  const { supporting } = intent;
-  const socketRole: RoleEntityAST = {
-    type: 'entity',
-    category: 'role',
-    kind: 'evidence',
-    id: intent.socket.id,
-    label: intent.socket.label,
-    contextRef: target.contextRef,
-    notes:
-      '核心合同依赖的履约能力插槽：由其他合同上下文中的真实凭证扮演，角色本身没有责任人与实例。',
+  const ensureLink = (
+    kind: 'references' | 'plays_role',
+    sourceRef: string,
+    label: string,
+  ) => {
+    if (
+      document.relationships.some(
+        (edge) =>
+          edge.kind === kind &&
+          edge.sourceRef === sourceRef &&
+          edge.targetRef === socketId,
+      )
+    )
+      return;
+    const edge = createRelationshipMutator(document, {
+      type: 'relationship',
+      id: `relation.${sourceRef}-${kind === 'references' ? 'uses' : 'plays'}-${socketId}`,
+      kind,
+      sourceRef,
+      targetRef: socketId,
+      label,
+    });
+    createdIds.push(edge.id);
   };
-
-  const supportingContext = {
-    type: 'entity' as const,
-    category: 'context' as const,
-    kind: 'contract' as const,
-    id: supporting.context.id,
-    label: supporting.context.label,
-    notes: '独立于核心合同的支撑合同边界，用于隔离履约能力的变化点。',
-  };
-
-  const provider: RoleEntityAST = {
-    type: 'entity',
-    category: 'role',
-    kind: 'party',
-    id: supporting.provider.id,
-    label: supporting.provider.label,
-    contextRef: supporting.context.id,
-  };
-  const consumer: RoleEntityAST = {
-    type: 'entity',
-    category: 'role',
-    kind: 'party',
-    id: supporting.consumer.id,
-    label: supporting.consumer.label,
-    contextRef: supporting.context.id,
-  };
-  const supportingContract: EvidenceEntityAST = {
-    type: 'entity',
-    category: 'evidence',
-    kind: 'contract',
-    id: supporting.contract.id,
-    label: supporting.contract.label,
-    contextRef: supporting.context.id,
-    roleRefs: [supporting.provider.id, supporting.consumer.id],
-    attributes: [signedAt(supporting.contract.signedAtMeaning)],
-  };
-
-  // The supporting contract owns the pair the capability really comes from:
-  // the consumer asks, the provider confirms.
-  const pair = pairInput({
-    contextRef: supporting.context.id,
-    request: {
-      id: supporting.request.id,
-      label: supporting.request.label,
-      responsibleRoleRef: supporting.consumer.id,
-      ...(supporting.request.window === undefined
-        ? {}
-        : { window: supporting.request.window }),
-    },
-    confirmation: {
-      id: supporting.confirmation.id,
-      label: supporting.confirmation.label,
-      responsibleRoleRef: supporting.provider.id,
-    },
-    contractRef: supporting.contract.id,
-  });
-
-  createEntityMutator(document, socketRole);
-  createEntityMutator(document, supportingContext);
-  createEntityMutator(document, provider);
-  createEntityMutator(document, consumer);
-  createContractMutator(document, supportingContract);
-  createFulfillmentPairMutator(document, pair);
-  createRelationshipMutator(document, {
-    type: 'relationship',
-    id: `relation.${target.id}-uses-${intent.socket.id}`,
-    kind: 'references',
-    sourceRef: target.id,
-    targetRef: intent.socket.id,
-    label: '确认引用履约能力角色',
-    sourceCardinality: { min: 1, max: 1 },
-    targetCardinality: { min: 1, max: 1 },
-  });
-  createRelationshipMutator(document, {
-    type: 'relationship',
-    id: `relation.${supporting.confirmation.id}-plays-${intent.socket.id}`,
-    kind: 'plays_role',
-    sourceRef: supporting.confirmation.id,
-    targetRef: intent.socket.id,
-    label: '外部履约确认扮演能力角色',
-  });
-  return {
-    createdIds: [
-      intent.socket.id,
-      supporting.context.id,
-      supporting.provider.id,
-      supporting.consumer.id,
-      supporting.contract.id,
-      supporting.request.id,
-      supporting.confirmation.id,
-    ],
-  };
+  ensureLink('references', target.id, '确认引用履约能力角色');
+  ensureLink('plays_role', provider.id, '外部履约确认扮演能力角色');
+  document.relationships = document.relationships.filter(
+    (edge) =>
+      !(
+        edge.kind === 'references' &&
+        (edge.flowKind === undefined || edge.flowKind === 'primary') &&
+        edge.sourceRef === target.id &&
+        edge.targetRef === provider.id
+      ),
+  );
+  return { createdIds };
 };
 
 export const isolateDomainCalculatorMutator = (

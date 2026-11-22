@@ -44,27 +44,20 @@ export const FulfillmentPairIntentSchema = z
   .strict();
 export type FulfillmentPairIntent = z.infer<typeof FulfillmentPairIntentSchema>;
 
-export const RoleInversionIntentSchema = z
+export const RoleifyConfirmationIntentSchema = z
   .object({
     targetConfirmationRef: DomainIdSchema,
-    socket: namedObject,
-    supporting: z
-      .object({
-        context: namedObject,
-        contract: namedObject
-          .extend({ signedAtMeaning: z.string().min(1).optional() })
-          .strict(),
-        provider: namedObject,
-        consumer: namedObject,
-        request: namedObject
-          .extend({ window: z.string().min(1).optional() })
-          .strict(),
-        confirmation: namedObject,
-      })
-      .strict(),
+    providerConfirmationRef:
+      DomainIdSchema.describe('另一合同中已有的履约确认。'),
+    socket: z.discriminatedUnion('mode', [
+      namedObject.extend({ mode: z.literal('create') }).strict(),
+      z.object({ mode: z.literal('reuse'), ref: DomainIdSchema }).strict(),
+    ]),
   })
   .strict();
-export type RoleInversionIntent = z.infer<typeof RoleInversionIntentSchema>;
+export type RoleifyConfirmationIntent = z.infer<
+  typeof RoleifyConfirmationIntentSchema
+>;
 
 export const DomainCalculatorIntentSchema = z
   .object({
