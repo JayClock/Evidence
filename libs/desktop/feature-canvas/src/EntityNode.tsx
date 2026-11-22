@@ -73,9 +73,8 @@ const CONTEXT_FILL = {
 /**
  * A Context boundary: the paper the notes are pinned to.
  *
- * It takes no pointer events of its own — a click on empty paper belongs to the
- * pane, which is what clears the selection. Hover arrives through the engine's
- * node events instead, keyed by id.
+ * The React Flow wrapper handles hover and treats clicks on this paper like
+ * clicks on the pane. The tint itself does not handle pointer events.
  */
 export const ContextGroupNode = ({ data }: NodeProps<ContextFlowNode>) => (
   <div

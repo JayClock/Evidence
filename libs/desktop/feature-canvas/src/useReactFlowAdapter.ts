@@ -150,7 +150,8 @@ export const convertLayoutToReactFlow = ({
       style: {
         width: group.box.width,
         height: group.box.height,
-        // Contexts are paper under the notes: the tint must not cover a card.
+        // Contexts are paper under the notes; use the pane's grab cursor.
+        cursor: 'inherit',
         zIndex: 0,
       },
       data: {
@@ -178,7 +179,6 @@ export const convertLayoutToReactFlow = ({
         : { parentId: node.contextId, extent: 'parent' as const }),
       draggable: false,
       connectable: false,
-      selectable: !outOfScope,
       initialWidth: node.box.width,
       initialHeight: node.box.height,
       // Declared rather than measured: the routed polyline does not use the

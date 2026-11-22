@@ -20,7 +20,6 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
-  SelectionMode,
   ViewportPortal,
   useReactFlow,
   useStore,
@@ -144,6 +143,9 @@ export interface CanvasHudControls {
   onToggleMinimap: () => void;
 }
 
+// Right-button panning must be listed explicitly; `true` does not enable it.
+const PAN_MOUSE_BUTTONS = [0, 1, 2];
+
 const NODE_TYPES = {
   entityNode: EntityNode,
   contextGroup: ContextGroupNode,
@@ -179,7 +181,7 @@ const reducedMotion = (): boolean =>
  *
  * `evidence-canvas-interaction` still decides everything a modeler would call
  * the drawing: which Contexts exist, where a card sits, how a route turns. This
- * component only owns the viewport — pan, zoom, fit, marquee and the floating
+ * component only owns the viewport — pan, zoom, fit and the floating
  * furniture — which is the part React Flow has spent years making feel right on
  * a trackpad.
  *
@@ -601,11 +603,10 @@ const CanvasSurface = ({
           nodesDraggable={false}
           nodesConnectable={false}
           edgesFocusable={false}
-          selectNodesOnDrag={false}
-          elevateNodesOnSelect={false}
-          selectionOnDrag
-          selectionMode={SelectionMode.Partial}
-          panOnDrag={[1, 2]}
+          elementsSelectable={false}
+          selectionKeyCode={null}
+          multiSelectionKeyCode={null}
+          panOnDrag={PAN_MOUSE_BUTTONS}
           panOnScroll
           zoomOnScroll={false}
           zoomOnPinch
@@ -634,14 +635,10 @@ const CanvasSurface = ({
           onNodeMouseLeave={(_, node) => {
             if (node.type === 'contextGroup') setHoveredContextId(null);
           }}
-          onSelectionChange={({ nodes: selected }) => {
-            const first = selected.find(
-              (candidate) => candidate.type === 'entityNode',
-            );
-
-            if (first !== undefined && first.id !== selection.nodeId) {
-              onSelect(first.id);
-            }
+          onNodeClick={(_, node) => {
+            // The Context wrapper receives pointer events for hover, but its
+            // empty paper should click through to the same action as the pane.
+            if (node.type === 'contextGroup') onClearSelection();
           }}
           aria-label="履约模型画布"
         >
