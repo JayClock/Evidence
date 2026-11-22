@@ -1,13 +1,15 @@
 import { Check, RotateCcw, Sparkles } from 'lucide-react';
 
+import { Badge, cn } from '@evidence-poc/desktop-ui-kit';
+import { PATCH_BUSINESS_LABELS } from '../../state/patchBusinessChanges';
 import type { PatchReview } from '../../state/usePatchReview';
-import { cn } from '@evidence-poc/desktop-ui-kit';
 
 export interface InlinePatchCardProps {
   review: PatchReview;
   onAccept: () => void;
   onRevert: () => void;
   enterToAccept?: boolean;
+  busy?: boolean;
   /** Pans the canvas to an object the patch touched. */
   onFocusEntity?: (entityId: string) => void;
 }
@@ -29,8 +31,13 @@ export const InlinePatchCard = ({
   onRevert,
   onFocusEntity,
   enterToAccept = false,
+  busy = false,
 }: InlinePatchCardProps) => {
+  const { addedCount, removedCount, modifiedCount, keyDataChangedCount } =
+    review.counts;
   const changed =
+    addedCount + removedCount + modifiedCount + keyDataChangedCount > 0;
+  const hasObjects =
     review.addedIds.length > 0 ||
     review.modifiedIds.length > 0 ||
     review.removedIds.length > 0;
@@ -47,14 +54,15 @@ export const InlinePatchCard = ({
             aria-hidden="true"
             className="h-3 w-3 text-evidence-accent"
           />
-          AI 补丁预览
+          AI 补丁已更新画布
         </span>
         <span className="flex shrink-0 items-center gap-1">
           {changed ? (
             <>
-              <Count label="新增" count={review.addedIds.length} />
-              <Count label="修改" count={review.modifiedIds.length} />
-              <Count label="删除" count={review.removedIds.length} />
+              <Count label="新增" count={addedCount} />
+              <Count label="修改" count={modifiedCount} />
+              <Count label="删除" count={removedCount} />
+              <Count label="核心要素" count={keyDataChangedCount} />
             </>
           ) : (
             <span className="rounded bg-evidence-line/60 px-1.5 py-0.5 text-[10px] text-evidence-muted">
@@ -68,7 +76,17 @@ export const InlinePatchCard = ({
         {review.rationale}
       </p>
 
-      {changed ? (
+      {review.businessChanges.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1" aria-label="业务变更">
+          {review.businessChanges.map((change) => (
+            <Badge key={change} variant="outline">
+              {PATCH_BUSINESS_LABELS[change]}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {hasObjects ? (
         <ul className="mt-2 flex flex-wrap gap-1" aria-label="补丁涉及的对象">
           {review.addedIds.map((id) => (
             <li key={`added-${id}`}>
@@ -103,9 +121,11 @@ export const InlinePatchCard = ({
 
       <div className="mt-2 flex items-center justify-between gap-2 border-t border-evidence-line/60 pt-1.5">
         <span className="min-w-0 text-[10px] text-evidence-muted">
-          {review.revertable
-            ? `${enterToAccept ? 'Enter' : '⌘/Ctrl + Enter'} 应用 · Esc 撤销这次补丁`
-            : '模型之后又有改动，撤销已不可用；可在顶部按 ⌘Z 逐步回退'}
+          {busy
+            ? '等待本轮结束后复核最新补丁'
+            : review.revertable
+              ? `${enterToAccept ? 'Enter' : '⌘/Ctrl + Enter'} 保留 · Esc 撤销这次补丁`
+              : '模型之后又有改动，撤销已不可用；可在顶部按 ⌘Z 逐步回退'}
         </span>
 
         <span className="flex shrink-0 items-center gap-1.5">
@@ -113,7 +133,8 @@ export const InlinePatchCard = ({
             <button
               type="button"
               onClick={onRevert}
-              className="flex items-center gap-1 rounded border border-[#b42318]/40 px-2 py-1 text-[10px] text-[#b42318] hover:bg-[#b42318]/10"
+              disabled={busy}
+              className="flex items-center gap-1 rounded border border-[#b42318]/40 px-2 py-1 text-[10px] text-[#b42318] hover:bg-[#b42318]/10 disabled:opacity-50"
             >
               <RotateCcw aria-hidden="true" className="h-3 w-3" />
               撤销补丁
@@ -122,10 +143,11 @@ export const InlinePatchCard = ({
           <button
             type="button"
             onClick={onAccept}
-            className="flex items-center gap-1 rounded bg-evidence-accent px-2.5 py-1 text-[10px] text-white hover:bg-[#274c76]"
+            disabled={busy}
+            className="flex items-center gap-1 rounded bg-evidence-accent px-2.5 py-1 text-[10px] text-white hover:bg-[#274c76] disabled:opacity-50"
           >
             <Check aria-hidden="true" className="h-3 w-3" />
-            应用
+            保留
           </button>
         </span>
       </div>

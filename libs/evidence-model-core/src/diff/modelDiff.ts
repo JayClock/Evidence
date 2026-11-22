@@ -124,6 +124,8 @@ const ENTITY_FIELDS = [
 
 const RELATIONSHIP_FIELDS = [
   'kind',
+  'flowKind',
+  'terminalRemedyKind',
   'label',
   'sourceRef',
   'targetRef',

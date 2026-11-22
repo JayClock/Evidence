@@ -147,7 +147,11 @@ export const useEditorShortcuts = (handlers: ShortcutHandlers): void => {
         return;
       }
 
-      if (event.key === 'Escape' && handlers.revertPatch !== undefined) {
+      if (
+        event.key === 'Escape' &&
+        dialog === null &&
+        handlers.revertPatch !== undefined
+      ) {
         event.preventDefault();
         handlers.revertPatch();
         return;

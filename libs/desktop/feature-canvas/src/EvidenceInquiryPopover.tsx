@@ -98,9 +98,13 @@ export const EvidenceInquiryPopover = ({
             }
           }}
           onEscapeKeyDown={(event) => {
-            if (!inquiry.onRevertPatch || event.isComposing) return;
+            if (event.isComposing || event.keyCode === 229) {
+              event.preventDefault();
+              return;
+            }
+            if (!inquiry.onRevertPatch) return;
             event.preventDefault();
-            inquiry.onRevertPatch();
+            if (!event.repeat) inquiry.onRevertPatch();
           }}
           onKeyDown={(event) => {
             if (
@@ -122,7 +126,7 @@ export const EvidenceInquiryPopover = ({
             )
               return;
             event.preventDefault();
-            inquiry.onAcceptPatch();
+            if (!event.repeat) inquiry.onAcceptPatch();
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();

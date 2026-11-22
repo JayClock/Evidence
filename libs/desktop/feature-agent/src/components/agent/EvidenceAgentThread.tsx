@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useMemo } from 'react';
+import { useCallback } from 'react';
 import {
   AssistantRuntimeProvider,
-  makeAssistantDataUI,
   useExternalStoreRuntime,
   type ExternalStoreAdapter,
   type ThreadMessageLike,
@@ -12,32 +11,6 @@ import { Thread } from '../../assistant-ui/elements/thread.aui';
 import type { PatchReviewController } from '../../state/usePatchReview';
 import type { PiConversation } from '../../state/usePiConversation';
 import { InlinePatchCard } from './InlinePatchCard';
-
-const reviewPart = { type: 'data-evidence-patch-review', data: null } as const;
-const ReviewContext = createContext<{
-  patch: PatchReviewController;
-  onFocusEntity: (id: string) => void;
-} | null>(null);
-
-const PendingPatch = () => {
-  const data = useContext(ReviewContext);
-  if (!data?.patch.review) return null;
-  return (
-    <InlinePatchCard
-      review={data.patch.review}
-      onAccept={data.patch.accept}
-      onRevert={data.patch.revert}
-      onFocusEntity={data.onFocusEntity}
-      enterToAccept
-    />
-  );
-};
-
-// The host transaction, not a tool's result, is the source of truth.
-const PatchReviewDataUI = makeAssistantDataUI({
-  name: 'evidence-patch-review',
-  render: PendingPatch,
-});
 
 const convertMessage = (message: ThreadMessageLike) => message;
 const threadComponents = { Welcome: () => null };
@@ -63,20 +36,8 @@ export const EvidenceAgentThread = ({
   onConfigureAi?: () => void;
 }) => {
   const { messages, running, submit, stop, stopError } = conversation;
-  const hasReview = patchReview.review !== null;
-  const visibleMessages = useMemo(() => {
-    const tail = messages.at(-1);
-    if (
-      !hasReview ||
-      tail?.role !== 'assistant' ||
-      typeof tail.content === 'string'
-    )
-      return messages;
-    return [
-      ...messages.slice(0, -1),
-      { ...tail, content: [...tail.content, reviewPart] },
-    ];
-  }, [hasReview, messages]);
+  const { review } = patchReview;
+  const hasReview = review !== null;
   const onNew: ExternalStoreAdapter<ThreadMessageLike>['onNew'] = useCallback(
     async ({ content }) => {
       if (!aiConfigured || hasReview) return;
@@ -88,7 +49,7 @@ export const EvidenceAgentThread = ({
     [aiConfigured, hasReview, inquiry, nodeId, submit],
   );
   const runtime = useExternalStoreRuntime({
-    messages: visibleMessages,
+    messages,
     convertMessage,
     isRunning: running,
     isDisabled: !aiConfigured,
@@ -136,11 +97,20 @@ export const EvidenceAgentThread = ({
       )}
       {(aiConfigured || messages.length > 0) && (
         <AssistantRuntimeProvider runtime={runtime}>
-          <ReviewContext.Provider value={{ patch: patchReview, onFocusEntity }}>
-            <PatchReviewDataUI />
-            <Thread components={threadComponents} />
-          </ReviewContext.Provider>
+          <Thread components={threadComponents} />
         </AssistantRuntimeProvider>
+      )}
+      {review?.focusNodeId === nodeId && (
+        <div className="max-h-[40%] shrink-0 overflow-y-auto px-3 pb-2">
+          <InlinePatchCard
+            review={review}
+            onAccept={patchReview.accept}
+            onRevert={patchReview.revert}
+            onFocusEntity={onFocusEntity}
+            busy={running}
+            enterToAccept
+          />
+        </div>
       )}
     </div>
   );

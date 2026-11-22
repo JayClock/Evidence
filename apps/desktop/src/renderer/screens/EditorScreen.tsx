@@ -279,8 +279,8 @@ const EditorWorkspace = ({
   );
   const stormingReturnFocus = useRef<HTMLElement | null>(null);
   const stormingAdded = useRef<Set<string> | null>(null);
-  const patchReviewState = usePatchReview(state.session, state.document);
-  const { record: recordPatch } = patchReviewState;
+  const patchReview = usePatchReview(state.session, state.document);
+  const { record: recordPatch } = patchReview;
   const recordAgentPatch = useCallback(
     (patch: AppliedPatch) => {
       recordPatch(patch);
@@ -305,13 +305,6 @@ const EditorWorkspace = ({
     project.rootPath,
     liveModel.prompt,
   );
-  const patchReview =
-    agent.running && patchReviewState.review
-      ? {
-          ...patchReviewState,
-          review: { ...patchReviewState.review, revertable: false },
-        }
-      : patchReviewState;
   // Findings must describe the exact live revision, including undo/redo.
   const diagnosticsStale =
     liveModel.error !== null ||
@@ -527,6 +520,12 @@ const EditorWorkspace = ({
     (scope === null || scope.nodeIds.has(inquiry.nodeId))
       ? inquiry
       : null;
+  const reviewInInquiry =
+    inquiryTarget !== null &&
+    patchReview.review?.focusNodeId === inquiryTarget.nodeId;
+  const canKeepPatch = patchReview.review !== null && !agent.running;
+  const canRevertPatch =
+    canKeepPatch && patchReview.review?.revertable === true;
   useEffect(() => {
     if (inquiry !== null && inquiryTarget === null) setInquiry(null);
   }, [inquiry, inquiryTarget]);
@@ -674,14 +673,17 @@ const EditorWorkspace = ({
       toggleRightRail,
       toggleProblems: layout.toggleProblemsPanel,
       ...(storyActive ? { closeStory } : {}),
-      ...(patchReview.review === null ? {} : { acceptPatch, revertPatch }),
+      ...(!reviewInInquiry && canKeepPatch ? { acceptPatch } : {}),
+      ...(!reviewInInquiry && canRevertPatch ? { revertPatch } : {}),
     }),
     [
       acceptPatch,
+      canKeepPatch,
+      canRevertPatch,
       closeStorming,
       startStorming,
       stormingOpen,
-      patchReview.review,
+      reviewInInquiry,
       requestZoom,
       revertPatch,
       layout.openDelivery,
@@ -820,10 +822,9 @@ const EditorWorkspace = ({
                 target: inquiryTarget,
                 busy: agent.running || patchReview.review !== null,
                 onAcceptPatch:
-                  patchReview.review === null ? undefined : acceptPatch,
-                onRevertPatch: patchReview.review?.revertable
-                  ? revertPatch
-                  : undefined,
+                  reviewInInquiry && canKeepPatch ? acceptPatch : undefined,
+                onRevertPatch:
+                  reviewInInquiry && canRevertPatch ? revertPatch : undefined,
                 onOpen: openInquiry,
                 onClose: closeInquiry,
                 content:
@@ -1060,7 +1061,7 @@ const EditorWorkspace = ({
             </ResizablePanelGroup>
           </div>
 
-          {patchReview.review === null || inquiryTarget !== null ? null : (
+          {patchReview.review === null || reviewInInquiry ? null : (
             <div
               data-canvas-control=""
               data-evidence-capture-hide=""
@@ -1069,6 +1070,7 @@ const EditorWorkspace = ({
               <div className="pointer-events-auto max-h-64 w-full max-w-lg overflow-y-auto">
                 <InlinePatchCard
                   review={patchReview.review}
+                  busy={agent.running}
                   onAccept={acceptPatch}
                   onRevert={revertPatch}
                   onFocusEntity={revealOnGraph}

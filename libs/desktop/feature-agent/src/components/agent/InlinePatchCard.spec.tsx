@@ -7,6 +7,13 @@ import type { PatchReview } from '../../state/usePatchReview';
 const review = (overrides: Partial<PatchReview> = {}): PatchReview => ({
   rationale: '补齐退款履约现场',
   commands: ['create-fulfillment-pair'],
+  businessChanges: [],
+  counts: {
+    addedCount: 1,
+    modifiedCount: 1,
+    removedCount: 0,
+    keyDataChangedCount: 0,
+  },
   addedIds: ['request.refund'],
   removedIds: [],
   modifiedIds: ['request.payment'],
@@ -30,7 +37,7 @@ describe('InlinePatchCard', () => {
     expect(screen.getByText('新增 1')).toBeInTheDocument();
     expect(screen.getByText('修改 1')).toBeInTheDocument();
     expect(
-      screen.getByText('⌘/Ctrl + Enter 应用 · Esc 撤销这次补丁'),
+      screen.getByText('⌘/Ctrl + Enter 保留 · Esc 撤销这次补丁'),
     ).toBeInTheDocument();
   });
 
@@ -82,10 +89,38 @@ describe('InlinePatchCard', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: '撤销补丁' }));
-    fireEvent.click(screen.getByRole('button', { name: '应用' }));
+    fireEvent.click(screen.getByRole('button', { name: '保留' }));
 
     expect(onRevert).toHaveBeenCalledTimes(1);
     expect(onAccept).toHaveBeenCalledTimes(1);
+  });
+
+  it('describes relation-only changes and waits for the current turn to settle', () => {
+    render(
+      <InlinePatchCard
+        review={review({
+          addedIds: [],
+          modifiedIds: [],
+          businessChanges: ['subjectMatter', 'terminalRemedy'],
+          counts: {
+            addedCount: 2,
+            modifiedCount: 0,
+            removedCount: 0,
+            keyDataChangedCount: 0,
+          },
+        })}
+        onAccept={vi.fn()}
+        onRevert={vi.fn()}
+        busy
+      />,
+    );
+    expect(screen.getByText('新增 2')).toBeVisible();
+    expect(screen.getByLabelText('业务变更')).toHaveTextContent(
+      '关联交付标的物',
+    );
+    expect(screen.getByLabelText('业务变更')).toHaveTextContent('记录救济终点');
+    expect(screen.getByRole('button', { name: '保留' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '撤销补丁' })).toBeDisabled();
   });
 
   it('hides revert once later edits buried the patch', () => {
@@ -108,7 +143,17 @@ describe('InlinePatchCard', () => {
   it('does not pretend a structural no-op changed something', () => {
     render(
       <InlinePatchCard
-        review={review({ addedIds: [], modifiedIds: [], removedIds: [] })}
+        review={review({
+          addedIds: [],
+          modifiedIds: [],
+          removedIds: [],
+          counts: {
+            addedCount: 0,
+            modifiedCount: 0,
+            removedCount: 0,
+            keyDataChangedCount: 0,
+          },
+        })}
         onAccept={() => undefined}
         onRevert={() => undefined}
       />,

@@ -99,7 +99,10 @@ export interface AgentMockController {
   /** Streams one sensor verdict to every renderer subscriber. */
   emitReport: (report: SensorReport) => void;
   /** Commits to the mocked main-process model, then streams the transaction. */
-  commitPatch: (patch: ModelPatchRequest) => PatchCommittedPayload;
+  commitPatch: (
+    patch: ModelPatchRequest,
+    focusNodeId?: string,
+  ) => PatchCommittedPayload;
   emitPatch: (payload: PatchCommittedPayload) => void;
   liveModel: () => LiveModelInput | undefined;
   /** Canvas selections the renderer published. */
@@ -296,7 +299,7 @@ export const installDesktopApi = ({
     emitPatch: (payload) => {
       for (const listener of patchListeners) listener(payload);
     },
-    commitPatch: ({ rationale, patches }) => {
+    commitPatch: ({ rationale, patches }, focusNodeId) => {
       if (!live) throw new Error('No live model');
       const prepared = prepareModelPatchBatch(live.document, patches);
       const transaction = {
@@ -307,6 +310,7 @@ export const installDesktopApi = ({
         commands: patches.map(({ op }) => op),
         patches: prepared.patches,
         inversePatches: prepared.inversePatches,
+        ...(focusNodeId === undefined ? {} : { focusNodeId }),
       };
       live = {
         ...live,

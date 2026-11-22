@@ -11,11 +11,16 @@ import type {
   ModelOverlay,
   OverlayChange,
 } from '@evidence-poc/desktop-feature-canvas';
+import {
+  describeBusinessChanges,
+  type PatchBusinessChange,
+} from './patchBusinessChanges';
 
 /** Model snapshots around a transaction already committed by the host. */
 export interface AppliedPatch {
   rationale: string;
   commands: readonly string[];
+  focusNodeId?: string;
   before: DomainModelDocument;
   after: DomainModelDocument;
 }
@@ -24,6 +29,12 @@ export interface AppliedPatch {
 export interface PatchReview {
   rationale: string;
   commands: readonly string[];
+  focusNodeId?: string;
+  businessChanges: readonly PatchBusinessChange[];
+  counts: Pick<
+    ModelDiff['summary'],
+    'addedCount' | 'removedCount' | 'modifiedCount' | 'keyDataChangedCount'
+  >;
   addedIds: readonly string[];
   removedIds: readonly string[];
   modifiedIds: readonly string[];
@@ -84,9 +95,10 @@ export const usePatchReview = (
   }, []);
 
   const accept = useCallback(() => {
+    if (session.isDocumentLocked()) return;
     patchedRef.current = null;
     setPending(null);
-  }, []);
+  }, [session]);
 
   const revert = useCallback(() => {
     if (session.isDocumentLocked()) return;
@@ -112,6 +124,9 @@ export const usePatchReview = (
     return {
       rationale: pending.rationale,
       commands: pending.commands,
+      focusNodeId: pending.focusNodeId,
+      businessChanges: describeBusinessChanges(diff, pending.after),
+      counts: diff.summary,
       addedIds: idsWith(diff, 'added'),
       removedIds: idsWith(diff, 'removed'),
       modifiedIds: idsWith(diff, 'modified'),

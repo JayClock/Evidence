@@ -107,6 +107,7 @@ export const useLiveModelBridge = (
           after: session.getDocument(),
           rationale: next.rationale,
           commands: next.commands,
+          focusNodeId: next.focusNodeId,
         });
       }
     };
