@@ -22,7 +22,7 @@ import {
   createModelPatch,
   recordBreachOutcomeMutator,
   isolateDomainCalculatorMutator,
-  roleifyAndInvertDependencyMutator,
+  roleifyConfirmationMutator,
   splitEvidenceToPairMutator,
   type OperatorResult,
 } from '@evidence-poc/evidence-model-core';
@@ -274,7 +274,7 @@ export const createModelTools = (
       run: (intent) =>
         runOperator(
           `反转依赖：${intent.targetConfirmationRef} ⇢ ${intent.providerConfirmationRef}`,
-          (document) => roleifyAndInvertDependencyMutator(document, intent),
+          (document) => roleifyConfirmationMutator(document, intent),
         ),
     }),
     define({

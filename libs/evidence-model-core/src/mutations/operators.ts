@@ -1,4 +1,5 @@
 import {
+  RoleifyConfirmationIntentSchema,
   isFulfillmentConfirmation,
   type AttributeAST,
   type DomainModelDocument,
@@ -192,14 +193,12 @@ export const introduceFulfillmentPairMutator = (
   };
 };
 
-export const roleifyAndInvertDependencyMutator = (
+export const roleifyConfirmationMutator = (
   document: DomainModelDocument,
-  {
-    targetConfirmationRef,
-    providerConfirmationRef,
-    socket,
-  }: RoleifyConfirmationIntent,
+  intent: RoleifyConfirmationIntent,
 ): OperatorResult => {
+  const { targetConfirmationRef, providerConfirmationRef, socket } =
+    RoleifyConfirmationIntentSchema.parse(intent);
   const target = requireEntity(document, targetConfirmationRef);
   const provider = requireEntity(document, providerConfirmationRef);
   if (
@@ -247,6 +246,7 @@ export const roleifyAndInvertDependencyMutator = (
       document.relationships.some(
         (edge) =>
           edge.kind === kind &&
+          (edge.flowKind === undefined || edge.flowKind === 'primary') &&
           edge.sourceRef === sourceRef &&
           edge.targetRef === socketId,
       )
@@ -264,7 +264,7 @@ export const roleifyAndInvertDependencyMutator = (
   };
   ensureLink('references', target.id, '确认引用履约能力角色');
   ensureLink('plays_role', provider.id, '外部履约确认扮演能力角色');
-  document.relationships = document.relationships.filter(
+  const relationships = document.relationships.filter(
     (edge) =>
       !(
         edge.kind === 'references' &&
@@ -273,6 +273,8 @@ export const roleifyAndInvertDependencyMutator = (
         edge.targetRef === provider.id
       ),
   );
+  if (relationships.length !== document.relationships.length)
+    document.relationships = relationships;
   return { createdIds };
 };
 

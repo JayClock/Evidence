@@ -5,7 +5,7 @@ import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
 import {
   introduceFulfillmentPairMutator,
   isolateDomainCalculatorMutator,
-  roleifyAndInvertDependencyMutator,
+  roleifyConfirmationMutator,
   type FulfillmentPairIntent,
 } from './operators.js';
 import { runMutation } from '../testing/runMutation.js';
@@ -153,7 +153,7 @@ describe('introduceFulfillmentPair', () => {
   });
 });
 
-describe('roleifyAndInvertDependency', () => {
+describe('roleifyConfirmation', () => {
   const setup = () => {
     const model = createProcurementModel();
     for (const name of ['wallet', 'credit']) {
@@ -197,7 +197,7 @@ describe('roleifyAndInvertDependency', () => {
   it('replaces only the chosen direct reference and reuses the provider confirmation', () => {
     const model = setup();
     const patch = runMutation(model, (draft) =>
-      roleifyAndInvertDependencyMutator(draft, {
+      roleifyConfirmationMutator(draft, {
         targetConfirmationRef,
         providerConfirmationRef: 'confirmation.wallet',
         socket: createSocket,
@@ -237,12 +237,12 @@ describe('roleifyAndInvertDependency', () => {
 
   it('adds a second confirmed provider to the same socket without duplicating the consumer link', () => {
     const patch = runMutation(setup(), (draft) => {
-      roleifyAndInvertDependencyMutator(draft, {
+      roleifyConfirmationMutator(draft, {
         targetConfirmationRef,
         providerConfirmationRef: 'confirmation.wallet',
         socket: createSocket,
       });
-      return roleifyAndInvertDependencyMutator(draft, {
+      return roleifyConfirmationMutator(draft, {
         targetConfirmationRef,
         providerConfirmationRef: 'confirmation.credit',
         socket: { mode: 'reuse', ref: roleId },
@@ -259,6 +259,25 @@ describe('roleifyAndInvertDependency', () => {
     ).toEqual(['confirmation.wallet', 'confirmation.credit']);
   });
 
+  it('is a no-op when the same confirmed provider already plays the socket', () => {
+    const intent = {
+      targetConfirmationRef,
+      providerConfirmationRef: 'confirmation.wallet',
+    };
+    const first = runMutation(setup(), (draft) =>
+      roleifyConfirmationMutator(draft, { ...intent, socket: createSocket }),
+    );
+    const second = runMutation(first.document, (draft) =>
+      roleifyConfirmationMutator(draft, {
+        ...intent,
+        socket: { mode: 'reuse', ref: roleId },
+      }),
+    );
+    expect(second.result.createdIds).toEqual([]);
+    expect(second.affectedIds).toEqual([]);
+    expect(second.document).toEqual(first.document);
+  });
+
   it.each([
     ['request.payment', '需要两张真实的履约确认'],
     ['confirmation.payment', '不同的合同上下文'],
@@ -266,7 +285,7 @@ describe('roleifyAndInvertDependency', () => {
   ])('rejects an invalid provider (%s)', (providerConfirmationRef, message) => {
     expect(() =>
       runMutation(setup(), (draft) =>
-        roleifyAndInvertDependencyMutator(draft, {
+        roleifyConfirmationMutator(draft, {
           targetConfirmationRef,
           providerConfirmationRef,
           socket: createSocket,
