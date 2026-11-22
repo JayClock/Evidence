@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { StoryScene } from '@evidence-poc/evidence-agent/browser';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
+import { timelineLabel } from './StoryTimelineControls';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
@@ -253,6 +254,78 @@ const WhatIfQuestion = ({
   );
 };
 
+const statusLabel = {
+  waiting: '窗口内等待',
+  completed: '完成条件成立',
+  overdue: '已过截止，未判定违约',
+  breached: '违约条件成立',
+  unknown: '待定：缺少可求值的约定或输入',
+} as const;
+
+const TimelineDetails = ({
+  playback,
+}: {
+  playback: StoryPlaybackController;
+}) => {
+  const { timeline, currentTime, obligations } = playback;
+  if (!timeline || currentTime === undefined) return null;
+  return (
+    <section
+      aria-label="时点履约状态"
+      className="flex flex-col gap-2 rounded border border-evidence-line p-3"
+    >
+      <h3 className="font-medium">
+        时点履约状态 · {timelineLabel(timeline, currentTime)}
+      </h3>
+      <p className="text-[11px] text-evidence-muted">
+        {timeline.kind === 'rehearsal'
+          ? '假设在 T0 发起且尚无确认，按输入的实际经过小时推演，不推断工作日或合同条款。'
+          : '仅用当前示例中在该时点可见的数据预演；缺失或未求出的输入不作推断。'}
+      </p>
+      {obligations.length === 0 ? <p>该时点没有可预演的履约请求。</p> : null}
+      <ul className="flex flex-col gap-2">
+        {obligations.map(
+          ({
+            key,
+            label,
+            deadline,
+            status,
+            triggeredRules,
+            unknownRules,
+            responses,
+          }) => (
+            <li key={key} className="border-t border-evidence-line pt-2">
+              <p>
+                <strong>{label}</strong> · {statusLabel[status]}
+              </p>
+              {deadline === undefined ? null : (
+                <p>截止：{timelineLabel(timeline, deadline)}</p>
+              )}
+              {triggeredRules.length ? (
+                <p>
+                  成立：{triggeredRules.map(({ label }) => label).join('、')}
+                </p>
+              ) : null}
+              {unknownRules.length ? (
+                <p>未能求值：{unknownRules.join('、')}</p>
+              ) : null}
+              {responses.length ? (
+                <p>
+                  模型中的处置选项（未发生）：
+                  {responses.map(({ label }) => label).join('、')}
+                </p>
+              ) : null}
+            </li>
+          ),
+        )}
+      </ul>
+      <p className="text-[11px] text-evidence-muted">
+        本地推演，不修改模型，也不执行补偿或救济。
+      </p>
+    </section>
+  );
+};
+
 export const StoryDrawer = ({
   playback,
   dirty = false,
@@ -268,11 +341,15 @@ export const StoryDrawer = ({
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
       <header>
         <h2 className="text-base font-semibold">
-          {playback.projection?.storyTitle ?? '业务流放映'}
+          {playback.rehearsal.active
+            ? '履约时钟假设'
+            : (playback.projection?.storyTitle ?? '业务流放映')}
         </h2>
         <p className="mt-1 text-[11px] text-evidence-muted">
-          {playback.projection?.businessGoal ??
-            '选择一条业务流，逐步核对单据、责任与业务依据。'}
+          {playback.rehearsal.active
+            ? '在播放条选择请求并输入假设窗口，不会保存输入。'
+            : (playback.projection?.businessGoal ??
+              '选择一条业务流，逐步核对单据、责任与业务依据。')}
         </p>
         {dirty ? (
           <p className="mt-2 text-amber-800">当前展示包含未保存的画布修改。</p>
@@ -283,7 +360,7 @@ export const StoryDrawer = ({
           </p>
         ) : null}
       </header>
-      {!aiConfigured ? (
+      {!aiConfigured && !playback.rehearsal.active ? (
         <aside className="rounded border border-evidence-line p-3">
           <p>当前为离线放映。配置大模型后可使用 AI 旁白与 What-If 推演。</p>
           <button type="button" className={buttonClass} onClick={onConfigureAi}>
@@ -315,12 +392,16 @@ export const StoryDrawer = ({
           </button>
         </div>
       ) : null}
-      {!playback.loading && !playback.error && playback.flows.length === 0 ? (
+      {!playback.loading &&
+      !playback.error &&
+      !playback.rehearsal.active &&
+      playback.flows.length === 0 ? (
         <p>
           暂无业务流。请为实体的业务示例声明
           test.flow、业务时点和单据依据后再开始放映。
         </p>
       ) : null}
+      {playback.ready ? <TimelineDetails playback={playback} /> : null}
       {playback.scene ? (
         <SceneSheet
           key={`${playback.projection?.flowId}:${playback.scene.stepIndex}:${playback.scene.stepHash}:${playback.skipAi}`}

@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
+import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
 import { storyFlow, storyResult } from '@evidence-poc/desktop-testing/story';
 import {
@@ -10,13 +11,33 @@ import {
 import { StoryDrawer } from './StoryDrawer';
 import { StoryPlayerBar } from './StoryPlayerBar';
 
-const setup = async ({ empty = false, failure = false } = {}) => {
+const setup = async ({
+  empty = false,
+  failure = false,
+  timed = false,
+} = {}) => {
   vi.useFakeTimers();
   const api = installDesktopApi();
-  api.story.listFlows = vi.fn(async () => (empty ? [] : [storyFlow()]));
+  const flow = storyFlow();
+  const timedFlow = {
+    ...flow,
+    steps: flow.steps.map((step, index) => ({
+      ...step,
+      asOf: `2026-11-11T0${index + 1}:00:00Z`,
+      values:
+        index === 1
+          ? {
+              started_at: '2026-11-11T02:00:00Z',
+              expired_at: '2026-11-11T02:30:00Z',
+            }
+          : step.values,
+    })),
+  };
+  const selected = timed ? timedFlow : flow;
+  api.story.listFlows = vi.fn(async () => (empty ? [] : [selected]));
   api.story.project = vi.fn(async () => {
     if (failure) throw new Error('AI 未配置');
-    return storyResult();
+    return storyResult(selected);
   });
   api.story.whatIf = vi.fn(async () => ({
     hypothesis: { values: { amount: 300 } },
@@ -24,7 +45,8 @@ const setup = async ({ empty = false, failure = false } = {}) => {
     ruleOutcomes: [{ ruleId: 'rule.payment', result: false }],
     businessImpactExplanation: '付款不足，未满足结清条件。',
   }));
-  const document = createDesktopFixture();
+  const document = empty ? createEmptyDomainModel() : createDesktopFixture();
+  if (timed) document.rules = [];
   const Harness = () => {
     const playback = useStoryPlayback({
       api: window.evidenceAPI.story,
@@ -140,6 +162,21 @@ describe('StoryDrawer', () => {
       screen.queryByText('付款不足，未满足结清条件。'),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
+  });
+
+  it('seeks between steps locally, hides the future document and then resumes the story', async () => {
+    const { api } = await setup({ timed: true });
+    fireEvent.change(screen.getByRole('slider', { name: '业务时间' }), {
+      target: { value: String(105 * 60_000) },
+    });
+    expect(screen.getByText(/已过截止，未判定违约/)).toBeVisible();
+    expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
+      '交付确认',
+    );
+    expect(api.story.project).toHaveBeenCalledOnce();
+    expect(api.story.whatIf).not.toHaveBeenCalled();
   });
 
   it('explains missing examples and AI failures with a retry path', async () => {

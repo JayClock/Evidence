@@ -1,6 +1,10 @@
 import { Button } from '@evidence-poc/desktop-ui-kit';
 import { RELATIONSHIP_FLOW_LABELS } from '@evidence-poc/evidence-schema';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
+import {
+  RehearsalControls,
+  StoryTimelineControls,
+} from './StoryTimelineControls';
 
 export interface StoryPlayerBarProps {
   playback: StoryPlaybackController;
@@ -24,19 +28,27 @@ export const StoryPlayerBar = ({
       <select
         aria-label="选择业务流"
         value={playback.activeFlowId ?? ''}
-        disabled={playback.flows.length === 0}
-        onChange={(event) => playback.selectFlow(event.target.value)}
+        disabled={
+          playback.loading ||
+          (playback.flows.length === 0 && !playback.rehearsal.active)
+        }
+        onChange={(event) => {
+          const id = event.currentTarget.value;
+          if (id) playback.selectFlow(id);
+          else playback.rehearsal.select();
+        }}
         className="max-w-48 rounded border border-evidence-line bg-white px-2 py-1"
       >
-        {playback.flows.length === 0 ? (
+        {playback.rehearsal.requests.length > 0 ? (
+          <option value="">履约时钟假设</option>
+        ) : playback.flows.length === 0 ? (
           <option value="">暂无业务流</option>
-        ) : (
-          playback.flows.map((flow) => (
-            <option key={flow.flowId} value={flow.flowId}>
-              {flow.flowTitle}
-            </option>
-          ))
-        )}
+        ) : null}
+        {playback.flows.map((flow) => (
+          <option key={flow.flowId} value={flow.flowId}>
+            {flow.flowTitle}
+          </option>
+        ))}
       </select>
     </label>
     <div className="flex shrink-0 items-center gap-0.5 rounded-md border border-workbench-border p-0.5">
@@ -51,7 +63,7 @@ export const StoryPlayerBar = ({
       <Button
         size="xs"
         variant={playback.isPlaying ? 'default' : 'ghost'}
-        disabled={!playback.ready || playback.stepCount < 2}
+        disabled={!playback.canPlay}
         aria-pressed={playback.isPlaying}
         onClick={playback.togglePlaying}
       >
@@ -66,14 +78,23 @@ export const StoryPlayerBar = ({
         下一步 ▶
       </Button>
     </div>
-    {playback.ready ? (
-      <progress
-        aria-label="放映进度"
-        className="h-1 w-20 accent-evidence-accent xl:w-50"
-        value={playback.stepNumber}
-        max={playback.stepCount}
-      />
+    {playback.rehearsal.active ? (
+      <RehearsalControls rehearsal={playback.rehearsal} />
     ) : null}
+    <StoryTimelineControls playback={playback} />
+    <select
+      aria-label="播放速度"
+      value={playback.speed}
+      disabled={!playback.canPlay}
+      onChange={(event) => playback.setSpeed(Number(event.currentTarget.value))}
+      className="rounded border border-evidence-line bg-evidence-surface px-2 py-1"
+    >
+      {[1, 2, 5].map((speed) => (
+        <option key={speed} value={speed}>
+          {speed}×
+        </option>
+      ))}
+    </select>
     <span
       className="min-w-0 text-evidence-muted"
       aria-live="polite"
@@ -83,9 +104,14 @@ export const StoryPlayerBar = ({
         ? '正在更新剧情…'
         : playback.error
           ? '放映失败，请查看剧情详情'
-          : playback.ready
-            ? `步骤 ${playback.stepNumber}/${playback.stepCount}${playback.scene ? `：${playback.scene.phaseTitle}` : ''}`
-            : '暂无可放映的步骤'}
+          : playback.rehearsal.active
+            ? '履约时钟假设 · 不写入模型'
+            : playback.stepNumber > 0
+              ? `步骤 ${playback.stepNumber}/${playback.stepCount}${playback.scene ? `：${playback.scene.phaseTitle}` : ''}`
+              : playback.ready
+                ? '时点推演 · 非业务凭证'
+                : '暂无可放映的步骤'}
+      {playback.clockUnavailable ? ' · 时间轴不可用' : null}
     </span>
     {playback.journeyPreview ? (
       <span
@@ -129,22 +155,24 @@ export const StoryPlayerBar = ({
           规则预演未知：{r.label}
         </span>
       ))}
-    <label
-      className="flex items-center gap-1 text-evidence-muted"
-      title="不调用 AI，只展示模型已声明的业务事实"
-    >
-      <input
-        type="checkbox"
-        checked={playback.skipAi}
-        onChange={(event) => {
-          if (!event.target.checked && !aiConfigured) {
-            onConfigureAi?.();
-            return;
-          }
-          playback.setSkipAi(event.target.checked);
-        }}
-      />
-      仅模型事实
-    </label>
+    {!playback.rehearsal.active ? (
+      <label
+        className="flex items-center gap-1 text-evidence-muted"
+        title="不调用 AI，只展示模型已声明的业务事实"
+      >
+        <input
+          type="checkbox"
+          checked={playback.skipAi}
+          onChange={(event) => {
+            if (!event.target.checked && !aiConfigured) {
+              onConfigureAi?.();
+              return;
+            }
+            playback.setSkipAi(event.target.checked);
+          }}
+        />
+        仅模型事实
+      </label>
+    ) : null}
   </div>
 );

@@ -14,6 +14,8 @@ export interface CanvasStoryFocus {
   readonly dependencyEntityIds: readonly string[];
   readonly relatedEntityIds?: readonly string[];
   readonly activeRelationshipIds?: readonly string[];
+  /** Modeled response options, not events that occurred in this playback. */
+  readonly candidateRelationshipIds?: readonly string[];
   readonly flowKind?: RelationshipFlowKind;
   readonly triggeredRuleIds?: readonly string[];
   readonly activeValues?: Readonly<Record<string, unknown>>;
@@ -38,11 +40,13 @@ export const applyStoryFocus = (
     ...(focus.relatedEntityIds ?? []),
   ]);
   const explicitEdges = new Set(focus.activeRelationshipIds ?? []);
+  const candidates = new Set(focus.candidateRelationshipIds ?? []);
   for (const edge of canvas.edges)
     if (
       edge.type === 'fulfillmentEdge' &&
       edge.data &&
-      explicitEdges.has(edge.data.edge.relationshipId)
+      (explicitEdges.has(edge.data.edge.relationshipId) ||
+        candidates.has(edge.data.edge.relationshipId))
     ) {
       involved.add(edge.source);
       involved.add(edge.target);
@@ -85,7 +89,9 @@ export const applyStoryFocus = (
           highlighted: involved.has(node.id),
           dimmed: false,
           storyStep: active
-            ? { status: 'active', sequence: focus.activeStep ?? 1 }
+            ? focus.activeStep === undefined
+              ? undefined
+              : { status: 'active', sequence: focus.activeStep }
             : completed === undefined
               ? undefined
               : { status: 'completed', sequence: completed },
@@ -113,8 +119,13 @@ export const applyStoryFocus = (
             dependencies.has(edge.target)) ||
           (edge.target === focus.activeEntityId &&
             dependencies.has(edge.source)));
+      const candidate =
+        edge.type === 'fulfillmentEdge' &&
+        edge.data &&
+        candidates.has(edge.data.edge.relationshipId);
       const relevant =
-        allowed && involved.has(edge.source) && involved.has(edge.target);
+        candidate ||
+        (allowed && involved.has(edge.source) && involved.has(edge.target));
       const story = {
         storyActive: active,
         storyReversed: edge.source === focus.activeEntityId,

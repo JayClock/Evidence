@@ -79,6 +79,24 @@ describe('story canvas projection', () => {
     );
   });
 
+  it('highlights a modeled option without animating it or numbering the clock holder', () => {
+    const result = applyStoryFocus(canvas, {
+      activeEntityId: 'evidence.request',
+      dependencyEntityIds: [],
+      candidateRelationshipIds: ['relation.confirmation-references-request'],
+      flowKind: 'breach_compensation',
+      focusKey: 'time:request:breached',
+    });
+    expect(
+      result.nodes.find(({ id }) => id === 'evidence.request')?.data.storyStep,
+    ).toBeUndefined();
+    expect(
+      result.edges.find(
+        ({ id }) => id === 'relation.confirmation-references-request',
+      )?.data,
+    ).toMatchObject({ highlighted: true, storyActive: false });
+  });
+
   it('animates only existing dependency routes, including fulfillment pairs, toward the active document', () => {
     const result = applyStoryFocus(canvas, focus);
     const animated = result.edges.filter((edge) => edge.data?.storyActive);
