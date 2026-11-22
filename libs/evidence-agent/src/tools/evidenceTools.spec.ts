@@ -400,7 +400,183 @@ describe('createEvidenceToolsExtension', () => {
     expect(result.details).toMatchObject({
       entity: { id: evidence.id },
       selection: { nodeId: null },
+      flowReadiness: {
+        stage: 'contract',
+        contract: { id: 'contract.procurement' },
+        parties: [{ id: 'role.buyer' }, { id: 'role.seller' }],
+        fulfillments: [],
+      },
     });
+    expect(patches).toEqual([]);
+  });
+
+  it('distinguishes an unlinked proposal from an unpaired fulfillment record', async () => {
+    const model = createOrchestratorModel();
+    model.entities.push(
+      {
+        type: 'entity',
+        category: 'evidence',
+        kind: 'proposal',
+        id: 'proposal.offer',
+        label: '报价',
+      },
+      {
+        type: 'entity',
+        category: 'evidence',
+        kind: 'rfp',
+        id: 'rfp.offer',
+        label: '询价',
+      },
+      {
+        type: 'entity',
+        category: 'evidence',
+        kind: 'other_evidence',
+        id: 'evidence.receipt',
+        label: '回执',
+        sourceSnippet: { text: '示例摘录' },
+      },
+    );
+    const { handlers, patches } = createHandlers({
+      loadDocument: async () => model,
+    });
+    const fake = createFakePi();
+    createEvidenceToolsExtension(handlers)(fake.pi);
+    const probe = (nodeRef: string) =>
+      invoke(fake.tool(TOOL_NAMES.getFocusedNodeContext), { nodeRef });
+    expect((await probe('proposal.offer')).details).toMatchObject({
+      flowReadiness: {
+        stage: 'proposal',
+        suggestedNextStep: 'clarify_channel_response',
+        fulfillments: [],
+      },
+    });
+    model.relationships.push({
+      type: 'relationship',
+      kind: 'references',
+      id: 'relation.quote',
+      label: '报价响应询价',
+      sourceRef: 'proposal.offer',
+      targetRef: 'rfp.offer',
+    });
+    const linked = await probe('proposal.offer');
+    expect(linked.details).toMatchObject({
+      flowReadiness: {
+        channelResponses: [
+          { rfp: { id: 'rfp.offer' }, proposals: [{ id: 'proposal.offer' }] },
+        ],
+        fulfillments: [],
+      },
+    });
+    expect(
+      JSON.parse(linked.content[0]!.text).flowReadiness,
+    ).not.toHaveProperty('suggestedNextStep');
+    const receipt = await probe('evidence.receipt');
+    expect(receipt.details).toMatchObject({
+      flowReadiness: {
+        stage: 'fulfillment',
+        suggestedNextStep: 'clarify_fulfillment',
+      },
+    });
+    expect(receipt.content[0]?.text).not.toContain('示例摘录');
+    expect(await probe('evidence.missing')).toMatchObject({
+      details: { ref: 'evidence.missing', missing: true },
+      isError: true,
+    });
+    expect(patches).toEqual([]);
+  });
+
+  it('returns existing party, subject, and branch facts without treating a handoff as a new fulfillment', async () => {
+    const model = createOrchestratorModel();
+    model.entities.push(
+      {
+        type: 'entity',
+        category: 'context',
+        kind: 'domain',
+        id: 'context.catalog',
+        label: '目录',
+      },
+      {
+        type: 'entity',
+        category: 'participant',
+        kind: 'thing',
+        id: 'thing.goods',
+        label: '货品',
+        contextRef: 'context.catalog',
+      },
+      {
+        type: 'entity',
+        category: 'evidence',
+        kind: 'other_evidence',
+        id: 'evidence.handoff',
+        label: '移交仲裁',
+        contextRef: 'context.procurement',
+      },
+    );
+    model.relationships.push(
+      {
+        type: 'relationship',
+        kind: 'references',
+        id: 'relation.pair',
+        label: '支付完成',
+        sourceRef: 'confirmation.payment',
+        targetRef: 'request.payment',
+      },
+      {
+        type: 'relationship',
+        kind: 'references',
+        id: 'relation.subject',
+        label: '货品',
+        sourceRef: 'confirmation.payment',
+        targetRef: 'thing.goods',
+      },
+      {
+        type: 'relationship',
+        kind: 'references',
+        id: 'relation.handoff',
+        label: '争议移交',
+        flowKind: 'escalation',
+        terminalRemedyKind: 'arbitration',
+        sourceRef: 'evidence.handoff',
+        targetRef: 'request.payment',
+      },
+    );
+    const { handlers, patches } = createHandlers({
+      loadDocument: async () => model,
+    });
+    const fake = createFakePi();
+    createEvidenceToolsExtension(handlers)(fake.pi);
+    const probe = (nodeRef: string) =>
+      invoke(fake.tool(TOOL_NAMES.getFocusedNodeContext), { nodeRef });
+    expect((await probe('confirmation.payment')).details).toMatchObject({
+      flowReadiness: {
+        subjectMatters: [{ id: 'thing.goods' }],
+        fulfillments: [
+          {
+            request: {
+              id: 'request.payment',
+              responsibleRoleRef: 'role.buyer',
+            },
+            confirmations: [
+              { id: 'confirmation.payment', responsibleRoleRef: 'role.seller' },
+            ],
+            breachOutcomes: [
+              {
+                kind: 'terminal_escalation',
+                remedyKind: 'arbitration',
+                handoffRef: 'evidence.handoff',
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const handoff = await probe('evidence.handoff');
+    expect(handoff.details).toMatchObject({
+      flowReadiness: { isTerminalHandoff: true, fulfillments: [] },
+    });
+    expect(
+      JSON.parse(handoff.content[0]!.text).flowReadiness,
+    ).not.toHaveProperty('suggestedNextStep');
     expect(patches).toEqual([]);
   });
 });

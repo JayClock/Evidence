@@ -16,7 +16,7 @@ import {
   DomainIdSchema,
   evidenceStageOf,
   isEvidenceEntity,
-  isFulfillmentConfirmation,
+  isParticipantEntity,
   JsonPatchSchema,
   type DomainModelDocument,
 } from '@evidence-poc/evidence-schema';
@@ -29,6 +29,7 @@ import {
   parseBlueprint,
 } from '@evidence-poc/evidence-model-core';
 import { z } from 'zod';
+import { focusedBusinessContext } from './focusedBusinessContext.js';
 import { registerZodTool } from './registerZodTool.js';
 
 import { checkNativeApiSensor } from '../sensors/native/nativeApiSensor.js';
@@ -233,9 +234,9 @@ export const createEvidenceToolsExtension =
 
     registerZodTool(pi, {
       name: TOOL_NAMES.getFocusedNodeContext,
-      label: '读取当前凭证与关键数据',
+      label: '读取当前节点的业务上下文',
       description:
-        '读取指定节点（或当前选中节点）、关键数据来源、关联请求与确认。没有焦点时返回现有凭证索引。',
+        '读取指定节点（或本轮选区）、渠道响应、合同权责、履约、标的物、违约与外部确认。返回基于现有模型的问题建议，不判定未知的业务事实。没有焦点时只返回索引。',
       parameters: focusedParameters,
       execute: async (_id, { nodeRef }) => {
         const canvas = await handlers.getCanvasContext();
@@ -252,33 +253,47 @@ export const createEvidenceToolsExtension =
             isError: true,
           };
         }
-        const requestRefs =
-          ref === null
-            ? []
-            : isFulfillmentConfirmation(entity)
-              ? (graph
-                  .fulfillmentConfirmations()
-                  .find(({ entity }) => entity.id === ref)
-                  ?.incomingRequests.map(({ id }) => id) ?? [])
-              : graph.fulfillmentPair(ref)
-                ? [ref]
-                : [];
         const context = {
           selection: canvas.selection,
-          entity: entity ?? null,
+          entity:
+            entity === undefined
+              ? null
+              : {
+                  id: entity.id,
+                  label: entity.label,
+                  category: entity.category,
+                  kind: entity.kind,
+                  attributes: entity.attributes,
+                  ...('contextRef' in entity
+                    ? { contextRef: entity.contextRef }
+                    : {}),
+                  ...(isEvidenceEntity(entity)
+                    ? { responsibleRoleRef: entity.responsibleRoleRef }
+                    : {}),
+                },
+          flowReadiness: isEvidenceEntity(entity)
+            ? focusedBusinessContext(graph, entity)
+            : null,
           keyData:
             ref === null
               ? []
               : buildKeyDataLedger(document).entries.filter(
                   (entry) => entry.entityRef === ref,
                 ),
-          pairs: requestRefs.map((id) => graph.fulfillmentPair(id)),
           evidences: document.entities
             .filter(isEvidenceEntity)
             .map((evidence) => ({
               id: evidence.id,
               label: evidence.label,
               stage: evidenceStageOf(evidence),
+            })),
+          participants: document.entities
+            .filter(isParticipantEntity)
+            .map(({ id, label, kind, contextRef }) => ({
+              id,
+              label,
+              kind,
+              contextRef,
             })),
           contexts: document.entities
             .filter((entity) => entity.category === 'context')
