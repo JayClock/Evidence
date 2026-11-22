@@ -7,6 +7,7 @@ import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
 import {
   ENTITY_CATEGORY_LABELS,
   isEvidenceEntity,
+  isFulfillmentRequest,
   type DomainModelDocument,
 } from '@evidence-poc/evidence-schema';
 
@@ -207,16 +208,18 @@ const EditorWorkspace = ({
     reloadFromDiskIfClean,
     dismissExternalChange,
   } = useEditorSession(project, initialDocument, viewMode);
-  const hasDeclaredFlows = useMemo(
+  const hasPlaybackInput = useMemo(
     () =>
-      state.document.entities.some((entity) =>
-        entity.examples?.some((example) => Boolean(example.test?.flow)),
+      state.document.entities.some(
+        (entity) =>
+          isFulfillmentRequest(entity) ||
+          entity.examples?.some((example) => Boolean(example.test?.flow)),
       ),
     [state.document],
   );
   // A pending clean reload may bring in the first flow from disk.
   const canPlayStory =
-    hasDeclaredFlows || (!state.dirty && state.externalChangeAt !== null);
+    hasPlaybackInput || (!state.dirty && state.externalChangeAt !== null);
   const openStory = useCallback(() => {
     if (!ledgerActive && canPlayStory) setStoryOpen(true);
   }, [ledgerActive, canPlayStory]);

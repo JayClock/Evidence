@@ -63,7 +63,7 @@ export const ViewModeBar = (props: ViewModeBarProps) => {
                 <kbd>{ledgerChord}</kbd> 总台账
               </>
             ) : (
-              '当前模型暂无已声明的业务流'
+              '当前模型暂无业务流或履约请求'
             )}
           </p>
         ) : null}

@@ -22,6 +22,7 @@ import {
   recordBreachOutcomeMutator,
   splitEvidenceToPairMutator,
 } from '@evidence-poc/evidence-model-core';
+import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
 import { EditorScreen } from './EditorScreen';
 import {
   healthyReport,
@@ -828,9 +829,10 @@ describe('EditorScreen', () => {
       key: 'Escape',
     });
     expect(screen.queryByRole('dialog', { name: '剧情详情' })).toBeNull();
-    expect(
-      screen.getByRole('progressbar', { name: '放映进度' }),
-    ).toHaveAttribute('value', '2');
+    expect(screen.getByRole('slider', { name: '业务时间' })).toHaveAttribute(
+      'aria-valuetext',
+      '2026-11-11 08:00:00.000 UTC',
+    );
     const camera = container.querySelector<HTMLElement>(
       '.react-flow__viewport',
     )!;
@@ -882,14 +884,67 @@ describe('EditorScreen', () => {
     );
   });
 
-  it('explains why playback is unavailable without a declared flow', async () => {
-    const api = readyProject();
+  it('explains why playback is unavailable without a flow or request', async () => {
+    const api = readyProject(createEmptyDomainModel());
     api.story.listFlows = vi.fn();
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeDisabled();
-    expect(screen.getByText('当前模型暂无已声明的业务流')).toBeVisible();
+    expect(screen.getByText('当前模型暂无业务流或履约请求')).toBeVisible();
     expect(api.story.listFlows).not.toHaveBeenCalled();
+  });
+
+  it('rehearses a request without declared examples, AI or model writes', async () => {
+    const document = createDesktopFixture();
+    recordBreachOutcomeMutator(document, {
+      requestRef: 'evidence.request',
+      condition: '请求过期且未交付',
+      breachRule: {
+        id: 'rule.delivery-timeout',
+        label: '未按期交付',
+        description: '未在期限内取得交付确认。',
+        bindings: {
+          request: { ref: 'evidence.request' },
+          confirmations: { ref: 'evidence.confirmation', cardinality: 'many' },
+          now: { type: 'timestamp' },
+        },
+        expression:
+          'now > request.expired_at && !confirmations.exists(c, c.confirmed_at <= request.expired_at)',
+      },
+      outcome: {
+        kind: 'terminal_escalation',
+        remedyKind: 'arbitration',
+        handoff: { id: 'evidence.arbitration', label: '仲裁移交' },
+      },
+    });
+    const api = readyProject(document);
+    api.story.listFlows = vi.fn(async () => []);
+    api.story.project = vi.fn();
+    const { container } = render(
+      <EditorScreen rootPath="/models/procurement" />,
+    );
+    await readyCanvas();
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+    const hours = await screen.findByRole('spinbutton', {
+      name: '假设窗口（小时）',
+    });
+    expect(hours).toHaveValue(null);
+    expect(screen.queryByRole('slider', { name: '业务时间' })).toBeNull();
+    fireEvent.change(hours, { target: { value: '8' } });
+    const slider = screen.getByRole('slider', { name: '业务时间' });
+    expect(slider).toHaveAccessibleName('业务时间');
+    fireEvent.change(slider, { target: { value: String(8 * 3_600_000 + 1) } });
+    fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
+    expect(screen.getByText(/违约条件成立/)).toBeVisible();
+    expect(
+      screen.getByText('模型中的处置选项（未发生）：仲裁移交'),
+    ).toBeVisible();
+    expect(screen.queryByRole('article', { name: '业务单据' })).toBeNull();
+    expect(
+      container.querySelector('[data-node-id="evidence.request"]'),
+    ).not.toHaveAttribute('data-story-step');
+    expect(api.story.project).not.toHaveBeenCalled();
+    expect(api.calls.save).toEqual([]);
   });
 
   it('starts from the command palette and exits with Escape without clearing selection', async () => {
@@ -904,7 +959,7 @@ describe('EditorScreen', () => {
     fireEvent.click(node);
     fireEvent.click(screen.getByRole('button', { name: '打开快速命令' }));
     fireEvent.click(await screen.findByRole('option', { name: /放映业务流/ }));
-    await screen.findByRole('progressbar', { name: '放映进度' });
+    await screen.findByRole('slider', { name: '业务时间' });
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
     expect(node).toHaveAttribute('aria-pressed', 'true');
@@ -921,7 +976,7 @@ describe('EditorScreen', () => {
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    await screen.findByRole('progressbar', { name: '放映进度' });
+    await screen.findByRole('slider', { name: '业务时间' });
     fireEvent.click(screen.getByRole('button', { name: '自动播放' }));
     expect(screen.getByRole('button', { name: '暂停放映' })).toBeVisible();
     fireEvent.keyDown(window, { key: '1', metaKey: true });
