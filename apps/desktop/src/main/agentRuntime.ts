@@ -128,7 +128,7 @@ export const createAgentRuntime = ({
   let activeTurn: {
     canvas: CanvasContext;
     focusNodeId: string | null;
-    inquiryKind?: 'trace' | 'what-if';
+    readOnly: boolean;
     cancelled: boolean;
     committed: PatchTransaction[];
   } | null = null;
@@ -144,6 +144,8 @@ export const createAgentRuntime = ({
       activeTurn.cancelled
     )
       return { success: false, error: '访谈已结束，未提交模型变更。' };
+    if (activeTurn.readOnly)
+      return { success: false, error: '体检探问只读，未提交模型变更。' };
     if (!live)
       return { success: false, error: '当前画布尚未同步，未提交模型变更。' };
     try {
@@ -317,7 +319,7 @@ export const createAgentRuntime = ({
                 selection: { nodeId, attributeName: null },
               },
         focusNodeId: nodeId,
-        inquiryKind: focus?.inquiry,
+        readOnly: focus?.readOnly === true,
         cancelled: false,
         committed,
       };
@@ -326,8 +328,9 @@ export const createAgentRuntime = ({
         const active = await ensureSession();
         if (turn.cancelled) throw new Error('访谈已取消。');
         const prefix = nodeId === null ? '' : `【凭证焦点：${nodeId}】\n`;
-        const inquiry =
-          focus?.inquiry === 'trace'
+        const inquiry = turn.readOnly
+          ? '本轮任务：只读体检探问，不提交模型变更。'
+          : focus?.inquiry === 'trace'
             ? '本轮任务：节点澄清与权责确认。达成共识后可调用算子工具更新模型。'
             : focus?.inquiry === 'what-if'
               ? '本轮任务：异常推演与违约分析。达成共识后可调用算子工具更新模型。'

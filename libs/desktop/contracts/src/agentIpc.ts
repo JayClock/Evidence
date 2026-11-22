@@ -40,11 +40,13 @@ export type AgentInquiryKind = 'trace' | 'what-if';
 
 /** An explicit null node starts a canvas-wide turn without inheriting selection. */
 export type AgentTurnFocus =
-  | { nodeId: null; inquiry?: never }
+  | { nodeId: null; inquiry?: never; readOnly?: never }
   | {
       nodeId: string;
       /** Opening a sourcing clarification or What-If question pins the turn to the node. */
       inquiry?: AgentInquiryKind;
+      /** An advisory probe may read but must not commit model changes. */
+      readOnly?: true;
     };
 
 export interface AgentSteerInput extends AgentProjectInput {

@@ -503,7 +503,9 @@ describe('agent patch transport', () => {
       });
       const modelPatch = {
         rationale: '补齐付款',
-        patches: [{ op: 'replace', path: '/manifest/name', value: '采购模型-已澄清' }],
+        patches: [
+          { op: 'replace', path: '/manifest/name', value: '采购模型-已澄清' },
+        ],
       };
       fake.session.prompt = async (text) => {
         fake.prompts.push(text);
@@ -512,14 +514,17 @@ describe('agent patch transport', () => {
           projectRoot: runtime.rootPath,
           selection: { nodeId: 'evidence.contract', attributeName: null },
         });
-        const focus = await registeredTool(
-          'get_focused_node_context',
-        ).execute('read', {});
+        const focus = await registeredTool('get_focused_node_context').execute(
+          'read',
+          {},
+        );
         expect(focus.isError).toBeUndefined();
         expect(focus.details).toMatchObject({
           entity: { id: 'evidence.confirmation' },
         });
-        expect((await apply.execute('write', modelPatch)).isError).toBeUndefined();
+        expect(
+          (await apply.execute('write', modelPatch)).isError,
+        ).toBeUndefined();
         expect(
           (
             await registeredTool('batch_add_evidence_stubs').execute(
@@ -568,6 +573,54 @@ describe('agent patch transport', () => {
     },
   );
 
+  it('allows scanning but rejects both raw and semantic writes during a read-only probe', async () => {
+    const { transport, patches } = createTransport();
+    const fake = createFakeSession();
+    const runtime = runtimeWith({ transport, fake });
+    const document = createDesktopFixture();
+    runtime.notifyModelChanged({
+      rootPath: runtime.rootPath,
+      revision: 1,
+      document,
+      baseDocument: document,
+    });
+    fake.session.prompt = async (text) => {
+      expect(text).toContain('只读体检探问');
+      expect(
+        (await registeredTool('scan_model_health').execute('scan', {})).isError,
+      ).toBeUndefined();
+      expect(
+        (
+          await registeredTool('apply_model_patch').execute('write', {
+            rationale: '改名',
+            patches: [
+              { op: 'replace', path: '/manifest/name', value: '不应写入' },
+            ],
+          })
+        ).isError,
+      ).toBe(true);
+      expect(
+        (
+          await registeredTool('batch_add_evidence_stubs').execute('operator', {
+            evidences: [
+              { id: 'evidence.new', label: '新凭证', stage: 'fulfillment' },
+            ],
+          })
+        ).isError,
+      ).toBe(true);
+    };
+    try {
+      await runtime.prompt(
+        '复核发现项',
+        { nodeId: 'evidence.request', inquiry: 'what-if', readOnly: true },
+        1,
+      );
+      expect(patches).toEqual([]);
+    } finally {
+      runtime.dispose();
+    }
+  });
+
   it('correctly tracks focusNodeId and applies inverse patches to revert an inquiry turn', async () => {
     const { transport, patches } = createTransport();
     const fake = createFakeSession();
@@ -585,7 +638,9 @@ describe('agent patch transport', () => {
     };
     fake.session.prompt = async () => {
       const apply = registeredTool('apply_model_patch');
-      expect((await apply.execute('write', modelPatch)).isError).toBeUndefined();
+      expect(
+        (await apply.execute('write', modelPatch)).isError,
+      ).toBeUndefined();
     };
     try {
       const committed: PatchTransaction[] = [];
@@ -599,7 +654,11 @@ describe('agent patch transport', () => {
       const tx = committed[0]!;
       expect(tx.focusNodeId).toBe('evidence.confirmation');
       expect(tx.inversePatches).toEqual([
-        { op: 'replace', path: '/manifest/name', value: document.manifest.name },
+        {
+          op: 'replace',
+          path: '/manifest/name',
+          value: document.manifest.name,
+        },
       ]);
       expect(patches).toHaveLength(1);
       expect(patches[0]!.patches).toEqual(modelPatch.patches);
