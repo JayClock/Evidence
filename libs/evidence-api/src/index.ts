@@ -15,6 +15,13 @@ export {
   type ContextDelivery,
   type ContextDeliveryPlan,
 } from './delivery/contextDelivery.js';
+export {
+  contextOutputDirectory,
+  contextDeliveryFiles,
+  verifyContextDelivery,
+  writeContextDelivery,
+  type ContextSyncResult,
+} from './delivery/contextDeliveryOutput.js';
 export type { EvidenceApiSnapshot, ApiJourneyStep } from './types.js';
 
 export {
