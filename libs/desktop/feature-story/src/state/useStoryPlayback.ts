@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  createDomainGraph,
   createRequestRehearsal,
   createScenarioTimeline,
   type FlowScenarioTrace,
@@ -12,6 +13,7 @@ import {
   type DomainModelDocument,
 } from '@evidence-poc/evidence-schema';
 import { previewJourneyStep } from './journeyPreview';
+import { evaluateWhatIfCapability } from './whatIfCapability';
 import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
 import type { EvidenceStoryApi } from '@evidence-poc/desktop-contracts/story';
 import type { StoryProjectResult } from '@evidence-poc/desktop-contracts/story';
@@ -425,31 +427,57 @@ export const useStoryPlayback = ({
     }
   }, [enabled]);
 
+  const whatIfGraph = useMemo(
+    () => (enabled ? createDomainGraph(document) : null),
+    [document, enabled],
+  );
+  const whatIfCapability = useMemo(
+    () =>
+      ready && whatIfGraph && flow && step
+        ? evaluateWhatIfCapability(whatIfGraph, flow.steps, step)
+        : undefined,
+    [ready, whatIfGraph, flow, step],
+  );
+  const jumpToStep = (sequence: number) => {
+    if (!ready || rehearsing || !flow) return;
+    const target = flow.steps.findIndex((step) => step.sequence === sequence);
+    if (target < 0) return;
+    setIsPlaying(false);
+    moveTo(target);
+  };
+
   // Sandbox state is scoped to the entire displayed revision, not just its step.
   const sandboxKey = useMemo(
-    () => ({}),
-    [requestKey, step?.sequence, step?.stepHash],
+    () => ({ requestKey, aiConfigured, step }),
+    [requestKey, aiConfigured, step],
   );
-  const currentSandboxKey = useRef(sandboxKey);
+  const currentSandboxKey = useRef<typeof sandboxKey | null>(sandboxKey);
   currentSandboxKey.current = sandboxKey;
-  const pendingSandbox = useRef<object | null>(null);
+  const pendingSandbox = useRef<{ key: object } | null>(null);
   const [sandbox, setSandbox] = useState<{
     key: object;
     loading: boolean;
     result?: WhatIfResult;
     error?: string;
   }>();
+  const clearWhatIf = useCallback(() => {
+    pendingSandbox.current = null;
+    setSandbox(undefined);
+  }, []);
   const askWhatIf = useCallback(
-    async (question: string) => {
+    async (question: string, { allowSpeculative = false } = {}) => {
+      const requiredStatus = allowSpeculative ? 'missing_rules' : 'eligible';
       if (
-        !ready ||
+        !aiConfigured ||
+        whatIfCapability?.status !== requiredStatus ||
         !flow ||
         !step ||
         !question.trim() ||
-        pendingSandbox.current === sandboxKey
+        pendingSandbox.current?.key === sandboxKey
       )
         return;
-      pendingSandbox.current = sandboxKey;
+      const job = { key: sandboxKey };
+      pendingSandbox.current = job;
       setIsPlaying(false);
       setSandbox({ key: sandboxKey, loading: true });
       try {
@@ -460,26 +488,41 @@ export const useStoryPlayback = ({
           currentStepSequence: step.sequence,
           stepHash: step.stepHash,
           question,
+          ...(allowSpeculative ? { allowSpeculative: true } : {}),
         });
-        if (currentSandboxKey.current === sandboxKey)
+        if (
+          currentSandboxKey.current === sandboxKey &&
+          pendingSandbox.current === job
+        )
           setSandbox({ key: sandboxKey, loading: false, result });
       } catch (cause) {
-        if (currentSandboxKey.current === sandboxKey)
+        if (
+          currentSandboxKey.current === sandboxKey &&
+          pendingSandbox.current === job
+        )
           setSandbox({
             key: sandboxKey,
             loading: false,
             error: messageOf(cause),
           });
       } finally {
-        if (pendingSandbox.current === sandboxKey)
-          pendingSandbox.current = null;
+        if (pendingSandbox.current === job) pendingSandbox.current = null;
       }
     },
-    [api, ready, flow, step, sandboxKey, rootPath, document],
+    [
+      api,
+      aiConfigured,
+      whatIfCapability?.status,
+      flow,
+      step,
+      sandboxKey,
+      rootPath,
+      document,
+    ],
   );
   useEffect(
     () => () => {
-      currentSandboxKey.current = {};
+      currentSandboxKey.current = null;
     },
     [],
   );
@@ -601,7 +644,10 @@ export const useStoryPlayback = ({
       if (invalidationError) setSourceRefresh((value) => value + 1);
       else setRefresh((value) => value + 1);
     },
+    whatIfCapability,
+    jumpToStep,
     askWhatIf,
+    clearWhatIf,
     sandbox: sandbox?.key === sandboxKey ? sandbox : undefined,
   };
 };

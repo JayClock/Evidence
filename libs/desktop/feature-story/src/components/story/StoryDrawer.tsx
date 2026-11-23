@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { StoryScene } from '@evidence-poc/evidence-agent/browser';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { timelineLabel } from './StoryTimelineControls';
+import { WhatIfSection } from './WhatIfSection';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
@@ -9,6 +10,7 @@ interface StoryDrawerProps {
   externalConflict?: boolean;
   aiConfigured?: boolean;
   onConfigureAi?: () => void;
+  onRevealOnCanvas?: (nodeId: string) => void;
 }
 
 const buttonClass =
@@ -167,93 +169,6 @@ const SceneSheet = ({
   );
 };
 
-const WhatIfQuestion = ({
-  playback,
-}: {
-  playback: StoryPlaybackController;
-}) => {
-  const [question, setQuestion] = useState('');
-  return (
-    <section
-      aria-label="What-If 业务沙盘"
-      className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-950"
-    >
-      <h3 className="mb-1 font-medium">What-If 业务沙盘</h3>
-      <p className="mb-3 text-[11px] leading-5 text-evidence-muted">
-        基于当前步骤临时推演，由原生规则判定、AI
-        解释；不会修改模型或保存假设。需要可用的 AI 配置。
-      </p>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          void playback.askWhatIf(question);
-        }}
-      >
-        <label htmlFor="story-question" className="sr-only">
-          假设问题
-        </label>
-        <textarea
-          id="story-question"
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          maxLength={4000}
-          rows={3}
-          placeholder="如果付款金额只有 300 会怎样？"
-          className="w-full resize-y rounded border border-evidence-line bg-white p-2 text-[12px]"
-        />
-        <div className="mt-2 flex flex-wrap gap-2">
-          <button
-            type="submit"
-            className={buttonClass}
-            disabled={
-              !playback.ready || playback.sandbox?.loading || !question.trim()
-            }
-          >
-            {playback.sandbox?.loading ? '正在推演…' : '推演假设'}
-          </button>
-          <button
-            type="button"
-            className={buttonClass}
-            disabled={!playback.ready || Boolean(question.trim())}
-            onClick={() =>
-              setQuestion(
-                `如果「${playback.scene?.phaseTitle}」无法按期完成，会影响哪些后续步骤？`,
-              )
-            }
-          >
-            填入示例问题
-          </button>
-        </div>
-      </form>
-      {playback.sandbox?.error ? (
-        <p role="alert" className="mt-3 whitespace-pre-wrap text-red-700">
-          {playback.sandbox.error}
-        </p>
-      ) : null}
-      {playback.sandbox?.result ? (
-        <div
-          role="status"
-          className="mt-3 space-y-2 border-t border-evidence-line pt-3"
-        >
-          <p className="whitespace-pre-wrap leading-6">
-            {playback.sandbox.result.businessImpactExplanation}
-          </p>
-          <ul className="space-y-1 text-[11px] text-evidence-muted">
-            {playback.sandbox.result.ruleOutcomes.map((outcome) => (
-              <li key={outcome.ruleId}>
-                {outcome.ruleId}：{outcome.result ? '条件成立' : '条件不成立'}
-              </li>
-            ))}
-          </ul>
-          <p className="text-[10px] text-evidence-muted">
-            推演不是业务审批或发布授权；条件成立也可能意味着触发违约。
-          </p>
-        </div>
-      ) : null}
-    </section>
-  );
-};
-
 const statusLabel = {
   waiting: '窗口内等待',
   completed: '完成条件成立',
@@ -332,6 +247,7 @@ export const StoryDrawer = ({
   externalConflict = false,
   aiConfigured = true,
   onConfigureAi,
+  onRevealOnCanvas,
 }: StoryDrawerProps) => (
   <section
     aria-label="业务故事"
@@ -411,12 +327,11 @@ export const StoryDrawer = ({
           skipAi={playback.skipAi}
         />
       ) : null}
-      {playback.scene && aiConfigured ? (
-        <WhatIfQuestion
-          key={`${playback.projection?.flowId}:${playback.scene.stepIndex}:${playback.scene.stepHash}`}
-          playback={playback}
-        />
-      ) : null}
+      <WhatIfSection
+        playback={playback}
+        aiConfigured={aiConfigured}
+        onRevealOnCanvas={onRevealOnCanvas}
+      />
     </div>
   </section>
 );

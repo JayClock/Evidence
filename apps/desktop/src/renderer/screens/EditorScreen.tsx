@@ -1089,6 +1089,10 @@ const EditorWorkspace = ({
                           <StoryDrawer
                             aiConfigured={ai?.aiConfigured}
                             onConfigureAi={ai?.openSettings}
+                            onRevealOnCanvas={(nodeId) => {
+                              closeStory();
+                              revealOnGraph(nodeId);
+                            }}
                             playback={story}
                             dirty={state.dirty}
                             externalConflict={

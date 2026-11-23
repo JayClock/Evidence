@@ -15,10 +15,23 @@ const setup = async ({
   empty = false,
   failure = false,
   timed = false,
+  noRules = false,
+  aiConfigured = true,
 } = {}) => {
   vi.useFakeTimers();
   const api = installDesktopApi();
-  const flow = storyFlow();
+  const base = storyFlow();
+  const flow = {
+    ...base,
+    steps: base.steps.map((step) =>
+      step.entityKind === 'fulfillment_confirmation'
+        ? {
+            ...step,
+            values: { ...step.values, confirmed_at: '2026-11-11T08:00:00Z' },
+          }
+        : step,
+    ),
+  };
   const timedFlow = {
     ...flow,
     steps: flow.steps.map((step, index) => ({
@@ -47,18 +60,26 @@ const setup = async ({
     businessImpactExplanation: '付款不足，未满足结清条件。',
   }));
   const document = empty ? createEmptyDomainModel() : createDesktopFixture();
-  if (timed) document.rules = [];
+  if (timed || noRules) document.rules = [];
+  const onRevealOnCanvas = vi.fn();
   const Harness = () => {
     const playback = useStoryPlayback({
       api: window.evidenceAPI.story,
       rootPath: '/models/test',
       document,
       enabled: true,
+      aiConfigured,
     });
     return (
       <>
         <StoryPlayerBar playback={playback} />
-        <StoryDrawer playback={playback} dirty externalConflict />
+        <StoryDrawer
+          playback={playback}
+          aiConfigured={aiConfigured}
+          onRevealOnCanvas={onRevealOnCanvas}
+          dirty
+          externalConflict
+        />
       </>
     );
   };
@@ -66,7 +87,7 @@ const setup = async ({
   await act(async () => {
     await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
   });
-  return { api, view };
+  return { api, view, onRevealOnCanvas };
 };
 afterEach(() => {
   vi.useRealTimers();
@@ -134,35 +155,115 @@ describe('StoryDrawer', () => {
     expect(cancel).toHaveBeenCalled();
   });
 
-  it('submits a read-only current-step question and clears the answer after stepping', async () => {
+  it('does not offer a question on the contract and jumps to a fulfillment step', async () => {
     const { api } = await setup();
+    expect(screen.getByText(/合同步骤记录双方的约定/)).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: '开启 AI 临时推想' }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
+    expect(
+      screen.getByRole('heading', { name: 'What-If 业务沙盘' }),
+    ).toHaveFocus();
+    expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
+      '交付请求',
+    );
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+  });
+
+  it('submits a strict question about the confirmation and clears the answer after stepping', async () => {
+    const { api } = await setup();
+    fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
     expect(screen.getByRole('button', { name: '推演假设' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
-    expect(
-      screen.getByRole<HTMLTextAreaElement>('textbox', { name: '假设问题' })
-        .value,
-    ).toContain('无法按期完成');
+    const question =
+      '如果「确认时间」比该示例晚一小时，改为 2026-11-11T09:00:00.000Z，判定结果会怎样？';
+    expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue(
+      question,
+    );
     expect(api.story.whatIf).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
-      target: { value: '如果只付300会怎样？' },
-    });
     await act(async () =>
       fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
     );
     expect(api.story.whatIf).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentStepSequence: 1,
-        stepHash: 'step-0',
-        question: '如果只付300会怎样？',
+        currentStepSequence: 3,
+        stepHash: 'step-2',
+        question,
       }),
     );
-    expect(screen.getByText('付款不足，未满足结清条件。')).toBeInTheDocument();
-    expect(screen.getByText('rule.payment：条件不成立')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
-    expect(
-      screen.queryByText('付款不足，未满足结清条件。'),
-    ).not.toBeInTheDocument();
+    expect(vi.mocked(api.story.whatIf).mock.calls[0]![0]).not.toHaveProperty(
+      'allowSpeculative',
+    );
+    expect(screen.getByText('rule.payment：条件不成立')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /上一步/ }));
+    expect(screen.queryByText('rule.payment：条件不成立')).toBeNull();
     expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
+  });
+
+  it('requires explicit AI opt-in without rules and displays no verdict for the result', async () => {
+    const { api, onRevealOnCanvas } = await setup({ noRules: true });
+    vi.mocked(api.story.whatIf).mockResolvedValue({
+      isSpeculative: true,
+      ruleOutcomes: [],
+      businessImpactExplanation: '后续入库可能延迟。',
+    });
+    fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
+    expect(screen.getByText(/尚未建模相关的完成或违约规则/)).toBeVisible();
+    expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '在画布定位凭证' }));
+    expect(onRevealOnCanvas).toHaveBeenCalledWith('evidence.request');
+    fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
+    fireEvent.click(screen.getByRole('button', { name: '填入示例问题' }));
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '生成 AI 推想' })),
+    );
+    expect(api.story.whatIf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentStepSequence: 2,
+        allowSpeculative: true,
+      }),
+    );
+    expect(screen.getByText('AI 临时推想 · 非规则判定')).toBeVisible();
+    expect(screen.getByText('后续入库可能延迟。')).toBeVisible();
+    expect(screen.queryByText(/条件不成立|条件成立/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '退出 AI 临时推想' }));
+    fireEvent.click(screen.getByRole('button', { name: '开启 AI 临时推想' }));
+    expect(screen.queryByText('后续入库可能延迟。')).toBeNull();
+    expect(screen.getByRole('textbox', { name: '假设问题' })).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: /下一步/ }));
+    expect(screen.queryByRole('textbox', { name: '假设问题' })).toBeNull();
+  });
+
+  it('shows guidance but no speculative form while AI is unconfigured', async () => {
+    const { api } = await setup({ noRules: true, aiConfigured: false });
+    fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
+    expect(screen.getByText(/尚未建模相关的完成或违约规则/)).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: '开启 AI 临时推想' }),
+    ).toBeNull();
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+  });
+
+  it('shows a recoverable business message rather than a raw IPC rejection', async () => {
+    const { api } = await setup();
+    vi.mocked(api.story.whatIf).mockRejectedValueOnce(
+      new Error(
+        "Error invoking remote method 'evidence:story:what-if': Error: No relevant completion/breach rule is modeled for this step.",
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '前往「交付请求」' }));
+    fireEvent.change(screen.getByRole('textbox', { name: '假设问题' }), {
+      target: { value: '如果改动截止时间？' },
+    });
+    await act(async () =>
+      fireEvent.click(screen.getByRole('button', { name: '推演假设' })),
+    );
+    expect(screen.getByText(/当前步骤没有可用的完成或违约规则/)).toBeVisible();
+    expect(screen.queryByText(/remote method/)).toBeNull();
   });
 
   it('seeks between steps locally, hides the future document and then resumes the story', async () => {

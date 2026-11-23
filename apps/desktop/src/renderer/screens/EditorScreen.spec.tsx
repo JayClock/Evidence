@@ -960,6 +960,29 @@ describe('EditorScreen', () => {
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
   });
 
+  it('returns from an unmodeled What-If step to the selected credential on the canvas', async () => {
+    const document = createDesktopStoryFixture();
+    document.rules = [];
+    const api = readyProject(document);
+    api.story.listFlows = vi.fn(async () => [storyFlow()]);
+    api.story.project = vi.fn(async () => storyResult());
+    const { container } = render(
+      <EditorScreen rootPath="/models/procurement" />,
+    );
+    await readyCanvas();
+    fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+    fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: '前往「交付请求」' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: '在画布定位凭证' }));
+    expect(screen.queryByRole('dialog', { name: '剧情详情' })).toBeNull();
+    expect(screen.getByRole('button', { name: '放映业务流' })).toBeVisible();
+    expect(
+      container.querySelector('[data-node-id="evidence.request"]'),
+    ).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('reads pending disk changes before starting a walkthrough', async () => {
     const api = readyProject();
     let changed: Parameters<typeof api.projects.onChanged>[0] = () => undefined;

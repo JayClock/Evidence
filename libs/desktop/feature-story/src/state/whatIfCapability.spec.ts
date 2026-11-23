@@ -1,0 +1,52 @@
+import { describe, expect, it } from 'vitest';
+import { createDomainGraph } from '@evidence-poc/evidence-model-core';
+import { createDesktopFixture } from '@evidence-poc/desktop-testing';
+import { storyFlow } from '@evidence-poc/desktop-testing/story';
+import { evaluateWhatIfCapability } from './whatIfCapability';
+
+const steps = storyFlow().steps;
+
+describe('What-If capability', () => {
+  it('requires direct bindings or a modeled confirmation-to-request pair', () => {
+    const model = createDesktopFixture();
+    model.rules[0]!.bindings = { request: { ref: 'evidence.request' } };
+    expect(
+      evaluateWhatIfCapability(createDomainGraph(model), steps, steps[2]!)
+        .status,
+    ).toBe('eligible');
+    model.relationships = [];
+    expect(
+      evaluateWhatIfCapability(createDomainGraph(model), steps, steps[2]!)
+        .status,
+    ).toBe('missing_rules');
+  });
+
+  it('recommends the next step with matching rules before steps without rules', () => {
+    const model = createDesktopFixture();
+    model.rules[0]!.bindings = {
+      confirmation: { ref: 'evidence.confirmation' },
+    };
+    expect(
+      evaluateWhatIfCapability(createDomainGraph(model), steps, steps[0]!),
+    ).toEqual({
+      status: 'non_fulfillment_stage',
+      next: { sequence: 3, entityLabel: '交付确认', hasRules: true },
+    });
+  });
+
+  it('does not count rules on the contract or offer a dead jump without another step', () => {
+    const model = createDesktopFixture();
+    model.rules[0]!.bindings = { contract: { ref: 'evidence.contract' } };
+    const graph = createDomainGraph(model);
+    expect(evaluateWhatIfCapability(graph, steps, steps[0]!)).toEqual({
+      status: 'non_fulfillment_stage',
+      next: { sequence: 2, entityLabel: '交付请求', hasRules: false },
+    });
+    expect(evaluateWhatIfCapability(graph, [steps[0]!], steps[0]!)).toEqual({
+      status: 'non_fulfillment_stage',
+    });
+    expect(evaluateWhatIfCapability(graph, steps, steps[1]!).status).toBe(
+      'missing_rules',
+    );
+  });
+});

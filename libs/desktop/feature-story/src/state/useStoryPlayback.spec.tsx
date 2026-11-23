@@ -276,17 +276,30 @@ describe('story playback', () => {
         }),
     );
     act(() => {
+      void hook.result.current.askWhatIf('如果只付300？', {
+        allowSpeculative: true,
+      });
+    });
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+    act(() => hook.result.current.jumpToStep(2));
+    act(() => {
       void hook.result.current.askWhatIf('如果只付300？');
     });
     expect(hook.result.current.sandbox?.loading).toBe(true);
     act(() => hook.result.current.next());
     await act(async () =>
-      answer({ businessImpactExplanation: '旧答案' } as WhatIfResult),
+      answer({
+        isSpeculative: false,
+        hypothesis: { values: { amount: 300 } },
+        ruleOutcome: { ruleId: 'rule.payment', result: false },
+        ruleOutcomes: [{ ruleId: 'rule.payment', result: false }],
+        businessImpactExplanation: '旧答案',
+      }),
     );
     expect(hook.result.current.sandbox).toBeUndefined();
     expect(api.story.whatIf).toHaveBeenCalledWith(
       expect.objectContaining({
-        stepHash: 'step-0',
+        stepHash: 'step-1',
         document: expect.any(Object),
       }),
     );
@@ -297,5 +310,40 @@ describe('story playback', () => {
     await tick();
     expect(hook.result.current.activeFlowId).toBe('新业务流');
     expect(hook.result.current.currentStepSequence).toBe(1);
+  });
+
+  it('discards a pending speculative reply when opting out and starting again at the same step', async () => {
+    const { hook, api } = setup();
+    const document = createDesktopFixture();
+    document.rules = [];
+    hook.rerender({ document, enabled: true });
+    await tick();
+    act(() => hook.result.current.jumpToStep(2));
+    const resolve: ((result: WhatIfResult) => void)[] = [];
+    api.story.whatIf = vi.fn(
+      () => new Promise<WhatIfResult>((done) => resolve.push(done)),
+    );
+    act(() => {
+      void hook.result.current.askWhatIf('如果迟到了？');
+    });
+    expect(api.story.whatIf).not.toHaveBeenCalled();
+    act(() => {
+      void hook.result.current.askWhatIf('如果迟到了？', {
+        allowSpeculative: true,
+      });
+      hook.result.current.clearWhatIf();
+      void hook.result.current.askWhatIf('如果拒收呢？', {
+        allowSpeculative: true,
+      });
+    });
+    const result = (businessImpactExplanation: string): WhatIfResult => ({
+      isSpeculative: true,
+      ruleOutcomes: [],
+      businessImpactExplanation,
+    });
+    await act(async () => resolve[0]!(result('旧推想')));
+    expect(hook.result.current.sandbox?.loading).toBe(true);
+    await act(async () => resolve[1]!(result('新推想')));
+    expect(hook.result.current.sandbox?.result).toEqual(result('新推想'));
   });
 });
