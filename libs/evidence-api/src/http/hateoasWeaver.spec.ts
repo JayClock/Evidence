@@ -13,6 +13,7 @@ it('keeps branch links, HAL responses and journeys consistent without imposing a
   const paymentId = 'route.confirm.confirmation.payment';
   const links = halLinksFor(snapshot.hypermedia, paymentId);
   expect(Object.keys(links).sort()).toEqual([
+    'capability:role.payment-proof:confirmation.processing',
     'next:request.delivery',
     'next:request.invoicing',
     'request:request.payment',
@@ -104,7 +105,21 @@ it('moves possible navigation and journeys when a prerequisite changes', async (
   const delivery = after.journeys.find((step) => step.routeId === target)!;
   expect(payment.nextPossibleSteps).toContain(delivery.id);
   expect(
-    after.hypermedia.some((link) => link.rel.includes('role.payment-proof')),
+    after.hypermedia.filter((link) => link.rel.includes('role.payment-proof')),
+  ).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        rel: 'capability:role.payment-proof:confirmation.wechat-payment',
+        targetRouteId: 'route.read.confirmation.wechat-payment',
+        method: 'GET',
+      }),
+    ]),
+  );
+  expect(
+    after.hypermedia.some(
+      (link) =>
+        link.rel.includes('role.payment-proof') && link.method === 'POST',
+    ),
   ).toBe(false);
 });
 

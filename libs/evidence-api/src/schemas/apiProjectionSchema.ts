@@ -3,6 +3,23 @@ export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://evidence.local/api-snapshot/v6/api-projection.schema.json",
   "type": "object",
+  "$defs": {
+    "breachBranch": {
+      "type": "object",
+      "required": ["kind", "relationshipRef", "breachedRequestRef"],
+      "properties": {
+        "kind": { "enum": ["breach_compensation", "escalation"] },
+        "relationshipRef": { "type": "string" },
+        "breachedRequestRef": { "type": "string" },
+        "condition": { "type": "string" },
+        "remedyKind": { "type": "string" }
+      },
+      "if": { "properties": { "kind": { "const": "escalation" } } },
+      "then": { "required": ["remedyKind"] },
+      "else": { "not": { "required": ["remedyKind"] } },
+      "additionalProperties": false
+    }
+  },
   "required": [
     "schemaVersion",
     "apiId",
@@ -84,6 +101,7 @@ export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
           "entityRef": {
             "type": "string"
           },
+          "breachBranch": { "$ref": "#/$defs/breachBranch" },
           "fields": {
             "type": "array"
           },
@@ -179,7 +197,8 @@ export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
           },
           "templated": {
             "type": "boolean"
-          }
+          },
+          "breachBranch": { "$ref": "#/$defs/breachBranch" }
         },
         "additionalProperties": false
       }

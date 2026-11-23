@@ -4,6 +4,7 @@ import {
   type DomainModelDocument,
   type ModelExampleAST,
   type RuleAST,
+  type TerminalRemedyKind,
 } from '@evidence-poc/evidence-schema';
 import {
   createDomainGraph,
@@ -59,7 +60,19 @@ export type DeliveryRoutePurpose =
   | 'request'
   | 'confirm'
   | 'open'
-  | 'propose';
+  | 'propose'
+  | 'compensate'
+  | 'escalate';
+
+/** The edge is a decision branch, not an executable condition or transport. */
+export type DeliveryBreachBranch = {
+  relationshipRef: string;
+  breachedRequestRef: string;
+  condition?: string;
+} & (
+  | { kind: 'breach_compensation' }
+  | { kind: 'escalation'; remedyKind: TerminalRemedyKind }
+);
 
 export interface DeliveryRouteResponse {
   status: number;
@@ -78,6 +91,7 @@ export interface DeliveryRoute {
   method: DeliveryRouteMethod;
   path: string;
   purpose: DeliveryRoutePurpose;
+  breachBranch?: DeliveryBreachBranch;
   /** Service the route is served by. */
   serviceId: string;
   contextRef: string;
@@ -184,6 +198,25 @@ export const buildDeliveryRoutes = (
 ): DeliveryRoute[] => {
   const graph = createDomainGraph(document);
   const answeredBy = answeredRfpOf(graph);
+  const branches = graph.fulfillmentPairs().flatMap(({ request }) =>
+    graph.breachOutcomesOf(request.id).filter((branch) => {
+      const dependent =
+        branch.kind === 'compensation_pair'
+          ? branch.compensation.request
+          : branch.handoff;
+      return (
+        request.contextRef === dependent.contextRef &&
+        request.contextRef !== undefined &&
+        graph.rootContractOf(request.contextRef) !== undefined
+      );
+    }),
+  );
+  const branchEntities = new Set(branches.map(({ edge }) => edge.sourceRef));
+  const handoffRefs = new Set(
+    branches.flatMap((branch) =>
+      branch.kind === 'terminal_escalation' ? [branch.handoff.id] : [],
+    ),
+  );
   const confirmations = graph.fulfillmentConfirmations();
   const confirmationById = new Map(
     confirmations.map((entry) => [entry.entity.id, entry]),
@@ -200,7 +233,10 @@ export const buildDeliveryRoutes = (
             entity.kind === 'fulfillment_confirmation' ||
             (entity.kind === 'proposal' && !answeredBy.has(entity.id)) ||
             (entity.kind === 'other_evidence' &&
-              entity.attributes?.some((field) => field.valueType === 'id')))) ||
+              (handoffRefs.has(entity.id) ||
+                entity.attributes?.some(
+                  (field) => field.valueType === 'id',
+                ))))) ||
         (entity.category === 'participant' && entity.kind === 'thing'),
     );
   const rootSegments = createSegmentAllocator(
@@ -248,6 +284,7 @@ export const buildDeliveryRoutes = (
     } = {},
     suffix?: string,
     primary?: Address,
+    breachBranch?: DeliveryBreachBranch,
   ): void => {
     const classified = fieldsOf(entityRef, graph);
     if (refs.requestRefs !== undefined) {
@@ -266,7 +303,7 @@ export const buildDeliveryRoutes = (
     const reading = purpose === 'read';
     const entity = graph.getEntity(entityRef);
     const accepted =
-      purpose === 'request' &&
+      (purpose === 'request' || purpose === 'compensate') &&
       entity?.category === 'evidence' &&
       entity.asyncAcceptance === true;
     const collectionRead = reading && suffix !== undefined;
@@ -277,6 +314,7 @@ export const buildDeliveryRoutes = (
       method: reading ? 'GET' : 'POST',
       path: reading && !collectionRead ? location.itemPath : location.path,
       purpose,
+      ...(breachBranch === undefined ? {} : { breachBranch }),
       serviceId: serviceIdOf(contextRef),
       contextRef,
       entityRef,
@@ -316,8 +354,8 @@ export const buildDeliveryRoutes = (
       responseShape: collectionRead ? 'collection' : 'item',
       ...(collectionRead ? { collectionRel: collectionRel(entityRef) } : {}),
       parameterEntityRefs: {
-        ...location.parameterEntityRefs,
         ...item.parameterEntityRefs,
+        ...location.parameterEntityRefs,
       },
       allowedPartyRoleRefs,
       ...(allowedCallbackRoleRefs.length === 0
@@ -446,14 +484,15 @@ export const buildDeliveryRoutes = (
           appendSegments: segments,
         });
         const refs = { ...contractRefs, requestRef: pair.request.id };
-        add(
-          pair.request.id,
-          context.id,
-          child,
-          'request',
-          '发起' + pair.request.label + '，开启一个有截止时间的履约窗口',
-          refs,
-        );
+        if (!branchEntities.has(pair.request.id))
+          add(
+            pair.request.id,
+            context.id,
+            child,
+            'request',
+            '发起' + pair.request.label + '，开启一个有截止时间的履约窗口',
+            refs,
+          );
         reads(pair.request.id, context.id, child, refs, 'ledger');
       }
       continue;
@@ -580,6 +619,75 @@ export const buildDeliveryRoutes = (
       );
     }
   }
+  // A branch creates an instance under the breached request. Reads and result
+  // writes use the canonical resource, so depth and additional causes do not
+  // duplicate whole subtrees or move an existing resource.
+  const branchSegments = createSegmentAllocator(
+    branches.map(({ edge }) => edge.id),
+  );
+  const handoffAddresses = new Map<string, Address>();
+  for (const branch of [...branches].sort((a, b) =>
+    a.edge.id.localeCompare(b.edge.id),
+  )) {
+    const { edge } = branch;
+    const parent = requestAddresses.get(edge.targetRef)!;
+    const compensation = branch.kind === 'compensation_pair';
+    const dependent = compensation
+      ? branch.compensation.request
+      : branch.handoff;
+    const owner = dependent.contextRef!;
+    const refs = {
+      contractRef: parent.contractRef,
+      ...(compensation ? { requestRef: dependent.id } : {}),
+    };
+    let primary: Address;
+    if (compensation) {
+      primary = requestAddresses.get(dependent.id)!.child;
+    } else {
+      let canonical = handoffAddresses.get(dependent.id);
+      if (canonical === undefined) {
+        canonical = address(
+          parent.root.itemPath +
+            '/handoffs/' +
+            rootSegments.segmentOf(dependent.id),
+          dependent.id,
+          'collection',
+          parent.root,
+        );
+        handoffAddresses.set(dependent.id, canonical);
+        reads(dependent.id, owner, canonical, refs);
+      }
+      primary = canonical;
+    }
+    const entrance = address(
+      parent.child.itemPath +
+        (compensation ? '/compensations/' : '/handoffs/') +
+        branchSegments.segmentOf(edge.id),
+      dependent.id,
+      primary.shape,
+      parent.child,
+    );
+    add(
+      dependent.id,
+      owner,
+      entrance,
+      compensation ? 'compensate' : 'escalate',
+      compensation
+        ? '发起' + dependent.label
+        : '登记移交记录：' + dependent.label,
+      refs,
+      `branch-${edge.id}`,
+      primary,
+      {
+        relationshipRef: edge.id,
+        breachedRequestRef: edge.targetRef,
+        ...(edge.notes === undefined ? {} : { condition: edge.notes }),
+        ...(branch.kind === 'terminal_escalation'
+          ? { kind: 'escalation', remedyKind: branch.remedyKind }
+          : { kind: 'breach_compensation' }),
+      },
+    );
+  }
   for (const { entity, incomingRequests, topologyKind } of confirmations) {
     const { id, contextRef, label } = entity;
     if (contextRef === undefined) continue;
@@ -686,7 +794,9 @@ export const buildDeliveryRoutes = (
   }
   for (const entity of roots.filter(
     (entity) =>
-      entity.category === 'evidence' && entity.kind === 'other_evidence',
+      entity.category === 'evidence' &&
+      entity.kind === 'other_evidence' &&
+      !handoffRefs.has(entity.id),
   )) {
     if (entity.category === 'evidence' && entity.contextRef !== undefined)
       reads(

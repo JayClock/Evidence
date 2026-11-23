@@ -1,5 +1,8 @@
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-import type { DeliveryRoute } from '../delivery/routes.js';
+import type {
+  DeliveryBreachBranch,
+  DeliveryRoute,
+} from '../delivery/routes.js';
 import type { ApiJourneyStep } from '../types.js';
 import { allowedCallerRoleRefs } from '../delivery/addressing.js';
 
@@ -10,6 +13,8 @@ export interface HypermediaLink {
   href: string;
   method: DeliveryRoute['method'];
   templated: boolean;
+  /** A documented possibility; evaluated against a resource instance by its owner. */
+  breachBranch?: DeliveryBreachBranch;
 }
 
 /** References describe possible navigation, never runtime readiness or permissions. */
@@ -32,7 +37,12 @@ export const weaveHypermedia = (
         candidate.responseShape === 'item' &&
         candidate.path === route.itemPath,
     );
-  const add = (source: DeliveryRoute, target: DeliveryRoute, rel: string) => {
+  const add = (
+    source: DeliveryRoute,
+    target: DeliveryRoute,
+    rel: string,
+    branch?: DeliveryBreachBranch,
+  ) => {
     const link = {
       sourceRouteId: source.id,
       targetRouteId: target.id,
@@ -40,6 +50,7 @@ export const weaveHypermedia = (
       href: target.path,
       method: target.method,
       templated: target.path.includes('{'),
+      ...(branch === undefined ? {} : { breachBranch: branch }),
     };
     links.set(`${source.id}\0${rel}\0${target.id}`, link);
   };
@@ -47,14 +58,72 @@ export const weaveHypermedia = (
     const target =
       route.responseShape === 'collection' ? route : primaryOf(route);
     if (target !== undefined) add(route, target, 'self');
+    const branch = route.breachBranch;
+    if (branch === undefined) continue;
+    const rel =
+      branch.kind === 'escalation'
+        ? `escalate:${branch.remedyKind}:${branch.relationshipRef}`
+        : `breach:compensate:${branch.relationshipRef}`;
+    for (const source of forEntity(branch.breachedRequestRef)) {
+      if (source.method === 'GET' && source.responseShape === 'item')
+        add(source, route, rel, branch);
+    }
   }
   const entities = new Map(
     document.entities.map((entity) => [entity.id, entity]),
   );
+  const socketProviders = new Map<string, string[]>();
   for (const edge of document.relationships) {
-    if (edge.kind !== 'references') continue;
+    if (
+      edge.kind !== 'plays_role' ||
+      entities.get(edge.sourceRef)?.kind !== 'fulfillment_confirmation' ||
+      entities.get(edge.targetRef)?.kind !== 'evidence'
+    )
+      continue;
+    const providers = socketProviders.get(edge.targetRef) ?? [];
+    providers.push(edge.sourceRef);
+    socketProviders.set(edge.targetRef, providers);
+  }
+  for (const edge of document.relationships) {
+    if (
+      edge.kind !== 'references' ||
+      (edge.flowKind ?? 'primary') !== 'primary'
+    )
+      continue;
     const dependent = entities.get(edge.sourceRef);
     const prerequisite = entities.get(edge.targetRef);
+    if (
+      dependent?.category === 'evidence' &&
+      prerequisite?.category === 'role' &&
+      prerequisite.kind === 'evidence'
+    ) {
+      for (const providerRef of socketProviders.get(prerequisite.id) ?? []) {
+        const target = forEntity(providerRef).find(
+          (route) => route.method === 'GET' && route.responseShape === 'item',
+        );
+        if (target !== undefined)
+          for (const source of forEntity(dependent.id).filter(
+            ({ responseShape }) => responseShape === 'item',
+          ))
+            add(source, target, `capability:${prerequisite.id}:${providerRef}`);
+      }
+      continue;
+    }
+    if (
+      dependent?.category === 'evidence' &&
+      prerequisite?.category === 'participant' &&
+      prerequisite.kind === 'thing'
+    ) {
+      const subject = forEntity(prerequisite.id).find(
+        (route) => route.method === 'GET' && route.responseShape === 'item',
+      );
+      if (subject !== undefined)
+        for (const source of forEntity(dependent.id).filter(
+          ({ responseShape }) => responseShape === 'item',
+        ))
+          add(source, subject, `subject:${prerequisite.id}`);
+      continue;
+    }
     if (
       dependent?.category !== 'evidence' ||
       prerequisite?.category !== 'evidence'
@@ -63,7 +132,8 @@ export const weaveHypermedia = (
     const sources = forEntity(prerequisite.id);
     const dependentRoutes = forEntity(dependent.id);
     const targets = dependentRoutes.filter((route) => {
-      if (route.method !== 'POST') return false;
+      if (route.method !== 'POST' || route.breachBranch !== undefined)
+        return false;
       if (dependent.kind === 'contract' && prerequisite.kind === 'proposal') {
         // Overlay paths are presentation; the signing entrance still belongs to this proposal.
         return (
@@ -122,19 +192,28 @@ export const weaveHypermedia = (
   );
 };
 
+/** Static documentation is not a live resource representation. */
 export const halLinksFor = (
   links: readonly HypermediaLink[],
   routeId: string,
+  includeConditionalTemplates = false,
 ): Record<string, unknown> =>
   Object.fromEntries(
     links
-      .filter((link) => link.sourceRouteId === routeId)
+      .filter(
+        (link) =>
+          link.sourceRouteId === routeId &&
+          (includeConditionalTemplates || link.breachBranch === undefined),
+      )
       .map((link) => [
         link.rel,
         {
           href: link.href,
           templated: link.templated,
           ...(link.rel === 'self' ? {} : { method: link.method }),
+          ...(link.breachBranch === undefined
+            ? {}
+            : { breachBranch: link.breachBranch }),
         },
       ]),
   );
@@ -157,11 +236,17 @@ export const deriveJourneys = (
         nextPossibleSteps: [] as string[],
       })),
     );
+  const routeById = new Map(routes.map((route) => [route.id, route]));
   for (const step of steps) {
     const next = new Set(
       links
         .filter(
-          (link) => link.sourceRouteId === step.routeId && link.rel !== 'self',
+          (link) =>
+            link.rel !== 'self' &&
+            (link.sourceRouteId === step.routeId ||
+              (link.breachBranch !== undefined &&
+                routeById.get(step.routeId)?.entityRef ===
+                  link.breachBranch.breachedRequestRef)),
         )
         .map((link) => link.targetRouteId),
     );

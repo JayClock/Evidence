@@ -4,6 +4,11 @@ export {
   deriveJourneys,
   type HypermediaLink,
 } from './http/hateoasWeaver.js';
+export {
+  resolveRuntimeHalLinks,
+  type LinkDecision,
+  type RuntimeHalLink,
+} from './http/runtimeLinks.js';
 
 export type { EvidenceApiSnapshot, ApiJourneyStep } from './types.js';
 
@@ -72,6 +77,7 @@ export {
 export {
   buildDeliveryRoutes,
   fieldFor,
+  type DeliveryBreachBranch,
   type DeliveryField,
   type DeliveryFieldReason,
   type DeliveryRoute,

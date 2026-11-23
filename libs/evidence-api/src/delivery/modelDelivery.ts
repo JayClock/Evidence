@@ -339,6 +339,9 @@ const operationOf = (
   summary: route.summary,
   tags: [`context:${route.contextRef}`],
   'x-evidence-purpose': route.purpose,
+  ...(route.breachBranch === undefined
+    ? {}
+    : { 'x-evidence-breach-branch': route.breachBranch }),
   'x-evidence-context': route.contextRef,
   'x-evidence-entity': route.entityRef,
   'x-evidence-service': route.serviceId,
@@ -399,7 +402,11 @@ const operationOf = (
                           halLinksFor(links, route.id),
                         ),
                       }),
-                  'x-evidence-link-templates': halLinksFor(links, route.id),
+                  'x-evidence-link-templates': halLinksFor(
+                    links,
+                    route.id,
+                    true,
+                  ),
                   schema: {
                     $ref: `#/components/schemas/${componentOf(response.entityRef)}${route.responseShape === 'collection' ? 'Collection' : ''}`,
                   },
