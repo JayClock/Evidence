@@ -9,14 +9,14 @@ model's version in `info.version` and `x-evidence-model-version`.
 Public paths start at the aggregate's business noun, derived from its entity ID.
 A Context supplies a logical service owner, never a deployment-specific URI prefix.
 
-| Resource | Creation | Primary GET |
-| --- | --- | --- |
-| Inquiry | `/product-inquiries` | `/product-inquiries/{inquiryId}` |
-| Contract | `/product-procurements` | `/product-procurements/{contractId}` |
-| Singleton payment | `…/{contractId}/payment` | same path |
-| Repeated payment | `…/{contractId}/payments` | `…/{contractId}/payments/{paymentId}` |
-| Payment confirmation | `…/payment/confirmation` | `/payment-confirmations/{paymentConfirmationId}` |
-| Domain root | read only | `/products/{productId}` |
+| Resource             | Creation                  | Primary GET                                      |
+| -------------------- | ------------------------- | ------------------------------------------------ |
+| Inquiry              | `/product-inquiries`      | `/product-inquiries/{inquiryId}`                 |
+| Contract             | `/product-procurements`   | `/product-procurements/{contractId}`             |
+| Singleton payment    | `…/{contractId}/payment`  | same path                                        |
+| Repeated payment     | `…/{contractId}/payments` | `…/{contractId}/payments/{paymentId}`            |
+| Payment confirmation | `…/payment/confirmation`  | `/payment-confirmations/{paymentConfirmationId}` |
+| Domain root          | read only                 | `/products/{productId}`                          |
 
 The child endpoint's `references` cardinality determines singleton versus
 collection, whichever direction the relationship points. Missing or contradictory
@@ -126,6 +126,49 @@ CLI exits nonzero for either breaking changes or an invalid comparison. Callers
 that need distinct codes (`1` for breaking changes, `2` for input or tool errors)
 can use the typed `runDiff` API in `@evidence-poc/evidence-acceptance`. `oasdiff`
 checks the declared interface; behavior still needs tests and release policy.
+
+## Automatic API draft sync
+
+The desktop automatically syncs the current editor revision after 500 ms without
+new model edits. It uses unsaved changes as well as saved changes. There is no
+export button or directory picker. The same public URI rules apply whether the
+implementation will be a monolith or use multiple deployment units.
+
+- The default output is `<projectRoot>/delivery/`. Set
+  `{"delivery":{"outDir":"contracts/api"}}` in the project's `.evidencerc.json`
+  to choose a different project-relative directory. Use a dedicated generated
+  directory outside the model source. Models sharing a parent directory must
+  not share the same output directory.
+- A business Context is the unit of validation and sync. Contract files contain
+  the exact operations owned by that Context, not everything under a URI prefix.
+  A blocked Context's existing `services/<contextId>/` files are retained.
+  Contexts with required HTTP dependencies in blocked scopes also wait; optional
+  navigation to excluded routes is not emitted.
+- The generated `openapi.json` includes only the currently ready subset and is
+  marked `x-evidence-delivery-state: partial` when there are blockers. On recovery
+  it automatically includes the repaired Context. An ambiguous model-level
+  failure, such as duplicate IDs, leaves the previous output intact.
+- `delivery-status.json` records the model digest, included/blocked/empty
+  contexts, and the gateway digest. Context manifests record their file digests.
+  Files are replaced atomically one by one, with the context manifest and status
+  placed last. Consumers that need a consistent multi-file read should verify
+  the digests and retry on mismatch. No history or backup is generated.
+
+For the equivalent **saved-model** CLI workflow:
+
+```bash
+pnpm evidence export --model .evidence/fm --only-unblocked
+pnpm evidence export --model .evidence/fm --only-unblocked --verify
+pnpm evidence export --model .evidence/fm --watch --out delivery
+```
+
+CLI context sync defaults to `delivery/` under the working directory; it does
+not read desktop output settings. Use separate output directories if running
+CLI watch and the desktop on the same model at the same time. The regular
+`evidence export --openapi` and Bruno export are still full-model operations and
+require a separate output directory. Auto-sync is a draft workflow, not a
+release compatibility gate: keep published contracts outside the generated
+path and compare with `evidence diff` before release.
 
 ## Overlay migration
 

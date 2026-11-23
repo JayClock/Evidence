@@ -1,6 +1,14 @@
 import { spawn, execFile } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -98,6 +106,79 @@ async function withBackend(
     }
   }
 }
+
+it('watches a saved model and repairs a partial gateway without touching blocked artifacts', async () => {
+  const source = path.join(root, 'fm');
+  cpSync(
+    path.join(repo, 'libs/evidence-api/tests/fixtures/full-lifecycle/fm'),
+    source,
+    { recursive: true },
+  );
+  const rulesDir = path.join(source, 'rules');
+  const rulePath = readdirSync(rulesDir)
+    .map((file) => path.join(rulesDir, file))
+    .find(
+      (file) =>
+        JSON.parse(readFileSync(file, 'utf8')).contextRef ===
+        'context.product-procurement',
+    );
+  if (!rulePath) throw new Error('Missing procurement rule in the fixture');
+  const original = readFileSync(rulePath, 'utf8');
+  const writeRule = (content: string) => {
+    const staging = `${rulePath}.tmp`;
+    writeFileSync(staging, content);
+    renameSync(staging, rulePath);
+  };
+  const gateway = path.join(root, 'delivery/openapi.json');
+  const local = path.join(
+    root,
+    'delivery/services/context.product-procurement/openapi.json',
+  );
+  const child = spawn(
+    process.execPath,
+    [cli, 'export', '--model', source, '--watch'],
+    { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] },
+  );
+  let output = '';
+  child.stdout.on('data', (chunk) => {
+    output += String(chunk);
+  });
+  child.stderr.on('data', (chunk) => {
+    output += String(chunk);
+  });
+  const expectGateway = (state: string) =>
+    expect
+      .poll(
+        () => {
+          try {
+            return JSON.parse(readFileSync(gateway, 'utf8'))[
+              'x-evidence-delivery-state'
+            ];
+          } catch {
+            return undefined;
+          }
+        },
+        { timeout: 2500, message: `Waiting for ${state} gateway` },
+      )
+      .toBe(state);
+  try {
+    await expectGateway('complete');
+    const previous = readFileSync(local);
+    writeRule(JSON.stringify({ ...JSON.parse(original), expression: '(' }));
+    await expectGateway('partial');
+    expect(readFileSync(local)).toEqual(previous);
+    writeRule(original);
+    await expectGateway('complete');
+  } catch (error) {
+    throw new Error(`Context watcher failed: ${output}`, { cause: error });
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) {
+      const exit = once(child, 'exit');
+      child.kill('SIGTERM');
+      await exit;
+    }
+  }
+}, 10_000);
 
 describe('built evidence binary full lifecycle', () => {
   it('checks a source tree, exports both deliverables and passes real HTTP acceptance as JSON', async () => {
