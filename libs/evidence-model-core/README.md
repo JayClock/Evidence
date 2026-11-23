@@ -46,9 +46,9 @@ backend test execution. The old simulator, instance timeline, role-play packet
 and replay APIs/CLI commands have been removed.
 
 ```bash
-pnpm model:pack .evidence/fm --out procurement.evidence.json
-pnpm model:inspect procurement.evidence.json
-pnpm model:unpack procurement.evidence.json --out .evidence/fm
+pnpm evidence:pack .evidence/fm --out procurement.evidence.json
+pnpm evidence:inspect procurement.evidence.json
+pnpm evidence:unpack procurement.evidence.json --out .evidence/fm
 ```
 
 The `check` and derive commands read a directory; `check` refuses a bundle with a

@@ -18,11 +18,11 @@ npx nx start desktop
 | Concern                                                      | Lives in                                                  | Runs in                                 |
 | ------------------------------------------------------------ | --------------------------------------------------------- | --------------------------------------- |
 | model parsing, CEL example oracle, scope, static FM report   | `libs/evidence-model-core/src/validation/`                | process                                 |
-| lineage projection (model I/O CLI owns `check` / `compile`)  | `libs/evidence-model-core/src/derive/`                    | process                                 |
+| compiled snapshot and lineage projection                    | `libs/evidence-model-core/src/derive/`                    | process                                 |
 | agent session, sensors, stage gate, agent tools              | `libs/evidence-agent`                                     | process                                 |
 | shared guarded model mutations for Pi / MCP                  | `libs/evidence-tools`                                     | universal                               |
 | API contract projection, OpenAPI, HTTP journeys              | `libs/evidence-api`                                       | process + browser-safe delivery entry   |
-| acceptance generation, HTTP gates, native compatibility diff | `libs/evidence-acceptance` (legacy `evidence-api` binary) | process + browser-safe projection entry |
+| acceptance generation, HTTP gates, native compatibility diff | `libs/evidence-acceptance`                                | process + browser-safe projection entry |
 | interview and modeling prompts                               | `libs/evidence-agent/src/prompts/`                        | prompt layer                            |
 
 There is no skill tree. The agent's instructions are code, and the data they
@@ -41,20 +41,20 @@ documents and the generators are the TypeScript commands listed above. A command
 is the same code the app runs, so a terminal and a window cannot disagree:
 
 ```bash
-npx evidence-model check .evidence/fm --scope context.product-procurement
-npx evidence-model compile .evidence/fm --out .evidence/fm/generated/model.json
-npx evidence-api project --project-root "$PWD" --fm .evidence/fm --fm-check check.json --api .evidence/api/api.json
+pnpm exec nx build cli
+pnpm evidence check .evidence/fm --scope context.product-procurement
+pnpm evidence compile .evidence/fm --out .evidence/fm/generated/model.json
+pnpm evidence export --model .evidence/fm --openapi --out dist/contracts
 ```
 
 API projection v6 uses business aggregate roots rather than deployment Context
 prefixes. See [API projection v6](docs/api-projection-v6.md) for URI rules, HAL,
-gateway ownership and the model-aware `evidence api migrate-overlay` command.
+gateway ownership and the model-aware `evidence migrate-overlay` command.
 
 ## Unified contracts and acceptance CLI
 
 Build once, then use the same `evidence` entry point for model checks, contract
-export, API evolution and HTTP acceptance (the older model and API library CLIs
-remain available as deprecated adapters):
+export, API evolution and HTTP acceptance:
 
 ```bash
 pnpm exec nx build cli
@@ -65,7 +65,7 @@ pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json 
 node examples/b2b-escrow/implementations/ts-fastify/dist/server.js --test-mode --port 8085
 # In another terminal:
 pnpm evidence test --target http://127.0.0.1:8085 --scenarios dist/acceptance --verbose
-pnpm evidence diff api old.evidence.json new.evidence.json --format markdown
+pnpm evidence diff old.evidence.json new.evidence.json --format markdown
 ```
 
 `export` validates OpenAPI 3.1 and atomically replaces its dedicated output

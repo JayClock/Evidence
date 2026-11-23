@@ -9,23 +9,19 @@ Consumes [`evidence-api`](../evidence-api/README.md) projections and owns:
 - Execution via the pinned Bruno CLI, flow selection, regression/DoD gates and
   response-schema validation and drift reporting.
 - Native `oasdiff` comparisons of final validated OpenAPI contracts.
-- The deprecated `evidence-api` binary and command adapter; the unified
-  `apps/cli` remains the preferred user entry point.
 
-## Entry points and migration
+## Entry points
 
 | Entry         | Intended consumer                                                    |
 | ------------- | -------------------------------------------------------------------- |
 | root          | Node callers: renderers, combined export, contract comparison, drift |
 | `/runner`     | HTTP execution and gate/report types                                 |
-| `/commands`   | Unified CLI / legacy API command execution                           |
-| `/cli`        | Deprecated `evidence-api` executable shim                            |
+| `/commands`   | Typed `runDiff` for models or OpenAPI artifacts                      |
 | `/projection` | Browser-safe acceptance compilation only                             |
 
-Bruno is the only acceptance format. `evidence export`, `evidence api export-tests`
-and the deprecated `evidence-api export-tests` no longer take `--format`. Re-export
-existing suites; `evidence test --scenarios` takes one generated collection directory,
-not a Step CI YAML or Hurl file. The output format options for `diff` are unchanged.
+Bruno is the only acceptance format. Use `evidence export --tests` to generate
+just the collection; it has no `--format` switch. `evidence test --scenarios` takes
+one generated collection directory, not a Step CI YAML or Hurl file.
 
 The `/projection` entry may use `evidence-api/delivery` and the universal model
 engines, but must not import the Node package root, HTTP runner or native diff.
@@ -77,18 +73,15 @@ pnpm evidence diff /absolute/v1.evidence.json /absolute/v2.evidence.json --forma
 
 `evidence-acceptance:export-tests` and `evidence-acceptance:diff` are uncached Nx
 command targets that build the unified CLI first. `evidence-api:export-openapi`
-remains the projection target. `pnpm api:diff` and `pnpm api:export` still invoke
-the same unified CLI routes.
+exports only the aggregate contract. The root shortcuts are `pnpm evidence:diff`
+and `pnpm evidence:export`.
 
-`--base-api` and `--api` overlays apply to the respective baseline/target before
-compatibility comparison. Results include both model digests, native severity
-(`1=INFO`, `2=WARN`, `3=ERR`), Markdown changelog and full JSON diff. WARN/ERR
-findings block the compatibility gate.
-
-Diff exit codes remain `0` (no WARN/ERR), `1` (compatibility findings) and `2`
-(invalid input/contract or tool failure, **not** a compatibility verdict).
-Failures preserve native stdout/stderr diagnostics. For exact exit codes, use the
-direct CLI rather than relying on Nx's normalized task status.
+`evidence diff` defaults to Markdown; use `--format json` for automation. WARN/ERR
+findings block the compatibility gate. For model comparisons with overlays, use
+`runDiff({ command: 'diff', base, target, baseApi, api, format })` with absolute
+paths. `runDiff` returns `0` (compatible), `1` (breaking) or `2` (invalid input or
+tool failure). The CLI exits nonzero for both types of failure; check its output
+for the verdict and diagnostics.
 
 Static checks and compatibility only describe the declared surface: they do not
 prove that a backend implements CEL semantics, role authorization or fulfillment

@@ -65,7 +65,7 @@ global `bru` or Bruno Desktop is required). They run three independent checks:
 pnpm nx build cli
 pnpm example:setup
 pnpm evidence check examples/b2b-escrow/model/b2b-escrow.evidence.json
-pnpm evidence diff api examples/b2b-escrow/model/b2b-escrow-v1.evidence.json \
+pnpm evidence diff examples/b2b-escrow/model/b2b-escrow-v1.evidence.json \
   examples/b2b-escrow/model/b2b-escrow.evidence.json --format markdown
 pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json \
   --out examples/b2b-escrow/generated

@@ -104,8 +104,10 @@ service extensions, desktop previews and MCP return the same ownership. A contra
 service may own a proposal-signing URI under the channel's business root, so a
 prefix alone is not sufficient to decide ownership.
 
-`evidence api deliver` exports the aggregate `openapi.json` and standalone
-`services/<serviceId>/openapi.json` views. Each operation appears unchanged in
+`evidence export --openapi` exports the aggregate `openapi.json`. For standalone
+`services/<serviceId>/openapi.json`, `topology.json` and projection artifacts, use
+`renderOutputs` from `@evidence-poc/evidence-api`; there is no `evidence` CLI
+replacement for the full projection export. Each operation appears unchanged in
 exactly one service view, including its hypermedia templates to other services.
 `topology.json` describes modeled subject references, signing and capability
 outcomes; it does not prescribe containers, transports or runtime dependencies.
@@ -115,22 +117,23 @@ Save published contracts outside the generated directory. Compare a candidate
 with the corresponding published contract before release:
 
 ```bash
-pnpm evidence api diff --base published/procurement/openapi.json \
-  --target dist/api/services/service.product-procurement/openapi.json --format markdown
+pnpm evidence diff published/procurement/openapi.json \
+  dist/api/services/service.product-procurement/openapi.json --format markdown
 ```
 
 Compare two model inputs or two OpenAPI JSON artifacts of the same scope. The
-command exits `1` for detected breaking changes and `2` if comparison cannot be
-performed. `oasdiff` checks the declared interface; behavior and lifecycle
-commitments still need tests and release policy.
+CLI exits nonzero for either breaking changes or an invalid comparison. Callers
+that need distinct codes (`1` for breaking changes, `2` for input or tool errors)
+can use the typed `runDiff` API in `@evidence-poc/evidence-acceptance`. `oasdiff`
+checks the declared interface; behavior still needs tests and release policy.
 
 ## Overlay migration
 
 ```bash
 pnpm exec nx build cli
-pnpm evidence api migrate-overlay --in overlay.old.json --out overlay.new.json
+pnpm evidence migrate-overlay --in overlay.old.json --out overlay.new.json
 # For a model outside the default .evidence/fm:
-pnpm evidence api migrate-overlay --model model.evidence.json \
+pnpm evidence migrate-overlay --model model.evidence.json \
   --in overlay.old.json --out overlay.new.json
 ```
 
@@ -140,7 +143,8 @@ ledger route IDs and journey references, and preserves custom aliases and
 summaries where their parameters remain valid. Unknown routes and ambiguous
 parameter changes fail for manual review. Output must be a new file; source
 files are never overwritten. Both 5.0 and 6.0 overlay envelopes are readable;
-newly migrated overlays declare 6.0.
+newly migrated overlays declare 6.0. Use migrated overlays with the projection
+library; `evidence export` and `evidence diff` do not take overlay arguments.
 
 ## Verification and generated documents
 

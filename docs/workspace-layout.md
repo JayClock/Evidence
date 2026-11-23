@@ -12,9 +12,9 @@ each answers a different question.
 Nothing is a library in two toolchains: every `libs/*` entry is a TypeScript
 package consumed through pnpm, and no Java or Gradle module lives in this
 repository. A new workspace library goes under `libs/`, never under `apps/`.
-`apps/desktop` and `apps/cli` compose libraries. Deprecated library CLIs remain
-thin adapters; the legacy `evidence-api` binary is owned by `evidence-acceptance`
-because it includes diff and acceptance export commands.
+`apps/desktop` and `apps/cli` compose libraries. `apps/cli` owns the `evidence`
+binary and terminal argument parsing. The model I/O and acceptance libraries
+expose typed functions, not executable entry points.
 
 ## Desktop canvas and playback
 
@@ -144,9 +144,9 @@ Tags drive `@nx/enforce-module-boundaries` in `eslint.config.mjs`:
   Browser scenario editors use `evidence-acceptance/projection`; Node callers
   use its root, `/runner` or `/commands`. API fixtures are shared through the
   test-only `evidence-api/testing` export.
-- Public API imports moved: `renderDeliverables`, renderers, contract comparison
-  and the old API command adapter now come from `evidence-acceptance`, not
-  `evidence-api`. Unified CLI command names and exit codes are unchanged.
+- `evidence-acceptance` exposes `renderDeliverables`, acceptance renderers and
+  typed contract comparison (`runDiff`). `evidence-api` exposes projection and
+  service artifacts; it does not depend on the acceptance runtime.
 
 ## Common commands
 

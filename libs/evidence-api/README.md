@@ -17,25 +17,23 @@ acceptance, or spawn `oasdiff`. Those concerns live in
 - `/testing`: shared fixture builders for cross-library tests only. Fixtures
   remain in `tests/fixtures/`; consumers should not import private source paths.
 
-The `evidence-api` legacy binary and the old `/commands`, `/cli` and `/runner`
-APIs moved to `evidence-acceptance` to avoid a projection → runtime dependency.
-`renderDeliverables`, acceptance renderers, `compareContracts` and `OasdiffRunner`
-also moved there. The unified CLI's user-facing commands and exit codes did not
-change.
+The `evidence` CLI lives in `apps/cli`. For `renderDeliverables`, acceptance
+renderers, `compareContracts` and `OasdiffRunner`, use `evidence-acceptance`.
 
 ## Usage
 
 ```bash
 pnpm exec nx build cli
 pnpm evidence export --model .evidence/fm --out dist/contracts --openapi
-pnpm api:export --project-root "$PWD" --fm "$PWD/.evidence/fm" --out "$PWD/dist/api"
-pnpm exec nx run evidence-api:export-openapi -- --help
+pnpm exec nx run evidence-api:export-openapi -- --model .evidence/fm --out dist/contracts
 ```
 
-`evidence api deliver` validates and publishes the aggregate `openapi.json`
-and `services/<serviceId>/openapi.json` views alongside the projection and
-manifest. All views use the same public URIs. Explicit overlays may adjust
-routes/journeys but cannot invent model semantics or hide errors.
+The CLI exports the aggregate `openapi.json`. For the full projection, including
+`services/<serviceId>/openapi.json`, topology and the manifest, use
+`loadFm` / `buildProjection` and `renderOutputs` from this package. Pass the
+optional pinned check report to `loadFm` and a validated overlay to
+`buildProjection`; these inputs are not accepted by `evidence export`. Overlays
+may adjust routes and journeys but cannot invent model semantics or hide errors.
 
 See [API delivery](../../docs/api-projection-v6.md) for resource addresses, HAL,
 logical service ownership and compatibility checks. API snapshots and

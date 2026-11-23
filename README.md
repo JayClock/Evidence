@@ -279,16 +279,11 @@ pnpm evidence diff baseline.evidence.json procurement.evidence.json --format jso
 
 **验收迁移**：Step CI 和 Hurl 不再支持。移除验收导出命令的 `--format` 参数，从模型重新导出，并将 `test --scenarios` 指向完整的生成目录，而不是旧测试文件。可在 Bruno Desktop 打开集合进行调试；CI 应使用 `evidence test`，以执行响应 Schema 校验与 Regression / DoD 门禁。`diff --format` 不受影响。
 
-旧的 `evidence-model`、`evidence-api` 可执行入口暂时保留，执行时只向 **stderr** 输出弃用提示，不污染 JSON stdout。它们与统一入口复用库内执行逻辑，不反向依赖应用包。
+**CLI 破坏性变更**：旧的 `evidence-model`、`evidence-api` 可执行入口和 `evidence api <command>` 不再提供。模型操作直接用 `evidence pack/unpack/inspect/check/compile/lineage`；契约与验收导出用 `evidence export`（仅导出 Bruno 加 `--tests`，仅导出聚合 OpenAPI 加 `--openapi`）。API 投影诊断、固定检查报告和服务级产物没有一对一的 CLI 替代，仍可通过 [API 投影库](libs/evidence-api/README.md) 使用。
 
-| 旧入口                                                                                      | 推荐入口                                                         |
-| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `evidence-model pack/unpack/inspect/check/compile/lineage`                                  | `evidence pack/unpack/inspect/check/compile/lineage`             |
-| 常规契约与验收导出                                                                          | `evidence export`                                                |
-| `evidence-api inspect/check/project/deliver/export-tests/diff`（含 overlay 与固定检查报告） | `evidence api <command>`（支持 `--model` 与 `-o`；验收导出不再接受 `--format`） |
-| `evidence diff api <base> <target>`                                                         | `evidence diff <base> <target>`；旧写法保留 JSON 默认值          |
+契约比对改用 `evidence diff <base> <target>`，默认 Markdown；旧 JSON 脚本须显式加 `--format json`。覆盖层迁移改用 `evidence migrate-overlay --in <旧文件> --out <新文件>`，可选 `--model`。
 
-`model:pack`、`model:unpack`、`model:inspect`、`api:export`、`api:diff` 根脚本仍可使用，但均已转到 `apps/cli`。门禁参数、退出码与只读 `--verify` 行为保持不变。
+根快捷脚本使用 `evidence:pack`、`evidence:unpack`、`evidence:inspect`、`evidence:export`、`evidence:diff`。`api:setup` 仍用于安装 `oasdiff`。验收门禁和只读 `export --verify` 行为未变。
 
 ---
 
@@ -304,7 +299,7 @@ pnpm evidence diff baseline.evidence.json procurement.evidence.json --format jso
 
 ### 2. 独立运行容器与入口收敛（Apps & Packaging）
 
-- [x] **统一命令行工具容器 (`apps/cli`)**：基于 `cac` 提供 `evidence check/test/export/diff/pack/unpack/compile`；保留 `inspect/lineage` 与 `api` 兼容工作流，旧 Libs `bin` 入口作为弃用适配器过渡。
+- [x] **统一命令行工具容器 (`apps/cli`)**：基于 `cac` 提供 `evidence check/test/export/diff/pack/unpack/compile`；同时提供 `inspect`、`lineage`、`story` 和独立的 `migrate-overlay`；旧 CLI 入口已移除。
 - [ ] **独立 MCP 服务端应用 (`apps/mcp-server`)**：将 MCP 协议服务从纯 Libs 提升为可脱离桌面端、独立以 stdio/SSE 启动的长周期服务容器。
 
 ### 3. HTTP 验收

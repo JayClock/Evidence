@@ -20,11 +20,12 @@
 
 ## 运行与反馈
 
-用工作区提供的 `evidence-model` 命令（`pnpm install` 提供），检查结果放在样例目录之外：
+在仓库根目录构建统一 CLI，再将检查报告写到样例目录之外：
 
 ```bash
-npx evidence-model check libs/evidence-model-core/tests/fixtures/models/valid-traceable-subscription \
-  > "$FM_CHECK_FILE"
+pnpm exec nx build cli
+pnpm --silent evidence check libs/evidence-model-core/tests/fixtures/models/valid-traceable-subscription \
+  --json > "$FM_CHECK_FILE"
 ```
 
 预期 valid 为 true；v6 检查报告不执行 HTTP 验收，不再提供 simulationPassed。合同两个方向都已成对落地，删除访问方向的履约项后范围检查应报缺口而一致性仍通过。运行前这些只是预期，实际退出码、摘要、覆盖和未执行项仍须报告。检查不会写入模型。
