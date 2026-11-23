@@ -10,6 +10,7 @@ export {
   type CanvasViewportMemory,
   type ZoomDirection,
 } from './CanvasViewport.js';
+export { ContextMapView } from './ContextMapView.js';
 export type { CanvasStoryFocus } from './storyFocus.js';
 export type { CanvasViewMode } from '@evidence-poc/evidence-canvas-interaction';
 export { EntityNode, ContextGroupNode } from './EntityNode.js';

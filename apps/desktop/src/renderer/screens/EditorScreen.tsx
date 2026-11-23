@@ -6,6 +6,7 @@ import { computeContextScope } from '@evidence-poc/evidence-canvas-interaction';
 import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
 import {
   ENTITY_CATEGORY_LABELS,
+  isContextEntity,
   isEvidenceEntity,
   isFulfillmentRequest,
   type DomainModelDocument,
@@ -47,6 +48,7 @@ import {
 import { TopHeader } from '../components/TopHeader';
 import {
   CanvasViewport,
+  ContextMapView,
   LiveApiProvider,
   createDiagnosticIndex,
   type CanvasViewMode,
@@ -165,7 +167,14 @@ const EditorWorkspace = ({
 }: EditorWorkspaceProps) => {
   const ai = useAiConfiguration();
   const [scenarioOpen, setScenarioOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<CanvasViewMode>('standard');
+  const [density, setDensity] = useState<CanvasViewMode>('standard');
+  const [selectedScope, setSelectedScope] = useState<string | null>(null);
+  const [detailContext, setDetailContext] = useState<string | null>(null);
+  const [overviewOpen, setOverviewOpen] = useState(false);
+  const viewMode =
+    selectedScope !== null && selectedScope === detailContext
+      ? 'expanded'
+      : density;
   const canvasMemory = useRef<CanvasViewportMemory['current']>(null);
   const workspaceView = useWorkspaceViewMode();
   const ledgerActive = workspaceView.surface === 'table';
@@ -240,7 +249,6 @@ const EditorWorkspace = ({
     initialDocument,
     { includeArtifacts: layout.isDeliveryOpen },
   );
-  const [selectedScope, setSelectedScope] = useState<string | null>(null);
   const scope = useMemo(
     () => computeContextScope(state.layout, selectedScope),
     [state.layout, selectedScope],
@@ -376,6 +384,7 @@ const EditorWorkspace = ({
 
   const focusNode = useCallback(
     (nodeId: string) => {
+      setOverviewOpen(false);
       if (scope !== null && !scope.nodeIds.has(nodeId)) setSelectedScope(null);
       state.session.select(nodeId);
       tokenRef.current += 1;
@@ -447,6 +456,7 @@ const EditorWorkspace = ({
       stormingReturnFocus.current = active;
     }
     setInquiry(null);
+    setOverviewOpen(false);
     closeStory();
     workspaceView.returnToGraph();
     setStormingOpen(true);
@@ -772,13 +782,63 @@ const EditorWorkspace = ({
     />
   ) : null;
 
+  const mapVisible = overviewOpen && !storyActive;
+  const openContextMap = () => {
+    setZoomCommand(null);
+    setOverviewOpen(true);
+  };
+  const closeContextMap = () => {
+    // A fit below the map threshold should not immediately reopen the overview.
+    if (canvasMemory.current && canvasMemory.current.zoom < 0.35)
+      canvasMemory.current = { ...canvasMemory.current, zoom: 0.65 };
+    setOverviewOpen(false);
+    canvasStageRef.current?.focus();
+  };
+  const openMapContext = useCallback(
+    (contextId: string) => {
+      setOverviewOpen(false);
+      state.session.clearSelection();
+      setSelectedScope(contextId);
+      const context = state.graph.getEntity(contextId);
+      setDetailContext(
+        isContextEntity(context) && context.kind === 'domain'
+          ? contextId
+          : null,
+      );
+      canvasStageRef.current?.focus();
+    },
+    [state.graph, state.session],
+  );
+  const canOpenContextMap =
+    !storyActive &&
+    inquiryTarget === null &&
+    !stormingOpen &&
+    !agent.running &&
+    patchReview.review === null;
   const graphStage = (
     <div
       ref={canvasStageRef}
       data-region="canvas-stage"
       tabIndex={-1}
-      className="relative flex h-full min-h-0 flex-1"
+      className="relative flex h-full min-h-0 flex-1 flex-col"
     >
+      {!storyActive && (
+        <div
+          className="flex items-center gap-2 border-b border-workbench-border bg-evidence-panel px-2 py-1"
+          data-evidence-capture-hide=""
+        >
+          <Button
+            type="button"
+            size="xs"
+            variant="outline"
+            aria-pressed={mapVisible}
+            disabled={!mapVisible && !canOpenContextMap}
+            onClick={mapVisible ? closeContextMap : openContextMap}
+          >
+            {mapVisible ? '返回履约画布' : '上下文地图'}
+          </Button>
+        </div>
+      )}
       {state.layoutError !== null ? (
         <div
           role="alert"
@@ -787,90 +847,109 @@ const EditorWorkspace = ({
           画布布局失败：{state.layoutError}
         </div>
       ) : null}
-      <CanvasViewport
-        graph={state.graph}
-        layout={state.layout}
-        document={state.document}
-        viewMode={viewMode}
-        selection={state.selection}
-        focusRequest={focusRequest}
-        zoomCommand={zoomCommand}
-        viewportMemory={canvasMemory}
-        frameRequest={stormingFrame}
-        onFrameComplete={clearStormingFrame}
-        storyActive={storyActive}
-        storyFocus={story.canvasFocus}
-        hud={(controls) => (
-          <CanvasFloatingHud
-            {...controls}
-            density={viewMode}
-            onOpenScenarios={() => setScenarioOpen(true)}
-            onDensityChange={setViewMode}
-            hasSelection={state.selection.nodeId !== null}
-            onClearSelection={() => state.session.clearSelection()}
-          />
-        )}
-        diagnostics={diagnostics}
-        storming={
-          storyActive
-            ? undefined
-            : {
-                open: stormingOpen,
-                focusToken: stormingFocus,
-                busy: stormingBusy,
-                blocked:
-                  patchReview.review !== null ||
-                  (agent.running && !stormingBusy),
-                error: stormingError,
-                aiConfigured: ai?.aiConfigured,
-                onConfigureAi: ai?.openSettings,
-                onClose: closeStorming,
-                onStorm: submitStorming,
-                onStop: () => void agent.stop(),
+      {mapVisible ? (
+        <ContextMapView graph={state.graph} onOpenContext={openMapContext} />
+      ) : (
+        <CanvasViewport
+          graph={state.graph}
+          layout={state.layout}
+          document={state.document}
+          viewMode={viewMode}
+          selection={state.selection}
+          focusRequest={focusRequest}
+          zoomCommand={zoomCommand}
+          viewportMemory={canvasMemory}
+          frameRequest={stormingFrame}
+          onFrameComplete={clearStormingFrame}
+          storyActive={storyActive}
+          storyFocus={story.canvasFocus}
+          hud={(controls) => (
+            <CanvasFloatingHud
+              {...controls}
+              density={viewMode}
+              onOpenScenarios={() => setScenarioOpen(true)}
+              onDensityChange={(mode) => {
+                setDetailContext(null);
+                setDensity(mode);
+              }}
+              hasSelection={state.selection.nodeId !== null}
+              onClearSelection={() => state.session.clearSelection()}
+            />
+          )}
+          diagnostics={diagnostics}
+          storming={
+            storyActive
+              ? undefined
+              : {
+                  open: stormingOpen,
+                  focusToken: stormingFocus,
+                  busy: stormingBusy,
+                  blocked:
+                    patchReview.review !== null ||
+                    (agent.running && !stormingBusy),
+                  error: stormingError,
+                  aiConfigured: ai?.aiConfigured,
+                  onConfigureAi: ai?.openSettings,
+                  onClose: closeStorming,
+                  onStorm: submitStorming,
+                  onStop: () => void agent.stop(),
+                }
+          }
+          evidenceInquiry={
+            storyActive
+              ? undefined
+              : {
+                  target: inquiryTarget,
+                  busy: agent.running || patchReview.review !== null,
+                  onAcceptPatch:
+                    reviewInInquiry && canKeepPatch ? acceptPatch : undefined,
+                  onRevertPatch:
+                    reviewInInquiry && canRevertPatch ? revertPatch : undefined,
+                  onOpen: openInquiry,
+                  onClose: closeInquiry,
+                  content:
+                    inquiryTarget === null ? null : (
+                      <EvidenceAgentThread
+                        key={`${inquiryTarget.nodeId}:${inquiryTarget.kind}`}
+                        nodeId={inquiryTarget.nodeId}
+                        inquiry={inquiryTarget.kind}
+                        canExploreVariation={
+                          state.graph.getEntity(inquiryTarget.nodeId)?.kind ===
+                          'fulfillment_confirmation'
+                        }
+                        conversation={agent}
+                        patchReview={patchReview}
+                        onFocusEntity={revealOnGraph}
+                        aiConfigured={ai?.aiConfigured}
+                        onConfigureAi={ai?.openSettings}
+                      />
+                    ),
+                }
+          }
+          onOpenIssues={(issues) => {
+            if (issues[0] === undefined) return;
+            layout.openProblemsWithIssue(issues[0].issueId);
+            focusIssue(issues[0]);
+          }}
+          overlay={patchReview.review?.overlay ?? null}
+          scope={scope}
+          onScopeChange={storyActive ? undefined : changeScope}
+          onUserZoom={(zoom) => {
+            if (storyActive) return;
+            if (canOpenContextMap && zoom < 0.35 && selectedScope === null) {
+              openContextMap();
+            } else if (selectedScope !== null) {
+              const context = state.graph.getEntity(selectedScope);
+              if (isContextEntity(context) && context.kind === 'domain') {
+                if (zoom > 0.85) setDetailContext(selectedScope);
+                else if (zoom < 0.8) setDetailContext(null);
               }
-        }
-        evidenceInquiry={
-          storyActive
-            ? undefined
-            : {
-                target: inquiryTarget,
-                busy: agent.running || patchReview.review !== null,
-                onAcceptPatch:
-                  reviewInInquiry && canKeepPatch ? acceptPatch : undefined,
-                onRevertPatch:
-                  reviewInInquiry && canRevertPatch ? revertPatch : undefined,
-                onOpen: openInquiry,
-                onClose: closeInquiry,
-                content:
-                  inquiryTarget === null ? null : (
-                    <EvidenceAgentThread
-                      key={`${inquiryTarget.nodeId}:${inquiryTarget.kind}`}
-                      nodeId={inquiryTarget.nodeId}
-                      inquiry={inquiryTarget.kind}
-                      canExploreVariation={
-                        state.graph.getEntity(inquiryTarget.nodeId)?.kind ===
-                        'fulfillment_confirmation'
-                      }
-                      conversation={agent}
-                      patchReview={patchReview}
-                      onFocusEntity={revealOnGraph}
-                      aiConfigured={ai?.aiConfigured}
-                      onConfigureAi={ai?.openSettings}
-                    />
-                  ),
-              }
-        }
-        onOpenIssues={(issues) => {
-          if (issues[0] === undefined) return;
-          layout.openProblemsWithIssue(issues[0].issueId);
-          focusIssue(issues[0]);
-        }}
-        overlay={patchReview.review?.overlay ?? null}
-        scope={scope}
-        onScopeChange={storyActive ? undefined : changeScope}
-        onSelect={(nodeId) => state.session.select(nodeId)}
-        onClearSelection={() => state.session.clearSelection()}
-      />
+            }
+          }}
+          onSelect={(nodeId) => state.session.select(nodeId)}
+          onClearSelection={() => state.session.clearSelection()}
+        />
+      )}
     </div>
   );
 

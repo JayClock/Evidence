@@ -118,6 +118,8 @@ interface CanvasViewportProps {
   frameRequest?: readonly string[] | null;
   onFrameComplete?: () => void;
   onScopeChange?: (contextId: string | null) => void;
+  /** Report deliberate zoom, not layout fitting or navigation. */
+  onUserZoom?: (zoom: number) => void;
   onSelect: (nodeId: string) => void;
   onClearSelection: () => void;
 }
@@ -234,6 +236,7 @@ const CanvasSurface = ({
   onOpenIssues,
   scope = null,
   onScopeChange,
+  onUserZoom,
   evidenceInquiry,
   storming,
   frameRequest,
@@ -253,6 +256,16 @@ const CanvasSurface = ({
     viewportInitialized,
   } = useReactFlow<CanvasFlowNode, CanvasFlowEdge>();
   const { zoom } = useViewport();
+  const moveStartZoom = useRef(1);
+  const stepZoom = useCallback(
+    async (direction: 'in' | 'out', duration: number) => {
+      const before = getZoom();
+      await (direction === 'in' ? zoomIn({ duration }) : zoomOut({ duration }));
+      const after = getZoom();
+      if (after !== before) onUserZoom?.(after);
+    },
+    [getZoom, onUserZoom, zoomIn, zoomOut],
+  );
   const viewportSized = useStore(
     (state) => state.width > 0 && state.height > 0,
   );
@@ -430,6 +443,44 @@ const CanvasSurface = ({
     viewportMemory,
   ]);
 
+  const rememberViewport = useCallback(
+    (viewport: { x: number; y: number; zoom: number }) => {
+      if (!viewportMemory) return;
+      const nodeId =
+        selection.nodeId ??
+        nearestNodeId(
+          layout,
+          (viewportWidth / 2 - viewport.x) / viewport.zoom,
+          (viewportHeight / 2 - viewport.y) / viewport.zoom,
+        );
+      if (nodeId)
+        viewportMemory.current = {
+          nodeId,
+          zoom: viewport.zoom,
+          scopeId: scope?.contextId ?? null,
+        };
+    },
+    [
+      layout,
+      scope?.contextId,
+      selection.nodeId,
+      viewportHeight,
+      viewportMemory,
+      viewportWidth,
+    ],
+  );
+  const resetZoom = useCallback(
+    (duration: number) => {
+      // The engine debounces move-end. Keep the deliberate reset even if a
+      // surface switch unmounts the canvas before that event reaches us.
+      rememberViewport(getViewport());
+      if (viewportMemory?.current)
+        viewportMemory.current = { ...viewportMemory.current, zoom: 1 };
+      void zoomTo(1, { duration });
+    },
+    [getViewport, rememberViewport, viewportMemory, zoomTo],
+  );
+
   const lastZoomToken = useRef<number | null>(null);
   useEffect(() => {
     if (zoomCommand === null || lastZoomToken.current === zoomCommand.token) {
@@ -444,7 +495,7 @@ const CanvasSurface = ({
     }
 
     if (zoomCommand.direction === 'reset') {
-      void zoomTo(1, { duration });
+      resetZoom(duration);
       return;
     }
 
@@ -458,18 +509,15 @@ const CanvasSurface = ({
       return;
     }
 
-    void (zoomCommand.direction === 'in'
-      ? zoomIn({ duration })
-      : zoomOut({ duration }));
+    void stepZoom(zoomCommand.direction, duration);
   }, [
     zoomCommand,
     fitToContent,
     fitBounds,
     layout,
     selection,
-    zoomIn,
-    zoomOut,
-    zoomTo,
+    stepZoom,
+    resetZoom,
   ]);
 
   const lastFocusToken = useRef<number | null>(null);
@@ -615,21 +663,16 @@ const CanvasSurface = ({
           zoomOnPinch
           zoomOnDoubleClick={false}
           preventScrolling
-          onMoveEnd={(_, viewport) => {
-            if (!viewportMemory) return;
-            const nodeId =
-              selection.nodeId ??
-              nearestNodeId(
-                layout,
-                (viewportWidth / 2 - viewport.x) / viewport.zoom,
-                (viewportHeight / 2 - viewport.y) / viewport.zoom,
-              );
-            if (nodeId)
-              viewportMemory.current = {
-                nodeId,
-                zoom: viewport.zoom,
-                scopeId: scope?.contextId ?? null,
-              };
+          onMoveStart={(_, viewport) => {
+            moveStartZoom.current = viewport.zoom;
+          }}
+          onMoveEnd={(event, viewport) => {
+            if (
+              event &&
+              Math.abs(viewport.zoom - moveStartZoom.current) > 0.001
+            )
+              onUserZoom?.(viewport.zoom);
+            rememberViewport(viewport);
           }}
           onPaneClick={onClearSelection}
           onNodeMouseEnter={(_, node) => {
@@ -784,11 +827,9 @@ const CanvasSurface = ({
         >
           {hud({
             zoom,
-            zoomIn: () => void zoomIn({ duration: reducedMotion() ? 0 : 120 }),
-            zoomOut: () =>
-              void zoomOut({ duration: reducedMotion() ? 0 : 120 }),
-            resetZoom: () =>
-              void zoomTo(1, { duration: reducedMotion() ? 0 : 120 }),
+            zoomIn: () => void stepZoom('in', reducedMotion() ? 0 : 120),
+            zoomOut: () => void stepZoom('out', reducedMotion() ? 0 : 120),
+            resetZoom: () => resetZoom(reducedMotion() ? 0 : 120),
             fitToContent,
             grid,
             onGridChange: setGrid,

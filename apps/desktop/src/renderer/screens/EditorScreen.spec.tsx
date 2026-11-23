@@ -19,6 +19,7 @@ import {
   batchAddEvidenceMutator,
   collectFlowScenarios,
   createModelPatch,
+  instantiateArchetypeMutator,
   recordBreachOutcomeMutator,
   splitEvidenceToPairMutator,
 } from '@evidence-poc/evidence-model-core';
@@ -44,6 +45,43 @@ const readyProject = (document = createDesktopFixture()) =>
 const readyCanvas = () => screen.findByText('业务旅程画布');
 
 describe('EditorScreen', () => {
+  it('opens the context map, shows capabilities and drills into the domain scope', async () => {
+    const document = createEmptyDomainModel();
+    instantiateArchetypeMutator(document, {
+      archetypeId: 'periodic-subscription',
+      idPrefix: 'membership',
+      variationValues: {
+        subjectLabel: '会员内容',
+        customerLabel: '订阅者',
+        operatorLabel: '专栏方',
+        providerLabel: '支付方',
+      },
+    });
+    const api = readyProject(document);
+    const { container } = render(
+      <EditorScreen rootPath="/models/membership" />,
+    );
+    await readyCanvas();
+    fireEvent.click(screen.getByRole('button', { name: '上下文地图' }));
+    const map = await screen.findByRole('region', { name: '上下文地图' });
+    fireEvent.click(within(map).getByText(/依赖与插槽/));
+    expect(
+      within(map).getByText('订阅框架协议依赖订阅支付协议：订阅到账凭证'),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(within(map).getByRole('list', { name: '按上下文下钻' })).getByRole(
+        'button',
+        { name: '会员内容领域' },
+      ),
+    );
+    await readyCanvas();
+    expect(
+      container.querySelector('[data-canvas-mode="expanded"]'),
+    ).not.toBeNull();
+    expect(screen.queryByRole('region', { name: '上下文地图' })).toBeNull();
+    expect(api.calls.save).toEqual([]);
+  });
+
   it('keeps journey geometry, selection and camera when toggling the ledger', async ({
     onTestFinished,
   }) => {
