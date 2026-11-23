@@ -24,6 +24,10 @@ import { DomainLedgerTable } from '../components/ledger/DomainLedgerTable';
 import { downloadLedgerCsv } from '../components/ledger/domainLedgerCsv';
 import { useEntityLedger } from '../components/ledger/useEntityLedger';
 import { CanvasFloatingHud } from '../components/canvas/CanvasFloatingHud';
+import {
+  ArchetypeWizard,
+  type ArchetypePreview,
+} from '../components/canvas/ArchetypeWizard';
 import { ActivityRail } from '../components/layout/ActivityRail';
 import { EntityDrawer } from '../components/layout/EntityDrawer';
 import { InspectorShell } from '../components/layout/InspectorShell';
@@ -815,6 +819,18 @@ const EditorWorkspace = ({
     !stormingOpen &&
     !agent.running &&
     patchReview.review === null;
+  const applyArchetype = (preview: ArchetypePreview) => {
+    if (!canOpenContextMap || state.session.isDocumentLocked())
+      throw new Error('当前画布有建模事务正在处理，请稍后重试。');
+    if (state.session.getDocument() !== preview.base)
+      throw new Error('模型已变化，请返回并重新预览。');
+    state.session.applyPatchBatch(
+      [{ op: 'test', path: '', value: preview.base }, ...preview.patches],
+      `应用业务模式：${preview.label}`,
+    );
+    setZoomCommand(null);
+    openMapContext(preview.result.contextRef);
+  };
   const graphStage = (
     <div
       ref={canvasStageRef}
@@ -837,6 +853,11 @@ const EditorWorkspace = ({
           >
             {mapVisible ? '返回履约画布' : '上下文地图'}
           </Button>
+          <ArchetypeWizard
+            document={state.document}
+            disabled={!canOpenContextMap}
+            onApply={applyArchetype}
+          />
         </div>
       )}
       {state.layoutError !== null ? (

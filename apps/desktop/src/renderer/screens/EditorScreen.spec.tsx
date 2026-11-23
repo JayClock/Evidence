@@ -82,6 +82,52 @@ describe('EditorScreen', () => {
     expect(api.calls.save).toEqual([]);
   });
 
+  it('previews a template without writing and applies it as one undoable edit', async () => {
+    const api = readyProject(createEmptyDomainModel());
+    const { container } = render(
+      <EditorScreen rootPath="/models/membership" />,
+    );
+    const trigger = await screen.findByRole('button', { name: '业务模式模板' });
+    fireEvent.click(trigger);
+    const sheet = within(
+      await screen.findByRole('dialog', { name: '业务模式模板' }),
+    );
+    fireEvent.click(sheet.getByRole('radio', { name: '周期订阅与会员服务' }));
+    expect(sheet.getByRole('list', { name: '模板权责骨架' })).toHaveTextContent(
+      '订阅框架协议',
+    );
+    fireEvent.click(sheet.getByRole('button', { name: '配置变化点' }));
+    for (const [label, value] of Object.entries({
+      实例前缀: 'membership',
+      核心标的物: '会员专栏',
+      需求方: '读者',
+      运营方: '专栏方',
+      支撑能力提供方: '支付方',
+    }))
+      fireEvent.change(sheet.getByLabelText(new RegExp(label)), {
+        target: { value },
+      });
+    fireEvent.click(sheet.getByRole('button', { name: '预览变更' }));
+    expect(await sheet.findByText(/新增 \d+ 个模型对象/)).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-node-id="membership.delivery.request"]'),
+    ).toBeNull();
+    fireEvent.click(sheet.getByRole('button', { name: '应用到画布' }));
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-node-id="membership.delivery.request"]'),
+      ).not.toBeNull(),
+    );
+    expect(screen.queryByRole('dialog', { name: '业务模式模板' })).toBeNull();
+    expect(api.calls.save).toEqual([]);
+    fireEvent.keyDown(window, { key: 'z', metaKey: true });
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-node-id="membership.delivery.request"]'),
+      ).toBeNull(),
+    );
+  });
+
   it('keeps journey geometry, selection and camera when toggling the ledger', async ({
     onTestFinished,
   }) => {
