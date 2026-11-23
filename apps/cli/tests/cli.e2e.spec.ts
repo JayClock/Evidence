@@ -161,7 +161,7 @@ describe('built evidence binary full lifecycle', () => {
   );
 
   it('compares compatible and breaking model evolution through oasdiff', async () => {
-    const same = await invoke(['diff', 'api', model, model]);
+    const same = await invoke(['diff', model, model, '--format', 'json']);
     expect(same.code, same.stderr).toBe(0);
     expect(JSON.parse(same.stdout).hasBreakingChanges).toBe(false);
     const current = JSON.parse(readFileSync(model, 'utf8'));
@@ -179,17 +179,10 @@ describe('built evidence binary full lifecycle', () => {
       example.value.note = 'required now';
     const target = path.join(root, 'new.evidence.json');
     writeFileSync(target, JSON.stringify(current));
-    const broken = await invoke(['diff', 'api', model, target]);
+    const broken = await invoke(['diff', model, target, '--format', 'json']);
     expect(broken.code, `${broken.stdout}\n${broken.stderr}`).toBe(1);
     expect(JSON.parse(broken.stdout).hasBreakingChanges).toBe(true);
-    const markdown = await invoke([
-      'diff',
-      'api',
-      model,
-      target,
-      '--format',
-      'markdown',
-    ]);
+    const markdown = await invoke(['diff', model, target]);
     expect(markdown.code).toBe(1);
     expect(markdown.stdout).toContain('note');
   }, 20000);
@@ -250,13 +243,12 @@ it('migrates a legacy overlay through the executable CLI and protects existing o
     }),
   );
   const args = [
-    'api',
     'migrate-overlay',
     '--model',
     model,
     '--in',
     input,
-    '--out',
+    '-o',
     output,
   ];
   const migrated = await invoke(args);

@@ -61,7 +61,7 @@
           }
         ],
         "options": {
-          "command": "node apps/cli/dist/cli.js api export-tests",
+          "command": "node apps/cli/dist/cli.js export --tests",
           "cwd": "."
         }
       },
@@ -77,7 +77,7 @@
           }
         ],
         "options": {
-          "command": "node apps/cli/dist/cli.js api diff",
+          "command": "node apps/cli/dist/cli.js diff",
           "cwd": "."
         }
       },

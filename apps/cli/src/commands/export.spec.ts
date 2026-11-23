@@ -63,12 +63,6 @@ it('selects individual artifacts without stale mixed generations or a format swi
     ),
   ).toBe(1);
   expect(
-    await dispatch(
-      ['api', 'export-tests', '--model', model, '--format', 'bruno'],
-      context(),
-    ),
-  ).toBe(1);
-  expect(
     await dispatch(['export', '--model', model, '--tests'], context()),
   ).toBe(0);
   expect(readdirSync(path.join(root, 'dist')).sort()).toEqual([

@@ -80,21 +80,17 @@ it('round trips, compiles and derives lineage in the caller cwd', async () => {
   expect(JSON.parse(check.stdout)).toHaveProperty('complete');
 }, 20000);
 
-it('supports direct diff with a Markdown default, explicit JSON and legacy JSON', async () => {
+it('supports direct diff with a Markdown default and explicit JSON', async () => {
   const args = ['source.evidence.json', 'source.evidence.json'];
   const markdown = await invoke(['diff', ...args]);
   expect(markdown.code, markdown.stderr).toBe(0);
   expect(markdown.stdout).toContain('#');
-  for (const prefix of [
-    ['diff', '--format=json'],
-    ['diff', 'api'],
-  ]) {
-    const result = await invoke([...prefix, ...args]);
-    expect(result.code, result.stderr).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      hasBreakingChanges: false,
-    });
-  }
+  const result = await invoke(['diff', '--format=json', ...args]);
+  expect(result.code, result.stderr).toBe(0);
+  expect(result.stderr).toBe('');
+  expect(JSON.parse(result.stdout)).toMatchObject({
+    hasBreakingChanges: false,
+  });
 }, 20000);
 
 it('rejects invalid and duplicate options and missing or extra arguments without writes', async () => {

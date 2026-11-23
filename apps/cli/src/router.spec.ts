@@ -20,23 +20,47 @@ describe('unified CLI dispatch', () => {
   it('shows help and reports unknown commands and options', async () => {
     const { context, output, errors } = captureContext();
     expect(await dispatch(['--help'], context)).toBe(0);
-    expect(output.join('')).toContain('evidence diff api');
+    expect(output.join('')).toContain('migrate-overlay');
+    expect(output.join('')).not.toMatch(/api <command>|diff api/);
     expect(await dispatch(['nope'], context)).toBe(1);
     expect(errors.join('')).toContain('Unknown command');
     expect(await dispatch(['check', '--bad'], context)).toBe(1);
     expect(errors.join('')).toContain('Unknown option');
   });
-  it('rejects incompatible API flags and mixed legacy aliases', async () => {
+  it('rejects retired commands instead of routing them to new commands', async () => {
     for (const args of [
-      ['api', 'unknown'],
-      ['api', 'diff', '--model', 'model.evidence.json'],
-      ['api', 'inspect', '--format', 'json'],
-      ['api', 'inspect', '--fm', 'a', '--model', 'b'],
-      ['pack', 'missing', '--out', 'a', '-o', 'b'],
+      ['api', 'inspect'],
+      ['api', 'migrate-overlay'],
+      ['diff', 'api', 'base', 'target'],
+      ['timeline'],
+      ['simulate'],
+      ['role-play'],
     ]) {
       const { context, errors } = captureContext();
       expect(await dispatch(args, context), args.join(' ')).toBe(1);
       expect(errors).not.toEqual([]);
+    }
+  });
+
+  it('rejects missing migration inputs and unsupported options', async () => {
+    for (const args of [
+      ['migrate-overlay', '--in', 'legacy.json'],
+      ['migrate-overlay', '--out', 'new.json'],
+      [
+        'migrate-overlay',
+        '--in',
+        'legacy.json',
+        '--out',
+        'new.json',
+        '--fm',
+        'fm',
+      ],
+      ['migrate-overlay', '--in', 'legacy.json', '--out', 'a', '-o', 'b'],
+    ]) {
+      const { context, errors, output } = captureContext();
+      expect(await dispatch(args, context), args.join(' ')).toBe(1);
+      expect(errors).not.toEqual([]);
+      expect(output).toEqual([]);
     }
   });
 

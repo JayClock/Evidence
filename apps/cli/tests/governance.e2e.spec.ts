@@ -241,7 +241,13 @@ it.each(['extra-field', 'missing-derived', 'amount'])(
 );
 
 it('accepts additive milestone contracts and blocks new required caller fields', async () => {
-  const compatible = await invoke(['diff', 'api', baseline, current]);
+  const compatible = await invoke([
+    'diff',
+    baseline,
+    current,
+    '--format',
+    'json',
+  ]);
   expect(compatible.code, compatible.stderr).toBe(0);
   expect(JSON.parse(compatible.stdout).hasBreakingChanges).toBe(false);
   const model = JSON.parse(readFileSync(current, 'utf8'));
@@ -259,7 +265,7 @@ it('accepts additive milestone contracts and blocks new required caller fields',
     example.value.note = 'now required';
   const broken = path.join(root, 'breaking.evidence.json');
   writeFileSync(broken, JSON.stringify(model));
-  const result = await invoke(['diff', 'api', current, broken]);
+  const result = await invoke(['diff', current, broken, '--format', 'json']);
   expect(result.code, result.stdout + result.stderr).toBe(1);
   expect(JSON.parse(result.stdout).hasBreakingChanges).toBe(true);
 }, 30000);

@@ -4,7 +4,7 @@ import { exportCommand } from './commands/export.js';
 import { checkCommand } from './commands/check.js';
 import { diffCommand } from './commands/diff.js';
 import { modelCommand } from './commands/model.js';
-import { apiCommand } from './commands/api.js';
+import { migrateOverlayCommand } from './commands/migrateOverlay.js';
 import { storyCommand } from './commands/story.js';
 import {
   stringOption,
@@ -81,14 +81,8 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
     .option('--verify', 'Read-only exact byte verification')
     .action((options: CommandOptions) => exportCommand(options, context));
   cli
-    .command(
-      'diff <base> <target>',
-      'Compare contracts (legacy: evidence diff api <base> <target>)',
-    )
-    .option(
-      '--format <format>',
-      'json | markdown (default: markdown; legacy: json)',
-    )
+    .command('diff <base> <target>', 'Compare contracts')
+    .option('--format <format>', 'json | markdown (default: markdown)')
     .action((base: string, target: string, options: CommandOptions) =>
       diffCommand(base, target, options, context),
     );
@@ -113,31 +107,15 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
       registered.option('--sort-keys', 'Stable object key order');
   }
   cli
-    .command(
-      'api <command>',
-      'API inspect/check/project/deliver/diff/export-tests/migrate-overlay workflows',
-    )
-    .option('--project-root <dir>', 'Project root')
+    .command('migrate-overlay', 'Migrate a legacy API overlay to v6')
     .option(
-      '--fm, --model <path>',
-      'Model directory or bundle (--fm is a legacy alias)',
+      '--model <path>',
+      'Model directory or bundle (default: .evidence/fm)',
     )
-    .option('--fm-check <file>', 'Pinned check report')
-    .option('--api <file>', 'API overlay')
-    .option('--in <file>', 'Legacy overlay input for migrate-overlay')
-    .option('-o, --out <dir>', 'Dedicated output directory')
-    .option(
-      '--base <path>',
-      'Baseline model or exported OpenAPI JSON for API diff',
-    )
-    .option(
-      '--target <path>',
-      'Target model or exported OpenAPI JSON for API diff',
-    )
-    .option('--base-api <file>', 'Baseline API overlay')
-    .option('--format <format>', 'json | markdown for diff')
-    .action((command: string, options: CommandOptions) =>
-      apiCommand(command, options, context),
+    .option('--in <file>', 'Legacy overlay input (required)')
+    .option('-o, --out <file>', 'New overlay file (required)')
+    .action((options: CommandOptions) =>
+      migrateOverlayCommand(options, context),
     );
   cli.help();
   cli.version('0.0.1');
@@ -220,13 +198,6 @@ export async function dispatch(
 ): Promise<number> {
   try {
     const args = [...argv];
-    if (args[0] === 'diff' && args[1] === 'api') {
-      args.splice(1, 1);
-      if (
-        !args.some((arg) => arg === '--format' || arg.startsWith('--format='))
-      )
-        args.push('--format', 'json');
-    }
     if (args.length === 0 || args[0] === 'help') args.splice(0, 1, '--help');
     const cli = createCli(context);
     cli.parse(['node', 'evidence', ...args], { run: false });

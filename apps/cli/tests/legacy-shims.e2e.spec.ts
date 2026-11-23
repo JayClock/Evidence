@@ -67,27 +67,6 @@ it('keeps all deprecated bins executable with warnings on stderr and valid JSON 
     expect(result.stderr).toContain('[DEPRECATED]');
     expect(JSON.parse(result.stdout)).toBeTruthy();
   }
-  const projection = await unified([
-    'api',
-    'inspect',
-    '--model',
-    'model.evidence.json',
-  ]);
-  expect([0, 3], projection.stderr).toContain(projection.code);
-  expect(JSON.parse(projection.stdout)).toMatchObject({
-    modelId: 'b2b-escrow',
-  });
-  expect(projection.stderr).toBe('');
-  const diff = await unified([
-    'api',
-    'diff',
-    '--base',
-    'model.evidence.json',
-    '--target',
-    'model.evidence.json',
-  ]);
-  expect(diff.code, diff.stderr).toBe(0);
-  expect(JSON.parse(diff.stdout)).toMatchObject({ hasBreakingChanges: false });
 }, 20000);
 
 it('detects symlinked legacy bins and keeps programmatic imports silent', async () => {

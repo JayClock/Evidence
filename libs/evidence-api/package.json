@@ -50,7 +50,7 @@
           }
         ],
         "options": {
-          "command": "node apps/cli/dist/cli.js api deliver",
+          "command": "node apps/cli/dist/cli.js export --openapi",
           "cwd": "."
         }
       }
