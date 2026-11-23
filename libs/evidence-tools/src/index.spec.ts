@@ -55,14 +55,68 @@ describe('shared model tool registry', () => {
   it('shares read-only What-If and health inspection', () => {
     const { tools, tool } = setup();
     expect(tools.map(({ name }) => name)).toEqual(Object.values(names));
-    for (const name of [names.simulateWhatIfChallenge, names.scanModelHealth])
+    for (const name of [
+      names.simulateWhatIfChallenge,
+      names.scanModelHealth,
+      names.listBusinessArchetypes,
+      names.inspectArchetypeDetail,
+      names.inspectContextMapTopology,
+    ])
       expect(tool(name).annotations).toMatchObject({
         readOnlyHint: true,
         destructiveHint: false,
       });
     expect(
       tools.filter(({ annotations }) => annotations.readOnlyHint),
-    ).toHaveLength(2);
+    ).toHaveLength(5);
+  });
+
+  it('instantiates in a single guarded transaction and immediately projects the new topology', async () => {
+    const { tool, session, loadDocument, applyModelPatch } = setup();
+    expect(
+      (await tool(names.listBusinessArchetypes).run({})).value,
+    ).toHaveLength(3);
+    const archetypeId = 'back-to-back-consignment';
+    expect(
+      (await tool(names.inspectArchetypeDetail).run({ archetypeId })).value,
+    ).toMatchObject({ id: archetypeId });
+    expect(loadDocument).not.toHaveBeenCalled();
+    const before = session.getDocument();
+    const input = {
+      archetypeId,
+      idPrefix: 'shop',
+      variationValues: {
+        subjectLabel: '商品',
+        customerLabel: '顾客',
+        operatorLabel: '商店',
+        providerLabel: '供货方',
+      },
+    };
+    expect(
+      (await tool(names.instantiateArchetypeTemplate).run(input)).isError,
+    ).toBeUndefined();
+    expect(applyModelPatch).toHaveBeenCalledTimes(1);
+    expect(applyModelPatch.mock.calls[0]?.[0].patches[0]).toEqual({
+      op: 'test',
+      path: '',
+      value: before,
+    });
+    expect(
+      (await tool(names.inspectContextMapTopology).run({})).value,
+    ).toMatchObject({
+      edges: expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'capability',
+          targetRef: 'shop.support.context',
+        }),
+      ]),
+    });
+    expect(
+      (await tool(names.instantiateArchetypeTemplate).run(input)).isError,
+    ).toBe(true);
+    expect(applyModelPatch).toHaveBeenCalledTimes(1);
+    session.undo();
+    expect(session.getDocument()).toEqual(before);
   });
 
   it('scans the current model read-only and can recheck one finding', async () => {

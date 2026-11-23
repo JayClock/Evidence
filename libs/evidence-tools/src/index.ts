@@ -4,10 +4,12 @@ import {
   BatchAddEvidenceInputSchema,
   BindKeyDataSourceInputSchema,
   BindPartyRoleInputSchema,
+  BusinessArchetypeIdSchema,
   DomainCalculatorIntentSchema,
   DomainIdSchema,
   DomainModelDocumentSchema,
   IdentifySubjectMatterInputSchema,
+  InstantiateArchetypeInputSchema,
   LinkProposalToRfpInputSchema,
   ModelPatchRequestSchema,
   RecordBreachOutcomeInputSchema,
@@ -24,10 +26,14 @@ import {
   bindPartyRoleMutator,
   createDomainGraph,
   createModelPatch,
+  deriveContextMapGraph,
+  getBusinessArchetype,
   identifySubjectMatterMutator,
   inspectModelHealth,
+  instantiateArchetypeMutator,
   isolateDomainCalculatorMutator,
   linkProposalToRfpMutator,
+  listBusinessArchetypes,
   recordBreachOutcomeMutator,
   roleifyConfirmationMutator,
   splitEvidenceToPairMutator,
@@ -35,6 +41,10 @@ import {
 } from '@evidence-poc/evidence-model-core';
 
 export const MODEL_TOOL_NAMES = {
+  listBusinessArchetypes: 'list_business_archetypes',
+  inspectArchetypeDetail: 'inspect_archetype_detail',
+  instantiateArchetypeTemplate: 'instantiate_archetype_template',
+  inspectContextMapTopology: 'inspect_context_map_topology',
   applyModelPatch: 'apply_model_patch',
   batchAddEvidence: 'batch_add_evidence_stubs',
   splitEvidenceToPair: 'split_evidence_to_pair',
@@ -148,7 +158,52 @@ export const createModelTools = (
       : { text: `补丁被拒绝：${result.error}`, value: result, isError: true };
   };
 
+  const json = (value: unknown): ModelToolResult => ({
+    value,
+    text: JSON.stringify(value, null, 2),
+  });
+
   return [
+    define({
+      name: MODEL_TOOL_NAMES.listBusinessArchetypes,
+      label: '列出业务模式',
+      description: '列出可选的工作坊模式骨架，不读取或修改当前模型。',
+      parameters: z.object({}).strict(),
+      readOnly: true,
+      run: async () => json(listBusinessArchetypes()),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.inspectArchetypeDetail,
+      label: '查看业务模式',
+      description: '查看选定模式的稳定权责、支撑能力和待确认的变化点。',
+      parameters: z.object({ archetypeId: BusinessArchetypeIdSchema }).strict(),
+      readOnly: true,
+      run: async ({ archetypeId }) => json(getBusinessArchetype(archetypeId)),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.instantiateArchetypeTemplate,
+      label: '应用业务模式',
+      description:
+        '仅在用户确认骨架、变化点并明确授权后，以一个可撤销事务向当前模型追加设计骨架。未确认时限、结算或法律救济应省略；不生成业务实例或宣称交付就绪。',
+      parameters: InstantiateArchetypeInputSchema,
+      run: (input) =>
+        runOperator(
+          `应用业务模式：${getBusinessArchetype(input.archetypeId).label}`,
+          (draft) => instantiateArchetypeMutator(draft, input),
+        ),
+    }),
+    define({
+      name: MODEL_TOOL_NAMES.inspectContextMapTopology,
+      label: '读取业务上下文地图',
+      description:
+        '只读查看当前模型的合同、领域、渠道与跨上下文依赖。边指向提供方；不代表服务部署拓扑。',
+      parameters: z.object({}).strict(),
+      readOnly: true,
+      run: async () =>
+        json(
+          deriveContextMapGraph(createDomainGraph(await ports.loadDocument())),
+        ),
+    }),
     define({
       name: MODEL_TOOL_NAMES.applyModelPatch,
       label: '应用模型补丁',

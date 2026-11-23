@@ -258,6 +258,10 @@ describe('createEvidenceTools', () => {
       TOOL_NAMES.keyDataAudit,
       TOOL_NAMES.screenshot,
       TOOL_NAMES.stageGate,
+      TOOL_NAMES.listBusinessArchetypes,
+      TOOL_NAMES.inspectArchetypeDetail,
+      TOOL_NAMES.instantiateArchetypeTemplate,
+      TOOL_NAMES.inspectContextMapTopology,
       TOOL_NAMES.applyModelPatch,
       TOOL_NAMES.batchAddEvidence,
       TOOL_NAMES.splitEvidenceToPair,
@@ -308,6 +312,7 @@ describe('createEvidenceTools', () => {
     );
 
     expect(writers.map((tool) => tool.name)).toEqual([
+      TOOL_NAMES.instantiateArchetypeTemplate,
       TOOL_NAMES.applyModelPatch,
       TOOL_NAMES.batchAddEvidence,
       TOOL_NAMES.splitEvidenceToPair,
