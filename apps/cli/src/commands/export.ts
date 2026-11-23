@@ -1,7 +1,17 @@
-import { mkdirSync, realpathSync, readdirSync, readFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  realpathSync,
+  readdirSync,
+  readFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { renderDeliverables } from '@evidence-poc/evidence-acceptance';
-import { writeOutput } from '@evidence-poc/evidence-api';
+import {
+  contextOutputDirectory,
+  writeOutput,
+} from '@evidence-poc/evidence-api';
+import { exportContexts } from './exportContexts.js';
 import {
   stringOption,
   type CommandContext,
@@ -91,7 +101,16 @@ export async function exportCommand(
   const modelPath = canonical(
     path.resolve(context.cwd, stringOption(values.model)!),
   );
-  const out = canonical(path.resolve(context.cwd, stringOption(values.out)!));
+  const watch = values.watch === true;
+  const scoped = watch || values.onlyUnblocked === true;
+  const outputOption =
+    stringOption(values.out) ?? (scoped ? 'delivery' : 'dist');
+  const out = scoped
+    ? contextOutputDirectory(
+        canonical(context.cwd),
+        path.relative(context.cwd, path.resolve(context.cwd, outputOption)),
+      )
+    : canonical(path.resolve(context.cwd, outputOption));
   if (
     inside(out, modelPath) ||
     inside(modelPath, out) ||
@@ -99,6 +118,26 @@ export async function exportCommand(
   )
     throw new Error(
       'OUTPUT_INPUT_CONFLICT: output must not overlap the model or replace the working directory',
+    );
+  if (scoped) {
+    if (values.tests || (watch && values.verify))
+      throw new Error(
+        'Context API sync cannot be combined with --tests, or --watch with --verify.',
+      );
+    return exportContexts(
+      modelPath,
+      out,
+      { verify: values.verify === true, watch },
+      context,
+    );
+  }
+  if (
+    ['delivery-status.json', '.context-sync.lock'].some((marker) =>
+      existsSync(path.join(out, marker)),
+    )
+  )
+    throw new Error(
+      'This directory is managed by context sync; use --only-unblocked or another output directory.',
     );
   const model = await loadModel(modelPath);
   const all = !values.openapi && !values.tests;

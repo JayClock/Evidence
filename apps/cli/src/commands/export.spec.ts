@@ -7,6 +7,7 @@ import {
   symlinkSync,
   statSync,
   mkdirSync,
+  cpSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -111,6 +112,63 @@ it('verifies exact artifacts without writes and diagnoses missing, changed and o
   rmSync(file);
   symlinkSync(path.join(root, 'missing'), file);
   expect(await dispatch([...args, '--verify'], ctx)).toBe(1);
+});
+
+it('syncs and verifies context API drafts without replacing the directory as a tree', async () => {
+  const fm = path.join(root, 'fm');
+  cpSync(
+    fileURLToPath(
+      new URL(
+        '../../../../libs/evidence-api/tests/fixtures/full-lifecycle/fm',
+        import.meta.url,
+      ),
+    ),
+    fm,
+    { recursive: true },
+  );
+  const args = ['export', '--model', fm, '--only-unblocked'];
+  const verify = [...args, '--verify'];
+  expect(await dispatch(verify, context())).toBe(1);
+  expect(await dispatch(args, context())).toBe(0);
+  const out = path.join(root, 'delivery');
+  expect(
+    JSON.parse(readFileSync(path.join(out, 'delivery-status.json'), 'utf8')),
+  ).toMatchObject({
+    releaseAuthorized: false,
+    contexts: expect.arrayContaining([
+      expect.objectContaining({ status: 'synced' }),
+    ]),
+  });
+  expect(await dispatch(verify, context())).toBe(0);
+  const artifact = path.join(
+    out,
+    'services/context.product-procurement/openapi.json',
+  );
+  expect(readFileSync(artifact, 'utf8')).toContain('/product-procurements');
+  const rulesDir = path.join(fm, 'rules');
+  const rulePath = readdirSync(rulesDir)
+    .map((file) => path.join(rulesDir, file))
+    .find(
+      (file) =>
+        JSON.parse(readFileSync(file, 'utf8')).contextRef ===
+        'context.product-procurement',
+    )!;
+  const rule = JSON.parse(readFileSync(rulePath, 'utf8'));
+  writeFileSync(rulePath, JSON.stringify({ ...rule, expression: '(' }));
+  const before = readFileSync(artifact);
+  expect(await dispatch(args, context())).toBe(0);
+  expect(readFileSync(artifact)).toEqual(before);
+  expect(
+    JSON.parse(readFileSync(path.join(out, 'openapi.json'), 'utf8')),
+  ).toMatchObject({ 'x-evidence-delivery-state': 'partial' });
+  expect(
+    await dispatch(
+      ['export', '--model', fm, '--out', 'delivery', '--openapi'],
+      context(),
+    ),
+  ).toBe(1);
+  expect(await dispatch([...args, '--tests'], context())).toBe(1);
+  expect(await dispatch([...verify, '--watch'], context())).toBe(1);
 });
 
 it('refuses destructive output overlaps including symlink aliases', async () => {

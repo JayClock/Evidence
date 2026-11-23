@@ -73,12 +73,18 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
     .option('--model <path>', 'Model directory or bundle', {
       default: '.evidence/fm',
     })
-    .option('-o, --out <dir>', 'Dedicated output directory', {
-      default: 'dist',
-    })
+    .option(
+      '-o, --out <dir>',
+      'Dedicated output directory (default: dist, or delivery for context sync)',
+    )
     .option('--openapi', 'Export only the contract')
     .option('--tests', 'Export only the Bruno acceptance collection')
     .option('--verify', 'Read-only exact byte verification')
+    .option(
+      '--only-unblocked',
+      'Sync unblocked business-context OpenAPI drafts',
+    )
+    .option('--watch', 'Continuously sync context drafts from the saved model')
     .action((options: CommandOptions) => exportCommand(options, context));
   cli
     .command('diff <base> <target>', 'Compare contracts')
