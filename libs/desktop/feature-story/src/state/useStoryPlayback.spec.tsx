@@ -3,13 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import type {
   StoryInvalidatedEvent,
-  StoryProjectInput,
-  StoryProjectResult,
+  StoryLoadInput,
+  StorySnapshot,
 } from '@evidence-poc/desktop-contracts/story';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
-import { storyFlow, storyResult } from '@evidence-poc/desktop-testing/story';
+import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
   STORY_REFRESH_DELAY,
   STORY_STEP_DURATION,
@@ -20,20 +20,20 @@ const setup = (enabled = true) => {
   vi.useFakeTimers();
   const api = installDesktopApi();
   const flow = storyFlow();
-  const project = vi.fn(async (_input: StoryProjectInput) => storyResult(flow));
-  const listFlows = vi.fn(async () => [flow]);
+  const load = vi.fn(async (_input: StoryLoadInput) => storySnapshot([flow]));
+  const startNarration = vi.fn(async () => undefined);
   const listeners = new Set<(event: StoryInvalidatedEvent) => void>();
-  api.story = {
-    listFlows,
-    project,
+  Object.assign(api.story, {
+    load,
+    startNarration,
     whatIf: vi.fn(),
-    onInvalidated: (listener) => {
+    onInvalidated: (listener: (event: StoryInvalidatedEvent) => void) => {
       listeners.add(listener);
       return () => {
         listeners.delete(listener);
       };
     },
-  };
+  });
   const onInvalidated = vi.fn(async () => undefined);
   const hook = renderHook(
     (props: {
@@ -60,8 +60,8 @@ const setup = (enabled = true) => {
   return {
     api,
     flow,
-    project,
-    listFlows,
+    load,
+    startNarration,
     hook,
     onInvalidated,
     listeners,
@@ -79,41 +79,36 @@ const tick = async (ms = STORY_REFRESH_DELAY) => {
 afterEach(() => vi.useRealTimers());
 
 describe('story playback', () => {
-  it('forces offline projection without credentials and upgrades after configuration', async () => {
-    const { hook, project } = setup();
+  it('plays facts without credentials and starts AI without reloading them after configuration', async () => {
+    const { hook, load, startNarration } = setup();
     const document = createDesktopFixture();
     hook.rerender({ document, enabled: true, aiConfigured: false });
     await tick();
-    expect(project).toHaveBeenLastCalledWith(
-      expect.objectContaining({ skipAi: true }),
-    );
     expect(hook.result.current.skipAi).toBe(true);
-    act(() => hook.result.current.setSkipAi(false));
-    await tick();
-    expect(hook.result.current.skipAi).toBe(true);
+    expect(hook.result.current.ready).toBe(true);
+    expect(startNarration).not.toHaveBeenCalled();
     hook.rerender({ document, enabled: true, aiConfigured: true });
-    await tick();
-    expect(project).toHaveBeenLastCalledWith(
-      expect.objectContaining({ skipAi: false }),
-    );
+    expect(startNarration).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
+    expect(hook.result.current.ready).toBe(true);
   });
   it('uses the injected transport without a desktop global', async () => {
-    const { project, hook } = setup();
+    const { load, hook } = setup();
     Reflect.deleteProperty(window, 'evidenceAPI');
     await tick();
-    expect(project).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
     expect(hook.result.current.ready).toBe(true);
     hook.unmount();
   });
 
   it('does no work outside walkthrough mode, debounces snapshots and guards step boundaries', async () => {
-    const { hook, listFlows, project } = setup(false);
+    const { hook, load } = setup(false);
     await tick();
-    expect(listFlows).not.toHaveBeenCalled();
+    expect(load).not.toHaveBeenCalled();
     hook.rerender({ document: createDesktopFixture(), enabled: true });
     hook.rerender({ document: createDesktopFixture(), enabled: true });
     await tick();
-    expect(project).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
     expect(hook.result.current.currentStepSequence).toBe(1);
     expect(hook.result.current.canPrevious).toBe(false);
     act(() => hook.result.current.previous());
@@ -126,7 +121,7 @@ describe('story playback', () => {
   });
 
   it('resolves canonical and alias-based document dependencies for canvas focus', async () => {
-    const { hook, flow, project } = setup();
+    const { hook, flow, load } = setup();
     const steps = flow.steps.map((step, index) => ({
       ...step,
       actingRoleRef: 'role.buyer',
@@ -143,7 +138,7 @@ describe('story playback', () => {
           ? ['request-alias', 'evidence.contract#example-0']
           : step.basedOn,
     }));
-    project.mockResolvedValue(storyResult({ ...flow, steps }));
+    load.mockResolvedValue(storySnapshot([{ ...flow, steps }]));
     await tick();
     act(() => hook.result.current.next());
     act(() => hook.result.current.next());
@@ -183,7 +178,7 @@ describe('story playback', () => {
   });
 
   it('refreshes a notice received before entering playback and retries failed source reads', async () => {
-    const { hook, onInvalidated, project } = setup(false);
+    const { hook, onInvalidated, load } = setup(false);
     onInvalidated.mockRejectedValueOnce(new Error('磁盘模型暂不可读'));
     hook.rerender({
       document: createDesktopFixture(),
@@ -193,23 +188,22 @@ describe('story playback', () => {
     await tick();
     expect(hook.result.current.error).toBe('磁盘模型暂不可读');
     expect(hook.result.current.loading).toBe(false);
-    expect(project).not.toHaveBeenCalled();
+    expect(load).not.toHaveBeenCalled();
     act(() => hook.result.current.retry());
     await tick();
     await tick();
     expect(onInvalidated).toHaveBeenCalledTimes(2);
-    expect(project).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
     expect(hook.result.current.ready).toBe(true);
   });
 
   it('coalesces scoped invalidations, preserves the current example and unsubscribes', async () => {
-    const { hook, project, flow, invalidate, onInvalidated, listeners } =
-      setup();
+    const { hook, load, flow, invalidate, onInvalidated, listeners } = setup();
     await tick();
     act(() => hook.result.current.next());
     invalidate('/other');
     await tick();
-    expect(project).toHaveBeenCalledOnce();
+    expect(load).toHaveBeenCalledOnce();
     invalidate();
     invalidate();
     invalidate();
@@ -217,17 +211,19 @@ describe('story playback', () => {
     await tick();
     expect(onInvalidated).toHaveBeenCalledOnce();
     // Insert a preceding step: sequence is presentation, example identity persists.
-    project.mockResolvedValue(
-      storyResult({
-        ...flow,
-        steps: [flow.steps[0]!, ...flow.steps].map((step, index) => ({
-          ...step,
-          sequence: index + 1,
-        })),
-      }),
+    load.mockResolvedValue(
+      storySnapshot([
+        {
+          ...flow,
+          steps: [flow.steps[0]!, ...flow.steps].map((step, index) => ({
+            ...step,
+            sequence: index + 1,
+          })),
+        },
+      ]),
     );
     await tick();
-    expect(project).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledTimes(2);
     expect(hook.result.current.step?.entityId).toBe('evidence.request');
     expect(hook.result.current.currentStepSequence).toBe(3);
     hook.unmount();
@@ -235,38 +231,33 @@ describe('story playback', () => {
   });
 
   it('ignores an obsolete projection even during the next debounce interval', async () => {
-    const { hook, project } = setup();
-    const resolve: ((value: StoryProjectResult) => void)[] = [];
-    project.mockImplementation(() => new Promise((done) => resolve.push(done)));
+    const { hook, load } = setup();
+    const resolve: ((value: StorySnapshot) => void)[] = [];
+    load.mockImplementation(() => new Promise((done) => resolve.push(done)));
     await tick();
     hook.rerender({ document: createDesktopFixture(), enabled: true });
-    await act(async () => resolve[0]!(storyResult(storyFlow('旧版本'))));
+    await act(async () => resolve[0]!(storySnapshot([storyFlow('旧版本')])));
     expect(hook.result.current.projection).toBeUndefined();
     await tick();
-    await act(async () => resolve[1]!(storyResult(storyFlow('新版本'))));
+    await act(async () => resolve[1]!(storySnapshot([storyFlow('新版本')])));
     expect(hook.result.current.projection?.storyTitle).toBe('新版本');
   });
 
-  it('recovers from generation failures in explicit facts-only mode and handles an empty model', async () => {
-    const { hook, project, listFlows } = setup();
-    project.mockRejectedValueOnce(new Error('无 AI 配置'));
+  it('keeps model read errors separate from narration and can retry to an empty model', async () => {
+    const { hook, load, startNarration } = setup();
+    load.mockRejectedValueOnce(new Error('模型暂不可读'));
     await tick();
-    expect(hook.result.current.error).toBe('无 AI 配置');
-    act(() => hook.result.current.setSkipAi(true));
-    await tick();
-    expect(hook.result.current.ready).toBe(true);
-    expect(project).toHaveBeenLastCalledWith(
-      expect.objectContaining({ skipAi: true }),
-    );
-    listFlows.mockResolvedValueOnce([]);
+    expect(hook.result.current.error).toBe('模型暂不可读');
+    load.mockResolvedValueOnce(storySnapshot([]));
     act(() => hook.result.current.retry());
     await tick();
     expect(hook.result.current.loading).toBe(false);
     expect(hook.result.current.step).toBeUndefined();
+    expect(startNarration).not.toHaveBeenCalled();
   });
 
   it('resets a disappeared flow and rejects stale sandbox answers after navigation', async () => {
-    const { hook, api, flow, listFlows, project } = setup();
+    const { hook, api, flow, load } = setup();
     await tick();
     let answer: (result: WhatIfResult) => void = () => undefined;
     api.story.whatIf = vi.fn(
@@ -304,8 +295,7 @@ describe('story playback', () => {
       }),
     );
     const fallback = { ...flow, flowId: '新业务流', flowTitle: '新业务流' };
-    listFlows.mockResolvedValue([fallback]);
-    project.mockResolvedValue(storyResult(fallback));
+    load.mockResolvedValue(storySnapshot([fallback]));
     act(() => hook.result.current.retry());
     await tick();
     expect(hook.result.current.activeFlowId).toBe('新业务流');

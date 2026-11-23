@@ -6,8 +6,10 @@ import type {
 } from '@evidence-poc/evidence-agent';
 
 export const STORY_IPC_CHANNELS = {
-  LIST_FLOWS: 'evidence:story:list-flows',
-  PROJECT: 'evidence:story:project',
+  LOAD: 'evidence:story:load',
+  START_NARRATION: 'evidence:story:start-narration',
+  CANCEL_NARRATION: 'evidence:story:cancel-narration',
+  NARRATION: 'evidence:story:narration',
   WHAT_IF: 'evidence:story:what-if',
   INVALIDATED: 'evidence:story:invalidated',
 } as const;
@@ -18,16 +20,40 @@ export interface StoryModelInput {
   readonly document?: DomainModelDocument;
 }
 
-export interface StoryProjectInput extends StoryModelInput {
-  readonly flowId: string;
-  /** Facts-only mode works without credentials and never calls an LLM. */
-  readonly skipAi?: boolean;
+export interface StoryLoadInput extends StoryModelInput {
+  readonly preferredFlowId?: string;
 }
 
 export interface StoryProjectResult {
   readonly flow: FlowScenarioTrace;
   readonly projection: BusinessStoryProjection;
 }
+
+export interface StorySnapshot {
+  readonly snapshotId: string;
+  readonly flows: readonly FlowScenarioTrace[];
+  readonly selected?: StoryProjectResult;
+}
+
+export interface StoryNarrationJob {
+  readonly snapshotId: string;
+  readonly jobId: string;
+}
+
+export interface StoryNarrationInput extends StoryNarrationJob {
+  readonly prioritySequence?: number;
+}
+
+export type StoryNarrationEvent = StoryNarrationJob &
+  (
+    | {
+        readonly kind: 'step';
+        readonly sequence: number;
+        readonly stepHash: string;
+        readonly narrative?: string;
+      }
+    | { readonly kind: 'finished'; readonly reason?: 'timeout' | 'unavailable' }
+  );
 
 export interface StoryWhatIfInput extends StoryModelInput {
   readonly flowId: string;
@@ -43,18 +69,11 @@ export interface StoryInvalidatedEvent {
   readonly rootPath: string;
 }
 
-export interface StoryPlaybackState {
-  readonly activeFlowId?: string;
-  readonly currentStepSequence: number;
-  readonly isPlaying: boolean;
-  readonly projection?: BusinessStoryProjection;
-  readonly loading: boolean;
-  readonly error?: string;
-}
-
 export interface EvidenceStoryApi {
-  listFlows: (input: StoryModelInput) => Promise<readonly FlowScenarioTrace[]>;
-  project: (input: StoryProjectInput) => Promise<StoryProjectResult>;
+  load: (input: StoryLoadInput) => Promise<StorySnapshot>;
+  startNarration: (input: StoryNarrationInput) => Promise<void>;
+  cancelNarration: (job: StoryNarrationJob) => Promise<void>;
+  onNarration: (listener: (event: StoryNarrationEvent) => void) => () => void;
   whatIf: (input: StoryWhatIfInput) => Promise<WhatIfResult>;
   onInvalidated: (
     listener: (event: StoryInvalidatedEvent) => void,

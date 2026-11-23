@@ -1,5 +1,8 @@
 import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
-import type { StoryProjectResult } from '@evidence-poc/desktop-contracts/story';
+import type {
+  StoryProjectResult,
+  StorySnapshot,
+} from '@evidence-poc/desktop-contracts/story';
 import { createDesktopFixture } from './modelFixture.js';
 
 export const storyFlow = (flowId = '采购履约流'): FlowScenarioTrace => ({
@@ -56,7 +59,20 @@ export const createDesktopStoryFixture = () => {
   return document;
 };
 
-export const storyResult = (flow = storyFlow()): StoryProjectResult => ({
+export const storySnapshot = (
+  flows: readonly FlowScenarioTrace[] = [storyFlow()],
+  preferredFlowId?: string,
+): StorySnapshot => {
+  const selected =
+    flows.find(({ flowId }) => flowId === preferredFlowId) ?? flows[0];
+  return {
+    snapshotId: globalThis.crypto.randomUUID(),
+    flows,
+    ...(selected ? { selected: storyResult(selected) } : {}),
+  };
+};
+
+const storyResult = (flow = storyFlow()): StoryProjectResult => ({
   flow,
   projection: {
     flowId: flow.flowId,

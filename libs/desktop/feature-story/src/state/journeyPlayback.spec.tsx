@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
-import { storyResult } from '@evidence-poc/desktop-testing/story';
+import { storySnapshot } from '@evidence-poc/desktop-testing/story';
 // Golden example data, not a cross-project source-code dependency.
 // eslint-disable-next-line @nx/enforce-module-boundaries
 import modelText from '../../../../../examples/full-spectrum-procurement/model/full-spectrum-procurement.evidence.json?raw';
@@ -18,9 +18,8 @@ it('walks across responsibility lanes, resets branch focus when switching scenar
   const before = JSON.stringify(document);
   const flows = collectFlowScenarios(document);
   const api = installDesktopApi();
-  api.story.listFlows = vi.fn(async () => flows);
-  api.story.project = vi.fn(async ({ flowId }) =>
-    storyResult(flows.find((f) => f.flowId === flowId)!),
+  api.story.load = vi.fn(async ({ preferredFlowId }) =>
+    storySnapshot(flows, preferredFlowId),
   );
   const hook = renderHook(() =>
     useStoryPlayback({

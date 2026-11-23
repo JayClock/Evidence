@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { createEmptyDomainModel } from '@evidence-poc/evidence-schema';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
-import { storyFlow, storyResult } from '@evidence-poc/desktop-testing/story';
+import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
   STORY_REFRESH_DELAY,
   useStoryPlayback,
@@ -47,11 +47,11 @@ const setup = async ({
     })),
   };
   const selected = timed ? timedFlow : flow;
-  api.story.listFlows = vi.fn(async () => (empty ? [] : [selected]));
-  api.story.project = vi.fn(async () => {
-    if (failure) throw new Error('AI 未配置');
-    return storyResult(selected);
-  });
+  api.story.load = vi.fn(async () => storySnapshot(empty ? [] : [selected]));
+  if (failure)
+    api.story.startNarration = async () => {
+      throw new Error('AI 未配置');
+    };
   api.story.whatIf = vi.fn(async () => ({
     isSpeculative: false as const,
     hypothesis: { values: { amount: 300 } },
@@ -277,23 +277,23 @@ describe('StoryDrawer', () => {
     expect(screen.getByRole('article', { name: '业务单据' })).toHaveTextContent(
       '交付确认',
     );
-    expect(api.story.project).toHaveBeenCalledOnce();
+    expect(api.story.load).toHaveBeenCalledOnce();
     expect(api.story.whatIf).not.toHaveBeenCalled();
   });
 
   it('can enter the local rehearsal after an AI narration failure', async () => {
     const { api } = await setup({ failure: true });
-    expect(screen.getByText('AI 未配置')).toBeVisible();
+    expect(screen.getByText(/部分旁白未生成/)).toBeVisible();
     fireEvent.change(screen.getByRole('combobox', { name: '选择业务流' }), {
       target: { value: '' },
     });
-    expect(screen.queryByText('AI 未配置')).toBeNull();
+    expect(screen.queryByText(/部分旁白未生成/)).toBeNull();
     fireEvent.change(
       screen.getByRole('spinbutton', { name: '假设窗口（小时）' }),
       { target: { value: '24' } },
     );
     expect(screen.getByRole('slider', { name: '业务时间' })).toBeEnabled();
-    expect(api.story.project).toHaveBeenCalledOnce();
+    expect(api.story.load).toHaveBeenCalledOnce();
   });
 
   it('explains missing examples and AI failures with a retry path', async () => {
@@ -301,9 +301,9 @@ describe('StoryDrawer', () => {
     expect(screen.getByText(/请为实体的业务示例声明/)).toBeInTheDocument();
     empty.view.unmount();
     await setup({ failure: true });
-    expect(screen.getByText('AI 未配置')).toBeInTheDocument();
+    expect(screen.getByText(/部分旁白未生成/)).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '重试放映' }),
+      screen.getByRole('button', { name: '重试旁白' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', { name: '仅模型事实' }),

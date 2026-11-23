@@ -101,7 +101,7 @@ export const StoryPlayerBar = ({
       aria-atomic="true"
     >
       {playback.loading
-        ? '正在更新剧情…'
+        ? '正在读取业务流…'
         : playback.error
           ? '放映失败，请查看剧情详情'
           : playback.rehearsal.active
@@ -155,6 +155,27 @@ export const StoryPlayerBar = ({
           规则预演未知：{r.label}
         </span>
       ))}
+    {playback.narration.running ? (
+      <label className="flex items-center gap-1 text-evidence-muted">
+        <span>
+          AI 旁白 {playback.narration.completed}/{playback.narration.total}
+        </span>
+        <progress
+          aria-label="AI 旁白生成进度"
+          className="w-16"
+          max={playback.narration.total}
+          value={playback.narration.completed}
+        />
+      </label>
+    ) : null}
+    {playback.narration.incomplete ? (
+      <div className="flex items-center gap-1 text-evidence-muted">
+        <span role="status">部分旁白未生成，仍可放映模型事实。</span>
+        <Button size="xs" variant="ghost" onClick={playback.narration.retry}>
+          重试旁白
+        </Button>
+      </div>
+    ) : null}
     {!playback.rehearsal.active ? (
       <label
         className="flex items-center gap-1 text-evidence-muted"

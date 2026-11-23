@@ -12,8 +12,7 @@ import {
 } from '@evidence-poc/desktop-testing/desktopApi';
 import {
   createDesktopStoryFixture,
-  storyFlow,
-  storyResult,
+  storySnapshot,
 } from '@evidence-poc/desktop-testing/story';
 import type { AiConfigStatus } from '@evidence-poc/desktop-contracts/aiConfig';
 import { AiConfigurationProvider } from './AiConfiguration';
@@ -87,14 +86,11 @@ describe('Pi model onboarding integration', () => {
   });
   it('keeps stories offline and opens settings when attempting AI narration', async () => {
     const { api } = await setup();
-    api.story.listFlows = async () => [storyFlow()];
-    api.story.project = vi.fn(async () => storyResult());
+    api.story.load = vi.fn(async () => storySnapshot());
+    api.story.startNarration = vi.fn();
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    await waitFor(() =>
-      expect(api.story.project).toHaveBeenCalledWith(
-        expect.objectContaining({ skipAi: true }),
-      ),
-    );
+    await screen.findByText('步骤 1/3：办理采购协议');
+    expect(api.story.startNarration).not.toHaveBeenCalled();
     const offline = screen.getByRole('checkbox', { name: '仅模型事实' });
     expect(offline).toBeChecked();
     fireEvent.click(offline);

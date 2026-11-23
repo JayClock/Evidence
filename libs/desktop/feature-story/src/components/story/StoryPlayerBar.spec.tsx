@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
-import { storyFlow, storyResult } from '@evidence-poc/desktop-testing/story';
+import { storyFlow, storySnapshot } from '@evidence-poc/desktop-testing/story';
 import {
   STORY_REFRESH_DELAY,
   useStoryPlayback,
@@ -13,10 +13,10 @@ const setup = async () => {
   vi.useFakeTimers();
   const api = installDesktopApi();
   const flows = [storyFlow(), storyFlow('定金预售流')];
-  api.story.listFlows = vi.fn(async () => flows);
-  api.story.project = vi.fn(async ({ flowId }) =>
-    storyResult(flows.find((flow) => flow.flowId === flowId)),
+  api.story.load = vi.fn(async ({ preferredFlowId }) =>
+    storySnapshot(flows, preferredFlowId),
   );
+  api.story.cancelNarration = vi.fn(async () => undefined);
   const document = createDesktopFixture();
   const Harness = () => {
     const playback = useStoryPlayback({
@@ -74,16 +74,17 @@ describe('StoryPlayerBar', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
     });
-    expect(api.story.project).toHaveBeenLastCalledWith(
-      expect.objectContaining({ flowId: '定金预售流' }),
+    expect(api.story.load).toHaveBeenLastCalledWith(
+      expect.objectContaining({ preferredFlowId: '定金预售流' }),
     );
     expect(screen.getByLabelText('当前步骤序号')).toHaveTextContent('1');
     fireEvent.click(screen.getByRole('checkbox', { name: '仅模型事实' }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(STORY_REFRESH_DELAY);
     });
-    expect(api.story.project).toHaveBeenLastCalledWith(
-      expect.objectContaining({ skipAi: true }),
-    );
+    expect(api.story.load).toHaveBeenCalledTimes(2);
+    expect(api.story.cancelNarration).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('progressbar')).toBeNull();
+    expect(screen.getByRole('button', { name: /下一步/ })).toBeEnabled();
   });
 });

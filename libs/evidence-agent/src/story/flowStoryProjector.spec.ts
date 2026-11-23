@@ -129,8 +129,10 @@ describe('narration scheduler', () => {
       finish: (value: unknown) => void;
     }[] = [];
     const generate = vi.fn(
-      ({ signal }: { signal: AbortSignal }) =>
-        new Promise((finish) => requests.push({ signal, finish })),
+      ({ signal }: { signal?: AbortSignal }) => {
+        if (!signal) throw new Error('Narration must be cancellable');
+        return new Promise((finish) => requests.push({ signal, finish }));
+      },
     );
     const first = createStoryNarrator({ schedule, agent: { generate } });
     const second = createStoryNarrator({ schedule, agent: { generate } });

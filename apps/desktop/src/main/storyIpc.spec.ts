@@ -4,11 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createFlowStoryProjector } from '@evidence-poc/evidence-agent';
-import {
-  collectFlowScenarios,
-  type FlowScenarioTrace,
-} from '@evidence-poc/evidence-model-core';
+import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
 import {
   writeModelBundle,
   writeModelDirectory,
@@ -17,7 +13,7 @@ import { DomainModelDocumentSchema } from '@evidence-poc/evidence-schema';
 
 import {
   STORY_IPC_CHANNELS,
-  type StoryProjectResult,
+  type StorySnapshot,
 } from '@evidence-poc/desktop-contracts/story';
 import { registerStoryIpc, type StoryIpcOptions } from './storyIpc';
 
@@ -64,132 +60,106 @@ afterEach(() => {
 });
 
 describe('story IPC', () => {
-  it('keeps offline playback credential-free and invalidates AI projectors on configuration changes', async () => {
+  it('returns flow inventory and factual cards without accessing AI or reading disk for a live snapshot', async () => {
     const getModelOptions = vi.fn(async () => {
       throw new Error('AI_NOT_CONFIGURED');
     });
-    const ipc = register({ getModelOptions });
+    const readModel = vi.fn();
+    register({ getModelOptions, readModel });
     const window = sender();
-    const flowId = collectFlowScenarios(model())[0].flowId;
-    const input = { rootPath: '/models/p', flowId, skipAi: true };
-    await invoke(STORY_IPC_CHANNELS.PROJECT, input, window);
-    expect(getModelOptions).not.toHaveBeenCalled();
-    await expect(
-      invoke(STORY_IPC_CHANNELS.PROJECT, { ...input, skipAi: false }, window),
-    ).rejects.toThrow('AI_NOT_CONFIGURED');
-    ipc.resetModels();
-    expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.INVALIDATED, {
+    const document = model();
+    const input = {
       rootPath: '/models/p',
-    });
-    await invoke(STORY_IPC_CHANNELS.PROJECT, input, window);
-    expect(getModelOptions).toHaveBeenCalledOnce();
-  });
-  it('does not cache a model acquired before a concurrent configuration change', async () => {
-    let finish: (value: { agentDir: string }) => void = () => undefined;
-    const getModelOptions = vi.fn(
-      () =>
-        new Promise<{ agentDir: string }>((resolve) => {
-          finish = resolve;
-        }),
-    );
-    const ipc = register({ getModelOptions });
-    const window = sender();
-    const flowId = collectFlowScenarios(model())[0].flowId;
-    const projection = invoke(
-      STORY_IPC_CHANNELS.PROJECT,
-      { rootPath: '/models/p', flowId },
+      document,
+      preferredFlowId: 'disappeared',
+    };
+    const first = await invoke<StorySnapshot>(
+      STORY_IPC_CHANNELS.LOAD,
+      input,
       window,
     );
-    await vi.waitFor(() => expect(getModelOptions).toHaveBeenCalled());
-    ipc.resetModels();
-    finish({ agentDir: '/obsolete' });
-    await expect(projection).rejects.toThrow('模型配置已变化');
-  });
-  it('lists aggregated flows and includes completeness gaps', async () => {
-    const readModel = vi.fn(async () => model());
-    register({ readModel });
-    const flows = await invoke<readonly FlowScenarioTrace[]>(
-      STORY_IPC_CHANNELS.LIST_FLOWS,
-      {
-        rootPath: '/models/p',
-      },
+    expect(first.flows.map(({ flowId }) => flowId)).toEqual(
+      collectFlowScenarios(document).map(({ flowId }) => flowId),
     );
-    expect(readModel).toHaveBeenCalledWith('/models/p');
-    expect(flows.map(({ flowId }: { flowId: string }) => flowId)).toEqual(
-      collectFlowScenarios(model()).map(({ flowId }) => flowId),
+    expect(first.selected?.flow.flowId).toBe(first.flows[0]?.flowId);
+    document.entities.find(
+      ({ id }) => id === 'request.payment',
+    )!.examples![0]!.value.quantity = 12;
+    const second = await invoke<StorySnapshot>(
+      STORY_IPC_CHANNELS.LOAD,
+      input,
+      window,
+    );
+    expect(second.snapshotId).not.toBe(first.snapshotId);
+    expect(second.selected?.flow.traceDigest).not.toBe(
+      first.selected?.flow.traceDigest,
     );
     expect(
-      flows.flatMap((flow) => flow.steps).some((step) => step.gaps.length > 0),
+      second.selected?.projection.scenes.flatMap(
+        (scene) => scene.documentCard.fields,
+      ),
+    ).toContainEqual(
+      expect.objectContaining({ name: 'quantity', value: '12' }),
+    );
+    expect(
+      second.selected?.projection.scenes.some((scene) => scene.pendingSuspense),
     ).toBe(true);
+    expect(readModel).not.toHaveBeenCalled();
+    expect(getModelOptions).not.toHaveBeenCalled();
   });
 
   it.each(['directory', 'bundle'])(
     'reads saved %s projects through the real adapters',
     async (kind) => {
       const root = await mkdtemp(path.join(os.tmpdir(), 'story-ipc-'));
+      const ipc = registerStoryIpc();
       try {
         const rootPath =
           kind === 'bundle' ? path.join(root, 'model.evidence.json') : root;
         if (kind === 'bundle') await writeModelBundle(rootPath, model());
         else
           await writeModelDirectory(path.join(root, '.evidence/fm'), model());
-        registerStoryIpc();
-        expect(
-          await invoke(STORY_IPC_CHANNELS.LIST_FLOWS, { rootPath }),
-        ).toHaveLength(collectFlowScenarios(model()).length);
+        const result = await invoke<StorySnapshot>(STORY_IPC_CHANNELS.LOAD, {
+          rootPath,
+        });
+        expect(result.flows).toHaveLength(collectFlowScenarios(model()).length);
+        expect(result.selected?.projection.scenes).toHaveLength(
+          result.selected!.flow.steps.length,
+        );
       } finally {
+        ipc.dispose();
         await rm(root, { recursive: true, force: true });
       }
     },
   );
 
-  it('projects unsaved snapshots without disk reads and reuses a per-window projector', async () => {
-    const readModel = vi.fn();
-    const createProjector = vi.fn(createFlowStoryProjector);
-    register({ readModel, createProjector });
+  it('streams narration only after an explicit start and releases handlers on disposal', async () => {
+    const generate = vi.fn(async () => ({
+      narrative: '根据采购协议核对付款。',
+    }));
+    const ipc = register({ createAgent: () => ({ generate }) });
     const window = sender();
-    const document = model();
-    const flowId = collectFlowScenarios(document)[0]!.flowId;
-    const input = { rootPath: '/models/p', document, flowId, skipAi: true };
-    const first = await invoke<StoryProjectResult>(
-      STORY_IPC_CHANNELS.PROJECT,
-      input,
+    const baseline = await invoke<StorySnapshot>(
+      STORY_IPC_CHANNELS.LOAD,
+      { rootPath: '/models/p' },
       window,
     );
-    document.entities.find(
-      ({ id }) => id === 'request.payment',
-    )!.examples![0]!.value.quantity = 12;
-    const second = await invoke<StoryProjectResult>(
-      STORY_IPC_CHANNELS.PROJECT,
-      input,
-      window,
+    expect(generate).not.toHaveBeenCalled();
+    const job = { snapshotId: baseline.snapshotId, jobId: 'job' };
+    await invoke(STORY_IPC_CHANNELS.START_NARRATION, job, window);
+    await vi.waitFor(() =>
+      expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.NARRATION, {
+        ...job,
+        kind: 'finished',
+      }),
     );
-    expect(readModel).not.toHaveBeenCalled();
-    expect(createProjector).toHaveBeenCalledTimes(1);
-    expect(first.flow.traceDigest).not.toBe(second.flow.traceDigest);
-    expect(second.projection.scenes).toHaveLength(second.flow.steps.length);
-    expect(
-      second.projection.scenes.flatMap((scene) => scene.documentCard.fields),
-    ).toContainEqual(
-      expect.objectContaining({ name: 'quantity', value: '12' }),
-    );
-    expect(window.once).toHaveBeenCalledWith('destroyed', expect.any(Function));
-    window.once.mock.calls[0]![1]();
-    await invoke(STORY_IPC_CHANNELS.PROJECT, input, window);
-    expect(createProjector).toHaveBeenCalledTimes(2);
-  });
-
-  it('isolates caches across windows and releases handlers on disposal', async () => {
-    const createProjector = vi.fn(createFlowStoryProjector);
-    const ipc = register({ createProjector });
-    const input = {
-      rootPath: '/models/p',
-      flowId: collectFlowScenarios(model())[0]!.flowId,
-      skipAi: true,
-    };
-    await invoke(STORY_IPC_CHANNELS.PROJECT, input);
-    await invoke(STORY_IPC_CHANNELS.PROJECT, input);
-    expect(createProjector).toHaveBeenCalledTimes(2);
+    expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.NARRATION, {
+      ...job,
+      kind: 'step',
+      sequence: 1,
+      stepHash: baseline.selected!.flow.steps[0]!.stepHash,
+      narrative: '根据采购协议核对付款。',
+    });
     ipc.dispose();
     expect(electron.handlers.size).toBe(0);
   });
@@ -236,11 +206,14 @@ describe('story IPC', () => {
     const simulate = vi.fn();
     register({ simulate });
     await expect(
-      invoke(STORY_IPC_CHANNELS.LIST_FLOWS, { rootPath: 'relative' }),
+      invoke(STORY_IPC_CHANNELS.LOAD, { rootPath: 'relative' }),
     ).rejects.toThrow('路径');
     await expect(
-      invoke(STORY_IPC_CHANNELS.PROJECT, { rootPath: '/p', flowId: 'missing' }),
-    ).rejects.toThrow('未找到业务流');
+      invoke(STORY_IPC_CHANNELS.START_NARRATION, {
+        snapshotId: 'missing',
+        jobId: 'job',
+      }),
+    ).rejects.toThrow('快照已过期');
     await expect(
       invoke(STORY_IPC_CHANNELS.WHAT_IF, { question: ' ' }),
     ).rejects.toThrow('假设问题');

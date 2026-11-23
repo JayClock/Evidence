@@ -475,10 +475,10 @@ export const installDesktopApi = ({
       },
     },
     story: {
-      listFlows: async () => [],
-      project: async () => {
-        throw new Error('测试没有配置业务故事。');
-      },
+      load: async () => ({ snapshotId: 'empty', flows: [] }),
+      startNarration: async () => undefined,
+      cancelNarration: async () => undefined,
+      onNarration: () => () => undefined,
       whatIf: async () => {
         throw new Error('测试没有配置沙盘。');
       },

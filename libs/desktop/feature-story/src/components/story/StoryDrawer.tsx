@@ -20,12 +20,12 @@ const SceneSheet = ({
   scene,
   ready,
   stale,
-  skipAi,
+  hasAiNarration,
 }: {
   scene: StoryScene;
   ready: boolean;
   stale: boolean;
-  skipAi: boolean;
+  hasAiNarration: boolean;
 }) => {
   const [notice, setNotice] = useState('');
   const [speaking, setSpeaking] = useState(false);
@@ -38,7 +38,7 @@ const SceneSheet = ({
       setSpeaking(false);
     }
     return () => window.speechSynthesis?.cancel();
-  }, [scene.narrative, ready]);
+  }, [ready]);
   const readAloud = () => {
     if (!canSpeak) return;
     window.speechSynthesis.cancel();
@@ -76,9 +76,9 @@ const SceneSheet = ({
           <span className="text-[10px] text-evidence-muted">
             {stale
               ? '上一版本 · 请等待更新'
-              : skipAi
-                ? '模型事实 · 未使用 AI'
-                : 'AI 旁白 · 请核对模型事实'}
+              : hasAiNarration
+                ? 'AI 旁白 · 请核对模型事实'
+                : '模型事实 · 未使用 AI'}
           </span>
         </div>
         <p className="whitespace-pre-wrap leading-6">{scene.narrative}</p>
@@ -286,8 +286,8 @@ export const StoryDrawer = ({
       ) : null}
       {playback.loading ? (
         <p role="status" className="text-evidence-muted">
-          正在增量更新剧情…
-          {playback.scene ? '暂显示上一版本，步进和推演已暂停。' : ''}
+          正在读取业务流…
+          {playback.scene ? '暂显示上一版本。' : ''}
         </p>
       ) : null}
       {playback.error ? (
@@ -296,9 +296,7 @@ export const StoryDrawer = ({
           className="rounded border border-red-200 bg-red-50 p-3 text-red-800"
         >
           <p className="whitespace-pre-wrap">{playback.error}</p>
-          <p className="mt-1 text-[11px]">
-            请检查模型与 AI 配置，或切换「仅模型事实」离线放映。
-          </p>
+          <p className="mt-1 text-[11px]">请检查业务示例和模型后重试。</p>
           <button
             type="button"
             className={`${buttonClass} mt-2`}
@@ -324,7 +322,7 @@ export const StoryDrawer = ({
           scene={playback.scene}
           ready={playback.ready}
           stale={playback.stale}
-          skipAi={playback.skipAi}
+          hasAiNarration={playback.hasAiNarration}
         />
       ) : null}
       <WhatIfSection

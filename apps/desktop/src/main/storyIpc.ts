@@ -1,16 +1,20 @@
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 
 import { ipcMain, type WebContents } from 'electron';
 import {
-  createFlowStoryProjector,
+  createNarrationScheduler,
   createStoryAgent,
+  createStoryNarrator,
+  projectStoryFacts,
   simulateWhatIf,
-  type FlowStoryProjector,
+  type StoryAgent,
   type EvidenceModelOptions,
 } from '@evidence-poc/evidence-agent';
 import {
   buildFmCheckReport,
   collectFlowScenarios,
+  type FlowScenarioTrace,
 } from '@evidence-poc/evidence-model-core';
 import {
   readModelBundle,
@@ -24,15 +28,18 @@ import {
 import {
   STORY_IPC_CHANNELS,
   type StoryModelInput,
-  type StoryProjectInput,
-  type StoryProjectResult,
+  type StoryLoadInput,
+  type StoryNarrationEvent,
+  type StoryNarrationInput,
+  type StoryNarrationJob,
+  type StorySnapshot,
   type StoryWhatIfInput,
 } from '@evidence-poc/desktop-contracts/story';
 import { isBundleProject, modelSourceOf } from './modelSource';
 
 export interface StoryIpcOptions {
   readModel?: (rootPath: string) => Promise<DomainModelDocument>;
-  createProjector?: typeof createFlowStoryProjector;
+  createAgent?: typeof createStoryAgent;
   simulate?: typeof simulateWhatIf;
   getModelOptions?: () => Promise<EvidenceModelOptions>;
 }
@@ -49,22 +56,51 @@ const readSavedModel = async (
   return parsed.document;
 };
 
-/** Per-window caches survive file invalidation, so only changed scenes use AI. */
+type WindowStory = {
+  rootPath: string;
+  loadId?: string;
+  selected?: { model: DomainModelDocument; flow: FlowScenarioTrace };
+  narrator?: ReturnType<typeof createStoryNarrator>;
+  job?: { id: string; controller: AbortController };
+};
+
+const NARRATION_TIMEOUT_MS = 60_000;
+const validId = (value: unknown): value is string =>
+  typeof value === 'string' && value.length > 0 && value.length <= 128;
+
 export const registerStoryIpc = ({
   readModel = readSavedModel,
-  createProjector = createFlowStoryProjector,
+  createAgent = createStoryAgent,
   simulate = simulateWhatIf,
   getModelOptions,
 }: StoryIpcOptions = {}) => {
-  const projectors = new Map<
-    WebContents,
-    {
-      rootPath: string;
-      modes: Map<boolean, FlowStoryProjector>;
-    }
-  >();
-  const tracked = new Set<WebContents>();
-  let modelGeneration = 0;
+  const windows = new Map<WebContents, WindowStory>();
+  const schedule = createNarrationScheduler();
+  const stop = (state: WindowStory) => {
+    const job = state.job;
+    delete state.job;
+    job?.controller.abort();
+  };
+
+  const newNarrator = () => {
+    let agent: Promise<StoryAgent> | undefined;
+    return createStoryNarrator({
+      schedule,
+      agent: {
+        async generate(request) {
+          agent ??= Promise.resolve()
+            .then(async () => createAgent(await getModelOptions?.()))
+            .catch((error: unknown) => {
+              agent = undefined;
+              throw error;
+            });
+          const active = await agent;
+          request.signal?.throwIfAborted();
+          return active.generate(request);
+        },
+      },
+    });
+  };
 
   const load = async (input: StoryModelInput) => {
     if (
@@ -80,7 +116,7 @@ export const registerStoryIpc = ({
     return { model, flows: collectFlowScenarios(model, report) };
   };
 
-  const loadFlow = async (input: StoryProjectInput | StoryWhatIfInput) => {
+  const loadFlow = async (input: StoryWhatIfInput) => {
     if (typeof input?.flowId !== 'string' || !input.flowId.trim())
       throw new Error('请选择业务流。');
     const { model, flows } = await load(input);
@@ -90,46 +126,140 @@ export const registerStoryIpc = ({
   };
 
   ipcMain.handle(
-    STORY_IPC_CHANNELS.LIST_FLOWS,
-    async (_event, input: StoryModelInput) => (await load(input)).flows,
-  );
-  ipcMain.handle(
-    STORY_IPC_CHANNELS.PROJECT,
-    async (event, input: StoryProjectInput): Promise<StoryProjectResult> => {
-      if (input?.skipAi !== undefined && typeof input.skipAi !== 'boolean')
-        throw new Error('无效的业务流放映模式。');
-      const generation = modelGeneration;
-      const { model, flow } = await loadFlow(input);
-      const sender = event.sender;
+    STORY_IPC_CHANNELS.LOAD,
+    async ({ sender }, input: StoryLoadInput): Promise<StorySnapshot> => {
+      if (
+        !input ||
+        typeof input.rootPath !== 'string' ||
+        !path.isAbsolute(input.rootPath)
+      )
+        throw new Error('无效的业务流项目路径。');
+      if (
+        input.preferredFlowId !== undefined &&
+        (typeof input.preferredFlowId !== 'string' ||
+          !input.preferredFlowId.trim())
+      )
+        throw new Error('无效的业务流 ID。');
       if (sender.isDestroyed()) throw new Error('业务流窗口已关闭。');
-      if (!tracked.has(sender)) {
-        tracked.add(sender);
+      const previous = windows.get(sender);
+      if (!previous) {
         sender.once('destroyed', () => {
-          projectors.delete(sender);
-          tracked.delete(sender);
+          const current = windows.get(sender);
+          if (current) stop(current);
+          windows.delete(sender);
         });
-      }
-      let cache = projectors.get(sender);
-      if (cache?.rootPath !== input.rootPath) {
-        cache = { rootPath: input.rootPath, modes: new Map() };
-        projectors.set(sender, cache);
-      }
-      const skipAi = input.skipAi === true;
-      let projector = cache.modes.get(skipAi);
-      if (!projector) {
-        projector = createProjector({
-          skipAi,
-          ...(!skipAi && getModelOptions
-            ? { agent: createStoryAgent(await getModelOptions()) }
-            : {}),
-        });
-        if (!skipAi && generation !== modelGeneration)
-          throw new Error('模型配置已变化，请重试放映。');
-        cache.modes.set(skipAi, projector);
-      }
-      return { flow, projection: await projector.project(flow, model) };
+      } else stop(previous);
+      const state: WindowStory =
+        previous?.rootPath === input.rootPath
+          ? previous
+          : { rootPath: input.rootPath };
+      const snapshotId = randomUUID();
+      state.loadId = snapshotId;
+      delete state.selected;
+      windows.set(sender, state);
+      const { model, flows } = await load(input);
+      if (
+        windows.get(sender) !== state ||
+        state.loadId !== snapshotId ||
+        sender.isDestroyed()
+      )
+        throw new Error('业务流快照已过期。');
+      const flow =
+        flows.find(({ flowId }) => flowId === input.preferredFlowId) ??
+        flows[0];
+      if (!flow) return { snapshotId, flows };
+      const projection = projectStoryFacts(flow, model);
+      state.selected = { model, flow };
+      return { snapshotId, flows, selected: { flow, projection } };
     },
   );
+
+  ipcMain.handle(
+    STORY_IPC_CHANNELS.START_NARRATION,
+    async ({ sender }, input: StoryNarrationInput) => {
+      if (
+        !validId(input?.snapshotId) ||
+        !validId(input.jobId) ||
+        (input.prioritySequence !== undefined &&
+          (!Number.isSafeInteger(input.prioritySequence) ||
+            input.prioritySequence < 1))
+      )
+        throw new Error('无效的 AI 旁白任务。');
+      const state = windows.get(sender);
+      if (
+        !state?.selected ||
+        state.loadId !== input.snapshotId ||
+        sender.isDestroyed()
+      )
+        throw new Error('业务流快照已过期。');
+      if (state.job?.id === input.jobId) return;
+      stop(state);
+      const job = { id: input.jobId, controller: new AbortController() };
+      state.job = job;
+      const narrator = (state.narrator ??= newNarrator());
+      const { model, flow } = state.selected;
+      const identity = { snapshotId: input.snapshotId, jobId: job.id };
+      const send = (event: StoryNarrationEvent) => {
+        if (
+          windows.get(sender) === state &&
+          state.job === job &&
+          !sender.isDestroyed()
+        ) {
+          try {
+            sender.send(STORY_IPC_CHANNELS.NARRATION, event);
+          } catch {
+            // Closing/reloading the frame can race with delivery.
+            stop(state);
+          }
+        }
+      };
+      const deadline = AbortSignal.timeout(NARRATION_TIMEOUT_MS);
+      const signal = AbortSignal.any([deadline, job.controller.signal]);
+      void (async () => {
+        try {
+          await narrator.enrich(flow, model, {
+            signal,
+            ...(input.prioritySequence === undefined
+              ? {}
+              : { prioritySequence: input.prioritySequence }),
+            onStep: (result) =>
+              send({
+                ...identity,
+                kind: 'step',
+                sequence: result.sequence,
+                stepHash: result.stepHash,
+                ...(result.kind === 'ready'
+                  ? { narrative: result.narrative }
+                  : {}),
+              }),
+          });
+          send({
+            ...identity,
+            kind: 'finished',
+            ...(deadline.aborted ? { reason: 'timeout' as const } : {}),
+          });
+        } catch {
+          send({ ...identity, kind: 'finished', reason: 'unavailable' });
+        } finally {
+          if (state.job === job) stop(state);
+        }
+      })();
+    },
+  );
+
+  ipcMain.handle(
+    STORY_IPC_CHANNELS.CANCEL_NARRATION,
+    async ({ sender }, input: StoryNarrationJob) => {
+      const state = windows.get(sender);
+      if (
+        state?.job &&
+        state.loadId === input?.snapshotId &&
+        state.job.id === input?.jobId
+      )
+        stop(state);
+    },
+  );
+
   ipcMain.handle(
     STORY_IPC_CHANNELS.WHAT_IF,
     async (_event, input: StoryWhatIfInput) => {
@@ -166,7 +296,7 @@ export const registerStoryIpc = ({
             : {}),
         },
         {
-          agent: createStoryAgent(await getModelOptions?.()),
+          agent: createAgent(await getModelOptions?.()),
         },
       );
     },
@@ -174,21 +304,22 @@ export const registerStoryIpc = ({
 
   return {
     resetModels: () => {
-      ++modelGeneration;
-      for (const [sender, cache] of projectors) {
-        cache.modes.delete(false);
+      for (const [sender, state] of windows) {
+        stop(state);
+        delete state.narrator;
         if (!sender.isDestroyed())
           sender.send(STORY_IPC_CHANNELS.INVALIDATED, {
-            rootPath: cache.rootPath,
+            rootPath: state.rootPath,
           });
       }
     },
     dispose: () => {
-      projectors.clear();
-      tracked.clear();
+      for (const state of windows.values()) stop(state);
+      windows.clear();
       for (const channel of [
-        STORY_IPC_CHANNELS.LIST_FLOWS,
-        STORY_IPC_CHANNELS.PROJECT,
+        STORY_IPC_CHANNELS.LOAD,
+        STORY_IPC_CHANNELS.START_NARRATION,
+        STORY_IPC_CHANNELS.CANCEL_NARRATION,
         STORY_IPC_CHANNELS.WHAT_IF,
       ])
         ipcMain.removeHandler(channel);

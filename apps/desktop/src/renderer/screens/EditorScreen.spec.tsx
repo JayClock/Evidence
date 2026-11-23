@@ -10,8 +10,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { StoryInvalidatedEvent } from '@evidence-poc/desktop-contracts/story';
 import {
   createDesktopStoryFixture,
-  storyFlow,
-  storyResult,
+  storySnapshot,
 } from '@evidence-poc/desktop-testing/story';
 
 import {
@@ -204,13 +203,9 @@ describe('EditorScreen', () => {
   it('opens swimlanes and saves a scenario into the story pipeline', async () => {
     const api = readyProject();
     api.projects.save = vi.fn(api.projects.save);
-    api.story.listFlows = vi.fn(async ({ document }) =>
-      collectFlowScenarios(document!),
+    api.story.load = vi.fn(async ({ document, preferredFlowId }) =>
+      storySnapshot(collectFlowScenarios(document!), preferredFlowId),
     );
-    api.story.project = vi.fn(async ({ document, flowId }) => ({
-      ...storyResult(),
-      flow: collectFlowScenarios(document!).find((f) => f.flowId === flowId)!,
-    }));
     const { container } = render(
       <EditorScreen rootPath="/models/procurement" />,
     );
@@ -239,8 +234,8 @@ describe('EditorScreen', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: '保存并放映' }));
     await waitFor(() =>
-      expect(api.story.project).toHaveBeenCalledWith(
-        expect.objectContaining({ flowId: '正常签约案例', skipAi: true }),
+      expect(api.story.load).toHaveBeenCalledWith(
+        expect.objectContaining({ preferredFlowId: '正常签约案例' }),
       ),
     );
     expect(screen.queryByRole('dialog', { name: '业务场景推演' })).toBeNull();
@@ -872,8 +867,7 @@ describe('EditorScreen', () => {
 
   it('plays the walkthrough on the same canvas and silently refreshes clean models', async () => {
     const api = readyProject(createDesktopStoryFixture());
-    api.story.listFlows = vi.fn(async () => [storyFlow()]);
-    api.story.project = vi.fn(async () => storyResult());
+    api.story.load = vi.fn(async () => storySnapshot());
     let invalidate: (event: StoryInvalidatedEvent) => void = () => undefined;
     const unsubscribe = vi.fn();
     api.story.onInvalidated = (listener) => {
@@ -884,7 +878,7 @@ describe('EditorScreen', () => {
       <EditorScreen rootPath="/models/procurement" />,
     );
     await readyCanvas();
-    expect(api.story.project).not.toHaveBeenCalled();
+    expect(api.story.load).not.toHaveBeenCalled();
     fireEvent.change(screen.getByLabelText('聚焦范围'), {
       target: { value: 'context.catalog' },
     });
@@ -926,7 +920,7 @@ describe('EditorScreen', () => {
     await waitFor(() =>
       expect(screen.getByText('步骤 2/3：办理交付请求')).toBeInTheDocument(),
     );
-    expect(api.story.project).toHaveBeenLastCalledWith(
+    expect(api.story.load).toHaveBeenLastCalledWith(
       expect.objectContaining({ document }),
     );
     expect(
@@ -964,8 +958,7 @@ describe('EditorScreen', () => {
     const document = createDesktopStoryFixture();
     document.rules = [];
     const api = readyProject(document);
-    api.story.listFlows = vi.fn(async () => [storyFlow()]);
-    api.story.project = vi.fn(async () => storyResult());
+    api.story.load = vi.fn(async () => storySnapshot());
     const { container } = render(
       <EditorScreen rootPath="/models/procurement" />,
     );
@@ -990,8 +983,7 @@ describe('EditorScreen', () => {
       changed = listener;
       return () => undefined;
     };
-    api.story.listFlows = vi.fn(async () => [storyFlow()]);
-    api.story.project = vi.fn(async () => storyResult());
+    api.story.load = vi.fn(async () => storySnapshot());
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     const document = createDesktopStoryFixture();
@@ -1011,20 +1003,20 @@ describe('EditorScreen', () => {
       }),
     );
     fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
-    await waitFor(() => expect(api.story.project).toHaveBeenCalledOnce());
-    expect(api.story.project).toHaveBeenCalledWith(
+    await waitFor(() => expect(api.story.load).toHaveBeenCalledOnce());
+    expect(api.story.load).toHaveBeenCalledWith(
       expect.objectContaining({ document }),
     );
   });
 
   it('explains why playback is unavailable without a flow or request', async () => {
     const api = readyProject(createEmptyDomainModel());
-    api.story.listFlows = vi.fn();
+    api.story.load = vi.fn();
     render(<EditorScreen rootPath="/models/procurement" />);
     await readyCanvas();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeDisabled();
     expect(screen.getByText('当前模型暂无业务流或履约请求')).toBeVisible();
-    expect(api.story.listFlows).not.toHaveBeenCalled();
+    expect(api.story.load).not.toHaveBeenCalled();
   });
 
   it('rehearses a request without declared examples, AI or model writes', async () => {
@@ -1051,8 +1043,8 @@ describe('EditorScreen', () => {
       },
     });
     const api = readyProject(document);
-    api.story.listFlows = vi.fn(async () => []);
-    api.story.project = vi.fn();
+    api.story.load = vi.fn(async () => storySnapshot([]));
+    api.story.startNarration = vi.fn();
     const { container } = render(
       <EditorScreen rootPath="/models/procurement" />,
     );
@@ -1076,14 +1068,13 @@ describe('EditorScreen', () => {
     expect(
       container.querySelector('[data-node-id="evidence.request"]'),
     ).not.toHaveAttribute('data-story-step');
-    expect(api.story.project).not.toHaveBeenCalled();
+    expect(api.story.startNarration).not.toHaveBeenCalled();
     expect(api.calls.save).toEqual([]);
   });
 
   it('starts from the command palette and exits with Escape without clearing selection', async () => {
     const api = readyProject(createDesktopStoryFixture());
-    api.story.listFlows = vi.fn(async () => [storyFlow()]);
-    api.story.project = vi.fn(async () => storyResult());
+    api.story.load = vi.fn(async () => storySnapshot());
     const { container } = render(
       <EditorScreen rootPath="/models/procurement" />,
     );
@@ -1102,8 +1093,7 @@ describe('EditorScreen', () => {
 
   it('stops automatic playback when entering the ledger and does not resume on return', async () => {
     const api = readyProject(createDesktopStoryFixture());
-    api.story.listFlows = vi.fn(async () => [storyFlow()]);
-    api.story.project = vi.fn(async () => storyResult());
+    api.story.load = vi.fn(async () => storySnapshot());
     const unsubscribe = vi.fn();
     api.story.onInvalidated = () => unsubscribe;
     render(<EditorScreen rootPath="/models/procurement" />);
@@ -1118,7 +1108,7 @@ describe('EditorScreen', () => {
     fireEvent.keyDown(window, { code: 'Digit1', altKey: true });
     expect(screen.queryByLabelText('业务流放映控制')).toBeNull();
     expect(screen.getByRole('button', { name: '放映业务流' })).toBeEnabled();
-    expect(api.story.project).toHaveBeenCalledOnce();
+    expect(api.story.load).toHaveBeenCalledOnce();
   });
 
   it('slides the problems panel over the canvas with Alt+X', async () => {

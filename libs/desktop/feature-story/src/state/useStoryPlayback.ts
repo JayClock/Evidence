@@ -15,11 +15,15 @@ import {
 import { previewJourneyStep } from './journeyPreview';
 import { evaluateWhatIfCapability } from './whatIfCapability';
 import type { WhatIfResult } from '@evidence-poc/evidence-agent/browser';
-import type { EvidenceStoryApi } from '@evidence-poc/desktop-contracts/story';
-import type { StoryProjectResult } from '@evidence-poc/desktop-contracts/story';
+import type {
+  EvidenceStoryApi,
+  StorySnapshot,
+} from '@evidence-poc/desktop-contracts/story';
+import { useStoryNarration } from './useStoryNarration';
 
 export const STORY_REFRESH_DELAY = 180;
 export const STORY_STEP_DURATION = 4500;
+const EMPTY_FLOWS: readonly FlowScenarioTrace[] = [];
 
 export interface StoryPlaybackOptions {
   api: EvidenceStoryApi;
@@ -48,7 +52,6 @@ export const useStoryPlayback = ({
   refreshSavedSources = false,
   onInvalidated,
 }: StoryPlaybackOptions) => {
-  const [flows, setFlows] = useState<readonly FlowScenarioTrace[]>([]);
   const [preferredFlowId, setPreferredFlowId] = useState<string>();
   const [requestedSkipAi, setSkipAi] = useState(false);
   const skipAi = requestedSkipAi || !aiConfigured;
@@ -58,16 +61,7 @@ export const useStoryPlayback = ({
   const [invalidationError, setInvalidationError] = useState<string>();
   const requestKey = useMemo(
     () => ({}),
-    [
-      api,
-      rootPath,
-      document,
-      enabled,
-      preferredFlowId,
-      skipAi,
-      refresh,
-      invalidating,
-    ],
+    [api, rootPath, document, enabled, preferredFlowId, refresh, invalidating],
   );
   const [status, setStatus] = useState<{
     key: object;
@@ -76,7 +70,7 @@ export const useStoryPlayback = ({
   }>();
   const [loaded, setLoaded] = useState<{
     key: object;
-    result: StoryProjectResult;
+    result: StorySnapshot;
   }>();
   const [position, setPosition] = useState<{ ref?: string; index: number }>({
     index: 0,
@@ -93,6 +87,7 @@ export const useStoryPlayback = ({
     timeline: StoryTimeline;
     time: number;
   }>();
+  const flows = loaded?.result.flows ?? EMPTY_FLOWS;
   const activeFlowId =
     flows.find(({ flowId }) => flowId === preferredFlowId)?.flowId ??
     flows[0]?.flowId;
@@ -104,8 +99,8 @@ export const useStoryPlayback = ({
     invalidationError ??
     (status?.key === requestKey ? status.error : undefined);
   const stale = loaded?.key !== requestKey;
-  const flow = loaded?.result.flow;
-  const projection = loaded?.result.projection;
+  const flow = loaded?.result.selected?.flow;
+  const projection = loaded?.result.selected?.projection;
   const matchingIndex =
     position.ref === undefined
       ? -1
@@ -180,7 +175,7 @@ export const useStoryPlayback = ({
     [timeline, currentTime, keyframeIndex],
   );
   const step = rehearsing || seekTime !== undefined ? undefined : keyframe;
-  const scene =
+  const factScene =
     step &&
     projection?.scenes.find(({ stepIndex }) => stepIndex === step.sequence);
   const ready =
@@ -192,6 +187,20 @@ export const useStoryPlayback = ({
         !stale &&
         flow !== undefined &&
         (step !== undefined || seekTime !== undefined));
+  const narration = useStoryNarration(
+    api,
+    ready && !rehearsing && !skipAi ? loaded?.result.snapshotId : undefined,
+    flow,
+    step?.sequence,
+  );
+  const voice =
+    factScene && !stale
+      ? narration.entries?.get(factScene.stepIndex)
+      : undefined;
+  const scene =
+    factScene && voice !== undefined
+      ? { ...factScene, narrative: voice }
+      : factScene;
   const nextIndex =
     seekTime === undefined || rehearsing
       ? index + 1
@@ -275,28 +284,16 @@ export const useStoryPlayback = ({
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const input = { rootPath, document };
-          const nextFlows = await api.listFlows(input);
-          if (!active) return;
-          setFlows(nextFlows);
-          const chosen =
-            nextFlows.find(({ flowId }) => flowId === preferredFlowId) ??
-            nextFlows[0];
-          if (!chosen) {
-            setLoaded(undefined);
-            setStatus({ key: requestKey, loading: false });
-            return;
-          }
-          const result = await api.project({
-            ...input,
-            flowId: chosen.flowId,
-            skipAi,
+          const result = await api.load({
+            rootPath,
+            document,
+            ...(preferredFlowId === undefined ? {} : { preferredFlowId }),
           });
           if (!active) return;
           // If a flow disappeared, its old cursor must not leak into the fallback.
-          if (projectedFlowId.current !== result.flow.flowId)
-            setPosition({ index: 0 });
-          projectedFlowId.current = result.flow.flowId;
+          const flowId = result.selected?.flow.flowId;
+          if (projectedFlowId.current !== flowId) setPosition({ index: 0 });
+          projectedFlowId.current = flowId;
           setLoaded({ key: requestKey, result });
           setStatus({ key: requestKey, loading: false });
         } catch (cause) {
@@ -320,7 +317,6 @@ export const useStoryPlayback = ({
     document,
     enabled,
     preferredFlowId,
-    skipAi,
     invalidating,
     invalidationError,
     manualRehearsal,
@@ -586,6 +582,8 @@ export const useStoryPlayback = ({
     stale,
     ready,
     skipAi,
+    narration,
+    hasAiNarration: voice !== undefined,
     isPlaying: ready && isPlaying,
     stepCount: flow?.steps.length ?? 0,
     stepNumber: step ? index + 1 : 0,
@@ -636,10 +634,7 @@ export const useStoryPlayback = ({
       }
       setIsPlaying((playing) => !playing);
     },
-    setSkipAi: (value: boolean) => {
-      setIsPlaying(false);
-      setSkipAi(value);
-    },
+    setSkipAi,
     retry: () => {
       if (invalidationError) setSourceRefresh((value) => value + 1);
       else setRefresh((value) => value + 1);
