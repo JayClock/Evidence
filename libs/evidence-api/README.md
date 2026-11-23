@@ -32,13 +32,14 @@ pnpm api:export --project-root "$PWD" --fm "$PWD/.evidence/fm" --out "$PWD/dist/
 pnpm exec nx run evidence-api:export-openapi -- --help
 ```
 
-The legacy projection command validates the OpenAPI meta-schema before publishing
-`openapi.json` alongside the delivery projection and manifest. Explicit overlays
-may adjust routes/journeys but cannot invent model semantics or hide errors.
+`evidence api deliver` validates and publishes the aggregate `openapi.json`
+and `services/<serviceId>/openapi.json` views alongside the projection and
+manifest. All views use the same public URIs. Explicit overlays may adjust
+routes/journeys but cannot invent model semantics or hide errors.
 
-See [API projection v6](../../docs/api-projection-v6.md) for aggregate-root
-addresses, singleton/collection cardinality, HAL, service routing and overlay
-migration. API snapshots, manifests, and FM models use schema 6.0.
+See [API delivery](../../docs/api-projection-v6.md) for resource addresses, HAL,
+logical service ownership and compatibility checks. API snapshots and
+manifests use schema 7.0; FM sources still use 6.0.
 
 ## Inline examples
 

@@ -126,8 +126,14 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
     .option('--api <file>', 'API overlay')
     .option('--in <file>', 'Legacy overlay input for migrate-overlay')
     .option('-o, --out <dir>', 'Dedicated output directory')
-    .option('--base <path>', 'Baseline model for API diff')
-    .option('--target <path>', 'Target model for API diff')
+    .option(
+      '--base <path>',
+      'Baseline model or exported OpenAPI JSON for API diff',
+    )
+    .option(
+      '--target <path>',
+      'Target model or exported OpenAPI JSON for API diff',
+    )
     .option('--base-api <file>', 'Baseline API overlay')
     .option('--format <format>', 'json | markdown for diff')
     .action((command: string, options: CommandOptions) =>

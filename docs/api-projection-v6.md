@@ -1,13 +1,13 @@
-# API projection v6
+# API delivery (FM v6, projection v7)
 
-The FM model uses schema version 6.0. Its API snapshot and export manifest use
-6.0; the OpenAPI document uses OpenAPI 3.1 with `info.version: 6.0.0`. The business
-model's version remains available as `x-evidence-model-version`.
+FM source documents still use schema version 6.0. The API snapshot and export
+manifest use 7.0. The generated contract uses OpenAPI 3.1 with the business
+model's version in `info.version` and `x-evidence-model-version`.
 
 ## Business resource addresses
 
 Public paths start at the aggregate's business noun, derived from its entity ID.
-A deployment Context supplies a service boundary, never a URI prefix.
+A Context supplies a logical service owner, never a deployment-specific URI prefix.
 
 | Resource | Creation | Primary GET |
 | --- | --- | --- |
@@ -61,6 +61,15 @@ request items can link to shared-confirmation collections via
 `confirmations:<confirmationRef>`. These are contract templates, not claims that
 an instance is ready, associated, or authorized at runtime.
 
+A modeled breach yields a compensation creation entrance beneath the original
+request and a separate canonical resource URI for later reads and confirmations.
+A typed escalation yields a hand-off record, not a filing with a court or
+arbitrator. Conditional branch templates carry their relationship identity and
+are omitted from generic example responses. To render actual affordances use
+`resolveRuntimeHalLinks` with the service's decisions for this caller, condition
+and resource instance. Unknown conditions or missing URI bindings do not produce
+links. Write handlers must recheck eligibility.
+
 Only caller-owned attributes appear in POST input, with
 `additionalProperties: false`. Derived and service-time response fields are
 `readOnly`; derivations retain their rule references. Contract callers must play
@@ -86,18 +95,32 @@ concrete result link only once the result exists. The contract projects read
 access to that local result for the bound requesting role, not permission to
 record it. The service must still check the request–result instance association.
 
-## Service ownership and gateway
+## Service ownership and delivery
 
 A service has `routePrefixes` and `routes` (exact route IDs). Topology, OpenAPI
 service extensions, desktop previews and MCP return the same ownership. A contract
 service may own a proposal-signing URI under the channel's business root, so a
 prefix alone is not sufficient to decide ownership.
 
-The generated Compose sketch includes Traefik and one backend per Context. Its
-routers match method and an anchored path-template regular expression, and each
-backend receives JSON `EVIDENCE_ROUTE_PREFIXES` and `EVIDENCE_ROUTES`. Backend images
-and port 8080 remain deployment placeholders. The sketch needs no Docker to
-project or test. Legacy URI rewriting is optional and is not enabled by default.
+`evidence api deliver` exports the aggregate `openapi.json` and standalone
+`services/<serviceId>/openapi.json` views. Each operation appears unchanged in
+exactly one service view, including its hypermedia templates to other services.
+`topology.json` describes modeled subject references, signing and capability
+outcomes; it does not prescribe containers, transports or runtime dependencies.
+There is no generated Compose or broker configuration.
+
+Save published contracts outside the generated directory. Compare a candidate
+with the corresponding published contract before release:
+
+```bash
+pnpm evidence api diff --base published/procurement/openapi.json \
+  --target dist/api/services/service.product-procurement/openapi.json --format markdown
+```
+
+Compare two model inputs or two OpenAPI JSON artifacts of the same scope. The
+command exits `1` for detected breaking changes and `2` if comparison cannot be
+performed. `oasdiff` checks the declared interface; behavior and lifecycle
+commitments still need tests and release policy.
 
 ## Overlay migration
 

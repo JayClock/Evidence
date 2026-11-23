@@ -1,9 +1,8 @@
 import { Validator } from '@seriousme/openapi-schema-validator';
-import type { DeliveryContract } from '../delivery/modelDelivery.js';
 
 /** Validates a local contract against the bundled OpenAPI meta-schema. */
 export const assertOpenApiContract = async (
-  contract: DeliveryContract,
+  contract: object,
 ): Promise<void> => {
   const validator = new Validator();
   const result = await validator.validate(structuredClone({ ...contract }));

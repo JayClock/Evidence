@@ -8,6 +8,23 @@ export interface ContractComparison extends OasdiffComparison {
   targetModelDigest: string;
 }
 
+/** Compare published artefacts at the same capability scope, without re-projecting them. */
+export const compareOpenApiContracts = async (
+  base: Record<string, unknown>,
+  target: Record<string, unknown>,
+  runner = new OasdiffRunner(),
+): Promise<OasdiffComparison> => {
+  if (base['x-evidence-model'] !== target['x-evidence-model'])
+    throw new Error('API_MODEL_MISMATCH: 不能比较不同模型');
+  if (base['x-evidence-service'] !== target['x-evidence-service'])
+    throw new Error(
+      'API_SERVICE_MISMATCH: 不能比较不同服务或混用聚合与分服务契约',
+    );
+  await assertOpenApiContract(base);
+  await assertOpenApiContract(target);
+  return runner.compare(base, target);
+};
+
 /** Compares the final contracts, including validated route overlays. */
 export const compareContracts = async (
   base: EvidenceApiSnapshot,
@@ -21,10 +38,12 @@ export const compareContracts = async (
     throw new Error(
       diagnostics.map((item) => `${item.code}: ${item.message}`).join('\n'),
     );
-  await assertOpenApiContract(base.openapi);
-  await assertOpenApiContract(target.openapi);
   return {
-    ...(await runner.compare({ ...base.openapi }, { ...target.openapi })),
+    ...(await compareOpenApiContracts(
+      { ...base.openapi },
+      { ...target.openapi },
+      runner,
+    )),
     baseModelDigest: base.digests.model,
     targetModelDigest: target.digests.model,
   };

@@ -76,6 +76,45 @@ describe('live CLI', () => {
     },
   );
 
+  it('checks an exported service against its own baseline without re-projecting', async () => {
+    await withScratch(async (directory) => {
+      const out = path.join(directory, 'generated');
+      expect(
+        await runCli([...args('deliver', directory), '--out', out]),
+      ).toMatchObject({ exitCode: 0 });
+      const base = path.join(
+        out,
+        'services/service.product-procurement/openapi.json',
+      );
+      const next = path.join(directory, 'candidate.json');
+      const diff = (target: string, format = 'json') =>
+        runCli([
+          'diff',
+          '--base',
+          base,
+          '--target',
+          target,
+          '--format',
+          format,
+        ]);
+      expect(await diff(base)).toMatchObject({
+        exitCode: 0,
+        output: { hasBreakingChanges: false },
+      });
+      const candidate = JSON.parse(readFileSync(base, 'utf8'));
+      delete candidate.paths['/product-procurements'].post;
+      writeFileSync(next, JSON.stringify(candidate));
+      expect(await diff(next, 'markdown')).toMatchObject({
+        exitCode: 1,
+        output: expect.stringContaining('/product-procurements'),
+      });
+      expect(await diff(path.join(out, 'openapi.json'))).toMatchObject({
+        exitCode: 2,
+        error: expect.stringContaining('API_SERVICE_MISMATCH'),
+      });
+    });
+  });
+
   it('projects a bundle using the same model-derived routes', async () => {
     await withScratch(async (directory) => {
       const { bundle } = await readModelRoot(fullLifecycle().modelRoot);

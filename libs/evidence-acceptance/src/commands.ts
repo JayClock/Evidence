@@ -19,12 +19,16 @@ import {
   type DesignDocument,
 } from '@evidence-poc/evidence-api';
 import { buildProjection, isComplete } from '@evidence-poc/evidence-api';
-import { compareContracts } from './diff/compareContracts.js';
+import {
+  compareContracts,
+  compareOpenApiContracts,
+} from './diff/compareContracts.js';
 import { assertOpenApiContract } from '@evidence-poc/evidence-api';
 import { OasdiffError } from './diff/oasdiffRunner.js';
 import {
   defaultOutputDirectory,
   renderOutputs,
+  serviceContractsOf,
   writeOutput,
 } from '@evidence-poc/evidence-api';
 
@@ -61,7 +65,7 @@ export interface CliResult {
 }
 
 const USAGE =
-  'usage: evidence-api <inspect|check|project|deliver> --project-root DIR --fm DIR_OR_BUNDLE [--fm-check FILE] [--api FILE] [--out DIR]\n       evidence-api diff --base DIR_OR_BUNDLE --target DIR_OR_BUNDLE [--base-api FILE] [--api FILE] [--format json|markdown]\n       evidence-api export-tests --project-root DIR --fm DIR_OR_BUNDLE [--out DIR]';
+  'usage: evidence-api <inspect|check|project|deliver> --project-root DIR --fm DIR_OR_BUNDLE [--fm-check FILE] [--api FILE] [--out DIR]\n       evidence-api diff --base MODEL_OR_OPENAPI_JSON --target MODEL_OR_OPENAPI_JSON [--base-api FILE] [--api FILE] [--format json|markdown]\n       evidence-api export-tests --project-root DIR --fm DIR_OR_BUNDLE [--out DIR]';
 
 const isDirectory = (target: string): boolean => {
   try {
@@ -222,6 +226,16 @@ const refused = (code: string, message: string): CliResult => ({
   exitCode: 1,
 });
 
+const readOpenApiArtifact = (
+  file: string,
+): Record<string, unknown> | undefined => {
+  if (!file.endsWith('.json') || isDirectory(file)) return undefined;
+  const input: unknown = JSON.parse(readFileSync(file, 'utf8'));
+  return typeof input === 'object' && input !== null && 'openapi' in input
+    ? (input as Record<string, unknown>)
+    : undefined;
+};
+
 export const runDiff = async (options: DiffCliOptions): Promise<CliResult> => {
   for (const [value, name, required] of [
     [options.base, 'base', true],
@@ -242,6 +256,23 @@ export const runDiff = async (options: DiffCliOptions): Promise<CliResult> => {
       };
   }
   try {
+    const baseArtifact = readOpenApiArtifact(options.base);
+    const targetArtifact = readOpenApiArtifact(options.target);
+    if (baseArtifact !== undefined || targetArtifact !== undefined) {
+      if (baseArtifact === undefined || targetArtifact === undefined)
+        throw new Error(
+          'API_DIFF_INPUT_MISMATCH: 基线和目标必须同为模型或 OpenAPI JSON',
+        );
+      if (options.baseApi !== undefined || options.api !== undefined)
+        throw new Error(
+          'API_DIFF_OVERLAY_INVALID: 已导出的契约不能再应用覆盖文件',
+        );
+      const diff = await compareOpenApiContracts(baseArtifact, targetArtifact);
+      return {
+        output: options.format === 'json' ? diff : diff.changelog,
+        exitCode: diff.hasBreakingChanges ? 1 : 0,
+      };
+    }
     const base = await loadFm(options.base),
       target = await loadFm(options.target);
     if (base.index === null || target.index === null)
@@ -413,6 +444,8 @@ export const runApiCommand = async (
   const out = options.out ?? defaultOutputDirectory(options.projectRoot);
   try {
     await assertOpenApiContract(built.projection.openapi);
+    for (const { contract } of serviceContractsOf(built.projection))
+      await assertOpenApiContract(contract);
     mkdirSync(path.dirname(out), { recursive: true });
     const outputs = renderOutputs(built.projection);
     writeOutput(out, outputs);
