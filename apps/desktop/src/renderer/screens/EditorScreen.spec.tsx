@@ -63,11 +63,21 @@ describe('EditorScreen', () => {
     );
     await readyCanvas();
     fireEvent.click(screen.getByRole('button', { name: '上下文地图' }));
-    const map = await screen.findByRole('region', { name: '上下文地图' });
+    let map = await screen.findByRole('region', { name: '上下文地图' });
     fireEvent.click(within(map).getByText(/依赖与插槽/));
     expect(
       within(map).getByText('订阅框架协议依赖订阅支付协议：订阅到账凭证'),
     ).toBeInTheDocument();
+    fireEvent.click(within(map).getByRole('button', { name: '本期扣款确认' }));
+    await readyCanvas();
+    expect(
+      container.querySelector(
+        '[data-node-id="membership.external.confirmation"][aria-pressed="true"]',
+      ),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '上下文地图' }));
+    map = await screen.findByRole('region', { name: '上下文地图' });
+    fireEvent.click(within(map).getByText(/依赖与插槽/));
     fireEvent.click(
       within(within(map).getByRole('list', { name: '按上下文下钻' })).getByRole(
         'button',
@@ -80,6 +90,22 @@ describe('EditorScreen', () => {
     ).not.toBeNull();
     expect(screen.queryByRole('region', { name: '上下文地图' })).toBeNull();
     expect(api.calls.save).toEqual([]);
+  });
+
+  it('uses deliberate zoom to enter the overview without changing the initial fit mode', async () => {
+    readyProject();
+    render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    expect(screen.queryByRole('region', { name: '上下文地图' })).toBeNull();
+    await waitFor(() => {
+      const reset = screen.getByRole('button', { name: /当前缩放/ });
+      expect(Number(reset.textContent?.replace('%', ''))).toBeLessThan(35);
+    });
+    fireEvent.click(screen.getByRole('button', { name: '缩小' }));
+    await screen.findByRole('region', { name: '上下文地图' });
+    fireEvent.click(screen.getByRole('button', { name: '返回履约画布' }));
+    await readyCanvas();
+    expect(screen.queryByRole('region', { name: '上下文地图' })).toBeNull();
   });
 
   it('previews a template without writing and applies it as one undoable edit', async () => {

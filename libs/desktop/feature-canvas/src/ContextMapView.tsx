@@ -109,7 +109,7 @@ export const ContextMapView = ({
   onOpenContext,
 }: {
   graph: DomainGraph;
-  onOpenContext: (id: string) => void;
+  onOpenContext: (id: string, evidenceId?: string) => void;
 }) => {
   const map = useMemo(() => deriveContextMapGraph(graph), [graph]);
   const [positions, setPositions] = useState<
@@ -140,9 +140,10 @@ export const ContextMapView = ({
       };
     });
     const index = new Map(nodes.map((node) => [node.id, node]));
-    const edges = map.edges.map<Edge>((edge) => {
-      const source = index.get(edge.sourceRef)!;
-      const target = index.get(edge.targetRef)!;
+    const edges = map.edges.flatMap<Edge>((edge) => {
+      const source = index.get(edge.sourceRef);
+      const target = index.get(edge.targetRef);
+      if (!source || !target) return [];
       const sourceSide =
         target.position.x < source.position.x ? 'left' : 'right';
       const targetSide =
@@ -154,19 +155,21 @@ export const ContextMapView = ({
         sockets.length > 0
           ? sockets.map(({ label }) => label).join('、')
           : CONTEXT_MAP_LINK_LABELS[edge.kind];
-      return {
-        id: edge.id,
-        source: edge.sourceRef,
-        target: edge.targetRef,
-        sourceHandle: `outgoing-${sourceSide}`,
-        targetHandle: `incoming-${targetSide}`,
-        label,
-        type: 'smoothstep',
-        markerEnd: { type: MarkerType.ArrowClosed },
-        ariaLabel: `${source.data.cluster.label}依赖${target.data.cluster.label}：${label}`,
-        style:
-          edge.kind === 'evidence' ? { strokeDasharray: '5 3' } : undefined,
-      };
+      return [
+        {
+          id: edge.id,
+          source: edge.sourceRef,
+          target: edge.targetRef,
+          sourceHandle: `outgoing-${sourceSide}`,
+          targetHandle: `incoming-${targetSide}`,
+          label,
+          type: 'smoothstep',
+          markerEnd: { type: MarkerType.ArrowClosed },
+          ariaLabel: `${source.data.cluster.label}依赖${target.data.cluster.label}：${label}`,
+          style:
+            edge.kind === 'evidence' ? { strokeDasharray: '5 3' } : undefined,
+        },
+      ];
     });
     return { nodes, edges };
   }, [graph, map, onOpenContext, positions]);
@@ -217,13 +220,40 @@ export const ContextMapView = ({
             <li key={id}>{ariaLabel}</li>
           ))}
           {map.clusters.flatMap((cluster) =>
-            cluster.sockets
-              .filter(({ providerRefs }) => providerRefs.length === 0)
-              .map(({ id, label }) => (
-                <li key={id}>
-                  {cluster.label}：{label}（待绑定）
-                </li>
-              )),
+            cluster.sockets.map(({ id, label, providerRefs }) => (
+              <li key={id}>
+                {cluster.label}：{label}
+                {providerRefs.length === 0 && '（待绑定）'}
+                {providerRefs.length > 0 && (
+                  <ul
+                    className="mt-1 flex flex-wrap gap-1"
+                    aria-label={`${label}的提供方凭证`}
+                  >
+                    {providerRefs.flatMap((ref) => {
+                      const provider = graph.getEntity(ref);
+                      if (
+                        provider?.category !== 'evidence' ||
+                        !provider.contextRef
+                      )
+                        return [];
+                      const providerContext = provider.contextRef;
+                      return [
+                        <li key={ref}>
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant="outline"
+                            onClick={() => onOpenContext(providerContext, ref)}
+                          >
+                            {provider.label}
+                          </Button>
+                        </li>,
+                      ];
+                    })}
+                  </ul>
+                )}
+              </li>
+            )),
           )}
         </ul>
         <ul aria-label="按上下文下钻" className="mt-2 flex flex-wrap gap-1">

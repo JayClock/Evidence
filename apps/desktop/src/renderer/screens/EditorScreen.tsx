@@ -799,9 +799,16 @@ const EditorWorkspace = ({
     canvasStageRef.current?.focus();
   };
   const openMapContext = useCallback(
-    (contextId: string) => {
+    (contextId: string, evidenceId?: string) => {
       setOverviewOpen(false);
-      state.session.clearSelection();
+      if (evidenceId) {
+        state.session.select(evidenceId);
+        tokenRef.current += 1;
+        setFocusRequest({ nodeId: evidenceId, token: tokenRef.current });
+      } else {
+        state.session.clearSelection();
+        setFocusRequest(null);
+      }
       setSelectedScope(contextId);
       const context = state.graph.getEntity(contextId);
       setDetailContext(
