@@ -196,12 +196,12 @@ export const useStoryPlayback = ({
     narrationGeneration,
   );
   const voice =
-    factScene && !stale
+    factScene?.narrativeSource === 'facts' && !stale
       ? narration.entries?.get(factScene.stepIndex)
       : undefined;
   const scene =
     factScene && voice !== undefined
-      ? { ...factScene, narrative: voice }
+      ? { ...factScene, narrative: voice, narrativeSource: 'ai' as const }
       : factScene;
   const nextIndex =
     seekTime === undefined || rehearsing
@@ -588,7 +588,6 @@ export const useStoryPlayback = ({
     ready,
     skipAi,
     narration,
-    hasAiNarration: voice !== undefined,
     isPlaying: ready && isPlaying,
     stepCount: flow?.steps.length ?? 0,
     stepNumber: step ? index + 1 : 0,

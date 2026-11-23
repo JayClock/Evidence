@@ -44,11 +44,15 @@ export const projectStoryFacts = (
         ? undefined
         : (entities.get(step.actingRoleRef)?.label ?? step.actingRoleRef)) ??
       '待明确经办方';
+    const description = step.description?.trim();
     return {
       stepIndex: step.sequence,
       stepHash: step.stepHash,
       phaseTitle: `办理《${step.entityLabel}》`,
-      narrative: `${actingRoleLabel}办理《${step.entityLabel}》，业务时点为${step.asOf}。仅展示模型声明的事实，未执行验收或规则判定。`,
+      narrative:
+        description ||
+        `${actingRoleLabel}办理《${step.entityLabel}》，业务时点为${step.asOf}。仅展示模型声明的事实，未执行验收或规则判定。`,
+      narrativeSource: description ? ('model' as const) : ('facts' as const),
       actingRoleLabel,
       targetEntityLabel: step.entityLabel,
       documentCard: {
@@ -124,10 +128,12 @@ export const createFlowStoryProjector = (
       if (failure) throw failure;
       return {
         ...baseline,
-        scenes: baseline.scenes.map((scene) => ({
-          ...scene,
-          narrative: prose.get(scene.stepIndex) ?? scene.narrative,
-        })),
+        scenes: baseline.scenes.map((scene) => {
+          const narrative = prose.get(scene.stepIndex);
+          return narrative === undefined
+            ? scene
+            : { ...scene, narrative, narrativeSource: 'ai' };
+        }),
       };
     },
   };

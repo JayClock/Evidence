@@ -113,6 +113,28 @@ describe('story playback', () => {
     expect(load).toHaveBeenCalledOnce();
     expect(hook.result.current.ready).toBe(true);
   });
+  it('plays an entirely explained flow without starting a narration job', async () => {
+    const { hook, load, flow, startNarration } = setup();
+    load.mockResolvedValue(
+      storySnapshot([
+        {
+          ...flow,
+          steps: flow.steps.map((step) => ({
+            ...step,
+            description: '已确认的业务说明。',
+          })),
+        },
+      ]),
+    );
+    await tick();
+    expect(hook.result.current.scene).toMatchObject({
+      narrativeSource: 'model',
+      narrative: '已确认的业务说明。',
+    });
+    expect(hook.result.current.ready).toBe(true);
+    expect(startNarration).not.toHaveBeenCalled();
+  });
+
   it('advances before any provider result and merges only matching narration without resetting the clock', async () => {
     const { hook, flow, narrate, load, startNarration } = setup();
     await tick();
@@ -141,6 +163,7 @@ describe('story playback', () => {
     expect(hook.result.current.scene).toEqual({
       ...fact,
       narrative: '当前旁白',
+      narrativeSource: 'ai',
     });
     expect(hook.result.current.timeline).toBe(timeline);
     expect(hook.result.current.isPlaying).toBe(true);
@@ -221,7 +244,7 @@ describe('story playback', () => {
     });
     act(() => hook.result.current.togglePlaying());
     invalidate('/models/test', 'narration');
-    expect(hook.result.current.hasAiNarration).toBe(false);
+    expect(hook.result.current.scene?.narrativeSource).toBe('facts');
     expect(hook.result.current.isPlaying).toBe(true);
     expect(hook.result.current.ready).toBe(true);
     expect(startNarration).toHaveBeenCalledTimes(2);

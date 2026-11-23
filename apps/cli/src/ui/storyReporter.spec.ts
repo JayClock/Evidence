@@ -14,6 +14,7 @@ const stories: readonly BusinessStoryProjection[] = [
         stepHash: 'hash',
         phaseTitle: '卖方提出付款申请',
         narrative: '供应商发出申请的详细旁白。',
+        narrativeSource: 'model',
         actingRoleLabel: '供应商',
         targetEntityLabel: '付款申请单',
         documentCard: {

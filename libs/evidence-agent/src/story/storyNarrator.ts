@@ -90,7 +90,9 @@ export const createStoryNarrator = ({
         prioritySequence?: number;
       },
     ): Promise<void> {
-      const steps = [...trace.steps].sort((a, b) => a.sequence - b.sequence);
+      const steps = trace.steps
+        .filter((step) => !step.description?.trim())
+        .sort((a, b) => a.sequence - b.sequence);
       const priority = steps.findIndex(
         (step) => step.sequence === prioritySequence,
       );

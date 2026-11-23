@@ -83,7 +83,8 @@ const storyResult = (flow = storyFlow()): StoryProjectResult => ({
       stepIndex: step.sequence,
       stepHash: step.stepHash,
       phaseTitle: `办理${step.entityLabel}`,
-      narrative: `采购方办理${step.entityLabel}。`,
+      narrative: step.description ?? `采购方办理${step.entityLabel}。`,
+      narrativeSource: step.description ? 'model' : 'facts',
       actingRoleLabel: '采购方',
       targetEntityLabel: step.entityLabel,
       documentCard: {

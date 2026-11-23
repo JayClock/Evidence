@@ -23,14 +23,18 @@ export const useStoryNarration = (
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<Narration>();
   const key = useMemo(() => ({}), [api, snapshotId, flow, attempt, generation]);
+  const candidates = useMemo(
+    () => flow?.steps.filter((step) => !step.description?.trim()) ?? [],
+    [flow],
+  );
   const priority = useRef(prioritySequence);
   priority.current = prioritySequence;
   useEffect(() => {
-    if (!snapshotId || !flow?.steps.length) return;
+    if (!snapshotId || candidates.length === 0) return;
     const job = { snapshotId, jobId: globalThis.crypto.randomUUID() };
     let active = true;
     const steps = new Map(
-      flow.steps.map(({ sequence, stepHash }) => [sequence, stepHash]),
+      candidates.map(({ sequence, stepHash }) => [sequence, stepHash]),
     );
     const complete = (incomplete: boolean) => {
       clearTimeout(timer);
@@ -97,9 +101,9 @@ export const useStoryNarration = (
       unsubscribe();
       cancel();
     };
-  }, [api, snapshotId, flow, key, generation]);
+  }, [api, snapshotId, candidates, key, generation]);
   const visible = snapshotId && state?.key === key ? state : undefined;
-  const total = snapshotId ? (flow?.steps.length ?? 0) : 0;
+  const total = snapshotId ? candidates.length : 0;
   const completed = visible?.entries.size ?? 0;
   const failed = [...(visible?.entries.values() ?? [])].filter(
     (narrative) => narrative === undefined,

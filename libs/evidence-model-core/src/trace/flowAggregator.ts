@@ -202,6 +202,7 @@ export const collectFlowScenarios = (
           ? {}
           : { derivedAssertions: structuredClone(test.expect) }),
       };
+      const description = example.description?.trim();
       const node: TraceNode = {
         ref,
         flowId: test.flow,
@@ -216,6 +217,7 @@ export const collectFlowScenarios = (
             ? { responsibleRoleRef: entity.responsibleRoleRef }
             : {}),
           exampleLabel: example.label,
+          ...(description ? { description } : {}),
           gaps,
         },
         dependencies: new Set(),

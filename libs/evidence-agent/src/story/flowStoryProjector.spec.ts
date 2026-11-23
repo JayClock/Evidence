@@ -47,6 +47,36 @@ it('projects sorted factual cards and gaps without resolving the model', async (
   ).toThrow('unique positive');
 });
 
+it('uses declared explanations offline, preserves gaps and generates only missing explanations', async () => {
+  const authored = stepFixture({
+    description: '按约核对单据。',
+    gaps: ['unpaired_request'],
+  });
+  const flow = flowFixture([
+    authored,
+    stepFixture({ sequence: 2, description: '  ' }),
+  ]);
+  const generate = vi.fn().mockResolvedValue(text);
+  const offline = await createFlowStoryProjector({
+    skipAi: true,
+    agent: { generate },
+  }).project(flow);
+  expect(offline.scenes[0]).toMatchObject({
+    narrative: authored.description,
+    narrativeSource: 'model',
+    pendingSuspense: expect.any(String),
+    ruleEvaluations: [],
+  });
+  expect(offline.scenes[1]?.narrativeSource).toBe('facts');
+  expect(generate).not.toHaveBeenCalled();
+  const enhanced = await createFlowStoryProjector({
+    agent: { generate },
+  }).project(flow);
+  expect(generate).toHaveBeenCalledOnce();
+  expect(enhanced.scenes[0]).toEqual(offline.scenes[0]);
+  expect(enhanced.scenes[1]?.narrativeSource).toBe('ai');
+});
+
 it('only overlays validated prose in batch exports', async () => {
   const flow = trace(1);
   const projector = createFlowStoryProjector({
@@ -61,7 +91,7 @@ it('only overlays validated prose in batch exports', async () => {
   const baseline = projectStoryFacts(flow);
   expect(await projector.project(flow)).toEqual({
     ...baseline,
-    scenes: [{ ...baseline.scenes[0], ...text }],
+    scenes: [{ ...baseline.scenes[0], ...text, narrativeSource: 'ai' }],
   });
 });
 

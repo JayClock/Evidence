@@ -20,6 +20,8 @@ export interface FlowStepTrace extends StepFingerprintInput {
   readonly contextRef?: string;
   readonly responsibleRoleRef?: string;
   readonly exampleLabel: string;
+  /** Authored explanation from the owning example; not part of the fact fingerprint. */
+  readonly description?: string;
   /** Entity/attribute gaps from a caller-supplied FM check report. */
   readonly gaps: readonly string[];
 }

@@ -20,12 +20,10 @@ const SceneSheet = ({
   scene,
   ready,
   stale,
-  hasAiNarration,
 }: {
   scene: StoryScene;
   ready: boolean;
   stale: boolean;
-  hasAiNarration: boolean;
 }) => {
   const [notice, setNotice] = useState('');
   const [speaking, setSpeaking] = useState(false);
@@ -76,9 +74,11 @@ const SceneSheet = ({
           <span className="text-[10px] text-evidence-muted">
             {stale
               ? '上一版本 · 请等待更新'
-              : hasAiNarration
-                ? 'AI 旁白 · 请核对模型事实'
-                : '模型事实 · 未使用 AI'}
+              : scene.narrativeSource === 'model'
+                ? '模型业务解释'
+                : scene.narrativeSource === 'ai'
+                  ? 'AI 草稿 · 请核对模型事实'
+                  : '模型事实 · 未使用 AI'}
           </span>
         </div>
         <p className="whitespace-pre-wrap leading-6">{scene.narrative}</p>
@@ -322,7 +322,6 @@ export const StoryDrawer = ({
           scene={playback.scene}
           ready={playback.ready}
           stale={playback.stale}
-          hasAiNarration={playback.hasAiNarration}
         />
       ) : null}
       <WhatIfSection

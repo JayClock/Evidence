@@ -513,6 +513,23 @@ describe('acceptance-model fact extraction', () => {
     expect(changed[1].traceDigest).not.toBe(digests[1]);
   });
 
+  it('projects authored explanation without changing the business trace identity', () => {
+    const model = acceptanceModel();
+    const before = collectFlowScenarios(model)[0]!;
+    const example = model.entities
+      .find(({ id }) => id === before.steps[0]!.entityId)!
+      .examples!.find(({ label }) => label === before.steps[0]!.exampleLabel)!;
+    example.description = '  案例中的业务说明。  ';
+    const after = collectFlowScenarios(model)[0]!;
+    expect(after.steps[0]?.description).toBe('案例中的业务说明。');
+    expect(after.steps[0]?.stepHash).toBe(before.steps[0]?.stepHash);
+    expect(after.traceDigest).toBe(before.traceDigest);
+    example.description = '  ';
+    expect(collectFlowScenarios(model)[0]?.steps[0]).not.toHaveProperty(
+      'description',
+    );
+  });
+
   it('includes declared assertion changes in only that step fingerprint', () => {
     const model = acceptanceModel();
     const before = hashesByRef(model);
