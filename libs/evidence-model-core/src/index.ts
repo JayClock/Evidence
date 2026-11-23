@@ -146,6 +146,10 @@ export type {
   StepFingerprintInput,
 } from './trace/types.js';
 export {
+  isWhatIfFulfillmentEvidence,
+  whatIfDecisionRules,
+} from './trace/whatIfRules.js';
+export {
   createRequestRehearsal,
   createScenarioTimeline,
   MAX_REHEARSAL_HOURS,

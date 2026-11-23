@@ -40,6 +40,7 @@ const setup = async ({
     return storyResult(selected);
   });
   api.story.whatIf = vi.fn(async () => ({
+    isSpeculative: false as const,
     hypothesis: { values: { amount: 300 } },
     ruleOutcome: { ruleId: 'rule.payment', result: false },
     ruleOutcomes: [{ ruleId: 'rule.payment', result: false }],

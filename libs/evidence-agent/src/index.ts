@@ -17,6 +17,7 @@ export {
   STORY_SYSTEM_PROMPT,
   WHAT_IF_EXPLANATION_PROMPT,
   WHAT_IF_EXTRACTION_PROMPT,
+  WHAT_IF_SPECULATIVE_PROMPT,
 } from './story/prompts.js';
 export type {
   BusinessStoryProjection,

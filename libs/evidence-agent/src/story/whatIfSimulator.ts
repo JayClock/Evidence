@@ -1,7 +1,9 @@
 import {
   createDomainGraph,
   evaluateRuleOnExample,
+  isWhatIfFulfillmentEvidence,
   validateTypedValue,
+  whatIfDecisionRules,
   type FlowStepTrace,
 } from '@evidence-poc/evidence-model-core';
 import {
@@ -12,6 +14,7 @@ import {
 import {
   WHAT_IF_EXPLANATION_PROMPT,
   WHAT_IF_EXTRACTION_PROMPT,
+  WHAT_IF_SPECULATIVE_PROMPT,
 } from './prompts.js';
 import {
   HypothesisSchema,
@@ -20,6 +23,7 @@ import {
 } from './responseSchemas.js';
 import { createStoryAgent } from './storyAgent.js';
 import type {
+  RuleBasedWhatIfResult,
   StoryAgent,
   WhatIfInput,
   WhatIfResult,
@@ -37,8 +41,16 @@ const exampleRef = (step: FlowStepTrace): string =>
 
 /**
  * A transient model-rule sandbox, not an execution or backend-acceptance claim.
- * The agent extracts inputs and explains decisions; native CEL alone decides.
+ * Native CEL alone decides; opt-in AI exploration has no rule outcomes.
  */
+export function simulateWhatIf(
+  input: WhatIfInput & { readonly allowSpeculative?: false },
+  options?: WhatIfSimulatorOptions,
+): Promise<RuleBasedWhatIfResult>;
+export function simulateWhatIf(
+  input: WhatIfInput,
+  options?: WhatIfSimulatorOptions,
+): Promise<WhatIfResult>;
 export async function simulateWhatIf(
   input: WhatIfInput,
   options: WhatIfSimulatorOptions = {},
@@ -50,6 +62,7 @@ export async function simulateWhatIf(
     currentStepSequence,
     hypothesisQuestion,
     ruleId,
+    allowSpeculative,
     hypothesis: suppliedHypothesis,
   } = structuredClone(input);
   const selected = flow.steps.filter(
@@ -64,6 +77,18 @@ export async function simulateWhatIf(
   const entity = model.entities.find((item) => item.id === current.entityId);
   if (entity === undefined)
     throw new Error(`Unknown current entity '${current.entityId}'.`);
+  if (!isWhatIfFulfillmentEvidence(entity))
+    throw new Error('What-If is only available for fulfillment steps.');
+
+  const candidates = whatIfDecisionRules(createDomainGraph(model), entity.id);
+  const rules =
+    ruleId === undefined
+      ? candidates
+      : candidates.filter((rule) => rule.id === ruleId);
+  if (rules.length === 0 && (allowSpeculative !== true || ruleId !== undefined))
+    throw new Error(
+      'No relevant completion/breach rule is modeled for this step.',
+    );
 
   const stepsByRef = new Map<string, FlowStepTrace>();
   const aliases = new Map<string, Set<FlowStepTrace>>();
@@ -109,26 +134,13 @@ export async function simulateWhatIf(
     return [...found.values()].sort((a, b) => a.sequence - b.sequence);
   };
   const upstream = ancestors(current);
-  const related = new Set([current.entityId]);
-  for (const pair of createDomainGraph(model).fulfillmentPairs()) {
-    if (pair.confirmations.some(({ id }) => id === current.entityId)) {
-      related.add(pair.request.id);
-    }
-  }
-  const rules = model.rules
-    .filter(
-      (rule) =>
-        (rule.kind === 'completion' || rule.kind === 'breach') &&
-        (ruleId === undefined || rule.id === ruleId) &&
-        Object.values(rule.bindings).some(
-          (binding) => 'ref' in binding && related.has(binding.ref),
-        ),
-    )
-    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  if (rules.length === 0)
-    throw new Error(
-      'No relevant completion/breach rule is modeled for this step.',
-    );
+  const upstreamFacts = () =>
+    upstream.map(({ entityId, entityLabel, asOf, values }) => ({
+      entityId,
+      entityLabel,
+      asOf,
+      values,
+    }));
 
   const isDerived = (name: string): boolean =>
     entity.attributes?.find((attribute) => attribute.name === name)
@@ -143,28 +155,24 @@ export async function simulateWhatIf(
     ({ name }) => !isDerived(name),
   );
   const agent = options.agent ?? createStoryAgent();
-  const hypothesis = HypothesisSchema.parse(
-    responseObject(
-      suppliedHypothesis ??
-        (await agent.generate({
-          systemPrompt: WHAT_IF_EXTRACTION_PROMPT,
-          userPrompt: compactCanonicalJson({
-            hypothesisQuestion,
-            step: current,
-            inputAttributes,
-            upstream: upstream.map(
-              ({ entityId, entityLabel, asOf, values }) => ({
-                entityId,
-                entityLabel,
-                asOf,
-                values,
-              }),
-            ),
-          }),
-        })),
-    ),
-  );
-  for (const [name, value] of Object.entries(hypothesis.values ?? {})) {
+  const hypothesis =
+    rules.length === 0 && suppliedHypothesis === undefined
+      ? undefined
+      : HypothesisSchema.parse(
+          responseObject(
+            suppliedHypothesis ??
+              (await agent.generate({
+                systemPrompt: WHAT_IF_EXTRACTION_PROMPT,
+                userPrompt: compactCanonicalJson({
+                  hypothesisQuestion,
+                  step: current,
+                  inputAttributes,
+                  upstream: upstreamFacts(),
+                }),
+              })),
+          ),
+        );
+  for (const [name, value] of Object.entries(hypothesis?.values ?? {})) {
     const attribute = inputAttributes.find((item) => item.name === name);
     if (attribute === undefined)
       throw new Error(
@@ -173,9 +181,36 @@ export async function simulateWhatIf(
     const problem = validateTypedValue(value, attribute.valueType ?? 'dynamic');
     if (problem !== null) throw new Error(`Hypothesis ${name} ${problem}`);
   }
-  const asOf = hypothesis.asOf ?? current.asOf;
+  const asOf = hypothesis?.asOf ?? current.asOf;
   if (upstream.some((source) => Date.parse(source.asOf) > Date.parse(asOf))) {
     throw new Error('Hypothesis clock precedes its dependency facts.');
+  }
+
+  if (hypothesis === undefined || rules.length === 0) {
+    const explanation = ImpactExplanationSchema.parse(
+      responseObject(
+        await agent.generate({
+          systemPrompt: WHAT_IF_SPECULATIVE_PROMPT,
+          userPrompt: compactCanonicalJson({
+            hypothesisQuestion,
+            ...(hypothesis === undefined ? {} : { hypothesis }),
+            current: {
+              entityId: current.entityId,
+              entityLabel: current.entityLabel,
+              asOf: current.asOf,
+              values: current.values,
+            },
+            upstream: upstreamFacts(),
+          }),
+        }),
+      ),
+    );
+    return {
+      isSpeculative: true,
+      ...(hypothesis === undefined ? {} : { hypothesis }),
+      ruleOutcomes: [],
+      businessImpactExplanation: explanation.businessImpactExplanation,
+    };
   }
 
   const materialized = new Map<string, Record<string, unknown>>();
@@ -298,6 +333,7 @@ export async function simulateWhatIf(
     ),
   );
   return {
+    isSpeculative: false,
     hypothesis,
     ruleOutcome: ruleOutcomes[0]!,
     ruleOutcomes,

@@ -3,12 +3,14 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   WHAT_IF_EXPLANATION_PROMPT,
   WHAT_IF_EXTRACTION_PROMPT,
+  WHAT_IF_SPECULATIVE_PROMPT,
 } from './prompts.js';
 import { flowFixture, modelFixture, stepFixture } from './testing/fixtures.js';
 import type { WhatIfInput } from './types.js';
 import { simulateWhatIf } from './whatIfSimulator.js';
 
-const fixture = (): { -readonly [K in keyof WhatIfInput]: WhatIfInput[K] } => {
+type StrictInput = Omit<WhatIfInput, 'allowSpeculative'>;
+const fixture = (): { -readonly [K in keyof StrictInput]: StrictInput[K] } => {
   const model = modelFixture();
   model.entities
     .find(({ id }) => id === 'request.payment')!
@@ -496,5 +498,112 @@ describe('native CEL What-If sandbox', () => {
     expect(
       (await simulateWhatIf(input, { agent: { generate } })).ruleOutcome.result,
     ).toBe(true);
+  });
+
+  it('rejects when no completion/breach rules exist and allowSpeculative is false', async () => {
+    const input = fixture();
+    input.model.rules = [];
+    const generate = vi.fn().mockResolvedValue(explanation);
+    await expect(
+      simulateWhatIf(input, { agent: { generate } }),
+    ).rejects.toThrow('No relevant completion/breach rule is modeled');
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it('explores a freeform question without extracting fields or running CEL', async () => {
+    const input = fixture();
+    input.hypothesisQuestion = '如果买方拒绝付款呢？';
+    input.model.rules = [
+      {
+        type: 'rule',
+        id: 'rule.unusable-derivation',
+        kind: 'derivation',
+        label: '不应执行的派生规则',
+        description: 'AI 临时推想不重新求值。',
+        contextRef: 'context.purchase',
+        bindings: {},
+        expression: 'missing_value',
+        resultType: 'int',
+        target: { entityRef: 'confirmation.payment', attribute: 'paid_amount' },
+      },
+    ];
+    const before = structuredClone(input);
+    const speculativeExplanation = {
+      businessImpactExplanation: '卖方可能延迟备货，是否可暂停交付仍需确认。',
+    };
+    const generate = vi.fn().mockResolvedValueOnce(speculativeExplanation);
+
+    const result = await simulateWhatIf(
+      { ...input, allowSpeculative: true },
+      { agent: { generate } },
+    );
+    expect(result).toEqual({
+      isSpeculative: true,
+      ruleOutcomes: [],
+      ...speculativeExplanation,
+    });
+    expect(generate).toHaveBeenCalledOnce();
+    const request = generate.mock.calls[0]![0];
+    expect(request.systemPrompt).toBe(WHAT_IF_SPECULATIVE_PROMPT);
+    expect(JSON.parse(request.userPrompt)).toMatchObject({
+      hypothesisQuestion: input.hypothesisQuestion,
+      current: {
+        entityId: 'confirmation.payment',
+        values: { paid_amount: 100 },
+      },
+      upstream: [{ entityId: 'request.payment', values: { amount: 100 } }],
+    });
+    expect(input).toEqual(before);
+  });
+
+  it('rejects contract steps even with speculative opt-in and a direct rule binding', async () => {
+    const input = fixture();
+    const contract = {
+      type: 'entity',
+      id: 'contract.purchase',
+      category: 'evidence',
+      kind: 'contract',
+      label: '采购协议',
+    } as const;
+    input.model.entities.push(contract);
+    input.model.rules[0]!.bindings = { contract: { ref: contract.id } };
+    input.flow = flowFixture([
+      stepFixture({ entityId: contract.id, entityKind: 'contract' }),
+    ]);
+    const generate = vi.fn();
+    await expect(
+      simulateWhatIf(
+        { ...input, currentStepSequence: 1, allowSpeculative: true },
+        { agent: { generate } },
+      ),
+    ).rejects.toThrow('only available for fulfillment steps');
+    expect(generate).not.toHaveBeenCalled();
+  });
+
+  it('never changes a strict decision or downgrades errors when rules exist', async () => {
+    const input = fixture();
+    input.hypothesis = { values: { paid_amount: 50 } };
+    const generate = vi.fn().mockResolvedValue(explanation);
+    const options = { agent: { generate } };
+    await expect(
+      simulateWhatIf({ ...input, allowSpeculative: true }, options),
+    ).resolves.toMatchObject({
+      isSpeculative: false,
+      ruleOutcomes: expect.arrayContaining([
+        { ruleId: 'rule.payment-completion', result: false },
+      ]),
+    });
+    generate.mockClear();
+    await expect(
+      simulateWhatIf(
+        { ...input, allowSpeculative: true, ruleId: 'rule.unknown' },
+        options,
+      ),
+    ).rejects.toThrow('No relevant completion/breach rule is modeled');
+    input.model.rules[0]!.expression = 'missing_value';
+    await expect(
+      simulateWhatIf({ ...input, allowSpeculative: true }, options),
+    ).rejects.toThrow();
+    expect(generate).not.toHaveBeenCalled();
   });
 });

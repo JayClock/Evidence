@@ -64,6 +64,8 @@ export interface WhatIfInput {
   readonly hypothesis?: WhatIfHypothesis;
   /** Select one relevant rule; otherwise evaluate all completion/breach rules. */
   readonly ruleId?: string;
+  /** Explicit opt-in for freeform AI exploration when no decision rules exist. */
+  readonly allowSpeculative?: boolean;
 }
 
 export interface WhatIfRuleOutcome {
@@ -71,10 +73,21 @@ export interface WhatIfRuleOutcome {
   readonly result: boolean;
 }
 
-export interface WhatIfResult {
+export interface RuleBasedWhatIfResult {
+  readonly isSpeculative: false;
   readonly hypothesis: WhatIfHypothesis;
   /** First outcome, retained as the single-rule convenience contract. */
   readonly ruleOutcome: WhatIfRuleOutcome;
   readonly ruleOutcomes: readonly WhatIfRuleOutcome[];
   readonly businessImpactExplanation: string;
 }
+
+export interface SpeculativeWhatIfResult {
+  readonly isSpeculative: true;
+  readonly hypothesis?: WhatIfHypothesis;
+  readonly ruleOutcome?: never;
+  readonly ruleOutcomes: readonly [];
+  readonly businessImpactExplanation: string;
+}
+
+export type WhatIfResult = RuleBasedWhatIfResult | SpeculativeWhatIfResult;
