@@ -1,7 +1,4 @@
-import {
-  DomainModelDocumentSyntaxSchema,
-  type DomainModelDocument,
-} from '@evidence-poc/evidence-schema';
+import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import {
   analyzeCelExpression,
   collectCelCandidates,
@@ -9,6 +6,8 @@ import {
   createDomainGraph,
 } from '@evidence-poc/evidence-model-core';
 
+import { digestBytes } from '../adapter/fmAdapter.js';
+import { canonicalJson } from '../canonicalJson.js';
 import { buildDelivery } from '../projector.js';
 import { assertOpenApiContract } from '../openapi/validateContract.js';
 import {
@@ -22,6 +21,7 @@ import {
   type DeliveryContract,
 } from './modelDelivery.js';
 import type { DeliveryRoute } from './routes.js';
+import { contextModelOf } from './contextModel.js';
 
 export interface ContextDelivery {
   contextId: string;
@@ -41,25 +41,20 @@ export interface ContextDeliveryPlan {
 export async function planContextDelivery(
   input: DomainModelDocument,
 ): Promise<ContextDeliveryPlan> {
-  // Do not project malformed ASTs or ambiguous ownership; these fail closed.
-  const model = DomainModelDocumentSyntaxSchema.parse(input);
-  const ids = [...model.entities, ...model.relationships, ...model.rules].map(
-    ({ id }) => id,
-  );
-  if (new Set(ids).size !== ids.length)
-    throw new Error('FM_INVALID: duplicate model IDs');
+  const {
+    model,
+    contexts: byContext,
+    ownerOf: entityOwner,
+  } = contextModelOf(input);
   const snapshot = buildDelivery(model);
-  const byContext = new Map(
-    snapshot.services.map(({ contextRef }) => [contextRef, [] as Diagnostic[]]),
-  );
+  const modelDigest = [...byContext.values()].some((issues) => issues.length)
+    ? `sha256:${digestBytes(canonicalJson(input))}`
+    : snapshot.digests.model;
+  const contextIds = [...byContext.keys()].sort((a, b) => a.localeCompare(b));
   const entities = new Map(model.entities.map((entity) => [entity.id, entity]));
   const routes = new Map(snapshot.routes.map((route) => [route.id, route]));
   const rules = new Map(model.rules.map((rule) => [rule.id, rule]));
   const edges = new Map(model.relationships.map((edge) => [edge.id, edge]));
-  const entityOwner = (ref: string) => {
-    const entity = entities.get(ref);
-    return entity?.category === 'context' ? entity.id : entity?.contextRef;
-  };
   const global: Diagnostic[] = [];
   const record = (issue: Diagnostic) => {
     let attributed = false;
@@ -244,15 +239,17 @@ export async function planContextDelivery(
     selectedRoutes,
     selectedServices,
   );
-  const excluded = snapshot.services
-    .filter(({ contextRef }) => byContext.get(contextRef)!.length > 0)
-    .map(({ contextRef }) => contextRef);
+  const excluded = contextIds.filter(
+    (contextRef) => (byContext.get(contextRef)?.length ?? 0) > 0,
+  );
   gateway['x-evidence-delivery-state'] = excluded.length
     ? 'partial'
     : 'complete';
   gateway['x-evidence-excluded-contexts'] = excluded;
-  if (excluded.length)
-    gateway.info.description += `\n自动生成的部分契约。未收录的上下文：${excluded.join('、')}。`;
+  const draftDescription = `${gateway.info.description}\n自动同步的 API 草稿，不代表已授权发布。`;
+  gateway.info.description = excluded.length
+    ? `${draftDescription}\n未收录的上下文：${excluded.join('、')}。`
+    : draftDescription;
   await assertOpenApiContract(gateway);
 
   const views = new Map(
@@ -260,20 +257,23 @@ export async function planContextDelivery(
       openapi: gateway,
       routes: selectedRoutes,
       services: selectedServices,
-    }).map(({ serviceId, contract }) => [serviceId, contract]),
+    }).map(
+      ({ contract }) =>
+        [contract['x-evidence-services'][0]?.contextRef, contract] as const,
+    ),
   );
   return {
     modelId: snapshot.modelId,
-    modelDigest: snapshot.digests.model,
+    modelDigest,
     gateway,
-    contexts: snapshot.services.map(({ id, contextRef }) => {
-      const issues = normalizeDiagnostics(byContext.get(contextRef)!);
-      const contract = views.get(id);
+    contexts: contextIds.map((contextRef) => {
+      const issues = normalizeDiagnostics(byContext.get(contextRef) ?? []);
+      const contract = views.get(contextRef);
       if (contract) {
         // Gateway-only state must not dirty every context when an unrelated context changes.
         delete contract['x-evidence-delivery-state'];
         delete contract['x-evidence-excluded-contexts'];
-        contract.info.description = snapshot.openapi.info.description;
+        contract.info.description = draftDescription;
       }
       return {
         contextId: contextRef,

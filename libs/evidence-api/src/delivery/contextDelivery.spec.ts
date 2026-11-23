@@ -52,11 +52,41 @@ describe('context delivery', () => {
     );
   });
 
+  it('isolates an empty rule expression but rejects ambiguous global model IDs', async () => {
+    const model = await fixture();
+    const rule = model.rules.find(
+      ({ contextRef }) => contextRef === procurement,
+    )!;
+    rule.expression = '';
+    const plan = await planContextDelivery(model);
+    expect(
+      plan.contexts.find(({ contextId }) => contextId === procurement),
+    ).toMatchObject({
+      status: 'blocked',
+      issues: expect.arrayContaining([
+        expect.objectContaining({
+          targetRef: rule.id,
+          location: expect.stringMatching(/expression$/),
+        }),
+      ]),
+    });
+    expect(
+      plan.contexts.find(({ contextId }) => contextId === catalog)?.status,
+    ).toBe('ready');
+    model.entities.push(structuredClone(model.entities[0]!));
+    await expect(planContextDelivery(model)).rejects.toThrow(
+      'duplicate model IDs',
+    );
+  });
+
   it('attributes unresolved relationship targets to the known endpoint and leaves unrelated contexts alone', async () => {
     const model = await fixture();
     const refs = new Set(
       model.entities
-        .filter(({ contextRef }) => contextRef === payment)
+        .filter(
+          (entity) =>
+            entity.category !== 'context' && entity.contextRef === payment,
+        )
         .map(({ id }) => id),
     );
     const edge = model.relationships.find(
