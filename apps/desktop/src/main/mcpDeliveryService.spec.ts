@@ -6,7 +6,7 @@ import { createMcpDeliveryService } from './mcpDeliveryService';
 
 const bundle = (): DeliveryBundle =>
   ({
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     apiId: 'procurement-api',
     mode: 'draft',
     journeys: [],
@@ -111,7 +111,6 @@ const bundle = (): DeliveryBundle =>
       components: { schemas: {} },
       'x-evidence-services': [],
     },
-    deployment: { version: '3', services: {} },
     limitations: ['request.delivery 没有履约确认，未生成确认回调接口。'],
   }) as unknown as DeliveryBundle;
 

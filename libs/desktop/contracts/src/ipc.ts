@@ -97,7 +97,7 @@ export interface EvidenceDesktopApi {
       input: ExportLiveDeliveryInput,
     ) => Promise<ExportDeliveryResult>;
     deliveryPreview: (rootPath: string) => Promise<DeliveryPreviewResult>;
-    /** Writes the contract, topology, routes and deployment sketch to a folder. */
+    /** Writes the aggregate and per-service contracts, topology and routes to a folder. */
     exportDelivery: (rootPath: string) => Promise<ExportDeliveryResult>;
   };
   /** Incremental business walkthrough and isolated What-If sandbox. */

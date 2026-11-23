@@ -13,10 +13,9 @@ import { IncrementalDiffPanel } from './IncrementalDiffPanel';
 import type { DeliveryHubController } from '../../state/useDeliveryHub';
 
 const artifactTitles = new Map([
-  ['openapi.json', 'OpenAPI 契约'],
+  ['openapi.json', '聚合 OpenAPI 契约'],
   ['topology.json', '服务拓扑'],
   ['routes.json', '路由清单'],
-  ['deployment.compose.json', '部署拓扑'],
   ['projection.json', '完整模型投影'],
   ['http-journeys.json', 'HTTP 旅程定义'],
   ['limitations.md', '尚未闭环的能力'],
@@ -190,13 +189,13 @@ export const DeliveryHub = ({
                       aria-pressed={
                         view === 'artifacts' && item.path === artifact?.path
                       }
-                      className="flex w-full flex-col gap-0.5 rounded-lg border border-workbench-border bg-white px-3 py-2 text-left hover:bg-workbench-subtle focus-visible:outline-2 focus-visible:outline-evidence-accent aria-pressed:border-evidence-accent aria-pressed:bg-evidence-active"
+                      className="flex w-full min-w-0 flex-col gap-0.5 rounded-lg border border-workbench-border bg-white px-3 py-2 text-left hover:bg-workbench-subtle focus-visible:outline-2 focus-visible:outline-evidence-accent aria-pressed:border-evidence-accent aria-pressed:bg-evidence-active"
                       onClick={() => {
                         setPath(item.path);
                         setView('artifacts');
                       }}
                     >
-                      <span className="text-xs font-semibold">
+                      <span className="max-w-full truncate text-xs font-semibold">
                         {artifactTitles.get(item.path) ?? item.path}
                       </span>
                       <code

@@ -3,11 +3,7 @@ import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
 import { API_FIXTURES } from '../testing/fixtures.js';
 
-import {
-  buildDelivery,
-  buildDeliveryContract,
-  buildDeliveryDeployment,
-} from './delivery.js';
+import { buildDelivery, buildDeliveryContract } from './delivery.js';
 import { deliveryFilesOf } from './files.js';
 
 const model = async (): Promise<DomainModelDocument> => {
@@ -100,28 +96,6 @@ describe('buildDeliveryContract', () => {
           '/wechat-payments',
         ],
       },
-    ]);
-  });
-});
-
-describe('buildDeliveryDeployment', () => {
-  it('runs one container per Context and depends on what it calls', async () => {
-    const document = await model();
-    const deployment = buildDeliveryDeployment(document);
-
-    expect(Object.keys(deployment.services)).toEqual([
-      'gateway',
-      'product-catalog',
-      'product-procurement',
-      'product-sourcing',
-      'wechat-payment',
-    ]);
-    expect(deployment.services['product-sourcing']?.dependsOn).toEqual([
-      'product-catalog',
-      'product-procurement',
-    ]);
-    expect(deployment.services['wechat-payment']?.dependsOn).toEqual([
-      'product-procurement',
     ]);
   });
 });
@@ -248,7 +222,7 @@ describe('buildDelivery', () => {
     const bundle = buildDelivery(openEndedModel());
     const report = bundle.limitations.join('\n');
 
-    expect(bundle.schemaVersion).toBe('6.0');
+    expect(bundle.schemaVersion).toBe('7.0');
     expect(bundle.modelId).toBe('open-ended');
     expect(report).toContain('request.delivery 没有履约确认');
     expect(report).toContain('派生属性 total_amount');
@@ -261,14 +235,17 @@ describe('buildDelivery', () => {
   it('serializes the bundle into the files a hand-off writes', async () => {
     const files = deliveryFilesOf(buildDelivery(await model()));
 
-    expect(files.map((file) => file.path)).toEqual([
+    const paths = files.map((file) => file.path);
+    expect(paths.filter((file) => !file.includes('/'))).toEqual([
       'openapi.json',
       'topology.json',
       'routes.json',
-      'deployment.compose.json',
       'projection.json',
       'http-journeys.json',
     ]);
+    expect(paths).toContain(
+      'services/service.product-procurement/openapi.json',
+    );
     expect(files.every((file) => file.content.endsWith('\n'))).toBe(true);
   });
 

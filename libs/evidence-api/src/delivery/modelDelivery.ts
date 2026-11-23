@@ -12,8 +12,11 @@ import {
 
 import type { DeliveryField, DeliveryRoute } from './routes.js';
 import { buildDeliveryRoutes, SHARED_REQUEST_IDS } from './routes.js';
-import { createSegmentAllocator } from './segments.js';
-import { buildDeliveryTopology, type DeliveryService } from './topology.js';
+import {
+  buildDeliveryTopology,
+  type DeliveryLink,
+  type DeliveryService,
+} from './topology.js';
 
 /**
  * The delivered contract, from the model's own vocabulary.
@@ -428,6 +431,7 @@ export interface DeliveryContract {
   };
   'x-evidence-model': string;
   'x-evidence-model-version': string;
+  'x-evidence-service'?: string;
   paths: Record<string, JsonObject>;
   components: { schemas: JsonObject; examples: JsonObject };
   'x-evidence-services': readonly {
@@ -465,7 +469,7 @@ export const buildDeliveryContract = (
     openapi: '3.1.0',
     info: {
       title: document.manifest.name,
-      version: '6.0.0',
+      version: document.manifest.version,
       description: [
         '由履约模型直接投影的契约：每个路径对应一个业务凭证时刻。',
         '派生值由服务端计算，业务时间由服务端打点，调用方不能提交或回填。',
@@ -486,6 +490,45 @@ export const buildDeliveryContract = (
       routes: service.routes,
     })),
   };
+};
+
+/** A service view selects final operations; it does not re-address or re-weave them. */
+export const serviceContractsOf = ({
+  openapi,
+  routes,
+  services,
+}: Pick<ModelDelivery, 'openapi' | 'routes' | 'services'>) => {
+  const routesByService = new Map<string, DeliveryRoute[]>();
+  for (const route of routes) {
+    const owned = routesByService.get(route.serviceId) ?? [];
+    owned.push(route);
+    routesByService.set(route.serviceId, owned);
+  }
+  return services.flatMap((service) => {
+    const owned = routesByService.get(service.id);
+    if (owned === undefined) return [];
+    const paths: DeliveryContract['paths'] = {};
+    for (const route of owned) {
+      const method = route.method.toLowerCase();
+      const entry = paths[route.path] ?? {};
+      entry[method] = openapi.paths[route.path]![method];
+      paths[route.path] = entry;
+    }
+    const contract: DeliveryContract = {
+      ...openapi,
+      info: { ...openapi.info, title: service.name },
+      'x-evidence-service': service.id,
+      'x-evidence-services': openapi['x-evidence-services'].filter(
+        ({ id }) => id === service.id,
+      ),
+      paths,
+      components: {
+        schemas: objectSchemas(owned, componentName),
+        examples: examplesForSchemas(owned),
+      },
+    };
+    return [{ serviceId: service.id, contract }];
+  });
 };
 
 /** Example facts must satisfy the same payload contract as a real response. */
@@ -518,126 +561,6 @@ export const validateDeliveryExamples = (
   return diagnostics;
 };
 
-/** The deployment sketch: one container per Context, gateway in front. */
-export interface DeliveryDeployment {
-  version: '3';
-  services: Record<
-    string,
-    {
-      image: string;
-      environment: Record<string, string>;
-      dependsOn: readonly string[];
-      expose: readonly string[];
-      labels?: Record<string, string>;
-      command?: readonly string[];
-      ports?: readonly string[];
-      volumes?: readonly string[];
-    }
-  >;
-}
-
-/**
- * A compose file that matches the topology exactly.
- *
- * It is a sketch, not a release: ports and images are placeholders, but the
- * services and the dependency direction are the projected ones, so an operator
- * reads the same boundaries the model declares.
- */
-export const buildDeliveryDeployment = (
-  document: DomainModelDocument,
-  routes: readonly DeliveryRoute[] = buildDeliveryRoutes(document),
-  services: readonly DeliveryService[] = buildDeliveryTopology(document, routes)
-    .services,
-  links: readonly { from: string; to: string }[] = buildDeliveryTopology(
-    document,
-  ).links,
-): DeliveryDeployment => {
-  const allocator = createSegmentAllocator(
-    services.map((service) => service.contextRef),
-  );
-  const serviceKey = (id: string) =>
-    id.replace(/^service\./, '').replaceAll('.', '-');
-  return {
-    version: '3',
-    services: {
-      gateway: {
-        image: 'traefik:v3',
-        environment: {},
-        command: [
-          '--providers.docker=true',
-          '--providers.docker.exposedbydefault=false',
-          '--entrypoints.web.address=:80',
-        ],
-        ports: ['8080:80'],
-        volumes: ['/var/run/docker.sock:/var/run/docker.sock:ro'],
-        dependsOn: services.map((service) => serviceKey(service.id)).sort(),
-        expose: ['80'],
-      },
-      ...Object.fromEntries(
-        services.map((service) => {
-          const key = serviceKey(service.id);
-          const owned = routes.filter((route) =>
-            service.routes.includes(route.id),
-          );
-          const labels: Record<string, string> = {
-            'traefik.enable': String(owned.length > 0),
-            ['traefik.http.services.' + key + '.loadbalancer.server.port']:
-              '8080',
-          };
-          // Match whole method/path templates. A child service can own a single
-          // operation under another service's root without changing the URI.
-          for (const [index, route] of owned.entries()) {
-            const router = 'traefik.http.routers.' + key + '-' + index;
-            labels[router + '.rule'] =
-              'Method(`' +
-              route.method +
-              '`) && PathRegexp(`' +
-              routePattern(route.path) +
-              '`)';
-            labels[router + '.service'] = key;
-            labels[router + '.entrypoints'] = 'web';
-          }
-          return [
-            key,
-            {
-              image:
-                'evidence/' +
-                allocator.segmentOf(service.contextRef) +
-                ':latest',
-              environment: {
-                EVIDENCE_MODEL: document.manifest.id,
-                EVIDENCE_CONTEXT: service.contextRef,
-                EVIDENCE_SERVICE_KIND: service.kind,
-                EVIDENCE_ROUTE_PREFIXES: JSON.stringify(service.routePrefixes),
-                EVIDENCE_ROUTES: JSON.stringify(service.routes),
-              },
-              dependsOn: links
-                .filter((link) => link.from === service.id)
-                .map((link) => serviceKey(link.to))
-                .sort(),
-              expose: ['8080'],
-              labels,
-            },
-          ];
-        }),
-      ),
-    },
-  };
-};
-
-/** Escape literals before introducing the one-segment parameter matcher. */
-const routePattern = (path: string): string =>
-  '^' +
-  path
-    .split(/(\{[^{}]+\})/g)
-    .map((part) =>
-      part.startsWith('{')
-        ? '[^/]+'
-        : part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-    )
-    .join('') +
-  '$';
-
 /** The whole delivery, as one document a caller can write to disk. */
 export interface ModelDelivery {
   schemaVersion: '1.0';
@@ -647,17 +570,8 @@ export interface ModelDelivery {
   routes: readonly DeliveryRoute[];
   hypermedia: readonly HypermediaLink[];
   services: readonly DeliveryService[];
-  links: readonly {
-    id: string;
-    from: string;
-    to: string;
-    kind: string;
-    mode: string;
-    label: string;
-    viaRef: string;
-  }[];
+  links: readonly DeliveryLink[];
   openapi: DeliveryContract;
-  deployment: DeliveryDeployment;
   /** Things the model cannot answer, printed so the sketch is not read as a release. */
   limitations: readonly string[];
 }
@@ -704,22 +618,8 @@ export const buildModelDelivery = (
     routes,
     hypermedia: weaveHypermedia(document, routes),
     services,
-    links: topology.links.map((link) => ({
-      id: link.id,
-      from: link.from,
-      to: link.to,
-      kind: link.kind,
-      mode: link.mode,
-      label: link.label,
-      viaRef: link.viaRef,
-    })),
+    links: topology.links,
     openapi,
-    deployment: buildDeliveryDeployment(
-      document,
-      routes,
-      services,
-      topology.links,
-    ),
     limitations: limitationsOf(document, routes),
   };
 };

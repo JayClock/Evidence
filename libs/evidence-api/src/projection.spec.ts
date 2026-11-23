@@ -55,7 +55,7 @@ describe('model-driven snapshots', () => {
       index: loadFmFromDocument(bundle).index!,
     }).projection;
     expect(memory).toEqual(projected);
-    expect(memory.schemaVersion).toBe('6.0');
+    expect(memory.schemaVersion).toBe('7.0');
     expect(memory.mode).toBe('draft');
     expect(memory.routes.length).toBeGreaterThan(0);
     expect(memory.journeys.length).toBeGreaterThan(0);

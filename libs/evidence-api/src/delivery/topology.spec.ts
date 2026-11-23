@@ -3,7 +3,8 @@ import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
 import { API_FIXTURES } from '../testing/fixtures.js';
 import { sharedConfirmationModel } from '../testing/fulfillment.js';
-import { buildModelDelivery } from './modelDelivery.js';
+import { buildModelDelivery, serviceContractsOf } from './modelDelivery.js';
+import { assertOpenApiContract } from '../openapi/validateContract.js';
 
 import { buildDeliveryTopology } from './topology.js';
 
@@ -79,62 +80,51 @@ describe('buildDeliveryTopology', () => {
 
   it('links a contract to the domain Context it reads', async () => {
     const { links } = buildDeliveryTopology(await model());
-    const reads = links.filter((link) => link.kind === 'reads');
-
-    expect(
-      reads.map((link) => `${link.from}->${link.to}:${link.mode}`),
-    ).toContain('service.product-procurement->service.product-catalog:sync');
+    expect(links).toContainEqual(
+      expect.objectContaining({
+        from: 'service.product-procurement',
+        to: 'service.product-catalog',
+        kind: 'subject',
+        mode: 'reference',
+      }),
+    );
   });
 });
 
-it('serves shared confirmation creation and reverse lookup in the same contract service', async () => {
+it('keeps shared confirmation creation and reverse lookup with their owner', async () => {
   const delivery = buildModelDelivery(await sharedConfirmationModel());
-  const procurement = delivery.deployment.services['product-procurement']!;
-  expect(Object.values(procurement.labels!)).toContain(
-    'Method(`POST`) && PathRegexp(`^/payment-confirmations$`)',
-  );
-  expect(Object.values(procurement.labels!)).toContain(
-    'Method(`GET`) && PathRegexp(`^/payment-confirmations/[^/]+$`)',
-  );
-  expect(Object.values(procurement.labels!)).toContain(
-    'Method(`GET`) && PathRegexp(`^/product-procurements/[^/]+/payment-balance/payment-confirmations$`)',
-  );
+  const { contract } = serviceContractsOf(delivery).find(
+    ({ serviceId }) => serviceId === 'service.product-procurement',
+  )!;
+  expect(contract.paths['/payment-confirmations']).toHaveProperty('post');
+  expect(
+    contract.paths['/payment-confirmations/{paymentConfirmationId}'],
+  ).toHaveProperty('get');
+  expect(
+    contract.paths[
+      '/product-procurements/{contractId}/payment-balance/payment-confirmations'
+    ],
+  ).toHaveProperty('get');
 });
 
-it('owns each method/path once, including proposal signing executed by the contract service', async () => {
-  const document = await model();
-  const { buildDeliveryRoutes } = await import('./routes.js');
-  const { buildDeliveryDeployment } = await import('./modelDelivery.js');
-  const routes = buildDeliveryRoutes(document);
-  const { services } = buildDeliveryTopology(document, routes);
-  const owned = services.flatMap((service) => service.routes);
-  expect(owned.sort()).toEqual(routes.map((route) => route.id).sort());
-  const deployment = buildDeliveryDeployment(document, routes, services);
-  for (const service of services) {
-    const container =
-      deployment.services[service.id.replace(/^service\./, '')]!;
-    expect(JSON.parse(container.environment.EVIDENCE_ROUTE_PREFIXES!)).toEqual(
-      service.routePrefixes,
-    );
-    expect(container.environment).not.toHaveProperty('EVIDENCE_BASE_PATH');
-    const rules = Object.entries(container.labels!)
-      .filter(([key]) => key.endsWith('.rule'))
-      .map(([, value]) => value);
-    expect(rules).toHaveLength(service.routes.length);
-    for (const route of routes.filter((route) =>
-      service.routes.includes(route.id),
-    )) {
-      const concrete = route.path.replace(/\{[^{}]+\}/g, 'one');
-      expect(
-        rules.filter((rule) => {
-          const match = rule.match(
-            /^Method\(`(GET|POST)`\) && PathRegexp\(`(.*)`\)$/,
-          )!;
-          return (
-            match[1] === route.method && new RegExp(match[2]!).test(concrete)
-          );
-        }),
-      ).toHaveLength(1);
+it('exports valid service contracts whose unchanged operations partition the public API', async () => {
+  const delivery = buildModelDelivery(await model());
+  const seen = new Set<string>();
+  for (const { serviceId, contract } of serviceContractsOf(delivery)) {
+    await assertOpenApiContract(contract);
+    for (const [path, entry] of Object.entries(contract.paths)) {
+      for (const [method, operation] of Object.entries(entry)) {
+        expect(seen.has(method + path)).toBe(false);
+        seen.add(method + path);
+        expect(operation).toEqual(delivery.openapi.paths[path]![method]);
+        expect(operation).toMatchObject({ 'x-evidence-service': serviceId });
+      }
     }
   }
+  expect(seen.size).toBe(delivery.routes.length);
+  const signing = delivery.routes.find(({ id }) =>
+    id.startsWith('route.sign-from-'),
+  )!;
+  expect(signing.path.startsWith('/product-inquiries/')).toBe(true);
+  expect(signing.serviceId).toBe('service.product-procurement');
 });

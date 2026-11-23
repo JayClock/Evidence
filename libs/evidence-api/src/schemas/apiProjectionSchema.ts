@@ -1,7 +1,7 @@
 /** Embedded contract; keep its bytes synchronized with schemas/api-projection.schema.json. */
 export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://evidence.local/api-snapshot/v6/api-projection.schema.json",
+  "$id": "https://evidence.local/api-snapshot/v7/api-projection.schema.json",
   "type": "object",
   "$defs": {
     "breachBranch": {
@@ -32,7 +32,6 @@ export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
     "services",
     "links",
     "openapi",
-    "deployment",
     "limitations",
     "journeys",
     "diagnostics",
@@ -40,7 +39,7 @@ export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
   ],
   "properties": {
     "schemaVersion": {
-      "const": "6.0"
+      "const": "7.0"
     },
     "apiId": {
       "type": "string",
@@ -268,21 +267,6 @@ export const API_PROJECTION_SCHEMA_TEXT = String.raw`{
           "type": "object"
         },
         "components": {
-          "type": "object"
-        }
-      }
-    },
-    "deployment": {
-      "type": "object",
-      "required": [
-        "version",
-        "services"
-      ],
-      "properties": {
-        "version": {
-          "const": "3"
-        },
-        "services": {
           "type": "object"
         }
       }

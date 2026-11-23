@@ -12,7 +12,7 @@ import { serviceIdOf } from './segments.js';
 import { buildDeliveryRoutes, type DeliveryRoute } from './routes.js';
 
 /**
- * The services a model splits into, and how they talk.
+ * Candidate capability boundaries; co-location and transport are deployment decisions.
  *
  * The boundary is the Contract Context, not the noun. Splitting by table would
  * put one agreement's request and confirmation in two services and make every
@@ -58,14 +58,14 @@ export interface DeliveryService {
   notes: string;
 }
 
-export type DeliveryLinkMode = 'sync' | 'async';
+/** HTTP signing, independently produced results, or a model reference. */
+export type DeliveryLinkMode = 'sync' | 'async' | 'reference';
 
 export interface DeliveryLink {
   id: string;
   from: string;
   to: string;
-  /** `signs`, `capability` or `reads`. */
-  kind: 'signs' | 'capability' | 'reads';
+  kind: 'signs' | 'capability' | 'reads' | 'subject';
   mode: DeliveryLinkMode;
   label: string;
   /** Object that carries the message: a contract, a confirmation, a thing. */
@@ -92,7 +92,7 @@ const contextOf = (
  * A Contract Context that supplies another Context's capability socket.
  *
  * The model already says this: a `role` of kind `evidence` is the socket, and a
- * confirmation from another Context plays it. Nothing has to be declared twice.
+ * confirmation from another Contract Context plays it. Nothing has to be declared twice.
  */
 const socketSupplies = (
   graph: DomainGraph,
@@ -114,13 +114,16 @@ const socketSupplies = (
       continue;
     }
 
-    if (player === undefined) {
+    if (
+      player?.category !== 'evidence' ||
+      player.kind !== 'fulfillment_confirmation'
+    ) {
       continue;
     }
 
     const supplier = contextOf(graph, player);
 
-    if (supplier === undefined || supplier.id === socket.contextRef) {
+    if (supplier?.kind !== 'contract' || supplier.id === socket.contextRef) {
       continue;
     }
 
@@ -169,7 +172,10 @@ const domainReads = (
 
   for (const entity of graph.entitiesInContext(contextId)) {
     for (const relationship of graph.outgoing(entity.id)) {
-      if (relationship.kind !== 'references') {
+      if (
+        relationship.kind !== 'references' ||
+        graph.getEntity(relationship.targetRef)?.kind === 'thing'
+      ) {
         continue;
       }
 
@@ -274,7 +280,7 @@ export const buildDeliveryTopology = (
       notes: notesFor(kind, context, supplied.length),
     });
 
-    if (kind === 'capability') {
+    if (supplied.length > 0) {
       for (const entry of supplied) {
         const socket = graph.getEntity(entry.socketRef);
 
@@ -283,9 +289,7 @@ export const buildDeliveryTopology = (
           from: serviceIdOf(context.id),
           to: serviceIdOf(entry.consumerContextRef),
           kind: 'capability',
-          // The confirmation is produced by the supplier's own clock and arrives
-          // as a callback; making it synchronous would reintroduce the coupling
-          // the socket removed.
+          // Independent production of a result is not a webhook declaration.
           mode: 'async',
           label: `扮演${socket?.label ?? entry.socketRef}`,
           viaRef: entry.socketRef,
@@ -299,28 +303,62 @@ export const buildDeliveryTopology = (
         from: serviceIdOf(context.id),
         to: serviceIdOf(read.domainContextRef),
         kind: 'reads',
-        mode: 'sync',
-        label: '读取领域结论',
+        mode: 'reference',
+        label: '依赖领域结论',
         viaRef: read.viaRef,
       });
     }
 
-    if (
-      context.kind === 'pre_contract' &&
-      context.parentContextRef !== undefined
-    ) {
-      const contract = graph.rootContractOf(context.parentContextRef);
+    for (const entity of members) {
+      if (entity.category !== 'evidence') continue;
+      for (const edge of graph.outgoing(entity.id)) {
+        const subject = graph.getEntity(edge.targetRef);
+        if (
+          edge.kind !== 'references' ||
+          subject?.category !== 'participant' ||
+          subject.kind !== 'thing'
+        )
+          continue;
+        const domain = contextOf(graph, subject);
+        if (domain?.kind !== 'domain' || domain.id === context.id) continue;
+        links.push({
+          id: `link.subject.${context.id}.${subject.id}`,
+          from: serviceIdOf(context.id),
+          to: serviceIdOf(domain.id),
+          kind: 'subject',
+          mode: 'reference',
+          label: `关联${subject.label}`,
+          viaRef: subject.id,
+        });
+      }
+    }
 
-      links.push({
-        id: `link.signs.${context.id}.${context.parentContextRef}`,
-        from: serviceIdOf(context.id),
-        to: serviceIdOf(context.parentContextRef),
-        kind: 'signs',
-        mode: 'sync',
-        label:
-          contract === undefined ? '签约后进入履约' : `签约${contract.label}`,
-        viaRef: contract?.id ?? context.parentContextRef,
-      });
+    if (context.kind !== 'pre_contract') continue;
+    for (const quote of members) {
+      if (quote.category !== 'evidence' || quote.kind !== 'proposal') continue;
+      for (const edge of graph.incoming(quote.id)) {
+        const contract = graph.getEntity(edge.sourceRef);
+        if (
+          edge.kind !== 'references' ||
+          contract?.category !== 'evidence' ||
+          contract.kind !== 'contract' ||
+          contract.contextRef === undefined
+        )
+          continue;
+        const signing = routes.find(
+          ({ id }) => id === `route.sign-from-${quote.id}.${contract.id}`,
+        );
+        if (signing === undefined) continue;
+        links.push({
+          id: `link.signs.${context.id}.${contract.contextRef}`,
+          from: serviceIdOf(context.id),
+          to: signing.serviceId,
+          kind: 'signs',
+          mode: 'sync',
+          label: `签约${contract.label}`,
+          viaRef: contract.id,
+        });
+      }
     }
   }
 

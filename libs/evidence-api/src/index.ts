@@ -107,10 +107,8 @@ export {
 export {
   buildDelivery,
   buildDeliveryContract,
-  buildDeliveryDeployment,
   type DeliveryBundle,
   type DeliveryContract,
-  type DeliveryDeployment,
 } from './delivery/delivery.js';
 
 export { compareText, sortedText } from './order.js';
@@ -122,7 +120,10 @@ export {
   API_PROJECTION_SCHEMA_TEXT,
 } from './schemas/apiProjectionSchema.js';
 
-export { validateDeliveryExamples } from './delivery/modelDelivery.js';
+export {
+  serviceContractsOf,
+  validateDeliveryExamples,
+} from './delivery/modelDelivery.js';
 export { assertOpenApiContract } from './openapi/validateContract.js';
 
 export { migrateOverlay } from './loader/migrateOverlay.js';

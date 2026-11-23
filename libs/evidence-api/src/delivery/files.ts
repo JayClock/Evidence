@@ -1,5 +1,6 @@
 import type { DeliveryBundle } from './delivery.js';
 import { canonicalJson } from '../canonicalJson.js';
+import { serviceContractsOf } from './modelDelivery.js';
 
 /** One file a delivery hand-off writes, relative to the chosen directory. */
 export interface DeliveryFile {
@@ -32,7 +33,7 @@ export const deliveryFilesOf = (bundle: DeliveryBundle): DeliveryFile[] => {
       }),
     },
     { path: 'routes.json', content: json(bundle.routes) },
-    { path: 'deployment.compose.json', content: json(bundle.deployment) },
+
     { path: 'projection.json', content: json(bundle) },
     {
       path: 'http-journeys.json',
@@ -43,6 +44,27 @@ export const deliveryFilesOf = (bundle: DeliveryBundle): DeliveryFile[] => {
       }),
     },
   ];
+
+  for (const { serviceId, contract } of serviceContractsOf(bundle)) {
+    const directory = `services/${serviceId}`;
+    const service = bundle.services.find(({ id }) => id === serviceId)!;
+    files.push({ path: `${directory}/openapi.json`, content: json(contract) });
+    files.push({
+      path: `${directory}/README.md`,
+      content: [
+        `# ${service.name.replace(/[\r\n]+/g, ' ')}`,
+        '',
+        `- 上下文：\`${service.contextRef}\``,
+        `- 能力类型：\`${service.kind}\``,
+        `- 操作数：${service.routes.length}`,
+        '',
+        service.notes,
+        '',
+        '此契约与聚合视图共享 URI，不指定部署方式。',
+        '',
+      ].join('\n'),
+    });
+  }
 
   if (bundle.limitations.length > 0) {
     files.push({

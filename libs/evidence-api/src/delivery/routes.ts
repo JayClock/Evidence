@@ -610,7 +610,14 @@ export const buildDeliveryRoutes = (
           entity.category === 'participant' &&
           entity.kind === 'thing' &&
           (context.rootRefs === undefined ||
-            context.rootRefs.includes(entity.id)),
+            context.rootRefs.includes(entity.id) ||
+            graph
+              .incoming(entity.id)
+              .some(
+                (edge) =>
+                  edge.kind === 'references' &&
+                  graph.getEntity(edge.sourceRef)?.category === 'evidence',
+              )),
       )) {
       reads(
         thing.id,

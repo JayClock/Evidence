@@ -1,4 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { lstat, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -61,7 +62,30 @@ const writeFiles = async (
   await mkdir(directory, { recursive: true });
 
   for (const file of files) {
-    await writeFile(path.join(directory, file.path), file.content, 'utf8');
+    const segments = file.path.split('/');
+    if (
+      segments.some(
+        (segment) =>
+          !/^[a-z0-9][a-z0-9.-]*$/i.test(segment) || segment.endsWith('.'),
+      )
+    )
+      throw new Error('交付物路径不合法。');
+    const name = segments.pop()!;
+    let parent = directory;
+    for (const segment of segments) {
+      parent = path.join(parent, segment);
+      await mkdir(parent, { recursive: true });
+      if (!(await lstat(parent)).isDirectory())
+        throw new Error('交付物子目录不能是符号链接。');
+    }
+    await writeFile(path.join(parent, name), file.content, {
+      encoding: 'utf8',
+      flag:
+        constants.O_WRONLY |
+        constants.O_CREAT |
+        constants.O_TRUNC |
+        constants.O_NOFOLLOW,
+    });
   }
 };
 

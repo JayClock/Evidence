@@ -65,7 +65,6 @@ describe('deterministic delivery integrity', () => {
       expect(manifest.outputs).not.toHaveProperty('manifest.json');
       expect(Object.keys(files).sort()).toEqual(
         [
-          'deployment.compose.json',
           'http-journeys.json',
           'limitations.md',
           'manifest.json',
@@ -73,6 +72,12 @@ describe('deterministic delivery integrity', () => {
           'projection.json',
           'routes.json',
           'topology.json',
+          ...snapshot.services
+            .filter(({ routes }) => routes.length !== 0)
+            .flatMap(({ id }) => [
+              `services/${id}/README.md`,
+              `services/${id}/openapi.json`,
+            ]),
         ]
           .filter(
             (name) =>

@@ -1,3 +1,6 @@
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { DeliveryBundle } from '@evidence-poc/evidence-api';
@@ -24,7 +27,7 @@ const { suggestedDeliveryDirectory, deliveryFilesOf, previewOf } = await import(
 
 const bundle = (): DeliveryBundle =>
   ({
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     apiId: 'procurement-api',
     mode: 'draft',
     journeys: [],
@@ -59,6 +62,7 @@ const bundle = (): DeliveryBundle =>
         allowedPartyRoleRefs: [],
         exposure: 'internal',
         outputFields: [],
+        examples: [],
         rules: [],
       },
     ],
@@ -86,11 +90,12 @@ const bundle = (): DeliveryBundle =>
       info: { title: '商品采购', version: '6.0.0', description: '' },
       'x-evidence-model': 'procurement',
       'x-evidence-model-version': '1.1.0',
-      paths: {},
+      paths: {
+        '/procurements': { post: { operationId: 'signContractProcurement' } },
+      },
       components: { schemas: {} },
       'x-evidence-services': [],
     },
-    deployment: { version: '3', services: {} },
     limitations: ['request.delivery 没有履约确认，未生成确认回调接口。'],
   }) as unknown as DeliveryBundle;
 
@@ -112,16 +117,17 @@ const invoke = async (
 };
 
 describe('deliveryProjection', () => {
-  it('writes the contract, the topology, the routes and the sketch', () => {
+  it('writes aggregate and service contracts with a logical topology', () => {
     const files = deliveryFilesOf(bundle());
 
     expect(files.map((file) => file.path)).toEqual([
       'openapi.json',
       'topology.json',
       'routes.json',
-      'deployment.compose.json',
       'projection.json',
       'http-journeys.json',
+      'services/service.procurement/openapi.json',
+      'services/service.procurement/README.md',
       'limitations.md',
     ]);
     expect(JSON.parse(files[0]?.content ?? '{}')).toMatchObject({
@@ -190,13 +196,37 @@ describe('registerDeliveryIpc', () => {
           'openapi.json',
           'topology.json',
           'routes.json',
-          'deployment.compose.json',
           'projection.json',
           'http-journeys.json',
+          'services/service.procurement/openapi.json',
+          'services/service.procurement/README.md',
           'limitations.md',
         ],
       },
     ]);
+  });
+
+  it('writes the scoped contract in a nested directory on disk', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'desktop-delivery-'));
+    try {
+      const result = await invoke(
+        'evidence:project:export-delivery',
+        '/models/procurement',
+        {
+          showDirectoryDialog: async () => ({ canceled: false, directory }),
+        },
+      );
+      expect(result).toMatchObject({ status: 'saved' });
+      const scoped = await readFile(
+        path.join(directory, 'services/service.procurement/openapi.json'),
+        'utf8',
+      );
+      expect(JSON.parse(scoped)).toMatchObject({
+        'x-evidence-service': 'service.procurement',
+      });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it('writes nothing when the picker is dismissed', async () => {

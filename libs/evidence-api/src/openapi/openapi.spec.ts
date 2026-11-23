@@ -282,6 +282,6 @@ it('publishes distinct HAL collection schemas with linked summaries', () => {
       total: 1,
     },
   });
-  expect(snapshot.schemaVersion).toBe('6.0');
-  expect(snapshot.openapi.info.version).toBe('6.0.0');
+  expect(snapshot.schemaVersion).toBe('7.0');
+  expect(snapshot.openapi.info.version).toBe(snapshot.modelVersion);
 });

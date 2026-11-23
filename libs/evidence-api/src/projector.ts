@@ -12,7 +12,6 @@ import { canonicalJson } from './canonicalJson.js';
 import {
   buildModelDelivery,
   buildDeliveryContract,
-  buildDeliveryDeployment,
   validateDeliveryExamples,
 } from './delivery/modelDelivery.js';
 import {
@@ -175,21 +174,16 @@ export const buildProjection = ({
   const sorted = normalizeDiagnostics(diagnostics);
   const projection: EvidenceApiSnapshot = {
     ...baseline,
-    schemaVersion: '6.0',
+    schemaVersion: '7.0',
     apiId: typeof overlay?.['id'] === 'string' ? overlay['id'] : 'default-api',
     mode: 'draft',
     routes,
     services: topology.services,
+    links: topology.links,
     hypermedia,
     journeys:
       declared.length === 0 ? deriveJourneys(routes, hypermedia) : journeys,
     openapi,
-    deployment: buildDeliveryDeployment(
-      model,
-      routes,
-      topology.services,
-      topology.links,
-    ),
     diagnostics: sorted,
     digests: {
       model: index.modelDigest,
