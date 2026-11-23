@@ -140,6 +140,11 @@ export const registerStoryIpc = ({
       )
         throw new Error('请输入 1–4000 字的假设问题。');
       if (
+        input.allowSpeculative !== undefined &&
+        typeof input.allowSpeculative !== 'boolean'
+      )
+        throw new Error('无效的业务沙盘模式。');
+      if (
         !Number.isSafeInteger(input.currentStepSequence) ||
         input.currentStepSequence < 1
       )
@@ -156,6 +161,9 @@ export const registerStoryIpc = ({
           flow,
           currentStepSequence: input.currentStepSequence,
           hypothesisQuestion: input.question.trim(),
+          ...(input.allowSpeculative === true
+            ? { allowSpeculative: true }
+            : {}),
         },
         {
           agent: createStoryAgent(await getModelOptions?.()),

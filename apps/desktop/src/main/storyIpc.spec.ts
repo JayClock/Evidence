@@ -194,37 +194,43 @@ describe('story IPC', () => {
     expect(electron.handlers.size).toBe(0);
   });
 
-  it('forwards a current-step question to the read-only simulator', async () => {
-    const simulate = vi
-      .fn()
-      .mockResolvedValue({ businessImpactExplanation: '触发付款不足规则' });
-    register({ simulate });
-    const document = model();
-    const flow = collectFlowScenarios(document)[0]!;
-    const step = flow.steps[0]!;
-    const before = structuredClone(document);
-    const result = await invoke<{ businessImpactExplanation: string }>(
-      STORY_IPC_CHANNELS.WHAT_IF,
-      {
-        rootPath: '/models/p',
-        document,
-        flowId: flow.flowId,
-        currentStepSequence: step.sequence,
-        stepHash: step.stepHash,
-        question: '  如果只付300？  ',
-      },
-    );
-    expect(result.businessImpactExplanation).toBe('触发付款不足规则');
-    expect(simulate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: document,
-        currentStepSequence: step.sequence,
-        hypothesisQuestion: '如果只付300？',
-      }),
-      expect.objectContaining({ agent: expect.any(Object) }),
-    );
-    expect(document).toEqual(before);
-  });
+  it.each([undefined, false, true])(
+    'forwards a read-only question with AI opt-in %s',
+    async (allowSpeculative) => {
+      const simulated = { businessImpactExplanation: '可能影响后续交货' };
+      const simulate = vi.fn().mockResolvedValue(simulated);
+      register({ simulate });
+      const document = model();
+      const flow = collectFlowScenarios(document)[0]!;
+      const step = flow.steps[0]!;
+      const before = structuredClone(document);
+      const result = await invoke<{ businessImpactExplanation: string }>(
+        STORY_IPC_CHANNELS.WHAT_IF,
+        {
+          rootPath: '/models/p',
+          document,
+          flowId: flow.flowId,
+          currentStepSequence: step.sequence,
+          stepHash: step.stepHash,
+          question: '  如果只付300？  ',
+          allowSpeculative,
+        },
+      );
+      expect(result).toEqual(simulated);
+      expect(simulate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: document,
+          currentStepSequence: step.sequence,
+          hypothesisQuestion: '如果只付300？',
+        }),
+        expect.objectContaining({ agent: expect.any(Object) }),
+      );
+      expect(simulate.mock.calls[0]![0].allowSpeculative).toBe(
+        allowSpeculative === true ? true : undefined,
+      );
+      expect(document).toEqual(before);
+    },
+  );
 
   it('rejects invalid envelopes, unknown flows, empty questions and stale steps', async () => {
     const simulate = vi.fn();
@@ -238,6 +244,12 @@ describe('story IPC', () => {
     await expect(
       invoke(STORY_IPC_CHANNELS.WHAT_IF, { question: ' ' }),
     ).rejects.toThrow('假设问题');
+    await expect(
+      invoke(STORY_IPC_CHANNELS.WHAT_IF, {
+        question: '付款300？',
+        allowSpeculative: 'true',
+      }),
+    ).rejects.toThrow('业务沙盘模式');
     await expect(
       invoke(STORY_IPC_CHANNELS.WHAT_IF, {
         rootPath: '/p',

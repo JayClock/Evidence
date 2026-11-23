@@ -35,6 +35,8 @@ export interface StoryWhatIfInput extends StoryModelInput {
   /** Refuse to answer against a step that changed since it was displayed. */
   readonly stepHash: string;
   readonly question: string;
+  /** Allow speculative freeform AI inference when no CEL completion/breach rules exist. */
+  readonly allowSpeculative?: boolean;
 }
 
 export interface StoryInvalidatedEvent {
