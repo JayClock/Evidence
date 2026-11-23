@@ -4,6 +4,13 @@ export {
 } from './ast/canonicalJson.js';
 
 export {
+  BusinessArchetypeIdSchema,
+  InstantiateArchetypeInputSchema,
+  type BusinessArchetypeId,
+  type InstantiateArchetypeInput,
+} from './tools/archetypeInputs.js';
+
+export {
   JsonPatchItemSchema,
   JsonPatchSchema,
   ModelPatchRequestSchema,

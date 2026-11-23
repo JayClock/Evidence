@@ -8,6 +8,17 @@ export {
 } from './scenario/scenarioStudio.js';
 export * from './ingestion/index.js';
 export {
+  BUSINESS_ARCHETYPE_FIELDS,
+  getBusinessArchetype,
+  instantiateArchetypeMutator,
+  listBusinessArchetypes,
+} from './model/businessArchetypes.js';
+export {
+  CONTEXT_MAP_LINK_LABELS,
+  deriveContextMapGraph,
+  type ContextMapGraph,
+} from './model/contextMap.js';
+export {
   translateBusinessFormula,
   replaceBusinessFormulaToken,
   type BusinessFormula,
