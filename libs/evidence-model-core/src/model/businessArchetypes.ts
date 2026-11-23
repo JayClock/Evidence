@@ -70,7 +70,7 @@ const archetypes = {
   },
 } as const satisfies Record<BusinessArchetypeId, Archetype>;
 
-export const BUSINESS_ARCHETYPE_FIELDS = [
+const businessFields = [
   { key: 'subjectLabel', label: '核心标的物', required: true },
   { key: 'customerLabel', label: '需求方', required: true },
   { key: 'operatorLabel', label: '运营方', required: true },
@@ -91,7 +91,21 @@ export function getBusinessArchetype(id: BusinessArchetypeId) {
       `${recipe.supportingContract}：${recipe.external.slice(0, 2).join(' → ')}（${recipe.socket}）`,
       recipe.settlement.slice(0, 2).join(' → '),
     ],
-    fields: BUSINESS_ARCHETYPE_FIELDS,
+    fields: [
+      ...businessFields,
+      ...(id === 'periodic-subscription'
+        ? [
+            {
+              key: 'billingCycle',
+              label: '订阅计费周期（可选）',
+              required: false,
+            } as const,
+          ]
+        : []),
+    ],
+    optionalBranches: [
+      '有确认的新权责时记录补偿；争议终点可指向主履约或已建模的补偿履约。',
+    ],
   };
 }
 
@@ -111,7 +125,7 @@ function buildArchetype(input: InstantiateArchetypeInput) {
       category: 'participant',
       kind: 'party',
       label,
-    }).id;
+    });
   const customer = party('customer', values.customerLabel);
   const operator = party('operator', values.operatorLabel);
   const provider = party('provider', values.providerLabel);
@@ -133,7 +147,7 @@ function buildArchetype(input: InstantiateArchetypeInput) {
   const contract = (
     key: string,
     label: string,
-    parties: readonly [string, string],
+    parties: readonly [typeof customer, typeof customer],
   ) => {
     const contextRef = id(`${key}.context`);
     createEntityMutator(model, {
@@ -143,27 +157,37 @@ function buildArchetype(input: InstantiateArchetypeInput) {
       kind: 'contract',
       label,
     });
-    const roles = parties.map((partyRef, index) => {
-      const roleRef = id(`${key}.party-${index + 1}`);
-      const owner = model.entities.find((entity) => entity.id === partyRef)!;
+    const bindRole = (party: typeof customer, position: 1 | 2) => {
+      const roleRef = id(`${key}.party-${position}`);
       createEntityMutator(model, {
         type: 'entity',
         id: roleRef,
         category: 'role',
         kind: 'party',
-        label: owner.label,
+        label: party.label,
         contextRef,
       });
       link(
-        `${key}.bind-${index + 1}`,
-        partyRef,
+        `${key}.bind-${position}`,
+        party.id,
         roleRef,
         '参与方担任合同角色',
         'plays_role',
       );
       return roleRef;
-    });
+    };
+    const roles: [string, string] = [
+      bindRole(parties[0], 1),
+      bindRole(parties[1], 2),
+    ];
     const rootRef = id(`${key}.agreement`);
+    const terms =
+      key === 'core'
+        ? [
+            values.settlementBasis && `结算依据：${values.settlementBasis}`,
+            values.billingCycle && `订阅计费周期：${values.billingCycle}`,
+          ].filter(Boolean)
+        : [];
     createContractMutator(model, {
       type: 'entity',
       id: rootRef,
@@ -183,9 +207,7 @@ function buildArchetype(input: InstantiateArchetypeInput) {
           keyData: true,
         },
       ],
-      ...(key === 'core' && values.settlementBasis
-        ? { notes: `结算依据：${values.settlementBasis}` }
-        : {}),
+      ...(terms.length > 0 ? { notes: terms.join('；') } : {}),
     });
     return { contextRef, roles, rootRef };
   };
@@ -246,10 +268,10 @@ function buildArchetype(input: InstantiateArchetypeInput) {
         mode: 'create',
         id: request,
         label: requestLabel,
-        responsibleRoleRef: scope.roles[reverse ? 1 : 0]!,
+        responsibleRoleRef: scope.roles[reverse ? 1 : 0],
         ...(window ? { deadlineMeaning: window } : {}),
       },
-      fulfillerRoleRef: scope.roles[reverse ? 0 : 1]!,
+      fulfillerRoleRef: scope.roles[reverse ? 0 : 1],
     });
     return { request, confirmation };
   };
@@ -306,14 +328,47 @@ function buildArchetype(input: InstantiateArchetypeInput) {
     linkProposalToRfpMutator(model, { proposalRef, rfpRef: inquiryRef });
     link('channel.signed-from', core.rootRef, proposalRef, '签约采纳报价');
   }
-  if (values.remedy) {
+  const compensationRef = id('compensation.request');
+  if (values.compensation) {
+    const { condition, requester, requestLabel, confirmationLabel, window } =
+      values.compensation;
+    const reverse = requester === 'operator';
     recordBreachOutcomeMutator(model, {
       requestRef: primary.request,
+      condition,
+      outcome: {
+        kind: 'compensation_pair',
+        request: {
+          id: compensationRef,
+          label: requestLabel,
+          responsibleRoleRef: core.roles[reverse ? 1 : 0],
+          ...(window ? { deadlineMeaning: window } : {}),
+        },
+        confirmation: {
+          id: id('compensation.confirmation'),
+          label: confirmationLabel,
+          responsibleRoleRef: core.roles[reverse ? 0 : 1],
+          occurrence: {
+            name: 'confirmed_at',
+            label: '确认时间',
+            meaning: '补偿结果的实际确认时间。',
+          },
+        },
+      },
+    });
+  }
+  if (values.remedy) {
+    const targetsCompensation = values.remedy.appliesTo === 'compensation';
+    recordBreachOutcomeMutator(model, {
+      requestRef: targetsCompensation ? compensationRef : primary.request,
       condition: values.remedy.condition,
       outcome: {
         kind: 'terminal_escalation',
         remedyKind: values.remedy.kind,
-        handoff: { id: id('delivery.remedy'), label: '主履约争议移交' },
+        handoff: {
+          id: id('delivery.remedy'),
+          label: targetsCompensation ? '补偿履约争议移交' : '主履约争议移交',
+        },
       },
     });
   }
@@ -326,6 +381,11 @@ export function instantiateArchetypeMutator(
   raw: InstantiateArchetypeInput,
 ) {
   const input = InstantiateArchetypeInputSchema.parse(raw);
+  const { billingCycle, compensation, remedy } = input.variationValues;
+  if (billingCycle && input.archetypeId !== 'periodic-subscription')
+    throw new Error('仅周期订阅模式可声明订阅计费周期。');
+  if (!compensation && remedy?.appliesTo === 'compensation')
+    throw new Error('不能为未建模的补偿履约指定争议终点。');
   const { model, contextRef } = buildArchetype(input);
   const occupied = new Set([
     draft.manifest.id,

@@ -184,7 +184,7 @@ export const createModelTools = (
       name: MODEL_TOOL_NAMES.instantiateArchetypeTemplate,
       label: '应用业务模式',
       description:
-        '仅在用户确认骨架、变化点并明确授权后，以一个可撤销事务向当前模型追加设计骨架。未确认时限、结算或法律救济应省略；不生成业务实例或宣称交付就绪。',
+        '仅在用户确认骨架、变化点并明确授权后，以一个可撤销事务向当前模型追加设计骨架。未确认的时限、计费周期、补偿权责或争议终点应省略；不生成业务实例或宣称交付就绪。',
       parameters: InstantiateArchetypeInputSchema,
       run: (input) =>
         runOperator(

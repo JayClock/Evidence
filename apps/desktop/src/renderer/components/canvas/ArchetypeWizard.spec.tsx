@@ -25,7 +25,29 @@ describe('ArchetypeWizard', () => {
       fireEvent.change(sheet.getByLabelText(new RegExp(label)), {
         target: { value },
       });
+    fireEvent.click(
+      sheet.getByRole('checkbox', { name: '已确认主履约违约后的新补偿权责' }),
+    );
+    fireEvent.change(sheet.getByLabelText('已确认的补偿触发条件'), {
+      target: { value: '未交付' },
+    });
+    fireEvent.change(sheet.getByLabelText('补偿请求名称'), {
+      target: { value: '主张退款' },
+    });
+    fireEvent.change(sheet.getByLabelText('补偿确认名称'), {
+      target: { value: '退款确认' },
+    });
+    fireEvent.change(sheet.getByLabelText('争议终点（可选）'), {
+      target: { value: 'arbitration' },
+    });
+    fireEvent.change(sheet.getByLabelText('争议来自哪一项履约'), {
+      target: { value: 'compensation' },
+    });
+    fireEvent.change(sheet.getByLabelText('已确认的争议触发条件'), {
+      target: { value: '约定退款未完成' },
+    });
     fireEvent.click(sheet.getByRole('button', { name: '预览变更' }));
+    expect(sheet.getByText(/补偿履约 · 移交仲裁/)).toBeInTheDocument();
     const updated = createEmptyDomainModel({
       name: 'Changed outside the wizard',
     });

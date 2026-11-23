@@ -8,7 +8,6 @@ export {
 } from './scenario/scenarioStudio.js';
 export * from './ingestion/index.js';
 export {
-  BUSINESS_ARCHETYPE_FIELDS,
   getBusinessArchetype,
   instantiateArchetypeMutator,
   listBusinessArchetypes,

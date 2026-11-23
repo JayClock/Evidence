@@ -135,6 +135,59 @@ describe('business archetypes', () => {
     });
   });
 
+  it('can leave a contractual compensation obligation with its own dispute boundary', () => {
+    const model = createEmptyDomainModel();
+    const input = {
+      archetypeId: 'periodic-subscription',
+      idPrefix: 'cycle',
+      variationValues: {
+        ...config,
+        billingCycle: '每季度',
+        remedy: {
+          kind: 'lawsuit',
+          appliesTo: 'compensation',
+          condition: '仍未退款',
+        },
+      },
+    } as const;
+    expect(() => instantiateArchetypeMutator(model, input)).toThrow(
+      '未建模的补偿',
+    );
+    expect(model.entities).toHaveLength(0);
+    instantiateArchetypeMutator(model, {
+      ...input,
+      variationValues: {
+        ...input.variationValues,
+        compensation: {
+          requester: 'customer',
+          condition: '未开通服务',
+          requestLabel: '主张退款',
+          confirmationLabel: '退款确认',
+          window: '七个工作日',
+        },
+      },
+    });
+    const graph = createDomainGraph(model);
+    expect(graph.getEntity('cycle.core.agreement')?.notes).toContain(
+      '订阅计费周期：每季度',
+    );
+    expect(graph.breachOutcomesOf('cycle.delivery.request')).toMatchObject([
+      {
+        kind: 'compensation_pair',
+        compensation: {
+          request: {
+            id: 'cycle.compensation.request',
+            responsibleRoleRef: 'cycle.core.party-1',
+          },
+        },
+      },
+    ]);
+    expect(graph.breachOutcomesOf('cycle.compensation.request')).toMatchObject([
+      { kind: 'terminal_escalation', remedyKind: 'lawsuit' },
+    ]);
+    expect(model.rules.some(({ kind }) => kind === 'breach')).toBe(false);
+  });
+
   it('uses explicit window and remedy without inventing automatic breach rules', () => {
     const model = createEmptyDomainModel();
     instantiateArchetypeMutator(model, {

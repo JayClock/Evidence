@@ -23,8 +23,23 @@ export const InstantiateArchetypeInputSchema = z
         providerLabel: businessText,
         fulfillmentWindow: businessText.optional(),
         settlementBasis: businessText.optional(),
+        billingCycle: businessText.optional(),
+        compensation: z
+          .object({
+            condition: businessText,
+            requester: z.enum(['customer', 'operator']),
+            requestLabel: businessText,
+            confirmationLabel: businessText,
+            window: businessText.optional(),
+          })
+          .strict()
+          .optional(),
         remedy: z
-          .object({ kind: TerminalRemedyKindSchema, condition: businessText })
+          .object({
+            kind: TerminalRemedyKindSchema,
+            condition: businessText,
+            appliesTo: z.enum(['primary', 'compensation']).optional(),
+          })
           .strict()
           .optional(),
       })

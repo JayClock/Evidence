@@ -56,11 +56,11 @@ interface WizardProps {
 }
 
 const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
-  const [archetypeId, setArchetypeId] = useState<BusinessArchetypeId>(
-    library[0]!.id,
-  );
+  const [archetypeId, setArchetypeId] =
+    useState<BusinessArchetypeId>('matching-escrow');
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [compensationEnabled, setCompensationEnabled] = useState(false);
   const [preview, setPreview] = useState<ArchetypePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -106,11 +106,25 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
               required ? (form[key] ?? '') : form[key]?.trim() || undefined,
             ]),
           ),
+          ...(compensationEnabled
+            ? {
+                compensation: {
+                  requester: form.compensationRequester ?? 'customer',
+                  condition: form.compensationCondition ?? '',
+                  requestLabel: form.compensationRequestLabel ?? '',
+                  confirmationLabel: form.compensationConfirmationLabel ?? '',
+                  window: form.compensationWindow?.trim() || undefined,
+                },
+              }
+            : {}),
           ...(remedyEnabled
             ? {
                 remedy: {
                   kind: form.remedyKind,
                   condition: form.remedyCondition ?? '',
+                  ...(compensationEnabled && form.remedyScope === 'compensation'
+                    ? { appliesTo: 'compensation' }
+                    : {}),
                 },
               }
             : {}),
@@ -122,7 +136,7 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
           throw new Error('请输入有效的实例前缀，例如 membership。');
         const field = archetype.fields.find(({ key }) => key === path?.[1]);
         throw new Error(
-          `请检查${field?.label ?? '争议触发条件'}：内容不能只有空格，且不得超过 200 字。`,
+          `请检查${field?.label ?? '异常处置约定'}：内容不能只有空格，且不得超过 200 字。`,
         );
       }
       const input = parsed.data;
@@ -227,8 +241,61 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
                 />
               </label>
             ))}
+            <fieldset className="flex flex-col gap-2 border-t border-evidence-border pt-2">
+              <legend className="text-sm font-medium">违约补偿（可选）</legend>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="includeCompensation"
+                  checked={compensationEnabled}
+                  onChange={(event) => {
+                    setError(null);
+                    setCompensationEnabled(event.target.checked);
+                  }}
+                />
+                已确认主履约违约后的新补偿权责
+              </label>
+              {compensationEnabled && (
+                <>
+                  <label className="flex flex-col gap-1 text-sm">
+                    谁主张补偿
+                    <select
+                      className={fieldClass}
+                      name="compensationRequester"
+                      value={form.compensationRequester ?? 'customer'}
+                      onChange={(event) =>
+                        setField('compensationRequester', event.target.value)
+                      }
+                    >
+                      <option value="customer">需求方</option>
+                      <option value="operator">运营方</option>
+                    </select>
+                  </label>
+                  {(
+                    [
+                      ['compensationCondition', '已确认的补偿触发条件', true],
+                      ['compensationRequestLabel', '补偿请求名称', true],
+                      ['compensationConfirmationLabel', '补偿确认名称', true],
+                      ['compensationWindow', '补偿时限（可选）', false],
+                    ] as const
+                  ).map(([key, label, required]) => (
+                    <label key={key} className="flex flex-col gap-1 text-sm">
+                      {label}
+                      <input
+                        name={key}
+                        required={required}
+                        maxLength={200}
+                        className={fieldClass}
+                        value={form[key] ?? ''}
+                        onChange={(event) => setField(key, event.target.value)}
+                      />
+                    </label>
+                  ))}
+                </>
+              )}
+            </fieldset>
             <label className="flex flex-col gap-1 text-sm">
-              主履约争议终点（可选）
+              争议终点（可选）
               <select
                 className={fieldClass}
                 name="remedyKind"
@@ -243,6 +310,22 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
                 ))}
               </select>
             </label>
+            {remedyEnabled && compensationEnabled && (
+              <label className="flex flex-col gap-1 text-sm">
+                争议来自哪一项履约
+                <select
+                  name="remedyScope"
+                  className={fieldClass}
+                  value={form.remedyScope ?? 'primary'}
+                  onChange={(event) =>
+                    setField('remedyScope', event.target.value)
+                  }
+                >
+                  <option value="primary">主履约</option>
+                  <option value="compensation">补偿履约</option>
+                </select>
+              </label>
+            )}
             {remedyEnabled && (
               <label className="flex flex-col gap-1 text-sm">
                 已确认的争议触发条件
@@ -276,10 +359,17 @@ const WizardSteps = ({ document, disabled, onApply }: WizardProps) => {
                 </div>
               ))}
             </dl>
+            {preview.input.variationValues.compensation && (
+              <p>
+                补偿履约：{preview.input.variationValues.compensation.condition}{' '}
+                → {preview.input.variationValues.compensation.requestLabel} →{' '}
+                {preview.input.variationValues.compensation.confirmationLabel}
+              </p>
+            )}
             <p>
               争议终点：
               {preview.input.variationValues.remedy
-                ? `${remedies[preview.input.variationValues.remedy.kind]}（${preview.input.variationValues.remedy.condition}）`
+                ? `${preview.input.variationValues.remedy.appliesTo === 'compensation' ? '补偿履约' : '主履约'} · ${remedies[preview.input.variationValues.remedy.kind]}（${preview.input.variationValues.remedy.condition}）`
                 : '未约定'}
             </p>
             <p className="text-workbench-label">
