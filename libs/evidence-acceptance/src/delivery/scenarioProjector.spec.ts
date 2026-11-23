@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { recordBreachOutcomeMutator } from '@evidence-poc/evidence-model-core';
 import { projectAcceptanceTests } from './scenarioProjector.js';
 import { brunoRequestPath, renderBruno } from '../renderer/brunoRenderer.js';
 import {
@@ -50,8 +51,11 @@ describe('direct inline-example acceptance projection', () => {
     const confirmation = model.entities.find(
       ({ id }) => id === 'confirmation.payment',
     );
-    if (confirmation?.category !== 'evidence')
-      throw new Error('Missing confirmation');
+    if (
+      confirmation?.category !== 'evidence' ||
+      confirmation.contextRef === undefined
+    )
+      throw new Error('Missing confirmation or context');
     const roleRef = 'role.payment-gateway';
     model.entities.push(
       {
@@ -98,6 +102,54 @@ describe('direct inline-example acceptance projection', () => {
     getExample(model, 'request.payment').test!.actingRoleRef = roleRef;
     expect(() => projectAcceptanceTests(model)).toThrow(
       'cannot call route.request.request.payment',
+    );
+  });
+  it('selects and binds a compensation command from the breached request example', () => {
+    const model = createAcceptanceModel();
+    delete model.entities.find(({ id }) => id === 'confirmation.payment')!
+      .examples;
+    recordBreachOutcomeMutator(model, {
+      requestRef: 'request.payment',
+      condition: '未按期付款',
+      outcome: {
+        kind: 'compensation_pair',
+        request: {
+          id: 'request.penalty',
+          label: '违约金',
+          responsibleRoleRef: 'role.seller',
+        },
+        confirmation: {
+          id: 'confirmation.penalty',
+          label: '确认到账',
+          responsibleRoleRef: 'role.buyer',
+        },
+      },
+    });
+    const penalty = model.entities.find(({ id }) => id === 'request.penalty')!;
+    penalty.examples = [
+      {
+        label: 'claimed',
+        value: { started_at: '2026-04-02T10:00:00Z' },
+        test: {
+          actingRoleRef: 'role.seller',
+          flow: 'payment',
+          asOf: '2026-04-02T10:00:00Z',
+          basedOn: ['request.payment#requested'],
+        },
+      },
+    ];
+    const { steps } = projectAcceptanceTests(model).flows[0]!;
+    const claim = steps.find(({ route }) => route.purpose === 'compensate')!;
+    const original = steps.find(
+      ({ route }) => route.entityRef === 'request.payment',
+    )!;
+    expect(claim.route.path).toContain(
+      '/payments/{paymentId}/compensations/penalty',
+    );
+    expect(original.captures[claim.parameters.paymentId!]).toBe('$.id');
+    penalty.examples[0]!.test!.basedOn = ['contract.agreement#signed'];
+    expect(() => projectAcceptanceTests(model)).toThrow(
+      'requires one breach branch',
     );
   });
   it('generates only explicitly modeled negative cases, without polluting OpenAPI facts', () => {

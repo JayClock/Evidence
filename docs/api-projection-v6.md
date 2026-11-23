@@ -68,7 +68,9 @@ arbitrator. Conditional branch templates carry their relationship identity and
 are omitted from generic example responses. To render actual affordances use
 `resolveRuntimeHalLinks` with the service's decisions for this caller, condition
 and resource instance. Unknown conditions or missing URI bindings do not produce
-links. Write handlers must recheck eligibility.
+links. Write handlers must recheck eligibility. Executable examples for an
+exception command must name the breached request example (in `basedOn` or as a
+path-parameter source); the compiler refuses ambiguous branches.
 
 Only caller-owned attributes appear in POST input, with
 `additionalProperties: false`. Derived and service-time response fields are

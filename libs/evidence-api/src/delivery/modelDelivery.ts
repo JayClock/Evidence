@@ -510,8 +510,11 @@ export const serviceContractsOf = ({
     const paths: DeliveryContract['paths'] = {};
     for (const route of owned) {
       const method = route.method.toLowerCase();
+      const operation = openapi.paths[route.path]?.[method];
+      if (operation === undefined)
+        throw new Error(`API operation missing from aggregate: ${route.id}`);
       const entry = paths[route.path] ?? {};
-      entry[method] = openapi.paths[route.path]![method];
+      entry[method] = operation;
       paths[route.path] = entry;
     }
     const contract: DeliveryContract = {

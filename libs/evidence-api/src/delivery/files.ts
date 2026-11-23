@@ -47,7 +47,8 @@ export const deliveryFilesOf = (bundle: DeliveryBundle): DeliveryFile[] => {
 
   for (const { serviceId, contract } of serviceContractsOf(bundle)) {
     const directory = `services/${serviceId}`;
-    const service = bundle.services.find(({ id }) => id === serviceId)!;
+    const service = bundle.services.find(({ id }) => id === serviceId);
+    if (service === undefined) throw new Error(`Unknown service: ${serviceId}`);
     files.push({ path: `${directory}/openapi.json`, content: json(contract) });
     files.push({
       path: `${directory}/README.md`,

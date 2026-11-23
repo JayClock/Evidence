@@ -156,19 +156,16 @@ const domainReads = (
     return context?.kind === 'domain' ? context.id : undefined;
   };
 
-  for (const rule of graph.rulesInContext(contextId)) {
-    for (const binding of Object.values(rule.bindings)) {
-      if (!('ref' in binding) || typeof binding.ref !== 'string') {
-        continue;
-      }
-
-      const domainRef = domainOf(binding.ref);
-
-      if (domainRef !== undefined && !found.has(domainRef)) {
-        found.set(domainRef, binding.ref);
-      }
-    }
-  }
+  const record = (ref: string) => {
+    const domainRef = domainOf(ref);
+    if (domainRef === undefined || domainRef === contextId) return;
+    const current = found.get(domainRef);
+    if (current === undefined || ref < current) found.set(domainRef, ref);
+  };
+  for (const rule of graph.rulesInContext(contextId))
+    for (const binding of Object.values(rule.bindings))
+      if ('ref' in binding && typeof binding.ref === 'string')
+        record(binding.ref);
 
   for (const entity of graph.entitiesInContext(contextId)) {
     for (const relationship of graph.outgoing(entity.id)) {
@@ -179,11 +176,7 @@ const domainReads = (
         continue;
       }
 
-      const domainRef = domainOf(relationship.targetRef);
-
-      if (domainRef !== undefined && !found.has(domainRef)) {
-        found.set(domainRef, relationship.targetRef);
-      }
+      record(relationship.targetRef);
     }
   }
 

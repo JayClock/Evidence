@@ -85,28 +85,7 @@ export function projectAcceptanceTests(
     for (const example of entity.examples ?? []) {
       if (example.test === undefined) continue;
       const ref = `${entity.id}#${example.label}`;
-      const candidates = routes.filter(
-        (route) => route.entityRef === entity.id && route.method === 'POST',
-      );
-      const fromProposal = candidates.filter((route) =>
-        (example.test!.basedOn ?? []).some(
-          (ref) =>
-            route.id ===
-            'route.sign-from-' + ref.split('#')[0] + '.' + entity.id,
-        ),
-      );
-      const selected =
-        fromProposal.length > 0
-          ? fromProposal
-          : candidates.filter(
-              (route) => !route.id.startsWith('route.sign-from-'),
-            );
-      if (selected.length !== 1)
-        fail(ref, 'requires exactly one modeled POST route');
-      const route = selected[0]!;
       const test = example.test;
-      if (!allowedCallerRoleRefs(route).includes(test.actingRoleRef))
-        fail(ref, `role '${test.actingRoleRef}' cannot call ${route.id}`);
       const dependencies = [
         ...new Set([
           ...(test.basedOn ?? []),
@@ -115,6 +94,44 @@ export function projectAcceptanceTests(
           ),
         ]),
       ];
+      const causes = new Set(
+        dependencies.map((dependency) => dependency.split('#')[0]),
+      );
+      const candidates = routes.filter(
+        (route) => route.entityRef === entity.id && route.method === 'POST',
+      );
+      const branchCommands = candidates.filter(
+        (route) => route.breachBranch !== undefined,
+      );
+      const fromProposal = candidates.filter((route) =>
+        (test.basedOn ?? []).some(
+          (ref) =>
+            route.id ===
+            'route.sign-from-' + ref.split('#')[0] + '.' + entity.id,
+        ),
+      );
+      const selected =
+        branchCommands.length > 0
+          ? branchCommands.filter(
+              (route) =>
+                route.breachBranch !== undefined &&
+                causes.has(route.breachBranch.breachedRequestRef),
+            )
+          : fromProposal.length > 0
+            ? fromProposal
+            : candidates.filter(
+                (route) => !route.id.startsWith('route.sign-from-'),
+              );
+      if (selected.length !== 1)
+        fail(
+          ref,
+          branchCommands.length > 0
+            ? 'requires one breach branch identified by the breached request example'
+            : 'requires exactly one modeled POST route',
+        );
+      const route = selected[0]!;
+      if (!allowedCallerRoleRefs(route).includes(test.actingRoleRef))
+        fail(ref, `role '${test.actingRoleRef}' cannot call ${route.id}`);
       cases.set(ref, { ref, example, test, route, dependencies });
     }
   if (cases.size === 0)

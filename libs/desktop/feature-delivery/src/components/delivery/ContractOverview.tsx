@@ -56,22 +56,24 @@ export const ContractOverview = ({
       )}
     </section>
     <section>
-      <h3 className="mb-2 font-semibold">跨边界调用 {preview.links.length}</h3>
+      <h3 className="mb-2 font-semibold">跨边界关系 {preview.links.length}</h3>
       {preview.links.length ? (
         <ul className="divide-y divide-workbench-border">
           {preview.links.map((link) => (
             <li key={link.id} data-link={link.id} className="py-1.5">
               {link.from} → {link.to} · {link.label} ·{' '}
               {link.mode === 'sync'
-                ? '同步调用'
+                ? '请求与响应'
                 : link.mode === 'async'
-                  ? '异步回调'
-                  : link.mode}
+                  ? '异步结果'
+                  : link.mode === 'reference'
+                    ? '模型引用'
+                    : link.mode}
             </li>
           ))}
         </ul>
       ) : (
-        <p>各服务之间没有直接调用。</p>
+        <p>尚无已建模的跨边界关系。</p>
       )}
     </section>
     <section aria-label="路由契约">

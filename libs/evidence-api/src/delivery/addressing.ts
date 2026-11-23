@@ -63,6 +63,9 @@ export const callerRoles = (
   const bound = contract?.roleRefs ?? [];
   const responsible =
     entity?.category === 'evidence' ? entity.responsibleRoleRef : undefined;
+  // A new exception command does not acquire callers by default when its
+  // accountable role is not yet known.
+  if (route.breachBranch !== undefined && responsible === undefined) return [];
   const asyncReaders =
     route.method === 'GET' &&
     route.id === `route.read.${route.entityRef}` &&

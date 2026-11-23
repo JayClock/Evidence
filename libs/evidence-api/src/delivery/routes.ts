@@ -629,27 +629,47 @@ export const buildDeliveryRoutes = (
   // A branch creates an instance under the breached request. Reads and result
   // writes use the canonical resource, so depth and additional causes do not
   // duplicate whole subtrees or move an existing resource.
-  const branchSegments = createSegmentAllocator(
-    branches.map(({ edge }) => edge.id),
-  );
+  const siblingsByParent = new Map<string, typeof branches>();
+  const namespace = (branch: (typeof branches)[number]) =>
+    `${branch.kind}\0${branch.edge.targetRef}`;
+  for (const branch of branches) {
+    const key = namespace(branch);
+    const siblings = siblingsByParent.get(key) ?? [];
+    siblings.push(branch);
+    siblingsByParent.set(key, siblings);
+  }
+  const branchSegments = new Map<string, string>();
+  for (const siblings of siblingsByParent.values()) {
+    const refs = new Map(siblings.map(({ edge }) => [edge.id, edge.sourceRef]));
+    const segments = createSegmentAllocator([...refs.keys()], (edgeId) =>
+      rawSegmentOf(refs.get(edgeId) ?? edgeId),
+    );
+    for (const edgeId of refs.keys())
+      branchSegments.set(edgeId, segments.segmentOf(edgeId));
+  }
   const handoffAddresses = new Map<string, Address>();
   for (const branch of [...branches].sort((a, b) =>
     a.edge.id.localeCompare(b.edge.id),
   )) {
     const { edge } = branch;
-    const parent = requestAddresses.get(edge.targetRef)!;
+    const parent = requestAddresses.get(edge.targetRef);
     const compensation = branch.kind === 'compensation_pair';
     const dependent = compensation
       ? branch.compensation.request
       : branch.handoff;
-    const owner = dependent.contextRef!;
+    const owner = dependent.contextRef;
+    const segment = branchSegments.get(edge.id);
+    if (parent === undefined || owner === undefined || segment === undefined)
+      continue;
     const refs = {
       contractRef: parent.contractRef,
       ...(compensation ? { requestRef: dependent.id } : {}),
     };
     let primary: Address;
     if (compensation) {
-      primary = requestAddresses.get(dependent.id)!.child;
+      const location = requestAddresses.get(dependent.id);
+      if (location === undefined) continue;
+      primary = location.child;
     } else {
       let canonical = handoffAddresses.get(dependent.id);
       if (canonical === undefined) {
@@ -669,7 +689,7 @@ export const buildDeliveryRoutes = (
     const entrance = address(
       parent.child.itemPath +
         (compensation ? '/compensations/' : '/handoffs/') +
-        branchSegments.segmentOf(edge.id),
+        segment,
       dependent.id,
       primary.shape,
       parent.child,
