@@ -8,7 +8,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { serializeModelBundle } from '@evidence-poc/evidence-model-core';
 import { createProcurementModel } from '@evidence-poc/evidence-model-core/testing';
 import {
@@ -17,14 +17,13 @@ import {
   unpackModelBundle,
   writeModelDirectory,
 } from './index.js';
-import { runEvidenceModelCommand } from './cli.js';
+import { runModelCommand } from './commands.js';
 
 let root: string;
 beforeEach(async () => {
   root = await mkdtemp(path.join(tmpdir(), 'evidence-no-legacy-'));
 });
 afterEach(async () => {
-  vi.restoreAllMocks();
   await rm(root, { recursive: true, force: true });
 });
 
@@ -48,14 +47,18 @@ describe('breaking removal of validation files', () => {
         );
         expect(result.bundle).not.toHaveProperty('validation');
       }
-      vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
       expect(
-        await runEvidenceModelCommand([
+        await runModelCommand(
           'pack',
-          fm,
-          '--out',
-          path.join(root, 'refused.evidence.json'),
-        ]),
+          {
+            target: fm,
+            out: 'refused.evidence.json',
+            compact: false,
+            sortKeys: false,
+            json: false,
+          },
+          { cwd: root, stdout: () => undefined, stderr: () => undefined },
+        ),
       ).toBe(1);
       expect(await readdir(root)).not.toContain('refused.evidence.json');
     },

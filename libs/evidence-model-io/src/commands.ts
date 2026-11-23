@@ -16,7 +16,6 @@ import {
   packModelDirectory,
   readModelBundle,
   readModelRoot,
-  readModelRootBytes,
   unpackModelBundle,
   writeModelBundle,
 } from './index.js';
@@ -24,7 +23,6 @@ import {
 export interface ModelCommandOptions {
   target?: string;
   out?: string;
-  scopes: readonly string[];
   compact: boolean;
   sortKeys: boolean;
   json: boolean;
@@ -36,7 +34,7 @@ export interface ModelCommandContext {
   stderr: (text: string) => void;
 }
 
-/** Shared operations for the unified CLI and deprecated model binary. */
+/** Model operations with typed options, independent of CLI argument parsing. */
 export const runModelCommand = async (
   command: string,
   parsed: ModelCommandOptions,
@@ -197,105 +195,6 @@ export const runModelCommand = async (
     return 0;
   };
 
-  const printCheckSummary = (report: {
-    valid: boolean;
-    consistent: boolean;
-    complete: boolean | null;
-    gaps: readonly string[];
-    errors: readonly string[];
-    advisories: readonly { entityId: string; message: string }[];
-    testExampleCount: number;
-    modelDigest: string;
-  }): void => {
-    stdout(
-      `一致性: ${report.consistent ? '通过' : '未通过'}` +
-        (report.complete === null
-          ? ''
-          : ` · 范围完整性: ${report.complete ? '通过' : '未通过'}`) +
-        `\n内联测试样例: ${report.testExampleCount}（未执行 HTTP 验收）` +
-        `\n模型摘要: ${report.modelDigest}\n`,
-    );
-
-    if (report.errors.length > 0) {
-      stdout('\n阻塞问题:\n');
-
-      for (const message of report.errors) {
-        stdout(`• ${message}\n`);
-      }
-    }
-
-    if (report.gaps.length > 0) {
-      stdout('\n范围缺口（警告）:\n');
-
-      for (const message of report.gaps) {
-        stdout(`• ${message}\n`);
-      }
-    }
-
-    if (report.advisories.length > 0) {
-      stdout('\n建模建议（不阻断）:\n');
-
-      for (const advisory of report.advisories) {
-        stdout(`• ${advisory.entityId}: ${advisory.message}\n`);
-      }
-    }
-  };
-
-  /**
-   * Runs the same check the desktop and the agent tool run.
-   *
-   * It is the command-line face of \`buildFmCheckReport\`: a caller without the app
-   * gets one report, one exit code and the same digest, so a hand-off is never
-   * decided on a second opinion.
-   */
-  const runCheck = async (parsed: ModelCommandOptions): Promise<number> => {
-    const target = parsed.target;
-
-    if (target === undefined) {
-      stderr('check 需要一个模型目录。\n\n');
-
-      return 2;
-    }
-
-    const modelRoot = resolve(target);
-
-    if (isModelBundlePath(modelRoot)) {
-      stderr('check 读取 .evidence/fm 目录；单文件请先 unpack 成目录。\n');
-
-      return 2;
-    }
-
-    const [{ bundle, issues }, bytes] = await Promise.all([
-      readModelRoot(modelRoot),
-      readModelRootBytes(modelRoot),
-    ]);
-    const sourceIssues = issues.map(
-      (issue) => `${issue.path}: ${issue.message}`,
-    );
-    const digest = modelDigestOf(
-      bytes.map((file) => ({ path: file.path, content: file.bytes })),
-    );
-    const current = await readModelRootBytes(modelRoot);
-    const currentDigest = modelDigestOf(
-      current.map((file) => ({ path: file.path, content: file.bytes })),
-    );
-    const { report } = buildFmCheckReport({
-      model: bundle,
-      sourceIssues,
-      modelDigest: digest,
-      currentDigest: () => currentDigest,
-      ...(parsed.scopes.length === 0 ? {} : { scopeRefs: parsed.scopes }),
-    });
-
-    if (parsed.json) {
-      stdout(`${JSON.stringify(report, null, 2)}\n`);
-    } else {
-      printCheckSummary(report);
-    }
-
-    return report.valid ? 0 : 1;
-  };
-
   /** Reads a model root once, refusing the bundle a derived command cannot use. */
   const readDerivedInputs = async (
     parsed: ModelCommandOptions,
@@ -429,8 +328,6 @@ export const runModelCommand = async (
       return runUnpack(parsed);
     case 'inspect':
       return runInspect(parsed);
-    case 'check':
-      return runCheck(parsed);
     case 'compile':
       return runCompile(parsed);
     case 'lineage':

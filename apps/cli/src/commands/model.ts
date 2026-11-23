@@ -17,7 +17,6 @@ export async function modelCommand(
     {
       target,
       out: stringOption(options.out),
-      scopes: [],
       compact: options.compact === true,
       sortKeys: options.sortKeys === true,
       json: options.json === true,

@@ -28,14 +28,7 @@ export {
   type OasdiffComparison,
   type OasdiffOptions,
 } from './diff/oasdiffRunner.js';
-export {
-  runCli,
-  validatePaths,
-  type CliOptions,
-  type DiffCliOptions,
-  type CliResult,
-  type Command,
-} from './commands.js';
+export { runDiff, type DiffCliOptions, type CliResult } from './commands.js';
 export {
   exportAcceptanceTests,
   defaultAcceptanceDirectory,

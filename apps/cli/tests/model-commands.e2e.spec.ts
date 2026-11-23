@@ -78,6 +78,17 @@ it('round trips, compiles and derives lineage in the caller cwd', async () => {
     '--json',
   ]);
   expect(JSON.parse(check.stdout)).toHaveProperty('complete');
+  const defaultPack = await invoke(['pack', '.evidence/fm']);
+  expect(defaultPack.code, defaultPack.stderr).toBe(0);
+  const defaultBundle = await invoke([
+    'inspect',
+    '.evidence/fm/b2b-escrow.evidence.json',
+    '--json',
+  ]);
+  expect(defaultBundle.code, defaultBundle.stderr).toBe(0);
+  expect(JSON.parse(defaultBundle.stdout)).toMatchObject({
+    modelId: 'b2b-escrow',
+  });
 }, 20000);
 
 it('supports direct diff with a Markdown default and explicit JSON', async () => {
@@ -103,6 +114,8 @@ it('rejects invalid and duplicate options and missing or extra arguments without
     ['check', 'source.evidence.json', 'extra'],
     ['check', 'source.evidence.json', '--scope'],
     ['diff', 'source.evidence.json'],
+    ['diff', 'a', 'b', '--format', 'yaml'],
+    ['diff', 'a', 'b', '--out', 'not-allowed'],
     ['test', '--tag', '--target', 'http://localhost', '--json'],
   ]) {
     const result = await invoke(args);

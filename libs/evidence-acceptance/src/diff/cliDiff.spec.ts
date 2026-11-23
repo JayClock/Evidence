@@ -4,7 +4,8 @@ import path from 'node:path';
 import { serializeModelBundle } from '@evidence-poc/evidence-model-core';
 import { readModelRoot } from '@evidence-poc/evidence-model-io';
 import { API_FIXTURES } from '@evidence-poc/evidence-api/testing';
-import { runCli } from '../cli.js';
+import { buildDelivery, renderOutputs } from '@evidence-poc/evidence-api';
+import { runDiff } from '../commands.js';
 
 it('compares directories and bundles as JSON or Markdown without touching inputs', async () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'api-diff-'));
@@ -14,15 +15,20 @@ it('compares directories and bundles as JSON or Markdown without touching inputs
     const file = path.join(directory, 'current.evidence.json');
     writeFileSync(file, serializeModelBundle(bundle));
     const original = readFileSync(file, 'utf8');
-    const args = ['diff', '--base', root, '--target', file];
-    const same = await runCli(args);
+    const options = {
+      command: 'diff',
+      base: root,
+      target: file,
+      format: 'json',
+    } as const;
+    const same = await runDiff(options);
     expect(same.exitCode).toBe(0);
     expect(same.output).toMatchObject({
       hasBreakingChanges: false,
       changes: [],
       details: {},
     });
-    const summary = await runCli([...args, '--format', 'markdown']);
+    const summary = await runDiff({ ...options, format: 'markdown' });
     expect(typeof summary.output).toBe('string');
     const overlay = path.join(directory, 'overlay.json');
     writeFileSync(
@@ -33,7 +39,7 @@ it('compares directories and bundles as JSON or Markdown without touching inputs
         ],
       }),
     );
-    const broken = await runCli([...args, '--api', overlay]);
+    const broken = await runDiff({ ...options, api: overlay });
     expect(broken.exitCode).toBe(1);
     expect(broken.output).toMatchObject({
       hasBreakingChanges: true,
@@ -41,9 +47,9 @@ it('compares directories and bundles as JSON or Markdown without touching inputs
     expect(readFileSync(file, 'utf8')).toBe(original);
     bundle.manifest.id = 'other';
     writeFileSync(file, serializeModelBundle(bundle));
-    expect((await runCli(args)).exitCode).toBe(2);
+    expect((await runDiff(options)).exitCode).toBe(2);
     writeFileSync(file, 'not json');
-    expect((await runCli(args)).exitCode).toBe(2);
+    expect((await runDiff(options)).exitCode).toBe(2);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -53,7 +59,12 @@ it('returns a tool failure distinct from a breaking change', async () => {
   vi.stubEnv('EVIDENCE_OASDIFF_BIN', '/missing/oasdiff');
   try {
     const root = `${API_FIXTURES}full-lifecycle/fm`;
-    const result = await runCli(['diff', '--base', root, '--target', root]);
+    const result = await runDiff({
+      command: 'diff',
+      base: root,
+      target: root,
+      format: 'json',
+    });
     expect(result.exitCode).toBe(2);
     expect(result.error).toContain('oasdiff failed');
     expect(result.output).toBeNull();
@@ -62,13 +73,49 @@ it('returns a tool failure distinct from a breaking change', async () => {
   }
 });
 
-it.each([
-  ['diff'],
-  ['diff', '--base', 'relative', '--target', '/absolute'],
-  ['diff', '--base', '/a', '--target', '/b', '--format', 'yaml'],
-  ['diff', '--base', '/a', '--base', '/b'],
-  ['diff', '--base', '/a', '--target', '/b', '--out', '/not-allowed'],
-  ['diff', '--base'],
-])('refuses malformed diff arguments: %j', async (...args) => {
-  expect((await runCli(args)).exitCode).toBe(2);
+it('refuses relative diff paths', async () => {
+  expect(
+    await runDiff({
+      command: 'diff',
+      base: 'relative',
+      target: path.resolve('target'),
+      format: 'json',
+    }),
+  ).toMatchObject({
+    exitCode: 2,
+    error: expect.stringContaining('PATH_NOT_ABSOLUTE'),
+  });
+});
+
+it('compares exported service contracts without re-projecting them', async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'api-service-diff-'));
+  try {
+    const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+    const outputs = renderOutputs(buildDelivery(bundle));
+    const base = path.join(directory, 'baseline.json');
+    const target = path.join(directory, 'candidate.json');
+    writeFileSync(
+      base,
+      outputs['services/service.product-procurement/openapi.json']!,
+    );
+    const options = { command: 'diff', base, target, format: 'json' } as const;
+    expect(await runDiff({ ...options, target: base })).toMatchObject({
+      exitCode: 0,
+      output: { hasBreakingChanges: false },
+    });
+    const candidate = JSON.parse(readFileSync(base, 'utf8'));
+    delete candidate.paths['/product-procurements'].post;
+    writeFileSync(target, JSON.stringify(candidate));
+    expect(await runDiff({ ...options, format: 'markdown' })).toMatchObject({
+      exitCode: 1,
+      output: expect.stringContaining('/product-procurements'),
+    });
+    writeFileSync(target, outputs['openapi.json']!);
+    expect(await runDiff(options)).toMatchObject({
+      exitCode: 2,
+      error: expect.stringContaining('API_SERVICE_MISMATCH'),
+    });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

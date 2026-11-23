@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { runEvidenceModelCommand } from './cli.js';
+import { runModelCommand } from './commands.js';
 
 const FIXTURE = fileURLToPath(
   new URL(
@@ -22,7 +22,6 @@ describe('derived document commands', () => {
   });
 
   afterEach(async () => {
-    vi.restoreAllMocks();
     await rm(root, { recursive: true, force: true });
   });
 
@@ -32,17 +31,24 @@ describe('derived document commands', () => {
       unknown
     >;
 
-  it('compiles a checked model into one sorted document', async () => {
-    vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  const derive = (
+    command: 'compile' | 'lineage',
+    target: string,
+    out: string,
+    errors: string[] = [],
+  ) =>
+    runModelCommand(
+      command,
+      { target, out, compact: false, sortKeys: false, json: false },
+      {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: (text) => errors.push(text),
+      },
+    );
 
-    expect(
-      await runEvidenceModelCommand([
-        'compile',
-        FIXTURE,
-        '--out',
-        path.join(root, 'model.json'),
-      ]),
-    ).toBe(0);
+  it('compiles a checked model into one sorted document', async () => {
+    expect(await derive('compile', FIXTURE, 'model.json')).toBe(0);
 
     const compiled = await read('model.json');
     const ids = (compiled['entities'] as { id: string }[]).map(
@@ -54,16 +60,7 @@ describe('derived document commands', () => {
   });
 
   it('writes attribute lineage', async () => {
-    vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-
-    expect(
-      await runEvidenceModelCommand([
-        'lineage',
-        FIXTURE,
-        '--out',
-        path.join(root, 'traceability.json'),
-      ]),
-    ).toBe(0);
+    expect(await derive('lineage', FIXTURE, 'traceability.json')).toBe(0);
     expect((await read('traceability.json'))['edges']).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ ruleRef: 'rule.payment-request-amount' }),
@@ -72,9 +69,7 @@ describe('derived document commands', () => {
   });
 
   it('stops a derived command when the model does not pass its check', async () => {
-    const stderr = vi
-      .spyOn(process.stderr, 'write')
-      .mockImplementation(() => true);
+    const errors: string[] = [];
     const broken = path.join(root, 'broken');
     const { mkdir, cp } = await import('node:fs/promises');
 
@@ -82,36 +77,7 @@ describe('derived document commands', () => {
     await cp(FIXTURE, broken, { recursive: true });
     await writeFile(path.join(broken, 'model.json'), '{}\n', 'utf8');
 
-    expect(
-      await runEvidenceModelCommand([
-        'compile',
-        broken,
-        '--out',
-        path.join(root, 'model.json'),
-      ]),
-    ).toBe(1);
-    expect(
-      stderr.mock.calls.map(([chunk]) => String(chunk)).join(''),
-    ).toContain('已中止');
+    expect(await derive('compile', broken, 'model.json', errors)).toBe(1);
+    expect(errors.join('\n')).toContain('已中止');
   });
-
-  it.each(['timeline', 'simulate', 'role-play'])(
-    'rejects the removed %s command',
-    async (command) => {
-      const stderr = vi
-        .spyOn(process.stderr, 'write')
-        .mockImplementation(() => true);
-      expect(
-        await runEvidenceModelCommand([
-          command,
-          FIXTURE,
-          '--out',
-          path.join(root, 'retired'),
-        ]),
-      ).toBe(2);
-      expect(
-        stderr.mock.calls.map(([chunk]) => String(chunk)).join(''),
-      ).toContain('未知命令');
-    },
-  );
 });

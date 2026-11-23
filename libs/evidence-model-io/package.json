@@ -7,9 +7,6 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "evidence-model": "./dist/cli.js"
-  },
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -23,12 +20,6 @@
       "types": "./dist/commands.d.ts",
       "import": "./dist/commands.js",
       "default": "./dist/commands.js"
-    },
-    "./cli": {
-      "@evidence-poc/source": "./src/cli.ts",
-      "types": "./dist/cli.d.ts",
-      "import": "./dist/cli.js",
-      "default": "./dist/cli.js"
     }
   },
   "nx": {
@@ -43,7 +34,6 @@
   "dependencies": {
     "@evidence-poc/evidence-model-core": "workspace:*",
     "@evidence-poc/evidence-schema": "workspace:*",
-    "cac": "^6.7.14",
     "tslib": "^2.3.0"
   }
 }

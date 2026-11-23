@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import { runAcceptanceSuite } from './runner/acceptanceRunner.js';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { runCli } from './cli.js';
+import { exportAcceptanceTests } from './exportTests.js';
 
 const backend = fileURLToPath(
   new URL(
@@ -27,16 +27,7 @@ let root: string, suite: string;
 beforeEach(async () => {
   root = mkdtempSync(path.join(os.tmpdir(), 'evidence-backend-e2e-'));
   const out = path.join(root, 'tests');
-  const result = await runCli([
-    'export-tests',
-    '--project-root',
-    root,
-    '--fm',
-    model,
-    '--out',
-    out,
-  ]);
-  expect(result.exitCode, JSON.stringify(result)).toBe(0);
+  await exportAcceptanceTests({ fm: model, out });
   suite = out;
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
