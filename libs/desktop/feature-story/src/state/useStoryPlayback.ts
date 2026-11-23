@@ -53,9 +53,8 @@ export const useStoryPlayback = ({
   onInvalidated,
 }: StoryPlaybackOptions) => {
   const [preferredFlowId, setPreferredFlowId] = useState<string>();
-  const [requestedSkipAi, setSkipAi] = useState(false);
+  const [skipAi, setSkipAi] = useState(false);
   const [narrationGeneration, setNarrationGeneration] = useState(0);
-  const skipAi = requestedSkipAi || !aiConfigured;
   const [refresh, setRefresh] = useState(0);
   const [sourceRefresh, setSourceRefresh] = useState(0);
   const [invalidating, setInvalidating] = useState(false);
@@ -194,6 +193,7 @@ export const useStoryPlayback = ({
     flow,
     step?.sequence,
     narrationGeneration,
+    !aiConfigured,
   );
   const voice =
     factScene?.narrativeSource === 'facts' && !stale
@@ -201,7 +201,11 @@ export const useStoryPlayback = ({
       : undefined;
   const scene =
     factScene && voice !== undefined
-      ? { ...factScene, narrative: voice, narrativeSource: 'ai' as const }
+      ? {
+          ...factScene,
+          narrative: voice.narrative,
+          narrativeSource: voice.source,
+        }
       : factScene;
   const nextIndex =
     seekTime === undefined || rehearsing

@@ -84,7 +84,10 @@ const startApplication = async (): Promise<void> => {
     generate: createModelIngestionReader({ getModelOptions }),
     openEditorWindow,
   });
-  const storyIpc = registerStoryIpc({ getModelOptions });
+  const storyIpc = registerStoryIpc({
+    getModelOptions,
+    narrationCacheDirectory: path.join(userDataPath, 'story-narration'),
+  });
   const aiConfigIpc = registerAiConfigIpc(aiConfig, async () => {
     storyIpc.resetModels();
     await agentIpc.resetModels();

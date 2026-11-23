@@ -16,7 +16,7 @@ export interface StoryScene {
   readonly stepHash: string;
   readonly phaseTitle: string;
   readonly narrative: string;
-  readonly narrativeSource: 'facts' | 'model' | 'ai';
+  readonly narrativeSource: 'facts' | 'model' | 'ai' | 'cache';
   readonly actingRoleLabel: string;
   readonly targetEntityLabel: string;
   readonly documentCard: {

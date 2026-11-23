@@ -100,16 +100,35 @@ const tick = async (ms = STORY_REFRESH_DELAY) => {
 afterEach(() => vi.useRealTimers());
 
 describe('story playback', () => {
-  it('plays facts without credentials and starts AI without reloading them after configuration', async () => {
-    const { hook, load, startNarration } = setup();
+  it('reads only cached candidates without credentials and starts AI without reloading facts after configuration', async () => {
+    const { hook, load, flow, startNarration, narrate } = setup();
     const document = createDesktopFixture();
     hook.rerender({ document, enabled: true, aiConfigured: false });
     await tick();
-    expect(hook.result.current.skipAi).toBe(true);
     expect(hook.result.current.ready).toBe(true);
-    expect(startNarration).not.toHaveBeenCalled();
-    hook.rerender({ document, enabled: true, aiConfigured: true });
+    const job = startNarration.mock.calls[0]![0];
+    expect(job.cacheOnly).toBe(true);
+    narrate({
+      ...job,
+      kind: 'step',
+      sequence: 1,
+      stepHash: flow.steps[0]!.stepHash,
+      narrative: '本地草稿',
+      cached: true,
+    });
+    narrate({ ...job, kind: 'finished' });
+    expect(hook.result.current.scene).toMatchObject({
+      narrative: '本地草稿',
+      narrativeSource: 'cache',
+    });
+    expect(hook.result.current.narration.incomplete).toBe(false);
+    act(() => hook.result.current.setSkipAi(true));
+    expect(hook.result.current.scene?.narrativeSource).toBe('facts');
     expect(startNarration).toHaveBeenCalledOnce();
+    hook.rerender({ document, enabled: true, aiConfigured: true });
+    act(() => hook.result.current.setSkipAi(false));
+    expect(startNarration).toHaveBeenCalledTimes(2);
+    expect(startNarration.mock.calls[1]![0].cacheOnly).toBeUndefined();
     expect(load).toHaveBeenCalledOnce();
     expect(hook.result.current.ready).toBe(true);
   });

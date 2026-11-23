@@ -4,11 +4,13 @@ import type { EvidenceStoryApi } from '@evidence-poc/desktop-contracts/story';
 
 const RENDERER_DEADLINE_MS = 65_000;
 
+type Draft = { narrative: string; source: 'ai' | 'cache' };
+
 type Narration = {
   key: object;
   snapshotId: string;
   generation: number;
-  entries: ReadonlyMap<number, string | undefined>;
+  entries: ReadonlyMap<number, Draft | undefined>;
   finished: boolean;
   incomplete?: boolean;
 };
@@ -19,10 +21,14 @@ export const useStoryNarration = (
   flow: FlowScenarioTrace | undefined,
   prioritySequence: number | undefined,
   generation: number,
+  cacheOnly: boolean,
 ) => {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<Narration>();
-  const key = useMemo(() => ({}), [api, snapshotId, flow, attempt, generation]);
+  const key = useMemo(
+    () => ({}),
+    [api, snapshotId, flow, attempt, generation, cacheOnly],
+  );
   const candidates = useMemo(
     () => flow?.steps.filter((step) => !step.description?.trim()) ?? [],
     [flow],
@@ -80,7 +86,15 @@ export const useStoryNarration = (
           if (prev?.key !== key || prev.finished) return prev;
           const entries = new Map(prev.entries);
           if (update.narrative !== undefined || !entries.has(update.sequence)) {
-            entries.set(update.sequence, update.narrative);
+            entries.set(
+              update.sequence,
+              update.narrative === undefined
+                ? undefined
+                : {
+                    narrative: update.narrative,
+                    source: update.cached ? 'cache' : 'ai',
+                  },
+            );
           }
           return { ...prev, entries };
         });
@@ -90,6 +104,7 @@ export const useStoryNarration = (
     void api
       .startNarration({
         ...job,
+        ...(cacheOnly ? { cacheOnly: true as const } : {}),
         ...(sequence === undefined ? {} : { prioritySequence: sequence }),
       })
       .catch(() => {
@@ -101,7 +116,7 @@ export const useStoryNarration = (
       unsubscribe();
       cancel();
     };
-  }, [api, snapshotId, candidates, key, generation]);
+  }, [api, snapshotId, candidates, key, generation, cacheOnly]);
   const visible = snapshotId && state?.key === key ? state : undefined;
   const total = snapshotId ? candidates.length : 0;
   const completed = visible?.entries.size ?? 0;
@@ -112,8 +127,9 @@ export const useStoryNarration = (
     entries: visible?.entries,
     total,
     completed,
-    running: total > 0 && !visible?.finished,
+    running: !cacheOnly && total > 0 && !visible?.finished,
     incomplete:
+      !cacheOnly &&
       visible?.finished === true &&
       (Boolean(visible.incomplete) || failed > 0 || completed < total),
     retry: () => setAttempt((value) => value + 1),

@@ -12,6 +12,7 @@ export {
 export {
   createStoryNarrator,
   createNarrationScheduler,
+  type StoryNarrationStore,
 } from './story/storyNarrator.js';
 export {
   simulateWhatIf,

@@ -62,20 +62,40 @@ export type StoryNarrationResult = {
   readonly sequence: number;
   readonly stepHash: string;
 } & (
-  | { readonly kind: 'ready'; readonly narrative: string }
+  | {
+      readonly kind: 'ready';
+      readonly narrative: string;
+      readonly source: 'ai' | 'cache';
+    }
   | { readonly kind: 'failed'; readonly error: Error }
 );
+
+/** The desktop may supply an optional project-local cache for disposable drafts. */
+export interface StoryNarrationStore {
+  read(signal: AbortSignal): Promise<ReadonlyMap<string, string>>;
+  write(entries: ReadonlyMap<string, string>): Promise<void>;
+}
 
 /** Owns only prose. It cannot change facts, rule evaluations, or the order of playback. */
 export const createStoryNarrator = ({
   agent = createStoryAgent(),
   schedule = createNarrationScheduler(),
+  store,
 }: {
   agent?: StoryAgent;
   schedule?: ReturnType<typeof createNarrationScheduler>;
+  store?: StoryNarrationStore;
 } = {}) => {
   // Each instance belongs to one project and model configuration, never shared across windows.
   const cache = new Map<string, string>();
+  const remember = (key: string, narrative: string) => {
+    cache.delete(key);
+    cache.set(key, narrative);
+    if (cache.size > CACHE_LIMIT) {
+      const oldest = cache.keys().next();
+      if (!oldest.done) cache.delete(oldest.value);
+    }
+  };
   return {
     async enrich(
       trace: FlowScenarioTrace,
@@ -84,10 +104,12 @@ export const createStoryNarrator = ({
         signal,
         onStep,
         prioritySequence,
+        cacheOnly = false,
       }: {
         signal: AbortSignal;
         onStep: (result: StoryNarrationResult) => void;
         prioritySequence?: number;
+        cacheOnly?: boolean;
       },
     ): Promise<void> {
       const steps = trace.steps
@@ -107,24 +129,42 @@ export const createStoryNarrator = ({
         const userPrompt = compactCanonicalJson({
           flowId: trace.flowId,
           flowTitle: trace.flowTitle,
-          step,
+          step: { ...step, description: undefined },
           attributes: entities.get(step.entityId)?.attributes ?? [],
           actingRoleLabel: labelOf(step.actingRoleRef),
           responsibleRoleLabel: labelOf(step.responsibleRoleRef),
           contextLabel: labelOf(step.contextRef),
         });
-        const key = createHash('sha256').update(userPrompt).digest('hex');
+        const key = createHash('sha256')
+          .update(JSON.stringify([1, STORY_SYSTEM_PROMPT, userPrompt]))
+          .digest('hex');
         return { sequence, stepHash: step.stepHash, key, userPrompt };
       });
-      const pending = jobs.filter(({ key, sequence, stepHash }) => {
-        if (signal.aborted) return false;
-        const narrative = cache.get(key);
-        if (narrative === undefined) return true;
-        cache.delete(key);
-        cache.set(key, narrative);
-        onStep({ kind: 'ready', sequence, stepHash, narrative });
-        return false;
-      });
+      const cacheMisses = (
+        items: typeof jobs,
+        entries: ReadonlyMap<string, string>,
+      ) =>
+        items.filter(({ key, sequence, stepHash }) => {
+          if (signal.aborted) return false;
+          const narrative = entries.get(key);
+          if (narrative === undefined) return true;
+          remember(key, narrative);
+          onStep({
+            kind: 'ready',
+            sequence,
+            stepHash,
+            narrative,
+            source: 'cache',
+          });
+          return false;
+        });
+      let pending = cacheMisses(jobs, cache);
+      if (store && pending.length && !signal.aborted) {
+        const saved = await store.read(signal).catch(() => undefined);
+        if (saved) pending = cacheMisses(pending, saved);
+      }
+      if (cacheOnly || signal.aborted) return;
+      const generated = new Map<string, string>();
       let index = 0;
       const worker = async () => {
         while (!signal.aborted) {
@@ -144,12 +184,15 @@ export const createStoryNarrator = ({
               return NarrationSchema.parse(responseObject(response)).narrative;
             });
             if (signal.aborted) return;
-            cache.set(key, narrative);
-            if (cache.size > CACHE_LIMIT) {
-              const oldest = cache.keys().next();
-              if (!oldest.done) cache.delete(oldest.value);
-            }
-            result = { kind: 'ready', sequence, stepHash, narrative };
+            remember(key, narrative);
+            if (store) generated.set(key, narrative);
+            result = {
+              kind: 'ready',
+              sequence,
+              stepHash,
+              narrative,
+              source: 'ai',
+            };
           } catch (error) {
             if (signal.aborted) return;
             result = {
@@ -162,9 +205,15 @@ export const createStoryNarrator = ({
           onStep(result);
         }
       };
-      await Promise.all(
-        Array.from({ length: Math.min(WORKERS, pending.length) }, worker),
-      );
+      try {
+        await Promise.all(
+          Array.from({ length: Math.min(WORKERS, pending.length) }, worker),
+        );
+      } finally {
+        // Persist successes even if the user moves on; never store an aborted response.
+        if (store && generated.size)
+          void store.write(generated).catch(() => undefined);
+      }
     },
   };
 };

@@ -42,6 +42,8 @@ export interface StoryNarrationJob {
 
 export interface StoryNarrationInput extends StoryNarrationJob {
   readonly prioritySequence?: number;
+  /** Read existing candidates without resolving credentials or generating a draft. */
+  readonly cacheOnly?: true;
 }
 
 export type StoryNarrationEvent = StoryNarrationJob &
@@ -51,6 +53,7 @@ export type StoryNarrationEvent = StoryNarrationJob &
         readonly sequence: number;
         readonly stepHash: string;
         readonly narrative?: string;
+        readonly cached?: true;
       }
     | { readonly kind: 'finished'; readonly reason?: 'timeout' | 'unavailable' }
   );

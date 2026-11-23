@@ -111,14 +111,20 @@ export const createFlowStoryProjector = (
     async project(trace, model) {
       const baseline = projectStoryFacts(trace, model);
       if (!narrator) return baseline;
-      const prose = new Map<number, string>();
+      const prose = new Map<
+        number,
+        { narrative: string; narrativeSource: 'ai' | 'cache' }
+      >();
       const controller = new AbortController();
       let failure: Error | undefined;
       await narrator.enrich(trace, model, {
         signal: controller.signal,
         onStep: (result) => {
           if (result.kind === 'ready')
-            prose.set(result.sequence, result.narrative);
+            prose.set(result.sequence, {
+              narrative: result.narrative,
+              narrativeSource: result.source,
+            });
           else {
             failure = result.error;
             controller.abort();
@@ -129,10 +135,8 @@ export const createFlowStoryProjector = (
       return {
         ...baseline,
         scenes: baseline.scenes.map((scene) => {
-          const narrative = prose.get(scene.stepIndex);
-          return narrative === undefined
-            ? scene
-            : { ...scene, narrative, narrativeSource: 'ai' };
+          const narration = prose.get(scene.stepIndex);
+          return narration === undefined ? scene : { ...scene, ...narration };
         }),
       };
     },

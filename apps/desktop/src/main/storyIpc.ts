@@ -36,12 +36,14 @@ import {
   type StoryWhatIfInput,
 } from '@evidence-poc/desktop-contracts/story';
 import { isBundleProject, modelSourceOf } from './modelSource';
+import { createStoryNarrationCache } from './storyNarrationCache';
 
 export interface StoryIpcOptions {
   readModel?: (rootPath: string) => Promise<DomainModelDocument>;
   createAgent?: typeof createStoryAgent;
   simulate?: typeof simulateWhatIf;
   getModelOptions?: () => Promise<EvidenceModelOptions>;
+  narrationCacheDirectory?: string;
 }
 
 const readSavedModel = async (
@@ -73,19 +75,25 @@ export const registerStoryIpc = ({
   createAgent = createStoryAgent,
   simulate = simulateWhatIf,
   getModelOptions,
+  narrationCacheDirectory,
 }: StoryIpcOptions = {}) => {
   const windows = new Map<WebContents, WindowStory>();
   const schedule = createNarrationScheduler();
+  const storeFor =
+    narrationCacheDirectory === undefined
+      ? undefined
+      : createStoryNarrationCache(narrationCacheDirectory);
   const stop = (state: WindowStory) => {
     const job = state.job;
     delete state.job;
     job?.controller.abort();
   };
 
-  const newNarrator = () => {
+  const newNarrator = (rootPath: string) => {
     let agent: Promise<StoryAgent> | undefined;
     return createStoryNarrator({
       schedule,
+      ...(storeFor ? { store: storeFor(rootPath) } : {}),
       agent: {
         async generate(request) {
           agent ??= Promise.resolve()
@@ -180,6 +188,7 @@ export const registerStoryIpc = ({
       if (
         !validId(input?.snapshotId) ||
         !validId(input.jobId) ||
+        (input.cacheOnly !== undefined && input.cacheOnly !== true) ||
         (input.prioritySequence !== undefined &&
           (!Number.isSafeInteger(input.prioritySequence) ||
             input.prioritySequence < 1))
@@ -196,7 +205,7 @@ export const registerStoryIpc = ({
       stop(state);
       const job = { id: input.jobId, controller: new AbortController() };
       state.job = job;
-      const narrator = (state.narrator ??= newNarrator());
+      const narrator = (state.narrator ??= newNarrator(state.rootPath));
       const { model, flow } = state.selected;
       const identity = { snapshotId: input.snapshotId, jobId: job.id };
       const send = (event: StoryNarrationEvent) => {
@@ -219,6 +228,7 @@ export const registerStoryIpc = ({
         try {
           await narrator.enrich(flow, model, {
             signal,
+            cacheOnly: input.cacheOnly === true,
             ...(input.prioritySequence === undefined
               ? {}
               : { prioritySequence: input.prioritySequence }),
@@ -229,7 +239,12 @@ export const registerStoryIpc = ({
                 sequence: result.sequence,
                 stepHash: result.stepHash,
                 ...(result.kind === 'ready'
-                  ? { narrative: result.narrative }
+                  ? {
+                      narrative: result.narrative,
+                      ...(result.source === 'cache'
+                        ? { cached: true as const }
+                        : {}),
+                    }
                   : {}),
               }),
           });

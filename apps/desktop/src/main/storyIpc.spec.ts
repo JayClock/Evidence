@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -162,6 +162,95 @@ describe('story IPC', () => {
     });
     ipc.dispose();
     expect(electron.handlers.size).toBe(0);
+  });
+
+  it('reads cached drafts after restarting, without a provider, and regenerates only changed steps', async () => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), 'story-ipc-drafts-'),
+    );
+    const rootPath = '/models/p';
+    const document = model();
+    const generate = vi.fn(async () => ({ narrative: '按示例核对采购单据。' }));
+    const getModelOptions = vi.fn(async () => ({}));
+    const load = (window: ReturnType<typeof sender>, model = document) =>
+      invoke<StorySnapshot>(
+        STORY_IPC_CHANNELS.LOAD,
+        { rootPath, document: model },
+        window,
+      );
+    const narrate = async (
+      window: ReturnType<typeof sender>,
+      snapshotId: string,
+      cacheOnly = false,
+    ) => {
+      window.send.mockClear();
+      const job = { snapshotId, jobId: 'drafts' };
+      await invoke(
+        STORY_IPC_CHANNELS.START_NARRATION,
+        { ...job, ...(cacheOnly ? { cacheOnly: true } : {}) },
+        window,
+      );
+      await vi.waitFor(() =>
+        expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.NARRATION, {
+          ...job,
+          kind: 'finished',
+        }),
+      );
+      return window.send.mock.calls
+        .map(([, event]) => event)
+        .filter((event) => event.kind === 'step');
+    };
+    let ipc = register({
+      narrationCacheDirectory: directory,
+      getModelOptions,
+      createAgent: () => ({ generate }),
+    });
+    try {
+      const before = sender();
+      const initial = await load(before);
+      const count = initial.selected!.flow.steps.length;
+      expect(await narrate(before, initial.snapshotId)).toHaveLength(count);
+      expect(generate).toHaveBeenCalledTimes(count);
+      await vi.waitFor(async () =>
+        expect(
+          (await readdir(directory)).filter((file) => file.endsWith('.json')),
+        ).toHaveLength(1),
+      );
+      ipc.dispose();
+      generate.mockClear();
+      getModelOptions.mockClear();
+      ipc = register({
+        narrationCacheDirectory: directory,
+        getModelOptions,
+        createAgent: () => ({ generate }),
+      });
+      const after = sender();
+      const restored = await load(after);
+      const cached = await narrate(after, restored.snapshotId, true);
+      expect(cached).toHaveLength(count);
+      expect(cached.every((event) => event.cached === true)).toBe(true);
+      expect(getModelOptions).not.toHaveBeenCalled();
+      expect(generate).not.toHaveBeenCalled();
+      const example = document.entities.find(
+        ({ id }) => id === 'request.payment',
+      )!.examples![0]!;
+      example.value.quantity = 12;
+      const changed = await load(after);
+      expect(await narrate(after, changed.snapshotId, true)).toHaveLength(
+        count - 1,
+      );
+      expect(getModelOptions).not.toHaveBeenCalled();
+      expect(await narrate(after, changed.snapshotId)).toHaveLength(count);
+      expect(generate).toHaveBeenCalledOnce();
+      const anotherWindow = sender();
+      const freshSnapshot = await load(anotherWindow);
+      expect(
+        await narrate(anotherWindow, freshSnapshot.snapshotId, true),
+      ).toHaveLength(count);
+    } finally {
+      ipc.dispose();
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it('rejects late snapshots and isolates jobs by sender and snapshot', async () => {

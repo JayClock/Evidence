@@ -86,7 +86,9 @@ const SceneSheet = ({
                 ? '模型业务解释'
                 : scene.narrativeSource === 'ai'
                   ? 'AI 草稿 · 请核对模型事实'
-                  : '模型事实 · 未使用 AI'}
+                  : scene.narrativeSource === 'cache'
+                    ? '缓存草稿 · 尚未采纳'
+                    : '模型事实 · 未使用 AI'}
           </span>
         </div>
         <p className="whitespace-pre-wrap leading-6">{scene.narrative}</p>
@@ -317,7 +319,10 @@ export const StoryDrawer = ({
       </header>
       {!aiConfigured && !playback.rehearsal.active ? (
         <aside className="rounded border border-evidence-line p-3">
-          <p>当前为离线放映。配置大模型后可使用 AI 旁白与 What-If 推演。</p>
+          <p>
+            当前为离线放映，可读取本地旁白草稿。配置大模型后可生成新旁白和使用
+            AI 推演。
+          </p>
           <button type="button" className={buttonClass} onClick={onConfigureAi}>
             配置 Pi 模型
           </button>

@@ -998,7 +998,7 @@ describe('EditorScreen', () => {
     fireEvent.change(field(), { target: { value: '   ' } });
     fireEvent.click(screen.getByRole('button', { name: '应用到示例' }));
     expect(screen.getByText('请输入业务解释。')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: '取消', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
     expect(screen.queryByRole('form', { name: '审阅业务解释' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '采纳为业务解释' }));
     fireEvent.change(field(), {

@@ -179,21 +179,20 @@ export const StoryPlayerBar = ({
     {!playback.rehearsal.active ? (
       <label
         className="flex items-center gap-1 text-evidence-muted"
-        title="不自动生成 AI 旁白；模型事实和本地预演仍可用"
+        title="隐藏 AI 草稿，不读取缓存或重新生成；仍显示模型业务解释"
       >
         <input
           type="checkbox"
           checked={playback.skipAi}
-          onChange={(event) => {
-            if (!event.target.checked && !aiConfigured) {
-              onConfigureAi?.();
-              return;
-            }
-            playback.setSkipAi(event.target.checked);
-          }}
+          onChange={(event) => playback.setSkipAi(event.target.checked)}
         />
         仅模型事实
       </label>
+    ) : null}
+    {!playback.rehearsal.active && !aiConfigured && onConfigureAi ? (
+      <Button type="button" size="xs" variant="ghost" onClick={onConfigureAi}>
+        配置旁白模型
+      </Button>
     ) : null}
   </div>
 );
