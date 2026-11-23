@@ -21,9 +21,8 @@ export { deliveryFilesOf };
 /**
  * Turning a project's model into the documents a delivery hand-off consists of.
  *
- * The renderer sends an immutable document revision for live previews. Saved
- * hand-offs can still read disk. Live export uses the same model digest that
- * the preview displayed, so neither path silently substitutes another model.
+ * Live previews show the authoring revision; saved MCP hand-offs read disk.
+ * Automatic draft delivery writes a separate, validated subset.
  */
 
 /** One route as the preview lists it. */
@@ -151,7 +150,7 @@ type DraftMetadata = Pick<
   'modelDigest' | 'baseModelDigest' | 'issues' | 'changeLog'
 >;
 
-/** Preview and export use the same paths and bytes. */
+/** Authoring-only artifacts; the autosync gateway can be a strict subset. */
 const draftFilesOf = (
   bundle: DeliveryBundle,
   metadata: DraftMetadata,
@@ -183,11 +182,11 @@ export const livePreviewOf = async (
     currentDocument: input.document,
     baseDocument: input.baseDocument,
   });
-  const diff = outcome.diff!;
+  const diff = outcome.diff;
   const metadata = {
     modelDigest: outcome.snapshot.digests.model,
-    baseModelDigest: diff.baseModelDigest,
-    changeLog: diff.changelog,
+    baseModelDigest: diff?.baseModelDigest ?? null,
+    changeLog: diff?.changelog ?? '当前模型与会话基线无法比较。',
     issues: outcome.issues,
   };
   return {
@@ -200,7 +199,6 @@ export const livePreviewOf = async (
       : {}),
     diff,
     apiSummary: outcome.summary,
-    canExportDraft: !outcome.issues.some((issue) => issue.severity === 'block'),
     bindings: outcome.snapshot.routes.map((route) => ({
       id: route.id,
       entityRef: route.entityRef,
@@ -212,7 +210,3 @@ export const livePreviewOf = async (
     })),
   };
 };
-
-/** Default directory a hand-off is written to, beside the project. */
-export const suggestedDeliveryDirectory = (projectDirectory: string): string =>
-  path.join(projectDirectory, 'delivery');

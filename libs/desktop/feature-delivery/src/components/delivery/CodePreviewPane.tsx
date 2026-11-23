@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@evidence-poc/desktop-ui-kit';
 import type { LiveDeliveryArtifact } from '@evidence-poc/desktop-contracts/delivery';
 
@@ -36,12 +36,10 @@ export const CodePreviewPane = ({
   artifact,
   version,
   stale,
-  actions,
 }: {
   artifact: LiveDeliveryArtifact;
   version?: string | undefined;
   stale: boolean;
-  actions: ReactNode;
 }) => {
   const { path, content } = artifact;
   const [notice, setNotice] = useState('');
@@ -79,12 +77,11 @@ export const CodePreviewPane = ({
           <Button size="xs" disabled={stale} onClick={() => void copy()}>
             复制代码
           </Button>
-          {actions}
         </div>
       </header>
       {notice || isTruncated ? (
         <p role="status" className="px-4 py-1 text-xs text-workbench-muted">
-          {notice || '仅预览文件开头，复制和导出仍使用完整内容。'}
+          {notice || '仅预览文件开头，复制仍使用完整内容。'}
         </p>
       ) : null}
       <pre

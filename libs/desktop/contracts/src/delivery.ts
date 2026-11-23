@@ -38,27 +38,36 @@ export interface LiveRouteBinding {
 export interface LiveDeliveryPreview {
   revision: number;
   modelDigest: string;
-  baseModelDigest: string;
+  baseModelDigest: string | null;
   preview: DeliveryPreview;
-  /**
-   * The same document the export writes, so the contract rail reads the exact
-   * revision the diff beside it describes instead of re-projecting locally.
-   */
+  /** Full authoring preview. Automatic sync writes only validated contexts. */
   openapi: DeliveryContract;
   artifacts?: readonly LiveDeliveryArtifact[];
-  diff: ContractComparison;
+  diff: ContractComparison | null;
   changeLog: string;
   apiSummary: ApiCoverageSummary;
   issues: readonly SensorIssue[];
   bindings: readonly LiveRouteBinding[];
-  canExportDraft: boolean;
 }
 
 export type LiveDeliveryResult =
   | { success: true; analysis: LiveDeliveryPreview }
   | { success: false; revision: number; error: string };
 
-export interface ExportLiveDeliveryInput extends LiveDeliveryInput {
-  /** Ensures export is the exact document previewed, not a fresh disk read. */
-  expectedModelDigest: string;
+export interface ContextDeliveryStatusEvent {
+  rootPath: string;
+  revision: number;
+  result:
+    | {
+        kind: 'synced';
+        directory: string;
+        synced: number;
+        blocked: number;
+        contexts: readonly {
+          contextId: string;
+          status: 'synced' | 'blocked' | 'empty';
+          issues: readonly string[];
+        }[];
+      }
+    | { kind: 'failed'; error: string };
 }

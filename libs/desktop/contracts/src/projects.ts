@@ -116,22 +116,6 @@ export interface DeliveryPreview {
   limitations: readonly string[];
 }
 
-export type DeliveryPreviewResult =
-  | { success: true; preview: DeliveryPreview }
-  | { success: false; error: string };
-
-/** What a delivery hand-off wrote, and where. */
-export type ExportDeliveryResult =
-  | {
-      status: 'saved';
-      directory: string;
-      files: readonly string[];
-      serviceCount: number;
-      routeCount: number;
-    }
-  | { status: 'cancelled' }
-  | { status: 'failed'; error: string };
-
 /**
  * Starter models a new project can be seeded with.
  *

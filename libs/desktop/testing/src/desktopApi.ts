@@ -17,6 +17,7 @@ import type {
   IngestDraftInput,
   IngestDraftResult,
 } from '@evidence-poc/desktop-contracts/ingestion';
+import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
 import type { EvidenceDesktopApi } from '@evidence-poc/desktop-contracts/ipc';
 import type {
   McpRendererRequest,
@@ -28,6 +29,7 @@ import type {
   CreateProjectDialogResult,
   CreateProjectInput,
   CreateProjectResult,
+  DeliveryPreview,
   EvidenceProjectSummary,
   OpenProjectResult,
   ProjectTemplateMeta,
@@ -137,11 +139,10 @@ export interface DesktopApiMock extends EvidenceDesktopApi {
     triggerSensors: string[];
     modelChanged: string[];
     deliveryLivePreview: string[];
-    deliveryPreview: string[];
-    exportDelivery: string[];
     ingestDraft: IngestDraftInput[];
     compileDraft: CompileDraftInput[];
   };
+  emitDeliveryStatus: (event: ContextDeliveryStatusEvent) => void;
   agentMock: AgentMockController;
   mcpMock: McpMockController;
 }
@@ -178,7 +179,6 @@ export const installDesktopApi = ({
     success: false,
     error: '测试没有配置交付预览。',
   } as const,
-  exportDeliveryResult = { status: 'cancelled' } as const,
   ingestResult = {
     success: false,
     error: '测试没有配置导入结果。',
@@ -200,12 +200,9 @@ export const installDesktopApi = ({
   createResult?: CreateProjectResult;
   templates?: readonly ProjectTemplateMeta[];
   sensorReport?: SensorReport;
-  deliveryPreviewResult?: Awaited<
-    ReturnType<EvidenceDesktopApi['projects']['deliveryPreview']>
-  >;
-  exportDeliveryResult?: Awaited<
-    ReturnType<EvidenceDesktopApi['projects']['exportDelivery']>
-  >;
+  deliveryPreviewResult?:
+    | { success: true; preview: DeliveryPreview }
+    | { success: false; error: string };
   ingestResult?: IngestDraftResult;
   compileResult?: CompileDraftOutcome;
 } = {}): DesktopApiMock => {
@@ -222,8 +219,6 @@ export const installDesktopApi = ({
     triggerSensors: [],
     modelChanged: [],
     deliveryLivePreview: [],
-    deliveryPreview: [],
-    exportDelivery: [],
     ingestDraft: [],
     compileDraft: [],
   };
@@ -235,6 +230,9 @@ export const installDesktopApi = ({
 
   const eventListeners = new Set<(payload: AgentEventPayload) => void>();
   const reportListeners = new Set<(payload: SensorReportPayload) => void>();
+  const deliveryListeners = new Set<
+    (event: ContextDeliveryStatusEvent) => void
+  >();
   const patchListeners = new Set<(payload: PatchCommittedPayload) => void>();
   let live: LiveModelInput | undefined;
   let nextPatchId = 0;
@@ -332,6 +330,9 @@ export const installDesktopApi = ({
     calls,
     agentMock,
     mcpMock,
+    emitDeliveryStatus: (event) => {
+      for (const listener of deliveryListeners) listener(event);
+    },
     aiConfig: {
       getStatus: async () => ({
         isConfigured: true,
@@ -395,16 +396,11 @@ export const installDesktopApi = ({
               error: deliveryPreviewResult.error,
             };
       },
-      exportLiveDelivery: async () => exportDeliveryResult,
-      deliveryPreview: async (rootPath) => {
-        calls.deliveryPreview.push(rootPath);
-
-        return deliveryPreviewResult;
-      },
-      exportDelivery: async (rootPath) => {
-        calls.exportDelivery.push(rootPath);
-
-        return exportDeliveryResult;
+      onDeliveryStatus: (listener) => {
+        deliveryListeners.add(listener);
+        return () => {
+          deliveryListeners.delete(listener);
+        };
       },
       onChanged: () => () => undefined,
     },

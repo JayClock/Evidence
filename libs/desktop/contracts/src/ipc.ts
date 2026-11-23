@@ -2,13 +2,9 @@ import type { EvidenceAiConfigApi } from './aiConfig.js';
 import type {
   LiveDeliveryInput,
   LiveDeliveryResult,
-  ExportLiveDeliveryInput,
+  ContextDeliveryStatusEvent,
 } from './delivery.js';
 import type { EvidenceAgentApi } from './agentIpc.js';
-import type {
-  DeliveryPreviewResult,
-  ExportDeliveryResult,
-} from './projects.js';
 import type {
   CompileDraftInput,
   CompileDraftOutcome,
@@ -47,9 +43,7 @@ export const EVIDENCE_IPC_CHANNELS = {
   openEditorWindow: 'evidence:project:open-editor-window',
   changed: 'evidence:project:changed',
   deliveryLivePreview: 'evidence:project:delivery-live-preview',
-  exportLiveDelivery: 'evidence:project:export-live-delivery',
-  deliveryPreview: 'evidence:project:delivery-preview',
-  exportDelivery: 'evidence:project:export-delivery',
+  deliveryStatus: 'evidence:project:delivery-status',
 } as const;
 
 export type EvidenceIpcChannel =
@@ -84,21 +78,13 @@ export interface EvidenceDesktopApi {
     openEditorWindow: (rootPath: string) => Promise<void>;
     /** Subscribes to external `.evidence/fm` changes; returns an unsubscribe. */
     onChanged: (listener: (event: ProjectChangedEvent) => void) => () => void;
-    /**
-     * What the model becomes when it is deployed.
-     *
-     * Projected in the main process from the saved sources, so the hub describes
-     * the delivery the export would actually write.
-     */
+    /** Read-only authoring preview; it never triggers disk sync. */
     deliveryLivePreview: (
       input: LiveDeliveryInput,
     ) => Promise<LiveDeliveryResult>;
-    exportLiveDelivery: (
-      input: ExportLiveDeliveryInput,
-    ) => Promise<ExportDeliveryResult>;
-    deliveryPreview: (rootPath: string) => Promise<DeliveryPreviewResult>;
-    /** Writes the aggregate and per-service contracts, topology and routes to a folder. */
-    exportDelivery: (rootPath: string) => Promise<ExportDeliveryResult>;
+    onDeliveryStatus: (
+      listener: (event: ContextDeliveryStatusEvent) => void,
+    ) => () => void;
   };
   /** Incremental business walkthrough and isolated What-If sandbox. */
   story: EvidenceStoryApi;
@@ -137,10 +123,8 @@ export type {
 export type {
   DeliveryPreview,
   DeliveryPreviewLink,
-  DeliveryPreviewResult,
   DeliveryPreviewRoute,
   DeliveryPreviewService,
-  ExportDeliveryResult,
 } from './projects.js';
 
 export type {

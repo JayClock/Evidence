@@ -63,12 +63,15 @@ const api: EvidenceDesktopApi = {
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.openEditorWindow, rootPath),
     deliveryLivePreview: (input) =>
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.deliveryLivePreview, input),
-    exportLiveDelivery: (input) =>
-      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.exportLiveDelivery, input),
-    deliveryPreview: (rootPath: string) =>
-      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.deliveryPreview, rootPath),
-    exportDelivery: (rootPath: string) =>
-      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.exportDelivery, rootPath),
+    onDeliveryStatus: (listener) => {
+      const channel = EVIDENCE_IPC_CHANNELS.deliveryStatus;
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        payload: Parameters<typeof listener>[0],
+      ) => listener(payload);
+      ipcRenderer.on(channel, handler);
+      return () => ipcRenderer.removeListener(channel, handler);
+    },
     onChanged: (listener) => {
       const handler = (
         _event: Electron.IpcRendererEvent,

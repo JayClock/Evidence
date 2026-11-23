@@ -1,20 +1,12 @@
 import type { EvidenceDesktopApi } from '@evidence-poc/desktop-contracts/ipc';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ModelSession } from '@evidence-poc/evidence-model-core';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import type {
-  LiveDeliveryInput,
+  ContextDeliveryStatusEvent,
   LiveDeliveryPreview,
 } from '@evidence-poc/desktop-contracts/delivery';
-import type {
-  DeliveryPreview,
-  ExportDeliveryResult,
-} from '@evidence-poc/desktop-contracts/projects';
-
-export interface DeliveryNotice {
-  tone: 'saved' | 'failed';
-  message: string;
-}
+import type { DeliveryPreview } from '@evidence-poc/desktop-contracts/projects';
 
 export interface DeliveryHubController {
   loading: boolean;
@@ -22,91 +14,70 @@ export interface DeliveryHubController {
   error: string | null;
   preview: DeliveryPreview | null;
   analysis: LiveDeliveryPreview | null;
-  busy: boolean;
-  notice: DeliveryNotice | null;
-  exportDelivery: () => Promise<void>;
-  dismissNotice: () => void;
+  syncStatus: ContextDeliveryStatusEvent | null;
 }
 
-const noticeOf = (result: ExportDeliveryResult): DeliveryNotice | null => {
-  switch (result.status) {
-    case 'saved':
-      return {
-        tone: 'saved',
-        message: `已写入草稿 ${result.directory}：${result.files.join('、')}`,
-      };
-    case 'failed':
-      return { tone: 'failed', message: `导出失败：${result.error}` };
-    default:
-      return null;
-  }
-};
-
-/** One subscription for the editor lifetime, not the modal lifetime. */
+/** The preview stays read-only. Main automatically syncs the editor's live revisions. */
 export const useDeliveryHub = (
   api: Pick<
     EvidenceDesktopApi['projects'],
-    'deliveryLivePreview' | 'exportLiveDelivery'
+    'deliveryLivePreview' | 'onDeliveryStatus'
   >,
   rootPath: string,
   session: ModelSession,
   baseDocument: DomainModelDocument,
-  {
-    enabled = true,
-    includeArtifacts = false,
-  }: { enabled?: boolean; includeArtifacts?: boolean } = {},
+  { includeArtifacts = false }: { includeArtifacts?: boolean } = {},
 ): DeliveryHubController => {
   const [loading, setLoading] = useState(false);
   const [stale, setStale] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<LiveDeliveryPreview | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<DeliveryNotice | null>(null);
-  const generation = useRef(0);
-  const accepted = useRef<{
-    input: LiveDeliveryInput;
-    analysis: LiveDeliveryPreview;
-  } | null>(null);
+  const [syncStatus, setSyncStatus] =
+    useState<ContextDeliveryStatusEvent | null>(null);
+
+  useEffect(
+    () =>
+      api.onDeliveryStatus((event) => {
+        if (event.rootPath === rootPath) setSyncStatus(event);
+      }),
+    [api, rootPath],
+  );
 
   useEffect(() => {
-    accepted.current = null;
     setAnalysis(null);
-    if (!enabled) return;
     let active = true;
+    let generation = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const refresh = () => {
-      const revision = ++generation.current;
-      accepted.current = null;
+      const revision = ++generation;
       setStale(true);
       setLoading(true);
       setError(null);
       clearTimeout(timer);
       timer = setTimeout(() => {
-        const input: LiveDeliveryInput = {
-          rootPath,
-          revision,
-          document: session.getDocument(),
-          baseDocument,
-          ...(includeArtifacts ? { includeArtifacts: true } : {}),
-        };
         void api
-          .deliveryLivePreview(input)
+          .deliveryLivePreview({
+            rootPath,
+            revision,
+            document: session.getDocument(),
+            baseDocument,
+            ...(includeArtifacts ? { includeArtifacts: true } : {}),
+          })
           .then((result) => {
-            if (!active || revision !== generation.current) return;
+            if (!active || revision !== generation) return;
             if (!result.success) throw new Error(result.error);
             if (result.analysis.revision !== revision)
               throw new Error('API 预览版本不匹配。');
-            accepted.current = { input, analysis: result.analysis };
             setAnalysis(result.analysis);
             setStale(false);
           })
           .catch((cause: unknown) => {
-            if (!active || revision !== generation.current) return;
+            if (!active || revision !== generation) return;
             setAnalysis(null);
             setError(cause instanceof Error ? cause.message : String(cause));
           })
           .finally(() => {
-            if (active && revision === generation.current) setLoading(false);
+            if (active && revision === generation) setLoading(false);
           });
       }, 150);
     };
@@ -116,46 +87,17 @@ export const useDeliveryHub = (
     refresh();
     return () => {
       active = false;
-      ++generation.current;
-      accepted.current = null;
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [api, rootPath, session, baseDocument, enabled, includeArtifacts]);
-
-  const exportDelivery = useCallback(async () => {
-    const current = accepted.current;
-    if (busy || current === null || !current.analysis.canExportDraft) return;
-    setBusy(true);
-    setNotice(null);
-    try {
-      setNotice(
-        noticeOf(
-          await api.exportLiveDelivery({
-            ...current.input,
-            expectedModelDigest: current.analysis.modelDigest,
-          }),
-        ),
-      );
-    } catch (cause) {
-      setNotice({
-        tone: 'failed',
-        message: `导出失败：${cause instanceof Error ? cause.message : String(cause)}`,
-      });
-    } finally {
-      setBusy(false);
-    }
-  }, [api, busy]);
+  }, [api, rootPath, session, baseDocument, includeArtifacts]);
 
   return {
     loading,
     stale,
     error,
-    analysis,
     preview: analysis?.preview ?? null,
-    busy,
-    notice,
-    exportDelivery,
-    dismissNotice: () => setNotice(null),
+    analysis,
+    syncStatus: syncStatus?.rootPath === rootPath ? syncStatus : null,
   };
 };

@@ -5,6 +5,7 @@ import {
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import {
   buildDelivery,
+  hasErrors,
   type EvidenceApiSnapshot,
 } from '@evidence-poc/evidence-api';
 import type { ApiCoverageSummary, SensorIssue } from '../sensorReport.js';
@@ -31,8 +32,12 @@ export const checkNativeApiSensor = async ({
   const snapshot = buildDelivery(currentDocument);
   const baseline =
     baseDocument === undefined ? undefined : buildDelivery(baseDocument);
+  const invalidBaseline =
+    baseline !== undefined && hasErrors(baseline.diagnostics);
   const diff =
-    baseline === undefined ? null : await compareContracts(baseline, snapshot);
+    baseline === undefined || invalidBaseline || hasErrors(snapshot.diagnostics)
+      ? null
+      : await compareContracts(baseline, snapshot);
   const covered = new Set(snapshot.routes.map((route) => route.entityRef));
   // Roles and participants are not automatically public CRUD resources.
   const expected = currentDocument.entities.filter(
@@ -63,6 +68,14 @@ export const checkNativeApiSensor = async ({
         : { targetNodeId: diagnostic.targetRef }),
     });
   }
+  if (invalidBaseline)
+    issues.push({
+      issueId: 'audit_api:API_BASELINE_INVALID',
+      source: 'audit_api',
+      severity: mode === 'release' ? 'block' : 'warn',
+      code: 'API_BASELINE_INVALID',
+      message: '会话基线未通过校验，无法计算契约兼容性。',
+    });
   for (const [index, change] of (diff?.changes ?? []).entries()) {
     if (change.level < 2) continue;
     const route = [...snapshot.routes, ...(baseline?.routes ?? [])].find(

@@ -8,6 +8,7 @@ import {
   runEvidenceMcpStdio,
 } from '@evidence-poc/evidence-mcp';
 
+import { EVIDENCE_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/ipc';
 import { EVIDENCE_MCP_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/mcpIpc';
 import { registerAgentIpc } from './agentIpcHandlers';
 import { startMcpBridgeRuntime } from './mcpBridgeRuntime';
@@ -22,6 +23,7 @@ import { createMcpSensorService } from './mcpSensorService';
 import { registerIngestionIpc } from './ingestionIpc';
 import { createModelIngestionReader } from './ingestionModelReader';
 import { registerDeliveryIpc } from './deliveryIpc';
+import { createContextDeliveryReactor } from './contextDeliveryReactor';
 import { registerProjectIpc } from './projectIpc';
 import { registerStoryIpc } from './storyIpc';
 import { createProjectStore, RECENT_PROJECTS_FILE } from './projectStore';
@@ -29,6 +31,7 @@ import {
   createDashboardWindow,
   listEditorWindows,
   openEditorWindow,
+  ownsEditorProject,
 } from './windows';
 
 const isMac = process.platform === 'darwin';
@@ -73,9 +76,19 @@ const startApplication = async (): Promise<void> => {
     agentDir: path.resolve(getAgentDir()),
   });
   const getModelOptions = () => aiConfig.getModelOptions();
+  const delivery = createContextDeliveryReactor();
   const agentIpc = registerAgentIpc({
     getModelOptions,
     sessionsRoot: path.join(userDataPath, 'sessions'),
+    onLiveModelChanged: (sender, input) => {
+      if (!ownsEditorProject(sender, input.rootPath)) return;
+      delivery.schedule(sender.id, input, (event) => {
+        if (ownsEditorProject(sender, event.rootPath))
+          sender.send(EVIDENCE_IPC_CHANNELS.deliveryStatus, event);
+      });
+    },
+    onEditorDetached: (sender, rootPath) =>
+      delivery.cancel(sender.id, rootPath),
   });
 
   registerProjectIpc({ projectStore, openEditorWindow });

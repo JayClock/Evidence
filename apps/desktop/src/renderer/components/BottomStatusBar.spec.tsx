@@ -31,6 +31,8 @@ const renderBar = (
       diagnosticsOpen={false}
       onToggleDiagnostics={onToggleDiagnostics}
       onRerunSensors={onRerunSensors}
+      deliverySync={null}
+      onOpenDelivery={() => undefined}
       dirty={false}
       savedAt={null}
       saveError={null}
@@ -45,6 +47,23 @@ const renderBar = (
 };
 
 describe('BottomStatusBar sensor summary', () => {
+  it('shows automatic draft sync without implying release readiness', () => {
+    const open = vi.fn();
+    renderBar({
+      onOpenDelivery: open,
+      deliverySync: {
+        kind: 'synced',
+        directory: '/delivery',
+        synced: 2,
+        blocked: 1,
+        contexts: [],
+      },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'API 草稿：2 已同步 · 1 阻塞' }),
+    );
+    expect(open).toHaveBeenCalledOnce();
+  });
   it('never presents an old revision as ready for release', () => {
     renderBar({
       reportStale: true,

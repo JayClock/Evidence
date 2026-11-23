@@ -1514,7 +1514,10 @@ describe('EditorScreen', () => {
     );
     fireEvent.click(within(hub).getByRole('button', { name: '契约全览' }));
     expect(within(hub).getByText('核心履约')).toBeInTheDocument();
-    expect(api.calls.deliveryPreview).toEqual([]);
+    expect(api.calls.deliveryLivePreview).toContain('/models/procurement');
+    expect(
+      within(hub).queryByRole('button', { name: '导出当前草稿' }),
+    ).toBeNull();
     fireEvent.keyDown(hub, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: '交付与导出中枢' })).toBeNull();
     expect(

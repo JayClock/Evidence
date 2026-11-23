@@ -10,7 +10,6 @@ it('bounds the rendered excerpt while copying the whole file', async () => {
   const content = `${'section\n'.repeat(15_000)}last section\n`;
   render(
     <CodePreviewPane
-      actions={null}
       stale={false}
       artifact={{ path: 'api-changes.md', content }}
     />,
@@ -30,7 +29,6 @@ it('announces clipboard failures', async () => {
   });
   render(
     <CodePreviewPane
-      actions={null}
       stale={false}
       artifact={{ path: 'openapi.json', content: '{}' }}
     />,

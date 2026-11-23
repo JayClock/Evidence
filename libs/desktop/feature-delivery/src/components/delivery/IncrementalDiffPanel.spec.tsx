@@ -5,6 +5,7 @@ import { IncrementalDiffPanel } from './IncrementalDiffPanel';
 
 const analysis = () => {
   const value = liveDeliveryPreview();
+  if (!value.diff) throw new Error('Expected a test diff');
   value.diff.hasBreakingChanges = true;
   value.diff.changes = [
     {
@@ -62,6 +63,26 @@ it('copies the exact change log and disables stale actions', async () => {
   );
   expect(writeText).toHaveBeenCalledWith(value.changeLog);
   rerender(<IncrementalDiffPanel analysis={value} stale={true} />);
+  expect(
+    screen.getByRole('button', { name: '复制 Markdown 变更日志' }),
+  ).toBeDisabled();
+});
+
+it('keeps diagnostics visible when the contracts cannot be compared', () => {
+  const value = analysis();
+  value.diff = null;
+  value.issues = [
+    {
+      issueId: 'model-block',
+      source: 'audit_api',
+      severity: 'block',
+      code: 'FM_INVALID',
+      message: '无法解析凭证关系',
+    },
+  ];
+  render(<IncrementalDiffPanel analysis={value} stale={false} />);
+  expect(screen.getByText('当前模型与会话基线无法比较。')).toBeVisible();
+  expect(screen.getByText(/无法解析凭证关系/)).toBeVisible();
   expect(
     screen.getByRole('button', { name: '复制 Markdown 变更日志' }),
   ).toBeDisabled();

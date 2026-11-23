@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, type WebContents } from 'electron';
 
 const isMac = process.platform === 'darwin';
 const WINDOW_CASCADE_OFFSET = 24;
@@ -93,6 +93,23 @@ export const openEditorWindow = (rootPath: string): BrowserWindow => {
 
   return window;
 };
+
+/** Only the main-process window registry grants authority to write delivery files. */
+export function ownsEditorProject(
+  sender: WebContents,
+  rootPath: string,
+): boolean {
+  if (sender.isDestroyed()) return false;
+  for (const [root, window] of editorWindows) {
+    if (
+      !window.isDestroyed() &&
+      window.webContents === sender &&
+      path.resolve(root) === path.resolve(rootPath)
+    )
+      return true;
+  }
+  return false;
+}
 
 export const listEditorWindows = (): readonly BrowserWindow[] => [
   ...editorWindows.values(),

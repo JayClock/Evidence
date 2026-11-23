@@ -47,6 +47,7 @@ export interface AgentRuntimeTransport {
   publishEvent: (event: AgentStreamEvent) => void;
   publishReport: (report: SensorReport) => void;
   publishPatch: (transaction: PatchTransaction) => void;
+  publishModel?: (input: LiveDeliveryInput) => void;
 }
 
 export interface AgentRuntimeOptions {
@@ -116,6 +117,13 @@ export const createAgentRuntime = ({
   const engine = sensors ?? createSensorsEngine();
 
   let live: LiveDeliveryInput | undefined;
+  const publishModel = (input: LiveDeliveryInput) => {
+    try {
+      transport.publishModel?.(input);
+    } catch (error) {
+      console.warn('[delivery] Could not schedule context sync', error);
+    }
+  };
   let runSequence = 0;
   let disposed = false;
   let session: EvidenceAgentSession | null = null;
@@ -173,6 +181,7 @@ export const createAgentRuntime = ({
       };
       latestReport = null;
       activeTurn.committed.push(transaction);
+      publishModel(live);
       backgroundSensors.schedule();
       // A missed notification must not turn a committed write into a failed tool call.
       try {
@@ -369,6 +378,7 @@ export const createAgentRuntime = ({
           baseDocument: live?.baseDocument ?? input.baseDocument,
         });
         latestReport = null;
+        publishModel(live);
       }
       backgroundSensors.schedule();
     },

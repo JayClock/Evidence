@@ -26,32 +26,37 @@ export const IncrementalDiffPanel = ({
   return (
     <section aria-label="API 增量变更" className="space-y-3 p-5 text-[11px]">
       <p>
-        基线摘要 <code>{analysis.baseModelDigest.slice(0, 20)}</code> → 当前{' '}
+        基线摘要{' '}
+        <code>{analysis.baseModelDigest?.slice(0, 20) ?? '不可用'}</code> → 当前{' '}
         <code>{analysis.modelDigest.slice(0, 20)}</code>
       </p>
-      <p>
-        契约变更 {diff.changes.length} · 破坏性变更{' '}
-        {diff.changes.filter((change) => change.level >= 2).length}
-      </p>
+      {diff ? (
+        <p>
+          契约变更 {diff.changes.length} · 破坏性变更{' '}
+          {diff.changes.filter((change) => change.level >= 2).length}
+        </p>
+      ) : (
+        <p>当前模型与会话基线无法比较。</p>
+      )}
       <p className="text-evidence-muted">
         差异相对于打开编辑器时的模型；保存或刷新不确认新基线。 OpenAPI
         兼容性不代表业务规则、角色权限或履约语义兼容；这些仍需业务验收。
       </p>
       <button
         type="button"
-        disabled={stale}
+        disabled={stale || diff === null}
         onClick={() => void copy()}
         className="rounded border px-2 py-1 disabled:opacity-40"
       >
         复制 Markdown 变更日志
       </button>
       {copyNotice === null ? null : <p role="status">{copyNotice}</p>}
-      {diff.hasBreakingChanges ? (
+      {diff?.hasBreakingChanges ? (
         <p role="alert" className="rounded bg-amber-50 p-2 text-amber-800">
           检测到破坏性变更，请确认调用方方案；当前未授权发布。
         </p>
       ) : null}
-      {diff.changes.length === 0 ? (
+      {diff === null ? null : diff.changes.length === 0 ? (
         <p>无契约兼容性变更</p>
       ) : (
         diff.changes.map((change, index) => {
@@ -91,12 +96,14 @@ export const IncrementalDiffPanel = ({
           );
         })
       )}
-      <details>
-        <summary>完整 OpenAPI 差异</summary>
-        <pre className="overflow-auto">
-          {JSON.stringify(diff.details, null, 2)}
-        </pre>
-      </details>
+      {diff ? (
+        <details>
+          <summary>完整 OpenAPI 差异</summary>
+          <pre className="overflow-auto">
+            {JSON.stringify(diff.details, null, 2)}
+          </pre>
+        </details>
+      ) : null}
       <section aria-label="API 待决项">
         <h3 className="font-medium">API 覆盖与诊断</h3>
         <p>

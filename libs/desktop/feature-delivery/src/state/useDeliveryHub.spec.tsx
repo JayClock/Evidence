@@ -94,21 +94,17 @@ describe('live delivery subscription', () => {
     expect(hook.result.current.analysis?.revision).toBe(revision);
   });
 
-  it('exports the accepted memory snapshot and refuses an invalidated preview', async () => {
-    const { api, hook, session, edit } = setup();
-    const exportDraft = vi.fn(async () => ({ status: 'cancelled' as const }));
-    api.projects.exportLiveDelivery = exportDraft;
-    await tick();
-    await act(async () => hook.result.current.exportDelivery());
-    expect(exportDraft).toHaveBeenCalledWith(
-      expect.objectContaining({
-        document: session.getDocument(),
-        expectedModelDigest: 'sha256:current',
-      }),
-    );
-    act(() => edit('dirty'));
-    await act(async () => hook.result.current.exportDelivery());
-    expect(exportDraft).toHaveBeenCalledOnce();
+  it('observes sync results independently of preview and ignores other projects', () => {
+    const { api, hook, request } = setup();
+    const payload = {
+      revision: 10,
+      result: { kind: 'failed', error: 'write failed' },
+    } as const;
+    act(() => api.emitDeliveryStatus({ ...payload, rootPath: '/other' }));
+    expect(hook.result.current.syncStatus).toBeNull();
+    act(() => api.emitDeliveryStatus({ ...payload, rootPath: '/models/test' }));
+    expect(hook.result.current.syncStatus).toMatchObject(payload);
+    expect(request).not.toHaveBeenCalled();
   });
 
   it('clears the preview on failures and cancels timers at unmount', async () => {

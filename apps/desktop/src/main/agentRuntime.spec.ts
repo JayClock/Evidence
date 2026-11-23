@@ -693,8 +693,12 @@ describe('agent patch transport', () => {
 
   it('commits against main revisions with no renderer acknowledgement and publishes only real changes', async () => {
     const { transport, patches } = createTransport();
+    const publishModel = vi.fn();
     const fake = createFakeSession();
-    const runtime = runtimeWith({ transport, fake });
+    const runtime = runtimeWith({
+      transport: { ...transport, publishModel },
+      fake,
+    });
     const base = createDesktopFixture();
     const input = {
       rootPath: runtime.rootPath,
@@ -765,6 +769,12 @@ describe('agent patch transport', () => {
       const first = applyModelPatches(base, firstTransaction.patches);
       const second = applyModelPatches(first, secondTransaction.patches);
       expect(second.entities.at(-1)?.label).toBe('新的退款确认');
+      expect(publishModel.mock.calls.map(([input]) => input.revision)).toEqual([
+        1, 2, 3,
+      ]);
+      expect(publishModel).toHaveBeenLastCalledWith(
+        expect.objectContaining({ document: second }),
+      );
       expect(
         applyModelPatches(second, secondTransaction.inversePatches),
       ).toEqual(first);

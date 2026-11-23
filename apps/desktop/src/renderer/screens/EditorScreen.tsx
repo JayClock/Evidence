@@ -317,6 +317,10 @@ const EditorWorkspace = ({
     initialDocument,
     recordAgentPatch,
   );
+  const syncStatus =
+    delivery.syncStatus?.revision === liveModel.revision
+      ? delivery.syncStatus.result
+      : null;
   const agent = usePiConversation(
     window.evidenceAPI.agent,
     project.rootPath,
@@ -1277,6 +1281,7 @@ const EditorWorkspace = ({
         {layout.isDeliveryOpen ? (
           <DeliveryHub
             hub={delivery}
+            sync={syncStatus}
             projectName={state.project.name}
             dirty={state.dirty}
             externalChange={state.externalChangeAt !== null}
@@ -1305,6 +1310,8 @@ const EditorWorkspace = ({
             diagnosticsOpen={layout.isProblemsPanelOpen}
             onToggleDiagnostics={layout.toggleProblemsPanel}
             onRerunSensors={() => void sensors.refresh()}
+            deliverySync={syncStatus}
+            onOpenDelivery={layout.openDelivery}
             dirty={state.dirty}
             savedAt={state.savedAt}
             saveError={state.saveError}

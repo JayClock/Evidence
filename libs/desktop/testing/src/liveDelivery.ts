@@ -49,5 +49,4 @@ export const liveDeliveryPreview = (
   },
   issues: [],
   bindings: [],
-  canExportDraft: true,
 });

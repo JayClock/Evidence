@@ -1,6 +1,7 @@
 import type { ValidationResult } from '@evidence-poc/evidence-schema';
 import type { DomainGraphLayout } from '@evidence-poc/evidence-canvas-interaction';
 import type { SensorReport } from '@evidence-poc/evidence-agent/browser';
+import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
 
 interface BottomStatusBarProps {
   layout: DomainGraphLayout;
@@ -13,6 +14,8 @@ interface BottomStatusBarProps {
   diagnosticsOpen: boolean;
   onToggleDiagnostics: () => void;
   onRerunSensors: () => void;
+  deliverySync: ContextDeliveryStatusEvent['result'] | null;
+  onOpenDelivery: () => void;
   dirty: boolean;
   savedAt: string | null;
   saveError: string | null;
@@ -154,6 +157,8 @@ export const BottomStatusBar = ({
   diagnosticsOpen,
   onToggleDiagnostics,
   onRerunSensors,
+  deliverySync,
+  onOpenDelivery,
   dirty,
   savedAt,
   saveError,
@@ -188,6 +193,18 @@ export const BottomStatusBar = ({
       <span>业务对象 {layout.nodes.length}</span>
       <span>履约连线 {layout.fulfillmentPairs.length}</span>
       <span>上下文 {layout.contextGroups.length}</span>
+      <button
+        type="button"
+        onClick={onOpenDelivery}
+        className="shrink-0 rounded border border-evidence-line px-1.5 py-0.5"
+        title="查看 API 自动同步详情"
+      >
+        {deliverySync?.kind === 'synced'
+          ? `API 草稿：${deliverySync.synced} 已同步${deliverySync.blocked ? ` · ${deliverySync.blocked} 阻塞` : ''}`
+          : deliverySync?.kind === 'failed'
+            ? 'API 同步失败'
+            : 'API 草稿待同步'}
+      </button>
     </div>
 
     <div className="flex items-center gap-3">

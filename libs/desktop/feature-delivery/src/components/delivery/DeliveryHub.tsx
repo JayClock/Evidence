@@ -10,6 +10,7 @@ import {
 import { CodePreviewPane } from './CodePreviewPane';
 import { ContractOverview } from './ContractOverview';
 import { IncrementalDiffPanel } from './IncrementalDiffPanel';
+import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
 import type { DeliveryHubController } from '../../state/useDeliveryHub';
 
 const artifactTitles = new Map([
@@ -28,6 +29,7 @@ export interface DeliveryHubProps {
   projectName: string;
   dirty: boolean;
   externalChange: boolean;
+  sync?: ContextDeliveryStatusEvent['result'] | null;
   onFocusEntity?: (entityRef: string) => void;
   onClose: () => void;
   onRestoreFocus: () => void;
@@ -38,6 +40,7 @@ export const DeliveryHub = ({
   projectName,
   dirty,
   externalChange,
+  sync,
   onClose,
   onFocusEntity,
   onRestoreFocus,
@@ -73,22 +76,9 @@ export const DeliveryHub = ({
         ? `${warnings} 项警告`
         : '无 API 阻断';
   const diffLabel =
-    !current || !analysis.apiSummary.hasBaseline
+    !current || !analysis.diff
       ? '—'
       : `${analysis.apiSummary.breakingChangeCount} 项`;
-  const exportButton = (
-    <Button
-      variant="default"
-      size="xs"
-      loading={hub.busy}
-      disabled={
-        hub.busy || !current || !analysis.canExportDraft || !artifacts.length
-      }
-      onClick={() => void hub.exportDelivery()}
-    >
-      {hub.busy ? '导出中…' : '导出当前草稿'}
-    </Button>
-  );
 
   return (
     <Dialog
@@ -144,6 +134,44 @@ export const DeliveryHub = ({
             className="min-h-0 min-w-0 overflow-auto overscroll-contain p-0.5"
             aria-label="交付导航"
           >
+            <details className="mb-4 text-xs">
+              <summary>
+                API 草稿自动同步
+                {sync?.kind === 'synced'
+                  ? `：${sync.synced} 已同步，${sync.blocked} 阻塞`
+                  : sync?.kind === 'failed'
+                    ? '失败'
+                    : '待同步'}
+              </summary>
+              {sync?.kind === 'failed' ? (
+                <p>{sync.error}</p>
+              ) : sync?.kind === 'synced' ? (
+                <>
+                  <p className="break-all">{sync.directory}</p>
+                  <ul>
+                    {sync.contexts.map(({ contextId, status, issues }) => (
+                      <li key={contextId} className="break-words">
+                        {contextId} ·{' '}
+                        {status === 'synced'
+                          ? '已同步'
+                          : status === 'blocked'
+                            ? '阻塞（已有文件保留）'
+                            : '无 API'}
+                        {issues.length > 0 ? (
+                          <ul>
+                            {issues.map((issue, index) => (
+                              <li key={`${index}:${issue}`}>{issue}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p>通过检查的业务上下文会自动写入项目目录。</p>
+              )}
+            </details>
             <dl className="mb-4 grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-workbench-border bg-white p-3">
                 <dt className="text-[11px] text-workbench-muted">
@@ -176,10 +204,10 @@ export const DeliveryHub = ({
                 onClick={() => setView('diff')}
               >
                 本次增量变更
-                {current && analysis.diff.hasBreakingChanges ? ' ⚠' : ''}
+                {current && analysis.diff?.hasBreakingChanges ? ' ⚠' : ''}
               </Button>
             </div>
-            <h2 className="mb-2 text-sm font-semibold">可导出工程产物</h2>
+            <h2 className="mb-2 text-sm font-semibold">完整模型投影预览</h2>
             {artifacts.length ? (
               <ul className="flex flex-col gap-2">
                 {artifacts.map((item) => (
@@ -216,19 +244,9 @@ export const DeliveryHub = ({
           </aside>
           <div className="flex min-h-0 min-w-0 flex-col overflow-clip rounded-lg border border-workbench-border bg-white">
             <p className="border-b border-workbench-border px-4 py-2 text-[11px] text-workbench-muted">
-              会话基线：打开编辑器时的模型；保存不会重置差异。当前产物仅供草稿交付，不代表已授权发布。
-              {hub.stale && artifact
-                ? ' 当前显示上一次投影，暂不可复制或导出。'
-                : ''}
+              会话基线：打开编辑器时的模型；保存不会重置差异。这里只预览完整模型，磁盘上的聚合契约仅包含已同步的上下文。同步不代表授权发布。
+              {hub.stale && artifact ? ' 当前显示上一次投影，暂不可复制。' : ''}
             </p>
-            {hub.notice ? (
-              <p
-                role={hub.notice.tone === 'failed' ? 'alert' : 'status'}
-                className="border-b border-workbench-border px-4 py-2 text-xs [overflow-wrap:anywhere]"
-              >
-                {hub.notice.message}
-              </p>
-            ) : null}
             {hub.error ? (
               <p
                 role="alert"
@@ -247,7 +265,6 @@ export const DeliveryHub = ({
                     : undefined
                 }
                 stale={!current}
-                actions={exportButton}
               />
             ) : (
               <>
@@ -259,7 +276,6 @@ export const DeliveryHub = ({
                         ? '契约全览'
                         : '产物预览'}
                   </h2>
-                  {exportButton}
                 </div>
                 <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
                   {view === 'diff' && analysis ? (

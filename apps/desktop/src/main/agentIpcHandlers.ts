@@ -13,6 +13,7 @@ import {
   type PatchTransaction,
   type SensorTriggerInput,
 } from '@evidence-poc/desktop-contracts/agentIpc';
+import type { LiveDeliveryInput } from '@evidence-poc/desktop-contracts/delivery';
 import {
   createAgentRuntime,
   type AgentRuntime,
@@ -23,6 +24,8 @@ export interface AgentIpcOptions {
   createRuntime?: typeof createAgentRuntime;
   getModelOptions?: AgentRuntimeOptions['getModelOptions'];
   sessionsRoot?: string;
+  onLiveModelChanged?: (sender: WebContents, input: LiveDeliveryInput) => void;
+  onEditorDetached?: (sender: WebContents, rootPath: string) => void;
 }
 
 type Owner = {
@@ -40,6 +43,8 @@ export const registerAgentIpc = ({
   createRuntime = createAgentRuntime,
   getModelOptions,
   sessionsRoot,
+  onLiveModelChanged,
+  onEditorDetached,
 }: AgentIpcOptions = {}) => {
   const owners = new Map<string, Owner>();
   const canonicalRoot = (rootPath: string) => {
@@ -68,6 +73,7 @@ export const registerAgentIpc = ({
       getModelOptions,
       sessionDirectory,
       transport: {
+        publishModel: (input) => onLiveModelChanged?.(sender, input),
         publishEvent: (event) => send(channels.events, { event }),
         publishReport: (report) => send(channels.report, { report }),
         publishPatch: (transaction) =>
@@ -81,6 +87,7 @@ export const registerAgentIpc = ({
       sender.removeListener('destroyed', detach);
       runtime.dispose();
       owners.delete(root);
+      onEditorDetached?.(sender, rootPath);
     };
     const owner: Owner = { sender, runtime, detach };
     owners.set(root, owner);

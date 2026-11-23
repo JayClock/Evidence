@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
 import type { DeliveryHubController } from '../../state/useDeliveryHub';
 import { liveDeliveryPreview } from '@evidence-poc/desktop-testing/liveDelivery';
 import { DeliveryHub } from './DeliveryHub';
@@ -19,19 +20,22 @@ const controller = (
   loading: false,
   stale: false,
   error: null,
-  busy: false,
-  notice: null,
+  syncStatus: null,
   analysis,
   preview: { ...analysis.preview, limitations: ['尚无确认。'] },
-  exportDelivery: vi.fn(async () => undefined),
-  dismissNotice: vi.fn(),
   ...overrides,
 });
-const show = (hub = controller(), dirty = false, externalChange = false) => {
+const show = (
+  hub = controller(),
+  dirty = false,
+  externalChange = false,
+  sync: ContextDeliveryStatusEvent['result'] | null = null,
+) => {
   const onClose = vi.fn();
   const view = render(
     <DeliveryHub
       hub={hub}
+      sync={sync}
       projectName="商品采购"
       dirty={dirty}
       externalChange={externalChange}
@@ -76,24 +80,31 @@ describe('DeliveryHub', () => {
     expect(screen.getByText(/保存不会重置差异/)).toBeInTheDocument();
   });
 
-  it('exports only a current accepted draft and reports unsaved edits', () => {
-    const hub = controller();
-    show(hub, true);
+  it('shows partial automatic sync without a manual export action', () => {
+    show(controller(), true, false, {
+      kind: 'synced',
+      directory: '/workspace/delivery',
+      synced: 1,
+      blocked: 1,
+      contexts: [
+        {
+          contextId: 'context.arbitration',
+          status: 'blocked',
+          issues: ['规则未闭环'],
+        },
+      ],
+    });
     expect(screen.getByText('基于未保存的模型草稿')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: '导出当前草稿' }));
-    expect(hub.exportDelivery).toHaveBeenCalledOnce();
+    expect(
+      screen.getByText('API 草稿自动同步：1 已同步，1 阻塞'),
+    ).toBeVisible();
+    expect(screen.queryByRole('button', { name: '导出当前草稿' })).toBeNull();
   });
 
-  it('keeps export disabled while the native picker or write is pending', () => {
-    show(controller({ busy: true }));
-    expect(screen.getByRole('button', { name: '导出中…' })).toBeDisabled();
-  });
-
-  it('disables copy and export for stale snapshots', () => {
+  it('disables copy for stale snapshots', () => {
     show(controller({ stale: true, loading: true }));
     expect(screen.getByText(/上一次投影/)).toBeVisible();
     expect(screen.getByRole('button', { name: '复制代码' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '导出当前草稿' })).toBeDisabled();
     expect(screen.queryByText('无 API 阻断')).not.toBeInTheDocument();
   });
 
@@ -101,7 +112,6 @@ describe('DeliveryHub', () => {
     const hub = controller({
       analysis: {
         ...analysis,
-        canExportDraft: false,
         apiSummary: {
           ...analysis.apiSummary,
           hasBaseline: true,
@@ -122,7 +132,6 @@ describe('DeliveryHub', () => {
     expect(screen.getByText('1 项阻断')).toBeVisible();
     expect(screen.getByText('2 项')).toBeVisible();
     expect(screen.getByText(/检测到磁盘变更/)).toBeVisible();
-    expect(screen.getByRole('button', { name: '导出当前草稿' })).toBeDisabled();
   });
 
   it('shows preview errors and allows returning without exporting', async () => {
@@ -130,7 +139,6 @@ describe('DeliveryHub', () => {
       controller({ stale: true, error: '预览失败', analysis: null }),
     );
     expect(screen.getByRole('alert')).toHaveTextContent('预览失败');
-    expect(screen.getByRole('button', { name: '导出当前草稿' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: '返回工作台' }));
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });
