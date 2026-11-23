@@ -162,6 +162,7 @@ describe('phase 3 control loop', () => {
       'record_breach_outcome',
       'roleify_and_invert_dependency',
       'isolate_domain_calculator',
+      'scan_model_health',
       'get_api_diff',
       'sync_api_projection',
       'run_sensors',
