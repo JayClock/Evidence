@@ -8,6 +8,7 @@ import { Radar } from 'lucide-react';
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -340,13 +341,20 @@ const CanvasSurface = ({
     ],
   );
 
-  const fitToContent = useCallback(() => {
-    if (!viewportSized) return;
-    void fitBounds(boundsOf(layout, displayedScope), {
-      padding: 0.08,
-      duration: reducedMotion() ? 0 : 180,
-    });
-  }, [fitBounds, layout, displayedScope, viewportSized]);
+  const fitContentBounds = useCallback(
+    (duration: number) => {
+      if (!viewportSized) return;
+      void fitBounds(boundsOf(layout, displayedScope), {
+        padding: 0.08,
+        duration,
+      });
+    },
+    [fitBounds, layout, displayedScope, viewportSized],
+  );
+  const fitToContent = useCallback(
+    () => fitContentBounds(reducedMotion() ? 0 : 180),
+    [fitContentBounds],
+  );
 
   // A scope change is a new stage: the fit follows it, and so do the hover
   // marks, because the object under the pointer may no longer be on screen.
@@ -355,7 +363,7 @@ const CanvasSurface = ({
     scopeId: string | null;
     layout: DomainGraphLayout;
   } | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!viewportInitialized || !viewportSized || layout.bounds.width === 0)
       return;
     const scopeId = scope?.contextId ?? null;
@@ -421,11 +429,14 @@ const CanvasSurface = ({
         return;
       }
     }
-    fitToContent();
+    // On startup, frame the model immediately instead of animating from 100%.
+    if (previous === null) fitContentBounds(0);
+    else fitToContent();
     setHoveredNodeId(null);
     setHoveredEdgeId(null);
     setHoveredContextId(null);
   }, [
+    fitContentBounds,
     fitToContent,
     layout,
     scope?.contextId,

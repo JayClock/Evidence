@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getViewportForBounds } from '@xyflow/react';
 import {
   computeContextScope,
   computeSwimlaneLayout,
@@ -92,9 +93,31 @@ beforeEach(() => {
   vi.stubGlobal('matchMedia', () => ({ matches: false }));
   vi.stubGlobal('ResizeObserver', MeasuredResizeObserver);
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('CanvasViewport', () => {
+  it('starts with the whole model fitted without a zoom transition', () => {
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(900);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(600);
+
+    const { container } = setup();
+    const { x, y, zoom } = getViewportForBounds(
+      layout.bounds,
+      900,
+      600,
+      0.1,
+      2,
+      0.08,
+    );
+
+    expect(viewportTransform(container)).toBe(
+      `translate(${x}px,${y}px) scale(${zoom})`,
+    );
+  });
+
   it('temporarily shows the whole journey for playback without fitting again', async () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true }));
     const scope = computeContextScope(layout, 'context.catalog');
