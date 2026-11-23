@@ -54,6 +54,7 @@ export const useStoryPlayback = ({
 }: StoryPlaybackOptions) => {
   const [preferredFlowId, setPreferredFlowId] = useState<string>();
   const [requestedSkipAi, setSkipAi] = useState(false);
+  const [narrationGeneration, setNarrationGeneration] = useState(0);
   const skipAi = requestedSkipAi || !aiConfigured;
   const [refresh, setRefresh] = useState(0);
   const [sourceRefresh, setSourceRefresh] = useState(0);
@@ -192,6 +193,7 @@ export const useStoryPlayback = ({
     ready && !rehearsing && !skipAi ? loaded?.result.snapshotId : undefined,
     flow,
     step?.sequence,
+    narrationGeneration,
   );
   const voice =
     factScene && !stale
@@ -348,7 +350,10 @@ export const useStoryPlayback = ({
       }, STORY_REFRESH_DELAY);
     };
     const unsubscribe = api.onInvalidated((event) => {
-      if (event.rootPath === rootPath) invalidate();
+      if (event.rootPath !== rootPath) return;
+      if (event.kind === 'narration')
+        setNarrationGeneration((value) => value + 1);
+      else invalidate();
     });
     if (refreshSavedSources || sourceRefresh > 0) invalidate();
     return () => {
@@ -444,8 +449,8 @@ export const useStoryPlayback = ({
 
   // Sandbox state is scoped to the entire displayed revision, not just its step.
   const sandboxKey = useMemo(
-    () => ({ requestKey, aiConfigured, step }),
-    [requestKey, aiConfigured, step],
+    () => ({ requestKey, aiConfigured, narrationGeneration, step }),
+    [requestKey, aiConfigured, narrationGeneration, step],
   );
   const currentSandboxKey = useRef<typeof sandboxKey | null>(sandboxKey);
   currentSandboxKey.current = sandboxKey;

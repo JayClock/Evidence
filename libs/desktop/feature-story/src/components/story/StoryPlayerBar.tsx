@@ -179,7 +179,7 @@ export const StoryPlayerBar = ({
     {!playback.rehearsal.active ? (
       <label
         className="flex items-center gap-1 text-evidence-muted"
-        title="不调用 AI，只展示模型已声明的业务事实"
+        title="不自动生成 AI 旁白；模型事实和本地预演仍可用"
       >
         <input
           type="checkbox"

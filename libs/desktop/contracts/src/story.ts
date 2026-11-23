@@ -67,6 +67,8 @@ export interface StoryWhatIfInput extends StoryModelInput {
 
 export interface StoryInvalidatedEvent {
   readonly rootPath: string;
+  /** Model/credential changes invalidate prose only, not the fact snapshot. */
+  readonly kind?: 'narration';
 }
 
 export interface EvidenceStoryApi {

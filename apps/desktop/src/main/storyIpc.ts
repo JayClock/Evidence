@@ -310,6 +310,7 @@ export const registerStoryIpc = ({
         if (!sender.isDestroyed())
           sender.send(STORY_IPC_CHANNELS.INVALIDATED, {
             rootPath: state.rootPath,
+            kind: 'narration',
           });
       }
     },

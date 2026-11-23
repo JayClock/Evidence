@@ -143,8 +143,10 @@ export const createStoryNarrator = ({
             });
             if (signal.aborted) return;
             cache.set(key, narrative);
-            if (cache.size > CACHE_LIMIT)
-              cache.delete(cache.keys().next().value!);
+            if (cache.size > CACHE_LIMIT) {
+              const oldest = cache.keys().next();
+              if (!oldest.done) cache.delete(oldest.value);
+            }
             result = { kind: 'ready', sequence, stepHash, narrative };
           } catch (error) {
             if (signal.aborted) return;

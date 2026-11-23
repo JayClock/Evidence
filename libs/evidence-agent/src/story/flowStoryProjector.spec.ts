@@ -122,18 +122,55 @@ describe('narration scheduler', () => {
     expect(onStep).toHaveBeenCalledTimes(4);
   });
 
+  it('settles a timed-out step even if its provider does not return and does not cache late prose', async () => {
+    const timeout = new AbortController();
+    const timer = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValueOnce(timeout.signal);
+    try {
+      let finish!: (value: unknown) => void;
+      const generate = vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finish = resolve;
+            }),
+        )
+        .mockResolvedValue(text);
+      const narrator = createStoryNarrator({ agent: { generate } });
+      const onStep = vi.fn();
+      const options = { signal: new AbortController().signal, onStep };
+      const first = narrator.enrich(trace(1), undefined, options);
+      timeout.abort(new DOMException('Provider deadline', 'TimeoutError'));
+      await first;
+      expect(onStep).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'failed',
+          error: expect.objectContaining({ name: 'TimeoutError' }),
+        }),
+      );
+      finish({ narrative: '不要缓存这个过期结果' });
+      await narrator.enrich(trace(1), undefined, options);
+      expect(generate).toHaveBeenCalledTimes(2);
+      expect(onStep).toHaveBeenLastCalledWith(
+        expect.objectContaining({ kind: 'ready', ...text }),
+      );
+    } finally {
+      timer.mockRestore();
+    }
+  });
+
   it('shares a hard cap across jobs, aborts the provider and drops stale queued work', async () => {
     const schedule = createNarrationScheduler();
     const requests: {
       signal: AbortSignal;
       finish: (value: unknown) => void;
     }[] = [];
-    const generate = vi.fn(
-      ({ signal }: { signal?: AbortSignal }) => {
-        if (!signal) throw new Error('Narration must be cancellable');
-        return new Promise((finish) => requests.push({ signal, finish }));
-      },
-    );
+    const generate = vi.fn(({ signal }: { signal?: AbortSignal }) => {
+      if (!signal) throw new Error('Narration must be cancellable');
+      return new Promise((finish) => requests.push({ signal, finish }));
+    });
     const first = createStoryNarrator({ schedule, agent: { generate } });
     const second = createStoryNarrator({ schedule, agent: { generate } });
     const a = new AbortController();

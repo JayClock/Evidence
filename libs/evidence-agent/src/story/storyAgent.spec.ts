@@ -76,6 +76,34 @@ describe('stateless story completion', () => {
     expect(sdk.createSettings).not.toHaveBeenCalled();
   });
 
+  it('limits narration tokens and forwards cancellation without changing What-If reasoning', async () => {
+    const agent = createStoryAgent({
+      modelRuntime,
+      model,
+      thinkingLevel: 'high',
+    });
+    const controller = new AbortController();
+    const narration = {
+      ...request,
+      purpose: 'narration' as const,
+      signal: controller.signal,
+    };
+    await agent.generate(narration);
+    expect(completeSimple).toHaveBeenLastCalledWith(model, expect.anything(), {
+      signal: controller.signal,
+      maxTokens: 384,
+    });
+    controller.abort();
+    await expect(agent.generate(narration)).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+    expect(completeSimple).toHaveBeenCalledOnce();
+    await agent.generate(request);
+    expect(completeSimple).toHaveBeenLastCalledWith(model, expect.anything(), {
+      reasoning: 'high',
+    });
+  });
+
   it('lazily resolves the CLI model from global Pi settings, without project discovery', async () => {
     const agent = createStoryAgent();
     expect(sdk.createRuntime).not.toHaveBeenCalled();

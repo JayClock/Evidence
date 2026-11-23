@@ -164,6 +164,110 @@ describe('story IPC', () => {
     expect(electron.handlers.size).toBe(0);
   });
 
+  it('rejects late snapshots and isolates jobs by sender and snapshot', async () => {
+    let readOld!: (value: ReturnType<typeof model>) => void;
+    const ipc = register({
+      readModel: () =>
+        new Promise((resolve) => {
+          readOld = resolve;
+        }),
+    });
+    const window = sender();
+    const obsolete = invoke(
+      STORY_IPC_CHANNELS.LOAD,
+      { rootPath: '/models/p' },
+      window,
+    );
+    const expected = expect(obsolete).rejects.toThrow('快照已过期');
+    const active = await invoke<StorySnapshot>(
+      STORY_IPC_CHANNELS.LOAD,
+      { rootPath: '/models/p', document: model() },
+      window,
+    );
+    readOld(model());
+    await expected;
+    await expect(
+      invoke(STORY_IPC_CHANNELS.START_NARRATION, {
+        snapshotId: active.snapshotId,
+        jobId: 'foreign-window',
+      }),
+    ).rejects.toThrow('快照已过期');
+    ipc.dispose();
+  });
+
+  it('aborts pending narration on reset, replacement and window destruction without sending stale prose', async () => {
+    const started: { signal: AbortSignal; finish: (value: unknown) => void }[] =
+      [];
+    const createAgent = vi.fn(() => ({
+      generate: ({ signal }: { signal?: AbortSignal }) => {
+        if (!signal) throw new Error('Expected abort propagation');
+        return new Promise((finish) => started.push({ signal, finish }));
+      },
+    }));
+    const ipc = register({ createAgent });
+    const window = sender();
+    const input = { rootPath: '/models/p' };
+    const { snapshotId } = await invoke<StorySnapshot>(
+      STORY_IPC_CHANNELS.LOAD,
+      input,
+      window,
+    );
+    const start = (id: string, snapshot = snapshotId) =>
+      invoke(
+        STORY_IPC_CHANNELS.START_NARRATION,
+        { snapshotId: snapshot, jobId: id },
+        window,
+      );
+    await start('old-model');
+    await vi.waitFor(() => expect(started).toHaveLength(3));
+    ipc.resetModels();
+    expect(started.slice(0, 3).every(({ signal }) => signal.aborted)).toBe(
+      true,
+    );
+    expect(window.send).toHaveBeenCalledWith(STORY_IPC_CHANNELS.INVALIDATED, {
+      ...input,
+      kind: 'narration',
+    });
+    // A configuration change doesn't invalidate the currently playable snapshot.
+    await start('configured');
+    expect(started).toHaveLength(3);
+    started
+      .slice(0, 3)
+      .forEach(({ finish }) => finish({ narrative: '过时结果' }));
+    await vi.waitFor(() => expect(started).toHaveLength(6));
+    expect(createAgent).toHaveBeenCalledTimes(2);
+    const next = await invoke<StorySnapshot>(
+      STORY_IPC_CHANNELS.LOAD,
+      input,
+      window,
+    );
+    expect(started.slice(3, 6).every(({ signal }) => signal.aborted)).toBe(
+      true,
+    );
+    await expect(start('stale')).rejects.toThrow('快照已过期');
+    await start('next', next.snapshotId);
+    started
+      .slice(3, 6)
+      .forEach(({ finish }) => finish({ narrative: '过时结果' }));
+    await vi.waitFor(() => expect(started).toHaveLength(9));
+    await invoke(
+      STORY_IPC_CHANNELS.CANCEL_NARRATION,
+      { snapshotId, jobId: 'next' },
+      window,
+    );
+    expect(started.slice(6).every(({ signal }) => !signal.aborted)).toBe(true);
+    window.once.mock.calls[0]![1]();
+    expect(started.every(({ signal }) => signal.aborted)).toBe(true);
+    started.slice(6).forEach(({ finish }) => finish({ narrative: '过时结果' }));
+    await Promise.resolve();
+    expect(
+      window.send.mock.calls.every(
+        ([channel]) => channel !== STORY_IPC_CHANNELS.NARRATION,
+      ),
+    ).toBe(true);
+    ipc.dispose();
+  });
+
   it.each([undefined, false, true])(
     'forwards a read-only question with AI opt-in %s',
     async (allowSpeculative) => {

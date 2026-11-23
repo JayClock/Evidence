@@ -4,6 +4,8 @@ import { createDesktopFixture } from '@evidence-poc/desktop-testing';
 import type {
   StoryInvalidatedEvent,
   StoryLoadInput,
+  StoryNarrationEvent,
+  StoryNarrationInput,
   StorySnapshot,
 } from '@evidence-poc/desktop-contracts/story';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
@@ -20,12 +22,25 @@ const setup = (enabled = true) => {
   vi.useFakeTimers();
   const api = installDesktopApi();
   const flow = storyFlow();
-  const load = vi.fn(async (_input: StoryLoadInput) => storySnapshot([flow]));
-  const startNarration = vi.fn(async () => undefined);
+  const load = vi.fn<(input: StoryLoadInput) => Promise<StorySnapshot>>(
+    async () => storySnapshot([flow]),
+  );
+  const startNarration = vi.fn<(input: StoryNarrationInput) => Promise<void>>(
+    async () => undefined,
+  );
+  const cancelNarration = vi.fn(async () => undefined);
+  const narrationListeners = new Set<(event: StoryNarrationEvent) => void>();
   const listeners = new Set<(event: StoryInvalidatedEvent) => void>();
   Object.assign(api.story, {
     load,
     startNarration,
+    cancelNarration,
+    onNarration: (listener: (event: StoryNarrationEvent) => void) => {
+      narrationListeners.add(listener);
+      return () => {
+        narrationListeners.delete(listener);
+      };
+    },
     whatIf: vi.fn(),
     onInvalidated: (listener: (event: StoryInvalidatedEvent) => void) => {
       listeners.add(listener);
@@ -62,12 +77,18 @@ const setup = (enabled = true) => {
     flow,
     load,
     startNarration,
+    cancelNarration,
+    narrationListeners,
+    narrate: (event: StoryNarrationEvent) =>
+      act(() => narrationListeners.forEach((listener) => listener(event))),
     hook,
     onInvalidated,
     listeners,
-    invalidate: (rootPath = '/models/test') =>
+    invalidate: (rootPath = '/models/test', kind?: 'narration') =>
       act(() => {
-        listeners.forEach((listener) => listener({ rootPath }));
+        listeners.forEach((listener) =>
+          listener({ rootPath, ...(kind ? { kind } : {}) }),
+        );
       }),
   };
 };
@@ -92,6 +113,134 @@ describe('story playback', () => {
     expect(load).toHaveBeenCalledOnce();
     expect(hook.result.current.ready).toBe(true);
   });
+  it('advances before any provider result and merges only matching narration without resetting the clock', async () => {
+    const { hook, flow, narrate, load, startNarration } = setup();
+    await tick();
+    const job = startNarration.mock.calls[0]![0];
+    const timeline = hook.result.current.timeline;
+    expect(hook.result.current).toMatchObject({
+      ready: true,
+      loading: false,
+      narration: { running: true, completed: 0 },
+    });
+    act(() => hook.result.current.togglePlaying());
+    await tick(STORY_STEP_DURATION);
+    expect(hook.result.current.step?.sequence).toBe(2);
+    const step = {
+      ...job,
+      kind: 'step' as const,
+      sequence: 2,
+      stepHash: flow.steps[1]!.stepHash,
+    };
+    const fact = hook.result.current.scene;
+    narrate({ ...step, snapshotId: 'old', narrative: '过时快照' });
+    narrate({ ...step, jobId: 'old', narrative: '过时任务' });
+    narrate({ ...step, stepHash: 'old', narrative: '过时步骤' });
+    expect(hook.result.current.scene).toEqual(fact);
+    narrate({ ...step, narrative: '当前旁白' });
+    expect(hook.result.current.scene).toEqual({
+      ...fact,
+      narrative: '当前旁白',
+    });
+    expect(hook.result.current.timeline).toBe(timeline);
+    expect(hook.result.current.isPlaying).toBe(true);
+    expect(load).toHaveBeenCalledOnce();
+  });
+
+  it('keeps facts on partial failure, retries prose only and cancels on exit', async () => {
+    const {
+      hook,
+      flow,
+      narrate,
+      load,
+      startNarration,
+      cancelNarration,
+      narrationListeners,
+    } = setup();
+    await tick();
+    const job = startNarration.mock.calls[0]![0];
+    narrate({
+      ...job,
+      kind: 'step',
+      sequence: 1,
+      stepHash: flow.steps[0]!.stepHash,
+      narrative: '保留这段旁白',
+    });
+    narrate({
+      ...job,
+      kind: 'step',
+      sequence: 2,
+      stepHash: flow.steps[1]!.stepHash,
+    });
+    narrate({ ...job, kind: 'finished', reason: 'timeout' });
+    expect(hook.result.current).toMatchObject({
+      ready: true,
+      canNext: true,
+      narration: { running: false, incomplete: true },
+    });
+    act(() => hook.result.current.narration.retry());
+    expect(hook.result.current.scene?.narrative).toBe('保留这段旁白');
+    const retry = startNarration.mock.calls[1]![0];
+    expect(retry.snapshotId).toBe(job.snapshotId);
+    expect(retry.jobId).not.toBe(job.jobId);
+    narrate({
+      ...job,
+      kind: 'step',
+      sequence: 1,
+      stepHash: flow.steps[0]!.stepHash,
+      narrative: '忽略旧事件',
+    });
+    expect(hook.result.current.scene?.narrative).toBe('保留这段旁白');
+    expect(load).toHaveBeenCalledOnce();
+    hook.unmount();
+    expect(cancelNarration).toHaveBeenLastCalledWith({
+      jobId: retry.jobId,
+      snapshotId: retry.snapshotId,
+    });
+    expect(narrationListeners.size).toBe(0);
+  });
+
+  it('replaces narration on AI configuration changes without refreshing facts or pausing playback', async () => {
+    const {
+      hook,
+      flow,
+      narrate,
+      load,
+      startNarration,
+      invalidate,
+      onInvalidated,
+    } = setup();
+    await tick();
+    const job = startNarration.mock.calls[0]![0];
+    narrate({
+      ...job,
+      kind: 'step',
+      sequence: 1,
+      stepHash: flow.steps[0]!.stepHash,
+      narrative: '上一模型旁白',
+    });
+    act(() => hook.result.current.togglePlaying());
+    invalidate('/models/test', 'narration');
+    expect(hook.result.current.hasAiNarration).toBe(false);
+    expect(hook.result.current.isPlaying).toBe(true);
+    expect(hook.result.current.ready).toBe(true);
+    expect(startNarration).toHaveBeenCalledTimes(2);
+    expect(load).toHaveBeenCalledOnce();
+    expect(onInvalidated).not.toHaveBeenCalled();
+  });
+
+  it('times out a silent narration transport without blocking playback', async () => {
+    const { hook, cancelNarration } = setup();
+    await tick();
+    await tick(65_000);
+    expect(hook.result.current).toMatchObject({
+      ready: true,
+      loading: false,
+      narration: { running: false, incomplete: true },
+    });
+    expect(cancelNarration).toHaveBeenCalledOnce();
+  });
+
   it('uses the injected transport without a desktop global', async () => {
     const { load, hook } = setup();
     Reflect.deleteProperty(window, 'evidenceAPI');

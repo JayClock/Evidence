@@ -7,6 +7,7 @@ const RENDERER_DEADLINE_MS = 65_000;
 type Narration = {
   key: object;
   snapshotId: string;
+  generation: number;
   entries: ReadonlyMap<number, string | undefined>;
   finished: boolean;
   incomplete?: boolean;
@@ -17,10 +18,11 @@ export const useStoryNarration = (
   snapshotId: string | undefined,
   flow: FlowScenarioTrace | undefined,
   prioritySequence: number | undefined,
+  generation: number,
 ) => {
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState<Narration>();
-  const key = useMemo(() => ({}), [api, snapshotId, flow, attempt]);
+  const key = useMemo(() => ({}), [api, snapshotId, flow, attempt, generation]);
   const priority = useRef(prioritySequence);
   priority.current = prioritySequence;
   useEffect(() => {
@@ -48,10 +50,12 @@ export const useStoryNarration = (
     setState((previous) => ({
       key,
       snapshotId,
+      generation,
       finished: false,
       // A retry on this snapshot keeps successful prose visible. New snapshots never reuse UI state.
       entries: new Map(
-        previous?.snapshotId === snapshotId
+        previous?.snapshotId === snapshotId &&
+        previous.generation === generation
           ? [...previous.entries].filter(
               ([, narrative]) => narrative !== undefined,
             )
@@ -93,7 +97,7 @@ export const useStoryNarration = (
       unsubscribe();
       cancel();
     };
-  }, [api, snapshotId, flow, key]);
+  }, [api, snapshotId, flow, key, generation]);
   const visible = snapshotId && state?.key === key ? state : undefined;
   const total = snapshotId ? (flow?.steps.length ?? 0) : 0;
   const completed = visible?.entries.size ?? 0;

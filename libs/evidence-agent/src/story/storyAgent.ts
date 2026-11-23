@@ -47,6 +47,7 @@ export const createStoryAgent = (
   let selection: ReturnType<typeof resolveModel> | undefined;
   return {
     async generate({ systemPrompt, userPrompt, signal, purpose }) {
+      signal?.throwIfAborted();
       selection ??= resolveModel(options).catch((error: unknown) => {
         selection = undefined;
         throw error;
