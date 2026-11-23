@@ -45,6 +45,8 @@ export interface StoryAgent {
   generate(request: {
     readonly systemPrompt: string;
     readonly userPrompt: string;
+    readonly signal?: AbortSignal;
+    readonly purpose?: 'narration';
   }): Promise<unknown>;
 }
 

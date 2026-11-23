@@ -89,22 +89,3 @@ export const modelFixture = (): DomainModelDocument => ({
     },
   ],
 });
-
-export const sceneDraft = (
-  values: Readonly<Record<string, unknown>> = { amount: 100 },
-) => ({
-  phaseTitle: '卖方发出支付主张',
-  narrative:
-    '供应商销售部根据采购合同向买方提出付款申请，双方核对金额和付款期限。',
-  actingRoleLabel: '供应商销售部',
-  targetEntityLabel: '付款申请单',
-  documentCard: {
-    title: '付款申请单',
-    fields: Object.entries(values).map(([name, value]) => ({
-      name,
-      label: name,
-      value: String(value),
-      keyData: true,
-    })),
-  },
-});

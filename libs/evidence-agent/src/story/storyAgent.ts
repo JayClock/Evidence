@@ -46,12 +46,13 @@ export const createStoryAgent = (
 ): StoryAgent => {
   let selection: ReturnType<typeof resolveModel> | undefined;
   return {
-    async generate({ systemPrompt, userPrompt }) {
+    async generate({ systemPrompt, userPrompt, signal, purpose }) {
       selection ??= resolveModel(options).catch((error: unknown) => {
         selection = undefined;
         throw error;
       });
       const { modelRuntime, model, thinkingLevel } = await selection;
+      signal?.throwIfAborted();
       const response = await modelRuntime.completeSimple(
         model,
         {
@@ -60,9 +61,14 @@ export const createStoryAgent = (
             { role: 'user', content: userPrompt, timestamp: Date.now() },
           ],
         },
-        thinkingLevel && thinkingLevel !== 'off'
-          ? { reasoning: thinkingLevel }
-          : undefined,
+        {
+          ...(signal === undefined ? {} : { signal }),
+          ...(purpose === 'narration'
+            ? { maxTokens: 384 }
+            : thinkingLevel && thinkingLevel !== 'off'
+              ? { reasoning: thinkingLevel }
+              : {}),
+        },
       );
       if (response.stopReason !== 'stop')
         throw new Error('Story model did not complete an assistant response.');

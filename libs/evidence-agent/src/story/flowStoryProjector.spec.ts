@@ -1,276 +1,159 @@
 import { describe, expect, it, vi } from 'vitest';
-
-import { createFlowStoryProjector } from './flowStoryProjector.js';
-import { STORY_SYSTEM_PROMPT } from './prompts.js';
-import { StorySceneCache } from './storyCache.js';
 import {
-  flowFixture,
-  modelFixture,
-  sceneDraft,
-  stepFixture,
-} from './testing/fixtures.js';
+  createFlowStoryProjector,
+  projectStoryFacts,
+} from './flowStoryProjector.js';
+import {
+  createNarrationScheduler,
+  createStoryNarrator,
+} from './storyNarrator.js';
+import { flowFixture, modelFixture, stepFixture } from './testing/fixtures.js';
 
-const stepsFixture = () =>
-  [1, 2, 3].map((sequence) =>
-    stepFixture({
-      sequence,
-      entityId: `request.payment-${sequence}`,
-      values: { amount: sequence * 100 },
-    }),
+const text = { narrative: '按合同办理付款。' };
+const trace = (size: number) =>
+  flowFixture(
+    Array.from({ length: size }, (_, i) =>
+      stepFixture({ sequence: i + 1, values: { amount: i + 1 } }),
+    ),
   );
 
-describe('offline flow story projection', () => {
-  it('produces stable model-labeled fact cards without calling an injected agent or sharing its cache', async () => {
-    const generate = vi.fn().mockResolvedValue(sceneDraft());
-    const cache = new StorySceneCache();
-    const model = modelFixture();
-    const flow = flowFixture();
-    const ai = createFlowStoryProjector({ agent: { generate }, cache });
-    await ai.project(flow, model);
-    generate.mockClear();
-    const offline = createFlowStoryProjector({
+it('projects sorted factual cards and gaps without resolving the model', async () => {
+  const flow = flowFixture([
+    stepFixture({ sequence: 2 }),
+    stepFixture({ gaps: ['unpaired_request'] }),
+  ]);
+  const model = modelFixture();
+  const generate = vi.fn();
+  const facts = projectStoryFacts(flow, model);
+  expect(facts.scenes.map(({ stepIndex }) => stepIndex)).toEqual([1, 2]);
+  expect(facts.scenes[0]).toMatchObject({
+    actingRoleLabel: '供应商销售部',
+    ruleEvaluations: [],
+    pendingSuspense: expect.stringContaining('确认单据'),
+  });
+  expect(facts.scenes[0]?.documentCard.fields).toEqual([
+    { name: 'amount', label: '金额', value: '100', keyData: true },
+  ]);
+  expect(projectStoryFacts(flow, model)).toEqual(facts);
+  expect(
+    await createFlowStoryProjector({
       skipAi: true,
       agent: { generate },
-      cache,
-    });
-    const result = await offline.project(flow, model);
-    expect(result.scenes[0]).toMatchObject({
-      stepIndex: 1,
-      stepHash: flow.steps[0]!.stepHash,
-      phaseTitle: '办理《付款申请单》',
-      actingRoleLabel: '供应商销售部',
-      targetEntityLabel: '付款申请单',
-      documentCard: {
-        fields: [
-          { name: 'amount', label: '金额', value: '100', keyData: true },
-        ],
-      },
-      ruleEvaluations: [],
-    });
-    expect(result.scenes[0]!.narrative).toContain('未执行验收或规则判定');
-    expect(result.scenes[0]!.stateTransitionNotice).toBeUndefined();
-    expect(result.scenes[0]!.pendingSuspense).toBeUndefined();
-    expect(await offline.project(flow, model)).toEqual(result);
-    expect(generate).not.toHaveBeenCalled();
-    expect((await ai.project(flow, model)).scenes[0]!.phaseTitle).toBe(
-      '卖方发出支付主张',
-    );
-    expect(generate).not.toHaveBeenCalled();
-  });
+    }).project(flow, model),
+  ).toEqual(facts);
+  expect(generate).not.toHaveBeenCalled();
+  expect(() =>
+    projectStoryFacts(flowFixture([stepFixture(), stepFixture()])),
+  ).toThrow('unique positive');
+});
 
-  it('works without a model, preserves exact values and declared basis, and exposes gap questions', async () => {
-    const cache = new StorySceneCache();
-    const projector = createFlowStoryProjector({ skipAi: true, cache });
-    const step = stepFixture({
-      actingRoleRef: undefined,
-      values: {
-        payload: { z: false, a: [1, null] },
-        amount: '9007199254740993',
-      },
-      basedOn: ['contract.purchase#签约'],
-      derivedAssertions: { completed: true },
-      gaps: ['unpaired_request'],
-    });
-    const result = await projector.project(flowFixture([step]));
-    expect(result.scenes[0]).toMatchObject({
-      actingRoleLabel: '待明确经办方',
-      documentCard: {
-        fields: [
-          {
-            name: 'amount',
-            label: 'amount',
-            value: '9007199254740993',
-            keyData: false,
-          },
-          { name: 'payload', value: '{"a":[1,null],"z":false}' },
-        ],
-        basisNotes: '声明依据：contract.purchase#签约',
-      },
-      ruleEvaluations: [],
-      pendingSuspense: expect.stringMatching(/确认单据.*[？?]/u),
-    });
-    expect(cache.has(step.stepHash)).toBe(false);
-    expect((await projector.project(flowFixture([]))).scenes).toEqual([]);
-    await expect(projector.project(flowFixture([step, step]))).rejects.toThrow(
-      'sequences',
-    );
+it('only overlays validated prose in batch exports', async () => {
+  const flow = trace(1);
+  const projector = createFlowStoryProjector({
+    agent: {
+      generate: vi
+        .fn()
+        .mockResolvedValueOnce({ ...text, documentCard: {} })
+        .mockResolvedValueOnce(text),
+    },
+  });
+  await expect(projector.project(flow)).rejects.toThrow();
+  const baseline = projectStoryFacts(flow);
+  expect(await projector.project(flow)).toEqual({
+    ...baseline,
+    scenes: [{ ...baseline.scenes[0], ...text }],
   });
 });
 
-describe('incremental flow story projection', () => {
-  it('calls the agent once per initial step and only once for an edited third step', async () => {
-    const generate = vi.fn().mockResolvedValue(sceneDraft());
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const steps = stepsFixture();
-    const first = await projector.project(flowFixture(steps));
-    expect(generate).toHaveBeenCalledTimes(3);
-    const edited = [
-      steps[0]!,
-      steps[1]!,
-      stepFixture({ ...steps[2]!, values: { amount: 999 } }),
-    ];
-    const second = await projector.project(flowFixture(edited));
-    expect(generate).toHaveBeenCalledTimes(4);
-    expect(second.scenes.slice(0, 2)).toEqual(first.scenes.slice(0, 2));
-    expect(second.scenes[2]!.documentCard.fields[0]!.value).toBe('999');
-    const request = generate.mock.calls[3]![0];
-    expect(request.systemPrompt).toBe(STORY_SYSTEM_PROMPT);
-    expect(JSON.parse(request.userPrompt).step.values).toEqual({ amount: 999 });
-    expect(request.userPrompt).not.toContain('payment-1');
-    expect(second).toMatchObject({
-      flowId: 'purchase',
-      storyTitle: '采购付款',
-      businessGoal: expect.any(String),
-    });
+it('reuses local prose across revisions and reordering but invalidates edited facts and metadata', async () => {
+  const generate = vi.fn().mockResolvedValue(text);
+  const projector = createFlowStoryProjector({ agent: { generate } });
+  const model = modelFixture();
+  await projector.project(trace(1), model);
+  const reordered = flowFixture([
+    stepFixture({ sequence: 4, values: { amount: 1 } }),
+  ]);
+  expect((await projector.project(reordered, model)).scenes[0]?.stepIndex).toBe(
+    4,
+  );
+  expect(generate).toHaveBeenCalledTimes(1);
+  model.entities.find(({ id }) => id === 'role.seller')!.label = '卖方';
+  await projector.project(reordered, model);
+  await projector.project(trace(2), model);
+  expect(generate).toHaveBeenCalledTimes(3);
+  expect(generate.mock.calls[0]?.[0]).toMatchObject({
+    purpose: 'narration',
+    signal: expect.any(AbortSignal),
   });
+});
 
-  it('sorts by sequence and rebinds cached scene indexes after insertion', async () => {
-    const generate = vi.fn().mockResolvedValue(sceneDraft());
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const steps = stepsFixture();
-    await projector.project(flowFixture(steps));
-    const inserted = stepFixture({ entityId: 'contract.purchase' });
-    const moved = steps.map((step) => ({
-      ...step,
-      sequence: step.sequence + 1,
-    }));
-    const projected = await projector.project(
-      flowFixture([...moved.reverse(), inserted]),
+describe('narration scheduler', () => {
+  it('emits partial results out of order and continues after an invalid step', async () => {
+    const calls = new Map<number, (value: unknown) => void>();
+    const narrator = createStoryNarrator({
+      agent: {
+        generate: ({ userPrompt }) =>
+          new Promise((resolve) => {
+            calls.set(JSON.parse(userPrompt).step.values.amount, resolve);
+          }),
+      },
+    });
+    const onStep = vi.fn();
+    const job = narrator.enrich(trace(4), undefined, {
+      onStep,
+      signal: new AbortController().signal,
+      prioritySequence: 4,
+    });
+    expect([...calls.keys()]).toEqual([4, 1, 2]);
+    calls.get(1)!({ invalid: true });
+    await vi.waitFor(() => expect(calls.has(3)).toBe(true));
+    calls.get(3)!(text);
+    await vi.waitFor(() =>
+      expect(
+        onStep.mock.calls.map(([result]) => [result.sequence, result.kind]),
+      ).toEqual([
+        [1, 'failed'],
+        [3, 'ready'],
+      ]),
     );
-    expect(generate).toHaveBeenCalledTimes(4);
-    expect(projected.scenes.map(({ stepIndex }) => stepIndex)).toEqual([
-      1, 2, 3, 4,
-    ]);
-    expect(projected.scenes.slice(1).map(({ stepHash }) => stepHash)).toEqual(
-      steps.map(({ stepHash }) => stepHash),
+    calls.get(2)!(text);
+    calls.get(4)!(text);
+    await job;
+    expect(onStep).toHaveBeenCalledTimes(4);
+  });
+
+  it('shares a hard cap across jobs, aborts the provider and drops stale queued work', async () => {
+    const schedule = createNarrationScheduler();
+    const requests: {
+      signal: AbortSignal;
+      finish: (value: unknown) => void;
+    }[] = [];
+    const generate = vi.fn(
+      ({ signal }: { signal: AbortSignal }) =>
+        new Promise((finish) => requests.push({ signal, finish })),
     );
-  });
-
-  it('turns an isolated request gap into a business question even when the agent omits it', async () => {
-    const generate = vi.fn().mockResolvedValue(sceneDraft());
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const step = stepFixture({ gaps: ['unpaired_request'] });
-    const result = await projector.project(flowFixture([step]));
-    expect(result.scenes[0]!.pendingSuspense).toMatch(/确认单据.*[？?]/u);
-    expect(result.scenes[0]!.pendingSuspense).not.toContain('unpaired_request');
-    expect(result.scenes[0]!.ruleEvaluations).toEqual([]);
-    expect(result.scenes[0]!.stateTransitionNotice).toBeUndefined();
-    // Gaps are intentionally not in M1's hash, but must still invalidate prose.
-    const complete = await projector.project(
-      flowFixture([{ ...step, gaps: [] }]),
+    const first = createStoryNarrator({ schedule, agent: { generate } });
+    const second = createStoryNarrator({ schedule, agent: { generate } });
+    const a = new AbortController();
+    const b = new AbortController();
+    const onStep = vi.fn();
+    const old = first.enrich(trace(4), undefined, { signal: a.signal, onStep });
+    const next = second.enrich(trace(1), undefined, {
+      signal: b.signal,
+      onStep,
+    });
+    expect(requests).toHaveLength(3);
+    a.abort();
+    await old;
+    expect(requests.every(({ signal }) => signal.aborted)).toBe(true);
+    expect(requests).toHaveLength(3);
+    requests[0]!.finish(text); // Provider ignored cancellation until now.
+    await vi.waitFor(() => expect(requests).toHaveLength(4));
+    requests.slice(1).forEach(({ finish }) => finish(text));
+    await next;
+    expect(onStep).toHaveBeenCalledTimes(1);
+    expect(onStep).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'ready', sequence: 1 }),
     );
-    expect(generate).toHaveBeenCalledTimes(2);
-    expect(complete.scenes[0]!.pendingSuspense).toBeUndefined();
-  });
-
-  it('retains a generated gap question and drops unsolicited suspense for complete steps', async () => {
-    const generate = vi.fn().mockResolvedValue({
-      ...sceneDraft(),
-      pendingSuspense: '请问金额由哪份合同提供？',
-    });
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const step = stepFixture({ gaps: ['missing_source'] });
-    expect(
-      (await projector.project(flowFixture([step]))).scenes[0]!.pendingSuspense,
-    ).toBe('请问金额由哪份合同提供？');
-    expect(
-      (await projector.project(flowFixture([{ ...step, gaps: [] }]))).scenes[0]!
-        .pendingSuspense,
-    ).toBeUndefined();
-  });
-
-  it('invalidates local metadata changes, not unrelated model edits or example changes', async () => {
-    const generate = vi.fn().mockResolvedValue(sceneDraft());
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const model = modelFixture();
-    const flow = flowFixture();
-    const first = await projector.project(flow, model);
-    expect(first.scenes[0]!.documentCard.fields[0]!.keyData).toBe(true);
-    model.entities[0]!.notes = 'unrelated context notes';
-    model.entities[3]!.examples = [
-      { label: '无关示例', value: { amount: 200 } },
-    ];
-    await projector.project(flow, model);
-    expect(generate).toHaveBeenCalledTimes(1);
-    model.entities[1]!.label = '供应商财务部';
-    const renamed = await projector.project(flow, model);
-    expect(generate).toHaveBeenCalledTimes(2);
-    expect(renamed.scenes[0]!.actingRoleLabel).toBe('供应商财务部');
-    await projector.project(
-      flowFixture([{ ...flow.steps[0]!, entityLabel: '新名称' }]),
-      model,
-    );
-    expect(generate).toHaveBeenCalledTimes(3);
-  });
-
-  it('validates responses before caching and retries after model/shape errors', async () => {
-    const cache = new StorySceneCache();
-    const generate = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce('not json')
-      .mockResolvedValueOnce({ narrative: 'incomplete' })
-      .mockResolvedValueOnce(sceneDraft({ invented: 100 }))
-      .mockResolvedValueOnce(
-        `\`\`\`json\n${JSON.stringify(sceneDraft())}\n\`\`\``,
-      );
-    const projector = createFlowStoryProjector({ agent: { generate }, cache });
-    for (let index = 0; index < 4; index++) {
-      await expect(projector.project(flowFixture())).rejects.toThrow();
-      expect(cache.has(stepFixture().stepHash)).toBe(false);
-    }
-    const result = await projector.project(flowFixture());
-    expect(result.scenes).toHaveLength(1);
-    await projector.project(flowFixture());
-    expect(generate).toHaveBeenCalledTimes(5);
-  });
-
-  it('coalesces simultaneous misses and protects cached scenes from result mutation', async () => {
-    const generate = vi.fn().mockResolvedValue(sceneDraft());
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const [first, second] = await Promise.all([
-      projector.project(flowFixture()),
-      projector.project(flowFixture()),
-    ]);
-    expect(generate).toHaveBeenCalledTimes(1);
-    Object.assign(first.scenes[0]!.documentCard.fields[0]!, {
-      value: 'changed',
-    });
-    expect(second.scenes[0]!.documentCard.fields[0]!.value).toBe('100');
-    expect(
-      (await projector.project(flowFixture())).scenes[0]!.documentCard
-        .fields[0]!.value,
-    ).toBe('100');
-  });
-
-  it('does not allow the agent to rewrite values or invent rule decisions', async () => {
-    const draft = sceneDraft();
-    draft.documentCard.fields[0]!.value = '999';
-    const generate = vi.fn().mockResolvedValue(draft);
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    const result = await projector.project(flowFixture());
-    expect(result.scenes[0]!.documentCard.fields[0]).toMatchObject({
-      value: '100',
-      keyData: false,
-    });
-    generate.mockResolvedValue({
-      ...draft,
-      ruleEvaluations: [{ satisfied: true }],
-    });
-    await expect(
-      projector.project(
-        flowFixture([stepFixture({ values: { amount: 200 } })]),
-      ),
-    ).rejects.toThrow();
-  });
-
-  it('handles empty traces without invoking the agent and rejects duplicate sequences', async () => {
-    const generate = vi.fn();
-    const projector = createFlowStoryProjector({ agent: { generate } });
-    expect((await projector.project(flowFixture([]))).scenes).toEqual([]);
-    await expect(
-      projector.project(flowFixture([stepFixture(), stepFixture()])),
-    ).rejects.toThrow('sequences');
-    expect(generate).not.toHaveBeenCalled();
   });
 });

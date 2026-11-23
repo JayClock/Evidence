@@ -8,7 +8,6 @@ import { DomainModelDocumentSchema } from '@evidence-poc/evidence-schema';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createFlowStoryProjector, simulateWhatIf } from '../index.js';
-import { sceneDraft } from './testing/fixtures.js';
 
 const acceptanceModel = (name: string) =>
   DomainModelDocumentSchema.parse(
@@ -32,10 +31,7 @@ describe('M1 trace to M2 story integration', () => {
       const flows = collectFlowScenarios(model, report);
       const generate = vi
         .fn()
-        .mockImplementation(async ({ userPrompt }: { userPrompt: string }) => {
-          const { step } = JSON.parse(userPrompt);
-          return sceneDraft(step.values);
-        });
+        .mockResolvedValue({ narrative: '核对业务凭证。' });
       const projector = createFlowStoryProjector({ agent: { generate } });
       for (const flow of flows) {
         const projection = await projector.project(flow, model);

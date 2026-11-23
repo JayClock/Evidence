@@ -10,32 +10,7 @@ export const responseObject = (value: unknown): unknown => {
 
 const text = z.string().trim().min(1);
 
-export const SceneDraftSchema = z
-  .object({
-    phaseTitle: text,
-    narrative: text,
-    actingRoleLabel: text,
-    targetEntityLabel: text,
-    documentCard: z
-      .object({
-        title: text,
-        fields: z.array(
-          z
-            .object({
-              name: text,
-              label: text,
-              value: z.string(),
-              keyData: z.boolean(),
-              sourceOrigin: text.optional(),
-            })
-            .strict(),
-        ),
-        basisNotes: text.optional(),
-      })
-      .strict(),
-    pendingSuspense: text.optional(),
-  })
-  .strict();
+export const NarrationSchema = z.object({ narrative: text.max(600) }).strict();
 
 export const HypothesisSchema = z
   .object({

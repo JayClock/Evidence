@@ -1,6 +1,7 @@
 // ─── Incremental business story projection ─────────────────────────────────
 export {
   createFlowStoryProjector,
+  projectStoryFacts,
   type FlowStoryProjector,
   type FlowStoryProjectorOptions,
 } from './story/flowStoryProjector.js';
@@ -8,7 +9,10 @@ export {
   createStoryAgent,
   type StoryAgentOptions,
 } from './story/storyAgent.js';
-export { StorySceneCache } from './story/storyCache.js';
+export {
+  createStoryNarrator,
+  createNarrationScheduler,
+} from './story/storyNarrator.js';
 export {
   simulateWhatIf,
   type WhatIfSimulatorOptions,
