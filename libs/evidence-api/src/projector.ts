@@ -62,7 +62,7 @@ export const buildProjection = ({
   });
   for (const issue of checked.issues) {
     diagnostics.push(
-      errorDiagnostic('FM_INVALID', issue.message, undefined, issue.path),
+      errorDiagnostic('FM_INVALID', issue.message, issue.objectId, issue.path),
     );
   }
   const loaded = loadDesign('overlay.json', canonicalJson(design ?? {}));
@@ -118,14 +118,21 @@ export const buildProjection = ({
   );
   for (const route of routes)
     route.itemPath = primaries.get(route.entityRef) ?? route.itemPath;
-  const occupied = new Set<string>();
+  const occupied = new Map<string, string>();
   for (const route of routes) {
     const key = `${route.method} ${route.path.replace(/\{[^{}]+\}/g, '{}')}`;
-    if (occupied.has(key))
+    const previous = occupied.get(key);
+    if (previous !== undefined)
       diagnostics.push(
-        errorDiagnostic('API_ROUTE_COLLISION', `重复路由: ${key}`, route.id),
+        errorDiagnostic(
+          'API_ROUTE_COLLISION',
+          `重复路由: ${key}`,
+          route.id,
+          undefined,
+          [previous],
+        ),
       );
-    occupied.add(key);
+    occupied.set(key, route.id);
   }
 
   const hypermedia = weaveHypermedia(model, routes);

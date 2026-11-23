@@ -170,6 +170,7 @@ export {
   ScopeSelectionError,
   completenessGaps,
   completenessIssues,
+  completenessFindings,
   fulfillmentResults,
   pairingGaps,
   referencesOf,

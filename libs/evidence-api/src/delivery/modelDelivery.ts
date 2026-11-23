@@ -432,6 +432,8 @@ export interface DeliveryContract {
   'x-evidence-model': string;
   'x-evidence-model-version': string;
   'x-evidence-service'?: string;
+  'x-evidence-delivery-state'?: 'partial' | 'complete';
+  'x-evidence-excluded-contexts'?: readonly string[];
   paths: Record<string, JsonObject>;
   components: { schemas: JsonObject; examples: JsonObject };
   'x-evidence-services': readonly {

@@ -302,10 +302,13 @@ export const pairingGaps = (model: DomainModelDocument): string[] => {
  * without its business time, an attribute without a declared type or
  * requirement, and a Fulfillment that no confirmation or proof closes.
  */
-export const completenessIssues = (
+export const completenessFindings = (
   model: DomainModelDocument,
-): readonly string[] => {
-  const issues: string[] = [];
+): readonly { entityRef: string; message: string }[] => {
+  const issues: { entityRef: string; message: string }[] = [];
+  const add = (entityRef: string, detail: string) => {
+    issues.push({ entityRef, message: `${entityRef}${detail}` });
+  };
   const confirmations = new Set<string>();
 
   const byId = new Map(model.entities.map((entity) => [entity.id, entity]));
@@ -316,17 +319,15 @@ export const completenessIssues = (
       entity.kind !== 'pre_contract' &&
       !entity.rootRefs?.length
     ) {
-      issues.push(`${entity.id}: ${entity.kind} Context requires a root`);
+      add(entity.id, `: ${entity.kind} Context requires a root`);
     }
     if (entity.category === 'evidence') {
       if (entity.contextRef === undefined) {
-        issues.push(`${entity.id}: ${entity.kind} requires contextRef`);
+        add(entity.id, `: ${entity.kind} requires contextRef`);
       }
       if (entity.kind === 'contract') {
         if (entity.roleRefs?.length !== 2) {
-          issues.push(
-            `${entity.id}: Contract requires two distinct Party Roles`,
-          );
+          add(entity.id, ': Contract requires two distinct Party Roles');
         }
         const context =
           entity.contextRef === undefined
@@ -336,15 +337,16 @@ export const completenessIssues = (
           context?.category === 'context' &&
           !context.rootRefs?.includes(entity.id)
         ) {
-          issues.push(`${entity.id}: Contract must be the root of its Context`);
+          add(entity.id, ': Contract must be the root of its Context');
         }
       } else if (entity.responsibleRoleRef === undefined) {
-        issues.push(`${entity.id}: ${entity.kind} requires responsibleRoleRef`);
+        add(entity.id, `: ${entity.kind} requires responsibleRoleRef`);
       }
       for (const role of evidenceTimeRolesOf(entity)) {
         if (timeAttributeOf(entity, role) === undefined) {
-          issues.push(
-            `${entity.id}: ${entity.kind} requires business time role '${role}'`,
+          add(
+            entity.id,
+            `: ${entity.kind} requires business time role '${role}'`,
           );
         }
       }
@@ -352,10 +354,10 @@ export const completenessIssues = (
 
     for (const attribute of entity.attributes ?? []) {
       if (attribute.valueType === undefined) {
-        issues.push(`${entity.id}.${attribute.name}: missing valueType`);
+        add(entity.id, `.${attribute.name}: missing valueType`);
       }
       if (attribute.required === undefined) {
-        issues.push(`${entity.id}.${attribute.name}: missing required`);
+        add(entity.id, `.${attribute.name}: missing required`);
       }
     }
   }
@@ -381,15 +383,17 @@ export const completenessIssues = (
             edge.targetRef === root,
         )
       )
-        issues.push(
-          `${entity.id}: Fulfillment Request requires a direct reference to its root Contract`,
+        add(
+          entity.id,
+          ': Fulfillment Request requires a direct reference to its root Contract',
         );
     }
     const pair = fulfillmentResults(model, entity.id);
 
     if (pair.confirmations.length === 0 && pair.roles.length === 0) {
-      issues.push(
-        `${entity.id}: must be associated with at least one Fulfillment Confirmation or Evidence Role`,
+      add(
+        entity.id,
+        ': must be associated with at least one Fulfillment Confirmation or Evidence Role',
       );
     }
 
@@ -404,14 +408,20 @@ export const completenessIssues = (
     }
 
     if (!confirmations.has(entity.id)) {
-      issues.push(
-        `${entity.id}: must be associated with at least one Fulfillment Request through a references Relationship`,
+      add(
+        entity.id,
+        ': must be associated with at least one Fulfillment Request through a references Relationship',
       );
     }
   }
 
   return issues;
 };
+
+export const completenessIssues = (
+  model: DomainModelDocument,
+): readonly string[] =>
+  completenessFindings(model).map(({ message }) => message);
 
 /**
  * Confirmations and proof Roles that close one request.

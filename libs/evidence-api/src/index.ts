@@ -10,6 +10,11 @@ export {
   type RuntimeHalLink,
 } from './http/runtimeLinks.js';
 
+export {
+  planContextDelivery,
+  type ContextDelivery,
+  type ContextDeliveryPlan,
+} from './delivery/contextDelivery.js';
 export type { EvidenceApiSnapshot, ApiJourneyStep } from './types.js';
 
 export {
