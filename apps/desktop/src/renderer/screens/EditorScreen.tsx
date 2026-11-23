@@ -4,6 +4,7 @@ import type { ImperativePanelHandle } from 'react-resizable-panels';
 
 import { computeContextScope } from '@evidence-poc/evidence-canvas-interaction';
 import type { SensorIssue } from '@evidence-poc/evidence-agent/browser';
+import type { FlowStepTrace } from '@evidence-poc/evidence-model-core';
 import {
   ENTITY_CATEGORY_LABELS,
   isContextEntity,
@@ -838,6 +839,44 @@ const EditorWorkspace = ({
     setZoomCommand(null);
     openMapContext(preview.result.contextRef);
   };
+  const saveStoryExplanation = (step: FlowStepTrace, description: string) => {
+    const { session, document } = state;
+    if (
+      session.isDocumentLocked() ||
+      agent.running ||
+      patchReview.review !== null
+    )
+      throw new Error('当前有建模事务正在处理，请稍后重试。');
+    if (
+      !story.ready ||
+      story.step !== step ||
+      session.getDocument() !== document
+    )
+      throw new Error('当前业务示例已变化，请重新核对后再采纳。');
+    const entityIndex = document.entities.findIndex(
+      ({ id }) => id === step.entityId,
+    );
+    const examples = document.entities[entityIndex]?.examples;
+    const exampleIndex =
+      examples?.findIndex(({ label }) => label === step.exampleLabel) ?? -1;
+    const example = examples?.[exampleIndex];
+    if (!example || example.test?.flow !== story.projection?.flowId)
+      throw new Error('未找到当前步骤的业务示例，请刷新放映。');
+    const value = description.trim();
+    if (!value) throw new Error('请输入业务解释。');
+    if (example.description === value) return;
+    const path = `/entities/${entityIndex}`;
+    const examplePath = `${path}/examples/${exampleIndex}`;
+    session.applyPatchBatch(
+      [
+        { op: 'test', path: `${path}/id`, value: step.entityId },
+        { op: 'test', path: examplePath, value: example },
+        { op: 'add', path: `${examplePath}/description`, value },
+      ],
+      '修改示例业务解释',
+    );
+    toast.success('已更新业务解释，请保存模型。');
+  };
   const graphStage = (
     <div
       ref={canvasStageRef}
@@ -1094,6 +1133,7 @@ const EditorWorkspace = ({
                               revealOnGraph(nodeId);
                             }}
                             playback={story}
+                            onSaveExplanation={saveStoryExplanation}
                             dirty={state.dirty}
                             externalConflict={
                               state.dirty && state.externalChangeAt !== null

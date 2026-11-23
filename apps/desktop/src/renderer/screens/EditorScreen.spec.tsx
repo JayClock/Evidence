@@ -954,6 +954,89 @@ describe('EditorScreen', () => {
     expect(screen.getByLabelText('聚焦范围')).toHaveValue('context.catalog');
   });
 
+  it('reviews AI prose, writes only the selected example and reads it after saving and reopening', async () => {
+    const original = createDesktopStoryFixture();
+    const api = readyProject(original);
+    const save = vi.fn(api.projects.save);
+    api.projects.save = save;
+    api.story.load = vi.fn(async ({ document }) =>
+      storySnapshot(collectFlowScenarios(document!)),
+    );
+    api.story.startNarration = vi.fn(async (job) => {
+      const lastLoad = await vi.mocked(api.story.load).mock.results.at(-1)
+        ?.value;
+      const step = lastLoad?.selected?.flow.steps[0];
+      if (step && !step.description)
+        publish?.({
+          ...job,
+          kind: 'step',
+          sequence: step.sequence,
+          stepHash: step.stepHash,
+          narrative: 'AI 草稿：核对采购协议。',
+        });
+    });
+    let publish: Parameters<typeof api.story.onNarration>[0] | undefined;
+    api.story.onNarration = (listener) => {
+      publish = listener;
+      return () => {
+        publish = undefined;
+      };
+    };
+    const view = render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    const openStory = () => {
+      fireEvent.click(screen.getByRole('button', { name: '放映业务流' }));
+      fireEvent.click(screen.getByRole('button', { name: '剧情详情' }));
+    };
+    openStory();
+    fireEvent.click(
+      await screen.findByRole('button', { name: '采纳为业务解释' }),
+    );
+    const field = () => screen.getByLabelText('业务解释（必填）');
+    expect(field()).toHaveFocus();
+    expect(field()).toHaveValue('AI 草稿：核对采购协议。');
+    fireEvent.change(field(), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: '应用到示例' }));
+    expect(screen.getByText('请输入业务解释。')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '取消', exact: true }));
+    expect(screen.queryByRole('form', { name: '审阅业务解释' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '采纳为业务解释' }));
+    fireEvent.change(field(), {
+      target: { value: ' 双方依据采购协议确认本案例的订购安排。 ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: '应用到示例' }));
+    const explanation = '双方依据采购协议确认本案例的订购安排。';
+    expect(await screen.findByText(explanation)).toBeVisible();
+    expect(screen.getByText('模型业务解释')).toBeVisible();
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'z', metaKey: true });
+    expect(
+      await screen.findByRole('button', { name: '采纳为业务解释' }),
+    ).toBeEnabled();
+    fireEvent.keyDown(window, { key: 'z', metaKey: true, shiftKey: true });
+    expect(await screen.findByText(explanation)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '保存模型' }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    const saved = save.mock.calls[0]![0].document;
+    const expected = structuredClone(original);
+    expected.entities.find(
+      ({ id }) => id === 'evidence.contract',
+    )!.examples![0]!.description = explanation;
+    expect(saved).toEqual(expected);
+    view.unmount();
+    api.projects.open = vi.fn(async () => ({
+      success: true as const,
+      project: projectSummary(),
+      document: saved,
+      issues: [],
+    }));
+    render(<EditorScreen rootPath="/models/procurement" />);
+    await readyCanvas();
+    openStory();
+    expect(await screen.findByText(explanation)).toBeVisible();
+    expect(screen.queryByRole('button', { name: '采纳为业务解释' })).toBeNull();
+  });
+
   it('returns from an unmodeled What-If step to the selected credential on the canvas', async () => {
     const document = createDesktopStoryFixture();
     document.rules = [];

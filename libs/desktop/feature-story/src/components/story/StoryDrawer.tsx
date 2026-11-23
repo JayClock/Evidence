@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import type { FlowStepTrace } from '@evidence-poc/evidence-model-core';
 import type { StoryScene } from '@evidence-poc/evidence-agent/browser';
 import type { StoryPlaybackController } from '../../state/useStoryPlayback';
 import { timelineLabel } from './StoryTimelineControls';
 import { WhatIfSection } from './WhatIfSection';
+import { StoryExplanationForm } from './StoryExplanationForm';
 
 interface StoryDrawerProps {
   playback: StoryPlaybackController;
@@ -11,6 +13,7 @@ interface StoryDrawerProps {
   aiConfigured?: boolean;
   onConfigureAi?: () => void;
   onRevealOnCanvas?: (nodeId: string) => void;
+  onSaveExplanation?: (step: FlowStepTrace, description: string) => void;
 }
 
 const buttonClass =
@@ -20,11 +23,16 @@ const SceneSheet = ({
   scene,
   ready,
   stale,
+  onEditStart,
+  onSaveExplanation,
 }: {
   scene: StoryScene;
   ready: boolean;
   stale: boolean;
+  onEditStart: () => void;
+  onSaveExplanation?: (description: string) => void;
 }) => {
+  const [edit, setEdit] = useState<{ text: string }>();
   const [notice, setNotice] = useState('');
   const [speaking, setSpeaking] = useState(false);
   const canSpeak =
@@ -82,7 +90,37 @@ const SceneSheet = ({
           </span>
         </div>
         <p className="whitespace-pre-wrap leading-6">{scene.narrative}</p>
-        <div className="mt-3 flex items-center gap-2">
+        {edit && onSaveExplanation ? (
+          <StoryExplanationForm
+            initialText={edit.text}
+            onSave={(description) => {
+              onSaveExplanation(description);
+              setEdit(undefined);
+            }}
+            onCancel={() => setEdit(undefined)}
+          />
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {!edit && onSaveExplanation ? (
+            <button
+              type="button"
+              className={buttonClass}
+              disabled={!ready}
+              onClick={() => {
+                onEditStart();
+                setEdit({
+                  text:
+                    scene.narrativeSource === 'facts' ? '' : scene.narrative,
+                });
+              }}
+            >
+              {scene.narrativeSource === 'model'
+                ? '编辑业务解释'
+                : scene.narrativeSource === 'facts'
+                  ? '编写业务解释'
+                  : '采纳为业务解释'}
+            </button>
+          ) : null}
           <button
             type="button"
             className={buttonClass}
@@ -248,6 +286,7 @@ export const StoryDrawer = ({
   aiConfigured = true,
   onConfigureAi,
   onRevealOnCanvas,
+  onSaveExplanation,
 }: StoryDrawerProps) => (
   <section
     aria-label="业务故事"
@@ -318,10 +357,19 @@ export const StoryDrawer = ({
       {playback.ready ? <TimelineDetails playback={playback} /> : null}
       {playback.scene ? (
         <SceneSheet
-          key={`${playback.projection?.flowId}:${playback.scene.stepIndex}:${playback.scene.stepHash}:${playback.skipAi}`}
+          key={`${playback.snapshotId}:${playback.scene.stepIndex}:${playback.scene.stepHash}`}
           scene={playback.scene}
           ready={playback.ready}
           stale={playback.stale}
+          onEditStart={playback.pause}
+          onSaveExplanation={
+            playback.ready && playback.step && onSaveExplanation
+              ? (description) => {
+                  if (playback.step)
+                    onSaveExplanation(playback.step, description);
+                }
+              : undefined
+          }
         />
       ) : null}
       <WhatIfSection
