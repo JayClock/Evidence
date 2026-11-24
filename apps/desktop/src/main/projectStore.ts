@@ -1,10 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { MODEL_VERSION_ISSUE_CODE } from '@evidence-poc/evidence-model-core';
+import { serializeDomainModel } from '@evidence-poc/evidence-model-core';
 import {
   initializeWorkspace,
+  modelDigestOf,
   openWorkspace,
   readModelDirectory,
   writeModelDirectory,
@@ -52,6 +53,7 @@ export interface ProjectStore {
   save(
     rootPath: string,
     document: DomainModelDocument,
+    sourceDigest?: string,
   ): Promise<SaveProjectResult>;
   /** Latest mtime of the model source tree, used to detect external writes. */
   fingerprint(rootPath: string): Promise<string | null>;
@@ -89,13 +91,6 @@ const writeAtomically = async (
   await writeFile(temporary, content, 'utf8');
   await rename(temporary, absolute);
 };
-
-const isReadableSource = (parsed: {
-  document: { entities: readonly unknown[] };
-  issues: readonly { code?: string }[];
-}): boolean =>
-  !parsed.issues.some(({ code }) => code === MODEL_VERSION_ISSUE_CODE) &&
-  (parsed.issues.length === 0 || parsed.document.entities.length > 0);
 
 const summarize = (
   rootPath: string,
@@ -179,7 +174,7 @@ export const createProjectStore = ({
         const { root, model } = openWorkspace(rootPath);
         const parsed = await readModelDirectory(model);
 
-        if (!isReadableSource(parsed)) {
+        if (parsed.issues.length > 0) {
           return {
             success: false,
             error: parsed.issues
@@ -197,15 +192,25 @@ export const createProjectStore = ({
           project,
           document: parsed.document,
           issues: parsed.issues,
+          sourceDigest: modelDigestOf(parsed.files),
         };
       } catch (error) {
         return { success: false, error: toMessage(error) };
       }
     },
 
-    async save(rootPath, document) {
+    async save(rootPath, document, sourceDigest) {
       try {
         const { model } = openWorkspace(rootPath);
+        const current = await readModelDirectory(model);
+        if (
+          current.issues.length > 0 ||
+          (sourceDigest !== undefined &&
+            sourceDigest !== modelDigestOf(current.files))
+        )
+          throw new Error(
+            'WORKSPACE_CHANGED: 磁盘上的模型已变更，请先从磁盘重新加载。',
+          );
         const result = await writeModelDirectory(model, document);
 
         return {
@@ -214,6 +219,7 @@ export const createProjectStore = ({
           unchanged: result.unchanged,
           removed: result.removed,
           savedAt: now().toISOString(),
+          sourceDigest: modelDigestOf(serializeDomainModel(document)),
         };
       } catch (error) {
         return { success: false, error: toMessage(error) };
@@ -229,16 +235,7 @@ export const createProjectStore = ({
         return null;
       }
 
-      const hash = createHash('sha1');
-
-      for (const file of [...parsed.files].sort((left, right) =>
-        left.path.localeCompare(right.path),
-      )) {
-        hash.update(file.path).update('\u0000').update(file.content);
-        hash.update('\u0000');
-      }
-
-      return hash.digest('hex');
+      return modelDigestOf(parsed.files);
     },
   };
 };

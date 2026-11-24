@@ -82,6 +82,7 @@ export const useEditorSession = (
   project: EvidenceProjectSummary,
   initialDocument: DomainModelDocument,
   viewMode: CanvasViewMode = 'simplified',
+  sourceDigest?: string,
 ): EditorSessionController => {
   const sessionRef = useRef<ModelSession | null>(null);
 
@@ -95,6 +96,8 @@ export const useEditorSession = (
   const [externalChangeAt, setExternalChangeAt] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const dirtyRef = useRef(false);
+  const source = useRef(sourceDigest);
+  const saving = useRef(false);
   const [version, forceRender] = useState(0);
 
   // Subscribe during commit, before paint or an incoming agent patch can edit the session.
@@ -133,22 +136,30 @@ export const useEditorSession = (
   const placement = useGraphLayout(state.graph, viewMode);
 
   const save = useCallback(async () => {
-    const document = session.getDocument();
-    const result = await window.evidenceAPI.projects.save({
-      rootPath: project.rootPath,
-      document,
-    });
-
-    if (!result.success) {
-      setSaveError(result.error);
-      return;
-    }
-
-    setSaveError(null);
-    setSavedAt(result.savedAt);
-    if (session.getDocument() === document) {
-      dirtyRef.current = false;
-      setDirty(false);
+    if (saving.current) return;
+    saving.current = true;
+    try {
+      const document = session.getDocument();
+      const result = await window.evidenceAPI.projects.save({
+        rootPath: project.rootPath,
+        document,
+        ...(source.current === undefined
+          ? {}
+          : { sourceDigest: source.current }),
+      });
+      if (!result.success) {
+        setSaveError(result.error);
+        return;
+      }
+      source.current = result.sourceDigest;
+      setSaveError(null);
+      setSavedAt(result.savedAt);
+      if (session.getDocument() === document) {
+        dirtyRef.current = false;
+        setDirty(false);
+      }
+    } finally {
+      saving.current = false;
     }
   }, [project.rootPath, session]);
 
@@ -160,7 +171,8 @@ export const useEditorSession = (
       return;
     }
 
-    if (session.isDocumentLocked()) return;
+    if (saving.current || session.isDocumentLocked()) return;
+    source.current = result.sourceDigest;
     session.replaceDocument(result.document, { resetHistory: true });
     setExternalChangeAt(null);
     setSaveError(null);
@@ -169,17 +181,19 @@ export const useEditorSession = (
   }, [project.rootPath, session]);
 
   const reloadFromDiskIfClean = useCallback(async () => {
-    if (dirtyRef.current) return;
+    if (dirtyRef.current || saving.current) return;
     const before = session.getDocument();
     const result = await window.evidenceAPI.projects.open(project.rootPath);
     // The inspector may have changed the model while the filesystem was read.
     if (
       dirtyRef.current ||
+      saving.current ||
       session.isDocumentLocked() ||
       session.getDocument() !== before
     )
       return;
     if (!result.success) throw new Error(result.error);
+    source.current = result.sourceDigest;
     // A save also notifies the watcher: equal content must retain undo history.
     if (compactCanonicalJson(result.document) !== compactCanonicalJson(before))
       session.replaceDocument(result.document, { resetHistory: true });

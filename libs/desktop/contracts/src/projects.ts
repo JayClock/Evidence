@@ -26,6 +26,7 @@ export type OpenProjectResult =
       project: EvidenceProjectSummary;
       document: DomainModelDocument;
       issues: readonly ProjectSourceIssue[];
+      sourceDigest?: string;
     }
   | { success: false; error: string };
 
@@ -36,6 +37,7 @@ export type SaveProjectResult =
       unchanged: readonly string[];
       removed: readonly string[];
       savedAt: string;
+      sourceDigest?: string;
     }
   | { success: false; error: string };
 
@@ -57,6 +59,7 @@ export interface ProjectChangedEvent {
 
 export interface SaveProjectInput {
   rootPath: string;
+  sourceDigest?: string;
   document: DomainModelDocument;
 }
 

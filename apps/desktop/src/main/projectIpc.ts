@@ -22,6 +22,7 @@ import { listProjectTemplates } from './templates/starterModels';
 export interface ProjectIpcOptions {
   projectStore: ProjectStore;
   openEditorWindow: (rootPath: string) => unknown;
+  ownsProject?: (sender: WebContents, rootPath: string) => boolean;
 }
 
 /**
@@ -31,6 +32,7 @@ export interface ProjectIpcOptions {
 export const registerProjectIpc = ({
   projectStore,
   openEditorWindow,
+  ownsProject = () => false,
 }: ProjectIpcOptions): void => {
   const watchers = new Map<number, ModelWatcher>();
 
@@ -143,8 +145,22 @@ export const registerProjectIpc = ({
 
   ipcMain.handle(
     EVIDENCE_IPC_CHANNELS.save,
-    async (_event, input: SaveProjectInput) =>
-      projectStore.save(input.rootPath, input.document),
+    async ({ sender }, input: SaveProjectInput) => {
+      if (
+        typeof input?.rootPath !== 'string' ||
+        !ownsProject(sender, input.rootPath) ||
+        typeof input.sourceDigest !== 'string'
+      )
+        return {
+          success: false,
+          error: '当前窗口没有已加载的工作区版本。',
+        } as const;
+      return projectStore.save(
+        input.rootPath,
+        input.document,
+        input.sourceDigest,
+      );
+    },
   );
 
   ipcMain.handle(

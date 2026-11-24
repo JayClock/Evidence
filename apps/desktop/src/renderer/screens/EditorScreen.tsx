@@ -95,6 +95,7 @@ type LoadState =
       name: 'ready';
       project: EvidenceProjectSummary;
       document: DomainModelDocument;
+      sourceDigest?: string;
     }
   | { name: 'error'; message: string };
 
@@ -124,6 +125,7 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
               name: 'ready',
               project: result.project,
               document: result.document,
+              sourceDigest: result.sourceDigest,
             }
           : { name: 'error', message: result.error },
       );
@@ -157,6 +159,7 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
       key={rootPath}
       project={state.project}
       initialDocument={state.document}
+      sourceDigest={state.sourceDigest}
     />
   );
 };
@@ -164,11 +167,13 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
 interface EditorWorkspaceProps {
   project: EvidenceProjectSummary;
   initialDocument: DomainModelDocument;
+  sourceDigest?: string;
 }
 
 const EditorWorkspace = ({
   project,
   initialDocument,
+  sourceDigest,
 }: EditorWorkspaceProps) => {
   const ai = useAiConfiguration();
   const [scenarioOpen, setScenarioOpen] = useState(false);
@@ -221,7 +226,7 @@ const EditorWorkspace = ({
     reloadFromDisk,
     reloadFromDiskIfClean,
     dismissExternalChange,
-  } = useEditorSession(project, initialDocument, viewMode);
+  } = useEditorSession(project, initialDocument, viewMode, sourceDigest);
   const hasPlaybackInput = useMemo(
     () =>
       state.document.entities.some(

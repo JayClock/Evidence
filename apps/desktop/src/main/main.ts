@@ -101,7 +101,11 @@ const startApplication = async (): Promise<void> => {
       delivery.cancel(sender.id, rootPath),
   });
 
-  registerProjectIpc({ projectStore, openEditorWindow });
+  registerProjectIpc({
+    projectStore,
+    openEditorWindow,
+    ownsProject: ownsEditorProject,
+  });
   registerIngestionIpc({
     projectStore,
     generate: createModelIngestionReader({ getModelOptions }),

@@ -192,6 +192,36 @@ describe('projectStore', () => {
     }
   });
 
+  it('refuses to save a snapshot after an external change and does not load merge markers', async () => {
+    const projectStore = store();
+    const opened = await projectStore.open(projectRoot);
+    if (!opened.success) throw new Error(opened.error);
+    const file = path.join(
+      modelRootFor(projectRoot),
+      'entities/evidence-contract--contract.json',
+    );
+    const edited = (await readFile(file, 'utf8')).replace(
+      '采购协议',
+      'outside edit',
+    );
+    await writeFile(file, edited);
+    const result = await projectStore.save(
+      projectRoot,
+      opened.document,
+      opened.sourceDigest,
+    );
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining('WORKSPACE_CHANGED'),
+    });
+    expect(await readFile(file, 'utf8')).toBe(edited);
+    await writeFile(file, '<<<<<<< HEAD');
+    expect(await projectStore.open(projectRoot)).toMatchObject({
+      success: false,
+    });
+    expect(await readFile(file, 'utf8')).toBe('<<<<<<< HEAD');
+  });
+
   it('fingerprints the source tree so external writes are detectable', async () => {
     const projectStore = store();
 
