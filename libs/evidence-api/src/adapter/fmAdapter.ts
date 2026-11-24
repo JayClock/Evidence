@@ -97,16 +97,6 @@ export const loadFmFromDocument = (
   document: DomainModelDocument,
   options: LoadFmDocumentOptions = {},
 ): LoadFmResult => {
-  if (Object.hasOwn(document, 'validation'))
-    return {
-      index: null,
-      diagnostics: [
-        errorDiagnostic(
-          'FM_INVALID',
-          'Legacy validation scenarios/instances are no longer supported; use entity examples[].test.',
-        ),
-      ],
-    };
   // Pin the input so later caller edits cannot silently change an existing index.
   document = structuredClone(document);
   const compiled = compiledDocument(document);

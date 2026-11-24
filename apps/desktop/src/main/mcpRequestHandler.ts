@@ -120,10 +120,7 @@ export const createMcpRequestHandler = ({
           targetNodeId: request.targetNodeId,
         });
     }
-    throw new McpRequestError(
-      'UNSUPPORTED_METHOD',
-      'Unsupported MCP method; legacy scenario replay has been removed.',
-    );
+    throw new McpRequestError('UNSUPPORTED_METHOD', 'Unsupported MCP method.');
   };
 };
 

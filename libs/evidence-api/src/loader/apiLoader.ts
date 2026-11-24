@@ -29,7 +29,7 @@ export interface DesignDocument {
 export const normalizeDesignDocument = (
   raw: DesignDocument,
 ): DesignDocument => ({
-  schemaVersion: '5.0',
+  schemaVersion: '6.0',
   id: 'default-api',
   routes: [],
   journeys: [],

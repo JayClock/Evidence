@@ -160,18 +160,10 @@ pnpm evidence export --watch
 
 Desktop sync and CLI `--watch` write the same draft paths; run only one for a workspace at a time. Full export instead writes `delivery/release/openapi.json` and `acceptance/` under `.evidence`. Draft sync is not a release compatibility gate.
 
-## Overlay migration
+## API overlays
 
-Place the input at `.evidence/overlays/legacy.json` and run `evidence migrate-overlay` from the workspace. The result is `.evidence/overlays/api-v6.json`.
-
-Migration reads the model because old paths alone do not express cardinality.
-It recognizes v5 defaults, projects their v6 paths, upgrades obsolete singleton
-ledger route IDs and journey references, and preserves custom aliases and
-summaries where their parameters remain valid. Unknown routes and ambiguous
-parameter changes fail for manual review. Output must be a new file; source
-files are never overwritten. Both 5.0 and 6.0 overlay envelopes are readable;
-newly migrated overlays declare 6.0. Use migrated overlays with the projection
-library; `evidence export` and `evidence diff` do not take overlay arguments.
+The projection library reads JSON overlays using the 6.0 schema. The CLI
+commands `evidence export` and `evidence diff` do not take overlay arguments.
 
 ## Verification and generated documents
 

@@ -1,6 +1,5 @@
 import { cac, type CAC } from 'cac';
 import { initCommand } from './commands/init.js';
-import { migrateOverlayCommand } from './commands/migrateOverlay.js';
 import { testCommand } from './commands/test.js';
 import { exportCommand } from './commands/export.js';
 import { checkCommand } from './commands/check.js';
@@ -101,14 +100,6 @@ export function createCli(context: CommandContext = defaultContext()): CAC {
       registered.option('--json', 'Machine-readable summary');
     else registered.option('--compact', 'Compact JSON');
   }
-  cli
-    .command(
-      'migrate-overlay',
-      'Migrate .evidence/overlays/legacy.json to api-v6.json',
-    )
-    .action((options: CommandOptions) =>
-      migrateOverlayCommand(options, context),
-    );
   cli.help();
   cli.version('0.0.1');
   // cac's default printer writes to console. Render its registered metadata to

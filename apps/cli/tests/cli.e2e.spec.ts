@@ -294,36 +294,3 @@ describe('built evidence binary full lifecycle', () => {
     );
   });
 });
-
-it('migrates a legacy overlay through the executable CLI and protects existing output', async () => {
-  const dir = path.join(root, '.evidence/overlays');
-  mkdirSync(dir);
-  const input = path.join(dir, 'legacy.json');
-  const output = path.join(dir, 'api-v6.json');
-  writeFileSync(
-    input,
-    JSON.stringify({
-      schemaVersion: '6.0',
-      routes: [
-        { id: 'route.sign.contract.agreement', path: '/procurement/agreement' },
-        {
-          id: 'route.request.request.order',
-          path: '/procurement/agreement/{contractId}/order/request',
-        },
-      ],
-    }),
-  );
-  const args = ['migrate-overlay'];
-  const migrated = await invoke(args);
-  expect(migrated.code, migrated.stderr).toBe(0);
-  expect(JSON.parse(readFileSync(output, 'utf8'))).toMatchObject({
-    schemaVersion: '6.0',
-    routes: [
-      { path: '/agreements' },
-      { path: '/agreements/{contractId}/orders' },
-    ],
-  });
-  const before = readFileSync(output, 'utf8');
-  expect((await invoke(args)).code).toBe(1);
-  expect(readFileSync(output, 'utf8')).toBe(before);
-});

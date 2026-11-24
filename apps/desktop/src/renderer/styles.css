@@ -23,8 +23,7 @@
   --color-evidence-accent: #2f5d8f;
   --color-evidence-accent-hover: #274c76;
 
-  /* Workbench design (workbench.pen). Keep the legacy editor surfaces intact
-     until they migrate to these roles. */
+  /* Workbench design tokens (workbench.pen). */
   --color-workbench-background: #f8fafc;
   --color-workbench-border: #e2e8f0;
   --color-workbench-border-strong: #cbd5e1;
@@ -86,18 +85,6 @@ body,
 body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Workbench controls use their utility type scale. Keep the legacy reset for
-   editor surfaces and dialogs that have not migrated yet. */
-button:not(
-  :where(
-    [data-dashboard] button,
-    [data-workbench-dialog] button,
-    [data-workbench-chrome] button
-  )
-) {
-  font: inherit;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -237,15 +237,6 @@ export function parseModelSourceFiles(
       continue;
     }
 
-    if (path.startsWith('validation/')) {
-      issues.push({
-        path,
-        code: 'model.legacy-validation',
-        message:
-          'Legacy validation scenarios/instances are no longer supported; use entity examples[].test.',
-      });
-      continue;
-    }
     if (isIgnoredPath(path) || !isManagedJsonPath(path)) {
       continue;
     }

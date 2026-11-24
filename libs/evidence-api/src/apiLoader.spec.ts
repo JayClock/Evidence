@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { canonicalJson, sortedKeys } from './canonicalJson.js';
+import { canonicalJson } from './canonicalJson.js';
 import {
   diagnosticToJson,
   errorDiagnostic,
@@ -54,7 +54,7 @@ describe('loadDesign', () => {
     const { design, diagnostics } = loadDesign('/project/api.json', '{}');
     expect(diagnostics).toEqual([]);
     expect(design).toEqual({
-      schemaVersion: '5.0',
+      schemaVersion: '6.0',
       id: 'default-api',
       routes: [],
       journeys: [],
@@ -65,7 +65,7 @@ describe('loadDesign', () => {
     const { design, diagnostics } = loadDesign(
       '/project/api.json',
       JSON.stringify({
-        schemaVersion: '5.0',
+        schemaVersion: '6.0',
         routes: [{ id: 'route.contract', summary: 'Updated' }],
       }),
     );
@@ -80,7 +80,7 @@ describe('loadDesign', () => {
     const result = loadDesign(
       '/project/overlay.json',
       JSON.stringify({
-        schemaVersion: '5.0',
+        schemaVersion: '6.0',
         resources: [],
         bindings: [],
         capabilities: [],
@@ -180,7 +180,7 @@ describe('loadDesign', () => {
   it('reports schema violations with the location a reader can jump to', () => {
     const { design, diagnostics } = loadDesign(
       '/project/api.json',
-      JSON.stringify({ schemaVersion: '4.0', id: 'NotAnId', sources: [] }),
+      JSON.stringify({ schemaVersion: '5.0', id: 'NotAnId', sources: [] }),
     );
 
     expect(design).not.toBeNull();
@@ -224,7 +224,6 @@ describe('canonicalJson', () => {
     expect(canonicalJson({ b: 1, a: [{ d: 2, c: 3 }] })).toBe(
       '{\n  "a": [\n    {\n      "c": 3,\n      "d": 2\n    }\n  ],\n  "b": 1\n}\n',
     );
-    expect(sortedKeys({ b: [1, 2], a: 0 })).toEqual({ a: 0, b: [1, 2] });
   });
 });
 

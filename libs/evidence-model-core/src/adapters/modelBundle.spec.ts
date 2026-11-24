@@ -214,16 +214,4 @@ describe('packModelSourceFiles', () => {
     expect(() => serializeModelBundle(legacy)).toThrow('no longer supported');
     expect(() => modelBundleSourceFiles(legacy)).toThrow('no longer supported');
   });
-
-  it('reports a malformed validation file instead of dropping it', () => {
-    const files = [
-      ...serializeDomainModel(createProcurementModel()),
-      { path: 'validation/instances/broken.json', content: '{' },
-    ];
-    const { issues } = packModelSourceFiles(files);
-
-    expect(issues.map((issue) => issue.path)).toContain(
-      'validation/instances/broken.json',
-    );
-  });
 });

@@ -5,19 +5,15 @@ import path from 'node:path';
 
 import {
   MODEL_MANIFEST_PATH,
+  MODEL_README_PATH,
   MODEL_SOURCE_TREES,
   packModelSourceFiles,
   type ModelSourceFile,
   type PackResult,
 } from '@evidence-poc/evidence-model-core';
 
-/** Reads model sources. The removed validation/ tree is scanned only to reject it. */
-
 /** Tree holding output the checks never read back. */
 export const MODEL_GENERATED_TREE = 'generated';
-
-/** Model source trees plus the retired path, detected as a blocking source issue. */
-export const MODEL_CHECK_TREES = [...MODEL_SOURCE_TREES, 'validation'] as const;
 
 /** Files the checks never read: generated output, caches and dot directories. */
 const isIgnored = (relativePath: string): boolean =>
@@ -73,10 +69,7 @@ const readTree = async (
       continue;
     }
 
-    if (
-      !entry.isFile() ||
-      (!entry.name.endsWith('.json') && !relative.startsWith('validation/'))
-    ) {
+    if (!entry.isFile() || !entry.name.endsWith('.json')) {
       continue;
     }
 
@@ -114,7 +107,7 @@ export async function readModelRootFiles(
 
   const files: ModelSourceFile[] = [...manifest];
 
-  for (const tree of MODEL_CHECK_TREES) {
+  for (const tree of MODEL_SOURCE_TREES) {
     files.push(...(await readTree(root, tree)));
   }
 
@@ -159,11 +152,18 @@ const readTreeBytes = async (
     }
 
     if (entry.isDirectory()) {
-      files.push(...(await readTreeBytes(root, relative)));
+      if (
+        relativeDirectory ||
+        MODEL_SOURCE_TREES.some((tree) => tree === relative)
+      )
+        files.push(...(await readTreeBytes(root, relative)));
       continue;
     }
 
-    if (!entry.isFile()) {
+    const managed = relativeDirectory
+      ? entry.name.endsWith('.json')
+      : relative === MODEL_MANIFEST_PATH || relative === MODEL_README_PATH;
+    if (!entry.isFile() || !managed) {
       continue;
     }
 
@@ -177,11 +177,7 @@ const readTreeBytes = async (
 };
 
 /**
- * Every file under a model root, with its bytes.
- *
- * The digest covers whatever is on disk rather than only the sources: a
- * hand-edited `README.md` or a stray file is input too, and a check that
- * silently ignored it could be invalidated without noticing.
+ * Managed files under a model root, with their original bytes.
  */
 export async function readModelRootBytes(
   root: string,

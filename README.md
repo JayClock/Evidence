@@ -299,7 +299,7 @@ pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format 
 
 ### 2. 独立运行容器与入口收敛（Apps & Packaging）
 
-- [x] **统一命令行工具容器 (`apps/cli`)**：基于 `cac` 提供 `evidence check/test/export/diff/pack/unpack/compile`；同时提供 `inspect`、`lineage`、`story` 和独立的 `migrate-overlay`；旧 CLI 入口已移除。
+- [x] **统一命令行工具容器 (`apps/cli`)**：基于 `cac` 提供 `evidence init/check/test/export/diff/compile`；同时提供 `inspect`、`lineage` 和 `story`；旧 CLI 入口已移除。
 - [ ] **独立 MCP 服务端应用 (`apps/mcp-server`)**：将 MCP 协议服务从纯 Libs 提升为可脱离桌面端、独立以 stdio/SSE 启动的长周期服务容器。
 
 ### 3. HTTP 验收

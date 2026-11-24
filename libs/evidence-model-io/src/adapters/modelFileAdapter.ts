@@ -4,7 +4,9 @@ import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  MODEL_MANIFEST_PATH,
   MODEL_README_PATH,
+  MODEL_SOURCE_TREES,
   createEmptyModelBundle,
   modelBundleSourceFiles,
   packModelSourceFiles,
@@ -19,9 +21,6 @@ import {
 } from '@evidence-poc/evidence-model-core';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
-/** Trees a bundle never carries: derived output only. */
-const SKIPPED_TREES = new Set(['generated']);
-
 export interface WriteModelBundleResult {
   written: boolean;
   /** Byte length of the serialized bundle. */
@@ -35,7 +34,7 @@ const isSkippedPath = (relative: string): boolean =>
 
 /**
  * Reads every file a bundle should carry: `model.json`, the three source trees,
- * `README.md`. Retired validation files are read only to reject them.
+ * `README.md`.
  *
  * `generated/` stays behind because it is derived output, not a source.
  */
@@ -69,7 +68,10 @@ async function readSourceTree(root: string): Promise<ModelSourceFile[]> {
       }
 
       if (entry.isDirectory()) {
-        if (relativeDirectory === '' && SKIPPED_TREES.has(entry.name)) {
+        if (
+          relativeDirectory === '' &&
+          !MODEL_SOURCE_TREES.some((tree) => tree === entry.name)
+        ) {
           continue;
         }
 
@@ -79,9 +81,10 @@ async function readSourceTree(root: string): Promise<ModelSourceFile[]> {
 
       const carried =
         entry.isFile() &&
-        (relative.startsWith('validation/') ||
-          entry.name.endsWith('.json') ||
-          (relativeDirectory === '' && entry.name === MODEL_README_PATH));
+        (relativeDirectory
+          ? entry.name.endsWith('.json')
+          : entry.name === MODEL_MANIFEST_PATH ||
+            entry.name === MODEL_README_PATH);
 
       if (!carried) {
         continue;

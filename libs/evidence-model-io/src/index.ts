@@ -13,7 +13,6 @@ export {
 } from './adapters/diskAdapter.js';
 
 export {
-  MODEL_CHECK_TREES,
   MODEL_GENERATED_TREE,
   modelDigestOf,
   readModelRoot,

@@ -41,8 +41,8 @@ canvas and inspector consume, and the only sanctioned way to change it.
 
 Both forms carry the same inline examples. Acceptance cases live exclusively in
 `entities[].examples[].test`; `evidence export --tests` emits a Bruno collection
-without introducing another authored source format. Legacy bundle `validation` envelopes
-and `validation/` source files are rejected, not migrated or silently ignored.
+without introducing another authored source format. Retired `validation/` files
+are not model sources and are not read or changed.
 The static FM report (v6) proves consistency and scope completeness only, never
 backend test execution. The old simulator, instance timeline, role-play packet
 and replay APIs/CLI commands have been removed.

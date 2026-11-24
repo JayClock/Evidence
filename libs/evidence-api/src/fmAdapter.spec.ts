@@ -172,15 +172,6 @@ describe('loadFmFromDocument', () => {
     );
   });
 
-  it('refuses the retired envelope instead of dropping private test inputs', () => {
-    const result = loadFmFromDocument(
-      Object.assign(createAcceptanceModel(), {
-        validation: { instances: [], scenarios: [] },
-      }),
-    );
-    expect(result.index).toBeNull();
-    expect(result.diagnostics[0]?.code).toBe('FM_INVALID');
-  });
   it('reads directories and bundles without a check report', async () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'api-input-'));
     try {

@@ -12,8 +12,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { serializeModelBundle } from '@evidence-poc/evidence-model-core';
 import { createProcurementModel } from '@evidence-poc/evidence-model-core/testing';
 import {
-  packModelDirectory,
+  modelDigestOf,
   readModelRoot,
+  readModelRootBytes,
   unpackModelBundle,
   writeModelDirectory,
 } from './index.js';
@@ -27,27 +28,28 @@ afterEach(async () => {
 });
 
 describe('breaking removal of validation files', () => {
-  it.each(['legacy.json', 'instance--legacy.md'])(
-    'blocks a retired source tree containing %s',
-    async (name) => {
-      const fm = path.join(root, 'fm');
-      await writeModelDirectory(fm, createProcurementModel());
-      const retired = path.join(fm, 'validation/scenarios');
-      await mkdir(retired, { recursive: true });
-      await writeFile(path.join(retired, name), '{}');
-      for (const result of [
-        await readModelRoot(fm),
-        await packModelDirectory(fm),
-      ]) {
-        expect(result.issues).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ code: 'model.legacy-validation' }),
-          ]),
-        );
-        expect(result.bundle).not.toHaveProperty('validation');
-      }
-    },
-  );
+  it('ignores files outside the model source trees without changing them', async () => {
+    const model = path.join(root, 'model');
+    await writeModelDirectory(model, createProcurementModel());
+    const before = await readModelRoot(model);
+    const readDigest = async () =>
+      modelDigestOf(
+        (await readModelRootBytes(model)).map(({ path, bytes }) => ({
+          path,
+          content: bytes,
+        })),
+      );
+    const digest = await readDigest();
+    const retired = path.join(model, 'validation/scenarios');
+    await mkdir(retired, { recursive: true });
+    const file = path.join(retired, 'old.json');
+    await writeFile(file, '{');
+
+    expect(before.issues).toEqual([]);
+    expect(await readModelRoot(model)).toEqual(before);
+    expect(await readDigest()).toBe(digest);
+    expect(await readFile(file, 'utf8')).toBe('{');
+  });
   it('refuses unpacking an old envelope without creating or overwriting output', async () => {
     const file = path.join(root, 'old.evidence.json');
     const legacy = {

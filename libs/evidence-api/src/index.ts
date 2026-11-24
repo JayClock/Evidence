@@ -35,7 +35,7 @@ export {
   type DiagnosticSeverity,
 } from './diagnostics.js';
 
-export { canonicalJson, sortedKeys } from './canonicalJson.js';
+export { canonicalJson } from './canonicalJson.js';
 
 export {
   API_DESIGN_SECTIONS,
@@ -135,5 +135,3 @@ export {
   validateDeliveryExamples,
 } from './delivery/modelDelivery.js';
 export { assertOpenApiContract } from './openapi/validateContract.js';
-
-export { migrateOverlay } from './loader/migrateOverlay.js';

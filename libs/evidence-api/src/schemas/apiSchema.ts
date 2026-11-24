@@ -4,7 +4,7 @@ export const API_SCHEMA_TEXT = String.raw`{
   "$id": "https://evidence.local/api-overlay/v6/api.schema.json",
   "type": "object",
   "properties": {
-    "schemaVersion": { "enum": ["5.0", "6.0"] },
+    "schemaVersion": { "const": "6.0" },
     "id": { "type": "string", "minLength": 1 },
     "routes": {
       "type": "array",
