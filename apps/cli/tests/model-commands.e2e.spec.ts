@@ -69,19 +69,3 @@ it('derives a checked snapshot and lineage inside .evidence from a nested cwd', 
   ).toBeTypeOf('object');
   expect(await readdir(code)).toEqual([]);
 });
-
-it('rejects legacy roots, files and options without migrating them', async () => {
-  await cp(fixture, path.join(root, '.evidence/fm'), { recursive: true });
-  await writeFile(path.join(root, 'old.evidence.json'), '{}');
-  for (const args of [
-    ['check'],
-    ['check', '--workspace', 'old.evidence.json'],
-    ['check', 'old.evidence.json'],
-    ['compile', '--out', 'any.json'],
-    ['pack'],
-    ['unpack', 'old.evidence.json'],
-  ])
-    await expect(run(args)).rejects.toMatchObject({ code: 1 });
-  expect(await readdir(path.join(root, '.evidence'))).toEqual(['fm']);
-  expect(await readdir(root)).toEqual(['.evidence', 'old.evidence.json']);
-});

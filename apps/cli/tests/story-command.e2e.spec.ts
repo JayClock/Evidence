@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -186,8 +187,8 @@ describe('built evidence story binary', () => {
   });
 
   it('returns an empty JSON array or a human explanation for models without flow declarations', async () => {
-    await editModel((bundle) => {
-      for (const entity of bundle.entities)
+    await editModel((document) => {
+      for (const entity of document.entities)
         for (const example of entity.examples ?? []) delete example.test;
     });
     const json = await invoke(['--no-ai', '--format', 'json', '--export']);
@@ -205,28 +206,39 @@ describe('built evidence story binary', () => {
     expect(stories(stdoutJson.stdout)).toEqual([]);
   });
 
-  it('fails cleanly for invalid paths, formats, schema and syntax without creating exports', async () => {
-    writeFileSync(path.join(root, 'invalid.evidence.json'), '{');
-    writeFileSync(path.join(root, 'wrong.evidence.json'), '{}');
+  it('rejects invalid options or a missing workspace without creating exports', async () => {
     for (const args of [
-      ['missing.evidence.json', '--no-ai'],
-      ['invalid.evidence.json', '--no-ai'],
-      ['wrong.evidence.json', '--no-ai'],
-      ['--no-ai', '--format', 'yaml'],
-      ['--no-ai', '--flow'],
-      ['--no-ai', '--format', 'json', '--format', 'text'],
+      ['--workspace', 'missing'],
+      ['--format', 'yaml'],
+      ['--flow'],
+      ['--format', 'json', '--format', 'text'],
     ]) {
-      const result = await invoke([...args, '--export']);
+      const result = await invoke([...args, '--no-ai', '--export']);
       expect(result.code, args.join(' ')).toBe(1);
       expect(result.stdout).toBe('');
       expect(result.stderr).toContain('Error:');
-      expect(readdirSync(root)).not.toContain('never');
+      expect(existsSync(path.join(root, '.evidence/stories'))).toBe(false);
     }
   });
 
+  it.each([
+    { kind: 'invalid JSON', content: '{' },
+    { kind: 'invalid schema', content: '{}' },
+  ])(
+    'rejects a model manifest with $kind without creating exports',
+    async ({ content }) => {
+      writeFileSync(path.join(model(), 'model.json'), content);
+      const result = await invoke(['--no-ai', '--export']);
+      expect(result.code).toBe(1);
+      expect(result.stdout).toBe('');
+      expect(result.stderr).toContain('model.json');
+      expect(existsSync(path.join(root, '.evidence/stories'))).toBe(false);
+    },
+  );
+
   it('refuses cyclic example dependencies rather than emitting a plausible story', async () => {
-    await editModel((bundle) => {
-      const example = bundle.entities.find(
+    await editModel((document) => {
+      const example = document.entities.find(
         (entity) => entity.id === 'contract.agreement',
       )?.examples?.[0];
       if (!example?.test) throw new Error('Missing fixture example');

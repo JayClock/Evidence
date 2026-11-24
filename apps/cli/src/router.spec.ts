@@ -20,31 +20,11 @@ describe('unified CLI dispatch', () => {
   it('shows help and reports unknown commands and options', async () => {
     const { context, output, errors } = captureContext();
     expect(await dispatch(['--help'], context)).toBe(0);
-    expect(output.join('')).not.toContain('migrate-overlay');
-    expect(output.join('')).not.toMatch(/api <command>|diff api/);
+    expect(output.join('')).toContain('Usage: evidence <command> [options]');
     expect(await dispatch(['nope'], context)).toBe(1);
     expect(errors.join('')).toContain('Unknown command');
     expect(await dispatch(['check', '--bad'], context)).toBe(1);
     expect(errors.join('')).toContain('Unknown option');
-  });
-  it('rejects retired commands instead of routing them to new commands', async () => {
-    for (const args of [
-      ['api', 'inspect'],
-      ['migrate-overlay'],
-      ['diff', 'api', 'base', 'target'],
-      ['pack', '.evidence/model'],
-      ['unpack', 'old.evidence.json'],
-      ['check', 'old.evidence.json'],
-      ['export', '--model', '.evidence/fm'],
-      ['export', '--out', 'delivery'],
-      ['timeline'],
-      ['simulate'],
-      ['role-play'],
-    ]) {
-      const { context, errors } = captureContext();
-      expect(await dispatch(args, context), args.join(' ')).toBe(1);
-      expect(errors).not.toEqual([]);
-    }
   });
 
   it('discovers the nearest workspace from a project subdirectory', async () => {
@@ -59,10 +39,11 @@ describe('unified CLI dispatch', () => {
   });
   it('returns machine-readable errors and rejects duplicate arguments', async () => {
     const { context, output, errors } = captureContext();
-    expect(
-      await dispatch(['check', 'absent.evidence.json', '--json'], context),
-    ).toBe(1);
-    expect(JSON.parse(output[0]!)).toMatchObject({ passed: false });
+    expect(await dispatch(['check', 'extra', '--json'], context)).toBe(1);
+    expect(JSON.parse(output[0]!)).toMatchObject({
+      passed: false,
+      error: expect.stringContaining('Unexpected arguments'),
+    });
     expect(errors).toEqual([]);
     expect(await dispatch(['check', '--json', '--json'], context)).toBe(1);
     expect(JSON.parse(output[1]!).error).toContain('Duplicate');

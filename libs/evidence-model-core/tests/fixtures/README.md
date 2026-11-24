@@ -16,7 +16,7 @@ refresh it.
 
 Rules for this directory:
 
-- keep the on-disk layout identical to a real `.evidence/fm/` tree, so
+- keep the on-disk layout identical to a real `.evidence/model/` tree, so
   `readModelRoot` reads it exactly as it reads a project;
 - never hand-edit a fixture to make a test pass — clone it and mutate the clone;
 - refresh deliberately, and re-pin any digest the tests assert.

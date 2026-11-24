@@ -61,7 +61,7 @@ export interface EvidenceDesktopApi {
   aiConfig: EvidenceAiConfigApi;
   projects: {
     showOpenDialog: () => Promise<OpenProjectDialogResult>;
-    /** Picks the folder or bundle path a new project is written to. */
+    /** Picks the workspace root directory for a new project. */
     showCreateDialog: () => Promise<CreateProjectDialogResult>;
     /** Writes a starter model to `targetPath` and remembers the project. */
     create: (input: CreateProjectInput) => Promise<CreateProjectResult>;

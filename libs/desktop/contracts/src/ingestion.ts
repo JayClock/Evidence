@@ -56,7 +56,7 @@ export type IngestDraftResult =
 
 export interface CompileDraftInput {
   draft: IngestionDraft;
-  /** Folder of the new source tree, or the bundle file path. */
+  /** Workspace root where the new .evidence/model tree is written. */
   targetPath: string;
   name: string;
   modelId?: string;

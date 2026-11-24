@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "从 FM 模型派生 API 草稿、增量差异、超媒体导航与 OpenAPI 交付契约",
+  "description": "从领域模型派生 API 草稿、增量差异、超媒体导航与 OpenAPI 交付契约",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

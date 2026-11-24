@@ -345,9 +345,9 @@ describe('projectStore.create', () => {
     }
   });
 
-  it('rejects a legacy bundle without rewriting it', async () => {
-    const file = path.join(tempRoot, 'legacy.evidence.json');
-    await writeFile(file, '{}');
+  it('rejects a regular file as a workspace without modifying it', async () => {
+    const file = path.join(tempRoot, 'notes.txt');
+    await writeFile(file, 'owner content');
     const original = await readFile(file);
     expect((await store().open(file)).success).toBe(false);
     expect((await store().save(file, domainModel())).success).toBe(false);
