@@ -1,4 +1,11 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -7,7 +14,6 @@ import {
   type DomainModelDocument,
 } from '@evidence-poc/evidence-schema';
 import {
-  readModelBundle,
   writeModelBundle,
   writeModelDirectory,
 } from '@evidence-poc/evidence-model-io';
@@ -94,13 +100,15 @@ describe('projectStore', () => {
       ruleCount: 0,
       lastOpenedAt: '2026-11-11T08:00:00.000Z',
     });
-    expect(result.project.modelRoot).toBe(modelRootFor(projectRoot));
+    expect(result.project.modelDirectory).toBe(
+      await realpath(modelRootFor(projectRoot)),
+    );
     expect(result.issues).toEqual([]);
 
     const recent = await projectStore.listRecent();
 
     expect(recent.map(({ rootPath }) => rootPath)).toEqual([
-      path.resolve(projectRoot),
+      await realpath(projectRoot),
     ]);
 
     const persisted = JSON.parse(
@@ -110,7 +118,7 @@ describe('projectStore', () => {
     expect(persisted).toHaveLength(1);
   });
 
-  it('refuses a folder without .evidence/fm/model.json', async () => {
+  it('refuses a folder without .evidence/model/model.json', async () => {
     const empty = path.join(tempRoot, 'empty');
 
     await writeModelDirectory(empty, createEmptyDomainModel());
@@ -120,7 +128,7 @@ describe('projectStore', () => {
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error).toContain('.evidence/fm');
+      expect(result.error).toContain('.evidence/model');
     }
   });
 
@@ -205,115 +213,6 @@ describe('projectStore', () => {
   });
 });
 
-describe('projectStore with a single-file model', () => {
-  let tempRoot: string;
-  let bundlePath: string;
-
-  beforeEach(async () => {
-    tempRoot = await mkdtemp(
-      path.join(os.tmpdir(), 'evidence-bundle-project-'),
-    );
-    bundlePath = path.join(tempRoot, 'desktop-project.evidence.json');
-    await writeModelBundle(bundlePath, domainModel());
-  });
-
-  afterEach(async () => {
-    await rm(tempRoot, { recursive: true, force: true });
-  });
-
-  const store = () =>
-    createProjectStore({
-      recentProjectsFile: path.join(tempRoot, RECENT_PROJECTS_FILE),
-      now: () => new Date('2026-11-11T08:00:00.000Z'),
-    });
-
-  it('opens a bundle file and points modelRoot at the file', async () => {
-    const result = await store().open(bundlePath);
-
-    expect(result.success).toBe(true);
-
-    if (!result.success) {
-      return;
-    }
-
-    expect(result.project.kind).toBe('file');
-    expect(result.project.modelRoot).toBe(path.resolve(bundlePath));
-    expect(result.project.entityCount).toBe(2);
-    expect(result.issues).toEqual([]);
-  });
-
-  it('saves back into the same file without adding a source tree', async () => {
-    const projectStore = store();
-    const opened = await projectStore.open(bundlePath);
-
-    if (!opened.success) {
-      throw new Error(opened.error);
-    }
-
-    const saved = await projectStore.save(bundlePath, {
-      ...opened.document,
-      entities: opened.document.entities.map((entity) =>
-        entity.id === 'evidence.contract'
-          ? { ...entity, label: '采购合同（Procurement Contract）' }
-          : entity,
-      ),
-    });
-
-    expect(saved.success).toBe(true);
-
-    const reread = await readModelBundle(bundlePath);
-
-    expect(reread.issues).toEqual([]);
-    expect(
-      reread.document.entities.find(
-        (entity) => entity.id === 'evidence.contract',
-      )?.label,
-    ).toBe('采购合同（Procurement Contract）');
-    // Saving a bundle never materializes a neighbouring source tree.
-    await expect(
-      readFile(path.join(tempRoot, '.evidence', 'fm', 'model.json'), 'utf8'),
-    ).rejects.toThrow();
-  });
-
-  it('keeps bundle extras the renderer hands back', async () => {
-    const projectStore = store();
-    const opened = await projectStore.open(bundlePath);
-
-    if (!opened.success) {
-      throw new Error(opened.error);
-    }
-
-    const withExtras = {
-      ...opened.document,
-      readme: '范围说明\n',
-    };
-
-    await projectStore.save(bundlePath, withExtras);
-
-    const reread = await readModelBundle(bundlePath);
-
-    expect(reread.document.readme).toBe('范围说明\n');
-    expect(reread.document).not.toHaveProperty('validation');
-  });
-
-  it('fingerprints the file so an external write is detectable', async () => {
-    const projectStore = store();
-    const before = await projectStore.fingerprint(bundlePath);
-
-    expect(before).not.toBeNull();
-
-    await writeModelBundle(bundlePath, {
-      ...domainModel(),
-      entities: domainModel().entities.map((entity) => ({
-        ...entity,
-        label: `${entity.label} v2`,
-      })),
-    });
-
-    expect(await projectStore.fingerprint(bundlePath)).not.toBe(before);
-  });
-});
-
 describe('projectStore.create', () => {
   let tempRoot: string;
 
@@ -335,6 +234,7 @@ describe('projectStore.create', () => {
 
   it('writes a starter source tree and remembers it', async () => {
     const projectRoot = path.join(tempRoot, 'procurement-model');
+    await mkdir(projectRoot);
     const projectStore = store();
     const result = await projectStore.create({
       targetPath: projectRoot,
@@ -352,11 +252,12 @@ describe('projectStore.create', () => {
     expect(result.project).toMatchObject({
       name: '采购履约模型',
       modelId: 'procurement-demo',
-      kind: 'directory',
       entityCount: result.document.entities.length,
       lastOpenedAt: '2026-11-11T08:00:00.000Z',
     });
-    expect(result.project.modelRoot).toBe(modelRootFor(projectRoot));
+    expect(result.project.modelDirectory).toBe(
+      await realpath(modelRootFor(projectRoot)),
+    );
 
     const manifest = JSON.parse(
       await readFile(
@@ -370,7 +271,7 @@ describe('projectStore.create', () => {
 
     const [recent] = await projectStore.listRecent();
 
-    expect(recent?.rootPath).toBe(path.resolve(projectRoot));
+    expect(recent?.rootPath).toBe(await realpath(projectRoot));
 
     const reopened = await projectStore.open(projectRoot);
 
@@ -384,8 +285,10 @@ describe('projectStore.create', () => {
   });
 
   it('derives the manifest id when the caller names none', async () => {
+    const root = path.join(tempRoot, 'unnamed');
+    await mkdir(root);
     const result = await store().create({
-      targetPath: path.join(tempRoot, 'unnamed'),
+      targetPath: root,
       name: 'Procurement',
       templateId: 'blank',
     });
@@ -411,64 +314,22 @@ describe('projectStore.create', () => {
     expect(result.success).toBe(false);
 
     if (!result.success) {
-      expect(result.error).toContain('已有模型');
+      expect(result.error).toContain('WORKSPACE_ALREADY_EXISTS');
     }
   });
 
-  it('writes a single-file bundle and adds the suffix', async () => {
-    const targetPath = path.join(tempRoot, 'mailed-model');
-    const projectStore = store();
-    const result = await projectStore.create({
-      targetPath,
-      name: '订阅履约模型',
-      templateId: 'subscription',
-      kind: 'file',
-    });
-
-    expect(result.success).toBe(true);
-
-    if (!result.success) {
-      return;
-    }
-
-    const bundlePath = `${targetPath}.evidence.json`;
-
-    expect(result.project).toMatchObject({
-      rootPath: path.resolve(bundlePath),
-      modelRoot: path.resolve(bundlePath),
-      kind: 'file',
-    });
-
-    const bundle = JSON.parse(await readFile(bundlePath, 'utf8'));
-
-    expect(bundle.type).toBe('fm_bundle');
-    expect(bundle.manifest.name).toBe('订阅履约模型');
-
-    const reopened = await projectStore.open(bundlePath);
-
-    expect(reopened.success).toBe(true);
-  });
-
-  it('refuses to overwrite an existing bundle file', async () => {
-    const bundlePath = path.join(tempRoot, 'again.evidence.json');
-
-    await writeModelBundle(bundlePath, domainModel());
-
-    const result = await store().create({
-      targetPath: bundlePath,
-      name: '订阅履约模型',
-      kind: 'file',
-    });
-
-    expect(result.success).toBe(false);
-
-    if (!result.success) {
-      expect(result.error).toContain('已存在');
-    }
+  it('rejects a legacy bundle without rewriting it', async () => {
+    const file = path.join(tempRoot, 'legacy.evidence.json');
+    await writeModelBundle(file, domainModel());
+    const original = await readFile(file);
+    expect((await store().open(file)).success).toBe(false);
+    expect((await store().save(file, domainModel())).success).toBe(false);
+    expect(await readFile(file)).toEqual(original);
   });
 
   it('opens a blank start instead of calling it a broken tree', async () => {
     const projectRoot = path.join(tempRoot, 'blank-model');
+    await mkdir(projectRoot);
     const projectStore = store();
 
     await projectStore.create({

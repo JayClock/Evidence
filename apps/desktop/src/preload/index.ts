@@ -51,8 +51,8 @@ const api: EvidenceDesktopApi = {
   projects: {
     showOpenDialog: () =>
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.showOpenDialog),
-    showCreateDialog: (input) =>
-      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.showCreateDialog, input),
+    showCreateDialog: () =>
+      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.showCreateDialog),
     create: (input) => ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.create, input),
     listTemplates: () => ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.templates),
     open: (rootPath) =>

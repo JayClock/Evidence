@@ -13,10 +13,7 @@ import type {
 } from '@evidence-poc/desktop-contracts/ingestion';
 
 import { ClauseSplit } from './ClauseSplit';
-import type {
-  EvidenceProjectSummary,
-  ProjectStorageKind,
-} from '@evidence-poc/desktop-contracts/projects';
+import type { EvidenceProjectSummary } from '@evidence-poc/desktop-contracts/projects';
 
 /** Evidence kinds the panel offers, with the name the method uses for each. */
 const KIND_CHOICES: readonly { kind: DraftEvidence['kind']; label: string }[] =
@@ -79,7 +76,6 @@ export const DraftReviewPanel = ({
   const [evidences, setEvidences] = useState<readonly DraftEvidence[]>(
     draft.evidences,
   );
-  const [kind, setKind] = useState<ProjectStorageKind>('directory');
   const [name, setName] = useState(draft.modelName);
   const [error, setError] = useState<string | null>(null);
   const summaryHeading = useRef<HTMLHeadingElement>(null);
@@ -124,10 +120,7 @@ export const DraftReviewPanel = ({
     setError(null);
 
     try {
-      const dialog = await window.evidenceAPI.projects.showCreateDialog({
-        kind,
-        suggestedName: `${name.trim().length > 0 ? name.trim() : 'ingested'}.evidence.json`,
-      });
+      const dialog = await window.evidenceAPI.projects.showCreateDialog();
 
       if (!dialog.success) {
         if (dialog.canceled !== true) {
@@ -146,7 +139,6 @@ export const DraftReviewPanel = ({
         draft: reviewed,
         targetPath: dialog.targetPath,
         name: name.trim().length > 0 ? name.trim() : '文本导入的履约模型',
-        kind: dialog.kind,
       };
       const compiled = await window.evidenceAPI.ingestion.compile(input);
 
@@ -312,20 +304,6 @@ export const DraftReviewPanel = ({
                 name="modelName"
                 value={name}
               />
-            </label>
-            <label className=" text-[11px] font-medium text-evidence-ink">
-              存放形式
-              <select
-                className="mt-1 w-full rounded-md border border-evidence-line px-2 py-1.5 text-[12px] font-normal"
-                onChange={(event) => {
-                  setKind(event.target.value as ProjectStorageKind);
-                }}
-                name="storageKind"
-                value={kind}
-              >
-                <option value="directory">目录源树</option>
-                <option value="file">单文件</option>
-              </select>
             </label>
           </div>
         </fieldset>

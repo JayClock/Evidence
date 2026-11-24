@@ -137,7 +137,7 @@ export const EditorScreen = ({ rootPath }: { rootPath: string }) => {
   if (state.name === 'loading') {
     return (
       <div className="flex h-full items-center justify-center bg-evidence-surface text-[12px] text-evidence-muted">
-        正在读取 .evidence/fm 源树…
+        正在读取 .evidence/model 源树…
       </div>
     );
   }

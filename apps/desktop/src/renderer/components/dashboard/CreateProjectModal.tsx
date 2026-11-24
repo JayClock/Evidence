@@ -3,7 +3,6 @@ import { useState } from 'react';
 import type {
   CreateProjectInput,
   EvidenceProjectSummary,
-  ProjectStorageKind,
   ProjectTemplateId,
   ProjectTemplateMeta,
 } from '@evidence-poc/desktop-contracts/projects';
@@ -15,20 +14,6 @@ export interface CreateProjectModalProps {
   onCreated: (project: EvidenceProjectSummary) => void;
   onClose: () => void;
 }
-
-const STORAGE_OPTIONS: { kind: ProjectStorageKind; label: string; hint: string }[] =
-  [
-    {
-      kind: 'directory',
-      label: '目录源树',
-      hint: '.evidence/fm/，适合 Git 协同与外部 Agent 同改',
-    },
-    {
-      kind: 'file',
-      label: '单文件',
-      hint: '*.evidence.json，适合发送与轻量备份',
-    },
-  ];
 
 const DEFAULT_NAME = '新履约模型';
 
@@ -46,7 +31,6 @@ export const CreateProjectModal = ({
   const [name, setName] = useState(DEFAULT_NAME);
   const [templateId, setTemplateId] =
     useState<ProjectTemplateId>(initialTemplateId);
-  const [kind, setKind] = useState<ProjectStorageKind>('directory');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -58,10 +42,7 @@ export const CreateProjectModal = ({
     setError(null);
 
     try {
-      const dialog = await window.evidenceAPI.projects.showCreateDialog({
-        kind,
-        suggestedName: `${projectName}.evidence.json`,
-      });
+      const dialog = await window.evidenceAPI.projects.showCreateDialog();
 
       if (!dialog.success) {
         if (dialog.canceled !== true) {
@@ -75,7 +56,6 @@ export const CreateProjectModal = ({
         targetPath: dialog.targetPath,
         name: projectName,
         templateId,
-        kind: dialog.kind,
       };
       const created = await window.evidenceAPI.projects.create(input);
 
@@ -106,7 +86,7 @@ export const CreateProjectModal = ({
         </h2>
         <p className="mt-1 text-[12px] text-evidence-muted">
           先选一个起点模板，模型会写入所选位置的{' '}
-          <code className="text-[11px]">.evidence/fm/</code>
+          <code className="text-[11px]">.evidence/model/</code>
           ，随后在建模工作台打开。
         </p>
 
@@ -125,7 +105,9 @@ export const CreateProjectModal = ({
           value={name}
         />
 
-        <p className="mt-4 text-[12px] font-medium text-evidence-ink">起点模板</p>
+        <p className="mt-4 text-[12px] font-medium text-evidence-ink">
+          起点模板
+        </p>
         <ul className="mt-1.5 grid grid-cols-1 gap-2">
           {templates.map((template) => (
             <li key={template.id}>
@@ -159,32 +141,6 @@ export const CreateProjectModal = ({
             </li>
           ))}
         </ul>
-
-        <p className="mt-4 text-[12px] font-medium text-evidence-ink">存放形式</p>
-        <div className="mt-1.5 flex gap-2">
-          {STORAGE_OPTIONS.map((option) => (
-            <button
-              aria-pressed={kind === option.kind}
-              className={`flex-1 rounded-lg border px-3 py-2 text-left transition ${
-                kind === option.kind
-                  ? 'border-evidence-accent bg-[#f2f6fb]'
-                  : 'border-evidence-line bg-white hover:border-evidence-accent'
-              }`}
-              key={option.kind}
-              onClick={() => {
-                setKind(option.kind);
-              }}
-              type="button"
-            >
-              <span className="block text-[12px] font-medium text-evidence-ink">
-                {option.label}
-              </span>
-              <span className="mt-0.5 block text-[10px] text-evidence-muted">
-                {option.hint}
-              </span>
-            </button>
-          ))}
-        </div>
 
         {error === null ? null : (
           <p className="mt-4 rounded-md border border-[#f3c6c6] bg-[#fdf2f2] px-3 py-2 text-[11px] whitespace-pre-wrap text-[#b42318]">

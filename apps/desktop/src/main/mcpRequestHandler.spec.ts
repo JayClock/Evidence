@@ -34,7 +34,7 @@ const appState = (): McpAppState => ({
   isRunning: true,
   activeProject: {
     rootPath: '/models/procurement',
-    modelRoot: '/models/procurement/.evidence/fm',
+    modelRoot: '/models/procurement/.evidence/model',
     modelId: 'product-procurement',
     modelVersion: '1.1.0',
     documentRevision: 4,

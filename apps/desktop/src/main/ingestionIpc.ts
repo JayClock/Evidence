@@ -137,7 +137,11 @@ export const readDraft = async (
           reader: 'blueprint',
           issues: parsed.issues.map((issue) => issue.message),
         }
-      : { success: false, error: parsed.error, issues: parsed.issues.map((issue) => issue.message) };
+      : {
+          success: false,
+          error: parsed.error,
+          issues: parsed.issues.map((issue) => issue.message),
+        };
   }
 
   const rules = draftFromBusinessText(input.content, {
@@ -164,7 +168,8 @@ export const compileDraft = async (
   input: CompileDraftInput,
   projectStore: Pick<ProjectStore, 'createFromDocument'>,
 ): Promise<CompileDraftOutcome> => {
-  const name = input.name.trim().length > 0 ? input.name.trim() : '文本导入的履约模型';
+  const name =
+    input.name.trim().length > 0 ? input.name.trim() : '文本导入的履约模型';
   const draft: IngestionDraft = {
     ...input.draft,
     modelName: name,
@@ -188,7 +193,6 @@ export const compileDraft = async (
 
   const created = await projectStore.createFromDocument({
     targetPath: input.targetPath,
-    kind: input.kind,
     document: compiled.document,
   });
 

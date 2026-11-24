@@ -1,4 +1,8 @@
 import path from 'node:path';
+import {
+  checkWorkspacePath,
+  openWorkspace,
+} from '@evidence-poc/evidence-model-io';
 
 import { app, BrowserWindow, nativeTheme } from 'electron';
 import { AiConfigService } from './ai/aiConfigService';
@@ -70,7 +74,6 @@ const startApplication = async (): Promise<void> => {
     ),
   });
 
-  const userDataPath = app.getPath('userData');
   const { getAgentDir } = await import('@earendil-works/pi-coding-agent');
   const aiConfig = new AiConfigService({
     agentDir: path.resolve(getAgentDir()),
@@ -79,7 +82,14 @@ const startApplication = async (): Promise<void> => {
   const delivery = createContextDeliveryReactor();
   const agentIpc = registerAgentIpc({
     getModelOptions,
-    sessionsRoot: path.join(userDataPath, 'sessions'),
+    sessionDirectoryFor(rootPath, sender) {
+      if (!ownsEditorProject(sender, rootPath))
+        throw new Error('当前窗口未打开此工作区。');
+      const { root, cache } = openWorkspace(rootPath);
+      const directory = path.join(cache, 'sessions');
+      checkWorkspacePath(root, directory, 'directory');
+      return directory;
+    },
     onLiveModelChanged: (sender, input) => {
       if (!ownsEditorProject(sender, input.rootPath)) return;
       delivery.schedule(sender.id, input, (event) => {
@@ -99,7 +109,7 @@ const startApplication = async (): Promise<void> => {
   });
   const storyIpc = registerStoryIpc({
     getModelOptions,
-    narrationCacheDirectory: path.join(userDataPath, 'story-narration'),
+    ownsProject: ownsEditorProject,
   });
   const aiConfigIpc = registerAiConfigIpc(aiConfig, async () => {
     storyIpc.resetModels();

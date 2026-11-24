@@ -150,6 +150,10 @@ describe('phase 3 control loop', () => {
     const sensors = tools.get('run_sensors');
 
     expect([...tools.keys()]).toEqual([
+      'list_business_archetypes',
+      'inspect_archetype_detail',
+      'instantiate_archetype_template',
+      'inspect_context_map_topology',
       'apply_model_patch',
       'batch_add_evidence_stubs',
       'split_evidence_to_pair',

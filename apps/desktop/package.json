@@ -2,7 +2,7 @@
   "name": "@evidence-poc/desktop",
   "version": "0.0.1",
   "private": true,
-  "description": "Evidence 履约建模桌面端：本地 .evidence/fm 源树的交互式画布",
+  "description": "Evidence 履约建模桌面端：本地 .evidence/model 源树的交互式画布",
   "productName": "Evidence Modeling",
   "main": ".vite/build/main.js",
   "dependencies": {

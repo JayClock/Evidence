@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -8,7 +9,10 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { readModelRoot } from '@evidence-poc/evidence-model-io';
+import {
+  initializeWorkspace,
+  readModelRoot,
+} from '@evidence-poc/evidence-model-io';
 import {
   planContextDelivery,
   type ContextDeliveryPlan,
@@ -26,29 +30,29 @@ const documentOf = async () =>
       ),
     )
   ).bundle;
-beforeEach(() => {
+beforeEach(async () => {
   directory = mkdtempSync(
     path.join(realpathSync(tmpdir()), 'delivery-reactor-'),
   );
-  rootPath = path.join(directory, 'model.evidence.json');
-  writeFileSync(rootPath, 'disk must not be read');
+  rootPath = directory;
+  await initializeWorkspace(rootPath, await documentOf());
 });
 afterEach(() => {
   vi.useRealTimers();
   rmSync(directory, { recursive: true, force: true });
 });
 
-it('uses the live editor snapshot automatically, respects configuration and restores a partial gateway', async () => {
+it('uses the live editor snapshot automatically, ignores the old configuration and restores a partial gateway', async () => {
   const document = await documentOf();
   const reactor = createContextDeliveryReactor({ delay: 1 });
   writeFileSync(
     path.join(directory, '.evidencerc.json'),
     JSON.stringify({ delivery: { outDir: 'generated/contracts' } }),
   );
-  const gateway = path.join(directory, 'generated/contracts/openapi.json');
+  const gateway = path.join(directory, '.evidence/delivery/openapi.json');
   const local = path.join(
     directory,
-    'generated/contracts/services/context.product-procurement/openapi.json',
+    '.evidence/delivery/services/context.product-procurement/openapi.json',
   );
   const publish = vi.fn();
   reactor.schedule(1, { rootPath, revision: 1, document }, publish);
@@ -90,7 +94,7 @@ it('uses the live editor snapshot automatically, respects configuration and rest
   expect(
     JSON.parse(readFileSync(gateway, 'utf8'))['x-evidence-delivery-state'],
   ).toBe('complete');
-  expect(readFileSync(rootPath, 'utf8')).toBe('disk must not be read');
+  expect(existsSync(path.join(directory, 'generated'))).toBe(false);
 });
 
 it('discards superseded plans and cancels writes when an editor detaches', async () => {

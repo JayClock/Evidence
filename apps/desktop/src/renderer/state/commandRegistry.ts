@@ -118,7 +118,7 @@ export const buildCommands = (
     {
       id: 'model.save',
       title: '保存模型',
-      subtitle: '写回 .evidence/fm 源树',
+      subtitle: '写回 .evidence/model 源树',
       category: 'model',
       shortcut: CHORDS.save,
       icon: Save,

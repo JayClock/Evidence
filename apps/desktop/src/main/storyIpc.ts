@@ -17,7 +17,7 @@ import {
   type FlowScenarioTrace,
 } from '@evidence-poc/evidence-model-core';
 import {
-  readModelBundle,
+  openWorkspace,
   readModelDirectory,
 } from '@evidence-poc/evidence-model-io';
 import {
@@ -35,7 +35,6 @@ import {
   type StorySnapshot,
   type StoryWhatIfInput,
 } from '@evidence-poc/desktop-contracts/story';
-import { isBundleProject, modelSourceOf } from './modelSource';
 import { createStoryNarrationCache } from './storyNarrationCache';
 
 export interface StoryIpcOptions {
@@ -43,15 +42,13 @@ export interface StoryIpcOptions {
   createAgent?: typeof createStoryAgent;
   simulate?: typeof simulateWhatIf;
   getModelOptions?: () => Promise<EvidenceModelOptions>;
-  narrationCacheDirectory?: string;
+  ownsProject?: (sender: WebContents, rootPath: string) => boolean;
 }
 
 const readSavedModel = async (
   rootPath: string,
 ): Promise<DomainModelDocument> => {
-  const parsed = isBundleProject(rootPath)
-    ? await readModelBundle(modelSourceOf(rootPath))
-    : await readModelDirectory(modelSourceOf(rootPath));
+  const parsed = await readModelDirectory(openWorkspace(rootPath).model);
   // Structural failures cannot be narrated as a legitimate empty story.
   if (parsed.issues.length > 0)
     throw new Error(parsed.issues.map((issue) => issue.message).join('\n'));
@@ -75,14 +72,11 @@ export const registerStoryIpc = ({
   createAgent = createStoryAgent,
   simulate = simulateWhatIf,
   getModelOptions,
-  narrationCacheDirectory,
+  ownsProject = () => true,
 }: StoryIpcOptions = {}) => {
   const windows = new Map<WebContents, WindowStory>();
   const schedule = createNarrationScheduler();
-  const storeFor =
-    narrationCacheDirectory === undefined
-      ? undefined
-      : createStoryNarrationCache(narrationCacheDirectory);
+  const storeFor = createStoryNarrationCache();
   const stop = (state: WindowStory) => {
     const job = state.job;
     delete state.job;
@@ -93,7 +87,7 @@ export const registerStoryIpc = ({
     let agent: Promise<StoryAgent> | undefined;
     return createStoryNarrator({
       schedule,
-      ...(storeFor ? { store: storeFor(rootPath) } : {}),
+      store: storeFor(rootPath),
       agent: {
         async generate(request) {
           agent ??= Promise.resolve()
@@ -148,7 +142,8 @@ export const registerStoryIpc = ({
           !input.preferredFlowId.trim())
       )
         throw new Error('无效的业务流 ID。');
-      if (sender.isDestroyed()) throw new Error('业务流窗口已关闭。');
+      if (sender.isDestroyed() || !ownsProject(sender, input.rootPath))
+        throw new Error('业务流窗口未打开此项目。');
       const previous = windows.get(sender);
       if (!previous) {
         sender.once('destroyed', () => {

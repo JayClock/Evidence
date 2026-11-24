@@ -12,7 +12,6 @@ import { AiConfigurationProvider } from '../state/AiConfiguration';
 
 import { DashboardScreen } from './DashboardScreen';
 import {
-  defaultTemplates,
   installDesktopApi,
   projectSummary,
 } from '@evidence-poc/desktop-testing/desktopApi';
@@ -24,7 +23,7 @@ describe('DashboardScreen', () => {
     render(<DashboardScreen />);
 
     expect(await screen.findByText('还没有打开过模型')).toBeInTheDocument();
-    expect(screen.getByText('.evidence/fm/')).toBeInTheDocument();
+    expect(screen.getByText('.evidence/model/')).toBeInTheDocument();
   });
 
   it('lists real counts and highlights only the most recent project', async () => {
@@ -32,8 +31,7 @@ describe('DashboardScreen', () => {
       projects: [
         projectSummary(),
         projectSummary({
-          rootPath: '/models/warehouse.evidence.json',
-          kind: 'file',
+          rootPath: '/models/warehouse',
           name: '仓储履约',
           entityCount: 5,
           ruleCount: 0,
@@ -220,13 +218,12 @@ describe('DashboardScreen starters', () => {
       createDialogResult: {
         success: true,
         targetPath: '/models/new-procurement',
-        kind: 'directory',
       },
       createResult: {
         success: true,
         project: projectSummary({
           rootPath: '/models/new-procurement',
-          modelRoot: '/models/new-procurement/.evidence/fm',
+          modelDirectory: '/models/new-procurement/.evidence/model',
           name: '采购履约模型',
         }),
         document: { manifest: {} } as never,
@@ -250,13 +247,10 @@ describe('DashboardScreen starters', () => {
           targetPath: '/models/new-procurement',
           name: '采购履约模型',
           templateId: 'procurement',
-          kind: 'directory',
         },
       ]);
     });
-    expect(api.calls.showCreateDialog).toEqual([
-      { kind: 'directory', suggestedName: '采购履约模型.evidence.json' },
-    ]);
+    expect(api.calls.showCreateDialog).toBe(1);
     expect(api.calls.openEditorWindow).toEqual(['/models/new-procurement']);
     expect(
       await screen.findByText('/models/new-procurement'),
@@ -285,12 +279,11 @@ describe('DashboardScreen starters', () => {
       createDialogResult: {
         success: true,
         targetPath: '/models/taken',
-        kind: 'directory',
       },
       createResult: {
         success: false,
         error:
-          '目标目录已有模型（.evidence/fm/model.json），请直接打开它或换一个目录。',
+          '目标目录已有模型（.evidence/model/model.json），请直接打开它或换一个目录。',
       },
     });
 
@@ -316,39 +309,5 @@ describe('DashboardScreen starters', () => {
     expect(
       await screen.findByRole('dialog', { name: /Smart Ingestion/ }),
     ).toBeInTheDocument();
-  });
-
-  it('switches to a single-file model when asked', async () => {
-    const api = installDesktopApi({
-      projects: [],
-      createDialogResult: {
-        success: true,
-        targetPath: '/models/mailed.evidence.json',
-        kind: 'file',
-      },
-      createResult: {
-        success: true,
-        project: projectSummary({
-          rootPath: '/models/mailed.evidence.json',
-          modelRoot: '/models/mailed.evidence.json',
-          kind: 'file',
-        }),
-        document: { manifest: {} } as never,
-      },
-      templates: defaultTemplates(),
-    });
-
-    render(<DashboardScreen />);
-
-    await screen.findByText('公对公商品采购履约');
-    fireEvent.click(screen.getByRole('button', { name: '新建业务模型' }));
-    fireEvent.click(await screen.findByText('单文件'));
-    fireEvent.click(screen.getByText('选择位置并创建'));
-
-    await waitFor(() => {
-      expect(api.calls.create).toHaveLength(1);
-    });
-    expect(api.calls.create[0]?.kind).toBe('file');
-    expect(api.calls.showCreateDialog[0]?.kind).toBe('file');
   });
 });

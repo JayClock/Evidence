@@ -281,7 +281,7 @@ describe('createAgentRuntime', () => {
     const fake = createFakeSession();
     const runtime = runtimeWith({ transport, fake });
 
-    expect(runtime.modelRoot).toBe('/models/procurement/.evidence/fm');
+    expect(runtime.modelRoot).toBe('/models/procurement/.evidence/model');
     expect(runtime.getSession()).toBeNull();
     expect(fake.starts).toBe(0);
 
@@ -301,7 +301,7 @@ describe('createAgentRuntime', () => {
 
     const created = sessionOptions.at(-1);
 
-    expect(created?.projectRoot).toBe('/models/procurement');
+    expect(created?.projectRoot).toBe('/models/procurement/.evidence');
     expect(created?.extensionFactories).toHaveLength(1);
     // The modeling instructions travel with the session; the runtime neither
     // points at a skill tree nor publishes a path for a shell to read.
@@ -361,7 +361,7 @@ describe('createAgentRuntime', () => {
     expect(outcome.report).toBe(REPORT);
     expect(sensors.calls).toEqual([
       {
-        modelRoot: '/models/procurement/.evidence/fm',
+        modelRoot: '/models/procurement/.evidence/model',
         scopeRefs: ['context.purchase'],
       },
     ]);

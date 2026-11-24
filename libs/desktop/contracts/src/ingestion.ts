@@ -4,7 +4,7 @@ import type {
   IngestionDraft,
 } from '@evidence-poc/evidence-schema';
 
-import type { EvidenceProjectSummary, ProjectStorageKind } from './projects.js';
+import type { EvidenceProjectSummary } from './projects.js';
 
 /**
  * Which reader produced a draft.
@@ -60,7 +60,6 @@ export interface CompileDraftInput {
   targetPath: string;
   name: string;
   modelId?: string;
-  kind: ProjectStorageKind;
 }
 
 export interface CompileDraftResult {

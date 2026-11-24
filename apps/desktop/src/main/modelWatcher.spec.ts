@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -52,7 +52,7 @@ describe('model source watching (real filesystem)', () => {
   });
 
   it('discovers a missing root and survives deletion and recreation of the tree', async () => {
-    const fm = path.join(root, 'absent', '.evidence', 'fm');
+    const fm = path.join(root, 'absent', '.evidence', 'model');
     await start(fm);
     const rule = path.join(fm, 'rules', 'nested', 'one.json');
     const create = async () => {
@@ -83,29 +83,16 @@ describe('model source watching (real filesystem)', () => {
     expect(batches).toEqual([[a, b].sort()]);
   });
 
-  it('keeps observing a bundle after repeated atomic saves and ignores siblings', async () => {
-    const bundle = path.join(root, 'model.evidence.json');
-    await writeFile(bundle, '{}');
-    await start(bundle);
-    for (let i = 1; i <= 2; i++) {
-      const temporary = path.join(root, 'save.tmp');
-      await writeFile(temporary, String(i));
-      await rename(temporary, bundle);
-      await expect.poll(() => batches.length, { timeout: 5000 }).toBe(i);
-    }
-    await writeFile(path.join(root, 'other.evidence.json'), '{}');
-    await delay(400);
-    expect(batches).toEqual([[bundle], [bundle]]);
-  });
-
   it('cancels pending notifications and releases resources on close', async () => {
-    const bundle = path.join(root, 'model.evidence.json');
-    await start(bundle);
-    await writeFile(bundle, '{}');
+    const model = path.join(root, '.evidence/model');
+    await mkdir(model, { recursive: true });
+    const manifest = path.join(model, 'model.json');
+    await start(model);
+    await writeFile(manifest, '{}');
     await delay(30);
     await watcher?.close();
     await watcher?.close();
-    await writeFile(bundle, '{"changed":true}');
+    await writeFile(manifest, '{"changed":true}');
     await delay(500);
     expect(batches).toEqual([]);
   });

@@ -29,18 +29,11 @@ import {
   type SensorsEngine,
 } from '@evidence-poc/evidence-agent';
 import {
-  readModelBundle,
+  openWorkspace,
   readModelDirectory,
+  workspacePaths,
 } from '@evidence-poc/evidence-model-io';
-
-import {
-  isBundleProject,
-  modelSourceOf,
-  projectDirectoryOf,
-} from './modelSource';
 import { createDebouncedSensorRuntime } from './sensorRuntime';
-
-export const MODEL_DIRECTORY = path.join('.evidence', 'fm');
 
 /** How the runtime reaches the renderer without importing Electron. */
 export interface AgentRuntimeTransport {
@@ -108,10 +101,8 @@ export const createAgentRuntime = ({
   getModelOptions,
 }: AgentRuntimeOptions): AgentRuntime => {
   const resolvedRoot = path.resolve(rootPath);
-  // A bundle project keeps the model and `.evidence/` next to the file, so every
-  // path below is resolved from the source form rather than assumed.
-  const modelRoot = modelSourceOf(resolvedRoot);
-  const projectDirectory = projectDirectoryOf(resolvedRoot);
+  const { model: modelRoot, evidence: projectDirectory } =
+    workspacePaths(resolvedRoot);
   // The sensors carry their checks and schemas, so one engine per project needs
   // no install directory: it reads the model and decides.
   const engine = sensors ?? createSensorsEngine();
@@ -238,9 +229,7 @@ export const createAgentRuntime = ({
    */
   const loadDocument = async () =>
     live?.document ??
-    (isBundleProject(resolvedRoot)
-      ? (await readModelBundle(modelRoot)).document
-      : (await readModelDirectory(modelRoot)).document);
+    (await readModelDirectory(openWorkspace(resolvedRoot).model)).document;
 
   let starting: Promise<EvidenceAgentSession> | null = null;
   let modelGeneration = 0;

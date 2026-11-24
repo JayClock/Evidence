@@ -58,7 +58,7 @@ const buildAppState = (context: McpBridgeContext) => ({
   isRunning: true,
   activeProject: {
     rootPath: context.project.rootPath,
-    modelRoot: context.project.modelRoot,
+    modelRoot: context.project.modelDirectory,
     modelId: context.document.manifest.id,
     modelVersion: context.document.manifest.version,
     documentRevision: context.revision,

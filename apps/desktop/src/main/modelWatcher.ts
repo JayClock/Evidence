@@ -2,8 +2,6 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { watch } from 'chokidar';
 
-import { isModelBundlePath } from '@evidence-poc/evidence-model-core';
-
 const SOURCE_TREES = new Set(['entities', 'relationships', 'rules']);
 const DEFAULT_DEBOUNCE_MS = 200;
 
@@ -24,9 +22,7 @@ export const watchModelSource = (
   debounceMs = DEFAULT_DEBOUNCE_MS,
 ): ModelWatcher => {
   const target = path.resolve(source);
-  const bundle = isModelBundlePath(target);
   const relevant = (file: string): boolean => {
-    if (bundle) return file === target;
     const relative = path.relative(target, file);
     return (
       relative === 'model.json' ||
@@ -34,7 +30,7 @@ export const watchModelSource = (
         path.extname(file) === '.json')
     );
   };
-  // Watch an existing ancestor even before first save creates .evidence/fm.
+  // Watch an existing ancestor even before first save creates .evidence/model.
   let watchRoot = path.dirname(target);
   while (!existsSync(watchRoot) && path.dirname(watchRoot) !== watchRoot)
     watchRoot = path.dirname(watchRoot);
@@ -54,7 +50,7 @@ export const watchModelSource = (
           !path.isAbsolute(toTarget))
       )
         return false;
-      if (bundle) return true;
+
       const relative = path.relative(target, file);
       if (!SOURCE_TREES.has(relative.split(path.sep)[0] ?? ''))
         return relative !== 'model.json';
@@ -95,7 +91,3 @@ export const watchModelSource = (
     },
   };
 };
-
-/** Compatibility names retained for callers watching an explicit source kind. */
-export const watchModelDirectory = watchModelSource;
-export const watchModelBundle = watchModelSource;

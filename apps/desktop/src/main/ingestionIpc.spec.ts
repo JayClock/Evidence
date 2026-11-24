@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { compileDraft, readDraft, type IngestionTextGenerator } from './ingestionIpc';
+import {
+  compileDraft,
+  readDraft,
+  type IngestionTextGenerator,
+} from './ingestionIpc';
 
 const BLUEPRINT = `| 阶段 | 业务凭证 | 凭证类型 | 当事人 |
 | :--- | :--- | :--- | :--- |
@@ -50,9 +54,9 @@ describe('reading a draft', () => {
     }
 
     expect(result.reader).toBe('contract');
-    expect(result.annotations?.map((annotation) => annotation.category)).toContain(
-      'boilerplate',
-    );
+    expect(
+      result.annotations?.map((annotation) => annotation.category),
+    ).toContain('boilerplate');
     expect(
       result.draft.things.some((thing) => thing.domainRole === 'calculator'),
     ).toBe(true);
@@ -83,7 +87,10 @@ describe('reading a draft', () => {
   });
 
   it('prefers the model when one is configured', async () => {
-    const result = await readDraft({ kind: 'text', content: '合同条款' }, async () => REPLY);
+    const result = await readDraft(
+      { kind: 'text', content: '合同条款' },
+      async () => REPLY,
+    );
 
     expect(result.success).toBe(true);
 
@@ -97,7 +104,10 @@ describe('reading a draft', () => {
 
   it('falls back to the built-in vocabulary when the model answers nonsense', async () => {
     const result = await readDraft(
-      { kind: 'text', content: '甲乙双方签订《采购协议》后，甲方需在 5 个工作日内支付货款。' },
+      {
+        kind: 'text',
+        content: '甲乙双方签订《采购协议》后，甲方需在 5 个工作日内支付货款。',
+      },
       async () => '抱歉，我读不出来。',
     );
 
@@ -112,9 +122,12 @@ describe('reading a draft', () => {
   });
 
   it('falls back when the model call itself throws', async () => {
-    const result = await readDraft({ kind: 'text', content: '合同条款' }, async () => {
-      throw new Error('没有配置模型');
-    });
+    const result = await readDraft(
+      { kind: 'text', content: '合同条款' },
+      async () => {
+        throw new Error('没有配置模型');
+      },
+    );
 
     expect(result.success).toBe(true);
 
@@ -139,7 +152,7 @@ describe('compiling a reviewed draft', () => {
       success: true as const,
       project: {
         rootPath: '/models/ingested',
-        modelRoot: '/models/ingested/.evidence/fm',
+        modelDirectory: '/models/ingested/.evidence/model',
         name: '云服务采购',
         modelId: 'cloud',
         modelVersion: '0.1.0',
@@ -148,7 +161,12 @@ describe('compiling a reviewed draft', () => {
         ruleCount: 0,
         lastOpenedAt: '2026-01-01T00:00:00.000Z',
       },
-      document: { manifest: {}, entities: [], relationships: [], rules: [] } as never,
+      document: {
+        manifest: {},
+        entities: [],
+        relationships: [],
+        rules: [],
+      } as never,
     })),
   });
 
@@ -165,7 +183,6 @@ describe('compiling a reviewed draft', () => {
         draft: draft.draft,
         targetPath: '/models/ingested',
         name: '采购蓝图',
-        kind: 'directory',
       },
       target,
     );
@@ -194,7 +211,6 @@ describe('compiling a reviewed draft', () => {
         draft: draft.draft,
         targetPath: '/models/x',
         name: '我起的名字',
-        kind: 'directory',
       },
       target,
     );
@@ -222,13 +238,14 @@ describe('compiling a reviewed draft', () => {
         },
         targetPath: '/models/empty',
         name: '空草稿',
-        kind: 'directory',
       },
       target,
     );
 
     expect(outcome.success).toBe(false);
-    expect(outcome.success ? '' : outcome.error).toContain('没有读到可以落地的业务对象');
+    expect(outcome.success ? '' : outcome.error).toContain(
+      '没有读到可以落地的业务对象',
+    );
     expect(target.createFromDocument).not.toHaveBeenCalled();
   });
 
@@ -244,7 +261,6 @@ describe('compiling a reviewed draft', () => {
         draft: draft.draft,
         targetPath: '/models/ingested',
         name: '采购蓝图',
-        kind: 'directory',
       },
       {
         createFromDocument: async () => ({

@@ -59,7 +59,7 @@ const activeRoot = async (renderer: McpRendererChannel): Promise<string> => {
   if (state.activeProject === null) {
     throw new McpRequestError(
       'NO_ACTIVE_PROJECT',
-      '桌面端还没有打开任何 .evidence/fm 项目。',
+      '桌面端还没有打开任何 .evidence/model 项目。',
     );
   }
 

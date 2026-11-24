@@ -228,7 +228,7 @@ export const DashboardScreen = () => {
                   </h1>
                   {!recents.loading && !recents.error ? (
                     <p className="text-xs text-workbench-muted">
-                      共 {projects.length} 个项目 · 由本地 .evidence/fm 驱动
+                      共 {projects.length} 个项目 · 由本地 .evidence/model 驱动
                     </p>
                   ) : null}
                 </div>
@@ -257,8 +257,8 @@ export const DashboardScreen = () => {
                       还没有打开过模型
                     </p>
                     <p className="text-xs text-workbench-muted">
-                      打开包含 <code>.evidence/fm/</code> 的项目目录或 Evidence
-                      单文件，也可以用起点模板或业务文档创建模型。
+                      打开包含 <code>.evidence/model/</code>{' '}
+                      的工作区，也可以在目标目录用模板或业务文档初始化。
                     </p>
                   </Card>
                 ) : null}

@@ -6,8 +6,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
 import {
-  writeModelBundle,
-  writeModelDirectory,
+  initializeWorkspace,
+  workspacePaths,
 } from '@evidence-poc/evidence-model-io';
 import { DomainModelDocumentSchema } from '@evidence-poc/evidence-schema';
 
@@ -108,30 +108,24 @@ describe('story IPC', () => {
     expect(getModelOptions).not.toHaveBeenCalled();
   });
 
-  it.each(['directory', 'bundle'])(
-    'reads saved %s projects through the real adapters',
-    async (kind) => {
-      const root = await mkdtemp(path.join(os.tmpdir(), 'story-ipc-'));
-      const ipc = registerStoryIpc();
-      try {
-        const rootPath =
-          kind === 'bundle' ? path.join(root, 'model.evidence.json') : root;
-        if (kind === 'bundle') await writeModelBundle(rootPath, model());
-        else
-          await writeModelDirectory(path.join(root, '.evidence/fm'), model());
-        const result = await invoke<StorySnapshot>(STORY_IPC_CHANNELS.LOAD, {
-          rootPath,
-        });
-        expect(result.flows).toHaveLength(collectFlowScenarios(model()).length);
-        expect(result.selected?.projection.scenes).toHaveLength(
-          result.selected!.flow.steps.length,
-        );
-      } finally {
-        ipc.dispose();
-        await rm(root, { recursive: true, force: true });
-      }
-    },
-  );
+  it('reads a saved workspace through the real adapters', async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'story-ipc-'));
+    const ipc = registerStoryIpc();
+    try {
+      const rootPath = root;
+      await initializeWorkspace(rootPath, model());
+      const result = await invoke<StorySnapshot>(STORY_IPC_CHANNELS.LOAD, {
+        rootPath,
+      });
+      expect(result.flows).toHaveLength(collectFlowScenarios(model()).length);
+      expect(result.selected?.projection.scenes).toHaveLength(
+        result.selected!.flow.steps.length,
+      );
+    } finally {
+      ipc.dispose();
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 
   it('streams narration only after an explicit start and releases handlers on disposal', async () => {
     const generate = vi.fn(async () => ({
@@ -168,8 +162,9 @@ describe('story IPC', () => {
     const directory = await mkdtemp(
       path.join(os.tmpdir(), 'story-ipc-drafts-'),
     );
-    const rootPath = '/models/p';
+    const rootPath = directory;
     const document = model();
+    await initializeWorkspace(rootPath, document);
     const generate = vi.fn(async () => ({ narrative: '按示例核对采购单据。' }));
     const getModelOptions = vi.fn(async () => ({}));
     const load = (window: ReturnType<typeof sender>, model = document) =>
@@ -201,7 +196,6 @@ describe('story IPC', () => {
         .filter((event) => event.kind === 'step');
     };
     let ipc = register({
-      narrationCacheDirectory: directory,
       getModelOptions,
       createAgent: () => ({ generate }),
     });
@@ -213,14 +207,15 @@ describe('story IPC', () => {
       expect(generate).toHaveBeenCalledTimes(count);
       await vi.waitFor(async () =>
         expect(
-          (await readdir(directory)).filter((file) => file.endsWith('.json')),
+          (await readdir(workspacePaths(rootPath).cache)).filter((file) =>
+            file.endsWith('.json'),
+          ),
         ).toHaveLength(1),
       );
       ipc.dispose();
       generate.mockClear();
       getModelOptions.mockClear();
       ipc = register({
-        narrationCacheDirectory: directory,
         getModelOptions,
         createAgent: () => ({ generate }),
       });

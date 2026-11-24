@@ -1,6 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { mkdir, open, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  checkWorkspacePath,
+  openWorkspace,
+  workspacePaths,
+} from '@evidence-poc/evidence-model-io';
 import type { StoryNarrationStore } from '@evidence-poc/evidence-agent';
 
 const VERSION = 1;
@@ -53,21 +58,29 @@ const readEntries = async (
   return entries;
 };
 
-/** Per-project, disposable drafts in the desktop's own user-data directory. */
-export const createStoryNarrationCache = (directory: string) => {
+/** Disposable drafts local to the selected workspace. */
+export const createStoryNarrationCache = () => {
   const writes = new Map<string, Promise<void>>();
   return (rootPath: string): StoryNarrationStore => {
-    const project = createHash('sha256')
-      .update(path.resolve(rootPath))
-      .digest('hex');
-    const file = path.join(directory, `${project}.json`);
+    const { root, cache: directory } = workspacePaths(rootPath);
+    const file = path.join(directory, 'narration.json');
+    const check = () => {
+      openWorkspace(root);
+      checkWorkspacePath(root, file, 'file');
+    };
     return {
       async read(signal) {
         await writes.get(file)?.catch(() => undefined);
+        try {
+          check();
+        } catch {
+          return new Map();
+        }
         return readEntries(file, signal);
       },
       write(generated) {
         const save = async () => {
+          check();
           const merged = await readEntries(file);
           for (const [key, narrative] of generated) {
             if (!validKey(key) || !validNarrative(narrative)) continue;
@@ -76,7 +89,7 @@ export const createStoryNarrationCache = (directory: string) => {
           }
           const entries = [...merged].slice(-ENTRY_LIMIT);
           await mkdir(directory, { recursive: true, mode: 0o700 });
-          const temp = `${file}.${randomUUID()}.tmp`;
+          const temp = `${file}.tmp-${randomUUID()}`;
           try {
             await writeFile(
               temp,

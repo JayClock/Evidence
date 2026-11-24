@@ -1,17 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { MODEL_VERSION_ISSUE_CODE } from '@evidence-poc/evidence-model-core';
 import {
-  isModelBundlePath,
-  MODEL_VERSION_ISSUE_CODE,
-} from '@evidence-poc/evidence-model-core';
-import {
-  isModelBundleFile,
-  readModelBundle,
+  initializeWorkspace,
+  openWorkspace,
   readModelDirectory,
-  writeModelBundle,
   writeModelDirectory,
+  workspacePaths,
 } from '@evidence-poc/evidence-model-io';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
@@ -28,13 +25,7 @@ import {
   deriveModelId,
 } from './templates/starterModels';
 
-/** Relative location of the FM source tree inside a project root. */
-export const MODEL_DIRECTORY = path.join('.evidence', 'fm');
-export const MODEL_MANIFEST_FILE = 'model.json';
-export const RECENT_PROJECTS_FILE = 'recent-projects.json';
-
-/** Suffix the open dialog and error messages name for single-file models. */
-export const MODEL_BUNDLE_LABEL = '*.evidence.json';
+export const RECENT_PROJECTS_FILE = 'workspace-recents.json';
 
 const MAX_RECENT_PROJECTS = 20;
 
@@ -47,10 +38,10 @@ export interface ProjectStoreOptions {
 export interface ProjectStore {
   listRecent(): Promise<readonly EvidenceProjectSummary[]>;
   open(rootPath: string): Promise<OpenProjectResult>;
-  /** Writes a starter model to a new folder or bundle file. */
+  /** Writes a starter model to a new workspace. */
   create(input: CreateProjectInput): Promise<CreateProjectResult>;
   /**
-   * Writes an already-built document to a new folder or bundle file.
+   * Initializes a workspace with an already-built document.
    *
    * The ingestion path compiles a document before it knows where it goes, so the
    * store has to accept one; the caller keeps the manifest name and id.
@@ -66,11 +57,8 @@ export interface ProjectStore {
   fingerprint(rootPath: string): Promise<string | null>;
 }
 
-/** Absolute path of `<rootPath>/.evidence/fm`. */
-export const modelRootFor = (rootPath: string): string =>
-  path.join(path.resolve(rootPath), MODEL_DIRECTORY);
-
-const modelRootOf = (rootPath: string): string => modelRootFor(rootPath);
+export const modelRootFor = (rootPath: string) =>
+  workspacePaths(rootPath).model;
 
 const toMessage = (error: unknown): string =>
   error instanceof Error ? error.message : '未知错误。';
@@ -102,13 +90,6 @@ const writeAtomically = async (
   await rename(temporary, absolute);
 };
 
-/** True when something already exists at the path. */
-const exists = async (absolute: string): Promise<boolean> =>
-  stat(absolute).then(
-    () => true,
-    () => false,
-  );
-
 const isReadableSource = (parsed: {
   document: { entities: readonly unknown[] };
   issues: readonly { code?: string }[];
@@ -116,42 +97,13 @@ const isReadableSource = (parsed: {
   !parsed.issues.some(({ code }) => code === MODEL_VERSION_ISSUE_CODE) &&
   (parsed.issues.length === 0 || parsed.document.entities.length > 0);
 
-/** Where a starter document lands, before anything is written. */
-interface StarterTarget {
-  kind: 'directory' | 'file';
-  /** Absolute folder of the source tree, or the absolute bundle file path. */
-  rootPath: string;
-}
-
-const resolveStarterTarget = (input: {
-  targetPath: string;
-  kind?: 'directory' | 'file';
-}): StarterTarget => {
-  if (input.kind !== 'file') {
-    return { kind: 'directory', rootPath: path.resolve(input.targetPath) };
-  }
-
-  const targetPath = path.resolve(input.targetPath);
-
-  return {
-    kind: 'file',
-    rootPath: isModelBundlePath(targetPath)
-      ? targetPath
-      : `${targetPath}.evidence.json`,
-  };
-};
-
 const summarize = (
   rootPath: string,
   document: DomainModelDocument,
   lastOpenedAt: string,
-  kind: 'directory' | 'file' = 'directory',
 ): EvidenceProjectSummary => ({
-  rootPath: path.resolve(rootPath),
-  // A bundle project has no `.evidence/fm`: the file itself is the model
-  // source every reader (scripts, MCP, canvas) is pointed at.
-  modelRoot: kind === 'file' ? path.resolve(rootPath) : modelRootOf(rootPath),
-  kind,
+  rootPath,
+  modelDirectory: modelRootFor(rootPath),
   name: document.manifest.name,
   modelId: document.manifest.id,
   modelVersion: document.manifest.version,
@@ -185,48 +137,12 @@ export const createProjectStore = ({
     );
   };
 
-  /**
-   * Writes one document to a new source tree or bundle file.
-   *
-   * Refusing an existing target matters more than it looks: silently
-   * overwriting is how a half-written model replaces a real one, so both source
-   * forms fail with the path the user should open instead.
-   */
   const writeProject = async (
-    target: StarterTarget,
+    target: string,
     document: DomainModelDocument,
   ): Promise<CreateProjectResult> => {
-    if (target.kind === 'file') {
-      if (await exists(target.rootPath)) {
-        return {
-          success: false,
-          error: `目标文件已存在：${target.rootPath}，请直接打开它或换一个位置。`,
-        };
-      }
-
-      await mkdir(path.dirname(target.rootPath), { recursive: true });
-      await writeModelBundle(target.rootPath, document);
-    } else {
-      const modelRoot = modelRootOf(target.rootPath);
-
-      if (await exists(path.join(modelRoot, MODEL_MANIFEST_FILE))) {
-        return {
-          success: false,
-          error: `目标目录已有模型（${path.join(MODEL_DIRECTORY, MODEL_MANIFEST_FILE)}），请直接打开它或换一个目录。`,
-        };
-      }
-
-      await mkdir(modelRoot, { recursive: true });
-      await writeModelDirectory(modelRoot, document);
-    }
-
-    const project = summarize(
-      target.rootPath,
-      document,
-      now().toISOString(),
-      target.kind,
-    );
-
+    const { root } = await initializeWorkspace(target, document);
+    const project = summarize(root, document, now().toISOString());
     await remember(project);
 
     return { success: true, project, document };
@@ -244,7 +160,7 @@ export const createProjectStore = ({
           modelId: input.modelId ?? deriveModelId(input.name),
         });
 
-        return await writeProject(resolveStarterTarget(input), document);
+        return await writeProject(input.targetPath, document);
       } catch (error) {
         return { success: false, error: toMessage(error) };
       }
@@ -252,7 +168,7 @@ export const createProjectStore = ({
 
     async createFromDocument(input) {
       try {
-        return await writeProject(resolveStarterTarget(input), input.document);
+        return await writeProject(input.targetPath, input.document);
       } catch (error) {
         return { success: false, error: toMessage(error) };
       }
@@ -260,45 +176,8 @@ export const createProjectStore = ({
 
     async open(rootPath) {
       try {
-        if (await isModelBundleFile(rootPath)) {
-          const parsed = await readModelBundle(rootPath);
-
-          if (!isReadableSource(parsed)) {
-            return {
-              success: false,
-              error: parsed.issues
-                .map((issue) => `${issue.path}: ${issue.message}`)
-                .join('\n'),
-            };
-          }
-
-          const project = summarize(
-            rootPath,
-            parsed.document,
-            now().toISOString(),
-            'file',
-          );
-
-          await remember(project);
-
-          return {
-            success: true,
-            project,
-            document: parsed.document,
-            issues: parsed.issues,
-          };
-        }
-
-        const modelRoot = modelRootOf(rootPath);
-        const manifestPath = path.join(modelRoot, MODEL_MANIFEST_FILE);
-
-        await stat(manifestPath).catch(() => {
-          throw new Error(
-            `未找到 ${path.join(MODEL_DIRECTORY, MODEL_MANIFEST_FILE)}，请选择一个包含 .evidence/fm 源树的项目，或一个 ${MODEL_BUNDLE_LABEL} 单文件。`,
-          );
-        });
-
-        const parsed = await readModelDirectory(modelRoot);
+        const { root, model } = openWorkspace(rootPath);
+        const parsed = await readModelDirectory(model);
 
         if (!isReadableSource(parsed)) {
           return {
@@ -309,11 +188,7 @@ export const createProjectStore = ({
           };
         }
 
-        const project = summarize(
-          rootPath,
-          parsed.document,
-          now().toISOString(),
-        );
+        const project = summarize(root, parsed.document, now().toISOString());
 
         await remember(project);
 
@@ -330,25 +205,8 @@ export const createProjectStore = ({
 
     async save(rootPath, document) {
       try {
-        if (isModelBundlePath(rootPath)) {
-          // The document the renderer holds already carries the bundle extras
-          // (`readme`, inline examples), so writing it back stays lossless.
-          const written = await writeModelBundle(rootPath, document);
-
-          return {
-            success: true,
-            written: written.written ? [path.basename(rootPath)] : [],
-            unchanged: written.written ? [] : [path.basename(rootPath)],
-            removed: [],
-            savedAt: now().toISOString(),
-          };
-        }
-
-        const modelRoot = modelRootOf(rootPath);
-
-        await mkdir(modelRoot, { recursive: true });
-
-        const result = await writeModelDirectory(modelRoot, document);
+        const { model } = openWorkspace(rootPath);
+        const result = await writeModelDirectory(model, document);
 
         return {
           success: true,
@@ -363,16 +221,9 @@ export const createProjectStore = ({
     },
 
     async fingerprint(rootPath) {
-      if (isModelBundlePath(rootPath)) {
-        const content = await readFile(rootPath, 'utf8').catch(() => null);
-
-        return content === null
-          ? null
-          : createHash('sha1').update(content).digest('hex');
-      }
-
-      const modelRoot = modelRootOf(rootPath);
-      const parsed = await readModelDirectory(modelRoot).catch(() => null);
+      const parsed = await Promise.resolve()
+        .then(() => readModelDirectory(openWorkspace(rootPath).model))
+        .catch(() => null);
 
       if (parsed === null || parsed.files.length === 0) {
         return null;

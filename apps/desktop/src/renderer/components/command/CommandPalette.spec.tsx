@@ -9,7 +9,7 @@ const commands: readonly CommandItem[] = [
   {
     id: 'model.save',
     title: '保存模型',
-    subtitle: '写回 .evidence/fm 源树',
+    subtitle: '写回 .evidence/model 源树',
     category: 'model',
     shortcut: '⌘+S',
     icon: Save,
@@ -64,7 +64,7 @@ describe('CommandPalette', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('核心操作')).toBeInTheDocument();
     expect(screen.getByText('保存模型')).toBeInTheDocument();
-    expect(screen.getByText('写回 .evidence/fm 源树')).toBeInTheDocument();
+    expect(screen.getByText('写回 .evidence/model 源树')).toBeInTheDocument();
     expect(screen.getByText('⌘')).toBeInTheDocument();
   });
 

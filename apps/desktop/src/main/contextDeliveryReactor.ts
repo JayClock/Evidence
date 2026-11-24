@@ -1,13 +1,14 @@
-import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import {
-  contextOutputDirectory,
   planContextDelivery,
   writeContextDelivery,
 } from '@evidence-poc/evidence-api';
-import { modelSourceOf, projectDirectoryOf } from './modelSource';
+import {
+  checkWorkspacePath,
+  openWorkspace,
+} from '@evidence-poc/evidence-model-io';
 
 interface DraftRevision {
   rootPath: string;
@@ -23,27 +24,6 @@ type Lane = {
   revision: number;
   timer?: ReturnType<typeof setTimeout>;
 };
-
-function configuredDirectory(project: string): string {
-  const file = path.join(project, '.evidencerc.json');
-  const stat = lstatSync(file, { throwIfNoEntry: false });
-  if (!stat) return contextOutputDirectory(project);
-  if (!stat.isFile()) throw new Error('.evidencerc.json 必须是普通文件。');
-  const config = JSON.parse(readFileSync(file, 'utf8')) as {
-    'delivery.outDir'?: unknown;
-    delivery?: { outDir?: unknown };
-  } | null;
-  if (!config || typeof config !== 'object' || Array.isArray(config))
-    throw new Error('.evidencerc.json 必须是对象。');
-  const flat = config['delivery.outDir'];
-  const nested = config.delivery?.outDir;
-  if (flat !== undefined && nested !== undefined)
-    throw new Error('请只声明一个 delivery.outDir。');
-  const out = flat === undefined ? nested : flat;
-  if (out !== undefined && typeof out !== 'string')
-    throw new Error('delivery.outDir 必须是项目内相对路径。');
-  return contextOutputDirectory(project, out);
-}
 
 /** One latest-revision lane per authorized editor. No IPC write entry point. */
 export function createContextDeliveryReactor({
@@ -84,16 +64,7 @@ export function createContextDeliveryReactor({
     }
     if (!lane) {
       try {
-        const project = realpathSync(projectDirectoryOf(input.rootPath));
-        const source = realpathSync(modelSourceOf(input.rootPath));
-        const relative = path.relative(project, source);
-        if (
-          !relative ||
-          relative === '..' ||
-          relative.startsWith(`..${path.sep}`) ||
-          path.isAbsolute(relative)
-        )
-          throw new Error('模型源不在当前项目内。');
+        const { root: project, model: source } = openWorkspace(input.rootPath);
         if (owners.has(source)) throw new Error('另一个窗口正在同步此模型。');
         lane = { rootPath: input.rootPath, project, source, revision: -1 };
         lanes.set(owner, lane);
@@ -113,20 +84,8 @@ export function createContextDeliveryReactor({
       try {
         const projection = await plan(input.document);
         if (!current()) return;
-        const directory = configuredDirectory(active.project);
-        const overlaps = (parent: string, child: string) => {
-          const relative = path.relative(parent, child);
-          return (
-            relative !== '..' &&
-            !relative.startsWith(`..${path.sep}`) &&
-            !path.isAbsolute(relative)
-          );
-        };
-        if (
-          overlaps(active.source, directory) ||
-          overlaps(directory, active.source)
-        )
-          throw new Error('API 输出目录与模型源重叠。');
+        const { delivery: directory } = openWorkspace(active.project);
+        checkWorkspacePath(active.project, directory, 'directory');
         const { synced, blocked } = write(directory, projection, active.source);
         emit({
           kind: 'synced',

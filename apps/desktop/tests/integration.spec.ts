@@ -31,7 +31,7 @@ const withFixtureCopy = async <T>(
   const temporaryRoot = await mkdtemp(
     path.join(os.tmpdir(), 'evidence-desktop-e2e-'),
   );
-  const modelRoot = path.join(temporaryRoot, '.evidence', 'fm');
+  const modelRoot = path.join(temporaryRoot, '.evidence', 'model');
 
   await cp(FIXTURE_ROOT, modelRoot, { recursive: true });
 
@@ -126,7 +126,7 @@ describe('product-procurement end to end', () => {
       }
 
       const reparsed = await readModelDirectory(
-        path.join(projectRoot, '.evidence', 'fm'),
+        path.join(projectRoot, '.evidence', 'model'),
       );
 
       expect(reparsed.issues).toEqual([]);
@@ -164,7 +164,7 @@ describe('product-procurement end to end', () => {
 
   it('commits the edited tree with the same bytes on a second save', async () => {
     await withFixtureCopy(async (projectRoot) => {
-      const modelRoot = path.join(projectRoot, '.evidence', 'fm');
+      const modelRoot = path.join(projectRoot, '.evidence', 'model');
       const parsed = await readModelDirectory(modelRoot);
       const session = createModelSession({ document: parsed.document });
       const contract = parsed.document.entities.find(

@@ -282,7 +282,6 @@ describe('IngestDraftModal', () => {
       createDialogResult: {
         success: true,
         targetPath: '/models/new',
-        kind: 'directory',
       },
       compileResult: {
         success: true,
@@ -343,7 +342,6 @@ describe('IngestDraftModal', () => {
       createDialogResult: {
         success: true,
         targetPath: '/models/new',
-        kind: 'directory',
       },
       compileResult: {
         success: true,
@@ -398,7 +396,6 @@ describe('IngestDraftModal', () => {
       createDialogResult: {
         success: true,
         targetPath: '/models/new',
-        kind: 'directory',
       },
       compileResult: {
         success: true,

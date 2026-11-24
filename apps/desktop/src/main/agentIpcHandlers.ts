@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { ipcMain, type WebContents } from 'electron';
 import {
@@ -23,7 +22,7 @@ import {
 export interface AgentIpcOptions {
   createRuntime?: typeof createAgentRuntime;
   getModelOptions?: AgentRuntimeOptions['getModelOptions'];
-  sessionsRoot?: string;
+  sessionDirectoryFor?: (root: string, sender: WebContents) => string;
   onLiveModelChanged?: (sender: WebContents, input: LiveDeliveryInput) => void;
   onEditorDetached?: (sender: WebContents, rootPath: string) => void;
 }
@@ -42,7 +41,7 @@ const toMessage = (error: unknown): string =>
 export const registerAgentIpc = ({
   createRuntime = createAgentRuntime,
   getModelOptions,
-  sessionsRoot,
+  sessionDirectoryFor,
   onLiveModelChanged,
   onEditorDetached,
 }: AgentIpcOptions = {}) => {
@@ -65,9 +64,7 @@ export const registerAgentIpc = ({
     const send = (channel: string, payload: object) => {
       if (!sender.isDestroyed()) sender.send(channel, { rootPath, ...payload });
     };
-    const sessionDirectory = sessionsRoot
-      ? path.join(sessionsRoot, createHash('sha256').update(root).digest('hex'))
-      : undefined;
+    const sessionDirectory = sessionDirectoryFor?.(root, sender);
     const runtime = createRuntime({
       rootPath,
       getModelOptions,

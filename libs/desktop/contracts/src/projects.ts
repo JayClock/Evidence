@@ -1,21 +1,9 @@
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
-/** One local model source the desktop app can open. */
+/** A directory that owns a canonical .evidence workspace. */
 export interface EvidenceProjectSummary {
-  /**
-   * Absolute path of the repository or folder holding `.evidence/fm`, or of the
-   * single `*.evidence.json` bundle when `kind` is `'file'`.
-   */
   rootPath: string;
-  /**
-   * Absolute path of `.evidence/fm`, or of the bundle file itself.
-   *
-   * Scripts and MCP tools read this path, so a bundle and a tree are
-   * interchangeable as long as the reader accepts both.
-   */
-  modelRoot: string;
-  /** Which source form `rootPath` names; older entries default to a tree. */
-  kind?: 'directory' | 'file';
+  modelDirectory: string;
   name: string;
   modelId: string;
   modelVersion: string;
@@ -60,7 +48,7 @@ export type OpenProjectDialogResult =
   | { success: false; canceled: true }
   | { success: false; canceled?: false; error: string };
 
-/** Emitted when `.evidence/fm` changes outside the app (git, scripts, agent). */
+/** Emitted when `.evidence/model` changes outside the app (git, scripts, agent). */
 export interface ProjectChangedEvent {
   rootPath: string;
   changedAt: string;
@@ -119,7 +107,7 @@ export interface DeliveryPreview {
 /**
  * Starter models a new project can be seeded with.
  *
- * Every id but `blank` ships a complete, statically valid `.evidence/fm` tree so
+ * Every id but `blank` ships a complete, statically valid `.evidence/model` tree so
  * a first-time reader sees Contracts, Fulfillment pairs and Evidence instead of
  * an empty canvas.
  */
@@ -141,25 +129,16 @@ export interface ProjectTemplateMeta {
   ruleCount: number;
 }
 
-/** Where the new model is written: a source tree or a single bundle file. */
-export type ProjectStorageKind = 'directory' | 'file';
-
 export interface CreateProjectInput {
-  /** Absolute folder of the source tree, or the absolute bundle file path. */
+  /** Absolute path of the selected workspace directory. */
   targetPath: string;
-  /** Manifest name, used as the project label. */
   name: string;
-  /** Manifest id; derived from the name when the caller omits it. */
   modelId?: string;
   templateId?: ProjectTemplateId;
-  kind?: ProjectStorageKind;
 }
 
-/** A document a caller already compiled, plus where it should be written. */
 export interface CreateProjectDocumentInput {
-  /** Absolute folder of the source tree, or the absolute bundle file path. */
   targetPath: string;
-  kind?: ProjectStorageKind;
   /** The compiled model; its manifest supplies the name and id. */
   document: DomainModelDocument;
 }
@@ -172,15 +151,8 @@ export type CreateProjectResult =
     }
   | { success: false; error: string };
 
-/** What the create dialog needs to pick a destination. */
-export interface CreateProjectDialogInput {
-  kind: ProjectStorageKind;
-  /** Baseline file name the save dialog starts from. */
-  suggestedName?: string;
-}
-
 export type CreateProjectDialogResult =
-  | { success: true; targetPath: string; kind: ProjectStorageKind }
+  | { success: true; targetPath: string }
   | { success: false; canceled: true }
   | { success: false; canceled?: false; error: string };
 

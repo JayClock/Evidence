@@ -116,7 +116,11 @@ describe('agent transaction IPC', () => {
       dispose,
     }));
     const sessionsRoot = path.resolve('desktop-sessions');
-    const binding = registerAgentIpc({ createRuntime, sessionsRoot });
+    const binding = registerAgentIpc({
+      createRuntime,
+      sessionDirectoryFor: (root) =>
+        path.join(sessionsRoot, path.basename(root)),
+    });
     try {
       invoke(channels.modelChanged, owner, initial);
       invoke(channels.modelChanged, owner, {

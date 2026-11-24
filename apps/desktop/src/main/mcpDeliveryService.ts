@@ -5,7 +5,8 @@ import type {
 import type { DeliveryBundle } from '@evidence-poc/evidence-api';
 
 import { readDelivery } from './deliveryProjection';
-import { modelSourceOf, projectDirectoryOf } from './modelSource';
+import { openWorkspace } from '@evidence-poc/evidence-model-io';
+import { modelSourceOf } from './modelSource';
 
 /**
  * The two MCP reads that answer "what does this model become".
@@ -58,7 +59,9 @@ export const createMcpDeliveryService = (
   build: (modelRoot: string) => Promise<DeliveryBundle> = readDelivery,
 ): McpDeliveryService => {
   const modelRootOf = (rootPath: string): string =>
-    modelSourceOf(projectDirectoryOf(rootPath));
+    build === readDelivery
+      ? openWorkspace(rootPath).model
+      : modelSourceOf(rootPath);
 
   return {
     topology: async (rootPath) =>

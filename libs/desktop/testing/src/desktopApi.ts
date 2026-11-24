@@ -25,7 +25,6 @@ import type {
   McpStatus,
 } from '@evidence-poc/desktop-contracts/mcpIpc';
 import type {
-  CreateProjectDialogInput,
   CreateProjectDialogResult,
   CreateProjectInput,
   CreateProjectResult,
@@ -39,7 +38,7 @@ export const projectSummary = (
   overrides: Partial<EvidenceProjectSummary> = {},
 ): EvidenceProjectSummary => ({
   rootPath: '/models/procurement',
-  modelRoot: '/models/procurement/.evidence/fm',
+  modelDirectory: '/models/procurement/.evidence/model',
   name: '商品采购（Product Procurement）',
   modelId: 'product-procurement',
   modelVersion: '1.1.0',
@@ -131,7 +130,7 @@ export interface DesktopApiMock extends EvidenceDesktopApi {
     save: string[];
     openEditorWindow: string[];
     showOpenDialog: number;
-    showCreateDialog: CreateProjectDialogInput[];
+    showCreateDialog: number;
     create: CreateProjectInput[];
     prompt: AgentPromptInput[];
     steer: AgentSteerInput[];
@@ -211,7 +210,7 @@ export const installDesktopApi = ({
     save: [],
     openEditorWindow: [],
     showOpenDialog: 0,
-    showCreateDialog: [],
+    showCreateDialog: 0,
     create: [],
     prompt: [],
     steer: [],
@@ -355,8 +354,8 @@ export const installDesktopApi = ({
 
         return dialogResult;
       },
-      showCreateDialog: async (input) => {
-        calls.showCreateDialog.push(input);
+      showCreateDialog: async () => {
+        calls.showCreateDialog += 1;
 
         return createDialogResult;
       },

@@ -14,7 +14,6 @@ import type {
 import type { EvidenceMcpApi } from './mcpIpc.js';
 import type { EvidenceStoryApi } from './story.js';
 import type {
-  CreateProjectDialogInput,
   CreateProjectDialogResult,
   CreateProjectInput,
   CreateProjectResult,
@@ -22,7 +21,6 @@ import type {
   OpenProjectDialogResult,
   OpenProjectResult,
   ProjectChangedEvent,
-  ProjectStorageKind,
   ProjectTemplateId,
   ProjectTemplateMeta,
   ProjectTemplatesResult,
@@ -64,9 +62,7 @@ export interface EvidenceDesktopApi {
   projects: {
     showOpenDialog: () => Promise<OpenProjectDialogResult>;
     /** Picks the folder or bundle path a new project is written to. */
-    showCreateDialog: (
-      input: CreateProjectDialogInput,
-    ) => Promise<CreateProjectDialogResult>;
+    showCreateDialog: () => Promise<CreateProjectDialogResult>;
     /** Writes a starter model to `targetPath` and remembers the project. */
     create: (input: CreateProjectInput) => Promise<CreateProjectResult>;
     /** Starter templates the dashboard offers, with their real counts. */
@@ -76,7 +72,7 @@ export interface EvidenceDesktopApi {
     listRecent: () => Promise<RecentProjectsResult>;
     /** Opens (or focuses) the model workspace window for a project root. */
     openEditorWindow: (rootPath: string) => Promise<void>;
-    /** Subscribes to external `.evidence/fm` changes; returns an unsubscribe. */
+    /** Subscribes to external `.evidence/model` changes; returns an unsubscribe. */
     onChanged: (listener: (event: ProjectChangedEvent) => void) => () => void;
     /** Read-only authoring preview; it never triggers disk sync. */
     deliveryLivePreview: (
@@ -135,7 +131,6 @@ export type {
   OpenProjectDialogResult,
   OpenProjectResult,
   ProjectChangedEvent,
-  ProjectStorageKind,
   ProjectTemplateId,
   ProjectTemplateMeta,
   ProjectTemplatesResult,

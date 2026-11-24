@@ -3,14 +3,12 @@ import {
   dialog,
   ipcMain,
   type OpenDialogOptions,
-  type SaveDialogOptions,
   type WebContents,
 } from 'electron';
 
 import { STORY_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/story';
 import { EVIDENCE_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/ipc';
 import type {
-  CreateProjectDialogInput,
   CreateProjectDialogResult,
   CreateProjectInput,
   SaveProjectInput,
@@ -18,11 +16,8 @@ import type {
 
 import { watchModelSource, type ModelWatcher } from './modelWatcher';
 import { modelSourceOf } from './modelSource';
-import { MODEL_BUNDLE_LABEL, type ProjectStore } from './projectStore';
+import type { ProjectStore } from './projectStore';
 import { listProjectTemplates } from './templates/starterModels';
-
-/** Default file name the save dialog starts from for a single-file model. */
-const DEFAULT_BUNDLE_NAME = 'model.evidence.json';
 
 export interface ProjectIpcOptions {
   projectStore: ProjectStore;
@@ -71,10 +66,9 @@ export const registerProjectIpc = ({
   ipcMain.handle(EVIDENCE_IPC_CHANNELS.showOpenDialog, async (event) => {
     const parent = BrowserWindow.fromWebContents(event.sender);
     const options: OpenDialogOptions = {
-      title: `选择包含 .evidence/fm 的项目目录，或一个 ${MODEL_BUNDLE_LABEL} 单文件`,
-      buttonLabel: '打开模型',
-      properties: ['openFile', 'openDirectory'],
-      filters: [{ name: 'Evidence 单文件模型', extensions: ['json'] }],
+      title: '选择包含 .evidence/model 的工作区目录',
+      buttonLabel: '打开工作区',
+      properties: ['openDirectory'],
     };
     const result = parent
       ? await dialog.showOpenDialog(parent, options)
@@ -88,41 +82,12 @@ export const registerProjectIpc = ({
     return { success: true, rootPath } as const;
   });
 
-  /**
-   * Picks where a new project is written.
-   *
-   * A source tree needs an empty folder, so the dialog opens in directory mode
-   * and lets the user create one; a bundle reuses the save dialog because the
-   * file name is part of the decision.
-   */
   ipcMain.handle(
     EVIDENCE_IPC_CHANNELS.showCreateDialog,
-    async (
-      event,
-      input: CreateProjectDialogInput,
-    ): Promise<CreateProjectDialogResult> => {
+    async (event): Promise<CreateProjectDialogResult> => {
       const parent = BrowserWindow.fromWebContents(event.sender);
-
-      if (input.kind === 'file') {
-        const options: SaveDialogOptions = {
-          title: '保存新的单文件履约模型',
-          buttonLabel: '保存模型',
-          defaultPath: input.suggestedName ?? DEFAULT_BUNDLE_NAME,
-          filters: [{ name: 'Evidence 单文件模型', extensions: ['json'] }],
-        };
-        const result = parent
-          ? await dialog.showSaveDialog(parent, options)
-          : await dialog.showSaveDialog(options);
-
-        if (result.canceled || result.filePath === undefined) {
-          return { success: false, canceled: true };
-        }
-
-        return { success: true, targetPath: result.filePath, kind: 'file' };
-      }
-
       const options: OpenDialogOptions = {
-        title: '选择一个空目录存放 .evidence/fm 源树',
+        title: '选择要初始化 .evidence 的工作区目录',
         buttonLabel: '在此新建模型',
         properties: ['openDirectory', 'createDirectory'],
       };
@@ -135,7 +100,7 @@ export const registerProjectIpc = ({
         return { success: false, canceled: true };
       }
 
-      return { success: true, targetPath, kind: 'directory' };
+      return { success: true, targetPath };
     },
   );
 
