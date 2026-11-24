@@ -2,7 +2,7 @@ import type { EvidenceAiConfigApi } from './aiConfig.js';
 import type {
   LiveDeliveryInput,
   LiveDeliveryResult,
-  ContextDeliveryStatusEvent,
+  ArtifactStatus,
 } from './delivery.js';
 import type { EvidenceAgentApi } from './agentIpc.js';
 import type {
@@ -43,7 +43,8 @@ export const EVIDENCE_IPC_CHANNELS = {
   recent: 'evidence:project:recent',
   openEditorWindow: 'evidence:project:open-editor-window',
   deliveryLivePreview: 'evidence:project:delivery-live-preview',
-  deliveryStatus: 'evidence:project:delivery-status',
+  artifactStatus: 'evidence:project:artifact-status',
+  readArtifactStatus: 'evidence:project:read-artifact-status',
 } as const;
 
 export type EvidenceIpcChannel =
@@ -90,8 +91,11 @@ export interface EvidenceDesktopApi {
     deliveryLivePreview: (
       input: LiveDeliveryInput,
     ) => Promise<LiveDeliveryResult>;
-    onDeliveryStatus: (
-      listener: (event: ContextDeliveryStatusEvent) => void,
+    readArtifactStatus: (
+      persistenceId: string,
+    ) => Promise<ArtifactStatus | null>;
+    onArtifactStatus: (
+      listener: (status: ArtifactStatus) => void,
     ) => () => void;
   };
   /** Incremental business walkthrough and isolated What-If sandbox. */

@@ -88,6 +88,7 @@ import { useSensorsState } from '../state/useSensorsState';
 import { useWorkspaceLayoutState } from '../state/useWorkspaceLayoutState';
 import { useAiConfiguration } from '../state/AiConfiguration';
 import { useWorkspaceViewMode } from '../state/useWorkspaceViewMode';
+import { useArtifactStatus } from '../state/useArtifactStatus';
 
 type LoadState =
   | { name: 'loading' }
@@ -249,7 +250,12 @@ const EditorWorkspace = ({
     enabled: storyActive,
     aiConfigured: ai?.aiConfigured,
   });
-  const sensors = useSensorsState(project.rootPath);
+  const manualSensors = useSensorsState(project.rootPath);
+  const artifacts = useArtifactStatus(
+    state.persistenceId,
+    state.persistenceRevision,
+    !pendingPersistence,
+  );
   const delivery = useDeliveryHub(
     window.evidenceAPI.projects,
     project.rootPath,
@@ -320,10 +326,22 @@ const EditorWorkspace = ({
     initialDocument,
     recordAgentPatch,
   );
-  const syncStatus =
-    delivery.syncStatus?.revision === liveModel.revision
-      ? delivery.syncStatus.result
-      : null;
+  const syncStatus = artifacts?.delivery ?? null;
+  const persistedSensors = artifacts?.sensors;
+  const report =
+    manualSensors.report?.documentRevision === liveModel.revision
+      ? manualSensors.report
+      : persistedSensors?.kind === 'checked'
+        ? persistedSensors.report
+        : null;
+  const sensors = {
+    report,
+    refresh: manualSensors.refresh,
+    loading: manualSensors.loading || persistedSensors?.kind === 'running',
+    error:
+      manualSensors.error ??
+      (persistedSensors?.kind === 'failed' ? persistedSensors.error : null),
+  };
   const agent = usePiConversation(
     window.evidenceAPI.agent,
     project.rootPath,
@@ -331,10 +349,7 @@ const EditorWorkspace = ({
   );
   // Findings must describe the exact live revision, including undo/redo.
   const diagnosticsStale =
-    liveModel.error !== null ||
-    sensors.report?.documentRevision !== liveModel.revision ||
-    sensors.loading ||
-    sensors.error !== null;
+    report === null || sensors.loading || sensors.error !== null;
   const diagnostics = useMemo(
     () =>
       createDiagnosticIndex(
@@ -1279,6 +1294,7 @@ const EditorWorkspace = ({
           <DeliveryHub
             hub={delivery}
             sync={syncStatus}
+            acceptance={artifacts?.acceptance ?? null}
             projectName={state.project.name}
             pendingPersistence={pendingPersistence}
             externalChange={externalConflict}
@@ -1306,6 +1322,7 @@ const EditorWorkspace = ({
             onToggleDiagnostics={layout.toggleProblemsPanel}
             onRerunSensors={() => void sensors.refresh()}
             deliverySync={syncStatus}
+            acceptanceSync={artifacts?.acceptance ?? null}
             onOpenDelivery={layout.openDelivery}
             persistence={persistence}
             reloadError={state.reloadError}

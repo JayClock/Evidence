@@ -134,7 +134,6 @@ const runtimeWith = (options: {
   transport: AgentRuntimeTransport;
   fake: ReturnType<typeof createFakeSession>;
   sensors?: ReturnType<typeof sensorEngine>;
-  sensorDelayMs?: number;
   rootPath?: string;
 }) =>
   createAgentRuntime({
@@ -146,9 +145,6 @@ const runtimeWith = (options: {
 
       return options.fake.session;
     },
-    ...(options.sensorDelayMs === undefined
-      ? {}
-      : { sensorDelayMs: options.sensorDelayMs }),
   });
 
 describe('live agent analysis', () => {
@@ -369,27 +365,25 @@ describe('createAgentRuntime', () => {
     expect(runtime.latestReport()).toBe(REPORT);
   });
 
-  it('debounces background checks after model edits', async () => {
+  it('does not run background checks on mirrored snapshots before persistence', async () => {
     vi.useFakeTimers();
-
     try {
       const { transport } = createTransport();
-      const fake = createFakeSession();
       const sensors = sensorEngine();
       const runtime = runtimeWith({
         transport,
-        fake,
+        fake: createFakeSession(),
         sensors,
-        sensorDelayMs: 800,
       });
-
-      for (let index = 0; index < 5; index += 1) {
-        runtime.notifyModelChanged();
-      }
-
-      await vi.advanceTimersByTimeAsync(800);
-
-      expect(sensors.calls).toHaveLength(1);
+      const document = createDesktopFixture();
+      runtime.notifyModelChanged({
+        rootPath: runtime.rootPath,
+        revision: 1,
+        document,
+        baseDocument: document,
+      });
+      await vi.runAllTimersAsync();
+      expect(sensors.calls).toHaveLength(0);
     } finally {
       vi.useRealTimers();
     }
@@ -419,7 +413,6 @@ describe('createAgentRuntime', () => {
     const runtime = runtimeWith({ transport, fake });
 
     await runtime.prompt('开工');
-    runtime.notifyModelChanged();
     runtime.dispose();
 
     expect(fake.disposed).toBe(1);
@@ -693,12 +686,8 @@ describe('agent patch transport', () => {
 
   it('commits against main revisions with no renderer acknowledgement and publishes only real changes', async () => {
     const { transport, patches } = createTransport();
-    const publishModel = vi.fn();
     const fake = createFakeSession();
-    const runtime = runtimeWith({
-      transport: { ...transport, publishModel },
-      fake,
-    });
+    const runtime = runtimeWith({ transport, fake });
     const base = createDesktopFixture();
     const input = {
       rootPath: runtime.rootPath,
@@ -769,12 +758,6 @@ describe('agent patch transport', () => {
       const first = applyModelPatches(base, firstTransaction.patches);
       const second = applyModelPatches(first, secondTransaction.patches);
       expect(second.entities.at(-1)?.label).toBe('新的退款确认');
-      expect(publishModel.mock.calls.map(([input]) => input.revision)).toEqual([
-        1, 2, 3,
-      ]);
-      expect(publishModel).toHaveBeenLastCalledWith(
-        expect.objectContaining({ document: second }),
-      );
       expect(
         applyModelPatches(second, secondTransaction.inversePatches),
       ).toEqual(first);

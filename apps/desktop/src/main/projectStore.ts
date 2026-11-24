@@ -243,7 +243,6 @@ export const createProjectStore = ({
           written: result.written,
           unchanged: result.unchanged,
           removed: result.removed,
-          savedAt: now().toISOString(),
           sourceDigest: sourceDigestAfterWrite,
         };
       } catch (error) {

@@ -37,6 +37,8 @@ export interface ContextDeliveryPlan {
   gateway: DeliveryContract;
 }
 
+export class ContextDeliveryBlockedError extends Error {}
+
 /** Project once so addresses never depend on which contexts pass their gate. */
 export async function planContextDelivery(
   input: DomainModelDocument,
@@ -97,7 +99,7 @@ export async function planContextDelivery(
       record(errorDiagnostic(code, message, rule.id));
   }
   if (global.length > 0)
-    throw new Error(
+    throw new ContextDeliveryBlockedError(
       global.map(({ code, message }) => `${code}: ${message}`).join('\n'),
     );
 

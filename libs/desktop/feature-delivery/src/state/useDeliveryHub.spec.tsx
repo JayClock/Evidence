@@ -94,19 +94,6 @@ describe('live delivery subscription', () => {
     expect(hook.result.current.analysis?.revision).toBe(revision);
   });
 
-  it('observes sync results independently of preview and ignores other projects', () => {
-    const { api, hook, request } = setup();
-    const payload = {
-      revision: 10,
-      result: { kind: 'failed', error: 'write failed' },
-    } as const;
-    act(() => api.emitDeliveryStatus({ ...payload, rootPath: '/other' }));
-    expect(hook.result.current.syncStatus).toBeNull();
-    act(() => api.emitDeliveryStatus({ ...payload, rootPath: '/models/test' }));
-    expect(hook.result.current.syncStatus).toMatchObject(payload);
-    expect(request).not.toHaveBeenCalled();
-  });
-
   it('clears the preview on failures and cancels timers at unmount', async () => {
     const { request, hook } = setup();
     request.mockRejectedValue(new Error('projection failed'));

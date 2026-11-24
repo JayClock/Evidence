@@ -9,6 +9,7 @@ import {
 
 import { STORY_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/story';
 import { EVIDENCE_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/ipc';
+import type { ArtifactStatus } from '@evidence-poc/desktop-contracts/delivery';
 import type {
   CreateProjectDialogResult,
   CreateProjectInput,
@@ -28,9 +29,9 @@ export interface ProjectIpcOptions {
   openEditorWindow: (rootPath: string) => unknown;
   ownsProject?: (sender: WebContents, rootPath: string) => boolean;
   onPersisted?: (
-    sender: WebContents,
     model: PersistedModel,
     isCurrent: () => boolean,
+    publish: (status: ArtifactStatus) => void,
   ) => void;
 }
 
@@ -47,6 +48,8 @@ export const registerProjectIpc = ({
   type Editor = {
     lane: ReturnType<typeof createLivePersistence>;
     watcher: ModelWatcher;
+    artifacts?: ArtifactStatus;
+    regenerate: () => void;
   };
   const editors = new Map<number, Editor>();
   const opening = new Map<
@@ -167,15 +170,22 @@ export const registerProjectIpc = ({
           const root = result.project.rootPath;
           const persistenceId = randomUUID();
           let generation = 0;
+          let lastCommit: PersistedModel | undefined;
           const committed = (model: PersistedModel) => {
+            lastCommit = model;
             const current = ++generation;
             onPersisted?.(
-              sender,
               model,
               () =>
-                editors.get(senderId)?.lane === lane &&
                 generation === current &&
-                !sender.isDestroyed(),
+                (!editors.has(senderId) ||
+                  editors.get(senderId)?.lane === lane),
+              (status) => {
+                const editor = editors.get(senderId);
+                if (editor?.lane !== lane || generation !== current) return;
+                editor.artifacts = status;
+                send(EVIDENCE_IPC_CHANNELS.artifactStatus, status);
+              },
             );
           };
           const send = (channel: string, payload: object) => {
@@ -206,7 +216,14 @@ export const registerProjectIpc = ({
           );
           if (previous) stop(senderId);
           else attachCloseGuard(sender);
-          editors.set(senderId, { lane, watcher });
+          editors.set(senderId, {
+            lane,
+            watcher,
+            regenerate: () => {
+              if (lastCommit && lane.status().kind === 'persisted')
+                committed(lastCommit);
+            },
+          });
           void watcher.ready.then(check);
           committed({
             persistenceId,
@@ -258,12 +275,26 @@ export const registerProjectIpc = ({
     },
   );
   ipcMain.handle(
-    EVIDENCE_IPC_CHANNELS.flushPersistence,
+    EVIDENCE_IPC_CHANNELS.readArtifactStatus,
     ({ sender }, id: string) => {
-      const lane = editors.get(sender.id)?.lane;
-      return lane && lane.id === id && ownsProject(sender, lane.rootPath)
-        ? lane.flush()
-        : unavailable;
+      const editor = editors.get(sender.id);
+      return editor?.lane.id === id ? (editor.artifacts ?? null) : null;
+    },
+  );
+  ipcMain.handle(
+    EVIDENCE_IPC_CHANNELS.flushPersistence,
+    async ({ sender }, id: string) => {
+      const editor = editors.get(sender.id);
+      if (
+        !editor ||
+        editor.lane.id !== id ||
+        !ownsProject(sender, editor.lane.rootPath)
+      )
+        return unavailable;
+      const hadPending = editor.lane.hasPending();
+      const result = await editor.lane.flush();
+      if (!hadPending && result.success) editor.regenerate();
+      return result;
     },
   );
 

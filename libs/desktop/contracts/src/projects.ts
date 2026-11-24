@@ -56,8 +56,7 @@ export type WriteProjectResult =
       written: readonly string[];
       unchanged: readonly string[];
       removed: readonly string[];
-      savedAt: string;
-      sourceDigest?: string;
+      sourceDigest: string;
     }
   | { success: false; error: string; conflict?: true };
 

@@ -32,6 +32,7 @@ const renderBar = (
       onToggleDiagnostics={onToggleDiagnostics}
       onRerunSensors={onRerunSensors}
       deliverySync={null}
+      acceptanceSync={null}
       onOpenDelivery={() => undefined}
       persistence={{ kind: 'persisted' }}
       reloadError={null}

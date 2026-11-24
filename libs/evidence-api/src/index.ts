@@ -11,6 +11,7 @@ export {
 } from './http/runtimeLinks.js';
 
 export {
+  ContextDeliveryBlockedError,
   planContextDelivery,
   type ContextDelivery,
   type ContextDeliveryPlan,

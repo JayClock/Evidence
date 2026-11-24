@@ -2,10 +2,7 @@ import type { EvidenceDesktopApi } from '@evidence-poc/desktop-contracts/ipc';
 import { useEffect, useState } from 'react';
 import type { ModelSession } from '@evidence-poc/evidence-model-core';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-import type {
-  ContextDeliveryStatusEvent,
-  LiveDeliveryPreview,
-} from '@evidence-poc/desktop-contracts/delivery';
+import type { LiveDeliveryPreview } from '@evidence-poc/desktop-contracts/delivery';
 import type { DeliveryPreview } from '@evidence-poc/desktop-contracts/projects';
 
 export interface DeliveryHubController {
@@ -14,15 +11,11 @@ export interface DeliveryHubController {
   error: string | null;
   preview: DeliveryPreview | null;
   analysis: LiveDeliveryPreview | null;
-  syncStatus: ContextDeliveryStatusEvent | null;
 }
 
-/** The preview stays read-only. Main automatically syncs the editor's live revisions. */
+/** Read-only authoring preview, separate from the persisted artifact pipeline. */
 export const useDeliveryHub = (
-  api: Pick<
-    EvidenceDesktopApi['projects'],
-    'deliveryLivePreview' | 'onDeliveryStatus'
-  >,
+  api: Pick<EvidenceDesktopApi['projects'], 'deliveryLivePreview'>,
   rootPath: string,
   session: ModelSession,
   baseDocument: DomainModelDocument,
@@ -32,16 +25,6 @@ export const useDeliveryHub = (
   const [stale, setStale] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<LiveDeliveryPreview | null>(null);
-  const [syncStatus, setSyncStatus] =
-    useState<ContextDeliveryStatusEvent | null>(null);
-
-  useEffect(
-    () =>
-      api.onDeliveryStatus((event) => {
-        if (event.rootPath === rootPath) setSyncStatus(event);
-      }),
-    [api, rootPath],
-  );
 
   useEffect(() => {
     setAnalysis(null);
@@ -98,6 +81,5 @@ export const useDeliveryHub = (
     error,
     preview: analysis?.preview ?? null,
     analysis,
-    syncStatus: syncStatus?.rootPath === rootPath ? syncStatus : null,
   };
 };

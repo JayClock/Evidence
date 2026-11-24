@@ -8,7 +8,6 @@ const saved = (sourceDigest: string) => ({
   written: [],
   unchanged: [],
   removed: [],
-  savedAt: 'now',
 });
 
 function setup() {

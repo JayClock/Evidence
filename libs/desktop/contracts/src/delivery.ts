@@ -7,6 +7,7 @@ import type {
 import type {
   ApiCoverageSummary,
   SensorIssue,
+  SensorReport,
 } from '@evidence-poc/evidence-agent/browser';
 import type { DeliveryPreview } from './projects.js';
 
@@ -54,20 +55,36 @@ export type LiveDeliveryResult =
   | { success: true; analysis: LiveDeliveryPreview }
   | { success: false; revision: number; error: string };
 
-export interface ContextDeliveryStatusEvent {
-  rootPath: string;
+type ProjectionProblem = { kind: 'blocked' | 'failed'; error: string };
+
+export type ContextDeliveryStatus =
+  | { kind: 'running' }
+  | {
+      kind: 'synced';
+      directory: string;
+      synced: number;
+      blocked: number;
+      contexts: readonly {
+        contextId: string;
+        status: 'synced' | 'blocked' | 'empty';
+        issues: readonly string[];
+      }[];
+    }
+  | ProjectionProblem;
+
+export type AcceptanceSyncStatus =
+  | { kind: 'running' | 'empty' }
+  | { kind: 'synced'; flows: number }
+  | ProjectionProblem;
+
+export interface ArtifactStatus {
+  persistenceId: string;
   revision: number;
-  result:
-    | {
-        kind: 'synced';
-        directory: string;
-        synced: number;
-        blocked: number;
-        contexts: readonly {
-          contextId: string;
-          status: 'synced' | 'blocked' | 'empty';
-          issues: readonly string[];
-        }[];
-      }
+  sourceDigest: string;
+  delivery: ContextDeliveryStatus;
+  acceptance: AcceptanceSyncStatus;
+  sensors:
+    | { kind: 'running' }
+    | { kind: 'checked'; report: SensorReport }
     | { kind: 'failed'; error: string };
 }

@@ -10,7 +10,10 @@ import {
 import { CodePreviewPane } from './CodePreviewPane';
 import { ContractOverview } from './ContractOverview';
 import { IncrementalDiffPanel } from './IncrementalDiffPanel';
-import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
+import type {
+  AcceptanceSyncStatus,
+  ContextDeliveryStatus,
+} from '@evidence-poc/desktop-contracts/delivery';
 import type { DeliveryHubController } from '../../state/useDeliveryHub';
 
 const artifactTitles = new Map([
@@ -29,7 +32,8 @@ export interface DeliveryHubProps {
   projectName: string;
   pendingPersistence: boolean;
   externalChange: boolean;
-  sync?: ContextDeliveryStatusEvent['result'] | null;
+  sync?: ContextDeliveryStatus | null;
+  acceptance?: AcceptanceSyncStatus | null;
   onFocusEntity?: (entityRef: string) => void;
   onClose: () => void;
   onRestoreFocus: () => void;
@@ -41,6 +45,7 @@ export const DeliveryHub = ({
   pendingPersistence,
   externalChange,
   sync,
+  acceptance,
   onClose,
   onFocusEntity,
   onRestoreFocus,
@@ -141,9 +146,13 @@ export const DeliveryHub = ({
                   ? `：${sync.synced} 已同步，${sync.blocked} 阻塞`
                   : sync?.kind === 'failed'
                     ? '失败'
-                    : '待同步'}
+                    : sync?.kind === 'blocked'
+                      ? '受阻'
+                      : sync?.kind === 'running'
+                        ? '生成中'
+                        : '待同步'}
               </summary>
-              {sync?.kind === 'failed' ? (
+              {sync?.kind === 'failed' || sync?.kind === 'blocked' ? (
                 <p>{sync.error}</p>
               ) : sync?.kind === 'synced' ? (
                 <>
@@ -170,6 +179,19 @@ export const DeliveryHub = ({
                 </>
               ) : (
                 <p>通过检查的业务上下文会自动写入项目目录。</p>
+              )}
+            </details>
+            <details className="mb-4 text-xs">
+              <summary>本地验收用例</summary>
+              {acceptance?.kind === 'synced' ? (
+                <p>{acceptance.flows} 个业务流已生成，未执行 HTTP 验收。</p>
+              ) : acceptance?.kind === 'empty' ? (
+                <p>没有声明可生成的验收场景。</p>
+              ) : acceptance?.kind === 'blocked' ||
+                acceptance?.kind === 'failed' ? (
+                <p>{acceptance.error}</p>
+              ) : (
+                <p>等待当前磁盘模型的投影。</p>
               )}
             </details>
             <dl className="mb-4 grid grid-cols-2 gap-3">

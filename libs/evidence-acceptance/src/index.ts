@@ -15,7 +15,10 @@ export {
   type AcceptanceStep,
 } from './delivery/scenarioProjector.js';
 export { renderBruno } from './renderer/brunoRenderer.js';
-export { renderAcceptanceSuite } from './renderer/brunoSuite.js';
+export {
+  readAcceptanceSuite,
+  renderAcceptanceSuite,
+} from './renderer/brunoSuite.js';
 export {
   compareContracts,
   type ContractComparison,

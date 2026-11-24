@@ -33,14 +33,12 @@ import {
   readModelDirectory,
   workspacePaths,
 } from '@evidence-poc/evidence-model-io';
-import { createDebouncedSensorRuntime } from './sensorRuntime';
 
 /** How the runtime reaches the renderer without importing Electron. */
 export interface AgentRuntimeTransport {
   publishEvent: (event: AgentStreamEvent) => void;
   publishReport: (report: SensorReport) => void;
   publishPatch: (transaction: PatchTransaction) => void;
-  publishModel?: (input: LiveDeliveryInput) => void;
 }
 
 export interface AgentRuntimeOptions {
@@ -54,7 +52,6 @@ export interface AgentRuntimeOptions {
   sessionDirectory?: string;
   /** Transcript the session continues, when the project already has one. */
   sessionFile?: string | null;
-  sensorDelayMs?: number;
   getModelOptions?: () => Promise<EvidenceModelOptions>;
 }
 
@@ -72,8 +69,8 @@ export interface AgentRuntime {
   /** Explicit sensor run, returning the verdict the caller awaits. */
   runSensors: (scopeRefs?: readonly string[]) => Promise<SensorOutcome>;
   latestReport: () => SensorReport | null;
-  /** Re-arms the background sensor check after a model edit. */
-  notifyModelChanged: (input?: LiveDeliveryInput) => void;
+  /** Updates the conversation mirror; only the persistence pipeline generates on disk. */
+  notifyModelChanged: (input: LiveDeliveryInput) => void;
   /** Records what the canvas shows so tools can read the selection. */
   setCanvasContext: (context: CanvasContext) => void;
   getCanvasContext: () => CanvasContext;
@@ -97,7 +94,6 @@ export const createAgentRuntime = ({
   sessionFactory = createEvidenceAgentSession,
   sessionDirectory,
   sessionFile,
-  sensorDelayMs,
   getModelOptions,
 }: AgentRuntimeOptions): AgentRuntime => {
   const resolvedRoot = path.resolve(rootPath);
@@ -108,13 +104,6 @@ export const createAgentRuntime = ({
   const engine = sensors ?? createSensorsEngine();
 
   let live: LiveDeliveryInput | undefined;
-  const publishModel = (input: LiveDeliveryInput) => {
-    try {
-      transport.publishModel?.(input);
-    } catch (error) {
-      console.warn('[delivery] Could not schedule context sync', error);
-    }
-  };
   let runSequence = 0;
   let disposed = false;
   let session: EvidenceAgentSession | null = null;
@@ -172,8 +161,6 @@ export const createAgentRuntime = ({
       };
       latestReport = null;
       activeTurn.committed.push(transaction);
-      publishModel(live);
-      backgroundSensors.schedule();
       // A missed notification must not turn a committed write into a failed tool call.
       try {
         transport.publishPatch(transaction);
@@ -213,15 +200,6 @@ export const createAgentRuntime = ({
     }
     return { ...outcome, report };
   };
-
-  const backgroundSensors = createDebouncedSensorRuntime({
-    run: async () => {
-      // A background run must not surface as an unhandled rejection.
-      await runSensors().catch(() => undefined);
-    },
-    onError: () => undefined,
-    ...(sensorDelayMs === undefined ? {} : { delayMs: sensorDelayMs }),
-  });
 
   /**
    * Reads the latest mirrored canvas document, including unsaved patches.
@@ -356,20 +334,16 @@ export const createAgentRuntime = ({
     runSensors,
     latestReport: () => latestReport,
     notifyModelChanged: (input) => {
-      if (input !== undefined) {
-        validateLiveDeliveryInput(input);
-        if (path.resolve(input.rootPath) !== resolvedRoot)
-          throw new Error('模型不属于当前项目。');
-        if (live !== undefined && input.revision <= live.revision) return;
-        if (activeTurn) throw new Error('AI 正在编辑模型，请等待本轮结束。');
-        live = structuredClone({
-          ...input,
-          baseDocument: live?.baseDocument ?? input.baseDocument,
-        });
-        latestReport = null;
-        publishModel(live);
-      }
-      backgroundSensors.schedule();
+      validateLiveDeliveryInput(input);
+      if (path.resolve(input.rootPath) !== resolvedRoot)
+        throw new Error('模型不属于当前项目。');
+      if (live !== undefined && input.revision <= live.revision) return;
+      if (activeTurn) throw new Error('AI 正在编辑模型，请等待本轮结束。');
+      live = structuredClone({
+        ...input,
+        baseDocument: live?.baseDocument ?? input.baseDocument,
+      });
+      latestReport = null;
     },
     setCanvasContext: (context) => {
       canvasContext = context;
@@ -393,7 +367,6 @@ export const createAgentRuntime = ({
       disposed = true;
       ++runSequence;
       live = undefined;
-      backgroundSensors.cancel();
       void Promise.resolve(session?.dispose()).catch(console.error);
       session = null;
       starting = null;

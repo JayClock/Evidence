@@ -1,7 +1,10 @@
 import type { ValidationResult } from '@evidence-poc/evidence-schema';
 import type { DomainGraphLayout } from '@evidence-poc/evidence-canvas-interaction';
 import type { SensorReport } from '@evidence-poc/evidence-agent/browser';
-import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
+import type {
+  AcceptanceSyncStatus,
+  ContextDeliveryStatus,
+} from '@evidence-poc/desktop-contracts/delivery';
 
 interface BottomStatusBarProps {
   layout: DomainGraphLayout;
@@ -14,7 +17,8 @@ interface BottomStatusBarProps {
   diagnosticsOpen: boolean;
   onToggleDiagnostics: () => void;
   onRerunSensors: () => void;
-  deliverySync: ContextDeliveryStatusEvent['result'] | null;
+  deliverySync: ContextDeliveryStatus | null;
+  acceptanceSync: AcceptanceSyncStatus | null;
   onOpenDelivery: () => void;
   persistence: import('@evidence-poc/desktop-contracts/projects').PersistenceState;
   reloadError: string | null;
@@ -156,6 +160,7 @@ export const BottomStatusBar = ({
   onToggleDiagnostics,
   onRerunSensors,
   deliverySync,
+  acceptanceSync,
   onOpenDelivery,
   persistence,
   reloadError,
@@ -199,8 +204,33 @@ export const BottomStatusBar = ({
           ? `API 草稿：${deliverySync.synced} 已同步${deliverySync.blocked ? ` · ${deliverySync.blocked} 阻塞` : ''}`
           : deliverySync?.kind === 'failed'
             ? 'API 同步失败'
-            : 'API 草稿待同步'}
+            : deliverySync?.kind === 'blocked'
+              ? 'API 生成受阻'
+              : deliverySync?.kind === 'running'
+                ? 'API 草稿生成中'
+                : 'API 草稿待同步'}
       </button>
+      {acceptanceSync ? (
+        <span
+          className="shrink-0"
+          title={
+            acceptanceSync.kind === 'failed' ||
+            acceptanceSync.kind === 'blocked'
+              ? acceptanceSync.error
+              : undefined
+          }
+        >
+          {acceptanceSync.kind === 'synced'
+            ? `验收用例：${acceptanceSync.flows} 个流`
+            : acceptanceSync.kind === 'empty'
+              ? '无验收场景'
+              : acceptanceSync.kind === 'failed'
+                ? '验收生成失败'
+                : acceptanceSync.kind === 'blocked'
+                  ? '验收生成受阻'
+                  : '验收用例生成中'}
+        </span>
+      ) : null}
     </div>
 
     <div className="flex items-center gap-3">

@@ -12,7 +12,6 @@ import {
   runEvidenceMcpStdio,
 } from '@evidence-poc/evidence-mcp';
 
-import { EVIDENCE_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/ipc';
 import { EVIDENCE_MCP_IPC_CHANNELS } from '@evidence-poc/desktop-contracts/mcpIpc';
 import { registerAgentIpc } from './agentIpcHandlers';
 import { startMcpBridgeRuntime } from './mcpBridgeRuntime';
@@ -27,7 +26,7 @@ import { createMcpSensorService } from './mcpSensorService';
 import { registerIngestionIpc } from './ingestionIpc';
 import { createModelIngestionReader } from './ingestionModelReader';
 import { registerDeliveryIpc } from './deliveryIpc';
-import { createContextDeliveryReactor } from './contextDeliveryReactor';
+import { createArtifactPipeline } from './artifactPipeline';
 import { registerProjectIpc } from './projectIpc';
 import { registerStoryIpc } from './storyIpc';
 import { createProjectStore, RECENT_PROJECTS_FILE } from './projectStore';
@@ -79,7 +78,9 @@ const startApplication = async (): Promise<void> => {
     agentDir: path.resolve(getAgentDir()),
   });
   const getModelOptions = () => aiConfig.getModelOptions();
-  const delivery = createContextDeliveryReactor();
+  const artifacts = createArtifactPipeline({
+    fingerprint: projectStore.fingerprint,
+  });
   const agentIpc = registerAgentIpc({
     getModelOptions,
     sessionDirectoryFor(rootPath, sender) {
@@ -90,29 +91,24 @@ const startApplication = async (): Promise<void> => {
       checkWorkspacePath(root, directory, 'directory');
       return directory;
     },
-    onLiveModelChanged: (sender, input) => {
-      if (!ownsEditorProject(sender, input.rootPath)) return;
-      delivery.schedule(sender.id, input, (event) => {
-        if (ownsEditorProject(sender, event.rootPath))
-          sender.send(EVIDENCE_IPC_CHANNELS.deliveryStatus, event);
-      });
-    },
-    onEditorDetached: (sender, rootPath) =>
-      delivery.cancel(sender.id, rootPath),
   });
 
   const persistence = registerProjectIpc({
     projectStore,
     openEditorWindow,
     ownsProject: ownsEditorProject,
+    onPersisted: (snapshot, isCurrent, publish) =>
+      artifacts.schedule({ snapshot, isCurrent, publish }),
   });
   let draining = false;
   app.on('before-quit', (event) => {
-    if (!persistence.hasPending() && !draining) return;
+    if (!persistence.hasPending() && !artifacts.hasPending() && !draining)
+      return;
     event.preventDefault();
     if (draining) return;
     draining = true;
-    void persistence.drain().then((success) => {
+    void persistence.drain().then(async (success) => {
+      if (success) await artifacts.drain();
       draining = false;
       if (success) app.quit();
     });

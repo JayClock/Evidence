@@ -17,7 +17,7 @@ import type {
   IngestDraftInput,
   IngestDraftResult,
 } from '@evidence-poc/desktop-contracts/ingestion';
-import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
+import type { ArtifactStatus } from '@evidence-poc/desktop-contracts/delivery';
 import type { EvidenceDesktopApi } from '@evidence-poc/desktop-contracts/ipc';
 import type {
   McpRendererRequest,
@@ -144,7 +144,7 @@ export interface DesktopApiMock extends EvidenceDesktopApi {
     ingestDraft: IngestDraftInput[];
     compileDraft: CompileDraftInput[];
   };
-  emitDeliveryStatus: (event: ContextDeliveryStatusEvent) => void;
+  emitArtifactStatus: (event: ArtifactStatus) => void;
   emitPersistenceStatus: (event: PersistenceStatus) => void;
   agentMock: AgentMockController;
   mcpMock: McpMockController;
@@ -226,9 +226,7 @@ export const installDesktopApi = ({
 
   const eventListeners = new Set<(payload: AgentEventPayload) => void>();
   const reportListeners = new Set<(payload: SensorReportPayload) => void>();
-  const deliveryListeners = new Set<
-    (event: ContextDeliveryStatusEvent) => void
-  >();
+  const artifactListeners = new Set<(status: ArtifactStatus) => void>();
   const persistenceListeners = new Set<(status: PersistenceStatus) => void>();
   const emitPersistenceStatus = (status: PersistenceStatus) => {
     for (const listener of persistenceListeners) listener(status);
@@ -331,8 +329,8 @@ export const installDesktopApi = ({
     agentMock,
     mcpMock,
     emitPersistenceStatus,
-    emitDeliveryStatus: (event) => {
-      for (const listener of deliveryListeners) listener(event);
+    emitArtifactStatus: (event) => {
+      for (const listener of artifactListeners) listener(event);
     },
     aiConfig: {
       getStatus: async () => ({
@@ -413,10 +411,11 @@ export const installDesktopApi = ({
               error: deliveryPreviewResult.error,
             };
       },
-      onDeliveryStatus: (listener) => {
-        deliveryListeners.add(listener);
+      readArtifactStatus: async () => null,
+      onArtifactStatus: (listener) => {
+        artifactListeners.add(listener);
         return () => {
-          deliveryListeners.delete(listener);
+          artifactListeners.delete(listener);
         };
       },
     },

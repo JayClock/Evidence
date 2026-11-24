@@ -1572,37 +1572,38 @@ describe('EditorScreen', () => {
 });
 
 describe('EditorScreen sensors', () => {
-  it('shows the verdict, opens the drawer and jumps to the finding', async () => {
-    const api = installDesktopApi({
-      openResult: {
-        success: true,
-        project: projectSummary(),
-        document: createDesktopFixture(),
-        issues: [],
-      },
-      sensorReport: healthyReport({
-        passed: false,
-        blockCount: 1,
-        isStageGateReady: false,
-        issues: [
-          {
-            issueId: 'check_fm:FM_INCONSISTENT:1',
-            severity: 'block',
-            source: 'check_fm',
-            code: 'FM_INCONSISTENT',
-            message: '采购协议缺少确认端',
-            targetNodeId: 'evidence.contract#signed_at',
-            suggestion: '补齐履约配对。',
-          },
-        ],
-      }),
+  it('shows the persisted verdict, opens the drawer and jumps to the finding', async () => {
+    const api = readyProject();
+    const report = healthyReport({
+      passed: false,
+      blockCount: 1,
+      isStageGateReady: false,
+      issues: [
+        {
+          issueId: 'check_fm:FM_INCONSISTENT:1',
+          severity: 'block',
+          source: 'check_fm',
+          code: 'FM_INCONSISTENT',
+          message: '采购协议缺少确认端',
+          targetNodeId: 'evidence.contract#signed_at',
+          suggestion: '补齐履约配对。',
+        },
+      ],
     });
-
     render(<EditorScreen rootPath="/models/procurement" />);
-
     await screen.findByLabelText('聚焦范围');
+    act(() =>
+      api.emitArtifactStatus({
+        persistenceId: 'editor',
+        revision: 0,
+        sourceDigest: 'disk',
+        delivery: { kind: 'running' },
+        acceptance: { kind: 'empty' },
+        sensors: { kind: 'checked', report },
+      }),
+    );
     expect(await screen.findByText('阻塞 1')).toBeInTheDocument();
-    expect(api.calls.triggerSensors).toEqual(['/models/procurement']);
+    expect(api.calls.triggerSensors).toEqual([]);
 
     fireEvent.click(screen.getByTitle('展开检查结果'));
     expect(await screen.findByLabelText('门禁问题面板')).toBeInTheDocument();

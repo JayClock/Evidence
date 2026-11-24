@@ -9,20 +9,20 @@ export interface SensorsState {
 }
 
 export interface SensorsController extends SensorsState {
-  /** Runs the sensors now, ignoring the main process debounce. */
+  /** Explicit diagnostics for the current canvas, not a disk export. */
   refresh: () => Promise<void>;
 }
 
 /**
  * Reads the sensor verdict the main process publishes.
  *
- * The first load runs the sensors once so an opened project never shows a
- * blank gate; later verdicts arrive from the debounced background run.
+ * Automatic checks come from the disk artifact pipeline; this hook only
+ * consumes explicit canvas or agent checks.
  */
 export const useSensorsState = (rootPath: string): SensorsController => {
   const [state, setState] = useState<SensorsState>({
     report: null,
-    loading: true,
+    loading: false,
     error: null,
   });
 
@@ -46,45 +46,28 @@ export const useSensorsState = (rootPath: string): SensorsController => {
 
   useEffect(() => {
     let active = true;
+    let seen = false;
 
     const unsubscribe = window.evidenceAPI.agent.onReport((payload) => {
       if (active && payload.rootPath === rootPath) {
+        seen = true;
         setState({ report: payload.report, loading: false, error: null });
       }
     });
 
     void window.evidenceAPI.agent
       .latestReport({ rootPath })
-      .then(async (report) => (report === null ? undefined : report))
       .then((report) => {
-        if (!active) {
-          return;
-        }
-
-        if (report === undefined) {
-          void refresh();
-
-          return;
-        }
-
-        setState({ report, loading: false, error: null });
+        if (active && !seen && report !== null)
+          setState({ report, loading: false, error: null });
       })
-      .catch((error: unknown) => {
-        if (active) {
-          setState((current) => ({
-            ...current,
-            loading: false,
-            error:
-              error instanceof Error ? error.message : '无法读取检查结果。',
-          }));
-        }
-      });
+      .catch(() => undefined);
 
     return () => {
       active = false;
       unsubscribe();
     };
-  }, [rootPath, refresh]);
+  }, [rootPath]);
 
   return { ...state, refresh };
 };

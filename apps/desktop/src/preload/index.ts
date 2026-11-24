@@ -77,8 +77,10 @@ const api: EvidenceDesktopApi = {
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.openEditorWindow, rootPath),
     deliveryLivePreview: (input) =>
       ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.deliveryLivePreview, input),
-    onDeliveryStatus: (listener) => {
-      const channel = EVIDENCE_IPC_CHANNELS.deliveryStatus;
+    readArtifactStatus: (id) =>
+      ipcRenderer.invoke(EVIDENCE_IPC_CHANNELS.readArtifactStatus, id),
+    onArtifactStatus: (listener) => {
+      const channel = EVIDENCE_IPC_CHANNELS.artifactStatus;
       const handler = (
         _event: Electron.IpcRendererEvent,
         payload: Parameters<typeof listener>[0],

@@ -86,12 +86,15 @@ export function createLivePersistence({
       } catch (error) {
         result = { success: false, error: String(error) };
       }
-      if (!result.success || result.sourceDigest === undefined) {
+      if (!result.success) {
         pending ??= input;
-        const error = result.success ? '无法确认磁盘版本。' : result.error;
-        if (!result.success && result.conflict) conflict = error;
-        else failure = error;
-        emit({ kind: conflict ? 'conflict' : 'failed', revision, error });
+        if (result.conflict) conflict = result.error;
+        else failure = result.error;
+        emit({
+          kind: conflict ? 'conflict' : 'failed',
+          revision,
+          error: result.error,
+        });
         return;
       }
       sourceDigest = result.sourceDigest;

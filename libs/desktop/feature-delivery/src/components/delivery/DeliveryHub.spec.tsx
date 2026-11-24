@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ContextDeliveryStatusEvent } from '@evidence-poc/desktop-contracts/delivery';
+import type { ContextDeliveryStatus } from '@evidence-poc/desktop-contracts/delivery';
 import type { DeliveryHubController } from '../../state/useDeliveryHub';
 import { liveDeliveryPreview } from '@evidence-poc/desktop-testing/liveDelivery';
 import { DeliveryHub } from './DeliveryHub';
@@ -20,7 +20,6 @@ const controller = (
   loading: false,
   stale: false,
   error: null,
-  syncStatus: null,
   analysis,
   preview: { ...analysis.preview, limitations: ['尚无确认。'] },
   ...overrides,
@@ -29,7 +28,7 @@ const show = (
   hub = controller(),
   dirty = false,
   externalChange = false,
-  sync: ContextDeliveryStatusEvent['result'] | null = null,
+  sync: ContextDeliveryStatus | null = null,
 ) => {
   const onClose = vi.fn();
   const view = render(

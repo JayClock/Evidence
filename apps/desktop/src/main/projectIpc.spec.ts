@@ -95,7 +95,7 @@ describe('project persistence IPC', () => {
         },
       });
       expect(
-        onPersisted.mock.calls.map(([, snapshot]) => snapshot.revision),
+        onPersisted.mock.calls.map(([snapshot]) => snapshot.revision),
       ).toEqual([0, 1]);
       sender.send.mockClear();
       mocks.changes.at(-1)!();
