@@ -53,11 +53,22 @@
 |                                  | `completion`               | `rule-completion-advance-payment`                                   | 完工闭环：到账金额达标且在窗口期内完成即销项                          |
 | **关键数据 (Key Data)**          | 多类型台账                 | `timestamp`, `money`, `decimal`, `int`, `string`, `bool`            | 资金、时限、交付量、公证通过标志全部具备可追溯数据链                  |
 
-## 校验
+## 校验与导出
 
 ```bash
+# 静态模型校验
+node apps/cli/dist/cli.js check --workspace examples/full-spectrum-procurement
+
+# 验证并导出 OpenAPI 3.1 规格交付物（38 个端点）
+node apps/cli/dist/cli.js export --workspace examples/full-spectrum-procurement --openapi --verify
+
+# 导出三条业务场景的故事投影（Markdown）
+node apps/cli/dist/cli.js story --workspace examples/full-spectrum-procurement --no-ai --export
+
+# 核心回归测试
 pnpm exec vitest run --project evidence-schema libs/evidence-schema/tests/fixtures/fullSpectrumProcurement.spec.ts
 pnpm exec vitest run --project evidence-model-core libs/evidence-model-core/src/validation/fullSpectrumProcurement.spec.ts
+pnpm exec vitest run --project evidence-acceptance libs/evidence-acceptance/src/fullSpectrumVerification.spec.ts
 ```
 
 Schema 全覆盖与 fmCheck / CEL 编译分别位于 schema 和 model-core 测试中，以保持依赖方向。静态有效不等于后端 HTTP 验收或人工业务批准。
