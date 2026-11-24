@@ -101,7 +101,7 @@ func TestHALCollectionsAndScopedPrimaryReads(t *testing.T) {
 	if d := getData(t, app, "/agreements/b/orders", buyer); d["total"] != float64(0) {
 		t.Fatal(d)
 	}
-	confirmation := "/order-confirmations/confirmed"
+	confirmation := "/orders/confirmed"
 	if r := call(app, "GET", confirmation, seller, when, nil); r.Code != 404 {
 		t.Fatal(r.Code, r.Body)
 	}
@@ -115,7 +115,7 @@ func TestHALCollectionsAndScopedPrimaryReads(t *testing.T) {
 	}{
 		{"/agreements/b/orders/req", buyer, 404},
 		{"/agreements/a%20b/commitments/req", seller, 404},
-		{"/commitment-confirmations/confirmed", buyer, 404},
+		{"/commitments/confirmed", buyer, 404},
 		{"/agreements/missing/orders", buyer, 404},
 		{"/escrows/a%20b", "role.escrow-buyer", 404},
 		{path + "/req", seller, 403},

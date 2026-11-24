@@ -6,7 +6,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/advertising-confirmations/{advertisingConfirmationId}"
+              "href": "/advertisings/{advertisingId}"
             }
           },
           "confirmed_at": "2026-07-02T00:00:00Z",
@@ -19,7 +19,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/daily-report-confirmations/{dailyReportConfirmationId}"
+              "href": "/daily-reports/{dailyReportId}"
             }
           },
           "confirmed_at": "2026-07-03T00:20:00Z",
@@ -33,7 +33,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/payment-confirmations/{paymentConfirmationId}"
+              "href": "/payments/{paymentId}"
             }
           },
           "confirmed_at": "2026-06-01T10:00:00Z",
@@ -47,7 +47,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/payment-confirmations/{paymentConfirmationId}"
+              "href": "/payments/{paymentId}"
             }
           },
           "confirmed_at": "2026-07-01T12:00:00Z",
@@ -177,7 +177,7 @@
           {
             "_links": {
               "self": {
-                "href": "/advertising-confirmations/{advertisingConfirmationId}"
+                "href": "/advertisings/{advertisingId}"
               }
             },
             "confirmed_at": "2026-07-02T00:00:00Z",
@@ -245,7 +245,7 @@
           {
             "_links": {
               "self": {
-                "href": "/daily-report-confirmations/{dailyReportConfirmationId}"
+                "href": "/daily-reports/{dailyReportId}"
               }
             },
             "confirmed_at": "2026-07-03T00:20:00Z",
@@ -331,7 +331,7 @@
           {
             "_links": {
               "self": {
-                "href": "/payment-confirmations/{paymentConfirmationId}"
+                "href": "/payments/{paymentId}"
               }
             },
             "confirmed_at": "2026-06-01T10:00:00Z",
@@ -342,7 +342,7 @@
           {
             "_links": {
               "self": {
-                "href": "/payment-confirmations/{paymentConfirmationId}"
+                "href": "/payments/{paymentId}"
               }
             },
             "confirmed_at": "2026-07-01T12:00:00Z",
@@ -2847,7 +2847,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/advertising-confirmations/{advertisingConfirmationId}",
+                          "href": "/advertisings/{advertisingId}",
                           "templated": true
                         }
                       },
@@ -2872,7 +2872,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/advertising-confirmations/{advertisingConfirmationId}",
+                    "href": "/advertisings/{advertisingId}",
                     "templated": true
                   }
                 }
@@ -2886,7 +2886,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/advertising-confirmations/{advertisingConfirmationId}"
+                "x-evidence-uri-template": "/advertisings/{advertisingId}"
               }
             }
           },
@@ -3187,7 +3187,7 @@
                           "templated": true
                         },
                         "result:confirmation.daily-report": {
-                          "href": "/daily-report-confirmations/{dailyReportConfirmationId}",
+                          "href": "/daily-reports/{dailyReportId}",
                           "method": "GET",
                           "templated": true
                         },
@@ -3213,7 +3213,7 @@
                     "templated": true
                   },
                   "result:confirmation.daily-report": {
-                    "href": "/daily-report-confirmations/{dailyReportConfirmationId}",
+                    "href": "/daily-reports/{dailyReportId}",
                     "method": "GET",
                     "templated": true
                   },
@@ -3344,7 +3344,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/daily-report-confirmations/{dailyReportConfirmationId}",
+                          "href": "/daily-reports/{dailyReportId}",
                           "templated": true
                         }
                       },
@@ -3365,7 +3365,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/daily-report-confirmations/{dailyReportConfirmationId}",
+                    "href": "/daily-reports/{dailyReportId}",
                     "templated": true
                   }
                 }
@@ -3379,7 +3379,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/daily-report-confirmations/{dailyReportConfirmationId}"
+                "x-evidence-uri-template": "/daily-reports/{dailyReportId}"
               }
             }
           },
@@ -3741,7 +3741,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/payment-confirmations/{paymentConfirmationId}",
+                          "href": "/payments/{paymentId}",
                           "templated": true
                         }
                       },
@@ -3766,7 +3766,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/payment-confirmations/{paymentConfirmationId}",
+                          "href": "/payments/{paymentId}",
                           "templated": true
                         }
                       },
@@ -3792,7 +3792,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/payment-confirmations/{paymentConfirmationId}",
+                    "href": "/payments/{paymentId}",
                     "templated": true
                   }
                 }
@@ -3806,7 +3806,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/payment-confirmations/{paymentConfirmationId}"
+                "x-evidence-uri-template": "/payments/{paymentId}"
               }
             }
           },
@@ -3846,13 +3846,13 @@
         ]
       }
     },
-    "/advertising-confirmations/{advertisingConfirmationId}": {
+    "/advertisings/{advertisingId}": {
       "get": {
         "operationId": "readConfirmationAdvertising",
         "parameters": [
           {
             "in": "path",
-            "name": "advertisingConfirmationId",
+            "name": "advertisingId",
             "required": true,
             "schema": {
               "type": "string"
@@ -3879,7 +3879,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/advertising-confirmations/{advertisingConfirmationId}",
+                          "href": "/advertisings/{advertisingId}",
                           "templated": true
                         }
                       },
@@ -3904,7 +3904,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/advertising-confirmations/{advertisingConfirmationId}",
+                    "href": "/advertisings/{advertisingId}",
                     "templated": true
                   }
                 }
@@ -3937,13 +3937,13 @@
         ]
       }
     },
-    "/daily-report-confirmations/{dailyReportConfirmationId}": {
+    "/daily-reports/{dailyReportId}": {
       "get": {
         "operationId": "readConfirmationDailyReport",
         "parameters": [
           {
             "in": "path",
-            "name": "dailyReportConfirmationId",
+            "name": "dailyReportId",
             "required": true,
             "schema": {
               "type": "string"
@@ -3965,7 +3965,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/daily-report-confirmations/{dailyReportConfirmationId}",
+                          "href": "/daily-reports/{dailyReportId}",
                           "templated": true
                         }
                       },
@@ -3986,7 +3986,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/daily-report-confirmations/{dailyReportConfirmationId}",
+                    "href": "/daily-reports/{dailyReportId}",
                     "templated": true
                   }
                 }
@@ -4020,13 +4020,13 @@
         ]
       }
     },
-    "/payment-confirmations/{paymentConfirmationId}": {
+    "/payments/{paymentId}": {
       "get": {
         "operationId": "readConfirmationPayment",
         "parameters": [
           {
             "in": "path",
-            "name": "paymentConfirmationId",
+            "name": "paymentId",
             "required": true,
             "schema": {
               "type": "string"
@@ -4053,7 +4053,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/payment-confirmations/{paymentConfirmationId}",
+                          "href": "/payments/{paymentId}",
                           "templated": true
                         }
                       },
@@ -4078,7 +4078,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/payment-confirmations/{paymentConfirmationId}",
+                          "href": "/payments/{paymentId}",
                           "templated": true
                         }
                       },
@@ -4104,7 +4104,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/payment-confirmations/{paymentConfirmationId}",
+                    "href": "/payments/{paymentId}",
                     "templated": true
                   }
                 }
@@ -4168,9 +4168,9 @@
       "routePrefixes": [
         "/ads-promotion-inquiries",
         "/ads-promotion-orders",
-        "/advertising-confirmations",
-        "/daily-report-confirmations",
-        "/payment-confirmations"
+        "/advertisings",
+        "/daily-reports",
+        "/payments"
       ],
       "routes": [
         "route.confirm.confirmation.advertising",

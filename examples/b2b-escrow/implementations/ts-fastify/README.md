@@ -48,7 +48,7 @@ Optional arguments:
   `POST /fulfillments/{contractId}/deliveries`. GET the same path to list
   requests; GET `…/orders/{orderId}` to read one. POST/GET
   `…/orders/{orderId}/confirmation` records the confirmation. GET the resulting
-  `/order-confirmations/{orderConfirmationId}` via `Location` or HAL `self`.
+  `/orders/{orderId}` via `Location` or HAL `self`.
 - Explicit evidence IDs connect orders, funded deposits and accepted deliveries.
   IDs are opaque; no prefix parsing, global “latest order” or test-label lookup.
 - Caller DTOs reject unknown fields, derived amounts and server-stamped times.

@@ -27,18 +27,14 @@ describe('buildDeliveryTopology', () => {
     expect(services.map((service) => service.routePrefixes)).toEqual([
       ['/products'],
       [
-        '/delivery-confirmations',
-        '/invoice-confirmations',
-        '/payment-confirmations',
+        '/deliveries',
+        '/invoices',
+        '/payments',
         '/product-inquiries',
         '/product-procurements',
       ],
       ['/product-inquiries'],
-      [
-        '/wechat-charge-confirmations',
-        '/wechat-payment-confirmations',
-        '/wechat-payments',
-      ],
+      ['/wechat-charges', '/wechat-payments-6usx9m', '/wechat-payments-ewrw8v'],
     ]);
     for (const service of services) {
       expect(service).not.toHaveProperty('lane');
@@ -96,13 +92,11 @@ it('keeps shared confirmation creation and reverse lookup with their owner', asy
   const { contract } = serviceContractsOf(delivery).find(
     ({ serviceId }) => serviceId === 'service.product-procurement',
   )!;
-  expect(contract.paths['/payment-confirmations']).toHaveProperty('post');
-  expect(
-    contract.paths['/payment-confirmations/{paymentConfirmationId}'],
-  ).toHaveProperty('get');
+  expect(contract.paths['/payments']).toHaveProperty('post');
+  expect(contract.paths['/payments/{paymentId}']).toHaveProperty('get');
   expect(
     contract.paths[
-      '/product-procurements/{contractId}/payment-balance/payment-confirmations'
+      '/product-procurements/{contractId}/payment-balance/payments'
     ],
   ).toHaveProperty('get');
 });

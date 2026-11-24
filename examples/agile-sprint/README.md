@@ -4,15 +4,15 @@
 
 `two-stories-one-sprint` 使用同一迭代、同一待办窗口和一次基线锁定，验收两个不同故事。完成规则要求基线锁定后、截止时间前形成有效记录，且故事数达标、故事不重复。锁定凭证的待办版本由待办请求派生，不接受调用方回填。
 
-| 操作      | 路径                                                 | 语义                                                                      |
-| --------- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
-| POST、GET | `/iteration-plans`                                   | 确立迭代或读取迭代集合                                                    |
-| GET       | `/iteration-plans/{contractId}`                      | 权威迭代详情                                                              |
-| POST、GET | `/iteration-plans/{contractId}/backlog`              | 创建或读取此迭代唯一的待办请求                                            |
-| POST      | `/iteration-plans/{contractId}/backlog/confirmation` | 锁定一次基线；凭证详情为 `/backlog-confirmations/{backlogConfirmationId}` |
-| POST      | `/iteration-plans/{contractId}/story-confirmations`  | 追加一条独立的故事验收凭证                                                |
-| GET       | `/iteration-plans/{contractId}/story-confirmations`  | HAL 账本视图；各条目的 `self` 指向各自的凭证                              |
-| GET       | `/story-confirmations/{storyConfirmationId}`         | 权威凭证详情，也是追加成功时的 `201 Location` 与 HAL `self`               |
+| 操作      | 路径                                                 | 语义                                                        |
+| --------- | ---------------------------------------------------- | ----------------------------------------------------------- |
+| POST、GET | `/iteration-plans`                                   | 确立迭代或读取迭代集合                                      |
+| GET       | `/iteration-plans/{contractId}`                      | 权威迭代详情                                                |
+| POST、GET | `/iteration-plans/{contractId}/backlog`              | 创建或读取此迭代唯一的待办请求                              |
+| POST      | `/iteration-plans/{contractId}/backlog/confirmation` | 锁定一次基线；凭证详情为 `/backlogs/{backlogId}`            |
+| POST      | `/iteration-plans/{contractId}/stories`              | 追加一条独立的故事验收凭证                                  |
+| GET       | `/iteration-plans/{contractId}/stories`              | HAL 账本视图；各条目的 `self` 指向各自的凭证                |
+| GET       | `/stories/{storyId}`                                 | 权威凭证详情，也是追加成功时的 `201 Location` 与 HAL `self` |
 
 故事验收只属于迭代，不属于广告订单。该案例没有金额逻辑；服务时钟形成 `signed_at`、`started_at` 和 `confirmed_at`，`expired_at` 由模型中的履约窗口派生。
 

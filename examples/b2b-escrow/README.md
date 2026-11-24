@@ -59,7 +59,7 @@ FM 的一份合同恰有两个 contextual Party Roles，不能把三个签约角
 
 后续合同请求体显式传入 `order_confirmation_id`、`deposit_confirmation_id`、`acceptance_confirmation_id` 等凭证标识。服务必须解析、鉴权并检查它们属于同一业务订单，**不能根据 ID 命名约定或全局“最近一单”猜测关联关系**。样例中的 ID 是调用方提交的业务 ID；路径参数从上游 HTTP 响应捕获。
 
-确认仍通过请求下的动作登记，例如 `POST /agreements/{contractId}/orders/{orderId}/confirmation`。成功响应的 `201 Location` 和 HAL `_links.self` 均指向顶层 `GET /order-confirmations/{orderConfirmationId}`。其他确认类型同理；旧的嵌套 GET 不再提供，读凭证不需要合同或请求 ID。
+确认仍通过请求下的动作登记，例如 `POST /agreements/{contractId}/orders/{orderId}/confirmation`。成功响应的 `201 Location` 和 HAL `_links.self` 均指向顶层 `GET /orders/{orderId}`。其他确认类型同理；旧的嵌套 GET 不再提供，读凭证不需要合同或请求 ID。
 
 ## 确定性金额与时间语义
 

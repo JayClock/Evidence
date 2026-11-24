@@ -31,15 +31,13 @@ describe('buildDeliveryRoutes', () => {
     );
     expect(paymentConfirm?.requestRef).toBe('request.payment');
     expect(paymentConfirm?.serviceId).toBe('service.product-procurement');
-    expect(paymentConfirm?.itemPath).toBe(
-      '/payment-confirmations/{paymentConfirmationId}',
-    );
+    expect(paymentConfirm?.itemPath).toBe('/payments/{paymentId}');
     expect(
       routes.find(({ id }) => id === 'route.read.confirmation.payment'),
     ).toMatchObject({
       path: paymentConfirm?.itemPath,
       method: 'GET',
-      parameterEntityRefs: { paymentConfirmationId: 'confirmation.payment' },
+      parameterEntityRefs: { paymentId: 'confirmation.payment' },
     });
     expect(
       routes.some(
@@ -60,21 +58,21 @@ describe('buildDeliveryRoutes', () => {
     expect(routes).toMatchObject([
       {
         method: 'POST',
-        path: '/product-procurements/{contractId}/payment-confirmations',
+        path: '/product-procurements/{contractId}/payments',
       },
       {
         method: 'GET',
-        path: '/product-procurements/{contractId}/payment-confirmations',
+        path: '/product-procurements/{contractId}/payments',
         responseShape: 'collection',
       },
       {
         method: 'GET',
-        path: '/payment-confirmations/{paymentConfirmationId}',
+        path: '/payments/{paymentId}',
         responseShape: 'item',
       },
     ]);
     expect(new Set(routes.map(({ itemPath }) => itemPath))).toEqual(
-      new Set(['/payment-confirmations/{paymentConfirmationId}']),
+      new Set(['/payments/{paymentId}']),
     );
   });
 
@@ -85,7 +83,7 @@ describe('buildDeliveryRoutes', () => {
     expect(routes).toMatchObject([
       {
         method: 'POST',
-        path: '/payment-confirmations',
+        path: '/payments',
         requestRefs: ['request.payment', 'request.payment-balance'],
         fields: expect.arrayContaining([
           expect.objectContaining({ name: 'request_ids', required: true }),
@@ -93,17 +91,17 @@ describe('buildDeliveryRoutes', () => {
       },
       {
         method: 'GET',
-        path: '/product-procurements/{contractId}/payment-balance/payment-confirmations',
+        path: '/product-procurements/{contractId}/payment-balance/payments',
         responseShape: 'collection',
       },
       {
         method: 'GET',
-        path: '/product-procurements/{contractId}/payments/{paymentId}/payment-confirmations',
+        path: '/product-procurements/{contractId}/payments/{paymentId}/payments',
         responseShape: 'collection',
       },
       {
         method: 'GET',
-        path: '/payment-confirmations/{paymentConfirmationId}',
+        path: '/payments/{paymentId}',
         responseShape: 'item',
       },
     ]);

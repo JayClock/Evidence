@@ -6,7 +6,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/quarter-close-confirmations/{quarterCloseConfirmationId}"
+              "href": "/quarter-closes/{quarterCloseId}"
             }
           },
           "confirmed_at": "2026-03-31T16:00:00Z",
@@ -19,7 +19,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/revenue-confirmations/{revenueConfirmationId}"
+              "href": "/revenues/{revenueId}"
             }
           },
           "amount_minor": 52000000,
@@ -83,7 +83,7 @@
           {
             "_links": {
               "self": {
-                "href": "/quarter-close-confirmations/{quarterCloseConfirmationId}"
+                "href": "/quarter-closes/{quarterCloseId}"
               }
             },
             "confirmed_at": "2026-03-31T16:00:00Z",
@@ -154,7 +154,7 @@
           {
             "_links": {
               "self": {
-                "href": "/revenue-confirmations/{revenueConfirmationId}"
+                "href": "/revenues/{revenueId}"
               }
             },
             "amount_minor": 52000000,
@@ -251,7 +251,7 @@
           "_embedded": {
             "additionalProperties": false,
             "properties": {
-              "revenue-confirmations": {
+              "revenues": {
                 "items": {
                   "$ref": "#/components/schemas/confirmation_revenueSummary"
                 },
@@ -259,7 +259,7 @@
               }
             },
             "required": [
-              "revenue-confirmations"
+              "revenues"
             ],
             "type": "object"
           },
@@ -1243,12 +1243,12 @@
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
-                          "href": "/performance-agreements/{contractId}/annual-target/revenue-confirmations",
+                          "href": "/performance-agreements/{contractId}/annual-target/revenues",
                           "method": "GET",
                           "templated": true
                         },
                         "next:confirmation.revenue": {
-                          "href": "/revenue-confirmations",
+                          "href": "/revenues",
                           "method": "POST",
                           "templated": false
                         },
@@ -1269,12 +1269,12 @@
                 },
                 "x-evidence-link-templates": {
                   "confirmations:confirmation.revenue": {
-                    "href": "/performance-agreements/{contractId}/annual-target/revenue-confirmations",
+                    "href": "/performance-agreements/{contractId}/annual-target/revenues",
                     "method": "GET",
                     "templated": true
                   },
                   "next:confirmation.revenue": {
-                    "href": "/revenue-confirmations",
+                    "href": "/revenues",
                     "method": "POST",
                     "templated": false
                   },
@@ -1383,12 +1383,12 @@
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
-                          "href": "/performance-agreements/{contractId}/annual-target/revenue-confirmations",
+                          "href": "/performance-agreements/{contractId}/annual-target/revenues",
                           "method": "GET",
                           "templated": true
                         },
                         "next:confirmation.revenue": {
-                          "href": "/revenue-confirmations",
+                          "href": "/revenues",
                           "method": "POST",
                           "templated": false
                         },
@@ -1409,12 +1409,12 @@
                 },
                 "x-evidence-link-templates": {
                   "confirmations:confirmation.revenue": {
-                    "href": "/performance-agreements/{contractId}/annual-target/revenue-confirmations",
+                    "href": "/performance-agreements/{contractId}/annual-target/revenues",
                     "method": "GET",
                     "templated": true
                   },
                   "next:confirmation.revenue": {
-                    "href": "/revenue-confirmations",
+                    "href": "/revenues",
                     "method": "POST",
                     "templated": false
                   },
@@ -1469,7 +1469,7 @@
         ]
       }
     },
-    "/performance-agreements/{contractId}/annual-target/revenue-confirmations": {
+    "/performance-agreements/{contractId}/annual-target/revenues": {
       "get": {
         "operationId": "list-from-request.annual-targetConfirmationRevenue",
         "parameters": [
@@ -1491,11 +1491,11 @@
                     "summary": "post-revenue-once",
                     "value": {
                       "_embedded": {
-                        "revenue-confirmations": [
+                        "revenues": [
                           {
                             "_links": {
                               "self": {
-                                "href": "/revenue-confirmations/{revenueConfirmationId}",
+                                "href": "/revenues/{revenueId}",
                                 "templated": true
                               }
                             },
@@ -1512,7 +1512,7 @@
                       },
                       "_links": {
                         "self": {
-                          "href": "/performance-agreements/{contractId}/annual-target/revenue-confirmations",
+                          "href": "/performance-agreements/{contractId}/annual-target/revenues",
                           "templated": true
                         }
                       },
@@ -1525,7 +1525,7 @@
                 },
                 "x-evidence-link-templates": {
                   "self": {
-                    "href": "/performance-agreements/{contractId}/annual-target/revenue-confirmations",
+                    "href": "/performance-agreements/{contractId}/annual-target/revenues",
                     "templated": true
                   }
                 }
@@ -1603,7 +1603,7 @@
                           "templated": true
                         },
                         "next:confirmation.revenue": {
-                          "href": "/revenue-confirmations",
+                          "href": "/revenues",
                           "method": "POST",
                           "templated": false
                         },
@@ -1626,7 +1626,7 @@
                     "templated": true
                   },
                   "next:confirmation.revenue": {
-                    "href": "/revenue-confirmations",
+                    "href": "/revenues",
                     "method": "POST",
                     "templated": false
                   },
@@ -1742,7 +1742,7 @@
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
-                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations",
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                           "method": "GET",
                           "templated": true
                         },
@@ -1752,7 +1752,7 @@
                           "templated": true
                         },
                         "next:confirmation.revenue": {
-                          "href": "/revenue-confirmations",
+                          "href": "/revenues",
                           "method": "POST",
                           "templated": false
                         },
@@ -1774,7 +1774,7 @@
                 },
                 "x-evidence-link-templates": {
                   "confirmations:confirmation.revenue": {
-                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations",
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                     "method": "GET",
                     "templated": true
                   },
@@ -1784,7 +1784,7 @@
                     "templated": true
                   },
                   "next:confirmation.revenue": {
-                    "href": "/revenue-confirmations",
+                    "href": "/revenues",
                     "method": "POST",
                     "templated": false
                   },
@@ -1870,7 +1870,7 @@
                     "value": {
                       "_links": {
                         "confirmations:confirmation.revenue": {
-                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations",
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                           "method": "GET",
                           "templated": true
                         },
@@ -1880,7 +1880,7 @@
                           "templated": true
                         },
                         "next:confirmation.revenue": {
-                          "href": "/revenue-confirmations",
+                          "href": "/revenues",
                           "method": "POST",
                           "templated": false
                         },
@@ -1902,7 +1902,7 @@
                 },
                 "x-evidence-link-templates": {
                   "confirmations:confirmation.revenue": {
-                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations",
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                     "method": "GET",
                     "templated": true
                   },
@@ -1912,7 +1912,7 @@
                     "templated": true
                   },
                   "next:confirmation.revenue": {
-                    "href": "/revenue-confirmations",
+                    "href": "/revenues",
                     "method": "POST",
                     "templated": false
                   },
@@ -2019,7 +2019,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/quarter-close-confirmations/{quarterCloseConfirmationId}",
+                          "href": "/quarter-closes/{quarterCloseId}",
                           "templated": true
                         }
                       },
@@ -2039,7 +2039,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/quarter-close-confirmations/{quarterCloseConfirmationId}",
+                    "href": "/quarter-closes/{quarterCloseId}",
                     "templated": true
                   }
                 }
@@ -2053,7 +2053,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/quarter-close-confirmations/{quarterCloseConfirmationId}"
+                "x-evidence-uri-template": "/quarter-closes/{quarterCloseId}"
               }
             }
           },
@@ -2090,7 +2090,7 @@
         ]
       }
     },
-    "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations": {
+    "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues": {
       "get": {
         "operationId": "list-from-request.quarterly-targetConfirmationRevenue",
         "parameters": [
@@ -2120,11 +2120,11 @@
                     "summary": "post-revenue-once",
                     "value": {
                       "_embedded": {
-                        "revenue-confirmations": [
+                        "revenues": [
                           {
                             "_links": {
                               "self": {
-                                "href": "/revenue-confirmations/{revenueConfirmationId}",
+                                "href": "/revenues/{revenueId}",
                                 "templated": true
                               }
                             },
@@ -2141,7 +2141,7 @@
                       },
                       "_links": {
                         "self": {
-                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations",
+                          "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                           "templated": true
                         }
                       },
@@ -2154,7 +2154,7 @@
                 },
                 "x-evidence-link-templates": {
                   "self": {
-                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenue-confirmations",
+                    "href": "/performance-agreements/{contractId}/quarterly-targets/{targetId}/revenues",
                     "templated": true
                   }
                 }
@@ -2187,13 +2187,13 @@
         ]
       }
     },
-    "/quarter-close-confirmations/{quarterCloseConfirmationId}": {
+    "/quarter-closes/{quarterCloseId}": {
       "get": {
         "operationId": "readConfirmationQuarterClose",
         "parameters": [
           {
             "in": "path",
-            "name": "quarterCloseConfirmationId",
+            "name": "quarterCloseId",
             "required": true,
             "schema": {
               "type": "string"
@@ -2215,7 +2215,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/quarter-close-confirmations/{quarterCloseConfirmationId}",
+                          "href": "/quarter-closes/{quarterCloseId}",
                           "templated": true
                         }
                       },
@@ -2235,7 +2235,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/quarter-close-confirmations/{quarterCloseConfirmationId}",
+                    "href": "/quarter-closes/{quarterCloseId}",
                     "templated": true
                   }
                 }
@@ -2273,7 +2273,7 @@
         ]
       }
     },
-    "/revenue-confirmations": {
+    "/revenues": {
       "post": {
         "operationId": "confirmConfirmationRevenue",
         "parameters": [],
@@ -2366,7 +2366,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/revenue-confirmations/{revenueConfirmationId}",
+                          "href": "/revenues/{revenueId}",
                           "templated": true
                         }
                       },
@@ -2396,7 +2396,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/revenue-confirmations/{revenueConfirmationId}",
+                    "href": "/revenues/{revenueId}",
                     "templated": true
                   }
                 }
@@ -2410,7 +2410,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/revenue-confirmations/{revenueConfirmationId}"
+                "x-evidence-uri-template": "/revenues/{revenueId}"
               }
             }
           },
@@ -2444,13 +2444,13 @@
         ]
       }
     },
-    "/revenue-confirmations/{revenueConfirmationId}": {
+    "/revenues/{revenueId}": {
       "get": {
         "operationId": "readConfirmationRevenue",
         "parameters": [
           {
             "in": "path",
-            "name": "revenueConfirmationId",
+            "name": "revenueId",
             "required": true,
             "schema": {
               "type": "string"
@@ -2477,7 +2477,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/revenue-confirmations/{revenueConfirmationId}",
+                          "href": "/revenues/{revenueId}",
                           "templated": true
                         }
                       },
@@ -2507,7 +2507,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/revenue-confirmations/{revenueConfirmationId}",
+                    "href": "/revenues/{revenueId}",
                     "templated": true
                   }
                 }
@@ -2548,8 +2548,8 @@
       "kind": "fulfillment",
       "routePrefixes": [
         "/performance-agreements",
-        "/quarter-close-confirmations",
-        "/revenue-confirmations"
+        "/quarter-closes",
+        "/revenues"
       ],
       "routes": [
         "route.confirm.confirmation.quarter-close",

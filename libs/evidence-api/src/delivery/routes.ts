@@ -18,7 +18,6 @@ import {
   type UnaddressedRoute,
 } from './addressing.js';
 import {
-  confirmationNounOf,
   createSegmentAllocator,
   operationIdFor,
   pluralSegmentOf,
@@ -221,8 +220,6 @@ export const buildDeliveryRoutes = (
   const confirmationById = new Map(
     confirmations.map((entry) => [entry.entity.id, entry]),
   );
-  const collectionRel = (ref: string) =>
-    pluralSegmentOf(confirmationById.has(ref) ? confirmationNounOf(ref) : ref);
   const roots = graph
     .entities()
     .filter(
@@ -241,7 +238,7 @@ export const buildDeliveryRoutes = (
     );
   const rootSegments = createSegmentAllocator(
     roots.map((entity) => entity.id),
-    collectionRel,
+    pluralSegmentOf,
   );
   const routes: DeliveryRoute[] = [];
   type Address = {
@@ -352,7 +349,7 @@ export const buildDeliveryRoutes = (
       shape: item.shape,
       itemPath: item.itemPath,
       responseShape: collectionRead ? 'collection' : 'item',
-      ...(collectionRead ? { collectionRel: collectionRel(entityRef) } : {}),
+      ...(collectionRead ? { collectionRel: pluralSegmentOf(entityRef) } : {}),
       parameterEntityRefs: {
         ...item.parameterEntityRefs,
         ...location.parameterEntityRefs,
@@ -720,7 +717,7 @@ export const buildDeliveryRoutes = (
     if (contextRef === undefined) continue;
     const refs = { confirmationRef: id };
     const segment = rootSegments.segmentOf(id);
-    const parameter = operationIdFor('', confirmationNounOf(id)) + 'Id';
+    const parameter = operationIdFor('', rawSegmentOf(id)) + 'Id';
     const primary = address(
       '/' + segment,
       id,

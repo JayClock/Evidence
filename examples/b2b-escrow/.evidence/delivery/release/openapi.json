@@ -6,7 +6,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/acceptance-confirmations/{acceptanceConfirmationId}"
+              "href": "/acceptances/{acceptanceId}"
             }
           },
           "accepted": true,
@@ -21,7 +21,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/acceptance-confirmations/{acceptanceConfirmationId}"
+              "href": "/acceptances/{acceptanceId}"
             }
           },
           "accepted": true,
@@ -36,7 +36,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/commitment-confirmations/{commitmentConfirmationId}"
+              "href": "/commitments/{commitmentId}"
             }
           },
           "acknowledged": true,
@@ -49,7 +49,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/commitment-confirmations/{commitmentConfirmationId}"
+              "href": "/commitments/{commitmentId}"
             }
           },
           "acknowledged": true,
@@ -62,7 +62,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/commitment-confirmations/{commitmentConfirmationId}"
+              "href": "/commitments/{commitmentId}"
             }
           },
           "acknowledged": true,
@@ -75,7 +75,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/commitment-confirmations/{commitmentConfirmationId}"
+              "href": "/commitments/{commitmentId}"
             }
           },
           "acknowledged": true,
@@ -88,7 +88,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/commitment-confirmations/{commitmentConfirmationId}"
+              "href": "/commitments/{commitmentId}"
             }
           },
           "acknowledged": true,
@@ -101,7 +101,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+              "href": "/custody-statements/{custodyStatementId}"
             }
           },
           "acknowledged": true,
@@ -114,7 +114,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+              "href": "/custody-statements/{custodyStatementId}"
             }
           },
           "acknowledged": true,
@@ -127,7 +127,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+              "href": "/custody-statements/{custodyStatementId}"
             }
           },
           "acknowledged": true,
@@ -140,7 +140,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+              "href": "/custody-statements/{custodyStatementId}"
             }
           },
           "acknowledged": true,
@@ -153,7 +153,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+              "href": "/custody-statements/{custodyStatementId}"
             }
           },
           "acknowledged": true,
@@ -166,7 +166,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/delivery-confirmations/{deliveryConfirmationId}"
+              "href": "/deliveries/{deliveryId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -179,7 +179,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/delivery-confirmations/{deliveryConfirmationId}"
+              "href": "/deliveries/{deliveryId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -192,7 +192,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+              "href": "/deposit-locks/{depositLockId}"
             }
           },
           "confirmed_at": "2026-06-02T00:01:00Z",
@@ -205,7 +205,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+              "href": "/deposit-locks/{depositLockId}"
             }
           },
           "confirmed_at": "2026-06-02T00:01:00Z",
@@ -218,7 +218,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+              "href": "/deposit-locks/{depositLockId}"
             }
           },
           "confirmed_at": "2026-06-02T00:01:00Z",
@@ -231,7 +231,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+              "href": "/deposit-locks/{depositLockId}"
             }
           },
           "confirmed_at": "2026-06-02T00:01:00Z",
@@ -244,7 +244,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+              "href": "/deposit-locks/{depositLockId}"
             }
           },
           "confirmed_at": "2026-06-02T00:01:00Z",
@@ -257,7 +257,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+              "href": "/final-milestones/{finalMilestoneId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -270,7 +270,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+              "href": "/final-milestones/{finalMilestoneId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -283,7 +283,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+              "href": "/final-milestones/{finalMilestoneId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:01Z",
@@ -296,7 +296,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+              "href": "/first-milestones/{firstMilestoneId}"
             }
           },
           "confirmed_at": "2026-06-10T00:00:00Z",
@@ -309,7 +309,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+              "href": "/first-milestones/{firstMilestoneId}"
             }
           },
           "confirmed_at": "2026-06-10T00:00:00Z",
@@ -322,7 +322,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+              "href": "/first-milestones/{firstMilestoneId}"
             }
           },
           "confirmed_at": "2026-06-10T00:00:00Z",
@@ -335,7 +335,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+              "href": "/milestone-acceptances/{milestoneAcceptanceId}"
             }
           },
           "accepted": true,
@@ -350,7 +350,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+              "href": "/milestone-acceptances/{milestoneAcceptanceId}"
             }
           },
           "accepted": true,
@@ -365,7 +365,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+              "href": "/milestone-acceptances/{milestoneAcceptanceId}"
             }
           },
           "accepted": true,
@@ -380,7 +380,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -396,7 +396,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -412,7 +412,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -428,7 +428,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -444,7 +444,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -460,7 +460,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -476,7 +476,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -492,7 +492,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -508,7 +508,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:01Z",
@@ -524,7 +524,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:01Z",
@@ -540,7 +540,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:01Z",
@@ -556,7 +556,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+              "href": "/milestone-releases/{milestoneReleaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:01Z",
@@ -572,7 +572,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+              "href": "/milestone-statements/{milestoneStatementId}"
             }
           },
           "acknowledged": true,
@@ -585,7 +585,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+              "href": "/milestone-statements/{milestoneStatementId}"
             }
           },
           "acknowledged": true,
@@ -598,7 +598,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+              "href": "/milestone-statements/{milestoneStatementId}"
             }
           },
           "acknowledged": true,
@@ -611,7 +611,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/order-confirmations/{orderConfirmationId}"
+              "href": "/orders/{orderId}"
             }
           },
           "confirmed_at": "2026-06-01T00:01:00Z",
@@ -629,7 +629,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/order-confirmations/{orderConfirmationId}"
+              "href": "/orders/{orderId}"
             }
           },
           "confirmed_at": "2026-06-01T00:01:00Z",
@@ -647,7 +647,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/order-confirmations/{orderConfirmationId}"
+              "href": "/orders/{orderId}"
             }
           },
           "confirmed_at": "2026-06-01T00:01:00Z",
@@ -665,7 +665,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/order-confirmations/{orderConfirmationId}"
+              "href": "/orders/{orderId}"
             }
           },
           "confirmed_at": "2026-06-01T00:01:00Z",
@@ -683,7 +683,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/order-confirmations/{orderConfirmationId}"
+              "href": "/orders/{orderId}"
             }
           },
           "confirmed_at": "2026-06-01T00:01:00Z",
@@ -701,7 +701,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -717,7 +717,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -733,7 +733,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -749,7 +749,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-30T00:00:00Z",
@@ -765,7 +765,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -781,7 +781,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -797,7 +797,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -813,7 +813,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/release-confirmations/{releaseConfirmationId}"
+              "href": "/releases/{releaseId}"
             }
           },
           "confirmed_at": "2026-06-15T00:00:00Z",
@@ -829,7 +829,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}"
+              "href": "/settlement-receipts/{settlementReceiptId}"
             }
           },
           "acknowledged": true,
@@ -842,7 +842,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}"
+              "href": "/settlement-receipts/{settlementReceiptId}"
             }
           },
           "acknowledged": true,
@@ -1728,7 +1728,7 @@
           {
             "_links": {
               "self": {
-                "href": "/acceptance-confirmations/{acceptanceConfirmationId}"
+                "href": "/acceptances/{acceptanceId}"
               }
             },
             "accepted": true,
@@ -1740,7 +1740,7 @@
           {
             "_links": {
               "self": {
-                "href": "/acceptance-confirmations/{acceptanceConfirmationId}"
+                "href": "/acceptances/{acceptanceId}"
               }
             },
             "accepted": true,
@@ -1850,7 +1850,7 @@
           {
             "_links": {
               "self": {
-                "href": "/commitment-confirmations/{commitmentConfirmationId}"
+                "href": "/commitments/{commitmentId}"
               }
             },
             "acknowledged": true,
@@ -1860,7 +1860,7 @@
           {
             "_links": {
               "self": {
-                "href": "/commitment-confirmations/{commitmentConfirmationId}"
+                "href": "/commitments/{commitmentId}"
               }
             },
             "acknowledged": true,
@@ -1870,7 +1870,7 @@
           {
             "_links": {
               "self": {
-                "href": "/commitment-confirmations/{commitmentConfirmationId}"
+                "href": "/commitments/{commitmentId}"
               }
             },
             "acknowledged": true,
@@ -1880,7 +1880,7 @@
           {
             "_links": {
               "self": {
-                "href": "/commitment-confirmations/{commitmentConfirmationId}"
+                "href": "/commitments/{commitmentId}"
               }
             },
             "acknowledged": true,
@@ -1890,7 +1890,7 @@
           {
             "_links": {
               "self": {
-                "href": "/commitment-confirmations/{commitmentConfirmationId}"
+                "href": "/commitments/{commitmentId}"
               }
             },
             "acknowledged": true,
@@ -1958,7 +1958,7 @@
           {
             "_links": {
               "self": {
-                "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+                "href": "/custody-statements/{custodyStatementId}"
               }
             },
             "acknowledged": true,
@@ -1968,7 +1968,7 @@
           {
             "_links": {
               "self": {
-                "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+                "href": "/custody-statements/{custodyStatementId}"
               }
             },
             "acknowledged": true,
@@ -1978,7 +1978,7 @@
           {
             "_links": {
               "self": {
-                "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+                "href": "/custody-statements/{custodyStatementId}"
               }
             },
             "acknowledged": true,
@@ -1988,7 +1988,7 @@
           {
             "_links": {
               "self": {
-                "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+                "href": "/custody-statements/{custodyStatementId}"
               }
             },
             "acknowledged": true,
@@ -1998,7 +1998,7 @@
           {
             "_links": {
               "self": {
-                "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+                "href": "/custody-statements/{custodyStatementId}"
               }
             },
             "acknowledged": true,
@@ -2066,7 +2066,7 @@
           {
             "_links": {
               "self": {
-                "href": "/delivery-confirmations/{deliveryConfirmationId}"
+                "href": "/deliveries/{deliveryId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -2076,7 +2076,7 @@
           {
             "_links": {
               "self": {
-                "href": "/delivery-confirmations/{deliveryConfirmationId}"
+                "href": "/deliveries/{deliveryId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -2154,7 +2154,7 @@
           {
             "_links": {
               "self": {
-                "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+                "href": "/deposit-locks/{depositLockId}"
               }
             },
             "confirmed_at": "2026-06-02T00:01:00Z",
@@ -2164,7 +2164,7 @@
           {
             "_links": {
               "self": {
-                "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+                "href": "/deposit-locks/{depositLockId}"
               }
             },
             "confirmed_at": "2026-06-02T00:01:00Z",
@@ -2174,7 +2174,7 @@
           {
             "_links": {
               "self": {
-                "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+                "href": "/deposit-locks/{depositLockId}"
               }
             },
             "confirmed_at": "2026-06-02T00:01:00Z",
@@ -2184,7 +2184,7 @@
           {
             "_links": {
               "self": {
-                "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+                "href": "/deposit-locks/{depositLockId}"
               }
             },
             "confirmed_at": "2026-06-02T00:01:00Z",
@@ -2194,7 +2194,7 @@
           {
             "_links": {
               "self": {
-                "href": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+                "href": "/deposit-locks/{depositLockId}"
               }
             },
             "confirmed_at": "2026-06-02T00:01:00Z",
@@ -2275,7 +2275,7 @@
           {
             "_links": {
               "self": {
-                "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+                "href": "/final-milestones/{finalMilestoneId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -2285,7 +2285,7 @@
           {
             "_links": {
               "self": {
-                "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+                "href": "/final-milestones/{finalMilestoneId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:01Z",
@@ -2295,7 +2295,7 @@
           {
             "_links": {
               "self": {
-                "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+                "href": "/final-milestones/{finalMilestoneId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -2373,7 +2373,7 @@
           {
             "_links": {
               "self": {
-                "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+                "href": "/first-milestones/{firstMilestoneId}"
               }
             },
             "confirmed_at": "2026-06-10T00:00:00Z",
@@ -2383,7 +2383,7 @@
           {
             "_links": {
               "self": {
-                "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+                "href": "/first-milestones/{firstMilestoneId}"
               }
             },
             "confirmed_at": "2026-06-10T00:00:00Z",
@@ -2393,7 +2393,7 @@
           {
             "_links": {
               "self": {
-                "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+                "href": "/first-milestones/{firstMilestoneId}"
               }
             },
             "confirmed_at": "2026-06-10T00:00:00Z",
@@ -2471,7 +2471,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+                "href": "/milestone-acceptances/{milestoneAcceptanceId}"
               }
             },
             "accepted": true,
@@ -2483,7 +2483,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+                "href": "/milestone-acceptances/{milestoneAcceptanceId}"
               }
             },
             "accepted": true,
@@ -2495,7 +2495,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+                "href": "/milestone-acceptances/{milestoneAcceptanceId}"
               }
             },
             "accepted": true,
@@ -2605,7 +2605,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -2618,7 +2618,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -2631,7 +2631,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -2644,7 +2644,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -2657,7 +2657,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:01Z",
@@ -2670,7 +2670,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:01Z",
@@ -2683,7 +2683,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:01Z",
@@ -2696,7 +2696,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:01Z",
@@ -2709,7 +2709,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -2722,7 +2722,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -2735,7 +2735,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -2748,7 +2748,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "href": "/milestone-releases/{milestoneReleaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -2892,7 +2892,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+                "href": "/milestone-statements/{milestoneStatementId}"
               }
             },
             "acknowledged": true,
@@ -2902,7 +2902,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+                "href": "/milestone-statements/{milestoneStatementId}"
               }
             },
             "acknowledged": true,
@@ -2912,7 +2912,7 @@
           {
             "_links": {
               "self": {
-                "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+                "href": "/milestone-statements/{milestoneStatementId}"
               }
             },
             "acknowledged": true,
@@ -2980,7 +2980,7 @@
           {
             "_links": {
               "self": {
-                "href": "/order-confirmations/{orderConfirmationId}"
+                "href": "/orders/{orderId}"
               }
             },
             "confirmed_at": "2026-06-01T00:01:00Z",
@@ -2995,7 +2995,7 @@
           {
             "_links": {
               "self": {
-                "href": "/order-confirmations/{orderConfirmationId}"
+                "href": "/orders/{orderId}"
               }
             },
             "confirmed_at": "2026-06-01T00:01:00Z",
@@ -3010,7 +3010,7 @@
           {
             "_links": {
               "self": {
-                "href": "/order-confirmations/{orderConfirmationId}"
+                "href": "/orders/{orderId}"
               }
             },
             "confirmed_at": "2026-06-01T00:01:00Z",
@@ -3025,7 +3025,7 @@
           {
             "_links": {
               "self": {
-                "href": "/order-confirmations/{orderConfirmationId}"
+                "href": "/orders/{orderId}"
               }
             },
             "confirmed_at": "2026-06-01T00:01:00Z",
@@ -3040,7 +3040,7 @@
           {
             "_links": {
               "self": {
-                "href": "/order-confirmations/{orderConfirmationId}"
+                "href": "/orders/{orderId}"
               }
             },
             "confirmed_at": "2026-06-01T00:01:00Z",
@@ -3217,7 +3217,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -3230,7 +3230,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -3243,7 +3243,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -3256,7 +3256,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-15T00:00:00Z",
@@ -3269,7 +3269,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -3282,7 +3282,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -3295,7 +3295,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -3308,7 +3308,7 @@
           {
             "_links": {
               "self": {
-                "href": "/release-confirmations/{releaseConfirmationId}"
+                "href": "/releases/{releaseId}"
               }
             },
             "confirmed_at": "2026-06-30T00:00:00Z",
@@ -3452,7 +3452,7 @@
           {
             "_links": {
               "self": {
-                "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}"
+                "href": "/settlement-receipts/{settlementReceiptId}"
               }
             },
             "acknowledged": true,
@@ -3462,7 +3462,7 @@
           {
             "_links": {
               "self": {
-                "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}"
+                "href": "/settlement-receipts/{settlementReceiptId}"
               }
             },
             "acknowledged": true,
@@ -7382,13 +7382,13 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/acceptance-confirmations/{acceptanceConfirmationId}": {
+    "/acceptances/{acceptanceId}": {
       "get": {
         "operationId": "readConfirmationAcceptance",
         "parameters": [
           {
             "in": "path",
-            "name": "acceptanceConfirmationId",
+            "name": "acceptanceId",
             "required": true,
             "schema": {
               "type": "string"
@@ -7420,7 +7420,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/acceptance-confirmations/{acceptanceConfirmationId}",
+                          "href": "/acceptances/{acceptanceId}",
                           "templated": true
                         }
                       },
@@ -7451,7 +7451,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/acceptance-confirmations/{acceptanceConfirmationId}",
+                          "href": "/acceptances/{acceptanceId}",
                           "templated": true
                         }
                       },
@@ -7483,7 +7483,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/acceptance-confirmations/{acceptanceConfirmationId}",
+                    "href": "/acceptances/{acceptanceId}",
                     "templated": true
                   }
                 }
@@ -9178,7 +9178,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -9197,7 +9197,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -9216,7 +9216,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -9235,7 +9235,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -9254,7 +9254,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -9274,7 +9274,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                    "href": "/commitments/{commitmentId}",
                     "templated": true
                   }
                 }
@@ -9288,7 +9288,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/commitment-confirmations/{commitmentConfirmationId}"
+                "x-evidence-uri-template": "/commitments/{commitmentId}"
               }
             }
           },
@@ -10084,7 +10084,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -10163,7 +10163,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -10242,7 +10242,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -10321,7 +10321,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -10400,7 +10400,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -10480,7 +10480,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/order-confirmations/{orderConfirmationId}",
+                    "href": "/orders/{orderId}",
                     "templated": true
                   }
                 }
@@ -10494,7 +10494,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/order-confirmations/{orderConfirmationId}"
+                "x-evidence-uri-template": "/orders/{orderId}"
               }
             }
           },
@@ -10551,13 +10551,13 @@
         ]
       }
     },
-    "/commitment-confirmations/{commitmentConfirmationId}": {
+    "/commitments/{commitmentId}": {
       "get": {
         "operationId": "readConfirmationCommitment",
         "parameters": [
           {
             "in": "path",
-            "name": "commitmentConfirmationId",
+            "name": "commitmentId",
             "required": true,
             "schema": {
               "type": "string"
@@ -10579,7 +10579,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -10598,7 +10598,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -10617,7 +10617,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -10636,7 +10636,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -10655,7 +10655,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                          "href": "/commitments/{commitmentId}",
                           "templated": true
                         }
                       },
@@ -10675,7 +10675,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/commitment-confirmations/{commitmentConfirmationId}",
+                    "href": "/commitments/{commitmentId}",
                     "templated": true
                   }
                 }
@@ -10708,13 +10708,13 @@
         ]
       }
     },
-    "/custody-statement-confirmations/{custodyStatementConfirmationId}": {
+    "/custody-statements/{custodyStatementId}": {
       "get": {
         "operationId": "readConfirmationCustodyStatement",
         "parameters": [
           {
             "in": "path",
-            "name": "custodyStatementConfirmationId",
+            "name": "custodyStatementId",
             "required": true,
             "schema": {
               "type": "string"
@@ -10736,7 +10736,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -10755,7 +10755,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -10774,7 +10774,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -10793,7 +10793,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -10812,7 +10812,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -10832,7 +10832,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                    "href": "/custody-statements/{custodyStatementId}",
                     "templated": true
                   }
                 }
@@ -10865,13 +10865,13 @@
         ]
       }
     },
-    "/delivery-confirmations/{deliveryConfirmationId}": {
+    "/deliveries/{deliveryId}": {
       "get": {
         "operationId": "readConfirmationDelivery",
         "parameters": [
           {
             "in": "path",
-            "name": "deliveryConfirmationId",
+            "name": "deliveryId",
             "required": true,
             "schema": {
               "type": "string"
@@ -10898,7 +10898,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/delivery-confirmations/{deliveryConfirmationId}",
+                          "href": "/deliveries/{deliveryId}",
                           "templated": true
                         }
                       },
@@ -10922,7 +10922,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/delivery-confirmations/{deliveryConfirmationId}",
+                          "href": "/deliveries/{deliveryId}",
                           "templated": true
                         }
                       },
@@ -10947,7 +10947,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/delivery-confirmations/{deliveryConfirmationId}",
+                    "href": "/deliveries/{deliveryId}",
                     "templated": true
                   }
                 }
@@ -10980,13 +10980,13 @@
         ]
       }
     },
-    "/deposit-lock-confirmations/{depositLockConfirmationId}": {
+    "/deposit-locks/{depositLockId}": {
       "get": {
         "operationId": "readConfirmationDepositLock",
         "parameters": [
           {
             "in": "path",
-            "name": "depositLockConfirmationId",
+            "name": "depositLockId",
             "required": true,
             "schema": {
               "type": "string"
@@ -11043,7 +11043,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -11097,7 +11097,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -11151,7 +11151,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -11205,7 +11205,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -11259,7 +11259,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -11314,7 +11314,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                    "href": "/deposit-locks/{depositLockId}",
                     "templated": true
                   }
                 }
@@ -12752,7 +12752,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -12771,7 +12771,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -12790,7 +12790,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -12809,7 +12809,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -12828,7 +12828,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                          "href": "/custody-statements/{custodyStatementId}",
                           "templated": true
                         }
                       },
@@ -12848,7 +12848,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/custody-statement-confirmations/{custodyStatementConfirmationId}",
+                    "href": "/custody-statements/{custodyStatementId}",
                     "templated": true
                   }
                 }
@@ -12862,7 +12862,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/custody-statement-confirmations/{custodyStatementConfirmationId}"
+                "x-evidence-uri-template": "/custody-statements/{custodyStatementId}"
               }
             }
           },
@@ -13638,7 +13638,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -13692,7 +13692,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -13746,7 +13746,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -13800,7 +13800,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -13854,7 +13854,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                          "href": "/deposit-locks/{depositLockId}",
                           "templated": true
                         }
                       },
@@ -13909,7 +13909,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/deposit-lock-confirmations/{depositLockConfirmationId}",
+                    "href": "/deposit-locks/{depositLockId}",
                     "templated": true
                   }
                 }
@@ -13923,7 +13923,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/deposit-lock-confirmations/{depositLockConfirmationId}"
+                "x-evidence-uri-template": "/deposit-locks/{depositLockId}"
               }
             }
           },
@@ -13960,13 +13960,13 @@
         ]
       }
     },
-    "/final-milestone-confirmations/{finalMilestoneConfirmationId}": {
+    "/final-milestones/{finalMilestoneId}": {
       "get": {
         "operationId": "readConfirmationFinalMilestone",
         "parameters": [
           {
             "in": "path",
-            "name": "finalMilestoneConfirmationId",
+            "name": "finalMilestoneId",
             "required": true,
             "schema": {
               "type": "string"
@@ -13993,7 +13993,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                          "href": "/final-milestones/{finalMilestoneId}",
                           "templated": true
                         }
                       },
@@ -14017,7 +14017,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                          "href": "/final-milestones/{finalMilestoneId}",
                           "templated": true
                         }
                       },
@@ -14041,7 +14041,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                          "href": "/final-milestones/{finalMilestoneId}",
                           "templated": true
                         }
                       },
@@ -14066,7 +14066,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                    "href": "/final-milestones/{finalMilestoneId}",
                     "templated": true
                   }
                 }
@@ -14099,13 +14099,13 @@
         ]
       }
     },
-    "/first-milestone-confirmations/{firstMilestoneConfirmationId}": {
+    "/first-milestones/{firstMilestoneId}": {
       "get": {
         "operationId": "readConfirmationFirstMilestone",
         "parameters": [
           {
             "in": "path",
-            "name": "firstMilestoneConfirmationId",
+            "name": "firstMilestoneId",
             "required": true,
             "schema": {
               "type": "string"
@@ -14137,7 +14137,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                          "href": "/first-milestones/{firstMilestoneId}",
                           "templated": true
                         }
                       },
@@ -14166,7 +14166,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                          "href": "/first-milestones/{firstMilestoneId}",
                           "templated": true
                         }
                       },
@@ -14195,7 +14195,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                          "href": "/first-milestones/{firstMilestoneId}",
                           "templated": true
                         }
                       },
@@ -14225,7 +14225,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                    "href": "/first-milestones/{firstMilestoneId}",
                     "templated": true
                   }
                 }
@@ -15715,7 +15715,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/acceptance-confirmations/{acceptanceConfirmationId}",
+                          "href": "/acceptances/{acceptanceId}",
                           "templated": true
                         }
                       },
@@ -15746,7 +15746,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/acceptance-confirmations/{acceptanceConfirmationId}",
+                          "href": "/acceptances/{acceptanceId}",
                           "templated": true
                         }
                       },
@@ -15778,7 +15778,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/acceptance-confirmations/{acceptanceConfirmationId}",
+                    "href": "/acceptances/{acceptanceId}",
                     "templated": true
                   }
                 }
@@ -15792,7 +15792,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/acceptance-confirmations/{acceptanceConfirmationId}"
+                "x-evidence-uri-template": "/acceptances/{acceptanceId}"
               }
             }
           },
@@ -16319,7 +16319,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/delivery-confirmations/{deliveryConfirmationId}",
+                          "href": "/deliveries/{deliveryId}",
                           "templated": true
                         }
                       },
@@ -16343,7 +16343,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/delivery-confirmations/{deliveryConfirmationId}",
+                          "href": "/deliveries/{deliveryId}",
                           "templated": true
                         }
                       },
@@ -16368,7 +16368,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/delivery-confirmations/{deliveryConfirmationId}",
+                    "href": "/deliveries/{deliveryId}",
                     "templated": true
                   }
                 }
@@ -16382,7 +16382,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/delivery-confirmations/{deliveryConfirmationId}"
+                "x-evidence-uri-template": "/deliveries/{deliveryId}"
               }
             }
           },
@@ -16983,7 +16983,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                          "href": "/final-milestones/{finalMilestoneId}",
                           "templated": true
                         }
                       },
@@ -17007,7 +17007,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                          "href": "/final-milestones/{finalMilestoneId}",
                           "templated": true
                         }
                       },
@@ -17031,7 +17031,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                          "href": "/final-milestones/{finalMilestoneId}",
                           "templated": true
                         }
                       },
@@ -17056,7 +17056,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/final-milestone-confirmations/{finalMilestoneConfirmationId}",
+                    "href": "/final-milestones/{finalMilestoneId}",
                     "templated": true
                   }
                 }
@@ -17070,7 +17070,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/final-milestone-confirmations/{finalMilestoneConfirmationId}"
+                "x-evidence-uri-template": "/final-milestones/{finalMilestoneId}"
               }
             }
           },
@@ -17676,7 +17676,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                          "href": "/first-milestones/{firstMilestoneId}",
                           "templated": true
                         }
                       },
@@ -17705,7 +17705,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                          "href": "/first-milestones/{firstMilestoneId}",
                           "templated": true
                         }
                       },
@@ -17734,7 +17734,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                          "href": "/first-milestones/{firstMilestoneId}",
                           "templated": true
                         }
                       },
@@ -17764,7 +17764,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/first-milestone-confirmations/{firstMilestoneConfirmationId}",
+                    "href": "/first-milestones/{firstMilestoneId}",
                     "templated": true
                   }
                 }
@@ -17778,7 +17778,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/first-milestone-confirmations/{firstMilestoneConfirmationId}"
+                "x-evidence-uri-template": "/first-milestones/{firstMilestoneId}"
               }
             }
           },
@@ -18374,7 +18374,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                          "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                           "templated": true
                         }
                       },
@@ -18405,7 +18405,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                          "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                           "templated": true
                         }
                       },
@@ -18436,7 +18436,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                          "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                           "templated": true
                         }
                       },
@@ -18468,7 +18468,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                    "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                     "templated": true
                   }
                 }
@@ -18482,7 +18482,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}"
+                "x-evidence-uri-template": "/milestone-acceptances/{milestoneAcceptanceId}"
               }
             }
           },
@@ -18523,13 +18523,13 @@
         ]
       }
     },
-    "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}": {
+    "/milestone-acceptances/{milestoneAcceptanceId}": {
       "get": {
         "operationId": "readConfirmationMilestoneAcceptance",
         "parameters": [
           {
             "in": "path",
-            "name": "milestoneAcceptanceConfirmationId",
+            "name": "milestoneAcceptanceId",
             "required": true,
             "schema": {
               "type": "string"
@@ -18561,7 +18561,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                          "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                           "templated": true
                         }
                       },
@@ -18592,7 +18592,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                          "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                           "templated": true
                         }
                       },
@@ -18623,7 +18623,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                          "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                           "templated": true
                         }
                       },
@@ -18655,7 +18655,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/milestone-acceptance-confirmations/{milestoneAcceptanceConfirmationId}",
+                    "href": "/milestone-acceptances/{milestoneAcceptanceId}",
                     "templated": true
                   }
                 }
@@ -18697,13 +18697,13 @@
         ]
       }
     },
-    "/milestone-release-confirmations/{milestoneReleaseConfirmationId}": {
+    "/milestone-releases/{milestoneReleaseId}": {
       "get": {
         "operationId": "readConfirmationMilestoneRelease",
         "parameters": [
           {
             "in": "path",
-            "name": "milestoneReleaseConfirmationId",
+            "name": "milestoneReleaseId",
             "required": true,
             "schema": {
               "type": "string"
@@ -18730,7 +18730,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18757,7 +18757,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18784,7 +18784,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18811,7 +18811,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18838,7 +18838,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18865,7 +18865,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18892,7 +18892,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18919,7 +18919,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18946,7 +18946,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -18973,7 +18973,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -19000,7 +19000,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -19027,7 +19027,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -19055,7 +19055,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                    "href": "/milestone-releases/{milestoneReleaseId}",
                     "templated": true
                   }
                 }
@@ -19105,13 +19105,13 @@
         ]
       }
     },
-    "/milestone-statement-confirmations/{milestoneStatementConfirmationId}": {
+    "/milestone-statements/{milestoneStatementId}": {
       "get": {
         "operationId": "readConfirmationMilestoneStatement",
         "parameters": [
           {
             "in": "path",
-            "name": "milestoneStatementConfirmationId",
+            "name": "milestoneStatementId",
             "required": true,
             "schema": {
               "type": "string"
@@ -19133,7 +19133,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                          "href": "/milestone-statements/{milestoneStatementId}",
                           "templated": true
                         }
                       },
@@ -19152,7 +19152,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                          "href": "/milestone-statements/{milestoneStatementId}",
                           "templated": true
                         }
                       },
@@ -19171,7 +19171,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                          "href": "/milestone-statements/{milestoneStatementId}",
                           "templated": true
                         }
                       },
@@ -19191,7 +19191,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                    "href": "/milestone-statements/{milestoneStatementId}",
                     "templated": true
                   }
                 }
@@ -19224,13 +19224,13 @@
         ]
       }
     },
-    "/order-confirmations/{orderConfirmationId}": {
+    "/orders/{orderId}": {
       "get": {
         "operationId": "readConfirmationOrder",
         "parameters": [
           {
             "in": "path",
-            "name": "orderConfirmationId",
+            "name": "orderId",
             "required": true,
             "schema": {
               "type": "string"
@@ -19307,7 +19307,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -19386,7 +19386,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -19465,7 +19465,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -19544,7 +19544,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -19623,7 +19623,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/order-confirmations/{orderConfirmationId}",
+                          "href": "/orders/{orderId}",
                           "templated": true
                         }
                       },
@@ -19703,7 +19703,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/order-confirmations/{orderConfirmationId}",
+                    "href": "/orders/{orderId}",
                     "templated": true
                   }
                 }
@@ -19761,13 +19761,13 @@
         ]
       }
     },
-    "/release-confirmations/{releaseConfirmationId}": {
+    "/releases/{releaseId}": {
       "get": {
         "operationId": "readConfirmationRelease",
         "parameters": [
           {
             "in": "path",
-            "name": "releaseConfirmationId",
+            "name": "releaseId",
             "required": true,
             "schema": {
               "type": "string"
@@ -19794,7 +19794,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19821,7 +19821,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19848,7 +19848,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19875,7 +19875,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19902,7 +19902,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19929,7 +19929,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19956,7 +19956,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -19983,7 +19983,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -20011,7 +20011,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/release-confirmations/{releaseConfirmationId}",
+                    "href": "/releases/{releaseId}",
                     "templated": true
                   }
                 }
@@ -20061,13 +20061,13 @@
         ]
       }
     },
-    "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}": {
+    "/settlement-receipts/{settlementReceiptId}": {
       "get": {
         "operationId": "readConfirmationSettlementReceipt",
         "parameters": [
           {
             "in": "path",
-            "name": "settlementReceiptConfirmationId",
+            "name": "settlementReceiptId",
             "required": true,
             "schema": {
               "type": "string"
@@ -20089,7 +20089,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}",
+                          "href": "/settlement-receipts/{settlementReceiptId}",
                           "templated": true
                         }
                       },
@@ -20108,7 +20108,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}",
+                          "href": "/settlement-receipts/{settlementReceiptId}",
                           "templated": true
                         }
                       },
@@ -20128,7 +20128,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}",
+                    "href": "/settlement-receipts/{settlementReceiptId}",
                     "templated": true
                   }
                 }
@@ -21677,7 +21677,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21704,7 +21704,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21731,7 +21731,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21758,7 +21758,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21785,7 +21785,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21812,7 +21812,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21839,7 +21839,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21866,7 +21866,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21893,7 +21893,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21920,7 +21920,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21947,7 +21947,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -21974,7 +21974,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                          "href": "/milestone-releases/{milestoneReleaseId}",
                           "templated": true
                         }
                       },
@@ -22002,7 +22002,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}",
+                    "href": "/milestone-releases/{milestoneReleaseId}",
                     "templated": true
                   }
                 }
@@ -22016,7 +22016,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/milestone-release-confirmations/{milestoneReleaseConfirmationId}"
+                "x-evidence-uri-template": "/milestone-releases/{milestoneReleaseId}"
               }
             }
           },
@@ -22619,7 +22619,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                          "href": "/milestone-statements/{milestoneStatementId}",
                           "templated": true
                         }
                       },
@@ -22638,7 +22638,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                          "href": "/milestone-statements/{milestoneStatementId}",
                           "templated": true
                         }
                       },
@@ -22657,7 +22657,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                          "href": "/milestone-statements/{milestoneStatementId}",
                           "templated": true
                         }
                       },
@@ -22677,7 +22677,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}",
+                    "href": "/milestone-statements/{milestoneStatementId}",
                     "templated": true
                   }
                 }
@@ -22691,7 +22691,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/milestone-statement-confirmations/{milestoneStatementConfirmationId}"
+                "x-evidence-uri-template": "/milestone-statements/{milestoneStatementId}"
               }
             }
           },
@@ -23227,7 +23227,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23254,7 +23254,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23281,7 +23281,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23308,7 +23308,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23335,7 +23335,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23362,7 +23362,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23389,7 +23389,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23416,7 +23416,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/release-confirmations/{releaseConfirmationId}",
+                          "href": "/releases/{releaseId}",
                           "templated": true
                         }
                       },
@@ -23444,7 +23444,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/release-confirmations/{releaseConfirmationId}",
+                    "href": "/releases/{releaseId}",
                     "templated": true
                   }
                 }
@@ -23458,7 +23458,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/release-confirmations/{releaseConfirmationId}"
+                "x-evidence-uri-template": "/releases/{releaseId}"
               }
             }
           },
@@ -23978,7 +23978,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}",
+                          "href": "/settlement-receipts/{settlementReceiptId}",
                           "templated": true
                         }
                       },
@@ -23997,7 +23997,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}",
+                          "href": "/settlement-receipts/{settlementReceiptId}",
                           "templated": true
                         }
                       },
@@ -24017,7 +24017,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}",
+                    "href": "/settlement-receipts/{settlementReceiptId}",
                     "templated": true
                   }
                 }
@@ -24031,7 +24031,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/settlement-receipt-confirmations/{settlementReceiptConfirmationId}"
+                "x-evidence-uri-template": "/settlement-receipts/{settlementReceiptId}"
               }
             }
           },
@@ -24072,8 +24072,8 @@
       "id": "service.escrow",
       "kind": "fulfillment",
       "routePrefixes": [
-        "/custody-statement-confirmations",
-        "/deposit-lock-confirmations",
+        "/custody-statements",
+        "/deposit-locks",
         "/escrows"
       ],
       "routes": [
@@ -24097,12 +24097,12 @@
       "id": "service.fulfillment",
       "kind": "fulfillment",
       "routePrefixes": [
-        "/acceptance-confirmations",
-        "/delivery-confirmations",
-        "/final-milestone-confirmations",
-        "/first-milestone-confirmations",
+        "/acceptances",
+        "/deliveries",
+        "/final-milestones",
+        "/first-milestones",
         "/fulfillments",
-        "/milestone-acceptance-confirmations"
+        "/milestone-acceptances"
       ],
       "routes": [
         "route.confirm.confirmation.acceptance",
@@ -24141,8 +24141,8 @@
       "kind": "fulfillment",
       "routePrefixes": [
         "/agreements",
-        "/commitment-confirmations",
-        "/order-confirmations"
+        "/commitments",
+        "/orders"
       ],
       "routes": [
         "route.confirm.confirmation.commitment",
@@ -24165,10 +24165,10 @@
       "id": "service.settlement",
       "kind": "fulfillment",
       "routePrefixes": [
-        "/milestone-release-confirmations",
-        "/milestone-statement-confirmations",
-        "/release-confirmations",
-        "/settlement-receipt-confirmations",
+        "/milestone-releases",
+        "/milestone-statements",
+        "/releases",
+        "/settlement-receipts",
         "/settlements"
       ],
       "routes": [

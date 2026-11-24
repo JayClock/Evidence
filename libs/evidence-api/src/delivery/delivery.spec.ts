@@ -80,9 +80,9 @@ describe('buildDeliveryContract', () => {
       {
         id: 'service.product-procurement',
         routePrefixes: [
-          '/delivery-confirmations',
-          '/invoice-confirmations',
-          '/payment-confirmations',
+          '/deliveries',
+          '/invoices',
+          '/payments',
           '/product-inquiries',
           '/product-procurements',
         ],
@@ -91,9 +91,9 @@ describe('buildDeliveryContract', () => {
       {
         id: 'service.wechat-payment',
         routePrefixes: [
-          '/wechat-charge-confirmations',
-          '/wechat-payment-confirmations',
-          '/wechat-payments',
+          '/wechat-charges',
+          '/wechat-payments-6usx9m',
+          '/wechat-payments-ewrw8v',
         ],
       },
     ]);

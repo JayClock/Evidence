@@ -6,7 +6,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/backlog-confirmations/{backlogConfirmationId}"
+              "href": "/backlogs/{backlogId}"
             }
           },
           "backlog_revision": "sprint-42-r1",
@@ -19,7 +19,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/review-confirmations/{reviewConfirmationId}"
+              "href": "/reviews/{reviewId}"
             }
           },
           "confirmed_at": "2026-08-14T13:00:00Z",
@@ -32,7 +32,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/story-confirmations/{storyConfirmationId}"
+              "href": "/stories/{storyId}"
             }
           },
           "acceptance_note": "买家只看到自己的已签订单",
@@ -46,7 +46,7 @@
         "value": {
           "_links": {
             "self": {
-              "href": "/story-confirmations/{storyConfirmationId}"
+              "href": "/stories/{storyId}"
             }
           },
           "acceptance_note": "导出文件与页面筛选一致",
@@ -106,7 +106,7 @@
           {
             "_links": {
               "self": {
-                "href": "/backlog-confirmations/{backlogConfirmationId}"
+                "href": "/backlogs/{backlogId}"
               }
             },
             "backlog_revision": "sprint-42-r1",
@@ -177,7 +177,7 @@
           {
             "_links": {
               "self": {
-                "href": "/review-confirmations/{reviewConfirmationId}"
+                "href": "/reviews/{reviewId}"
               }
             },
             "confirmed_at": "2026-08-14T13:00:00Z",
@@ -245,7 +245,7 @@
           {
             "_links": {
               "self": {
-                "href": "/story-confirmations/{storyConfirmationId}"
+                "href": "/stories/{storyId}"
               }
             },
             "acceptance_note": "买家只看到自己的已签订单",
@@ -256,7 +256,7 @@
           {
             "_links": {
               "self": {
-                "href": "/story-confirmations/{storyConfirmationId}"
+                "href": "/stories/{storyId}"
               }
             },
             "acceptance_note": "导出文件与页面筛选一致",
@@ -331,7 +331,7 @@
           "_embedded": {
             "additionalProperties": false,
             "properties": {
-              "story-confirmations": {
+              "stories": {
                 "items": {
                   "$ref": "#/components/schemas/confirmation_storySummary"
                 },
@@ -339,7 +339,7 @@
               }
             },
             "required": [
-              "story-confirmations"
+              "stories"
             ],
             "type": "object"
           },
@@ -799,13 +799,13 @@
   },
   "openapi": "3.1.0",
   "paths": {
-    "/backlog-confirmations/{backlogConfirmationId}": {
+    "/backlogs/{backlogId}": {
       "get": {
         "operationId": "readConfirmationBacklog",
         "parameters": [
           {
             "in": "path",
-            "name": "backlogConfirmationId",
+            "name": "backlogId",
             "required": true,
             "schema": {
               "type": "string"
@@ -822,7 +822,7 @@
                     "value": {
                       "_links": {
                         "next:confirmation.story": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "method": "POST",
                           "templated": true
                         },
@@ -832,7 +832,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/backlog-confirmations/{backlogConfirmationId}",
+                          "href": "/backlogs/{backlogId}",
                           "templated": true
                         }
                       },
@@ -847,7 +847,7 @@
                 },
                 "x-evidence-link-templates": {
                   "next:confirmation.story": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "method": "POST",
                     "templated": true
                   },
@@ -857,7 +857,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/backlog-confirmations/{backlogConfirmationId}",
+                    "href": "/backlogs/{backlogId}",
                     "templated": true
                   }
                 }
@@ -1230,7 +1230,7 @@
                     "value": {
                       "_links": {
                         "confirmations:confirmation.story": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "method": "GET",
                           "templated": true
                         },
@@ -1240,7 +1240,7 @@
                           "templated": true
                         },
                         "next:confirmation.story": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "method": "POST",
                           "templated": true
                         },
@@ -1262,7 +1262,7 @@
                 },
                 "x-evidence-link-templates": {
                   "confirmations:confirmation.story": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "method": "GET",
                     "templated": true
                   },
@@ -1272,7 +1272,7 @@
                     "templated": true
                   },
                   "next:confirmation.story": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "method": "POST",
                     "templated": true
                   },
@@ -1388,7 +1388,7 @@
                     "value": {
                       "_links": {
                         "confirmations:confirmation.story": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "method": "GET",
                           "templated": true
                         },
@@ -1398,7 +1398,7 @@
                           "templated": true
                         },
                         "next:confirmation.story": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "method": "POST",
                           "templated": true
                         },
@@ -1420,7 +1420,7 @@
                 },
                 "x-evidence-link-templates": {
                   "confirmations:confirmation.story": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "method": "GET",
                     "templated": true
                   },
@@ -1430,7 +1430,7 @@
                     "templated": true
                   },
                   "next:confirmation.story": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "method": "POST",
                     "templated": true
                   },
@@ -1537,7 +1537,7 @@
                     "value": {
                       "_links": {
                         "next:confirmation.story": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "method": "POST",
                           "templated": true
                         },
@@ -1547,7 +1547,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/backlog-confirmations/{backlogConfirmationId}",
+                          "href": "/backlogs/{backlogId}",
                           "templated": true
                         }
                       },
@@ -1562,7 +1562,7 @@
                 },
                 "x-evidence-link-templates": {
                   "next:confirmation.story": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "method": "POST",
                     "templated": true
                   },
@@ -1572,7 +1572,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/backlog-confirmations/{backlogConfirmationId}",
+                    "href": "/backlogs/{backlogId}",
                     "templated": true
                   }
                 }
@@ -1586,7 +1586,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/backlog-confirmations/{backlogConfirmationId}"
+                "x-evidence-uri-template": "/backlogs/{backlogId}"
               }
             }
           },
@@ -1906,7 +1906,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/review-confirmations/{reviewConfirmationId}",
+                          "href": "/reviews/{reviewId}",
                           "templated": true
                         }
                       },
@@ -1926,7 +1926,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/review-confirmations/{reviewConfirmationId}",
+                    "href": "/reviews/{reviewId}",
                     "templated": true
                   }
                 }
@@ -1940,7 +1940,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/review-confirmations/{reviewConfirmationId}"
+                "x-evidence-uri-template": "/reviews/{reviewId}"
               }
             }
           },
@@ -1972,7 +1972,7 @@
         ]
       }
     },
-    "/iteration-plans/{contractId}/story-confirmations": {
+    "/iteration-plans/{contractId}/stories": {
       "get": {
         "operationId": "listConfirmationStory",
         "parameters": [
@@ -1994,11 +1994,11 @@
                     "summary": "accept-01-history",
                     "value": {
                       "_embedded": {
-                        "story-confirmations": [
+                        "stories": [
                           {
                             "_links": {
                               "self": {
-                                "href": "/story-confirmations/{storyConfirmationId}",
+                                "href": "/stories/{storyId}",
                                 "templated": true
                               }
                             },
@@ -2011,7 +2011,7 @@
                       },
                       "_links": {
                         "self": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "templated": true
                         }
                       },
@@ -2022,11 +2022,11 @@
                     "summary": "accept-02-export",
                     "value": {
                       "_embedded": {
-                        "story-confirmations": [
+                        "stories": [
                           {
                             "_links": {
                               "self": {
-                                "href": "/story-confirmations/{storyConfirmationId}",
+                                "href": "/stories/{storyId}",
                                 "templated": true
                               }
                             },
@@ -2039,7 +2039,7 @@
                       },
                       "_links": {
                         "self": {
-                          "href": "/iteration-plans/{contractId}/story-confirmations",
+                          "href": "/iteration-plans/{contractId}/stories",
                           "templated": true
                         }
                       },
@@ -2052,7 +2052,7 @@
                 },
                 "x-evidence-link-templates": {
                   "self": {
-                    "href": "/iteration-plans/{contractId}/story-confirmations",
+                    "href": "/iteration-plans/{contractId}/stories",
                     "templated": true
                   }
                 }
@@ -2162,7 +2162,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/story-confirmations/{storyConfirmationId}",
+                          "href": "/stories/{storyId}",
                           "templated": true
                         }
                       },
@@ -2182,7 +2182,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/story-confirmations/{storyConfirmationId}",
+                          "href": "/stories/{storyId}",
                           "templated": true
                         }
                       },
@@ -2203,7 +2203,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/story-confirmations/{storyConfirmationId}",
+                    "href": "/stories/{storyId}",
                     "templated": true
                   }
                 }
@@ -2217,7 +2217,7 @@
                   "format": "uri-reference",
                   "type": "string"
                 },
-                "x-evidence-uri-template": "/story-confirmations/{storyConfirmationId}"
+                "x-evidence-uri-template": "/stories/{storyId}"
               }
             }
           },
@@ -2249,13 +2249,13 @@
         ]
       }
     },
-    "/review-confirmations/{reviewConfirmationId}": {
+    "/reviews/{reviewId}": {
       "get": {
         "operationId": "readConfirmationReview",
         "parameters": [
           {
             "in": "path",
-            "name": "reviewConfirmationId",
+            "name": "reviewId",
             "required": true,
             "schema": {
               "type": "string"
@@ -2277,7 +2277,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/review-confirmations/{reviewConfirmationId}",
+                          "href": "/reviews/{reviewId}",
                           "templated": true
                         }
                       },
@@ -2297,7 +2297,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/review-confirmations/{reviewConfirmationId}",
+                    "href": "/reviews/{reviewId}",
                     "templated": true
                   }
                 }
@@ -2330,13 +2330,13 @@
         ]
       }
     },
-    "/story-confirmations/{storyConfirmationId}": {
+    "/stories/{storyId}": {
       "get": {
         "operationId": "readConfirmationStory",
         "parameters": [
           {
             "in": "path",
-            "name": "storyConfirmationId",
+            "name": "storyId",
             "required": true,
             "schema": {
               "type": "string"
@@ -2358,7 +2358,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/story-confirmations/{storyConfirmationId}",
+                          "href": "/stories/{storyId}",
                           "templated": true
                         }
                       },
@@ -2378,7 +2378,7 @@
                           "templated": true
                         },
                         "self": {
-                          "href": "/story-confirmations/{storyConfirmationId}",
+                          "href": "/stories/{storyId}",
                           "templated": true
                         }
                       },
@@ -2399,7 +2399,7 @@
                     "templated": true
                   },
                   "self": {
-                    "href": "/story-confirmations/{storyConfirmationId}",
+                    "href": "/stories/{storyId}",
                     "templated": true
                   }
                 }
@@ -2441,10 +2441,10 @@
       "id": "service.sprint",
       "kind": "fulfillment",
       "routePrefixes": [
-        "/backlog-confirmations",
+        "/backlogs",
         "/iteration-plans",
-        "/review-confirmations",
-        "/story-confirmations"
+        "/reviews",
+        "/stories"
       ],
       "routes": [
         "route.confirm.confirmation.backlog",

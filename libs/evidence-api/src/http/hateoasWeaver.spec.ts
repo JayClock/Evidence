@@ -189,7 +189,7 @@ it('uses GET self links for every creation and signs proposals into the contract
 it('links each shared request to its own trace view and one canonical confirmation', async () => {
   const document = await sharedConfirmationModel();
   const confirm = 'route.confirm.confirmation.payment';
-  const path = '/receipts/{paymentConfirmationId}';
+  const path = '/receipts/{paymentId}';
   const { projection, diagnostics } = buildProjection({
     index: loadModelFromDocument(document).index!,
     design: { routes: [{ id: 'route.read.confirmation.payment', path }] },

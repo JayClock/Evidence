@@ -563,7 +563,7 @@ test('each created primary URI supports GET and collection HAL links follow the 
   });
   assert.equal(
     confirmation.headers.location,
-    `/order-confirmations/${confirmation.json().id}`,
+    `/orders/${confirmation.json().id}`,
   );
   assert.equal(
     (
@@ -577,8 +577,17 @@ test('each created primary URI supports GET and collection HAL links follow the 
   assert.equal(
     (
       await app.inject({
-        url: `/commitment-confirmations/${confirmation.json().id}`,
+        url: `/commitments/${confirmation.json().id}`,
         headers: headers('buyer'),
+      })
+    ).statusCode,
+    404,
+  );
+  assert.equal(
+    (
+      await app.inject({
+        url: `/order-confirmations/${confirmation.json().id}`,
+        headers: headers('seller'),
       })
     ).statusCode,
     404,

@@ -213,7 +213,7 @@ def create_app(test_mode=False, mode="v2", clock=None, fault="none"):
                 methods=["POST"],
             )
             app.add_api_route(
-                f"/{action}-confirmations/{{confirmationId}}",
+                f"/{COLLECTION_NAMES[action]}/{{confirmationId}}",
                 get_confirmation_handler(lane, action, confirm_role),
                 methods=["GET"],
             )

@@ -153,7 +153,7 @@ def test_hal_collections_and_scoped_primary_reads():
             "total": 1,
         }
         assert call(client, "GET", "/agreements/b/orders").json()["total"] == 0
-        confirmation = "/order-confirmations/confirmed"
+        confirmation = "/orders/confirmed"
         seller = "role.procurement-seller"
         assert call(client, "GET", confirmation, role=seller).status_code == 404
         confirmed = post(
@@ -167,7 +167,7 @@ def test_hal_collections_and_scoped_primary_reads():
             == 404
         )
         assert (
-            call(client, "GET", "/commitment-confirmations/confirmed").status_code
+            call(client, "GET", "/commitments/confirmed").status_code
             == 404
         )
         assert call(client, "GET", path + "/req", role=seller).status_code == 403

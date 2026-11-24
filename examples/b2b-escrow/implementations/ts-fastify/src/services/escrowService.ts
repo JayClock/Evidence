@@ -345,7 +345,7 @@ export class EscrowService {
       orderId: action === 'order' ? confirmationId : contract.orderId,
       requestId,
       data: { ...data, confirmed_at: this.stamp(now), ...derived },
-      href: `/${action}-confirmations/${encodeURIComponent(confirmationId)}`,
+      href: `/${collectionOf(action)}/${encodeURIComponent(confirmationId)}`,
     });
   }
 

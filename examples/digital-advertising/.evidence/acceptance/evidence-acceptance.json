@@ -505,7 +505,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/payment-confirmations/{paymentConfirmationId}"
+                      "href": "/payments/{paymentId}"
                     }
                   },
                   "confirmed_at": "2026-06-01T10:00:00Z",
@@ -516,7 +516,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/payment-confirmations/{paymentConfirmationId}"
+                      "href": "/payments/{paymentId}"
                     }
                   },
                   "confirmed_at": "2026-07-01T12:00:00Z",
@@ -732,7 +732,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/advertising-confirmations/{advertisingConfirmationId}"
+                      "href": "/advertisings/{advertisingId}"
                     }
                   },
                   "confirmed_at": "2026-07-02T00:00:00Z",
@@ -934,7 +934,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/daily-report-confirmations/{dailyReportConfirmationId}"
+                      "href": "/daily-reports/{dailyReportId}"
                     }
                   },
                   "confirmed_at": "2026-07-03T00:20:00Z",
@@ -1275,7 +1275,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/payment-confirmations/{paymentConfirmationId}"
+                      "href": "/payments/{paymentId}"
                     }
                   },
                   "confirmed_at": "2026-06-01T10:00:00Z",
@@ -1286,7 +1286,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/payment-confirmations/{paymentConfirmationId}"
+                      "href": "/payments/{paymentId}"
                     }
                   },
                   "confirmed_at": "2026-07-01T12:00:00Z",

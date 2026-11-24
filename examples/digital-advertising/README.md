@@ -11,20 +11,20 @@
 
 ## 关键端点
 
-| 操作 | 路径                                                                               | 结果                                                                                  |
-| ---- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| POST | `/ads-promotion-inquiries`                                                         | 创建投放需求征询，72 小时有效                                                         |
-| POST | `/ads-promotion-inquiries/{inquiryId}/ads-promotion-proposal`                      | 报价回应征询，48 小时有效                                                             |
-| POST | `/ads-promotion-inquiries/{inquiryId}/ads-promotion-proposal/ads-promotion-orders` | `201 Location` 指向新的独立订单                                                       |
-| GET  | `/ads-promotion-orders/{contractId}`                                               | 签署后的权威订单地址；不依赖磋商路径                                                  |
-| POST | `/ads-promotion-orders/{contractId}/payment`                                       | 开启支付窗口                                                                          |
-| POST | `/ads-promotion-orders/{contractId}/payment/confirmation`                          | `201`；`Location` 与 HAL `self` 指向 `/payment-confirmations/{paymentConfirmationId}` |
-| POST | `/ads-promotion-orders/{contractId}/advertising`                                   | 到账后申请上线，48 小时履约窗口                                                       |
-| POST | `/ads-promotion-orders/{contractId}/advertising/confirmation`                      | 登记实际上线，详情为 `/advertising-confirmations/{advertisingConfirmationId}`         |
-| POST | `/ads-promotion-orders/{contractId}/daily-reports`                                 | **`202 Accepted`**；只承诺受理生成请求                                                |
-| GET  | `/ads-promotion-orders/{contractId}/daily-reports/{reportId}`                      | 轮询已受理请求，这是 `202 Location` 指向的资源                                        |
-| POST | `/ads-promotion-orders/{contractId}/daily-reports/{reportId}/confirmation`         | 报表统计完成后登记，**`201 Created`**；不是任务受理                                   |
-| GET  | `/daily-report-confirmations/{dailyReportConfirmationId}`                          | 读取已形成的独立日报凭证与归档标识                                                    |
+| 操作 | 路径                                                                               | 结果                                                         |
+| ---- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| POST | `/ads-promotion-inquiries`                                                         | 创建投放需求征询，72 小时有效                                |
+| POST | `/ads-promotion-inquiries/{inquiryId}/ads-promotion-proposal`                      | 报价回应征询，48 小时有效                                    |
+| POST | `/ads-promotion-inquiries/{inquiryId}/ads-promotion-proposal/ads-promotion-orders` | `201 Location` 指向新的独立订单                              |
+| GET  | `/ads-promotion-orders/{contractId}`                                               | 签署后的权威订单地址；不依赖磋商路径                         |
+| POST | `/ads-promotion-orders/{contractId}/payment`                                       | 开启支付窗口                                                 |
+| POST | `/ads-promotion-orders/{contractId}/payment/confirmation`                          | `201`；`Location` 与 HAL `self` 指向 `/payments/{paymentId}` |
+| POST | `/ads-promotion-orders/{contractId}/advertising`                                   | 到账后申请上线，48 小时履约窗口                              |
+| POST | `/ads-promotion-orders/{contractId}/advertising/confirmation`                      | 登记实际上线，详情为 `/advertisings/{advertisingId}`         |
+| POST | `/ads-promotion-orders/{contractId}/daily-reports`                                 | **`202 Accepted`**；只承诺受理生成请求                       |
+| GET  | `/ads-promotion-orders/{contractId}/daily-reports/{reportId}`                      | 轮询已受理请求，这是 `202 Location` 指向的资源               |
+| POST | `/ads-promotion-orders/{contractId}/daily-reports/{reportId}/confirmation`         | 报表统计完成后登记，**`201 Created`**；不是任务受理          |
+| GET  | `/daily-reports/{dailyReportId}`                                                   | 读取已形成的独立日报凭证与归档标识                           |
 
 每个订单可按统计日提交多份日报请求，每次提交都产生一个可单独轮询的请求实例，24 小时内形成日报才满足完成规则。示例由请求本身充当监视资源，不另造 `/tasks` 任务体系。服务在结果存在时才应在监视资源中暴露实际的 `result:confirmation.daily-report` 链接；OpenAPI 中的模板不是已完成的证明。广告主可以跟随结果链接读取日报，但只有代理能登记结果。
 

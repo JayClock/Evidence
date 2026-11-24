@@ -158,10 +158,9 @@ describe('B2B escrow phase-one contract', () => {
       if (step.route.purpose !== 'confirm') continue;
       const { path, itemPath, entityRef } = step.route;
       const noun = entityRef.slice('confirmation.'.length);
+      const collection = noun === 'delivery' ? 'deliveries' : `${noun}s`;
       expect(path).toMatch(/\/confirmation$/);
-      expect(itemPath).toMatch(
-        new RegExp(`^/${noun}-confirmations/\\{[^/]+\\}$`),
-      );
+      expect(itemPath).toMatch(new RegExp(`^/${collection}/\\{[^/]+\\}$`));
       expect(paths[path].get).toBeUndefined();
       expect(paths[path].post.responses['201'].headers.Location).toMatchObject({
         'x-evidence-uri-template': itemPath,

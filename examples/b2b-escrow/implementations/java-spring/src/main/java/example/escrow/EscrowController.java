@@ -118,12 +118,24 @@ public class EscrowController {
     return response(service.sign(r.lane(), body(request), now), 201);
   }
 
-  @GetMapping("/{collection}/{contractId}")
+  @GetMapping("/{collection}/{id}")
   public ResponseEntity<Object> get(
-      @PathVariable String collection, @PathVariable String contractId) {
-    var r = route(collection, null);
-    authorize(r.lane(), r.definition().roles());
-    return response(service.get(contractId, "contract." + r.definition().name()), 200);
+      @PathVariable String collection, @PathVariable String id) {
+    if (LANES.containsKey(collection)) {
+      var r = route(collection, null);
+      authorize(r.lane(), r.definition().roles());
+      return response(service.get(id, "contract." + r.definition().name()), 200);
+    }
+    for (var entry : LANES.entrySet()) {
+      var definition = EscrowService.DEFINITIONS.get(entry.getValue());
+      for (var action : definition.actions().entrySet()) {
+        if (EscrowService.collectionOf(action.getKey()).equals(collection)) {
+          authorize(entry.getValue(), List.of(action.getValue().get(1)));
+          return response(service.get(id, "confirmation." + action.getKey()), 200);
+        }
+      }
+    }
+    throw new BusinessError(404, "NOT_FOUND", "Unknown route");
   }
 
   @GetMapping("/{collection}/{contractId}/{actionCollection}")
@@ -149,20 +161,6 @@ public class EscrowController {
     var r = route(collection, actionCollection);
     authorize(r.lane(), List.of(r.definition().actions().get(r.action()).getFirst()));
     return response(service.requestFact(r.lane(), contractId, r.action(), requestId), 200);
-  }
-
-  @GetMapping("/{action}-confirmations/{confirmationId}")
-  public ResponseEntity<Object> getConfirmation(
-      @PathVariable String action, @PathVariable String confirmationId) {
-    String collection =
-        LANES.entrySet().stream()
-            .filter(e -> EscrowService.DEFINITIONS.get(e.getValue()).actions().containsKey(action))
-            .map(Map.Entry::getKey)
-            .findFirst()
-            .orElseThrow(() -> new BusinessError(404, "NOT_FOUND", "Unknown route"));
-    var r = route(collection, EscrowService.collectionOf(action));
-    authorize(r.lane(), List.of(r.definition().actions().get(r.action()).get(1)));
-    return response(service.get(confirmationId, "confirmation." + r.action()), 200);
   }
 
   @PostMapping("/{collection}/{contractId}/{actionCollection}")

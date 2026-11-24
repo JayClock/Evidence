@@ -9,14 +9,14 @@ model's version in `info.version` and `x-evidence-model-version`.
 Public paths start at the aggregate's business noun, derived from its entity ID.
 A Context supplies a logical service owner, never a deployment-specific URI prefix.
 
-| Resource             | Creation                  | Primary GET                                      |
-| -------------------- | ------------------------- | ------------------------------------------------ |
-| Inquiry              | `/product-inquiries`      | `/product-inquiries/{inquiryId}`                 |
-| Contract             | `/product-procurements`   | `/product-procurements/{contractId}`             |
-| Singleton payment    | `…/{contractId}/payment`  | same path                                        |
-| Repeated payment     | `…/{contractId}/payments` | `…/{contractId}/payments/{paymentId}`            |
-| Payment confirmation | `…/payment/confirmation`  | `/payment-confirmations/{paymentConfirmationId}` |
-| Domain root          | read only                 | `/products/{productId}`                          |
+| Resource             | Creation                  | Primary GET                           |
+| -------------------- | ------------------------- | ------------------------------------- |
+| Inquiry              | `/product-inquiries`      | `/product-inquiries/{inquiryId}`      |
+| Contract             | `/product-procurements`   | `/product-procurements/{contractId}`  |
+| Singleton payment    | `…/{contractId}/payment`  | same path                             |
+| Repeated payment     | `…/{contractId}/payments` | `…/{contractId}/payments/{paymentId}` |
+| Payment confirmation | `…/payment/confirmation`  | `/payments/{paymentId}`               |
+| Domain root          | read only                 | `/products/{productId}`               |
 
 The child endpoint's `references` cardinality determines singleton versus
 collection, whichever direction the relationship points. Missing or contradictory
@@ -34,7 +34,10 @@ creation. A confirmation's creation entrance and authority are independent:
   `…/{request-item}/{confirmation-plural}`; it does not expose another POST.
 
 All confirmations have a top-level primary GET at
-`/{confirmation-plural}/{confirmation-id}`. Clients should follow the `201 Location`
+`/{confirmation-plural}/{confirmation-id}`. Its collection uses the same noun
+rule as other resources: `confirmation.payment` becomes `/payments`, with no
+implicit `-confirmations` suffix or alias for old URLs. Regenerate OpenAPI and
+Bruno together when adopting the change. Clients should follow the `201 Location`
 header or HAL `self` instead of constructing a detail URI from the write entrance.
 
 Proposals nest under the inquiry they reference. A contract referencing a proposal

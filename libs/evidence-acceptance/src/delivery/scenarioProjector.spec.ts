@@ -91,7 +91,7 @@ describe('direct inline-example acceptance projection', () => {
       status: 201,
       route: {
         purpose: 'confirm',
-        itemPath: '/payment-confirmations/{paymentConfirmationId}',
+        itemPath: '/payments/{paymentId}',
       },
     });
     const filename = brunoRequestPath(0, 2, projection.flows[0]!.steps[2]!.ref);

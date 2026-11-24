@@ -29,7 +29,7 @@ it('keeps advertising payment and full lifecycle as separate acceptance flows', 
     actingRoleRef: 'role.payment-gateway',
     route: {
       path: '/ads-promotion-orders/{contractId}/payment/confirmation',
-      itemPath: '/payment-confirmations/{paymentConfirmationId}',
+      itemPath: '/payments/{paymentId}',
     },
   });
 
@@ -76,9 +76,7 @@ it('keeps advertising payment and full lifecycle as separate acceptance flows', 
       'result:confirmation.daily-report'
     ],
   ).toMatchObject({ href: report.path, method: 'GET' });
-  expect(report.path).toBe(
-    '/daily-report-confirmations/{dailyReportConfirmationId}',
-  );
+  expect(report.path).toBe('/daily-reports/{dailyReportId}');
   expect(report.allowedPartyRoleRefs).toContain('role.advertiser');
   expect(publish!.route.allowedPartyRoleRefs).toEqual(['role.agency']);
   expect(
@@ -99,7 +97,7 @@ it('appends two distinct story receipts to one sprint, without replacing the bas
   expect(appends[0]!.parameters.contractId).toBe(
     appends[1]!.parameters.contractId,
   );
-  const path = '/iteration-plans/{contractId}/story-confirmations';
+  const path = '/iteration-plans/{contractId}/stories';
   expect(appends.every(({ route }) => route.path === path)).toBe(true);
   expect(snapshot.routes).toEqual(
     expect.arrayContaining([
@@ -111,11 +109,11 @@ it('appends two distinct story receipts to one sprint, without replacing the bas
         method: 'GET',
         path,
         responseShape: 'collection',
-        itemPath: '/story-confirmations/{storyConfirmationId}',
+        itemPath: '/stories/{storyId}',
       }),
       expect.objectContaining({
         method: 'GET',
-        path: '/story-confirmations/{storyConfirmationId}',
+        path: '/stories/{storyId}',
         responseShape: 'item',
       }),
     ]),
@@ -139,7 +137,7 @@ it('credits the same revenue receipt to a quarterly request and the annual singl
     quarter.inputs.id,
     year.inputs.id,
   ]);
-  expect(receipts[0]!.route.path).toBe('/revenue-confirmations');
+  expect(receipts[0]!.route.path).toBe('/revenues');
   const schema = operationFor(snapshot, receipts[0]!.route.id).requestBody!
     .content['application/json']!.schema;
   expect(schema.required).toContain('request_ids');
@@ -153,14 +151,14 @@ it('credits the same revenue receipt to a quarterly request and the annual singl
   );
   expect(
     routes.filter(({ method }) => method === 'POST').map(({ path }) => path),
-  ).toEqual(['/revenue-confirmations']);
+  ).toEqual(['/revenues']);
   for (const requestPath of [quarter.route.itemPath, year.route.itemPath]) {
     expect(routes).toContainEqual(
       expect.objectContaining({
         method: 'GET',
-        path: requestPath + '/revenue-confirmations',
+        path: requestPath + '/revenues',
         responseShape: 'collection',
-        itemPath: '/revenue-confirmations/{revenueConfirmationId}',
+        itemPath: '/revenues/{revenueId}',
       }),
     );
   }

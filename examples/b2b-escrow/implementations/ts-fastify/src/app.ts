@@ -193,7 +193,7 @@ export function createApp(options: Options = {}) {
         },
       );
       app.get<{ Params: { confirmationId: string } }>(
-        `/${action}-confirmations/:confirmationId`,
+        `/${collectionOf(action)}/:confirmationId`,
         (request, reply) => {
           authorize([confirmRole]);
           return reply

@@ -242,7 +242,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/backlog-confirmations/{backlogConfirmationId}"
+                      "href": "/backlogs/{backlogId}"
                     }
                   },
                   "backlog_revision": "sprint-42-r1",
@@ -338,7 +338,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/story-confirmations/{storyConfirmationId}"
+                      "href": "/stories/{storyId}"
                     }
                   },
                   "acceptance_note": "买家只看到自己的已签订单",
@@ -349,7 +349,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/story-confirmations/{storyConfirmationId}"
+                      "href": "/stories/{storyId}"
                     }
                   },
                   "acceptance_note": "导出文件与页面筛选一致",
@@ -420,7 +420,7 @@
             },
             "route": {
               "method": "POST",
-              "path": "/iteration-plans/{contractId}/story-confirmations"
+              "path": "/iteration-plans/{contractId}/stories"
             },
             "status": 201
           },
@@ -450,7 +450,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/story-confirmations/{storyConfirmationId}"
+                      "href": "/stories/{storyId}"
                     }
                   },
                   "acceptance_note": "买家只看到自己的已签订单",
@@ -461,7 +461,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/story-confirmations/{storyConfirmationId}"
+                      "href": "/stories/{storyId}"
                     }
                   },
                   "acceptance_note": "导出文件与页面筛选一致",
@@ -532,7 +532,7 @@
             },
             "route": {
               "method": "POST",
-              "path": "/iteration-plans/{contractId}/story-confirmations"
+              "path": "/iteration-plans/{contractId}/stories"
             },
             "status": 201
           },
@@ -664,7 +664,7 @@
                 {
                   "_links": {
                     "self": {
-                      "href": "/review-confirmations/{reviewConfirmationId}"
+                      "href": "/reviews/{reviewId}"
                     }
                   },
                   "confirmed_at": "2026-08-14T13:00:00Z",
