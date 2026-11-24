@@ -14,13 +14,13 @@ import { exportAcceptanceTests } from './exportTests.js';
 import { suiteManifest } from './renderer/brunoSuite.js';
 import { createAcceptanceModel } from '@evidence-poc/evidence-api/testing';
 
-let root: string, fm: string, out: string;
-const exportSuite = () => exportAcceptanceTests({ fm, out });
+let root: string, modelDirectory: string, out: string;
+const exportSuite = () => exportAcceptanceTests({ modelDirectory, out });
 beforeEach(async () => {
   root = mkdtempSync(path.join(os.tmpdir(), 'evidence-acceptance-export-'));
-  fm = path.join(root, 'model');
+  modelDirectory = path.join(root, 'model');
   out = path.join(root, 'generated-tests');
-  await writeModelDirectory(fm, createAcceptanceModel());
+  await writeModelDirectory(modelDirectory, createAcceptanceModel());
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
@@ -38,7 +38,7 @@ describe('exportAcceptanceTests', () => {
     expect(JSON.parse(manifest).projection.flows[0].steps).toHaveLength(3);
     await exportSuite();
     expect(readFileSync(path.join(out, suiteManifest), 'utf8')).toBe(manifest);
-    expect(readdirSync(fm)).not.toContain('validation');
+    expect(readdirSync(modelDirectory)).not.toContain('validation');
   });
   it.each([
     ['int', '1857392817294827136', '1857392817294827137'],
@@ -77,7 +77,7 @@ describe('exportAcceptanceTests', () => {
       confirmationExample.value.total_amount = expected;
       rule.expression = `request.quantity + ${type === 'uint' ? '1u' : '1'}`;
       rule.resultType = type;
-      await writeModelDirectory(fm, model);
+      await writeModelDirectory(modelDirectory, model);
 
       await exportSuite();
       const dir = path.join(out, 'flows/flow-001');
@@ -106,22 +106,22 @@ describe('exportAcceptanceTests', () => {
     model.entities.find(
       (entity) => entity.id === 'confirmation.payment',
     )!.examples![0]!.value.total_amount = 501;
-    await writeModelDirectory(fm, model);
+    await writeModelDirectory(modelDirectory, model);
     await expect(exportSuite()).rejects.toThrow('disagrees');
     expect(readFileSync(path.join(out, suiteManifest), 'utf8')).toBe(before);
   });
   it('refuses missing sources and models without executable examples', async () => {
-    rmSync(fm, { recursive: true });
+    rmSync(modelDirectory, { recursive: true });
     await expect(exportSuite()).rejects.toThrow('model.json is required');
     const model = createAcceptanceModel();
     for (const entity of model.entities) entity.examples = [];
-    await writeModelDirectory(fm, model);
+    await writeModelDirectory(modelDirectory, model);
     await expect(exportSuite()).rejects.toThrow(
       'no examples with test metadata',
     );
   });
   it('surfaces invalid JSON and does not create output directories', async () => {
-    writeFileSync(path.join(fm, 'model.json'), '{bad');
+    writeFileSync(path.join(modelDirectory, 'model.json'), '{bad');
     await expect(exportSuite()).rejects.toThrow();
     expect(readdirSync(root)).toEqual(['model']);
   });
@@ -129,10 +129,10 @@ describe('exportAcceptanceTests', () => {
     await exportSuite();
     const manifest = path.join(out, suiteManifest);
     const before = readFileSync(manifest, 'utf8');
-    renameSync(fm, path.join(root, 'model-tree'));
-    writeFileSync(fm, '{}');
+    renameSync(modelDirectory, path.join(root, 'model-tree'));
+    writeFileSync(modelDirectory, '{}');
     await expect(exportSuite()).rejects.toThrow();
     expect(readFileSync(manifest, 'utf8')).toBe(before);
-    expect(readFileSync(fm, 'utf8')).toBe('{}');
+    expect(readFileSync(modelDirectory, 'utf8')).toBe('{}');
   });
 });

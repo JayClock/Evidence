@@ -1,7 +1,7 @@
 import { readModelRoot } from '@evidence-poc/evidence-model-io';
 import { API_FIXTURES } from '../testing/fixtures.js';
 import { buildDelivery, buildProjection } from '../projector.js';
-import { loadFmFromDocument } from '../adapter/fmAdapter.js';
+import { loadModelFromDocument } from '../adapter/modelAdapter.js';
 import { halLinksFor } from './hateoasWeaver.js';
 import { procurementEvolution } from '../testing/procurement.js';
 import { operationFor } from '../testing/contract.js';
@@ -69,11 +69,11 @@ it('keeps branch links, HAL responses and journeys consistent without imposing a
 });
 
 it('moves possible navigation and journeys when a prerequisite changes', async () => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
-  const before = buildDelivery(bundle);
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const before = buildDelivery(document);
   const changed = {
-    ...bundle,
-    relationships: bundle.relationships.map((edge) =>
+    ...document,
+    relationships: document.relationships.map((edge) =>
       edge.id === 'relation.contract-precedes-delivery-request'
         ? { ...edge, targetRef: 'confirmation.payment' }
         : edge,
@@ -124,9 +124,9 @@ it('moves possible navigation and journeys when a prerequisite changes', async (
 });
 
 it('uses final overlay paths, keeps templates explicit, and never fabricates links from an empty graph', async () => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
   const result = buildProjection({
-    index: loadFmFromDocument(bundle).index!,
+    index: loadModelFromDocument(document).index!,
     design: {
       routes: [
         {
@@ -145,7 +145,7 @@ it('uses final overlay paths, keeps templates explicit, and never fabricates lin
       method: 'POST',
     },
   });
-  const empty = buildDelivery({ ...bundle, relationships: [] });
+  const empty = buildDelivery({ ...document, relationships: [] });
   expect(empty.hypermedia.every((link) => link.rel === 'self')).toBe(true);
   for (const route of result.routes) {
     const responses = (
@@ -187,11 +187,11 @@ it('uses GET self links for every creation and signs proposals into the contract
 });
 
 it('links each shared request to its own trace view and one canonical confirmation', async () => {
-  const bundle = await sharedConfirmationModel();
+  const document = await sharedConfirmationModel();
   const confirm = 'route.confirm.confirmation.payment';
   const path = '/receipts/{paymentConfirmationId}';
   const { projection, diagnostics } = buildProjection({
-    index: loadFmFromDocument(bundle).index!,
+    index: loadModelFromDocument(document).index!,
     design: { routes: [{ id: 'route.read.confirmation.payment', path }] },
   });
   expect(diagnostics).toEqual([]);
@@ -223,7 +223,7 @@ it('links each shared request to its own trace view and one canonical confirmati
 
 it('keeps creation identities synchronized when the primary GET is overridden', () => {
   const snapshot = buildProjection({
-    index: loadFmFromDocument(procurementEvolution()[1]!).index!,
+    index: loadModelFromDocument(procurementEvolution()[1]!).index!,
     design: {
       routes: [
         { id: 'route.read.contract.agreement', path: '/signed/{contractId}' },

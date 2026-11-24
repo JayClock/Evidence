@@ -6,7 +6,7 @@ import {
   createDomainGraph,
 } from '@evidence-poc/evidence-model-core';
 
-import { digestBytes } from '../adapter/fmAdapter.js';
+import { digestBytes } from '../adapter/modelAdapter.js';
 import { canonicalJson } from '../canonicalJson.js';
 import { buildDelivery } from '../projector.js';
 import { assertOpenApiContract } from '../openapi/validateContract.js';

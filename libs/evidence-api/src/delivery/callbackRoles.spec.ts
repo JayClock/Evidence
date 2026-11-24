@@ -1,5 +1,5 @@
 import { createAcceptanceModel } from '../testing/acceptance.js';
-import { loadFmFromDocument } from '../adapter/fmAdapter.js';
+import { loadModelFromDocument } from '../adapter/modelAdapter.js';
 import { validateProjection } from '../loader/apiLoader.js';
 import { buildDelivery, buildProjection } from '../projector.js';
 import { operationFor } from '../testing/contract.js';
@@ -64,7 +64,7 @@ it('lets an explicitly bound third-party system record the confirmation, not rea
     expect.objectContaining({ routeId: confirm, roleRef: callback }),
   );
   const overlay = buildProjection({
-    index: loadFmFromDocument(doc).index!,
+    index: loadModelFromDocument(doc).index!,
     design: {
       journeys: [{ id: 'notify', routeId: confirm, roleRef: callback }],
     },

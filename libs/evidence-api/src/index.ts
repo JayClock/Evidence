@@ -51,14 +51,14 @@ export {
 export {
   checkReportProblem,
   digestBytes,
-  loadFm,
-  loadFmFromDocument,
+  loadModel,
+  loadModelFromDocument,
   partyRolesPlayedByParticipants,
-  type LoadFmDocumentOptions,
-  type FmIndex,
-  type FmSnapshot,
-  type LoadFmResult,
-} from './adapter/fmAdapter.js';
+  type LoadModelDocumentOptions,
+  type ModelIndex,
+  type ModelSnapshot,
+  type LoadModelResult,
+} from './adapter/modelAdapter.js';
 
 export {
   inspectSummary,

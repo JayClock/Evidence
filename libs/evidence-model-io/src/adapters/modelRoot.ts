@@ -2,14 +2,13 @@ import { createHash } from 'node:crypto';
 import type { Dirent } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 
 import {
   MODEL_MANIFEST_PATH,
   MODEL_SOURCE_TREES,
   parseModelSourceFiles,
   type ModelSourceFile,
-  type ModelSourceIssue,
+  type ModelSourceParseResult,
 } from '@evidence-poc/evidence-model-core';
 
 /** Tree holding output the checks never read back. */
@@ -144,12 +143,9 @@ export const modelDigestOf = (
 };
 
 /** Reads a model root and reports file-level problems as issues. */
-export async function readModelRoot(root: string): Promise<{
-  bundle: DomainModelDocument;
-  issues: ModelSourceIssue[];
-  files: ModelSourceFile[];
-}> {
+export async function readModelRoot(
+  root: string,
+): Promise<ModelSourceParseResult & { files: ModelSourceFile[] }> {
   const files = await readModelRootFiles(root);
-  const { document, issues } = parseModelSourceFiles(files);
-  return { bundle: document, issues, files };
+  return { ...parseModelSourceFiles(files), files };
 }

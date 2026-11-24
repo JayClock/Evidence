@@ -7,9 +7,9 @@ import { buildDelivery, buildDeliveryContract } from './delivery.js';
 import { deliveryFilesOf } from './files.js';
 
 const model = async (): Promise<DomainModelDocument> => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
 
-  return bundle;
+  return document;
 };
 
 type OpenApi = ReturnType<typeof buildDeliveryContract>;

@@ -5,7 +5,7 @@ import {
   diagnosticToJson,
   hasErrors,
   loadDesign,
-  loadFm,
+  loadModel,
 } from '@evidence-poc/evidence-api';
 import {
   compareContracts,
@@ -83,8 +83,8 @@ export const runDiff = async (options: DiffCliOptions): Promise<CliResult> => {
         exitCode: diff.hasBreakingChanges ? 1 : 0,
       };
     }
-    const base = await loadFm(options.base),
-      target = await loadFm(options.target);
+    const base = await loadModel(options.base),
+      target = await loadModel(options.target);
     if (base.index === null || target.index === null)
       return {
         output: {

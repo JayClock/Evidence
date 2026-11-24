@@ -5,9 +5,9 @@ import {
 
 import {
   digestBytes,
-  loadFmFromDocument,
-  type FmIndex,
-} from './adapter/fmAdapter.js';
+  loadModelFromDocument,
+  type ModelIndex,
+} from './adapter/modelAdapter.js';
 import { canonicalJson } from './canonicalJson.js';
 import {
   buildModelDelivery,
@@ -34,7 +34,7 @@ import { allowedCallerRoleRefs } from './delivery/addressing.js';
 export type Projection = EvidenceApiSnapshot;
 
 export interface BuildProjectionInput {
-  index: FmIndex;
+  index: ModelIndex;
   design?: DesignDocument;
 }
 
@@ -209,7 +209,7 @@ export const buildProjection = ({
 export const buildDelivery = (
   document: DomainModelDocument,
 ): EvidenceApiSnapshot => {
-  const { index } = loadFmFromDocument(document);
+  const { index } = loadModelFromDocument(document);
   return buildProjection({ index: index! }).projection;
 };
 

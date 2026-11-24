@@ -10,7 +10,7 @@ import {
   allowedCallerRoleRefs,
   buildProjection,
   hasErrors,
-  loadFm,
+  loadModel,
   deliveryFilesOf,
   type DeliveryBundle,
   type DeliveryService,
@@ -111,7 +111,7 @@ export const previewOf = (bundle: DeliveryBundle): DeliveryPreview => {
 export const readDelivery = async (
   modelRoot: string,
 ): Promise<DeliveryBundle> => {
-  const loaded = await loadFm(modelRoot);
+  const loaded = await loadModel(modelRoot);
   if (loaded.index === null) {
     throw new Error(loaded.diagnostics.map((item) => item.message).join('；'));
   }

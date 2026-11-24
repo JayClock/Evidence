@@ -13,15 +13,15 @@ import { writeOutput } from '@evidence-poc/evidence-api';
 
 /** Direct source loader: inline examples are the only acceptance source. */
 export async function exportAcceptanceTests(options: {
-  fm: string;
+  modelDirectory: string;
   out: string;
 }): Promise<{ files: string[]; flowCount: number; stepCount: number }> {
-  const parsed = await readModelRoot(options.fm);
+  const parsed = await readModelRoot(options.modelDirectory);
   if (parsed.issues.length > 0)
     throw new Error(
       `FM_INVALID: ${parsed.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n')}`,
     );
-  const model = parsed.bundle;
+  const model = parsed.document;
   const routes = buildDeliveryRoutes(model);
   const contract = buildDeliveryContract(model, routes);
   await assertOpenApiContract(contract);

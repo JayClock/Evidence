@@ -11,7 +11,7 @@ acceptance, or spawn `oasdiff`. Those concerns live in
 ## Entry points
 
 - Root: Node projection/loading/publishing APIs such as `buildDelivery`,
-  `buildProjection`, `loadFm`, `renderOutputs` and `writeOutput`.
+  `buildProjection`, `loadModel`, `renderOutputs` and `writeOutput`.
 - `/delivery`: browser-safe field/route/contract helpers, with no filesystem or
   acceptance runner imports.
 - `/testing`: shared fixture builders for cross-library tests only. Fixtures
@@ -29,8 +29,8 @@ pnpm evidence export --openapi
 
 The CLI exports the aggregate `openapi.json`. For the full projection, including
 `services/<serviceId>/openapi.json`, topology and the manifest, use
-`loadFm` / `buildProjection` and `renderOutputs` from this package. Pass the
-optional pinned check report to `loadFm` and a validated overlay to
+`loadModel` / `buildProjection` and `renderOutputs` from this package. Pass the
+optional pinned check report to `loadModel` and a validated overlay to
 `buildProjection`; these inputs are not accepted by `evidence export`. Overlays
 may adjust routes and journeys but cannot invent model semantics or hide errors.
 

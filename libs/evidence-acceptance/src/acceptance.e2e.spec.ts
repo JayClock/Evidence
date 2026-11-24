@@ -25,7 +25,7 @@ let root: string, suite: string;
 beforeEach(async () => {
   root = mkdtempSync(path.join(os.tmpdir(), 'evidence-backend-e2e-'));
   const out = path.join(root, 'tests');
-  await exportAcceptanceTests({ fm: model, out });
+  await exportAcceptanceTests({ modelDirectory: model, out });
   suite = out;
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));

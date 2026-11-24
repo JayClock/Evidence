@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
-import { digestBytes } from '../adapter/fmAdapter.js';
+import { digestBytes } from '../adapter/modelAdapter.js';
 import { canonicalJson } from '../canonicalJson.js';
 import type { ContextDeliveryPlan } from './contextDelivery.js';
 

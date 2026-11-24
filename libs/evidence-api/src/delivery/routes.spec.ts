@@ -7,9 +7,9 @@ import { sharedConfirmationModel } from '../testing/fulfillment.js';
 import { buildDeliveryRoutes } from './routes.js';
 
 const model = async (): Promise<DomainModelDocument> => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
 
-  return bundle;
+  return document;
 };
 
 describe('buildDeliveryRoutes', () => {

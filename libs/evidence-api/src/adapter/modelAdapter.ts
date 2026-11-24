@@ -29,10 +29,10 @@ import {
 export const digestBytes = (content: string | Buffer): string =>
   createHash('sha256').update(content).digest('hex');
 
-export type FmSnapshot = Record<string, string>;
+export type ModelSnapshot = Record<string, string>;
 
 /** Current model inputs, independent of any previously saved check report. */
-export interface FmIndex {
+export interface ModelIndex {
   document: DomainModelDocument;
   compiled: CompiledModelDocument;
   /** Recorded evidence only. Null means no report was supplied, not a passing check. */
@@ -43,18 +43,18 @@ export interface FmIndex {
   relationships: ReadonlyMap<string, RelationshipAST>;
   rules: ReadonlyMap<string, RuleAST>;
   membersByContext: ReadonlyMap<string, readonly string[]>;
-  files: FmSnapshot;
+  files: ModelSnapshot;
 }
 
-export interface LoadFmResult {
-  index: FmIndex | null;
+export interface LoadModelResult {
+  index: ModelIndex | null;
   diagnostics: readonly Diagnostic[];
 }
 
-export interface LoadFmDocumentOptions {
+export interface LoadModelDocumentOptions {
   checkReport?: unknown;
   diagnostics?: readonly Diagnostic[];
-  files?: FmSnapshot;
+  files?: ModelSnapshot;
   modelDigest?: string;
 }
 
@@ -63,7 +63,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const snapshotOf = (
   files: readonly { path: string; bytes: Buffer }[],
-): FmSnapshot =>
+): ModelSnapshot =>
   Object.fromEntries(
     [...files]
       .sort((left, right) => left.path.localeCompare(right.path))
@@ -90,10 +90,10 @@ export const checkReportProblem = (report: unknown): string | null => {
 };
 
 /** Builds an index synchronously without filesystem access or invented check results. */
-export const loadFmFromDocument = (
+export const loadModelFromDocument = (
   document: DomainModelDocument,
-  options: LoadFmDocumentOptions = {},
-): LoadFmResult => {
+  options: LoadModelDocumentOptions = {},
+): LoadModelResult => {
   // Pin the input so later caller edits cannot silently change an existing index.
   document = structuredClone(document);
   const compiled = compiledDocument(document);
@@ -152,7 +152,9 @@ export const loadFmFromDocument = (
 };
 
 /** Party Roles a Participant Party actually plays. This is not an authorization grant. */
-export const partyRolesPlayedByParticipants = (index: FmIndex): Set<string> => {
+export const partyRolesPlayedByParticipants = (
+  index: ModelIndex,
+): Set<string> => {
   const played = new Set<string>();
   for (const relationship of index.relationships.values()) {
     if (relationship.kind !== 'plays_role') continue;
@@ -171,11 +173,11 @@ export const partyRolesPlayedByParticipants = (index: FmIndex): Set<string> => {
 };
 
 /** Reads a model directory. Concurrent input changes invalidate the read. */
-export const loadFm = async (
-  fmRoot: string,
+export const loadModel = async (
+  modelDirectory: string,
   checkReport?: unknown,
-): Promise<LoadFmResult> => {
-  const root = path.resolve(fmRoot);
+): Promise<LoadModelResult> => {
+  const root = path.resolve(modelDirectory);
   try {
     const beforeFiles = await readModelRootBytes(root);
     const before = snapshotOf(beforeFiles);
@@ -204,7 +206,7 @@ export const loadFm = async (
         ),
       };
     }
-    return loadFmFromDocument(parsed.document, {
+    return loadModelFromDocument(parsed.document, {
       checkReport,
       files: before,
       modelDigest: modelDigestOf(

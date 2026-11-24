@@ -2,8 +2,8 @@ import type { EntityAST } from '@evidence-poc/evidence-schema';
 
 import {
   partyRolesPlayedByParticipants,
-  type FmIndex,
-} from './adapter/fmAdapter.js';
+  type ModelIndex,
+} from './adapter/modelAdapter.js';
 
 /**
  * What a designer needs before writing a single resource.
@@ -58,7 +58,7 @@ const byId = (left: InspectEntry, right: InspectEntry): number =>
   left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
 
 /** Builds the read-only inventory an API design starts from. */
-export const inspectSummary = (index: FmIndex): InspectSummary => {
+export const inspectSummary = (index: ModelIndex): InspectSummary => {
   const played = partyRolesPlayedByParticipants(index);
   const roles = [...index.entities.values()].filter(
     (entity) => entity.category === 'role',

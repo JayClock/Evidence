@@ -83,8 +83,8 @@ describe('OpenAPI consumer contract', () => {
   );
 
   it('also validates the full saved model through the same generation path', async () => {
-    const { bundle } = await readModelRoot(fullLifecycle().modelRoot);
-    const contract = buildDelivery(bundle).openapi;
+    const { document } = await readModelRoot(fullLifecycle().modelRoot);
+    const contract = buildDelivery(document).openapi;
     const result = await validator.validate({ ...contract });
     expect(result.valid, JSON.stringify(result.errors)).toBe(true);
     expect(contractProblems(contract)).toEqual([]);

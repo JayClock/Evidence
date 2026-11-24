@@ -15,7 +15,7 @@ const model = async () =>
         ),
       ),
     )
-  ).bundle;
+  ).document;
 
 describe('API sensor', () => {
   it('carries derived-to-input drift from unsaved models through draft and release diagnostics', async () => {

@@ -1,6 +1,6 @@
 import { OasdiffRunner } from './oasdiffRunner.js';
 import { buildDelivery, buildProjection } from '@evidence-poc/evidence-api';
-import { loadFmFromDocument } from '@evidence-poc/evidence-api';
+import { loadModelFromDocument } from '@evidence-poc/evidence-api';
 import { compareContracts } from './compareContracts.js';
 import { procurementEvolution } from '@evidence-poc/evidence-api/testing';
 
@@ -136,11 +136,13 @@ it('does not claim that an unchanged OpenAPI proves unchanged CEL semantics', as
 
 it('uses the final overlay paths rather than the unmodified model surface', async () => {
   const model = procurementEvolution()[0]!;
-  const index = loadFmFromDocument(model).index!;
+  const index = loadModelFromDocument(model).index!;
   const target = buildProjection({
     index,
     design: {
-      routes: [{ id: 'route.sign.contract.agreement', path: '/signed-agreements' }],
+      routes: [
+        { id: 'route.sign.contract.agreement', path: '/signed-agreements' },
+      ],
     },
   }).projection;
   expect(

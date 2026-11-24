@@ -5,8 +5,8 @@ import { compileSchema } from '../schemas/jsonSchema.js';
 import { buildDeliveryRoutes } from './routes.js';
 
 it('projects money as the same minor-unit object accepted by FM and native CEL', async () => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
-  const entity = bundle.entities.find(
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const entity = document.entities.find(
     (item) => item.id === 'contract.product-procurement',
   )!;
   entity.attributes!.push({
@@ -16,7 +16,7 @@ it('projects money as the same minor-unit object accepted by FM and native CEL',
     valueType: 'money',
     required: true,
   });
-  const contract = buildDeliveryContract(bundle);
+  const contract = buildDeliveryContract(document);
   const schema = contract.components.schemas[
     'contract_product-procurement'
   ] as { properties: Record<string, unknown> };
@@ -35,8 +35,8 @@ it('projects money as the same minor-unit object accepted by FM and native CEL',
 });
 
 it('keeps complete response schemas even when GET follows POST and marks server-owned values read-only', async () => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
-  const entity = bundle.entities.find(
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const entity = document.entities.find(
     (item) => item.id === 'contract.product-procurement',
   )!;
   entity.attributes!.push({
@@ -47,7 +47,7 @@ it('keeps complete response schemas even when GET follows POST and marks server-
     required: true,
     derivedByRuleRef: 'rule.total',
   });
-  bundle.rules.push({
+  document.rules.push({
     type: 'rule',
     id: 'rule.total',
     kind: 'derivation',
@@ -59,9 +59,9 @@ it('keeps complete response schemas even when GET follows POST and marks server-
     resultType: 'decimal',
     target: { entityRef: entity.id, attribute: 'total' },
   });
-  const routes = buildDeliveryRoutes(bundle);
+  const routes = buildDeliveryRoutes(document);
   const sign = routes.find((route) => route.purpose === 'sign')!;
-  const api = buildDeliveryContract(bundle, routes);
+  const api = buildDeliveryContract(document, routes);
   const schema = api.components.schemas['contract_product-procurement'] as {
     properties: Record<string, unknown>;
   };
@@ -93,7 +93,7 @@ it('keeps complete response schemas even when GET follows POST and marks server-
     headers: { Location: { 'x-evidence-uri-template': sign.itemPath } },
   });
   expect(
-    buildDeliveryContract(bundle, [...routes].reverse()).components.schemas[
+    buildDeliveryContract(document, [...routes].reverse()).components.schemas[
       'contract_product-procurement'
     ],
   ).toMatchObject({ properties: schema.properties });

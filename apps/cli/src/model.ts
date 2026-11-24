@@ -18,10 +18,10 @@ export function getWorkspace(context: CommandContext, options: CommandOptions) {
 }
 
 export async function loadModel(source: string) {
-  const { bundle, issues } = await readModelRoot(source);
+  const { document, issues } = await readModelRoot(source);
   if (issues.length)
     throw new Error(
       `FM_INVALID:\n${issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n')}`,
     );
-  return bundle;
+  return document;
 }

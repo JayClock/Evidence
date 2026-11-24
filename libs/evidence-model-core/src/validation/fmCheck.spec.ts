@@ -26,11 +26,11 @@ const check = async (
   } = {},
 ) => {
   const root = fixture(name, options.models ?? true);
-  const { document: bundle, issues } = await readModelRoot(root);
+  const { document: modelDocument, issues } = await readModelRoot(root);
   const bytes = await readModelRootBytes(root);
 
   return buildFmCheckReport({
-    model: bundle,
+    model: modelDocument,
     sourceIssues: issues.map((issue) => `${issue.path}: ${issue.message}`),
     modelDigest: modelDigestOf(
       bytes.map((file) => ({ path: file.path, content: file.bytes })),
@@ -67,10 +67,10 @@ describe('buildFmCheckReport', () => {
   });
 
   it('carries naming advice without changing the verdict', async () => {
-    const { document: bundle } = await readModelRoot(
+    const { document: modelDocument } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
-    const model = structuredClone(bundle);
+    const model = structuredClone(modelDocument);
 
     model.entities.push({
       type: 'entity',
@@ -174,10 +174,10 @@ describe('modelDigestOf', () => {
 
 describe('analyzeTraceability', () => {
   it('builds lineage nodes and constraints for the golden fixture', async () => {
-    const { document: bundle } = await readModelRoot(
+    const { document: modelDocument } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
-    const { document, errors } = analyzeTraceability(bundle);
+    const { document, errors } = analyzeTraceability(modelDocument);
 
     expect(errors).toEqual([]);
     const paths = document.nodes.map((node) => node.path);
@@ -203,12 +203,12 @@ describe('analyzeTraceability', () => {
   });
 
   it('rejects a collection binding read without a macro', async () => {
-    const { document: bundle } = await readModelRoot(
+    const { document: modelDocument } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
     const broken = {
-      ...bundle,
-      rules: bundle.rules.map((rule) =>
+      ...modelDocument,
+      rules: modelDocument.rules.map((rule) =>
         rule.id === 'rule.content-payment-completed'
           ? { ...rule, expression: 'confirmations.confirmed_at' }
           : rule,
@@ -223,12 +223,12 @@ describe('analyzeTraceability', () => {
   });
 
   it('rejects a read of an attribute the entity does not model', async () => {
-    const { document: bundle } = await readModelRoot(
+    const { document: modelDocument } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
     const broken = {
-      ...bundle,
-      rules: bundle.rules.map((rule) =>
+      ...modelDocument,
+      rules: modelDocument.rules.map((rule) =>
         rule.id === 'rule.payment-matches-request'
           ? {
               ...rule,

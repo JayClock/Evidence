@@ -3,7 +3,7 @@ import { fullLifecycle, fullLifecycleIndex } from './testing/fixtures.js';
 import { buildDelivery, buildProjection } from './projector.js';
 import { renderOutputs } from './renderer/outputRenderer.js';
 import { validateProjection } from './loader/apiLoader.js';
-import { digestBytes, loadFmFromDocument } from './adapter/fmAdapter.js';
+import { digestBytes, loadModelFromDocument } from './adapter/modelAdapter.js';
 import {
   procurementEvolution,
   addFulfillmentBranches,
@@ -23,7 +23,7 @@ describe('model-driven snapshots', () => {
       ],
     };
     const project = (document: typeof before) =>
-      buildProjection({ index: loadFmFromDocument(document).index!, design })
+      buildProjection({ index: loadModelFromDocument(document).index!, design })
         .projection;
     const baseline = project(before);
     const current = project(after);
@@ -49,10 +49,10 @@ describe('model-driven snapshots', () => {
     );
   });
   it('uses the same contract for memory, indexed projection and delivery exports', async () => {
-    const { bundle } = await readModelRoot(fullLifecycle().modelRoot);
-    const memory = buildDelivery(bundle);
+    const { document } = await readModelRoot(fullLifecycle().modelRoot);
+    const memory = buildDelivery(document);
     const projected = buildProjection({
-      index: loadFmFromDocument(bundle).index!,
+      index: loadModelFromDocument(document).index!,
     }).projection;
     expect(memory).toEqual(projected);
     expect(memory.schemaVersion).toBe('7.0');
@@ -185,10 +185,10 @@ describe('model-driven snapshots', () => {
   });
 
   it('reports static errors instead of inventing passing validation evidence', async () => {
-    const { bundle } = await readModelRoot(fullLifecycle().modelRoot);
+    const { document } = await readModelRoot(fullLifecycle().modelRoot);
     const broken = {
-      ...bundle,
-      entities: [...bundle.entities, bundle.entities[0]!],
+      ...document,
+      entities: [...document.entities, document.entities[0]!],
     };
     expect(buildDelivery(broken).diagnostics).toContainEqual(
       expect.objectContaining({ code: 'FM_INVALID', severity: 'error' }),

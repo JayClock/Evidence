@@ -9,9 +9,9 @@ import { assertOpenApiContract } from '../openapi/validateContract.js';
 import { buildDeliveryTopology } from './topology.js';
 
 const model = async (): Promise<DomainModelDocument> => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
 
-  return bundle;
+  return document;
 };
 
 describe('buildDeliveryTopology', () => {

@@ -15,22 +15,22 @@ import {
 import {
   checkReportProblem,
   digestBytes,
-  loadFm,
-  loadFmFromDocument,
+  loadModel,
+  loadModelFromDocument,
   partyRolesPlayedByParticipants,
-} from './adapter/fmAdapter.js';
+} from './adapter/modelAdapter.js';
 import { inspectSummary } from './inspect.js';
 
-const fmRoot = fileURLToPath(
+const modelDirectory = fileURLToPath(
   new URL('../tests/fixtures/full-lifecycle/fm', import.meta.url),
 );
 
 /** The check report the FM stage would have handed over. */
 const checkReportOf = async (root: string) => {
-  const { bundle, issues } = await readModelRoot(root);
+  const { document, issues } = await readModelRoot(root);
   const bytes = await readModelRootBytes(root);
   const { report } = buildFmCheckReport({
-    model: bundle,
+    model: document,
     sourceIssues: issues.map((issue) => `${issue.path}: ${issue.message}`),
     modelDigest: modelDigestOf(
       bytes.map((file) => ({ path: file.path, content: file.bytes })),
@@ -83,10 +83,10 @@ describe('checkReportProblem', () => {
   });
 });
 
-describe('loadFm', () => {
+describe('loadModel', () => {
   it('indexes the checked model and its inline examples', async () => {
-    const check = await checkReportOf(fmRoot);
-    const { index, diagnostics } = await loadFm(fmRoot, check);
+    const check = await checkReportOf(modelDirectory);
+    const { index, diagnostics } = await loadModel(modelDirectory, check);
 
     expect(diagnostics).toEqual([]);
     expect(index?.compiled.entities.length).toBeGreaterThan(0);
@@ -101,8 +101,8 @@ describe('loadFm', () => {
   });
 
   it('keeps the current model when its saved report is stale', async () => {
-    const check = await checkReportOf(fmRoot);
-    const { index, diagnostics } = await loadFm(fmRoot, {
+    const check = await checkReportOf(modelDirectory);
+    const { index, diagnostics } = await loadModel(modelDirectory, {
       ...check,
       modelDigest: 'sha256:0000',
     });
@@ -114,7 +114,7 @@ describe('loadFm', () => {
   });
 
   it('refuses a directory that is not a model', async () => {
-    const { index, diagnostics } = await loadFm(
+    const { index, diagnostics } = await loadModel(
       fileURLToPath(new URL('./fixtures-not-a-model', import.meta.url)),
       {},
     );
@@ -124,7 +124,9 @@ describe('loadFm', () => {
   });
 
   it('keeps an invalid report visible without treating it as a passing check', async () => {
-    const { index, diagnostics } = await loadFm(fmRoot, { checkVersion: 5 });
+    const { index, diagnostics } = await loadModel(modelDirectory, {
+      checkVersion: 5,
+    });
     expect(index?.check).toEqual({ checkVersion: 5 });
 
     expect(diagnostics).toEqual([
@@ -133,38 +135,38 @@ describe('loadFm', () => {
   });
 });
 
-describe('loadFmFromDocument', () => {
+describe('loadModelFromDocument', () => {
   it('indexes an in-memory document and its inline examples without a fake check', async () => {
-    const { bundle } = await readModelRoot(fmRoot);
-    const original = JSON.stringify(bundle);
-    const { index, diagnostics } = loadFmFromDocument(bundle);
+    const { document } = await readModelRoot(modelDirectory);
+    const original = JSON.stringify(document);
+    const { index, diagnostics } = loadModelFromDocument(document);
     expect(diagnostics).toEqual([]);
     expect(index?.check).toBeNull();
-    expect(index?.entities.size).toBe(bundle.entities.length);
+    expect(index?.entities.size).toBe(document.entities.length);
     expect(index?.modelDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
-    expect(loadFmFromDocument(bundle).index?.modelDigest).toBe(
+    expect(loadModelFromDocument(document).index?.modelDigest).toBe(
       index?.modelDigest,
     );
-    expect(JSON.stringify(bundle)).toBe(original);
+    expect(JSON.stringify(document)).toBe(original);
     const edited = {
-      ...bundle,
-      manifest: { ...bundle.manifest, name: 'Edited' },
+      ...document,
+      manifest: { ...document.manifest, name: 'Edited' },
     };
-    expect(loadFmFromDocument(edited).index?.modelDigest).not.toBe(
+    expect(loadModelFromDocument(edited).index?.modelDigest).not.toBe(
       index?.modelDigest,
     );
   });
 
   it('pins indexed inputs and fingerprints inline example edits', async () => {
-    const { bundle } = await readModelRoot(fmRoot);
-    const loaded = loadFmFromDocument(bundle).index!;
+    const { document } = await readModelRoot(modelDirectory);
+    const loaded = loadModelFromDocument(document).index!;
     const originalName = loaded.document.manifest.name;
-    bundle.manifest.name = 'Later edit';
+    document.manifest.name = 'Later edit';
     expect(loaded.document.manifest.name).toBe(originalName);
-    const next = structuredClone(bundle);
+    const next = structuredClone(document);
     next.entities[0]!.examples = [{ label: 'Updated example', value: {} }];
-    expect(loadFmFromDocument(next).index?.modelDigest).not.toBe(
-      loadFmFromDocument(bundle).index?.modelDigest,
+    expect(loadModelFromDocument(next).index?.modelDigest).not.toBe(
+      loadModelFromDocument(document).index?.modelDigest,
     );
   });
 
@@ -173,10 +175,10 @@ describe('loadFmFromDocument', () => {
     try {
       const file = path.join(directory, 'model.evidence.json');
       writeFileSync(file, '{}');
-      const tree = await loadFm(fmRoot);
+      const tree = await loadModel(modelDirectory);
       expect(tree.diagnostics).toEqual([]);
       expect(tree.index?.check).toBeNull();
-      expect((await loadFm(file)).index).toBeNull();
+      expect((await loadModel(file)).index).toBeNull();
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
@@ -192,7 +194,7 @@ describe('loadFmFromDocument', () => {
         { path: 'changed.txt', bytes: Buffer.from('changed') },
       ]);
     try {
-      const result = await loadFm(fmRoot);
+      const result = await loadModel(modelDirectory);
       expect(result.index).toBeNull();
       expect(result.diagnostics[0]?.code).toBe('SOURCE_CHANGED');
     } finally {
@@ -203,7 +205,10 @@ describe('loadFmFromDocument', () => {
 
 describe('partyRolesPlayedByParticipants', () => {
   it('counts only Party Roles an actual Participant Party plays', async () => {
-    const { index } = await loadFm(fmRoot, await checkReportOf(fmRoot));
+    const { index } = await loadModel(
+      modelDirectory,
+      await checkReportOf(modelDirectory),
+    );
     const played = partyRolesPlayedByParticipants(
       index as NonNullable<typeof index>,
     );
@@ -214,7 +219,10 @@ describe('partyRolesPlayedByParticipants', () => {
 
 describe('inspectSummary', () => {
   it('reports the inventory inspect prints, with nulls kept visible', async () => {
-    const { index } = await loadFm(fmRoot, await checkReportOf(fmRoot));
+    const { index } = await loadModel(
+      modelDirectory,
+      await checkReportOf(modelDirectory),
+    );
     const summary = inspectSummary(index as NonNullable<typeof index>);
 
     expect(summary.schemaVersion).toBe('6.0');

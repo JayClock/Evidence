@@ -4,21 +4,21 @@ import { API_FIXTURES } from './fixtures.js';
 
 /** Two payment requests in the same contract can share one confirmation. */
 export const sharedConfirmationModel = async () => {
-  const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
-  const payment = bundle.relationships.find(
+  const { document } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
+  const payment = document.relationships.find(
     ({ id }) => id === 'relation.payment-request-precedes-confirmation',
   )!;
-  const paymentRequest = bundle.relationships.find(
+  const paymentRequest = document.relationships.find(
     ({ id }) => id === 'relation.contract-precedes-payment-request',
   )!;
   paymentRequest.sourceCardinality = { min: 0, max: 'many' };
   const balance = 'request.payment-balance';
-  bundle.entities.push({
-    ...bundle.entities.find(({ id }) => id === 'request.payment')!,
+  document.entities.push({
+    ...document.entities.find(({ id }) => id === 'request.payment')!,
     id: balance,
     label: '尾款请求',
   });
-  bundle.relationships.push(
+  document.relationships.push(
     {
       ...paymentRequest,
       id: 'relation.contract-precedes-payment-balance',
@@ -31,5 +31,5 @@ export const sharedConfirmationModel = async () => {
       targetRef: balance,
     },
   );
-  return bundle;
+  return document;
 };

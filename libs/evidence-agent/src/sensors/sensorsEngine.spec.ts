@@ -32,13 +32,13 @@ describe('createSensorsEngine', () => {
 
   it('does not turn a draft refresh or an obsolete saved report into release authorization', async () => {
     const engine = createSensorsEngine();
-    const { bundle } = await readModelRoot(goldenModel);
-    const route = buildDelivery(bundle).routes.find(
+    const { document } = await readModelRoot(goldenModel);
+    const route = buildDelivery(document).routes.find(
       (route) =>
         route.method === 'POST' && route.fields.some((field) => field.required),
     )!;
     const field = route.fields.find((field) => field.required)!;
-    const baseline = structuredClone(bundle);
+    const baseline = structuredClone(document);
     const entity = baseline.entities.find(
       (entity) => entity.id === route.entityRef,
     )!;

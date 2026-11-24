@@ -18,23 +18,23 @@ const fixture = (name: string): string =>
   );
 
 const load = async (name: string) => {
-  const { document: bundle } = await readModelRoot(fixture(name));
+  const { document } = await readModelRoot(fixture(name));
 
-  return { bundle };
+  return { document };
 };
 
 describe('model hand-off report v6', () => {
   it('accepts static completeness without claiming to have executed backend tests', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
+    const { document } = await load('valid-traceable-subscription');
     const { report } = buildFmCheckReport({
-      model: bundle,
+      model: document,
       scopeRefs: ['context.content-subscription'],
     });
     expect(report.valid).toBe(true);
     expect(report.checkVersion).toBe(6);
     expect(report).not.toHaveProperty('simulationPassed');
-    expect(readyScope(bundle, report).entities.length).toBeGreaterThan(0);
-    expect(() => readyScope(bundle, { ...report, checkVersion: 5 })).toThrow(
+    expect(readyScope(document, report).entities.length).toBeGreaterThan(0);
+    expect(() => readyScope(document, { ...report, checkVersion: 5 })).toThrow(
       'successful scope completeness',
     );
   });
@@ -71,8 +71,8 @@ describe('referencesOf', () => {
 
 describe('selectScope', () => {
   it('keeps the selected Contract Context and what it really needs', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
-    const scoped = selectScope(bundle, ['context.content-subscription']);
+    const { document } = await load('valid-traceable-subscription');
+    const scoped = selectScope(document, ['context.content-subscription']);
     const contextIds = scoped.entities
       .filter((entity) => entity.category === 'context')
       .map((entity) => entity.id)
@@ -90,45 +90,45 @@ describe('selectScope', () => {
   });
 
   it('refuses a child Context and a duplicated scope', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
+    const { document } = await load('valid-traceable-subscription');
 
-    expect(() => selectScope(bundle, [])).toThrow(ScopeSelectionError);
+    expect(() => selectScope(document, [])).toThrow(ScopeSelectionError);
     expect(() =>
-      selectScope(bundle, [
+      selectScope(document, [
         'context.content-subscription',
         'context.content-subscription',
       ]),
     ).toThrow(/distinct/);
-    expect(() => selectScope(bundle, ['request.content-payment'])).toThrow(
+    expect(() => selectScope(document, ['request.content-payment'])).toThrow(
       /must be an independent Context/,
     );
   });
 
   it('drops objects outside the scope', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
-    const scoped = selectScope(bundle, ['context.content-subscription']);
+    const { document } = await load('valid-traceable-subscription');
+    const scoped = selectScope(document, ['context.content-subscription']);
 
     expect(scoped.rules.map((rule) => rule.id)).toEqual(
       expect.arrayContaining(['rule.content-payment-completed']),
     );
-    expect(scoped.rules.length).toBeLessThanOrEqual(bundle.rules.length);
+    expect(scoped.rules.length).toBeLessThanOrEqual(document.rules.length);
   });
 });
 
 describe('completenessGaps', () => {
   it('reports nothing for the golden fixture', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
+    const { document } = await load('valid-traceable-subscription');
 
-    expect(completenessIssues(bundle)).toEqual([]);
-    expect(completenessGaps(bundle, [])).toEqual([]);
-    expect(pairingGaps(bundle)).toEqual([]);
+    expect(completenessIssues(document)).toEqual([]);
+    expect(completenessGaps(document, [])).toEqual([]);
+    expect(pairingGaps(document)).toEqual([]);
   });
 
   it('reports a Contract Context without its primary Fulfillment', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
+    const { document } = await load('valid-traceable-subscription');
     const withoutRequests = {
-      ...bundle,
-      entities: bundle.entities.filter(
+      ...document,
+      entities: document.entities.filter(
         (entity) =>
           entity.category !== 'evidence' ||
           entity.kind !== 'fulfillment_request',
@@ -143,8 +143,8 @@ describe('completenessGaps', () => {
   });
 
   it('reports a party that never holds a Fulfillment Request', async () => {
-    const { bundle } = await load('valid-traceable-subscription');
-    const gaps = pairingGaps(bundle);
+    const { document } = await load('valid-traceable-subscription');
+    const gaps = pairingGaps(document);
 
     expect(gaps).toEqual([]);
   });

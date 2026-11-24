@@ -20,7 +20,7 @@ const input = async (): Promise<LiveDeliveryInput> => {
         '../../../../libs/evidence-api/tests/fixtures/full-lifecycle/fm',
       ),
     )
-  ).bundle;
+  ).document;
   return {
     rootPath: path.resolve('/not-on-disk'),
     revision: 7,

@@ -4,7 +4,7 @@ import {
   openWorkspace,
 } from '@evidence-poc/evidence-model-io';
 import {
-  loadFm,
+  loadModel,
   planContextDelivery,
   verifyContextDelivery,
   writeContextDelivery,
@@ -19,7 +19,7 @@ export async function exportContexts(
 ): Promise<number> {
   const read = async () => {
     const workspace = openWorkspace(root);
-    const { index, diagnostics } = await loadFm(workspace.model);
+    const { index, diagnostics } = await loadModel(workspace.model);
     if (!index)
       throw new Error(
         diagnostics

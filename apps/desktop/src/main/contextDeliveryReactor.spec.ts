@@ -29,7 +29,7 @@ const documentOf = async () =>
         '../../../../libs/evidence-api/tests/fixtures/full-lifecycle/fm',
       ),
     )
-  ).bundle;
+  ).document;
 beforeEach(async () => {
   directory = mkdtempSync(
     path.join(realpathSync(tmpdir()), 'delivery-reactor-'),
