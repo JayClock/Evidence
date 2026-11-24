@@ -1,19 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import type { Dirent } from 'node:fs';
-import {
-  mkdir,
-  readdir,
-  readFile,
-  rename,
-  stat,
-  writeFile,
-} from 'node:fs/promises';
+import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
   MODEL_README_PATH,
   createEmptyModelBundle,
-  isModelBundlePath,
   modelBundleSourceFiles,
   packModelSourceFiles,
   parseModelBundleText,
@@ -26,9 +18,6 @@ import {
   type SerializeBundleOptions,
 } from '@evidence-poc/evidence-model-core';
 import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-
-/** Relative location of the FM source tree inside a project root. */
-export const MODEL_DIRECTORY = path.join('.evidence', 'fm');
 
 /** Trees a bundle never carries: derived output only. */
 const SKIPPED_TREES = new Set(['generated']);
@@ -110,24 +99,13 @@ async function readSourceTree(root: string): Promise<ModelSourceFile[]> {
   return files;
 }
 
-/** Reads `<root>/.evidence/fm` and packs it into one bundle. */
+/** Packs a source tree for library callers and test fixtures. */
 export async function packModelDirectory(
   root: string,
 ): Promise<PackResult & { files: ModelSourceFile[] }> {
   const files = await readSourceTree(root);
 
   return { ...packModelSourceFiles(files), files };
-}
-
-/** True when `target` exists and is a single-file bundle. */
-export async function isModelBundleFile(target: string): Promise<boolean> {
-  if (!isModelBundlePath(target)) {
-    return false;
-  }
-
-  const info = await stat(target).catch(() => null);
-
-  return info?.isFile() === true;
 }
 
 const sortKeys = (value: unknown): unknown => {
@@ -234,7 +212,7 @@ export interface UnpackResult {
 }
 
 /**
- * Unpacks a bundle back onto a `.evidence/fm` tree.
+ * Unpacks a bundle into an explicit fixture source tree.
  *
  * Files the bundle does not name are left alone: unpacking is a migration step,
  * not a destructive reset, so a tree that still holds `generated/` keeps it.

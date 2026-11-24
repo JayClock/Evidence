@@ -15,15 +15,15 @@ npx nx start desktop
 
 ## What runs where
 
-| Concern                                                      | Lives in                                                  | Runs in                                 |
-| ------------------------------------------------------------ | --------------------------------------------------------- | --------------------------------------- |
-| model parsing, CEL example oracle, scope, static FM report   | `libs/evidence-model-core/src/validation/`                | process                                 |
-| compiled snapshot and lineage projection                    | `libs/evidence-model-core/src/derive/`                    | process                                 |
-| agent session, sensors, stage gate, agent tools              | `libs/evidence-agent`                                     | process                                 |
-| shared guarded model mutations for Pi / MCP                  | `libs/evidence-tools`                                     | universal                               |
-| API contract projection, OpenAPI, HTTP journeys              | `libs/evidence-api`                                       | process + browser-safe delivery entry   |
-| acceptance generation, HTTP gates, native compatibility diff | `libs/evidence-acceptance`                                | process + browser-safe projection entry |
-| interview and modeling prompts                               | `libs/evidence-agent/src/prompts/`                        | prompt layer                            |
+| Concern                                                      | Lives in                                   | Runs in                                 |
+| ------------------------------------------------------------ | ------------------------------------------ | --------------------------------------- |
+| model parsing, CEL example oracle, scope, static FM report   | `libs/evidence-model-core/src/validation/` | process                                 |
+| compiled snapshot and lineage projection                     | `libs/evidence-model-core/src/derive/`     | process                                 |
+| agent session, sensors, stage gate, agent tools              | `libs/evidence-agent`                      | process                                 |
+| shared guarded model mutations for Pi / MCP                  | `libs/evidence-tools`                      | universal                               |
+| API contract projection, OpenAPI, HTTP journeys              | `libs/evidence-api`                        | process + browser-safe delivery entry   |
+| acceptance generation, HTTP gates, native compatibility diff | `libs/evidence-acceptance`                 | process + browser-safe projection entry |
+| interview and modeling prompts                               | `libs/evidence-agent/src/prompts/`         | prompt layer                            |
 
 There is no skill tree. The agent's instructions are code, and the data they
 used to point at belongs to the library that consumes it:
@@ -42,9 +42,9 @@ is the same code the app runs, so a terminal and a window cannot disagree:
 
 ```bash
 pnpm exec nx build cli
-pnpm evidence check .evidence/fm --scope context.product-procurement
-pnpm evidence compile .evidence/fm --out .evidence/fm/generated/model.json
-pnpm evidence export --model .evidence/fm --openapi --out dist/contracts
+pnpm evidence check --workspace examples/b2b-escrow --scope context.procurement
+pnpm evidence compile --workspace examples/b2b-escrow
+pnpm evidence export --workspace examples/b2b-escrow --openapi
 ```
 
 API projection v6 uses business aggregate roots rather than deployment Context
@@ -59,17 +59,16 @@ export, API evolution and HTTP acceptance:
 ```bash
 pnpm exec nx build cli
 pnpm evidence --help
-pnpm evidence check .evidence/fm --json
+pnpm evidence check --workspace examples/b2b-escrow --json
 pnpm example:setup
-pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json --out dist/acceptance
+pnpm evidence export --workspace examples/b2b-escrow
 node examples/b2b-escrow/implementations/ts-fastify/dist/server.js --test-mode --port 8085
 # In another terminal:
-pnpm evidence test --target http://127.0.0.1:8085 --scenarios dist/acceptance --verbose
-pnpm evidence diff old.evidence.json new.evidence.json --format markdown
+pnpm evidence test --workspace examples/b2b-escrow --target http://127.0.0.1:8085 --verbose
+pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format markdown
 ```
 
-`export` validates OpenAPI 3.1 and atomically replaces its dedicated output
-directory. Without `--openapi`/`--tests`, it exports both OpenAPI and a Bruno
+`export` validates OpenAPI 3.1 and replaces each dedicated output tree (`.evidence/delivery/release` and `.evidence/acceptance`) independently. Without `--openapi`/`--tests`, it exports both OpenAPI and a Bruno
 collection. Acceptance export no longer has a `--format` switch. `test` takes
 one generated collection directory and uses the pinned Bruno CLI installed by
 pnpm. `--json` emits a machine-readable report without terminal formatting. Commit

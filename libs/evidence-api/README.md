@@ -24,8 +24,7 @@ renderers, `compareContracts` and `OasdiffRunner`, use `evidence-acceptance`.
 
 ```bash
 pnpm exec nx build cli
-pnpm evidence export --model .evidence/fm --out dist/contracts --openapi
-pnpm exec nx run evidence-api:export-openapi -- --model .evidence/fm --out dist/contracts
+pnpm evidence export --openapi
 ```
 
 The CLI exports the aggregate `openapi.json`. For the full projection, including

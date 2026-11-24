@@ -26,7 +26,7 @@ const appState = (revision: number): McpAppState => ({
   isRunning: true,
   activeProject: {
     rootPath: '/repo',
-    modelRoot: '/repo/.evidence/fm',
+    modelRoot: '/repo/.evidence/model',
     modelId: 'product-procurement',
     modelVersion: '1.0.0',
     documentRevision: revision,

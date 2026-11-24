@@ -18,6 +18,7 @@
 ### AI Coding 时代的后端确定性挑战
 
 在 AI 辅助编程普及的今天，后端架构面临着更严峻的失控风险：
+
 - **放手式 AI 生成的隐患**：让大模型直接生成后端业务代码时，AI 倾向于生成贫血的 CRUD 结构，极易将金额、优惠、状态等**服务端计算逻辑暴露为接口入参**，引发严重的业务与资金安全漏洞；
 - **自圆其说的虚假单测**：AI 编写的测试往往基于其自身生成的代码假设，缺乏独立的业务事实约束，测试全部通过并不代表符合真实业务契约。
 
@@ -27,13 +28,13 @@
 
 ### 研发范式对比
 
-| 维度 | 传统手工 CRUD 开发 | 放手式 AI 编程 (Chat / Agent) | Evidence 履约建模驱动 |
-| :--- | :--- | :--- | :--- |
-| **领域抽象** | 与具体 ORM / 语言强行绑定 | 自由生成实体，容易演化为贫血 CRUD | **权责、事实证据与法定契约**（语言无关） |
-| **派生与安全纪律** | 依赖开发者自觉，计算逻辑常泄漏给前端 | 极易允许入参直接覆盖金额/状态等派生值 | **CEL 声明式服务端求值**，出入参物理隔离 |
-| **模型一致性** | 人肉维护文档与代码，文档永远滞后 | 随对话上下文漂移，生成逻辑前后矛盾 | **纯内存 AST 静态门禁**，按键级拓扑校验 |
-| **人机协作模式** | 无 | 黑盒放手生成，人类只能逐行 Review 代码 | **人机协作门禁（Human Gate）**：画布审查 + 原子算子 |
-| **验收与验证** | 手工补写测试用例，耗时且易遗漏 | AI 自己写测试验证自己的代码（假阳性高） | **规范向下投影为 Bruno HTTP 黑盒验收**，检查业务断言与响应结构 |
+| 维度               | 传统手工 CRUD 开发                   | 放手式 AI 编程 (Chat / Agent)           | Evidence 履约建模驱动                                          |
+| :----------------- | :----------------------------------- | :-------------------------------------- | :------------------------------------------------------------- |
+| **领域抽象**       | 与具体 ORM / 语言强行绑定            | 自由生成实体，容易演化为贫血 CRUD       | **权责、事实证据与法定契约**（语言无关）                       |
+| **派生与安全纪律** | 依赖开发者自觉，计算逻辑常泄漏给前端 | 极易允许入参直接覆盖金额/状态等派生值   | **CEL 声明式服务端求值**，出入参物理隔离                       |
+| **模型一致性**     | 人肉维护文档与代码，文档永远滞后     | 随对话上下文漂移，生成逻辑前后矛盾      | **纯内存 AST 静态门禁**，按键级拓扑校验                        |
+| **人机协作模式**   | 无                                   | 黑盒放手生成，人类只能逐行 Review 代码  | **人机协作门禁（Human Gate）**：画布审查 + 原子算子            |
+| **验收与验证**     | 手工补写测试用例，耗时且易遗漏       | AI 自己写测试验证自己的代码（假阳性高） | **规范向下投影为 Bruno HTTP 黑盒验收**，检查业务断言与响应结构 |
 
 ---
 
@@ -61,28 +62,35 @@ Evidence 不仅是一个桌面设计器，更是贯穿**业务意图澄清 ➔ �
 ```
 
 ### 1. 业务意图澄清（Requirement Elicitation）
+
 架构师与 AI 助手（MCP / Agent Core）通过自然语言访谈，梳理业务上下文、参与方（Party）、主体角色（Role）与履约意图，澄清责任边界。
 
 ### 2. 领域履约建模与形式化守护（Fulfillment Modeling）
+
 - 建立 Context、Contract、Request 与 Confirmation 原语；
 - **纯内存 AST 静态门禁**：即时检测悬空引用、对称性破坏与角色权责失配；
 - **CEL 严格派生纪律**：使用 Google Common Expression Language 声明式计算派生属性；
 - **受控变异机制**：AI 助手通过 Universal Model Tools（`libs/evidence-tools`）的原子补丁算子修改模型，杜绝大文本重写导致的 AST 损坏。
 
 ### 3. 人机协作门禁（Human Gate: Desktop Canvas）
+
 - 架构师启动桌面建模工作台（`pnpm desktop`），在画布上审查因果拓扑与关键数据台账（Key Data Ledger）；
 - 在 **Story 回放面板** 中逐步演进事实卡片，进行 What-If 假设推演，确认无误后冻结基线。
 
 ### 4. 契约向下投影（Contract Projection）
+
 运行统一命令行将模型编译并投影为下游工程契约：
+
 ```bash
-pnpm evidence export --model b2b-escrow.evidence.json --out generated/ --verify
+pnpm evidence export --workspace examples/b2b-escrow --verify
 ```
+
 - **OpenAPI 3.1 规格**：自动导出 RESTful 接口契约，服务端派生属性已严格从 Request Input 中剔除；
 - **Bruno 黑盒验收测试集**：内联样例直出验收，包含依赖捕获、金额断言与显式负向错误用例。
 - **契约冻结**：契约与断言一经导出即作为不可篡改的“外部法典”，防止后续 AI 实现时私自修改测试以迁就代码。
 
 ### 5. AI 驱动多语言 TDD 编码（Polyglot Implementation via TDD）
+
 - **Red（红灯）**：启动空服务，运行 Bruno 测试集，此时由于业务未实现全部报错。Bruno 集合充当了 **AI 无法伪造的外部 TDD 验收红灯**；
 - **Green（绿灯）**：AI 编码助手（如 Cursor、Claude 等）阅读导出的 OpenAPI 契约和 Bruno 断言，编写对应语言的路由、状态机与业务逻辑，驱动测试逐个变绿；
 - **实战样板**：参见 [examples/b2b-escrow](examples/b2b-escrow/README.md)，包含由契约驱动生成的 4 种独立参考实现：
@@ -92,6 +100,7 @@ pnpm evidence export --model b2b-escrow.evidence.json --out generated/ --verify
   - `python-fastapi`（Python）
 
 ### 6. HTTP 黑盒验收与契约兼容性检查
+
 - **真机黑盒验收**：
   ```bash
   make -C examples/b2b-escrow verify IMPLEMENTATION=ts-fastify
@@ -99,7 +108,7 @@ pnpm evidence export --model b2b-escrow.evidence.json --out generated/ --verify
   外部编排层为被测服务分配独立端口与内存账本，端到端执行真实 HTTP 红绿场景测试；
 - **OpenAPI 契约兼容性门禁**：
   ```bash
-  pnpm evidence diff baseline.evidence.json target.evidence.json
+  pnpm evidence diff ./baseline-workspace ./target-workspace
   ```
   借助 `oasdiff` 比较基线模型和当前模型派生的 OpenAPI 契约，检查破坏性变更。
 
@@ -123,7 +132,7 @@ pnpm evidence export --model b2b-escrow.evidence.json --out generated/ --verify
 
 - **领域图谱画布**：直观拖拽实体、连线建立履约流、展示因果依赖拓扑。
 - **声明式属性检查器（Inspector）**：所见即所得地配置字段契约、关键数据台账（Key Data Ledger）与派生规则。
-- **双向无损格式**：支持 Git 友好的目录树结构（`.evidence/fm/`）与轻量便携的单文件 Bundle（`*.evidence.json`），零 Git churn，随时解包与打包。
+- **目录工作区**：打开目标目录，只在根目录下的 `.evidence/` 读写项目数据。模型按实体、关系、规则拆分，由 Git 管理。
 
 ### 3. 静态模型校验与标准化 HTTP 验收
 
@@ -140,7 +149,7 @@ pnpm evidence export --model b2b-escrow.evidence.json --out generated/ --verify
 
 ## 🛠️ DSL 示例：语言无关的履约事实表达
 
-以下是 Evidence 表达的一段采购履约片段（保存为 `*.evidence.json` 或 `.evidence/fm/`）：
+以下是 Evidence 表达的一段采购履约片段（展示 `.evidence/model/` 中的领域对象）：
 
 ```jsonc
 {
@@ -251,41 +260,32 @@ pnpm desktop
 
 `pnpm install` 安装验收所用的固定版本 Bruno CLI，无需全局安装 `bru`。`pnpm api:setup` 则单独下载固定版本的 `oasdiff` 预编译二进制并校验归档校验和及可执行文件版本，无需 Go 或 Docker；已有匹配版本时复用缓存。删除 `node_modules` 或工具缓存后，需在 API 比对及相关测试前重新运行。详见 [ENVIRONMENT.md](ENVIRONMENT.md)。
 
-### 统一命令行
+### 目录工作区与命令行
 
-先运行 `pnpm nx build cli`，再使用唯一入口 `pnpm evidence <command>`。各命令的参数说明由 `--help` 查看；输出路径均相对调用方的工作目录解析。
+在桌面端选择目标目录。首次使用时显式初始化（可选模板），之后可直接打开。Evidence 不要求或创建代码目录，不运行 Git 命令，也不自动迁移、覆盖或清理旧 `.evidence/fm/`、Bundle 或根目录交付物。
 
-```bash
-# 静态检查（不等同于 HTTP 验收）；--scope 可重复
-pnpm evidence check .evidence/fm --scope context.procurement --json
-
-# 将模型目录打包为便携 Bundle，再解包回目录树
-pnpm evidence pack .evidence/fm -o procurement.evidence.json
-pnpm evidence unpack procurement.evidence.json --out .evidence/fm
-pnpm evidence inspect procurement.evidence.json --json
-
-# 编译通过静态检查的模型、导出属性追溯
-pnpm evidence compile .evidence/fm --out compiled.json --compact
-pnpm evidence lineage .evidence/fm --out lineage.json
-
-# 导出 OpenAPI 3.1 与 Bruno 集合
-pnpm evidence export --model procurement.evidence.json --out dist/contracts
-pnpm evidence export --model procurement.evidence.json --out dist/contracts --verify
-pnpm evidence test --target http://localhost:8080 --scenarios dist/contracts --json
-
-# 契约演进比较（默认 Markdown；机器消费时显式指定 JSON）
-pnpm evidence diff baseline.evidence.json procurement.evidence.json --format json
+```text
+<目标目录>/.evidence/
+  model/               # 模型源：model.json、entities、relationships、rules
+  config.json          # 工作区版本声明
+  delivery/            # 自动同步的上下文草稿；release/ 存显式完整导出的 OpenAPI
+  acceptance/          # Bruno 集合与验收清单
+  derived/             # compile、lineage 产物
+  stories/、reports/   # 显式写出的故事与验收报告
+  cache/               # 本地叙事缓存、会话；由 .evidence/.gitignore 忽略
 ```
 
-**验收迁移**：Step CI 和 Hurl 不再支持。移除验收导出命令的 `--format` 参数，从模型重新导出，并将 `test --scenarios` 指向完整的生成目录，而不是旧测试文件。可在 Bruno Desktop 打开集合进行调试；CI 应使用 `evidence test`，以执行响应 Schema 校验与 Regression / DoD 门禁。`diff --format` 不受影响。
+```bash
+pnpm exec nx build cli
+pnpm evidence init --workspace /path/to/project --name '履约工作区'
+pnpm evidence check --workspace examples/b2b-escrow --json
+pnpm evidence export --workspace examples/b2b-escrow
+pnpm evidence export --workspace examples/b2b-escrow --verify
+pnpm evidence test --workspace examples/b2b-escrow --target http://localhost:8085 --json
+pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format json
+```
 
-**CLI 破坏性变更**：旧的 `evidence-model`、`evidence-api` 可执行入口和 `evidence api <command>` 不再提供。模型操作直接用 `evidence pack/unpack/inspect/check/compile/lineage`；契约与验收导出用 `evidence export`（仅导出 Bruno 加 `--tests`，仅导出聚合 OpenAPI 加 `--openapi`）。API 投影诊断、固定检查报告和服务级产物没有一对一的 CLI 替代，仍可通过 [API 投影库](libs/evidence-api/README.md) 使用。
-
-契约比对改用 `evidence diff <base> <target>`，默认 Markdown；旧 JSON 脚本须显式加 `--format json`。覆盖层迁移改用 `evidence migrate-overlay --in <旧文件> --out <新文件>`，可选 `--model`。
-
-根快捷脚本使用 `evidence:pack`、`evidence:unpack`、`evidence:inspect`、`evidence:export`、`evidence:diff`。`api:setup` 仍用于安装 `oasdiff`。验收门禁和只读 `export --verify` 行为未变。
-
----
+也可以直接运行构建好的 `evidence` CLI：在工作区内省略 `--workspace` 时，从当前目录寻找最近的 `.evidence/`，不会跨 Git 仓库边界。`compile`、`lineage`、`story --export` 和 `test --write-reports` 写入各自的固定目录。旧 `pack`、`unpack`、文件型项目和任意输出路径均不再支持。提交模型与需要版本化的产物；分支、历史和回滚由 Git 管理。
 
 ## 🧭 未来规划与待办（Roadmap & TODOs）
 
@@ -321,4 +321,3 @@ pnpm evidence diff baseline.evidence.json procurement.evidence.json --format jso
   - 将长期未维护的 `cac` 迁移至成熟活跃的 `commander` 或现代极简的 `citty`；
   - 优化 `prettyCanonicalJson` 等 JSON 规范化处理，避免多重反序列化/序列化损耗；
   - 统一收敛 Zod 与 Ajv 的校验职责边界，提升单一真相源一致性。
-

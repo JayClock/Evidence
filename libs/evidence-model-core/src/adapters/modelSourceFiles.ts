@@ -169,7 +169,7 @@ export const stringifyModelJson = (
   }\n`;
 
 /**
- * Projects a document onto the `.evidence/fm/` file layout.
+ * Projects a document onto the `.evidence/model/` file layout.
  *
  * Files are ordered manifest first, then entities, relationships and rules so
  * callers can write them in a stable order.

@@ -27,7 +27,7 @@ export interface NativeSensorsInput {
   document?: DomainModelDocument;
   baseDocument?: DomainModelDocument;
   apiMode?: 'draft' | 'release';
-  /** Absolute path of `.evidence/fm`. */
+  /** Absolute path of `.evidence/model`. */
   modelRoot: string;
   /** Context IDs to completeness-check; omitted means consistency only. */
   scopeRefs?: readonly string[];

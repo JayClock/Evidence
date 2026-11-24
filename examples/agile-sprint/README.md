@@ -22,9 +22,9 @@
 
 ```sh
 pnpm nx build cli
-pnpm evidence check examples/agile-sprint/model/agile-sprint.evidence.json --scope context.sprint
-pnpm evidence export --model examples/agile-sprint/model/agile-sprint.evidence.json --out examples/agile-sprint/generated
+pnpm evidence check --workspace examples/agile-sprint --scope context.sprint
+pnpm evidence export --workspace examples/agile-sprint
 pnpm examples:verify
 ```
 
-[OpenAPI](generated/openapi.json) 和 [Bruno 集合](generated/bruno.json) 均由 `model/` 中的 FM Bundle 生成。本目录不提供后端；可以对遵循此契约的测试环境执行 `pnpm evidence test --target <URL> --scenarios examples/agile-sprint/generated`。生成的验收流验证写入和返回的两条凭证；集合、详情及 HAL 路径由契约回归测试覆盖。
+[OpenAPI](.evidence/delivery/release/openapi.json) 和 [Bruno 集合](.evidence/acceptance/bruno.json) 均由 `.evidence/model/` 中的模型源文件 生成。本目录不提供后端；可以对遵循此契约的测试环境执行 `pnpm evidence test --target <URL> --workspace examples/agile-sprint`。生成的验收流验证写入和返回的两条凭证；集合、详情及 HAL 路径由契约回归测试覆盖。

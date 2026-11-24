@@ -45,10 +45,10 @@ go build -o build/escrow ./cmd/server
 
 ## 外部黑盒验收
 
-在安装了 Evidence CLI 的环境执行（`CONTRACTS` 指向外部提供的标准验收目录，不是本工程的构建依赖）：
+在安装了 Evidence CLI 的环境执行（`WORKSPACE` 指向外部 Evidence 工作区，不是本工程的构建依赖）：
 
 ```sh
-evidence test --target http://127.0.0.1:8081 --scenarios "$CONTRACTS" --strict-drift
+evidence test --target http://127.0.0.1:8081 --workspace "$WORKSPACE" --strict-drift
 ```
 
 验收覆盖声明的流程，不代表所有状态、生产安全或浏览器交互都已验证。持久化需另行实现事务和唯一约束；此工程不接真实支付、不提供生产身份供应商。

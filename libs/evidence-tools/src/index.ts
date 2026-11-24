@@ -208,7 +208,7 @@ export const createModelTools = (
       name: MODEL_TOOL_NAMES.applyModelPatch,
       label: '应用模型补丁',
       description:
-        '把 RFC 6902 JSON Patch 提交给桌面端内存模型，path/from 使用 JSON Pointer（如 /entities/0/label）；支持 add/remove/replace/move/copy/test，整批原子应用且用户可按 Cmd+Z 撤销。不要直接改 .evidence/fm 文件。',
+        '把 RFC 6902 JSON Patch 提交给桌面端内存模型，path/from 使用 JSON Pointer（如 /entities/0/label）；支持 add/remove/replace/move/copy/test，整批原子应用且用户可按 Cmd+Z 撤销。不要直接改 .evidence/model 文件。',
       parameters: ModelPatchRequestSchema,
       run: async (input) => {
         const result = await ports.applyModelPatch(input);

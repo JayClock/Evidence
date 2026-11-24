@@ -105,7 +105,7 @@ export interface EvidenceToolsHandlers {
   loadBaseDocument?: () => Promise<DomainModelDocument | undefined>;
   refreshApi?: () => Promise<void>;
   loadDocument: () => Promise<DomainModelDocument>;
-  /** Absolute path of `.evidence/fm` for this project. */
+  /** Absolute path of `.evidence/model` for this project. */
   modelRoot: string;
 }
 

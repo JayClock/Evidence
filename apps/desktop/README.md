@@ -1,7 +1,7 @@
 # @evidence-poc/desktop
 
 Electron desktop workspace for the Fulfillment Modeling source tree. It opens a
-local `<project>/.evidence/fm` directory, draws the model as an interactive
+local `<project>/.evidence/model` directory, draws the model as an interactive
 canvas and writes edits back to the same JSON files that Git, the sensors and
 the MCP tools already read.
 
@@ -144,7 +144,7 @@ a library's `/browser` entry whenever a Node-only adapter exists.
 ## Data flow
 
 ```text
-.evidence/fm  ──readModelDirectory──▶  ProjectStore.main
+.evidence/model  ──readModelDirectory──▶  ProjectStore.main
       ▲                                     │ IPC: project:open
       │ writeModelDirectory                 ▼
       └──────── project:save ──────  ModelSession (renderer)
@@ -157,7 +157,7 @@ a library's `/browser` entry whenever a Node-only adapter exists.
   disagree.
 - `project:save` rewrites only changed files through a temp file plus atomic
   rename; unchanged files stay byte-identical, which keeps `git diff` quiet.
-- A debounced watcher on `.evidence/fm` reports external writes (Git checkout,
+- A debounced watcher on `.evidence/model` reports external writes (Git checkout,
   agent, script) and the status bar offers a reload instead of silently
   overwriting.
 - The renderer sees only `window.evidenceAPI` (open, save, recent, dialog,

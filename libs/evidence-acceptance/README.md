@@ -20,7 +20,7 @@ Consumes [`evidence-api`](../evidence-api/README.md) projections and owns:
 | `/projection` | Browser-safe acceptance compilation only                             |
 
 Bruno is the only acceptance format. Use `evidence export --tests` to generate
-just the collection; it has no `--format` switch. `evidence test --scenarios` takes
+just the collection; it has no `--format` switch. `evidence test` takes
 one generated collection directory, not a Step CI YAML or Hurl file.
 
 The `/projection` entry may use `evidence-api/delivery` and the universal model
@@ -65,10 +65,10 @@ version tools fail closed; comparisons never download a binary.
 
 ```bash
 pnpm exec nx build cli
-pnpm evidence export --model .evidence/fm --out dist/acceptance
-pnpm evidence export --model .evidence/fm --out dist/acceptance --verify
-pnpm evidence test --target http://localhost:8080 --scenarios dist/acceptance --json
-pnpm evidence diff /absolute/v1.evidence.json /absolute/v2.evidence.json --format json
+pnpm evidence export
+pnpm evidence export --verify
+pnpm evidence test --target http://localhost:8080 --json
+pnpm evidence diff /absolute/v1-workspace /absolute/v2-workspace --format json
 ```
 
 `evidence-acceptance:export-tests` and `evidence-acceptance:diff` are uncached Nx

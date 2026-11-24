@@ -1,19 +1,19 @@
 # evidence-model-core
 
-In-memory engine for a `.evidence/fm` source tree: the read model the desktop
+In-memory engine for a `.evidence/model` source tree: the read model the desktop
 canvas and inspector consume, and the only sanctioned way to change it.
 
-| Module       | Responsibility                                                                                    |
-| ------------ | ------------------------------------------------------------------------------------------------- |
-| `model/`     | `createDomainGraph` indexes entities, edges, contexts and derived fulfillment pairs.              |
-| `commands/`  | One deterministic transition per business edit, returning the new document and its inverse.       |
-| `session/`   | `createModelSession` holds document, selection and undo/redo history, and emits change events.    |
-| `adapters/`  | Parse/serialize the model source tree and write it back without git churn or partial files.       |
-| `diff/`      | `diffDomainModels` lists what moved between two snapshots: objects, attribute rows and key data.   |
+| Module      | Responsibility                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------ |
+| `model/`    | `createDomainGraph` indexes entities, edges, contexts and derived fulfillment pairs.             |
+| `commands/` | One deterministic transition per business edit, returning the new document and its inverse.      |
+| `session/`  | `createModelSession` holds document, selection and undo/redo history, and emits change events.   |
+| `adapters/` | Parse/serialize the model source tree and write it back without git churn or partial files.      |
+| `diff/`     | `diffDomainModels` lists what moved between two snapshots: objects, attribute rows and key data. |
 
 ## Two source forms, one model
 
-`.evidence/fm/` (a tree) and `*.evidence.json` (one bundle) hold the same
+`.evidence/model/` (a tree) and `*.evidence.json` (one bundle) hold the same
 `DomainModelDocument`; only the adapter differs.
 
 ```jsonc
@@ -21,11 +21,13 @@ canvas and inspector consume, and the only sanctioned way to change it.
 {
   "type": "fm_bundle",
   "schemaVersion": "6.0",
-  "manifest": { /* model.json */ },
+  "manifest": {
+    /* model.json */
+  },
   "entities": [],
   "relationships": [],
   "rules": [],
-  "readme": "…", // optional, `.evidence/fm/README.md`
+  "readme": "…", // optional, `.evidence/model/README.md`
 }
 ```
 
@@ -45,11 +47,7 @@ The static FM report (v6) proves consistency and scope completeness only, never
 backend test execution. The old simulator, instance timeline, role-play packet
 and replay APIs/CLI commands have been removed.
 
-```bash
-pnpm evidence:pack .evidence/fm --out procurement.evidence.json
-pnpm evidence:inspect procurement.evidence.json
-pnpm evidence:unpack procurement.evidence.json --out .evidence/fm
-```
+Production workspaces use directory sources only; bundles are retained for fixture and library-level format tests.
 
 The `check` and derive commands read a directory; `check` refuses a bundle with a
 hint to unpack it first, so a report always names files a reader can open.

@@ -14,11 +14,15 @@ const load = (file: string) => {
 };
 it('ships a strict runnable GitHub dual-gate workflow with immutable baseline and failure artifacts', () => {
   const { text, data } = load('.github/workflows/evidence-governance.yml');
-  for (const key of ['MODEL', 'BOOTSTRAP_MODEL'])
-    expect(existsSync(path.join(root, data.env[key]))).toBe(true);
-  expect(existsSync(path.join(root, data.env.GENERATED, 'bruno.json'))).toBe(
-    true,
-  );
+  for (const key of ['WORKSPACE', 'BOOTSTRAP'])
+    expect(
+      existsSync(path.join(root, data.env[key], '.evidence/model/model.json')),
+    ).toBe(true);
+  expect(
+    existsSync(
+      path.join(root, data.env.WORKSPACE, '.evidence/acceptance/bruno.json'),
+    ),
+  ).toBe(true);
   expect(data.permissions).toEqual({ contents: 'read' });
   const acceptance = data.jobs.acceptance;
   const contract = data.jobs['contract-and-hygiene'];
@@ -157,8 +161,8 @@ it('delegates generated-file verification and strict policy gates without losing
     path.join(root, 'examples/b2b-escrow/verification/policy.mjs'),
     'utf8',
   );
-  expect(runner).toContain(
-    "args.push('--baseline-workspace', baseline, '--gate', scenario.gate)",
+  expect(runner.replace(/\s+/g, ' ')).toContain(
+    "args.push( '--baseline-workspace', baseline, '--gate', scenario.gate, )",
   );
   expect(runner).toContain("if (scenario.strict) args.push('--strict-drift')");
   expect(runner).toContain(

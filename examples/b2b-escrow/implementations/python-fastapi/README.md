@@ -47,7 +47,7 @@ uv run --frozen python -m app.main --test-mode --port 8083
 启动服务后，由有 Evidence CLI 的终端对接收到的标准契约目录运行：
 
 ```sh
-evidence test --target http://127.0.0.1:8083 --scenarios "$CONTRACTS" --strict-drift
+evidence test --target http://127.0.0.1:8083 --workspace "$WORKSPACE" --strict-drift
 ```
 
-`CONTRACTS` 只是验收输入，不参与安装、构建或原生测试。通过表示已执行的 HTTP 流程符合契约，不证明未执行状态、浏览器 UI 或生产安全。持久化、真实认证与银行支付都未实现。
+`WORKSPACE` 只是验收输入，不参与安装、构建或原生测试。通过表示已执行的 HTTP 流程符合契约，不证明未执行状态、浏览器 UI 或生产安全。持久化、真实认证与银行支付都未实现。

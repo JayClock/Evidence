@@ -23,7 +23,6 @@ export {
 } from './adapters/modelRoot.js';
 
 export {
-  isModelBundleFile,
   packModelDirectory,
   readModelBundle,
   unpackModelBundle,

@@ -34,7 +34,7 @@ export class ModelSourceError extends Error {
   }
 }
 
-/** Reads a `.evidence/fm` tree, or one `*.evidence.json` bundle beside it. */
+/** Reads a model tree. Bundle file paths are not model sources for sensors. */
 export const loadModelSources = async (
   modelRoot: string,
 ): Promise<ModelSources> => {

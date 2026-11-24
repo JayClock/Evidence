@@ -34,9 +34,9 @@
 
 ```sh
 pnpm nx build cli
-pnpm evidence check examples/digital-advertising/model/digital-advertising.evidence.json --scope context.advertising-order
-pnpm evidence export --model examples/digital-advertising/model/digital-advertising.evidence.json --out examples/digital-advertising/generated
+pnpm evidence check --workspace examples/digital-advertising --scope context.advertising-order
+pnpm evidence export --workspace examples/digital-advertising
 pnpm examples:verify
 ```
 
-`model/` 是源；[OpenAPI](generated/openapi.json) 和 [Bruno 集合](generated/bruno.json) 均由 CLI 生成。验收固定每一步的业务时钟，校验 `202 Location` 是否存在、两个日报步骤的状态码与 HAL `self`。本目录不提供广告后端、任务执行器或轮询集成测试；对实现了该契约的测试环境，可运行 `pnpm evidence test --target <URL> --scenarios examples/digital-advertising/generated`。
+`.evidence/model/` 是源；[OpenAPI](.evidence/delivery/release/openapi.json) 和 [Bruno 集合](.evidence/acceptance/bruno.json) 均由 CLI 生成。验收固定每一步的业务时钟，校验 `202 Location` 是否存在、两个日报步骤的状态码与 HAL `self`。本目录不提供广告后端、任务执行器或轮询集成测试；对实现了该契约的测试环境，可运行 `pnpm evidence test --target <URL> --workspace examples/digital-advertising`。

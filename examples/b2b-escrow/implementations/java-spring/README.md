@@ -39,10 +39,10 @@ java -jar target/escrow-0.1.0.jar --test-mode --port 8082
 `./mvnw verify` 包含原生 JUnit / Spring MockMvc 测试：金额精度、半分舍入、封顶、时间边界、严格输入、缺身份/越权、跨订单凭证、请求时钟隔离、并发放款（一个 201、一个 409）、默认关闭测试头，以及 v1 路由边界。外部真实进程 HTTP 验收另行执行：
 
 ```sh
-evidence test --target http://127.0.0.1:8082 --scenarios "$CONTRACTS" --strict-drift
+evidence test --target http://127.0.0.1:8082 --workspace "$WORKSPACE" --strict-drift
 ```
 
-`CONTRACTS` 是外部提供的标准 suite 目录，不参与本工程构建。通过只说明已执行的用例符合契约，不证明生产身份、所有状态或浏览器交互。
+`WORKSPACE` 是外部 Evidence 工作区，不参与本工程构建。通过只说明已执行的用例符合契约，不证明生产身份、所有状态或浏览器交互。
 
 原生 `FaultTest` 单独覆盖四种故障、默认无故障、未知故障失败关闭和测试模式保护。double 转换只存在于刻意损坏响应的测试分支，不用于正常金额算法。
 

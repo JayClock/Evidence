@@ -169,7 +169,7 @@ const createHandlers = (overrides: Partial<EvidenceToolsHandlers> = {}) => {
   const patches: ModelPatchRequest[] = [];
   const scopes: (string | undefined)[] = [];
   const handlers: EvidenceToolsHandlers = {
-    modelRoot: '/project/.evidence/fm',
+    modelRoot: '/project/.evidence/model',
     runSensors: async ({ scope }) => {
       scopes.push(scope);
 

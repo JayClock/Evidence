@@ -24,7 +24,7 @@ make -C examples/b2b-escrow verify IMPLEMENTATION=ts-fastify
 make -C examples/b2b-escrow verify IMPLEMENTATION=ts-fastify REPORT_DIR=/tmp/escrow-new-run
 
 # 四种环境齐备时执行：依次运行原生测试、Bruno 红绿场景及严格 regression / DoD。
-# 默认用冻结 v1 作为严格门禁基线；可用 BASELINE=/absolute/model.evidence.json 覆盖。
+# 默认用冻结 v1 作为严格门禁基线；可用 BASELINE=/absolute/workspace 覆盖。
 make -C examples/b2b-escrow test-all REPORT_DIR=/tmp/escrow-bruno-matrix
 ```
 
@@ -33,16 +33,14 @@ make -C examples/b2b-escrow test-all REPORT_DIR=/tmp/escrow-bruno-matrix
 ## 资产与边界
 
 ```text
-model/
-  b2b-escrow-v1.evidence.json   # 冻结基线：单次完整交付
-  b2b-escrow.evidence.json      # v2：保留基线，新增可选的两阶段里程碑交付
-generated/                    # evidence export 生成；禁止手改，提交 Git
-  openapi.json
-  bruno.json, collection.bru, environments/, flows/
-  evidence-acceptance.json
+.evidence/
+  model/                      # 当前 v2 模型
+  delivery/release/           # 完整 OpenAPI
+  acceptance/                 # Bruno 集合
+baseline-v1/.evidence/model/  # 冻结的 v1 基线工作区
 ```
 
-两个 Bundle 是可编辑源；`generated/` 只对应当前 v2。`Makefile` 与 `verification/` 是**外部观察者/编排层**，可以了解四个启动命令，但不被任何实现引用，也不是实现单独构建的依赖。v1 的验收套件在后续 regression 门禁中由基线模型重新编译，不另存一份手工维护的集合。Tree 与 Bundle 都是框架支持的源格式，本案例选择 Bundle 以便独立分发；这不是移除 Tree 格式支持。
+`Makefile` 与 `verification/` 是外部编排层，不参与业务实现的构建。v1 的验收套件由基线模型重新编译，不另存手工维护的集合。
 
 四个实现（Gin、Spring Boot、FastAPI、Fastify）各自自包含、互不知道对方存在，不共享运行时代码、数据库、拦截器或构建配置。实现不得读取本模型的 examples 或导出的断言值来伪造响应。每个工程都有自己的依赖清单与原生测试，可单独复制安装、构建、启动和测试；都不属于框架 pnpm workspace。外部验收只使用统一契约和目标 HTTP 地址，不要求四种服务同时启动，也不要求单个开发者安装全部语言环境。
 
@@ -114,26 +112,24 @@ v1 已覆盖四份合同的完整单次交付与一次性结算。v2 **只新增
 ```sh
 pnpm exec nx build cli
 
-pnpm evidence check examples/b2b-escrow/model/b2b-escrow-v1.evidence.json \
+pnpm evidence check --workspace examples/b2b-escrow/baseline-v1 \
   --scope context.procurement --scope context.escrow \
   --scope context.fulfillment --scope context.settlement --json
-pnpm evidence check examples/b2b-escrow/model/b2b-escrow.evidence.json \
+pnpm evidence check --workspace examples/b2b-escrow \
   --scope context.procurement --scope context.escrow \
   --scope context.fulfillment --scope context.settlement --json
 
 # 开发时生成并提交；CI 只读验证，不替作者修复产物。
-pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json \
-  --out examples/b2b-escrow/generated
-pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json \
-  --out examples/b2b-escrow/generated --verify
+pnpm evidence export --workspace examples/b2b-escrow
+pnpm evidence export --workspace examples/b2b-escrow --verify
 
 # 模型、CEL 预期、基线集合与生成字节回归；不会启动后端。
 pnpm exec vitest run --config libs/evidence-acceptance/vitest.config.mts src/b2bEscrow.spec.ts
 
 # 可选：HTTP 兼容性检查须先显式准备 pinned oasdiff。
 pnpm api:setup
-pnpm evidence diff examples/b2b-escrow/model/b2b-escrow-v1.evidence.json \
-  examples/b2b-escrow/model/b2b-escrow.evidence.json --format markdown
+pnpm evidence diff examples/b2b-escrow/baseline-v1 \
+  examples/b2b-escrow --format markdown
 ```
 
 ## 阶段二：独立工程与真实 HTTP 验收
@@ -147,7 +143,7 @@ pnpm exec nx build cli
 node examples/b2b-escrow/implementations/ts-fastify/dist/server.js --test-mode --port 8085
 # 另一个终端：
 pnpm evidence test --target http://127.0.0.1:8085 \
-  --scenarios examples/b2b-escrow/generated --strict-drift --verbose
+  --workspace examples/b2b-escrow --strict-drift --verbose
 ```
 
 原生工程说明见 [ts-fastify/README.md](implementations/ts-fastify/README.md)。服务只监听回环地址，必须显式启用 `--test-mode`；不将测试头冒充生产安全机制。状态暂存内存，**每次全量验收、每个 gate 都启动新进程**，不能重复使用已放款账本。
@@ -158,12 +154,12 @@ pnpm evidence test --target http://127.0.0.1:8085 \
 
 ```sh
 pnpm evidence test --target http://127.0.0.1:8085 \
-  --scenarios examples/b2b-escrow/generated --gate regression \
-  --baseline-model examples/b2b-escrow/model/b2b-escrow-v1.evidence.json --strict-drift
+  --workspace examples/b2b-escrow --gate regression \
+  --baseline-workspace examples/b2b-escrow/baseline-v1 --strict-drift
 # 重启后再运行；v1 对里程碑步骤返回 404，DoD 应失败。
 pnpm evidence test --target http://127.0.0.1:8085 \
-  --scenarios examples/b2b-escrow/generated --gate dod \
-  --baseline-model examples/b2b-escrow/model/b2b-escrow-v1.evidence.json
+  --workspace examples/b2b-escrow --gate dod \
+  --baseline-workspace examples/b2b-escrow/baseline-v1
 ```
 
 v1 regression 为两个原有流程、46 步；DoD 为三个新增里程碑流程、75 步。改为 `--mode v2` 后分别重启运行，两套 gate 均应通过。`--allow-pending` 仅用于显式开发探索，报告仍保留失败；CI 不使用它。支持 `--fault amount|clock|extra-field|missing-derived|accept-derived|precision` 做负向演练，不要求不同语言拥有相同内部代码或诊断文案。
@@ -206,14 +202,14 @@ v1 regression 为两个原有流程、46 步；DoD 为三个新增里程碑流�
 
 ```sh
 pnpm evidence test --target http://127.0.0.1:8081 \
-  --scenarios examples/b2b-escrow/generated --strict-drift --verbose
+  --workspace examples/b2b-escrow --strict-drift --verbose
 ```
 
 三个新增实现提供 `--test-mode`、`--port`（包括 0）和 `--mode v1|v2`，启动报告目标 URL，且都只绑定回环。阶段四已补齐 `accept-derived`、`extra-field`、`clock`、`precision` 四种显式故障模式，未知故障仍会直接拒绝，不以忽略参数冒充已实现。
 
 本阶段金额以各语言原生的任意精度整数实现（Go `math/big.Int`、Java `BigInteger`、Python `int`），而不是照搬早期方案里的浮点 / Decimal 金额；这遵守本案例已经冻结的整数分契约。三个工程的原生测试各自构造业务事实，覆盖严格输入、角色边界、精确金额、时钟隔离、跨订单关联、请求过期及并发放款唯一性。服务不读取模型或验收期望，也没有跨实现依赖。
 
-各工程可复制出仓库单独构建、运行和测试。只有做外部 HTTP 验收时才需要另外接收 `generated/` 中的标准契约与 Evidence CLI。状态依然是内存账本；每次全量运行或 gate 重启服务，不能重复使用已放款订单。持久化、生产身份与浏览器 UI / E2E 不在阶段三范围内。
+各工程可复制出仓库单独构建、运行和测试。只有做外部 HTTP 验收时才需要另外接收 `.evidence/acceptance/` 中的标准契约与 Evidence CLI。状态依然是内存账本；每次全量运行或 gate 重启服务，不能重复使用已放款订单。持久化、生产身份与浏览器 UI / E2E 不在阶段三范围内。
 
 ## 阶段四：故障注入与双门禁红绿演练
 
@@ -246,7 +242,7 @@ node examples/b2b-escrow/verification/run.mjs --implementation all
 
 验证器使用构建好的 `golang-gin/build/escrow`、`java-spring/target/escrow-0.1.0.jar`、`python-fastapi/.venv/bin/python` 与 `ts-fastify/dist/server.js`（Windows 对应 `.exe` / `Scripts/python.exe`）。Java 使用 `JAVA_HOME/bin/java`，未设置时使用 PATH。它不安装依赖、不替实现构建、不生成或修改契约；先通过 `export --verify` 只读核验 Bruno 集合及其余生成物。
 
-也可以在 Bruno 桌面端打开 `generated/`。如果已安装 Bruno CLI，可从该目录对干净的测试后端直接运行 `bru run -r --env test --env-var host=http://127.0.0.1:8085`。直接运行会执行集合内的 HTTP 断言；严格漂移和 Git 基线门禁仍需通过 `evidence test` 或 `make gate` 执行。
+也可以在 Bruno 桌面端打开 `.evidence/acceptance/`。如果已安装 Bruno CLI，可从该目录对干净的测试后端直接运行 `bru run -r --env test --env-var host=http://127.0.0.1:8085`。直接运行会执行集合内的 HTTP 断言；严格漂移和 Git 基线门禁仍需通过 `evidence test` 或 `make gate` 执行。
 
 每种实现执行 **11 个独立场景**：
 
@@ -289,7 +285,7 @@ node examples/b2b-escrow/verification/run.mjs --implementation all
 make -C examples/b2b-escrow up-fastify PORT=8085 MODE=v2 FAULT=extra-field
 # 另一个终端；应因 /unmodeled 的 strict drift 失败，退出 1：
 pnpm evidence test --target http://127.0.0.1:8085 \
-  --scenarios examples/b2b-escrow/generated --strict-drift --verbose
+  --workspace examples/b2b-escrow --strict-drift --verbose
 # Ctrl-C 关闭服务；下次运行必须启动干净进程，不复用已写入的账本。
 ```
 
@@ -297,12 +293,12 @@ pnpm evidence test --target http://127.0.0.1:8085 \
 
 ```sh
 make -C examples/b2b-escrow gate IMPLEMENTATION=ts-fastify GATE=regression \
-  BASELINE="$PWD/examples/b2b-escrow/model/b2b-escrow-v1.evidence.json"
+  BASELINE="$PWD/examples/b2b-escrow/baseline-v1"
 make -C examples/b2b-escrow gate IMPLEMENTATION=ts-fastify GATE=dod \
-  BASELINE="$PWD/examples/b2b-escrow/model/b2b-escrow-v1.evidence.json"
+  BASELINE="$PWD/examples/b2b-escrow/baseline-v1"
 ```
 
-`BASELINE` 应指向指定版本的 `*.evidence.json` Bundle（保持此后缀）或受支持的模型源树目录；不可将 Bundle 随意改名为无后缀文件。每条命令启动新 v2/no-fault 服务，仅运行一次 suite 并开启 strict drift。Regression 必须有实际执行；DoD 只有 CLI 明确报告基线与当前验收完全相同、`selectedFlowCount=0` 和 `emptyReason` 时可空成功，不能冒充执行过增量验收。实际失败、跳过、pending、启动/工具错误均失败关闭。
+`BASELINE` 应指向包含 `.evidence/model/model.json` 的独立基线工作区。每条命令启动新 v2/no-fault 服务，仅运行一次 suite 并开启 strict drift。Regression 必须有实际执行；DoD 只有 CLI 明确报告基线与当前验收完全相同、`selectedFlowCount=0` 和 `emptyReason` 时可空成功，不能冒充执行过增量验收。实际失败、跳过、pending、启动/工具错误均失败关闭。
 
 ### CI 分工与安全边界
 
@@ -318,7 +314,7 @@ make -C examples/b2b-escrow gate IMPLEMENTATION=ts-fastify GATE=dod \
 
 ### 排障与报告目录
 
-指定的报告目录必须全新；不要用 `generated/` 或实现目录保存报告。省略 `REPORT_DIR` 时使用系统临时目录并打印绝对路径。`test-all` 指定 `REPORT_DIR` 时，为每个实现分别在 `<report-dir>/<implementation>/{conformance,regression,dod}/` 保存结果；每部分都有独立的汇总，不混用故障演示和严格门禁的报告。单次 `verify` 或 `gate` 的报告结构如下（不为格式化重跑状态变更）：
+指定的报告目录必须全新；不要用 `.evidence/acceptance/` 或实现目录保存报告。省略 `REPORT_DIR` 时使用系统临时目录并打印绝对路径。`test-all` 指定 `REPORT_DIR` 时，为每个实现分别在 `<report-dir>/<implementation>/{conformance,regression,dod}/` 保存结果；每部分都有独立的汇总，不混用故障演示和严格门禁的报告。单次 `verify` 或 `gate` 的报告结构如下（不为格式化重跑状态变更）：
 
 ```text
 <report-dir>/

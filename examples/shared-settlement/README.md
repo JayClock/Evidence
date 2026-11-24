@@ -23,9 +23,9 @@
 
 ```sh
 pnpm nx build cli
-pnpm evidence check examples/shared-settlement/model/shared-settlement.evidence.json --scope context.performance
-pnpm evidence export --model examples/shared-settlement/model/shared-settlement.evidence.json --out examples/shared-settlement/generated
+pnpm evidence check --workspace examples/shared-settlement --scope context.performance
+pnpm evidence export --workspace examples/shared-settlement
 pnpm examples:verify
 ```
 
-[OpenAPI](generated/openapi.json) 和 [Bruno 集合](generated/bruno.json) 均由 CLI 生成。验收流校验单笔登记、关联 ID 列表和锁账依据；两个反向 GET 由契约回归测试覆盖。此目录不提供后端，可用 `pnpm evidence test --target <URL> --scenarios examples/shared-settlement/generated` 验证实现了契约的测试环境。
+[OpenAPI](.evidence/delivery/release/openapi.json) 和 [Bruno 集合](.evidence/acceptance/bruno.json) 均由 CLI 生成。验收流校验单笔登记、关联 ID 列表和锁账依据；两个反向 GET 由契约回归测试覆盖。此目录不提供后端，可用 `pnpm evidence test --target <URL> --workspace examples/shared-settlement` 验证实现了契约的测试环境。

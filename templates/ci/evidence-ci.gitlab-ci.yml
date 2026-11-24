@@ -1,5 +1,5 @@
 # Copy/include this template from your repository. Keep all gates strict on MRs/releases.
-# Assumes this pnpm workspace, with the three paths below customized for your project.
+# Assumes this pnpm workspace, with the two paths below customized for your project.
 stages: [contract, acceptance]
 
 variables:
@@ -25,7 +25,8 @@ contract-and-hygiene:
     - pnpm evidence check --workspace "$WORKSPACE"
     - pnpm evidence export --workspace "$WORKSPACE" --verify
     - |
-      set -eu
+      set -euo pipefail
+      BASE_SHA="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-${CI_COMMIT_BEFORE_SHA:-}}"
       mkdir -p reports/baseline/.evidence
       SOURCE="$BOOTSTRAP/.evidence/model"
       if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then

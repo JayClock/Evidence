@@ -26,7 +26,7 @@ export interface RunSensorsInput {
   document?: DomainModelDocument;
   baseDocument?: DomainModelDocument;
   apiMode?: 'draft' | 'release';
-  /** Absolute path of `.evidence/fm`. */
+  /** Absolute path of `.evidence/model`. */
   modelRoot: string;
   /** Context IDs to completeness-check; omitted means consistency only. */
   scopeRefs?: readonly string[];
@@ -43,7 +43,7 @@ export interface StageGateInput {
   /** Optional published contract baseline; never inferred from the latest edit. */
   baseDocument?: DomainModelDocument;
   target: 'api';
-  /** Absolute path of `.evidence/fm`. */
+  /** Absolute path of `.evidence/model`. */
   modelRoot: string;
   scopeRefs?: readonly string[];
   /** Saved `check` report; a fresh one is produced when omitted. */

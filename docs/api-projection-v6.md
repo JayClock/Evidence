@@ -134,11 +134,7 @@ new model edits. It uses unsaved changes as well as saved changes. There is no
 export button or directory picker. The same public URI rules apply whether the
 implementation will be a monolith or use multiple deployment units.
 
-- The default output is `<projectRoot>/delivery/`. Set
-  `{"delivery":{"outDir":"contracts/api"}}` in the project's `.evidencerc.json`
-  to choose a different project-relative directory. Use a dedicated generated
-  directory outside the model source. Models sharing a parent directory must
-  not share the same output directory.
+- Draft output is fixed at `<projectRoot>/.evidence/delivery/`. The old root-level output and `.evidencerc.json` are not used.
 - A business Context is the unit of validation and sync. Contract files contain
   the exact operations owned by that Context, not everything under a URI prefix.
   A blocked Context's existing `services/<contextId>/` files are retained.
@@ -157,28 +153,16 @@ implementation will be a monolith or use multiple deployment units.
 For the equivalent **saved-model** CLI workflow:
 
 ```bash
-pnpm evidence export --model .evidence/fm --only-unblocked
-pnpm evidence export --model .evidence/fm --only-unblocked --verify
-pnpm evidence export --model .evidence/fm --watch --out delivery
+pnpm evidence export --only-unblocked
+pnpm evidence export --only-unblocked --verify
+pnpm evidence export --watch
 ```
 
-CLI context sync defaults to `delivery/` under the working directory; it does
-not read desktop output settings. Use separate output directories if running
-CLI watch and the desktop on the same model at the same time. The regular
-`evidence export --openapi` and Bruno export are still full-model operations and
-require a separate output directory. Auto-sync is a draft workflow, not a
-release compatibility gate: keep published contracts outside the generated
-path and compare with `evidence diff` before release.
+Desktop sync and CLI `--watch` write the same draft paths; run only one for a workspace at a time. Full export instead writes `delivery/release/openapi.json` and `acceptance/` under `.evidence`. Draft sync is not a release compatibility gate.
 
 ## Overlay migration
 
-```bash
-pnpm exec nx build cli
-pnpm evidence migrate-overlay --in overlay.old.json --out overlay.new.json
-# For a model outside the default .evidence/fm:
-pnpm evidence migrate-overlay --model model.evidence.json \
-  --in overlay.old.json --out overlay.new.json
-```
+Place the input at `.evidence/overlays/legacy.json` and run `evidence migrate-overlay` from the workspace. The result is `.evidence/overlays/api-v6.json`.
 
 Migration reads the model because old paths alone do not express cardinality.
 It recognizes v5 defaults, projects their v6 paths, upgrades obsolete singleton
@@ -198,8 +182,7 @@ pnpm example:test
 pnpm boundaries:drill
 pnpm exec nx run-many -t lint,typecheck,test
 pnpm nx build cli
-pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json \
-  --out examples/b2b-escrow/generated --verify
+pnpm evidence export --workspace examples/b2b-escrow --verify
 pnpm examples:verify
 ```
 

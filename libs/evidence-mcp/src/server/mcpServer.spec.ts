@@ -11,7 +11,7 @@ const client = (): EvidenceMcpAppClient => ({
     isRunning: true,
     activeProject: {
       rootPath: '/repo',
-      modelRoot: '/repo/.evidence/fm',
+      modelRoot: '/repo/.evidence/model',
       modelId: 'product-procurement',
       modelVersion: '1.0.0',
       documentRevision: 3,

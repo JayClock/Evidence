@@ -23,12 +23,12 @@ global `bru` or Bruno Desktop is required). They run three independent checks:
 - The B2B orchestrator (`make -C examples/b2b-escrow ...`) is an external observer,
   never an implementation dependency. `prepare IMPLEMENTATION=...` installs,
   tests and builds only that project; `verify` proves the fixed 11 red/green cases;
-  `gate GATE=... BASELINE=/absolute/model.evidence.json` starts a fresh v2/no-fault process
+  `gate GATE=... BASELINE=/absolute/workspace` starts a fresh v2/no-fault process
   for one strict gate. `REPORT_DIR` must be a new directory. On GitLab, a custom
   language matrix needs runners/images containing Node/pnpm/Make plus the selected
   language; call those same targets in each row. The supplied GitLab jobs only
   require the Node image and run Fastify native tests before each strict gate.
-- For a different application, change `MODEL`, `GENERATED`, and the backend
+- For a different application, change `WORKSPACE`, `BOOTSTRAP`, and the backend
   preparation/startup/readiness commands. The Makefile and Node verifier are
   specifically for B2B escrow: replace those calls (including GitHub's scoped
   `check`) rather than assuming changing environment variables retargets them.
@@ -37,12 +37,11 @@ global `bru` or Bruno Desktop is required). They run three independent checks:
   dedicated generated directory and commit it together with the model.
 - Keep `fetch-depth: 0` / `GIT_DEPTH: 0`. Pull requests use the event's base SHA;
   GitLab MRs use `CI_MERGE_REQUEST_DIFF_BASE_SHA`. Pushes use the previous SHA.
-  Manual/first builds explicitly use `BOOTSTRAP_MODEL` (the B2B escrow v1
-  baseline). For the PR that first introduces `MODEL`, an existing base commit
-  without that path also uses the explicitly configured bootstrap path **from
-  that commit**, not head. Replace it with your reviewed bootstrap in a new
-  project. Bad commits or failed extraction are fatal; no comparison of head
-  against itself.
+  CI extracts the baseline `.evidence/model/` from that commit with `git archive`.
+  If the commit has no current workspace, it looks for `BOOTSTRAP` there.
+  Manual runs and the first workspace-format commit use the checked-in,
+  separately reviewed bootstrap workspace (B2B escrow v1 in this example).
+  Bad commits and failed extractions are fatal.
 - Regression executes **baseline's original assertions**, including removed or
   changed flows. DoD executes whole new/changed head flows, not isolated new
   steps. Shared prerequisites are replayed. Removed requirements need an explicit
@@ -64,13 +63,11 @@ global `bru` or Bruno Desktop is required). They run three independent checks:
 ```sh
 pnpm nx build cli
 pnpm example:setup
-pnpm evidence check examples/b2b-escrow/model/b2b-escrow.evidence.json
-pnpm evidence diff examples/b2b-escrow/model/b2b-escrow-v1.evidence.json \
-  examples/b2b-escrow/model/b2b-escrow.evidence.json --format markdown
-pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json \
-  --out examples/b2b-escrow/generated
-pnpm evidence export --model examples/b2b-escrow/model/b2b-escrow.evidence.json \
-  --out examples/b2b-escrow/generated --verify
+pnpm evidence check --workspace examples/b2b-escrow
+pnpm evidence diff examples/b2b-escrow/baseline-v1 \
+  examples/b2b-escrow --format markdown
+pnpm evidence export --workspace examples/b2b-escrow
+pnpm evidence export --workspace examples/b2b-escrow --verify
 ```
 
 Run `evidence test` against your independently implemented service. Use the

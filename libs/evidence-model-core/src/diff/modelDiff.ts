@@ -94,7 +94,7 @@ export interface ModelDiffSummary {
   decisionOwedTarget: number;
 }
 
-/** Structural difference between two `.evidence/fm` snapshots. */
+/** Structural difference between two `.evidence/model` snapshots. */
 export interface ModelDiff {
   baseModelId: string;
   targetModelId: string;
