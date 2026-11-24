@@ -5,10 +5,7 @@ import { fileURLToPath } from 'node:url';
 import * as modelIo from '@evidence-poc/evidence-model-io';
 import { vi } from 'vitest';
 
-import {
-  buildFmCheckReport,
-  serializeModelBundle,
-} from '@evidence-poc/evidence-model-core';
+import { buildFmCheckReport } from '@evidence-poc/evidence-model-core';
 import {
   modelDigestOf,
   readModelRoot,
@@ -23,7 +20,6 @@ import {
   partyRolesPlayedByParticipants,
 } from './adapter/fmAdapter.js';
 import { inspectSummary } from './inspect.js';
-import { createAcceptanceModel } from './testing/acceptance.js';
 
 const fmRoot = fileURLToPath(
   new URL('../tests/fixtures/full-lifecycle/fm', import.meta.url),
@@ -172,20 +168,14 @@ describe('loadFmFromDocument', () => {
     );
   });
 
-  it('reads directories and bundles without a check report', async () => {
+  it('reads directories without a check report and refuses a file source', async () => {
     const directory = mkdtempSync(path.join(tmpdir(), 'api-input-'));
     try {
-      const { bundle } = await readModelRoot(fmRoot);
       const file = path.join(directory, 'model.evidence.json');
-      writeFileSync(file, serializeModelBundle(bundle));
+      writeFileSync(file, '{}');
       const tree = await loadFm(fmRoot);
-      const packed = await loadFm(file);
       expect(tree.diagnostics).toEqual([]);
-      expect(packed.diagnostics).toEqual([]);
-      expect(packed.index?.compiled).toEqual(tree.index?.compiled);
-      expect(packed.index).not.toHaveProperty('scenarios');
-      expect(packed.index?.check).toBeNull();
-      writeFileSync(file, '{');
+      expect(tree.index?.check).toBeNull();
       expect((await loadFm(file)).index).toBeNull();
     } finally {
       rmSync(directory, { recursive: true, force: true });

@@ -1,0 +1,74 @@
+{
+  "type": "entity",
+  "id": "request.deposit",
+  "category": "evidence",
+  "kind": "fulfillment_request",
+  "contextRef": "context.procurement",
+  "label": "deposit request",
+  "responsibleRoleRef": "role.seller",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "id",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "started_at",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "expired_at",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "quantity",
+      "label": "quantity",
+      "meaning": "quantity",
+      "valueType": "int",
+      "required": true
+    },
+    {
+      "name": "unit_price",
+      "label": "unit_price",
+      "meaning": "unit_price",
+      "valueType": "decimal",
+      "required": true
+    }
+  ],
+  "examples": [
+    {
+      "label": "deposit-requested",
+      "value": {
+        "id": "deposit-request-001",
+        "quantity": 10,
+        "unit_price": 50,
+        "started_at": "2026-03-31T10:00:00Z",
+        "expired_at": "2026-04-01T10:00:00Z"
+      },
+      "test": {
+        "flow": "deposit",
+        "asOf": "2026-03-31T10:00:00Z",
+        "actingRoleRef": "role.seller",
+        "basedOn": [
+          "contract.agreement#deposit-signed"
+        ],
+        "tags": [
+          "dod",
+          "deposit"
+        ]
+      }
+    }
+  ]
+}

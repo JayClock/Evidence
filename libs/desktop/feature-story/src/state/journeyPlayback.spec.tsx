@@ -1,12 +1,11 @@
 import { act, renderHook, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
-import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
+import {
+  collectFlowScenarios,
+  parseModelSourceFiles,
+} from '@evidence-poc/evidence-model-core';
 import { installDesktopApi } from '@evidence-poc/desktop-testing/desktopApi';
 import { storySnapshot } from '@evidence-poc/desktop-testing/story';
-// Golden example data, not a cross-project source-code dependency.
-// eslint-disable-next-line @nx/enforce-module-boundaries
-import modelText from '../../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json?raw';
 import { StoryPlayerBar } from '../components/story/StoryPlayerBar';
 import { STORY_REFRESH_DELAY, useStoryPlayback } from './useStoryPlayback';
 
@@ -14,7 +13,16 @@ afterEach(() => vi.useRealTimers());
 
 it('walks across responsibility lanes, resets branch focus when switching scenarios and never saves', async () => {
   vi.useFakeTimers();
-  const document = JSON.parse(modelText) as DomainModelDocument;
+  const files = import.meta.glob<string>(
+    '../../../../../examples/full-spectrum-procurement/.evidence/model/**/*.json',
+    { eager: true, query: '?raw', import: 'default' },
+  );
+  const document = parseModelSourceFiles(
+    Object.entries(files).map(([path, content]) => ({
+      path: path.split('/.evidence/model/')[1]!,
+      content,
+    })),
+  ).document;
   const before = JSON.stringify(document);
   const flows = collectFlowScenarios(document);
   const api = installDesktopApi();

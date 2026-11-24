@@ -14,7 +14,6 @@ import { fileURLToPath } from 'node:url';
 import type { BusinessStoryProjection } from '@evidence-poc/evidence-agent';
 import {
   initializeWorkspace,
-  readModelBundle,
   readModelDirectory,
   writeModelDirectory,
 } from '@evidence-poc/evidence-model-io';
@@ -26,7 +25,7 @@ const cli = path.join(repo, 'apps/cli/dist/cli.js');
 const fixture = (name: string) =>
   path.join(
     repo,
-    `libs/evidence-model-core/tests/fixtures/acceptance/${name}.evidence.json`,
+    `libs/evidence-model-core/tests/fixtures/acceptance/${name}/.evidence/model`,
   );
 let root: string;
 const model = () => path.join(root, '.evidence/model');
@@ -34,7 +33,7 @@ beforeEach(async () => {
   root = realpathSync(mkdtempSync(path.join(tmpdir(), 'evidence-story-e2e-')));
   await initializeWorkspace(
     root,
-    (await readModelBundle(fixture('procurement'))).document,
+    (await readModelDirectory(fixture('procurement'))).document,
   );
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -115,7 +114,7 @@ describe('built evidence story binary', () => {
   it('filters exact flow IDs without losing steps and rejects an absent flow', async () => {
     await writeModelDirectory(
       model(),
-      (await readModelBundle(fixture('procurement-deposit'))).document,
+      (await readModelDirectory(fixture('procurement-deposit'))).document,
     );
     const all = await invoke(['--no-ai', '--format', 'json']);
     expect(all.code, all.stderr).toBe(0);

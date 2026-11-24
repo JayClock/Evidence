@@ -217,9 +217,6 @@ export * from './tools/evidenceGrowthInputs.js';
 
 export {
   DomainModelDocumentSchema,
-  DomainModelBundleSchema,
-  MODEL_BUNDLE_TYPE,
-  type DomainModelBundle,
   DomainModelDocumentSyntaxSchema,
   DomainModelManifestSchema,
   EMPTY_MODEL_MANIFEST,

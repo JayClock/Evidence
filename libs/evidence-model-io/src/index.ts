@@ -22,15 +22,6 @@ export {
 } from './adapters/modelRoot.js';
 
 export {
-  packModelDirectory,
-  readModelBundle,
-  unpackModelBundle,
-  writeModelBundle,
-  type UnpackResult,
-  type WriteModelBundleResult,
-} from './adapters/modelFileAdapter.js';
-
-export {
   MODEL_DIRECTORY,
   workspacePaths,
   checkWorkspacePath,

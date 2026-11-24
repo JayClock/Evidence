@@ -13,10 +13,7 @@ import {
   createEmptyDomainModel,
   type DomainModelDocument,
 } from '@evidence-poc/evidence-schema';
-import {
-  writeModelBundle,
-  writeModelDirectory,
-} from '@evidence-poc/evidence-model-io';
+import { writeModelDirectory } from '@evidence-poc/evidence-model-io';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -350,7 +347,7 @@ describe('projectStore.create', () => {
 
   it('rejects a legacy bundle without rewriting it', async () => {
     const file = path.join(tempRoot, 'legacy.evidence.json');
-    await writeModelBundle(file, domainModel());
+    await writeFile(file, '{}');
     const original = await readFile(file);
     expect((await store().open(file)).success).toBe(false);
     expect((await store().save(file, domainModel())).success).toBe(false);

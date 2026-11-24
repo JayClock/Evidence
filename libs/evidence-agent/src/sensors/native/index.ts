@@ -1,5 +1,4 @@
 export {
-  ModelSourceError,
   loadModelSources,
   runNativeFmCheck,
   type ModelSources,

@@ -1,16 +1,15 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { buildFmCheckReport } from './fmCheck.js';
-import { parseModelBundleText } from '../adapters/modelBundle.js';
+import { readModelRoot } from '../../tests/support/modelRoot.js';
 import { compileCelExpression } from '../cel/celEvaluator.js';
 
-it('keeps the full-spectrum example schema-valid, traceable and CEL-compilable', () => {
-  const parsed = parseModelBundleText(
-    readFileSync(
+it('keeps the full-spectrum example schema-valid, traceable and CEL-compilable', async () => {
+  const parsed = await readModelRoot(
+    fileURLToPath(
       new URL(
-        '../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json',
+        '../../../../examples/full-spectrum-procurement/.evidence/model',
         import.meta.url,
       ),
-      'utf8',
     ),
   );
   expect(parsed.issues).toEqual([]);

@@ -12,10 +12,8 @@ import {
   removeAttributeMutator,
   updateAttributeMutator,
   createModelSession,
-  parseModelBundleText,
   parseModelSourceFiles,
   serializeDomainModel,
-  serializeModelBundle,
 } from '../index.js';
 
 const evidence = (
@@ -31,10 +29,8 @@ const evidence = (
 
 const receipt = evidence('fulfillment_confirmation', '付款确认');
 
-const reload = (document: ReturnType<typeof createEmptyDomainModel>) => [
-  parseModelBundleText(serializeModelBundle(document), { validate: true }),
-  parseModelSourceFiles(serializeDomainModel(document), { validate: true }),
-];
+const reload = (document: ReturnType<typeof createEmptyDomainModel>) =>
+  parseModelSourceFiles(serializeDomainModel(document), { validate: true });
 
 describe('evidence-first authoring', () => {
   it('persists the four lifecycle kinds and supports undo back to an empty model', () => {
@@ -52,14 +48,13 @@ describe('evidence-first authoring', () => {
     session.mutate((draft) =>
       nodes.forEach((node) => createEntityMutator(draft, node)),
     );
-    for (const parsed of reload(session.getDocument())) {
-      expect(parsed.issues).toEqual([]);
-      expect(parsed.document.entities).toEqual(expect.arrayContaining(nodes));
-      expect(parsed.document.manifest.entryContextRefs).toEqual([]);
-    }
+    const parsed = reload(session.getDocument());
+    expect(parsed.issues).toEqual([]);
+    expect(parsed.document.entities).toEqual(expect.arrayContaining(nodes));
+    expect(parsed.document.manifest.entryContextRefs).toEqual([]);
     expect(session.undo()).toBe(true);
     expect(session.getDocument()).toEqual(empty);
-    for (const parsed of reload(empty)) expect(parsed.issues).toEqual([]);
+    expect(reload(empty).issues).toEqual([]);
     expect(session.redo()).toBe(true);
   });
 
@@ -123,7 +118,7 @@ describe('evidence-first authoring', () => {
         sourceKind: 'preceding-evidence',
       },
     ]);
-    for (const parsed of reload(after)) expect(parsed.issues).toEqual([]);
+    expect(reload(after).issues).toEqual([]);
     expect(() =>
       session.mutate((draft) =>
         removeAttributeMutator(draft, paymentRequest.id, amount.name, {
@@ -141,7 +136,7 @@ describe('evidence-first authoring', () => {
       }),
     );
     const cyclic = session.getDocument();
-    for (const parsed of reload(cyclic)) expect(parsed.issues).toEqual([]);
+    expect(reload(cyclic).issues).toEqual([]);
     expect(analyzeTraceability(cyclic).document.edges).toEqual([]);
     expect(buildKeyDataLedger(cyclic).decisionOwed).toHaveLength(2);
     expect(buildFmCheckReport({ model: cyclic }).report).toMatchObject({
@@ -181,7 +176,7 @@ describe('evidence-first authoring', () => {
         },
       ],
     });
-    for (const parsed of reload(model)) expect(parsed.issues).toEqual([]);
+    expect(reload(model).issues).toEqual([]);
     expect(buildKeyDataLedger(model).decisionOwed[0]).toMatchObject({
       attribute: 'amount',
       providers: [],

@@ -26,7 +26,7 @@ const check = async (
   } = {},
 ) => {
   const root = fixture(name, options.models ?? true);
-  const { bundle, issues } = await readModelRoot(root);
+  const { document: bundle, issues } = await readModelRoot(root);
   const bytes = await readModelRootBytes(root);
 
   return buildFmCheckReport({
@@ -67,7 +67,7 @@ describe('buildFmCheckReport', () => {
   });
 
   it('carries naming advice without changing the verdict', async () => {
-    const { bundle } = await readModelRoot(
+    const { document: bundle } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
     const model = structuredClone(bundle);
@@ -174,7 +174,7 @@ describe('modelDigestOf', () => {
 
 describe('analyzeTraceability', () => {
   it('builds lineage nodes and constraints for the golden fixture', async () => {
-    const { bundle } = await readModelRoot(
+    const { document: bundle } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
     const { document, errors } = analyzeTraceability(bundle);
@@ -203,7 +203,7 @@ describe('analyzeTraceability', () => {
   });
 
   it('rejects a collection binding read without a macro', async () => {
-    const { bundle } = await readModelRoot(
+    const { document: bundle } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
     const broken = {
@@ -223,7 +223,7 @@ describe('analyzeTraceability', () => {
   });
 
   it('rejects a read of an attribute the entity does not model', async () => {
-    const { bundle } = await readModelRoot(
+    const { document: bundle } = await readModelRoot(
       fixture('valid-traceable-subscription'),
     );
     const broken = {

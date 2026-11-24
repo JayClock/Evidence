@@ -1,18 +1,25 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import {
   strictValidateDomainModel,
   type DomainModelDocument,
 } from '../../src/index.js';
 
-const model = JSON.parse(
-  readFileSync(
-    new URL(
-      '../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json',
-      import.meta.url,
-    ),
-    'utf8',
-  ),
-) as DomainModelDocument;
+const root = new URL(
+  '../../../../examples/full-spectrum-procurement/.evidence/model/',
+  import.meta.url,
+);
+const read = (file: URL) => JSON.parse(readFileSync(file, 'utf8'));
+const sources = (tree: string) =>
+  readdirSync(new URL(tree + '/', root))
+    .filter((name) => name.endsWith('.json'))
+    .sort()
+    .map((name) => read(new URL(`${tree}/${name}`, root)));
+const model: DomainModelDocument = {
+  manifest: read(new URL('model.json', root)),
+  entities: sources('entities'),
+  relationships: sources('relationships'),
+  rules: sources('rules'),
+};
 
 describe('full-spectrum procurement golden model', () => {
   it('passes strict FM validation', () => {

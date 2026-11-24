@@ -1,6 +1,7 @@
-import { readFileSync } from 'node:fs';
-import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-import { createDomainGraph } from '@evidence-poc/evidence-model-core';
+import {
+  createDomainGraph,
+  parseModelSourceFiles,
+} from '@evidence-poc/evidence-model-core';
 import {
   computeSwimlaneLayout,
   rectContainsRect,
@@ -8,6 +9,17 @@ import {
   type Rect,
 } from '../index.js';
 import { createFixtureDocument } from '../../tests/support/fixtureModel.js';
+
+const files = import.meta.glob<string>(
+  '../../../../examples/full-spectrum-procurement/.evidence/model/**/*.json',
+  { eager: true, query: '?raw', import: 'default' },
+);
+const fullSpectrumModel = parseModelSourceFiles(
+  Object.entries(files).map(([path, content]) => ({
+    path: path.split('/.evidence/model/')[1]!,
+    content,
+  })),
+).document;
 
 const crosses = (a: Point, b: Point, box: Rect) =>
   a.x === b.x
@@ -64,15 +76,7 @@ describe('responsibility swimlanes', () => {
   it.each(['simplified', 'standard', 'expanded'] as const)(
     'aligns four lifecycle stages and isolates remedy trunks at %s density',
     (viewMode) => {
-      const model = JSON.parse(
-        readFileSync(
-          new URL(
-            '../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json',
-            import.meta.url,
-          ),
-          'utf8',
-        ),
-      ) as DomainModelDocument;
+      const model = fullSpectrumModel;
       const graph = createDomainGraph(model);
       const layout = computeSwimlaneLayout(graph, viewMode);
       expect(layout.journeyMilestones?.map((m) => m.stage)).toEqual([

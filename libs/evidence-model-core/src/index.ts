@@ -203,21 +203,3 @@ export {
 } from './validation/lintRules.js';
 
 export { derivedTraceability } from './derive/derivedDocuments.js';
-
-export {
-  DEFAULT_MODEL_BUNDLE_FILE,
-  MODEL_BUNDLE_EXTENSION,
-  MODEL_BUNDLE_TYPE,
-  MODEL_README_PATH,
-  createEmptyModelBundle,
-  isModelBundlePath,
-  isModelBundleShape,
-  modelBundleSourceFiles,
-  packModelSourceFiles,
-  parseModelBundleText,
-  serializeModelBundle,
-  type DomainModelBundle,
-  type ModelBundleParseResult,
-  type PackResult,
-  type SerializeBundleOptions,
-} from './adapters/modelBundle.js';

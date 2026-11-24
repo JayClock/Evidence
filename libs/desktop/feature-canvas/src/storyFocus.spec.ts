@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { computeSwimlaneLayout } from '@evidence-poc/evidence-canvas-interaction';
-import { createDomainGraph } from '@evidence-poc/evidence-model-core';
+import {
+  createDomainGraph,
+  parseModelSourceFiles,
+} from '@evidence-poc/evidence-model-core';
 import { createDesktopFixture } from '@evidence-poc/desktop-testing';
-import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-// Golden example data, not a cross-project source-code dependency.
-// eslint-disable-next-line @nx/enforce-module-boundaries
-import modelText from '../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json?raw';
 import { summarizeCards } from './cardSummary';
 import { convertLayoutToReactFlow } from './useReactFlowAdapter';
 import { applyStoryFocus, type CanvasStoryFocus } from './storyFocus';
@@ -117,7 +116,16 @@ describe('story canvas projection', () => {
   });
 
   it('activates compensation capabilities and collateral roles without leaking the opposite branch', () => {
-    const model = JSON.parse(modelText) as DomainModelDocument;
+    const files = import.meta.glob<string>(
+      '../../../../examples/full-spectrum-procurement/.evidence/model/**/*.json',
+      { eager: true, query: '?raw', import: 'default' },
+    );
+    const model = parseModelSourceFiles(
+      Object.entries(files).map(([path, content]) => ({
+        path: path.split('/.evidence/model/')[1]!,
+        content,
+      })),
+    ).document;
     const journey = computeSwimlaneLayout(createDomainGraph(model));
     const original = convertLayoutToReactFlow({
       layout: journey,

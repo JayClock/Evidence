@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.total-amount",
+  "kind": "derivation",
+  "label": "Total amount",
+  "description": "Calculate the confirmed amount",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "request": {
+      "ref": "request.payment"
+    }
+  },
+  "expression": "double(request.quantity) * request.unit_price",
+  "resultType": "decimal",
+  "target": {
+    "entityRef": "confirmation.payment",
+    "attribute": "total_amount"
+  }
+}

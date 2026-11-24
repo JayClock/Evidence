@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { serializeModelBundle } from '@evidence-poc/evidence-model-core';
-import { readModelRoot } from '@evidence-poc/evidence-model-io';
 import { deliveryFilesOf, readDelivery } from './deliveryProjection';
 
 const modelRoot = path.resolve(
@@ -12,28 +10,17 @@ const modelRoot = path.resolve(
 );
 
 describe('live delivery inputs', () => {
-  it('exports the same snapshot from a directory or a portable bundle', async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'desktop-api-'));
-    try {
-      const { bundle } = await readModelRoot(modelRoot);
-      const file = path.join(directory, 'model.evidence.json');
-      await writeFile(file, serializeModelBundle(bundle));
-      const tree = await readDelivery(modelRoot);
-      const packed = await readDelivery(file);
-      expect(packed.routes).toEqual(tree.routes);
-      expect(packed.openapi).toEqual(tree.openapi);
-      const files = deliveryFilesOf(packed);
-      const snapshot = JSON.parse(
-        files.find((item) => item.path === 'projection.json')!.content,
-      );
-      expect(snapshot.schemaVersion).toBe('7.0');
-      expect(snapshot.mode).toBe('draft');
-      expect(snapshot.digests.model).toMatch(/^sha256:[a-f0-9]{64}$/);
-      expect(snapshot.digests.checkReport).toBeUndefined();
-      expect(snapshot.diagnostics).toEqual([]);
-    } finally {
-      await rm(directory, { recursive: true, force: true });
-    }
+  it('builds a deterministic draft snapshot from a model directory', async () => {
+    const files = deliveryFilesOf(await readDelivery(modelRoot));
+    expect(deliveryFilesOf(await readDelivery(modelRoot))).toEqual(files);
+    const snapshot = JSON.parse(
+      files.find((item) => item.path === 'projection.json')!.content,
+    );
+    expect(snapshot.schemaVersion).toBe('7.0');
+    expect(snapshot.mode).toBe('draft');
+    expect(snapshot.digests.model).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(snapshot.digests.checkReport).toBeUndefined();
+    expect(snapshot.diagnostics).toEqual([]);
   });
 
   it('does not export malformed or statically inconsistent model inputs', async () => {
@@ -41,13 +28,23 @@ describe('live delivery inputs', () => {
       path.join(tmpdir(), 'desktop-api-invalid-'),
     );
     try {
-      const file = path.join(directory, 'model.evidence.json');
-      await writeFile(file, '{');
-      await expect(readDelivery(file)).rejects.toThrow();
-      const { bundle } = await readModelRoot(modelRoot);
-      bundle.entities.push(structuredClone(bundle.entities[0]!));
-      await writeFile(file, serializeModelBundle(bundle));
-      await expect(readDelivery(file)).rejects.toThrow();
+      await cp(modelRoot, directory, { recursive: true });
+      const manifest = path.join(directory, 'model.json');
+      await writeFile(manifest, '{');
+      await expect(readDelivery(directory)).rejects.toThrow('invalid JSON');
+      await cp(path.join(modelRoot, 'model.json'), manifest);
+      await writeFile(
+        path.join(directory, 'entities', 'unresolved-role.json'),
+        JSON.stringify({
+          type: 'entity',
+          category: 'role',
+          kind: 'party',
+          id: 'role.unresolved',
+          label: 'Unresolved',
+          contextRef: 'context.missing',
+        }),
+      );
+      await expect(readDelivery(directory)).rejects.toThrow();
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

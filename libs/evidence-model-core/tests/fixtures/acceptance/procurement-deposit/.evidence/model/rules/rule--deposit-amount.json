@@ -1,0 +1,19 @@
+{
+  "type": "rule",
+  "id": "rule.deposit-amount",
+  "kind": "derivation",
+  "label": "Deposit amount",
+  "description": "20% deposit on the requested total",
+  "contextRef": "context.procurement",
+  "bindings": {
+    "request": {
+      "ref": "request.deposit"
+    }
+  },
+  "expression": "double(request.quantity) * request.unit_price * 0.2",
+  "resultType": "decimal",
+  "target": {
+    "entityRef": "confirmation.deposit",
+    "attribute": "deposit_amount"
+  }
+}

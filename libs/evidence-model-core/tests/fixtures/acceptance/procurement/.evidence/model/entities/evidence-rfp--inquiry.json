@@ -1,0 +1,36 @@
+{
+  "type": "entity",
+  "id": "rfp.inquiry",
+  "category": "evidence",
+  "kind": "rfp",
+  "contextRef": "context.sourcing",
+  "label": "Inquiry",
+  "responsibleRoleRef": "role.buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "id",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "started_at",
+      "timeRole": "start",
+      "label": "started_at",
+      "meaning": "started_at",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "expired_at",
+      "timeRole": "deadline",
+      "label": "expired_at",
+      "meaning": "expired_at",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    }
+  ]
+}

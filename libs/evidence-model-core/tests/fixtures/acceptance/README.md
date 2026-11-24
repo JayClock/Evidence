@@ -1,6 +1,6 @@
 # Small acceptance-model fixtures
 
-These procurement / additive-deposit bundles are intentionally minimal inputs
+These procurement / additive-deposit model trees are intentionally minimal inputs
 for trace hashes, story projection, CLI parsing and export unit tests. They were
 moved out of `examples/acceptance/` when the real HTTP SUT migrated to the B2B
 escrow example. They are **not** runnable backend examples or production

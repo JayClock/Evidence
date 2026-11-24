@@ -9,6 +9,7 @@ import { promisify } from 'node:util';
 import { runAcceptanceSuite } from './runner/acceptanceRunner.js';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import { exportAcceptanceTests } from './exportTests.js';
 
 const backend = fileURLToPath(
@@ -18,10 +19,7 @@ const backend = fileURLToPath(
   ),
 );
 const model = fileURLToPath(
-  new URL(
-    '../../../libs/evidence-model-core/tests/fixtures/examples/b2b-escrow.evidence.json',
-    import.meta.url,
-  ),
+  new URL('../../../examples/b2b-escrow/.evidence/model', import.meta.url),
 );
 let root: string, suite: string;
 beforeEach(async () => {
@@ -210,7 +208,7 @@ describe(
         expect.objectContaining({ path: 'schema', passed: false }),
       );
     });
-    it('keeps the distributed entity JSON Schema aligned with inline examples', () => {
+    it('keeps the distributed entity JSON Schema aligned with inline examples', async () => {
       const schemaPath = new URL(
         '../../evidence-schema/schemas/entity.schema.json',
         import.meta.url,
@@ -220,15 +218,18 @@ describe(
         strict: false,
         validateFormats: false,
       }).compile(schema);
-      const bundle = JSON.parse(readFileSync(model, 'utf8'));
-      for (const entity of bundle.entities)
+      const { document, issues } = await readModelDirectory(model);
+      expect(issues).toEqual([]);
+      for (const entity of document.entities)
         expect(validate(entity), JSON.stringify(validate.errors)).toBe(true);
-      const invalid = structuredClone(
-        bundle.entities.find(
-          (entity: { id: string }) => entity.id === 'confirmation.order',
-        ),
-      );
-      invalid.examples[0].test.inputs = {};
+      const confirmation = document.entities.find(
+        (entity) => entity.id === 'confirmation.order',
+      )!;
+      const [first, ...rest] = confirmation.examples!;
+      const invalid = {
+        ...confirmation,
+        examples: [{ ...first, test: { ...first!.test, inputs: {} } }, ...rest],
+      };
       expect(validate(invalid)).toBe(false);
     });
   },

@@ -9,7 +9,6 @@ import { refineDomainModel } from './documentSemantics.js';
 /** FM schema version emitted by this package. */
 export const FM_SCHEMA_VERSION = '6.0' as const;
 export const FM_RULE_LANGUAGE = 'CEL' as const;
-export const MODEL_BUNDLE_TYPE = 'fm_bundle' as const;
 
 export const DomainModelManifestSchema = z
   .object({
@@ -32,10 +31,6 @@ export const DomainModelDocumentSyntaxSchema = z
     entities: z.array(EntityASTSchema),
     relationships: z.array(RelationshipASTSchema),
     rules: z.array(RuleASTSchema),
-    // A single-file source carries this envelope through sessions and checks.
-    // It is part of FM's input contract, not an arbitrary passthrough object.
-    type: z.literal(MODEL_BUNDLE_TYPE).optional(),
-    schemaVersion: z.literal(FM_SCHEMA_VERSION).optional(),
     readme: z.string().optional(),
   })
   .strict();
@@ -47,12 +42,6 @@ export type DomainModelDocument = z.infer<
 
 export const DomainModelDocumentSchema =
   DomainModelDocumentSyntaxSchema.superRefine(refineDomainModel);
-
-export const DomainModelBundleSchema = DomainModelDocumentSyntaxSchema.extend({
-  type: z.literal(MODEL_BUNDLE_TYPE),
-  schemaVersion: z.literal(FM_SCHEMA_VERSION),
-}).superRefine(refineDomainModel);
-export type DomainModelBundle = z.infer<typeof DomainModelBundleSchema>;
 
 export const EMPTY_MODEL_MANIFEST: DomainModelManifest = {
   type: 'fm_model',

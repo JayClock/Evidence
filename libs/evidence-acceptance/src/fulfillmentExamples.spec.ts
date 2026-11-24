@@ -1,24 +1,24 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 import { buildDelivery, halLinksFor } from '@evidence-poc/evidence-api';
 import { operationFor } from '@evidence-poc/evidence-api/testing';
-import { parseModelBundleText } from '@evidence-poc/evidence-model-core';
+import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import { projectAcceptanceTests } from './delivery/scenarioProjector.js';
 
-function loadExample(name: string) {
+async function loadExample(name: string) {
   const file = new URL(
-    `../../../libs/evidence-model-core/tests/fixtures/examples/${name}.evidence.json`,
+    `../../../examples/${name}/.evidence/model`,
     import.meta.url,
   );
-  const parsed = parseModelBundleText(readFileSync(file, 'utf8'));
+  const parsed = await readModelDirectory(fileURLToPath(file));
   expect(parsed.issues).toEqual([]);
   const snapshot = buildDelivery(parsed.document);
   expect(snapshot.diagnostics).toEqual([]);
   return { snapshot, flows: projectAcceptanceTests(parsed.document).flows };
 }
 
-it('keeps advertising payment and full lifecycle as separate acceptance flows', () => {
-  const { snapshot, flows } = loadExample('digital-advertising');
+it('keeps advertising payment and full lifecycle as separate acceptance flows', async () => {
+  const { snapshot, flows } = await loadExample('digital-advertising');
   const payment = flows.find(({ id }) => id === 'prepayment-only')!;
   expect(payment.steps.map(({ route }) => route.purpose)).toEqual([
     'sign',
@@ -87,8 +87,8 @@ it('keeps advertising payment and full lifecycle as separate acceptance flows', 
   ).toMatchObject({ 'x-evidence-uri-template': report.path });
 });
 
-it('appends two distinct story receipts to one sprint, without replacing the baseline lock', () => {
-  const { snapshot, flows } = loadExample('agile-sprint');
+it('appends two distinct story receipts to one sprint, without replacing the baseline lock', async () => {
+  const { snapshot, flows } = await loadExample('agile-sprint');
   const appends = flows[0]!.steps.filter(
     ({ route }) => route.entityRef === 'confirmation.story',
   );
@@ -122,8 +122,8 @@ it('appends two distinct story receipts to one sprint, without replacing the bas
   );
 });
 
-it('credits the same revenue receipt to a quarterly request and the annual singleton', () => {
-  const { snapshot, flows } = loadExample('shared-settlement');
+it('credits the same revenue receipt to a quarterly request and the annual singleton', async () => {
+  const { snapshot, flows } = await loadExample('shared-settlement');
   const steps = flows[0]!.steps;
   const quarter = steps.find(
     ({ route }) => route.entityRef === 'request.quarterly-target',

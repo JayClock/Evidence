@@ -1,24 +1,27 @@
 import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { serializeModelBundle } from '@evidence-poc/evidence-model-core';
-import { readModelRoot } from '@evidence-poc/evidence-model-io';
+import {
+  readModelDirectory,
+  writeModelDirectory,
+} from '@evidence-poc/evidence-model-io';
 import { API_FIXTURES } from '@evidence-poc/evidence-api/testing';
 import { buildDelivery, renderOutputs } from '@evidence-poc/evidence-api';
 import { runDiff } from '../commands.js';
 
-it('compares directories and bundles as JSON or Markdown without touching inputs', async () => {
+it('compares model directories as JSON or Markdown without touching inputs', async () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'api-diff-'));
   try {
     const root = `${API_FIXTURES}full-lifecycle/fm`;
-    const { bundle } = await readModelRoot(root);
-    const file = path.join(directory, 'current.evidence.json');
-    writeFileSync(file, serializeModelBundle(bundle));
-    const original = readFileSync(file, 'utf8');
+    const { document } = await readModelDirectory(root);
+    const target = path.join(directory, 'current');
+    await writeModelDirectory(target, document);
+    const manifest = path.join(target, 'model.json');
+    const original = readFileSync(manifest, 'utf8');
     const options = {
       command: 'diff',
       base: root,
-      target: file,
+      target,
       format: 'json',
     } as const;
     const same = await runDiff(options);
@@ -44,11 +47,11 @@ it('compares directories and bundles as JSON or Markdown without touching inputs
     expect(broken.output).toMatchObject({
       hasBreakingChanges: true,
     });
-    expect(readFileSync(file, 'utf8')).toBe(original);
-    bundle.manifest.id = 'other';
-    writeFileSync(file, serializeModelBundle(bundle));
+    expect(readFileSync(manifest, 'utf8')).toBe(original);
+    document.manifest.id = 'other';
+    await writeModelDirectory(target, document);
     expect((await runDiff(options)).exitCode).toBe(2);
-    writeFileSync(file, 'not json');
+    writeFileSync(manifest, 'not json');
     expect((await runDiff(options)).exitCode).toBe(2);
   } finally {
     rmSync(directory, { recursive: true, force: true });
@@ -90,8 +93,10 @@ it('refuses relative diff paths', async () => {
 it('compares exported service contracts without re-projecting them', async () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'api-service-diff-'));
   try {
-    const { bundle } = await readModelRoot(`${API_FIXTURES}full-lifecycle/fm`);
-    const outputs = renderOutputs(buildDelivery(bundle));
+    const { document } = await readModelDirectory(
+      `${API_FIXTURES}full-lifecycle/fm`,
+    );
+    const outputs = renderOutputs(buildDelivery(document));
     const base = path.join(directory, 'baseline.json');
     const target = path.join(directory, 'candidate.json');
     writeFileSync(

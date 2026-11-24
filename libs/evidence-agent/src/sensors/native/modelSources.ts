@@ -3,12 +3,12 @@ import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
 import {
   analyzeTraceability,
   buildFmCheckReport,
+  parseModelSourceFiles,
   type FmCheckReport,
   type TraceabilityDocument,
 } from '@evidence-poc/evidence-model-core';
 import {
   modelDigestOf,
-  readModelRoot,
   readModelRootBytes,
 } from '@evidence-poc/evidence-model-io';
 
@@ -21,39 +21,29 @@ export interface ModelSources {
   model: DomainModelDocument;
   /** Problems found while reading the sources, as `path: message`. */
   sourceIssues: readonly string[];
-  /** `sha256:...` of everything under the root. */
+  /** `sha256:...` of the managed files under the model root. */
   digest: string;
   /** Re-reads the digest so a source changing mid-check invalidates the result. */
   rereadDigest: () => Promise<string>;
 }
 
-export class ModelSourceError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ModelSourceError';
-  }
-}
-
-/** Reads a model tree. Bundle file paths are not model sources for sensors. */
+/** Reads a model directory. */
 export const loadModelSources = async (
   modelRoot: string,
 ): Promise<ModelSources> => {
-  if (modelRoot.endsWith('.evidence.json')) {
-    throw new ModelSourceError(
-      `native sensors read a model directory, not a bundle: ${modelRoot}`,
-    );
-  }
-
-  const [{ bundle, issues }, bytes] = await Promise.all([
-    readModelRoot(modelRoot),
-    readModelRootBytes(modelRoot),
-  ]);
+  const bytes = await readModelRootBytes(modelRoot);
+  const { document, issues } = parseModelSourceFiles(
+    bytes.map(({ path, bytes }) => ({
+      path,
+      content: bytes.toString('utf8'),
+    })),
+  );
   const digest = modelDigestOf(
     bytes.map((file) => ({ path: file.path, content: file.bytes })),
   );
 
   return {
-    model: bundle,
+    model: document,
     sourceIssues: issues.map((issue) => `${issue.path}: ${issue.message}`),
     digest,
     rereadDigest: async () => {

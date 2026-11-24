@@ -231,20 +231,16 @@ describe('Zod pipeline and diagnostic contract', () => {
     );
   });
 
-  it('validates the supported single-file bundle envelope without accepting arbitrary extras', () => {
-    const doc = {
-      ...base(),
-      type: 'fm_bundle',
-      schemaVersion: '6.0',
-      readme: 'Model notes',
-    };
+  it('accepts model notes but rejects an outer envelope or arbitrary extras', () => {
+    const doc = { ...base(), readme: 'Model notes' };
     expect(DomainModelDocumentSchema.safeParse(doc).success).toBe(true);
     expect(
-      strictValidateDomainModel({ ...doc, schemaVersion: '4.0' }).valid,
+      strictValidateDomainModel({
+        ...doc,
+        type: 'fm_bundle',
+        schemaVersion: '6.0',
+      }).valid,
     ).toBe(false);
-    expect(strictValidateDomainModel({ ...doc, type: 'other' }).valid).toBe(
-      false,
-    );
     expect(strictValidateDomainModel({ ...doc, readme: 42 }).valid).toBe(false);
     expect(strictValidateDomainModel({ ...doc, typo: true }).valid).toBe(false);
   });

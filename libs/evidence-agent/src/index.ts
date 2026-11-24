@@ -111,7 +111,6 @@ export {
 } from './sensors/sensorsEngine.js';
 
 export {
-  ModelSourceError,
   checkNativeStageGate,
   filterFmCheckErrors,
   isGateReadyReport,

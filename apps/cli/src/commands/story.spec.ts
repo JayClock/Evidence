@@ -15,7 +15,7 @@ import type { FlowScenarioTrace } from '@evidence-poc/evidence-model-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   initializeWorkspace,
-  readModelBundle,
+  readModelDirectory,
 } from '@evidence-poc/evidence-model-io';
 import { dispatch } from '../router.js';
 
@@ -25,7 +25,7 @@ vi.mock('@evidence-poc/evidence-agent', () => ({
 
 const model = fileURLToPath(
   new URL(
-    '../../../../libs/evidence-model-core/tests/fixtures/acceptance/procurement.evidence.json',
+    '../../../../libs/evidence-model-core/tests/fixtures/acceptance/procurement/.evidence/model',
     import.meta.url,
   ),
 );
@@ -46,7 +46,7 @@ const context = () => ({
 });
 beforeEach(async () => {
   root = realpathSync(mkdtempSync(path.join(tmpdir(), 'evidence-story-')));
-  await initializeWorkspace(root, (await readModelBundle(model)).document);
+  await initializeWorkspace(root, (await readModelDirectory(model)).document);
   output = [];
   errors = [];
   vi.clearAllMocks();

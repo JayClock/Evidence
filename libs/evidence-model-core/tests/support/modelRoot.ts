@@ -5,7 +5,7 @@
  * out of this package is the point of the split: `evidence-model-core` stays
  * free of `node:fs` so the renderer can import it. The specs still assert
  * against real source trees, so this test-only mirror walks a fixture root the
- * same way and hands the files to the pure packer in this package.
+ * same way and hands the files to the pure parser in this package.
  *
  * Test-only: `tests/` is included by `tsconfig.spec.json` and never built.
  */
@@ -17,18 +17,17 @@ import path from 'node:path';
 import {
   MODEL_MANIFEST_PATH,
   MODEL_SOURCE_TREES,
-  packModelSourceFiles,
+  parseModelSourceFiles,
   type ModelSourceFile,
-  type PackResult,
+  type ModelSourceParseResult,
 } from '../../src/index.js';
-
-const CHECK_TREES = [...MODEL_SOURCE_TREES, 'validation'] as const;
 
 const isIgnored = (relativePath: string): boolean =>
   relativePath
     .split('/')
     .some(
-      (part) => part === 'generated' || part === '__pycache__' || part.startsWith('.'),
+      (part) =>
+        part === 'generated' || part === '__pycache__' || part.startsWith('.'),
     );
 
 const readTree = async (
@@ -95,7 +94,7 @@ export async function readModelRootFiles(
 
   const files: ModelSourceFile[] = [...manifest];
 
-  for (const tree of CHECK_TREES) {
+  for (const tree of MODEL_SOURCE_TREES) {
     files.push(...(await readTree(root, tree)));
   }
 
@@ -148,11 +147,14 @@ const readTreeBytes = async (
       continue;
     }
 
-    files.push({ path: relative, bytes: await readFile(path.join(root, relative)) });
+    files.push({
+      path: relative,
+      bytes: await readFile(path.join(root, relative)),
+    });
   }
 
   return files;
-}
+};
 
 /** Every file under a fixture model root, with its bytes. */
 export async function readModelRootBytes(
@@ -184,11 +186,10 @@ export const modelDigestOf = (
   return `sha256:${createHash('sha256').update(content, 'utf8').digest('hex')}`;
 };
 
-/** Reads a fixture model root and packs it, reporting problems as issues. */
+/** Reads a fixture model root and reports source issues. */
 export async function readModelRoot(
   root: string,
-): Promise<PackResult & { files: ModelSourceFile[] }> {
+): Promise<ModelSourceParseResult & { files: ModelSourceFile[] }> {
   const files = await readModelRootFiles(root);
-
-  return { ...packModelSourceFiles(files), files };
+  return { ...parseModelSourceFiles(files), files };
 }

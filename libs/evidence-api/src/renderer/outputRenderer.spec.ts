@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import {
-  parseModelBundleText,
-  serializeModelBundle,
+  parseModelSourceFiles,
+  serializeDomainModel,
 } from '@evidence-poc/evidence-model-core';
 import { procurementEvolution } from '../testing/procurement.js';
 import { canonicalJson } from '../canonicalJson.js';
@@ -41,7 +41,7 @@ describe('deterministic delivery integrity', () => {
       (document, index) => [index + 1, document] as const,
     ),
   )(
-    'renders stage %s repeatedly and round-trips model bundles without byte drift',
+    'renders stage %s repeatedly and round-trips model sources without byte drift',
     (_stage, document) => {
       document.manifest.name = '采购协议 · Δ';
       const original = JSON.stringify(document);
@@ -56,7 +56,7 @@ describe('deterministic delivery integrity', () => {
       reordered.relationships.reverse();
       reordered.rules.reverse();
       expect(renderOutputs(buildDelivery(reordered))).toEqual(files);
-      const parsed = parseModelBundleText(serializeModelBundle(document));
+      const parsed = parseModelSourceFiles(serializeDomainModel(document));
       expect(parsed.issues).toEqual([]);
       expect(renderOutputs(buildDelivery(parsed.document))).toEqual(files);
       expect(JSON.stringify(document)).toBe(original);

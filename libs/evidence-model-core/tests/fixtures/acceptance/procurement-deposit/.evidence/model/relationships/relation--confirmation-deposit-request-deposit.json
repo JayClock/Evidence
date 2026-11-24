@@ -1,0 +1,16 @@
+{
+  "type": "relationship",
+  "id": "relation.confirmation.deposit-request.deposit",
+  "kind": "references",
+  "sourceRef": "confirmation.deposit",
+  "targetRef": "request.deposit",
+  "label": "references",
+  "sourceCardinality": {
+    "min": 1,
+    "max": 1
+  },
+  "targetCardinality": {
+    "min": 1,
+    "max": 1
+  }
+}

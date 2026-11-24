@@ -1,32 +1,32 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import {
   buildFmCheckReport,
   collectFlowScenarios,
 } from '@evidence-poc/evidence-model-core';
-import { DomainModelDocumentSchema } from '@evidence-poc/evidence-schema';
+import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createFlowStoryProjector, simulateWhatIf } from '../index.js';
 
-const acceptanceModel = (name: string) =>
-  DomainModelDocumentSchema.parse(
-    JSON.parse(
-      readFileSync(
-        new URL(
-          `../../../evidence-model-core/tests/fixtures/acceptance/${name}.evidence.json`,
-          import.meta.url,
-        ),
-        'utf8',
+const acceptanceModel = async (name: string) => {
+  const { document, issues } = await readModelDirectory(
+    fileURLToPath(
+      new URL(
+        `../../../evidence-model-core/tests/fixtures/acceptance/${name}/.evidence/model`,
+        import.meta.url,
       ),
     ),
   );
+  expect(issues).toEqual([]);
+  return document;
+};
 
 describe('M1 trace to M2 story integration', () => {
   it.each(['procurement', 'procurement-deposit'])(
     'projects %s and regenerates only its edited request scene',
     async (name) => {
-      const model = acceptanceModel(name);
+      const model = await acceptanceModel(name);
       const { report } = buildFmCheckReport({ model });
       const flows = collectFlowScenarios(model, report);
       const generate = vi
@@ -63,7 +63,7 @@ describe('M1 trace to M2 story integration', () => {
   );
 
   it('runs native derivations and a deadline decision on a real declared payment trace', async () => {
-    const model = acceptanceModel('procurement');
+    const model = await acceptanceModel('procurement');
     model.rules.push({
       type: 'rule',
       id: 'rule.late-payment',

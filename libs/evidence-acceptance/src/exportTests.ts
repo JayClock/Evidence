@@ -1,9 +1,5 @@
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import {
-  isModelBundlePath,
-  parseModelBundleText,
-} from '@evidence-poc/evidence-model-core';
 import { readModelRoot } from '@evidence-poc/evidence-model-io';
 import {
   buildDeliveryContract,
@@ -20,12 +16,7 @@ export async function exportAcceptanceTests(options: {
   fm: string;
   out: string;
 }): Promise<{ files: string[]; flowCount: number; stepCount: number }> {
-  const parsed = isModelBundlePath(options.fm)
-    ? (() => {
-        const result = parseModelBundleText(readFileSync(options.fm, 'utf8'));
-        return { bundle: result.document, issues: result.issues };
-      })()
-    : await readModelRoot(options.fm);
+  const parsed = await readModelRoot(options.fm);
   if (parsed.issues.length > 0)
     throw new Error(
       `FM_INVALID: ${parsed.issues.map((issue) => `${issue.path}: ${issue.message}`).join('\n')}`,

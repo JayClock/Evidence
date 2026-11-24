@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { expect, it } from 'vitest';
 import { createAcceptanceModel } from '@evidence-poc/evidence-api/testing';
-import { parseModelBundleText } from '@evidence-poc/evidence-model-core';
+import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 import { projectAcceptanceTests } from '../delivery/scenarioProjector.js';
 import { renderBruno } from './brunoRenderer.js';
 
@@ -143,22 +143,25 @@ it.each([
   'b2b-escrow',
   'digital-advertising',
   'shared-settlement',
-])('renders all %s acceptance requests as native Bru syntax', (example) => {
-  const path = new URL(
-    `../../../../libs/evidence-model-core/tests/fixtures/examples/${example}.evidence.json`,
-    import.meta.url,
-  );
-  const { document, issues } = parseModelBundleText(readFileSync(path, 'utf8'));
-  expect(issues).toEqual([]);
-  const projection = projectAcceptanceTests(document);
-  const requests = Object.entries(renderBruno(projection)).filter(
-    ([name]) => name.startsWith('flows/') && !name.endsWith('/folder.bru'),
-  );
-  expect(requests).toHaveLength(
-    projection.flows.flatMap(({ steps }) => steps).length,
-  );
-  for (const [, request] of requests) bruToJsonV2(request);
-});
+])(
+  'renders all %s acceptance requests as native Bru syntax',
+  async (example) => {
+    const path = new URL(
+      `../../../../examples/${example}/.evidence/model`,
+      import.meta.url,
+    );
+    const { document, issues } = await readModelDirectory(fileURLToPath(path));
+    expect(issues).toEqual([]);
+    const projection = projectAcceptanceTests(document);
+    const requests = Object.entries(renderBruno(projection)).filter(
+      ([name]) => name.startsWith('flows/') && !name.endsWith('/folder.bru'),
+    );
+    expect(requests).toHaveLength(
+      projection.flows.flatMap(({ steps }) => steps).length,
+    );
+    for (const [, request] of requests) bruToJsonV2(request);
+  },
+);
 
 it('fails closed on unsafe model literals and unsupported JSONPath', () => {
   const projection = projectAcceptanceTests(createAcceptanceModel());

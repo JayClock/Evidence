@@ -1,0 +1,12 @@
+{
+  "type": "fm_model",
+  "schemaVersion": "6.0",
+  "id": "procurement-evolution",
+  "name": "Procurement evolution",
+  "version": "1.0.0",
+  "ruleLanguage": "CEL",
+  "entryContextRefs": [
+    "context.sourcing",
+    "context.procurement"
+  ]
+}

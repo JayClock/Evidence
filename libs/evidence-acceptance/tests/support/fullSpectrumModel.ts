@@ -1,17 +1,14 @@
-import { readFileSync } from 'node:fs';
-import { parseModelBundleText } from '@evidence-poc/evidence-model-core';
+import { fileURLToPath } from 'node:url';
+import { readModelDirectory } from '@evidence-poc/evidence-model-io';
 
-/** The shipped model is the golden input, not a separately maintained copy. */
-export const fullSpectrumModel = () => {
-  const result = parseModelBundleText(
-    readFileSync(
-      new URL(
-        '../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json',
-        import.meta.url,
-      ),
-      'utf8',
+const { document, issues } = await readModelDirectory(
+  fileURLToPath(
+    new URL(
+      '../../../../examples/full-spectrum-procurement/.evidence/model',
+      import.meta.url,
     ),
-  );
-  if (result.issues.length) throw new Error(JSON.stringify(result.issues));
-  return result.document;
-};
+  ),
+);
+if (issues.length) throw new Error(JSON.stringify(issues));
+
+export const fullSpectrumModel = () => structuredClone(document);

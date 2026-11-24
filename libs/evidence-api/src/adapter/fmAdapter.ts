@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type {
@@ -10,13 +9,11 @@ import type {
 } from '@evidence-poc/evidence-schema';
 import {
   compiledDocument,
-  isModelBundlePath,
-  parseModelBundleText,
+  parseModelSourceFiles,
   type CompiledModelDocument,
 } from '@evidence-poc/evidence-model-core';
 import {
   modelDigestOf,
-  readModelRoot,
   readModelRootBytes,
 } from '@evidence-poc/evidence-model-io';
 
@@ -173,29 +170,24 @@ export const partyRolesPlayedByParticipants = (index: FmIndex): Set<string> => {
   return played;
 };
 
-/** Reads a directory or portable bundle. Concurrent input changes still invalidate the read. */
+/** Reads a model directory. Concurrent input changes invalidate the read. */
 export const loadFm = async (
   fmRoot: string,
   checkReport?: unknown,
 ): Promise<LoadFmResult> => {
   const root = path.resolve(fmRoot);
   try {
-    const readBytes = () =>
-      isModelBundlePath(root)
-        ? readFile(root).then((bytes) => [{ path: path.basename(root), bytes }])
-        : readModelRootBytes(root);
-    const beforeFiles = await readBytes();
+    const beforeFiles = await readModelRootBytes(root);
     const before = snapshotOf(beforeFiles);
-    const parsed = isModelBundlePath(root)
-      ? (() => {
-          const result = parseModelBundleText(
-            beforeFiles[0]!.bytes.toString('utf8'),
-          );
-          return { bundle: result.document, issues: result.issues };
-        })()
-      : await readModelRoot(root);
+    const parsed = parseModelSourceFiles(
+      beforeFiles.map(({ path, bytes }) => ({
+        path,
+        content: bytes.toString('utf8'),
+      })),
+    );
     if (
-      JSON.stringify(before) !== JSON.stringify(snapshotOf(await readBytes()))
+      JSON.stringify(before) !==
+      JSON.stringify(snapshotOf(await readModelRootBytes(root)))
     ) {
       return {
         index: null,
@@ -212,7 +204,7 @@ export const loadFm = async (
         ),
       };
     }
-    return loadFmFromDocument(parsed.bundle, {
+    return loadFmFromDocument(parsed.document, {
       checkReport,
       files: before,
       modelDigest: modelDigestOf(

@@ -1,11 +1,19 @@
-import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
-import type { DomainModelDocument } from '@evidence-poc/evidence-schema';
-// Golden example data, not a cross-project source-code dependency.
-// eslint-disable-next-line @nx/enforce-module-boundaries
-import modelText from '../../../../../libs/evidence-model-core/tests/fixtures/examples/full-spectrum-procurement.evidence.json?raw';
+import {
+  collectFlowScenarios,
+  parseModelSourceFiles,
+} from '@evidence-poc/evidence-model-core';
 import { previewJourneyStep } from './journeyPreview';
 
-const model = JSON.parse(modelText) as DomainModelDocument;
+const files = import.meta.glob<string>(
+  '../../../../../examples/full-spectrum-procurement/.evidence/model/**/*.json',
+  { eager: true, query: '?raw', import: 'default' },
+);
+const model = parseModelSourceFiles(
+  Object.entries(files).map(([path, content]) => ({
+    path: path.split('/.evidence/model/')[1]!,
+    content,
+  })),
+).document;
 const flows = collectFlowScenarios(model);
 const preview = (flowId: string, entityId: string) => {
   const flow = flows.find((f) => f.flowId === flowId)!;

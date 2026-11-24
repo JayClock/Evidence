@@ -28,10 +28,12 @@ describe('loadModelSources', () => {
     expect(await sources.rereadDigest()).toBe(sources.digest);
   });
 
-  it('refuses a bundle, which the native sensors do not read', async () => {
-    await expect(loadModelSources('/tmp/model.evidence.json')).rejects.toThrow(
-      /native sensors read a model directory/,
-    );
+  it('requires a directory for model sources', async () => {
+    await expect(
+      loadModelSources(`${golden}/model.json`),
+    ).rejects.toMatchObject({
+      code: 'ENOTDIR',
+    });
   });
 });
 

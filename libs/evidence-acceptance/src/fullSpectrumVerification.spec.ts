@@ -3,8 +3,8 @@ import {
   collectFlowScenarios,
   createModelSession,
   evaluateRuleOnExample,
-  parseModelBundleText,
-  serializeModelBundle,
+  parseModelSourceFiles,
+  serializeDomainModel,
 } from '@evidence-poc/evidence-model-core';
 import { computeSwimlaneLayout } from '@evidence-poc/evidence-canvas-interaction';
 import { strictValidateDomainModel } from '@evidence-poc/evidence-schema';
@@ -12,7 +12,7 @@ import { renderDeliverables } from './renderDeliverables.js';
 import { fullSpectrumModel } from '../tests/support/fullSpectrumModel.js';
 
 describe('full-spectrum model lifecycle acceptance', () => {
-  it('keeps schema, fmCheck, bundle roundtrip and all three causal scenes valid', () => {
+  it('keeps schema, fmCheck, source tree roundtrip and all three causal scenes valid', () => {
     const model = fullSpectrumModel();
     expect(strictValidateDomainModel(model).issues).toEqual([]);
     const { report } = buildFmCheckReport({ model });
@@ -22,9 +22,7 @@ describe('full-spectrum model lifecycle acceptance', () => {
       errors: [],
       humanConfirmation: 'not-asserted-by-machine',
     });
-    const reparsed = parseModelBundleText(
-      serializeModelBundle(model, { sortItems: false }),
-    );
+    const reparsed = parseModelSourceFiles(serializeDomainModel(model));
     expect(reparsed.issues).toEqual([]);
     expect(reparsed.document).toEqual(model);
     const flows = collectFlowScenarios(model);

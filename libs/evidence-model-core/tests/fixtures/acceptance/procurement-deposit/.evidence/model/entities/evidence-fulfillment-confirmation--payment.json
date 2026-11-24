@@ -1,0 +1,84 @@
+{
+  "type": "entity",
+  "id": "confirmation.payment",
+  "category": "evidence",
+  "kind": "fulfillment_confirmation",
+  "contextRef": "context.procurement",
+  "label": "payment confirmation",
+  "responsibleRoleRef": "role.buyer",
+  "attributes": [
+    {
+      "name": "id",
+      "label": "id",
+      "meaning": "id",
+      "valueType": "id",
+      "required": true
+    },
+    {
+      "name": "confirmed_at",
+      "timeRole": "occurrence",
+      "label": "confirmed_at",
+      "meaning": "confirmed_at",
+      "valueType": "timestamp",
+      "required": true,
+      "keyData": true
+    },
+    {
+      "name": "total_amount",
+      "label": "total_amount",
+      "meaning": "total_amount",
+      "valueType": "decimal",
+      "required": true,
+      "derivedByRuleRef": "rule.total-amount"
+    },
+    {
+      "name": "note",
+      "label": "note",
+      "meaning": "note",
+      "valueType": "string",
+      "required": false
+    }
+  ],
+  "examples": [
+    {
+      "label": "confirmed",
+      "value": {
+        "id": "confirmation-001",
+        "total_amount": 500,
+        "confirmed_at": "2026-03-31T10:00:00Z"
+      },
+      "test": {
+        "flow": "payment",
+        "asOf": "2026-03-31T10:00:00Z",
+        "actingRoleRef": "role.buyer",
+        "basedOn": [
+          "request.payment#requested"
+        ]
+      }
+    },
+    {
+      "label": "bad-input",
+      "value": {
+        "id": "confirmation-001",
+        "total_amount": 500,
+        "confirmed_at": "2026-03-31T10:00:00Z"
+      },
+      "test": {
+        "flow": "payment",
+        "asOf": "2026-03-31T10:00:00Z",
+        "actingRoleRef": "role.buyer",
+        "basedOn": [
+          "request.payment#requested"
+        ],
+        "expectedStatus": 422,
+        "inputs": {
+          "id": "rejected-001",
+          "total_amount": 1
+        },
+        "expect": {
+          "$.error": "INVALID_INPUT"
+        }
+      }
+    }
+  ]
+}

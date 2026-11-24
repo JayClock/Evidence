@@ -18,7 +18,7 @@ const fixture = (name: string): string =>
   );
 
 const load = async (name: string) => {
-  const { bundle } = await readModelRoot(fixture(name));
+  const { document: bundle } = await readModelRoot(fixture(name));
 
   return { bundle };
 };

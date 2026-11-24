@@ -13,44 +13,14 @@ canvas and inspector consume, and the only sanctioned way to change it.
 
 ## Two source forms, one model
 
-`.evidence/model/` (a tree) and `*.evidence.json` (one bundle) hold the same
-`DomainModelDocument`; only the adapter differs.
+The source of truth is the `.evidence/model/` directory: `model.json` and
+JSON files in `entities/`, `relationships/` and `rules/`. The core parses and
+serializes those source files without touching disk. The static FM report (v6)
+proves consistency and scope completeness, not backend test execution.
 
-```jsonc
-// <model>.evidence.json
-{
-  "type": "fm_bundle",
-  "schemaVersion": "6.0",
-  "manifest": {
-    /* model.json */
-  },
-  "entities": [],
-  "relationships": [],
-  "rules": [],
-  "readme": "…", // optional, `.evidence/model/README.md`
-}
-```
-
-- `parseModelBundleText` / `serializeModelBundle` are pure and browser-safe.
-  Inline `examples` and `readme` ride along on the document, so an edit-then-save
-  round trip in the canvas keeps them.
-- `packModelDirectory`, `unpackModelBundle` and `writeModelBundle` add the disk
-  side. Unpacking never rewrites a file whose object already matches, so a
-  hand-formatted tree keeps its bytes and its git status.
-- `generated/` never enters a bundle: it is derived output, not a source.
-
-Both forms carry the same inline examples. Acceptance cases live exclusively in
-`entities[].examples[].test`; `evidence export --tests` emits a Bruno collection
-without introducing another authored source format. Retired `validation/` files
-are not model sources and are not read or changed.
-The static FM report (v6) proves consistency and scope completeness only, never
-backend test execution. The old simulator, instance timeline, role-play packet
-and replay APIs/CLI commands have been removed.
-
-Production workspaces use directory sources only; bundles are retained for fixture and library-level format tests.
-
-The `check` and derive commands read a directory; `check` refuses a bundle with a
-hint to unpack it first, so a report always names files a reader can open.
+Acceptance cases live in `entities[].examples[].test`; `evidence export --tests`
+emits the Bruno collection. Retired `validation/` files are not model sources
+and are not read or changed.
 
 Red lines enforced by the command layer, not by the caller:
 

@@ -1,5 +1,6 @@
 import {
   mkdtempSync,
+  renameSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -8,7 +9,6 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { serializeModelBundle } from '@evidence-poc/evidence-model-core';
 import { writeModelDirectory } from '@evidence-poc/evidence-model-io';
 import { exportAcceptanceTests } from './exportTests.js';
 import { suiteManifest } from './renderer/brunoSuite.js';
@@ -16,16 +16,16 @@ import { createAcceptanceModel } from '@evidence-poc/evidence-api/testing';
 
 let root: string, fm: string, out: string;
 const exportSuite = () => exportAcceptanceTests({ fm, out });
-beforeEach(() => {
+beforeEach(async () => {
   root = mkdtempSync(path.join(os.tmpdir(), 'evidence-acceptance-export-'));
-  fm = path.join(root, 'model.evidence.json');
+  fm = path.join(root, 'model');
   out = path.join(root, 'generated-tests');
-  writeFileSync(fm, serializeModelBundle(createAcceptanceModel()));
+  await writeModelDirectory(fm, createAcceptanceModel());
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
 describe('exportAcceptanceTests', () => {
-  it('exports a native Bruno collection deterministically from a bundle or source tree', async () => {
+  it('exports a native Bruno collection deterministically from a model directory', async () => {
     await exportSuite();
     expect(readdirSync(out).sort()).toEqual([
       'bruno.json',
@@ -36,8 +36,6 @@ describe('exportAcceptanceTests', () => {
     ]);
     const manifest = readFileSync(path.join(out, suiteManifest), 'utf8');
     expect(JSON.parse(manifest).projection.flows[0].steps).toHaveLength(3);
-    fm = path.join(root, 'fm');
-    await writeModelDirectory(fm, createAcceptanceModel());
     await exportSuite();
     expect(readFileSync(path.join(out, suiteManifest), 'utf8')).toBe(manifest);
     expect(readdirSync(fm)).not.toContain('validation');
@@ -79,7 +77,7 @@ describe('exportAcceptanceTests', () => {
       confirmationExample.value.total_amount = expected;
       rule.expression = `request.quantity + ${type === 'uint' ? '1u' : '1'}`;
       rule.resultType = type;
-      writeFileSync(fm, serializeModelBundle(model));
+      await writeModelDirectory(fm, model);
 
       await exportSuite();
       const dir = path.join(out, 'flows/flow-001');
@@ -108,35 +106,33 @@ describe('exportAcceptanceTests', () => {
     model.entities.find(
       (entity) => entity.id === 'confirmation.payment',
     )!.examples![0]!.value.total_amount = 501;
-    writeFileSync(fm, serializeModelBundle(model));
+    await writeModelDirectory(fm, model);
     await expect(exportSuite()).rejects.toThrow('disagrees');
     expect(readFileSync(path.join(out, suiteManifest), 'utf8')).toBe(before);
   });
   it('refuses missing sources and models without executable examples', async () => {
-    rmSync(fm);
-    await expect(exportSuite()).rejects.toThrow('ENOENT');
+    rmSync(fm, { recursive: true });
+    await expect(exportSuite()).rejects.toThrow('model.json is required');
     const model = createAcceptanceModel();
     for (const entity of model.entities) entity.examples = [];
-    writeFileSync(fm, serializeModelBundle(model));
+    await writeModelDirectory(fm, model);
     await expect(exportSuite()).rejects.toThrow(
       'no examples with test metadata',
     );
   });
   it('surfaces invalid JSON and does not create output directories', async () => {
-    writeFileSync(fm, '{bad');
+    writeFileSync(path.join(fm, 'model.json'), '{bad');
     await expect(exportSuite()).rejects.toThrow();
-    expect(readdirSync(root)).toEqual(['model.evidence.json']);
+    expect(readdirSync(root)).toEqual(['model']);
   });
-  it('refuses legacy test envelopes and leaves the exported suite untouched', async () => {
+  it('rejects a file input without changing the existing suite', async () => {
     await exportSuite();
-    const file = path.join(out, suiteManifest);
-    const before = readFileSync(file, 'utf8');
-    const legacy = {
-      ...JSON.parse(serializeModelBundle(createAcceptanceModel())),
-      validation: { instances: [], scenarios: [] },
-    };
-    writeFileSync(fm, JSON.stringify(legacy));
-    await expect(exportSuite()).rejects.toThrow('no longer supported');
-    expect(readFileSync(file, 'utf8')).toBe(before);
+    const manifest = path.join(out, suiteManifest);
+    const before = readFileSync(manifest, 'utf8');
+    renameSync(fm, path.join(root, 'model-tree'));
+    writeFileSync(fm, '{}');
+    await expect(exportSuite()).rejects.toThrow();
+    expect(readFileSync(manifest, 'utf8')).toBe(before);
+    expect(readFileSync(fm, 'utf8')).toBe('{}');
   });
 });

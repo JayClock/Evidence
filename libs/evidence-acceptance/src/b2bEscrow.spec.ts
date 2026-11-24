@@ -4,29 +4,24 @@ import { fileURLToPath } from 'node:url';
 import {
   buildFmCheckReport,
   evaluateRuleOnExample,
-  parseModelBundleText,
 } from '@evidence-poc/evidence-model-core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { projectAcceptanceTests } from './delivery/scenarioProjector.js';
 import { renderDeliverables } from './renderDeliverables.js';
 import { selectAcceptanceFlows } from './runner/suiteSelection.js';
 
+import { readModelDirectory } from '@evidence-poc/evidence-model-io';
+
 const root = new URL('../../../examples/b2b-escrow/', import.meta.url);
-function load(name: string) {
-  const result = parseModelBundleText(
-    readFileSync(
-      new URL(
-        `../../../libs/evidence-model-core/tests/fixtures/examples/${name}.evidence.json`,
-        import.meta.url,
-      ),
-      'utf8',
-    ),
+async function load(workspace: URL) {
+  const { document, issues } = await readModelDirectory(
+    fileURLToPath(new URL('.evidence/model', workspace)),
   );
-  expect(result.issues).toEqual([]);
-  return result.document;
+  expect(issues).toEqual([]);
+  return document;
 }
-const baseline = load('b2b-escrow-v1');
-const current = load('b2b-escrow');
+const baseline = await load(new URL('baseline-v1/', root));
+const current = await load(root);
 const projection = projectAcceptanceTests(current);
 const options = { openapi: true, tests: true };
 let base: Awaited<ReturnType<typeof renderDeliverables>>;
@@ -76,10 +71,10 @@ describe('B2B escrow phase-one contract', () => {
       const parties = model.entities.filter(
         (entity) => entity.category === 'participant',
       );
-      expect(parties.map((party) => party.id)).toEqual([
+      expect(parties.map((party) => party.id).sort()).toEqual([
         'party.buyer',
-        'party.seller',
         'party.escrow',
+        'party.seller',
       ]);
     },
   );

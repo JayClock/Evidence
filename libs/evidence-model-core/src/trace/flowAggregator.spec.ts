@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { readModelRoot } from '../../tests/support/modelRoot.js';
 import {
   compactCanonicalJson,
   createEmptyDomainModel,
-  DomainModelDocumentSchema,
   type DomainModelDocument,
   type EntityAST,
   type EvidenceEntityAST,
@@ -375,18 +375,24 @@ describe('flow graph errors', () => {
   });
 });
 
-const acceptanceModel = (name = 'procurement'): DomainModelDocument =>
-  DomainModelDocumentSchema.parse(
-    JSON.parse(
-      readFileSync(
-        new URL(
-          `../../tests/fixtures/acceptance/${name}.evidence.json`,
-          import.meta.url,
-        ),
-        'utf8',
+const loadFixture = async (name: string) => {
+  const { document, issues } = await readModelRoot(
+    fileURLToPath(
+      new URL(
+        `../../tests/fixtures/acceptance/${name}/.evidence/model`,
+        import.meta.url,
       ),
     ),
   );
+  expect(issues).toEqual([]);
+  return document;
+};
+const fixtures = {
+  procurement: await loadFixture('procurement'),
+  'procurement-deposit': await loadFixture('procurement-deposit'),
+};
+const acceptanceModel = (name: keyof typeof fixtures = 'procurement') =>
+  structuredClone(fixtures[name]);
 const exampleOf = (
   model: DomainModelDocument,
   entityId: string,

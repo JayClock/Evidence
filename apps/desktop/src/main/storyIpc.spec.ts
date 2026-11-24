@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,9 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { collectFlowScenarios } from '@evidence-poc/evidence-model-core';
 import {
   initializeWorkspace,
+  readModelDirectory,
   workspacePaths,
 } from '@evidence-poc/evidence-model-io';
-import { DomainModelDocumentSchema } from '@evidence-poc/evidence-schema';
 
 import {
   STORY_IPC_CHANNELS,
@@ -30,18 +29,14 @@ vi.mock('electron', () => ({
   },
 }));
 
-const model = () =>
-  DomainModelDocumentSchema.parse(
-    JSON.parse(
-      readFileSync(
-        path.resolve(
-          import.meta.dirname,
-          '../../../../libs/evidence-model-core/tests/fixtures/acceptance/procurement.evidence.json',
-        ),
-        'utf8',
-      ),
-    ),
-  );
+const fixture = await readModelDirectory(
+  path.resolve(
+    import.meta.dirname,
+    '../../../../libs/evidence-model-core/tests/fixtures/acceptance/procurement/.evidence/model',
+  ),
+);
+expect(fixture.issues).toEqual([]);
+const model = () => structuredClone(fixture.document);
 const sender = () => ({
   isDestroyed: () => false,
   once: vi.fn(),

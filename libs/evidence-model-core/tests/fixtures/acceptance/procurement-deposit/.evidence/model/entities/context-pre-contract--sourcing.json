@@ -1,0 +1,8 @@
+{
+  "type": "entity",
+  "id": "context.sourcing",
+  "category": "context",
+  "kind": "pre_contract",
+  "label": "Sourcing",
+  "parentContextRef": "context.procurement"
+}

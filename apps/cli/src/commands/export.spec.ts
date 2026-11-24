@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import {
   initializeWorkspace,
-  readModelBundle,
+  readModelDirectory,
   workspacePaths,
   writeModelDirectory,
 } from '@evidence-poc/evidence-model-io';
@@ -24,7 +24,7 @@ import { dispatch } from '../router.js';
 
 const source = fileURLToPath(
   new URL(
-    '../../../../libs/evidence-model-core/tests/fixtures/acceptance/procurement.evidence.json',
+    '../../../../libs/evidence-model-core/tests/fixtures/acceptance/procurement/.evidence/model',
     import.meta.url,
   ),
 );
@@ -34,7 +34,7 @@ beforeEach(async () => {
   root = realpathSync(mkdtempSync(path.join(tmpdir(), 'evidence-export-')));
   paths = await initializeWorkspace(
     root,
-    (await readModelBundle(source)).document,
+    (await readModelDirectory(source)).document,
   );
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -82,7 +82,7 @@ it('leaves previous output intact if acceptance compilation fails', async () => 
   expect(await dispatch(['export'], context())).toBe(0);
   const suite = path.join(paths.acceptance, 'evidence-acceptance.json');
   const before = readFileSync(suite, 'utf8');
-  const broken = (await readModelBundle(source)).document;
+  const broken = (await readModelDirectory(source)).document;
   for (const entity of broken.entities) delete entity.examples;
   await writeModelDirectory(paths.model, broken);
   expect(await dispatch(['export'], context())).toBe(1);
