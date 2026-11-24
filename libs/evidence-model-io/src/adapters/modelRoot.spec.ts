@@ -12,7 +12,7 @@ import {
 
 let root: string;
 beforeEach(async () => {
-  root = await mkdtemp(path.join(tmpdir(), 'evidence-no-legacy-'));
+  root = await mkdtemp(path.join(tmpdir(), 'evidence-model-source-'));
 });
 afterEach(async () => {
   await rm(root, { recursive: true, force: true });
@@ -31,9 +31,9 @@ describe('model source selection', () => {
         })),
       );
     const digest = await readDigest();
-    const retired = path.join(model, 'validation/scenarios');
-    await mkdir(retired, { recursive: true });
-    const file = path.join(retired, 'old.json');
+    const notes = path.join(model, 'notes');
+    await mkdir(notes);
+    const file = path.join(notes, 'scratch.json');
     await writeFile(file, '{');
 
     expect(before.issues).toEqual([]);

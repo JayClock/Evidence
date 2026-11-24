@@ -93,7 +93,7 @@ export function openWorkspace(rootPath: string) {
   return paths;
 }
 
-/** The nearest .evidence entry owns discovery, including an invalid/legacy one.
+/** The nearest .evidence entry owns discovery, even without a model manifest.
  * Never silently select a parent workspace across a repository boundary. */
 export function findWorkspace(from: string) {
   let directory = resolveDirectory(from).root;
@@ -127,8 +127,7 @@ export async function writeWorkspaceFile(
   }
 }
 
-/** Initialize only after an explicit request. Never overwrite or migrate an
- * existing .evidence tree, even one using an unsupported layout. */
+/** Initialize only after an explicit request. Never overwrite an existing .evidence entry. */
 export async function initializeWorkspace(
   rootPath: string,
   document: DomainModelDocument,
@@ -136,7 +135,7 @@ export async function initializeWorkspace(
   const paths = resolveDirectory(rootPath);
   if (entryAt(paths.evidence))
     throw new Error(
-      `WORKSPACE_ALREADY_EXISTS: ${paths.evidence} 已存在，不会覆盖或迁移。`,
+      `WORKSPACE_ALREADY_EXISTS: ${paths.evidence} 已存在，不会覆盖。`,
     );
   // Claim the directory exclusively; concurrent initializers cannot both write it.
   await mkdir(paths.evidence);

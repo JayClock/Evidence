@@ -56,12 +56,16 @@ describe('JSON Patch tool/IPC contract', () => {
     ).toBe(true);
   });
 
-  it('requires rationale and a non-empty standard batch, with no legacy commands field', () => {
+  it('requires rationale and a non-empty standard batch and rejects extra fields', () => {
     for (const request of [
       {},
       { rationale: '', patches: [] },
       { rationale: '   ', patches: [{ op: 'remove', path: '/readme' }] },
-      { rationale: 'edit', commands: [{ type: 'create-entity' }] },
+      {
+        rationale: 'edit',
+        patches: [{ op: 'remove', path: '/readme' }],
+        extra: true,
+      },
       { rationale: 'edit', patches: [] },
     ])
       expect(ModelPatchRequestSchema.safeParse(request).success).toBe(false);

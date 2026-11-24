@@ -40,17 +40,18 @@ it('initializes a non-empty directory without touching its contents and discover
   expect(await readFile(sentinel, 'utf8')).toBe('code');
 });
 
-it('neither loads nor overwrites a legacy workspace', async () => {
-  const legacy = path.join(root, '.evidence', 'fm');
-  await mkdir(legacy, { recursive: true });
-  await writeFile(path.join(legacy, 'model.json'), 'legacy');
-  expect(() => findWorkspace(root)).toThrow('WORKSPACE_NOT_INITIALIZED');
+it('does not fall back to a parent workspace or overwrite an incomplete child workspace', async () => {
+  await initializeWorkspace(root, createEmptyDomainModel());
+  const child = path.join(root, 'child');
+  const evidence = workspacePaths(child).evidence;
+  await mkdir(evidence, { recursive: true });
+  const sentinel = path.join(evidence, 'notes.txt');
+  await writeFile(sentinel, 'owner content');
+  expect(() => findWorkspace(child)).toThrow('WORKSPACE_NOT_INITIALIZED');
   await expect(
-    initializeWorkspace(root, createEmptyDomainModel()),
+    initializeWorkspace(child, createEmptyDomainModel()),
   ).rejects.toThrow('WORKSPACE_ALREADY_EXISTS');
-  expect(await readFile(path.join(legacy, 'model.json'), 'utf8')).toBe(
-    'legacy',
-  );
+  expect(await readFile(sentinel, 'utf8')).toBe('owner content');
 });
 
 it('rejects out-of-workspace and symbolic-link destinations', async () => {

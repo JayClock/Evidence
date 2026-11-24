@@ -243,7 +243,7 @@ describe('useMcpBridge', () => {
     expect(session.getDocument().entities[0].label).toBe('second');
   });
 
-  it('rejects the legacy command envelope at the renderer boundary', async () => {
+  it('rejects unexpected fields at the renderer patch boundary', async () => {
     const api = installDesktopApi();
     const session = createModelSession({ document: createDesktopFixture() });
     const before = session.getDocument();
@@ -251,8 +251,9 @@ describe('useMcpBridge', () => {
     const response = await answerFor(
       api,
       request('apply_model_patch', {
-        rationale: 'legacy',
-        commands: [{ type: 'delete-entity', entityId: 'evidence.request' }],
+        rationale: 'mark a draft',
+        patches: [{ op: 'replace', path: '/entities/0/label', value: 'Draft' }],
+        extra: true,
       }),
     );
     expect(response).toMatchObject({ result: { success: false, revision: 4 } });
