@@ -24,7 +24,7 @@
 
 **Evidence 致力于成为后端领域的 Pencil 与形式化安全门禁。**
 
-它提供了一套基于**履约建模法（Fulfillment Modeling v5）**的领域描述语言（DSL）与**桌面可视化建模工作台（Canvas & Inspector）**。确立**“宏观形式化确定，微观生成式灵活”**的设计原则：在脱离具体语言的环境中精确表达业务权责、事实凭证与派生规则，锁死架构与契约底线，为 AI Coding 提供不可伪造的外部验收基线。
+它提供了一套基于**履约建模法（Fulfillment Modeling v6）**的领域描述语言（DSL）与**桌面可视化建模工作台（Canvas & Inspector）**。确立**“宏观形式化确定，微观生成式灵活”**的设计原则：在脱离具体语言的环境中精确表达业务权责、事实凭证与派生规则，锁死架构与契约底线，为 AI Coding 提供不可伪造的外部验收基线。
 
 ### 研发范式对比
 
@@ -116,7 +116,7 @@ pnpm evidence export --workspace examples/b2b-escrow --verify
 
 ## ✨ 核心能力
 
-### 1. 业务履约模型 DSL（Fulfillment Modeling v5）
+### 1. 业务履约模型 DSL（Fulfillment Modeling v6）
 
 抛弃贫血的 CRUD 实体思维，采用以**权责、请求、确认、事实证据**为核心的原语：
 
@@ -262,7 +262,7 @@ pnpm desktop
 
 ### 目录工作区与命令行
 
-在桌面端选择目标目录。首次使用时显式初始化（可选模板），之后可直接打开。Evidence 不要求或创建代码目录，不运行 Git 命令，也不自动迁移、覆盖或清理旧 `.evidence/fm/`、Bundle 或根目录交付物。
+在桌面端选择目标目录。首次使用时显式初始化（可选模板），之后可直接打开。Evidence 不要求或创建代码目录，不运行 Git 命令，也不会覆盖已有的 `.evidence/` 目录。
 
 ```text
 <目标目录>/.evidence/
@@ -285,7 +285,7 @@ pnpm evidence test --workspace examples/b2b-escrow --target http://localhost:808
 pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format json
 ```
 
-也可以直接运行构建好的 `evidence` CLI：在工作区内省略 `--workspace` 时，从当前目录寻找最近的 `.evidence/`，不会跨 Git 仓库边界。`compile`、`lineage`、`story --export` 和 `test --write-reports` 写入各自的固定目录。旧 `pack`、`unpack`、文件型项目和任意输出路径均不再支持。提交模型与需要版本化的产物；分支、历史和回滚由 Git 管理。
+也可以直接运行构建好的 `evidence` CLI：在工作区内省略 `--workspace` 时，从当前目录寻找最近的 `.evidence/`，不会跨 Git 仓库边界。`compile`、`lineage`、`story --export` 和 `test --write-reports` 写入各自的固定目录。提交模型与需要版本化的产物；分支、历史和回滚由 Git 管理。
 
 ## 🧭 未来规划与待办（Roadmap & TODOs）
 
@@ -299,12 +299,12 @@ pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format 
 
 ### 2. 独立运行容器与入口收敛（Apps & Packaging）
 
-- [x] **统一命令行工具容器 (`apps/cli`)**：基于 `cac` 提供 `evidence init/check/test/export/diff/compile`；同时提供 `inspect`、`lineage` 和 `story`；旧 CLI 入口已移除。
+- [x] **统一命令行工具容器 (`apps/cli`)**：基于 `cac` 提供 `evidence init/check/test/export/diff/compile`；同时提供 `inspect`、`lineage` 和 `story`。
 - [ ] **独立 MCP 服务端应用 (`apps/mcp-server`)**：将 MCP 协议服务从纯 Libs 提升为可脱离桌面端、独立以 stdio/SSE 启动的长周期服务容器。
 
 ### 3. HTTP 验收
 
-- [x] **标准场景验收导出**：从内联 `examples[].test` 直接导出 Bruno 集合，支持依赖捕获、派生断言和显式负向用例。旧 Scenario / Instance 文件格式及内存回放器已移除。
+- [x] **标准场景验收导出**：从内联 `examples[].test` 直接导出 Bruno 集合，支持依赖捕获、派生断言和显式负向用例。
 
 ### 4. 架构与工程规范通用化（Industry Standard Refactoring）
 

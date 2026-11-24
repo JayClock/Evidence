@@ -166,7 +166,6 @@ v1 regression 为两个原有流程、46 步；DoD 为三个新增里程碑流�
 
 ### 存量迁移与范围
 
-- 旧 `dogfood-backend/`、转发 shim 和旧治理产物已移除，不保留兼容启动入口。
 - 采购/定金小模型移至 `libs/evidence-model-core/tests/fixtures/acceptance/`，仅供叙事、哈希和导出等框架回归使用；真实 HTTP 验收及 CI 使用本案例。
 - GitHub 门禁已覆盖四个独立实现；GitLab 模板保留仅需 Node 的 Fastify 双门禁入口。每个 gate 独立进程，详情见下方阶段五。自定义浏览器客户端及浏览器 E2E 不在本案例范围内。
 - 后端契约通过只证明已执行用例，不代表前端 E2E 失败一定是前端问题；排障仍需结合浏览器、网络、测试数据和服务日志。

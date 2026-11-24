@@ -19,9 +19,9 @@ Consumes [`evidence-api`](../evidence-api/README.md) projections and owns:
 | `/commands`   | Typed `runDiff` for models or OpenAPI artifacts                      |
 | `/projection` | Browser-safe acceptance compilation only                             |
 
-Bruno is the only acceptance format. Use `evidence export --tests` to generate
-just the collection; it has no `--format` switch. `evidence test` takes
-one generated collection directory, not a Step CI YAML or Hurl file.
+Use `evidence export --tests` to generate just the Bruno collection.
+`evidence test` runs the collection in the selected workspace's
+`.evidence/acceptance/` directory.
 
 The `/projection` entry may use `evidence-api/delivery` and the universal model
 engines, but must not import the Node package root, HTTP runner or native diff.

@@ -36,9 +36,8 @@ used to point at belongs to the library that consumes it:
 The agent session asks Pi for `noSkills: true`, so a working copy is never
 scanned for instructions: opening a project reads its model, nothing else.
 
-The Python scripts these packages used to carry are gone; the checks, the derived
-documents and the generators are the TypeScript commands listed above. A command
-is the same code the app runs, so a terminal and a window cannot disagree:
+The checks, derived documents and generators share TypeScript libraries across
+the CLI and desktop. For example:
 
 ```bash
 pnpm exec nx build cli
@@ -47,9 +46,9 @@ pnpm evidence compile --workspace examples/b2b-escrow
 pnpm evidence export --workspace examples/b2b-escrow --openapi
 ```
 
-API projection v6 uses business aggregate roots rather than deployment Context
-prefixes. See [API projection v6](docs/api-projection-v6.md) for URI rules, HAL,
-gateway ownership and the model-aware `evidence migrate-overlay` command.
+The API projection uses business aggregate roots rather than deployment Context
+prefixes. See [API delivery](docs/api-projection-v6.md) for URI rules, HAL and
+gateway ownership.
 
 ## Unified contracts and acceptance CLI
 
@@ -69,9 +68,8 @@ pnpm evidence diff examples/b2b-escrow/baseline-v1 examples/b2b-escrow --format 
 ```
 
 `export` validates OpenAPI 3.1 and replaces each dedicated output tree (`.evidence/delivery/release` and `.evidence/acceptance`) independently. Without `--openapi`/`--tests`, it exports both OpenAPI and a Bruno
-collection. Acceptance export no longer has a `--format` switch. `test` takes
-one generated collection directory and uses the pinned Bruno CLI installed by
-pnpm. `--json` emits a machine-readable report without terminal formatting. Commit
+collection. `test` reads the workspace's `.evidence/acceptance` directory and
+uses the pinned Bruno CLI installed by pnpm. `--json` emits a machine-readable report without terminal formatting. Commit
 `bruno.json`, the generated `.bru` files and `evidence-acceptance.json` together;
 `export --verify` compares the entire generated output byte for byte without
 writing it. See [acceptance execution](libs/evidence-acceptance/README.md#running-the-collection)

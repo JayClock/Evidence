@@ -35,9 +35,8 @@ creation. A confirmation's creation entrance and authority are independent:
 
 All confirmations have a top-level primary GET at
 `/{confirmation-plural}/{confirmation-id}`. Its collection uses the same noun
-rule as other resources: `confirmation.payment` becomes `/payments`, with no
-implicit `-confirmations` suffix or alias for old URLs. Regenerate OpenAPI and
-Bruno together when adopting the change. Clients should follow the `201 Location`
+rule as other resources: `confirmation.payment` becomes `/payments`. Clients
+should follow the `201 Location`
 header or HAL `self` instead of constructing a detail URI from the write entrance.
 
 Proposals nest under the inquiry they reference. A contract referencing a proposal
@@ -109,35 +108,34 @@ prefix alone is not sufficient to decide ownership.
 
 `evidence export --openapi` exports the aggregate `openapi.json`. For standalone
 `services/<serviceId>/openapi.json`, `topology.json` and projection artifacts, use
-`renderOutputs` from `@evidence-poc/evidence-api`; there is no `evidence` CLI
-replacement for the full projection export. Each operation appears unchanged in
+`renderOutputs` from `@evidence-poc/evidence-api`. Each operation appears unchanged in
 exactly one service view, including its hypermedia templates to other services.
 `topology.json` describes modeled subject references, signing and capability
 outcomes; it does not prescribe containers, transports or runtime dependencies.
 There is no generated Compose or broker configuration.
 
-Save published contracts outside the generated directory. Compare a candidate
-with the corresponding published contract before release:
+Compare two workspaces before release:
 
 ```bash
-pnpm evidence diff published/procurement/openapi.json \
-  dist/api/services/service.product-procurement/openapi.json --format markdown
+pnpm evidence diff ./baseline-workspace ./candidate-workspace --format markdown
 ```
 
-Compare two model inputs or two OpenAPI JSON artifacts of the same scope. The
-CLI exits nonzero for either breaking changes or an invalid comparison. Callers
-that need distinct codes (`1` for breaking changes, `2` for input or tool errors)
-can use the typed `runDiff` API in `@evidence-poc/evidence-acceptance`. `oasdiff`
-checks the declared interface; behavior still needs tests and release policy.
+The CLI projects both models with the current projector and exits nonzero for
+breaking changes or errors. To compare already-published bytes, keep them outside
+generated directories and pass two OpenAPI JSON files of the same scope to
+`runDiff({ base, target, format })` in `@evidence-poc/evidence-acceptance`. The
+typed API takes absolute paths and distinguishes breaking changes (exit code `1`)
+from input or tool errors (`2`). `oasdiff` checks the declared interface; behavior
+still needs tests and release policy.
 
 ## Automatic API draft sync
 
-The desktop automatically syncs the current editor revision after 500 ms without
-new model edits. It uses unsaved changes as well as saved changes. There is no
-export button or directory picker. The same public URI rules apply whether the
-implementation will be a monolith or use multiple deployment units.
+The desktop automatically syncs drafts from the latest verified disk revision.
+The main process debounces editor writes by 400 ms; edits that are still waiting
+to be written are not inputs to draft sync. The same public URI rules apply to
+monoliths and multiple deployment units.
 
-- Draft output is fixed at `<projectRoot>/.evidence/delivery/`. The old root-level output and `.evidencerc.json` are not used.
+- Draft output is fixed at `<projectRoot>/.evidence/delivery/`.
 - A business Context is the unit of validation and sync. Contract files contain
   the exact operations owned by that Context, not everything under a URI prefix.
   A blocked Context's existing `services/<contextId>/` files are retained.
@@ -196,13 +194,6 @@ negotiation-to-asynchronous-result lifecycle. Each is a standalone model plus
 compiled OpenAPI and a Bruno collection, not a service implementation. CI runs
 `pnpm examples:verify` to check their models and compare the generated files
 without writing them. `pnpm boundaries:drill` remains the module-boundary test.
-
-The canonical confirmation paths are an approved breaking change. For B2B escrow,
-comparing the previously committed OpenAPI to the regenerated artifact with
-`oasdiff breaking` reports 13 removed nested GET operations. The corresponding
-POSTs keep their action paths; clients must switch to the new `Location`/HAL `self`
-URI for reads. Git model baselines remain immutable; rerunning the current
-projector on both models measures model evolution, not this projector migration.
 
 OpenWiki is maintained through the pinned OpenWiki 0.9.0 generation lifecycle or
 `.github/workflows/openwiki-update.yml`; the workflow currently requires manual
